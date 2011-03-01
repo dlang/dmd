@@ -22,12 +22,26 @@ struct InterfaceDeclaration;
 
 struct ObjcSymbols
 {
+    static void init();
+    
+    static int hassymbols;
+
     static Symbol *msgSend;
     static Symbol *msgSend_stret;
     static Symbol *msgSend_fpret;
     static Symbol *msgSendSuper;
     static Symbol *msgSendSuper_stret;
     static Symbol *stringLiteralClassRef;
+    static Symbol *siminfo;
+    static Symbol *smodinfo;
+    static Symbol *ssymmap;
+    
+    static StringTable *sclassnametable;
+    static StringTable *sclassreftable;
+    static StringTable *smethvarnametable;
+    static StringTable *smethvarreftable;
+    static StringTable *smethvartypetable;
+    static StringTable *sprototable;
 
     static Symbol *getMsgSend(Type *ret, int hasHiddenArg);
     static Symbol *getMsgSendSuper(int hasHiddenArg);
@@ -45,7 +59,9 @@ struct ObjcSymbols
     static Symbol *getClassReference(Identifier *ident);
     
     static Symbol *getMethVarName(const char *str, size_t len); 
-    static Symbol *getMethVarName(Identifier *ident);   
+    static Symbol *getMethVarName(Identifier *ident);
+    static Symbol *getMethVarRef(const char *str, size_t len); 
+    static Symbol *getMethVarRef(Identifier *ident);
     static Symbol *getMethVarType(const char *str, size_t len); 
     static Symbol *getMethVarType(Dsymbol **types, size_t dim);
     static Symbol *getMethVarType(Dsymbol *type);
@@ -78,8 +94,6 @@ struct ObjcSelector
     const char *stringvalue;
     size_t stringlen;
     size_t paramCount;
-    Symbol *namesymbol;
-    Symbol *refsymbol;
     
     ObjcSelector(const char *sv, size_t len, size_t pcount);
     Symbol *toNameSymbol();

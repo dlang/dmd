@@ -838,6 +838,9 @@ int main(int argc, char *argv[])
              */
             && !global.params.symdebug
 #endif
+#if DMD_OBJC
+            && 0 // FIXME: D/Objective-C has no support for multiobj
+#endif
            )
             global.params.multiobj = 1;
     }

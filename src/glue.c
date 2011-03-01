@@ -209,6 +209,9 @@ void Module::genobjfile(int multiobj)
     lastmname = srcfile->toChars();
 
     obj_initfile(lastmname, NULL, toPrettyChars());
+#if DMD_OBJC
+    ObjcSymbols::init();
+#endif
 
     eictor = NULL;
     ictorlocalgot = NULL;

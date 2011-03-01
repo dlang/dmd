@@ -50,17 +50,6 @@ void Module::genmoduleinfo()
 {
     //printf("Module::genmoduleinfo() %s\n", toChars());
 
-#if DMD_OBJC
-    // generate the list of objc classes and categories in this module
-    ClassDeclarations objccls;
-    ClassDeclarations objccat;
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (Dsymbol *)members->data[i];
-        member->addObjcSymbols(&objccls, &objccat);
-    }
-    ObjcSymbols::getModuleInfo(&objccls, &objccat);
-#endif
-
     Symbol *msym = toSymbol();
     unsigned offset;
 #if DMDV2
@@ -330,6 +319,19 @@ void Module::genmoduleinfo()
         ClassDeclaration *cd = (ClassDeclaration *)aclasses.data[i];
         dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
     }
+#endif
+
+#if DMD_OBJC
+    // generate the list of objc classes and categories in this module
+    ClassDeclarations objccls;
+    ClassDeclarations objccat;
+    for (int i = 0; i < members->dim; i++)
+    {   Dsymbol *member = (Dsymbol *)members->data[i];
+        member->addObjcSymbols(&objccls, &objccat);
+    }
+    // only emit objc module info for modules with Objective-C symbols
+    if (objccls.dim || objccat.dim || ObjcSymbols::hassymbols)
+        ObjcSymbols::getModuleInfo(&objccls, &objccat);
 #endif
 
     csym->Sdt = dt;

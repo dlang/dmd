@@ -69,9 +69,12 @@ enum ObjcSegment
     SEG_MAX
 };
 
+
+static int seg_list[SEG_MAX] = {0};
+
 static int objc_getsegment(enum ObjcSegment segid)
 {
-    static int seg[SEG_MAX] = {0};
+    int *seg = seg_list;
     if (seg[segid] != 0)
         return seg[segid];
     
@@ -105,6 +108,7 @@ static int objc_getsegment(enum ObjcSegment segid)
     return seg[segid];
 }
 
+int ObjcSymbols::hassymbols = 0;
 
 Symbol *ObjcSymbols::msgSend = NULL;
 Symbol *ObjcSymbols::msgSend_stret = NULL;
@@ -112,6 +116,52 @@ Symbol *ObjcSymbols::msgSend_fpret = NULL;
 Symbol *ObjcSymbols::msgSendSuper = NULL;
 Symbol *ObjcSymbols::msgSendSuper_stret = NULL;
 Symbol *ObjcSymbols::stringLiteralClassRef = NULL;
+Symbol *ObjcSymbols::siminfo = NULL;
+Symbol *ObjcSymbols::smodinfo = NULL;
+Symbol *ObjcSymbols::ssymmap = NULL;
+
+StringTable *ObjcSymbols::sclassnametable = NULL;
+StringTable *ObjcSymbols::sclassreftable = NULL;
+StringTable *ObjcSymbols::smethvarnametable = NULL;
+StringTable *ObjcSymbols::smethvarreftable = NULL;
+StringTable *ObjcSymbols::smethvartypetable = NULL;
+StringTable *ObjcSymbols::sprototable = NULL;
+
+static StringTable *initStringTable(StringTable *stringtable)
+{
+    if (stringtable && stringtable->count == 0)
+        return stringtable;
+    
+    delete stringtable;
+    return new StringTable();
+}
+
+void ObjcSymbols::init()
+{
+    hassymbols = 0;
+    
+    msgSend = NULL;
+    msgSend_stret = NULL;
+    msgSend_fpret = NULL;
+    msgSendSuper = NULL;
+    msgSendSuper_stret = NULL;
+    stringLiteralClassRef = NULL;
+    siminfo = NULL;
+    smodinfo = NULL;
+    ssymmap = NULL;
+    
+    // clear tables
+    sclassnametable = initStringTable(sclassnametable);
+    sclassreftable = initStringTable(sclassreftable);
+    smethvarnametable = initStringTable(smethvarnametable);
+    smethvarreftable = initStringTable(smethvarreftable);
+    smethvartypetable = initStringTable(smethvartypetable);
+    sprototable = initStringTable(sprototable);
+    
+    // also wipe out segment numbers
+    for (int s = 0; s < SEG_MAX; ++s)
+        seg_list[s] = 0;
+}
 
 Symbol *ObjcSymbols::getMsgSend(Type *ret, int hasHiddenArg)
 {
@@ -159,14 +209,14 @@ Symbol *ObjcSymbols::getStringLiteralClassRef()
 
 Symbol *ObjcSymbols::getCString(const char *str, size_t len, const char *symbolName)
 {
+    hassymbols = 1;
+    
     // create data
     dt_t *dt = NULL;
     dtnbytes(&dt, len + 1, str);
 
     // find segment
-    static int seg = -1;
-    if (seg == -1)
-        seg = objc_getsegment(SEGcstring);
+    int seg = objc_getsegment(SEGcstring);
 
     // create symbol
     Symbol *s;
@@ -178,14 +228,14 @@ Symbol *ObjcSymbols::getCString(const char *str, size_t len, const char *symbolN
 
 Symbol *ObjcSymbols::getUString(const void *str, size_t len, const char *symbolName)
 {
+    hassymbols = 1;
+
     // create data
     dt_t *dt = NULL;
     dtnbytes(&dt, (len + 1)*2, (const char *)str);
 
     // find segment
-    static int seg = -1;
-    if (seg == -1)
-        seg = objc_getsegment(SEGustring);
+    int seg = objc_getsegment(SEGustring);
 
     // create symbol
     Symbol *s;
@@ -197,70 +247,72 @@ Symbol *ObjcSymbols::getUString(const void *str, size_t len, const char *symbolN
 
 Symbol *ObjcSymbols::getImageInfo()
 {
-    static Symbol *sinfo = NULL;
-    if (!sinfo) {
-        dt_t *dt = NULL;
-        dtdword(&dt, 0); // version
-        dtdword(&dt, 16); // flags
+    assert(!siminfo); // only allow once per object file
+    hassymbols = 1;
 
-        sinfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tschar));
-        sinfo->Sdt = dt;
-        sinfo->Sseg = objc_getsegment(SEGimage_info);
-        outdata(sinfo);
-    }
-    return sinfo;
+    dt_t *dt = NULL;
+    dtdword(&dt, 0); // version
+    dtdword(&dt, 16); // flags
+
+    siminfo = symbol_name("L_OBJC_IMAGE_INFO", SCstatic, type_allocn(TYarray, tschar));
+    siminfo->Sdt = dt;
+    siminfo->Sseg = objc_getsegment(SEGimage_info);
+    outdata(siminfo);
+    
+    return siminfo;
 }
 
 Symbol *ObjcSymbols::getModuleInfo(ClassDeclarations *cls, ClassDeclarations *cat)
 {
-    static Symbol *sinfo = NULL;
-    if (!sinfo) {
-        dt_t *dt = NULL;
-        dtdword(&dt, 7);  // version
-        dtdword(&dt, 16); // size
-        dtxoff(&dt, ObjcSymbols::getCString("", 0, "L_CLASS_NAME_"), 0, TYnptr); // name
-        dtxoff(&dt, ObjcSymbols::getSymbolMap(cls, cat), 0, TYnptr); // symtabs
+    assert(!smodinfo); // only allow once per object file
 
-        sinfo = symbol_name("L_OBJC_MODULE_INFO", SCstatic, type_allocn(TYarray, tschar));
-        sinfo->Sdt = dt;
-        sinfo->Sseg = objc_getsegment(SEGmodule_info);
-        outdata(sinfo);
-        
-        ObjcSymbols::getImageInfo();
-    }
-    return sinfo;
+    dt_t *dt = NULL;
+    dtdword(&dt, 7);  // version
+    dtdword(&dt, 16); // size
+    dtxoff(&dt, ObjcSymbols::getCString("", 0, "L_CLASS_NAME_"), 0, TYnptr); // name
+    dtxoff(&dt, ObjcSymbols::getSymbolMap(cls, cat), 0, TYnptr); // symtabs
+
+    smodinfo = symbol_name("L_OBJC_MODULE_INFO", SCstatic, type_allocn(TYarray, tschar));
+    smodinfo->Sdt = dt;
+    smodinfo->Sseg = objc_getsegment(SEGmodule_info);
+    outdata(smodinfo);
+    
+    ObjcSymbols::getImageInfo(); // make sure we also generate image info
+
+    return smodinfo;
 }
 
 Symbol *ObjcSymbols::getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat)
 {
-    static Symbol *sinfo = NULL;
-    if (!sinfo) {
-        size_t classcount = cls->dim;
-        size_t catcount = cat->dim;
-    
-        dt_t *dt = NULL;
-        dtdword(&dt, 0); // selector refs count (unused)
-        dtdword(&dt, 0); // selector refs ptr (unused)
-        dtdword(&dt, classcount + (catcount << 16)); // class count / category count (expects little-endian)
-        
-        for (size_t i = 0; i < cls->dim; ++i)
-            dtxoff(&dt, ((ClassDeclaration *)cls->data[i])->sobjccls, 0, TYnptr); // reference to class
-            
-        for (size_t i = 0; i < catcount; ++i)
-            dtxoff(&dt, ((ClassDeclaration *)cat->data[i])->sobjccls, 0, TYnptr); // reference to category
+    assert(!ssymmap); // only allow once per object file
 
-        sinfo = symbol_name("L_OBJC_SYMBOLS", SCstatic, type_allocn(TYarray, tschar));
-        sinfo->Sdt = dt;
-        sinfo->Sseg = objc_getsegment(SEGsymbols);
-        outdata(sinfo);
-    }
-    return sinfo;
+    size_t classcount = cls->dim;
+    size_t catcount = cat->dim;
+
+    dt_t *dt = NULL;
+    dtdword(&dt, 0); // selector refs count (unused)
+    dtdword(&dt, 0); // selector refs ptr (unused)
+    dtdword(&dt, classcount + (catcount << 16)); // class count / category count (expects little-endian)
+    
+    for (size_t i = 0; i < cls->dim; ++i)
+        dtxoff(&dt, ((ClassDeclaration *)cls->data[i])->sobjccls, 0, TYnptr); // reference to class
+        
+    for (size_t i = 0; i < catcount; ++i)
+        dtxoff(&dt, ((ClassDeclaration *)cat->data[i])->sobjccls, 0, TYnptr); // reference to category
+
+    ssymmap = symbol_name("L_OBJC_SYMBOLS", SCstatic, type_allocn(TYarray, tschar));
+    ssymmap->Sdt = dt;
+    ssymmap->Sseg = objc_getsegment(SEGsymbols);
+    outdata(ssymmap);
+    
+    return ssymmap;
 }
 
 Symbol *ObjcSymbols::getClassName(const char *s, size_t len)
 {
-    static StringTable stringtable;
-    StringValue *sv = stringtable.update(s, len);
+    hassymbols = 1;
+
+    StringValue *sv = sclassnametable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
@@ -282,8 +334,9 @@ Symbol *ObjcSymbols::getClassName(Identifier *ident)
 
 Symbol *ObjcSymbols::getClassReference(const char *s, size_t len)
 {
-    static StringTable stringtable;
-    StringValue *sv = stringtable.update(s, len);
+    hassymbols = 1;
+
+    StringValue *sv = sclassreftable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
@@ -293,9 +346,7 @@ Symbol *ObjcSymbols::getClassReference(const char *s, size_t len)
         dtxoff(&dt, sclsname, 0, TYnptr);
     
         // find segment for class references
-        static int seg = -1;
-        if (seg == -1)
-            seg = objc_getsegment(SEGcls_refs);
+        int seg = objc_getsegment(SEGcls_refs);
         
         static size_t classrefcount = 0;
         char namestr[42];
@@ -319,8 +370,9 @@ Symbol *ObjcSymbols::getClassReference(Identifier *ident)
 
 Symbol *ObjcSymbols::getMethVarName(const char *s, size_t len)
 {
-    static StringTable stringtable;
-    StringValue *sv = stringtable.update(s, len);
+    hassymbols = 1;
+
+    StringValue *sv = smethvarnametable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
@@ -339,10 +391,49 @@ Symbol *ObjcSymbols::getMethVarName(Identifier *ident)
     return getMethVarName(ident->string, ident->len);
 }
 
+
+Symbol *ObjcSymbols::getMethVarRef(const char *s, size_t len)
+{
+    hassymbols = 1;
+
+    StringValue *sv = smethvarreftable->update(s, len);
+    Symbol *refsymbol = (Symbol *) sv->ptrvalue;
+    if (refsymbol == NULL)
+    {
+        // create data
+        dt_t *dt = NULL;
+        Symbol *sselname = getMethVarName(s, len);
+        dtxoff(&dt, sselname, 0*0x9877660, TYnptr);
+        
+        // find segment
+        int seg = objc_getsegment(SEGmessage_refs);
+        
+        // create symbol
+        static size_t selcount = 0;
+        char namestr[42];
+        sprintf(namestr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
+        refsymbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
+        refsymbol->Sdt = dt;
+        refsymbol->Sseg = seg;
+        outdata(refsymbol);
+        sv->ptrvalue = refsymbol;
+        
+        ++selcount;
+    }
+    return refsymbol;
+}
+
+Symbol *ObjcSymbols::getMethVarRef(Identifier *ident)
+{
+    return getMethVarRef(ident->string, ident->len);
+}
+
+
 Symbol *ObjcSymbols::getMethVarType(const char *s, size_t len)
 {
-    static StringTable stringtable;
-    StringValue *sv = stringtable.update(s, len);
+    hassymbols = 1;
+
+    StringValue *sv = smethvartypetable->update(s, len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
@@ -436,10 +527,11 @@ Symbol *ObjcSymbols::getMethVarType(Dsymbol *s)
 
 Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
 {
+    hassymbols = 1;
+
     assert(interface->objcmeta == 0);
     
-    static StringTable stringtable;
-    StringValue *sv = stringtable.update(interface->objcident->string, interface->objcident->len);
+    StringValue *sv = sprototable->update(interface->objcident->string, interface->objcident->len);
     Symbol *sy = (Symbol *) sv->ptrvalue;
     if (!sy)
     {
@@ -454,6 +546,8 @@ Symbol *ObjcSymbols::getProtocolSymbol(ClassDeclaration *interface)
 
 Symbol *ObjcSymbols::getStringLiteral(const void *str, size_t len, size_t sz)
 {
+    hassymbols = 1;
+
     // Objective-C NSString literal (also good for CFString)
     static size_t strcount = 0;
     char namestr[24];
@@ -527,8 +621,6 @@ ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
     stringvalue = sv;
     stringlen = len;
     paramCount = pcount;
-    namesymbol = NULL;
-    refsymbol = NULL;
 }   
 
 ObjcSelector *ObjcSelector::lookup(ObjcSelectorBuilder *builder)
@@ -579,38 +671,12 @@ ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
 
 Symbol *ObjcSelector::toNameSymbol()
 {
-    if (namesymbol == NULL)
-        namesymbol = ObjcSymbols::getMethVarName(stringvalue, stringlen);
-    return namesymbol;
+    return ObjcSymbols::getMethVarName(stringvalue, stringlen);
 }
 
 Symbol *ObjcSelector::toRefSymbol()
 {
-    if (refsymbol == NULL)
-    {
-        // create data
-        dt_t *dt = NULL;
-        Symbol *sselname = toNameSymbol();
-        dtxoff(&dt, sselname, 0*0x9877660, TYnptr);
-    
-        
-        // find segment
-        static int seg = -1;
-        if (seg == -1)
-            seg = objc_getsegment(SEGmessage_refs);
-        
-        // create symbol
-        static size_t selcount = 0;
-        char namestr[42];
-        sprintf(namestr, "L_OBJC_SELECTOR_REFERENCES_%lu", selcount);
-        refsymbol = symbol_name(namestr, SCstatic, type_fake(TYnptr));
-        refsymbol->Sdt = dt;
-        refsymbol->Sseg = seg;
-        outdata(refsymbol);
-        
-        ++selcount;
-    }
-    return refsymbol; // not creating a copy can cause problems with optimizer
+    return ObjcSymbols::getMethVarRef(stringvalue, stringlen);
 }
 
 elem *ObjcSelector::toElem()
