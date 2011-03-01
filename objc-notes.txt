@@ -123,7 +123,7 @@ implementing a function from an interface, the Objective-C selector would be
 inherited.
 
 
-### Constructors {unimplemented}
+### Constructors
 
 To create a new Objective-C object in Objective-C, one would call the allocator
 function and then the initializer:
@@ -173,7 +173,7 @@ getter, and the second alternate setter will get the same compiler-generated
 selector as a normal function.
 
 
-## Objective-C Protocols {partially implemented}
+## Objective-C Protocols
 
 Protocols in Objective-C are mapped to interfaces in D. This declares an 
 Objective-C protocol:
@@ -260,8 +260,8 @@ The only difference is that D is strongly-typed, which means that `x.class`
 returns a different type depending on the type of `x`.
 
 Inside an instance method, use `this.class` to get the current class object;
-omiting `this` like for other members is not possible as it would make the 
-amgiguous with.
+you cannot omit `this` like you can for regular members as it would be 
+ambiguous to the parser.
 
 There is no `classinfo` property for Objective-C objects.
 
@@ -317,7 +317,7 @@ This only works for strings literals. If the string comes from
 a variable, you'll need to construct the `NSString` object yourself.
 
 
-## Selector Literals {unimplemented}
+## Selector Literals
 
 When you need to express a selector, in Objective-C you use the `@selector`
 keyword:
@@ -391,7 +391,7 @@ For interfaces, the cast is implemented similarily:
 The compiler will do emit any runtime check when casting to a base type.
 
 
-### `NSObject` vs. `ObjcObject` vs. `id` {unimplemented}
+### `NSObject` vs. `ObjcObject` vs. `id`
 
 There are two `NSObject` in Objective-C: `NSObject` There protocol and `NSObject` 
 the class. Not all classes are derived from the `NSObject` class, but they all 
@@ -517,6 +517,8 @@ Objective-C is unaware of this feature.
 Objective-C uses the same global functions as in C. As a convenience, global
 functions tagged with `extern (Objective-C)` will automatically become 
 `extern (C)`.
+
+{Note: this might need to be revised to implement memory management.}
 
 
 ### Inner Classes {unimplemented}
