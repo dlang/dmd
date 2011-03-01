@@ -3961,6 +3961,31 @@ elem *CastExp::toElem(IRState *irs)
 
         ClassDeclaration *cdfrom = tfrom->isClassHandle();
         ClassDeclaration *cdto   = t->isClassHandle();
+#if DMD_OBJC
+        if (cdfrom->objc)
+        {
+            if (cdto->objc)
+            {   // casting from objc type to objc type, use objc function
+                if (cdto->isInterfaceDeclaration())
+                    rtl = RTLSYM_INTERFACE_CAST_OBJC;
+                else if (cdfrom->objc)
+                    rtl = RTLSYM_DYNAMIC_CAST_OBJC;
+            }
+            else
+            {   // casting from objc type to non-objc type, always null
+                goto Lzero;
+            }
+        }
+        else if (cdto->objc)
+        {   // casting from non-objc type to objc type, always null
+            goto Lzero;
+        }
+#endif
+#if DMD_OBJC
+        if (cdfrom->objc && cdto->objc && cdto->isInterfaceDeclaration())
+            rtl = RTLSYM_INTERFACE_CAST_OBJC;
+        else
+#endif
         if (cdfrom->isInterfaceDeclaration())
         {
             rtl = RTLSYM_INTERFACE_CAST;
@@ -3992,6 +4017,10 @@ elem *CastExp::toElem(IRState *irs)
              */
 
             //printf("offset = %d\n", offset);
+#if DMD_OBJC
+            if (cdfrom->objc)
+                assert(offset == 0); // no offset for Objective-C objects/interfaces
+#endif
             if (offset)
             {   /* Rewrite cast as (e ? e + offset : null)
                  */
@@ -4010,6 +4039,20 @@ elem *CastExp::toElem(IRState *irs)
             goto Lret;                  // no-op
         }
 
+#if DMD_OBJC
+        if (cdto->objc)
+        {
+            elem *esym;
+            if (cdto->isInterfaceDeclaration())
+                esym = el_ptr(ObjcSymbols::getProtocolSymbol(cdto));
+            else
+                esym = el_var(ObjcSymbols::getClassReference(cdto->ident));
+            
+            elem *ep = el_param(esym, e);
+            e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+            goto Lret;
+        }
+#endif
         /* The offset from cdfrom=>cdto can only be determined at runtime.
          */
         elem *ep = el_param(el_ptr(cdto->toSymbol()), e);
