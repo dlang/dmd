@@ -7620,7 +7620,10 @@ MATCH TypeClass::implicitConvTo(Type *to)
     ClassDeclaration *cdto = to->isClassHandle();
     if (cdto && cdto->isBaseOf(sym, NULL))
     {   //printf("'to' is base\n");
-        return MATCHconvert;
+        if (MODimplicitConv(mod, to->mod))  // Fixes bug5080
+            return MATCHconvert;
+        else
+            return MATCHnomatch;
     }
 
     if (global.params.Dversion == 1)
