@@ -117,7 +117,7 @@ version( Windows )
         import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
         import core.stdc.stdlib;             // for malloc
         import core.sys.windows.windows;
-        import core.thread_helper;           // for OpenThreadHandle
+        import core.sys.windows._thread;     // for OpenThreadHandle
 
         const DWORD TLS_OUT_OF_INDEXES  = 0xFFFFFFFF;
 
@@ -2601,7 +2601,7 @@ void[] thread_getTLSBlock()
     }
     else version(FreeBSD)
     {
-        return _tlsstart[0..(_tlsend-_tlsstart)];
+        return (cast(void*)&_tlsstart)[0..(&_tlsend)-(&_tlsstart)];
     }
     else
     {

@@ -34,12 +34,10 @@ MANIFEST= \
 	src\core\bitop.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
-	src\core\dll_helper.d \
 	src\core\exception.d \
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\thread.d \
-	src\core\thread_helper.d \
 	src\core\threadasm.S \
 	src\core\time.d \
 	src\core\vararg.d \
@@ -120,6 +118,8 @@ MANIFEST= \
 	src\core\sys\posix\sys\uio.d \
 	src\core\sys\posix\sys\wait.d \
 	\
+	src\core\sys\windows\_dll.d \
+	src\core\sys\windows\_thread.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\gc\gc.d \
@@ -222,12 +222,10 @@ SRCS= \
 	src\core\bitop.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
-	src\core\dll_helper.d \
 	src\core\exception.d \
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\thread.d \
-	src\core\thread_helper.d \
 	src\core\time.d \
 	src\core\vararg.d \
 	\
@@ -245,6 +243,8 @@ SRCS= \
 	src\core\stdc\time.d \
 	src\core\stdc\wchar_.d \
 	\
+	src\core\sys\windows\_dll.d \
+	src\core\sys\windows\_thread.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\core\sync\barrier.d \
@@ -365,12 +365,10 @@ IMPORTS=\
 	$(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
 	$(IMPDIR)\core\demangle.di \
-	$(IMPDIR)\core\dll_helper.di \
 	$(IMPDIR)\core\exception.di \
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\thread.di \
-	$(IMPDIR)\core\thread_helper.di \
 	$(IMPDIR)\core\time.di \
 	$(IMPDIR)\core\vararg.di \
 	\
@@ -446,6 +444,8 @@ IMPORTS=\
 	$(IMPDIR)\core\sys\posix\sys\uio.di \
 	$(IMPDIR)\core\sys\posix\sys\wait.di \
 	\
+	$(IMPDIR)\core\sys\windows\_dll.di \
+	$(IMPDIR)\core\sys\windows\_thread.di \
 	$(IMPDIR)\core\sys\windows\windows.di
 
 ######################## Doc .html file generation ##############################
@@ -521,9 +521,6 @@ $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
 
 $(IMPDIR)\core\demangle.di : src\core\demangle.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
-$(IMPDIR)\core\dll_helper.di : src\core\dll_helper.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\exception.di : src\core\exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
@@ -535,9 +532,6 @@ $(IMPDIR)\core\runtime.di : src\core\runtime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\thread.di : src\core\thread.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\thread_helper.di : src\core\thread_helper.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 	
 $(IMPDIR)\core\time.di : src\core\time.d
@@ -741,6 +735,12 @@ $(IMPDIR)\core\sys\posix\unistd.di : src\core\sys\posix\unistd.d
 $(IMPDIR)\core\sys\posix\utime.di : src\core\sys\posix\utime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
+$(IMPDIR)\core\sys\windows\_dll.di : src\core\sys\windows\_dll.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sys\windows\_thread.di : src\core\sys\windows\_thread.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+		
 $(IMPDIR)\core\sys\windows\windows.di : src\core\sys\windows\windows.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 

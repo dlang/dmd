@@ -3,6 +3,23 @@
 #    pkg_add -r gmake
 # and then run as gmake rather than make.
 
+ifeq (,$(OS))
+    OS:=$(shell uname)
+    ifeq (Darwin,$(OS))
+        OS:=osx
+    else
+        ifeq (Linux,$(OS))
+            OS:=linux
+        else
+            ifeq (FreeBSD,$(OS))
+                OS:=freebsd
+            else
+                $(error Unrecognized or unsupported OS for uname: $(OS))
+            endif
+        endif
+    endif
+endif
+
 DMD=dmd
 
 DOCDIR=doc
@@ -38,12 +55,10 @@ MANIFEST= \
 	src/core/bitop.d \
 	src/core/cpuid.d \
 	src/core/demangle.d \
-	src/core/dll_helper.d \
 	src/core/exception.d \
 	src/core/memory.d \
 	src/core/runtime.d \
 	src/core/thread.d \
-	src/core/thread_helper.d \
 	src/core/threadasm.S \
 	src/core/time.d \
 	src/core/vararg.d \
@@ -124,6 +139,8 @@ MANIFEST= \
 	src/core/sys/posix/sys/uio.d \
 	src/core/sys/posix/sys/wait.d \
 	\
+	src/core/sys/windows/_dll.d \
+	src/core/sys/windows/_thread.d \
 	src/core/sys/windows/windows.d \
 	\
 	src/gc/gc.d \
@@ -372,13 +389,11 @@ IMPORTS=\
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
 	$(IMPDIR)/core/demangle.di \
-	$(IMPDIR)/core/dll_helper.di \
 	$(IMPDIR)/core/exception.di \
 	$(IMPDIR)/core/memory.di \
 	$(IMPDIR)/core/runtime.di \
 	$(IMPDIR)/core/thread.di \
 	$(IMPDIR)/core/time.di \
-	$(IMPDIR)/core/thread_helper.di \
 	$(IMPDIR)/core/vararg.di \
 	\
 	$(IMPDIR)/core/stdc/complex.di \
@@ -453,6 +468,8 @@ IMPORTS=\
 	$(IMPDIR)/core/sys/posix/sys/uio.di \
 	$(IMPDIR)/core/sys/posix/sys/wait.di \
 	\
+	$(IMPDIR)/core/sys/windows/_dll.di \
+	$(IMPDIR)/core/sys/windows/_thread.di \
 	$(IMPDIR)/core/sys/windows/windows.di
 
 SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
@@ -499,8 +516,8 @@ $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 unittest : $(addprefix $(OBJDIR)/,$(SRC_D_MODULES)) $(DRUNTIME) $(OBJDIR)/emptymain.d
 	@echo done
 
-ifeq ($(MODEL),64)
-DISABLED_TESTS =
+ifeq ($(OS),freebsd)
+DISABLED_TESTS = core/time
 else
 DISABLED_TESTS =
 endif

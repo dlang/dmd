@@ -483,15 +483,24 @@ version( unittest )
     {
         auto synReady   = new Object;
         auto semReady   = new Semaphore;
-        bool waiting    = false;
         bool alertedOne = true;
         bool alertedTwo = true;
+        int  numReady   = 0;
 
         void waiter()
         {
             synchronized( synReady )
             {
-                waiting    = true;
+                numReady++;
+            }
+            while( true )
+            {
+                synchronized( synReady )
+                {
+                    if( numReady > 1 )
+                        break;
+                }
+                Thread.yield();
             }
             alertedOne = semReady.wait( dur!"msecs"(200) );
             alertedTwo = semReady.wait( dur!"msecs"(200) );
@@ -504,16 +513,18 @@ version( unittest )
         {
             synchronized( synReady )
             {
-                if( waiting )
+                if( numReady )
                 {
-                    semReady.notify();
+                    numReady++;
                     break;
                 }
             }
             Thread.yield();
         }
+        Thread.yield();
+        semReady.notify();
         thread.join();
-        assert( waiting && alertedOne && !alertedTwo );
+        assert( numReady == 2 && alertedOne && !alertedTwo );
     }
 
 
