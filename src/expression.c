@@ -3470,15 +3470,9 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
 #if DMDV2
 int StructLiteralExp::isLvalue()
 {
-    return 1;
+    return 0;
 }
 #endif
-
-Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
-{
-    return this;
-}
-
 
 int StructLiteralExp::checkSideEffect(int flag)
 {   int f = 0;

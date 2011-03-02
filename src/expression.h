@@ -473,7 +473,6 @@ struct StructLiteralExp : Expression
     Expression *interpret(InterState *istate);
     dt_t **toDt(dt_t **pdt);
     int isLvalue();
-    Expression *toLvalue(Scope *sc, Expression *e);
     int canThrow(bool mustNotThrow);
     MATCH implicitConvTo(Type *t);
 
