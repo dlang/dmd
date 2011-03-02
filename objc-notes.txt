@@ -534,23 +534,24 @@ D does. Properly declared external Objective-C objects should be usable in
 SafeD and provide the same guarenties.
 
 
-### Generated Selectors {unimplemented}
+### Generated Selectors
 
 When a function has no explicit selector, the compiler generate one in a way 
 that permits function overloading. To this end, a function with one or more
 arguments will have the type of its arguments mangled inside the selector name. 
-Manglings follows what the `type.mangleof` expression returns.
+Mangling follows what the `type.mangleof` expression returns.
 
 For instance, here is the generated selector for these member functions:
 
 	int length();                    // generated selector: length
 	void moveTo(float x, float y);   // generated selector: moveTo_f:f:
 	void moveTo(double x, double y); // generated selector: moveTo_d:d:
-	void addSubview(NSView view);    // generated selector: addSubview_4cocoa6appkit6NSView:
+	void addSubview(NSView view);    // generated selector: addSubview_C4cocoa6appkit6NSView:
 
 You generally don't need to care about this. To get the selector of 
-a function, use the selector template in the objc module, or set explictily
-the selector to use.
+a function, take its adress and simply assign it to a selector variable:
+
+    void __selector(NSView view) sel = &NSView.addSubview;
 
 
 ## Blocks {unimplemented}
