@@ -668,16 +668,26 @@ ObjcSelector *ObjcSelector::lookup(const char *s, size_t len, size_t pcount)
 ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
 {
     // create a selector by adding a semicolon for each parameter
-    ObjcSelectorBuilder selbuilder;
-    selbuilder.addIdentifier(fdecl->ident);
-    
+    OutBuffer buf;
+    buf.write(fdecl->ident->string, fdecl->ident->len);
+    size_t pcount = 0;
     TypeFunction *ftype = (TypeFunction *)fdecl->type;
-    size_t pcount = ftype->parameters->dim;
-    for (size_t i = 0; i < pcount; ++i)
-        selbuilder.addColon();
-    // TODO: Mangle parameter types in selector
+    if (ftype->parameters && ftype->parameters->dim)
+    {
+        Parameters *arguments = ftype->parameters;
+        buf.writeByte('_');
+        size_t dim = Parameter::dim(arguments);
+        for (size_t i = 0; i < dim; i++)
+        {
+            Parameter *arg = Parameter::getNth(arguments, i);
+            arg->toDecoBuffer(&buf);
+            buf.writeByte(':');
+        }
+        pcount = dim;
+    }
+    buf.writeByte('\0');
     
-    return lookup(&selbuilder);
+    return lookup((const char *)buf.data, buf.size, pcount);
 }
 
 
