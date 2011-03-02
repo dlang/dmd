@@ -3844,6 +3844,10 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         ClassDeclaration *cd = exp->type->isClassHandle();
         if (!cd)
             error("can only synchronize on class objects, not '%s'", exp->type->toChars());
+#if DMD_OBJC
+        else if (cd->objc)
+        { /* interface declaration not a special case in Objective-C */ }
+#endif
         else if (cd->isInterfaceDeclaration())
         {   /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
@@ -3869,11 +3873,19 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, tmp)));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorenter);
+#if DMD_OBJC
+        if (cd->objc) // replace with Objective-C's equivalent function
+            fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::objc_sync_enter);
+#endif
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorexit);
+#if DMD_OBJC
+        if (cd->objc) // replace with Objective-C's equivalent function
+            fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::objc_sync_exit);
+#endif
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);

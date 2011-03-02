@@ -267,6 +267,8 @@ Msgtable msgtable[] =
     { "_ArrayEq" },
     // DMD_OBJC
     { "_dobjc_preinit" },
+    { "objc_sync_enter" },
+    { "objc_sync_exit" },
 
     // For pragma's
     { "GNU_asm" },
