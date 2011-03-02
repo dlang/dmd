@@ -342,7 +342,7 @@ static assert(!is(typeof(compiles!(badslice3([1,2,3])))));
 
 /*******************************************/
 
-int bug5524(int x, int[] more...)
+size_t bug5524(int x, int[] more...)
 {
     int[0] zz;
     assert(zz.length==0);
