@@ -205,7 +205,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 
         if (t->ty == Tfunction || e->op == TOKoverloadset)
         {
-#if 0
+#if 1
             if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty)
                 error(e->loc, "not a property %s\n", e->toChars());
 #endif
