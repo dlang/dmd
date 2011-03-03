@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -3361,6 +3361,7 @@ L1:
             ty = e->Ety;
             ty1 = e1->Ety;
             e = el_selecte1(e);
+            e->Ety = ty1;
             sz = tysize(ty);
             for (sz1 = tysize(ty1); sz1 != sz; sz1 = tysize(e->Ety))
             {
