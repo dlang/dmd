@@ -167,7 +167,7 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         sc = sc->push();
         sc->stc |= storage_class & (STCref | STCnothrow | STCpure | STCdisable
-            | STCsafe | STCtrusted | STCsystem);      // forward to function type
+            | STCsafe | STCtrusted | STCsystem | STCproperty);      // forward to function type
 
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
