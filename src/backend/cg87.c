@@ -1645,6 +1645,8 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     else
                     {
                         c = getlvalue(&cs,e,0);
+                        if (I64)
+                            cs.Irex &= ~REX_W;                  // don't use for x87 ops
                         c = cat(c,makesure87(eleft,eoffset,0,0));
                         cs.Iop = ESC(mf,0);
                         cs.Irm |= modregrm(0,op,0);
