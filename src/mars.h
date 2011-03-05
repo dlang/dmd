@@ -165,6 +165,7 @@ struct Param
     char nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
+    char enforcePropertySyntax;
 
     char *argv0;        // program name
     Array *imppath;     // array of char*'s of where to look for import modules

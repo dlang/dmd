@@ -206,8 +206,11 @@ Expression *resolveProperties(Scope *sc, Expression *e)
         if (t->ty == Tfunction || e->op == TOKoverloadset)
         {
 #if 1
-            if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty)
+            if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
+                global.params.enforcePropertySyntax)
+            {
                 error(e->loc, "not a property %s\n", e->toChars());
+            }
 #endif
             e = new CallExp(e->loc, e);
             e = e->semantic(sc);
