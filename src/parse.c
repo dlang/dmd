@@ -2907,7 +2907,7 @@ Statement *Parser::parseStatement(int flags)
                 for (int i = 0; i < a->dim; i++)
                 {
                     Dsymbol *d = (Dsymbol *)a->data[i];
-                    s = new DeclarationStatement(loc, d);
+                    s = new ExpStatement(loc, d);
                     as->push(s);
                 }
                 s = new CompoundDeclarationStatement(loc, as);
@@ -2915,7 +2915,7 @@ Statement *Parser::parseStatement(int flags)
             else if (a->dim == 1)
             {
                 Dsymbol *d = (Dsymbol *)a->data[0];
-                s = new DeclarationStatement(loc, d);
+                s = new ExpStatement(loc, d);
             }
             else
                 assert(0);
@@ -2931,7 +2931,7 @@ Statement *Parser::parseStatement(int flags)
         {   Dsymbol *d;
 
             d = parseAggregate();
-            s = new DeclarationStatement(loc, d);
+            s = new ExpStatement(loc, d);
             break;
         }
 
@@ -2939,7 +2939,7 @@ Statement *Parser::parseStatement(int flags)
         {   Dsymbol *d;
 
             d = parseEnum();
-            s = new DeclarationStatement(loc, d);
+            s = new ExpStatement(loc, d);
             break;
         }
 
@@ -2956,7 +2956,7 @@ Statement *Parser::parseStatement(int flags)
                 break;
             }
             Dsymbol *d = parseMixin();
-            s = new DeclarationStatement(loc, d);
+            s = new ExpStatement(loc, d);
             break;
         }
 
@@ -2993,7 +2993,7 @@ Statement *Parser::parseStatement(int flags)
             if (!(flags & PSsemi))
                 error("use '{ }' for an empty statement, not a ';'");
             nextToken();
-            s = new ExpStatement(loc, NULL);
+            s = new ExpStatement(loc, (Expression *)NULL);
             break;
 
         case TOKdo:
