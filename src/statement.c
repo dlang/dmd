@@ -172,13 +172,14 @@ int Statement::isEmpty()
  *      *sfinally       code executed in finally block
  */
 
-void Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("Statement::scopeCode()\n");
     //print();
     *sentry = NULL;
     *sexception = NULL;
     *sfinally = NULL;
+    return this;
 }
 
 /*********************************
@@ -301,7 +302,7 @@ int ExpStatement::isEmpty()
     return exp == NULL;
 }
 
-void ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("ExpStatement::scopeCode()\n");
     //print();
@@ -347,6 +348,7 @@ void ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexcepti
             }
         }
     }
+    return this;
 }
 
 
@@ -477,29 +479,18 @@ Statement *CompoundStatement::semantic(Scope *sc)
                 Statement *sexception;
                 Statement *sfinally;
 
-                s->scopeCode(sc, &sentry, &sexception, &sfinally);
+                statements->data[i] = s->scopeCode(sc, &sentry, &sexception, &sfinally);
                 if (sentry)
                 {
                     sentry = sentry->semantic(sc);
-                    if (s->isExpStatement())
-                    {   statements->insert(i, sentry);
-                        i++;
-                    }
-                    else // OnScopeStatement
-                        statements->data[i] = sentry;
+                    statements->insert(i, sentry);
+                    i++;
                 }
                 if (sexception)
                 {
                     if (i + 1 == statements->dim && !sfinally)
                     {
-#if 1
                         sexception = sexception->semantic(sc);
-#else
-                        statements->push(sexception);
-                        if (sfinally)
-                            // Assume sexception does not throw
-                            statements->push(sfinally);
-#endif
                     }
                     else
                     {
@@ -904,7 +895,7 @@ Statement *ScopeStatement::semantic(Scope *sc)
             Statement *sexception;
             Statement *sfinally;
 
-            statement->scopeCode(sc, &sentry, &sexception, &sfinally);
+            statement = statement->scopeCode(sc, &sentry, &sexception, &sfinally);
             assert(!sentry);
             assert(!sexception);
             if (sfinally)
@@ -1203,14 +1194,15 @@ Statement *ForStatement::semantic(Scope *sc)
     return this;
 }
 
-void ForStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *ForStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("ForStatement::scopeCode()\n");
     //print();
     if (init)
-        init->scopeCode(sc, sentry, sexception, sfinally);
+        init = init->scopeCode(sc, sentry, sexception, sfinally);
     else
         Statement::scopeCode(sc, sentry, sexception, sfinally);
+    return this;
 }
 
 int ForStatement::hasBreak()
@@ -4369,7 +4361,7 @@ int OnScopeStatement::usesEH()
     return 1;
 }
 
-void OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("OnScopeStatement::scopeCode()\n");
     //print();
@@ -4389,17 +4381,17 @@ void OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexc
         case TOKon_scope_success:
         {
             /* Create:
-             *  sentry:   int x = 0;
-             *  sexception:    x = 1;
+             *  sentry:   bool x = false;
+             *  sexception:    x = true;
              *  sfinally: if (!x) statement;
              */
             Identifier *id = Lexer::uniqueId("__os");
 
-            ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(0));
-            VarDeclaration *v = new VarDeclaration(loc, Type::tint32, id, ie);
+            ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(0, 0, Type::tbool));
+            VarDeclaration *v = new VarDeclaration(loc, Type::tbool, id, ie);
             *sentry = new ExpStatement(loc, v);
 
-            Expression *e = new IntegerExp(1);
+            Expression *e = new IntegerExp(0, 1, Type::tbool);
             e = new AssignExp(0, new VarExp(0, v), e);
             *sexception = new ExpStatement(0, e);
 
@@ -4413,6 +4405,7 @@ void OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexc
         default:
             assert(0);
     }
+    return NULL;
 }
 
 /******************************** ThrowStatement ***************************/
