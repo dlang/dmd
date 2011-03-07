@@ -1539,8 +1539,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 key->init = new ExpInitializer(loc, new IntegerExp(0));
 
             Statements *cs = new Statements();
-            cs->push(new ExpStatement(loc, new DeclarationExp(loc, tmp)));
-            cs->push(new ExpStatement(loc, new DeclarationExp(loc, key)));
+            cs->push(new ExpStatement(loc, tmp));
+            cs->push(new ExpStatement(loc, key));
             Statement *forinit = new CompoundDeclarationStatement(loc, cs);
 
             Expression *cond;
@@ -1558,7 +1558,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
             // T value = tmp[key];
             value->init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
-            Statement *ds = new ExpStatement(loc, new DeclarationExp(loc, value));
+            Statement *ds = new ExpStatement(loc, value);
 
             body = new CompoundStatement(loc, ds, body);
 
@@ -2063,13 +2063,13 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     // Keep order of evaluation as lwr, then upr
     if (op == TOKforeach)
     {
-        cs->push(new ExpStatement(loc, new DeclarationExp(loc, key)));
-        cs->push(new ExpStatement(loc, new DeclarationExp(loc, tmp)));
+        cs->push(new ExpStatement(loc, key));
+        cs->push(new ExpStatement(loc, tmp));
     }
     else
     {
-        cs->push(new ExpStatement(loc, new DeclarationExp(loc, tmp)));
-        cs->push(new ExpStatement(loc, new DeclarationExp(loc, key)));
+        cs->push(new ExpStatement(loc, tmp));
+        cs->push(new ExpStatement(loc, key));
     }
     Statement *forinit = new CompoundDeclarationStatement(loc, cs);
 
@@ -3667,7 +3667,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         VarDeclaration *tmp = new VarDeclaration(loc, exp->type, id, ie);
 
         Statements *cs = new Statements();
-        cs->push(new ExpStatement(loc, new DeclarationExp(loc, tmp)));
+        cs->push(new ExpStatement(loc, tmp));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorenter);
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
@@ -3698,7 +3698,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         tmp->storage_class |= STCgshared | STCstatic;
 
         Statements *cs = new Statements();
-        cs->push(new ExpStatement(loc, new DeclarationExp(loc, tmp)));
+        cs->push(new ExpStatement(loc, tmp));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::criticalenter);
         Expression *e = new DotIdExp(loc, new VarExp(loc, tmp), Id::ptr);
