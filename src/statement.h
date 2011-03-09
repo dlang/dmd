@@ -106,7 +106,7 @@ struct Statement : Object
     virtual int blockExit(bool mustNotThrow);
     virtual int comeFrom();
     virtual int isEmpty();
-    virtual void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
 
@@ -144,7 +144,7 @@ struct ExpStatement : Statement
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
     int isEmpty();
-    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -299,7 +299,7 @@ struct ForStatement : Statement
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     int hasBreak();
     int hasContinue();
     int usesEH();
@@ -724,7 +724,7 @@ struct OnScopeStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int usesEH();
-    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Expression *interpret(InterState *istate);
 
     void toIR(IRState *irs);
