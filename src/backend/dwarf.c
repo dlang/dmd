@@ -1283,8 +1283,7 @@ void dwarf_func_term(Symbol *sfunc)
             debug_loc_buf->write32(funcoffset + 3);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + sfunc->Ssize);
-            //debug_loc_buf->write32(0x08750002);
-            debug_loc_buf->write32(0x00750002);
+            debug_loc_buf->write32(0x08750002);
 
             debug_loc_buf->write32(0);              // 2 words of 0 end it
             debug_loc_buf->write32(0);
