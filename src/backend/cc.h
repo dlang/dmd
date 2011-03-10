@@ -252,7 +252,7 @@ typedef struct Srcpos
     #define srcpos_name(p)      (srcpos_sfile(p).SFname)
 #endif
 #if MARS
-    char *Sfilename;
+    const char *Sfilename;
     #define srcpos_name(p)      ((p).SFname)
 #endif
 #endif

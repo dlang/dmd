@@ -4645,7 +4645,7 @@ elem *doptelem(elem *e,HINT goal)
 void postoptelem(elem *e)
 {
     int linnum = 0;
-    char *filename = NULL;
+    const char *filename = NULL;
 
     elem_debug(e);
     while (1)

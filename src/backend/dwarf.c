@@ -600,7 +600,7 @@ void dwarf_termfile()
         for (unsigned i = 0; i < SegData[seg]->SDlinnum_count; i++)
         {
             linnum_data *ld = &SegData[seg]->SDlinnum_data[i];
-            char *filename;
+            const char *filename;
 #if MARS
             filename = ld->filename;
 #else
@@ -616,7 +616,7 @@ void dwarf_termfile()
             {
                 for (unsigned j = 0; j < SegData[s]->SDlinnum_count; j++)
                 {
-                    char *f2;
+                    const char *f2;
                     linnum_data *ld2 = &SegData[s]->SDlinnum_data[j];
 
 #if MARS

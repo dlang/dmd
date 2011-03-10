@@ -921,7 +921,7 @@ typedef unsigned int IDXSYM;
 
 struct linnum_data
 {
-    char *filename;
+    const char *filename;
     unsigned filenumber;        // corresponding file number for DW_LNS_set_file
 
     unsigned linoff_count;
