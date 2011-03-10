@@ -1305,7 +1305,7 @@ int TypeInfo_Atype::equals(void *p1, void *p2)
     size_t len = a1.end - a1.start;
 
     return len == a2.end - a2.start &&
-        memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len) == 0;
+        memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len) == 0;
 }
 
 int TypeInfo_Atype::compare(void *p1, void *p2)
@@ -1314,7 +1314,7 @@ int TypeInfo_Atype::compare(void *p1, void *p2)
     Atype a2 = *(Atype*)p2;
     size_t len = a1.end - a1.start;
     if (len == a2.end - a2.start)
-        return memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len);
+        return memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len);
     else if (len < a2.end - a2.start)
         return -1;
     else
