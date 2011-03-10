@@ -245,7 +245,7 @@ typedef struct Farseg
 struct Linnum
 {
 #if MARS
-        char *filename;         // source file name
+        const char *filename;   // source file name
 #else
         Sfile *filptr;          // file pointer
 #endif
