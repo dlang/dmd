@@ -27,6 +27,8 @@
 #include        "code.h"
 #include        "type.h"
 #include        "outbuf.h"
+#include        "oper.h"
+#include        "scope.h"
 
 #include        "md5.h"
 
@@ -245,7 +247,7 @@ typedef struct Farseg
 struct Linnum
 {
 #if MARS
-        char *filename;         // source file name
+        const char *filename;   // source file name
 #else
         Sfile *filptr;          // file pointer
 #endif
@@ -1009,7 +1011,7 @@ STATIC void linnum_term()
     Sfile *lastfilptr = NULL;
 #endif
 #if MARS
-    char *lastfilename = NULL;
+    const char *lastfilename = NULL;
 #endif
     int csegsave = cseg;
 
@@ -1031,7 +1033,7 @@ STATIC void linnum_term()
         }
 #endif
 #if MARS
-        char *filename = ln->filename;
+        const char *filename = ln->filename;
         if (filename != lastfilename)
         {
             if (filename)
@@ -1420,8 +1422,8 @@ STATIC void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
     unsigned reclen;
     char sd[1+4+2+2+2+1];
 
-//    printf("objsegdef(attr=x%x, size=x%x, segnamidx=x%x, classnamidx=x%x)\n",
-//      attr,size,segnamidx,classnamidx);
+    //printf("objsegdef(attr=x%x, size=x%x, segnamidx=x%x, classnamidx=x%x)\n",
+      //attr,size,segnamidx,classnamidx);
     sd[0] = attr;
     if (attr & 1 || config.flags & CFGeasyomf)
     {   TOLONG(sd + 1,size);            // store segment size
@@ -1468,6 +1470,7 @@ STATIC void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
             else
                 synerr(EM_seg_gt_64k,size);     // segment exceeds 64Kb
         }
+//printf("attr = %x\n", attr);
 #endif
     }
 #ifdef DEBUG
