@@ -323,7 +323,7 @@ Expression *BinExp::arrayOp(Scope *sc)
             Initializer *init = new ExpInitializer(0, new IntegerExp(0, 0, Type::tsize_t));
             Dsymbol *d = new VarDeclaration(0, Type::tsize_t, Id::p, init);
             Statement *s1 = new ForStatement(0,
-                new DeclarationStatement(0, d),
+                new ExpStatement(0, d),
                 new CmpExp(TOKlt, 0, new IdentifierExp(0, Id::p), new ArrayLengthExp(0, new IdentifierExp(0, p->ident))),
                 new PostExp(TOKplusplus, 0, new IdentifierExp(0, Id::p)),
                 new ExpStatement(0, loopbody));
@@ -343,7 +343,7 @@ Expression *BinExp::arrayOp(Scope *sc)
              */
             TypeFunction *ftype = new TypeFunction(fparams, type, 0, LINKc);
             //printf("ftype: %s\n", ftype->toChars());
-            fd = new FuncDeclaration(0, 0, Lexer::idPool(name), STCundefined, ftype);
+            fd = new FuncDeclaration(loc, 0, Lexer::idPool(name), STCundefined, ftype);
             fd->fbody = fbody;
             fd->protection = PROTpublic;
             fd->linkage = LINKc;
