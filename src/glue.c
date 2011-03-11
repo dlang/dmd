@@ -348,6 +348,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = eictor;
+            sictor->Sfunc->Fstartline.Sfilename = arg;
             sictor->Sfunc->Fstartblock = b;
             writefunc(sictor);
         }
@@ -372,6 +373,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = ector;
+            sctor->Sfunc->Fstartline.Sfilename = arg;
             sctor->Sfunc->Fstartblock = b;
             writefunc(sctor);
 #if STATICCTOR
@@ -387,6 +389,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = edtor;
+            sdtor->Sfunc->Fstartline.Sfilename = arg;
             sdtor->Sfunc->Fstartblock = b;
             writefunc(sdtor);
         }
@@ -410,6 +413,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = esharedctor;
+            ssharedctor->Sfunc->Fstartline.Sfilename = arg;
             ssharedctor->Sfunc->Fstartblock = b;
             writefunc(ssharedctor);
 #if STATICCTOR
@@ -425,6 +429,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = eshareddtor;
+            sshareddtor->Sfunc->Fstartline.Sfilename = arg;
             sshareddtor->Sfunc->Fstartblock = b;
             writefunc(sshareddtor);
         }
@@ -438,6 +443,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = etest;
+            stest->Sfunc->Fstartline.Sfilename = arg;
             stest->Sfunc->Fstartblock = b;
             writefunc(stest);
         }
@@ -512,6 +518,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = e;
+            ma->Sfunc->Fstartline.Sfilename = arg;
             ma->Sfunc->Fstartblock = b;
             ma->Sclass = SCglobal;
             ma->Sfl = 0;

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -172,13 +172,14 @@ int Statement::isEmpty()
  *      *sfinally       code executed in finally block
  */
 
-void Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *Statement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("Statement::scopeCode()\n");
     //print();
     *sentry = NULL;
     *sexception = NULL;
     *sfinally = NULL;
+    return this;
 }
 
 /*********************************
@@ -217,6 +218,12 @@ ExpStatement::ExpStatement(Loc loc, Expression *exp)
     this->exp = exp;
 }
 
+ExpStatement::ExpStatement(Loc loc, Dsymbol *declaration)
+    : Statement(loc)
+{
+    this->exp = new DeclarationExp(loc, declaration);
+}
+
 Statement *ExpStatement::syntaxCopy()
 {
     Expression *e = exp ? exp->syntaxCopy() : NULL;
@@ -227,10 +234,19 @@ Statement *ExpStatement::syntaxCopy()
 void ExpStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (exp)
-        exp->toCBuffer(buf, hgs);
-    buf->writeByte(';');
-    if (!hgs->FLinit.init)
-        buf->writenl();
+    {   exp->toCBuffer(buf, hgs);
+        if (exp->op != TOKdeclaration)
+        {   buf->writeByte(';');
+            if (!hgs->FLinit.init)
+                buf->writenl();
+        }
+    }
+    else
+    {
+        buf->writeByte(';');
+        if (!hgs->FLinit.init)
+            buf->writenl();
+    }
 }
 
 Statement *ExpStatement::semantic(Scope *sc)
@@ -258,11 +274,6 @@ Statement *ExpStatement::semantic(Scope *sc)
         exp = resolveProperties(sc, exp);
         exp->checkSideEffect(0);
         exp = exp->optimize(0);
-        if (exp->op == TOKdeclaration && !isDeclarationStatement())
-        {   Statement *s = new DeclarationStatement(loc, exp);
-            return s;
-        }
-        //exp = exp->optimize(isDeclarationStatement() ? WANTvalue : 0);
     }
     return this;
 }
@@ -289,6 +300,55 @@ int ExpStatement::blockExit(bool mustNotThrow)
 int ExpStatement::isEmpty()
 {
     return exp == NULL;
+}
+
+Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+{
+    //printf("ExpStatement::scopeCode()\n");
+    //print();
+
+    *sentry = NULL;
+    *sexception = NULL;
+    *sfinally = NULL;
+
+    if (exp)
+    {
+        if (exp->op == TOKdeclaration)
+        {
+            DeclarationExp *de = (DeclarationExp *)(exp);
+            VarDeclaration *v = de->declaration->isVarDeclaration();
+            if (v)
+            {   Expression *e;
+
+                e = v->callScopeDtor(sc);
+                if (e)
+                {
+                    //printf("dtor is: "); e->print();
+#if 0
+                    if (v->type->toBasetype()->ty == Tstruct)
+                    {   /* Need a 'gate' to turn on/off destruction,
+                         * in case v gets moved elsewhere.
+                         */
+                        Identifier *id = Lexer::uniqueId("__runDtor");
+                        ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(1));
+                        VarDeclaration *rd = new VarDeclaration(loc, Type::tint32, id, ie);
+                        *sentry = new ExpStatement(loc, rd);
+                        v->rundtor = rd;
+
+                        /* Rewrite e as:
+                         *  rundtor && e
+                         */
+                        Expression *ve = new VarExp(loc, v->rundtor);
+                        e = new AndAndExp(loc, ve, e);
+                        e->type = Type::tbool;
+                    }
+#endif
+                    *sfinally = new ExpStatement(loc, e);
+                }
+            }
+        }
+    }
+    return this;
 }
 
 
@@ -352,78 +412,6 @@ Statement *CompileStatement::semantic(Scope *sc)
         return NULL;
     Statement *s = new CompoundStatement(loc, a);
     return s->semantic(sc);
-}
-
-
-/******************************** DeclarationStatement ***************************/
-
-DeclarationStatement::DeclarationStatement(Loc loc, Dsymbol *declaration)
-    : ExpStatement(loc, new DeclarationExp(loc, declaration))
-{
-}
-
-DeclarationStatement::DeclarationStatement(Loc loc, Expression *exp)
-    : ExpStatement(loc, exp)
-{
-}
-
-Statement *DeclarationStatement::syntaxCopy()
-{
-    DeclarationStatement *ds = new DeclarationStatement(loc, exp->syntaxCopy());
-    return ds;
-}
-
-void DeclarationStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
-{
-    //printf("DeclarationStatement::scopeCode()\n");
-    //print();
-
-    *sentry = NULL;
-    *sexception = NULL;
-    *sfinally = NULL;
-
-    if (exp)
-    {
-        if (exp->op == TOKdeclaration)
-        {
-            DeclarationExp *de = (DeclarationExp *)(exp);
-            VarDeclaration *v = de->declaration->isVarDeclaration();
-            if (v)
-            {   Expression *e;
-
-                e = v->callScopeDtor(sc);
-                if (e)
-                {
-                    //printf("dtor is: "); e->print();
-#if 0
-                    if (v->type->toBasetype()->ty == Tstruct)
-                    {   /* Need a 'gate' to turn on/off destruction,
-                         * in case v gets moved elsewhere.
-                         */
-                        Identifier *id = Lexer::uniqueId("__runDtor");
-                        ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(1));
-                        VarDeclaration *rd = new VarDeclaration(loc, Type::tint32, id, ie);
-                        *sentry = new DeclarationStatement(loc, rd);
-                        v->rundtor = rd;
-
-                        /* Rewrite e as:
-                         *  rundtor && e
-                         */
-                        Expression *ve = new VarExp(loc, v->rundtor);
-                        e = new AndAndExp(loc, ve, e);
-                        e->type = Type::tbool;
-                    }
-#endif
-                    *sfinally = new ExpStatement(loc, e);
-                }
-            }
-        }
-    }
-}
-
-void DeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    exp->toCBuffer(buf, hgs);
 }
 
 
@@ -491,29 +479,18 @@ Statement *CompoundStatement::semantic(Scope *sc)
                 Statement *sexception;
                 Statement *sfinally;
 
-                s->scopeCode(sc, &sentry, &sexception, &sfinally);
+                statements->data[i] = s->scopeCode(sc, &sentry, &sexception, &sfinally);
                 if (sentry)
                 {
                     sentry = sentry->semantic(sc);
-                    if (s->isDeclarationStatement())
-                    {   statements->insert(i, sentry);
-                        i++;
-                    }
-                    else
-                        statements->data[i] = sentry;
+                    statements->insert(i, sentry);
+                    i++;
                 }
                 if (sexception)
                 {
                     if (i + 1 == statements->dim && !sfinally)
                     {
-#if 1
                         sexception = sexception->semantic(sc);
-#else
-                        statements->push(sexception);
-                        if (sfinally)
-                            // Assume sexception does not throw
-                            statements->push(sfinally);
-#endif
                     }
                     else
                     {
@@ -710,11 +687,12 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     int nwritten = 0;
     for (int i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *) statements->data[i];
-        if (s)
-        {   DeclarationStatement *ds = s->isDeclarationStatement();
-            assert(ds);
+        ExpStatement *ds;
+        if (s &&
+            (ds = s->isExpStatement()) != NULL &&
+            ds->exp->op == TOKdeclaration)
+        {
             DeclarationExp *de = (DeclarationExp *)ds->exp;
-            assert(de->op == TOKdeclaration);
             Declaration *d = de->declaration->isDeclaration();
             assert(d);
             VarDeclaration *v = d->isVarDeclaration();
@@ -917,7 +895,9 @@ Statement *ScopeStatement::semantic(Scope *sc)
             Statement *sexception;
             Statement *sfinally;
 
-            statement->scopeCode(sc, &sentry, &sexception, &sfinally);
+            statement = statement->scopeCode(sc, &sentry, &sexception, &sfinally);
+            assert(!sentry);
+            assert(!sexception);
             if (sfinally)
             {
                 //printf("adding sfinally\n");
@@ -1214,14 +1194,15 @@ Statement *ForStatement::semantic(Scope *sc)
     return this;
 }
 
-void ForStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *ForStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("ForStatement::scopeCode()\n");
     //print();
     if (init)
-        init->scopeCode(sc, sentry, sexception, sfinally);
+        init = init->scopeCode(sc, sentry, sexception, sfinally);
     else
         Statement::scopeCode(sc, sentry, sexception, sfinally);
+    return this;
 }
 
 int ForStatement::hasBreak()
@@ -1578,8 +1559,8 @@ Lagain:
                 key->init = new ExpInitializer(loc, new IntegerExp(0));
 
             Statements *cs = new Statements();
-            cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, tmp)));
-            cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, key)));
+            cs->push(new ExpStatement(loc, tmp));
+            cs->push(new ExpStatement(loc, key));
             Statement *forinit = new CompoundDeclarationStatement(loc, cs);
 
             Expression *cond;
@@ -1597,7 +1578,7 @@ Lagain:
 
             // T value = tmp[key];
             value->init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
-            Statement *ds = new DeclarationStatement(loc, new DeclarationExp(loc, value));
+            Statement *ds = new ExpStatement(loc, value);
 
             body = new CompoundStatement(loc, ds, body);
 
@@ -1708,7 +1689,7 @@ Lagain:
             VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, rinit));
 //          r->semantic(sc);
 //printf("r: %s, init: %s\n", r->toChars(), r->init->toChars());
-            Statement *init = new DeclarationStatement(loc, r);
+            Statement *init = new ExpStatement(loc, r);
 //printf("init: %s\n", init->toChars());
 
             // !__r.empty
@@ -1734,7 +1715,7 @@ Lagain:
             DeclarationExp *de = new DeclarationExp(loc, ve);
 
             Statement *body = new CompoundStatement(loc,
-                new DeclarationStatement(loc, de), this->body);
+                new ExpStatement(loc, de), this->body);
 
             s = new ForStatement(loc, init, condition, increment, body);
 #if 0
@@ -1791,7 +1772,7 @@ Lagain:
                     id = Lexer::uniqueId("__applyArg", i);
                     Initializer *ie = new ExpInitializer(0, new IdentifierExp(0, id));
                     VarDeclaration *v = new VarDeclaration(0, arg->type, arg->ident, ie);
-                    s = new DeclarationStatement(0, v);
+                    s = new ExpStatement(0, v);
                     body = new CompoundStatement(loc, s, body);
                 }
                 a = new Parameter(STCref, arg->type, id, NULL);
@@ -2160,13 +2141,13 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     // Keep order of evaluation as lwr, then upr
     if (op == TOKforeach)
     {
-        cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, key)));
-        cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, tmp)));
+        cs->push(new ExpStatement(loc, key));
+        cs->push(new ExpStatement(loc, tmp));
     }
     else
     {
-        cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, tmp)));
-        cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, key)));
+        cs->push(new ExpStatement(loc, tmp));
+        cs->push(new ExpStatement(loc, key));
     }
     Statement *forinit = new CompoundDeclarationStatement(loc, cs);
 
@@ -3108,7 +3089,7 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     {
         Statement *s = statement;
         if (i != lval)                          // if not last case
-            s = new ExpStatement(loc, NULL);
+            s = new ExpStatement(loc, (Expression *)NULL);
         Expression *e = new IntegerExp(loc, i, first->type);
         Statement *cs = new CaseStatement(loc, e, s);
         statements->push(cs);
@@ -3877,7 +3858,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         VarDeclaration *tmp = new VarDeclaration(loc, exp->type, id, ie);
 
         Statements *cs = new Statements();
-        cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, tmp)));
+        cs->push(new ExpStatement(loc, tmp));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorenter);
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
@@ -3908,7 +3889,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         tmp->storage_class |= STCgshared | STCstatic;
 
         Statements *cs = new Statements();
-        cs->push(new DeclarationStatement(loc, new DeclarationExp(loc, tmp)));
+        cs->push(new ExpStatement(loc, tmp));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::criticalenter);
         Expression *e = new DotIdExp(loc, new VarExp(loc, tmp), Id::ptr);
@@ -4380,7 +4361,7 @@ int OnScopeStatement::usesEH()
     return 1;
 }
 
-void OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
+Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
 {
     //printf("OnScopeStatement::scopeCode()\n");
     //print();
@@ -4400,17 +4381,17 @@ void OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexc
         case TOKon_scope_success:
         {
             /* Create:
-             *  sentry:   int x = 0;
-             *  sexception:    x = 1;
+             *  sentry:   bool x = false;
+             *  sexception:    x = true;
              *  sfinally: if (!x) statement;
              */
             Identifier *id = Lexer::uniqueId("__os");
 
-            ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(0));
-            VarDeclaration *v = new VarDeclaration(loc, Type::tint32, id, ie);
-            *sentry = new DeclarationStatement(loc, v);
+            ExpInitializer *ie = new ExpInitializer(loc, new IntegerExp(0, 0, Type::tbool));
+            VarDeclaration *v = new VarDeclaration(loc, Type::tbool, id, ie);
+            *sentry = new ExpStatement(loc, v);
 
-            Expression *e = new IntegerExp(1);
+            Expression *e = new IntegerExp(0, 1, Type::tbool);
             e = new AssignExp(0, new VarExp(0, v), e);
             *sexception = new ExpStatement(0, e);
 
@@ -4424,6 +4405,7 @@ void OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexc
         default:
             assert(0);
     }
+    return NULL;
 }
 
 /******************************** ThrowStatement ***************************/
@@ -4645,7 +4627,7 @@ Statements *LabelStatement::flatten(Scope *sc)
         {
             if (!a->dim)
             {
-                a->push(new ExpStatement(loc, NULL));
+                a->push(new ExpStatement(loc, (Expression *)NULL));
             }
             Statement *s = (Statement *)a->data[0];
 

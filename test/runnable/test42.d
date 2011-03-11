@@ -3878,6 +3878,201 @@ void test225()
 }
 
 /***************************************************/
+// 5534
+
+void doStuff(byte start, byte end, uint increment = 1U) {
+   auto output = new byte[3];
+
+    size_t count = 0;
+    for(byte i = start; i < end; i += increment) {
+        output[count++] = i;
+    }
+}
+
+void test226()  {
+    doStuff(0, 3);
+}
+
+/***************************************************/
+// 5536
+
+void test227()
+{
+  int[] as = [111, 666];
+  as ~= as[$ - 2];
+  assert(as.length == 3);
+  assert(as[2] == 111);
+}
+
+/***************************************************/
+// 4017
+
+struct _A
+{
+   uint data;
+}
+
+const A_SIZE =   (A4017.sizeof);
+
+alias _A A4017;
+
+/***************************************************/
+// 5455
+
+void thrw(Data *s) {
+    throw new Exception("xxx");
+}
+
+struct Data {
+    Rapper *w;
+    uint n, m;
+}
+
+struct Rapper {
+    ubyte * dat;
+    ubyte[] con() {
+        return dat[0..1];
+    }
+}
+
+uint jaz(ubyte[] data) {
+    return cast(uint)data.length;
+}
+
+struct Resp {
+    void set(Data *data, string[] soup) {
+        switch(soup[0]) {
+            default:
+        }
+        uint[] f = [jaz(data.w ? data.w.con[data.n ..data.m] : null), data.m - data.n];
+        thrw(data);
+    }
+}
+
+/**************************************/
+// 5571
+
+void test228() {
+    auto b = new bool;
+    printf("%p\n", b);
+    *b = false;
+}
+
+/***************************************************/
+// 5572
+
+void doSynchronized() {
+    printf("In doSynchronized() 1:  %p\n", cast(void*) global229);
+    synchronized {
+        printf("In doSynchronized() 2:  %p\n", cast(void*) global229);
+    }
+}
+
+__gshared Object global229;
+
+void test229() {
+    auto local = new Object;
+    global229 = local;
+
+    printf("In main() 1:  %p\t%p\n",
+        cast(void*) global229, cast(void*) local);
+    doSynchronized();
+    printf("In main() 1:  %p\t%p\n",
+        cast(void*) global229, cast(void*) local);
+
+    assert(cast(void*) global229 == cast(void*) local);
+}
+
+/***************************************************/
+
+static immutable real negtab[14] =
+    [ 1e-4096L,1e-2048L,1e-1024L,1e-512L,1e-256L,1e-128L,1e-64L,1e-32L,
+	    1e-16L,1e-8L,1e-4L,1e-2L,1e-1L,1.0L ];
+static immutable real postab[13] =
+    [ 1e+4096L,1e+2048L,1e+1024L,1e+512L,1e+256L,1e+128L,1e+64L,1e+32L,
+	    1e+16L,1e+8L,1e+4L,1e+2L,1e+1L ];
+
+float parse(ref string p)
+{
+    printf("test1\n");
+
+    real ldval = 0.0;
+    int exp = 0;
+    long msdec = 0;
+
+    msdec = 123;
+    exp = 2;
+
+    ldval = msdec;
+    printf("ldval = %Lg\n", ldval);
+    if (ldval)
+    {
+        uint u = 0;
+        int pow = 4096;
+
+        while (exp > 0)
+        {
+            while (exp >= pow)
+            {
+                ldval *= postab[u];
+                exp -= pow;
+            }
+            pow >>= 1;
+            u++;
+        }
+        while (exp < 0)
+        {
+            while (exp <= -pow)
+            {
+                ldval *= negtab[u];
+                exp += pow;
+            }
+            pow >>= 1;
+            u++;
+        }
+    }
+    return ldval;
+}
+
+void test230()
+{
+    float f;
+    f = parse( "123e+2" );
+    //printf("f = %g\n", f);
+    assert( f == 123e+2f );
+}
+
+/***************************************************/
+
+class Bug4033 {} 
+ 
+class Template4033(T) { 
+    static assert(is(T : Bug4033)); 
+} 
+
+alias Template4033!(Z4033) Bla; 
+ 
+class Z4033 : Bug4033 { } 
+
+/***************************************************/
+
+struct Bug4322 { 
+    int[1] a = void; 
+} 
+
+void bug4322() { 
+    Bug4322 f = Bug4322(); 
+    Bug4322 g = Bug4322.init; 
+}
+
+/***************************************************/
+
+bool bug5672(long v)
+{    
+    return  (v & 1) == 1;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4091,6 +4286,12 @@ int main()
     test222();
     test223();
     test224();
+    test225();
+    test226();
+    test227();
+    test228();
+    test229();
+    test230();
 
     writefln("Success");
     return 0;

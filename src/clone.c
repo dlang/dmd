@@ -143,7 +143,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     ((TypeFunction *)ftype)->isref = 1;
 #endif
 
-    fop = new FuncDeclaration(0, 0, Id::assign, STCundefined, ftype);
+    fop = new FuncDeclaration(loc, 0, Id::assign, STCundefined, ftype);
 
     Expression *e = NULL;
     if (postblit)
@@ -335,7 +335,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
         fparams->push(param);
         Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd);
 
-        fcp = new FuncDeclaration(0, 0, Id::cpctor, STCundefined, ftype);
+        fcp = new FuncDeclaration(loc, 0, Id::cpctor, STCundefined, ftype);
         fcp->storage_class |= postblit->storage_class & STCdisable;
 
         // Build *this = p;
@@ -434,7 +434,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
      */
     if (e)
     {   //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(0, 0, Lexer::idPool("__fieldPostBlit"));
+        PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, Lexer::idPool("__fieldPostBlit"));
         dd->storage_class |= stc;
         dd->fbody = new ExpStatement(0, e);
         postblits.shift(dd);
@@ -460,7 +460,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                 ex = new CallExp(0, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(0, 0, Lexer::idPool("__aggrPostBlit"));
+            PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, Lexer::idPool("__aggrPostBlit"));
             dd->storage_class |= stc;
             dd->fbody = new ExpStatement(0, e);
             members->push(dd);
@@ -534,7 +534,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e)
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(0, 0, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(loc, 0, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(0, e);
         dtors.shift(dd);
         members->push(dd);
@@ -559,7 +559,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new CallExp(0, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(0, 0, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(loc, 0, Lexer::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(0, e);
             members->push(dd);
             dd->semantic(sc);

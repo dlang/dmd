@@ -27,7 +27,7 @@ struct Expression;
 struct LabelDsymbol;
 struct Identifier;
 struct IfStatement;
-struct DeclarationStatement;
+struct ExpStatement;
 struct DefaultStatement;
 struct VarDeclaration;
 struct Condition;
@@ -106,7 +106,7 @@ struct Statement : Object
     virtual int blockExit(bool mustNotThrow);
     virtual int comeFrom();
     virtual int isEmpty();
-    virtual void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
 
@@ -118,7 +118,7 @@ struct Statement : Object
     virtual void toIR(IRState *irs);
 
     // Avoid dynamic_cast
-    virtual DeclarationStatement *isDeclarationStatement() { return NULL; }
+    virtual ExpStatement *isExpStatement() { return NULL; }
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
     virtual IfStatement *isIfStatement() { return NULL; }
@@ -137,18 +137,22 @@ struct ExpStatement : Statement
     Expression *exp;
 
     ExpStatement(Loc loc, Expression *exp);
+    ExpStatement(Loc loc, Dsymbol *s);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
     int isEmpty();
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
+
+    ExpStatement *isExpStatement() { return this; }
 };
 
 struct CompileStatement : Statement
@@ -160,20 +164,6 @@ struct CompileStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statements *flatten(Scope *sc);
     Statement *semantic(Scope *sc);
-};
-
-struct DeclarationStatement : ExpStatement
-{
-    // Doing declarations as an expression, rather than a statement,
-    // makes inlining functions much easier.
-
-    DeclarationStatement(Loc loc, Dsymbol *s);
-    DeclarationStatement(Loc loc, Expression *exp);
-    Statement *syntaxCopy();
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
-
-    DeclarationStatement *isDeclarationStatement() { return this; }
 };
 
 struct CompoundStatement : Statement
@@ -309,7 +299,7 @@ struct ForStatement : Statement
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     int hasBreak();
     int hasContinue();
     int usesEH();
@@ -734,7 +724,7 @@ struct OnScopeStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int usesEH();
-    void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Expression *interpret(InterState *istate);
 
     void toIR(IRState *irs);

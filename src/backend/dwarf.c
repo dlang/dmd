@@ -260,10 +260,79 @@ static int hasModname;    // 1 if has DW_TAG_module
 // .debug_info
 static IDXSEC infoseg;
 static Outbuffer *infobuf;
+static AArray *infoFileName_table;
 
 static AArray *type_table;
 static AArray *functype_table;  // not sure why this cannot be combined with type_table
 static Outbuffer *functypebuf;
+
+// typeinfo declarations for hash of char*
+
+struct Abuf
+{
+    const unsigned char *buf;
+    size_t length;
+};
+
+struct TypeInfo_Abuf : TypeInfo
+{
+    const char* toString();
+    hash_t getHash(void *p);
+    int equals(void *p1, void *p2);
+    int compare(void *p1, void *p2);
+    size_t tsize();
+    void swap(void *p1, void *p2);
+};
+
+TypeInfo_Abuf ti_abuf;
+
+const char* TypeInfo_Abuf::toString()
+{
+    return "Abuf";
+}
+
+hash_t TypeInfo_Abuf::getHash(void *p)
+{
+    Abuf a = *(Abuf *)p;
+
+    hash_t hash = 0;
+    for (size_t i = 0; i < a.length; i++)
+        hash = hash * 11 + a.buf[i];
+
+    return hash;
+}
+
+int TypeInfo_Abuf::equals(void *p1, void *p2)
+{
+    Abuf a1 = *(Abuf*)p1;
+    Abuf a2 = *(Abuf*)p2;
+
+    return a1.length == a2.length &&
+        memcmp(a1.buf, a2.buf, a1.length) == 0;
+}
+
+int TypeInfo_Abuf::compare(void *p1, void *p2)
+{
+    Abuf a1 = *(Abuf*)p1;
+    Abuf a2 = *(Abuf*)p2;
+
+    if (a1.length == a2.length)
+        return memcmp(a1.buf, a2.buf, a1.length);
+    else if (a1.length < a2.length)
+        return -1;
+    else
+        return 1;
+}
+
+size_t TypeInfo_Abuf::tsize()
+{
+    return sizeof(Abuf);
+}
+
+void TypeInfo_Abuf::swap(void *p1, void *p2)
+{
+    assert(0);
+}
 
 #pragma pack(1)
 struct DebugInfoHeader
@@ -386,6 +455,11 @@ void dwarf_initfile(const char *filename)
     debug_loc_buf->reserve(1000);
 
     /* ======================================== */
+
+    if (infoFileName_table)
+    {   delete infoFileName_table;
+        infoFileName_table = NULL;
+    }
 
     lineseg = dwarf_getsegment(".debug_line", 0);
     linebuf = SegData[lineseg]->SDbuf;
@@ -552,6 +626,46 @@ void dwarf_initfile(const char *filename)
     debug_aranges_buf->write32(0);              // pad to 16
 }
 
+/*************************************
+ * Add a file to the .debug_line header
+ */
+int dwarf_line_addfile(const char* filename)
+{
+    if (!infoFileName_table)
+        infoFileName_table = new AArray(&ti_abuf, sizeof(unsigned));
+
+    Abuf abuf;
+    abuf.buf = (const unsigned char*)filename;
+    abuf.length = strlen(filename)-1;
+
+    unsigned *pidx = (unsigned *)infoFileName_table->get(&abuf);
+    if (!*pidx)                 // if no idx assigned yet
+    {
+        *pidx = infoFileName_table->length(); // assign newly computed idx
+
+        linebuf->writeString(filename);
+        linebuf->writeByte(0);      // index
+        linebuf->writeByte(0);      // mtime
+        linebuf->writeByte(0);      // length
+    }
+
+    return *pidx;
+}
+
+int dwarf_line_getfile(const char* filename)
+{
+    assert(infoFileName_table);
+
+    Abuf abuf;
+    abuf.buf = (const unsigned char*)filename;
+    abuf.length = strlen(filename)-1;
+
+    unsigned *pidx = (unsigned *)infoFileName_table->get(&abuf);
+    assert(pidx);
+
+    return *pidx;
+}
+
 void dwarf_initmodule(const char *filename, const char *modname)
 {
     if (modname)
@@ -573,6 +687,8 @@ void dwarf_initmodule(const char *filename, const char *modname)
     }
     else
         hasModname = 0;
+
+    dwarf_line_addfile(filename);
 }
 
 void dwarf_termmodule()
@@ -594,13 +710,14 @@ void dwarf_termfile()
     // Put out line number info
 
     // file_names
-    unsigned filenumber = 0;
+    unsigned last_filenumber = 0;
+    const char* last_filename = NULL;
     for (unsigned seg = 1; seg <= seg_count; seg++)
     {
         for (unsigned i = 0; i < SegData[seg]->SDlinnum_count; i++)
         {
             linnum_data *ld = &SegData[seg]->SDlinnum_data[i];
-            char *filename;
+            const char *filename;
 #if MARS
             filename = ld->filename;
 #else
@@ -610,39 +727,17 @@ void dwarf_termfile()
             else
                 filename = ::filename;
 #endif
-            /* Look to see if filename has already been output
-             */
-            for (unsigned s = 1; s < seg; s++)
+            if (last_filename == filename)
             {
-                for (unsigned j = 0; j < SegData[s]->SDlinnum_count; j++)
-                {
-                    char *f2;
-                    linnum_data *ld2 = &SegData[s]->SDlinnum_data[j];
-
-#if MARS
-                    f2 = ld2->filename;
-#else
-                    Sfile *sf = ld2->filptr;
-                    if (sf)
-                        f2 = sf->SFname;
-                    else
-                        f2 = ::filename;
-#endif
-                    if (filename == f2)
-                    {   ld->filenumber = ld2->filenumber;
-                        goto L1;
-                    }
-                }
+                ld->filenumber = last_filenumber;
             }
+            else
+            {
+                ld->filenumber = dwarf_line_getfile(filename);
 
-            linebuf->writeString(filename);
-            ld->filenumber = ++filenumber;
-
-            linebuf->writeByte(0);      // index
-            linebuf->writeByte(0);      // mtime
-            linebuf->writeByte(0);      // length
-        L1:
-            ;
+                last_filenumber = ld->filenumber;
+                last_filename = filename;
+            }
         }
     }
     linebuf->writeByte(0);              // end of file_names
@@ -735,6 +830,10 @@ void dwarf_termfile()
                 if (lininc || addinc)
                     linebuf->writeByte(DW_LNS_copy);
             }
+
+            // Write DW_LNS_advance_pc to cover the function prologue
+            linebuf->writeByte(DW_LNS_advance_pc);
+            linebuf->writeByte(sd->SDbuf->size() - address);
 
             // Write DW_LNE_end_sequence
             linebuf->writeByte(0);
@@ -908,6 +1007,13 @@ void dwarf_func_term(Symbol *sfunc)
     IDXSEC seg = sfunc->Sseg;
     seg_data *sd = SegData[seg];
 
+#if MARS
+    const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
+    int filenum = dwarf_line_getfile(filename);
+#else
+    int filenum = 1;
+#endif
+
         unsigned ret_type = dwarf_typidx(sfunc->Stype->Tnext);
         if (tybasic(sfunc->Stype->Tnext->Tty) == TYvoid)
             ret_type = 0;
@@ -999,7 +1105,7 @@ void dwarf_func_term(Symbol *sfunc)
 #endif
         infobuf->writeString(name);             // DW_AT_name
         infobuf->writeString(sfunc->Sident);    // DW_AT_MIPS_linkage_name
-        infobuf->writeByte(1);                  // DW_AT_decl_file
+        infobuf->writeByte(filenum);            // DW_AT_decl_file
         infobuf->writeWord(sfunc->Sfunc->Fstartline.Slinnum);   // DW_AT_decl_line
         if (ret_type)
             infobuf->write32(ret_type);         // DW_AT_type
@@ -1177,8 +1283,7 @@ void dwarf_func_term(Symbol *sfunc)
             debug_loc_buf->write32(funcoffset + 3);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + sfunc->Ssize);
-            //debug_loc_buf->write32(0x08750002);
-            debug_loc_buf->write32(0x00750002);
+            debug_loc_buf->write32(0x08750002);
 
             debug_loc_buf->write32(0);              // 2 words of 0 end it
             debug_loc_buf->write32(0);
@@ -1305,7 +1410,7 @@ int TypeInfo_Atype::equals(void *p1, void *p2)
     size_t len = a1.end - a1.start;
 
     return len == a2.end - a2.start &&
-        memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len) == 0;
+        memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len) == 0;
 }
 
 int TypeInfo_Atype::compare(void *p1, void *p2)
@@ -1314,7 +1419,7 @@ int TypeInfo_Atype::compare(void *p1, void *p2)
     Atype a2 = *(Atype*)p2;
     size_t len = a1.end - a1.start;
     if (len == a2.end - a2.start)
-        return memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len);
+        return memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len);
     else if (len < a2.end - a2.start)
         return -1;
     else
