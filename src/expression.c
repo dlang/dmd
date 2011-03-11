@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9452,6 +9452,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
     else if (tb1->ty == Tarray &&
         (tb1next->ty == Tchar || tb1next->ty == Twchar) &&
+        e2->type->ty != tb1next->ty &&
         e2->implicitConvTo(Type::tdchar)
        )
     {   // Append dchar to char[] or wchar[]
