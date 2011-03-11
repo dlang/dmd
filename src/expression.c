@@ -8590,6 +8590,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
     else if (tb1->ty == Tarray &&
         (tb1next->ty == Tchar || tb1next->ty == Twchar) &&
+        e2->type->ty != tb1next->ty &&
         e2->implicitConvTo(Type::tdchar)
        )
     {   // Append dchar to char[] or wchar[]
