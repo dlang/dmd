@@ -317,10 +317,9 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
         {
             DeclarationExp *de = (DeclarationExp *)(exp);
             VarDeclaration *v = de->declaration->isVarDeclaration();
-            if (v)
-            {   Expression *e;
-
-                e = v->callScopeDtor(sc);
+            if (v && !v->noscope)
+            {
+                Expression *e = v->edtor;
                 if (e)
                 {
                     //printf("dtor is: "); e->print();

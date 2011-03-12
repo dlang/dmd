@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -258,6 +258,7 @@ struct VarDeclaration : Declaration
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
                                 // if the destructor should be run. Used to prevent
                                 // dtor calls on postblitted vars
+    Expression *edtor;          // if !=NULL, does the destruction of the variable
 #endif
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);

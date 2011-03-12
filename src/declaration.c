@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -666,7 +666,10 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     onstack = 0;
     canassign = 0;
     value = NULL;
+#if DMDV2
     rundtor = NULL;
+    edtor = NULL;
+#endif
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
@@ -1034,7 +1037,7 @@ Lagain:
             e = new ConstructExp(loc, e1, e);
             e->type = e1->type;         // don't type check this, it would fail
             init = new ExpInitializer(loc, e);
-            return;
+            goto Ldtor;
         }
         else if (type->ty == Ttypedef)
         {   TypeTypedef *td = (TypeTypedef *)type;
@@ -1340,6 +1343,16 @@ Lagain:
         }
         sc = sc->pop();
     }
+
+Ldtor:
+    /* Build code to execute destruction, if necessary
+     */
+    edtor = callScopeDtor(sc);
+    if (edtor)
+    {
+        edtor = edtor->semantic(sc);
+    }
+
     sem = SemanticDone;
 }
 
@@ -1630,29 +1643,10 @@ int VarDeclaration::needsAutoDtor()
 {
     //printf("VarDeclaration::needsAutoDtor() %s\n", toChars());
 
-    if (noscope || storage_class & STCnodtor)
+    if (noscope || !edtor)
         return FALSE;
 
-    // Destructors for structs and arrays of structs
-    Type *tv = type->toBasetype();
-    while (tv->ty == Tsarray)
-    {   TypeSArray *ta = (TypeSArray *)tv;
-        tv = tv->nextOf()->toBasetype();
-    }
-    if (tv->ty == Tstruct)
-    {   TypeStruct *ts = (TypeStruct *)tv;
-        StructDeclaration *sd = ts->sym;
-        if (sd->dtor)
-            return TRUE;
-    }
-
-    // Destructors for classes
-    if (storage_class & (STCauto | STCscope))
-    {
-        if (type->isClassHandle())
-            return TRUE;
-    }
-    return FALSE;
+    return TRUE;
 }
 
 
@@ -1666,8 +1660,11 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
 
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
-    if (noscope || storage_class & STCnodtor)
+    // Destruction of STCfield's is handled by buildDtor()
+    if (noscope || storage_class & (STCnodtor | STCref | STCout | STCfield))
+    {
         return NULL;
+    }
 
     // Destructors for structs and arrays of structs
     bool array = false;

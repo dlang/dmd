@@ -1557,7 +1557,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->type->toBasetype()->ty == Tsarray)
                         continue;
 
-                    Expression *e = v->callScopeDtor(sc2);
+                    if (v->noscope)
+                        continue;
+
+                    Expression *e = v->edtor;
                     if (e)
                     {   Statement *s = new ExpStatement(0, e);
                         s = s->semantic(sc2);
