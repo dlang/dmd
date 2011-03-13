@@ -261,6 +261,7 @@ TARGET_CONVERSION_OPS
         OPctor,
         OPdtor,
         OPmark,
+        OPdctor,                // D constructor
         OPpair,                 // build register pair, E1 is lsb, E2 = msb
         OPrpair,                // build reversed register pair, E1 is msb, E2 = lsb
         OPframeptr,             // load pointer to base of frame

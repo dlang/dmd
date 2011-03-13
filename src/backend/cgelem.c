@@ -4025,7 +4025,7 @@ elem *elpair(elem *e)
 STATIC elem * elinfo(elem *e)
 {
     //printf("elinfo()\n");
-#if NTEXCEPTIONS
+#if NTEXCEPTIONS && SCPP
     if (funcsym_p->Sfunc->Fflags3 & Fnteh)
     {   // Eliminate cleanup info if using NT structured EH
         if (e->Eoper == OPinfo)

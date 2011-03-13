@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1142,8 +1142,11 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
             vd->toObjFile(0);
         else
         {
+//printf("Dsymbol_toElem() %x\n", vd->storage_class);
             sp = s->toSymbol();
+//printf("test1 %d\n", cstate.CSpsymtab->top);
             symbol_add(sp);
+//printf("test2 %d\n", cstate.CSpsymtab->top);
             //printf("\tadding symbol '%s'\n", sp->Sident);
             if (vd->init)
             {
@@ -1153,6 +1156,14 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
                 if (ie)
                     e = ie->exp->toElem(irs);
             }
+#if 1
+            /* Mark the point of construction of a variable that needs to be destructed.
+             */
+            if (vd->edtor && !vd->noscope)
+            {
+                e = el_dctor(e, vd);
+            }
+#endif
         }
     }
     else if ((cd = s->isClassDeclaration()) != NULL)

@@ -955,6 +955,12 @@ union eve
             elem *Eright;       // right child for binary nodes
             Symbol *Edtor;      // OPctor: destructor
         } eop;
+#if MARS
+        struct
+        {
+            void *Edecl;        // OPdctor: VarDeclaration being constructed
+        } ed;
+#endif
 };                              // variants for each type of elem
 
 // Symbols

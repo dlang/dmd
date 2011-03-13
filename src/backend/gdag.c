@@ -250,6 +250,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
                 break;
             case OPctor:
             case OPdtor:
+            case OPdctor:
                 break;
             case OPasm:
                 vec_clear(ae);          // kill everything

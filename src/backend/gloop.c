@@ -1291,6 +1291,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPmark:
         case OPctor:
         case OPdtor:
+        case OPdctor:
         case OPhalt:
         case OPgot:                     // shouldn't OPgot be makeLI ?
                 break;

@@ -222,6 +222,7 @@ elem_p el_long(tym_t,targ_long);
 
 int ERTOL(elem_p);
 int el_noreturn(elem_p);
+elem *el_dctor(elem *e,void *decl);
 elem *el_ctor(elem *ector,elem *e,symbol *sdtor);
 elem *el_dtor(elem *edtor,elem *e);
 elem *el_zero(type *t);
