@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1292,6 +1292,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPctor:
         case OPdtor:
         case OPdctor:
+        case OPddtor:
         case OPhalt:
         case OPgot:                     // shouldn't OPgot be makeLI ?
                 break;

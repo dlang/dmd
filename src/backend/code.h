@@ -711,6 +711,7 @@ cd_t cdpost;
 cd_t cderr;
 cd_t cdinfo;
 cd_t cddctor;
+cd_t cdddtor;
 cd_t cdctor;
 cd_t cddtor;
 cd_t cdmark;

@@ -4655,6 +4655,16 @@ code *cddctor(elem *e,regm_t *pretregs)
 }
 
 /*******************************************
+ * D destructor.
+ */
+
+code *cdddtor(elem *e,regm_t *pretregs)
+{
+    return NULL;
+}
+
+
+/*******************************************
  * C++ constructor.
  */
 

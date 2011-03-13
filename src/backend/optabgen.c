@@ -63,6 +63,7 @@ int _unary[] =
          OPinp,OPptrlptr,OPtofar16,OPfromfar16,OParrow,OPnegass,
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
          OPbsf,OPbsr,OPbswap,
+         OPddtor,
         };
 int _commut[] = {OPadd,OPand,OPor,OPxor,OPmul,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
@@ -109,7 +110,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPinp,OPoutp,OPnegass,OPctor,OPdtor,OPmark,OPvoid,OPnewarray,
                 OPmultinewarray,OPcheckcast,OPnullcheck,
                 OPbtc,OPbtr,OPbts,
-                OPhalt,OPdctor,
+                OPhalt,OPdctor,OPddtor,
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
@@ -444,6 +445,7 @@ void dotab()
         case OPasm:     X("asm",        elzot, cdasm);
         case OPinfo:    X("info",       elinfo,cdinfo);
         case OPdctor:   X("dctor",      elzot, cddctor);
+        case OPddtor:   X("ddtor",      elddtor, cdddtor);
         case OPctor:    X("ctor",       elinfo,cdctor);
         case OPdtor:    X("dtor",       elinfo,cddtor);
         case OPmark:    X("mark",       elinfo,cdmark);
