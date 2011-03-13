@@ -4019,6 +4019,15 @@ elem *elpair(elem *e)
 }
 
 /********************************
+ * Handle OPddtor
+ */
+
+elem *elddtor(elem *e)
+{
+    return e;
+}
+
+/********************************
  * Handle OPinfo, OPmark, OPctor, OPdtor
  */
 

@@ -958,8 +958,9 @@ union eve
 #if MARS
         struct
         {
-            void *Edecl;        // OPdctor: VarDeclaration being constructed
-        } ed;
+            elem *Eleft;        // left child for OPddtor
+            void *Edecl;        // VarDeclaration being constructed
+        } ed;                   // OPdctor,OPddtor
 #endif
 };                              // variants for each type of elem
 

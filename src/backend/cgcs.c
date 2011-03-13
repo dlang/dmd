@@ -269,6 +269,7 @@ STATIC void ecom(elem **pe)
 #if TX86
     case OPinp:                 /* never CSE the I/O instruction itself */
 #endif
+    case OPdctor:
         ecom(&e->E1);
         /* FALL-THROUGH */
     case OPasm:
@@ -278,7 +279,9 @@ STATIC void ecom(elem **pe)
     case OPctor:
     case OPdtor:
     case OPmark:
-    case OPdctor:
+        return;
+
+    case OPddtor:
         return;
 
     case OPparam:

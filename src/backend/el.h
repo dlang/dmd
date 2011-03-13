@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1995 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -223,6 +223,7 @@ elem_p el_long(tym_t,targ_long);
 int ERTOL(elem_p);
 int el_noreturn(elem_p);
 elem *el_dctor(elem *e,void *decl);
+elem *el_ddtor(elem *e,void *decl);
 elem *el_ctor(elem *ector,elem *e,symbol *sdtor);
 elem *el_dtor(elem *edtor,elem *e);
 elem *el_zero(type *t);

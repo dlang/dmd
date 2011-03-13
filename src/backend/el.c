@@ -2385,7 +2385,7 @@ elem * el_const(tym_t ty,union eve *pconst)
 /**************************
  * Insert constructor information into tree.
  *      e       code to construct the object
- *      var     VarDeclaration of variable being constructed
+ *      decl    VarDeclaration of variable being constructed
  */
 
 #if MARS
@@ -2400,6 +2400,25 @@ elem *el_dctor(elem *e,void *decl)
     else
         e = ector;
     return e;
+}
+#endif
+
+/**************************
+ * Insert destructor information into tree.
+ *      e       code to destruct the object
+ *      decl    VarDeclaration of variable being destructed
+ *              (must match decl for corresponding OPctor)
+ */
+
+#if MARS
+elem *el_ddtor(elem *e,void *decl)
+{
+    elem *edtor = el_calloc();
+    edtor->Eoper = OPddtor;
+    edtor->Ety = TYvoid;
+    edtor->EV.ed.Edecl = decl;
+    edtor->EV.ed.Eleft = e;
+    return edtor;
 }
 #endif
 
