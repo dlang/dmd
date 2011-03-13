@@ -278,6 +278,7 @@ STATIC void ecom(elem **pe)
     case OPctor:
     case OPdtor:
     case OPmark:
+    case OPdctor:
         return;
 
     case OPparam:

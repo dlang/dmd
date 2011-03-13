@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -710,6 +710,7 @@ cd_t cdabs;
 cd_t cdpost;
 cd_t cderr;
 cd_t cdinfo;
+cd_t cddctor;
 cd_t cdctor;
 cd_t cddtor;
 cd_t cdmark;

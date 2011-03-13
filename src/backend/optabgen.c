@@ -109,7 +109,7 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPinp,OPoutp,OPnegass,OPctor,OPdtor,OPmark,OPvoid,OPnewarray,
                 OPmultinewarray,OPcheckcast,OPnullcheck,
                 OPbtc,OPbtr,OPbts,
-                OPhalt,
+                OPhalt,OPdctor,
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
@@ -443,6 +443,7 @@ void dotab()
         case OPoutp:    X("outp",       elzot, cdport);
         case OPasm:     X("asm",        elzot, cdasm);
         case OPinfo:    X("info",       elinfo,cdinfo);
+        case OPdctor:   X("dctor",      elzot, cddctor);
         case OPctor:    X("ctor",       elinfo,cdctor);
         case OPdtor:    X("dtor",       elinfo,cddtor);
         case OPmark:    X("mark",       elinfo,cdmark);
