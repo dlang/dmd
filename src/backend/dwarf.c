@@ -438,7 +438,7 @@ void dwarf_initfile(const char *filename)
         unsigned char code_alignment_factor;
         unsigned char data_alignment_factor;
         unsigned char return_address_register;
-        unsigned char opcodes[11];
+        unsigned char opcodes[7];
     };
     #pragma pack()
     static DebugFrameHeader debugFrameHeader =
@@ -451,14 +451,13 @@ void dwarf_initfile(const char *filename)
         8,              // return address register
       {
         DW_CFA_def_cfa, 4,4,    // r4,4 [r7,8]
-        DW_CFA_offset   +8,1,   // r8,1 [r10,1]
+        DW_CFA_offset   +8,1,   // r8,1 [r16,1]
         DW_CFA_nop,
         DW_CFA_nop,
       }
     };
     if (I64)
-    {   debugFrameHeader.length = 20;
-        debugFrameHeader.data_alignment_factor = 0x78;          // (-8)
+    {   debugFrameHeader.data_alignment_factor = 0x78;          // (-8)
         debugFrameHeader.return_address_register = 16;
         debugFrameHeader.opcodes[1] = 7;                        // RSP
         debugFrameHeader.opcodes[2] = 8;
