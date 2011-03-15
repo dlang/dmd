@@ -1289,6 +1289,9 @@ void dwarf_func_term(Symbol *sfunc)
 
         /* ============= debug_loc =========================== */
 
+        int op = 0;
+        assert(Poff >= 2 * REGSIZE);
+
         if (I64)
         {
             // set the entry for this function in .debug_loc segment
@@ -1296,19 +1299,25 @@ void dwarf_func_term(Symbol *sfunc)
             debug_loc_buf->write64(funcoffset + 0);
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 1);
-            debug_loc_buf->write32(0x08770002);         // DW_OP_breg7: 8
+            op = (Poff - REGSIZE) << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
+              | 0x0002; // DW_OP_breg7: 8
+            debug_loc_buf->write32(op);
 
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 1);
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 3);
-            debug_loc_buf->write32(0x10770002);         // DW_OP_breg7: 16
+            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
+              | 0x0002; // DW_OP_breg7: 16
+            debug_loc_buf->write32(op);
 
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 3);
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + sfunc->Ssize);
-            debug_loc_buf->write32(0x10760002);         // DW_OP_breg6: 16
+            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(BP)) << 16
+              | 0x0002; // DW_OP_breg6: 16
+            debug_loc_buf->write32(op);
 
             debug_loc_buf->write64(0);              // 2 words of 0 end it
             debug_loc_buf->write64(0);
@@ -1320,19 +1329,25 @@ void dwarf_func_term(Symbol *sfunc)
             debug_loc_buf->write32(funcoffset + 0);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 1);
-            debug_loc_buf->write32(0x04740002);         // DW_OP_breg4: 4
+            op = (Poff - REGSIZE) << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
+              | 0x0002; // DW_OP_breg7: 8
+            debug_loc_buf->write32(op);         // DW_OP_breg4: 4
 
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 1);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 3);
-            debug_loc_buf->write32(0x08740002);         // DW_OP_breg4: 8
+            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
+              | 0x0002; // DW_OP_breg4: 8
+            debug_loc_buf->write32(op);         // DW_OP_breg4: 8
 
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 3);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + sfunc->Ssize);
-            debug_loc_buf->write32(0x08750002);         // DW_OP_breg5: 8
+            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(BP)) << 16
+              | 0x0002; // DW_OP_breg5: 8
+            debug_loc_buf->write32(op);         // DW_OP_breg5: 8
 
             debug_loc_buf->write32(0);              // 2 words of 0 end it
             debug_loc_buf->write32(0);
