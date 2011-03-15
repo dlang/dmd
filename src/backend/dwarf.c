@@ -120,21 +120,60 @@ struct CFA_state
     CFA_reg regstates[17];      // register states
 };
 
-static CFA_state CFA_state_init =       // initial CFA state as defined by CIE
-{   0,          // location
-    SP,         // register
-    4,          // offset
-    {   { 0 },  // 0: EAX
-        { 0 },  // 1: ECX
-        { 0 },  // 2: EDX
-        { 0 },  // 3: EBX
-        { 0 },  // 4: ESP
-        { 0 },  // 5: EBP
-        { 0 },  // 6: ESI
-        { 0 },  // 7: EDI
-        { -4 }, // 8: EIP
+int dwarf_regno(int reg)
+{
+    assert(reg <= R15);
+    if (I16 || I32)
+        return reg;
+    else
+    {
+        static const int to_amd64_reg_map[8] =
+        { 0 /*AX*/, 2 /*CX*/, 3 /*DX*/, 1 /*BX*/,
+          7 /*SP*/, 6 /*BP*/, 4 /*SI*/, 5 /*DI*/ };
+        return reg < 8 ? to_amd64_reg_map[reg] : reg;
+    }
+}
+
+static CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
+{   0,                // location
+    dwarf_regno(SP),  // register
+    4,                // offset
+    {   { 0 },        // 0: EAX
+        { 0 },        // 1: ECX
+        { 0 },        // 2: EDX
+        { 0 },        // 3: EBX
+        { 0 },        // 4: ESP
+        { 0 },        // 5: EBP
+        { 0 },        // 6: ESI
+        { 0 },        // 7: EDI
+        { -4 },       // 8: EIP
     }
 };
+
+static CFA_state CFA_state_init_64 =       // initial CFA state as defined by CIE
+{   0,                // location
+    dwarf_regno(SP),  // register
+    8,                // offset
+    {   { 0 },        // 0: RAX
+        { 0 },        // 1: RBX
+        { 0 },        // 2: RCX
+        { 0 },        // 3: RDX
+        { 0 },        // 4: RSI
+        { 0 },        // 5: RDI
+        { 0 },        // 6: RBP
+        { 0 },        // 7: RSP
+        { 0 },        // 8: R8
+        { 0 },        // 9: R9
+        { 0 },        // 10: R10
+        { 0 },        // 11: R11
+        { 0 },        // 12: R12
+        { 0 },        // 13: R13
+        { 0 },        // 14: R14
+        { 0 },        // 15: R15
+        { -8 },       // 16: RIP
+    }
+};
+
 static CFA_state CFA_state_current;     // current CFA state
 static Outbuffer cfa_buf;               // CFA instructions
 
@@ -906,7 +945,12 @@ void dwarf_termfile()
  */
 void dwarf_func_start(Symbol *sfunc)
 {
-    CFA_state_current = CFA_state_init;
+    if (I16 || I32)
+        CFA_state_current = CFA_state_init_32;
+    else if (I64)
+        CFA_state_current = CFA_state_init_64;
+    else
+        assert(0);
     cfa_buf.reset();
 }
 
