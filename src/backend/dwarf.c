@@ -68,6 +68,8 @@ static char __file__[] = __FILE__;      // for tassert.h
 #define MAP_SEG2SYMIDX(seg) (assert(0))
 #endif
 
+#define OFFSET_FAC REGSIZE
+
 int dwarf_getsegment(const char *name, int align)
 {
 #if ELFOBJ
@@ -200,57 +202,59 @@ void dwarf_CFA_set_loc(size_t location)
 
 void dwarf_CFA_set_reg_offset(int reg, int offset)
 {
-    if (reg != CFA_state_current.reg)
+    int dw_reg = dwarf_regno(reg);
+    if (dw_reg != CFA_state_current.reg)
     {
         if (offset == CFA_state_current.offset)
         {
             cfa_buf.writeByte(DW_CFA_def_cfa_register);
-            cfa_buf.writeuLEB128(reg);
+            cfa_buf.writeuLEB128(dw_reg);
         }
         else if (offset < 0)
         {
             cfa_buf.writeByte(DW_CFA_def_cfa_sf);
-            cfa_buf.writeuLEB128(reg);
-            cfa_buf.writesLEB128(offset / -4);
+            cfa_buf.writeuLEB128(dw_reg);
+            cfa_buf.writesLEB128(offset / -OFFSET_FAC);
         }
         else
         {
             cfa_buf.writeByte(DW_CFA_def_cfa);
-            cfa_buf.writeuLEB128(reg);
+            cfa_buf.writeuLEB128(dw_reg);
             cfa_buf.writeuLEB128(offset);
         }
     }
     else if (offset < 0)
     {
         cfa_buf.writeByte(DW_CFA_def_cfa_offset_sf);
-        cfa_buf.writesLEB128(offset / -4);
+        cfa_buf.writesLEB128(offset / -OFFSET_FAC);
     }
     else
     {
         cfa_buf.writeByte(DW_CFA_def_cfa_offset);
         cfa_buf.writeuLEB128(offset);
     }
-    CFA_state_current.reg = reg;
+    CFA_state_current.reg = dw_reg;
     CFA_state_current.offset = offset;
 }
 
 void dwarf_CFA_offset(int reg, int offset)
 {
-    if (CFA_state_current.regstates[reg].offset != offset)
+    int dw_reg = dwarf_regno(reg);
+    if (CFA_state_current.regstates[dw_reg].offset != offset)
     {
         if (offset <= 0)
         {
-            cfa_buf.writeByte(DW_CFA_offset + reg);
-            cfa_buf.writeuLEB128(offset / -4);
+            cfa_buf.writeByte(DW_CFA_offset + dw_reg);
+            cfa_buf.writeuLEB128(offset / -OFFSET_FAC);
         }
         else
         {
             cfa_buf.writeByte(DW_CFA_offset_extended_sf);
-            cfa_buf.writeuLEB128(reg);
-            cfa_buf.writesLEB128(offset / -4);
+            cfa_buf.writeuLEB128(dw_reg);
+            cfa_buf.writesLEB128(offset / -OFFSET_FAC);
         }
     }
-    CFA_state_current.regstates[reg].offset = offset;
+    CFA_state_current.regstates[dw_reg].offset = offset;
 }
 
 void dwarf_CFA_args_size(size_t sz)
@@ -463,6 +467,7 @@ void dwarf_initfile(const char *filename)
         debugFrameHeader.opcodes[2] = 8;
         debugFrameHeader.opcodes[3] = DW_CFA_offset + 16;       // RIP
     }
+    assert(debugFrameHeader.data_alignment_factor == 0x80 - OFFSET_FAC);
 
     int seg = dwarf_getsegment(".debug_frame", 1);
     debug_frame_secidx = SegData[seg]->SDshtidx;
@@ -950,6 +955,7 @@ void dwarf_func_start(Symbol *sfunc)
         CFA_state_current = CFA_state_init_64;
     else
         assert(0);
+    assert(CFA_state_current.offset == OFFSET_FAC);
     cfa_buf.reset();
 }
 
