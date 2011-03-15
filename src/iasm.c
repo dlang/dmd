@@ -4050,6 +4050,7 @@ STATIC OPND *asm_primary_exp()
             case TOKthis:
                 strcpy(tok.TKid,cpp_name_this);
 #endif
+            case TOKthis:
             case TOKidentifier:
             case_ident:
                 o1 = opnd_calloc();
