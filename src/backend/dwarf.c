@@ -1222,13 +1222,13 @@ void dwarf_func_term(Symbol *sfunc)
                             infobuf->writeByte(DW_OP_fbreg);
                             if (sa->Sclass == SCregpar ||
                                 sa->Sclass == SCparameter)
-                                infobuf->writesLEB128(Poff + sa->Soffset);
-                            else if (sa->Sclass == SCfastpar)
-                                infobuf->writesLEB128(Aoff + BPoff + sa->Soffset);
-                            else if (sa->Sclass == SCbprel)
                                 infobuf->writesLEB128(sa->Soffset);
+                            else if (sa->Sclass == SCfastpar)
+                                infobuf->writesLEB128(Aoff + BPoff - Poff + sa->Soffset);
+                            else if (sa->Sclass == SCbprel)
+                                infobuf->writesLEB128(-Poff + sa->Soffset);
                             else
-                                infobuf->writesLEB128(Aoff + BPoff + sa->Soffset);
+                                infobuf->writesLEB128(Aoff + BPoff - Poff + sa->Soffset);
                         }
                         infobuf->buf[soffset] = infobuf->size() - soffset - 1;
                         break;
