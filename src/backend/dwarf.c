@@ -926,8 +926,14 @@ void dwarf_termfile()
     /* ================================================= */
 
     // Terminate by beg address/end address fields containing 0
-    debug_ranges_buf->write32(0);
-    debug_ranges_buf->write32(0);
+    if (I64)
+    {   debug_ranges_buf->write64(0);
+        debug_ranges_buf->write64(0);
+    }
+    else
+    {   debug_ranges_buf->write32(0);
+        debug_ranges_buf->write32(0);
+    }
 
     /* ================================================= */
 
@@ -1282,10 +1288,21 @@ void dwarf_func_term(Symbol *sfunc)
          * indicate this by adding to the debug_ranges
          */
         targ_size_t offset = debug_ranges_buf->size();
-        debug_ranges_buf->write32(funcoffset);                  // start of function
-        dwarf_addrel(debug_ranges_seg, offset, seg);
-        debug_ranges_buf->write32(funcoffset + sfunc->Ssize);   // end of function
-        dwarf_addrel(debug_ranges_seg, offset + 4, seg);
+
+        if (I64)
+        {
+            debug_ranges_buf->write64(funcoffset);                  // start of function
+            dwarf_addrel64(debug_ranges_seg, offset, seg, 0);
+            debug_ranges_buf->write64(funcoffset + sfunc->Ssize);   // end of function
+            dwarf_addrel64(debug_ranges_seg, offset + 8, seg, 0);
+        }
+        else
+        {
+            debug_ranges_buf->write32(funcoffset);                  // start of function
+            dwarf_addrel(debug_ranges_seg, offset, seg);
+            debug_ranges_buf->write32(funcoffset + sfunc->Ssize);   // end of function
+            dwarf_addrel(debug_ranges_seg, offset + 4, seg);
+        }
 
         /* ============= debug_loc =========================== */
 
