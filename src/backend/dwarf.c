@@ -398,6 +398,7 @@ static DebugInfoHeader debuginfo;
 // .debug_line
 static IDXSEC lineseg;
 static Outbuffer *linebuf;
+static size_t linebuf_filetab_end;
 
 #pragma pack(1)
 struct DebugLineHeader
@@ -669,13 +670,16 @@ void dwarf_initfile(const char *filename)
     debug_aranges_buf->write32(0);              // pad to 16
 }
 
+
 /*************************************
  * Add a file to the .debug_line header
  */
 int dwarf_line_addfile(const char* filename)
 {
-    if (!infoFileName_table)
+    if (!infoFileName_table) {
         infoFileName_table = new AArray(&ti_abuf, sizeof(unsigned));
+        linebuf_filetab_end = linebuf->size();
+    }
 
     Abuf abuf;
     abuf.buf = (const unsigned char*)filename;
@@ -686,25 +690,13 @@ int dwarf_line_addfile(const char* filename)
     {
         *pidx = infoFileName_table->length(); // assign newly computed idx
 
+        size_t before = linebuf->size();
         linebuf->writeString(filename);
         linebuf->writeByte(0);      // directory table index
         linebuf->writeByte(0);      // mtime
         linebuf->writeByte(0);      // length
+        linebuf_filetab_end += linebuf->size() - before;
     }
-
-    return *pidx;
-}
-
-int dwarf_line_getfile(const char* filename)
-{
-    assert(infoFileName_table);
-
-    Abuf abuf;
-    abuf.buf = (const unsigned char*)filename;
-    abuf.length = strlen(filename)-1;
-
-    unsigned *pidx = (unsigned *)infoFileName_table->get(&abuf);
-    assert(pidx);
 
     return *pidx;
 }
@@ -776,13 +768,15 @@ void dwarf_termfile()
             }
             else
             {
-                ld->filenumber = dwarf_line_getfile(filename);
+                ld->filenumber = dwarf_line_addfile(filename);
 
                 last_filenumber = ld->filenumber;
                 last_filename = filename;
             }
         }
     }
+    // assert we haven't emitted anything but file table entries
+    assert(linebuf->size() == linebuf_filetab_end);
     linebuf->writeByte(0);              // end of file_names
 
     debugline.prologue_length = linebuf->size() - 10;
@@ -1062,7 +1056,7 @@ void dwarf_func_term(Symbol *sfunc)
 
 #if MARS
     const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
-    int filenum = dwarf_line_getfile(filename);
+    int filenum = dwarf_line_addfile(filename);
 #else
     int filenum = 1;
 #endif
