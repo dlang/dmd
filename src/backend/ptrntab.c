@@ -556,8 +556,10 @@ PTRNTAB2  aptb2LDS[] = /* LDS */ {
 PTRNTAB2  aptb2LEA[] = /* LEA */ {
         { 0x8d, _r|_16_bit,             _r16,   _m8 | _m16 | _m32 | _m48 },
         { 0x8d, _r|_32_bit,             _r32,   _m8 | _m16 | _m32 | _m48 },
+        { 0x8d, _r|_64_bit,             _r64,   _m8 | _m16 | _m32 | _m48 | _m64 },
         { 0x8d, _r|_16_bit,             _r16,   _rel16 },
         { 0x8d, _r|_32_bit,             _r32,   _rel32 },
+        { 0x8d, _r|_64_bit,             _r64,   _rel32 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2LES[] = /* LES */ {
