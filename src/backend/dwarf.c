@@ -687,7 +687,7 @@ int dwarf_line_addfile(const char* filename)
         *pidx = infoFileName_table->length(); // assign newly computed idx
 
         linebuf->writeString(filename);
-        linebuf->writeByte(0);      // index
+        linebuf->writeByte(0);      // directory table index
         linebuf->writeByte(0);      // mtime
         linebuf->writeByte(0);      // length
     }
@@ -806,17 +806,15 @@ void dwarf_termfile()
 
             // Set address to start of segment with DW_LNE_set_address
             linebuf->writeByte(0);
+            linebuf->writeByte(NPTRSIZE + 1);
+            linebuf->writeByte(DW_LNE_set_address);
             if (I64)
             {
-                linebuf->writeByte(9);
-                linebuf->writeByte(2);
                 dwarf_addrel64(lineseg,linebuf->size(),seg,0);
                 linebuf->write64(0);
             }
             else
             {
-                linebuf->writeByte(5);
-                linebuf->writeByte(2);
                 dwarf_addrel(lineseg,linebuf->size(),seg);
                 linebuf->write32(0);
             }
