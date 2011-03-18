@@ -2330,8 +2330,6 @@ STATIC void asm_make_modrm_byte(
         }
     }
     mrmb.modregrm.reg = usFlags & NUM_MASK;
-    if ( usFlags & NUM_MASKR )
-        pc->Irex |= REX_R;
 
     if (s && (aopty == _m || aopty == _mnoi) && !s->isLabel())
     {
@@ -2363,6 +2361,8 @@ STATIC void asm_make_modrm_byte(
     if (aopty == _reg || amod == _rspecial) {
             mrmb.modregrm.mod = 0x3;
             mrmb.modregrm.rm |= popnd->base->val;
+            if ( popnd->base->val & NUM_MASKR )
+                pc->Irex |= REX_B;
     }
     else if (amod == _addr16 || (amod == _flbl && I16))
     {   unsigned rm;
