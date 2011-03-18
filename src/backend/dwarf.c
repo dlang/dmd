@@ -1298,7 +1298,6 @@ void dwarf_func_term(Symbol *sfunc)
 
         /* ============= debug_loc =========================== */
 
-        int op = 0;
         assert(Poff >= 2 * REGSIZE);
 
         if (I64)
@@ -1308,25 +1307,28 @@ void dwarf_func_term(Symbol *sfunc)
             debug_loc_buf->write64(funcoffset + 0);
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 1);
-            op = (Poff - REGSIZE) << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
-              | 0x0002; // DW_OP_breg7: 8
-            debug_loc_buf->write32(op);
+            debug_loc_buf->writeByte(2);
+            debug_loc_buf->writeByte(0);
+            debug_loc_buf->writeByte(DW_OP_breg0 + dwarf_regno(SP));
+            debug_loc_buf->writesLEB128(Poff - REGSIZE);
 
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 1);
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 3);
-            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
-              | 0x0002; // DW_OP_breg7: 16
-            debug_loc_buf->write32(op);
+            debug_loc_buf->writeByte(2);
+            debug_loc_buf->writeByte(0);
+            debug_loc_buf->writeByte(DW_OP_breg0 + dwarf_regno(SP));
+            debug_loc_buf->writesLEB128(Poff);
 
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + 3);
             dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
             debug_loc_buf->write64(funcoffset + sfunc->Ssize);
-            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(BP)) << 16
-              | 0x0002; // DW_OP_breg6: 16
-            debug_loc_buf->write32(op);
+            debug_loc_buf->writeByte(2);
+            debug_loc_buf->writeByte(0);
+            debug_loc_buf->writeByte(DW_OP_breg0 + dwarf_regno(BP));
+            debug_loc_buf->writesLEB128(Poff);
 
             debug_loc_buf->write64(0);              // 2 words of 0 end it
             debug_loc_buf->write64(0);
@@ -1338,25 +1340,28 @@ void dwarf_func_term(Symbol *sfunc)
             debug_loc_buf->write32(funcoffset + 0);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 1);
-            op = (Poff - REGSIZE) << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
-              | 0x0002; // DW_OP_breg7: 8
-            debug_loc_buf->write32(op);         // DW_OP_breg4: 4
+            debug_loc_buf->writeByte(2);
+            debug_loc_buf->writeByte(0);
+            debug_loc_buf->writeByte(DW_OP_breg0 + dwarf_regno(SP));
+            debug_loc_buf->writesLEB128(Poff - REGSIZE);
 
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 1);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 3);
-            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(SP)) << 16
-              | 0x0002; // DW_OP_breg4: 8
-            debug_loc_buf->write32(op);         // DW_OP_breg4: 8
+            debug_loc_buf->writeByte(2);
+            debug_loc_buf->writeByte(0);
+            debug_loc_buf->writeByte(DW_OP_breg0 + dwarf_regno(SP));
+            debug_loc_buf->writesLEB128(Poff);
 
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + 3);
             dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
             debug_loc_buf->write32(funcoffset + sfunc->Ssize);
-            op = Poff << 24 | (DW_OP_breg0 + dwarf_regno(BP)) << 16
-              | 0x0002; // DW_OP_breg5: 8
-            debug_loc_buf->write32(op);         // DW_OP_breg5: 8
+            debug_loc_buf->writeByte(2);
+            debug_loc_buf->writeByte(0);
+            debug_loc_buf->writeByte(DW_OP_breg0 + dwarf_regno(BP));
+            debug_loc_buf->writesLEB128(Poff);
 
             debug_loc_buf->write32(0);              // 2 words of 0 end it
             debug_loc_buf->write32(0);
