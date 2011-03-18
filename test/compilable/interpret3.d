@@ -350,3 +350,10 @@ size_t bug5524(int x, int[] more...)
 }
 
 static assert(bug5524(3) == 10);
+
+// 5722
+
+static assert( ("" ~ "\&copy;"[0]).length == 1 );
+const char[] null5722 = null;
+static assert( (null5722 ~ "\&copy;"[0]).length == 1 );
+static assert( ("\&copy;"[0] ~ null5722).length == 1 );
