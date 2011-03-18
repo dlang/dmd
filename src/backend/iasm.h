@@ -21,6 +21,7 @@
 
 // This is for when the reg field of modregrm specifies which instruction it is
 #define NUM_MASK        0x7
+#define NUM_MASKR       0x8		// REX extension bit
 #define _0      (0x0 | _modrm)          // insure that some _modrm bit is set
 #define _1      0x1                     // with _0
 #define _2      0x2

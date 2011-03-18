@@ -2330,6 +2330,8 @@ STATIC void asm_make_modrm_byte(
         }
     }
     mrmb.modregrm.reg = usFlags & NUM_MASK;
+    if ( usFlags & NUM_MASKR )
+        pc->Irex |= REX_R;
 
     if (s && (aopty == _m || aopty == _mnoi) && !s->isLabel())
     {
@@ -2578,6 +2580,8 @@ STATIC void asm_make_modrm_byte(
          ASM_GET_amod(popnd2->usFlags) == _rspecial))
     {
             mrmb.modregrm.reg =  popnd2->base->val;
+            if ( popnd2->base->val & NUM_MASKR )
+                pc->Irex |= REX_R;
     }
 #ifdef DEBUG
     puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode;
