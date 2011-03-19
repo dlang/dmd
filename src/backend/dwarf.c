@@ -874,6 +874,9 @@ void dwarf_termfile()
             linebuf->writeByte(0);
             linebuf->writeByte(1);
             linebuf->writeByte(1);
+
+            // reset linnum_data
+            ld->linoff_count = 0;
         }
     }
 
