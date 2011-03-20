@@ -3310,42 +3310,17 @@ class Fiber
      *
      * Returns:
      *  The fiber object representing the calling fiber or null if no fiber
-     *  is currently active.  The result of deleting this object is undefined.
+     *  is currently active within this thread. The result of deleting this object is undefined.
      */
     static Fiber getThis()
     {
-        version( Windows )
-        {
-            return cast(Fiber) TlsGetValue( sm_this );
-        }
-        else version( Posix )
-        {
-            return cast(Fiber) pthread_getspecific( sm_this );
-        }
+        return sm_this;
     }
 
 
     ///////////////////////////////////////////////////////////////////////////
     // Static Initialization
     ///////////////////////////////////////////////////////////////////////////
-
-
-    shared static this()
-    {
-        version( Windows )
-        {
-            sm_this = TlsAlloc();
-            assert( sm_this != TLS_OUT_OF_INDEXES );
-        }
-        else version( Posix )
-        {
-            int status;
-
-            status = pthread_key_create( &sm_this, null );
-            assert( status == 0 );
-
-        }
-    }
 
 
     version( Posix )
@@ -3716,18 +3691,10 @@ private:
     //
     static void setThis( Fiber f )
     {
-        version( Windows )
-        {
-            TlsSetValue( sm_this, cast(void*) f );
-        }
-        else version( Posix )
-        {
-            pthread_setspecific( sm_this, cast(void*) f );
-        }
+        sm_this = f;
     }
 
-
-    __gshared Thread.TLSKey sm_this;
+    static Fiber sm_this;
 
 
 private:
