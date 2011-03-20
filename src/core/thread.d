@@ -3799,6 +3799,64 @@ private:
     }
 }
 
+version( unittest )
+{
+    class TestFiber : Fiber
+    {
+        this()
+        {
+            super(&run);
+        }
+
+        void run()
+        {
+            foreach(i; 0 .. 1000)
+            {
+                sum += i;
+                Fiber.yield();
+            }
+        }
+
+        size_t sum;
+    }
+
+    void runTen()
+    {
+        TestFiber[10] fibs;
+        foreach(ref fib; fibs)
+            fib = new TestFiber();
+
+        bool cont;
+        do {
+            cont = false;
+            foreach(fib; fibs) {
+                if (fib.state == Fiber.State.HOLD)
+                {
+                    fib.call();
+                    cont |= fib.state != Fiber.State.TERM;
+                }
+            }
+        } while (cont);
+
+        enum expSum = 1000 * 999 / 2;
+        foreach(fib; fibs)
+        {
+            assert(fib.sum == expSum);
+        }
+    }
+
+    unittest
+    {
+        runTen();
+        Thread[4] threads;
+        foreach(ref thr; threads)
+        {
+            thr = new Thread(&runTen);
+            thr.start();
+        }
+    }
+}
+
 version( OSX )
 {
     // NOTE: The Mach-O object file format does not allow for thread local
