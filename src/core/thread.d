@@ -2790,17 +2790,15 @@ private
 {
     version( D_InlineAsm_X86 )
     {
-        version( X86_64 )
-        {
-
-        }
-        else
-        {
-            version( Windows )
-                version = AsmX86_Win32;
-            else version( Posix )
-                version = AsmX86_Posix;
-        }
+        version( Windows )
+            version = AsmX86_Win32;
+        else version( Posix )
+            version = AsmX86_Posix;
+    }
+    else version( D_InlineAsm_X86_64 )
+    {
+        version( Posix )
+            version = AsmX86_64_Posix;
     }
     else version( PPC )
     {
@@ -2817,6 +2815,7 @@ private
         version( AsmX86_Win32 ) {} else
         version( AsmX86_Posix ) {} else
         version( AsmPPC_Posix ) {} else
+        version( AsmX86_64_Posix ) {} else
         {
             // NOTE: The ucontext implementation requires architecture specific
             //       data definitions to operate so testing for it must be done
@@ -2966,6 +2965,36 @@ private
                 pop EBX;
                 pop EAX;
                 pop EBP;
+
+                // 'return' to complete switch
+                ret;
+            }
+        }
+        else version( AsmX86_64_Posix )
+        {
+            asm
+            {
+                naked;
+                // save current stack state
+                push RBX;
+                push RBP;
+                push R12;
+                push R13;
+                push R14;
+                push R15;
+
+                // store oldp
+                mov [RDI], RSP;
+                // load newp to begin context switch
+                mov RSP, RSI;
+
+                // load saved state from new stack
+                pop R15;
+                pop R14;
+                pop R13;
+                pop R12;
+                pop RBP;
+                pop RBX;
 
                 // 'return' to complete switch
                 ret;
@@ -3625,6 +3654,17 @@ private:
             push( 0x00000000 );                                     // EBX
             push( 0x00000000 );                                     // ESI
             push( 0x00000000 );                                     // EDI
+        }
+        else version( AsmX86_64_Posix )
+        {
+            push(0);                                                // Pad stack for OSX
+            push( cast(size_t) &fiber_entryPoint );                 // RIP
+            push(0);                                                // RBX
+            push(0);                                                // RBP
+            push(0);                                                // R12
+            push(0);                                                // R13
+            push(0);                                                // R14
+            push(0);                                                // R15
         }
         else version( AsmPPC_Posix )
         {
