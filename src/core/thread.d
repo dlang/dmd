@@ -3344,14 +3344,21 @@ class Fiber
             status = pthread_key_create( &sm_this, null );
             assert( status == 0 );
 
-          static if( __traits( compiles, ucontext_t ) )
-          {
-            status = getcontext( &sm_utxt );
-            assert( status == 0 );
-          }
         }
     }
 
+
+    version( Posix )
+    {
+        static this()
+        {
+            static if( __traits( compiles, ucontext_t ) )
+            {
+              int status = getcontext( &sm_utxt );
+              assert( status == 0 );
+            }
+        }
+    }
 
 private:
     //
@@ -3691,8 +3698,8 @@ private:
     static if( __traits( compiles, ucontext_t ) )
     {
         // NOTE: The static ucontext instance is used to represent the context
-        //       of the main application thread.
-        __gshared ucontext_t    sm_utxt = void;
+        //       of the executing thread.
+        static ucontext_t       sm_utxt = void;
         ucontext_t              m_utxt  = void;
         ucontext_t*             m_ucur  = null;
     }
