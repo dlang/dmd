@@ -3801,6 +3801,8 @@ private:
 
 version( unittest )
 {
+    import core.atomic;
+
     class TestFiber : Fiber
     {
         this()
@@ -3817,6 +3819,7 @@ version( unittest )
             }
         }
 
+        enum expSum = 1000 * 999 / 2;
         size_t sum;
     }
 
@@ -3838,22 +3841,71 @@ version( unittest )
             }
         } while (cont);
 
-        enum expSum = 1000 * 999 / 2;
         foreach(fib; fibs)
         {
-            assert(fib.sum == expSum);
+            assert(fib.sum == TestFiber.expSum);
         }
     }
 
+    // Single thread running separate fibers
     unittest
     {
         runTen();
-        Thread[4] threads;
-        foreach(ref thr; threads)
+    }
+
+    // Multiple threads running separate fibers
+    unittest
+    {
+        foreach(_; 0 .. 4)
         {
-            thr = new Thread(&runTen);
+            auto thr = new Thread(&runTen);
             thr.start();
         }
+        thread_joinAll();
+    }
+
+    // Multiple threads running shared fibers
+    unittest
+    {
+        shared bool[10] locks;
+        TestFiber[10] fibs;
+
+        void runShared()
+        {
+            bool cont;
+            do {
+                cont = false;
+                foreach(idx; 0 .. 10)
+                {
+                    if (cas(&locks[idx], false, true))
+                    {
+                        if (fibs[idx].state == Fiber.State.HOLD)
+                        {
+                            fibs[idx].call();
+                            cont |= fibs[idx].state != Fiber.State.TERM;
+                        }
+                        locks[idx] = false;
+                    }
+                    else
+                    {
+                        cont = true;
+                    }
+                }
+            } while (cont);
+        }
+
+        foreach(ref fib; fibs)
+            fib = new TestFiber();
+
+        foreach(_; 0 .. 4)
+        {
+            auto thr = new Thread(&runShared);
+            thr.start();
+        }
+        thread_joinAll();
+
+        foreach(fib; fibs)
+            assert(fib.sum == TestFiber.expSum);
     }
 }
 
