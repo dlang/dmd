@@ -265,7 +265,16 @@ private:
     char[][] m_trace;
 
 
-    static synchronized char[][] trace()
+    static char[][] trace()
+    {
+        synchronized( StackTrace.classinfo )
+        {
+            return traceNoSync();
+        }
+    }
+    
+    
+    static char[][] traceNoSync()
     {
         auto         dbghelp  = DbgHelp.get();
         auto         hThread  = GetCurrentThread();
