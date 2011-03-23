@@ -519,4 +519,8 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
     {
         return new StackTrace;
     }
+    else
+    {
+        return null;
+    }
 }
