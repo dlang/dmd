@@ -1474,7 +1474,7 @@ PTRNTAB0 aptb0PAUSE[] =  /* PAUSE */ {
 #endif
 
 PTRNTAB0 aptb0SYSCALL[] =  /* SYSCALL */ {
-        { 0x0f05, 0 }
+        { 0x0f05, _modcxr11 }
 };
 
 PTRNTAB0 aptb0SYSRET[] =  /* SYSRET */ {
