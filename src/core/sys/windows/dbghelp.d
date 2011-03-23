@@ -15,7 +15,6 @@
 module core.sys.windows.dbghelp;
 
 
-import core.runtime;
 import core.sys.windows.windows;
 
 
@@ -193,10 +192,8 @@ struct DbgHelp
     {
         if( sm_hndl != sm_hndl.init )
             return &sm_inst;
-        if( auto ptr = Runtime.loadLibrary( "dbghelp.dll" ) )
+        if( (sm_hndl = LoadLibrary( "dbghelp.dll" )) != sm_hndl.init )
         {
-            sm_hndl = cast(HANDLE) ptr;
-
             sm_inst.SymInitialize            = cast(SymInitializeFunc) GetProcAddress(sm_hndl,"SymInitialize");
             sm_inst.SymCleanup               = cast(SymCleanupFunc) GetProcAddress(sm_hndl,"SymCleanup");
             sm_inst.StackWalk64              = cast(StackWalk64Func) GetProcAddress(sm_hndl,"StackWalk64");
@@ -224,7 +221,7 @@ struct DbgHelp
     shared static ~this()
     {
         if( sm_hndl != sm_hndl.init )
-            Runtime.unloadLibrary( sm_hndl );
+            FreeLibrary( sm_hndl );
     }
 
 private:
