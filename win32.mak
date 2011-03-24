@@ -120,6 +120,8 @@ MANIFEST= \
 	\
 	src\core\sys\windows\_dll.d \
 	src\core\sys\windows\_thread.d \
+	src\core\sys\windows\dbghelp.d \
+	src\core\sys\windows\stacktrace.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\gc\gc.d \
@@ -245,6 +247,8 @@ SRCS= \
 	\
 	src\core\sys\windows\_dll.d \
 	src\core\sys\windows\_thread.d \
+	src\core\sys\windows\dbghelp.d \
+	src\core\sys\windows\stacktrace.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\core\sync\barrier.d \
@@ -446,6 +450,8 @@ IMPORTS=\
 	\
 	$(IMPDIR)\core\sys\windows\_dll.di \
 	$(IMPDIR)\core\sys\windows\_thread.di \
+	$(IMPDIR)\core\sys\windows\dbghelp.di \
+	$(IMPDIR)\core\sys\windows\stacktrace.di \
 	$(IMPDIR)\core\sys\windows\windows.di
 
 ######################## Doc .html file generation ##############################
@@ -478,7 +484,7 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 
 $(DOCDIR)\core_thread.html : src\core\thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
-	
+
 $(DOCDIR)\core_time.html : src\core\time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
@@ -533,7 +539,7 @@ $(IMPDIR)\core\runtime.di : src\core\runtime.d
 
 $(IMPDIR)\core\thread.di : src\core\thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
+
 $(IMPDIR)\core\time.di : src\core\time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
@@ -740,7 +746,13 @@ $(IMPDIR)\core\sys\windows\_dll.di : src\core\sys\windows\_dll.d
 
 $(IMPDIR)\core\sys\windows\_thread.di : src\core\sys\windows\_thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-		
+
+$(IMPDIR)\core\sys\windows\dbghelp.di : src\core\sys\windows\dbghelp.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sys\windows\stacktrace.di : src\core\sys\windows\stacktrace.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
 $(IMPDIR)\core\sys\windows\windows.di : src\core\sys\windows\windows.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 

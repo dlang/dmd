@@ -38,7 +38,7 @@ extern (Windows)
 
     alias LPSTR LPTCH, PTCH;
     alias LPSTR PTSTR, LPTSTR;
-    alias LPCSTR LPCTSTR;
+    alias LPCSTR PCTSTR, LPCTSTR;
 
     alias WCHAR* LPWSTR;
 

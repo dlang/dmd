@@ -27,8 +27,8 @@ IMPDIR=import
 
 MODEL=32
 
-DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport 
-UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport 
+DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport
+UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport
 
 CFLAGS=-m$(MODEL) -O
 
@@ -141,6 +141,8 @@ MANIFEST= \
 	\
 	src/core/sys/windows/_dll.d \
 	src/core/sys/windows/_thread.d \
+	src/core/sys/windows/dbghelp.d \
+	src/core/sys/windows/stacktrace.d \
 	src/core/sys/windows/windows.d \
 	\
 	src/gc/gc.d \
@@ -470,6 +472,8 @@ IMPORTS=\
 	\
 	$(IMPDIR)/core/sys/windows/_dll.di \
 	$(IMPDIR)/core/sys/windows/_thread.di \
+	$(IMPDIR)/core/sys/windows/dbghelp.di \
+	$(IMPDIR)/core/sys/windows/stacktrace.di \
 	$(IMPDIR)/core/sys/windows/windows.di
 
 SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
@@ -483,14 +487,14 @@ $(DOCDIR)/object.html : src/object_.d
 
 $(DOCDIR)/core_%.html : src/core/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
-	
+
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
-	
+
 $(IMPDIR)/core/%.di : src/core/%.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $<
 
