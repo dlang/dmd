@@ -1605,6 +1605,15 @@ int Type::checkBoolean()
     return isscalar();
 }
 
+/********************************
+ * TRUE if when type goes out of scope, it needs a destructor applied.
+ * Only applies to value types, not ref types.
+ */
+int Type::needsDestruction()
+{
+    return FALSE;
+}
+
 /*********************************
  * Check type to see if it is based on a deprecated symbol.
  */
@@ -3565,6 +3574,11 @@ Expression *TypeSArray::defaultInit(Loc loc)
 int TypeSArray::isZeroInit(Loc loc)
 {
     return next->isZeroInit(loc);
+}
+
+int TypeSArray::needsDestruction()
+{
+    return next->needsDestruction();
 }
 
 Expression *TypeSArray::defaultInitLiteral(Loc loc)
@@ -6447,6 +6461,11 @@ int TypeEnum::checkBoolean()
     return sym->memtype->checkBoolean();
 }
 
+int TypeEnum::needsDestruction()
+{
+    return sym->memtype->needsDestruction();
+}
+
 MATCH TypeEnum::implicitConvTo(Type *to)
 {   MATCH m;
 
@@ -6648,6 +6667,11 @@ int TypeTypedef::isAssignable()
 int TypeTypedef::checkBoolean()
 {
     return sym->basetype->checkBoolean();
+}
+
+int TypeTypedef::needsDestruction()
+{
+    return sym->basetype->needsDestruction();
 }
 
 Type *TypeTypedef::toBasetype()
@@ -7108,6 +7132,11 @@ int TypeStruct::isZeroInit(Loc loc)
 int TypeStruct::checkBoolean()
 {
     return FALSE;
+}
+
+int TypeStruct::needsDestruction()
+{
+    return sym->dtor != NULL;
 }
 
 int TypeStruct::isAssignable()

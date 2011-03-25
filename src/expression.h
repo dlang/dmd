@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -44,6 +44,7 @@ struct BinExp;
 struct InterState;
 struct Symbol;          // back end symbol
 struct OverloadSet;
+struct Initializer;
 
 enum TOK;
 
@@ -131,6 +132,7 @@ struct Expression : Object
     Expression *addressOf(Scope *sc);
     Expression *deref();
     Expression *integralPromotions(Scope *sc);
+    Expression *isTemp();
 
     Expression *toDelegate(Scope *sc, Type *t);
     virtual void scanForNestedRef(Scope *sc);

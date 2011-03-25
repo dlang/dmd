@@ -743,7 +743,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
             }
 
+            // Do not allow types that need destructors
+            if (arg->type->needsDestruction())
+                arg->error("cannot pass types that need destruction as variadic arguments");
+
             // Convert static arrays to dynamic arrays
+            // BUG: I don't think this is right for D2
             tb = arg->type->toBasetype();
             if (tb->ty == Tsarray)
             {   TypeSArray *ts = (TypeSArray *)tb;
@@ -1410,6 +1415,44 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
         }
     }
     return a;
+}
+
+/***************************************************
+ * Recognize expressions of the form:
+ *      ((T v = init), v)
+ * where v is a temp.
+ * This is used in optimizing out unnecessary temporary generation.
+ * Returns initializer expression of v if so, NULL if not.
+ */
+
+Expression *Expression::isTemp()
+{
+    //printf("isTemp() %s\n", toChars());
+    if (op == TOKcomma)
+    {   CommaExp *ec = (CommaExp *)this;
+        if (ec->e1->op == TOKdeclaration &&
+            ec->e2->op == TOKvar)
+        {   DeclarationExp *de = (DeclarationExp *)ec->e1;
+            VarExp *ve = (VarExp *)ec->e2;
+            if (ve->var == de->declaration && ve->var->storage_class & STCctfe)
+            {   VarDeclaration *v = ve->var->isVarDeclaration();
+                if (v && v->init)
+                {
+                    ExpInitializer *ei = v->init->isExpInitializer();
+                    if (ei)
+                    {   Expression *e = ei->exp;
+                        if (e->op == TOKconstruct)
+                        {   ConstructExp *ce = (ConstructExp *)e;
+                            if (ce->e1->op == TOKvar && ((VarExp *)ce->e1)->var == ve->var)
+                                e = ce->e2;
+                        }
+                        return e;
+                    }
+                }
+            }
+        }
+    }
+    return NULL;
 }
 
 /******************************** IntegerExp **************************/
@@ -3389,6 +3432,22 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     }
 
     type = stype ? stype : sd->type;
+
+    /* If struct requires a destructor, rewrite as:
+     *    (S tmp = S()),tmp
+     * so that the destructor can be hung on tmp.
+     */
+    if (sd->dtor)
+    {
+        Identifier *idtmp = Lexer::uniqueId("__sl");
+        VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(0, this));
+        tmp->storage_class |= STCctfe;
+        Expression *ae = new DeclarationExp(loc, tmp);
+        Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+        e = e->semantic(sc);
+        return e;
+    }
+
     return this;
 }
 

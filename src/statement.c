@@ -344,6 +344,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
 #endif
                     *sfinally = new ExpStatement(loc, e);
                 }
+                v->noscope = 1;         // don't add in dtor again
             }
         }
     }

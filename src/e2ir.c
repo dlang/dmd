@@ -49,7 +49,7 @@ elem *addressElem(elem *e, Type *t);
 elem *array_toPtr(Type *t, elem *e);
 elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result);
 elem *bit_read(elem *eb, elem *ei, int result);
-elem *exp2_copytotemp(elem *e);
+elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -1142,11 +1142,8 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
             vd->toObjFile(0);
         else
         {
-//printf("Dsymbol_toElem() %x\n", vd->storage_class);
             sp = s->toSymbol();
-//printf("test1 %d\n", cstate.CSpsymtab->top);
             symbol_add(sp);
-//printf("test2 %d\n", cstate.CSpsymtab->top);
             //printf("\tadding symbol '%s'\n", sp->Sident);
             if (vd->init)
             {
@@ -1156,14 +1153,18 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
                 if (ie)
                     e = ie->exp->toElem(irs);
             }
-#if 1
+
             /* Mark the point of construction of a variable that needs to be destructed.
              */
             if (vd->edtor && !vd->noscope)
             {
                 e = el_dctor(e, vd);
+
+                // Put vd on list of things needing destruction
+                if (!irs->varsInScope)
+                    irs->varsInScope = new Array();
+                irs->varsInScope->push(vd);
             }
-#endif
         }
     }
     else if ((cd = s->isClassDeclaration()) != NULL)
@@ -3217,7 +3218,21 @@ elem *XorAssignExp::toElem(IRState *irs)
 
 elem *AndAndExp::toElem(IRState *irs)
 {
-    elem *e = toElemBin(irs,OPandand);
+    tym_t tym = type->totym();
+
+    elem *el = e1->toElem(irs);
+
+    size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
+    elem *er = e2->toElem(irs);
+    size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;
+
+    // Add destructors for e2
+    er = appendDtors(irs, er, starti, endi);
+
+    elem *e = el_bin(OPandand,tym,el,er);
+
+    el_setLoc(e,loc);
+
     if (global.params.cov && e2->loc.linnum)
         e->E2 = el_combine(incUsageElem(irs, e2->loc), e->E2);
     return e;
@@ -3229,7 +3244,21 @@ elem *AndAndExp::toElem(IRState *irs)
 
 elem *OrOrExp::toElem(IRState *irs)
 {
-    elem *e = toElemBin(irs,OPoror);
+    tym_t tym = type->totym();
+
+    elem *el = e1->toElem(irs);
+
+    size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
+    elem *er = e2->toElem(irs);
+    size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;
+
+    // Add destructors for e2
+    er = appendDtors(irs, er, starti, endi);
+
+    elem *e = el_bin(OPoror,tym,el,er);
+
+    el_setLoc(e,loc);
+
     if (global.params.cov && e2->loc.linnum)
         e->E2 = el_combine(incUsageElem(irs, e2->loc), e->E2);
     return e;
@@ -5074,4 +5103,33 @@ elem *StructLiteralExp::toElem(IRState *irs)
     e = el_combine(e, ev);
     el_setLoc(e,loc);
     return e;
+}
+
+/********************************************
+ * Add destructors
+ */
+
+elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
+{
+    //printf("appendDtors(%d .. %d)\n", starti, endi);
+    elem *edtors = NULL;
+    for (size_t i = endi; i != starti;)
+    {
+        --i;
+        VarDeclaration *vd = (VarDeclaration *)irs->varsInScope->data[i];
+        if (vd)
+        {
+            //printf("appending dtor\n");
+            irs->varsInScope->data[i] = NULL;
+            elem *ed = vd->edtor->toElem(irs);
+            edtors = el_combine(edtors, ed);
+        }
+    }
+    if (edtors)
+    {
+        elem *e = el_same(&er);
+        er = el_combine(er, edtors);
+        er = el_combine(er, e);
+    }
+    return er;
 }

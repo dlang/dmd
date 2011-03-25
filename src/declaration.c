@@ -1114,6 +1114,8 @@ Lagain:
                 Expression *e1 = new VarExp(loc, this);
 
                 Type *t = type->toBasetype();
+
+            Linit2:
                 if (t->ty == Tsarray && !(storage_class & (STCref | STCout)))
                 {
                     ei->exp = ei->exp->semantic(sc);
@@ -1173,6 +1175,15 @@ Lagain:
                                 }
                             }
                         }
+                    }
+
+                    /* Look for ((S tmp = S()),tmp) and replace it with just S()
+                     */
+                    Expression *e2 = ei->exp->isTemp();
+                    if (e2)
+                    {
+                        ei->exp = e2;
+                        goto Linit2;
                     }
 #endif
                     if (!ei->exp->implicitConvTo(type))
@@ -1351,6 +1362,11 @@ Ldtor:
     if (edtor)
     {
         edtor = edtor->semantic(sc);
+
+#if 0 // currently disabled because of std.stdio.stdin, stdout and stderr
+        if (isDataseg() && !(storage_class & STCextern))
+            error("static storage variables cannot have destructors");
+#endif
     }
 
     sem = SemanticDone;

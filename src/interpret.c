@@ -3106,7 +3106,7 @@ Expression *AssertExp::interpret(InterState *istate)
         if (ade->e1->op == TOKthis && istate->localThis)
             if (istate->localThis->op == TOKdotvar
                 && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
-                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var);                
+                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var);
             else
                 return istate->localThis->interpret(istate);
     }
