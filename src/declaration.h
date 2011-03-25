@@ -252,8 +252,15 @@ struct VarDeclaration : Declaration
                                 // 2: on stack, run destructor anyway
     int canassign;              // it can be assigned to
     Dsymbol *aliassym;          // if redone as alias to another symbol
-    Expression *value;          // when interpreting, this is the value
-                                // (NULL if value not determinable)
+
+    // When interpreting, these hold the value (NULL if value not determinable)
+    // There always needs to be a level of indirection, since pointer/references
+    // may be pointing to this variable.
+    Expression **stackvalue;    // for stack variables (int, float, or pointer)
+    Expression *literalvalue;   // for struct/array literals
+    Expression *getValue() { return literalvalue; }
+    void setValue(Expression *newval) { literalvalue = newval; }
+
 #if DMDV2
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
                                 // if the destructor should be run. Used to prevent
