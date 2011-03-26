@@ -2278,7 +2278,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // only modifying part of the variable. So we need to make sure
     // that the parent variable exists.
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-        ultimateVar->setValue(ultimateVar->type->defaultInitLiteral());
+        ultimateVar->createValue(ultimateVar->type->defaultInitLiteral());
 
     // ----------------------------------------
     //      Deal with dotvar expressions
@@ -2355,11 +2355,20 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!destinationIsReference)
             addVarToInterstate(istate, v);
-        if (newval->op == TOKarrayliteral || newval->op == TOKstructliteral || newval->op == TOKstring || (newval->op==
-    TOKassocarrayliteral))
-            v->setValue(newval);
+        if (newval->op == TOKarrayliteral || newval->op == TOKstructliteral ||
+            newval->op == TOKstring || (newval->op == TOKassocarrayliteral))
+        {
+            if (!v->getValue())
+                v->createValue(newval);
+            else v->setValue(newval);
+        }
         else
-            v->setStackValue(newval);
+        {
+            if (!v->getValue()) // creating a new value
+                v->createStackValue(newval);
+            else
+                v->setStackValue(newval);
+        }
     }
     else if (e1->op == TOKindex)
     {
@@ -2402,9 +2411,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             // Set the $ variable
             Expression *dollar = ArrayLength(Type::tsize_t, v->getValue());
             if (dollar != EXP_CANT_INTERPRET && ie->lengthVar)
-                ie->lengthVar->setStackValue(dollar);
+                ie->lengthVar->createStackValue(dollar);
             // Determine the index, and check that it's OK.
             Expression *index = ie->e2->interpret(istate);
+            if (ie->lengthVar)
+                ie->lengthVar->setValueNull(); // $ is defined only inside []
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             newval = assignArrayElement(loc, v->getValue(), index, newval);
@@ -2437,21 +2448,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             Expression *ee = v->getValue() ? ArrayLength(Type::tsize_t, v->getValue())
                                   : EXP_CANT_INTERPRET;
             if (ee != EXP_CANT_INTERPRET && sexp->lengthVar)
-                sexp->lengthVar->setStackValue(ee);
+            {
+                sexp->lengthVar->createStackValue(ee);
+            }
             Expression *upper = NULL;
             Expression *lower = NULL;
             if (sexp->upr)
-            {
                 upper = sexp->upr->interpret(istate);
-                if (upper == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
-            }
             if (sexp->lwr)
-            {
                 lower = sexp->lwr->interpret(istate);
-                if (lower == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
-            }
+            if (sexp->lengthVar)
+                sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
+            if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
             Type *t = v->type->toBasetype();
             size_t dim;
             if (t->ty == Tsarray)
@@ -2987,10 +2996,14 @@ Expression *IndexExp::interpret(InterState *istate)
         if (e == EXP_CANT_INTERPRET)
             goto Lcant;
         if (lengthVar)
-            lengthVar->setStackValue(e);
+        {
+            lengthVar->createStackValue(e);
+        }
     }
 
     e2 = this->e2->interpret(istate);
+    if (lengthVar)
+        lengthVar->setValueNull(); // $ is defined only inside []
     if (e2 == EXP_CANT_INTERPRET)
         goto Lcant;
     e = Index(type, e1, e2);
@@ -3027,7 +3040,7 @@ Expression *SliceExp::interpret(InterState *istate)
     if (e == EXP_CANT_INTERPRET)
         goto Lcant;
     if (lengthVar)
-        lengthVar->setStackValue(e);
+        lengthVar->createStackValue(e);
 
     /* Evaluate lower and upper bounds of slice
      */
@@ -3037,13 +3050,16 @@ Expression *SliceExp::interpret(InterState *istate)
     upr = this->upr->interpret(istate);
     if (upr == EXP_CANT_INTERPRET)
         goto Lcant;
-
+    if (lengthVar)
+        lengthVar->setValueNull(); // $ is defined only inside [L..U]
     e = Slice(type, e1, lwr, upr);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
     return e;
 
 Lcant:
+    if (lengthVar)
+        lengthVar->setValueNull();
     return EXP_CANT_INTERPRET;
 }
 

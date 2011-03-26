@@ -261,9 +261,22 @@ struct VarDeclaration : Declaration
     Expression *getValue() { return literalvalue; }
     void setValueNull() { literalvalue = NULL; stackvalue = NULL; }
     void restoreValue(Expression *newval) { literalvalue = newval; }
+    void createValue(Expression *newval)
+    {
+        assert(newval);
+        assert(!literalvalue);
+        if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
+            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral)) {
+        } else printf("%s\n", newval->toChars());
+        assert((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
+               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral));
+        literalvalue = newval;
+    }
+
     void setValue(Expression *newval)
     {
         assert(newval);
+        assert(literalvalue);
         if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
             (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral)) {
         } else printf("%s\n", newval->toChars());
@@ -275,6 +288,15 @@ struct VarDeclaration : Declaration
     void setStackValue(Expression *newval)
     {
         assert(newval);
+        assert(literalvalue);
+        assert((newval->op !=TOKarrayliteral) && (newval->op!=TOKstructliteral) &&
+               (newval->op!=TOKstring) && (newval->op != TOKassocarrayliteral));
+        literalvalue = newval;
+    }
+    void createStackValue(Expression *newval)
+    {
+        assert(newval);
+        assert(!literalvalue);
         assert((newval->op !=TOKarrayliteral) && (newval->op!=TOKstructliteral) &&
                (newval->op!=TOKstring) && (newval->op != TOKassocarrayliteral));
         literalvalue = newval;
