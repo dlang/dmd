@@ -2001,7 +2001,7 @@ ILLEGAL_ADDRESS_ERROR:
 
             size_t index = o2->disp;
             if (index >= tup->objects->dim)
-                error(asmstate.loc, "tuple index %u exceeds %u", index, tup->objects->dim);
+                error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
                 Object *o = (Object *)tup->objects->data[index];
