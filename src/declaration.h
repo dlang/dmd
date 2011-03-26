@@ -259,7 +259,26 @@ struct VarDeclaration : Declaration
     Expression **stackvalue;    // for stack variables (int, float, or pointer)
     Expression *literalvalue;   // for struct/array literals
     Expression *getValue() { return literalvalue; }
-    void setValue(Expression *newval) { literalvalue = newval; }
+    void setValueNull() { literalvalue = NULL; stackvalue = NULL; }
+    void restoreValue(Expression *newval) { literalvalue = newval; }
+    void setValue(Expression *newval)
+    {
+        assert(newval);
+        if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
+            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral)) {
+        } else printf("%s\n", newval->toChars());
+        assert((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
+               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral));
+        literalvalue = newval;
+    }
+
+    void setStackValue(Expression *newval)
+    {
+        assert(newval);
+        assert((newval->op !=TOKarrayliteral) && (newval->op!=TOKstructliteral) &&
+               (newval->op!=TOKstring) && (newval->op != TOKassocarrayliteral));
+        literalvalue = newval;
+    }
 
 #if DMDV2
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see

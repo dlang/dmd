@@ -199,7 +199,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 {   cantInterpret = 1;
                         return NULL;
                 }
-                v->setValue(earg);
+                v->restoreValue(earg);
                 /* Don't restore the value of v2 upon function return
                  */
                 assert(istate);
@@ -213,7 +213,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
             else
             {   // Value parameters and non-trivial references
-                v->setValue(earg);
+                v->restoreValue(earg);
             }
 #if LOG
             printf("interpreted arg[%d] = %s\n", i, earg->toChars());
@@ -248,7 +248,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             {
                 //printf("\tsaving [%d] %s = %s\n", i, v->toChars(), v->value ? v->value->toChars() : "");
                 valueSaves.data[i] = v->getValue();
-                v->setValue(NULL);
+                v->setValueNull();
             }
         }
     }
@@ -284,7 +284,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     for (size_t i = 0; i < dim; i++)
     {
         VarDeclaration *v = (VarDeclaration *)parameters->data[i];
-        v->setValue((Expression *)vsave.data[i]);
+        v->restoreValue((Expression *)vsave.data[i]);
     }
 
     if (istate && !isNested())
@@ -295,7 +295,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         for (size_t i = 0; i < istate->vars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
             if (v)
-            {   v->setValue((Expression *)valueSaves.data[i]);
+            {   v->restoreValue((Expression *)valueSaves.data[i]);
                 //printf("\trestoring [%d] %s = %s\n", i, v->toChars(), v->value ? v->value->toChars() : "");
             }
         }
@@ -2355,7 +2355,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!destinationIsReference)
             addVarToInterstate(istate, v);
-        v->setValue(newval);
+        if (newval->op == TOKarrayliteral || newval->op == TOKstructliteral || newval->op == TOKstring || (newval->op==
+    TOKassocarrayliteral))
+            v->setValue(newval);
+        else
+            v->setStackValue(newval);
     }
     else if (e1->op == TOKindex)
     {
@@ -2398,7 +2402,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             // Set the $ variable
             Expression *dollar = ArrayLength(Type::tsize_t, v->getValue());
             if (dollar != EXP_CANT_INTERPRET && ie->lengthVar)
-                ie->lengthVar->setValue(dollar);
+                ie->lengthVar->setStackValue(dollar);
             // Determine the index, and check that it's OK.
             Expression *index = ie->e2->interpret(istate);
             if (index == EXP_CANT_INTERPRET)
@@ -2433,7 +2437,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             Expression *ee = v->getValue() ? ArrayLength(Type::tsize_t, v->getValue())
                                   : EXP_CANT_INTERPRET;
             if (ee != EXP_CANT_INTERPRET && sexp->lengthVar)
-                sexp->lengthVar->setValue(ee);
+                sexp->lengthVar->setStackValue(ee);
             Expression *upper = NULL;
             Expression *lower = NULL;
             if (sexp->upr)
@@ -2900,14 +2904,17 @@ Expression *CommaExp::interpret(InterState *istate)
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!v->init && !v->getValue())
             v->setValue(v->type->defaultInitLiteral());
-        if (!v->getValue())
-            v->setValue(v->init->toExpression());
+        if (!v->getValue()) {
+            Expression *newval = v->init->toExpression();
+//            v->setValue(v->init->toExpression());
         // Bug 4027. Copy constructors are a weird case where the
         // initializer is a void function (the variable is modified
         // through a reference parameter instead).
-        Expression *newval = v->getValue()->interpret(istate);
+        //Expression *
+        newval = newval->interpret(istate);
         if (newval != EXP_VOID_INTERPRET)
             v->setValue(newval);
+        }
         return e2;
     }
     Expression *e = e1->interpret(istate);
@@ -2980,7 +2987,7 @@ Expression *IndexExp::interpret(InterState *istate)
         if (e == EXP_CANT_INTERPRET)
             goto Lcant;
         if (lengthVar)
-            lengthVar->setValue(e);
+            lengthVar->setStackValue(e);
     }
 
     e2 = this->e2->interpret(istate);
@@ -3020,7 +3027,7 @@ Expression *SliceExp::interpret(InterState *istate)
     if (e == EXP_CANT_INTERPRET)
         goto Lcant;
     if (lengthVar)
-        lengthVar->setValue(e);
+        lengthVar->setStackValue(e);
 
     /* Evaluate lower and upper bounds of slice
      */
