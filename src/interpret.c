@@ -2126,6 +2126,14 @@ Expression *assignDotVar(ExpressionReverseIterator rvs, int depth, Expression *e
     return NULL;
 }
 
+// Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
+// This value will be used for in-place modification.
+Expression *copyLiteral(Expression *e)
+{
+    Expression *r = e->syntaxCopy();
+    r->type = e->type;
+    return r;
+}
 
 Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 {
@@ -2278,7 +2286,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // only modifying part of the variable. So we need to make sure
     // that the parent variable exists.
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-        ultimateVar->createValue(ultimateVar->type->defaultInitLiteral());
+        ultimateVar->createValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));
 
     // ----------------------------------------
     //      Deal with dotvar expressions
@@ -2359,7 +2367,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             newval->op == TOKstring || (newval->op == TOKassocarrayliteral))
         {
             if (!v->getValue())
-                v->createValue(newval);
+                v->createValue(copyLiteral(newval));
             else v->setValue(newval);
         }
         else
