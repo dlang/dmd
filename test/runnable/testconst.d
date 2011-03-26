@@ -7,6 +7,13 @@ int ctfe() { return 3; }
 
 /************************************/
 
+void showf(string f)
+{
+    printf("%.*s\n", f.length, f.ptr);
+}
+
+/************************************/
+
 void test1()
 {
     const int* p;
@@ -84,7 +91,7 @@ void foo8(const char[] s, const C8 c, const int x)
 void test8()
 {
     auto p = &foo8;
-    printf("%s\n", p.mangleof.ptr);
+    showf(p.mangleof);
     assert(p.mangleof == "PFxAaxC9testconst2C8xiZv");
 }
 
@@ -613,7 +620,7 @@ void test43()
   {
     int x;
     alias Foo43!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == int));
     assert(is(f == int));
   }
@@ -621,7 +628,7 @@ void test43()
   {
     const int x;
     alias Foo43!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == const(int)));
     assert(is(f == const(int)));
   }
@@ -629,7 +636,7 @@ void test43()
   {
     immutable int x;
     alias Foo43!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == immutable(int)));
     assert(is(f == immutable(int)));
   }
@@ -647,7 +654,7 @@ void test44()
   {
     int x;
     alias Foo44!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == int));
     assert(is(f == int));
   }
@@ -655,7 +662,7 @@ void test44()
   {
     const int x;
     alias Foo44!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == const(int)));
     assert(is(f == const(int)));
   }
@@ -663,7 +670,7 @@ void test44()
   {
     immutable int x;
     alias Foo44!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == immutable(int)));
     assert(is(f == immutable(int)));
   }
@@ -681,7 +688,7 @@ void test45()
   {
     int x;
     alias Foo45!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == int));
     assert(is(f == int));
   }
@@ -689,7 +696,7 @@ void test45()
   {
     const int x;
     alias Foo45!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == const(int)));
     assert(is(f == int));
   }
@@ -697,7 +704,7 @@ void test45()
   {
     immutable int x;
     alias Foo45!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == immutable(int)));
     assert(is(f == int));
   }
@@ -715,7 +722,7 @@ void test46()
   {
     immutable int x;
     alias Foo46!(typeof(x)) f;
-    printf("%s\n", typeid(f).toString().ptr);
+    showf(typeid(f).toString());
     assert(is(typeof(x) == immutable(int)));
     assert(is(f == int));
   }
@@ -756,13 +763,13 @@ void test48()
 
 void foo49(T)(T[] t)
 {
-    printf("%s\n", typeid(typeof(t)).toString().ptr);
+    showf(typeid(typeof(t)).toString());
     assert(is(T == immutable(char)));
 }
 
 void bar49(T)(const T t)
 {
-    printf("%s\n", typeid(T).toString().ptr);
+    showf(typeid(T).toString());
     assert(is(T == const(int)) || is(T == immutable(int)) || is(T == int));
 }
 
@@ -785,28 +792,28 @@ void test49()
 
 void foo50(T)(T t)
 {
-    printf("%s\n", typeid(typeof(t)).toString().ptr);
+    showf(typeid(typeof(t)).toString());
     assert(is(T == C));
 }
 
 void baz50(T)(T t)
 {
-    printf("%s\n", typeid(typeof(t)).toString().ptr);
+    showf(typeid(typeof(t)).toString());
     assert(is(T == const(C)));
 }
 
 void bar50(T)(const T t)
 {
-    printf("%s\n", typeid(T).toString().ptr);
-    printf("%s\n", typeid(typeof(t)).toString().ptr);
+    showf(typeid(T).toString());
+    showf(typeid(typeof(t)).toString());
     assert(is(T == C));
     assert(is(typeof(t) == const(C)));
 }
 
 void abc50(T)(const T t)
 {
-    printf("%s\n", typeid(T).toString().ptr);
-    printf("%s\n", typeid(typeof(t)).toString().ptr);
+    showf(typeid(T).toString());
+    showf(typeid(typeof(t)).toString());
     assert(is(T == const(C)));
     assert(is(typeof(t) == const(C)));
 }
@@ -857,7 +864,7 @@ void test52()
 {
     immutable(char[5])[int] aa = ([3:"hello", 4:"betty"]);
 
-    printf("%s\n", typeid(typeof(aa.values)).toString().ptr);
+    showf(typeid(typeof(aa.values)).toString());
     static assert(isDynamicArray!(typeof(aa.values)));
 }
 
@@ -927,7 +934,7 @@ struct S57
 {
     const void foo(this T)(int i)
     {
-	printf("%s\n", typeid(T).toString().ptr);
+	showf(typeid(T).toString());
 	if (i == 1)
 	    assert(is(T == const));
 	if (i == 2)

@@ -1,0 +1,9 @@
+$(VERSION 053, ddd mm, 2011, =================================================,
+
+    $(WHATSNEW
+    )
+    $(DMDBUGSFIXED
+        $(LI $(BUGZILLA 937): C-style variadic functions broken)
+    )
+
+)
