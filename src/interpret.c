@@ -2366,6 +2366,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         if (newval->op == TOKarrayliteral || newval->op == TOKstructliteral ||
             newval->op == TOKstring || (newval->op == TOKassocarrayliteral))
         {
+            // if it's a reference type, the old value gets lost.
+            if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
+                || newval->op == TOKstring)
+                v->setValueNull();
             if (!v->getValue())
                 v->createValue(copyLiteral(newval));
             else v->setValue(newval);
@@ -2920,17 +2924,16 @@ Expression *CommaExp::interpret(InterState *istate)
         VarExp* ve = (VarExp *)e2;
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!v->init && !v->getValue())
-            v->setValue(v->type->defaultInitLiteral());
+            v->createValue(copyLiteral(v->type->defaultInitLiteral()));
         if (!v->getValue()) {
             Expression *newval = v->init->toExpression();
 //            v->setValue(v->init->toExpression());
-        // Bug 4027. Copy constructors are a weird case where the
-        // initializer is a void function (the variable is modified
-        // through a reference parameter instead).
-        //Expression *
-        newval = newval->interpret(istate);
-        if (newval != EXP_VOID_INTERPRET)
-            v->setValue(newval);
+            // Bug 4027. Copy constructors are a weird case where the
+            // initializer is a void function (the variable is modified
+            // through a reference parameter instead).
+            newval = newval->interpret(istate);
+            if (newval != EXP_VOID_INTERPRET)
+                v->createValue(copyLiteral(newval));
         }
         return e2;
     }
