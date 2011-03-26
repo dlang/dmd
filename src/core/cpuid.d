@@ -81,6 +81,14 @@ module core.cpuid;
 // AMD K10    --   + isX86_64()
 // Cyrix 6x86 -- preferPentium1()
 //    6x86MX  --   + mmx()
+version(D_InlineAsm_X86)
+{
+    version = InlineAsm_X86_Any;
+}
+else version(D_InlineAsm_X86_64)
+{
+    version = InlineAsm_X86_Any;
+}
 
 public:
 
@@ -302,7 +310,7 @@ version(X86_64) {
     }
 
 
-version(D_InlineAsm_X86) {
+version(InlineAsm_X86_Any) {
 // Note that this code will also work for Itanium in x86 mode.
 
 __gshared uint max_cpuid, max_extended_cpuid;
@@ -526,14 +534,31 @@ void cpuidX86()
 {
     char * venptr = vendorID.ptr;
     uint a, b, c, d, a2;
+    version(D_InlineAsm_X86)
+    {
+        asm {
+            mov EAX, 0;
+            cpuid;
+            mov a, EAX;
+            mov EAX, venptr;
+            mov [EAX], EBX;
+            mov [EAX + 4], EDX;
+            mov [EAX + 8], ECX;
+        }
+    }
+    else version(D_InlineAsm_X86_64)
+    {
+        asm {
+            mov EAX, 0;
+            cpuid;
+            mov a, EAX;
+            mov RAX, venptr;
+            mov [RAX], EBX;
+            mov [RAX + 4], EDX;
+            mov [RAX + 8], ECX;
+        }
+    }
     asm {
-        mov EAX, 0;
-        cpuid;
-        mov a, EAX;
-        mov EAX, venptr;
-        mov [EAX], EBX;
-        mov [EAX + 4], EDX;
-        mov [EAX + 8], ECX;
         mov EAX, 0x8000_0000;
         cpuid;
         mov a2, EAX;
@@ -598,34 +623,63 @@ void cpuidX86()
 
     if (max_extended_cpuid >= 0x8000_0004) {
         char *procptr = processorNameBuffer.ptr;
-        asm {
-            push ESI;
-            mov ESI, procptr;
-            mov EAX, 0x8000_0002;
-            cpuid;
-            mov [ESI], EAX;
-            mov [ESI+4], EBX;
-            mov [ESI+8], ECX;
-            mov [ESI+12], EDX;
-            mov EAX, 0x8000_0003;
-            cpuid;
-            mov [ESI+16], EAX;
-            mov [ESI+20], EBX;
-            mov [ESI+24], ECX;
-            mov [ESI+28], EDX;
-            mov EAX, 0x8000_0004;
-            cpuid;
-            mov [ESI+32], EAX;
-            mov [ESI+36], EBX;
-            mov [ESI+40], ECX;
-            mov [ESI+44], EDX;
-            pop ESI;
+        version(D_InlineAsm_X86)
+        {
+            asm {
+                push ESI;
+                mov ESI, procptr;
+                mov EAX, 0x8000_0002;
+                cpuid;
+                mov [ESI], EAX;
+                mov [ESI+4], EBX;
+                mov [ESI+8], ECX;
+                mov [ESI+12], EDX;
+                mov EAX, 0x8000_0003;
+                cpuid;
+                mov [ESI+16], EAX;
+                mov [ESI+20], EBX;
+                mov [ESI+24], ECX;
+                mov [ESI+28], EDX;
+                mov EAX, 0x8000_0004;
+                cpuid;
+                mov [ESI+32], EAX;
+                mov [ESI+36], EBX;
+                mov [ESI+40], ECX;
+                mov [ESI+44], EDX;
+                pop ESI;
+            }
+        }
+        else version(D_InlineAsm_X86_64)
+        {
+            asm {
+                push RSI;
+                mov RSI, procptr;
+                mov EAX, 0x8000_0002;
+                cpuid;
+                mov [RSI], EAX;
+                mov [RSI+4], EBX;
+                mov [RSI+8], ECX;
+                mov [RSI+12], EDX;
+                mov EAX, 0x8000_0003;
+                cpuid;
+                mov [RSI+16], EAX;
+                mov [RSI+20], EBX;
+                mov [RSI+24], ECX;
+                mov [RSI+28], EDX;
+                mov EAX, 0x8000_0004;
+                cpuid;
+                mov [RSI+32], EAX;
+                mov [RSI+36], EBX;
+                mov [RSI+40], ECX;
+                mov [RSI+44], EDX;
+                pop RSI;
+            }
         }
         // Intel P4 and PM pad at front with spaces.
         // Other CPUs pad at end with nulls.
         int start = 0, end = 0;
         while (processorNameBuffer[start] == ' ') { ++start; }
-        while (processorNameBuffer[$-end-1] == 0) { ++end; }
+        while (processorNameBuffer[processorNameBuffer.length-end-1] == 0) { ++end; }
         processorName = cast(string)(processorNameBuffer[start..$-end]);
     } else {
         processorName = "Unknown CPU";
