@@ -2166,7 +2166,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     //  Also determine the return value (except for slice
     //  assignments, which are more complicated)
     // ----------------------------------------------------
-    Expression * newval = this->e2->interpret(istate);
+    bool wantRef = false;
+    Expression * newval = NULL;
+    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray))
+    {
+        // it's an assignment to a reference type
+        if (this->e2->op == TOKvar) newval = this->e2;
+        else if (this->e2->op==TOKslice) newval = this->e2;
+    }
+    if (!newval) newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
 
@@ -2431,6 +2439,78 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             newval = assignArrayElement(loc, v->getValue(), index, newval);
+            if (newval == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+            v->setValue(newval);
+            return e;
+        }
+        else if (aggregate->op == TOKslice)
+        {   IndexExp *ie = (IndexExp *)e1;
+            // Note that upr and lwr have already been evaluated
+            SliceExp * sexp = (SliceExp *)aggregate;
+            assert(sexp && sexp->upr && sexp->lwr);
+            Expression *dollar = new IntegerExp(loc, sexp->upr->toInteger() - sexp->lwr->toInteger(), Type::tsize_t);
+            if (dollar != EXP_CANT_INTERPRET && ie->lengthVar)
+                ie->lengthVar->createStackValue(dollar);
+            // Determine the index, and check that it's OK.
+            Expression *index = ie->e2->interpret(istate);
+            if (ie->lengthVar)
+                ie->lengthVar->setValueNull(); // $ is defined only inside []
+            if (index == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+
+            assert(sexp->e1->op == TOKvar);
+            VarExp *ve = (VarExp *)(sexp->e1);
+            VarDeclaration *v = ve->var->isVarDeclaration();
+            assert(v);
+            assert(v->getValue());
+            if (v->getValue()->op == TOKarrayliteral)
+            {
+                ArrayLiteralExp *ae = (ArrayLiteralExp *)v->getValue();
+
+                int elemi = index->toInteger() + sexp->lwr->toInteger();
+                if (elemi >= ae->elements->dim)
+                {
+                    error("array index %d is out of bounds %s[0..%d]", elemi,
+                        ae->toChars(), ae->elements->dim);
+                    return EXP_CANT_INTERPRET;
+                }
+                // Create new array literal reflecting updated elem
+                Expressions *expsx = changeOneElement(ae->elements, elemi, newval);
+                Expression *ee = new ArrayLiteralExp(ae->loc, expsx);
+                ee->type = ae->type;
+                newval = ee;
+            } else if (v->getValue()->op == TOKstring)
+            {
+                StringExp *se = (StringExp *)v->getValue();
+                /* Create new string literal reflecting updated elem
+                 */
+                int elemi = index->toInteger() + sexp->lwr->toInteger();
+                if (elemi >= se->len)
+                {
+                    error("array index %d is out of bounds %s[0..%d]", elemi,
+                        se->toChars(), se->len);
+                    return EXP_CANT_INTERPRET;
+                }
+                unsigned char *s;
+                s = (unsigned char *)mem.calloc(se->len + 1, se->sz);
+                memcpy(s, se->string, se->len * se->sz);
+                unsigned value = newval->toInteger();
+                switch (se->sz)
+                {
+                    case 1: s[elemi] = value; break;
+                    case 2: ((unsigned short *)s)[elemi] = value; break;
+                    case 4: ((unsigned *)s)[elemi] = value; break;
+                    default:
+                        assert(0);
+                        break;
+                }
+                StringExp *se2 = new StringExp(se->loc, s, se->len);
+                se2->committed = se->committed;
+                se2->postfix = se->postfix;
+                se2->type = se->type;
+                newval = se2;
+            }
             if (newval == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             v->setValue(newval);
