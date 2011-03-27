@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -139,7 +139,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e)
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(0, 0, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(loc, 0, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(0, e);
         dtors.shift(dd);
         members->push(dd);
@@ -164,7 +164,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new CallExp(0, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(0, 0, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(loc, 0, Lexer::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(0, e);
             members->push(dd);
             dd->semantic(sc);
