@@ -1307,7 +1307,7 @@ void ExpStatement::toIR(IRState *irs)
     //printf("ExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
     incUsage(irs, loc);
     if (exp)
-        block_appendexp(blx->curblock,exp->toElem(irs));
+        block_appendexp(blx->curblock,exp->toElemDtor(irs));
 }
 
 /**************************************

@@ -689,6 +689,21 @@ elem *Expression::toElem(IRState *irs)
     return NULL;
 }
 
+/*******************************************
+ * Evaluate Expression, then call destructors on any temporaries in it.
+ */
+
+elem *Expression::toElemDtor(IRState *irs)
+{
+    size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
+    elem *er = toElem(irs);
+    size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;
+
+    // Add destructors
+    er = appendDtors(irs, er, starti, endi);
+    return er;
+}
+
 /************************************
  */
 #if DMDV2
@@ -3221,14 +3236,7 @@ elem *AndAndExp::toElem(IRState *irs)
     tym_t tym = type->totym();
 
     elem *el = e1->toElem(irs);
-
-    size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
-    elem *er = e2->toElem(irs);
-    size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;
-
-    // Add destructors for e2
-    er = appendDtors(irs, er, starti, endi);
-
+    elem *er = e2->toElemDtor(irs);
     elem *e = el_bin(OPandand,tym,el,er);
 
     el_setLoc(e,loc);
@@ -3247,14 +3255,7 @@ elem *OrOrExp::toElem(IRState *irs)
     tym_t tym = type->totym();
 
     elem *el = e1->toElem(irs);
-
-    size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
-    elem *er = e2->toElem(irs);
-    size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;
-
-    // Add destructors for e2
-    er = appendDtors(irs, er, starti, endi);
-
+    elem *er = e2->toElemDtor(irs);
     elem *e = el_bin(OPoror,tym,el,er);
 
     el_setLoc(e,loc);
@@ -3343,17 +3344,15 @@ elem *CommaExp::toElem(IRState *irs)
  */
 
 elem *CondExp::toElem(IRState *irs)
-{   elem *eleft;
-    elem *eright;
-
+{
     elem *ec = econd->toElem(irs);
 
-    eleft = e1->toElem(irs);
+    elem *eleft = e1->toElemDtor(irs);
     tym_t ty = eleft->Ety;
     if (global.params.cov && e1->loc.linnum)
         eleft = el_combine(incUsageElem(irs, e1->loc), eleft);
 
-    eright = e2->toElem(irs);
+    elem *eright = e2->toElemDtor(irs);
     if (global.params.cov && e2->loc.linnum)
         eright = el_combine(incUsageElem(irs, e2->loc), eright);
 
@@ -5127,9 +5126,27 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
     }
     if (edtors)
     {
-        elem *e = el_same(&er);
-        er = el_combine(er, edtors);
-        er = el_combine(er, e);
+        if (tybasic(er->Ety) == TYvoid)
+        {
+            er = el_combine(er, edtors);
+        }
+        else if (tybasic(er->Ety) == TYstruct || tybasic(er->Ety) == TYarray)
+        {
+            elem *ep = el_una(OPaddr, TYnptr, er);
+            elem *e = el_same(&ep);
+            ep = el_combine(ep, edtors);
+            ep = el_combine(ep, e);
+            e = el_una(OPind, er->Ety, ep);
+            e->ET = er->ET;
+            er = e;
+        }
+        else
+        {
+            elem *e = el_same(&er);
+            er = el_combine(er, edtors);
+            er = el_combine(er, e);
+        }
     }
     return er;
 }
+

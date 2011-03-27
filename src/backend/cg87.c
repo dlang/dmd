@@ -2006,6 +2006,8 @@ code *eq87(elem *e,regm_t *pretregs)
             cs.Iflags &= ~CFopsize;
         else if (ADDFWAIT())
             cs.Iflags |= CFwait;
+        else if (I64)
+            cs.Irex &= ~REX_W;
         c2 = gen(c2, &cs);
 #if LNGDBLSIZE == 12
         if (tysize[TYldouble] == 12)

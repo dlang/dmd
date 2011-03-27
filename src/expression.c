@@ -464,7 +464,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
  * Call copy constructor for struct value argument.
  */
 #if DMDV2
-Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
+Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 {
     Type *tb = e->type->toBasetype();
     assert(tb->ty == Tstruct);
@@ -477,9 +477,10 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
          * This is not the most efficent, ideally tmp would be constructed
          * directly onto the stack.
          */
-        Identifier *idtmp = Lexer::uniqueId("__tmp");
+        Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
         VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
         tmp->storage_class |= STCctfe;
+        tmp->noscope = noscope;
         Expression *ae = new DeclarationExp(loc, tmp);
         e = new CommaExp(loc, ae, new VarExp(loc, tmp));
         e = e->semantic(sc);
@@ -680,9 +681,40 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
             {
-                arg = callCpCtor(loc, sc, arg);
+                if (arg->op == TOKcall)
+                {
+                    /* The struct value returned from the function is transferred
+                     * to the function, so the callee should not call the destructor
+                     * on it.
+                     * ((S _ctmp = S.init), _ctmp).this(...)
+                     */
+                    CallExp *ce = (CallExp *)arg;
+                    if (ce->e1->op == TOKdotvar)
+                    {   DotVarExp *dve = (DotVarExp *)ce->e1;
+                        if (dve->var->isCtorDeclaration())
+                        {   // It's a constructor call
+                            if (dve->e1->op == TOKcomma)
+                            {   CommaExp *comma = (CommaExp *)dve->e1;
+                                if (comma->e2->op == TOKvar)
+                                {   VarExp *ve = (VarExp *)comma->e2;
+                                    VarDeclaration *ctmp = ve->var->isVarDeclaration();
+                                    if (ctmp)
+                                        ctmp->noscope = 1;
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {   /* Not transferring it, so call the copy constructor
+                     */
+                    arg = callCpCtor(loc, sc, arg, 1);
+                }
             }
 #endif
+
+            //printf("arg: %s\n", arg->toChars());
+            //printf("type: %s\n", arg->type->toChars());
 
             // Convert lazy argument to a delegate
             if (p->storageClass & STClazy)
@@ -761,7 +793,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct)
             {
-                arg = callCpCtor(loc, sc, arg);
+                arg = callCpCtor(loc, sc, arg, 1);
             }
 #endif
 
@@ -8851,7 +8883,7 @@ Expression *PostExp::semantic(Scope *sc)
             /* Rewrite as:
              * auto tmp = e1; ++e1; tmp
              */
-            Identifier *id = Lexer::uniqueId("__tmp");
+            Identifier *id = Lexer::uniqueId("__pitmp");
             ExpInitializer *ei = new ExpInitializer(loc, e1);
             VarDeclaration *tmp = new VarDeclaration(loc, e1->type, id, ei);
             Expression *ea = new DeclarationExp(loc, tmp);
@@ -9137,6 +9169,16 @@ Expression *AssignExp::semantic(Scope *sc)
                 sd->cpctor)
             {   /* We have a copy constructor for this
                  */
+                // Scan past commma's
+                Expression *ec = NULL;
+                while (e2->op == TOKcomma)
+                {   CommaExp *ecomma = (CommaExp *)e2;
+                    e2 = ecomma->e2;
+                    if (ec)
+                        ec = new CommaExp(ecomma->loc, ec, ecomma->e1);
+                    else
+                        ec = ecomma->e1;
+                }
                 if (e2->op == TOKquestion)
                 {   /* Write as:
                      *  a ? e1 = b : e1 = c;
@@ -9147,6 +9189,8 @@ Expression *AssignExp::semantic(Scope *sc)
                     AssignExp *ea2 = new AssignExp(ec->e1->loc, e1, ec->e2);
                     ea2->op = op;
                     Expression *e = new CondExp(loc, ec->econd, ea1, ea2);
+                    if (ec)
+                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
                 else if (e2->op == TOKvar ||
@@ -9159,6 +9203,8 @@ Expression *AssignExp::semantic(Scope *sc)
                      */
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
+                    if (ec)
+                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
             }
@@ -10405,7 +10451,7 @@ Expression *PowExp::semantic(Scope *sc)
             typeCombine(sc);
             // Replace x^^2 with (tmp = x, tmp*tmp)
             // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
-            Identifier *idtmp = Lexer::uniqueId("__tmp");
+            Identifier *idtmp = Lexer::uniqueId("__powtmp");
             VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(0, e1));
             tmp->storage_class = STCctfe;
             Expression *ve = new VarExp(loc, tmp);

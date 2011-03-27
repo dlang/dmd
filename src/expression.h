@@ -167,6 +167,7 @@ struct Expression : Object
 
     // Back end
     virtual elem *toElem(IRState *irs);
+    elem *toElemDtor(IRState *irs);
     virtual dt_t **toDt(dt_t **pdt);
 };
 

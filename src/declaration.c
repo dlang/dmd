@@ -1145,14 +1145,13 @@ Lagain:
                     if (sd->ctor &&             // there are constructors
                         ei->exp->type->ty == Tstruct && // rvalue is the same struct
                         ((TypeStruct *)ei->exp->type)->sym == sd &&
-                        ei->exp->op == TOKstar)
+                        ei->exp->op == TOKcall)
                     {
                         /* Look for form of constructor call which is:
                          *    *__ctmp.ctor(arguments...)
                          */
-                        PtrExp *pe = (PtrExp *)ei->exp;
-                        if (pe->e1->op == TOKcall)
-                        {   CallExp *ce = (CallExp *)pe->e1;
+                        if (1)
+                        {   CallExp *ce = (CallExp *)ei->exp;
                             if (ce->e1->op == TOKdotvar)
                             {   DotVarExp *dve = (DotVarExp *)ce->e1;
                                 if (dve->var->isCtorDeclaration())
@@ -1163,15 +1162,23 @@ Lagain:
                                      * variable with a bit copy of the default
                                      * initializer
                                      */
-                                    Expression *e = new AssignExp(loc, new VarExp(loc, this), t->defaultInit(loc));
-                                    e->op = TOKblit;
+                                    Expression *e;
+                                    if (sd->zeroInit == 1)
+                                    {
+                                        e = new ConstructExp(loc, new VarExp(loc, this), new IntegerExp(loc, 0, Type::tint32));
+                                    }
+                                    else
+                                    {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInit(loc));
+                                        e->op = TOKblit;
+                                    }
                                     e->type = t;
                                     ei->exp = new CommaExp(loc, e, ei->exp);
 
                                     /* Replace __ctmp being constructed with e1
                                      */
                                     dve->e1 = e1;
-                                    return;
+                                    ei->exp = ei->exp->semantic(sc);
+                                    goto Ldtor;
                                 }
                             }
                         }
