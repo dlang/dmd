@@ -493,8 +493,8 @@ code *cdeq(elem *e,regm_t *pretregs)
                         cl = movregconst(cl,cs.Irm & 7,p[1],0);
                     }
                 }
-                else if (I64 && sz == 8 && *p != *(unsigned *)p)
-                {
+                else if (I64 && sz == 8 && *p >= 0x80000000)
+                {   // Use 64 bit MOV, as the 32 bit one gets sign extended
                     // MOV reg,imm64
                     // MOV EA,reg
                     regm_t rregm = allregs & ~idxregm(&cs);
