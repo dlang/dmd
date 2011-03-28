@@ -14,6 +14,7 @@
 module rt.deh2;
 
 //debug=1;
+debug import core.stdc.stdio : printf;
 
 extern (C)
 {
@@ -27,7 +28,6 @@ extern (C)
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
 
-    void _d_setUnhandled(Object*);
     void _d_createTrace(Object*);
 }
 
@@ -77,6 +77,18 @@ struct FuncTable
     void *fptr;                 // pointer to start of function
     DHandlerTable *handlertable; // eh data for this function
     uint fsize;         // size of function in bytes
+}
+
+private
+{
+    struct InFlight
+    {
+        void*       addr;
+        InFlight*   next;
+        Throwable   t;
+    }
+    
+    InFlight* __inflight = null;
 }
 
 void terminate()
@@ -145,6 +157,7 @@ size_t __eh_find_caller(size_t regbp, size_t *pretaddr)
     return bp;
 }
 
+
 /***********************************
  * Throw a D object.
  */
@@ -173,7 +186,6 @@ extern (C) void _d_throwc(Object *h)
         static assert(0);
 
     _d_createTrace(h);
-    _d_setUnhandled(h);
 
 //static uint abc;
 //if (++abc == 2) *(char *)0=0;
@@ -235,6 +247,42 @@ extern (C) void _d_throwc(Object *h)
         }
         debug printf("index = %d\n", index);
 
+        if (index > -1 && index < dim)
+        {
+            auto phi = &handler_table.handler_info[index+1];
+            debug printf("next finally_code %p\n", phi.finally_code);
+            if (__inflight && __inflight.addr == phi.finally_code)
+            {
+                if (auto e = cast(Error)(cast(Throwable) h))
+                {
+                    debug printf("chaining inflight %p to new error %p\n", __inflight.t, h);
+                    
+                    auto t = cast(Throwable) h;
+                    auto n = cast(Throwable) h;
+
+                    while (n.next)
+                        n = n.next;
+                    n.next = __inflight.t;
+                    e.bypassedException = n.next;
+                    __inflight = __inflight.next;
+                    //h = cast(Object*) t;
+                }
+                else
+                {
+                    debug printf("replacing thrown %p with inflight %p\n", h, __inflight.t);
+                    
+                    auto t = __inflight.t;
+                    auto n = __inflight.t;
+
+                    while (n.next)
+                        n = n.next;
+                    n.next = cast(Throwable) h;
+                    __inflight = __inflight.next;
+                    h = cast(Object*) t;
+                }
+            }
+        }
+
         // walk through handler table, checking each handler
         // with an index smaller than the current table_index
         int prev_ndx;
@@ -257,7 +305,7 @@ extern (C) void _d_throwc(Object *h)
                     if (_d_isbaseof(ci, pcb.type))
                     {   // Matched the catch type, so we've found the handler.
 
-                        _d_setUnhandled(null);
+                        __inflight = null;
 
                         // Initialize catch variable
                         *cast(void **)(regebp + (pcb.bpoffset)) = h;
@@ -297,11 +345,19 @@ extern (C) void _d_throwc(Object *h)
                 }
             }
             else if (phi.finally_code)
-            {   // Call finally block
+            {
+                // Call finally block
                 // Note that it is unnecessary to adjust the ESP, as the finally block
                 // accesses all items on the stack as relative to EBP.
+                debug printf("calling finally_code %p\n", phi.finally_code);
 
-                auto blockaddr = phi.finally_code;
+                auto     blockaddr = phi.finally_code;
+                InFlight inflight;
+                
+                inflight.addr = blockaddr;
+                inflight.next = __inflight;
+                inflight.t    = cast(Throwable) h;
+                __inflight    = &inflight;
 
                 version (OSX)
                 {
@@ -363,6 +419,9 @@ extern (C) void _d_throwc(Object *h)
                     else
                         static assert(0);
                 }
+
+                if (__inflight is &inflight)
+                    __inflight = __inflight.next;
             }
         }
     }
