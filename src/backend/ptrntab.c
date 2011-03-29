@@ -1471,6 +1471,14 @@ PTRNTAB0 aptb0PAUSE[] =  /* PAUSE */ {
 };
 #endif
 
+PTRNTAB0 aptb0SYSCALL[] =  /* SYSCALL */ {
+        { 0x0f05, _modcxr11 }
+};
+
+PTRNTAB0 aptb0SYSRET[] =  /* SYSRET */ {
+        { 0x0f07, 0 }
+};
+
 PTRNTAB0 aptb0SYSENTER[] =  /* SYSENTER */ {
         { 0x0f34, 0 }
 };
@@ -3122,8 +3130,10 @@ getsec
         X("subps",      2,              (P) aptb2SUBPS ) \
         X("subsd",      2,              (P) aptb2SUBSD ) \
         X("subss",      2,              (P) aptb2SUBSS ) \
+        X("syscall",    0,              aptb0SYSCALL ) \
         X("sysenter",   0,              aptb0SYSENTER ) \
         X("sysexit",    0,              aptb0SYSEXIT ) \
+        X("sysret",     0,              aptb0SYSRET ) \
         X("test",       2,              (P) aptb2TEST ) \
         X("ucomisd",    2,              (P) aptb2UCOMISD ) \
         X("ucomiss",    2,              (P) aptb2UCOMISS ) \
