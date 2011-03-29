@@ -67,6 +67,7 @@
 #define _modall         0xb000  // Instruction modifies all register values
 #define _modsiax        0xc000  // Instruction modifies AX and SI
 #define _modsinot1      0xd000  // Instruction modifies SI and not first param
+#define _modcxr11       0xe000  // Instruction modifies CX and R11
 
 /////////////////////////////////////////////////
 // Operand flags - usOp1, usOp2, usOp3
