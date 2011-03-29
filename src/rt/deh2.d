@@ -247,13 +247,14 @@ extern (C) void _d_throwc(Object *h)
         }
         debug printf("index = %d\n", index);
 
-        if (index > -1 && index < dim)
+        if (dim)
         {
             auto phi = &handler_table.handler_info[index+1];
             debug printf("next finally_code %p\n", phi.finally_code);
             if (__inflight && __inflight.addr == phi.finally_code)
             {
-                if (auto e = cast(Error)(cast(Throwable) h))
+                auto e = cast(Error)(cast(Throwable) h);
+                if (e !is null && (cast(Error) __inflight.t) is null)
                 {
                     debug printf("chaining inflight %p to new error %p\n", __inflight.t, h);
                     
