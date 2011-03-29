@@ -340,13 +340,22 @@ static assert(!is(typeof(compiles!(badslice1([1,2])))));
 static assert(!is(typeof(compiles!(badslice2([1,2])))));
 static assert(!is(typeof(compiles!(badslice3([1,2,3])))));
 
-/*******************************************/
+/*******************************************/ 
 
-size_t bug5524(int x, int[] more...)
-{
-    int[0] zz;
-    assert(zz.length==0);
-    return 7 + more.length + x;
-}
+size_t bug5524(int x, int[] more...) 
+{ 
+    int[0] zz; 
+    assert(zz.length==0); 
+    return 7 + more.length + x; 
+} 
 
-static assert(bug5524(3) == 10);
+//static assert(bug5524(3) == 10); 
+
+
+// 5722 
+
+static assert( ("" ~ "\&copy;"[0]).length == 1 ); 
+const char[] null5722 = null; 
+static assert( (null5722 ~ "\&copy;"[0]).length == 1 ); 
+static assert( ("\&copy;"[0] ~ null5722).length == 1 ); 
+

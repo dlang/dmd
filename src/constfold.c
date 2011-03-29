@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1373,9 +1373,12 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
             dinteger_t v = e->toInteger();
 
-            size_t len = utf_codeLength(sz, v);
+            size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, v);
             s = mem.malloc((len + 1) * sz);
-            utf_encode(sz, s, v);
+            if (t->ty == tn->ty)
+                memcpy((unsigned char *)s, &v, sz);
+            else
+                utf_encode(sz, s, v);
 
             // Add terminating 0
             memset((unsigned char *)s + len * sz, 0, sz);
@@ -1468,10 +1471,18 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         int sz = es1->sz;
         dinteger_t v = e2->toInteger();
 
-        size_t len = es1->len + utf_codeLength(sz, v);
+        // Is it a concatentation of homogenous types?
+        // (char[] ~ char, wchar[]~wchar, or dchar[]~dchar)
+        bool homoConcat = (sz == t2->size());
+        size_t len = es1->len;
+        len += homoConcat ? 1 : utf_codeLength(sz, v);
+
         s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
-        utf_encode(sz, (unsigned char *)s + (sz * es1->len), v);
+        if (homoConcat)
+             memcpy((unsigned char *)s + (sz * es1->len), &v, sz);
+        else
+             utf_encode(sz, (unsigned char *)s + (sz * es1->len), v);
 
         // Add terminating 0
         memset((unsigned char *)s + len * sz, 0, sz);
