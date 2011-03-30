@@ -83,8 +83,8 @@ private
 {
     struct InFlight
     {
-        void*       addr;
         InFlight*   next;
+        void*       addr;
         Throwable   t;
     }
     
@@ -251,36 +251,35 @@ extern (C) void _d_throwc(Object *h)
         {
             auto phi = &handler_table.handler_info[index+1];
             debug printf("next finally_code %p\n", phi.finally_code);
-            if (__inflight && __inflight.addr == phi.finally_code)
-            {
-                auto e = cast(Error)(cast(Throwable) h);
-                if (e !is null && (cast(Error) __inflight.t) is null)
-                {
-                    debug printf("chaining inflight %p to new error %p\n", __inflight.t, h);
-                    
-                    auto t = cast(Throwable) h;
-                    auto n = cast(Throwable) h;
 
-                    while (n.next)
-                        n = n.next;
-                    n.next = __inflight.t;
-                    e.bypassedException = n.next;
-                    __inflight = __inflight.next;
+            for (auto prev = cast(InFlight*) &__inflight; prev.next; prev = prev.next)
+            {
+                auto curr = prev.next;
+                if (curr.addr != phi.finally_code)
+                    continue;
+                auto e = cast(Error)(cast(Throwable) h);
+                if (e !is null && (cast(Error) curr.t) is null)
+                {
+                    debug printf("new error %p bypassing inflight %p\n", h, curr.t);
+
+                    e.bypassedException = curr.t;
+                    prev.next = curr.next;
                     //h = cast(Object*) t;
                 }
                 else
                 {
-                    debug printf("replacing thrown %p with inflight %p\n", h, __inflight.t);
-                    
-                    auto t = __inflight.t;
-                    auto n = __inflight.t;
+                    debug printf("replacing thrown %p with inflight %p\n", h, inflight.t);
+
+                    auto t = curr.t;
+                    auto n = curr.t;
 
                     while (n.next)
                         n = n.next;
                     n.next = cast(Throwable) h;
-                    __inflight = __inflight.next;
+                    prev.next = curr.next;
                     h = cast(Object*) t;
                 }
+                break;
             }
         }
 
@@ -304,9 +303,8 @@ extern (C) void _d_throwc(Object *h)
                     auto pcb = &pci.catch_block[i];
 
                     if (_d_isbaseof(ci, pcb.type))
-                    {   // Matched the catch type, so we've found the handler.
-
-                        __inflight = null;
+                    {
+                        // Matched the catch type, so we've found the handler.
 
                         // Initialize catch variable
                         *cast(void **)(regebp + (pcb.bpoffset)) = h;
