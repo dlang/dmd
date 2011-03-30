@@ -2,9 +2,6 @@
 
 extern(C) int printf(const char*, ...);
 
-version(Windows) // not yet implemented elsewhere
-    version = TdplExceptionChaining;
-
 /****************************************************/
 
 class Abc : Exception
@@ -355,218 +352,214 @@ void test7()
 /****************************************************
  * Exception chaining tests. See also test4.d
  ****************************************************/
-version(TdplExceptionChaining)
+int result1513;
+
+void bug1513a()
 {
+     throw new Exception("d");        
+}
 
-    int result1513;
-
-    void bug1513a()
-    {
-         throw new Exception("d");        
-    }
-
-    void bug1513b()
+void bug1513b()
+{
+    try
     {
         try
         {
-            try
-            {
-                bug1513a();
-            }
-            finally
-            {
-                result1513 |=4;
-               throw new Exception("f");
-                
-            }
-        }
-        catch(Exception e)
-        { 
-            assert(e.msg == "d");
-            assert(e.next.msg == "f");
-            assert(!e.next.next);
-        }
-    }
-
-    void bug1513c()
-    {
-        try
-        {
-            try
-            {
-                throw new Exception("a");
-            }
-            finally
-            {
-                result1513 |= 1;
-                throw new Exception("b");
-            }
-        }    
-        finally
-        {
-            bug1513b();
-            result1513 |= 2;
-            throw new Exception("c");
-        }
-    }
-
-    void bug1513()
-    {
-        result1513 = 0;
-        try
-        {        
-            bug1513c();        
-        }
-        catch(Exception e)
-        {
-            assert(result1513 == 7);
-            assert(e.msg == "a");
-            assert(e.next.msg == "b");
-            assert(e.next.next.msg == "c");
-        }
-    }
-
-    void collideone()
-    {
-        try
-        {
-            throw new Exception("x");
+            bug1513a();
         }
         finally
         {
-            throw new Exception("y");
+            result1513 |=4;
+           throw new Exception("f");
+            
         }
     }
+    catch(Exception e)
+    { 
+        assert(e.msg == "d");
+        assert(e.next.msg == "f");
+        assert(!e.next.next);
+    }
+}
 
-    void doublecollide()
+void bug1513c()
+{
+    try
+    {
+        try
+        {
+            throw new Exception("a");
+        }
+        finally
+        {
+            result1513 |= 1;
+            throw new Exception("b");
+        }
+    }    
+    finally
+    {
+        bug1513b();
+        result1513 |= 2;
+        throw new Exception("c");
+    }
+}
+
+void bug1513()
+{
+    result1513 = 0;
+    try
+    {        
+        bug1513c();        
+    }
+    catch(Exception e)
+    {
+        assert(result1513 == 7);
+        assert(e.msg == "a");
+        assert(e.next.msg == "b");
+        assert(e.next.next.msg == "c");
+    }
+}
+
+void collideone()
+{
+    try
+    {
+        throw new Exception("x");
+    }
+    finally
+    {
+        throw new Exception("y");
+    }
+}
+
+void doublecollide()
+{
+    try
     {
         try
         {
             try
             {
-                try
-                {
-                    throw new Exception("p");
-                }
-                finally
-                {
-                    throw new Exception("q");
-                }
+                throw new Exception("p");
             }
             finally
             {
-                collideone();
+                throw new Exception("q");
             }
         }
-        catch(Exception e)
+        finally
         {
-                assert(e.msg == "p");
-                assert(e.next.msg == "q");
-                assert(e.next.next.msg == "x");
-                assert(e.next.next.next.msg == "y");
-                assert(!e.next.next.next.next);
-        }        
-    }
-
-    void collidetwo()
-    {
-           try
-            {
-                try
-                {
-                    throw new Exception("p2");
-                }
-                finally
-                {
-                    throw new Exception("q2");
-                }
-            }
-            finally
-            {
-                collideone();
-            }
-    }
-
-    void collideMixed()
-    {
-        int works = 6;
-        try
-        {
-            try
-            {
-                try
-                {                
-                    throw new Exception("e");
-                }
-                finally
-                {
-                    throw new Error("t");
-                }
-            }
-            catch(Exception f) 
-            {    // Doesn't catch, because Error is chained to it.
-                works += 2;
-            }
-        }
-        catch(Error z)
-        {
-            works += 4;
-            assert(z.msg=="t"); // Error comes first
-            assert(z.next is null);
-            assert(z.bypassedException.msg == "e");
-        }
-        assert(works == 10);
-    }
-
-    class AnotherException : Exception
-    {
-        this(string s)
-        {
-            super(s);
+            collideone();
         }
     }
-
-    void multicollide()
+    catch(Exception e)
     {
-        try
-        {
-           try
-            {
-                try
-                {
-                    try
-                    {
-                        throw new Exception("m2");
-                    }
-                    finally
-                    {
-                        throw new AnotherException("n2");
-                    }
-                }
-                catch(AnotherException s)
-                {   // Not caught -- we needed to catch the root cause "m2", not
-                    // just the collateral "n2" (which would leave m2 uncaught).
-                    assert(0);
-                }
-            }
-            finally
-            {
-                collidetwo();
-            }
-        }
-        catch(Exception f)
-        {
-            assert(f.msg == "m2");
-            assert(f.next.msg == "n2");
-            Throwable e = f.next.next;
-            assert(e.msg == "p2");
-            assert(e.next.msg == "q2");
+            assert(e.msg == "p");
+            assert(e.next.msg == "q");
             assert(e.next.next.msg == "x");
             assert(e.next.next.next.msg == "y");
             assert(!e.next.next.next.next);
-        }        
+    }        
+}
+
+void collidetwo()
+{
+       try
+        {
+            try
+            {
+                throw new Exception("p2");
+            }
+            finally
+            {
+                throw new Exception("q2");
+            }
+        }
+        finally
+        {
+            collideone();
+        }
+}
+
+void collideMixed()
+{
+    int works = 6;
+    try
+    {
+        try
+        {
+            try
+            {                
+                throw new Exception("e");
+            }
+            finally
+            {
+                throw new Error("t");
+            }
+        }
+        catch(Exception f) 
+        {    // Doesn't catch, because Error is chained to it.
+            works += 2;
+        }
     }
-} // version(TdplExceptionChaining)
+    catch(Error z)
+    {
+        works += 4;
+        assert(z.msg=="t"); // Error comes first
+        assert(z.next is null);
+        assert(z.bypassedException.msg == "e");
+    }
+    assert(works == 10);
+}
+
+class AnotherException : Exception
+{
+    this(string s)
+    {
+        super(s);
+    }
+}
+
+void multicollide()
+{
+    try
+    {
+       try
+        {
+            try
+            {
+                try
+                {
+                    throw new Exception("m2");
+                }
+                finally
+                {
+                    throw new AnotherException("n2");
+                }
+            }
+            catch(AnotherException s)
+            {   // Not caught -- we needed to catch the root cause "m2", not
+                // just the collateral "n2" (which would leave m2 uncaught).
+                assert(0);
+            }
+        }
+        finally
+        {
+            collidetwo();
+        }
+    }
+    catch(Exception f)
+    {
+        assert(f.msg == "m2");
+        assert(f.next.msg == "n2");
+        Throwable e = f.next.next;
+        assert(e.msg == "p2");
+        assert(e.next.msg == "q2");
+        assert(e.next.next.msg == "x");
+        assert(e.next.next.next.msg == "y");
+        assert(!e.next.next.next.next);
+    }        
+}
 
 /****************************************************/
 
@@ -581,13 +574,10 @@ int main()
     test6();
     test7();
     
-    version(TdplExceptionChaining)
-    {    
-        bug1513();
-        doublecollide();
-        collideMixed();
-        multicollide();
-    }
+    bug1513();
+    doublecollide();
+    collideMixed();
+    multicollide();
 
     printf("finish\n");
     return 0;
