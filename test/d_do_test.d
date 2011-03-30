@@ -224,9 +224,9 @@ void execute(ref File f, string command, bool expectpass)
     {
         auto value = WEXITSTATUS(rc);
         if (expectpass)
-            enforce(0 == value, "expected rc == 0, exited with rc=" ~ to!string(value));
+            enforce(0 == value, "expected rc == 0, exited with rc == " ~ to!string(value));
         else
-            enforce(1 == value, "expected rc == 1, but exited with rc=" ~ to!string(value));
+            enforce(1 == value, "expected rc == 1, but exited with rc == " ~ to!string(value));
     }
 }
 
@@ -353,7 +353,9 @@ int main(string[] args)
         }
         catch(Exception e)
         {
-            f.writeln("Caught exception, bailing: ", e.toString());
+            f.writeln();
+            f.writeln("==============================");
+            f.writeln("Test failed: ", e.msg);
             f.close();
 
             writeln("Test failed.  The logged output:");
