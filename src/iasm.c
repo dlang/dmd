@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2010 by Digital Mars
+ * Copyright (c) 1999-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/iasm.c
@@ -2361,6 +2361,8 @@ STATIC void asm_make_modrm_byte(
     if (aopty == _reg || amod == _rspecial) {
             mrmb.modregrm.mod = 0x3;
             mrmb.modregrm.rm |= popnd->base->val;
+            if (popnd->base->val & NUM_MASKR)
+                pc->Irex |= REX_B;
     }
     else if (amod == _addr16 || (amod == _flbl && I16))
     {   unsigned rm;
@@ -2578,6 +2580,8 @@ STATIC void asm_make_modrm_byte(
          ASM_GET_amod(popnd2->usFlags) == _rspecial))
     {
             mrmb.modregrm.reg =  popnd2->base->val;
+            if (popnd2->base->val & NUM_MASKR)
+                pc->Irex |= REX_R;
     }
 #ifdef DEBUG
     puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode;
