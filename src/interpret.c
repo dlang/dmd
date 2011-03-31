@@ -1358,7 +1358,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
         }
         else
         {   e = v->getValue();
-             if (!v->isCTFE() && v->isDataseg())
+            if (!v->isCTFE() && v->isDataseg())
             {   error(loc, "static variable %s cannot be read at compile time", v->toChars());
                 e = EXP_CANT_INTERPRET;
             }
@@ -2241,7 +2241,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // ----------------------------------------------------
     bool wantRef = false;
     Expression * newval = NULL;
-    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray))
+    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray) && e1->op != TOKslice)
     {
         // it's an assignment to a reference type
         if (this->e2->op == TOKvar) newval = this->e2;
@@ -3223,7 +3223,10 @@ Expression *SliceExp::interpret(InterState *istate)
      */
     e = ArrayLength(Type::tsize_t, e1);
     if (e == EXP_CANT_INTERPRET)
+    {
+        error("Cannot determine length of %s at compile time\n", e1->toChars());
         goto Lcant;
+    }
     if (lengthVar)
         lengthVar->createStackValue(e);
 
