@@ -4672,6 +4672,7 @@ Expression *Parser::parsePostExp(Expression *e)
                 nextToken();
                 if (token.value == TOKrbracket)
                 {   // array[]
+                    inBrackets--;
                     e = new SliceExp(loc, e, NULL, NULL);
                     nextToken();
                 }
