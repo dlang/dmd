@@ -462,6 +462,48 @@ Expression *ScopeStatement::interpret(InterState *istate)
     return statement ? statement->interpret(istate) : NULL;
 }
 
+#if 0
+void evaluateSliceBounds(SliceExp *sexp, Expression **upper, Expression **lower, InterState *istate)
+{
+    Expression *e1 = sexp->interpret(istate);
+    if (e1 == EXP_CANT_INTERPRET)
+        goto Lcant;
+    if (!this->lwr)
+    {
+        e = e1->castTo(NULL, type);
+        return e->interpret(istate);
+    }
+
+    /* Set the $ variable
+     */
+    e = ArrayLength(Type::tsize_t, e1);
+    if (e == EXP_CANT_INTERPRET)
+        goto Lcant;
+    if (lengthVar)
+        lengthVar->createStackValue(e);
+
+    /* Evaluate lower and upper bounds of slice
+     */
+    *lower = this->lwr->interpret(istate);
+    if (*lower == EXP_CANT_INTERPRET)
+        goto Lcant;
+    upr = this->upr->interpret(istate);
+    if (upr == EXP_CANT_INTERPRET)
+        goto Lcant;
+    if (lengthVar)
+        lengthVar->setValueNull(); // $ is defined only inside [L..U]
+    e = Slice(type, e1, lwr, upr);
+    if (e == EXP_CANT_INTERPRET)
+        error("%s cannot be interpreted at compile time", toChars());
+    return e;
+
+Lcant:
+    if (lengthVar)
+        lengthVar->setValueNull();
+    return EXP_CANT_INTERPRET;
+}
+#endif
+
 // Helper for ReturnStatement::interpret() for returning references.
 // Given an original expression, which is known to be a reference to a reference,
 // turn it into a reference.
@@ -2203,7 +2245,30 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     {
         // it's an assignment to a reference type
         if (this->e2->op == TOKvar) newval = this->e2;
-        else if (this->e2->op==TOKslice) newval = this->e2;
+        else if (this->e2->op==TOKslice)
+        {
+            SliceExp * sexp = (SliceExp *)this->e2;
+
+            /* Set the $ variable
+             */
+            Expression *ee = ArrayLength(Type::tsize_t, sexp->e1->interpret(istate));
+            if (ee != EXP_CANT_INTERPRET && sexp->lengthVar)
+            {
+                sexp->lengthVar->createStackValue(ee);
+            }
+            Expression *upper = NULL;
+            Expression *lower = NULL;
+            if (sexp->upr)
+                upper = sexp->upr->interpret(istate);
+            if (sexp->lwr)
+                lower = sexp->lwr->interpret(istate);
+            if (sexp->lengthVar)
+                sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
+            if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+            newval = new SliceExp(sexp->loc, sexp->e1, lower, upper);
+            newval->type = sexp->type;
+        }
     }
     if (!newval) newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
