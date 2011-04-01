@@ -2239,13 +2239,25 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     if (e1 == EXP_CANT_INTERPRET)
         return e1;
 
-    assert(istate);
+    // First, deal with  this = e; and call() = e;
+    if (e1->op == TOKthis)
+    {
+        e1 = istate->localThis;
+    }
+    if (e1->op == TOKcall)
+    {
+        istate->awaitingLvalueReturn = true;
+        e1 = e1->interpret(istate);
+        istate->awaitingLvalueReturn = false;
+        if (e1 == EXP_CANT_INTERPRET)
+            return e1;
+    }
 
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
-        || e1->op == TOKindex || e1->op == TOKslice || e1->op == TOKcall || e1->op == TOKthis))
+        || e1->op == TOKindex || e1->op == TOKslice))
         printf("CTFE internal error: unsupported assignment %s\n", toChars());
     assert(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
-        || e1->op == TOKindex || e1->op == TOKslice || e1->op == TOKcall || e1->op == TOKthis);
+        || e1->op == TOKindex || e1->op == TOKslice);
 
     // ----------------------------------------------------
     //  Deal with read-modify-write assignments.
