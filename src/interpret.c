@@ -2472,7 +2472,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 
                 VarDeclaration *v2 = vv->var->isVarDeclaration();
                 assert(v2);
-                assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring));
+                assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring
+                    || v2->getValue()->op == TOKassocarrayliteral || v2->getValue()->op == TOKnull));
                 v->setValueNull();
                 v->createValue(v2->getValue());
             }
@@ -3660,8 +3661,11 @@ Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
-    if (earg->op != TOKassocarrayliteral)
+    if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
         return NULL;
+    if (earg->op == TOKnull)
+        return new NullExp(earg->loc);
+    assert(earg->op == TOKassocarrayliteral);
     AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
     Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
     assert(fd->type->ty == Tfunction);
@@ -3677,8 +3681,11 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
-    if (earg->op != TOKassocarrayliteral)
+    if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
         return NULL;
+    if (earg->op == TOKnull)
+        return new NullExp(earg->loc);
+    assert(earg->op == TOKassocarrayliteral);
     AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
     Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
     assert(fd->type->ty == Tfunction);
