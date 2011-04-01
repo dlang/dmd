@@ -2241,7 +2241,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // ----------------------------------------------------
     bool wantRef = false;
     Expression * newval = NULL;
-    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray) && e1->op != TOKslice)
+    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray) && e1->op == TOKslice)
     {
         // it's an assignment to a reference type
         if (this->e2->op == TOKvar) newval = this->e2;
@@ -2270,7 +2270,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             newval->type = sexp->type;
         }
     }
-    if (!newval) newval = this->e2->interpret(istate);
+    if (!newval)
+        newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
 
@@ -2383,7 +2384,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         v->setValue(e2);
         return e2;
     }
-
     bool destinationIsReference = false;
     e1 = resolveReferences(e1, istate->localThis, &destinationIsReference);
 
@@ -2468,23 +2468,89 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!destinationIsReference)
             addVarToInterstate(istate, v);
-        if (newval->op == TOKarrayliteral || newval->op == TOKstructliteral ||
-            newval->op == TOKstring || (newval->op == TOKassocarrayliteral))
+        if (e1->type->toBasetype()->ty == Tstruct)
         {
-            // if it's a reference type, the old value gets lost.
+            // This should be an in-place modification
+            if (newval->op == TOKstructliteral)
+            {
+                v->setValueNull();
+                v->createValue(copyLiteral(newval));
+            }
+            else v->setValue(newval);
+        }
+        else if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray))
+        {
+            // It's a reference type. The old value gets lost.
             if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
                 || newval->op == TOKstring)
+            {
                 v->setValueNull();
-            if (!v->getValue())
                 v->createValue(copyLiteral(newval));
-            else v->setValue(newval);
+            }
+            else if (newval->op == TOKnull)
+            {
+                v->setValueNull();
+                v->createValue(newval);
+            }
+            else if (newval->op == TOKvar)
+            {
+                VarExp *vv = (VarExp *)newval;
+
+                VarDeclaration *v2 = vv->var->isVarDeclaration();
+                assert(v2);
+                assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring));
+                v->setValueNull();
+                v->createValue(v2->getValue());
+            }
+            else if (newval->op == TOKslice)
+            {
+                // This one is interesting because it could be a slice of itself
+                SliceExp * sexp = (SliceExp *)newval;
+                Expression *agg = sexp->e1;
+                if (agg->op == TOKvar)
+                {
+                    VarExp *vv = (VarExp *)agg;
+                    VarDeclaration *v2 = vv->var->isVarDeclaration();
+                    assert(v2);
+                    if (v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring)
+                    {
+                        sexp->e1 = v2->getValue();
+                        v->setValueNull();
+                        v->restoreValue(sexp);
+                    }
+                    else
+                    {
+                        if (!v->getValue())
+                            v->createValue(newval->interpret(istate));
+                        else v->setValue(newval->interpret(istate));
+                    }
+                }
+                else
+                {
+                    if (!v->getValue())
+                        v->createValue(newval->interpret(istate));
+                    else v->setValue(newval->interpret(istate));
+                }
+            }
+            else
+            {
+                v->setValueNull();
+                v->createStackValue(newval);
+            }
         }
         else
         {
+            if (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
+            { // arr op= arr
+                    if (!v->getValue())
+                        v->createValue(newval->interpret(istate));
+                    else v->setValue(newval->interpret(istate));
+            } else {
             if (!v->getValue()) // creating a new value
                 v->createStackValue(newval);
             else
                 v->setStackValue(newval);
+            }
         }
     }
     else if (e1->op == TOKindex)
@@ -2535,9 +2601,24 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 ie->lengthVar->setValueNull(); // $ is defined only inside []
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
+
+        if (v->getValue()->op == TOKarrayliteral)
+        {
+            int elemi = index->toInteger();
+            ArrayLiteralExp *ae = (ArrayLiteralExp *)v->getValue();
+            if (elemi >= ae->elements->dim)
+            {
+                error("array index %d is out of bounds %s[0..%d]", elemi,
+                    v->getValue()->toChars(), ae->elements->dim);
+                return EXP_CANT_INTERPRET;
+            }
+            ae->elements->data[elemi] = newval;
+            return e;
+        }
             newval = assignArrayElement(loc, v->getValue(), index, newval);
             if (newval == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
+
             v->setValue(newval);
             return e;
         }
@@ -3098,7 +3179,9 @@ Expression *CommaExp::interpret(InterState *istate)
         VarExp* ve = (VarExp *)e2;
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!v->init && !v->getValue())
+        {
             v->createValue(copyLiteral(v->type->defaultInitLiteral()));
+        }
         if (!v->getValue()) {
             Expression *newval = v->init->toExpression();
 //            v->setValue(v->init->toExpression());
@@ -3107,7 +3190,10 @@ Expression *CommaExp::interpret(InterState *istate)
             // through a reference parameter instead).
             newval = newval->interpret(istate);
             if (newval != EXP_VOID_INTERPRET)
-                v->createValue(copyLiteral(newval));
+            {
+                // v isn't necessarily null.
+                v->restoreValue(copyLiteral(newval));
+            }
         }
         return e2;
     }

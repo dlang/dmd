@@ -266,10 +266,13 @@ struct VarDeclaration : Declaration
         assert(newval);
         assert(!literalvalue);
         if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
-            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral)) {
+            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
+            (newval->op == TOKnull)
+            ) {
         } else printf("%s\n", newval->toChars());
         assert((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
-               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral));
+               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral) ||
+               (newval->op == TOKnull));
         literalvalue = newval;
     }
 
@@ -278,10 +281,12 @@ struct VarDeclaration : Declaration
         assert(newval);
         assert(literalvalue);
         if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
-            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral)) {
+            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
+            (newval->op == TOKnull)) {
         } else printf("%s\n", newval->toChars());
         assert((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
-               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral));
+               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral) || 
+               (newval->op == TOKnull));
         literalvalue = newval;
     }
 
