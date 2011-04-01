@@ -2211,6 +2211,18 @@ Expression *assignDotVar(ExpressionReverseIterator rvs, int depth, Expression *e
 // This value will be used for in-place modification.
 Expression *copyLiteral(Expression *e)
 {
+    if (e->op == TOKstring) // syntaxCopy doesn't make a copy for StringExp!
+    {
+        StringExp *se = (StringExp *)e;
+        unsigned char *s;
+        s = (unsigned char *)mem.calloc(se->len + 1, se->sz);
+        memcpy(s, se->string, se->len * se->sz);
+        StringExp *se2 = new StringExp(se->loc, s, se->len);
+        se2->committed = se->committed;
+        se2->postfix = se->postfix;
+        se2->type = se->type;
+        return se2;
+    }
     Expression *r = e->syntaxCopy();
     r->type = e->type;
     return r;
@@ -2535,6 +2547,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 // This one is interesting because it could be a slice of itself
                 SliceExp * sexp = (SliceExp *)newval;
                 Expression *agg = sexp->e1;
+                dinteger_t newlo = sexp->lwr->toInteger();
+                dinteger_t newup = sexp->upr->toInteger();
                 if (agg->op == TOKvar)
                 {
                     VarExp *vv = (VarExp *)agg;
@@ -2542,6 +2556,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     assert(v2);
                     if (v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring)
                     {
+                        Expression *len = ArrayLength(Type::tsize_t, v2->getValue());
+                        if ((newup < newlo) || (newup > len->toInteger()))
+                        {
+                            error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
+                                newlo, newup, len->toInteger());
+                            return EXP_CANT_INTERPRET;
+                        }
                         sexp->e1 = v2->getValue();
                         v->setValueNull();
                         v->createValue(sexp);
@@ -2550,8 +2571,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     {
                         SliceExp *sexpold = (SliceExp *)v2->getValue();
                         sexp->e1 = sexpold->e1;
-                        dinteger_t newlo = sexp->lwr->toInteger();
-                        dinteger_t newup = sexp->upr->toInteger();
                         dinteger_t hi = newup + sexpold->lwr->toInteger();
                         dinteger_t lo = newlo + sexpold->lwr->toInteger();
                         if ((newup < newlo) || (hi > sexpold->upr->toInteger()))
@@ -2634,19 +2653,25 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             // Set the $ variable, and find the array literal to modify
             Expression *dollar = NULL;
             ArrayLiteralExp *ae = NULL;
+            StringExp *se = NULL;
             if (v->getValue()->op == TOKslice)
             {
                 SliceExp *sexp = (SliceExp *)v->getValue();
                 dollar = new IntegerExp(loc, sexp->upr->toInteger()-sexp->lwr->toInteger(), Type::tsize_t);
                 if (sexp->e1->op == TOKarrayliteral)
                     ae = (ArrayLiteralExp *)sexp->e1;
+                if (sexp->e1->op == TOKstring)
+                    se = (StringExp *)sexp->e1;
             }
             else if (v->getValue()->op == TOKarrayliteral
                 || v->getValue()->op == TOKassocarrayliteral
                 || v->getValue()->op == TOKstring)
             {
                 dollar = ArrayLength(Type::tsize_t, v->getValue());
-                if (v->getValue()->op == TOKarrayliteral) ae = (ArrayLiteralExp *)v->getValue();
+                if (v->getValue()->op == TOKarrayliteral)
+                    ae = (ArrayLiteralExp *)v->getValue();
+                if (v->getValue()->op == TOKstring)
+                    se = (StringExp *)v->getValue();
             }
             else
             {
@@ -2674,6 +2699,29 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             ae->elements->data[elemi] = newval;
             return e;
         }
+        if (se)
+        {
+                int elemi = index->toInteger();
+                if (elemi >= se->len)
+                {
+                    error("array index %d is out of bounds %s[0..%d]", elemi,
+                        se->toChars(), se->len);
+                    return EXP_CANT_INTERPRET;
+                }
+                unsigned char *s = (unsigned char *)se->string;
+                unsigned value = newval->toInteger();
+                switch (se->sz)
+                {
+                    case 1: s[elemi] = value; break;
+                    case 2: ((unsigned short *)s)[elemi] = value; break;
+                    case 4: ((unsigned *)s)[elemi] = value; break;
+                    default:
+                        assert(0);
+                        break;
+                }
+                return e;
+        }
+
             newval = assignArrayElement(loc, v->getValue(), index, newval);
             if (newval == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
@@ -2697,9 +2745,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 return EXP_CANT_INTERPRET;
 
             ArrayLiteralExp *ae = NULL;
+            StringExp *se = NULL;
             VarDeclaration *v = NULL;
             if (sexp->e1->op == TOKarrayliteral)
                 ae = (ArrayLiteralExp *)(sexp->e1);
+            else if (sexp->e1->op == TOKstring)
+                se = (StringExp *)(sexp->e1);
             else if (sexp->e1->op == TOKvar)
             {
                 VarExp *ve = (VarExp *)(sexp->e1);
@@ -2708,6 +2759,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 assert(v->getValue());
                 if (v->getValue()->op == TOKarrayliteral)
                     ae = (ArrayLiteralExp *)v->getValue();
+                else if (v->getValue()->op == TOKstring)
+                    se = (StringExp *)v->getValue();
             }
             if (ae)
             {
@@ -2720,11 +2773,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 }
                 ae->elements->data[elemi] = newval;
                 return e;
-            } else if (v->getValue()->op == TOKstring)
+            } else if (se)
             {
-                StringExp *se = (StringExp *)v->getValue();
-                /* Create new string literal reflecting updated elem
-                 */
                 int elemi = index->toInteger() + sexp->lwr->toInteger();
                 if (elemi >= se->len)
                 {
@@ -2732,9 +2782,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                         se->toChars(), se->len);
                     return EXP_CANT_INTERPRET;
                 }
-                unsigned char *s;
-                s = (unsigned char *)mem.calloc(se->len + 1, se->sz);
-                memcpy(s, se->string, se->len * se->sz);
+                unsigned char *s = (unsigned char *)se->string;
                 unsigned value = newval->toInteger();
                 switch (se->sz)
                 {
@@ -2745,11 +2793,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                         assert(0);
                         break;
                 }
-                StringExp *se2 = new StringExp(se->loc, s, se->len);
-                se2->committed = se->committed;
-                se2->postfix = se->postfix;
-                se2->type = se->type;
-                newval = se2;
+                return e;
             }
             if (newval == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
