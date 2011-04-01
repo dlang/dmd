@@ -2967,7 +2967,8 @@ private
                 pop EBP;
 
                 // 'return' to complete switch
-                ret;
+                pop ECX;
+                jmp ECX;
             }
         }
         else version( AsmX86_64_Posix )
@@ -2997,7 +2998,8 @@ private
                 pop RBX;
 
                 // 'return' to complete switch
-                ret;
+                pop RCX;
+                jmp RCX;
             }
         }
         else static if( __traits( compiles, ucontext_t ) )
