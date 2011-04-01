@@ -2548,11 +2548,20 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     }
                     else if (v2->getValue()->op == TOKslice)
                     {
-                        SliceExp *sexp2 = (SliceExp *)v2->getValue();
-                        sexp->e1 = sexp2->e1;
-                        Expression *low = new IntegerExp(loc, sexp->lwr->toInteger()+sexp2->lwr->toInteger(), Type::tsize_t);
-                        sexp->upr = new IntegerExp(loc, sexp->upr->toInteger()+sexp2->lwr->toInteger(), Type::tsize_t);
-                        sexp->lwr = low;
+                        SliceExp *sexpold = (SliceExp *)v2->getValue();
+                        sexp->e1 = sexpold->e1;
+                        dinteger_t newlo = sexp->lwr->toInteger();
+                        dinteger_t newup = sexp->upr->toInteger();
+                        dinteger_t hi = newup + sexpold->lwr->toInteger();
+                        dinteger_t lo = newlo + sexpold->lwr->toInteger();
+                        if ((newup < newlo) || (hi > sexpold->upr->toInteger()))
+                        {
+                            error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
+                                newlo, newup, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
+                            return EXP_CANT_INTERPRET;
+                        }
+                        sexp->lwr = new IntegerExp(loc, lo, Type::tsize_t);
+                        sexp->upr = new IntegerExp(loc, hi, Type::tsize_t);
                         v->setValueNull();
                         v->createValue(sexp);
                     }
