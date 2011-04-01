@@ -1304,8 +1304,16 @@ Expression * resolveReferences(Expression *e, Expression *thisval, bool *isRefer
                     continue;
                 }
             }
+            else if (v && v->getValue() && (v->getValue()->op == TOKslice))
+            {
+                SliceExp *se = (SliceExp *)v->getValue();
+                if (se->e1->op == TOKarrayliteral || se->e1->op == TOKassocarrayliteral || se->e1->op == TOKstring)
+                    break;
+                e = v->getValue();
+                continue;
+            }
             else if (v && v->getValue() && (v->getValue()->op==TOKindex || v->getValue()->op == TOKdotvar
-                  || v->getValue()->op == TOKthis || v->getValue()->op == TOKslice ))
+                  || v->getValue()->op == TOKthis ))
             {
                 e = v->getValue();
                 continue;
@@ -2241,7 +2249,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // ----------------------------------------------------
     bool wantRef = false;
     Expression * newval = NULL;
-    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray) && e1->op == TOKslice)
+    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray))
     {
         // it's an assignment to a reference type
         if (this->e2->op == TOKvar) newval = this->e2;
@@ -2260,8 +2268,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             Expression *lower = NULL;
             if (sexp->upr)
                 upper = sexp->upr->interpret(istate);
+            else upper = ee;
             if (sexp->lwr)
                 lower = sexp->lwr->interpret(istate);
+            else lower = new IntegerExp(loc, 0, Type::tsize_t);
             if (sexp->lengthVar)
                 sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
             if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
@@ -2518,6 +2528,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                         v->setValueNull();
                         v->restoreValue(sexp);
                     }
+                    else if (v2->getValue()->op == TOKslice)
+                    {
+                        SliceExp *sexp2 = (SliceExp *)v2->getValue();
+                        sexp->e1 = sexp2->e1;
+                        Expression *low = new IntegerExp(loc, sexp->lwr->toInteger()+sexp2->lwr->toInteger(), Type::tsize_t);
+                        sexp->upr = new IntegerExp(loc, sexp->upr->toInteger()+sexp2->lwr->toInteger(), Type::tsize_t);
+                        sexp->lwr = low;
+                        v->setValueNull();
+                        v->restoreValue(sexp);
+                    }
                     else
                     {
                         if (!v->getValue())
@@ -2584,15 +2604,28 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 error("Cannot index null array %s", v->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            else if (v->getValue()->op != TOKarrayliteral
-                && v->getValue()->op != TOKassocarrayliteral
-                && v->getValue()->op != TOKstring)
+            // Set the $ variable, and find the array literal to modify
+            Expression *dollar = NULL;
+            ArrayLiteralExp *ae = NULL;
+            if (v->getValue()->op == TOKslice)
             {
-                error("CTFE internal compiler error");
+                SliceExp *sexp = (SliceExp *)v->getValue();
+                dollar = new IntegerExp(loc, sexp->upr->toInteger()-sexp->lwr->toInteger(), Type::tsize_t);
+                if (sexp->e1->op == TOKarrayliteral)
+                    ae = (ArrayLiteralExp *)sexp->e1;
+            }
+            else if (v->getValue()->op == TOKarrayliteral
+                || v->getValue()->op == TOKassocarrayliteral
+                || v->getValue()->op == TOKstring)
+            {
+                dollar = ArrayLength(Type::tsize_t, v->getValue());
+                if (v->getValue()->op == TOKarrayliteral) ae = (ArrayLiteralExp *)v->getValue();
+            }
+            else
+            {
+                error("CTFE internal compiler error %s", v->getValue()->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            // Set the $ variable
-            Expression *dollar = ArrayLength(Type::tsize_t, v->getValue());
             if (dollar != EXP_CANT_INTERPRET && ie->lengthVar)
                 ie->lengthVar->createStackValue(dollar);
             // Determine the index, and check that it's OK.
@@ -2602,10 +2635,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
 
-        if (v->getValue()->op == TOKarrayliteral)
+        if (ae)
         {
             int elemi = index->toInteger();
-            ArrayLiteralExp *ae = (ArrayLiteralExp *)v->getValue();
             if (elemi >= ae->elements->dim)
             {
                 error("array index %d is out of bounds %s[0..%d]", elemi,
@@ -2637,15 +2669,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
 
-            assert(sexp->e1->op == TOKvar);
-            VarExp *ve = (VarExp *)(sexp->e1);
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            assert(v);
-            assert(v->getValue());
-            if (v->getValue()->op == TOKarrayliteral)
+            ArrayLiteralExp *ae = NULL;
+            VarDeclaration *v = NULL;
+            if (sexp->e1->op == TOKarrayliteral)
+                ae = (ArrayLiteralExp *)(sexp->e1);
+            else if (sexp->e1->op == TOKvar)
             {
-                ArrayLiteralExp *ae = (ArrayLiteralExp *)v->getValue();
-
+                VarExp *ve = (VarExp *)(sexp->e1);
+                v = ve->var->isVarDeclaration();
+                assert(v);
+                assert(v->getValue());
+                if (v->getValue()->op == TOKarrayliteral)
+                    ae = (ArrayLiteralExp *)v->getValue();
+            }
+            if (ae)
+            {
                 int elemi = index->toInteger() + sexp->lwr->toInteger();
                 if (elemi >= ae->elements->dim)
                 {
