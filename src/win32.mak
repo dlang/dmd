@@ -469,7 +469,7 @@ import.obj : $(TOTALH) dsymbol.h import.h import.c
 inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
-interpret.obj : $(TOTALH) interpret.c
+interpret.obj : $(TOTALH) interpret.c declaration.h expression.h
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libomf.obj : $(TOTALH) lib.h libomf.c
