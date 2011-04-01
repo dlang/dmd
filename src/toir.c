@@ -484,7 +484,7 @@ int intrinsic_op(char *name)
         OPoutp,
         OPoutp,
     };
-    
+
 #ifdef DMDV2
     static const char *core_namearray[] =
     {
@@ -547,7 +547,7 @@ int intrinsic_op(char *name)
             assert(0);
         }
     }
-    assert(sizeof(std_namearray64) / sizeof(char *) == sizeof(ioptab));
+    assert(sizeof(std_namearray64) / sizeof(char *) == sizeof(std_ioptab));
     for (int i = 0; i < sizeof(std_namearray64) / sizeof(char *) - 1; i++)
     {
         if (strcmp(std_namearray64[i], std_namearray64[i + 1]) >= 0)
@@ -567,7 +567,7 @@ int intrinsic_op(char *name)
             assert(0);
         }
     }
-    assert(sizeof(core_namearray64) / sizeof(char *) == sizeof(ioptab));
+    assert(sizeof(core_namearray64) / sizeof(char *) == sizeof(std_ioptab));
     for (int i = 0; i < sizeof(core_namearray64) / sizeof(char *) - 1; i++)
     {
         if (strcmp(core_namearray64[i], core_namearray64[i + 1]) >= 0)
