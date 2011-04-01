@@ -1974,96 +1974,30 @@ Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, 
  * set arr[index] = newval and return the new array.
  *
  */
-Expression * assignArrayElement(Loc loc, Expression *arr, Expression *index, Expression *newval)
+Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae, Expression *index, Expression *newval)
 {
-        ArrayLiteralExp *ae = NULL;
-        AssocArrayLiteralExp *aae = NULL;
-        StringExp *se = NULL;
-        if (arr->op == TOKarrayliteral)
-            ae = (ArrayLiteralExp *)arr;
-        else if (arr->op == TOKassocarrayliteral)
-            aae = (AssocArrayLiteralExp *)arr;
-        else if (arr->op == TOKstring)
-            se = (StringExp *)arr;
-        else assert(0);
-
-        if (ae)
-        {
-            int elemi = index->toInteger();
-            if (elemi >= ae->elements->dim)
-            {
-                error(loc, "array index %d is out of bounds %s[0..%d]", elemi,
-                    arr->toChars(), ae->elements->dim);
-                return EXP_CANT_INTERPRET;
-            }
-            // Create new array literal reflecting updated elem
-            Expressions *expsx = changeOneElement(ae->elements, elemi, newval);
-            Expression *ee = new ArrayLiteralExp(ae->loc, expsx);
-            ee->type = ae->type;
-            newval = ee;
+    /* Create new associative array literal reflecting updated key/value
+     */
+    Expressions *keysx = aae->keys;
+    Expressions *valuesx = aae->values;
+    int updated = 0;
+    for (size_t j = valuesx->dim; j; )
+    {   j--;
+        Expression *ekey = (Expression *)aae->keys->data[j];
+        Expression *ex = Equal(TOKequal, Type::tbool, ekey, index);
+        if (ex == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+        if (ex->isBool(TRUE))
+        {   valuesx->data[j] = (void *)newval;
+            updated = 1;
         }
-        else if (se)
-        {
-            /* Create new string literal reflecting updated elem
-             */
-            int elemi = index->toInteger();
-            if (elemi >= se->len)
-            {
-                error(loc, "array index %d is out of bounds %s[0..%d]", elemi,
-                    arr->toChars(), se->len);
-                return EXP_CANT_INTERPRET;
-            }
-            unsigned char *s;
-            s = (unsigned char *)mem.calloc(se->len + 1, se->sz);
-            memcpy(s, se->string, se->len * se->sz);
-            unsigned value = newval->toInteger();
-            switch (se->sz)
-            {
-                case 1: s[elemi] = value; break;
-                case 2: ((unsigned short *)s)[elemi] = value; break;
-                case 4: ((unsigned *)s)[elemi] = value; break;
-                default:
-                    assert(0);
-                    break;
-            }
-            StringExp *se2 = new StringExp(se->loc, s, se->len);
-            se2->committed = se->committed;
-            se2->postfix = se->postfix;
-            se2->type = se->type;
-            newval = se2;
-        }
-        else if (aae)
-        {
-            /* Create new associative array literal reflecting updated key/value
-             */
-            Expressions *keysx = aae->keys;
-            Expressions *valuesx = new Expressions();
-            valuesx->setDim(aae->values->dim);
-            int updated = 0;
-            for (size_t j = valuesx->dim; j; )
-            {   j--;
-                Expression *ekey = (Expression *)aae->keys->data[j];
-                Expression *ex = Equal(TOKequal, Type::tbool, ekey, index);
-                if (ex == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
-                if (ex->isBool(TRUE))
-                {   valuesx->data[j] = (void *)newval;
-                    updated = 1;
-                }
-                else
-                    valuesx->data[j] = aae->values->data[j];
-            }
-            if (!updated)
-            {   // Append index/newval to keysx[]/valuesx[]
-                valuesx->push(newval);
-                keysx = (Expressions *)keysx->copy();
-                keysx->push(index);
-            }
-            Expression *aae2 = new AssocArrayLiteralExp(aae->loc, keysx, valuesx);
-            aae2->type = aae->type;
-            return aae2;
-        }
-        return newval;
+    }
+    if (!updated)
+    {   // Append index/newval to keysx[]/valuesx[]
+        valuesx->push(newval);
+        keysx->push(index);
+    }
+    return newval;
 }
 
 // Return true if e is derived from UnaryExp.
@@ -2687,46 +2621,43 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
 
-        if (ae)
-        {
-            int elemi = index->toInteger();
-            if (elemi >= ae->elements->dim)
+            if (ae)
             {
-                error("array index %d is out of bounds %s[0..%d]", elemi,
-                    v->getValue()->toChars(), ae->elements->dim);
-                return EXP_CANT_INTERPRET;
-            }
-            ae->elements->data[elemi] = newval;
-            return e;
-        }
-        if (se)
-        {
                 int elemi = index->toInteger();
-                if (elemi >= se->len)
+                if (elemi >= ae->elements->dim)
                 {
                     error("array index %d is out of bounds %s[0..%d]", elemi,
-                        se->toChars(), se->len);
+                        v->getValue()->toChars(), ae->elements->dim);
                     return EXP_CANT_INTERPRET;
                 }
-                unsigned char *s = (unsigned char *)se->string;
-                unsigned value = newval->toInteger();
-                switch (se->sz)
-                {
-                    case 1: s[elemi] = value; break;
-                    case 2: ((unsigned short *)s)[elemi] = value; break;
-                    case 4: ((unsigned *)s)[elemi] = value; break;
-                    default:
-                        assert(0);
-                        break;
-                }
+                ae->elements->data[elemi] = newval;
                 return e;
-        }
-
-            newval = assignArrayElement(loc, v->getValue(), index, newval);
-            if (newval == EXP_CANT_INTERPRET)
+            }
+            if (se)
+            {
+                    int elemi = index->toInteger();
+                    if (elemi >= se->len)
+                    {
+                        error("array index %d is out of bounds %s[0..%d]", elemi,
+                            se->toChars(), se->len);
+                        return EXP_CANT_INTERPRET;
+                    }
+                    unsigned char *s = (unsigned char *)se->string;
+                    unsigned value = newval->toInteger();
+                    switch (se->sz)
+                    {
+                        case 1: s[elemi] = value; break;
+                        case 2: ((unsigned short *)s)[elemi] = value; break;
+                        case 4: ((unsigned *)s)[elemi] = value; break;
+                        default:
+                            assert(0);
+                            break;
+                    }
+                    return e;
+            }
+            assert(v->getValue()->op == TOKassocarrayliteral);
+            if (assignAssocArrayElement(loc, (AssocArrayLiteralExp *)v->getValue(), index, newval) == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
-
-            v->setValue(newval);
             return e;
         }
         else if (aggregate->op == TOKslice)
@@ -2762,6 +2693,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 else if (v->getValue()->op == TOKstring)
                     se = (StringExp *)v->getValue();
             }
+
             if (ae)
             {
                 int elemi = index->toInteger() + sexp->lwr->toInteger();
@@ -2795,10 +2727,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 }
                 return e;
             }
-            if (newval == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            v->setValue(newval);
-            return e;
+            error("CTFE Internal Compiler Error: malformed slice assignment %s", toChars());
+            return EXP_CANT_INTERPRET;
         }
         else
             error("Index assignment %s is not yet supported in CTFE ", toChars());
