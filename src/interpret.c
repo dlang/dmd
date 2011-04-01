@@ -2241,6 +2241,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 
     assert(istate);
 
+    if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
+        || e1->op == TOKindex || e1->op == TOKslice || e1->op == TOKcall || e1->op == TOKthis))
+        printf("CTFE internal error: unsupported assignment %s\n", toChars());
+    assert(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
+        || e1->op == TOKindex || e1->op == TOKslice || e1->op == TOKcall || e1->op == TOKthis);
+
     // ----------------------------------------------------
     //  Deal with read-modify-write assignments.
     //  Set 'newval' to the final assignment value
