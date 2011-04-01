@@ -217,6 +217,7 @@ PTRNTAB1 aptb1JMP[] = /* JMP */ {
         { 0xea, _cd,_p1616 },
         { 0xff, _5,     _m1616 },
         { 0xff, _4 | _32_bit,   _rm32 },
+        { 0xff, _4 | _64_bit,   _rm64 },
         { 0xea, _cp,_p1632 },
         { 0xff, _5,     _m1632 },
         { ASM_END, 0, 0 }
