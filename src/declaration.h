@@ -260,50 +260,73 @@ struct VarDeclaration : Declaration
     Expression *literalvalue;   // for struct/array literals
     Expression *getValue() { return literalvalue; }
     void setValueNull() { literalvalue = NULL; stackvalue = NULL; }
-    void restoreValue(Expression *newval) { literalvalue = newval; }
-    void createValue(Expression *newval)
+    static bool isStackValueValid(Expression *newval)
+    {
+        if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
+        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
+        (newval->op == TOKnull) || (newval->op == TOKslice))
+            return false;
+        if (newval->op == TOKvar) return true;
+        if (newval->op == TOKdotvar) return true;
+        if (newval->op == TOKindex) return true;
+        if (newval->op == TOKfunction) return true; // function/delegate literal
+        if (newval->op == TOKdelegate) return true;
+        if (newval->op == TOKsymoff)  // function pointer
+        {
+            if (((SymOffExp *)newval)->var->isFuncDeclaration())
+                return true;
+        }
+        if (newval->op == TOKint64 || newval->op == TOKfloat64 || newval->op == TOKchar || newval->op == TOKcomplex80)
+            return true;
+        printf("CTFE internal error: illegal stack value %s\n", newval->toChars());
+        return false;
+    }
+    static bool isRefValueValid(Expression *newval)
     {
         assert(newval);
-        assert(!literalvalue);
         if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
-            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
-            (newval->op == TOKnull)
-            ) {
-        } else printf("%s\n", newval->toChars());
-        assert((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
-               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral) ||
-               (newval->op == TOKnull));
+        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
+        (newval->op == TOKnull))
+            return true;
+        if (newval->op == TOKslice)
+        {
+            SliceExp *se = (SliceExp *)newval;
+            assert(se->lwr && se->lwr != EXP_CANT_INTERPRET);
+            assert(se->upr && se->upr != EXP_CANT_INTERPRET);
+            assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
+            return true;
+        }
+        printf("CTFE internal error: illegal reference value %s\n", newval->toChars());
+        return false;
+    }
+    void restoreValue(Expression *newval) {
+        assert(!newval || isStackValueValid(newval) || isRefValueValid(newval));
+        literalvalue = newval;
+    }
+    void createValue(Expression *newval)
+    {
+        assert(!literalvalue);
+        assert(isRefValueValid(newval));
         literalvalue = newval;
     }
 
     void setValue(Expression *newval)
     {
-        assert(newval);
         assert(literalvalue);
-        if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
-            (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
-            (newval->op == TOKnull)) {
-        } else printf("%s\n", newval->toChars());
-        assert((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
-               (newval->op==TOKstring)|| (newval->op == TOKassocarrayliteral) || 
-               (newval->op == TOKnull));
+        assert(isRefValueValid(newval));
         literalvalue = newval;
     }
 
     void setStackValue(Expression *newval)
     {
-        assert(newval);
         assert(literalvalue);
-        assert((newval->op !=TOKarrayliteral) && (newval->op!=TOKstructliteral) &&
-               (newval->op!=TOKstring) && (newval->op != TOKassocarrayliteral));
+        assert(isStackValueValid(newval));
         literalvalue = newval;
     }
     void createStackValue(Expression *newval)
     {
-        assert(newval);
         assert(!literalvalue);
-        assert((newval->op !=TOKarrayliteral) && (newval->op!=TOKstructliteral) &&
-               (newval->op!=TOKstring) && (newval->op != TOKassocarrayliteral));
+        assert(isStackValueValid(newval));
         literalvalue = newval;
     }
 

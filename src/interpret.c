@@ -2526,7 +2526,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     {
                         sexp->e1 = v2->getValue();
                         v->setValueNull();
-                        v->restoreValue(sexp);
+                        v->createValue(sexp);
                     }
                     else if (v2->getValue()->op == TOKslice)
                     {
@@ -2536,7 +2536,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                         sexp->upr = new IntegerExp(loc, sexp->upr->toInteger()+sexp2->lwr->toInteger(), Type::tsize_t);
                         sexp->lwr = low;
                         v->setValueNull();
-                        v->restoreValue(sexp);
+                        v->createValue(sexp);
                     }
                     else
                     {
