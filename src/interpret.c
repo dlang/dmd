@@ -1880,21 +1880,14 @@ Expressions *spliceElements(Expressions *oldelems,
 /***************************************
  * Returns oldstr[0..insertpoint] ~ newstr ~ oldstr[insertpoint+newlen..$]
  */
-StringExp *spliceStringExp(StringExp *oldstr, StringExp *newstr, size_t insertpoint)
+void spliceStringExp(StringExp *oldstr, StringExp *newstr, size_t insertpoint)
 {
     assert(oldstr->sz==newstr->sz);
-    unsigned char *s;
+    unsigned char *s = (unsigned char *)oldstr->string;
     size_t oldlen = oldstr->len;
     size_t newlen = newstr->len;
     size_t sz = oldstr->sz;
-    s = (unsigned char *)mem.calloc(oldlen + 1, sz);
-    memcpy(s, oldstr->string, oldlen * sz);
     memcpy(s + insertpoint * sz, newstr->string, newlen * sz);
-    StringExp *se2 = new StringExp(oldstr->loc, s, oldlen);
-    se2->committed = oldstr->committed;
-    se2->postfix = oldstr->postfix;
-    se2->type = oldstr->type;
-    return se2;
 }
 
 /******************************
@@ -2838,7 +2831,20 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                         v->setValue(createBlockDuplicatedStringLiteral(se->type,
                             se->type->defaultInit()->toInteger(), dim, se->sz));
                     if (v->getValue()->op==TOKstring)
-                        v->setValue(spliceStringExp((StringExp *)v->getValue(), se, lowerbound));
+                        spliceStringExp((StringExp *)v->getValue(), se, lowerbound);
+                    else if (v->getValue()->op==TOKslice)
+                    {
+                        SliceExp *sexpold = (SliceExp *)v->getValue();
+                        dinteger_t hi = upperbound + sexpold->lwr->toInteger();
+                        dinteger_t lo = lowerbound + sexpold->lwr->toInteger();
+                        if (hi > sexpold->upr->toInteger())
+                        {
+                            error("slice [%d..%d] exceeds array bounds [0..%jd]",
+                                lowerbound, upperbound, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
+                            return EXP_CANT_INTERPRET;
+                        }
+                        spliceStringExp((StringExp *)sexpold->e1, se, lo);
+                    }
                     else
                         error("String slice assignment is not yet supported in CTFE");
                 }
