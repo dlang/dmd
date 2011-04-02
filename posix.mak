@@ -55,6 +55,7 @@ MANIFEST= \
 	src/core/cpuid.d \
 	src/core/demangle.d \
 	src/core/exception.d \
+	src/core/math.d \
 	src/core/memory.d \
 	src/core/runtime.d \
 	src/core/thread.d \
@@ -243,6 +244,7 @@ SRC_D_MODULES = \
 	core/cpuid \
 	core/demangle \
 	core/exception \
+	core/math \
 	core/memory \
 	core/runtime \
 	core/thread \
@@ -371,6 +373,7 @@ DOCS=\
 	$(DOCDIR)/core_cpuid.html \
 	$(DOCDIR)/core_demangle.html \
 	$(DOCDIR)/core_exception.html \
+	$(DOCDIR)/core_math.html \
 	$(DOCDIR)/core_memory.html \
 	$(DOCDIR)/core_runtime.html \
 	$(DOCDIR)/core_thread.html \
@@ -391,6 +394,7 @@ IMPORTS=\
 	$(IMPDIR)/core/cpuid.di \
 	$(IMPDIR)/core/demangle.di \
 	$(IMPDIR)/core/exception.di \
+	$(IMPDIR)/core/math.di \
 	$(IMPDIR)/core/memory.di \
 	$(IMPDIR)/core/runtime.di \
 	$(IMPDIR)/core/thread.di \
