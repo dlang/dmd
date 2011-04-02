@@ -488,6 +488,18 @@ int intrinsic_op(char *name)
 #ifdef DMDV2
     static const char *core_namearray[] =
     {
+        "4math3cosFNaNbNfeZe",
+        "4math3sinFNaNbNfeZe",
+        "4math4fabsFNaNbNfeZe",
+        "4math4rintFNaNbNfeZe",
+        "4math4sqrtFNaNbNfdZd",
+        "4math4sqrtFNaNbNfeZe",
+        "4math4sqrtFNaNbNffZf",
+        "4math4yl2xFNaNbNfeeZe",
+        "4math5ldexpFNaNbNfeiZe",
+        "4math6rndtolFNaNbNfeZl",
+        "4math6yl2xp1FNaNbNfeeZe",
+
         "5bitop2btFNaNbxPkkZi",
         "5bitop3bsfFNaNbkZi",
         "5bitop3bsrFNaNbkZi",
@@ -504,6 +516,18 @@ int intrinsic_op(char *name)
     };
     static const char *core_namearray64[] =
     {
+        "4math3cosFNaNbNfeZe",
+        "4math3sinFNaNbNfeZe",
+        "4math4fabsFNaNbNfeZe",
+        "4math4rintFNaNbNfeZe",
+        "4math4sqrtFNaNbNfdZd",
+        "4math4sqrtFNaNbNfeZe",
+        "4math4sqrtFNaNbNffZf",
+        "4math4yl2xFNaNbNfeeZe",
+        "4math5ldexpFNaNbNfeiZe",
+        "4math6rndtolFNaNbNfeZl",
+        "4math6yl2xp1FNaNbNfeeZe",
+
         "5bitop2btFNaNbxPmmZi",
         "5bitop3bsfFNaNbmZi",
         "5bitop3bsrFNaNbmZi",
@@ -520,6 +544,18 @@ int intrinsic_op(char *name)
     };
     static unsigned char core_ioptab[] =
     {
+        OPcos,
+        OPsin,
+        OPabs,
+        OPrint,
+        OPsqrt,
+        OPsqrt,
+        OPsqrt,
+        OPyl2x,
+        OPscale,
+        OPrndtol,
+        OPyl2xp1,
+
         OPbt,
         OPbsf,
         OPbsr,
@@ -589,7 +625,7 @@ int intrinsic_op(char *name)
     }
 #ifdef DMDV2
     if (length > 12 &&
-        name[8] == 'b' &&
+        (name[8] == 'm' || name[8] == 'b') &&
         !memcmp(name, "_D4core", 7))
     {
         int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));

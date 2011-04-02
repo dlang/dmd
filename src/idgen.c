@@ -284,6 +284,7 @@ Msgtable msgtable[] =
 
     // Builtin functions
     { "std" },
+    { "core" },
     { "math" },
     { "sin" },
     { "cos" },
