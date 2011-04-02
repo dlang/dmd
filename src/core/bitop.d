@@ -143,16 +143,32 @@ unittest
     array[1] = 0x100;
 
     assert(btc(array, 35) == 0);
-    assert(array[0] == 2);
-    assert(array[1] == 0x108);
+    if (size_t.sizeof == 8)
+    {
+        assert(array[0] == 0x8_0000_0002);
+        assert(array[1] == 0x100);
+    }
+    else
+    {
+        assert(array[0] == 2);
+        assert(array[1] == 0x108);
+    }
 
     assert(btc(array, 35) == -1);
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
     assert(bts(array, 35) == 0);
-    assert(array[0] == 2);
-    assert(array[1] == 0x108);
+    if (size_t.sizeof == 8)
+    {
+        assert(array[0] == 0x8_0000_0002);
+        assert(array[1] == 0x100);
+    }
+    else
+    {
+        assert(array[0] == 2);
+        assert(array[1] == 0x108);
+    }
 
     assert(btr(array, 35) == -1);
     assert(array[0] == 2);
