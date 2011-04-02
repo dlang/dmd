@@ -14,8 +14,6 @@
  */
 module core.bitop;
 
-extern(C) int printf(const char *, ...);
-
 nothrow:
 
 
@@ -31,15 +29,16 @@ nothrow:
  *
  * int main()
  * {
- *     assert(bsr(0x21) == 5);
+ *     assert(bsf(0x21) == 0);
  *     return 0;
  * }
+ * ---
  */
 pure int bsf(size_t v);
 
 unittest
 {
-    assert(bsr(0x21) == 5);
+    assert(bsf(0x21) == 0);
 }
 
 /**
@@ -55,15 +54,16 @@ unittest
  *
  * int main()
  * {
- *     assert(bsf(0x21) == 0);
+ *     assert(bsr(0x21) == 5);
  *     return 0;
  * }
+ * ---
  */
 pure int bsr(size_t v);
 
 unittest
 {
-    assert(bsf(0x21) == 0);
+    assert(bsr(0x21) == 5);
 }
 
 /**
@@ -117,20 +117,21 @@ int main()
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
-    assert(btc(array, 35) == 0);
+    assert(bts(array, 35) == 0);
     assert(array[0] == 2);
     assert(array[1] == 0x108);
 
-    assert(btc(array, 35) == -1);
+    assert(btr(array, 35) == -1);
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
-    assert(btc(array, 1) == -1);
-    assert(array[0] == 0);
+    assert(bt(array, 1) == -1);
+    assert(array[0] == 2);
     assert(array[1] == 0x100);
 
     return 0;
 }
+ * ---
  */
 int bts(size_t* p, size_t bitnum);
 
@@ -149,16 +150,16 @@ unittest
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
-    assert(btc(array, 35) == 0);
+    assert(bts(array, 35) == 0);
     assert(array[0] == 2);
     assert(array[1] == 0x108);
 
-    assert(btc(array, 35) == -1);
+    assert(btr(array, 35) == -1);
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
-    assert(btc(array, 1) == -1);
-    assert(array[0] == 0);
+    assert(bt(array, 1) == -1);
+    assert(array[0] == 2);
     assert(array[1] == 0x100);
 }
 
