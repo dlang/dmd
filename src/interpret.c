@@ -1870,19 +1870,6 @@ void spliceElements(Expressions *oldelems, Expressions *newelems, size_t insertp
     }
 }
 
-/***************************************
- * Returns oldstr[0..insertpoint] ~ newstr ~ oldstr[insertpoint+newlen..$]
- */
-void spliceStringExp(StringExp *oldstr, StringExp *newstr, size_t insertpoint)
-{
-    assert(oldstr->sz==newstr->sz);
-    unsigned char *s = (unsigned char *)oldstr->string;
-    size_t oldlen = oldstr->len;
-    size_t newlen = newstr->len;
-    size_t sz = oldstr->sz;
-    memcpy(s + insertpoint * sz, newstr->string, newlen * sz);
-}
-
 /******************************
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
  */
@@ -2830,7 +2817,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             }
             else if (newval->op == TOKstring && existingSE)
             {
-                spliceStringExp(existingSE, (StringExp *)newval, startIndexForSliceAssign);
+                StringExp * newstr = (StringExp *)newval;
+                unsigned char *s = (unsigned char *)existingSE->string;
+                size_t sz = existingSE->sz;
+                assert(sz == ((StringExp *)newval)->sz);
+                memcpy(s + startIndexForSliceAssign * sz, newstr->string, sz * newstr->len);
                 return newval;
             }
             else if (newval->op == TOKstring && existingAE)
