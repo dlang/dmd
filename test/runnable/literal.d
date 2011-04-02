@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 
 import std.stdio;
 import std.c.stdlib;
