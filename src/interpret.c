@@ -2834,7 +2834,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 return newval;
             }
             else if (newval->op == TOKstring && existingAE)
-            {   // Strange case where it was originally a char array literal
+            {   // Strange case: originally a char array literal, slice set from string
                 size_t newlen =  ((StringExp *)newval)->len;
                 size_t sz = ((StringExp *)newval)->sz;
                 unsigned char *s = (unsigned char *)((StringExp *)newval)->string;
@@ -2852,6 +2852,25 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                             break;
                     }
                     existingAE->elements->data[j+startIndexForSliceAssign] = new IntegerExp(newval->loc, val, elemType);
+                }
+                return newval;
+            }
+            else if (newval->op == TOKarrayliteral && existingSE)
+            {   // Strange case: originally a string, slice set from char array literal
+                unsigned char *s = (unsigned char *)existingSE->string;
+                ArrayLiteralExp *newae = (ArrayLiteralExp *)newval;
+                for (size_t j = 0; j < newae->elements->dim; j++)
+                {
+                    unsigned value = ((Expression *)(newae->elements->data[j]))->toInteger();
+                    switch (existingSE->sz)
+                    {
+                        case 1: s[j+startIndexForSliceAssign] = value; break;
+                        case 2: ((unsigned short *)s)[j+startIndexForSliceAssign] = value; break;
+                        case 4: ((unsigned *)s)[j+startIndexForSliceAssign] = value; break;
+                        default:
+                            assert(0);
+                            break;
+                    }
                 }
                 return newval;
             }
