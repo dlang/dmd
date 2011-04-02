@@ -2,6 +2,7 @@ $(VERSION 054, mmm dd, 2011, =================================================,
 
     $(WHATSNEW
 $(LI Added some gc benchmark apps)
+$(LI Move std.intrinsic to core.intrinsic)
     )
     $(RUNTIMEBUGSFIXED
 $(LI $(BUGZILLA 5612): core.cpuid not implemented on 64)

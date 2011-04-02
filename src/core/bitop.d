@@ -14,6 +14,7 @@
  */
 module core.bitop;
 
+extern(C) int printf(const char *, ...);
 
 nothrow:
 
@@ -24,9 +25,22 @@ nothrow:
  * Returns:
  *      The bit number of the first bit set.
  *      The return value is undefined if v is zero.
+ * Example:
+ * ---
+ * import core.bitop;
+ *
+ * int main()
+ * {
+ *     assert(bsr(0x21) == 5);
+ *     return 0;
+ * }
  */
 pure int bsf(size_t v);
 
+unittest
+{
+    assert(bsr(0x21) == 5);
+}
 
 /**
  * Scans the bits in v from the most significant bit
@@ -37,28 +51,20 @@ pure int bsf(size_t v);
  *      The return value is undefined if v is zero.
  * Example:
  * ---
- * import std.stdio;
  * import core.bitop;
  *
  * int main()
  * {
- *     uint v;
- *     int x;
- *
- *     v = 0x21;
- *     x = bsf(v);
- *     writefln("bsf(x%x) = %d", v, x);
- *     x = bsr(v);
- *     writefln("bsr(x%x) = %d", v, x);
+ *     assert(bsf(0x21) == 0);
  *     return 0;
  * }
- * ---
- * Output:
- *  bsf(x21) = 0<br>
- *  bsr(x21) = 5
  */
 pure int bsr(size_t v);
 
+unittest
+{
+    assert(bsf(0x21) == 0);
+}
 
 /**
  * Tests the bit.
@@ -103,40 +109,58 @@ int main()
     array[0] = 2;
     array[1] = 0x100;
 
-    writefln("btc(array, 35) = %d", <b>btc</b>(array, 35));
-    writefln("array = [0]:x%x, [1]:x%x", array[0], array[1]);
+    assert(btc(array, 35) == 0);
+    assert(array[0] == 2);
+    assert(array[1] == 0x108);
 
-    writefln("btc(array, 35) = %d", <b>btc</b>(array, 35));
-    writefln("array = [0]:x%x, [1]:x%x", array[0], array[1]);
+    assert(btc(array, 35) == -1);
+    assert(array[0] == 2);
+    assert(array[1] == 0x100);
 
-    writefln("bts(array, 35) = %d", <b>bts</b>(array, 35));
-    writefln("array = [0]:x%x, [1]:x%x", array[0], array[1]);
+    assert(btc(array, 35) == 0);
+    assert(array[0] == 2);
+    assert(array[1] == 0x108);
 
-    writefln("btr(array, 35) = %d", <b>btr</b>(array, 35));
-    writefln("array = [0]:x%x, [1]:x%x", array[0], array[1]);
+    assert(btc(array, 35) == -1);
+    assert(array[0] == 2);
+    assert(array[1] == 0x100);
 
-    writefln("bt(array, 1) = %d", <b>bt</b>(array, 1));
-    writefln("array = [0]:x%x, [1]:x%x", array[0], array[1]);
+    assert(btc(array, 1) == -1);
+    assert(array[0] == 0);
+    assert(array[1] == 0x100);
 
     return 0;
 }
- * ---
- * Output:
-<pre>
-btc(array, 35) = 0
-array = [0]:x2, [1]:x108
-btc(array, 35) = -1
-array = [0]:x2, [1]:x100
-bts(array, 35) = 0
-array = [0]:x2, [1]:x108
-btr(array, 35) = -1
-array = [0]:x2, [1]:x100
-bt(array, 1) = -1
-array = [0]:x2, [1]:x100
-</pre>
  */
 int bts(size_t* p, size_t bitnum);
 
+unittest
+{
+    size_t array[2];
+
+    array[0] = 2;
+    array[1] = 0x100;
+
+    assert(btc(array, 35) == 0);
+    assert(array[0] == 2);
+    assert(array[1] == 0x108);
+
+    assert(btc(array, 35) == -1);
+    assert(array[0] == 2);
+    assert(array[1] == 0x100);
+
+    assert(btc(array, 35) == 0);
+    assert(array[0] == 2);
+    assert(array[1] == 0x108);
+
+    assert(btc(array, 35) == -1);
+    assert(array[0] == 2);
+    assert(array[1] == 0x100);
+
+    assert(btc(array, 1) == -1);
+    assert(array[0] == 0);
+    assert(array[1] == 0x100);
+}
 
 /**
  * Swaps bytes in a 4 byte uint end-to-end, i.e. byte 0 becomes
