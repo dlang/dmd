@@ -567,7 +567,7 @@ int intrinsic_op(char *name)
             assert(0);
         }
     }
-    assert(sizeof(core_namearray64) / sizeof(char *) == sizeof(std_ioptab));
+    assert(sizeof(core_namearray64) / sizeof(char *) == sizeof(core_ioptab));
     for (int i = 0; i < sizeof(core_namearray64) / sizeof(char *) - 1; i++)
     {
         if (strcmp(core_namearray64[i], core_namearray64[i + 1]) >= 0)
