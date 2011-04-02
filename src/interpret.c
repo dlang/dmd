@@ -1862,19 +1862,12 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, void 
 /***************************************
  * Returns oldelems[0..insertpoint] ~ newelems ~ oldelems[insertpoint+newelems.length..$]
  */
-Expressions *spliceElements(Expressions *oldelems,
-        Expressions *newelems, size_t insertpoint)
+void spliceElements(Expressions *oldelems, Expressions *newelems, size_t insertpoint)
 {
-    Expressions *expsx = new Expressions();
-    expsx->setDim(oldelems->dim);
-    for (size_t j = 0; j < expsx->dim; j++)
+    for (size_t j = 0; j < newelems->dim; j++)
     {
-        if (j >= insertpoint && j < insertpoint + newelems->dim)
-            expsx->data[j] = newelems->data[j - insertpoint];
-        else
-            expsx->data[j] = oldelems->data[j];
+        oldelems->data[j+insertpoint] = newelems->data[j];
     }
-    return expsx;
 }
 
 /***************************************
@@ -2804,49 +2797,61 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             if (isSliceAssignment && srclen != (upperbound - lowerbound))
             {
                 error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
-                return e;
+                return EXP_CANT_INTERPRET;
             }
-            if (newval->op == TOKarrayliteral)
+            int startIndexForSliceAssign = lowerbound;
+            // Static array assignment from literal
+            ArrayLiteralExp *existingAE = NULL;
+            StringExp *existingSE = NULL;
+            if (v->getValue()->op==TOKarrayliteral)
+                existingAE = (ArrayLiteralExp *)v->getValue();
+            else if (v->getValue()->op==TOKstring)
+                existingSE = (StringExp *)v->getValue();
+            else if (v->getValue()->op == TOKslice)
             {
-                // Static array assignment from literal
-                if (upperbound - lowerbound != dim)
+                SliceExp *sexpold = (SliceExp *)v->getValue();
+                dinteger_t hi = upperbound + sexpold->lwr->toInteger();
+                startIndexForSliceAssign = lowerbound + sexpold->lwr->toInteger();
+                if (hi > sexpold->upr->toInteger())
                 {
-                    ArrayLiteralExp *ae = (ArrayLiteralExp *)newval;
-                    ArrayLiteralExp *existing = (ArrayLiteralExp *)v->getValue();
-                    // value[] = value[0..lower] ~ ae ~ value[upper..$]
-                    existing->elements = spliceElements(existing->elements, ae->elements, lowerbound);
-                    newval = existing;
+                    error("slice [%d..%d] exceeds array bounds [0..%jd]",
+                        lowerbound, upperbound, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
+                    return EXP_CANT_INTERPRET;
                 }
-                v->setValue(newval);
+                if (sexpold->e1->op == TOKarrayliteral)
+                    existingAE = (ArrayLiteralExp *)sexpold->e1;
+                if (sexpold->e1->op == TOKstring)
+                    existingSE = (StringExp *)sexpold->e1;
+            }
+            if (newval->op == TOKarrayliteral && existingAE)
+            {
+                spliceElements(existingAE->elements, ((ArrayLiteralExp *)newval)->elements, startIndexForSliceAssign);
                 return newval;
             }
-            else if (newval->op == TOKstring)
+            else if (newval->op == TOKstring && existingSE)
             {
-                StringExp *se = (StringExp *)newval;
-                if (upperbound-lowerbound == dim)
-                    v->setValue(newval);
-                else
+                spliceStringExp(existingSE, (StringExp *)newval, startIndexForSliceAssign);
+                return newval;
+            }
+            else if (newval->op == TOKstring && existingAE)
+            {   // Strange case where it was originally a char array literal
+                size_t newlen =  ((StringExp *)newval)->len;
+                size_t sz = ((StringExp *)newval)->sz;
+                unsigned char *s = (unsigned char *)((StringExp *)newval)->string;
+                Type *elemType = existingAE->type->nextOf();
+                for (size_t j = 0; j < newlen; j++)
                 {
-                    if (!v->getValue())
-                        v->setValue(createBlockDuplicatedStringLiteral(se->type,
-                            se->type->defaultInit()->toInteger(), dim, se->sz));
-                    if (v->getValue()->op==TOKstring)
-                        spliceStringExp((StringExp *)v->getValue(), se, lowerbound);
-                    else if (v->getValue()->op==TOKslice)
+                    dinteger_t val;
+                    switch (sz)
                     {
-                        SliceExp *sexpold = (SliceExp *)v->getValue();
-                        dinteger_t hi = upperbound + sexpold->lwr->toInteger();
-                        dinteger_t lo = lowerbound + sexpold->lwr->toInteger();
-                        if (hi > sexpold->upr->toInteger())
-                        {
-                            error("slice [%d..%d] exceeds array bounds [0..%jd]",
-                                lowerbound, upperbound, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
-                            return EXP_CANT_INTERPRET;
-                        }
-                        spliceStringExp((StringExp *)sexpold->e1, se, lo);
+                        case 1: val = s[j]; break;
+                        case 2: val = ((unsigned short *)s)[j]; break;
+                        case 4: val = ((unsigned *)s)[j]; break;
+                        default:
+                            assert(0);
+                            break;
                     }
-                    else
-                        error("String slice assignment is not yet supported in CTFE");
+                    existingAE->elements->data[j+startIndexForSliceAssign] = new IntegerExp(newval->loc, val, elemType);
                 }
                 return newval;
             }
@@ -2868,7 +2873,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     else // this can only happen with static arrays
                         newarrayval = createBlockDuplicatedArrayLiteral(v->type, v->type->defaultInit(), dim);
                     // value[] = value[0..lower] ~ e ~ value[upper..$]
-                    newarrayval->elements = spliceElements(newarrayval->elements,
+                    spliceElements(newarrayval->elements,
                             ((ArrayLiteralExp *)e)->elements, lowerbound);
                     newval = newarrayval;
                 }
