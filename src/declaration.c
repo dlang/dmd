@@ -545,7 +545,7 @@ void AliasDeclaration::semantic(Scope *sc)
             }
         }
         if (overnext)
-            ScopeDsymbol::multiplyDefined(0, s, overnext);
+            ScopeDsymbol::multiplyDefined(0, this, overnext);
         if (s == this)
         {
             assert(global.errors);
