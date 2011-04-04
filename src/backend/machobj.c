@@ -1456,6 +1456,8 @@ int mach_getsegment(const char *sectname, const char *segname,
     sec->flags = flags;
 
     pseg->SDshtidx = section_cnt++;
+    pseg->SDaranges_offset = 0;
+    pseg->SDlinnum_count = 0;
 
     if (flags2)
     {
