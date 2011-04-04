@@ -2863,10 +2863,28 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 return newval;
             }
             else if (t->nextOf()->ty == newval->type->ty && existingAE)
-            {   // Block slice assign
+            {   // Array block slice assign
                 for (size_t j = 0; j < upperbound-lowerbound; j++)
                 {
                     existingAE->elements->data[j+firstIndex] = newval;
+                }
+                return newval;
+            }
+            else if (t->nextOf()->ty == newval->type->ty && existingSE)
+            {   // String literal block slice assign
+                unsigned value = newval->toInteger();
+                unsigned char *s = (unsigned char *)existingSE->string;
+                for (size_t j = 0; j < upperbound-lowerbound; j++)
+                {
+                    switch (existingSE->sz)
+                    {
+                        case 1: s[j+firstIndex] = value; break;
+                        case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+                        case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+                        default:
+                            assert(0);
+                            break;
+                    }
                 }
                 return newval;
             }
