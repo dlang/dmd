@@ -1859,17 +1859,6 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, void 
     return expsx;
 }
 
-/***************************************
- * Returns oldelems[0..insertpoint] ~ newelems ~ oldelems[insertpoint+newelems.length..$]
- */
-void spliceElements(Expressions *oldelems, Expressions *newelems, size_t insertpoint)
-{
-    for (size_t j = 0; j < newelems->dim; j++)
-    {
-        oldelems->data[j+insertpoint] = newelems->data[j];
-    }
-}
-
 /******************************
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
  */
@@ -1883,29 +1872,6 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
     ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
     ae->type = type;
     return ae;
-}
-
-/******************************
- * Create a string literal consisting of 'value' duplicated 'dim' times.
- */
-StringExp *createBlockDuplicatedStringLiteral(Type *type,
-        unsigned value, size_t dim, int sz)
-{
-    unsigned char *s;
-    s = (unsigned char *)mem.calloc(dim + 1, sz);
-    for (int elemi=0; elemi<dim; ++elemi)
-    {
-        switch (sz)
-        {
-            case 1:     s[elemi] = value; break;
-            case 2:     ((unsigned short *)s)[elemi] = value; break;
-            case 4:     ((unsigned *)s)[elemi] = value; break;
-            default:    assert(0);
-        }
-    }
-    StringExp *se = new StringExp(0, s, dim);
-    se->type = type;
-    return se;
 }
 
 /********************************
