@@ -2786,7 +2786,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
                 return EXP_CANT_INTERPRET;
             }
-            int startIndexForSliceAssign = lowerbound;
+            int firstIndex = lowerbound;
             // Static array assignment from literal
             ArrayLiteralExp *existingAE = NULL;
             StringExp *existingSE = NULL;
@@ -2798,11 +2798,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             {
                 SliceExp *sexpold = (SliceExp *)v->getValue();
                 dinteger_t hi = upperbound + sexpold->lwr->toInteger();
-                startIndexForSliceAssign = lowerbound + sexpold->lwr->toInteger();
+                firstIndex = lowerbound + sexpold->lwr->toInteger();
                 if (hi > sexpold->upr->toInteger())
                 {
                     error("slice [%d..%d] exceeds array bounds [0..%jd]",
-                        lowerbound, upperbound, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
+                        lowerbound, upperbound,
+                        sexpold->upr->toInteger() - sexpold->lwr->toInteger());
                     return EXP_CANT_INTERPRET;
                 }
                 if (sexpold->e1->op == TOKarrayliteral)
@@ -2812,7 +2813,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             }
             if (newval->op == TOKarrayliteral && existingAE)
             {
-                spliceElements(existingAE->elements, ((ArrayLiteralExp *)newval)->elements, startIndexForSliceAssign);
+                Expressions *oldelems = existingAE->elements;
+                Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+                for (size_t j = 0; j < newelems->dim; j++)
+                {
+                    oldelems->data[j + firstIndex] = newelems->data[j];
+                }
                 return newval;
             }
             else if (newval->op == TOKstring && existingSE)
@@ -2821,11 +2827,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 unsigned char *s = (unsigned char *)existingSE->string;
                 size_t sz = existingSE->sz;
                 assert(sz == ((StringExp *)newval)->sz);
-                memcpy(s + startIndexForSliceAssign * sz, newstr->string, sz * newstr->len);
+                memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
                 return newval;
             }
             else if (newval->op == TOKstring && existingAE)
-            {   // Strange case: originally a char array literal, slice set from string
+            {   // a char array literal, with a slice set from a string
                 size_t newlen =  ((StringExp *)newval)->len;
                 size_t sz = ((StringExp *)newval)->sz;
                 unsigned char *s = (unsigned char *)((StringExp *)newval)->string;
@@ -2842,12 +2848,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                             assert(0);
                             break;
                     }
-                    existingAE->elements->data[j+startIndexForSliceAssign] = new IntegerExp(newval->loc, val, elemType);
+                    existingAE->elements->data[j+firstIndex]
+                        = new IntegerExp(newval->loc, val, elemType);
                 }
                 return newval;
             }
             else if (newval->op == TOKarrayliteral && existingSE)
-            {   // Strange case: originally a string, slice set from char array literal
+            {   // Originally a string, slice set from char array literal
                 unsigned char *s = (unsigned char *)existingSE->string;
                 ArrayLiteralExp *newae = (ArrayLiteralExp *)newval;
                 for (size_t j = 0; j < newae->elements->dim; j++)
@@ -2855,9 +2862,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     unsigned value = ((Expression *)(newae->elements->data[j]))->toInteger();
                     switch (existingSE->sz)
                     {
-                        case 1: s[j+startIndexForSliceAssign] = value; break;
-                        case 2: ((unsigned short *)s)[j+startIndexForSliceAssign] = value; break;
-                        case 4: ((unsigned *)s)[j+startIndexForSliceAssign] = value; break;
+                        case 1: s[j+firstIndex] = value; break;
+                        case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+                        case 4: ((unsigned *)s)[j+firstIndex] = value; break;
                         default:
                             assert(0);
                             break;
@@ -2865,30 +2872,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 }
                 return newval;
             }
-            else if (t->nextOf()->ty == newval->type->ty)
-            {
-                // Static array block assignment
-                e = createBlockDuplicatedArrayLiteral(v->type, newval, upperbound-lowerbound);
-
-                if (upperbound - lowerbound == dim)
-                    newval = e;
-                else
+            else if (t->nextOf()->ty == newval->type->ty && existingAE)
+            {   // Block slice assign
+                for (size_t j = 0; j < upperbound-lowerbound; j++)
                 {
-                    ArrayLiteralExp * newarrayval;
-                    // Only modifying part of the array. Must create a new array literal.
-                    // If the existing array is uninitialized (this can only happen
-                    // with static arrays), create it.
-                    if (v->getValue() && v->getValue()->op == TOKarrayliteral)
-                        newarrayval = (ArrayLiteralExp *)v->getValue();
-                    else // this can only happen with static arrays
-                        newarrayval = createBlockDuplicatedArrayLiteral(v->type, v->type->defaultInit(), dim);
-                    // value[] = value[0..lower] ~ e ~ value[upper..$]
-                    spliceElements(newarrayval->elements,
-                            ((ArrayLiteralExp *)e)->elements, lowerbound);
-                    newval = newarrayval;
+                    existingAE->elements->data[j+firstIndex] = newval;
                 }
-                v->setValue(newval);
-                return e;
+                return newval;
             }
             else
             {
