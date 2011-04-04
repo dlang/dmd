@@ -2191,41 +2191,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     assert(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
         || e1->op == TOKindex || e1->op == TOKslice);
 
-    //bool wantRef = false;
+    bool wantRef = false;
     Expression * newval = NULL;
-    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
-    && this->e1->type->toBasetype() == this->e2->type->toBasetype())
+    if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype()
+        && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
+        )
     {
-        if (this->e2->op == TOKvar)
-            newval = this->e2;
-        else if (this->e2->op==TOKslice)
-        {
-            SliceExp * sexp = (SliceExp *)this->e2;
-
-            /* Set the $ variable
-             */
-            Expression *ee = ArrayLength(Type::tsize_t, sexp->e1->interpret(istate));
-            if (ee != EXP_CANT_INTERPRET && sexp->lengthVar)
-            {
-                sexp->lengthVar->createStackValue(ee);
-            }
-            Expression *upper = NULL;
-            Expression *lower = NULL;
-            if (sexp->upr)
-                upper = sexp->upr->interpret(istate);
-            else upper = ee;
-            if (sexp->lwr)
-                lower = sexp->lwr->interpret(istate);
-            else lower = new IntegerExp(loc, 0, Type::tsize_t);
-            if (sexp->lengthVar)
-                sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
-            if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            newval = new SliceExp(sexp->loc, sexp->e1, lower, upper);
-            newval->type = sexp->type;
-        }
+        wantRef = true;
     }
-    if (!newval)
+    else
         newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
@@ -2311,7 +2285,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 
         }
     }
-    else if (e1->op != TOKslice)
+    else if (!wantRef && e1->op != TOKslice)
     {   /* Look for special case of struct being initialized with 0.
         */
         if (type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
@@ -2352,16 +2326,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // only modifying part of the variable. So we need to make sure
     // that the parent variable exists.
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-        ultimateVar->createValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));
+        ultimateVar->createValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));    
 
-    // ----------------------------------------
-    //      Deal with dotvar expressions
-    // ----------------------------------------
+    // ----------------------------------------------------------
+    //      Deal with dotvar expressions - non-reference types
+    // ----------------------------------------------------------
     // Because structs are not reference types, dotvar expressions can be
     // collapsed into a single assignment.
     bool startedWithCall = false;
     if (e1->op == TOKcall) startedWithCall = true;
-    while (e1->op == TOKdotvar || e1->op == TOKcall)
+    while (!wantRef && (e1->op == TOKdotvar || e1->op == TOKcall))
     {
         ExpressionReverseIterator rvs(e1, istate->localThis);
         Expression *lastNonDotVar = e1;
@@ -2419,28 +2393,54 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 assert(newval !=EXP_CANT_INTERPRET);
         }
     }
-
-    /* Assignment to variable of the form:
-     *  v = newval
-     */
-    if (e1->op == TOKvar)
+    // ---------------------------------------
+    //      Deal with reference assignment
+    // ---------------------------------------
+    // If the destination is an array literal or string literal, it is non-null here.
+    ArrayLiteralExp *dest_ae = NULL;
+//    AssocArrayLiteralExp *dest_aae = NULL;
+    StringExp *dest_se = NULL;
+    if (wantRef)
     {
-        VarExp *ve = (VarExp *)e1;
-        VarDeclaration *v = ve->var->isVarDeclaration();
-        if (!destinationIsReference)
-            addVarToInterstate(istate, v);
-        if (e1->type->toBasetype()->ty == Tstruct)
+        if (this->e2->op == TOKvar)
+            newval = this->e2;
+        else if (this->e2->op==TOKslice)
         {
-            // This should be an in-place modification
-            if (newval->op == TOKstructliteral)
+            SliceExp * sexp = (SliceExp *)this->e2;
+
+            /* Set the $ variable
+             */
+            Expression *ee = ArrayLength(Type::tsize_t, sexp->e1->interpret(istate));
+            if (ee != EXP_CANT_INTERPRET && sexp->lengthVar)
             {
-                v->setValueNull();
-                v->createValue(copyLiteral(newval));
+                sexp->lengthVar->createStackValue(ee);
             }
-            else v->setValue(newval);
+            Expression *upper = NULL;
+            Expression *lower = NULL;
+            if (sexp->upr)
+                upper = sexp->upr->interpret(istate);
+            else upper = ee;
+            if (sexp->lwr)
+                lower = sexp->lwr->interpret(istate);
+            else
+                lower = new IntegerExp(loc, 0, Type::tsize_t);
+            if (sexp->lengthVar)
+                sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
+            if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+            newval = new SliceExp(sexp->loc, sexp->e1, lower, upper);
+            newval->type = sexp->type;
         }
-        else if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray))
+        else
+            newval = this->e2->interpret(istate);
+        if (newval == EXP_CANT_INTERPRET)
+            return newval;
+        if (e1->op == TOKvar)
         {
+            VarExp *ve = (VarExp *)e1;
+            VarDeclaration *v = ve->var->isVarDeclaration();
+            if (!destinationIsReference)
+                addVarToInterstate(istate, v);
             // It's a reference type. The old value gets lost.
             if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
                 || newval->op == TOKstring)
@@ -2525,6 +2525,29 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 v->setValueNull();
                 v->createStackValue(newval);
             }
+            return newval;
+        }
+        e = newval;
+    }
+
+    /* Assignment to variable of the form:
+     *  v = newval
+     */
+    if (e1->op == TOKvar)
+    {
+        VarExp *ve = (VarExp *)e1;
+        VarDeclaration *v = ve->var->isVarDeclaration();
+        if (!destinationIsReference)
+            addVarToInterstate(istate, v);
+        if (e1->type->toBasetype()->ty == Tstruct)
+        {
+            // This should be an in-place modification
+            if (newval->op == TOKstructliteral)
+            {
+                v->setValueNull();
+                v->createValue(copyLiteral(newval));
+            }
+            else v->setValue(newval);
         }
         else
         {
@@ -2724,86 +2747,71 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     }
     else if (e1->op == TOKslice)
     {
-        Expression *aggregate = resolveReferences(((SliceExp *)e1)->e1, istate->localThis);
         // ------------------------------
         //   aggregate[] = newval
         //   aggregate[low..upp] = newval
         // ------------------------------
-        /* Slice assignment, initialization of static arrays
-        *   a[] = e
-        */
+        SliceExp * sexp = (SliceExp *)e1;
+        // Set the $ variable
+        Expression *oldval = sexp->e1->interpret(istate);
+        Expression *arraylen = ArrayLength(Type::tsize_t, oldval);
+        if (arraylen == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+        if (sexp->lengthVar)
+        {
+            sexp->lengthVar->createStackValue(arraylen);
+        }
+        Expression *upper = NULL;
+        Expression *lower = NULL;
+        if (sexp->upr)
+            upper = sexp->upr->interpret(istate);
+        if (sexp->lwr)
+            lower = sexp->lwr->interpret(istate);
+        if (sexp->lengthVar)
+            sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
+        if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+
+        int dim = arraylen->toInteger();
+        int upperbound = upper ? upper->toInteger() : dim;
+        int lowerbound = lower ? lower->toInteger() : 0;
+
+        if (((int)lowerbound < 0) || (upperbound > dim))
+        {
+            error("Array bounds [0..%d] exceeded in slice [%d..%d]",
+                dim, lowerbound, upperbound);
+            return EXP_CANT_INTERPRET;
+        }
+
+        // Could either be slice assignment (v[] = e[]),
+        // or block assignment (v[] = val).
+        // For the former, we check that the lengths match.
+
+        // This next line isn't quite right: what if it is block assignment of a string?
+        bool isSliceAssignment = (newval->op == TOKarrayliteral)
+            || (newval->op == TOKstring);
+        size_t srclen = 0;
+        if (newval->op == TOKarrayliteral)
+            srclen = ((ArrayLiteralExp *)newval)->elements->dim;
+        else if (newval->op == TOKstring)
+            srclen = ((StringExp *)newval)->len;
+        if (isSliceAssignment && srclen != (upperbound - lowerbound))
+        {
+            error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
+            return EXP_CANT_INTERPRET;
+        }
+
+        Expression *aggregate = resolveReferences(((SliceExp *)e1)->e1, istate->localThis);
+        int firstIndex = lowerbound;
+
+        ArrayLiteralExp *existingAE = NULL;
+        StringExp *existingSE = NULL;
+
         if (aggregate->op==TOKvar)
         {
-            SliceExp * sexp = (SliceExp *)e1;
             VarExp *ve = (VarExp *)(aggregate);
             VarDeclaration *v = ve->var->isVarDeclaration();
-            /* Set the $ variable
-             */
-            Expression *ee = v->getValue() ? ArrayLength(Type::tsize_t, v->getValue())
-                                  : EXP_CANT_INTERPRET;
-            if (ee != EXP_CANT_INTERPRET && sexp->lengthVar)
-            {
-                sexp->lengthVar->createStackValue(ee);
-            }
-            Expression *upper = NULL;
-            Expression *lower = NULL;
-            if (sexp->upr)
-                upper = sexp->upr->interpret(istate);
-            if (sexp->lwr)
-                lower = sexp->lwr->interpret(istate);
-            if (sexp->lengthVar)
-                sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
-            if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            Type *t = v->type->toBasetype();
-            size_t dim;
-            if (t->ty == Tsarray)
-                dim = ((TypeSArray *)t)->dim->toInteger();
-            else if (t->ty == Tarray)
-            {
-                if (!v->getValue() || v->getValue()->op == TOKnull)
-                {
-                    error("cannot assign to null array %s", v->toChars());
-                    return EXP_CANT_INTERPRET;
-                }
-                if (v->getValue()->op == TOKarrayliteral)
-                    dim = ((ArrayLiteralExp *)v->getValue())->elements->dim;
-                else if (v->getValue()->op ==TOKstring)
-                    dim = ((StringExp *)v->getValue())->len;
-            }
-            else
-            {
-                error("%s cannot be evaluated at compile time", toChars());
-                return EXP_CANT_INTERPRET;
-            }
-            int upperbound = upper ? upper->toInteger() : dim;
-            int lowerbound = lower ? lower->toInteger() : 0;
-
-            if (((int)lowerbound < 0) || (upperbound > dim))
-            {
-                error("Array bounds [0..%d] exceeded in slice [%d..%d]",
-                    dim, lowerbound, upperbound);
-                return EXP_CANT_INTERPRET;
-            }
-            // Could either be slice assignment (v[] = e[]),
-            // or block assignment (v[] = val).
-            // For the former, we check that the lengths match.
-            bool isSliceAssignment = (newval->op == TOKarrayliteral)
-                || (newval->op == TOKstring);
-            size_t srclen = 0;
-            if (newval->op == TOKarrayliteral)
-                srclen = ((ArrayLiteralExp *)newval)->elements->dim;
-            else if (newval->op == TOKstring)
-                srclen = ((StringExp *)newval)->len;
-            if (isSliceAssignment && srclen != (upperbound - lowerbound))
-            {
-                error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
-                return EXP_CANT_INTERPRET;
-            }
-            int firstIndex = lowerbound;
             // Static array assignment from literal
-            ArrayLiteralExp *existingAE = NULL;
-            StringExp *existingSE = NULL;
             if (v->getValue()->op==TOKarrayliteral)
                 existingAE = (ArrayLiteralExp *)v->getValue();
             else if (v->getValue()->op==TOKstring)
@@ -2825,115 +2833,107 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 if (sexpold->e1->op == TOKstring)
                     existingSE = (StringExp *)sexpold->e1;
             }
-            if (newval->op == TOKarrayliteral && existingAE)
+        }
+        if (newval->op == TOKarrayliteral && existingAE)
+        {
+            Expressions *oldelems = existingAE->elements;
+            Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+            for (size_t j = 0; j < newelems->dim; j++)
             {
-                Expressions *oldelems = existingAE->elements;
-                Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
-                for (size_t j = 0; j < newelems->dim; j++)
-                {
-                    oldelems->data[j + firstIndex] = newelems->data[j];
-                }
-                return newval;
+                oldelems->data[j + firstIndex] = newelems->data[j];
             }
-            else if (newval->op == TOKstring && existingSE)
+            return newval;
+        }
+        else if (newval->op == TOKstring && existingSE)
+        {
+            StringExp * newstr = (StringExp *)newval;
+            unsigned char *s = (unsigned char *)existingSE->string;
+            size_t sz = existingSE->sz;
+            assert(sz == ((StringExp *)newval)->sz);
+            memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
+            return newval;
+        }
+        else if (newval->op == TOKstring && existingAE)
+        {   /* Mixed slice: it was initialized as an array literal of chars.
+             * Now a slice of it is being set with a string.
+             */
+            size_t newlen =  ((StringExp *)newval)->len;
+            size_t sz = ((StringExp *)newval)->sz;
+            unsigned char *s = (unsigned char *)((StringExp *)newval)->string;
+            Type *elemType = existingAE->type->nextOf();
+            for (size_t j = 0; j < newlen; j++)
             {
-                StringExp * newstr = (StringExp *)newval;
-                unsigned char *s = (unsigned char *)existingSE->string;
-                size_t sz = existingSE->sz;
-                assert(sz == ((StringExp *)newval)->sz);
-                memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
-                return newval;
-            }
-            else if (newval->op == TOKstring && existingAE)
-            {   // a char array literal, with a slice set from a string
-                size_t newlen =  ((StringExp *)newval)->len;
-                size_t sz = ((StringExp *)newval)->sz;
-                unsigned char *s = (unsigned char *)((StringExp *)newval)->string;
-                Type *elemType = existingAE->type->nextOf();
-                for (size_t j = 0; j < newlen; j++)
+                dinteger_t val;
+                switch (sz)
                 {
-                    dinteger_t val;
-                    switch (sz)
-                    {
-                        case 1: val = s[j]; break;
-                        case 2: val = ((unsigned short *)s)[j]; break;
-                        case 4: val = ((unsigned *)s)[j]; break;
-                        default:
-                            assert(0);
-                            break;
-                    }
-                    existingAE->elements->data[j+firstIndex]
-                        = new IntegerExp(newval->loc, val, elemType);
+                    case 1: val = s[j]; break;
+                    case 2: val = ((unsigned short *)s)[j]; break;
+                    case 4: val = ((unsigned *)s)[j]; break;
+                    default:
+                        assert(0);
+                        break;
                 }
-                return newval;
+                existingAE->elements->data[j+firstIndex]
+                    = new IntegerExp(newval->loc, val, elemType);
             }
-            else if (newval->op == TOKarrayliteral && existingSE)
-            {   // Originally a string, slice set from char array literal
-                unsigned char *s = (unsigned char *)existingSE->string;
-                ArrayLiteralExp *newae = (ArrayLiteralExp *)newval;
-                for (size_t j = 0; j < newae->elements->dim; j++)
+            return newval;
+        }
+        else if (newval->op == TOKarrayliteral && existingSE)
+        {   /* Mixed slice: it was initialized as a string literal.
+             * Now a slice of it is being set with an array literal.
+             */
+            unsigned char *s = (unsigned char *)existingSE->string;
+            ArrayLiteralExp *newae = (ArrayLiteralExp *)newval;
+            for (size_t j = 0; j < newae->elements->dim; j++)
+            {
+                unsigned value = ((Expression *)(newae->elements->data[j]))->toInteger();
+                switch (existingSE->sz)
                 {
-                    unsigned value = ((Expression *)(newae->elements->data[j]))->toInteger();
-                    switch (existingSE->sz)
-                    {
-                        case 1: s[j+firstIndex] = value; break;
-                        case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
-                        case 4: ((unsigned *)s)[j+firstIndex] = value; break;
-                        default:
-                            assert(0);
-                            break;
-                    }
+                    case 1: s[j+firstIndex] = value; break;
+                    case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+                    case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+                    default:
+                        assert(0);
+                        break;
                 }
-                return newval;
             }
-            else if (t->nextOf()->ty == newval->type->ty && existingAE)
-            {   // Array block slice assign
+            return newval;
+        }
+        else if (existingSE)
+        {   // String literal block slice assign
+            unsigned value = newval->toInteger();
+            unsigned char *s = (unsigned char *)existingSE->string;
+            for (size_t j = 0; j < upperbound-lowerbound; j++)
+            {
+                switch (existingSE->sz)
+                {
+                    case 1: s[j+firstIndex] = value; break;
+                    case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+                    case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+                    default:
+                        assert(0);
+                        break;
+                }
+            }
+            return newval;
+        }
+        else if (existingAE)
+        {
+                /* Block assignment, initialization of static arrays
+                 *   x[] = e
+                 *  x may be a multidimensional static array. (Note that this
+                 *  only happens with array literals, never with strings).
+                 */
+                Expressions * w = existingAE->elements;
                 for (size_t j = 0; j < upperbound-lowerbound; j++)
                 {
-                    existingAE->elements->data[j+firstIndex] = newval;
+                    if (((Expression *)w->data[j+firstIndex])->op == TOKarrayliteral)
+                        // Multidimensional array block assign
+                        recursiveBlockAssign((ArrayLiteralExp *)w->data[j+firstIndex], newval);
+                    else // Single dimension block assign
+                        existingAE->elements->data[j+firstIndex] = newval;
                 }
                 return newval;
-            }
-            else if (t->nextOf()->ty == newval->type->ty && existingSE)
-            {   // String literal block slice assign
-                unsigned value = newval->toInteger();
-                unsigned char *s = (unsigned char *)existingSE->string;
-                for (size_t j = 0; j < upperbound-lowerbound; j++)
-                {
-                    switch (existingSE->sz)
-                    {
-                        case 1: s[j+firstIndex] = value; break;
-                        case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
-                        case 4: ((unsigned *)s)[j+firstIndex] = value; break;
-                        default:
-                            assert(0);
-                            break;
-                    }
-                }
-                return newval;
-            }
-            // multidimensional arrays are ALWAYS array literals (never strings)
-            else if (t->ty == Tsarray && existingAE)
-            {
-                Type *t2 = t;
-                while (t2->ty == Tsarray)
-                    t2 = t2->nextOf();
-                if (t2->ty == newval->type->ty)
-                {   // Multidimensional array block assign
-                    Expressions * w = existingAE->elements;
-                    for (size_t j = 0; j < upperbound-lowerbound; j++)
-                    {
-                        recursiveBlockAssign((ArrayLiteralExp *)(w->data[j+firstIndex]), newval);
-                    }
-                    return newval;
-                }
-                error("CTFE internal error: Static array slice operation %s", toChars());
-            }
-            else
-            {
-                error("Slice operation %s cannot be evaluated at compile time", toChars());
-                return e;
-            }
         }
         else
             error("Slice operation %s cannot be evaluated at compile time", toChars());
