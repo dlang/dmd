@@ -52,7 +52,6 @@ Expression *interpret_length(InterState *istate, Expression *earg);
 Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd);
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
 
-ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type, Expression *elem, size_t dim);
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
@@ -1694,6 +1693,46 @@ Expression *StructLiteralExp::interpret(InterState *istate)
     return this;
 }
 
+/******************************
+ * Helper for NewExp
+ * Create an array literal consisting of 'elem' duplicated 'dim' times.
+ */
+ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
+        Expression *elem, size_t dim)
+{
+    Expressions *elements = new Expressions();
+    elements->setDim(dim);
+    for (size_t i = 0; i < dim; i++)
+         elements->data[i] = elem;
+    ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+    ae->type = type;
+    return ae;
+}
+
+/******************************
+ * Helper for NewExp
+ * Create a string literal consisting of 'value' duplicated 'dim' times.
+ */
+StringExp *createBlockDuplicatedStringLiteral(Type *type,
+        unsigned value, size_t dim, int sz)
+{
+    unsigned char *s;
+    s = (unsigned char *)mem.calloc(dim + 1, sz);
+    for (int elemi=0; elemi<dim; ++elemi)
+    {
+        switch (sz)
+        {
+            case 1:     s[elemi] = value; break;
+            case 2:     ((unsigned short *)s)[elemi] = value; break;
+            case 4:     ((unsigned *)s)[elemi] = value; break;
+            default:    assert(0);
+        }
+    }
+    StringExp *se = new StringExp(0, s, dim);
+    se->type = type;
+    return se;
+}
+
 Expression *NewExp::interpret(InterState *istate)
 {
 #if LOG
@@ -1857,21 +1896,6 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, void 
             expsx->data[j] = oldelems->data[j];
     }
     return expsx;
-}
-
-/******************************
- * Create an array literal consisting of 'elem' duplicated 'dim' times.
- */
-ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
-        Expression *elem, size_t dim)
-{
-    Expressions *elements = new Expressions();
-    elements->setDim(dim);
-    for (size_t i = 0; i < dim; i++)
-         elements->data[i] = elem;
-    ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
-    ae->type = type;
-    return ae;
 }
 
 /********************************
