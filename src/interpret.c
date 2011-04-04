@@ -2410,16 +2410,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 
             /* Set the $ variable
              */
-            Expression *ee = ArrayLength(Type::tsize_t, sexp->e1->interpret(istate));
-            if (ee != EXP_CANT_INTERPRET && sexp->lengthVar)
+            Expression *dollar = ArrayLength(Type::tsize_t, sexp->e1->interpret(istate));
+            if (dollar != EXP_CANT_INTERPRET && sexp->lengthVar)
             {
-                sexp->lengthVar->createStackValue(ee);
+                sexp->lengthVar->createStackValue(dollar);
             }
             Expression *upper = NULL;
             Expression *lower = NULL;
             if (sexp->upr)
                 upper = sexp->upr->interpret(istate);
-            else upper = ee;
+            else upper = dollar;
             if (sexp->lwr)
                 lower = sexp->lwr->interpret(istate);
             else
@@ -2478,11 +2478,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     assert(v2);
                     if (v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring)
                     {
-                        Expression *len = ArrayLength(Type::tsize_t, v2->getValue());
-                        if ((newup < newlo) || (newup > len->toInteger()))
+                        Expression *dollar = ArrayLength(Type::tsize_t, v2->getValue());
+                        if ((newup < newlo) || (newup > dollar->toInteger()))
                         {
                             error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
-                                newlo, newup, len->toInteger());
+                                newlo, newup, dollar->toInteger());
                             return EXP_CANT_INTERPRET;
                         }
                         sexp->e1 = v2->getValue();
@@ -2553,14 +2553,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         {
             if (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
             { // arr op= arr
-                    if (!v->getValue())
-                        v->createValue(newval->interpret(istate));
-                    else v->setValue(newval->interpret(istate));
-            } else {
-            if (!v->getValue()) // creating a new value
-                v->createStackValue(newval);
+                if (!v->getValue())
+                    v->createValue(newval->interpret(istate));
+                else v->setValue(newval->interpret(istate));
+            }
             else
-                v->setStackValue(newval);
+            {
+                if (!v->getValue()) // creating a new value
+                    v->createStackValue(newval);
+                else
+                    v->setStackValue(newval);
             }
         }
     }
@@ -2673,10 +2675,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         }
         else if (aggregate->op == TOKslice)
         {   IndexExp *ie = (IndexExp *)e1;
-            // Note that upr and lwr have already been evaluated
             SliceExp * sexp = (SliceExp *)aggregate;
             assert(sexp && sexp->upr && sexp->lwr);
-            Expression *dollar = new IntegerExp(loc, sexp->upr->toInteger() - sexp->lwr->toInteger(), Type::tsize_t);
+            Expression *dollar = new IntegerExp(loc,
+            sexp->upr->toInteger() - sexp->lwr->toInteger(), Type::tsize_t);
             if (dollar != EXP_CANT_INTERPRET && ie->lengthVar)
                 ie->lengthVar->createStackValue(dollar);
             // Determine the index, and check that it's OK.
@@ -2716,7 +2718,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 }
                 ae->elements->data[elemi] = newval;
                 return e;
-            } else if (se)
+            }
+            else if (se)
             {
                 int elemi = index->toInteger() + sexp->lwr->toInteger();
                 if (elemi >= se->len)
