@@ -2132,6 +2132,39 @@ Expression *copyLiteral(Expression *e)
         r->type = e->type;
         return r;
     }
+    /* syntaxCopy doesn't work for struct literals, because of a nasty special
+     * case: block assignment is permitted inside struct literals, eg,
+     * an int[4] array can be initialized with a single int.
+     */
+    else if (e->op == TOKstructliteral)
+    {
+        StructLiteralExp *se = (StructLiteralExp *)e;
+        Expressions *oldelems = se->elements;
+        Expressions * newelems = new Expressions();
+        newelems->setDim(oldelems->dim);
+        for (size_t i = 0; i < newelems->dim; i++)
+        {
+            Expression *m = (Expression *)oldelems->data[i];
+            // We need the struct definition to detect block assignment
+            StructDeclaration *sd = se->sd;
+            Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+            VarDeclaration *v = s->isVarDeclaration();
+            assert(v);
+            if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
+            {
+                // Block assignment from inside struct literals
+                TypeSArray *tsa = (TypeSArray *)v->type;
+                uinteger_t length = tsa->dim->toInteger();
+
+                m = createBlockDuplicatedArrayLiteral(v->type, m, length);
+            } else m = copyLiteral(m);
+            newelems->data[i] = m;
+        }
+        StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems, se->stype);
+        r->type = e->type;
+        return r;
+    }
+
     Expression *r = e->syntaxCopy();
     r->type = e->type;
     return r;
@@ -2810,33 +2843,46 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
 
+        if (aggregate->op == TOKdotvar)
+        {
+            DotVarExp *dve = (DotVarExp *)aggregate;
+            aggregate = dve->e1->interpret(istate);
+            if (aggregate->op == TOKstructliteral)
+            {
+                StructLiteralExp *se = (StructLiteralExp *)aggregate;
+                VarDeclaration *v = dve->var->isVarDeclaration();
+                if (v)
+                {
+                    int i = se->getFieldIndex(dve->type, v->offset);
+                    aggregate = (Expression *)se->elements->data[i];
+                }
+            }
+        }
         if (aggregate->op==TOKvar)
         {
             VarExp *ve = (VarExp *)(aggregate);
             VarDeclaration *v = ve->var->isVarDeclaration();
-            // Static array assignment from literal
-            if (v->getValue()->op==TOKarrayliteral)
-                existingAE = (ArrayLiteralExp *)v->getValue();
-            else if (v->getValue()->op==TOKstring)
-                existingSE = (StringExp *)v->getValue();
-            else if (v->getValue()->op == TOKslice)
-            {
-                SliceExp *sexpold = (SliceExp *)v->getValue();
-                dinteger_t hi = upperbound + sexpold->lwr->toInteger();
-                firstIndex = lowerbound + sexpold->lwr->toInteger();
-                if (hi > sexpold->upr->toInteger())
-                {
-                    error("slice [%d..%d] exceeds array bounds [0..%jd]",
-                        lowerbound, upperbound,
-                        sexpold->upr->toInteger() - sexpold->lwr->toInteger());
-                    return EXP_CANT_INTERPRET;
-                }
-                if (sexpold->e1->op == TOKarrayliteral)
-                    existingAE = (ArrayLiteralExp *)sexpold->e1;
-                if (sexpold->e1->op == TOKstring)
-                    existingSE = (StringExp *)sexpold->e1;
-            }
+            aggregate = v->getValue();
         }
+        if (aggregate->op == TOKslice)
+        {   // Slice of a slice --> change the bounds
+            SliceExp *sexpold = (SliceExp *)aggregate;
+            dinteger_t hi = upperbound + sexpold->lwr->toInteger();
+            firstIndex = lowerbound + sexpold->lwr->toInteger();
+            if (hi > sexpold->upr->toInteger())
+            {
+                error("slice [%d..%d] exceeds array bounds [0..%jd]",
+                    lowerbound, upperbound,
+                    sexpold->upr->toInteger() - sexpold->lwr->toInteger());
+                return EXP_CANT_INTERPRET;
+            }
+            aggregate = sexpold->e1;
+        }
+        if (aggregate->op==TOKarrayliteral)
+            existingAE = (ArrayLiteralExp *)aggregate;
+        else if (aggregate->op==TOKstring)
+            existingSE = (StringExp *)aggregate;
+
         if (newval->op == TOKarrayliteral && existingAE)
         {
             Expressions *oldelems = existingAE->elements;
