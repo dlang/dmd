@@ -2120,10 +2120,33 @@ Expression *copyLiteral(Expression *e)
         se2->type = se->type;
         return se2;
     }
+    else if (e->op == TOKarrayliteral)
+    {
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+        Expressions *oldelems = ae->elements;
+        Expressions *newelems = new Expressions();
+        newelems->setDim(oldelems->dim);
+        for (size_t i = 0; i < oldelems->dim; i++)
+            newelems->data[i] = copyLiteral((Expression *)(oldelems->data[i]));
+        ArrayLiteralExp *r = new ArrayLiteralExp(ae->loc, newelems);
+        r->type = e->type;
+        return r;
+    }
     Expression *r = e->syntaxCopy();
     r->type = e->type;
     return r;
 }
+
+void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
+{
+    for (size_t k = 0; k < ae->elements->dim; k++)
+    {
+        if (((Expression *)(ae->elements->data[k]))->op == TOKarrayliteral)
+            recursiveBlockAssign((ArrayLiteralExp *)(ae->elements->data[k]), val);
+        else ae->elements->data[k] = val;
+    }
+}
+
 
 Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 {
@@ -2168,18 +2191,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     assert(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
         || e1->op == TOKindex || e1->op == TOKslice);
 
-    // ----------------------------------------------------
-    //  Deal with read-modify-write assignments.
-    //  Set 'newval' to the final assignment value
-    //  Also determine the return value (except for slice
-    //  assignments, which are more complicated)
-    // ----------------------------------------------------
-    bool wantRef = false;
+    //bool wantRef = false;
     Expression * newval = NULL;
-    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray))
+    if (!fp && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
+    && this->e1->type->toBasetype() == this->e2->type->toBasetype())
     {
-        // it's an assignment to a reference type
-        if (this->e2->op == TOKvar) newval = this->e2;
+        if (this->e2->op == TOKvar)
+            newval = this->e2;
         else if (this->e2->op==TOKslice)
         {
             SliceExp * sexp = (SliceExp *)this->e2;
@@ -2211,6 +2229,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
+    // ----------------------------------------------------
+    //  Deal with read-modify-write assignments.
+    //  Set 'newval' to the final assignment value
+    //  Also determine the return value (except for slice
+    //  assignments, which are more complicated)
+    // ----------------------------------------------------
 
     if (fp || e1->op == TOKarraylength)
     {
@@ -2887,6 +2911,23 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                     }
                 }
                 return newval;
+            }
+            // multidimensional arrays are ALWAYS array literals (never strings)
+            else if (t->ty == Tsarray && existingAE)
+            {
+                Type *t2 = t;
+                while (t2->ty == Tsarray)
+                    t2 = t2->nextOf();
+                if (t2->ty == newval->type->ty)
+                {   // Multidimensional array block assign
+                    Expressions * w = existingAE->elements;
+                    for (size_t j = 0; j < upperbound-lowerbound; j++)
+                    {
+                        recursiveBlockAssign((ArrayLiteralExp *)(w->data[j+firstIndex]), newval);
+                    }
+                    return newval;
+                }
+                error("CTFE internal error: Static array slice operation %s", toChars());
             }
             else
             {
