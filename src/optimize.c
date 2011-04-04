@@ -73,7 +73,10 @@ Expression *expandVar(int result, VarDeclaration *v)
                 }
                 Expression *ei = v->init->toExpression();
                 if (!ei)
+                {   if (v->storage_class & STCmanifest)
+                        v->error("enum cannot be initialized with %s", v->init->toChars());
                     goto L1;
+                }
                 if (ei->op == TOKconstruct || ei->op == TOKblit)
                 {   AssignExp *ae = (AssignExp *)ei;
                     ei = ae->e2;
