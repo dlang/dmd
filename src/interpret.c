@@ -551,9 +551,12 @@ Expression * replaceReturnReference(Expression *original, InterState *istate)
 
         if (next->op == TOKcall)
         {
+            bool oldWaiting = istate->awaitingLvalueReturn;
             istate->awaitingLvalueReturn = true;
             next = next->interpret(istate);
-            if (next == EXP_CANT_INTERPRET) return next;
+            istate->awaitingLvalueReturn = oldWaiting;
+            if (next == EXP_CANT_INTERPRET)
+                return next;
         }
         if (next->op == TOKvar)
         {
@@ -2104,6 +2107,49 @@ Expression *assignDotVar(ExpressionReverseIterator rvs, int depth, Expression *e
     return NULL;
 }
 
+// Given expr, which evaluates to an array/AA/string literal,
+// return true if it needs to be copied
+bool needToCopyLiteral(Expression *expr)
+{
+    for (;;)
+    {
+       switch (expr->op)
+       {
+            case TOKarrayliteral:
+            case TOKassocarrayliteral:
+            case TOKstring:
+            case TOKstructliteral:
+                return true;
+            case TOKthis:
+            case TOKvar:
+                return false;
+            case TOKassign:
+                return false;
+            case TOKindex:
+            case TOKdotvar:
+            case TOKslice:
+            case TOKcast:
+                expr = ((UnaExp *)expr)->e1;
+                continue;
+            case TOKcat:
+            case TOKcatass:
+                return false;
+            case TOKcall:
+                // TODO: Return statement should
+                // guarantee we never return a naked literal, but
+                // currently it doesn't.
+                return true;
+
+            // There are probably other cases which don't need
+            // a copy. But for now, we conservatively copy all
+            // other cases.
+            default:
+                return true;
+        }
+    }
+}
+
+
 // Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
 // This value will be used for in-place modification.
 Expression *copyLiteral(Expression *e)
@@ -2211,9 +2257,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     }
     if (e1->op == TOKcall)
     {
+        bool oldWaiting = istate->awaitingLvalueReturn;
         istate->awaitingLvalueReturn = true;
         e1 = e1->interpret(istate);
-        istate->awaitingLvalueReturn = false;
+        istate->awaitingLvalueReturn = oldWaiting;
         if (e1 == EXP_CANT_INTERPRET)
             return e1;
     }
@@ -2367,7 +2414,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
     // Because structs are not reference types, dotvar expressions can be
     // collapsed into a single assignment.
     bool startedWithCall = false;
-    if (e1->op == TOKcall) startedWithCall = true;
+    if (e1->op == TOKcall)
+        startedWithCall = true;
     while (!wantRef && (e1->op == TOKdotvar || e1->op == TOKcall))
     {
         ExpressionReverseIterator rvs(e1, istate->localThis);
@@ -2417,13 +2465,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
         }
         if (e1->op == TOKcall)
         {
-                istate->awaitingLvalueReturn = true;
-                e1 = e1->interpret(istate);
-                istate->awaitingLvalueReturn = false;
+            bool oldWaiting = istate->awaitingLvalueReturn;
+            istate->awaitingLvalueReturn = true;
+            e1 = e1->interpret(istate);
+            istate->awaitingLvalueReturn = oldWaiting;
 
-                if (e1==EXP_CANT_INTERPRET) return e1;
-                assert(newval);
-                assert(newval !=EXP_CANT_INTERPRET);
+            if (e1 == EXP_CANT_INTERPRET)
+                return e1;
+            assert(newval);
+            assert(newval != EXP_CANT_INTERPRET);
         }
     }
     // ---------------------------------------
@@ -2478,8 +2528,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
                 || newval->op == TOKstring)
             {
+                if (needToCopyLiteral(this->e2))
+                    newval = copyLiteral(newval);
                 v->setValueNull();
-                v->createValue(copyLiteral(newval));
+                v->createValue(newval);
             }
             else if (newval->op == TOKnull)
             {
@@ -2858,7 +2910,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
                 }
             }
         }
-        if (aggregate->op==TOKvar)
+        if (aggregate->op == TOKindex)
+        {
+            IndexExp *ie = (IndexExp *)aggregate;
+            // If it returns an array, it might be a slice.
+            // We want to preserve the slice.
+            if (ie->type->ty != Tarray)
+                aggregate = aggregate->interpret(istate);
+        }
+
+        if (aggregate->op == TOKvar)
         {
             VarExp *ve = (VarExp *)(aggregate);
             VarDeclaration *v = ve->var->isVarDeclaration();
