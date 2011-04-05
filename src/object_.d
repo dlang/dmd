@@ -283,7 +283,8 @@ class TypeInfo
     /// null if none.
     TypeInfo next() { return null; }
 
-    /// Return default initializer, null if default initialize to 0
+    /// Return default initializer.  If the type should be initialized to all zeros,
+    /// an array with a null ptr and a length equal to the type size will be returned.
     void[] init() { return null; }
 
     /// Get flags for type: 1 means GC should scan for pointers
