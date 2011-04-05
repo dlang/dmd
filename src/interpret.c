@@ -53,7 +53,7 @@ Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
 
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
-Expression *getVarExp(Loc loc, InterState *istate, Declaration *d);
+Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, bool wantLvalue);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
 
 /*************************************
@@ -1326,7 +1326,7 @@ Expression * resolveReferences(Expression *e, Expression *thisval, bool *isRefer
     return e;
 }
 
-Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
+Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, bool wantLvalue)
 {
     Expression *e = EXP_CANT_INTERPRET;
     VarDeclaration *v = d->isVarDeclaration();
@@ -1374,8 +1374,14 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d)
             }
             else if (!e)
                 error(loc, "variable %s is used before initialization", v->toChars());
-            else if (e != EXP_CANT_INTERPRET)
-                e = e->interpret(istate);
+            else if (e == EXP_CANT_INTERPRET)
+                return e;
+            else if (wantLvalue && (e->op == TOKstring || e->op == TOKslice ||
+                    e->op == TOKstructliteral || e->op == TOKarrayliteral ||
+                    e->op == TOKassocarrayliteral))
+                return e; // it's already an Lvalue
+            else
+                e = e->interpret(istate, wantLvalue);
         }
         if (!e)
             e = EXP_CANT_INTERPRET;
@@ -1396,7 +1402,7 @@ Expression *VarExp::interpret(InterState *istate, bool wantLvalue)
 #if LOG
     printf("VarExp::interpret() %s\n", toChars());
 #endif
-    return getVarExp(loc, istate, var);
+    return getVarExp(loc, istate, var, wantLvalue);
 }
 
 Expression *DeclarationExp::interpret(InterState *istate, bool wantLvalue)
@@ -1754,7 +1760,7 @@ Expression *NewExp::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *UnaExp::interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *))
+Expression *UnaExp::interpretCommon(InterState *istate,  bool wantLvalue, Expression *(*fp)(Type *, Expression *))
 {   Expression *e;
     Expression *e1;
 
@@ -1777,7 +1783,7 @@ Lcant:
 #define UNA_INTERPRET(op) \
 Expression *op##Exp::interpret(InterState *istate, bool wantLvalue)      \
 {                                                       \
-    return interpretCommon(istate, &op);                \
+    return interpretCommon(istate, wantLvalue, &op);    \
 }
 
 UNA_INTERPRET(Neg)
@@ -1788,7 +1794,7 @@ UNA_INTERPRET(Bool)
 
 typedef Expression *(*fp_t)(Type *, Expression *, Expression *);
 
-Expression *BinExp::interpretCommon(InterState *istate, fp_t fp)
+Expression *BinExp::interpretCommon(InterState *istate, bool wantLvalue, fp_t fp)
 {   Expression *e;
     Expression *e1;
     Expression *e2;
@@ -1816,9 +1822,9 @@ Lcant:
 }
 
 #define BIN_INTERPRET(op) \
-Expression *op##Exp::interpret(InterState *istate, bool wantLvalue)      \
-{                                                       \
-    return interpretCommon(istate, &op);                \
+Expression *op##Exp::interpret(InterState *istate, bool wantLvalue) \
+{                                                                   \
+    return interpretCommon(istate, wantLvalue, &op);                \
 }
 
 BIN_INTERPRET(Add)
@@ -1836,7 +1842,7 @@ BIN_INTERPRET(Xor)
 
 typedef Expression *(*fp2_t)(enum TOK, Type *, Expression *, Expression *);
 
-Expression *BinExp::interpretCommon2(InterState *istate, fp2_t fp)
+Expression *BinExp::interpretCommon2(InterState *istate, bool wantLvalue, fp2_t fp)
 {   Expression *e;
     Expression *e1;
     Expression *e2;
@@ -1872,9 +1878,9 @@ Lcant:
 }
 
 #define BIN_INTERPRET2(op) \
-Expression *op##Exp::interpret(InterState *istate, bool wantLvalue)      \
-{                                                       \
-    return interpretCommon2(istate, &op);               \
+Expression *op##Exp::interpret(InterState *istate, bool wantLvalue)  \
+{                                                                    \
+    return interpretCommon2(istate, wantLvalue, &op);                \
 }
 
 BIN_INTERPRET2(Equal)
@@ -2227,7 +2233,7 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
 }
 
 
-Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
+Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, fp_t fp, int post)
 {
 #if LOG
     printf("BinExp::interpretAssignCommon() %s\n", toChars());
@@ -3069,7 +3075,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
             if (vie->op == TOKvar)
             {
                 Declaration *d = ((VarExp *)vie)->var;
-                vie = getVarExp(e1->loc, istate, d);
+                vie = getVarExp(e1->loc, istate, d, true);
             }
             if (vie->op != TOKstructliteral)
                 return EXP_CANT_INTERPRET;
@@ -3094,13 +3100,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, fp_t fp, int post)
 
 Expression *AssignExp::interpret(InterState *istate, bool wantLvalue)
 {
-    return interpretAssignCommon(istate, NULL);
+    return interpretAssignCommon(istate, wantLvalue, NULL);
 }
 
 #define BIN_ASSIGN_INTERPRET(op) \
-Expression *op##AssignExp::interpret(InterState *istate, bool wantLvalue)        \
-{                                                               \
-    return interpretAssignCommon(istate, &op);                  \
+Expression *op##AssignExp::interpret(InterState *istate, bool wantLvalue) \
+{                                                                         \
+    return interpretAssignCommon(istate, wantLvalue, &op);                \
 }
 
 BIN_ASSIGN_INTERPRET(Add)
@@ -3123,9 +3129,9 @@ Expression *PostExp::interpret(InterState *istate, bool wantLvalue)
 #endif
     Expression *e;
     if (op == TOKplusplus)
-        e = interpretAssignCommon(istate, &Add, 1);
+        e = interpretAssignCommon(istate, wantLvalue, &Add, 1);
     else
-        e = interpretAssignCommon(istate, &Min, 1);
+        e = interpretAssignCommon(istate, wantLvalue, &Min, 1);
 #if LOG
     if (e == EXP_CANT_INTERPRET)
         printf("PostExp::interpret() CANT\n");
@@ -3217,7 +3223,7 @@ Expression *CallExp::interpret(InterState *istate, bool wantLvalue)
                 fd = ((SymOffExp *)vd->getValue())->var->isFuncDeclaration();
             else
             {
-                ecall = getVarExp(loc, istate, vd);
+                ecall = getVarExp(loc, istate, vd, wantLvalue);
                 if (ecall == EXP_CANT_INTERPRET)
                     return ecall;
 
@@ -3613,7 +3619,7 @@ Expression *AssertExp::interpret(InterState *istate, bool wantLvalue)
         if (ade->e1->op == TOKthis && istate->localThis)
             if (istate->localThis->op == TOKdotvar
                 && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
-                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var);
+                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var, false);
             else
                 return istate->localThis->interpret(istate);
     }
@@ -3623,7 +3629,7 @@ Expression *AssertExp::interpret(InterState *istate, bool wantLvalue)
         {
             if (istate->localThis->op == TOKdotvar
                 && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
-                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var);
+                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var, false);
             else
                 return istate->localThis->interpret(istate);
         }
@@ -3687,7 +3693,7 @@ Expression *PtrExp::interpret(InterState *istate, bool wantLvalue)
     {   SymOffExp *soe = (SymOffExp *)e1;
         VarDeclaration *v = soe->var->isVarDeclaration();
         if (v)
-        {   Expression *ev = getVarExp(loc, istate, v);
+        {   Expression *ev = getVarExp(loc, istate, v, wantLvalue);
             if (ev != EXP_CANT_INTERPRET && ev->op == TOKstructliteral)
             {   StructLiteralExp *se = (StructLiteralExp *)ev;
                 e = se->getField(type, soe->offset);
