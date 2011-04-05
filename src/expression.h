@@ -743,7 +743,8 @@ struct UnaExp : Expression
     Expression *optimize(int result);
     void dump(int indent);
     void scanForNestedRef(Scope *sc);
-    Expression *interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *));
+    Expression *interpretCommon(InterState *istate, bool wantLvalue,
+        Expression *(*fp)(Type *, Expression *));
     int canThrow(bool mustNotThrow);
     Expression *resolveLoc(Loc loc, Scope *sc);
 
@@ -774,9 +775,12 @@ struct BinExp : Expression
     void incompatibleTypes();
     void dump(int indent);
     void scanForNestedRef(Scope *sc);
-    Expression *interpretCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *));
-    Expression *interpretCommon2(InterState *istate, Expression *(*fp)(TOK, Type *, Expression *, Expression *));
-    Expression *interpretAssignCommon(InterState *istate, Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
+    Expression *interpretCommon(InterState *istate, bool wantLvalue,
+        Expression *(*fp)(Type *, Expression *, Expression *));
+    Expression *interpretCommon2(InterState *istate, bool wantLvalue,
+        Expression *(*fp)(TOK, Type *, Expression *, Expression *));
+    Expression *interpretAssignCommon(InterState *istate, bool wantLvalue,
+        Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
     int canThrow(bool mustNotThrow);
     Expression *arrayOp(Scope *sc);
 
