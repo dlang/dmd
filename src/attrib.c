@@ -712,6 +712,12 @@ void AnonDeclaration::semantic(Scope *sc)
 {
     //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
 
+    if (sem == 1)
+    {   //printf("already completed\n");
+        scope = NULL;
+        return;             // semantic() already completed
+    }
+
     Scope *scx = NULL;
     if (scope)
     {   sc = scope;
