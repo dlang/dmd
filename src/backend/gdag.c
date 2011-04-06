@@ -132,6 +132,12 @@ void builddags()
                       list_next(b->Bpred) != NULL))
                     || b->BC == BCasm
                     || b->BC == BC_finally
+#if SCPP
+                    || b->BC == BCcatch
+#endif
+#if MARS
+                    || b->BC == BCjcatch
+#endif
                    )
                         vec_clear(aevec);
                 if (b->Belem)           /* if there is an expression    */
