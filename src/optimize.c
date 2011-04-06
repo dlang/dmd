@@ -993,6 +993,8 @@ Expression *OrOrExp::optimize(int result)
 
                 e = new IntegerExp(loc, n1 || n2, type);
             }
+            else if (! e2->type->checkBoolean())
+                ; // Don't convert e2 to bool below if it's type disallows it.
             else if (e1->isBool(FALSE))
                 e = new BoolExp(loc, e2, type);
         }
