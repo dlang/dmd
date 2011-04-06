@@ -10431,6 +10431,30 @@ Expression *PowExp::semantic(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
+        // Replace x ^^ 0 or x^^0.0 by (x, 1)
+        if ((e2->op == TOKint64 && e2->toInteger() == 0) ||
+                (e2->op == TOKfloat64 && e2->toReal() == 0.0))
+        {
+            typeCombine(sc);
+            e = new CommaExp(loc, e1, new IntegerExp(loc, 1, Type::tint64));
+            e = e->semantic(sc);
+            return e;
+        }
+        // Replace x ^^ 1 or x^^1.0 by (x)
+        if ((e2->op == TOKint64 && e2->toInteger() == 1) ||
+                (e2->op == TOKfloat64 && e2->toReal() == 1.0))
+        {
+            typeCombine(sc);
+            return e1;
+        }
+        // Replace x ^^ -1.0 by (1.0 / x)
+        if ((e2->op == TOKfloat64 && e2->toReal() == -1.0))
+        {
+            typeCombine(sc);
+            e = new DivExp(loc, new RealExp(loc, 1.0, e2->type), e1);
+            e = e->semantic(sc);
+            return e;
+        }
         // All other negative integral powers are illegal
         if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)
         {
