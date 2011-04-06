@@ -442,6 +442,12 @@ void TypeInfoFunctionDeclaration::toDt(dt_t **pdt)
 
     tc->next->getTypeInfo(NULL);
     dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for function return value
+
+    const char *name = tinfo->deco;
+    assert(name);
+    size_t namelen = strlen(name);
+    dtsize_t(pdt, namelen);
+    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 }
 
 void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
@@ -456,6 +462,12 @@ void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
 
     tc->next->nextOf()->getTypeInfo(NULL);
     dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
+
+    const char *name = tinfo->deco;
+    assert(name);
+    size_t namelen = strlen(name);
+    dtsize_t(pdt, namelen);
+    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 }
 
 void TypeInfoStructDeclaration::toDt(dt_t **pdt)
