@@ -654,7 +654,7 @@ class TypeInfo_Function : TypeInfo
         TypeInfo_Function c;
         return this is o ||
                 ((c = cast(TypeInfo_Function)o) !is null &&
-                 this.next == c.next);
+		 this.deco == c.deco);
     }
 
     // BUG: need to add the rest of the functions
@@ -665,6 +665,7 @@ class TypeInfo_Function : TypeInfo
     }
 
     TypeInfo next;
+    string deco;
 }
 
 class TypeInfo_Delegate : TypeInfo
@@ -679,7 +680,7 @@ class TypeInfo_Delegate : TypeInfo
         TypeInfo_Delegate c;
         return this is o ||
                 ((c = cast(TypeInfo_Delegate)o) !is null &&
-                 this.next == c.next);
+		 this.deco == c.deco);
     }
 
     // BUG: need to add the rest of the functions
@@ -693,6 +694,7 @@ class TypeInfo_Delegate : TypeInfo
     override uint flags() { return 1; }
 
     TypeInfo next;
+    string deco;
 
     override size_t talign()
     {   alias int delegate() dg;
