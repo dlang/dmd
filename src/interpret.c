@@ -3512,11 +3512,13 @@ Expression *SliceExp::interpret(InterState *istate, bool wantLvalue)
 #if LOG
     printf("SliceExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate);
+    e1 = this->e1->interpret(istate, wantLvalue);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
     if (!this->lwr)
     {
+        if (wantLvalue)
+            return e1;
         e = e1->castTo(NULL, type);
         return e->interpret(istate);
     }
@@ -3542,6 +3544,13 @@ Expression *SliceExp::interpret(InterState *istate, bool wantLvalue)
         goto Lcant;
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside [L..U]
+    if (wantLvalue)
+    {
+        assert(e1->op != TOKslice);
+        e = new SliceExp(loc, e1, lwr, upr);
+        e->type = type;
+        return e;
+    }
     e = Slice(type, e1, lwr, upr);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
