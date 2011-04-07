@@ -5077,8 +5077,8 @@ Expression *IsExp::semantic(Scope *sc)
      */
 
     //printf("IsExp::semantic(%s)\n", toChars());
-    if (id && !(sc->flags & SCOPEstaticif))
-    {   error("can only declare type aliases within static if conditionals");
+    if (id && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert)))
+    {   error("can only declare type aliases within static if conditionals or static asserts");
         return new ErrorExp();
     }
 

@@ -52,10 +52,12 @@ void StaticAssert::semantic(Scope *sc)
 
 void StaticAssert::semantic2(Scope *sc)
 {
-    Expression *e;
-
     //printf("StaticAssert::semantic2() %s\n", toChars());
-    e = exp->semantic(sc);
+    ScopeDsymbol *sd = new ScopeDsymbol();
+    sc = sc->push(sd);
+    sc->flags |= SCOPEstaticassert;
+    Expression *e = exp->semantic(sc);
+    sc->pop();
     if (e->op == TOKerror)
         return;
     e = e->optimize(WANTvalue | WANTinterpret);
