@@ -1613,8 +1613,8 @@ Expression *StructLiteralExp::interpret(InterState *istate, bool wantLvalue)
     /* We don't know how to deal with overlapping fields
      */
     if (sd->hasUnions)
-        {   error("Unions with overlapping fields are not yet supported in CTFE");
-                return EXP_CANT_INTERPRET;
+    {   error("Unions with overlapping fields are not yet supported in CTFE");
+        return EXP_CANT_INTERPRET;
     }
 
     if (elements)
@@ -2182,11 +2182,12 @@ Expression *copyLiteral(Expression *e)
 
 void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
 {
+    assert( ae->type->ty == Tsarray || ae->type->ty == Tarray);
+    Type *desttype = ((TypeArray *)ae->type)->next->castMod(0);
+    bool directblk = (val->type->toBasetype()->castMod(0)) == desttype;
     for (size_t k = 0; k < ae->elements->dim; k++)
     {
-        bool blockAssign = (((Expression *)(ae->elements->data[k]))->type->toBasetype() 
-        == val->type->toBasetype());
-        if (!blockAssign && ((Expression *)(ae->elements->data[k]))->op == TOKarrayliteral)
+        if (!directblk && ((Expression *)(ae->elements->data[k]))->op == TOKarrayliteral)
         {
             recursiveBlockAssign((ArrayLiteralExp *)(ae->elements->data[k]), val);
         }
@@ -2998,9 +2999,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
              *  only happens with array literals, never with strings).
              */
             Expressions * w = existingAE->elements;
+            assert( existingAE->type->ty == Tsarray ||
+                    existingAE->type->ty == Tarray);
+            Type *desttype = ((TypeArray *)existingAE->type)->next->castMod(0);
+            bool directblk = (e2->type->toBasetype()->castMod(0)) == desttype;
             for (size_t j = 0; j < upperbound-lowerbound; j++)
             {
-                if (((Expression *)w->data[j+firstIndex])->op == TOKarrayliteral)
+                if (!directblk)
                     // Multidimensional array block assign
                     recursiveBlockAssign((ArrayLiteralExp *)w->data[j+firstIndex], newval);
                 else
