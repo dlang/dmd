@@ -10730,6 +10730,10 @@ Expression *OrOrExp::semantic(Scope *sc)
     {   error("%s is not an expression", e2->toChars());
         return new ErrorExp();
     }
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     return this;
 }
 
@@ -10797,6 +10801,10 @@ Expression *AndAndExp::semantic(Scope *sc)
     {   error("%s is not an expression", e2->toChars());
         return new ErrorExp();
     }
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     return this;
 }
 
