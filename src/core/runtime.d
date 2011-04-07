@@ -360,7 +360,7 @@ extern (C) bool runModuleUnitTests()
                     }
                     catch( Throwable e )
                     {
-                        console( e.toString )( "\n" );
+                        console( e.toString() )( "\n" );
                         failed++;
                     }
                 }

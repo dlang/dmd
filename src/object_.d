@@ -264,12 +264,12 @@ class TypeInfo
     int compare(in void* p1, in void* p2) { return 0; }
 
     /// Returns size of the type.
-    size_t tsize() { return 0; }
+    @property size_t tsize() { return 0; }
 
     /// Swaps two instances of the type.
     void swap(void* p1, void* p2)
     {
-        size_t n = tsize();
+        size_t n = tsize;
         for (size_t i = 0; i < n; i++)
         {
             byte t = (cast(byte *)p1)[i];
@@ -280,13 +280,13 @@ class TypeInfo
 
     /// Get TypeInfo for 'next' type, as defined by what kind of type this is,
     /// null if none.
-    TypeInfo next() { return null; }
+    @property TypeInfo next() { return null; }
 
     /// Return default initializer, null if default initialize to 0
-    void[] init() { return null; }
+    @property void[] init() { return null; }
 
     /// Get flags for type: 1 means GC should scan for pointers
-    uint flags() { return 0; }
+    @property uint flags() { return 0; }
 
     /// Get type information on the contents of the type; null if not available
     OffsetTypeInfo[] offTi() { return null; }
@@ -297,7 +297,7 @@ class TypeInfo
 
 
     /// Return alignment of type
-    size_t talign() { return tsize(); }
+    @property size_t talign() { return tsize; }
 
     /** Return internal info on arguments fitting into 8byte.
      * See X86-64 ABI 3.2.3
@@ -324,14 +324,14 @@ class TypeInfo_Typedef : TypeInfo
     override hash_t getHash(in void* p) { return base.getHash(p); }
     override equals_t equals(in void* p1, in void* p2) { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) { return base.compare(p1, p2); }
-    override size_t tsize() { return base.tsize(); }
+    @property override size_t tsize() { return base.tsize; }
     override void swap(void* p1, void* p2) { return base.swap(p1, p2); }
 
-    override TypeInfo next() { return base.next(); }
-    override uint flags() { return base.flags(); }
-    override void[] init() { return m_init.length ? m_init : base.init(); }
+    @property override TypeInfo next() { return base.next; }
+    @property override uint flags() { return base.flags; }
+    @property override void[] init() { return m_init.length ? m_init : base.init; }
 
-    override size_t talign() { return base.talign(); }
+    @property override size_t talign() { return base.talign; }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {   return base.argTypes(arg1, arg2);
@@ -379,7 +379,7 @@ class TypeInfo_Pointer : TypeInfo
             return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         return (void*).sizeof;
     }
@@ -391,8 +391,8 @@ class TypeInfo_Pointer : TypeInfo
         *cast(void**)p2 = tmp;
     }
 
-    override TypeInfo next() { return m_next; }
-    override uint flags() { return 1; }
+    @property override TypeInfo next() { return m_next; }
+    @property override uint flags() { return 1; }
 
     TypeInfo m_next;
 }
@@ -421,7 +421,7 @@ class TypeInfo_Array : TypeInfo
         void[] a2 = *cast(void[]*)p2;
         if (a1.length != a2.length)
             return false;
-        size_t sz = value.tsize();
+        size_t sz = value.tsize;
         for (size_t i = 0; i < a1.length; i++)
         {
             if (!value.equals(a1.ptr + i * sz, a2.ptr + i * sz))
@@ -434,7 +434,7 @@ class TypeInfo_Array : TypeInfo
     {
         void[] a1 = *cast(void[]*)p1;
         void[] a2 = *cast(void[]*)p2;
-        size_t sz = value.tsize();
+        size_t sz = value.tsize;
         size_t len = a1.length;
 
         if (a2.length < len)
@@ -448,7 +448,7 @@ class TypeInfo_Array : TypeInfo
         return cast(int)a1.length - cast(int)a2.length;
     }
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         return (void[]).sizeof;
     }
@@ -462,14 +462,14 @@ class TypeInfo_Array : TypeInfo
 
     TypeInfo value;
 
-    override TypeInfo next()
+    @property override TypeInfo next()
     {
         return value;
     }
 
     override uint flags() { return 1; }
 
-    override size_t talign()
+    @property override size_t talign()
     {
         return (void[]).alignof;
     }
@@ -498,9 +498,9 @@ class TypeInfo_StaticArray : TypeInfo
                 this.value == c.value);
     }
 
-    override hash_t getHash(in void* p)
+    @property override hash_t getHash(in void* p)
     {
-        size_t sz = value.tsize();
+        size_t sz = value.tsize;
         hash_t hash = 0;
         for (size_t i = 0; i < len; i++)
             hash += value.getHash(p + i * sz);
@@ -509,7 +509,7 @@ class TypeInfo_StaticArray : TypeInfo
 
     override equals_t equals(in void* p1, in void* p2)
     {
-        size_t sz = value.tsize();
+        size_t sz = value.tsize;
 
         for (size_t u = 0; u < len; u++)
         {
@@ -521,7 +521,7 @@ class TypeInfo_StaticArray : TypeInfo
 
     override int compare(in void* p1, in void* p2)
     {
-        size_t sz = value.tsize();
+        size_t sz = value.tsize;
 
         for (size_t u = 0; u < len; u++)
         {
@@ -532,15 +532,15 @@ class TypeInfo_StaticArray : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
-        return len * value.tsize();
+        return len * value.tsize;
     }
 
     override void swap(void* p1, void* p2)
     {
         void* tmp;
-        size_t sz = value.tsize();
+        size_t sz = value.tsize;
         ubyte[16] buffer;
         void* pbuffer;
 
@@ -559,13 +559,13 @@ class TypeInfo_StaticArray : TypeInfo
             delete pbuffer;
     }
 
-    override void[] init() { return value.init(); }
-    override TypeInfo next() { return value; }
-    override uint flags() { return value.flags(); }
+    @property override void[] init() { return value.init(); }
+    @property override TypeInfo next() { return value; }
+    @property override uint flags() { return value.flags(); }
 
     override void destroy(void* p)
     {
-        auto sz = value.tsize();
+        auto sz = value.tsize;
         p += sz * len;
         foreach (i; 0 .. len)
         {
@@ -576,7 +576,7 @@ class TypeInfo_StaticArray : TypeInfo
 
     override void postblit(void* p)
     {
-        auto sz = value.tsize();
+        auto sz = value.tsize;
         foreach (i; 0 .. len)
         {
             value.postblit(p);
@@ -587,9 +587,9 @@ class TypeInfo_StaticArray : TypeInfo
     TypeInfo value;
     size_t   len;
 
-    override size_t talign()
+    @property override size_t talign()
     {
-        return value.talign();
+        return value.talign;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
@@ -616,25 +616,25 @@ class TypeInfo_AssociativeArray : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         return (char[int]).sizeof;
     }
 
-    override TypeInfo next() { return value; }
-    override uint flags() { return 1; }
+    @property override TypeInfo next() { return value; }
+    @property override uint flags() { return 1; }
 
-    TypeInfo value;
-    TypeInfo key;
+    @property TypeInfo value;
+    @property TypeInfo key;
 
-    TypeInfo impl;
+    @property TypeInfo impl;
 
-    override size_t talign()
+    @property override size_t talign()
     {
         return (char[int]).alignof;
     }
 
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (X86_64) @property override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {   arg1 = typeid(void*);
         return 0;
     }
@@ -657,7 +657,7 @@ class TypeInfo_Function : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         return 0;       // no size for functions
     }
@@ -682,7 +682,7 @@ class TypeInfo_Delegate : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         alias int delegate() dg;
         return dg.sizeof;
@@ -692,7 +692,7 @@ class TypeInfo_Delegate : TypeInfo
 
     TypeInfo next;
 
-    override size_t talign()
+    @property override size_t talign()
     {   alias int delegate() dg;
         return dg.alignof;
     }
@@ -757,7 +757,7 @@ class TypeInfo_Class : TypeInfo
         return c;
     }
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         return Object.sizeof;
     }
@@ -896,12 +896,12 @@ class TypeInfo_Interface : TypeInfo
         return c;
     }
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         return Object.sizeof;
     }
 
-    override uint flags() { return 1; }
+    @property override uint flags() { return 1; }
 
     TypeInfo_Class info;
 }
@@ -968,16 +968,16 @@ class TypeInfo_Struct : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         return init.length;
     }
 
-    override void[] init() { return m_init; }
+    @property override void[] init() { return m_init; }
 
-    override uint flags() { return m_flags; }
+    @property override uint flags() { return m_flags; }
 
-    override size_t talign() { return m_align; }
+    @property override size_t talign() { return m_align; }
 
     override void destroy(void* p)
     {
@@ -1069,7 +1069,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    override size_t tsize()
+    @property override size_t tsize()
     {
         assert(0);
     }
@@ -1089,7 +1089,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    override size_t talign()
+    @property override size_t talign()
     {
         assert(0);
     }
@@ -1127,14 +1127,14 @@ class TypeInfo_Const : TypeInfo
     override hash_t getHash(in void *p) { return base.getHash(p); }
     override equals_t equals(in void *p1, in void *p2) { return base.equals(p1, p2); }
     override int compare(in void *p1, in void *p2) { return base.compare(p1, p2); }
-    override size_t tsize() { return base.tsize(); }
+    @property override size_t tsize() { return base.tsize; }
     override void swap(void *p1, void *p2) { return base.swap(p1, p2); }
 
-    override TypeInfo next() { return base.next(); }
-    override uint flags() { return base.flags(); }
-    override void[] init() { return base.init(); }
+    @property override TypeInfo next() { return base.next; }
+    @property override uint flags() { return base.flags; }
+    @property override void[] init() { return base.init; }
 
-    override size_t talign() { return base.talign(); }
+    @property override size_t talign() { return base.talign(); }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {   return base.argTypes(arg1, arg2);
@@ -1181,9 +1181,9 @@ class MemberInfo_field : MemberInfo
         m_offset = offset;
     }
 
-    override string name() { return m_name; }
-    TypeInfo typeInfo() { return m_typeinfo; }
-    size_t offset() { return m_offset; }
+    @property override string name() { return m_name; }
+    @property TypeInfo typeInfo() { return m_typeinfo; }
+    @property size_t offset() { return m_offset; }
 
     string   m_name;
     TypeInfo m_typeinfo;
@@ -1200,10 +1200,10 @@ class MemberInfo_function : MemberInfo
         m_flags = flags;
     }
 
-    override string name() { return m_name; }
-    TypeInfo typeInfo() { return m_typeinfo; }
+    @property override string name() { return m_name; }
+    @property TypeInfo typeInfo() { return m_typeinfo; }
     void* fp() { return m_fp; }
-    uint flags() { return m_flags; }
+    @property uint flags() { return m_flags; }
 
     string   m_name;
     TypeInfo m_typeinfo;
@@ -1485,7 +1485,7 @@ struct ModuleInfo
         Old o;
     }
 
-    @property isNew() { return n.flags & MInew; }
+    @property bool isNew() { return (n.flags & MInew) != 0; }
 
     @property uint index() { return isNew ? n.index : o.index; }
     @property void index(uint i) { if (isNew) n.index = i; else o.index = i; }

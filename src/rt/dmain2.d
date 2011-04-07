@@ -445,7 +445,7 @@ extern (C) int main(int argc, char** argv)
                     e = e.next;
                 }
                 +/
-                console (e.toString)("\n");
+                console (e.toString())("\n");
                 result = EXIT_FAILURE;
             }
         }

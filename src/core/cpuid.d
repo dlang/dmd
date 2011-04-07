@@ -113,6 +113,7 @@ public:
     /// The data caches. If there are fewer than 5 physical caches levels,
     /// the remaining levels are set to uint.max (== entire memory space)
     __gshared CacheInfo[5] datacache;
+    @property {
     /// Does it have an x87 FPU on-chip?
     bool x87onChip()    {return (features&FPU_BIT)!=0;}
     /// Is MMX supported?
@@ -155,7 +156,7 @@ public:
             return false;
         return (features & SYSENTERSYSEXIT_BIT)!=0;
     }
-
+    
 
     /// Is 3DNow prefetch supported?
     bool has3dnowPrefetch()
@@ -205,6 +206,7 @@ public:
     bool preferPentium4() { return probablyIntel && family == 0xF; }
     /// Does this CPU perform better on Pentium I code than Pentium Pro code?
     bool preferPentium1() { return family < 6 || (family==6 && model < 0xF && !probablyIntel); }
+    }
 
 __gshared:
     // All these values are set only once, and never subsequently modified.
@@ -214,6 +216,7 @@ public:
     uint stepping, model, family;
     uint numCacheLevels = 1;
 private:
+    @property {
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
     string processorName;
@@ -227,6 +230,7 @@ private:
     uint maxThreads = 1;
     // Note that this may indicate multi-core rather than hyperthreading.
     bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
+    }
 
     // feature flags CPUID1_EDX
     enum : uint

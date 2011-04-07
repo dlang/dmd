@@ -1581,7 +1581,7 @@ private:
     //
     // All use of the global lists should synchronize on this lock.
     //
-    static Mutex slock()
+    @property static Mutex slock()
     {
         static Mutex m = null;
 

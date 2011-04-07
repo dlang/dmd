@@ -1168,7 +1168,7 @@ class GC
     /**
      *
      */
-    int delegate(int delegate(ref void*)) rootIter()
+    @property int delegate(int delegate(ref void*)) rootIter()
     {
         if (!thread_needLock())
         {
@@ -1228,7 +1228,7 @@ class GC
     /**
      *
      */
-    int delegate(int delegate(ref Range)) rangeIter()
+    @property int delegate(int delegate(ref Range)) rangeIter()
     {
         if (!thread_needLock())
         {
