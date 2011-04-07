@@ -199,7 +199,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 {   cantInterpret = 1;
                         return NULL;
                 }
-                v->restoreValue(earg);
+                v->setValueWithoutChecking(earg);
                 /* Don't restore the value of v2 upon function return
                  */
                 assert(istate);
@@ -213,7 +213,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
             else
             {   // Value parameters and non-trivial references
-                v->restoreValue(earg);
+                v->setValueWithoutChecking(earg);
             }
 #if LOG
             printf("interpreted arg[%d] = %s\n", i, earg->toChars());
@@ -295,7 +295,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     for (size_t i = 0; i < dim; i++)
     {
         VarDeclaration *v = (VarDeclaration *)parameters->data[i];
-        v->restoreValue((Expression *)vsave.data[i]);
+        v->setValueWithoutChecking((Expression *)vsave.data[i]);
     }
 
     if (istate && !isNested())
@@ -306,7 +306,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         for (size_t i = 0; i < istate->vars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
             if (v)
-            {   v->restoreValue((Expression *)valueSaves.data[i]);
+            {   v->setValueWithoutChecking((Expression *)valueSaves.data[i]);
                 //printf("\trestoring [%d] %s = %s\n", i, v->toChars(), v->getValue() ? v->getValue()->toChars() : "");
             }
         }
@@ -2416,7 +2416,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
     // only modifying part of the variable. So we need to make sure
     // that the parent variable exists.
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-        ultimateVar->createValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));    
+        ultimateVar->createRefValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));    
 
     // ----------------------------------------------------------
     //      Deal with dotvar expressions - non-reference types
@@ -2454,7 +2454,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             {
                 VarExp *ve = (VarExp *)e1;
                 VarDeclaration *v = ve->var->isVarDeclaration();
-                v->setValue(newval);
+                v->setRefValue(newval);
                 return e;
             }
             assert(newval !=EXP_CANT_INTERPRET);
@@ -2541,12 +2541,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                 if (needToCopyLiteral(this->e2))
                     newval = copyLiteral(newval);
                 v->setValueNull();
-                v->createValue(newval);
+                v->createRefValue(newval);
             }
             else if (newval->op == TOKnull)
             {
                 v->setValueNull();
-                v->createValue(newval);
+                v->createRefValue(newval);
             }
             else if (newval->op == TOKvar)
             {
@@ -2557,7 +2557,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                 assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring
                     || v2->getValue()->op == TOKassocarrayliteral || v2->getValue()->op == TOKnull));
                 v->setValueNull();
-                v->createValue(v2->getValue());
+                v->createRefValue(v2->getValue());
             }
             else if (newval->op == TOKslice)
             {
@@ -2582,7 +2582,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                         }
                         sexp->e1 = v2->getValue();
                         v->setValueNull();
-                        v->createValue(sexp);
+                        v->createRefValue(sexp);
                     }
                     else if (v2->getValue()->op == TOKslice)
                     {
@@ -2599,20 +2599,20 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                         sexp->lwr = new IntegerExp(loc, lo, Type::tsize_t);
                         sexp->upr = new IntegerExp(loc, hi, Type::tsize_t);
                         v->setValueNull();
-                        v->createValue(sexp);
+                        v->createRefValue(sexp);
                     }
                     else
                     {
                         if (!v->getValue())
-                            v->createValue(newval->interpret(istate));
-                        else v->setValue(newval->interpret(istate));
+                            v->createRefValue(newval->interpret(istate));
+                        else v->setRefValue(newval->interpret(istate));
                     }
                 }
                 else
                 {
                     if (!v->getValue())
-                        v->createValue(newval->interpret(istate));
-                    else v->setValue(newval->interpret(istate));
+                        v->createRefValue(newval->interpret(istate));
+                    else v->setRefValue(newval->interpret(istate));
                 }
             }
             else
@@ -2640,17 +2640,17 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             if (newval->op == TOKstructliteral)
             {
                 v->setValueNull();
-                v->createValue(copyLiteral(newval));
+                v->createRefValue(copyLiteral(newval));
             }
-            else v->setValue(newval);
+            else v->setRefValue(newval);
         }
         else
         {
             if (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
             { // arr op= arr
                 if (!v->getValue())
-                    v->createValue(newval->interpret(istate));
-                else v->setValue(newval->interpret(istate));
+                    v->createRefValue(newval->interpret(istate));
+                else v->setRefValue(newval->interpret(istate));
             }
             else
             {
@@ -2748,7 +2748,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                     Expression *aae2 = new AssocArrayLiteralExp(loc, keysx, valuesx);
                     aae2->type = v->type;
                     newval = aae2;
-                    v->setValue(newval);
+                    v->setRefValue(newval);
                     return e;
                 }
                 // This would be a runtime segfault
@@ -3064,7 +3064,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             newval = modifyStructField(type, se, soe->offset, newval);
 
             addVarToInterstate(istate, v);
-            v->setValue(newval);
+            v->setRefValue(newval);
         }
     }
     else
@@ -3375,11 +3375,11 @@ Expression *CommaExp::interpret(InterState *istate, bool wantLvalue)
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!v->init && !v->getValue())
         {
-            v->createValue(copyLiteral(v->type->defaultInitLiteral()));
+            v->createRefValue(copyLiteral(v->type->defaultInitLiteral()));
         }
         if (!v->getValue()) {
             Expression *newval = v->init->toExpression();
-//            v->setValue(v->init->toExpression());
+//            v->setRefValue(v->init->toExpression());
             // Bug 4027. Copy constructors are a weird case where the
             // initializer is a void function (the variable is modified
             // through a reference parameter instead).
@@ -3387,7 +3387,7 @@ Expression *CommaExp::interpret(InterState *istate, bool wantLvalue)
             if (newval != EXP_VOID_INTERPRET)
             {
                 // v isn't necessarily null.
-                v->restoreValue(copyLiteral(newval));
+                v->setValueWithoutChecking(copyLiteral(newval));
             }
         }
         return e2;
@@ -3861,3 +3861,88 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 }
 
 #endif
+
+/* Setter functions for CTFE variable values.
+ * These functions exist to check for compiler CTFE bugs.
+ */
+
+bool isStackValueValid(Expression *newval)
+{
+    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
+        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
+        (newval->op == TOKnull) || (newval->op == TOKslice))
+    {   return false;
+    }
+    if (newval->op == TOKvar) return true;
+    if (newval->op == TOKdotvar) return true;
+    if (newval->op == TOKindex) return true;
+    if (newval->op == TOKfunction) return true; // function/delegate literal
+    if (newval->op == TOKdelegate) return true;
+    if (newval->op == TOKsymoff)  // function pointer
+    {
+        if (((SymOffExp *)newval)->var->isFuncDeclaration())
+            return true;
+    }
+    if (newval->op == TOKint64 || newval->op == TOKfloat64 ||
+        newval->op == TOKchar || newval->op == TOKcomplex80)
+        return true;
+    newval->error("CTFE internal error: illegal stack value %s\n", newval->toChars());
+    return false;
+}
+bool isRefValueValid(Expression *newval)
+{
+    assert(newval);
+    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
+        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
+        (newval->op == TOKnull))
+    {   return true;
+    }
+    if (newval->op == TOKslice)
+    {
+        SliceExp *se = (SliceExp *)newval;
+        assert(se->lwr && se->lwr != EXP_CANT_INTERPRET);
+        assert(se->upr && se->upr != EXP_CANT_INTERPRET);
+        assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
+        return true;
+    }
+    newval->error("CTFE internal error: illegal reference value %s\n", newval->toChars());
+    return false;
+}
+
+void VarDeclaration::setValueNull()
+{
+    literalvalue = NULL;
+}
+
+// Don't check for validity
+void VarDeclaration::setValueWithoutChecking(Expression *newval)
+{
+    assert(!newval || isStackValueValid(newval) || isRefValueValid(newval));
+    literalvalue = newval;
+}
+void VarDeclaration::createRefValue(Expression *newval)
+{
+    assert(!literalvalue);
+    assert(isRefValueValid(newval));
+    literalvalue = newval;
+}
+
+void VarDeclaration::setRefValue(Expression *newval)
+{
+    assert(literalvalue);
+    assert(isRefValueValid(newval));
+    literalvalue = newval;
+}
+
+void VarDeclaration::setStackValue(Expression *newval)
+{
+    assert(literalvalue);
+    assert(isStackValueValid(newval));
+    literalvalue = newval;
+}
+void VarDeclaration::createStackValue(Expression *newval)
+{
+    assert(!literalvalue);
+    assert(isStackValueValid(newval));
+    literalvalue = newval;
+}

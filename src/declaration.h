@@ -254,81 +254,15 @@ struct VarDeclaration : Declaration
     Dsymbol *aliassym;          // if redone as alias to another symbol
 
     // When interpreting, these hold the value (NULL if value not determinable)
-    // There always needs to be a level of indirection, since pointer/references
-    // may be pointing to this variable.
-    Expression **stackvalue;    // for stack variables (int, float, or pointer)
-    Expression *literalvalue;   // for struct/array literals
+    // The various functions are used only to detect compiler CTFE bugs
+    Expression *literalvalue;
     Expression *getValue() { return literalvalue; }
-    void setValueNull() { literalvalue = NULL; stackvalue = NULL; }
-    static bool isStackValueValid(Expression *newval)
-    {
-        if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
-        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
-        (newval->op == TOKnull) || (newval->op == TOKslice))
-            return false;
-        if (newval->op == TOKvar) return true;
-        if (newval->op == TOKdotvar) return true;
-        if (newval->op == TOKindex) return true;
-        if (newval->op == TOKfunction) return true; // function/delegate literal
-        if (newval->op == TOKdelegate) return true;
-        if (newval->op == TOKsymoff)  // function pointer
-        {
-            if (((SymOffExp *)newval)->var->isFuncDeclaration())
-                return true;
-        }
-        if (newval->op == TOKint64 || newval->op == TOKfloat64 || newval->op == TOKchar || newval->op == TOKcomplex80)
-            return true;
-        printf("CTFE internal error: illegal stack value %s\n", newval->toChars());
-        return false;
-    }
-    static bool isRefValueValid(Expression *newval)
-    {
-        assert(newval);
-        if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
-        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
-        (newval->op == TOKnull))
-            return true;
-        if (newval->op == TOKslice)
-        {
-            SliceExp *se = (SliceExp *)newval;
-            assert(se->lwr && se->lwr != EXP_CANT_INTERPRET);
-            assert(se->upr && se->upr != EXP_CANT_INTERPRET);
-            assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
-            return true;
-        }
-        printf("CTFE internal error: illegal reference value %s\n", newval->toChars());
-        return false;
-    }
-    void restoreValue(Expression *newval) {
-        assert(!newval || isStackValueValid(newval) || isRefValueValid(newval));
-        literalvalue = newval;
-    }
-    void createValue(Expression *newval)
-    {
-        assert(!literalvalue);
-        assert(isRefValueValid(newval));
-        literalvalue = newval;
-    }
-
-    void setValue(Expression *newval)
-    {
-        assert(literalvalue);
-        assert(isRefValueValid(newval));
-        literalvalue = newval;
-    }
-
-    void setStackValue(Expression *newval)
-    {
-        assert(literalvalue);
-        assert(isStackValueValid(newval));
-        literalvalue = newval;
-    }
-    void createStackValue(Expression *newval)
-    {
-        assert(!literalvalue);
-        assert(isStackValueValid(newval));
-        literalvalue = newval;
-    }
+    void setValueNull();
+    void setValueWithoutChecking(Expression *newval);
+    void createRefValue(Expression *newval); // struct or array literal
+    void setRefValue(Expression *newval);
+    void setStackValue(Expression *newval);
+    void createStackValue(Expression *newval);
 
 #if DMDV2
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
