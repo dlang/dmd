@@ -2244,6 +2244,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
     {
         wantRef = true;
     }
+    /* This happens inside compiler-generated foreach statements.
+     * It's another case where we need a reference
+     */
+    if (op==TOKconstruct && this->e1->op==TOKvar
+        && ((VarExp*)this->e1)->var->storage_class & STCref)
+        wantRef = true;
 
 
     if (fp)
@@ -2396,7 +2402,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
     {
         //error("assignment to ref variable %s is not yet supported in CTFE", this->toChars());
         VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
-        v->setValue(e2);
+        v->setValueNull();
+        v->createStackValue(e2);
         return e2;
     }
     bool destinationIsReference = false;
