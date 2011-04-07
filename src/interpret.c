@@ -2693,18 +2693,77 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
     }
     else if (e1->op == TOKindex)
     {
-        Expression *aggregate = resolveReferences(((IndexExp *)e1)->e1, istate->localThis);
         /* Assignment to array element of the form:
          *   aggregate[i] = newval
          */
+        IndexExp *ie = (IndexExp *)e1;
+        int destarraylen = 0; // not for AAs
+
+        // Set the $ variable, and find the array literal to modify
+        if (ie->e1->type->toBasetype()->ty != Taarray)
+        {
+            Expression *oldval = ie->e1->interpret(istate);
+            Expression *dollar = ArrayLength(Type::tsize_t, oldval);
+            if (dollar == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+            destarraylen = dollar->toInteger();
+            if (ie->lengthVar)
+                ie->lengthVar->createStackValue(dollar);
+        }
+        Expression *index = ie->e2->interpret(istate);
+        if (ie->lengthVar)
+            ie->lengthVar->setValueNull(); // $ is defined only inside []
+        if (index == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
         AssocArrayLiteralExp *existingAA = NULL;
 
+        // Set the index to modify (for non-AAs), and check that it is in range
+        int indexToModify = 0;
+        if (ie->e1->type->toBasetype()->ty != Taarray)
+        {
+            indexToModify = index->toInteger();
+            if (indexToModify > destarraylen)
+            {
+                error("array index %d is out of bounds [0..%d]", indexToModify,
+                    destarraylen);
+                return EXP_CANT_INTERPRET;
+            }
+        }
+
+        Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
+        if (aggregate->op == TOKdotvar)
+        {
+            DotVarExp *dve = (DotVarExp *)aggregate;
+            aggregate = dve->e1->interpret(istate);
+            if (aggregate->op == TOKstructliteral)
+            {
+                StructLiteralExp *se = (StructLiteralExp *)aggregate;
+                VarDeclaration *v = dve->var->isVarDeclaration();
+                if (v)
+                {
+                    int i = se->getFieldIndex(dve->type, v->offset);
+                    aggregate = (Expression *)se->elements->data[i];
+                }
+            }
+            else
+                aggregate  = dve; // unsupported, generate an error
+        }
+        if (aggregate->op == TOKindex)
+        {
+            // If it returns an array, it might be a slice.
+            // We want to preserve the slice.
+            if (aggregate->type->ty != Tarray)
+                aggregate = aggregate->interpret(istate);
+        }
+
         if (aggregate->op == TOKvar)
-        {   IndexExp *ie = (IndexExp *)e1;
+        {
             VarExp *ve = (VarExp *)aggregate;
             VarDeclaration *v = ve->var->isVarDeclaration();
+            aggregate = v->getValue();
             if (v->getValue()->op == TOKnull)
             {
                 if (v->type->ty == Taarray)
@@ -2726,156 +2785,57 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                 error("Cannot index null array %s", v->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            // Set the $ variable, and find the array literal to modify
-            Expression *dollar = NULL;
-            if (v->getValue()->op == TOKslice)
+        }
+        if (aggregate->op == TOKslice)
+        {
+            SliceExp *sexp = (SliceExp *)aggregate;
+            aggregate = sexp->e1;
+            Expression *lwr = sexp->lwr->interpret(istate);
+            indexToModify += lwr->toInteger();
+        }
+        if (aggregate->op == TOKarrayliteral)
+            existingAE = (ArrayLiteralExp *)aggregate;
+        else if (aggregate->op == TOKstring)
+            existingSE = (StringExp *)aggregate;
+        else if (aggregate->op == TOKassocarrayliteral)
+            existingAA = (AssocArrayLiteralExp *)aggregate;
+        else
+        {
+            error("CTFE internal compiler error %s", aggregate->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        if (existingAE)
+        {
+            existingAE->elements->data[indexToModify] = newval;
+            return e;
+        }
+        if (existingSE)
+        {
+            unsigned char *s = (unsigned char *)existingSE->string;
+            unsigned value = newval->toInteger();
+            switch (existingSE->sz)
             {
-                SliceExp *sexp = (SliceExp *)v->getValue();
-                dollar = new IntegerExp(loc, sexp->upr->toInteger()-sexp->lwr->toInteger(), Type::tsize_t);
-                if (sexp->e1->op == TOKarrayliteral)
-                    existingAE = (ArrayLiteralExp *)sexp->e1;
-                if (sexp->e1->op == TOKstring)
-                    existingSE = (StringExp *)sexp->e1;
+                case 1: s[indexToModify] = value; break;
+                case 2: ((unsigned short *)s)[indexToModify] = value; break;
+                case 4: ((unsigned *)s)[indexToModify] = value; break;
+                default:
+                    assert(0);
+                    break;
             }
-            else if (v->getValue()->op == TOKarrayliteral
-                || v->getValue()->op == TOKassocarrayliteral
-                || v->getValue()->op == TOKstring)
-            {
-                dollar = ArrayLength(Type::tsize_t, v->getValue());
-                if (v->getValue()->op == TOKarrayliteral)
-                    existingAE = (ArrayLiteralExp *)v->getValue();
-                if (v->getValue()->op == TOKstring)
-                    existingSE = (StringExp *)v->getValue();
-                if (v->getValue()->op == TOKassocarrayliteral)
-                    existingAA = (AssocArrayLiteralExp *)v->getValue();
-            }
-            else
-            {
-                error("CTFE internal compiler error %s", v->getValue()->toChars());
-                return EXP_CANT_INTERPRET;
-            }
-            if (dollar != EXP_CANT_INTERPRET && ie->lengthVar)
-                ie->lengthVar->createStackValue(dollar);
-            // Determine the index, and check that it's OK.
-            Expression *index = ie->e2->interpret(istate);
-            if (ie->lengthVar)
-                ie->lengthVar->setValueNull(); // $ is defined only inside []
-            if (index == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-
-            if (existingAE)
-            {
-                int elemi = index->toInteger();
-                if (elemi >= existingAE->elements->dim)
-                {
-                    error("array index %d is out of bounds [0..%d]", elemi,
-                        existingAE->elements->dim);
-                    return EXP_CANT_INTERPRET;
-                }
-                existingAE->elements->data[elemi] = newval;
-                return e;
-            }
-            if (existingSE)
-            {
-                    int elemi = index->toInteger();
-                    if (elemi >= existingSE->len)
-                    {
-                        error("array index %d is out of bounds [0..%d]", elemi,
-                            existingSE->len);
-                        return EXP_CANT_INTERPRET;
-                    }
-                    unsigned char *s = (unsigned char *)existingSE->string;
-                    unsigned value = newval->toInteger();
-                    switch (existingSE->sz)
-                    {
-                        case 1: s[elemi] = value; break;
-                        case 2: ((unsigned short *)s)[elemi] = value; break;
-                        case 4: ((unsigned *)s)[elemi] = value; break;
-                        default:
-                            assert(0);
-                            break;
-                    }
-                    return e;
-            }
-            assert(existingAA);
+            return e;
+        }
+        else if (existingAA)
+        {
             if (assignAssocArrayElement(loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             return e;
         }
-        else if (aggregate->op == TOKslice)
-        {   IndexExp *ie = (IndexExp *)e1;
-            SliceExp * sexp = (SliceExp *)aggregate;
-            assert(sexp && sexp->upr && sexp->lwr);
-            Expression *dollar = new IntegerExp(loc,
-            sexp->upr->toInteger() - sexp->lwr->toInteger(), Type::tsize_t);
-            if (dollar != EXP_CANT_INTERPRET && ie->lengthVar)
-                ie->lengthVar->createStackValue(dollar);
-            // Determine the index, and check that it's OK.
-            Expression *index = ie->e2->interpret(istate);
-            if (ie->lengthVar)
-                ie->lengthVar->setValueNull(); // $ is defined only inside []
-            if (index == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-
-            ArrayLiteralExp *ae = NULL;
-            StringExp *se = NULL;
-            VarDeclaration *v = NULL;
-            if (sexp->e1->op == TOKarrayliteral)
-                ae = (ArrayLiteralExp *)(sexp->e1);
-            else if (sexp->e1->op == TOKstring)
-                se = (StringExp *)(sexp->e1);
-            else if (sexp->e1->op == TOKvar)
-            {
-                VarExp *ve = (VarExp *)(sexp->e1);
-                v = ve->var->isVarDeclaration();
-                assert(v);
-                assert(v->getValue());
-                if (v->getValue()->op == TOKarrayliteral)
-                    ae = (ArrayLiteralExp *)v->getValue();
-                else if (v->getValue()->op == TOKstring)
-                    se = (StringExp *)v->getValue();
-            }
-
-            if (ae)
-            {
-                int elemi = index->toInteger() + sexp->lwr->toInteger();
-                if (elemi >= ae->elements->dim)
-                {
-                    error("array index %d is out of bounds %s[0..%d]", elemi,
-                        ae->toChars(), ae->elements->dim);
-                    return EXP_CANT_INTERPRET;
-                }
-                ae->elements->data[elemi] = newval;
-                return e;
-            }
-            else if (se)
-            {
-                int elemi = index->toInteger() + sexp->lwr->toInteger();
-                if (elemi >= se->len)
-                {
-                    error("array index %d is out of bounds %s[0..%d]", elemi,
-                        se->toChars(), se->len);
-                    return EXP_CANT_INTERPRET;
-                }
-                unsigned char *s = (unsigned char *)se->string;
-                unsigned value = newval->toInteger();
-                switch (se->sz)
-                {
-                    case 1: s[elemi] = value; break;
-                    case 2: ((unsigned short *)s)[elemi] = value; break;
-                    case 4: ((unsigned *)s)[elemi] = value; break;
-                    default:
-                        assert(0);
-                        break;
-                }
-                return e;
-            }
-            error("CTFE Internal Compiler Error: malformed slice assignment %s", toChars());
+        else
+        {
+            error("Index assignment %s is not yet supported in CTFE ", toChars());
             return EXP_CANT_INTERPRET;
         }
-        else
-            error("Index assignment %s is not yet supported in CTFE ", toChars());
-
+        return e;
     }
     else if (e1->op == TOKslice)
     {
