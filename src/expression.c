@@ -9546,6 +9546,10 @@ Expression *OrOrExp::semantic(Scope *sc)
         type = Type::tvoid;
     if (e2->op == TOKtype || e2->op == TOKimport)
         error("%s is not an expression", e2->toChars());
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     return this;
 }
 
@@ -9611,6 +9615,10 @@ Expression *AndAndExp::semantic(Scope *sc)
         type = Type::tvoid;
     if (e2->op == TOKtype || e2->op == TOKimport)
         error("%s is not an expression", e2->toChars());
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     return this;
 }
 
