@@ -6,8 +6,7 @@ extern (Objective-C)
 class NSObject {
 	void* isa;
 	
-	static NSObject alloc();
-	static NSObject allocWithZone(void* zone);
+	static NSObject alloc() [alloc];
 	NSObject init();
 }
 

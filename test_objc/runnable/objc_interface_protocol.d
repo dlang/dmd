@@ -3,7 +3,7 @@
 extern (Objective-C)
 pragma(objc_nameoverride, "NSObject")
 interface ObjcObject {
-    static ObjcObject alloc();
+    static ObjcObject alloc() [alloc];
     bool conformsToProtocol(Protocol p) [conformsToProtocol:];
 }
 

@@ -2,8 +2,8 @@
 
 extern extern (Objective-C)
 class NSObject {
-	static NSObject alloc();
-	static NSObject allocWithZone(void* zone);
+	static NSObject alloc() [alloc];
+	static NSObject allocWithZone(void* zone) [allocWithZone:];
 }
 
 void main() {

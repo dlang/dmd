@@ -2,9 +2,9 @@
 
 extern (Objective-C)
 class NSObject {
-    static NSObject alloc();
-    static NSObject allocWithZone(void*);
-    NSObject init();
+    static NSObject alloc() [alloc];
+    static NSObject allocWithZone(void*) [allocWithZone:];
+    NSObject init() [init];
 }
 
 import objc.runtime;

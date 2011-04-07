@@ -4,8 +4,8 @@ extern (Objective-C)
 class NSObject {
 	void* isa; // pointer to class object
 
-	static NSObject alloc();
-	NSObject init();
+	static NSObject alloc() [alloc];
+	NSObject init() [init];
 }
 
 extern (Objective-C)
