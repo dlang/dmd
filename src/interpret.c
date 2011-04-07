@@ -330,7 +330,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
  *      !NULL   expression from return statement
  */
 
-Expression *Statement::interpret(InterState *istate, bool wantLvalue)
+Expression *Statement::interpret(InterState *istate)
 {
 #if LOG
     printf("Statement::interpret()\n");
@@ -340,7 +340,7 @@ Expression *Statement::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *ExpStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ExpStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("ExpStatement::interpret(%s)\n", exp ? exp->toChars() : "");
@@ -358,7 +358,7 @@ Expression *ExpStatement::interpret(InterState *istate, bool wantLvalue)
     return NULL;
 }
 
-Expression *CompoundStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *CompoundStatement::interpret(InterState *istate)
 {   Expression *e = NULL;
 
 #if LOG
@@ -385,7 +385,7 @@ Expression *CompoundStatement::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *UnrolledLoopStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *UnrolledLoopStatement::interpret(InterState *istate)
 {   Expression *e = NULL;
 
 #if LOG
@@ -416,7 +416,7 @@ Expression *UnrolledLoopStatement::interpret(InterState *istate, bool wantLvalue
     return e;
 }
 
-Expression *IfStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *IfStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("IfStatement::interpret(%s)\n", condition->toChars());
@@ -451,7 +451,7 @@ Expression *IfStatement::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *ScopeStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ScopeStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("ScopeStatement::interpret()\n");
@@ -609,7 +609,7 @@ Expression * replaceReturnReference(Expression *original, InterState *istate)
      return r;
 }
 
-Expression *ReturnStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ReturnStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("ReturnStatement::interpret(%s)\n", exp ? exp->toChars() : "");
@@ -651,7 +651,7 @@ Expression *ReturnStatement::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *BreakStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *BreakStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("BreakStatement::interpret()\n");
@@ -663,7 +663,7 @@ Expression *BreakStatement::interpret(InterState *istate, bool wantLvalue)
         return EXP_BREAK_INTERPRET;
 }
 
-Expression *ContinueStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ContinueStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("ContinueStatement::interpret()\n");
@@ -675,7 +675,7 @@ Expression *ContinueStatement::interpret(InterState *istate, bool wantLvalue)
         return EXP_CONTINUE_INTERPRET;
 }
 
-Expression *WhileStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *WhileStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("WhileStatement::interpret()\n");
@@ -684,7 +684,7 @@ Expression *WhileStatement::interpret(InterState *istate, bool wantLvalue)
     return NULL;
 }
 
-Expression *DoStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *DoStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("DoStatement::interpret()\n");
@@ -741,7 +741,7 @@ Expression *DoStatement::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *ForStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ForStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("ForStatement::interpret()\n");
@@ -814,7 +814,7 @@ Expression *ForStatement::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *ForeachStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ForeachStatement::interpret(InterState *istate)
 {
 #if 1
     assert(0);                  // rewritten to ForStatement
@@ -906,7 +906,7 @@ Expression *ForeachStatement::interpret(InterState *istate, bool wantLvalue)
 }
 
 #if DMDV2
-Expression *ForeachRangeStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ForeachRangeStatement::interpret(InterState *istate)
 {
 #if 1
     assert(0);                  // rewritten to ForStatement
@@ -996,7 +996,7 @@ Expression *ForeachRangeStatement::interpret(InterState *istate, bool wantLvalue
 }
 #endif
 
-Expression *SwitchStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *SwitchStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("SwitchStatement::interpret()\n");
@@ -1052,7 +1052,7 @@ Expression *SwitchStatement::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *CaseStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *CaseStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("CaseStatement::interpret(%s) this = %p\n", exp->toChars(), this);
@@ -1065,7 +1065,7 @@ Expression *CaseStatement::interpret(InterState *istate, bool wantLvalue)
         return NULL;
 }
 
-Expression *DefaultStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *DefaultStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("DefaultStatement::interpret()\n");
@@ -1078,7 +1078,7 @@ Expression *DefaultStatement::interpret(InterState *istate, bool wantLvalue)
         return NULL;
 }
 
-Expression *GotoStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *GotoStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("GotoStatement::interpret()\n");
@@ -1089,7 +1089,7 @@ Expression *GotoStatement::interpret(InterState *istate, bool wantLvalue)
     return EXP_GOTO_INTERPRET;
 }
 
-Expression *GotoCaseStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *GotoCaseStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("GotoCaseStatement::interpret()\n");
@@ -1100,7 +1100,7 @@ Expression *GotoCaseStatement::interpret(InterState *istate, bool wantLvalue)
     return EXP_GOTO_INTERPRET;
 }
 
-Expression *GotoDefaultStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *GotoDefaultStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("GotoDefaultStatement::interpret()\n");
@@ -1111,7 +1111,7 @@ Expression *GotoDefaultStatement::interpret(InterState *istate, bool wantLvalue)
     return EXP_GOTO_INTERPRET;
 }
 
-Expression *LabelStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *LabelStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("LabelStatement::interpret()\n");
@@ -1122,7 +1122,7 @@ Expression *LabelStatement::interpret(InterState *istate, bool wantLvalue)
 }
 
 
-Expression *TryCatchStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *TryCatchStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("TryCatchStatement::interpret()\n");
@@ -1133,7 +1133,7 @@ Expression *TryCatchStatement::interpret(InterState *istate, bool wantLvalue)
 }
 
 
-Expression *TryFinallyStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *TryFinallyStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("TryFinallyStatement::interpret()\n");
@@ -1143,7 +1143,7 @@ Expression *TryFinallyStatement::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *ThrowStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *ThrowStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("ThrowStatement::interpret()\n");
@@ -1153,7 +1153,7 @@ Expression *ThrowStatement::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *OnScopeStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *OnScopeStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("OnScopeStatement::interpret()\n");
@@ -1163,7 +1163,7 @@ Expression *OnScopeStatement::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *WithStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *WithStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("WithStatement::interpret()\n");
@@ -1173,7 +1173,7 @@ Expression *WithStatement::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *AsmStatement::interpret(InterState *istate, bool wantLvalue)
+Expression *AsmStatement::interpret(InterState *istate)
 {
 #if LOG
     printf("AsmStatement::interpret()\n");
