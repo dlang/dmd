@@ -2249,12 +2249,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
         error("value of %s is not known at compile time", e1->toChars());
         return e;
     }
+    /* Before we begin, we need to know if this is a reference assignment
+     * (dynamic array, AA, or class) or a value assignment.
+     * Determining this for slice assignments are tricky: we need to know
+     * if it is a block assignment (a[] = e) rather than a direct slice
+     * assignment (a[] = b[]). Note that initializers of multi-dimensional
+     * static arrays can have 2D block assignments (eg, int[7][7] x = 6;).
+     * So we need to recurse to determine if it is a block assignment.
+     */
     bool isBlockAssignment = false;
     if (e1->op == TOKslice)
     {
+        // a[] = e can have const e. So we compare the const of both types.
         Type *desttype = e1->type->toBasetype();
         Type *srctype = e2->type->toBasetype()->constOf();
-        while ( desttype->ty==Tsarray || desttype->ty==Tarray)
+        while ( desttype->ty == Tsarray || desttype->ty == Tarray)
         {
             desttype = ((TypeArray *)desttype)->next;
             if (srctype == desttype->constOf())
