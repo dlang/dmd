@@ -2697,6 +2697,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
         /* Assignment to array element of the form:
          *   aggregate[i] = newval
          */
+        ArrayLiteralExp *existingAE = NULL;
+        StringExp *existingSE = NULL;
+        AssocArrayLiteralExp *existingAA = NULL;
+
         if (aggregate->op == TOKvar)
         {   IndexExp *ie = (IndexExp *)e1;
             VarExp *ve = (VarExp *)aggregate;
@@ -2724,16 +2728,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             }
             // Set the $ variable, and find the array literal to modify
             Expression *dollar = NULL;
-            ArrayLiteralExp *ae = NULL;
-            StringExp *se = NULL;
             if (v->getValue()->op == TOKslice)
             {
                 SliceExp *sexp = (SliceExp *)v->getValue();
                 dollar = new IntegerExp(loc, sexp->upr->toInteger()-sexp->lwr->toInteger(), Type::tsize_t);
                 if (sexp->e1->op == TOKarrayliteral)
-                    ae = (ArrayLiteralExp *)sexp->e1;
+                    existingAE = (ArrayLiteralExp *)sexp->e1;
                 if (sexp->e1->op == TOKstring)
-                    se = (StringExp *)sexp->e1;
+                    existingSE = (StringExp *)sexp->e1;
             }
             else if (v->getValue()->op == TOKarrayliteral
                 || v->getValue()->op == TOKassocarrayliteral
@@ -2741,9 +2743,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             {
                 dollar = ArrayLength(Type::tsize_t, v->getValue());
                 if (v->getValue()->op == TOKarrayliteral)
-                    ae = (ArrayLiteralExp *)v->getValue();
+                    existingAE = (ArrayLiteralExp *)v->getValue();
                 if (v->getValue()->op == TOKstring)
-                    se = (StringExp *)v->getValue();
+                    existingSE = (StringExp *)v->getValue();
+                if (v->getValue()->op == TOKassocarrayliteral)
+                    existingAA = (AssocArrayLiteralExp *)v->getValue();
             }
             else
             {
@@ -2759,30 +2763,30 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
 
-            if (ae)
+            if (existingAE)
             {
                 int elemi = index->toInteger();
-                if (elemi >= ae->elements->dim)
+                if (elemi >= existingAE->elements->dim)
                 {
-                    error("array index %d is out of bounds %s[0..%d]", elemi,
-                        v->getValue()->toChars(), ae->elements->dim);
+                    error("array index %d is out of bounds [0..%d]", elemi,
+                        existingAE->elements->dim);
                     return EXP_CANT_INTERPRET;
                 }
-                ae->elements->data[elemi] = newval;
+                existingAE->elements->data[elemi] = newval;
                 return e;
             }
-            if (se)
+            if (existingSE)
             {
                     int elemi = index->toInteger();
-                    if (elemi >= se->len)
+                    if (elemi >= existingSE->len)
                     {
-                        error("array index %d is out of bounds %s[0..%d]", elemi,
-                            se->toChars(), se->len);
+                        error("array index %d is out of bounds [0..%d]", elemi,
+                            existingSE->len);
                         return EXP_CANT_INTERPRET;
                     }
-                    unsigned char *s = (unsigned char *)se->string;
+                    unsigned char *s = (unsigned char *)existingSE->string;
                     unsigned value = newval->toInteger();
-                    switch (se->sz)
+                    switch (existingSE->sz)
                     {
                         case 1: s[elemi] = value; break;
                         case 2: ((unsigned short *)s)[elemi] = value; break;
@@ -2793,8 +2797,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                     }
                     return e;
             }
-            assert(v->getValue()->op == TOKassocarrayliteral);
-            if (assignAssocArrayElement(loc, (AssocArrayLiteralExp *)v->getValue(), index, newval) == EXP_CANT_INTERPRET)
+            assert(existingAA);
+            if (assignAssocArrayElement(loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             return e;
         }
