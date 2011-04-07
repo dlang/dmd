@@ -461,48 +461,6 @@ Expression *ScopeStatement::interpret(InterState *istate)
     return statement ? statement->interpret(istate) : NULL;
 }
 
-#if 0
-void evaluateSliceBounds(SliceExp *sexp, Expression **upper, Expression **lower, InterState *istate)
-{
-    Expression *e1 = sexp->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
-    if (!this->lwr)
-    {
-        e = e1->castTo(NULL, type);
-        return e->interpret(istate);
-    }
-
-    /* Set the $ variable
-     */
-    e = ArrayLength(Type::tsize_t, e1);
-    if (e == EXP_CANT_INTERPRET)
-        goto Lcant;
-    if (lengthVar)
-        lengthVar->createStackValue(e);
-
-    /* Evaluate lower and upper bounds of slice
-     */
-    *lower = this->lwr->interpret(istate);
-    if (*lower == EXP_CANT_INTERPRET)
-        goto Lcant;
-    upr = this->upr->interpret(istate);
-    if (upr == EXP_CANT_INTERPRET)
-        goto Lcant;
-    if (lengthVar)
-        lengthVar->setValueNull(); // $ is defined only inside [L..U]
-    e = Slice(type, e1, lwr, upr);
-    if (e == EXP_CANT_INTERPRET)
-        error("%s cannot be interpreted at compile time", toChars());
-    return e;
-
-Lcant:
-    if (lengthVar)
-        lengthVar->setValueNull();
-    return EXP_CANT_INTERPRET;
-}
-#endif
-
 // Helper for ReturnStatement::interpret() for returning references.
 // Given an original expression, which is known to be a reference to a reference,
 // turn it into a reference.
@@ -2260,13 +2218,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
     bool isBlockAssignment = false;
     if (e1->op == TOKslice)
     {
-        // a[] = e can have const e. So we compare the const of both types.
+        // a[] = e can have const e. So we compare the naked types.
         Type *desttype = e1->type->toBasetype();
-        Type *srctype = e2->type->toBasetype()->constOf();
+        Type *srctype = e2->type->toBasetype()->castMod(0);
         while ( desttype->ty == Tsarray || desttype->ty == Tarray)
         {
             desttype = ((TypeArray *)desttype)->next;
-            if (srctype == desttype->constOf())
+            if (srctype == desttype->castMod(0))
             {
                 isBlockAssignment = true;
                 break;
