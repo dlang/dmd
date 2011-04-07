@@ -2274,8 +2274,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
         }
     }
     bool wantRef = false;
-    if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype()
-        && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
+    if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
+        (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray ||
+         e1->type->toBasetype()->ty == Tclass)
         )
     {
         wantRef = true;
