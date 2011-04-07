@@ -99,8 +99,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
     if (semanticRun < PASSsemantic3 && scope)
     {
+        int olderrors = global.errors;
         semantic3(scope);
-        if (global.errors)      // if errors compiling this function
+        if (olderrors != global.errors)      // if errors compiling this function
             return NULL;
     }
     if (semanticRun < PASSsemantic3done)
@@ -1350,6 +1351,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, bool wantLval
         {   Expressions *exps = new Expressions();
             e = new StructLiteralExp(0, s->dsym, exps);
             e = e->semantic(NULL);
+            if (e->op == TOKerror)
+                e = EXP_CANT_INTERPRET;
         }
     }
     return e;
