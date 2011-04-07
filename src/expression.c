@@ -3507,7 +3507,7 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
             /* If type is a static array, and e is an initializer for that array,
              * then the field initializer should be an array literal of e.
              */
-            if (e->type != type && type->ty == Tsarray)
+            if (e->type->castMod(0) != type->castMod(0) && type->ty == Tsarray)
             {   TypeSArray *tsa = (TypeSArray *)type;
                 uinteger_t length = tsa->dim->toInteger();
                 Expressions *z = new Expressions;
