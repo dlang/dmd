@@ -2226,8 +2226,12 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
 {
     for (size_t k = 0; k < ae->elements->dim; k++)
     {
-        if (((Expression *)(ae->elements->data[k]))->op == TOKarrayliteral)
+        bool blockAssign = (((Expression *)(ae->elements->data[k]))->type->toBasetype() 
+        == val->type->toBasetype());
+        if (!blockAssign && ((Expression *)(ae->elements->data[k]))->op == TOKarrayliteral)
+        {
             recursiveBlockAssign((ArrayLiteralExp *)(ae->elements->data[k]), val);
+        }
         else ae->elements->data[k] = val;
     }
 }
@@ -2245,6 +2249,33 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
         error("value of %s is not known at compile time", e1->toChars());
         return e;
     }
+    bool isBlockAssignment = false;
+    if (e1->op == TOKslice)
+    {
+        Type *desttype = e1->type->toBasetype();
+        Type *srctype = e2->type->toBasetype()->constOf();
+        while ( desttype->ty==Tsarray || desttype->ty==Tarray)
+        {
+            desttype = ((TypeArray *)desttype)->next;
+            if (srctype == desttype->constOf())
+            {
+                isBlockAssignment = true;
+                break;
+            }
+        }
+    }
+    bool wantRef = false;
+    if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype()
+        && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
+        )
+    {
+        wantRef = true;
+    }
+    if (isBlockAssignment && (e2->type->toBasetype()->ty == Tarray || e2->type->toBasetype()->ty == Tsarray))
+    {
+        wantRef = true;
+    }
+
 
     if (fp)
     {
@@ -2277,15 +2308,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
     assert(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
         || e1->op == TOKindex || e1->op == TOKslice);
 
-    bool wantRef = false;
     Expression * newval = NULL;
-    if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype()
-        && (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
-        )
-    {
-        wantRef = true;
-    }
-    else
+
+    if (!wantRef)
         newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
@@ -2865,7 +2890,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
         if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
-
         int dim = arraylen->toInteger();
         int upperbound = upper ? upper->toInteger() : dim;
         int lowerbound = lower ? lower->toInteger() : 0;
@@ -2874,24 +2898,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
         {
             error("Array bounds [0..%d] exceeded in slice [%d..%d]",
                 dim, lowerbound, upperbound);
-            return EXP_CANT_INTERPRET;
-        }
-
-        // Could either be slice assignment (v[] = e[]),
-        // or block assignment (v[] = val).
-        // For the former, we check that the lengths match.
-
-        // This next line isn't quite right: what if it is block assignment of a string?
-        bool isSliceAssignment = (newval->op == TOKarrayliteral)
-            || (newval->op == TOKstring);
-        size_t srclen = 0;
-        if (newval->op == TOKarrayliteral)
-            srclen = ((ArrayLiteralExp *)newval)->elements->dim;
-        else if (newval->op == TOKstring)
-            srclen = ((StringExp *)newval)->len;
-        if (isSliceAssignment && srclen != (upperbound - lowerbound))
-        {
-            error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
             return EXP_CANT_INTERPRET;
         }
 
@@ -2950,7 +2956,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
         else if (aggregate->op==TOKstring)
             existingSE = (StringExp *)aggregate;
 
-        if (newval->op == TOKarrayliteral && existingAE)
+        // For slice assignment, we check that the lengths match.
+        size_t srclen = 0;
+        if (newval->op == TOKarrayliteral)
+            srclen = ((ArrayLiteralExp *)newval)->elements->dim;
+        else if (newval->op == TOKstring)
+            srclen = ((StringExp *)newval)->len;
+        if (!isBlockAssignment && srclen != (upperbound - lowerbound))
+        {
+            error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
+            return EXP_CANT_INTERPRET;
+        }
+
+        if (!isBlockAssignment && newval->op == TOKarrayliteral && existingAE)
         {
             Expressions *oldelems = existingAE->elements;
             Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
@@ -3031,25 +3049,39 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                         break;
                 }
             }
-            return newval;
+            SliceExp *retslice = new SliceExp(loc, existingSE,
+                new IntegerExp(loc, firstIndex, Type::tsize_t),
+                new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
+            retslice->type = this->type;
+            /* Annoying inefficiency -- this creates a duplicate
+             * string literal, which is probably never used.
+             */
+            return retslice->interpret(istate);
         }
         else if (existingAE)
         {
-                /* Block assignment, initialization of static arrays
-                 *   x[] = e
-                 *  x may be a multidimensional static array. (Note that this
-                 *  only happens with array literals, never with strings).
-                 */
-                Expressions * w = existingAE->elements;
-                for (size_t j = 0; j < upperbound-lowerbound; j++)
-                {
-                    if (((Expression *)w->data[j+firstIndex])->op == TOKarrayliteral)
-                        // Multidimensional array block assign
-                        recursiveBlockAssign((ArrayLiteralExp *)w->data[j+firstIndex], newval);
-                    else // Single dimension block assign
-                        existingAE->elements->data[j+firstIndex] = newval;
-                }
-                return newval;
+            /* Block assignment, initialization of static arrays
+             *   x[] = e
+             *  x may be a multidimensional static array. (Note that this
+             *  only happens with array literals, never with strings).
+             */
+            Expressions * w = existingAE->elements;
+            for (size_t j = 0; j < upperbound-lowerbound; j++)
+            {
+                if (((Expression *)w->data[j+firstIndex])->op == TOKarrayliteral)
+                    // Multidimensional array block assign
+                    recursiveBlockAssign((ArrayLiteralExp *)w->data[j+firstIndex], newval);
+                else
+                    existingAE->elements->data[j+firstIndex] = newval;
+            }
+            SliceExp *retslice = new SliceExp(loc, existingAE,
+                new IntegerExp(loc, firstIndex, Type::tsize_t),
+                new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
+            retslice->type = this->type;
+            /* Annoying inefficiency -- this creates a duplicate
+             * array literal, which is probably never used.
+             */
+            return retslice->interpret(istate);
         }
         else
             error("Slice operation %s cannot be evaluated at compile time", toChars());
