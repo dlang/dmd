@@ -2258,7 +2258,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          e1->type->toBasetype()->ty == Tclass)
         )
     {
+#if DMDV2
         wantRef = true;
+#else
+        /* D1 doesn't have const in the type system. But there is still a
+         * vestigal const in the form of static const variables.
+         * Problematic code like:
+         *    const int [] x = [1,2,3];
+         *    int [] y = x;
+         * can be dealt with by making this a non-ref assign (y = x.dup).
+         * Otherwise it's a big mess.
+         */
+        VarDeclaration * targetVar = findParentVar(e2, istate->localThis);
+        if (!(targetVar && targetVar->isConst()))
+            wantRef = true;
+#endif
     }
     if (isBlockAssignment && (e2->type->toBasetype()->ty == Tarray || e2->type->toBasetype()->ty == Tsarray))
     {
@@ -2309,6 +2323,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
+
     // ----------------------------------------------------
     //  Deal with read-modify-write assignments.
     //  Set 'newval' to the final assignment value
@@ -2570,7 +2585,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 VarExp *vv = (VarExp *)newval;
 
                 VarDeclaration *v2 = vv->var->isVarDeclaration();
-                assert(v2);
+                assert(v2 && v2->getValue());
                 assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring
                     || v2->getValue()->op == TOKassocarrayliteral || v2->getValue()->op == TOKnull));
                 v->setValueNull();
@@ -2587,7 +2602,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 {
                     VarExp *vv = (VarExp *)agg;
                     VarDeclaration *v2 = vv->var->isVarDeclaration();
-                    assert(v2);
+                    assert(v2 && v2->getValue());
                     if (v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring)
                     {
                         Expression *dollar = ArrayLength(Type::tsize_t, v2->getValue());
