@@ -2635,16 +2635,22 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     }
                     else
                     {
+                        newval = newval->interpret(istate);
+                        if (newval == EXP_CANT_INTERPRET)
+                            return newval;
                         if (!v->getValue())
-                            v->createRefValue(newval->interpret(istate));
-                        else v->setRefValue(newval->interpret(istate));
+                            v->createRefValue(newval);
+                        else v->setRefValue(newval);
                     }
                 }
                 else
                 {
+                    newval = newval->interpret(istate);
+                    if (newval == EXP_CANT_INTERPRET)
+                        return newval;
                     if (!v->getValue())
-                        v->createRefValue(newval->interpret(istate));
-                    else v->setRefValue(newval->interpret(istate));
+                        v->createRefValue(newval);
+                    else v->setRefValue(newval);
                 }
             }
             else
@@ -2705,6 +2711,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (ie->e1->type->toBasetype()->ty != Taarray)
         {
             Expression *oldval = ie->e1->interpret(istate);
+            if (oldval->op == TOKnull)
+            {
+                error("cannot index null array %s", ie->e1->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             Expression *dollar = ArrayLength(Type::tsize_t, oldval);
             if (dollar == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
@@ -2784,7 +2795,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     return e;
                 }
                 // This would be a runtime segfault
-                error("Cannot index null array %s", v->toChars());
+                error("cannot index null array %s", v->toChars());
                 return EXP_CANT_INTERPRET;
             }
         }
@@ -2848,6 +2859,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         SliceExp * sexp = (SliceExp *)e1;
         // Set the $ variable
         Expression *oldval = sexp->e1->interpret(istate);
+        if (oldval->op == TOKnull)
+        {
+            error("cannot slice null array %s", sexp->e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
         Expression *arraylen = ArrayLength(Type::tsize_t, oldval);
         if (arraylen == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
@@ -3490,6 +3506,12 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
 
+    if (e1->op == TOKnull)
+    {
+        error("cannot index null array %s", this->e1->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+
     if (e1->op == TOKstring || e1->op == TOKarrayliteral)
     {
         /* Set the $ variable
@@ -3530,6 +3552,13 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
+
+    if (e1->op == TOKnull)
+    {
+        error("cannot slice null array %s", this->e1->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+
     if (!this->lwr)
     {
         if (goal == ctfeNeedLvalue)
@@ -3883,7 +3912,9 @@ Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration
 
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd)
 {
-    //printf("interpret_values()\n");
+#if LOG
+    printf("interpret_values()\n");
+#endif
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
