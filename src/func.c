@@ -1096,7 +1096,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 f = (TypeFunction *)type;
             }
 
-            int offend = fbody ? fbody->blockExit() & BEfallthru : TRUE;
+            int offend = fbody ? fbody->blockExit(false) & BEfallthru : TRUE;
 
             if (isStaticCtorDeclaration())
             {   /* It's a static constructor. Ensure that all
