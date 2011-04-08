@@ -2050,7 +2050,8 @@ elem *AssertExp::toElem(IRState *irs)
         if (global.params.useInvariants && t1->ty == Tclass &&
             ((TypeClass *)t1)->sym->objc)
         {
-            // FIXME: skipping invariant for objc classes (for now)
+            // Call Objective-C invariant
+            e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), e);
         }
         else
 #endif

@@ -810,6 +810,31 @@ void ClassDeclaration::semantic(Scope *sc)
             // this is done by the backend glue in objc.c, we just need to set a flag
             objchaspreinit = 1;
 		}
+        
+        // invariant for Objective-C class is handled by adding a _dobjc_invariant
+        // dynamic method calling the invariant function and then the parent's 
+        // _dobjc_invariant if applicable.
+        if (inv)
+        {
+            Loc iloc = inv->loc;
+            TypeFunction *invtf = new TypeFunction(new Parameters, Type::tvoid, 0, LINKobjc);
+            FuncDeclaration *invfd = findFunc(Id::_dobjc_invariant, invtf);
+            
+            // create dynamic dispatch handler for invariant
+			FuncDeclaration *newinvfd = new FuncDeclaration(iloc, iloc, Id::_dobjc_invariant, STCundefined, invtf);
+            
+            Expression *e;
+            e = new DsymbolExp(iloc, inv);
+            e = new CallExp(iloc, e);
+            if (invfd)
+            {   // call super's _dobjc_invariant
+                e = new CommaExp(iloc, e, new CallExp(iloc, new DotIdExp(iloc, new SuperExp(iloc), Id::_dobjc_invariant)));
+            }
+			newinvfd->fbody = new ExpStatement(iloc, e);
+			members->push(newinvfd);
+			newinvfd->addMember(sc, this, 1);
+			newinvfd->semantic(sc);
+        }
 	}
 #endif
 

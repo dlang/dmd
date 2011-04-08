@@ -267,6 +267,7 @@ Msgtable msgtable[] =
     { "_ArrayEq" },
     // DMD_OBJC
     { "_dobjc_preinit" },
+    { "_dobjc_invariant" },
     { "objc_sync_enter" },
     { "objc_sync_exit" },
 

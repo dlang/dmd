@@ -2783,6 +2783,10 @@ int FuncDeclaration::addPreInvariant()
             global.params.useInvariants &&
             (protection == PROTpublic || protection == PROTexport) &&
             !naked &&
+#if DMD_OBJC
+            ident != Id::_dobjc_preinit &&
+            ident != Id::_dobjc_invariant &&
+#endif
             ident != Id::cpctor);
 }
 
@@ -2795,6 +2799,10 @@ int FuncDeclaration::addPostInvariant()
             global.params.useInvariants &&
             (protection == PROTpublic || protection == PROTexport) &&
             !naked &&
+#if DMD_OBJC
+            ident != Id::_dobjc_preinit &&
+            ident != Id::_dobjc_invariant &&
+#endif
             ident != Id::cpctor);
 }
 
