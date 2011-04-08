@@ -1138,6 +1138,16 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 v->init = new ExpInitializer(0, e);
                 v->storage_class |= STCconst;
             }
+            else if (ce->op == TOKvar)
+            {
+                Type *t = ce->type->toBasetype();
+                if (t->ty == Tsarray)
+                {
+                    Expression *e = new IntegerExp(0, ((TypeSArray *)t)->dim->toInteger(), Type::tsize_t);
+                    v->init = new ExpInitializer(0, e);
+                    v->storage_class |= STCconst;
+                }
+            }
             *pvar = v;
         }
         return (*pvar);
