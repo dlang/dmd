@@ -667,15 +667,32 @@ ObjcSelector *ObjcSelector::lookup(const char *s, size_t len, size_t pcount)
 
 ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
 {
-    // create a selector by adding a semicolon for each parameter
     OutBuffer buf;
-    buf.write(fdecl->ident->string, fdecl->ident->len);
     size_t pcount = 0;
     TypeFunction *ftype = (TypeFunction *)fdecl->type;
+    
+    // Special case: property setter
+    if ((fdecl->storage_class & STCproperty) && 
+        ftype->parameters && ftype->parameters->dim == 1)
+    {   // rewrite "identifier" as "setIdentifier"
+        char firstChar = fdecl->ident->string[0];
+        if (firstChar >= 'a' && firstChar <= 'z')
+            firstChar = firstChar - 'a' + 'A';
+        
+        buf.write("set", 3);
+        buf.writeByte(firstChar);
+        buf.write(fdecl->ident->string+1, fdecl->ident->len-1);
+        goto Lcomplete;
+    }
+
+    // write identifier in selector
+    buf.write(fdecl->ident->string, fdecl->ident->len);
+    
+    // add mangled type and colon for each parameter
     if (ftype->parameters && ftype->parameters->dim)
     {
-        Parameters *arguments = ftype->parameters;
         buf.writeByte('_');
+        Parameters *arguments = ftype->parameters;
         size_t dim = Parameter::dim(arguments);
         for (size_t i = 0; i < dim; i++)
         {
@@ -685,8 +702,9 @@ ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
         }
         pcount = dim;
     }
+Lcomplete:
     buf.writeByte('\0');
-    
+
     return lookup((const char *)buf.data, buf.size, pcount);
 }
 

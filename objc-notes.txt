@@ -155,7 +155,7 @@ instead.
 the compiler know about designated initializers?}
 
 
-### Properties {unimplemented}
+### Properties
 
 When not given explicit selecectors, property functions are given the 
 appropriate method names so they can participate in key-value coding.
@@ -313,7 +313,7 @@ becomes even simpler:
 
 	NSString str = "hello";
 
-This only works for strings literals. If the string comes from
+Automatic conversion only works for strings literals. If the string comes from
 a variable, you'll need to construct the `NSString` object yourself.
 
 
