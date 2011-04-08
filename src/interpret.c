@@ -53,7 +53,7 @@ Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
 
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
-Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, bool wantLvalue);
+Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
 
 /*************************************
@@ -349,7 +349,7 @@ Expression *ExpStatement::interpret(InterState *istate)
     START()
     if (exp)
     {
-        Expression *e = exp->interpret(istate);
+        Expression *e = exp->interpret(istate, ctfeNeedNothing);
         if (e == EXP_CANT_INTERPRET)
         {
             //printf("-ExpStatement::interpret(): %p\n", e);
@@ -1144,7 +1144,7 @@ Expression *AsmStatement::interpret(InterState *istate)
 
 /******************************** Expression ***************************/
 
-Expression *Expression::interpret(InterState *istate, bool wantLvalue)
+Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("Expression::interpret() %s\n", toChars());
@@ -1155,7 +1155,7 @@ Expression *Expression::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *ThisExp::interpret(InterState *istate, bool wantLvalue)
+Expression *ThisExp::interpret(InterState *istate, CtfeGoal goal)
 {
     if (istate && istate->localThis)
         return istate->localThis->interpret(istate);
@@ -1163,12 +1163,12 @@ Expression *ThisExp::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *NullExp::interpret(InterState *istate, bool wantLvalue)
+Expression *NullExp::interpret(InterState *istate, CtfeGoal goal)
 {
     return this;
 }
 
-Expression *IntegerExp::interpret(InterState *istate, bool wantLvalue)
+Expression *IntegerExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("IntegerExp::interpret() %s\n", toChars());
@@ -1176,7 +1176,7 @@ Expression *IntegerExp::interpret(InterState *istate, bool wantLvalue)
     return this;
 }
 
-Expression *RealExp::interpret(InterState *istate, bool wantLvalue)
+Expression *RealExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("RealExp::interpret() %s\n", toChars());
@@ -1184,12 +1184,12 @@ Expression *RealExp::interpret(InterState *istate, bool wantLvalue)
     return this;
 }
 
-Expression *ComplexExp::interpret(InterState *istate, bool wantLvalue)
+Expression *ComplexExp::interpret(InterState *istate, CtfeGoal goal)
 {
     return this;
 }
 
-Expression *StringExp::interpret(InterState *istate, bool wantLvalue)
+Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("StringExp::interpret() %s\n", toChars());
@@ -1197,7 +1197,7 @@ Expression *StringExp::interpret(InterState *istate, bool wantLvalue)
     return this;
 }
 
-Expression *FuncExp::interpret(InterState *istate, bool wantLvalue)
+Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("FuncExp::interpret() %s\n", toChars());
@@ -1205,7 +1205,7 @@ Expression *FuncExp::interpret(InterState *istate, bool wantLvalue)
     return this;
 }
 
-Expression *SymOffExp::interpret(InterState *istate, bool wantLvalue)
+Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("SymOffExp::interpret() %s\n", toChars());
@@ -1218,7 +1218,7 @@ Expression *SymOffExp::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *DelegateExp::interpret(InterState *istate, bool wantLvalue)
+Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("DelegateExp::interpret() %s\n", toChars());
@@ -1285,7 +1285,7 @@ Expression * resolveReferences(Expression *e, Expression *thisval, bool *isRefer
     return e;
 }
 
-Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, bool wantLvalue)
+Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal)
 {
     Expression *e = EXP_CANT_INTERPRET;
     VarDeclaration *v = d->isVarDeclaration();
@@ -1335,12 +1335,12 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, bool wantLval
                 error(loc, "variable %s is used before initialization", v->toChars());
             else if (e == EXP_CANT_INTERPRET)
                 return e;
-            else if (wantLvalue && (e->op == TOKstring || e->op == TOKslice ||
+            else if (goal == ctfeNeedLvalue && (e->op == TOKstring || e->op == TOKslice ||
                     e->op == TOKstructliteral || e->op == TOKarrayliteral ||
                     e->op == TOKassocarrayliteral))
                 return e; // it's already an Lvalue
             else
-                e = e->interpret(istate, wantLvalue);
+                e = e->interpret(istate, goal);
         }
         if (!e)
             e = EXP_CANT_INTERPRET;
@@ -1358,15 +1358,15 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, bool wantLval
     return e;
 }
 
-Expression *VarExp::interpret(InterState *istate, bool wantLvalue)
+Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("VarExp::interpret() %s\n", toChars());
 #endif
-    return getVarExp(loc, istate, var, wantLvalue);
+    return getVarExp(loc, istate, var, goal);
 }
 
-Expression *DeclarationExp::interpret(InterState *istate, bool wantLvalue)
+Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("DeclarationExp::interpret() %s\n", toChars());
@@ -1429,7 +1429,7 @@ Expression *DeclarationExp::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *TupleExp::interpret(InterState *istate, bool wantLvalue)
+Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("TupleExp::interpret() %s\n", toChars());
@@ -1470,7 +1470,7 @@ Expression *TupleExp::interpret(InterState *istate, bool wantLvalue)
     return this;
 }
 
-Expression *ArrayLiteralExp::interpret(InterState *istate, bool wantLvalue)
+Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expressions *expsx = NULL;
 
 #if LOG
@@ -1520,7 +1520,7 @@ Lerror:
     return EXP_CANT_INTERPRET;
 }
 
-Expression *AssocArrayLiteralExp::interpret(InterState *istate, bool wantLvalue)
+Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expressions *keysx = keys;
     Expressions *valuesx = values;
 
@@ -1607,7 +1607,7 @@ Lerr:
     return EXP_CANT_INTERPRET;
 }
 
-Expression *StructLiteralExp::interpret(InterState *istate, bool wantLvalue)
+Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expressions *expsx = NULL;
 
 #if LOG
@@ -1703,7 +1703,7 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
     return se;
 }
 
-Expression *NewExp::interpret(InterState *istate, bool wantLvalue)
+Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("NewExp::interpret() %s\n", toChars());
@@ -1721,7 +1721,7 @@ Expression *NewExp::interpret(InterState *istate, bool wantLvalue)
     return EXP_CANT_INTERPRET;
 }
 
-Expression *UnaExp::interpretCommon(InterState *istate,  bool wantLvalue, Expression *(*fp)(Type *, Expression *))
+Expression *UnaExp::interpretCommon(InterState *istate,  CtfeGoal goal, Expression *(*fp)(Type *, Expression *))
 {   Expression *e;
     Expression *e1;
 
@@ -1742,9 +1742,9 @@ Lcant:
 }
 
 #define UNA_INTERPRET(op) \
-Expression *op##Exp::interpret(InterState *istate, bool wantLvalue)      \
-{                                                       \
-    return interpretCommon(istate, wantLvalue, &op);    \
+Expression *op##Exp::interpret(InterState *istate, CtfeGoal goal)  \
+{                                                                  \
+    return interpretCommon(istate, goal, &op);                     \
 }
 
 UNA_INTERPRET(Neg)
@@ -1755,7 +1755,7 @@ UNA_INTERPRET(Bool)
 
 typedef Expression *(*fp_t)(Type *, Expression *, Expression *);
 
-Expression *BinExp::interpretCommon(InterState *istate, bool wantLvalue, fp_t fp)
+Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
 {   Expression *e;
     Expression *e1;
     Expression *e2;
@@ -1783,9 +1783,9 @@ Lcant:
 }
 
 #define BIN_INTERPRET(op) \
-Expression *op##Exp::interpret(InterState *istate, bool wantLvalue) \
-{                                                                   \
-    return interpretCommon(istate, wantLvalue, &op);                \
+Expression *op##Exp::interpret(InterState *istate, CtfeGoal goal) \
+{                                                                 \
+    return interpretCommon(istate, goal, &op);                    \
 }
 
 BIN_INTERPRET(Add)
@@ -1803,7 +1803,7 @@ BIN_INTERPRET(Xor)
 
 typedef Expression *(*fp2_t)(enum TOK, Type *, Expression *, Expression *);
 
-Expression *BinExp::interpretCommon2(InterState *istate, bool wantLvalue, fp2_t fp)
+Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp)
 {   Expression *e;
     Expression *e1;
     Expression *e2;
@@ -1839,9 +1839,9 @@ Lcant:
 }
 
 #define BIN_INTERPRET2(op) \
-Expression *op##Exp::interpret(InterState *istate, bool wantLvalue)  \
-{                                                                    \
-    return interpretCommon2(istate, wantLvalue, &op);                \
+Expression *op##Exp::interpret(InterState *istate, CtfeGoal goal)  \
+{                                                                  \
+    return interpretCommon2(istate, goal, &op);                    \
 }
 
 BIN_INTERPRET2(Equal)
@@ -2199,7 +2199,7 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
 }
 
 
-Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, fp_t fp, int post)
+Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post)
 {
 #if LOG
     printf("BinExp::interpretAssignCommon() %s\n", toChars());
@@ -2992,13 +2992,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                         break;
                 }
             }
+            if (goal == ctfeNeedNothing)
+                return NULL; // avoid creating an unused literal
             SliceExp *retslice = new SliceExp(loc, existingSE,
                 new IntegerExp(loc, firstIndex, Type::tsize_t),
                 new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
             retslice->type = this->type;
-            /* Annoying inefficiency -- this creates a duplicate
-             * string literal, which is probably never used.
-             */
             return retslice->interpret(istate);
         }
         else if (existingAE)
@@ -3021,13 +3020,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
                 else
                     existingAE->elements->data[j+firstIndex] = newval;
             }
+            if (goal == ctfeNeedNothing)
+                return NULL; // avoid creating an unused literal
             SliceExp *retslice = new SliceExp(loc, existingAE,
                 new IntegerExp(loc, firstIndex, Type::tsize_t),
                 new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
             retslice->type = this->type;
-            /* Annoying inefficiency -- this creates a duplicate
-             * array literal, which is probably never used.
-             */
             return retslice->interpret(istate);
         }
         else
@@ -3054,7 +3052,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
             if (vie->op == TOKvar)
             {
                 Declaration *d = ((VarExp *)vie)->var;
-                vie = getVarExp(e1->loc, istate, d, true);
+                vie = getVarExp(e1->loc, istate, d, ctfeNeedRvalue);
             }
             if (vie->op != TOKstructliteral)
                 return EXP_CANT_INTERPRET;
@@ -3077,15 +3075,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, bool wantLvalue, f
     return e;
 }
 
-Expression *AssignExp::interpret(InterState *istate, bool wantLvalue)
+Expression *AssignExp::interpret(InterState *istate, CtfeGoal goal)
 {
-    return interpretAssignCommon(istate, wantLvalue, NULL);
+    return interpretAssignCommon(istate, goal, NULL);
 }
 
 #define BIN_ASSIGN_INTERPRET(op) \
-Expression *op##AssignExp::interpret(InterState *istate, bool wantLvalue) \
-{                                                                         \
-    return interpretAssignCommon(istate, wantLvalue, &op);                \
+Expression *op##AssignExp::interpret(InterState *istate, CtfeGoal goal) \
+{                                                                       \
+    return interpretAssignCommon(istate, goal, &op);                    \
 }
 
 BIN_ASSIGN_INTERPRET(Add)
@@ -3101,16 +3099,16 @@ BIN_ASSIGN_INTERPRET(And)
 BIN_ASSIGN_INTERPRET(Or)
 BIN_ASSIGN_INTERPRET(Xor)
 
-Expression *PostExp::interpret(InterState *istate, bool wantLvalue)
+Expression *PostExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("PostExp::interpret() %s\n", toChars());
 #endif
     Expression *e;
     if (op == TOKplusplus)
-        e = interpretAssignCommon(istate, wantLvalue, &Add, 1);
+        e = interpretAssignCommon(istate, goal, &Add, 1);
     else
-        e = interpretAssignCommon(istate, wantLvalue, &Min, 1);
+        e = interpretAssignCommon(istate, goal, &Min, 1);
 #if LOG
     if (e == EXP_CANT_INTERPRET)
         printf("PostExp::interpret() CANT\n");
@@ -3118,7 +3116,7 @@ Expression *PostExp::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *AndAndExp::interpret(InterState *istate, bool wantLvalue)
+Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("AndAndExp::interpret() %s\n", toChars());
@@ -3147,7 +3145,7 @@ Expression *AndAndExp::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *OrOrExp::interpret(InterState *istate, bool wantLvalue)
+Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("OrOrExp::interpret() %s\n", toChars());
@@ -3177,7 +3175,7 @@ Expression *OrOrExp::interpret(InterState *istate, bool wantLvalue)
 }
 
 
-Expression *CallExp::interpret(InterState *istate, bool wantLvalue)
+Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
 #if LOG
@@ -3202,7 +3200,7 @@ Expression *CallExp::interpret(InterState *istate, bool wantLvalue)
                 fd = ((SymOffExp *)vd->getValue())->var->isFuncDeclaration();
             else
             {
-                ecall = getVarExp(loc, istate, vd, wantLvalue);
+                ecall = getVarExp(loc, istate, vd, goal);
                 if (ecall == EXP_CANT_INTERPRET)
                     return ecall;
 
@@ -3350,7 +3348,7 @@ Expression *CallExp::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *CommaExp::interpret(InterState *istate, bool wantLvalue)
+Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("CommaExp::interpret() %s\n", toChars());
@@ -3398,7 +3396,7 @@ Expression *CommaExp::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *CondExp::interpret(InterState *istate, bool wantLvalue)
+Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("CondExp::interpret() %s\n", toChars());
@@ -3416,7 +3414,7 @@ Expression *CondExp::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *ArrayLengthExp::interpret(InterState *istate, bool wantLvalue)
+Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
     Expression *e1;
 
@@ -3442,7 +3440,7 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
-Expression *IndexExp::interpret(InterState *istate, bool wantLvalue)
+Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
     Expression *e1;
     Expression *e2;
@@ -3482,7 +3480,7 @@ Lcant:
 }
 
 
-Expression *SliceExp::interpret(InterState *istate, bool wantLvalue)
+Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
     Expression *e1;
     Expression *lwr;
@@ -3491,12 +3489,12 @@ Expression *SliceExp::interpret(InterState *istate, bool wantLvalue)
 #if LOG
     printf("SliceExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate, wantLvalue);
+    e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
     if (!this->lwr)
     {
-        if (wantLvalue)
+        if (goal == ctfeNeedLvalue)
             return e1;
         e = e1->castTo(NULL, type);
         return e->interpret(istate);
@@ -3523,7 +3521,7 @@ Expression *SliceExp::interpret(InterState *istate, bool wantLvalue)
         goto Lcant;
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside [L..U]
-    if (wantLvalue)
+    if (goal == ctfeNeedLvalue)
     {
         assert(e1->op != TOKslice);
         e = new SliceExp(loc, e1, lwr, upr);
@@ -3542,7 +3540,7 @@ Lcant:
 }
 
 
-Expression *CatExp::interpret(InterState *istate, bool wantLvalue)
+Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
     Expression *e1;
     Expression *e2;
@@ -3571,7 +3569,7 @@ Lcant:
 }
 
 
-Expression *CastExp::interpret(InterState *istate, bool wantLvalue)
+Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
     Expression *e1;
 
@@ -3594,7 +3592,7 @@ Lcant:
 }
 
 
-Expression *AssertExp::interpret(InterState *istate, bool wantLvalue)
+Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
     Expression *e1;
 
@@ -3607,7 +3605,7 @@ Expression *AssertExp::interpret(InterState *istate, bool wantLvalue)
         if (ade->e1->op == TOKthis && istate->localThis)
             if (istate->localThis->op == TOKdotvar
                 && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
-                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var, false);
+                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var, ctfeNeedRvalue);
             else
                 return istate->localThis->interpret(istate);
     }
@@ -3617,7 +3615,7 @@ Expression *AssertExp::interpret(InterState *istate, bool wantLvalue)
         {
             if (istate->localThis->op == TOKdotvar
                 && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
-                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var, false);
+                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var, ctfeNeedRvalue);
             else
                 return istate->localThis->interpret(istate);
         }
@@ -3649,7 +3647,7 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
-Expression *PtrExp::interpret(InterState *istate, bool wantLvalue)
+Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
 #if LOG
@@ -3681,7 +3679,7 @@ Expression *PtrExp::interpret(InterState *istate, bool wantLvalue)
     {   SymOffExp *soe = (SymOffExp *)e1;
         VarDeclaration *v = soe->var->isVarDeclaration();
         if (v)
-        {   Expression *ev = getVarExp(loc, istate, v, wantLvalue);
+        {   Expression *ev = getVarExp(loc, istate, v, ctfeNeedLvalue);
             if (ev != EXP_CANT_INTERPRET && ev->op == TOKstructliteral)
             {   StructLiteralExp *se = (StructLiteralExp *)ev;
                 e = se->getField(type, soe->offset);
@@ -3708,7 +3706,7 @@ Expression *PtrExp::interpret(InterState *istate, bool wantLvalue)
     return e;
 }
 
-Expression *DotVarExp::interpret(InterState *istate, bool wantLvalue)
+Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
 #if LOG
