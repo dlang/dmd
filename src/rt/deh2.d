@@ -251,12 +251,11 @@ extern (C) void _d_throwc(Object *h)
         {
             auto phi = &handler_table.handler_info[index+1];
             debug printf("next finally_code %p\n", phi.finally_code);
+            auto prev = cast(InFlight*) &__inflight;
+            auto curr = prev.next;
 
-            for (auto prev = cast(InFlight*) &__inflight; prev.next; prev = prev.next)
+            if (curr !is null && curr.addr == phi.finally_code)
             {
-                auto curr = prev.next;
-                if (curr.addr != phi.finally_code)
-                    continue;
                 auto e = cast(Error)(cast(Throwable) h);
                 if (e !is null && (cast(Error) curr.t) is null)
                 {
@@ -279,7 +278,6 @@ extern (C) void _d_throwc(Object *h)
                     prev.next = curr.next;
                     h = cast(Object*) t;
                 }
-                break;
             }
         }
 
