@@ -2173,7 +2173,11 @@ Expression *copyLiteral(Expression *e)
             } else m = copyLiteral(m);
             newelems->data[i] = m;
         }
+#if DMDV2
         StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems, se->stype);
+#else
+        StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems);
+#endif
         r->type = e->type;
         return r;
     }
@@ -2186,8 +2190,13 @@ Expression *copyLiteral(Expression *e)
 void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
 {
     assert( ae->type->ty == Tsarray || ae->type->ty == Tarray);
+#if DMDV2
     Type *desttype = ((TypeArray *)ae->type)->next->castMod(0);
     bool directblk = (val->type->toBasetype()->castMod(0)) == desttype;
+#else
+    Type *desttype = ((TypeArray *)ae->type)->next;
+    bool directblk = (val->type->toBasetype()) == desttype;
+#endif
     for (size_t k = 0; k < ae->elements->dim; k++)
     {
         if (!directblk && ((Expression *)(ae->elements->data[k]))->op == TOKarrayliteral)
@@ -2224,11 +2233,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     {
         // a[] = e can have const e. So we compare the naked types.
         Type *desttype = e1->type->toBasetype();
+#if DMDV2
         Type *srctype = e2->type->toBasetype()->castMod(0);
+#else
+        Type *srctype = e2->type->toBasetype();
+#endif
         while ( desttype->ty == Tsarray || desttype->ty == Tarray)
         {
             desttype = ((TypeArray *)desttype)->next;
+#if DMDV2
             if (srctype == desttype->castMod(0))
+#else
+            if (srctype == desttype)
+#endif
             {
                 isBlockAssignment = true;
                 break;
@@ -2241,7 +2258,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          e1->type->toBasetype()->ty == Tclass)
         )
     {
+#if DMDV2
         wantRef = true;
+#else
+        /* D1 doesn't have const in the type system. But there is still a
+         * vestigal const in the form of static const variables.
+         * Problematic code like:
+         *    const int [] x = [1,2,3];
+         *    int [] y = x;
+         * can be dealt with by making this a non-ref assign (y = x.dup).
+         * Otherwise it's a big mess.
+         */
+        VarDeclaration * targetVar = findParentVar(e2, istate->localThis);
+        if (!(targetVar && targetVar->isConst()))
+            wantRef = true;
+#endif
     }
     if (isBlockAssignment && (e2->type->toBasetype()->ty == Tarray || e2->type->toBasetype()->ty == Tsarray))
     {
@@ -2292,6 +2323,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
+
     // ----------------------------------------------------
     //  Deal with read-modify-write assignments.
     //  Set 'newval' to the final assignment value
@@ -2553,7 +2585,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 VarExp *vv = (VarExp *)newval;
 
                 VarDeclaration *v2 = vv->var->isVarDeclaration();
-                assert(v2);
+                assert(v2 && v2->getValue());
                 assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring
                     || v2->getValue()->op == TOKassocarrayliteral || v2->getValue()->op == TOKnull));
                 v->setValueNull();
@@ -2570,7 +2602,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 {
                     VarExp *vv = (VarExp *)agg;
                     VarDeclaration *v2 = vv->var->isVarDeclaration();
-                    assert(v2);
+                    assert(v2 && v2->getValue());
                     if (v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring)
                     {
                         Expression *dollar = ArrayLength(Type::tsize_t, v2->getValue());
@@ -3010,8 +3042,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             Expressions * w = existingAE->elements;
             assert( existingAE->type->ty == Tsarray ||
                     existingAE->type->ty == Tarray);
+#if DMDV2
             Type *desttype = ((TypeArray *)existingAE->type)->next->castMod(0);
             bool directblk = (e2->type->toBasetype()->castMod(0)) == desttype;
+#else
+            Type *desttype = ((TypeArray *)existingAE->type)->next;
+            bool directblk = (e2->type->toBasetype()) == desttype;
+#endif
             for (size_t j = 0; j < upperbound-lowerbound; j++)
             {
                 if (!directblk)
@@ -3422,6 +3459,7 @@ Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
     printf("ArrayLengthExp::interpret() %s\n", toChars());
 #endif
     e1 = this->e1->interpret(istate);
+    assert(e1);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
     if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
@@ -3770,8 +3808,10 @@ Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
-    if (earg->op != TOKassocarrayliteral)
+    if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
         return NULL;
+    if (earg->op == TOKnull)
+        return new NullExp(earg->loc);
     AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
     Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
     Type *elemType = ((TypeAArray *)aae->type)->index;
@@ -3781,20 +3821,24 @@ Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
 
 Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
 {
-    //printf("interpret_aaValues()\n");
+#if LOG
+    printf("interpret_aaValues()\n");
+#endif
     if (!arguments || arguments->dim != 3)
         return NULL;
     Expression *earg = (Expression *)arguments->data[0];
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
-    if (earg->op != TOKassocarrayliteral)
+    if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
         return NULL;
+    if (earg->op == TOKnull)
+        return new NullExp(earg->loc);
     AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
     Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
     Type *elemType = ((TypeAArray *)aae->type)->next;
     e->type = new TypeSArray(elemType, new IntegerExp(arguments ? arguments->dim : 0));
-    //printf("result is %s\n", e->toChars());
+    printf("result is %s\n", e->toChars());
     return e;
 }
 
@@ -3866,7 +3910,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 
 bool isStackValueValid(Expression *newval)
 {
-    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
+    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
         (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
         (newval->op == TOKnull) || (newval->op == TOKslice))
     {   return false;
