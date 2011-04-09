@@ -252,8 +252,18 @@ struct VarDeclaration : Declaration
                                 // 2: on stack, run destructor anyway
     int canassign;              // it can be assigned to
     Dsymbol *aliassym;          // if redone as alias to another symbol
-    Expression *value;          // when interpreting, this is the value
-                                // (NULL if value not determinable)
+
+    // When interpreting, these hold the value (NULL if value not determinable)
+    // The various functions are used only to detect compiler CTFE bugs
+    Expression *literalvalue;
+    Expression *getValue() { return literalvalue; }
+    void setValueNull();
+    void setValueWithoutChecking(Expression *newval);
+    void createRefValue(Expression *newval); // struct or array literal
+    void setRefValue(Expression *newval);
+    void setStackValue(Expression *newval);
+    void createStackValue(Expression *newval);
+
 #if DMDV2
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
                                 // if the destructor should be run. Used to prevent
