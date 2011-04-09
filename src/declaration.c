@@ -687,7 +687,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     aliassym = NULL;
     onstack = 0;
     canassign = 0;
-    value = NULL;
+    setValueNull();
 }
 
 Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
