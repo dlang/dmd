@@ -185,6 +185,10 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isAbstract() && !isVirtual())
         error("non-virtual functions cannot be abstract");
 
+    // https://github.com/donc/dmd/commit/9f7b2f8cfe5d7482f2de7f9678c176d54abe237f#commitcomment-321724
+    //if (isOverride() && !isVirtual())
+        //error("cannot override a non-virtual function");
+
     if (isAbstract() && isFinal())
         error("cannot be both final and abstract");
 #if 0
@@ -1096,7 +1100,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 f = (TypeFunction *)type;
             }
 
-            int offend = fbody ? fbody->blockExit() & BEfallthru : TRUE;
+            int offend = fbody ? fbody->blockExit(FALSE) & BEfallthru : TRUE;
 
             if (isStaticCtorDeclaration())
             {   /* It's a static constructor. Ensure that all
