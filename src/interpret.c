@@ -2586,8 +2586,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
                 VarDeclaration *v2 = vv->var->isVarDeclaration();
                 assert(v2 && v2->getValue());
-                assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring
-                    || v2->getValue()->op == TOKassocarrayliteral || v2->getValue()->op == TOKnull));
+                assert((v2->getValue()->op == TOKarrayliteral ||
+                        v2->getValue()->op == TOKassocarrayliteral ||
+                        v2->getValue()->op == TOKstring ||
+                        v2->getValue()->op == TOKslice ||
+                        v2->getValue()->op == TOKnull) );
                 v->setValueNull();
                 v->createRefValue(v2->getValue());
             }
