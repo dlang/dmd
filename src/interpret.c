@@ -1344,7 +1344,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             if (e->op == TOKerror)
                 e = EXP_CANT_INTERPRET;
         }
+        else
+            error(loc, "cannot interpret symbol %s at compile time", v->toChars());
     }
+    else
+        error(loc, "cannot interpret variable %s at compile time", v->toChars());
     return e;
 }
 
@@ -1706,6 +1710,11 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         return createBlockDuplicatedArrayLiteral(newtype,
             ((TypeArray *)newtype)->next->defaultInitLiteral(),
             lenExpr->toInteger());
+    }
+    if (newtype->ty == Tclass)
+    {
+        error("classes are not yet supported in CTFE");
+        return EXP_CANT_INTERPRET;
     }
     error("Cannot interpret %s at compile time", toChars());
     return EXP_CANT_INTERPRET;
