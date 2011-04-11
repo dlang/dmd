@@ -280,16 +280,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             break;
     }
 
-    // Delete the values of all local variables.
-    // Only delete those which are owned by this function. (Eg, if it is a
-    // nested function, must retain variables from the enclosing function).
-    for (size_t i = 0; i < istatex.vars.dim; i++)
-    {   VarDeclaration *v = (VarDeclaration *)istatex.vars.data[i];
-        if (v && v->parent == this)
-        {   v->setValueNull();
-        }
-    }
-
     /* Restore the parameter values
      */
     for (size_t i = 0; i < dim; i++)
