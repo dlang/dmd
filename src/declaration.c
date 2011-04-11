@@ -757,6 +757,7 @@ void VarDeclaration::semantic(Scope *sc)
     if (!type)
     {   inuse++;
         type = init->inferType(sc);
+        type = type->semantic(loc, sc);
         inuse--;
         inferred = 1;
 
