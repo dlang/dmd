@@ -1352,10 +1352,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             e = EXP_CANT_INTERPRET;
     }
     else if (s)
-    {
+    {   // Struct static initializers, for example
         if (s->dsym->toInitializer() == s->sym)
         {   Expressions *exps = new Expressions();
-            e = new StructLiteralExp(0, s->dsym, exps);
+            e = new StructLiteralExp(loc, s->dsym, exps);
             e = e->semantic(NULL);
             if (e->op == TOKerror)
                 e = EXP_CANT_INTERPRET;
