@@ -280,16 +280,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             break;
     }
 
-    // Delete the values of all local variables.
-    // Only delete those which are owned by this function. (Eg, if it is a
-    // nested function, must retain variables from the enclosing function).
-    for (size_t i = 0; i < istatex.vars.dim; i++)
-    {   VarDeclaration *v = (VarDeclaration *)istatex.vars.data[i];
-        if (v && v->parent == this)
-        {   v->setValueNull();
-        }
-    }
-
     /* Restore the parameter values
      */
     for (size_t i = 0; i < dim; i++)
@@ -1354,7 +1344,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             if (e->op == TOKerror)
                 e = EXP_CANT_INTERPRET;
         }
+        else
+            error(loc, "cannot interpret symbol %s at compile time", v->toChars());
     }
+    else
+        error(loc, "cannot interpret variable %s at compile time", v->toChars());
     return e;
 }
 
@@ -1716,6 +1710,11 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         return createBlockDuplicatedArrayLiteral(newtype,
             ((TypeArray *)newtype)->next->defaultInitLiteral(),
             lenExpr->toInteger());
+    }
+    if (newtype->ty == Tclass)
+    {
+        error("classes are not yet supported in CTFE");
+        return EXP_CANT_INTERPRET;
     }
     error("Cannot interpret %s at compile time", toChars());
     return EXP_CANT_INTERPRET;
@@ -2586,8 +2585,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
                 VarDeclaration *v2 = vv->var->isVarDeclaration();
                 assert(v2 && v2->getValue());
-                assert((v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring
-                    || v2->getValue()->op == TOKassocarrayliteral || v2->getValue()->op == TOKnull));
+                assert((v2->getValue()->op == TOKarrayliteral ||
+                        v2->getValue()->op == TOKassocarrayliteral ||
+                        v2->getValue()->op == TOKstring ||
+                        v2->getValue()->op == TOKslice ||
+                        v2->getValue()->op == TOKnull) );
                 v->setValueNull();
                 v->createRefValue(v2->getValue());
             }
