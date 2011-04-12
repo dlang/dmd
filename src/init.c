@@ -711,7 +711,10 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    int olderrors = global.errors;
     exp = exp->optimize(WANTvalue | WANTinterpret);
+    if (!global.gag && olderrors != global.errors)
+        return this; // Failed, suppress duplicate error messages
     Type *tb = t->toBasetype();
 
     /* Look for case of initializing a static array with a too-short
