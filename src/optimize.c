@@ -57,7 +57,6 @@ Expression *expandVar(int result, VarDeclaration *v)
             //error("ICE");
             return e;
         }
-
         Type *tb = v->type->toBasetype();
         if (result & WANTinterpret ||
             v->storage_class & STCmanifest ||
@@ -474,6 +473,10 @@ Expression *NewExp::optimize(int result)
             e = e->optimize(WANTvalue);
             arguments->data[i] = (void *)e;
         }
+    }
+    if (result & WANTinterpret)
+    {
+        error("cannot evaluate %s at compile time", toChars());
     }
     return this;
 }
