@@ -1253,24 +1253,23 @@ class Throwable : Object
         char[20] tmp = void;
         char[]   buf;
 
-        for (Throwable e = this; e !is null; e = e.next)
+        if (file)
         {
-            if (e.file)
-            {
-               buf ~= e.classinfo.name ~ "@" ~ e.file ~ "(" ~ tmp.intToString(e.line) ~ "): " ~ e.msg;
-            }
-            else
-            {
-               buf ~= e.classinfo.name ~ ": " ~ e.msg;
-            }
-            if (e.info)
-            {
-                buf ~= "\n----------------";
-                foreach (t; e.info)
-                    buf ~= "\n" ~ t;
-            }
-            if (e.next)
-                buf ~= "\n";
+           buf ~= this.classinfo.name ~ "@" ~ file ~ "(" ~ tmp.intToString(line) ~ ")";
+        }
+        else
+        {
+            buf ~= this.classinfo.name;
+        }
+        if (msg)
+        {
+            buf ~= ": " ~ msg;
+        }
+        if (info)
+        {
+            buf ~= "\n----------------";
+            foreach (t; info)
+                buf ~= "\n" ~ t;
         }
         return cast(string) buf;
     }
