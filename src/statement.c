@@ -2925,7 +2925,7 @@ Statement *CaseStatement::semantic(Scope *sc)
     if (sw)
     {
         exp = exp->implicitCastTo(sc, sw->condition->type);
-        exp = exp->optimize(WANTvalue | WANTinterpret);
+        exp = exp->optimize(WANTvalue);
 
         /* This is where variables are allowed as case expressions.
          */
@@ -2943,6 +2943,8 @@ Statement *CaseStatement::semantic(Scope *sc)
                 goto L1;
             }
         }
+        else
+            exp = exp->optimize(WANTvalue | WANTinterpret);
 
         if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
         {

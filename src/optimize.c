@@ -80,7 +80,13 @@ Expression *expandVar(int result, VarDeclaration *v)
                 if (ei->op == TOKconstruct || ei->op == TOKblit)
                 {   AssignExp *ae = (AssignExp *)ei;
                     ei = ae->e2;
-                    if (ei->isConst() != 1 && ei->op != TOKstring)
+                    if (result & WANTinterpret)
+                    {
+                        v->inuse++;
+                        ei = ei->optimize(result);
+                        v->inuse--;
+                    }
+                    else if (ei->isConst() != 1 && ei->op != TOKstring)
                         goto L1;
                     if (ei->type != v->type)
                         goto L1;
@@ -157,7 +163,17 @@ Expression *fromConstInitializer(int result, Expression *e1)
             e->loc = e1->loc;
         }
         else
+        {
             e = e1;
+            /* If we needed to interpret, generate an error.
+             * Don't give an error if it's a template parameter
+             */
+            if (v && (result & WANTinterpret) &&
+                !(v->storage_class & STCtemplateparameter))
+            {
+                e1->error("variable %s cannot be read at compile time", v->toChars());
+            }
+        }
     }
     return e;
 }
