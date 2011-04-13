@@ -1487,6 +1487,44 @@ Expression *Expression::isTemp()
     return NULL;
 }
 
+Expression *Expression::callExpDtor(Scope *sc)
+{
+    if (op == TOKcomma)
+    {
+        CommaExp* ec = (CommaExp*)this;
+        ec->e2 = ec->e2->callExpDtor(sc);
+        return this;
+    }
+
+    if (op == TOKcall)
+    {
+        int needDtor = 1;
+
+        CallExp* ce = (CallExp*)this;
+        if (ce->e1->op == TOKdotvar)
+        {
+            DotVarExp* dve = (DotVarExp*)ce->e1;
+            if (dve->e1->isTemp() != NULL)
+                goto Lnone;
+        }
+
+        if (type->ty == Tstruct || type->ty == Tsarray)
+        {
+            Identifier *idtmp = Lexer::uniqueId("__ctmp");
+            VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
+            tmp->storage_class |= STCctfe;
+            Expression *ae = new DeclarationExp(loc, tmp);
+            Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+            e = e->semantic(sc);
+            
+            return e;
+        }
+    }
+
+Lnone:
+    return this;
+}
+
 /******************************** IntegerExp **************************/
 
 IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
@@ -8580,6 +8618,7 @@ Expression *CommaExp::semantic(Scope *sc)
 {
     if (!type)
     {   BinExp::semanticp(sc);
+        e1 = e1->callExpDtor(sc);
         type = e2->type;
     }
     return this;

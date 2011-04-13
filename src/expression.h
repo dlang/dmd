@@ -142,6 +142,7 @@ struct Expression : Object
     Expression *deref();
     Expression *integralPromotions(Scope *sc);
     Expression *isTemp();
+    Expression *callExpDtor(Scope *sc);
 
     Expression *toDelegate(Scope *sc, Type *t);
     virtual void scanForNestedRef(Scope *sc);
