@@ -194,7 +194,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
                 {
                     if (fieldi >= ad->fields.dim)
                     {
-                        s->error("is not a per-instance initializable field");
+                        error(loc, "%s.%s is not a per-instance initializable field",
+                            t->toChars(), s->toChars());
                         errors = 1;
                         break;
                     }
@@ -240,25 +241,6 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
     }
     return this;
 }
-
-/* Count the number of fields starting at firstIndex which are part of the
- * same union as field[firstIndex]. If not a union, return 1.
- */
-int countFieldsInUnion(AggregateDeclaration *ad, int firstIndex)
-{
-    VarDeclaration * vd = ((Dsymbol *)ad->fields.data[firstIndex])->isVarDeclaration();    
-    int count = 1;
-    for (int i = firstIndex+1; i < ad->fields.dim; ++i)
-    {
-        VarDeclaration * v = ((Dsymbol *)ad->fields.data[i])->isVarDeclaration();
-        // They are in a union if they have the same offset
-        if (v->offset != vd->offset)
-            return count;
-        ++count;
-    }
-    return count;
-}
-
 
 /***************************************
  * This works by transforming a struct initializer into
@@ -330,7 +312,7 @@ Expression *StructInitializer::toExpression()
     for (int i = 0; i < elements->dim; )
     {
         VarDeclaration * vd = ((Dsymbol *)ad->fields.data[i])->isVarDeclaration();
-        int unionSize = countFieldsInUnion(ad, i);
+        int unionSize = ad->numFieldsInUnion(i);
         if (unionSize == 1)
         {   // Not a union -- default initialize if missing
             if (!elements->data[i])

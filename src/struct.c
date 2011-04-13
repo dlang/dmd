@@ -239,6 +239,42 @@ int AggregateDeclaration::isNested()
     return isnested;
 }
 
+/****************************************
+ * If field[indx] is not part of a union, return indx.
+ * Otherwise, return the lowest field index of the union.
+ */
+int AggregateDeclaration::firstFieldInUnion(int indx)
+{
+    VarDeclaration * vd = (VarDeclaration *)fields.data[indx];
+    for (; ;)
+    {
+        if (indx == 0)
+            return indx;
+        VarDeclaration * v = (VarDeclaration *)fields.data[indx - 1];
+        if (v->offset != vd->offset)
+            return indx;
+        --indx;
+    }
+}
+
+/****************************************
+ * Count the number of fields starting at firstIndex which are part of the
+ * same union as field[firstIndex]. If not a union, return 1.
+ */
+int AggregateDeclaration::numFieldsInUnion(int firstIndex)
+{
+    VarDeclaration * vd = (VarDeclaration *)fields.data[firstIndex];
+    int count = 1;
+    for (int i = firstIndex+1; i < fields.dim; ++i)
+    {
+        VarDeclaration * v = (VarDeclaration *)fields.data[i];
+        // They are in a union if they have the same offset
+        if (v->offset != vd->offset)
+            break;
+        ++count;
+    }
+    return count;
+}
 
 /********************************* StructDeclaration ****************************/
 
