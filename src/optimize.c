@@ -889,6 +889,28 @@ Expression *IdentityExp::optimize(int result)
     return e;
 }
 
+/* It is possible for constant folding to change an array expression of
+ * unknown length, into one where the length is known.
+ * If the expression 'arr' is a literal, set lengthVar to be its length.
+ */
+void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
+{
+    if (!lengthVar || lengthVar->init)
+        return;
+    size_t len;
+    if (arr->op == TOKstring)
+        len = ((StringExp *)arr)->len;
+    else if (arr->op == TOKarrayliteral)
+        len = ((ArrayLiteralExp *)arr)->elements->dim;
+    else
+        return; // we don't know the length yet
+
+    Expression *dollar = new IntegerExp(0, len, Type::tsize_t);
+    lengthVar->init = new ExpInitializer(0, dollar);
+    lengthVar->storage_class |= STCstatic | STCconst;
+}
+
+
 Expression *IndexExp::optimize(int result)
 {   Expression *e;
 
@@ -905,12 +927,15 @@ Expression *IndexExp::optimize(int result)
             this->e1 = e1;
         }
     }
+    // We might know $ now
+    setLengthVarIfKnown(lengthVar, e1);
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
     e = Index(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         e = this;
     return e;
 }
+
 
 Expression *SliceExp::optimize(int result)
 {   Expression *e;
@@ -928,6 +953,8 @@ Expression *SliceExp::optimize(int result)
         return e;
     }
     e1 = fromConstInitializer(result, e1);
+    // We might know $ now
+    setLengthVarIfKnown(lengthVar, e1);
     lwr = lwr->optimize(WANTvalue | (result & WANTinterpret));
     upr = upr->optimize(WANTvalue | (result & WANTinterpret));
     e = Slice(type, e1, lwr, upr);
