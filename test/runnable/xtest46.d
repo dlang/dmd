@@ -1731,7 +1731,7 @@ struct Foo93
 
 void test93()
 {
-    const Foo93 bar;
+    const Foo93 bar = Foo93();
     enum bla = bar.foo();
     assert(bla == 2);
 }
