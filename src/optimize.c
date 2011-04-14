@@ -60,7 +60,7 @@ Expression *expandVar(int result, VarDeclaration *v)
         Type *tb = v->type->toBasetype();
         if (result & WANTinterpret ||
             v->storage_class & STCmanifest ||
-            (tb->ty != Tsarray && tb->ty != Tstruct)
+            v->type->toBasetype()->isscalar()
            )
         {
             if (v->init)
