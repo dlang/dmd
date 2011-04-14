@@ -83,12 +83,56 @@ version( D_Ddoc )
      * Returns:
      *  true if the store occurred, false if not.
      */
-     bool cas(T,V1,V2)( shared(T)* here, const(V1) ifThis, const(V2) writeThis )
-         if( is( NakedType!(V1) == NakedType!(T) ) &&
-             is( NakedType!(V2) == NakedType!(T) ) )
-     {
-         return false;
-     }
+    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
+        if( is( NakedType!(V1) == NakedType!(T) ) &&
+            is( NakedType!(V2) == NakedType!(T) ) )
+    {
+        return false;
+    }
+     
+     
+    /**
+     * Loads 'val' from memory and returns it.  The memory barrier specified
+     * by 'ms' is applied to the operation, which is fully sequenced by
+     * default.
+     *
+     * Params:
+     *  val = The target variable.
+     *
+     * Returns:
+     *  The value of 'val'.
+     */
+    T atomicLoad(msync ms = msync.seq,T)( ref const shared(T) val )
+    {
+        return false;
+    }
+      
+      
+    /**
+     * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
+     * applied to the operation, which is fully sequenced by default.
+     *
+     * Params:
+     *  val    = The target variable.
+     *  newval = The value to store.
+     */
+    void atomicStore(msync ms = msync.seq,T,V1)( ref shared(T) val, V1 newval )
+        if( is( NakedType!(V1) == NakedType!(T) ) )
+    {
+        return false;
+    }
+       
+    
+    /**
+     *
+     */   
+    enum msync
+    {
+        raw,    /// not sequenced
+        acq,    /// hoist-load + hoist-store barrier
+        rel,    /// sink-load + sink-store barrier
+        seq,    /// fully sequenced (acq + rel)
+    }
 }
 else version( AsmX86_32 )
 {
@@ -145,7 +189,7 @@ else version( AsmX86_32 )
     }
 
 
-    bool cas(T,V1,V2)( shared(T)* here, const(V1) ifThis, const(V2) writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
         if( is( NakedType!(V1) == NakedType!(T) ) &&
             is( NakedType!(V2) == NakedType!(T) ) )
     in
@@ -293,7 +337,7 @@ else version( AsmX86_32 )
     }
 
 
-    T atomicLoad(msync ms = msync.seq, T)( const ref shared(T) val )
+    T atomicLoad(msync ms = msync.seq, T)( ref const shared(T) val )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -513,7 +557,7 @@ else version( AsmX86_32 )
 }
 else version( AsmX86_64 )
 {
-    T atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+    T atomicOp(string op, T, V1)( ref shared(T) val, V1 mod )
         if( is( NakedType!(V1) == NakedType!(T) ) )
     in
     {
@@ -705,7 +749,7 @@ else version( AsmX86_64 )
     }
 
 
-    T atomicLoad(msync ms = msync.seq, T)( const ref shared T val )
+    T atomicLoad(msync ms = msync.seq, T)( ref const shared(T) val )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -955,7 +999,6 @@ version( unittest )
     
     
     void testLoadStore(msync ms = msync.seq, T)( T val = T.init + 1 )
-        if( !is(T : T*) )
     {
         T         base;
         shared(T) atom;
@@ -963,7 +1006,7 @@ version( unittest )
         assert( base != val );
         assert( atom == base );
         atomicStore!(ms)( atom, val );
-        base = atomicLoad!(ms, T)( atom );
+        base = atomicLoad!(ms)( atom );
         assert( base == val );
         assert( atom == val );
     }
