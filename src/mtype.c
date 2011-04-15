@@ -2013,6 +2013,7 @@ Expression *Type::toExpression()
 
 int Type::hasPointers()
 {
+    //printf("Type::hasPointers() %s, %d\n", toChars(), ty);
     return FALSE;
 }
 
@@ -3610,7 +3611,18 @@ Expression *TypeSArray::toExpression()
 
 int TypeSArray::hasPointers()
 {
-    return next->hasPointers();
+    /* Don't want to do this, because:
+     *    struct S { T* array[0]; }
+     * may be a variable length struct.
+     */
+    //if (dim->toInteger() == 0)
+        //return FALSE;
+
+    if (next->ty == Tvoid)
+        // Arrays of void contain arbitrary data, which may include pointers
+        return TRUE;
+    else
+        return next->hasPointers();
 }
 
 /***************************** TypeDArray *****************************/
@@ -5379,6 +5391,16 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
         return this;
     }
     next = next->semantic(loc,sc);
+    /* In order to deal with Bugzilla 4028, perhaps default arguments should
+     * be removed from next before the merge.
+     */
+
+    /* Don't return merge(), because arg identifiers and default args
+     * can be different
+     * even though the types match
+     */
+    //deco = merge()->deco;
+    //return this;
     return merge();
 }
 
