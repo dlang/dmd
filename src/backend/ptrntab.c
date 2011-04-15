@@ -742,6 +742,8 @@ PTRNTAB2  aptb2XCHG[] = /* XCHG */ {
         { 0x87, _r|_16_bit|_mod2,               _r16, _rm16 },
         { 0x87, _r|_32_bit|_mod2,               _rm32,  _r32 },
         { 0x87, _r|_32_bit|_mod2,               _r32, _rm32 },
+        { 0x87, _r|_64_bit|_mod2,               _rm64,  _r64 },
+        { 0x87, _r|_64_bit|_mod2,               _r64, _rm64 },
         { ASM_END, 0, 0, 0 }
 };
 
