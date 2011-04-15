@@ -3352,7 +3352,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
         dim = semanticLength(sc, tbn, dim);
 
-        dim = dim->optimize(WANTvalue | WANTinterpret);
+        dim = dim->optimize(WANTvalue);
         if (sc && sc->parameterSpecialization && dim->op == TOKvar &&
             ((VarExp *)dim)->var->storage_class & STCtemplateparameter)
         {
@@ -3361,6 +3361,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
              */
             return this;
         }
+        dim = dim->optimize(WANTvalue | WANTinterpret);
         dinteger_t d1 = dim->toInteger();
         dim = dim->implicitCastTo(sc, tsize_t);
         dim = dim->optimize(WANTvalue);

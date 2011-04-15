@@ -194,7 +194,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
                 {
                     if (fieldi >= ad->fields.dim)
                     {
-                        s->error("is not a per-instance initializable field");
+                        error(loc, "%s.%s is not a per-instance initializable field",
+                            t->toChars(), s->toChars());
                         errors = 1;
                         break;
                     }
@@ -241,7 +242,6 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
     return this;
 }
 
-
 /***************************************
  * This works by transforming a struct initializer into
  * a struct literal. In the future, the two should be the
@@ -259,17 +259,91 @@ Expression *StructInitializer::toExpression()
     if (!sd)
         return NULL;
     Expressions *elements = new Expressions();
-    for (size_t i = 0; i < value.dim; i++)
+    elements->setDim(ad->fields.dim);
+    for (int i = 0; i < elements->dim; i++)
     {
-        if (field.data[i])
+        elements->data[i] = NULL;
+    }
+    unsigned fieldi = 0;
+    for (int i = 0; i < value.dim; i++)
+    {
+        Identifier *id = (Identifier *)field.data[i];
+        if (id)
+        {
+            Dsymbol * s = ad->search(loc, id, 0);
+            if (!s)
+            {
+                error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
+                goto Lno;
+            }
+
+            // Find out which field index it is
+            for (fieldi = 0; 1; fieldi++)
+            {
+                if (fieldi >= ad->fields.dim)
+                {
+                    s->error("is not a per-instance initializable field");
+                    goto Lno;
+                }
+                if (s == (Dsymbol *)ad->fields.data[fieldi])
+                    break;
+            }
+        }
+        else if (fieldi >= ad->fields.dim)
+        {   error(loc, "too many initializers for '%s'", ad->toChars());
             goto Lno;
+        }
         Initializer *iz = (Initializer *)value.data[i];
         if (!iz)
             goto Lno;
         Expression *ex = iz->toExpression();
         if (!ex)
             goto Lno;
-        elements->push(ex);
+        if (elements->data[fieldi])
+        {   error(loc, "duplicate initializer for field '%s'",
+                ((Dsymbol *)ad->fields.data[fieldi])->toChars());
+            goto Lno;
+        }
+        elements->data[fieldi] = ex;
+        ++fieldi;
+    }
+    // Now, fill in any missing elements with default initializers.
+    // We also need to validate any anonymous unions
+    for (int i = 0; i < elements->dim; )
+    {
+        VarDeclaration * vd = ((Dsymbol *)ad->fields.data[i])->isVarDeclaration();
+        int unionSize = ad->numFieldsInUnion(i);
+        if (unionSize == 1)
+        {   // Not a union -- default initialize if missing
+            if (!elements->data[i])
+                elements->data[i] = vd->type->defaultInit();
+        }
+        else
+        {   // anonymous union -- check for errors
+            int found = -1; // index of the first field with an initializer
+            for (int j = i; j < i + unionSize; ++j)
+            {
+                if (!elements->data[j])
+                    continue;
+                if (found >= 0)
+                {
+                    VarDeclaration * v1 = ((Dsymbol *)ad->fields.data[found])->isVarDeclaration();
+                    VarDeclaration * v = ((Dsymbol *)ad->fields.data[j])->isVarDeclaration();
+                    error(loc, "%s cannot have initializers for fields %s and %s in same union",
+                        ad->toChars(),
+                        v1->toChars(), v->toChars());
+                    goto Lno;
+                }
+                found = j;
+            }
+            if (found == -1)
+            {
+                error(loc, "no initializer for union that contains field %s",
+                    vd->toChars());
+                goto Lno;
+            }
+        }
+        i += unionSize;
     }
     e = new StructLiteralExp(loc, sd, elements);
     e->type = sd->type;
@@ -277,7 +351,6 @@ Expression *StructInitializer::toExpression()
 
 Lno:
     delete elements;
-    //error(loc, "struct initializers as expressions are not allowed");
     return NULL;
 }
 

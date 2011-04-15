@@ -57,11 +57,10 @@ Expression *expandVar(int result, VarDeclaration *v)
             //error("ICE");
             return e;
         }
-
         Type *tb = v->type->toBasetype();
         if (result & WANTinterpret ||
             v->storage_class & STCmanifest ||
-            (tb->ty != Tsarray && tb->ty != Tstruct)
+            v->type->toBasetype()->isscalar()
            )
         {
             if (v->init)
@@ -80,7 +79,13 @@ Expression *expandVar(int result, VarDeclaration *v)
                 if (ei->op == TOKconstruct || ei->op == TOKblit)
                 {   AssignExp *ae = (AssignExp *)ei;
                     ei = ae->e2;
-                    if (ei->isConst() != 1 && ei->op != TOKstring)
+                    if (result & WANTinterpret)
+                    {
+                        v->inuse++;
+                        ei = ei->optimize(result);
+                        v->inuse--;
+                    }
+                    else if (ei->isConst() != 1 && ei->op != TOKstring)
                         goto L1;
                     if (ei->type != v->type)
                         goto L1;
@@ -157,7 +162,17 @@ Expression *fromConstInitializer(int result, Expression *e1)
             e->loc = e1->loc;
         }
         else
+        {
             e = e1;
+            /* If we needed to interpret, generate an error.
+             * Don't give an error if it's a template parameter
+             */
+            if (v && (result & WANTinterpret) &&
+                !(v->storage_class & STCtemplateparameter))
+            {
+                e1->error("variable %s cannot be read at compile time", v->toChars());
+            }
+        }
     }
     return e;
 }
@@ -458,6 +473,10 @@ Expression *NewExp::optimize(int result)
             e = e->optimize(WANTvalue);
             arguments->data[i] = (void *)e;
         }
+    }
+    if (result & WANTinterpret)
+    {
+        error("cannot evaluate %s at compile time", toChars());
     }
     return this;
 }
@@ -889,6 +908,28 @@ Expression *IdentityExp::optimize(int result)
     return e;
 }
 
+/* It is possible for constant folding to change an array expression of
+ * unknown length, into one where the length is known.
+ * If the expression 'arr' is a literal, set lengthVar to be its length.
+ */
+void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
+{
+    if (!lengthVar || lengthVar->init)
+        return;
+    size_t len;
+    if (arr->op == TOKstring)
+        len = ((StringExp *)arr)->len;
+    else if (arr->op == TOKarrayliteral)
+        len = ((ArrayLiteralExp *)arr)->elements->dim;
+    else
+        return; // we don't know the length yet
+
+    Expression *dollar = new IntegerExp(0, len, Type::tsize_t);
+    lengthVar->init = new ExpInitializer(0, dollar);
+    lengthVar->storage_class |= STCstatic | STCconst;
+}
+
+
 Expression *IndexExp::optimize(int result)
 {   Expression *e;
 
@@ -905,12 +946,15 @@ Expression *IndexExp::optimize(int result)
             this->e1 = e1;
         }
     }
+    // We might know $ now
+    setLengthVarIfKnown(lengthVar, e1);
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
     e = Index(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         e = this;
     return e;
 }
+
 
 Expression *SliceExp::optimize(int result)
 {   Expression *e;
@@ -928,6 +972,8 @@ Expression *SliceExp::optimize(int result)
         return e;
     }
     e1 = fromConstInitializer(result, e1);
+    // We might know $ now
+    setLengthVarIfKnown(lengthVar, e1);
     lwr = lwr->optimize(WANTvalue | (result & WANTinterpret));
     upr = upr->optimize(WANTvalue | (result & WANTinterpret));
     e = Slice(type, e1, lwr, upr);

@@ -1178,7 +1178,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
             if (ce->op == TOKvar)
             {   // if ce is const, get its initializer
-                ce = fromConstInitializer(WANTvalue | WANTinterpret, ce);
+                ce = fromConstInitializer(WANTvalue, ce);
             }
 
             if (ce->op == TOKstring)

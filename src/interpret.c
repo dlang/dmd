@@ -1287,7 +1287,6 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
          */
         if (v->ident == Id::ctfe)
             return new IntegerExp(loc, 1, Type::tbool);
-
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && v->init && !v->getValue())
 #else
         if (v->isConst() && v->init)
@@ -1295,6 +1294,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
         {   e = v->init->toExpression();
             if (e && !e->type)
                 e->type = v->type;
+            if (e)
+                e = e->interpret(istate, ctfeNeedAnyValue);
+            if (e && e != EXP_CANT_INTERPRET)
+                v->setValueWithoutChecking(e);
         }
         else if ((v->isCTFE() || (!v->isDataseg() && istate)) && !v->getValue())
         {
@@ -1317,7 +1320,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
         }
         else
         {   e = v->getValue();
-            if (!v->isCTFE() && v->isDataseg())
+            if (!e && !v->isCTFE() && v->isDataseg())
             {   error(loc, "static variable %s cannot be read at compile time", v->toChars());
                 e = EXP_CANT_INTERPRET;
             }
