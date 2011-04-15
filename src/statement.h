@@ -90,9 +90,6 @@ struct Statement : Object
     void error(const char *format, ...);
     void warning(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    virtual TryCatchStatement *isTryCatchStatement() { return NULL; }
-    virtual GotoStatement *isGotoStatement() { return NULL; }
-    virtual AsmStatement *isAsmStatement() { return NULL; }
 #ifdef _DH
     int incontract;
 #endif
@@ -675,7 +672,6 @@ struct TryCatchStatement : Statement
 
     void toIR(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    TryCatchStatement *isTryCatchStatement() { return this; }
 };
 
 struct Catch : Object
@@ -762,6 +758,17 @@ struct VolatileStatement : Statement
     void toIR(IRState *irs);
 };
 
+struct DebugStatement : Statement
+{
+    Statement *statement;
+
+    DebugStatement(Loc loc, Statement *statement);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    Statements *flatten(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
 struct GotoStatement : Statement
 {
     Identifier *ident;
@@ -776,7 +783,6 @@ struct GotoStatement : Statement
 
     void toIR(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    GotoStatement *isGotoStatement() { return this; }
 };
 
 struct LabelStatement : Statement
@@ -831,7 +837,6 @@ struct AsmStatement : Statement
     Expression *interpret(InterState *istate);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    virtual AsmStatement *isAsmStatement() { return this; }
 
     void toIR(IRState *irs);
 };

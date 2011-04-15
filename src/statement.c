@@ -459,6 +459,15 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
     //printf("CompoundStatement::semantic(this = %p, sc = %p)\n", this, sc);
 
+#if 0
+    for (size_t i = 0; i < statements->dim; i++)
+    {
+        s = (Statement *) statements->data[i];
+        if (s)
+            printf("[%d]: %s", i, s->toChars());
+    }
+#endif
+
     for (size_t i = 0; i < statements->dim; )
     {
         s = (Statement *) statements->data[i];
@@ -2449,14 +2458,23 @@ Statement *ConditionalStatement::syntaxCopy()
 
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    //printf("ConditionalStatement::semantic()\n");
+    printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
     if (condition->include(sc, NULL))
     {
-        ifbody = ifbody->semantic(sc);
+        DebugCondition *dc = condition->isDebugCondition();
+        if (dc)
+        {
+            sc = sc->push();
+            sc->flags |= SCOPEdebug;
+            ifbody = ifbody->semantic(sc);
+            sc->pop();
+        }
+        else
+            ifbody = ifbody->semantic(sc);
         return ifbody;
     }
     else
@@ -2471,8 +2489,15 @@ Statements *ConditionalStatement::flatten(Scope *sc)
 {
     Statement *s;
 
+    //printf("ConditionalStatement::flatten()\n");
     if (condition->include(sc, NULL))
-        s = ifbody;
+    {
+        DebugCondition *dc = condition->isDebugCondition();
+        if (dc)
+            s = new DebugStatement(loc, ifbody);
+        else
+            s = ifbody;
+    }
     else
         s = elsebody;
 
@@ -4514,6 +4539,57 @@ void VolatileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writenl();
         else
             buf->writebyte(' ');
+        statement->toCBuffer(buf, hgs);
+    }
+}
+
+
+/******************************** DebugStatement **************************/
+
+DebugStatement::DebugStatement(Loc loc, Statement *statement)
+    : Statement(loc)
+{
+    this->statement = statement;
+}
+
+Statement *DebugStatement::syntaxCopy()
+{
+    DebugStatement *s = new DebugStatement(loc,
+                statement ? statement->syntaxCopy() : NULL);
+    return s;
+}
+
+Statement *DebugStatement::semantic(Scope *sc)
+{
+    if (statement)
+    {
+        sc = sc->push();
+        sc->flags |= SCOPEdebug;
+        statement = statement->semantic(sc);
+        sc->pop();
+    }
+    return statement;
+}
+
+Statements *DebugStatement::flatten(Scope *sc)
+{
+    Statements *a = statement ? statement->flatten(sc) : NULL;
+    if (a)
+    {   for (size_t i = 0; i < a->dim; i++)
+        {   Statement *s = (Statement *)a->data[i];
+
+            s = new DebugStatement(loc, s);
+            a->data[i] = s;
+        }
+    }
+
+    return a;
+}
+
+void DebugStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    if (statement)
+    {
         statement->toCBuffer(buf, hgs);
     }
 }

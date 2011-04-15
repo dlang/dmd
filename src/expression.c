@@ -1236,6 +1236,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
         if (outerfunc->isPure() && !sc->intypeof &&
+            !(sc->flags & SCOPEdebug) &&
             !(f->isPure() || (calledparent == outerfunc)))
         {
             error("pure function '%s' cannot call impure function '%s'",
@@ -4370,7 +4371,7 @@ Expression *VarExp::semantic(Scope *sc)
         v->checkNestedReference(sc, loc);
 #if DMDV2
 #if 1
-        if (sc->func && !sc->intypeof)
+        if (sc->func && !sc->intypeof && !(sc->flags & SCOPEdebug))
         {
             /* Given:
              * void f()
@@ -7240,7 +7241,7 @@ Lagain:
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
-            if (sc->func && sc->func->isPure() && !tf->purity)
+            if (sc->func && sc->func->isPure() && !tf->purity && !(sc->flags & SCOPEdebug))
             {
                 error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
             }
@@ -7254,7 +7255,7 @@ Lagain:
         {
             Expression *e = new PtrExp(loc, e1);
             t1 = ((TypePointer *)t1)->next;
-            if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->purity)
+            if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->purity && !(sc->flags & SCOPEdebug))
             {
                 error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
             }
