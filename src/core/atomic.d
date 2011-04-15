@@ -1033,7 +1033,7 @@ version( unittest )
         testType!(int)();
         testType!(uint)();
 
-        testType!(int*)();
+        testType!(shared int*)();
 
         static if( has64BitCAS )
         {
