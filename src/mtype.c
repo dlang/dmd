@@ -2072,7 +2072,18 @@ Expression *TypeSArray::toExpression()
 
 int TypeSArray::hasPointers()
 {
-    return next->hasPointers();
+    /* Don't want to do this, because:
+     *    struct S { T* array[0]; }
+     * may be a variable length struct.
+     */
+    //if (dim->toInteger() == 0)
+        //return FALSE;
+
+    if (next->ty == Tvoid)
+        // Arrays of void contain arbitrary data, which may include pointers
+        return TRUE;
+    else
+        return next->hasPointers();
 }
 
 /***************************** TypeDArray *****************************/
