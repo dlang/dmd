@@ -4250,7 +4250,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             assert(ea);
             ea = ea->semantic(sc);
-            if (ea->op != TOKvar || flags & 1)
+            if (flags & 1) // only used by __traits, must not interpret the args
+                ea = ea->optimize(WANTvalue);
+            else if (ea->op != TOKvar)
                 ea = ea->optimize(WANTvalue | WANTinterpret);
             tiargs->data[j] = ea;
             if (ea->op == TOKtype)
