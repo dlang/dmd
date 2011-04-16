@@ -2102,7 +2102,8 @@ struct R129(R : E[], E)
     E[] forward;
     static R129 opCall(E[] range)
     {
-        R129 result = { range };
+        R129 result = {};
+        result.forward =  range;
         return result;
     }
 }
