@@ -2947,12 +2947,17 @@ Statement *Parser::parseStatement(int flags)
         {   t = peek(&token);
             if (t->value == TOKlparen)
             {   // mixin(string)
-                nextToken();
-                check(TOKlparen, "mixin");
                 Expression *e = parseAssignExp();
-                check(TOKrparen);
-                check(TOKsemicolon, "mixin (string)");
-                s = new CompileStatement(loc, e);
+                check(TOKsemicolon);
+                if (e->op == TOKmixin)
+                {
+                    CompileExp *cpe = (CompileExp *)e;
+                    s = new CompileStatement(loc, cpe->e1);
+                }
+                else
+                {
+                    s = new ExpStatement(loc, e);
+                }
                 break;
             }
             Dsymbol *d = parseMixin();
