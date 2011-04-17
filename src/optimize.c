@@ -60,7 +60,8 @@ Expression *expandVar(int result, VarDeclaration *v)
         Type *tb = v->type->toBasetype();
         if (result & WANTinterpret ||
             v->storage_class & STCmanifest ||
-            v->type->toBasetype()->isscalar()
+            v->type->toBasetype()->isscalar() ||
+            ((result & WANTexpand) && (tb->ty != Tsarray && tb->ty != Tstruct))
            )
         {
             if (v->init)
@@ -207,7 +208,7 @@ Expression *ArrayLiteralExp::optimize(int result)
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *e = (Expression *)elements->data[i];
 
-            e = e->optimize(WANTvalue | (result & WANTinterpret));
+            e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
             elements->data[i] = (void *)e;
         }
     }
@@ -220,11 +221,11 @@ Expression *AssocArrayLiteralExp::optimize(int result)
     for (size_t i = 0; i < keys->dim; i++)
     {   Expression *e = (Expression *)keys->data[i];
 
-        e = e->optimize(WANTvalue | (result & WANTinterpret));
+        e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
         keys->data[i] = (void *)e;
 
         e = (Expression *)values->data[i];
-        e = e->optimize(WANTvalue | (result & WANTinterpret));
+        e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
         values->data[i] = (void *)e;
     }
     return this;
@@ -238,7 +239,7 @@ Expression *StructLiteralExp::optimize(int result)
         {   Expression *e = (Expression *)elements->data[i];
             if (!e)
                 continue;
-            e = e->optimize(WANTvalue | (result & WANTinterpret));
+            e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
             elements->data[i] = (void *)e;
         }
     }
@@ -865,7 +866,7 @@ Expression *ArrayLengthExp::optimize(int result)
 {   Expression *e;
 
     //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, toChars());
-    e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
+    e1 = e1->optimize(WANTvalue | WANTexpand | (result & WANTinterpret));
     e = this;
     if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
     {
@@ -934,7 +935,8 @@ Expression *IndexExp::optimize(int result)
 {   Expression *e;
 
     //printf("IndexExp::optimize(result = %d) %s\n", result, toChars());
-    Expression *e1 = this->e1->optimize(WANTvalue | (result & WANTinterpret));
+    Expression *e1 = this->e1->optimize(
+        WANTvalue | (result & (WANTinterpret| WANTexpand)));
     e1 = fromConstInitializer(result, e1);
     if (this->e1->op == TOKvar)
     {   VarExp *ve = (VarExp *)this->e1;
@@ -961,7 +963,7 @@ Expression *SliceExp::optimize(int result)
 
     //printf("SliceExp::optimize(result = %d) %s\n", result, toChars());
     e = this;
-    e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
+    e1 = e1->optimize(WANTvalue | (result & (WANTinterpret|WANTexpand)));
     if (!lwr)
     {   if (e1->op == TOKstring)
         {   // Convert slice of string literal into dynamic array
