@@ -1314,12 +1314,6 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
             !hdrscan)
             goto Lno;
     }
-    else
-    {   CtorDeclaration *ctor = isCtorDeclaration();
-
-        if (ctor && ctor->varargs == 1)
-            goto Lno;
-    }
 
     if (
         !fbody ||

@@ -968,7 +968,8 @@ Dsymbol *Parser::parseCtor()
 
         Expression *constraint = tpl ? parseConstraint() : NULL;
 
-        CtorDeclaration *f = new CtorDeclaration(loc, 0, parameters, varargs, stc);
+		Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);	// RetrunType -> auto
+        CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
         parseContracts(f);
 
         // Wrap a template around it
@@ -984,7 +985,8 @@ Dsymbol *Parser::parseCtor()
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
     StorageClass stc = parsePostfix();
-    CtorDeclaration *f = new CtorDeclaration(loc, 0, parameters, varargs, stc);
+	Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);	// RetrunType -> auto
+    CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
     parseContracts(f);
     return f;
 }
