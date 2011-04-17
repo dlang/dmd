@@ -2540,6 +2540,46 @@ void test135()
 }
 
 /***************************************************/
+// 5545
+
+bool enforce136(bool value, lazy const(char)[] msg = null) {
+    if(!value) {
+        return false;
+    }
+
+    return value;
+}
+
+struct Perm {
+    byte[3] perm;
+    ubyte i;
+
+    this(byte[] input) {
+        foreach(elem; input) {
+            enforce136(i < 3);
+            perm[i++] = elem;
+            std.stdio.stderr.writeln(i);  // Never gets incremented.  Stays at 0.
+        }
+    }
+}
+
+void test136() {
+    byte[] stuff = [0, 1, 2];
+    auto perm2 = Perm(stuff);
+    writeln(perm2.perm);  // Prints [2, 0, 0]
+    assert(perm2.perm[] == [0, 1, 2]);
+}
+
+/***************************************************/
+// 4097
+
+void foo4097() { }
+alias typeof(&foo4097) T4097;
+static assert(is(T4097 X : X*) && is(X == function));
+
+static assert(!is(X));
+
+/***************************************************/
 
 int main()
 {
@@ -2678,6 +2718,7 @@ int main()
     test133();
     test134();
     test135();
+    test136();
 
     printf("Success\n");
     return 0;
