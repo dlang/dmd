@@ -675,3 +675,12 @@ int bug3835() {
     return arr[0];
 }
 static assert(bug3835() == 17);
+
+int bug5852(const(string) s) {
+    string [] r;
+    r ~= s;
+    assert(r.length == 1);
+    return r[0].length;
+}
+
+static assert(bug5852("abc")==3);
