@@ -1433,6 +1433,34 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         es->type = type;
         e = es;
     }
+    else if (e2->op == TOKstring && e1->op == TOKarrayliteral &&
+        t1->nextOf()->isintegral())
+    {
+        // Concatenate the strings
+        StringExp *es1 = (StringExp *)e2;
+        ArrayLiteralExp *es2 = (ArrayLiteralExp *)e1;
+        size_t len = es1->len + es2->elements->dim;
+        int sz = es1->sz;
+
+        void *s = mem.malloc((len + 1) * sz);
+        memcpy((char *)s + sz * es2->elements->dim, es1->string, es1->len * sz);
+        for (int i = 0; i < es2->elements->dim; i++)
+        {   Expression *es2e = (Expression *)es2->elements->data[i];
+            if (es2e->op != TOKint64)
+                return EXP_CANT_INTERPRET;
+            dinteger_t v = es2e->toInteger();
+            memcpy((unsigned char *)s + i * sz, &v, sz);
+        }
+
+        // Add terminating 0
+        memset((unsigned char *)s + len * sz, 0, sz);
+
+        StringExp *es = new StringExp(loc, s, len);
+        es->sz = sz;
+        es->committed = 0;
+        es->type = type;
+        e = es;
+    }
     else if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
         t2->nextOf()->isintegral())
     {
