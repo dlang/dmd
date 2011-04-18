@@ -1287,7 +1287,6 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
          */
         if (v->ident == Id::ctfe)
             return new IntegerExp(loc, 1, Type::tbool);
-
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && v->init && !v->getValue())
 #else
         if (v->isConst() && v->init)
@@ -1295,6 +1294,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
         {   e = v->init->toExpression();
             if (e && !e->type)
                 e->type = v->type;
+            if (e)
+                e = e->interpret(istate, ctfeNeedAnyValue);
+            if (e && e != EXP_CANT_INTERPRET)
+                v->setValueWithoutChecking(e);
         }
         else if ((v->isCTFE() || (!v->isDataseg() && istate)) && !v->getValue())
         {
@@ -1317,7 +1320,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
         }
         else
         {   e = v->getValue();
-            if (!v->isCTFE() && v->isDataseg())
+            if (!e && !v->isCTFE() && v->isDataseg())
             {   error(loc, "static variable %s cannot be read at compile time", v->toChars());
                 e = EXP_CANT_INTERPRET;
             }
@@ -1357,7 +1360,15 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("VarExp::interpret() %s\n", toChars());
 #endif
-    return getVarExp(loc, istate, var, goal);
+    Expression *e = getVarExp(loc, istate, var, goal);
+    // A VarExp may include an implicit cast. It must be done explicitly.
+    if (e != EXP_CANT_INTERPRET && e->type != type
+        && e->implicitConvTo(type) == MATCHexact)
+    {
+        e = e->implicitCastTo(0, type);
+        e = e->interpret(istate, goal);
+    }
+    return e;
 }
 
 Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
@@ -1818,7 +1829,10 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e1->op != TOKstring &&
         e1->op != TOKarrayliteral &&
         e1->op != TOKstructliteral)
+    {
+        error("cannot compare %s at compile time", e1->toChars());
         goto Lcant;
+    }
 
     e2 = this->e2->interpret(istate);
     if (e2 == EXP_CANT_INTERPRET)
@@ -1828,7 +1842,10 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e2->op != TOKstring &&
         e2->op != TOKarrayliteral &&
         e2->op != TOKstructliteral)
+    {
+        error("cannot compare %s at compile time", e2->toChars());
         goto Lcant;
+    }
 
     e = (*fp)(op, type, e1, e2);
     return e;
@@ -2447,7 +2464,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // only modifying part of the variable. So we need to make sure
     // that the parent variable exists.
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-        ultimateVar->createRefValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));    
+        ultimateVar->createRefValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));
 
     // ----------------------------------------------------------
     //      Deal with dotvar expressions - non-reference types
@@ -3967,7 +3984,7 @@ bool isStackValueValid(Expression *newval)
 bool isRefValueValid(Expression *newval)
 {
     assert(newval);
-    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) || 
+    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
         (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
         (newval->op == TOKnull))
     {   return true;
