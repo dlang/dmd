@@ -144,10 +144,6 @@ MATCH Expression::implicitConvTo(Type *t)
         type = Type::terror;
     }
     Expression *e = optimize(WANTvalue | WANTflags);
-    if (t->ty == Tbool)
-    {   // Check that we can really convert the expression to bool.
-        e->checkToBoolean(NULL);
-    }
     if (e->type == t)
         return MATCHexact;
     if (e != this)
