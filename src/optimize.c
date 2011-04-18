@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1010,7 +1010,7 @@ Expression *AndAndExp::optimize(int result)
 
                 e = new IntegerExp(loc, n1 && n2, type);
             }
-            else if (e1->isBool(TRUE))
+            else if (e1->isBool(TRUE) && e2->type->checkBoolean())
                 e = new BoolExp(loc, e2, type);
         }
     }
@@ -1041,7 +1041,7 @@ Expression *OrOrExp::optimize(int result)
 
                 e = new IntegerExp(loc, n1 || n2, type);
             }
-            else if (e1->isBool(FALSE))
+            else if (e1->isBool(FALSE) && e2->type->checkBoolean())
                 e = new BoolExp(loc, e2, type);
         }
     }
