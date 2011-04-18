@@ -1360,7 +1360,15 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("VarExp::interpret() %s\n", toChars());
 #endif
-    return getVarExp(loc, istate, var, goal);
+    Expression *e = getVarExp(loc, istate, var, goal);
+    // A VarExp may include an implicit cast. It must be done explicitly.
+    if (e != EXP_CANT_INTERPRET && e->type != type
+        && e->implicitConvTo(type) == MATCHexact)
+    {
+        e = e->implicitCastTo(0, type);
+        e = e->interpret(istate, goal);
+    }
+    return e;
 }
 
 Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
@@ -1821,7 +1829,10 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e1->op != TOKstring &&
         e1->op != TOKarrayliteral &&
         e1->op != TOKstructliteral)
+    {
+        error("cannot compare %s at compile time", e1->toChars());
         goto Lcant;
+    }
 
     e2 = this->e2->interpret(istate);
     if (e2 == EXP_CANT_INTERPRET)
@@ -1831,7 +1842,10 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e2->op != TOKstring &&
         e2->op != TOKarrayliteral &&
         e2->op != TOKstructliteral)
+    {
+        error("cannot compare %s at compile time", e2->toChars());
         goto Lcant;
+    }
 
     e = (*fp)(op, type, e1, e2);
     return e;
