@@ -10435,8 +10435,13 @@ Expression *PowExp::semantic(Scope *sc)
         if ((e2->op == TOKint64 && e2->toInteger() == 0) ||
                 (e2->op == TOKfloat64 && e2->toReal() == 0.0))
         {
+            if (e1->op == TOKint64)
+                e = new IntegerExp(loc, 1, e1->type);
+            else
+                e = new RealExp(loc, 1.0, e1->type);
+
             typeCombine(sc);
-            e = new CommaExp(loc, e1, new IntegerExp(loc, 1, Type::tint64));
+            e = new CommaExp(loc, e1, e);
             e = e->semantic(sc);
             return e;
         }
