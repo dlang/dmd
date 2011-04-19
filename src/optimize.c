@@ -1010,7 +1010,7 @@ Expression *AndAndExp::optimize(int result)
 
                 e = new IntegerExp(loc, n1 && n2, type);
             }
-            else if (e1->isBool(TRUE) && e2->type->checkBoolean())
+            else if (e1->isBool(TRUE))
                 e = new BoolExp(loc, e2, type);
         }
     }
@@ -1041,7 +1041,7 @@ Expression *OrOrExp::optimize(int result)
 
                 e = new IntegerExp(loc, n1 || n2, type);
             }
-            else if (e1->isBool(FALSE) && e2->type->checkBoolean())
+            else if (e1->isBool(FALSE))
                 e = new BoolExp(loc, e2, type);
         }
     }

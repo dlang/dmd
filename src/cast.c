@@ -144,13 +144,6 @@ MATCH Expression::implicitConvTo(Type *t)
         type = Type::terror;
     }
     Expression *e = optimize(WANTvalue | WANTflags);
-#if 0
-    // Bugzilla 5735
-    if (t->ty == Tbool)
-    {   // See if we can really convert the type to boolean.
-        e->checkToBoolean(NULL);
-    }
-#endif
     if (e->type == t)
         return MATCHexact;
     if (e != this)

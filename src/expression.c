@@ -10724,9 +10724,13 @@ Expression *OrOrExp::semantic(Scope *sc)
     e2 = resolveProperties(sc, e2);
     e2 = e2->checkToPointer();
 
-    type = Type::tboolean;
     if (e2->type->ty == Tvoid)
         type = Type::tvoid;
+    else
+    {
+        e2 = e2->checkToBoolean(sc);
+        type = Type::tboolean;
+    }
     if (e2->op == TOKtype || e2->op == TOKimport)
     {   error("%s is not an expression", e2->toChars());
         return new ErrorExp();
@@ -10795,9 +10799,13 @@ Expression *AndAndExp::semantic(Scope *sc)
     e2 = resolveProperties(sc, e2);
     e2 = e2->checkToPointer();
 
-    type = Type::tboolean;
     if (e2->type->ty == Tvoid)
         type = Type::tvoid;
+    else
+    {
+        e2 = e2->checkToBoolean(sc);
+        type = Type::tboolean;
+    }
     if (e2->op == TOKtype || e2->op == TOKimport)
     {   error("%s is not an expression", e2->toChars());
         return new ErrorExp();
