@@ -188,6 +188,11 @@ version( Windows )
                     last.next = t;
                 }
             }
+            
+            version( D_InlineAsm_X86 )
+            {
+                asm { fninit; }
+            }
 
             try
             {
