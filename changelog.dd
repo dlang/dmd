@@ -1,4 +1,4 @@
-$(VERSION 054, mmm dd, 2011, =================================================,
+$(VERSION 053, mmm dd, 2011, =================================================,
 
     $(WHATSNEW
 $(LI Added some gc benchmark apps)
@@ -6,5 +6,7 @@ $(LI Move std.intrinsic to core.intrinsic)
     )
     $(RUNTIMEBUGSFIXED
 $(LI $(BUGZILLA 5612): core.cpuid not implemented on 64)
+$(LI $(BUGZILLA 1001): print stack trace (in debug mode) when program die)
+$(LI $(BUGZILLA 5847): Threads started by core.thread should have same floating point state as main thread)
     )
 )
