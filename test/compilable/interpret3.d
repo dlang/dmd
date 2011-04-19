@@ -676,7 +676,7 @@ int bug3835() {
 }
 static assert(bug3835() == 17);
 
-int bug5852(const(string) s) {
+auto bug5852(const(string) s) {
     string [] r;
     r ~= s;
     assert(r.length == 1);
