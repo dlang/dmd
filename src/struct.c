@@ -528,7 +528,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    if (scope)
+    if (scope && !symtab)
         semantic(scope);
 
     if (!members || !symtab)

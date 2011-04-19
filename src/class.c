@@ -844,14 +844,14 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    if (scope)
+    if (scope && !symtab)
     {   Scope *sc = scope;
         sc->mustsemantic++;
         semantic(sc);
         sc->mustsemantic--;
     }
 
-    if (!members || !symtab || scope)
+    if (!members || !symtab)
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
