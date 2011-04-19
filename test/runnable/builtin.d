@@ -34,8 +34,8 @@ void test2()
     assert(i == 9);
 
     int j = 2;
-//    j = j ^^ 1;
-//    assert(j == 2);
+    j = j ^^ 1;
+    assert(j == 2);
 
     i = 4;
     i = i ^^ .5;
