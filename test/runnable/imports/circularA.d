@@ -1,4 +1,4 @@
-module imports.circulara;
+module imports.circularA;
 import circular;
 
 class A
