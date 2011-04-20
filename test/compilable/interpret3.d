@@ -690,3 +690,42 @@ static assert(bug5852("abc")==3);
 *******************************************/
 
 static assert( ['a', 'b'] ~ "c" == "abc" );
+
+/*******************************************
+        Bug 5685
+*******************************************/
+
+string bug5685() {
+  return "xxx";
+}
+struct Bug5865 {
+    void test1(){
+        enum file2 = (bug5685())[0..$]  ;
+    }
+}
+
+/*******************************************
+        Bug 5840
+*******************************************/
+
+struct Bug5840 {
+    string g;
+    int w;
+}
+
+int bug5840(int u)
+{   // check for clobbering
+    Bug5840 x = void;
+    x.w = 4;
+    x.g = "3gs";
+    if (u==1) bug5840(2);
+    if (u==2) {
+        x.g = "abc";
+        x.w = 3465;
+    } else {
+        assert(x.g == "3gs");
+        assert(x.w == 4);
+    }
+    return 56;
+}
+static assert(bug5840(1)==56);
