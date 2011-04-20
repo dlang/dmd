@@ -2537,10 +2537,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // ---------------------------------------
     //      Deal with reference assignment
     // ---------------------------------------
-    // If the destination is an array literal or string literal, it is non-null here.
-    ArrayLiteralExp *dest_ae = NULL;
-//    AssocArrayLiteralExp *dest_aae = NULL;
-    StringExp *dest_se = NULL;
     if (wantRef)
     {
         if (this->e2->op == TOKvar)
@@ -2576,107 +2572,126 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = this->e2->interpret(istate);
         if (newval == EXP_CANT_INTERPRET)
             return newval;
-        if (e1->op == TOKvar)
-        {
-            VarExp *ve = (VarExp *)e1;
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            if (!destinationIsReference)
-                addVarToInterstate(istate, v);
-            // It's a reference type. The old value gets lost.
-            if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
-                || newval->op == TOKstring)
-            {
-                if (needToCopyLiteral(this->e2))
-                    newval = copyLiteral(newval);
-                v->setValueNull();
-                v->createRefValue(newval);
-            }
-            else if (newval->op == TOKnull)
-            {
-                v->setValueNull();
-                v->createRefValue(newval);
-            }
-            else if (newval->op == TOKvar)
-            {
-                VarExp *vv = (VarExp *)newval;
 
+        if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
+            || newval->op == TOKstring)
+        {
+            if (needToCopyLiteral(this->e2))
+                newval = copyLiteral(newval);
+        }
+        else if (newval->op == TOKnull)
+        {    // do nothing
+        }
+        else if (newval->op == TOKvar)
+        {
+            VarExp *vv = (VarExp *)newval;
+
+            VarDeclaration *v2 = vv->var->isVarDeclaration();
+            assert(v2 && v2->getValue());
+            newval = v2->getValue();
+        }
+        else if ((e1->op == TOKdotvar || e1->op == TOKvar) && newval->op == TOKslice)
+        {
+            // This one is interesting because it could be a slice of itself
+            SliceExp * sexp = (SliceExp *)newval;
+            Expression *agg = sexp->e1;
+            dinteger_t newlo = sexp->lwr->toInteger();
+            dinteger_t newup = sexp->upr->toInteger();
+            if (agg->op == TOKvar)
+            {
+                VarExp *vv = (VarExp *)agg;
                 VarDeclaration *v2 = vv->var->isVarDeclaration();
                 assert(v2 && v2->getValue());
-                assert((v2->getValue()->op == TOKarrayliteral ||
-                        v2->getValue()->op == TOKassocarrayliteral ||
-                        v2->getValue()->op == TOKstring ||
-                        v2->getValue()->op == TOKslice ||
-                        v2->getValue()->op == TOKnull) );
-                v->setValueNull();
-                v->createRefValue(v2->getValue());
-            }
-            else if (newval->op == TOKslice)
-            {
-                // This one is interesting because it could be a slice of itself
-                SliceExp * sexp = (SliceExp *)newval;
-                Expression *agg = sexp->e1;
-                dinteger_t newlo = sexp->lwr->toInteger();
-                dinteger_t newup = sexp->upr->toInteger();
-                if (agg->op == TOKvar)
+                if (v2->getValue()->op == TOKarrayliteral
+                    || v2->getValue()->op == TOKstring)
                 {
-                    VarExp *vv = (VarExp *)agg;
-                    VarDeclaration *v2 = vv->var->isVarDeclaration();
-                    assert(v2 && v2->getValue());
-                    if (v2->getValue()->op == TOKarrayliteral || v2->getValue()->op == TOKstring)
+                    Expression *dollar = ArrayLength(Type::tsize_t, v2->getValue());
+                    if ((newup < newlo) || (newup > dollar->toInteger()))
                     {
-                        Expression *dollar = ArrayLength(Type::tsize_t, v2->getValue());
-                        if ((newup < newlo) || (newup > dollar->toInteger()))
-                        {
-                            error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
-                                newlo, newup, dollar->toInteger());
-                            return EXP_CANT_INTERPRET;
-                        }
-                        sexp->e1 = v2->getValue();
-                        v->setValueNull();
-                        v->createRefValue(sexp);
+                        error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
+                            newlo, newup, dollar->toInteger());
+                        return EXP_CANT_INTERPRET;
                     }
-                    else if (v2->getValue()->op == TOKslice)
+                    sexp->e1 = v2->getValue();
+                    newval = sexp;
+                }
+                else if (v2->getValue()->op == TOKslice)
+                {
+                    SliceExp *sexpold = (SliceExp *)v2->getValue();
+                    sexp->e1 = sexpold->e1;
+                    dinteger_t hi = newup + sexpold->lwr->toInteger();
+                    dinteger_t lo = newlo + sexpold->lwr->toInteger();
+                    if ((newup < newlo) || (hi > sexpold->upr->toInteger()))
                     {
-                        SliceExp *sexpold = (SliceExp *)v2->getValue();
-                        sexp->e1 = sexpold->e1;
-                        dinteger_t hi = newup + sexpold->lwr->toInteger();
-                        dinteger_t lo = newlo + sexpold->lwr->toInteger();
-                        if ((newup < newlo) || (hi > sexpold->upr->toInteger()))
-                        {
-                            error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
-                                newlo, newup, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
-                            return EXP_CANT_INTERPRET;
-                        }
-                        sexp->lwr = new IntegerExp(loc, lo, Type::tsize_t);
-                        sexp->upr = new IntegerExp(loc, hi, Type::tsize_t);
-                        v->setValueNull();
-                        v->createRefValue(sexp);
+                        error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
+                            newlo, newup, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
+                        return EXP_CANT_INTERPRET;
                     }
-                    else
-                    {
-                        newval = newval->interpret(istate);
-                        if (newval == EXP_CANT_INTERPRET)
-                            return newval;
-                        if (!v->getValue())
-                            v->createRefValue(newval);
-                        else v->setRefValue(newval);
-                    }
+                    sexp->lwr = new IntegerExp(loc, lo, Type::tsize_t);
+                    sexp->upr = new IntegerExp(loc, hi, Type::tsize_t);
+                    newval = sexp;
                 }
                 else
                 {
                     newval = newval->interpret(istate);
                     if (newval == EXP_CANT_INTERPRET)
                         return newval;
-                    if (!v->getValue())
-                        v->createRefValue(newval);
-                    else v->setRefValue(newval);
                 }
             }
             else
             {
-                v->setValueNull();
-                v->createStackValue(newval);
+                newval = newval->interpret(istate);
+                if (newval == EXP_CANT_INTERPRET)
+                    return newval;
             }
+        }
+        if (e1->op == TOKvar || e1->op == TOKdotvar)
+        {
+
+            assert((newval->op == TOKarrayliteral ||
+                    newval->op == TOKassocarrayliteral ||
+                    newval->op == TOKstring ||
+                    newval->op == TOKslice ||
+                    newval->op == TOKnull) );
+            if (newval->op == TOKslice)
+            {
+                Expression *sss = ((SliceExp *)newval)->e1;
+                assert(sss->op == TOKarrayliteral || sss->op == TOKstring);
+            }
+        }
+
+        if (e1->op == TOKdotvar)
+        {
+            Expression *exx = ((DotVarExp *)e1)->e1->interpret(istate);
+            if (exx == EXP_CANT_INTERPRET)
+                return exx;
+            if (exx->op != TOKstructliteral)
+            {
+                error("CTFE internal error: Dotvar assignment");
+                return EXP_CANT_INTERPRET;
+            }
+            StructLiteralExp *se3 = (StructLiteralExp *)exx;
+            VarDeclaration *vv = ((DotVarExp *)e1)->var->isVarDeclaration();
+            if (!vv)
+            {
+                error("CTFE internal error: Dotvar assignment");
+                return EXP_CANT_INTERPRET;
+            }
+            int se_indx = se3->getFieldIndex(e1->type, vv->offset);
+            (Expression *)se3->elements->data[se_indx] = newval;
+            // Mark the parent variable as modified
+            if (!destinationIsReference)
+                addVarToInterstate(istate, ultimateVar);
+            return newval;
+        }
+        else if (e1->op == TOKvar)
+        {
+            VarExp *ve = (VarExp *)e1;
+            VarDeclaration *v = ve->var->isVarDeclaration();
+            if (!destinationIsReference)
+                addVarToInterstate(istate, v);
+            v->setValueNull();
+            v->createRefValue(newval);
             return newval;
         }
         e = newval;
