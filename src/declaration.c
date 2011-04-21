@@ -1718,6 +1718,11 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
             else
             {
                 e = new VarExp(loc, this);
+                /* This is a hack so we can call destructors on const/immutable objects.
+                 * Need to add things like "const ~this()" and "immutable ~this()" to
+                 * fix properly.
+                 */
+                e->type = e->type->mutableOf();
                 e = new DotVarExp(loc, e, sd->dtor, 0);
                 e = new CallExp(loc, e);
             }

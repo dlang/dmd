@@ -1488,6 +1488,17 @@ Expression *Expression::isTemp()
     return NULL;
 }
 
+/************************************************
+ * Destructors are attached to VarDeclarations.
+ * Hence, if expression returns a temp that needs a destructor,
+ * make sure and create a VarDeclaration for that temp.
+ */
+
+Expression *Expression::addDtorHook(Scope *sc)
+{
+    return this;
+}
+
 /******************************** IntegerExp **************************/
 
 IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
@@ -6295,6 +6306,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         }
 
         e1 = e1->semantic(sc);
+        e1 = e1->addDtorHook(sc);
         type = var->type;
         if (!type && global.errors)
         {   // var is goofed up, just return 0
@@ -7439,6 +7451,51 @@ Expression *CallExp::toLvalue(Scope *sc, Expression *e)
     return Expression::toLvalue(sc, e);
 }
 
+Expression *CallExp::addDtorHook(Scope *sc)
+{
+    /* Only need to add dtor hook if it's a type that needs destruction.
+     * Use same logic as VarDeclaration::callScopeDtor()
+     */
+
+    if (e1->type && e1->type->ty == Tfunction)
+    {
+        TypeFunction *tf = (TypeFunction *)e1->type;
+        if (tf->isref)
+            return this;
+    }
+
+    Type *tv = type->toBasetype();
+    while (tv->ty == Tsarray)
+    {   TypeSArray *ta = (TypeSArray *)tv;
+        tv = tv->nextOf()->toBasetype();
+    }
+    if (tv->ty == Tstruct)
+    {   TypeStruct *ts = (TypeStruct *)tv;
+        StructDeclaration *sd = ts->sym;
+        if (sd->dtor)
+        {   /* Type needs destruction, so declare a tmp
+             * which the back end will recognize and call dtor on
+             */
+            if (e1->op == TOKdotvar)
+            {
+                DotVarExp* dve = (DotVarExp*)e1;
+                if (dve->e1->isTemp() != NULL)
+                    goto Lnone;                 // already got a tmp
+            }
+
+            Identifier *idtmp = Lexer::uniqueId("__tmpfordtor");
+            VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
+            tmp->storage_class |= STCctfe;
+            Expression *ae = new DeclarationExp(loc, tmp);
+            Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+            e = e->semantic(sc);
+            return e;
+        }
+    }
+Lnone:
+    return this;
+}
+
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (e1->op == TOKtype)
@@ -8581,6 +8638,7 @@ Expression *CommaExp::semantic(Scope *sc)
 {
     if (!type)
     {   BinExp::semanticp(sc);
+        e1 = e1->addDtorHook(sc);
         type = e2->type;
     }
     return this;
@@ -8644,6 +8702,12 @@ int CommaExp::checkSideEffect(int flag)
         // Don't check e1 until we cast(void) the a,b code generation
         return e2->checkSideEffect(flag);
     }
+}
+
+Expression *CommaExp::addDtorHook(Scope *sc)
+{
+    e2 = e2->addDtorHook(sc);
+    return this;
 }
 
 /************************** IndexExp **********************************/

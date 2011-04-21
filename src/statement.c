@@ -271,6 +271,7 @@ Statement *ExpStatement::semantic(Scope *sc)
 #endif
 
         exp = exp->semantic(sc);
+        exp = exp->addDtorHook(sc);
         exp = resolveProperties(sc, exp);
         exp->checkSideEffect(0);
         exp = exp->optimize(0);
