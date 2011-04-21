@@ -7518,6 +7518,8 @@ Expression *AddrExp::semantic(Scope *sc)
     {
         UnaExp::semantic(sc);
         e1 = e1->toLvalue(sc, NULL);
+        if (e1->op == TOKerror)
+            return e1;
         if (!e1->type)
         {
             error("cannot take address of %s", e1->toChars());
