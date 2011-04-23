@@ -473,7 +473,7 @@ void AliasDeclaration::semantic(Scope *sc)
     s = type->toDsymbol(sc);
     if (s
 #if DMDV2
-`       && ((s->getType() && type->equals(s->getType())) || s->isEnumMember())
+        && ((s->getType() && type->equals(s->getType())) || s->isEnumMember())
 #endif
         )
         goto L2;                        // it's a symbolic alias
@@ -552,8 +552,10 @@ void AliasDeclaration::semantic(Scope *sc)
             s = NULL;
         }
     }
-    //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
-    aliassym = s;
+    if (!type || type->ty != Terror)
+    {   //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
+        aliassym = s;
+    }
     this->inSemantic = 0;
 }
 
@@ -742,6 +744,11 @@ void VarDeclaration::semantic(Scope *sc)
     printf("linkage = %d\n", sc->linkage);
     //if (strcmp(toChars(), "mul") == 0) halt();
 #endif
+
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
 
     storage_class |= sc->stc;
     if (storage_class & STCextern && init)
