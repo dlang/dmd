@@ -1141,18 +1141,24 @@ Lagain:
                     ei->exp = resolveProperties(sc, ei->exp);
                     StructDeclaration *sd = ((TypeStruct *)t)->sym;
 #if DMDV2
+                    Expression** pinit = &ei->exp;
+                    while ((*pinit)->op == TOKcomma)
+                    {
+                        pinit = &((CommaExp *)*pinit)->e2;
+                    }
+
                     /* Look to see if initializer is a call to the constructor
                      */
                     if (sd->ctor &&             // there are constructors
-                        ei->exp->type->ty == Tstruct && // rvalue is the same struct
-                        ((TypeStruct *)ei->exp->type)->sym == sd &&
-                        ei->exp->op == TOKcall)
+                        (*pinit)->type->ty == Tstruct && // rvalue is the same struct
+                        ((TypeStruct *)(*pinit)->type)->sym == sd &&
+                        (*pinit)->op == TOKcall)
                     {
                         /* Look for form of constructor call which is:
                          *    *__ctmp.ctor(arguments...)
                          */
                         if (1)
-                        {   CallExp *ce = (CallExp *)ei->exp;
+                        {   CallExp *ce = (CallExp *)(*pinit);
                             if (ce->e1->op == TOKdotvar)
                             {   DotVarExp *dve = (DotVarExp *)ce->e1;
                                 if (dve->var->isCtorDeclaration())
@@ -1173,12 +1179,12 @@ Lagain:
                                         e->op = TOKblit;
                                     }
                                     e->type = t;
-                                    ei->exp = new CommaExp(loc, e, ei->exp);
+                                    (*pinit) = new CommaExp(loc, e, (*pinit));
 
                                     /* Replace __ctmp being constructed with e1
                                      */
                                     dve->e1 = e1;
-                                    ei->exp = ei->exp->semantic(sc);
+                                    (*pinit) = (*pinit)->semantic(sc);
                                     goto Ldtor;
                                 }
                             }
