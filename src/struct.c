@@ -219,6 +219,58 @@ void AggregateDeclaration::addField(Scope *sc, VarDeclaration *v)
     fields.push(v);
 }
 
+/****************************************
+ * If field[indx] is not part of a union, return indx.
+ * Otherwise, return the lowest field index of the union.
+ */
+int AggregateDeclaration::firstFieldInUnion(int indx)
+{
+    if (isUnionDeclaration())
+        return 0;
+    VarDeclaration * vd = (VarDeclaration *)fields.data[indx];
+    int firstNonZero = indx; // first index in the union with non-zero size
+    for (; ;)
+    {
+        if (indx == 0)
+            return firstNonZero;
+        VarDeclaration * v = (VarDeclaration *)fields.data[indx - 1];
+        if (v->offset != vd->offset)
+            return firstNonZero;
+        --indx;
+        /* If it is a zero-length field, it's ambiguous: we don't know if it is
+         * in the union unless we find an earlier non-zero sized field with the
+         * same offset.
+         */
+        if (v->size(loc) != 0)
+            firstNonZero = indx;
+    }
+}
+
+/****************************************
+ * Count the number of fields starting at firstIndex which are part of the
+ * same union as field[firstIndex]. If not a union, return 1.
+ */
+int AggregateDeclaration::numFieldsInUnion(int firstIndex)
+{
+    VarDeclaration * vd = (VarDeclaration *)fields.data[firstIndex];
+    /* If it is a zero-length field, AND we can't find an earlier non-zero
+     * sized field with the same offset, we assume it's not part of a union.
+     */
+    if (vd->size(loc) == 0 && !isUnionDeclaration() &&
+        firstFieldInUnion(firstIndex) == firstIndex)
+        return 1;
+    int count = 1;
+    for (int i = firstIndex+1; i < fields.dim; ++i)
+    {
+        VarDeclaration * v = (VarDeclaration *)fields.data[i];
+        // If offsets are different, they are not in the same union
+        if (v->offset != vd->offset)
+            break;
+        ++count;
+    }
+    return count;
+}
+
 
 /********************************* StructDeclaration ****************************/
 
