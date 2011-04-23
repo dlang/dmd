@@ -2547,7 +2547,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
             /* Set the $ variable
              */
-            Expression *dollar = ArrayLength(Type::tsize_t, sexp->e1->interpret(istate));
+            Expression *e1val = sexp->e1->interpret(istate);
+            Expression *dollar;
+            if (e1val->op == TOKnull)
+                dollar = new IntegerExp(0, 0, Type::tsize_t);
+            else
+                dollar = ArrayLength(Type::tsize_t, e1val);
+
             if (dollar != EXP_CANT_INTERPRET && sexp->lengthVar)
             {
                 sexp->lengthVar->createStackValue(dollar);
@@ -3587,12 +3593,6 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
 
-    if (e1->op == TOKnull)
-    {
-        error("cannot slice null array %s", this->e1->toChars());
-        return EXP_CANT_INTERPRET;
-    }
-
     if (!this->lwr)
     {
         if (goal == ctfeNeedLvalue)
@@ -3603,7 +3603,10 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
 
     /* Set the $ variable
      */
-    e = ArrayLength(Type::tsize_t, e1);
+    if (e1->op == TOKnull)
+        e = new IntegerExp(0, 0, Type::tsize_t);
+    else
+        e = ArrayLength(Type::tsize_t, e1);
     if (e == EXP_CANT_INTERPRET)
     {
         error("Cannot determine length of %s at compile time\n", e1->toChars());
@@ -3628,6 +3631,15 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         e = new SliceExp(loc, e1, lwr, upr);
         e->type = type;
         return e;
+    }
+    uinteger_t ilwr = lwr->toInteger();
+    uinteger_t iupr = upr->toInteger();
+    if (e1->op == TOKnull)
+    {
+        if (ilwr== 0 && iupr == 0)
+            return e1;
+        e1->error("slice [%ju..%ju] is out of bounds", ilwr, iupr);
+        return EXP_CANT_INTERPRET;
     }
     e = Slice(type, e1, lwr, upr);
     if (e == EXP_CANT_INTERPRET)
