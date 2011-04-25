@@ -2684,7 +2684,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return EXP_CANT_INTERPRET;
             }
             int se_indx = se3->getFieldIndex(e1->type, vv->offset);
-            (Expression *)se3->elements->data[se_indx] = newval;
+            se3->elements->data[se_indx] = newval;
             // Mark the parent variable as modified
             if (!destinationIsReference)
                 addVarToInterstate(istate, ultimateVar);
