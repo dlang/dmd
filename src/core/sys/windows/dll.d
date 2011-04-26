@@ -12,7 +12,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-module core.sys.windows._dll;
+module core.sys.windows.dll;
 
 version( Windows )
 {
@@ -20,7 +20,7 @@ version( Windows )
     import core.stdc.string;
     import core.runtime;
 
-    public import core.sys.windows._thread;
+    public import core.sys.windows.threadaux;
 
     ///////////////////////////////////////////////////////////////////
     // support fixing implicit TLS for dynamically loaded DLLs on Windows XP

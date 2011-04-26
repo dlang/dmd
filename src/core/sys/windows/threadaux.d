@@ -12,7 +12,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-module core.sys.windows._thread;
+module core.sys.windows.threadaux;
 
 version( Windows )
 {
