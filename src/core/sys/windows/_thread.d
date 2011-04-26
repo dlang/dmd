@@ -201,7 +201,7 @@ private:
                 return;
             }
 
-            // temporarily set current TLS data pointer to the data pointer of the referenced thread
+            // temporarily set current TLS array pointer to the array pointer of the referenced thread
             void** curteb = getTEB();
             void** teb    = getTEB( id );
             assert( teb && curteb );
@@ -211,14 +211,9 @@ private:
             if( !curtlsarray || !tlsarray )
                 return;
 
-            void** curtlsdata = cast(void**) curtlsarray[_tls_index];
-            void** tlsdata    = cast(void**) tlsarray[_tls_index];
-            if( !curtlsdata || !tlsdata )
-                return;
-
-            curtlsarray[_tls_index] = tlsdata;
+            curteb[11] = tlsarray;
             fn();
-            curtlsarray[_tls_index] = curtlsdata;
+            curteb[11] = curtlsarray;
         }
     }
 
@@ -229,12 +224,24 @@ public:
     alias thread_aux.OpenThreadHandle OpenThreadHandle;
     alias thread_aux.enumProcessThreads enumProcessThreads;
 
+    // get the start of the TLS memory of the thread with the given handle
     void* GetTlsDataAddress( HANDLE hnd )
     {
         if( void** teb = getTEB( hnd ) )
             if( void** tlsarray = cast(void**) teb[11] )
                 return tlsarray[_tls_index];
         return null;
+    }
+
+    // get the start of the TLS memory of the thread with the given identifier
+    void* GetTlsDataAddress( uint id )
+    {
+        HANDLE hnd = OpenThread( thread_aux.THREAD_QUERY_INFORMATION, FALSE, id );
+        assert( hnd, "OpenThread failed" );
+
+        void* tls = GetTlsDataAddress( hnd );
+        CloseHandle( hnd );
+        return tls;
     }
 
     ///////////////////////////////////////////////////////////////////
