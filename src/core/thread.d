@@ -117,7 +117,7 @@ version( Windows )
         import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
         import core.stdc.stdlib;             // for malloc
         import core.sys.windows.windows;
-        import core.sys.windows._thread;     // for OpenThreadHandle
+        import core.sys.windows.threadaux;   // for OpenThreadHandle
 
         const DWORD TLS_OUT_OF_INDEXES  = 0xFFFFFFFF;
 
