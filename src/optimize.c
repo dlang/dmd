@@ -40,7 +40,7 @@ static real_t zero;     // work around DMC bug for now
  * return that initializer.
  */
 
-Expression *fromConstInitializer(Expression *e1)
+Expression *fromConstInitializer(int result, Expression *e1)
 {
     //printf("fromConstInitializer(%s)\n", e1->toChars());
     if (e1->op == TOKvar)
@@ -48,7 +48,13 @@ Expression *fromConstInitializer(Expression *e1)
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (v && !v->originalType && v->scope)  // semantic() not yet run
             v->semantic (v->scope);
-        if (v && v->isConst() && v->init)
+        if (!v || !v->type)
+            return e1;
+        Type * tb = v->type->toBasetype();
+        if (v->isConst() && v->init
+            && (result & WANTinterpret || (tb->isscalar() ||
+            ((result & WANTexpand) && (tb->ty != Tsarray && tb->ty != Tstruct))))
+        )
         {   Expression *ei = v->init->toExpression();
             if (ei && ei->type)
                 e1 = ei;
@@ -66,10 +72,7 @@ Expression *Expression::optimize(int result)
 
 Expression *VarExp::optimize(int result)
 {
-    if (result & WANTinterpret)
-    {
-        return fromConstInitializer(this);
-    }
+    return fromConstInitializer(result, this);
     return this;
 }
 
@@ -384,7 +387,7 @@ Expression *CastExp::optimize(int result)
 
     e1 = e1->optimize(result);
     if (result & WANTinterpret)
-        e1 = fromConstInitializer(e1);
+        e1 = fromConstInitializer(result, e1);
 
     if ((e1->op == TOKstring || e1->op == TOKarrayliteral) &&
         (type->ty == Tpointer || type->ty == Tarray) &&
@@ -653,7 +656,7 @@ Expression *ArrayLengthExp::optimize(int result)
 {   Expression *e;
 
     //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, toChars());
-    e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
+    e1 = e1->optimize(WANTvalue | WANTexpand | (result & WANTinterpret));
     e = this;
     if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
     {
@@ -670,8 +673,8 @@ Expression *EqualExp::optimize(int result)
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
     e = this;
 
-    Expression *e1 = fromConstInitializer(this->e1);
-    Expression *e2 = fromConstInitializer(this->e2);
+    Expression *e1 = fromConstInitializer(result, this->e1);
+    Expression *e2 = fromConstInitializer(result, this->e2);
 
     e = Equal(op, type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
@@ -703,8 +706,10 @@ Expression *IdentityExp::optimize(int result)
  */
 void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
 {
-    if (!lengthVar || lengthVar->init)
+    if (!lengthVar)
         return;
+    if (lengthVar->init && !lengthVar->init->isVoidInitializer())
+        return; // we have previously calculated the length
     size_t len;
     if (arr->op == TOKstring)
         len = ((StringExp *)arr)->len;
@@ -725,7 +730,7 @@ Expression *IndexExp::optimize(int result)
     //printf("IndexExp::optimize(result = %d) %s\n", result, toChars());
     Expression *e1 = this->e1->optimize(WANTvalue | (result & WANTinterpret));
     if (result & WANTinterpret)
-        e1 = fromConstInitializer(e1);
+        e1 = fromConstInitializer(result, e1);
     // We might know $ now
     setLengthVarIfKnown(lengthVar, e1);
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
@@ -752,7 +757,7 @@ Expression *SliceExp::optimize(int result)
         return e;
     }
     if (result & WANTinterpret)
-        e1 = fromConstInitializer(e1);
+        e1 = fromConstInitializer(result, e1);
     // We might know $ now
     setLengthVarIfKnown(lengthVar, e1);
     lwr = lwr->optimize(WANTvalue | (result & WANTinterpret));
