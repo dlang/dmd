@@ -88,7 +88,16 @@ Expression *expandVar(int result, VarDeclaration *v)
                     }
                     else if (ei->isConst() != 1 && ei->op != TOKstring)
                         goto L1;
-                    if (ei->type != v->type)
+
+                    if (ei->type == v->type)
+                    {   // const variable initialized with const expression
+                    }
+                    else if (ei->implicitConvTo(v->type) >= MATCHconst)
+                    {   // const var initialized with non-const expression
+                        ei = ei->implicitCastTo(0, v->type);
+                        ei = ei->semantic(0);
+                    }
+                    else
                         goto L1;
                 }
                 if (v->scope)
