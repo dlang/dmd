@@ -8134,8 +8134,7 @@ Expression *CastExp::semantic(Scope *sc)
         Type *t1b = e1->type->toBasetype();
         Type *tob = to->toBasetype();
         if (tob->ty == Tstruct &&
-            !tob->equals(t1b) &&
-            ((TypeStruct *)tob)->sym->search(0, Id::call, 0)
+            !tob->equals(t1b)
            )
         {
             /* Look to replace:
@@ -8146,10 +8145,10 @@ Expression *CastExp::semantic(Scope *sc)
 
             // Rewrite as to.call(e1)
             e = new TypeExp(loc, to);
-            e = new DotIdExp(loc, e, Id::call);
             e = new CallExp(loc, e, e1);
-            e = e->semantic(sc);
-            return e;
+            e = e->trySemantic(sc);
+            if (e)
+                return e;
         }
 
         // Struct casts are possible only when the sizes match
