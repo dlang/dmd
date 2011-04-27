@@ -375,8 +375,6 @@ struct StringExp : Expression
     Expression *castTo(Scope *sc, Type *t);
     int compare(Object *obj);
     int isBool(int result);
-    int isLvalue();
-    Expression *toLvalue(Scope *sc, Expression *e);
     unsigned charAt(size_t i);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);

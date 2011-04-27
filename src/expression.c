@@ -3049,19 +3049,6 @@ int StringExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
-#if DMDV2
-int StringExp::isLvalue()
-{
-    return 1;
-}
-#endif
-
-Expression *StringExp::toLvalue(Scope *sc, Expression *e)
-{
-    //printf("StringExp::toLvalue(%s)\n", toChars());
-    return this;
-}
-
 unsigned StringExp::charAt(size_t i)
 {   unsigned value;
 
