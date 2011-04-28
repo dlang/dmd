@@ -1781,7 +1781,7 @@ string foo90(string a, string b)
 void test90()
 {
     static const string xxx = foo90("A", "xxx");
-    printf("%.*s\n", xxx);
+    printf("%.*s\n", xxx.length, xxx.ptr);
     assert(xxx == "A");
 }
 

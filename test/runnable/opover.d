@@ -836,7 +836,7 @@ class A13
  A13 opShl(string x)
  {
     printf("A::opShl(char[])\n");
-    printf("%.*s",x);
+    printf("%.*s", x.length, x.ptr);
     return this;
  }
 }

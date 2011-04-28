@@ -7,7 +7,8 @@ template Mix()
     static void foobar()
     {
 	auto context = new Context;
-	printf("context: %.*s %p\n", context.toString, context);
+        auto ts = context.toString;
+	printf("context: %.*s %p\n", ts.length, ts.ptr, context);
 	context.func!(typeof(this))();
 	printf(`returning from opCall`\n);
     }
@@ -23,7 +24,7 @@ class Bar
 void someFunc(string z)
 {
     printf(`str length: %d`\n, z.length);
-    printf(`str: '%.*s'`\n, z);
+    printf(`str: '%.*s'`\n, z.length, z.ptr);
 }
 
 
