@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -332,7 +332,7 @@ void TypedefDeclaration::semantic2(Scope *sc)
     {   sem = 3;
         if (init)
         {
-            init = init->semantic(sc, basetype);
+            init = init->semantic(sc, basetype, WANTinterpret);
 
             ExpInitializer *ie = init->isExpInitializer();
             if (ie)
@@ -1042,7 +1042,7 @@ void VarDeclaration::semantic(Scope *sc)
                     Expression *e = init->toExpression();
                     if (!e)
                     {
-                        init = init->semantic(sc, type);
+                        init = init->semantic(sc, type, 0); // Don't need to interpret
                         e = init->toExpression();
                         if (!e)
                         {   error("is not a static and cannot have static initializer");
@@ -1143,7 +1143,7 @@ void VarDeclaration::semantic(Scope *sc)
             }
             else
             {
-                init = init->semantic(sc, type);
+                init = init->semantic(sc, type, WANTinterpret);
                 if (fd && isConst() && !isStatic())
                 {   // Make it static
                     storage_class |= STCstatic;
@@ -1175,7 +1175,7 @@ void VarDeclaration::semantic(Scope *sc)
                 }
                 else if (si || ai)
                 {   i2 = init->syntaxCopy();
-                    i2 = i2->semantic(sc, type);
+                    i2 = i2->semantic(sc, type, WANTinterpret);
                 }
                 inuse--;
                 global.gag--;
@@ -1257,7 +1257,7 @@ void VarDeclaration::semantic2(Scope *sc)
             printf("type = %p\n", ei->exp->type);
         }
 #endif
-        init = init->semantic(sc, type);
+        init = init->semantic(sc, type, WANTinterpret);
         inuse--;
     }
 }
