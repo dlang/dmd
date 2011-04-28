@@ -117,10 +117,10 @@ MANIFEST= \
 	src\core\sys\posix\sys\uio.d \
 	src\core\sys\posix\sys\wait.d \
 	\
-	src\core\sys\windows\_dll.d \
-	src\core\sys\windows\_thread.d \
 	src\core\sys\windows\dbghelp.d \
+	src\core\sys\windows\dll.d \
 	src\core\sys\windows\stacktrace.d \
+	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\gc\gc.d \
@@ -244,10 +244,10 @@ SRCS= \
 	src\core\stdc\time.d \
 	src\core\stdc\wchar_.d \
 	\
-	src\core\sys\windows\_dll.d \
-	src\core\sys\windows\_thread.d \
 	src\core\sys\windows\dbghelp.d \
+	src\core\sys\windows\dll.d \
 	src\core\sys\windows\stacktrace.d \
+	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\core\sync\barrier.d \
@@ -447,10 +447,10 @@ IMPORTS=\
 	$(IMPDIR)\core\sys\posix\sys\uio.di \
 	$(IMPDIR)\core\sys\posix\sys\wait.di \
 	\
-	$(IMPDIR)\core\sys\windows\_dll.di \
-	$(IMPDIR)\core\sys\windows\_thread.di \
 	$(IMPDIR)\core\sys\windows\dbghelp.di \
+	$(IMPDIR)\core\sys\windows\dll.di \
 	$(IMPDIR)\core\sys\windows\stacktrace.di \
+	$(IMPDIR)\core\sys\windows\threadaux.di \
 	$(IMPDIR)\core\sys\windows\windows.di
 
 ######################## Doc .html file generation ##############################
@@ -740,16 +740,16 @@ $(IMPDIR)\core\sys\posix\unistd.di : src\core\sys\posix\unistd.d
 $(IMPDIR)\core\sys\posix\utime.di : src\core\sys\posix\utime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\windows\_dll.di : src\core\sys\windows\_dll.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sys\windows\_thread.di : src\core\sys\windows\_thread.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
 $(IMPDIR)\core\sys\windows\dbghelp.di : src\core\sys\windows\dbghelp.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	
+$(IMPDIR)\core\sys\windows\dll.di : src\core\sys\windows\dll.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\windows\stacktrace.di : src\core\sys\windows\stacktrace.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	
+$(IMPDIR)\core\sys\windows\threadaux.di : src\core\sys\windows\threadaux.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\windows\windows.di : src\core\sys\windows\windows.d
