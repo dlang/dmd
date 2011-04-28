@@ -269,7 +269,7 @@ else version( AsmX86_32 )
                 mov EDX, 4[EDI];
                 mov EDI, here;
                 lock; // lock always needed to make this op atomic
-                cmpxch8b [EDI];
+                cmpxchg8b [EDI];
                 setz AL;
                 pop EBX;
                 pop EDI;
@@ -433,7 +433,7 @@ else version( AsmX86_32 )
                 mov EDX, 0;
                 mov EDI, val;
                 lock; // lock always needed to make this op atomic
-                cmpxch8b [EDI];
+                cmpxchg8b [EDI];
                 pop EBX;
                 pop EDI;
             }
@@ -543,7 +543,7 @@ else version( AsmX86_32 )
                 mov EAX, [EDI];
                 mov EDX, 4[EDI];
             L1: lock; // lock always needed to make this op atomic
-                cmpxch8b [EDI];
+                cmpxchg8b [EDI];
                 jne L1;
                 pop EBX;
                 pop EDI;
