@@ -27,7 +27,7 @@ void test1()
     printf("f = %p\n", f);
     assert(cast(void*)b !is cast(void*)f);
 
-    printf("f.class = '%.*s'\n", f.classinfo.name);
+    printf("f.class = '%.*s'\n", f.classinfo.name.length, f.classinfo.name.ptr);
     assert(f.classinfo.name == "interface2.Foo");
 
     f.bar();
