@@ -2643,7 +2643,7 @@ getsec
         X("cmpsq",      0,              aptb0CMPSQ ) \
         X("cmpss",      3,              (P) aptb3CMPSS ) \
         X("cmpsw",      0,              aptb0CMPSW ) \
-        X("cmpxch8b",   1,              (P) aptb1CMPXCH8B ) \
+        X("cmpxchg8b",   1,              (P) aptb1CMPXCH8B ) \
         X("cmpxchg",    2,              (P) aptb2CMPXCHG ) \
         X("comisd",     2,              (P) aptb2COMISD ) \
         X("comiss",     2,              (P) aptb2COMISS ) \
