@@ -742,6 +742,8 @@ PTRNTAB2  aptb2XCHG[] = /* XCHG */ {
         { 0x87, _r|_16_bit|_mod2,               _r16, _rm16 },
         { 0x87, _r|_32_bit|_mod2,               _rm32,  _r32 },
         { 0x87, _r|_32_bit|_mod2,               _r32, _rm32 },
+        { 0x87, _r|_64_bit|_mod2,               _rm64,  _r64 },
+        { 0x87, _r|_64_bit|_mod2,               _r64, _rm64 },
         { ASM_END, 0, 0, 0 }
 };
 
@@ -2641,7 +2643,7 @@ getsec
         X("cmpsq",      0,              aptb0CMPSQ ) \
         X("cmpss",      3,              (P) aptb3CMPSS ) \
         X("cmpsw",      0,              aptb0CMPSW ) \
-        X("cmpxch8b",   1,              (P) aptb1CMPXCH8B ) \
+        X("cmpxchg8b",   1,              (P) aptb1CMPXCH8B ) \
         X("cmpxchg",    2,              (P) aptb2CMPXCHG ) \
         X("comisd",     2,              (P) aptb2COMISD ) \
         X("comiss",     2,              (P) aptb2COMISS ) \
