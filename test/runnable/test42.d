@@ -4071,6 +4071,109 @@ void bug4322() {
 bool bug5672(long v)
 {    
     return  (v & 1) == 1;
+    return  (v & 1) == 1;
+}
+
+/***************************************************/
+
+void bug5717()
+{
+    string s, s2; 
+    s = "Привет";
+    for (int i=0; i<s.length; i++)
+        s2 ~= s[i];
+    assert(s == s2);
+}
+
+/***************************************************/
+// 3086
+
+class X231 {
+    void a() {}
+    void b(int z, short c) {}
+    void c(int z, short d) {}
+}
+
+void test231() {
+    auto z = new X231();
+    TypeInfo a = typeid(typeof(&z.a));
+    TypeInfo b = typeid(typeof(&z.b));
+    TypeInfo c = typeid(typeof(&z.c));
+
+    assert(a !is b, "1");
+    assert(a != b, "2");
+    assert(b == c, "3");
+}
+
+/***************************************************/
+// 4140
+
+const A232 = [1,2,3];
+const B232 = A232[1..A232.length]; 
+const C232 = A232[1..$]; 
+
+void test232()
+{
+    assert(A232[0] == 1);
+    assert(A232[1] == 2);
+    assert(A232[2] == 3);
+    assert(B232[0] == 2);
+    assert(B232[1] == 3);
+    assert(C232[0] == 2);
+    assert(C232[1] == 3);
+}
+
+/***************************************************/
+// 1389
+
+void test233()
+{
+    int a;
+    mixin("a") = 666;
+}
+
+/***************************************************/
+// 5735
+
+struct A234 {}
+
+void foo234(bool cond){}
+
+void test234()
+{
+    A234 a;
+    int i;
+
+    static assert(!__traits(compiles, assert(a)));      // type A does not have a boolean value
+    static assert(!__traits(compiles, assert(i || a))); // type A does not have a boolean value
+    static assert(!__traits(compiles, assert(0 || a))); // OK
+
+//    if(a) {}        // type A does not have a boolean value
+//    if(i || a) {}   // type A does not have a boolean value
+//    if(0 || a) {}   // type A does not have a boolean value
+
+    static assert(!__traits(compiles, foo234(a)));         // cannot implicitly convert type A to bool
+    static assert(!__traits(compiles, foo234(i || a)));    // OK
+    static assert(!__traits(compiles, foo234(0 || a)));    // OK
+}
+
+
+/***************************************************/
+
+int space() { return 4001; }
+
+void oddity4001()
+{
+    const int bowie = space();    
+    static assert(space() == 4001); // OK
+    static assert(bowie == 4001);   // doesn't compile
+}
+
+/***************************************************/
+
+int bug3809() { asm { nop; } return 0; }
+struct BUG3809 { int xx; }
+void bug3809b() {
 }
 
 /***************************************************/
@@ -4293,6 +4396,11 @@ int main()
     test228();
     test229();
     test230();
+    test230();
+    bug5717();
+    test231();
+    test232();
+    test233();
 
     writefln("Success");
     return 0;
