@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -2019,7 +2019,7 @@ STATIC void cv4_outsym(symbol *s)
     unsigned length;
     unsigned u;
     tym_t tym;
-    char *id;
+    const char *id;
     unsigned char __ss *debsym;
 
     //dbg_printf("cv4_outsym(%s)\n",s->Sident);
@@ -2051,7 +2051,7 @@ STATIC void cv4_outsym(symbol *s)
             id = prettyident(s);
         }
 #else
-        id = s->Sident;
+        id = s->prettyIdent ? s->prettyIdent : s->Sident;
 #endif
         len = cv_stringbytes(id);
 
@@ -2148,7 +2148,11 @@ STATIC void cv4_outsym(symbol *s)
         idx_t typidx;
 
         typidx = cv4_typidx(t);
+#if MARS
+        id = s->prettyIdent ? s->prettyIdent : prettyident(s);
+#else
         id = prettyident(s);
+#endif
         len = strlen(id);
         debsym = (unsigned char __ss *) alloca(39 + IDOHD + len);
         switch (s->Sclass)
