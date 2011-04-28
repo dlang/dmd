@@ -1292,10 +1292,23 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
         if (v->isConst() && v->init)
 #endif
         {   e = v->init->toExpression();
-            if (e && !e->type)
-                e->type = v->type;
-            if (e)
+            if (e && (e->op == TOKconstruct || e->op == TOKblit))
+            {   AssignExp *ae = (AssignExp *)e;
+                e = ae->e2;
+                v->inuse++;
                 e = e->interpret(istate, ctfeNeedAnyValue);
+                v->inuse--;
+                if (e == EXP_CANT_INTERPRET)
+                    return e;
+                e->type = v->type;
+            }
+            else
+            {
+                if (e && !e->type)
+                    e->type = v->type;
+                if (e)
+                    e = e->interpret(istate, ctfeNeedAnyValue);
+            }
             if (e && e != EXP_CANT_INTERPRET)
                 v->setValueWithoutChecking(e);
         }
@@ -1339,10 +1352,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             e = EXP_CANT_INTERPRET;
     }
     else if (s)
-    {
+    {   // Struct static initializers, for example
         if (s->dsym->toInitializer() == s->sym)
         {   Expressions *exps = new Expressions();
-            e = new StructLiteralExp(0, s->dsym, exps);
+            e = new StructLiteralExp(loc, s->dsym, exps);
             e = e->semantic(NULL);
             if (e->op == TOKerror)
                 e = EXP_CANT_INTERPRET;

@@ -34,7 +34,7 @@ Initializer *Initializer::syntaxCopy()
     return this;
 }
 
-Initializer *Initializer::semantic(Scope *sc, Type *t)
+Initializer *Initializer::semantic(Scope *sc, Type *t, int needInterpret)
 {
     return this;
 }
@@ -87,7 +87,7 @@ Initializer *VoidInitializer::syntaxCopy()
 }
 
 
-Initializer *VoidInitializer::semantic(Scope *sc, Type *t)
+Initializer *VoidInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 {
     //printf("VoidInitializer::semantic(t = %p)\n", t);
     type = t;
@@ -141,7 +141,7 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
     this->value.push(value);
 }
 
-Initializer *StructInitializer::semantic(Scope *sc, Type *t)
+Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 {
     int errors = 0;
 
@@ -205,7 +205,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
             }
             if (s && (v = s->isVarDeclaration()) != NULL)
             {
-                val = val->semantic(sc, v->type);
+                val = val->semantic(sc, v->type, needInterpret);
                 value.data[i] = (void *)val;
                 vars.data[i] = (void *)v;
             }
@@ -226,7 +226,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t)
         fd->endloc = loc;
         Expression *e = new FuncExp(loc, fd);
         ExpInitializer *ie = new ExpInitializer(loc, e);
-        return ie->semantic(sc, t);
+        return ie->semantic(sc, t, needInterpret);
     }
     else
     {
@@ -416,7 +416,7 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
     type = NULL;
 }
 
-Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
+Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 {   unsigned i;
     unsigned length;
     const unsigned amax = 0x80000000;
@@ -451,7 +451,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t)
         }
 
         Initializer *val = (Initializer *)value.data[i];
-        val = val->semantic(sc, t->nextOf());
+        val = val->semantic(sc, t->nextOf(), needInterpret);
         value.data[i] = (void *)val;
         length++;
         if (length == 0)
@@ -706,12 +706,17 @@ Initializer *ExpInitializer::syntaxCopy()
     return new ExpInitializer(loc, exp->syntaxCopy());
 }
 
-Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
+Initializer *ExpInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    exp = exp->optimize(WANTvalue | WANTinterpret);
+    int wantOptimize = needInterpret ? WANTinterpret|WANTvalue : WANTvalue;
+
+    int olderrors = global.errors;
+    exp = exp->optimize(wantOptimize);
+    if (!global.gag && olderrors != global.errors)
+        return this; // Failed, suppress duplicate error messages
     Type *tb = t->toBasetype();
 
     /* Look for case of initializing a static array with a too-short
@@ -744,7 +749,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t)
 
     exp = exp->implicitCastTo(sc, t);
 L1:
-    exp = exp->optimize(WANTvalue | WANTinterpret);
+    exp = exp->optimize(wantOptimize);
     //printf("-ExpInitializer::semantic(): "); exp->print();
     return this;
 }
