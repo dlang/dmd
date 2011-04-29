@@ -176,7 +176,7 @@ void verror(Loc loc, const char *format, va_list ap)
 #endif
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
-//halt();
+halt();
     }
     global.errors++;
 }
@@ -244,7 +244,8 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("Digital Mars D Compiler %s\n%s %s\n",
+    printf("DMD%s D Compiler %s\n%s %s\n",
+        sizeof(size_t) == 4 ? "32" : "64",
         global.version, global.copyright, global.written);
     printf("\
 Documentation: http://www.digitalmars.com/d/2.0/index.html\n\
