@@ -31,12 +31,13 @@ version( D_InlineAsm_X86_64 )
 
 private
 {
-    template NakedType(T: shared(T))  { alias T  NakedType; }
-    template NakedType(T: shared(T*)) { alias T* NakedType; }
-    template NakedType(T: const(T))   { alias T  NakedType; }
-    template NakedType(T: const(T*))  { alias T* NakedType; }
-    template NakedType(T: T*)         { alias T* NakedType; }
-    template NakedType(T)             { alias T  NakedType; }
+    template HeadUnshared(T)
+    {
+        static if( is( T U : shared(U*) ) )
+            alias shared(U)* HeadUnshared;
+        else
+            alias T HeadUnshared;
+    }
 }
 
 
@@ -64,9 +65,10 @@ version( D_Ddoc )
      * Returns:
      *  The result of the operation.
      */
-    T atomicOp(string op, T, V1)( ref shared(T) val, V1 mod )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     {
-        return val;
+        return HeadUnshared!(T).init;
     }
 
 
@@ -84,13 +86,12 @@ version( D_Ddoc )
      *  true if the store occurred, false if not.
      */
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( is( NakedType!(V1) == NakedType!(T) ) &&
-            is( NakedType!(V2) == NakedType!(T) ) )
+        if( __traits( compiles, mixin( "*here = writeThis" ) ) )
     {
         return false;
     }
-     
-     
+
+
     /**
      * Loads 'val' from memory and returns it.  The memory barrier specified
      * by 'ms' is applied to the operation, which is fully sequenced by
@@ -102,12 +103,12 @@ version( D_Ddoc )
      * Returns:
      *  The value of 'val'.
      */
-    T atomicLoad(msync ms = msync.seq,T)( ref const shared(T) val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq,T)( ref const shared T val )
     {
-        return false;
+        return HeadUnshared!(T).init;
     }
-      
-      
+
+
     /**
      * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
      * applied to the operation, which is fully sequenced by default.
@@ -116,16 +117,16 @@ version( D_Ddoc )
      *  val    = The target variable.
      *  newval = The value to store.
      */
-    void atomicStore(msync ms = msync.seq,T,V1)( ref shared(T) val, V1 newval )
-        if( is( NakedType!(V1) == NakedType!(T) ) )
+    void atomicStore(msync ms = msync.seq,T,V1)( ref shared T val, V1 newval )
+        if( __traits( compiles, mixin( "val = newval" ) ) )
     {
-        return false;
+
     }
-       
-    
+
+
     /**
      *
-     */   
+     */
     enum msync
     {
         raw,    /// not sequenced
@@ -136,8 +137,8 @@ version( D_Ddoc )
 }
 else version( AsmX86_32 )
 {
-    T atomicOp(string op, T, V1)( ref shared(T) val, V1 mod )
-        if( is( NakedType!(V1) == NakedType!(T) ) )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -161,7 +162,7 @@ else version( AsmX86_32 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            T get = atomicLoad!(msync.raw)( val );
+            HeadUnshared!(T) get = atomicLoad!(msync.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -173,7 +174,7 @@ else version( AsmX86_32 )
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
-            T get, set;
+            HeadUnshared!(T) get, set;
 
             do
             {
@@ -190,8 +191,7 @@ else version( AsmX86_32 )
 
 
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( is( NakedType!(V1) == NakedType!(T) ) &&
-            is( NakedType!(V2) == NakedType!(T) ) )
+        if( __traits( compiles, mixin( "*here = writeThis" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -269,7 +269,7 @@ else version( AsmX86_32 )
                 mov EDX, 4[EDI];
                 mov EDI, here;
                 lock; // lock always needed to make this op atomic
-                cmpxch8b [EDI];
+                cmpxchg8b [EDI];
                 setz AL;
                 pop EBX;
                 pop EDI;
@@ -280,9 +280,9 @@ else version( AsmX86_32 )
             static assert( false, "Invalid template type specified." );
         }
     }
-    
-    
-    
+
+
+
     enum msync
     {
         raw,    /// not sequenced
@@ -325,8 +325,8 @@ else version( AsmX86_32 )
         {
             const bool needsLoadBarrier = ms != msync.raw;
         }
-        
-        
+
+
         // NOTE: x86 stores implicitly have release semantics so a memory
         //       barrier is only necessary on acquires.
         template needsStoreBarrier( msync ms )
@@ -337,7 +337,7 @@ else version( AsmX86_32 )
     }
 
 
-    T atomicLoad(msync ms = msync.seq, T)( ref const shared(T) val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -433,7 +433,7 @@ else version( AsmX86_32 )
                 mov EDX, 0;
                 mov EDI, val;
                 lock; // lock always needed to make this op atomic
-                cmpxch8b [EDI];
+                cmpxchg8b [EDI];
                 pop EBX;
                 pop EDI;
             }
@@ -443,10 +443,10 @@ else version( AsmX86_32 )
             static assert( false, "Invalid template type specified." );
         }
     }
-        
-        
-    void atomicStore(msync ms = msync.seq, T, V1)( ref shared(T) val, V1 newval )
-        if( is( NakedType!(V1) == NakedType!(T) ) )
+
+
+    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
+        if( __traits( compiles, mixin( "val = newval" ) ) )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -531,7 +531,7 @@ else version( AsmX86_32 )
             //////////////////////////////////////////////////////////////////
             // 8 Byte Store on a 32-Bit Processor
             //////////////////////////////////////////////////////////////////
-            
+
             asm
             {
                 push EDI;
@@ -543,7 +543,7 @@ else version( AsmX86_32 )
                 mov EAX, [EDI];
                 mov EDX, 4[EDI];
             L1: lock; // lock always needed to make this op atomic
-                cmpxch8b [EDI];
+                cmpxchg8b [EDI];
                 jne L1;
                 pop EBX;
                 pop EDI;
@@ -557,8 +557,8 @@ else version( AsmX86_32 )
 }
 else version( AsmX86_64 )
 {
-    T atomicOp(string op, T, V1)( ref shared(T) val, V1 mod )
-        if( is( NakedType!(V1) == NakedType!(T) ) )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+        if( __traits( compiles, mixin( "val" ~ op ~ "newval" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -582,7 +582,7 @@ else version( AsmX86_64 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            T get = atomicLoad!(msync.raw)( val );
+            HeadUnshared!(T) get = atomicLoad!(msync.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -594,7 +594,7 @@ else version( AsmX86_64 )
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
-            T get, set;
+            HeadUnshared!(T) get, set;
 
             do
             {
@@ -611,8 +611,7 @@ else version( AsmX86_64 )
 
 
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( is( NakedType!(V1) == NakedType!(T) ) &&
-            is( NakedType!(V2) == NakedType!(T) ) )
+        if( __traits( compiles, mixin( "*here = writeThis" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -737,8 +736,8 @@ else version( AsmX86_64 )
         {
             const bool needsLoadBarrier = ms != msync.raw;
         }
-        
-        
+
+
         // NOTE: x86 stores implicitly have release semantics so a memory
         //       barrier is only necessary on acquires.
         template needsStoreBarrier( msync ms )
@@ -749,7 +748,7 @@ else version( AsmX86_64 )
     }
 
 
-    T atomicLoad(msync ms = msync.seq, T)( ref const shared(T) val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -860,10 +859,10 @@ else version( AsmX86_64 )
             static assert( false, "Invalid template type specified." );
         }
     }
-    
-    
-    void atomicStore(msync ms = msync.seq, T, V1)( ref shared(T) val, V1 newval )
-        if( is( NakedType!(V1) == NakedType!(T) ) )
+
+
+    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
+        if( __traits( compiles, mixin( "val = newval" ) ) )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -948,7 +947,7 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             // 8 Byte Store on a 64-Bit Processor
             //////////////////////////////////////////////////////////////////
-            
+
             static if( needsStoreBarrier!(ms) )
             {
                 asm
@@ -996,13 +995,13 @@ version( unittest )
         assert( !cas( &atom, base, base ) );
         assert( atom == val );
     }
-    
-    
+
+
     void testLoadStore(msync ms = msync.seq, T)( T val = T.init + 1 )
     {
         T         base;
         shared(T) atom;
-        
+
         assert( base != val );
         assert( atom == base );
         atomicStore!(ms)( atom, val );
@@ -1014,7 +1013,8 @@ version( unittest )
 
     void testType(T)( T val = T.init + 1 )
     {
-        testCAS!(T)( val );
+        static if( !is( T U : U* ) )
+            testCAS!(T)( val );
         testLoadStore!(msync.seq, T)( val );
         testLoadStore!(msync.raw, T)( val );
     }
