@@ -924,8 +924,10 @@ Expression *IdentityExp::optimize(int result)
  */
 void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
 {
-    if (!lengthVar || lengthVar->init)
+    if (!lengthVar)
         return;
+    if (lengthVar->init && !lengthVar->init->isVoidInitializer())
+        return; // we have previously calculated the length
     size_t len;
     if (arr->op == TOKstring)
         len = ((StringExp *)arr)->len;
