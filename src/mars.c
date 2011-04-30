@@ -360,6 +360,9 @@ int main(int argc, char *argv[])
     global.params.objfiles = new Array();
     global.params.ddocfiles = new Array();
 
+    // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
+    global.params.isX86_64 = (sizeof(size_t) == 8);
+
 #if TARGET_WINDOS
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
