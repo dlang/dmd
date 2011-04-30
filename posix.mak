@@ -482,20 +482,20 @@ SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
 doc: $(DOCS)
 
 $(DOCDIR)/object.html : src/object_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
 
 $(IMPDIR)/core/%.di : src/core/%.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $<
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
 
 ################### C/ASM Targets ############################
 
