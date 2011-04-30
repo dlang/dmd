@@ -520,7 +520,7 @@ unittest : $(addprefix $(OBJDIR)/,$(SRC_D_MODULES)) $(DRUNTIME) $(OBJDIR)/emptym
 	@echo done
 
 ifeq ($(OS),freebsd)
-DISABLED_TESTS = core/time
+DISABLED_TESTS =
 else
 DISABLED_TESTS =
 endif
