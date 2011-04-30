@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -3645,6 +3645,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         e->type = type;
         return e;
     }
+    {
     uinteger_t ilwr = lwr->toInteger();
     uinteger_t iupr = upr->toInteger();
     if (e1->op == TOKnull)
@@ -3657,6 +3658,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     e = Slice(type, e1, lwr, upr);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
+    }
     return e;
 
 Lcant:
