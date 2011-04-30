@@ -661,7 +661,7 @@ Expression *IndexExp::doInline(InlineDoState *ids)
         ids->from.push(vd);
         ids->to.push(vto);
 
-        if (vd->init)
+        if (vd->init && !vd->init->isVoidInitializer())
         {
             ie = vd->init->isExpInitializer();
             assert(ie);
@@ -698,7 +698,7 @@ Expression *SliceExp::doInline(InlineDoState *ids)
         ids->from.push(vd);
         ids->to.push(vto);
 
-        if (vd->init)
+        if (vd->init && !vd->init->isVoidInitializer())
         {
             ie = vd->init->isExpInitializer();
             assert(ie);
