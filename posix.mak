@@ -494,6 +494,9 @@ $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 
 import: $(IMPORTS)
 
+$(IMPDIR)/core/sys/windows/%.di : src/core/sys/windows/%.d
+	$(DMD) -m32 -c -d -o- -Isrc -Iimport -Hf$@ $<
+
 $(IMPDIR)/core/%.di : src/core/%.d
 	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
 
