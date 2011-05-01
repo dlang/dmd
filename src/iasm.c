@@ -98,6 +98,7 @@ enum ASMERRMSGS
     EM_label_expected,
     EM_uplevel,
     EM_type_as_operand,
+    EM_invalid_64bit_opcode,
 };
 
 const char *asmerrmsgs[] =
@@ -126,7 +127,8 @@ const char *asmerrmsgs[] =
     "character is truncated",
     "label expected",
     "uplevel nested reference to variable %s",
-    "cannot use type %s as an operand"
+    "cannot use type %s as an operand",
+    "opcode %s is not valid in 64bit mode"
 };
 
 // Additional tokens for the inline assembler
@@ -466,7 +468,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd);
 code *asm_genloc(Loc loc, code *c);
 int asm_getnum();
 
-STATIC void asmerr(char *, ...);
+STATIC void asmerr(const char *, ...);
 STATIC void asmerr(int, ...);
 #pragma SC noreturn(asmerr)
 
@@ -604,7 +606,11 @@ RETRY:
         switch (usActual)
         {
             case 0:
-                ptbRet = pop->ptb ;
+                if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
+                    asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));  // illegal opcode in 64bit mode
+        
+                ptbRet = pop->ptb;
+
                 goto RETURN_IT;
 
             case 1:
@@ -701,6 +707,9 @@ TYPE_SIZE_ERROR:
                         goto RETRY;
 
                 }
+                if (I64 && (table1->usFlags & _i64_bit))
+                    asmerr( "operand for '%s' invalid in 64bit mode", asm_opstr(pop));
+
                 ptbRet.pptb1 = table1;
                 goto RETURN_IT;
             }
@@ -714,6 +723,9 @@ TYPE_SIZE_ERROR:
                 {
                         //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
                         //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
+                        if (I64 && (table2->usFlags & _i64_bit))
+                            asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));
+
                         bMatch1 = asm_match_flags(opflags1, table2->usOp1);
                         bMatch2 = asm_match_flags(opflags2, table2->usOp2);
                         //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
