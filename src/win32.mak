@@ -155,7 +155,7 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c
 
-MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak
+MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak
 
 #########################################
 

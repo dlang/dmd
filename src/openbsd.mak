@@ -5,15 +5,7 @@ ROOT=root
 
 MODEL=-m32
 
-## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
-ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
-SDK=/Developer/SDKs/MacOSX10.5.sdk
-#SDK=/Developer/SDKs/MacOSX10.6.sdk
-LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
-
-CC=g++ $(MODEL) -isysroot $(SDK)
-#CC=g++ $(MODEL)
+CC=g++ $(MODEL)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -25,8 +17,8 @@ WARNINGS=-Wno-deprecated -Wstrict-aliasing
 #GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_OSX=1 -D_DH
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_OSX=1 -D_DH
+CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_OPENBSD=1 -D_DH
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_OPENBSD=1 -D_DH
 
 CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
@@ -51,7 +43,7 @@ DMD_OBJS = \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o \
-	libmach.o machobj.o
+	libelf.o elfobj.o
 
 SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
@@ -103,7 +95,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	${ENVP} gcc -m32 -lstdc++ $(LDFLAGS) $(COV) $(DMD_OBJS) -o dmd -framework CoreServices
+	gcc $(MODEL) -lstdc++ -lm -lpthread $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -114,7 +106,7 @@ clean:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	g++ -m32 $(MFLAGS) $< -o optabgen
+	$(CC) $(MFLAGS) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -126,7 +118,7 @@ idgen_output = id.h id.c
 $(idgen_output) : idgen
 
 idgen : idgen.c
-	${ENVP} $(CC) idgen.c -o idgen
+	$(CC) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
@@ -135,7 +127,7 @@ impcnvtab_output = impcnvtab.c
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
-	${ENVP} $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
 #########
@@ -170,7 +162,7 @@ attrib.o: attrib.c
 	$(CC) -c $(CFLAGS) $<
 
 bcomplex.o: $C/bcomplex.c
-	$(CC) -c $(MFLAGS) $C/bcomplex.c
+	$(CC) -c $(MFLAGS) $<
 
 bit.o: expression.h bit.c
 	$(CC) -c -I$(ROOT) $(MFLAGS) bit.c
@@ -392,7 +384,7 @@ lstring.o: $(ROOT)/lstring.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 machobj.o: $C/machobj.c
-	$(CC) -c $(MFLAGS) -I. $<
+	$(CC) -c $(MFLAGS) $<
 
 macro.o: macro.c
 	$(CC) -c $(CFLAGS) $<
@@ -575,7 +567,7 @@ gcov:
 	gcov irstate.c
 	gcov json.c
 	gcov lexer.c
-	gcov libmach.c
+	gcov libelf.c
 	gcov link.c
 	gcov macro.c
 	gcov mangle.c
