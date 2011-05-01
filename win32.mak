@@ -34,6 +34,7 @@ MANIFEST= \
 	src\core\cpuid.d \
 	src\core\demangle.d \
 	src\core\exception.d \
+	src\core\math.d \
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\thread.d \
@@ -224,6 +225,7 @@ SRCS= \
 	src\core\cpuid.d \
 	src\core\demangle.d \
 	src\core\exception.d \
+	src\core\math.d \
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\thread.d \
@@ -349,6 +351,7 @@ DOCS=\
 	$(DOCDIR)\core_cpuid.html \
 	$(DOCDIR)\core_demangle.html \
 	$(DOCDIR)\core_exception.html \
+	$(DOCDIR)\core_math.html \
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
 	$(DOCDIR)\core_thread.html \
@@ -369,6 +372,7 @@ IMPORTS=\
 	$(IMPDIR)\core\cpuid.di \
 	$(IMPDIR)\core\demangle.di \
 	$(IMPDIR)\core\exception.di \
+	$(IMPDIR)\core\math.di \
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\thread.di \
@@ -475,6 +479,9 @@ $(DOCDIR)\core_demangle.html : src\core\demangle.d
 $(DOCDIR)\core_exception.html : src\core\exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
+$(DOCDIR)\core_math.html : src\core\math.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+
 $(DOCDIR)\core_memory.html : src\core\memory.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
@@ -528,6 +535,9 @@ $(IMPDIR)\core\demangle.di : src\core\demangle.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\exception.di : src\core\exception.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\math.di : src\core\math.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\memory.di : src\core\memory.d
