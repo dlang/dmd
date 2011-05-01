@@ -558,7 +558,7 @@ else version( AsmX86_32 )
 else version( AsmX86_64 )
 {
     HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
-        if( __traits( compiles, mixin( "val" ~ op ~ "newval" ) ) )
+        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
