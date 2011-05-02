@@ -729,3 +729,15 @@ int bug5840(int u)
     return 56;
 }
 static assert(bug5840(1)==56);
+
+/*******************************************
+    std.datetime ICE (30 April 2011)
+*******************************************/
+
+struct TimeOfDayZ
+{
+public:
+    this(int hour) { }
+    invariant() { }
+}
+const testTODsThrownZ = TimeOfDayZ(0);
