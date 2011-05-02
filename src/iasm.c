@@ -589,7 +589,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
             asmstate.ucItype != ITfloat)
         {
 PARAM_ERROR:
-                asmerr(EM_nops_expected, usActual, asm_opstr(pop), usNumops);
+                asmerr(EM_nops_expected, usNumops, asm_opstr(pop), usActual);
         }
         if (usActual < usNumops)
             *pusNumops = usActual;
@@ -2694,9 +2694,6 @@ STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
     case _modsinot1:
         usRet |= mSI;
         popnd1 = NULL;
-        break;
-    case _modcxr11:
-        usRet |= (mCX | mR11);
         break;
     }
     if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg)
