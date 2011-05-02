@@ -589,7 +589,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
             asmstate.ucItype != ITfloat)
         {
 PARAM_ERROR:
-                asmerr(EM_nops_expected, usActual, asm_opstr(pop), usNumops);
+                asmerr(EM_nops_expected, usNumops, asm_opstr(pop), usActual);
         }
         if (usActual < usNumops)
             *pusNumops = usActual;
