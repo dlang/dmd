@@ -128,7 +128,7 @@ const char *asmerrmsgs[] =
     "label expected",
     "uplevel nested reference to variable %s",
     "cannot use type %s as an operand",
-    "opcode %s is not valid in 64bit mode"
+    "opcode %s is unavailable in 64bit mode"
 };
 
 // Additional tokens for the inline assembler
@@ -559,6 +559,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
         opflag_t opflags2 = 0;
         opflag_t opflags3 = 0;
         char    bFake = FALSE;
+        char    bInvalid64bit = FALSE;
 
         unsigned char   bMatch1, bMatch2, bMatch3, bRetry = FALSE;
 
@@ -629,6 +630,14 @@ RETRY:
                               )
                                 // Don't match PUSH imm16 in 32 bit code
                                 continue;
+
+                            // Check if match is invalid in 64bit mode
+                            if (I64 && (table1->usFlags & _i64_bit))
+                            {
+                                bInvalid64bit = TRUE;
+                                continue;
+                            }
+
                             break;
                         }
                         if ((asmstate.ucItype == ITimmed) &&
@@ -701,15 +710,15 @@ TYPE_SIZE_ERROR:
                         }
                         if (bRetry)
                         {
-                            asmerr(EM_bad_op, asm_opstr(pop));  // illegal type/size of operands
+                            if(bInvalid64bit)
+                                asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
+                            else
+                                asmerr(EM_bad_op, asm_opstr(pop));  // illegal type/size of operands
                         }
                         bRetry = TRUE;
                         goto RETRY;
 
                 }
-                if (I64 && (table1->usFlags & _i64_bit))
-                    asmerr( "operand for '%s' invalid in 64bit mode", asm_opstr(pop));
-
                 ptbRet.pptb1 = table1;
                 goto RETURN_IT;
             }
@@ -1026,7 +1035,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
                                     us = CONSTRUCT_FLAGS(_8, _rel, _flbl,0);
                                 else
                                 if (popnd->disp >= SHRT_MIN &&
-                                    popnd->disp <= SHRT_MAX)
+                                    popnd->disp <= SHRT_MAX && !I64)
                                     us = CONSTRUCT_FLAGS(_16, _rel, _flbl,0);
                                 else
                                     us = CONSTRUCT_FLAGS(_32, _rel, _flbl,0);
