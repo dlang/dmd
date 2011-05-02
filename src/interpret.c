@@ -2309,11 +2309,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
     /* This happens inside compiler-generated foreach statements.
      * It's another case where we need a reference
+     * Note that a similar case, where e2 = 'this', occurs in
+     * construction of a struct with an invariant().
      */
-    if (op==TOKconstruct && this->e1->op==TOKvar
+    if (op==TOKconstruct && this->e1->op==TOKvar && this->e2->op != TOKthis
         && ((VarExp*)this->e1)->var->storage_class & STCref)
         wantRef = true;
-
 
     if (fp)
     {
@@ -2461,7 +2462,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
 
     // This happens inside compiler-generated foreach statements.
-    if (op==TOKconstruct && this->e1->op==TOKvar
+    if (op==TOKconstruct && this->e1->op==TOKvar && this->e2->op != TOKthis
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
         //error("assignment to ref variable %s is not yet supported in CTFE", this->toChars());
