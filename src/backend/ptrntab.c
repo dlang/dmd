@@ -122,7 +122,8 @@ PTRNTAB2 aptb2MOVSD[] =  /* MOVSD */ {
 //
 PTRNTAB1 aptb1BSWAP[] = /* BSWAP */ {
                                 // Really is a 486 only instruction
-        { 0x0fc8, _I386, _plus_r | _r32 },
+        { 0x0fc8,   _I386, _plus_r | _r32 },
+        { 0x0fc8, _64_bit, _plus_r | _r64 },
         { ASM_END, 0, 0 }
 };
 
