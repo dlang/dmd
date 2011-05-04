@@ -473,11 +473,12 @@ void Module::genobjfile(int multiobj)
     {
         Symbol *ma;
         unsigned rt;
+        unsigned bc;
         switch (i)
         {
-            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     break;
-            case 1:     ma = massert;   rt = RTLSYM_DASSERT;   break;
-            case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; break;
+            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 1:     ma = massert;   rt = RTLSYM_DASSERT;    bc = BCexit; break;
+            case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; bc = BCret;  break;
             default:    assert(0);
         }
 
@@ -509,12 +510,13 @@ void Module::genobjfile(int multiobj)
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
             block *b = block_calloc();
-            b->BC = BCret;
+            b->BC = bc;
             b->Belem = e;
             ma->Sfunc->Fstartline.Sfilename = arg;
             ma->Sfunc->Fstartblock = b;
             ma->Sclass = SCglobal;
             ma->Sfl = 0;
+            ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
             writefunc(ma);
         }
     }
