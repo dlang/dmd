@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -556,14 +556,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 #endif
 
-    if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
-    {   obj_append(this);
-        return;
-    }
-
     if (semanticRun >= PASSobj) // if toObjFile() already run
         return;
-    semanticRun = PASSobj;
 
     if (!func->fbody)
     {
@@ -571,6 +565,13 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
     if (func->isUnitTestDeclaration() && !global.params.useUnitTests)
         return;
+
+    if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
+    {   obj_append(this);
+        return;
+    }
+
+    semanticRun = PASSobj;
 
     if (global.params.verbose)
         printf("function  %s\n",func->toChars());
