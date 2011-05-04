@@ -390,7 +390,12 @@ PTRNTAB1  aptb1XLAT[] = /* XLAT */ {
         { ASM_END, 0, 0 }
 };
 PTRNTAB1  aptb1CMPXCH8B[] = {
-    { 0x0fc7, _1 | _modaxdx | _I386 , _m64 },
+    { 0x0fc7, _1 | _modaxdx | _I386, _m64 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB1  aptb1CMPXCH16B[] = {
+    { 0x0fc7, _1 | _modaxdx | _64_bit, _m64 },
         { ASM_END, 0, 0 }
 };
 
@@ -2644,7 +2649,8 @@ getsec
         X("cmpss",      3,              (P) aptb3CMPSS ) \
         X("cmpsw",      0,              aptb0CMPSW ) \
         X("cmpxchg",    2,              (P) aptb2CMPXCHG ) \
-        X("cmpxchg8b",   1,              (P) aptb1CMPXCH8B ) \
+        X("cmpxchg16b", 1,              (P) aptb1CMPXCH16B ) \
+        X("cmpxchg8b",  1,              (P) aptb1CMPXCH8B ) \
         X("comisd",     2,              (P) aptb2COMISD ) \
         X("comiss",     2,              (P) aptb2COMISS ) \
         X("cpuid",      0,              aptb0CPUID ) \
