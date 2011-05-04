@@ -4212,7 +4212,7 @@ unsigned codout(code *c)
             else if (op & 0xFF0000)
             {
                 unsigned char op1 = op >> 16;
-                if (op1 == 0xF2 || op1 == 0xF3)
+                if (op1 == 0xF2 || op1 == 0xF3 || op1 == 0x66)
                 {
                     GEN(op1);
                     if (c->Irex)

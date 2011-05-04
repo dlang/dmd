@@ -1204,6 +1204,10 @@ PTRNTAB2 aptb2MOVQ[] = /* MOVQ */ {
         { 0x0F7F,_r,_mmm64,_mm },
         { 0xF30F7E,_r,_xmm,_xmm_m64 },
         { 0x660FD6,_r,_xmm_m64,_xmm },
+        { 0x0F6E,  _r|_64_bit,_mm,  _rm64 },
+        { 0x0F7E,  _r|_64_bit,_rm64,_mm   },
+        { 0x660F6E,_r|_64_bit,_xmm, _rm64 },
+        { 0x660F7E,_r|_64_bit,_rm64,_xmm  },
         { ASM_END }
 };
 
