@@ -19,6 +19,7 @@ GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_LINUX=1 -D_DH
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_LINUX=1 -D_DH
+LDFLAGS = -lm -lstdc++ -lpthread
 
 CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
@@ -95,7 +96,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	gcc $(MODEL) -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
+	gcc $(MODEL) $(LDFLAGS) $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
