@@ -7390,9 +7390,9 @@ int CallExp::checkSideEffect(int flag)
      * then this expression has no side effects.
      */
     Type *t = e1->type->toBasetype();
-    if (t->ty == Tfunction && ((TypeFunction *)t)->purity)
+    if (t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak)
         return 0;
-    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity)
+    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak)
         return 0;
 #endif
     return 1;
