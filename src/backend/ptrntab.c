@@ -122,7 +122,8 @@ PTRNTAB2 aptb2MOVSD[] =  /* MOVSD */ {
 //
 PTRNTAB1 aptb1BSWAP[] = /* BSWAP */ {
                                 // Really is a 486 only instruction
-        { 0x0fc8, _I386, _plus_r | _r32 },
+        { 0x0fc8,   _I386, _plus_r | _r32 },
+        { 0x0fc8, _64_bit, _plus_r | _r64 },
         { ASM_END, 0, 0 }
 };
 
@@ -390,7 +391,12 @@ PTRNTAB1  aptb1XLAT[] = /* XLAT */ {
         { ASM_END, 0, 0 }
 };
 PTRNTAB1  aptb1CMPXCH8B[] = {
-    { 0x0fc7, _1 | _modaxdx | _I386 , _m64 },
+    { 0x0fc7, _1 | _modaxdx | _I386, _m64 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB1  aptb1CMPXCH16B[] = {
+    { 0x0fc7, _1 | _modaxdx | _64_bit, _m64 },
         { ASM_END, 0, 0 }
 };
 
@@ -1203,6 +1209,10 @@ PTRNTAB2 aptb2MOVQ[] = /* MOVQ */ {
         { 0x0F7F,_r,_mmm64,_mm },
         { 0xF30F7E,_r,_xmm,_xmm_m64 },
         { 0x660FD6,_r,_xmm_m64,_xmm },
+        { 0x0F6E,  _r|_64_bit,_mm,  _rm64 },
+        { 0x0F7E,  _r|_64_bit,_rm64,_mm   },
+        { 0x660F6E,_r|_64_bit,_xmm, _rm64 },
+        { 0x660F7E,_r|_64_bit,_rm64,_xmm  },
         { ASM_END }
 };
 
@@ -2644,7 +2654,8 @@ getsec
         X("cmpss",      3,              (P) aptb3CMPSS ) \
         X("cmpsw",      0,              aptb0CMPSW ) \
         X("cmpxchg",    2,              (P) aptb2CMPXCHG ) \
-        X("cmpxchg8b",   1,              (P) aptb1CMPXCH8B ) \
+        X("cmpxchg16b", 1,              (P) aptb1CMPXCH16B ) \
+        X("cmpxchg8b",  1,              (P) aptb1CMPXCH8B ) \
         X("comisd",     2,              (P) aptb2COMISD ) \
         X("comiss",     2,              (P) aptb2COMISS ) \
         X("cpuid",      0,              aptb0CPUID ) \
