@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -57,7 +57,7 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->push(sd);
     sc->flags |= SCOPEstaticassert;
     Expression *e = exp->semantic(sc);
-    sc->pop();
+    sc = sc->pop();
     if (e->op == TOKerror)
         return;
     e = e->optimize(WANTvalue | WANTinterpret);
