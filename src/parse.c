@@ -2073,6 +2073,7 @@ Objects *Parser::parseTemplateArgument()
         case TOKstring:
         case TOKfile:
         case TOKline:
+        case TOKthis:
         {   // Template argument is an expression
             Expression *ea = parsePrimaryExp();
             tiargs->push(ea);
