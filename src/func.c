@@ -1654,6 +1654,30 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
 #endif
 
+#if DMD_OBJC
+            {
+                // Convert throws to Objective-C EH if has Objective-C linkage
+                // otherwise convert throws to D EH (if necessary)
+                int blockexit = fbody->blockExit(f->isnothrow);
+                if (linkage == LINKobjc)
+                {   // Objective-C linkage must throw using Objective-C EH.
+                    if ((blockexit & BEthrow))
+                    {   fbody = new PeelStatement(fbody);
+                        fbody = new ObjcExceptionBridge(0, fbody, THROWobjc);
+                        fbody = fbody->semantic(sc2);
+                    }
+                }
+                else
+                {   // other functions must throw using D EH.
+                    if (blockexit & BEthrowobjc)
+                    {   fbody = new PeelStatement(fbody);
+                        fbody = new ObjcExceptionBridge(0, fbody, THROWd);
+                        fbody = fbody->semantic(sc2);
+                    }
+                }
+            }
+#endif
+
 #if 1
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
@@ -2809,13 +2833,20 @@ int FuncDeclaration::addPostInvariant()
 /**********************************
  * Generate a FuncDeclaration for a runtime library function.
  */
-
-FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, const char *name)
+ 
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, const char *name, Type *param1)
 {
-    return genCfunc(treturn, Lexer::idPool(name));
+    Parameters *params = new Parameters();
+    params->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+    return genCfunc(treturn, name, params);
 }
 
-FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, const char *name, Parameters *params)
+{
+    return genCfunc(treturn, Lexer::idPool(name), params);
+}
+
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id, Parameters *params)
 {
     FuncDeclaration *fd;
     TypeFunction *tf;
@@ -2837,7 +2868,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
     }
     else
     {
-        tf = new TypeFunction(NULL, treturn, 0, LINKc);
+        tf = new TypeFunction(params, treturn, 0, LINKc);
         fd = new FuncDeclaration(0, 0, id, STCstatic, tf);
         fd->protection = PROTpublic;
         fd->linkage = LINKc;

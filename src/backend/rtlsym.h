@@ -151,6 +151,8 @@ SYMBOL_Z(TRACE_PRO_F, FLfunc,ALLREGS|mBP|mES,"_trace_pro_f",0,tstrace) \
 SYMBOL_Z(TRACE_EPI_N, FLfunc,ALLREGS|mBP|mES,"_trace_epi_n",0,tstrace) \
 SYMBOL_Z(TRACE_EPI_F, FLfunc,ALLREGS|mBP|mES,"_trace_epi_f",0,tstrace) \
 \
+SYMBOL_MARS(THROW_OBJC_AS_D,    FLfunc,(mES | mBP),"_dobjc_throwAs_d", SFLexit, t) \
+SYMBOL_MARS(THROW_D_AS_OBJC,    FLfunc,(mES | mBP),"_dobjc_throwAs_objc", SFLexit, t) \
 SYMBOL_MARS(DYNAMIC_CAST_OBJC,  FLfunc,FREGSAVED,"_dobjc_dynamic_cast", 0, t) \
 SYMBOL_MARS(INTERFACE_CAST_OBJC,FLfunc,FREGSAVED,"_dobjc_interface_cast", 0, t) \
 SYMBOL_MARS(DINVARIANT_OBJC,FLfunc,FREGSAVED,"_dobjc_invariant", 0, t) \

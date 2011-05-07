@@ -282,14 +282,28 @@ Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc)
 #if DMDV2
 int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
 {
+#if DMD_OBJC
+    int result = 0;
+#endif
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e = (Expression *)exps->data[i];
+#if DMD_OBJC
+            if (e)
+            {   result |= e->canThrow(mustNotThrow);
+                if (result == BEthrowany)
+                    return result;
+            }
+#else
             if (e && e->canThrow(mustNotThrow))
                 return 1;
+#endif
         }
     }
+#if DMD_OBJC
+    return result;
+#endif
     return 0;
 }
 #endif
@@ -1390,6 +1404,11 @@ int Expression::isBit()
  *
  * If 'mustNotThrow' is true, generate an error if it throws
  */
+#if DMD_OBJC
+// Changed to return flags BEthrow and/or BEthrowobjc depending on which 
+// throwing mechanism is used. Both flags can be present at the same time
+// which means that both types of exceptions can be thrown by this expression.
+#endif
 
 int Expression::canThrow(bool mustNotThrow)
 {
@@ -3207,7 +3226,7 @@ int ArrayLiteralExp::isBool(int result)
 #if DMDV2
 int ArrayLiteralExp::canThrow(bool mustNotThrow)
 {
-    return 1;   // because it can fail allocating memory
+    return BEthrow;   // because it can fail allocating memory
 }
 #endif
 
@@ -3302,7 +3321,7 @@ int AssocArrayLiteralExp::isBool(int result)
 #if DMDV2
 int AssocArrayLiteralExp::canThrow(bool mustNotThrow)
 {
-    return 1;
+    return BEthrow;
 }
 #endif
 
@@ -4203,7 +4222,7 @@ int NewAnonClassExp::checkSideEffect(int flag)
 #if DMDV2
 int NewAnonClassExp::canThrow(bool mustNotThrow)
 {
-    return 1;
+    return BEthrow;
 }
 #endif
 
@@ -4876,7 +4895,12 @@ int DeclarationExp::canThrow(bool mustNotThrow)
     VarDeclaration *v = declaration->isVarDeclaration();
     if (v && v->init)
     {   ExpInitializer *ie = v->init->isExpInitializer();
+#if DMD_OBJC
+        if (ie)
+            return ie->exp->canThrow(mustNotThrow);
+#else
         return ie && ie->exp->canThrow(mustNotThrow);
+#endif
     }
     return 0;
 }
@@ -5567,7 +5591,11 @@ int BinExp::isunsigned()
 #if DMDV2
 int BinExp::canThrow(bool mustNotThrow)
 {
+#if DMD_OBJC
+    return e1->canThrow(mustNotThrow) | e2->canThrow(mustNotThrow);
+#else
     return e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
+#endif
 }
 #endif
 
@@ -7519,17 +7547,34 @@ int CallExp::checkSideEffect(int flag)
 #if DMDV2
 int CallExp::canThrow(bool mustNotThrow)
 {
+#if DMD_OBJC
+    int result = 0;
+#endif
     //printf("CallExp::canThrow() %s\n", toChars());
+#if DMD_OBJC
+    result |= e1->canThrow(mustNotThrow);
+    if (result == BEthrowany)
+        return result;
+#else
     if (e1->canThrow(mustNotThrow))
         return 1;
+#endif
 
     /* If any of the arguments can throw, then this expression can throw
      */
     for (size_t i = 0; i < arguments->dim; i++)
     {   Expression *e = (Expression *)arguments->data[i];
 
+#if DMD_OBJC
+        if (e) {
+            result |= e->canThrow(mustNotThrow);
+            if (result == BEthrowany)
+                return result;
+        }
+#else
         if (e && e->canThrow(mustNotThrow))
             return 1;
+#endif
     }
 
     if (global.errors && !e1->type)
@@ -7540,17 +7585,29 @@ int CallExp::canThrow(bool mustNotThrow)
      * Note that pure functions can throw.
      */
     Type *t = e1->type->toBasetype();
+#if DMD_OBJC
+    if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
+        result |= (((TypeFunction *)t)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
+    if (t->ty == Tdelegate && !((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+        result |= (((TypeFunction *)((TypeDelegate *)t)->next)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
+    if (t->ty == Tobjcselector && !((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
+        result |= (((TypeFunction *)((TypeObjcSelector *)t)->next)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
+#else
     if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
         return 0;
     if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
         return 0;
-#if DMD_OBJC
-    if (t->ty == Tobjcselector && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-        return 0;
 #endif
     if (mustNotThrow)
+#if DMD_OBJC
+        if (result)
+#endif
         error("%s is not nothrow", e1->toChars());
+#if DMD_OBJC
+    return result;
+#else
     return 1;
+#endif
 }
 #endif
 
@@ -11439,7 +11496,11 @@ int CondExp::checkSideEffect(int flag)
 #if DMDV2
 int CondExp::canThrow(bool mustNotThrow)
 {
+#if DMD_OBJC
+    return econd->canThrow(mustNotThrow) | e1->canThrow(mustNotThrow) | e2->canThrow(mustNotThrow);
+#else
     return econd->canThrow(mustNotThrow) || e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
+#endif
 }
 #endif
 

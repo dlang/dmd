@@ -1442,6 +1442,16 @@ void ThrowStatement::toIR(IRState *irs)
 
     incUsage(irs, loc);
     elem *e = exp->toElem(irs);
+    
+#if DMD_OBJC
+    ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
+    if (cd && cd->objc) // throwing Objective-C exception
+    {
+        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROW_OBJC_AS_D]),e);
+        block_appendexp(blx->curblock, e);
+        return;
+    }
+#endif
     e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
     block_appendexp(blx->curblock, e);
 }
@@ -1689,3 +1699,14 @@ void AsmStatement::toIR(IRState *irs)
         blx->funcsym->Stype->Tty |= mTYnaked;
     }
 }
+
+
+#if DMD_OBJC
+
+void ObjcExceptionBridge::toIR(IRState *irs)
+{
+    assert(wrapped);
+    wrapped->toIR(irs);
+}
+
+#endif

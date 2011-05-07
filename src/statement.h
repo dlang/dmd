@@ -74,7 +74,13 @@ enum BE
     BEhalt =     0x10,
     BEbreak =    0x20,
     BEcontinue = 0x40,
+#if DMD_OBJC
+    BEthrowobjc = 0x80,
+    BEthrowany = (BEthrow | BEthrowobjc),
+    BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt | BEthrowobjc),
+#else
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
+#endif
 };
 
 struct Statement : Object
@@ -707,6 +713,9 @@ struct TryFinallyStatement : Statement
 {
     Statement *body;
     Statement *finalbody;
+#if DMD_OBJC
+    int objcdisable;        // !=0 when should ignore Objective-C exceptions
+#endif
 
     TryFinallyStatement(Loc loc, Statement *body, Statement *finalbody);
     Statement *syntaxCopy();
@@ -845,5 +854,35 @@ struct AsmStatement : Statement
 
     void toIR(IRState *irs);
 };
+
+#if DMD_OBJC
+
+Catch *objcMakeCatch(Loc loc, Array *objccatches, Scope *sc);
+
+enum ObjcThrowMode
+{
+    THROWobjc,
+    THROWd,
+};
+
+struct ObjcExceptionBridge : Statement
+{
+    Statement *body;
+    Statement *wrapped;
+    ObjcThrowMode mode;
+
+    ObjcExceptionBridge(Loc loc, Statement *body, ObjcThrowMode mode);
+    Statement *syntaxCopy();
+    int blockExit(bool mustNotThrow);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    Statement *semantic(Scope *sc);
+    int usesEH();
+    
+    Expression *interpret(InterState *istate);
+    
+    void toIR(IRState *irs);
+};
+
+#endif
 
 #endif /* DMD_STATEMENT_H */

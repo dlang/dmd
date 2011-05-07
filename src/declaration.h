@@ -650,8 +650,9 @@ struct FuncDeclaration : Declaration
     void createObjCSelector();
 #endif
 
-    static FuncDeclaration *genCfunc(Type *treturn, const char *name);
-    static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);
+    static FuncDeclaration *genCfunc(Type *treturn, const char *name, Type *param);
+    static FuncDeclaration *genCfunc(Type *treturn, const char *name, Parameters *params = NULL);
+    static FuncDeclaration *genCfunc(Type *treturn, Identifier *id, Parameters *params = NULL);
 
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);  // thunk version

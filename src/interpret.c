@@ -3247,6 +3247,17 @@ Expression *DotVarExp::interpret(InterState *istate)
     return e;
 }
 
+#if DMD_OBJC
+
+Expression *ObjcExceptionBridge::interpret(InterState *istate)
+{
+    // transparently pass to body, translating exception ABI model does nothing
+    // when interpreting code
+    return body->interpret(istate);
+}
+
+#endif
+
 /******************************* Special Functions ***************************/
 
 #if DMDV1
