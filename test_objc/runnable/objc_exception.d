@@ -32,13 +32,13 @@ class NSException : NSObject {
     @property NSDictionary userInfo() [userInfo];
 }
 
-extern (Objective-C) void _throwObjc() {
+extern (Objective-C) void throwObjc() {
     throw new NSException("Hello!", "Testing.", null);
 }
 
-extern (Objective-C) void _test_throw();
-extern (Objective-C) bool _test_catch(void function());
-extern (Objective-C) void _test_finally(void function(), ref bool);
+extern (Objective-C) void test_throw();
+extern (Objective-C) bool test_catch(void function());
+extern (Objective-C) void test_finally(void function(), ref bool);
 
 import std.stdio;
 
@@ -47,7 +47,7 @@ void test1() {
     bool finalized;
     bool notthrown;
     try {
-        _throwObjc();
+        throwObjc();
         notthrown = true;
     } catch (NSException e) {
         caught = true;
@@ -65,7 +65,7 @@ void test2() {
     bool finalized;
     bool notthrown;
     try {
-        _test_throw();
+        test_throw();
         notthrown = true;
     } catch (NSException e) {
         caught = true;
@@ -79,7 +79,7 @@ void test2() {
 }
 
 void test3() {
-    bool caught = _test_catch(&_throwObjc);
+    bool caught = test_catch(&throwObjc);
     assert(caught);
 }
 
@@ -90,7 +90,7 @@ void test4() {
     bool notthrown;
     try {
         try
-            _test_finally(&_throwObjc, objcfinalized);
+            test_finally(&throwObjc, objcfinalized);
         finally
             finalized = true;
         notthrown = true;

@@ -392,9 +392,15 @@ Symbol *FuncDeclaration::toSymbol()
                     break;
 
                 case LINKd:
-                case LINKobjc:
                     t->Tmangle = mTYman_d;
                     break;
+
+#if DMD_OBJC
+                case LINKobjc:
+                    // using C mangling only for global functions
+                    t->Tmangle = isMember2() ? mTYman_d : mTYman_c;
+                    break;
+#endif
 
                 case LINKcpp:
                 {   t->Tmangle = mTYman_cpp;
