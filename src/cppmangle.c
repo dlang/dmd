@@ -336,11 +336,7 @@ void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
     if (!cms->substitute(buf, this))
     {
         buf->writeByte('F');
-#if DMD_OBJC
         if (linkage == LINKc || linkage == LINKobjc)
-#else
-        if (linkage == LINKc)
-#endif
             buf->writeByte('Y');
         next->toCppMangle(buf, cms);
         Parameter::argsCppMangle(buf, cms, parameters, varargs);
