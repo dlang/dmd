@@ -428,7 +428,15 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     (tk = peek(&token))->value == TOKlparen &&
                     skipParens(tk, &tk) &&
                     (peek(tk)->value == TOKlparen ||
-                     peek(tk)->value == TOKlcurly)
+                     peek(tk)->value == TOKlcurly ||
+                     peek(tk)->value == TOKconst ||
+                     peek(tk)->value == TOKinvariant ||
+                     peek(tk)->value == TOKimmutable ||
+                     peek(tk)->value == TOKshared ||
+                     peek(tk)->value == TOKwild ||
+                     peek(tk)->value == TOKnothrow ||
+                     peek(tk)->value == TOKpure ||
+                     peek(tk)->value == TOKat)
                    )
                 {
                     a = parseDeclarations(storageClass, comment);
