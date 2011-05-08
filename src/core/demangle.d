@@ -368,6 +368,7 @@ private struct Demangle
             next();
         }
         match( 'P' );
+        tbuf[tlen++] = 'p';
         if( 'N' == tok() )
         {
             tbuf[tlen++] = '-';
@@ -386,7 +387,7 @@ private struct Demangle
         tbuf[tlen] = 0;
         debug(info) printf( "got (%s)\n", tbuf.ptr );
         val = strtold( tbuf.ptr, null );
-        tlen = snprintf( tbuf.ptr, tbuf.length, "%Lf", val );
+        tlen = snprintf( tbuf.ptr, tbuf.length, "%#Lg", val );
         debug(info) printf( "converted (%.*s)\n", cast(int) tlen, tbuf.ptr );
         put( tbuf[0 .. tlen] );
     }
