@@ -1130,7 +1130,17 @@ private struct Demangle
         case 'A':
             // A Number Value...
             // An array literal. Value is repeated Number times.
-            error(); // TODO: Not implemented.
+            next();
+            auto numberOfEntries = decodeNumber();
+            put( "[" );
+            foreach ( i; 0 .. numberOfEntries )
+            {
+                if ( i != 0 )
+                    put( ", " );
+                parseValue();
+            }
+            put( "]" );
+            return ;
         default:
             error();
         }
@@ -1407,7 +1417,11 @@ unittest
     assert(demangle("_D1y131__T1TVde8PN3VeeF38DB1F9DD3DAC05P3318Vee868A9188A89E1466PN3325Vde932C05A4P27VeeNANVeeINFVeeNINFVeeFFFFFFFFFFFFFFFFP16380Vee8PN16385Z1TFZv")
         == "void y.T!(1.00000, 1.00000e+1000, 1.00000e-1000, 1.23457e+09, real.nan, real.infinity, -real.infinity, 1.18973e+4932, 3.36210e-4932).T()");
 }
-
+unittest
+{
+    assert(demangle("_D1y57__T1TVAAiA2A2i1i2A2i3i4VAdA2eAPN1eCPN1VAAxaA2a1_37A2i8i9Z1TFZv")
+        == "void y.T!([[1, 2], [3, 4]], [5.00000, 6.00000], [\"7\", [8, 9]]).T()");
+}
 
 /*
  *
