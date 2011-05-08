@@ -332,6 +332,7 @@ union evc
     targ_int    Vint;           // also used for tmp numbers (FLtmp)
     targ_uns    Vuns;
     targ_long   Vlong;
+    targ_llong  Vllong;
     targ_size_t Vsize_t;
     struct
     {   targ_size_t Vpointer;
@@ -442,6 +443,7 @@ struct code
       #define IEVoffset2  IEV2.sp.Voffset
       #define IEVlsym2    IEV2.lab.Vsym
       #define IEVint2     IEV2.Vint
+      #define IEVllong2   IEV2.Vllong
     void print();               // pretty-printer
 
     code() { Irex = 0; Isib = 0; }      // constructor

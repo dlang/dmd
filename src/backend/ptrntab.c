@@ -617,7 +617,7 @@ PTRNTAB2 aptb2MOV[] = /* MOV */ {
         { 0xb0, _rb,            _r8 | _plus_r,  _imm8           },
         { 0xb8, _rw | _16_bit,  _r16 | _plus_r, _imm16          },
         { 0xb8, _rd|_32_bit,    _r32 | _plus_r, _imm32          },
-        { 0xb8, _rd|_64_bit,    _r64 | _plus_r, _imm32          },
+        { 0xb8, _rd|_64_bit,    _r64 | _plus_r, _imm64          },
         { 0xc6, _cb,            _rm8,           _imm8           },
         { 0xc7, _cw|_16_bit,    _rm16,          _imm16          },
         { 0xc7, _cd|_32_bit,    _rm32,          _imm32          },
