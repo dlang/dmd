@@ -1588,34 +1588,36 @@ unittest
 }
 unittest
 {
-    // NOTE: This assert depends on %g showing 6 significant figures by default.
-    assert(demangle("_D1y133__T1TVxfe8PN3VeeF38DB1F9DD3DAC05P3318Vee868A9188A89E1466PN3325VpeN932C05A4P27VeeNANVdeINFVfeNINFVeeFFFFFFFFFFFFFFFFP16380Vee8PN16385Z1TFZv")
-        == "void y.T!(1.00000f, 1.00000e+1000L, 1.00000e-1000L, -1.23457e+09i, real.nan, double.infinity, -float.infinity, 1.18973e+4932L, 3.36210e-4932L).T()");
-}
-unittest
-{
-    auto answer = "void y.f!(null).f()";
-    assert(demangle("_D1y22__T1fVDFDFDFNaZiZiZinZ1fFZv") == answer);
-    assert(demangle("_D1y16__T1fVPPPPPPPinZ1fFZv") == answer);
-    assert(demangle("_D1y23__T1fVHHHiiHiiHHiiHiinZ1fFZv") == answer);
-    assert(demangle("_D1y17__T1fVC1x1y3z1wnZ1fFZv") == answer);
-}
-unittest
-{
-    assert(demangle("_D1y57__T1TVAAiA2A2i1i2A2i3i4VAdA2eAPN1eCPN1VAAxaA2a1_37A2i8i9Z1TFZv")
-        == "void y.T!([[1, 2], [3, 4]], [5.00000, 6.00000], [\"7\", [8, 9]]).T()");
-}
-unittest
-{
-    assert(demangle("_D1y28__T1TVrc8PN1cAPN1VqcINFcINFZ1TFZv")
-        == "void y.T!(4.00000+5.00000i, float.infinity+ifloat.infinity).T()");
-    assert(demangle("_D1y22__T1TVHaiA2i49i2i51i4Z1TFZv")
-        == "void y.T!([49:2, 51:4]).T()");
-}
-unittest
-{
-    assert(demangle("_D1y23__T1fVS1y1US3i1e8PN2i3Z1fFZv")
-        == "void y.f!(y.U(1, 2.00000, 3)).f()");
+    // NOTE: These asserts depend on %g showing 6 significant figures by default.
+    static string[2][] checks =
+    [
+        ["_D1y133__T1TVxfe8PN3VeeF38DB1F9DD3DAC05P3318Vee868A9188A89E1466PN3325VpeN932C05A4P27VeeNANVdeINFVfeNINFVeeFFFFFFFFFFFFFFFFP16380Vee8PN16385Z1TFZv",
+         "void y.T!(1.00000f, 1.00000e+1000L, 1.00000e-1000L, -1.23457e+09i, real.nan, double.infinity, -float.infinity, 1.18973e+4932L, 3.36210e-4932L).T()"],
+        ["_D1y22__T1fVDFDFDFNaZiZiZinZ1fFZv",
+         "void y.f!(null).f()"],
+        ["_D1y16__T1fVPPPPPPPinZ1fFZv",
+         "void y.f!(null).f()"],
+        ["_D1y23__T1fVHHHiiHiiHHiiHiinZ1fFZv",
+         "void y.f!(null).f()"],
+        ["_D1y17__T1fVC1x1y3z1wnZ1fFZv",
+         "void y.f!(null).f()"],
+        ["_D1y57__T1TVAAiA2A2i1i2A2i3i4VAdA2eAPN1eCPN1VAAxaA2a1_37A2i8i9Z1TFZv",
+         "void y.T!([[1, 2], [3, 4]], [5.00000, 6.00000], [\"7\", [8, 9]]).T()"],
+        ["_D1y28__T1TVrc8PN1cAPN1VqcINFcINFZ1TFZv",
+         "void y.T!(4.00000+5.00000i, float.infinity+ifloat.infinity).T()"],
+        ["_D1y22__T1TVHaiA2i49i2i51i4Z1TFZv",
+         "void y.T!([49:2, 51:4]).T()"],
+        ["_D1y23__T1fVS1y1US3i1e8PN2i3Z1fFZv",
+         "void y.f!(y.U(1, 2.00000, 3)).f()"],
+        ["_D4test27__T1fVS4test1SS1A4i1i2i3i4Z1fFZv",
+         "void test.f!(test.S([1, 2, 3, 4])).f()"],
+    ];
+    
+    foreach( i, name; checks )
+    {
+        auto r = demangle( name[0] );
+        assert(r == name[1], "Unexpected: \"" ~ r ~ "\" != \"" ~ name[1] ~ "\"");
+    }
 }
 
 /*
