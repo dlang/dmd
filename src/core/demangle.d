@@ -1107,6 +1107,7 @@ private struct Demangle
             next();
             parseReal();
             put( "+" );
+            match( "c" );
             parseReal();
             put( "i" );
             return;
