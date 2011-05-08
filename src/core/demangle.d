@@ -1272,14 +1272,35 @@ parseArguments:
             next();
             auto numberOfEntries = decodeNumber();
             put( "[" );
-            foreach ( i; 0 .. numberOfEntries )
+
+            bool isAssociativeArray = (typeCode == 'H');
+
+            size_t curPos = pos;
+            size_t keyKeyTypePos = void, keyValueTypePos = void;
+            size_t valueKeyTypePos = void, valueValueTypePos = void;
+            char keyTypeCode = void, valueTypeCode = void;
+            pos = keyTypePos;
+            keyTypeCode = parseTypeForValue( keyKeyTypePos, keyValueTypePos );
+            if( isAssociativeArray )
             {
-                if ( i != 0 )
+                pos = valueTypePos;
+                valueTypeCode = parseTypeForValue( valueKeyTypePos, valueValueTypePos );
+            }
+            pos = curPos;
+
+            foreach( i; 0 .. numberOfEntries )
+            {
+                if( i != 0 )
                     put( ", " );
-                parseValue();
+                parseValue( keyTypeCode, keyKeyTypePos, keyValueTypePos );
+                if( isAssociativeArray )
+                {
+                    put( ":" );
+                    parseValue( valueTypeCode, valueKeyTypePos, valueValueTypePos );
+                }
             }
             put( "]" );
-            return ;
+            return;
         default:
             error();
         }
@@ -1574,6 +1595,8 @@ unittest
 {
     assert(demangle("_D1y28__T1TVrc8PN1cAPN1VqcINFcINFZ1TFZv")
         == "void y.T!(4.00000+5.00000i, float.infinity+ifloat.infinity).T()");
+    assert(demangle("_D1y22__T1TVHaiA2i49i2i51i4Z1TFZv")
+        == "void y.T!([49:2, 51:4]).T()");
 }
 
 /*
