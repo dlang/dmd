@@ -743,6 +743,7 @@ private struct Demangle
             }
 
             // FuncAttrs
+funcAttrs:
             while( 'N' == tok() )
             {
                 next();
@@ -773,7 +774,8 @@ private struct Demangle
                     put( "@safe " );
                     continue;
                 default:
-                    error();
+                    -- pos;
+                    break funcAttrs;
                 }
             }
 
@@ -883,8 +885,10 @@ private struct Demangle
             {
             case 'g': // Wild (Ng Type)
                 next();
-                // TODO: Anything needed here?
+                put( "inout(" );
                 parseType();
+                put( ")" );
+                pad( name );
                 return dst[beg .. len];
             case 'e': // TypeNewArray (Ne Type)
                 next();
@@ -1127,9 +1131,12 @@ private struct Demangle
                 {
                     next();
                     auto attrib = tok();
+                    if( !('a' <= attrib && attrib <= 'f') )
+                    {
+                        -- pos;
+                        break;
+                    }
                     next();
-                    if (!('a' <= attrib && attrib <= 'f'))
-                        error( "Unexpected function attribute encoding 'N" ~ attrib ~ "'" );
                 }
 
 parseArguments:
@@ -1611,6 +1618,8 @@ unittest
          "void y.f!(y.U(1, 2.00000, 3)).f()"],
         ["_D4test27__T1fVS4test1SS1A4i1i2i3i4Z1fFZv",
          "void test.f!(test.S([1, 2, 3, 4])).f()"],
+        ["_D1x1hFNgiZNgi",
+         "inout(int) x.h(inout(int))"],
     ];
     
     foreach( i, name; checks )
