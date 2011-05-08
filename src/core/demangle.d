@@ -1150,6 +1150,7 @@ parseArguments:
 
             // TypeIdent, TypeClass, TypeStruct, TypeEnum, TypeTypedef
             case 'I', 'C', 'S', 'E', 'T':
+                keyTypePos = pos;
                 silent( parseQualifiedName() );
                 break;
 
@@ -1266,27 +1267,40 @@ parseArguments:
             if( 'a' != t )
                 put( (cast(char*) &t)[0 .. 1] );
             return;
-        case 'A':
+        case 'A', 'S':
             // A Number Value...
             // An array literal. Value is repeated Number times.
-            next();
-            auto numberOfEntries = decodeNumber();
-            put( "[" );
-
+            //
+            // S Number Value...
+            // A struct literal. See bug 5956.
+            bool isStruct = (tok() == 'S');
             bool isAssociativeArray = (typeCode == 'H');
 
-            size_t curPos = pos;
-            size_t keyKeyTypePos = void, keyValueTypePos = void;
+            next();
+            auto numberOfEntries = decodeNumber();
+
+            size_t keyKeyTypePos = 0, keyValueTypePos = void;
             size_t valueKeyTypePos = void, valueValueTypePos = void;
-            char keyTypeCode = void, valueTypeCode = void;
-            pos = keyTypePos;
-            keyTypeCode = parseTypeForValue( keyKeyTypePos, keyValueTypePos );
-            if( isAssociativeArray )
+            char keyTypeCode = '\0', valueTypeCode = void;
+            if( keyTypePos != 0 )
             {
-                pos = valueTypePos;
-                valueTypeCode = parseTypeForValue( valueKeyTypePos, valueValueTypePos );
+                size_t curPos = pos;
+                pos = keyTypePos;
+                if( isStruct )
+                    parseQualifiedName();
+                else
+                {
+                    keyTypeCode = parseTypeForValue( keyKeyTypePos, keyValueTypePos );
+                    if( isAssociativeArray )
+                    {
+                        pos = valueTypePos;
+                        valueTypeCode = parseTypeForValue( valueKeyTypePos, valueValueTypePos );
+                    }
+                }
+                pos = curPos;
             }
-            pos = curPos;
+
+            put( isStruct ? "(" : "[" );
 
             foreach( i; 0 .. numberOfEntries )
             {
@@ -1299,7 +1313,7 @@ parseArguments:
                     parseValue( valueTypeCode, valueKeyTypePos, valueValueTypePos );
                 }
             }
-            put( "]" );
+            put( isStruct ? ")" : "]" );
             return;
         default:
             error();
@@ -1597,6 +1611,11 @@ unittest
         == "void y.T!(4.00000+5.00000i, float.infinity+ifloat.infinity).T()");
     assert(demangle("_D1y22__T1TVHaiA2i49i2i51i4Z1TFZv")
         == "void y.T!([49:2, 51:4]).T()");
+}
+unittest
+{
+    assert(demangle("_D1y23__T1fVS1y1US3i1e8PN2i3Z1fFZv")
+        == "void y.f!(y.U(1, 2.00000, 3)).f()");
 }
 
 /*
