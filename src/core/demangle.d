@@ -340,7 +340,7 @@ private struct Demangle
     }
 
 
-    void parseReal()
+    void parseReal( char typeCode = '\0' )
     {
         debug(trace) printf( "parseReal+\n" );
         debug(trace) scope(success) printf( "parseReal-\n" );
@@ -348,6 +348,18 @@ private struct Demangle
         char[64] tbuf = void;
         size_t   tlen = 0;
         real     val  = void;
+
+        string actualType = void, suffix = void;
+        switch( typeCode )
+        {
+            case 'f': actualType = "float"; suffix = "f"; break;
+            case 'd': actualType = "double"; suffix = ""; break;
+            case 'e': actualType = "real"; suffix = "L"; break;
+            case 'o': actualType = "ifloat"; suffix = "fi"; break;
+            case 'p': actualType = "idouble"; suffix = "i"; break;
+            case 'j': actualType = "ireal"; suffix = "Li"; break;
+            default: actualType = "real"; suffix = ""; break;
+        }
 
         if( 'N' == tok() )
         {
@@ -357,9 +369,17 @@ private struct Demangle
         if( 'I' == tok() ) // INF
         {
             match( "INF" );
-            bool isNegative = tlen == 1;
-            debug(info) printf( "got (%sINF)\n", isNegative ? "N" : "" );
-            put( isNegative ? "-real.infinity" : "real.infinity" );
+            if( tlen == 1 )
+            {
+                debug(info) printf( "got (NINF)\n" );
+                put( "-" );
+            }
+            else
+            {
+                debug(info) printf( "got (INF)\n" );
+            }
+            put( actualType );
+            put( ".infinity" );
             return;
         }
         tbuf[tlen++] = '0';
@@ -376,7 +396,8 @@ private struct Demangle
             {
                 next();
                 debug(info) printf( "got (NAN)\n" );
-                put( "real.nan" );
+                put( actualType );
+                put( ".nan" );
                 return;
             }
             else
@@ -411,6 +432,7 @@ private struct Demangle
         tlen = snprintf( tbuf.ptr, tbuf.length, "%#Lg", val );
         debug(info) printf( "converted (%.*s)\n", cast(int) tlen, tbuf.ptr );
         put( tbuf[0 .. tlen] );
+        put( suffix );
     }
 
 
@@ -1040,6 +1062,116 @@ private struct Demangle
         }
     }
 
+    /**
+    A strip-down version of parseType() which the only purpose is to distiguish
+    various floating point and array types. This is used for making parseValue()
+    provide the correct results.
+    */
+    char parseTypeForValue( out size_t keyTypePos, out size_t valueTypePos )
+    {
+        debug(trace) printf( "parseTypeForValue+\n" );
+        debug(trace) scope(success) printf( "parseTypeForValue-\n" );
+
+        size_t keyPosIgnored, valuePosIgnored;
+
+        char c = tok();
+        next();
+        switch( c )
+        {
+            // Shared, Const, Immutable: we Unqual them
+            case 'O', 'x', 'y':
+                c = parseTypeForValue( keyTypePos, valueTypePos );
+                break;
+
+            // TypeStaticArray: strip the number and parse the type.
+            case 'G':
+                while( isDigit( tok() ) )
+                    next();
+                goto case;
+
+            // TypeArray, TypePointer: the keyTypePos is correct, just munch
+            //                         the Type after.
+            case 'A', 'P', 'H':
+                keyTypePos = pos;
+                parseTypeForValue( keyPosIgnored, valuePosIgnored );
+
+                // TypeAssocArray: have both key & value type.
+                if (c == 'H') {
+                    valueTypePos = pos;
+                    parseTypeForValue( keyPosIgnored, valuePosIgnored );
+                }
+                break;
+
+            // Wild and TypeNewArray: What are these?
+            case 'N':
+                switch( tok() )
+                {
+                    case 'g', 'e':
+                        // TODO: Anything needed here?
+                        next();
+                        break;
+                    default:
+                        error( "Unexpected type encoding 'N" ~ tok() ~ "'" );
+                }
+                goto case 'A';
+
+            // TypeDelegate
+            case 'D':
+                next();
+                goto case;
+
+            // TypeFunction: Just skip through the entire type.
+            case 'F', 'U', 'W', 'V', 'R':
+                // strip the function attributes
+                while( tok() == 'N' )
+                {
+                    next();
+                    auto attrib = tok();
+                    next();
+                    if (!('a' <= attrib && attrib <= 'f'))
+                        error( "Unexpected function attribute encoding 'N" ~ attrib ~ "'" );
+                }
+
+parseArguments:
+                while( true )
+                {
+                    auto attrib = tok();
+                    next();
+                    // out, ref, lazy, scope
+                    if ('J' <= attrib && attrib <= 'M')
+                        continue;
+                    // ArgClose
+                    if ('X' <= attrib && attrib <= 'Z')
+                        break;
+                    parseTypeForValue( keyPosIgnored, valuePosIgnored );
+                }
+                parseTypeForValue( keyPosIgnored, valuePosIgnored );
+                break;
+
+            // TypeIdent, TypeClass, TypeStruct, TypeEnum, TypeTypedef
+            case 'I', 'C', 'S', 'E', 'T':
+                silent( parseQualifiedName() );
+                break;
+
+            // The rest of 1-letter type codes
+            case 'n', 'v', 'g', 'h', 's', 't', 'i', 'k', 'l', 'm', 'f', 'd',
+                 'e', 'o', 'p', 'j', 'q', 'r', 'c', 'b', 'a', 'u', 'w':
+                break;
+
+            // TypeTuple
+            case 'B':
+                while( isDigit( tok() ) )
+                    next();
+                goto parseArguments;
+
+            default:
+                -- pos;
+                error( "Unexpected type code '" ~ c ~ "'" );
+                break;
+        }
+
+        return c;
+    }
 
     /*
     Value:
@@ -1075,7 +1207,7 @@ private struct Demangle
         E
         F
     */
-    void parseValue()
+    void parseValue( char typeCode = '\0', size_t keyTypePos = 0, size_t valueTypePos = 0 )
     {
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
@@ -1101,15 +1233,21 @@ private struct Demangle
             return;
         case 'e':
             next();
-            parseReal();
+            parseReal( typeCode );
             return;
         case 'c':
+            char reTypeCode = void, imTypeCode = void;
+            switch( typeCode )
+            {
+                case 'q': reTypeCode = 'f'; imTypeCode = 'o'; break; // cfloat
+                case 'c': reTypeCode = 'e'; imTypeCode = 'j'; break; // creal
+                default:  reTypeCode = 'd'; imTypeCode = 'p'; break; // cdouble
+            }
             next();
-            parseReal();
+            parseReal( reTypeCode );
             put( "+" );
             match( "c" );
-            parseReal();
-            put( "i" );
+            parseReal( imTypeCode );
             return;
         case 'a': case 'w': case 'd':
             char t = tok();
@@ -1175,8 +1313,9 @@ private struct Demangle
             case 'V':
                 next();
                 if( n ) put( ", " );
-                silent( parseType() );
-                parseValue();
+                size_t keyTypePos = void, valueTypePos = void;
+                char typeCode = parseTypeForValue( keyTypePos, valueTypePos );
+                parseValue( typeCode, keyTypePos, valueTypePos );
                 continue;
             case 'S':
                 next();
@@ -1415,13 +1554,26 @@ unittest
 unittest
 {
     // NOTE: This assert depends on %g showing 6 significant figures by default.
-    assert(demangle("_D1y131__T1TVde8PN3VeeF38DB1F9DD3DAC05P3318Vee868A9188A89E1466PN3325Vde932C05A4P27VeeNANVeeINFVeeNINFVeeFFFFFFFFFFFFFFFFP16380Vee8PN16385Z1TFZv")
-        == "void y.T!(1.00000, 1.00000e+1000, 1.00000e-1000, 1.23457e+09, real.nan, real.infinity, -real.infinity, 1.18973e+4932, 3.36210e-4932).T()");
+    assert(demangle("_D1y133__T1TVxfe8PN3VeeF38DB1F9DD3DAC05P3318Vee868A9188A89E1466PN3325VpeN932C05A4P27VeeNANVdeINFVfeNINFVeeFFFFFFFFFFFFFFFFP16380Vee8PN16385Z1TFZv")
+        == "void y.T!(1.00000f, 1.00000e+1000L, 1.00000e-1000L, -1.23457e+09i, real.nan, double.infinity, -float.infinity, 1.18973e+4932L, 3.36210e-4932L).T()");
+}
+unittest
+{
+    auto answer = "void y.f!(null).f()";
+    assert(demangle("_D1y22__T1fVDFDFDFNaZiZiZinZ1fFZv") == answer);
+    assert(demangle("_D1y16__T1fVPPPPPPPinZ1fFZv") == answer);
+    assert(demangle("_D1y23__T1fVHHHiiHiiHHiiHiinZ1fFZv") == answer);
+    assert(demangle("_D1y17__T1fVC1x1y3z1wnZ1fFZv") == answer);
 }
 unittest
 {
     assert(demangle("_D1y57__T1TVAAiA2A2i1i2A2i3i4VAdA2eAPN1eCPN1VAAxaA2a1_37A2i8i9Z1TFZv")
         == "void y.T!([[1, 2], [3, 4]], [5.00000, 6.00000], [\"7\", [8, 9]]).T()");
+}
+unittest
+{
+    assert(demangle("_D1y28__T1TVrc8PN1cAPN1VqcINFcINFZ1TFZv")
+        == "void y.T!(4.00000+5.00000i, float.infinity+ifloat.infinity).T()");
 }
 
 /*
