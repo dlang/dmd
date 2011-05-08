@@ -2472,7 +2472,7 @@ Type *Parser::parseBasicType2(Type *t)
     return NULL;
 }
 
-Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl)
+Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl, StorageClass storage_class)
 {   Type *ts;
 
     //printf("parseDeclarator(tpl = %p)\n", tpl);
@@ -2601,6 +2601,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                 /* Parse const/immutable/shared/inout/nothrow/pure postfix
                  */
                 StorageClass stc = parsePostfix();
+                stc |= storage_class;   // merge prefix storage classes
                 Type *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
 
                 if (stc & STCconst)
@@ -2815,7 +2816,7 @@ L2:
         TemplateParameters *tpl = NULL;
 
         ident = NULL;
-        t = parseDeclarator(ts, &ident, &tpl);
+        t = parseDeclarator(ts, &ident, &tpl, storage_class);
         assert(t);
         if (!tfirst)
             tfirst = t;
@@ -2878,6 +2879,9 @@ L2:
                     tpl = new TemplateParameters();
             }
 #endif
+
+            //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
+
             FuncDeclaration *f =
                 new FuncDeclaration(loc, 0, ident, storage_class, t);
             addComment(f, comment);
