@@ -938,7 +938,7 @@ funcAttrs:
         case 'E': // TypeEnum (E LName)
         case 'T': // TypeTypedef (T LName)
             next();
-            parseQualifiedName();
+            parseQualifiedName( /*mayContainInnerFunction*/true );
             return dst[beg .. len];
         case 'D': // TypeDelegate (D TypeFunction)
             next();
@@ -1158,7 +1158,7 @@ parseArguments:
             // TypeIdent, TypeClass, TypeStruct, TypeEnum, TypeTypedef
             case 'I', 'C', 'S', 'E', 'T':
                 keyTypePos = pos;
-                silent( parseQualifiedName() );
+                silent( parseQualifiedName( /*mayContainInnerFunction*/true ) );
                 break;
 
             // The rest of 1-letter type codes
@@ -1294,7 +1294,7 @@ parseArguments:
                 size_t curPos = pos;
                 pos = keyTypePos;
                 if( isStruct )
-                    parseQualifiedName();
+                    parseQualifiedName( /*mayContainInnerFunction*/true );
                 else
                 {
                     keyTypeCode = parseTypeForValue( keyKeyTypePos, keyValueTypePos );
@@ -1454,18 +1454,53 @@ parseArguments:
         SymbolName
         SymbolName QualifiedName
     */
-    char[] parseQualifiedName()
+    char[] parseQualifiedName( bool mayContainInnerFunction = false )
     {
         debug(trace) printf( "parseQualifiedName+\n" );
         debug(trace) scope(success) printf( "parseQualifiedName-\n" );
         size_t  beg = len;
         size_t  n   = 0;
+        size_t  lastTypedOffset = len;
 
         do
         {
             if( n++ )
                 put( "." );
             parseSymbolName();
+
+            if( mayContainInnerFunction )
+            {
+                size_t functionPosition = 0;
+                size_t storedPosition = pos;
+                if( tok() == 'M' )
+                    next();
+                auto t = tok();
+                if( t == 'F' || t == 'U' || t == 'W' || t == 'V' || t == 'R' )
+                {
+                    debug(trace) printf( "maybe inner function\n" );
+                    // try to skip this function and see if it is followed by a digit
+                    try
+                    {
+                        functionPosition = pos;
+                        size_t keyPosIgnored, valuePosIgnored;
+                        parseTypeForValue( keyPosIgnored, valuePosIgnored );
+                    }
+                    catch( ParseException e )
+                    {
+                        functionPosition = 0;
+                        pos = storedPosition;
+                    }
+                }
+                if( !isDigit( tok() ) )
+                    pos = storedPosition;
+                else if( functionPosition != 0 )
+                {
+                    debug(trace) printf( "yes it is inner function\n" );
+                    pos = functionPosition;
+                    parseType( dst[lastTypedOffset .. len] );
+                    lastTypedOffset = len+1;
+                }
+            }
         } while( isDigit( tok() ) );
         return dst[beg .. len];
     }
@@ -1620,6 +1655,14 @@ unittest
          "void test.f!(test.S([1, 2, 3, 4])).f()"],
         ["_D1x1hFNgiZNgi",
          "inout(int) x.h(inout(int))"],
+        ["_D1x17__T1fTS1x1gFZv1KZ1fFZv",
+         "void x.f!(void x.g().K).f()"],
+        ["_D1x35__T1fTS1x4mainFZv12__dgliteral1M1KZ1fFZv",
+         "void x.f!(void x.main().__dgliteral1.K).f()"],
+        ["_D3std4conv51__T7emplaceTS1x4mainFZv1T3fffMFZv12__dgliteral1M1KZ7emplaceFPS1x4mainFZv1T3fffMFZv12__dgliteral1M1KZPS1x4mainFZv1T3fffMFZv12__dgliteral1M1K",
+         "void x.main().void T.fff().__dgliteral1.K* std.conv.emplace!(void x.main().void T.fff().__dgliteral1.K).emplace(void x.main().void T.fff().__dgliteral1.K*)"],
+        ["_D3std4conv56__T7emplaceTS1x4mainFZv1T3fffMFZv3gggMFNeZv1K3hhhMUZv1LZ7emplaceFPS1x4mainFZv1T3fffMFZv3gggMFNeZv1K3hhhMUZv1LZPS1x4mainFZv1T3fffMFZv3gggMFNeZv1K3hhhMUZv1L",
+         "void x.main().void T.fff().@trusted void ggg().extern (C) void K.hhh().L* std.conv.emplace!(void x.main().void T.fff().@trusted void ggg().extern (C) void K.hhh().L).emplace(void x.main().void T.fff().@trusted void ggg().extern (C) void K.hhh().L*)"],
     ];
     
     foreach( i, name; checks )
