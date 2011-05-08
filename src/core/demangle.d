@@ -354,6 +354,14 @@ private struct Demangle
             tbuf[tlen++] = '-';
             next();
         }
+        if( 'I' == tok() ) // INF
+        {
+            match( "INF" );
+            bool isNegative = tlen == 1;
+            debug(info) printf( "got (%sINF)\n", isNegative ? "N" : "" );
+            put( isNegative ? "-real.infinity" : "real.infinity" );
+            return;
+        }
         tbuf[tlen++] = '0';
         tbuf[tlen++] = 'X';
         if( !isHexDigit( tok() ) )
@@ -361,6 +369,19 @@ private struct Demangle
         tbuf[tlen++] = tok();
         tbuf[tlen++] = '.';
         next();
+
+        if( 'N' == tok() ) // NAN
+        {
+            if( tbuf[0] == '-' && tbuf[3] == 'A' )
+            {
+                next();
+                debug(info) printf( "got (NAN)\n" );
+                put( "real.nan" );
+                return;
+            }
+            else
+                error( "Unexpected 'N'" );
+        }
 
         while( isHexDigit( tok() ) )
         {
@@ -1379,6 +1400,12 @@ unittest
                 ~ name[1] ~ "'");
         */
     }
+}
+unittest
+{
+    // NOTE: This assert depends on %g showing 6 significant figures by default.
+    assert(demangle("_D1y131__T1TVde8PN3VeeF38DB1F9DD3DAC05P3318Vee868A9188A89E1466PN3325Vde932C05A4P27VeeNANVeeINFVeeNINFVeeFFFFFFFFFFFFFFFFP16380Vee8PN16385Z1TFZv")
+        == "void y.T!(1.00000, 1.00000e+1000, 1.00000e-1000, 1.23457e+09, real.nan, real.infinity, -real.infinity, 1.18973e+4932, 3.36210e-4932).T()");
 }
 
 
