@@ -112,7 +112,8 @@ private struct Demangle
     static bool isAlpha( char val )
     {
         return ('a' <= val && 'z' >= val) ||
-               ('A' <= val && 'Z' >= val);
+               ('A' <= val && 'Z' >= val) ||
+               (val >= '\x80'); // Assume all other Unicode characters are valid               
     }
 
 
@@ -337,6 +338,21 @@ private struct Demangle
             val = val * 10 + n;
         }
         return val;
+    }
+
+    void putHexNumber( size_t number, int minLength )
+    {
+        char buf[number.sizeof * 3];
+        size_t index = buf.length - 1;
+        while( number > 0 || minLength > 0 )
+        {
+            auto digit = number % 16;
+            buf[index] = cast(char)(digit < 10 ? (digit + '0') : (digit-10 + 'a'));
+            number /= 16;
+            -- index;
+            -- minLength;
+        }
+        put( buf[index+1 .. $] );
     }
 
 
@@ -1233,13 +1249,50 @@ parseArguments:
                 error( "Number expected" );
             // fall-through intentional
         case '0': .. case '9':
-            put( sliceNumber() );
+            bool isChar = false, isBool = false;
+            string suffix = "";
+            size_t minLen = void;
+            switch( typeCode )
+            {
+                case 'h', 't', 'k': suffix = "u"; break;  // ubyte, ushort, uint
+                case 'l':           suffix = "L"; break;  // long
+                case 'm':           suffix = "uL"; break; // ulong
+                case 'a': isChar = true; suffix = "\\x"; minLen = 2; break; // char
+                case 'u': isChar = true; suffix = "\\u"; minLen = 4; break; // wchar
+                case 'w': isChar = true; suffix = "\\U"; minLen = 8; break; // dchar
+                case 'b': isBool = true; break;                             // bool
+                default: break;
+            }
+
+            if( isBool )
+                put( decodeNumber() ? "true" : "false" );
+            else if( isChar )
+            {
+                auto charCode = decodeNumber();
+                put( "'" );
+                if( typeCode == 'a' && charCode >= ' ' && charCode != 0x7f )
+                {
+                    if( charCode == '\'' || charCode == '\\' )
+                        put( "\\" );
+                    put( (cast(char*) &charCode)[0 .. 1] );
+                }
+                else
+                {
+                    put( suffix );
+                    putHexNumber( charCode, minLen );
+                }
+                put( "'" );
+            }
+            else
+            {
+                put( sliceNumber() );
+                put( suffix );
+            }
             return;
         case 'N':
             next();
             put( "-" );
-            put( sliceNumber() );
-            return;
+            goto case '0';
         case 'e':
             next();
             parseReal( typeCode );
@@ -1269,7 +1322,17 @@ parseArguments:
                 auto a = ascii2hex( tok() ); next();
                 auto b = ascii2hex( tok() ); next();
                 auto v = cast(char)((a << 4) | b);
-                put( (cast(char*) &v)[0 .. 1] );
+                if( v >= ' ' && v != '\x7f' )
+                {
+                    if( v == '"' || v == '\\' )
+                        put( "\\" );
+                    put( (cast(char*) &v)[0 .. 1] );
+                }
+                else
+                {
+                    put( "\\x" );
+                    putHexNumber( v, 2 );
+                }
             }
             put( "\"" );
             if( 'a' != t )
@@ -1644,11 +1707,11 @@ unittest
         ["_D1y17__T1fVC1x1y3z1wnZ1fFZv",
          "void y.f!(null).f()"],
         ["_D1y57__T1TVAAiA2A2i1i2A2i3i4VAdA2eAPN1eCPN1VAAxaA2a1_37A2i8i9Z1TFZv",
-         "void y.T!([[1, 2], [3, 4]], [5.00000, 6.00000], [\"7\", [8, 9]]).T()"],
+         "void y.T!([[1, 2], [3, 4]], [5.00000, 6.00000], [\"7\", ['\\x08', '\\x09']]).T()"],
         ["_D1y28__T1TVrc8PN1cAPN1VqcINFcINFZ1TFZv",
          "void y.T!(4.00000+5.00000i, float.infinity+ifloat.infinity).T()"],
         ["_D1y22__T1TVHaiA2i49i2i51i4Z1TFZv",
-         "void y.T!([49:2, 51:4]).T()"],
+         "void y.T!(['1':2, '3':4]).T()"],
         ["_D1y23__T1fVS1y1US3i1e8PN2i3Z1fFZv",
          "void y.f!(y.U(1, 2.00000, 3)).f()"],
         ["_D4test27__T1fVS4test1SS1A4i1i2i3i4Z1fFZv",
@@ -1663,6 +1726,14 @@ unittest
          "void x.main().void T.fff().__dgliteral1.K* std.conv.emplace!(void x.main().void T.fff().__dgliteral1.K).emplace(void x.main().void T.fff().__dgliteral1.K*)"],
         ["_D3std4conv56__T7emplaceTS1x4mainFZv1T3fffMFZv3gggMFNeZv1K3hhhMUZv1LZ7emplaceFPS1x4mainFZv1T3fffMFZv3gggMFNeZv1K3hhhMUZv1LZPS1x4mainFZv1T3fffMFZv3gggMFNeZv1K3hhhMUZv1L",
          "void x.main().void T.fff().@trusted void ggg().extern (C) void K.hhh().L* std.conv.emplace!(void x.main().void T.fff().@trusted void ggg().extern (C) void K.hhh().L).emplace(void x.main().void T.fff().@trusted void ggg().extern (C) void K.hhh().L*)"],
+        ["_D1x10\&aring;\&eacute;\&icirc;\&oslash;\&uuml;FZv",
+         "void x.\&aring;\&eacute;\&icirc;\&oslash;\&uuml;()"],
+        ["_D1x20__T2\&fnof;VAyaa3_e28891Z2\&fnof;FZv",
+         "void x.\&fnof;!(\"\&sum;\").\&fnof;()"],
+        ["_D1x21__T1fVAyaa4_01020304Z1fFZv",
+         `void x.f!("\x01\x02\x03\x04").f()`],
+        ["_D1x34__T1fVi1Vk1Vl1Vm1Vb1Va1Vu1Vw1Vya1Z1fFZv",
+         `void x.f!(1, 1u, 1L, 1uL, true, '\x01', '\u0001', '\U00000001', '\x01').f()`],
     ];
     
     foreach( i, name; checks )
