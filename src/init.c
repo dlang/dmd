@@ -370,7 +370,6 @@ Expression *StructInitializer::toExpression()
     return e;
 
 Lno:
-printf("test4\n");
     delete elements;
     return NULL;
 }
