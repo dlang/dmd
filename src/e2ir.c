@@ -695,6 +695,7 @@ elem *Expression::toElem(IRState *irs)
 
 elem *Expression::toElemDtor(IRState *irs)
 {
+    //printf("Expression::toElemDtor() %s\n", toChars());
     size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
     elem *er = toElem(irs);
     size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;

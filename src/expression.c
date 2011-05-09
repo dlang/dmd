@@ -9248,12 +9248,12 @@ Expression *AssignExp::semantic(Scope *sc)
                 {   /* Write as:
                      *  a ? e1 = b : e1 = c;
                      */
-                    CondExp *ec = (CondExp *)e2;
-                    AssignExp *ea1 = new AssignExp(ec->e1->loc, e1, ec->e1);
+                    CondExp *econd = (CondExp *)e2;
+                    AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
                     ea1->op = op;
-                    AssignExp *ea2 = new AssignExp(ec->e1->loc, e1, ec->e2);
+                    AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
                     ea2->op = op;
-                    Expression *e = new CondExp(loc, ec->econd, ea1, ea2);
+                    Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
                     if (ec)
                         e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
@@ -9271,6 +9271,29 @@ Expression *AssignExp::semantic(Scope *sc)
                     if (ec)
                         e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
+                }
+                else if (e2->op == TOKcall)
+                {
+                    /* The struct value returned from the function is transferred
+                     * so should not call the destructor on it.
+                     * ((S _ctmp = S.init), _ctmp).this(...)
+                     */
+                    CallExp *ce = (CallExp *)e2;
+                    if (ce->e1->op == TOKdotvar)
+                    {   DotVarExp *dve = (DotVarExp *)ce->e1;
+                        if (dve->var->isCtorDeclaration())
+                        {   // It's a constructor call
+                            if (dve->e1->op == TOKcomma)
+                            {   CommaExp *comma = (CommaExp *)dve->e1;
+                                if (comma->e2->op == TOKvar)
+                                {   VarExp *ve = (VarExp *)comma->e2;
+                                    VarDeclaration *ctmp = ve->var->isVarDeclaration();
+                                    if (ctmp)
+                                        ctmp->noscope = 1;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
