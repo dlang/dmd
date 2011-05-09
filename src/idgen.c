@@ -105,6 +105,7 @@ Msgtable msgtable[] =
     { "Class" },
     { "Protocol" },
     { "protocolof" },
+    { "ObjcThrowable" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },

@@ -4975,10 +4975,13 @@ Catch *objcMakeCatch(Loc loc, Array *objccatches, Scope *sc)
     Statement *sw = new SwitchStatement(loc, eselect, new CompoundStatement(loc, a), FALSE);
     h->push(sw);
     Statement *handler = new CompoundStatement(loc, h);
-    
-    // FIXME: need to use the right type instead of a catch-all that will 
-    // prevent catching D exceptions in the same try-catch.
-    return new Catch(loc, NULL, idex, handler);
+
+    Type *catchType = NULL;
+    if (ClassDeclaration::objcthrowable == NULL)
+        error("Missing ObjcThrowable declaration in object.d");
+    else 
+        catchType = ClassDeclaration::objcthrowable->type;
+    return new Catch(loc, catchType, idex, handler);
 }
 
 /************************ ObjcExceptionBridge *******************************/

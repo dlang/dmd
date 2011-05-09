@@ -1658,7 +1658,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             {
                 // Convert throws to Objective-C EH if has Objective-C linkage
                 // otherwise convert throws to D EH (if necessary)
-                int blockexit = fbody->blockExit(f->isnothrow);
+                ++global.gag; // suppress warnings about unreachable statements
+                int blockexit = fbody->blockExit(false);
+                --global.gag;
                 if (linkage == LINKobjc)
                 {   // Objective-C linkage must throw using Objective-C EH.
                     if ((blockexit & BEthrow))

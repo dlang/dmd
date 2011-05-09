@@ -32,6 +32,9 @@
 ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
+#if DMD_OBJC
+ClassDeclaration *ClassDeclaration::objcthrowable;
+#endif
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : AggregateDeclaration(loc, id)
@@ -199,6 +202,14 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
                 throwable->error("%s", msg);
             throwable = this;
         }
+
+#if DMD_OBJC
+        if (id == Id::ObjcThrowable)
+        {   if (objcthrowable)
+                objcthrowable->error("%s", msg);
+            objcthrowable = this;
+        }
+#endif
 
         //if (id == Id::ClassInfo)
         if (id == Id::TypeInfo_Class)

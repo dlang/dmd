@@ -32,6 +32,10 @@ class NSException : NSObject {
     @property NSDictionary userInfo() [userInfo];
 }
 
+extern (Objective-C) void throwD() {
+    throw new Exception("This is a D exception!");
+}
+
 extern (Objective-C) void throwObjc() {
     throw new NSException("Hello!", "Testing.", null);
 }
@@ -104,10 +108,90 @@ void test4() {
     assert(finalized == true);
 }
 
+void mix1() {
+    bool caughtObjc;
+    bool caughtD;
+    bool finalized;
+    bool notthrown;
+    try {
+        throwD();
+        notthrown = true;
+    } catch (Exception e) {
+        caughtD = true;
+    } catch (NSException e) {
+        caughtObjc = true;
+    } finally {
+        finalized = true;
+    }
+    
+    assert(notthrown == false);
+    assert(caughtObjc == false);
+    assert(caughtD == true);
+    assert(finalized == true);
+}
+
+void mix2() {
+    bool caughtObjc;
+    bool caughtD;
+    bool finalized;
+    bool notthrown;
+    try {
+        test_throw();
+        notthrown = true;
+    } catch (Throwable e) {
+        caughtD = true;
+    } catch (NSException e) {
+        caughtObjc = true;
+    } finally {
+        finalized = true;
+    }
+    
+    assert(notthrown == false);
+    assert(caughtD == false);
+    assert(caughtObjc == true);
+    assert(finalized == true);
+}
+
+void mix3() {
+    bool caught = test_catch(&throwD);
+    assert(caught);
+}
+
+void mix4() {
+    bool caughtD;
+    bool caughtObjc;
+    bool objcfinalized;
+    bool finalized;
+    bool notthrown;
+    try {
+        try
+            test_finally(&throwD, objcfinalized);
+        finally
+            finalized = true;
+        notthrown = true;
+    } catch (Throwable e) {
+        caughtD = true;
+    } catch (NSException e) {
+        caughtObjc = true;
+    }
+    
+    assert(notthrown == false);
+    assert(objcfinalized == true);
+    assert(caughtD == true);
+    assert(caughtObjc == false);
+    assert(finalized == true);
+}
+
+
 
 void main() {
     test1();
     test2();
     test3();
     test4();
+    
+    mix1();
+    mix2();
+    mix3();
+    mix4();
 }
