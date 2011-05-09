@@ -787,7 +787,9 @@ funcAttrs:
                 auto t = len;
                 parseType();
                 put( " " );
-                if( name.length )
+                if( IsDelegate.yes == isdg )
+                    put( "delegate" );
+                else if( name.length )
                 {
                     if( !contains( dst[0 .. len], name ) )
                         put( name );
@@ -797,8 +799,6 @@ funcAttrs:
                         t -= name.length;
                     }
                 }
-                else if( IsDelegate.yes == isdg )
-                    put( "delegate" );
                 else
                     put( "function" );
                 shift( dst[beg .. t] );
@@ -943,6 +943,7 @@ funcAttrs:
         case 'D': // TypeDelegate (D TypeFunction)
             next();
             parseTypeFunction( IsDelegate.yes );
+            pad( name );
             return dst[beg .. len];
         case 'n': // TypeNone (n)
             next();
@@ -1601,14 +1602,14 @@ unittest
         ["_D88",        "_D88"],
         ["_D4test3fooAa", "char[] test.foo"],
         ["_D8demangle8demangleFAaZAa", "char[] demangle.demangle(char[])"],
-/+
-        ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(class Object)"],
+        ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(Object)"],
         ["_D4test2dgDFiYd", "double delegate(int, ...) test.dg"],
+/+
         ["_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, char[5] \"hello\"c, void* null).factorial"],
         ["_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, cdouble 6.8+3i, char[5] \"hello\"c, void* null).factorial"],
-        ["_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(wchar[3] \"abc\"w, dchar[3] \"def\"d).x"],
-        ["_D8demangle4testFLC6ObjectLDFLiZiZi", "int demangle.test(lazy class Object, lazy int delegate(lazy int))"],
 +/
+        ["_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(\"abc\"w, \"def\"d).x"],
+        ["_D8demangle4testFLC6ObjectLDFLiZiZi", "int demangle.test(lazy Object, lazy int delegate(lazy int))"],
         ["_D8demangle4testFAiXi", "int demangle.test(int[] ...)"],
         ["_D8demangle4testFLAiXi", "int demangle.test(lazy int[] ...)"],
         ["_D6plugin8generateFiiZAya", "immutable(char)[] plugin.generate(int, int)"],
