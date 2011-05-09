@@ -249,6 +249,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
  */
 Expression *StructInitializer::toExpression()
 {   Expression *e;
+    size_t offset;
 
     //printf("StructInitializer::toExpression() %s\n", toChars());
     if (!ad)                            // if fwd referenced
@@ -309,9 +310,27 @@ Expression *StructInitializer::toExpression()
     }
     // Now, fill in any missing elements with default initializers.
     // We also need to validate any anonymous unions
+    offset = 0;
     for (int i = 0; i < elements->dim; )
     {
         VarDeclaration * vd = ((Dsymbol *)ad->fields.data[i])->isVarDeclaration();
+
+        //printf("test2 [%d] : %s %d %d\n", i, vd->toChars(), (int)offset, (int)vd->offset);
+        if (vd->offset < offset)
+        {
+            // Only the first field of a union can have an initializer
+            if (elements->data[i])
+                goto Lno;
+        }
+        else
+        {
+            if (!elements->data[i])
+                // Default initialize
+                elements->data[i] = vd->type->defaultInit();
+        }
+        offset = vd->offset + vd->type->size();
+        i++;
+#if 0
         int unionSize = ad->numFieldsInUnion(i);
         if (unionSize == 1)
         {   // Not a union -- default initialize if missing
@@ -344,12 +363,14 @@ Expression *StructInitializer::toExpression()
             }
         }
         i += unionSize;
+#endif
     }
     e = new StructLiteralExp(loc, sd, elements);
     e->type = sd->type;
     return e;
 
 Lno:
+printf("test4\n");
     delete elements;
     return NULL;
 }

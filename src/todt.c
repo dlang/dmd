@@ -419,6 +419,7 @@ dt_t *ArrayInitializer::toDtBit()
 
 dt_t *ExpInitializer::toDt()
 {
+    //printf("ExpInitializer::toDt() %s\n", exp->toChars());
     dt_t *dt = NULL;
 
     exp = exp->optimize(WANTvalue);

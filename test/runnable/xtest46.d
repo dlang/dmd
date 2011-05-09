@@ -2580,6 +2580,56 @@ static assert(is(T4097 X : X*) && is(X == function));
 static assert(!is(X));
 
 /***************************************************/
+// 5798
+
+void assign9(ref int lhs) pure {
+    lhs = 9;
+}
+
+void assign8(ref int rhs) pure {
+    rhs = 8;
+}
+
+int test137(){
+    int a=1,b=2;
+    assign8(b),assign9(a);
+    assert(a == 9);
+    assert(b == 8);   // <-- fail
+
+    assign9(b),assign8(a);
+    assert(a == 8);
+    assert(b == 9);   // <-- fail
+
+    return 0;
+}
+
+/***************************************************/
+
+struct Size138
+{
+    union
+    {
+        struct
+        {
+            int width;
+            int height;
+        }
+       
+        long size;
+    }
+}
+
+enum Size138 foo138 = {2 ,5};
+    
+Size138 bar138 = foo138;
+
+void test138()
+{
+    assert(bar138.width == 2);
+    assert(bar138.height == 5);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2719,6 +2769,8 @@ int main()
     test134();
     test135();
     test136();
+    test137();
+    test138();
 
     printf("Success\n");
     return 0;
