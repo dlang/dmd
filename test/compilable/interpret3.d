@@ -741,3 +741,55 @@ public:
     invariant() { }
 }
 const testTODsThrownZ = TimeOfDayZ(0);
+
+/*******************************************
+        Bug 5972
+*******************************************/
+
+int bug5972()
+{
+  char [] z = "abc".dup;
+  char[] [] a = [null, null];
+  a[0]  = z[0..2];
+  char[] b = a[0];
+  assert(b == "ab");
+  a[0][1] = 'q';
+  assert( a[0] == "aq");
+  assert(b == "aq");
+  assert(b[1]=='q');
+  a[0][0..$-1][0..$] = a[0][0..$-1][0..$];
+  return 56;
+}
+static assert(bug5972()==56);
+
+/*******************************************
+    2.053beta [CTFE]ICE 'global errors'
+*******************************************/
+
+int wconcat(wstring replace)
+{
+  wstring value;
+  value  = "A"w;
+  value = value ~ replace;
+  return 1;
+}
+static assert(wconcat("X"w));
+
+/*******************************************
+    Bug 4001: A Space Oddity
+*******************************************/
+
+int space() { return 4001; }
+
+void oddity4001(int q)
+{
+    const int bowie = space();
+    static assert(space() == 4001);
+    static assert(bowie == 4001);
+}
+
+/*******************************************
+    Bug 3779
+*******************************************/
+
+static const bug3779 = ["123"][0][$-1];
