@@ -774,3 +774,22 @@ int wconcat(wstring replace)
   return 1;
 }
 static assert(wconcat("X"w));
+
+/*******************************************
+    Bug 4001: A Space Oddity
+*******************************************/
+
+int space() { return 4001; }
+
+void oddity4001(int q)
+{
+    const int bowie = space();
+    static assert(space() == 4001);
+    static assert(bowie == 4001);
+}
+
+/*******************************************
+    Bug 3779
+*******************************************/
+
+static const bug3779 = ["123"][0][$-1];
