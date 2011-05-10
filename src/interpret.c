@@ -2160,6 +2160,7 @@ Expression *copyLiteral(Expression *e)
         se2->committed = se->committed;
         se2->postfix = se->postfix;
         se2->type = se->type;
+        se2->sz = se->sz;
         return se2;
     }
     else if (e->op == TOKarrayliteral)
