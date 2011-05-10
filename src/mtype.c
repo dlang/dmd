@@ -1992,6 +1992,18 @@ int Type::hasWild()
 
 unsigned Type::wildMatch(Type *targ)
 {
+#if 1
+    if (!targ)
+        return 0;
+
+    targ = targ->toBasetype();
+    if (targ->isMutable())
+        return MODmutable;
+    else if (targ->isConst() || targ->isWild())
+        return MODconst;
+    else if (targ->isImmutable())
+        return MODimmutable;
+#endif
     return 0;
 }
 

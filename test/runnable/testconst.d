@@ -1507,6 +1507,25 @@ void test83()
 
 /************************************/
 
+inout(int) foo84_0(inout int n) { return n; }
+
+void test84_0()
+{
+	int m;
+	const int c;
+	immutable int i;
+	pragma(msg, typeof(foo84_0(m)).stringof);
+	static assert(typeof(foo84_0(m)).stringof == "int");
+
+	pragma(msg, typeof(foo84_0(c)).stringof);
+	static assert(typeof(foo84_0(c)).stringof == "const(int)");
+
+	pragma(msg, typeof(foo84_0(i)).stringof);
+	static assert(typeof(foo84_0(i)).stringof == "immutable(int)");
+}
+
+/************************************/
+
 inout(char[]) foo84(inout char[] s) { return s; }
 
 void test84()
@@ -1683,6 +1702,7 @@ int main()
     test81();
     test82();
     test83();
+    test84_0();
     test84();
     test85();
     test86();

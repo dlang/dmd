@@ -644,7 +644,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     }
                     if (p->type->isWild() && tf->next->isWild())
                     {   Type *t = p->type;
-                        MATCH m = arg->implicitConvTo(t);
+                        // TypeBasic does not consider STCwild, so skip conversion.
+                        MATCH m = t->isTypeBasic() ? MATCHnomatch : arg->implicitConvTo(t);
                         if (m == MATCHnomatch)
                         {   t = t->constOf();
                             m = arg->implicitConvTo(t);
