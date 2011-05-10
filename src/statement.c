@@ -5000,7 +5000,7 @@ Catch *objcMakeCatch(Loc loc, Array *objccatches, Scope *sc)
     VarDeclaration *varobjcexclsref = new VarDeclaration(loc, new TypeSArray(Type::tvoidptr, new IntegerExp(objccatches->dim)), Lexer::uniqueId("__objc_ex_cls_ref"), new ExpInitializer(loc, new ArrayLiteralExp(loc, creflist)));
     varobjcexclsref->parent = sc->parent;
     sc->insert(varobjcexclsref);
-    DeclarationStatement *objcexclsref = new DeclarationStatement(loc, varobjcexclsref);
+    Statement *objcexclsref = new ExpStatement(loc, new DeclarationExp(loc, varobjcexclsref));
     h->push(objcexclsref);
     
     // void* __objc_ex = _dobjc_exception_extract(cast(void*)__ex);
@@ -5010,7 +5010,7 @@ Catch *objcMakeCatch(Loc loc, Array *objccatches, Scope *sc)
     VarDeclaration *varobjcex = new VarDeclaration(loc, Type::tvoidptr, Lexer::uniqueId("__objc_ex"), new ExpInitializer(loc, eextract));
     varobjcex->parent = sc->parent;
     sc->insert(varobjcex);
-    DeclarationStatement *objcex = new DeclarationStatement(loc, varobjcex);
+    Statement *objcex = new ExpStatement(loc, new DeclarationExp(loc, varobjcex));
     h->push(objcex);
     
     // (_dobjc_exception_select(__objc_ex, __objc_ex_cls_ref))
@@ -5041,7 +5041,7 @@ Catch *objcMakeCatch(Loc loc, Array *objccatches, Scope *sc)
         VarDeclaration *varinex = new VarDeclaration(loc, c->type, c->ident, iinex);
         varinex->parent = sc->parent;
         sc->insert(varinex);
-        Statement *s = new DeclarationStatement(loc, varinex);
+        Statement *s = new ExpStatement(loc, new DeclarationExp(loc, varinex));
         s = new CompoundStatement(0, s, c->handler);
         s = new CompoundStatement(0, s, new BreakStatement(0, NULL));
         s = new CaseStatement(0, new IntegerExp(i), s);
@@ -5172,7 +5172,7 @@ Statement *ObjcExceptionBridge::semantic(Scope *sc)
         TypeSArray *tedata = new TypeSArray(Type::tsize_t, new IntegerExp(loc, edatalen, Type::tsize_t));
         VarDeclaration *varedata = new VarDeclaration(loc, tedata, Lexer::uniqueId("__dobjc_ex_data"), new VoidInitializer(loc));
         varedata->semantic(sc);
-        a->push(new DeclarationStatement(loc, varedata));
+        a->push(new ExpStatement(loc, new DeclarationExp(loc, varedata)));
         a->push(new ExpStatement(loc, new CallExp(loc, new VarExp(0, ftry_enter), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr))));
         
         Expression *cond = new CallExp(loc, new VarExp(0, fsetjmp), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr));
