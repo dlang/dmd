@@ -2594,7 +2594,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval->type = sexp->type;
         }
         else
-            newval = this->e2->interpret(istate);
+            newval = this->e2->interpret(istate, ctfeNeedLvalue);
         if (newval == EXP_CANT_INTERPRET)
             return newval;
 
@@ -2806,31 +2806,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
 
         Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
-        if (aggregate->op == TOKdotvar)
-        {
-            DotVarExp *dve = (DotVarExp *)aggregate;
-            aggregate = dve->e1->interpret(istate);
-            if (aggregate->op == TOKstructliteral)
-            {
-                StructLiteralExp *se = (StructLiteralExp *)aggregate;
-                VarDeclaration *v = dve->var->isVarDeclaration();
-                if (v)
-                {
-                    int i = se->getFieldIndex(dve->type, v->offset);
-                    aggregate = (Expression *)se->elements->data[i];
-                }
-            }
-            else
-                aggregate  = dve; // unsupported, generate an error
-        }
-        if (aggregate->op == TOKindex)
-        {
-            // If it returns an array, it might be a slice.
-            // We want to preserve the slice.
-            if (aggregate->type->ty != Tarray)
-                aggregate = aggregate->interpret(istate);
-        }
 
+        /* The only possible indexable LValue aggregates are array literals,
+         * slices of array literals, and AA literals.
+         */
+
+        if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
+            aggregate->op == TOKslice)
+        {
+            aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+            if (aggregate == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+        }
         if (aggregate->op == TOKvar)
         {
             VarExp *ve = (VarExp *)aggregate;
@@ -2957,30 +2944,17 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
 
-        if (aggregate->op == TOKdotvar)
-        {
-            DotVarExp *dve = (DotVarExp *)aggregate;
-            aggregate = dve->e1->interpret(istate);
-            if (aggregate->op == TOKstructliteral)
-            {
-                StructLiteralExp *se = (StructLiteralExp *)aggregate;
-                VarDeclaration *v = dve->var->isVarDeclaration();
-                if (v)
-                {
-                    int i = se->getFieldIndex(dve->type, v->offset);
-                    aggregate = (Expression *)se->elements->data[i];
-                }
-            }
-        }
-        if (aggregate->op == TOKindex)
-        {
-            IndexExp *ie = (IndexExp *)aggregate;
-            // If it returns an array, it might be a slice.
-            // We want to preserve the slice.
-            if (ie->type->ty != Tarray)
-                aggregate = aggregate->interpret(istate);
-        }
+        /* The only possible slicable LValue aggregates are array literals,
+         * and slices of array literals.
+         */
 
+        if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
+            aggregate->op == TOKslice)
+        {
+            aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+            if (aggregate == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+        }
         if (aggregate->op == TOKvar)
         {
             VarExp *ve = (VarExp *)(aggregate);
@@ -3561,7 +3535,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("IndexExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate);
+    e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
 
@@ -3589,6 +3563,22 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         lengthVar->setValueNull(); // $ is defined only inside []
     if (e2 == EXP_CANT_INTERPRET)
         goto Lcant;
+    if (e1->op == TOKslice && e2->op == TOKint64)
+    {
+        // Simplify index of slice:  agg[lwr..upr][indx] --> agg[indx']
+        uinteger_t indx = e2->toInteger();
+        uinteger_t ilo = ((SliceExp *)e1)->lwr->toInteger();
+        uinteger_t iup = ((SliceExp *)e1)->upr->toInteger();
+
+        if (indx > iup - ilo)
+        {
+            error("index %ju exceeds array length %ju", indx, iup - ilo);
+            goto Lcant;
+        }
+        indx += ilo;
+        e1 = ((SliceExp *)e1)->e1;
+        e2 = new IntegerExp(e2->loc, indx, e2->type);
+    }
     e = Index(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
@@ -3624,6 +3614,12 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
      */
     if (e1->op == TOKnull)
         e = new IntegerExp(0, 0, Type::tsize_t);
+    else if (e1->op == TOKslice)
+    {
+        // For lvalue slices, slice ends have already been calculated
+        e = new IntegerExp(0, ((SliceExp *)e1)->upr->toInteger()
+            - ((SliceExp *)e1)->lwr->toInteger(), Type::tsize_t);
+    }
     else
         e = ArrayLength(Type::tsize_t, e1);
     if (e == EXP_CANT_INTERPRET)
@@ -3644,13 +3640,6 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         goto Lcant;
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside [L..U]
-    if (goal == ctfeNeedLvalue)
-    {
-        assert(e1->op != TOKslice);
-        e = new SliceExp(loc, e1, lwr, upr);
-        e->type = type;
-        return e;
-    }
     {
     uinteger_t ilwr = lwr->toInteger();
     uinteger_t iupr = upr->toInteger();
@@ -3660,6 +3649,33 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
             return e1;
         e1->error("slice [%ju..%ju] is out of bounds", ilwr, iupr);
         return EXP_CANT_INTERPRET;
+    }
+    if (goal == ctfeNeedLvalue)
+    {
+        if (e1->op == TOKslice)
+        {
+            SliceExp *se = (SliceExp *)e1;
+            // Simplify slice of slice:
+            //  aggregate[lo1..up1][lwr..upr] ---> aggregate[lwr'..upr']
+            uinteger_t lo1 = se->lwr->toInteger();
+            uinteger_t up1 = se->upr->toInteger();
+            if (ilwr > iupr || iupr > up1 - lo1)
+            {
+                error("slice[%ju..%ju] exceeds array bounds[%ju..%ju]",
+                    ilwr, iupr, lo1, up1);
+                goto Lcant;
+            }
+            ilwr += lo1;
+            iupr += lo1;
+            e = new SliceExp(loc, se->e1,
+                    new IntegerExp(loc, ilwr, lwr->type),
+                    new IntegerExp(loc, iupr, upr->type));
+            e->type = type;
+            return e;
+        }
+        e = new SliceExp(loc, e1, lwr, upr);
+        e->type = type;
+        return e;
     }
     e = Slice(type, e1, lwr, upr);
     if (e == EXP_CANT_INTERPRET)
@@ -3854,7 +3870,26 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         {   StructLiteralExp *se = (StructLiteralExp *)ex;
             VarDeclaration *v = var->isVarDeclaration();
             if (v)
-            {   e = se->getField(type, v->offset);
+            {
+                if (goal == ctfeNeedLvalue)
+                {
+                    // We can't use getField, because it makes a copy
+                    int i = se->getFieldIndex(type, v->offset);
+                    if (i == -1)
+                    {
+                        error("couldn't find field %s in %s", v->toChars(), type->toChars());
+                        return EXP_CANT_INTERPRET;
+                    }
+                    e = (Expression *)se->elements->data[i];
+                    // If it is an lvalue literal, return it...
+                    if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
+                        e->op == TOKassocarrayliteral || e->op == TOKstring ||
+                        e->op == TOKslice)
+                        return e;
+                    // ...Otherwise, just return the (simplified) dotvar expression
+                    return new DotVarExp(loc, ex, v);
+                }
+                e = se->getField(type, v->offset);
                 if (!e)
                 {
                     error("couldn't find field %s in %s", v->toChars(), type->toChars());
