@@ -3412,8 +3412,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         }
         case Tstruct:
         {   TypeStruct *ts = (TypeStruct *)tbn;
-            if (ts->sym->isnested)
-            {   error(loc, "cannot have array of inner structs %s", ts->toChars());
+            if (0 && ts->sym->isnested)
+            {   error(loc, "cannot have static array of inner struct %s", ts->toChars());
                 goto Lerror;
             }
             break;
@@ -3674,8 +3674,8 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
             break;
         case Tstruct:
         {   TypeStruct *ts = (TypeStruct *)tbn;
-            if (ts->sym->isnested)
-                error(loc, "cannot have array of inner structs %s", ts->toChars());
+            if (0 && ts->sym->isnested)
+                error(loc, "cannot have dynamic array of inner struct %s", ts->toChars());
             break;
         }
     }
@@ -3877,7 +3877,7 @@ Type *TypeNewArray::semantic(Loc loc, Scope *sc)
             break;
         case Tstruct:
         {   TypeStruct *ts = (TypeStruct *)tbn;
-            if (ts->sym->isnested)
+            if (0 && ts->sym->isnested)
                 error(loc, "cannot have array of inner structs %s", ts->toChars());
             break;
         }
