@@ -1251,11 +1251,15 @@ void ReturnStatement::toIR(IRState *irs)
                  */
                 Type *tb = exp->type->toBasetype();
                 //if (tb->ty == Tstruct) exp->dump(0);
-                if ((exp->op == TOKvar || exp->op == TOKdotvar || exp->op == TOKstar) &&
+                if ((exp->op == TOKvar || exp->op == TOKdotvar || exp->op == TOKstar || exp->op == TOKthis) &&
                     tb->ty == Tstruct)
                 {   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
                     if (sd->postblit)
                     {   FuncDeclaration *fd = sd->postblit;
+                        if (fd->storage_class & STCdisable)
+                        {
+                            fd->toParent()->error(loc, "is not copyable because it is annotated with @disable");
+                        }
                         elem *ec = el_var(irs->shidden);
                         ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
                         es = el_bin(OPcomma, ec->Ety, es, ec);
@@ -1311,7 +1315,7 @@ void ExpStatement::toIR(IRState *irs)
     //printf("ExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
     incUsage(irs, loc);
     if (exp)
-        block_appendexp(blx->curblock,exp->toElem(irs));
+        block_appendexp(blx->curblock,exp->toElemDtor(irs));
 }
 
 /**************************************

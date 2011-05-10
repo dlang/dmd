@@ -338,7 +338,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 int intrinsic_op(char *name)
 {
     //printf("intrinsic_op(%s)\n", name);
-    static const char *namearray[] =
+    static const char *std_namearray[] =
     {
 #if DMDV1
         "4math3cosFeZe",
@@ -397,7 +397,7 @@ int intrinsic_op(char *name)
         "9intrinsic5outpwFNbktZt",
 #endif
     };
-    static const char *namearray64[] =
+    static const char *std_namearray64[] =
     {
 #if DMDV1
         "4math3cosFeZe",
@@ -456,7 +456,7 @@ int intrinsic_op(char *name)
         "9intrinsic5outpwFNbktZt",
 #endif
     };
-    static unsigned char ioptab[] =
+    static unsigned char std_ioptab[] =
     {
         OPcos,
         OPsin,
@@ -485,36 +485,154 @@ int intrinsic_op(char *name)
         OPoutp,
     };
 
-#ifdef DEBUG
-    assert(sizeof(namearray) == sizeof(namearray64));
-    assert(sizeof(namearray) / sizeof(char *) == sizeof(ioptab));
-    for (int i = 0; i < sizeof(namearray) / sizeof(char *) - 1; i++)
+#ifdef DMDV2
+    static const char *core_namearray[] =
     {
-        if (strcmp(namearray[i], namearray[i + 1]) >= 0)
+        "4math3cosFNaNbNfeZe",
+        "4math3sinFNaNbNfeZe",
+        "4math4fabsFNaNbNfeZe",
+        "4math4rintFNaNbNfeZe",
+        "4math4sqrtFNaNbNfdZd",
+        "4math4sqrtFNaNbNfeZe",
+        "4math4sqrtFNaNbNffZf",
+        "4math4yl2xFNaNbNfeeZe",
+        "4math5ldexpFNaNbNfeiZe",
+        "4math6rndtolFNaNbNfeZl",
+        "4math6yl2xp1FNaNbNfeeZe",
+
+        "5bitop2btFNaNbxPkkZi",
+        "5bitop3bsfFNaNbkZi",
+        "5bitop3bsrFNaNbkZi",
+        "5bitop3btcFNbPkkZi",
+        "5bitop3btrFNbPkkZi",
+        "5bitop3btsFNbPkkZi",
+        "5bitop3inpFNbkZh",
+        "5bitop4inplFNbkZk",
+        "5bitop4inpwFNbkZt",
+        "5bitop4outpFNbkhZh",
+        "5bitop5bswapFNaNbkZk",
+        "5bitop5outplFNbkkZk",
+        "5bitop5outpwFNbktZt",
+    };
+    static const char *core_namearray64[] =
+    {
+        "4math3cosFNaNbNfeZe",
+        "4math3sinFNaNbNfeZe",
+        "4math4fabsFNaNbNfeZe",
+        "4math4rintFNaNbNfeZe",
+        "4math4sqrtFNaNbNfdZd",
+        "4math4sqrtFNaNbNfeZe",
+        "4math4sqrtFNaNbNffZf",
+        "4math4yl2xFNaNbNfeeZe",
+        "4math5ldexpFNaNbNfeiZe",
+        "4math6rndtolFNaNbNfeZl",
+        "4math6yl2xp1FNaNbNfeeZe",
+
+        "5bitop2btFNaNbxPmmZi",
+        "5bitop3bsfFNaNbmZi",
+        "5bitop3bsrFNaNbmZi",
+        "5bitop3btcFNbPmmZi",
+        "5bitop3btrFNbPmmZi",
+        "5bitop3btsFNbPmmZi",
+        "5bitop3inpFNbkZh",
+        "5bitop4inplFNbkZk",
+        "5bitop4inpwFNbkZt",
+        "5bitop4outpFNbkhZh",
+        "5bitop5bswapFNaNbkZk",
+        "5bitop5outplFNbkkZk",
+        "5bitop5outpwFNbktZt",
+    };
+    static unsigned char core_ioptab[] =
+    {
+        OPcos,
+        OPsin,
+        OPabs,
+        OPrint,
+        OPsqrt,
+        OPsqrt,
+        OPsqrt,
+        OPyl2x,
+        OPscale,
+        OPrndtol,
+        OPyl2xp1,
+
+        OPbt,
+        OPbsf,
+        OPbsr,
+        OPbtc,
+        OPbtr,
+        OPbts,
+        OPinp,
+        OPinp,
+        OPinp,
+        OPoutp,
+        OPbswap,
+        OPoutp,
+        OPoutp,
+    };
+#endif
+
+#ifdef DEBUG
+    assert(sizeof(std_namearray) == sizeof(std_namearray64));
+    assert(sizeof(std_namearray) / sizeof(char *) == sizeof(std_ioptab));
+    for (int i = 0; i < sizeof(std_namearray) / sizeof(char *) - 1; i++)
+    {
+        if (strcmp(std_namearray[i], std_namearray[i + 1]) >= 0)
         {
-            printf("namearray[%d] = '%s'\n", i, namearray[i]);
+            printf("std_namearray[%d] = '%s'\n", i, std_namearray[i]);
             assert(0);
         }
     }
-    assert(sizeof(namearray64) / sizeof(char *) == sizeof(ioptab));
-    for (int i = 0; i < sizeof(namearray64) / sizeof(char *) - 1; i++)
+    assert(sizeof(std_namearray64) / sizeof(char *) == sizeof(std_ioptab));
+    for (int i = 0; i < sizeof(std_namearray64) / sizeof(char *) - 1; i++)
     {
-        if (strcmp(namearray64[i], namearray64[i + 1]) >= 0)
+        if (strcmp(std_namearray64[i], std_namearray64[i + 1]) >= 0)
         {
-            printf("namearray64[%d] = '%s'\n", i, namearray64[i]);
+            printf("std_namearray64[%d] = '%s'\n", i, std_namearray64[i]);
+            assert(0);
+        }
+    }
+#ifdef DMDV2
+    assert(sizeof(core_namearray) == sizeof(core_namearray64));
+    assert(sizeof(core_namearray) / sizeof(char *) == sizeof(core_ioptab));
+    for (int i = 0; i < sizeof(core_namearray) / sizeof(char *) - 1; i++)
+    {
+        if (strcmp(core_namearray[i], core_namearray[i + 1]) >= 0)
+        {
+            printf("core_namearray[%d] = '%s'\n", i, core_namearray[i]);
+            assert(0);
+        }
+    }
+    assert(sizeof(core_namearray64) / sizeof(char *) == sizeof(core_ioptab));
+    for (int i = 0; i < sizeof(core_namearray64) / sizeof(char *) - 1; i++)
+    {
+        if (strcmp(core_namearray64[i], core_namearray64[i + 1]) >= 0)
+        {
+            printf("core_namearray64[%d] = '%s'\n", i, core_namearray64[i]);
             assert(0);
         }
     }
 #endif
-
+#endif
     size_t length = strlen(name);
-    if (length < 11 ||
-        !(name[7] == 'm' || name[7] == 'i') ||
-        memcmp(name, "_D3std", 6) != 0)
-        return -1;
 
-    int i = binary(name + 6, I64 ? namearray64 : namearray, sizeof(namearray) / sizeof(char *));
-    return (i == -1) ? i : ioptab[i];
+    if (length > 10 &&
+        (name[7] == 'm' || name[7] == 'i') &&
+        !memcmp(name, "_D3std", 6))
+    {
+        int i = binary(name + 6, I64 ? std_namearray64 : std_namearray, sizeof(std_namearray) / sizeof(char *));
+        return (i == -1) ? i : std_ioptab[i];
+    }
+#ifdef DMDV2
+    if (length > 12 &&
+        (name[8] == 'm' || name[8] == 'b') &&
+        !memcmp(name, "_D4core", 7))
+    {
+        int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));
+        return (i == -1) ? i : core_ioptab[i];
+    }
+#endif
+    return -1;
 }
 
 

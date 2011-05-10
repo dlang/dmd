@@ -429,7 +429,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             if (reg2 & 8)
                 cs.Irex |= REX_B;
             cs.IFL1 = FLconst;
-            cs.IEV1.Vuns = edisp->EV.Vuns;
+            cs.IEV1.Vsize_t = edisp->EV.Vuns;
 
             freenode(edisp);
             freenode(e1);
@@ -4585,13 +4585,20 @@ code *cderr(elem *e,regm_t *pretregs)
 
 code *cdinfo(elem *e,regm_t *pretregs)
 {
-#if SCPP
     code cs;
     code *c;
     regm_t retregs;
 
     switch (e->E1->Eoper)
     {
+#if MARS
+        case OPdctor:
+            c = codelem(e->E2,pretregs,FALSE);
+            retregs = 0;
+            c = cat(c,codelem(e->E1,&retregs,FALSE));
+            break;
+#endif
+#if SCPP
         case OPdtor:
             c = cdcomma(e,pretregs);
             break;
@@ -4631,14 +4638,35 @@ code *cdinfo(elem *e,regm_t *pretregs)
             }
             freenode(e->E1);
             break;
+#endif
         default:
             assert(0);
     }
     return c;
-#else
-    return NULL;
-#endif
 }
+
+/*******************************************
+ * D constructor.
+ */
+
+code *cddctor(elem *e,regm_t *pretregs)
+{
+    return NULL;
+}
+
+/*******************************************
+ * D destructor.
+ */
+
+code *cdddtor(elem *e,regm_t *pretregs)
+{
+    return NULL;
+}
+
+
+/*******************************************
+ * C++ constructor.
+ */
 
 code *cdctor(elem *e,regm_t *pretregs)
 {

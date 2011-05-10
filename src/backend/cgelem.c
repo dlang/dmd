@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -3361,6 +3361,7 @@ L1:
             ty = e->Ety;
             ty1 = e1->Ety;
             e = el_selecte1(e);
+            e->Ety = ty1;
             sz = tysize(ty);
             for (sz1 = tysize(ty1); sz1 != sz; sz1 = tysize(e->Ety))
             {
@@ -4018,13 +4019,22 @@ elem *elpair(elem *e)
 }
 
 /********************************
+ * Handle OPddtor
+ */
+
+elem *elddtor(elem *e)
+{
+    return e;
+}
+
+/********************************
  * Handle OPinfo, OPmark, OPctor, OPdtor
  */
 
 STATIC elem * elinfo(elem *e)
 {
     //printf("elinfo()\n");
-#if NTEXCEPTIONS
+#if NTEXCEPTIONS && SCPP
     if (funcsym_p->Sfunc->Fflags3 & Fnteh)
     {   // Eliminate cleanup info if using NT structured EH
         if (e->Eoper == OPinfo)
@@ -4644,7 +4654,7 @@ elem *doptelem(elem *e,HINT goal)
 void postoptelem(elem *e)
 {
     int linnum = 0;
-    char *filename = NULL;
+    const char *filename = NULL;
 
     elem_debug(e);
     while (1)

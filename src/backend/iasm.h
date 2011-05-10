@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2010 by Digital Mars
+ * Copyright (c) 1999-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -21,6 +21,7 @@
 
 // This is for when the reg field of modregrm specifies which instruction it is
 #define NUM_MASK        0x7
+#define NUM_MASKR       0x8             // for REX extended registers
 #define _0      (0x0 | _modrm)          // insure that some _modrm bit is set
 #define _1      0x1                     // with _0
 #define _2      0x2
@@ -67,6 +68,7 @@
 #define _modall         0xb000  // Instruction modifies all register values
 #define _modsiax        0xc000  // Instruction modifies AX and SI
 #define _modsinot1      0xd000  // Instruction modifies SI and not first param
+#define _modcxr11       0xe000  // Instruction modifies CX and R11
 
 /////////////////////////////////////////////////
 // Operand flags - usOp1, usOp2, usOp3

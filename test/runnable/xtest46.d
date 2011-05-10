@@ -1731,7 +1731,7 @@ struct Foo93
 
 void test93()
 {
-    const Foo93 bar;
+    const Foo93 bar = Foo93();
     enum bla = bar.foo();
     assert(bla == 2);
 }
@@ -2540,6 +2540,96 @@ void test135()
 }
 
 /***************************************************/
+// 5545
+
+bool enforce136(bool value, lazy const(char)[] msg = null) {
+    if(!value) {
+        return false;
+    }
+
+    return value;
+}
+
+struct Perm {
+    byte[3] perm;
+    ubyte i;
+
+    this(byte[] input) {
+        foreach(elem; input) {
+            enforce136(i < 3);
+            perm[i++] = elem;
+            std.stdio.stderr.writeln(i);  // Never gets incremented.  Stays at 0.
+        }
+    }
+}
+
+void test136() {
+    byte[] stuff = [0, 1, 2];
+    auto perm2 = Perm(stuff);
+    writeln(perm2.perm);  // Prints [2, 0, 0]
+    assert(perm2.perm[] == [0, 1, 2]);
+}
+
+/***************************************************/
+// 4097
+
+void foo4097() { }
+alias typeof(&foo4097) T4097;
+static assert(is(T4097 X : X*) && is(X == function));
+
+static assert(!is(X));
+
+/***************************************************/
+// 5798
+
+void assign9(ref int lhs) pure {
+    lhs = 9;
+}
+
+void assign8(ref int rhs) pure {
+    rhs = 8;
+}
+
+int test137(){
+    int a=1,b=2;
+    assign8(b),assign9(a);
+    assert(a == 9);
+    assert(b == 8);   // <-- fail
+
+    assign9(b),assign8(a);
+    assert(a == 8);
+    assert(b == 9);   // <-- fail
+
+    return 0;
+}
+
+/***************************************************/
+
+struct Size138
+{
+    union
+    {
+        struct
+        {
+            int width;
+            int height;
+        }
+       
+        long size;
+    }
+}
+
+enum Size138 foo138 = {2 ,5};
+    
+Size138 bar138 = foo138;
+
+void test138()
+{
+    assert(bar138.width == 2);
+    assert(bar138.height == 5);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2678,6 +2768,9 @@ int main()
     test133();
     test134();
     test135();
+    test136();
+    test137();
+    test138();
 
     printf("Success\n");
     return 0;

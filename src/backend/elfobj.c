@@ -1661,6 +1661,8 @@ int elf_getsegment2(IDXSEC shtidx, IDXSYM symidx, IDXSEC relidx)
     pseg->SDrelcnt = 0;
     pseg->SDshtidxout = 0;
     pseg->SDsym = NULL;
+    pseg->SDaranges_offset = 0;
+    pseg->SDlinnum_count = 0;
     return seg;
 }
 

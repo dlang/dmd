@@ -345,7 +345,7 @@ Expression *BinExp::arrayOp(Scope *sc)
              */
             TypeFunction *ftype = new TypeFunction(fparams, type, 0, LINKc);
             //printf("ftype: %s\n", ftype->toChars());
-            fd = new FuncDeclaration(0, 0, Lexer::idPool(name), STCundefined, ftype);
+            fd = new FuncDeclaration(loc, 0, Lexer::idPool(name), STCundefined, ftype);
             fd->fbody = fbody;
             fd->protection = PROTpublic;
             fd->linkage = LINKc;

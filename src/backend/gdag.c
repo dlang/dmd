@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -132,6 +132,12 @@ void builddags()
                       list_next(b->Bpred) != NULL))
                     || b->BC == BCasm
                     || b->BC == BC_finally
+#if SCPP
+                    || b->BC == BCcatch
+#endif
+#if MARS
+                    || b->BC == BCjcatch
+#endif
                    )
                         vec_clear(aevec);
                 if (b->Belem)           /* if there is an expression    */
@@ -250,6 +256,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
                 break;
             case OPctor:
             case OPdtor:
+            case OPdctor:
                 break;
             case OPasm:
                 vec_clear(ae);          // kill everything

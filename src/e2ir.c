@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -49,7 +49,7 @@ elem *addressElem(elem *e, Type *t);
 elem *array_toPtr(Type *t, elem *e);
 elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result);
 elem *bit_read(elem *eb, elem *ei, int result);
-elem *exp2_copytotemp(elem *e);
+elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -771,6 +771,22 @@ elem *Expression::toElem(IRState *irs)
     return NULL;
 }
 
+/*******************************************
+ * Evaluate Expression, then call destructors on any temporaries in it.
+ */
+
+elem *Expression::toElemDtor(IRState *irs)
+{
+    //printf("Expression::toElemDtor() %s\n", toChars());
+    size_t starti = irs->varsInScope ? irs->varsInScope->dim : 0;
+    elem *er = toElem(irs);
+    size_t endi = irs->varsInScope ? irs->varsInScope->dim : 0;
+
+    // Add destructors
+    er = appendDtors(irs, er, starti, endi);
+    return er;
+}
+
 /************************************
  */
 #if DMDV2
@@ -1234,6 +1250,18 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
                 ie = vd->init->isExpInitializer();
                 if (ie)
                     e = ie->exp->toElem(irs);
+            }
+
+            /* Mark the point of construction of a variable that needs to be destructed.
+             */
+            if (vd->edtor && !vd->noscope)
+            {
+                e = el_dctor(e, vd);
+
+                // Put vd on list of things needing destruction
+                if (!irs->varsInScope)
+                    irs->varsInScope = new Array();
+                irs->varsInScope->push(vd);
             }
         }
     }
@@ -3351,7 +3379,14 @@ elem *XorAssignExp::toElem(IRState *irs)
 
 elem *AndAndExp::toElem(IRState *irs)
 {
-    elem *e = toElemBin(irs,OPandand);
+    tym_t tym = type->totym();
+
+    elem *el = e1->toElem(irs);
+    elem *er = e2->toElemDtor(irs);
+    elem *e = el_bin(OPandand,tym,el,er);
+
+    el_setLoc(e,loc);
+
     if (global.params.cov && e2->loc.linnum)
         e->E2 = el_combine(incUsageElem(irs, e2->loc), e->E2);
     return e;
@@ -3363,7 +3398,14 @@ elem *AndAndExp::toElem(IRState *irs)
 
 elem *OrOrExp::toElem(IRState *irs)
 {
-    elem *e = toElemBin(irs,OPoror);
+    tym_t tym = type->totym();
+
+    elem *el = e1->toElem(irs);
+    elem *er = e2->toElemDtor(irs);
+    elem *e = el_bin(OPoror,tym,el,er);
+
+    el_setLoc(e,loc);
+
     if (global.params.cov && e2->loc.linnum)
         e->E2 = el_combine(incUsageElem(irs, e2->loc), e->E2);
     return e;
@@ -3448,17 +3490,15 @@ elem *CommaExp::toElem(IRState *irs)
  */
 
 elem *CondExp::toElem(IRState *irs)
-{   elem *eleft;
-    elem *eright;
-
+{
     elem *ec = econd->toElem(irs);
 
-    eleft = e1->toElem(irs);
+    elem *eleft = e1->toElemDtor(irs);
     tym_t ty = eleft->Ety;
     if (global.params.cov && e1->loc.linnum)
         eleft = el_combine(incUsageElem(irs, e1->loc), eleft);
 
-    eright = e2->toElem(irs);
+    elem *eright = e2->toElemDtor(irs);
     if (global.params.cov && e2->loc.linnum)
         eright = el_combine(incUsageElem(irs, e2->loc), eright);
 
@@ -5276,3 +5316,50 @@ elem *StructLiteralExp::toElem(IRState *irs)
     el_setLoc(e,loc);
     return e;
 }
+
+/********************************************
+ * Add destructors
+ */
+
+elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
+{
+    //printf("appendDtors(%d .. %d)\n", starti, endi);
+    elem *edtors = NULL;
+    for (size_t i = endi; i != starti;)
+    {
+        --i;
+        VarDeclaration *vd = (VarDeclaration *)irs->varsInScope->data[i];
+        if (vd)
+        {
+            //printf("appending dtor\n");
+            irs->varsInScope->data[i] = NULL;
+            elem *ed = vd->edtor->toElem(irs);
+            edtors = el_combine(edtors, ed);
+        }
+    }
+    if (edtors)
+    {
+        if (tybasic(er->Ety) == TYvoid)
+        {
+            er = el_combine(er, edtors);
+        }
+        else if (tybasic(er->Ety) == TYstruct || tybasic(er->Ety) == TYarray)
+        {
+            elem *ep = el_una(OPaddr, TYnptr, er);
+            elem *e = el_same(&ep);
+            ep = el_combine(ep, edtors);
+            ep = el_combine(ep, e);
+            e = el_una(OPind, er->Ety, ep);
+            e->ET = er->ET;
+            er = e;
+        }
+        else
+        {
+            elem *e = el_same(&er);
+            er = el_combine(er, edtors);
+            er = el_combine(er, e);
+        }
+    }
+    return er;
+}
+

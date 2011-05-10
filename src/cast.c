@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -906,6 +906,12 @@ Expression *Expression::castTo(Scope *sc, Type *t)
     e->type = t;
     //printf("Returning: %s\n", e->toChars());
     return e;
+}
+
+
+Expression *ErrorExp::castTo(Scope *sc, Type *t)
+{
+    return this;
 }
 
 

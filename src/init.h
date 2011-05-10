@@ -36,7 +36,8 @@ struct Initializer : Object
 
     Initializer(Loc loc);
     virtual Initializer *syntaxCopy();
-    virtual Initializer *semantic(Scope *sc, Type *t);
+    // needInterpret is WANTinterpret if must be a manifest constant, 0 if not.
+    virtual Initializer *semantic(Scope *sc, Type *t, int needInterpret);
     virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression() = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
@@ -58,7 +59,7 @@ struct VoidInitializer : Initializer
 
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, int needInterpret);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -78,7 +79,7 @@ struct StructInitializer : Initializer
     StructInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, int needInterpret);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -98,7 +99,7 @@ struct ArrayInitializer : Initializer
     ArrayInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, int needInterpret);
     int isAssociativeArray();
     Type *inferType(Scope *sc);
     Expression *toExpression();
@@ -117,7 +118,7 @@ struct ExpInitializer : Initializer
 
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
-    Initializer *semantic(Scope *sc, Type *t);
+    Initializer *semantic(Scope *sc, Type *t, int needInterpret);
     Type *inferType(Scope *sc);
     Expression *toExpression();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

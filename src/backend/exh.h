@@ -1,5 +1,5 @@
 // Copyright (C) 1993-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -40,6 +40,7 @@ void  except_mark();
 void  except_release();
 symbol *except_gensym();
 symbol *except_gentables();
+void except_fillInEHTable(symbol *s);
 void  except_reset();
 
 #endif

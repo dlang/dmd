@@ -685,9 +685,13 @@ L1:
         getlvalue_msw(cs);
   else
         cs->IEVoffset1 += offset;
-  if (I64 && reg >= 4 && sz == 1)               // if byte register
-        // Can only address those 8 bit registers if a REX byte is present
-        cs->Irex |= REX;
+  if (I64)
+  {     if (reg >= 4 && sz == 1)               // if byte register
+            // Can only address those 8 bit registers if a REX byte is present
+            cs->Irex |= REX;
+        if ((op & 0xFFFFFFF8) == 0xD8)
+            cs->Irex &= ~REX_W;                 // not needed for x87 ops
+  }
   code_newreg(cs, reg);                         // OR in reg field
   if (!I16)
   {
@@ -1046,9 +1050,9 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         pcs->Irm = modregrm(t,0,4);
                         pcs->Isib = modregrm(ssindex_array[ssi].ss2,r & 7,rbase & 7);
                         if (r & 8)
-                            code_orrex(pcs, REX_X);
+                            pcs->Irex |= REX_X;
                         if (rbase & 8)
-                            code_orrex(pcs, REX_B);
+                            pcs->Irex |= REX_B;
                     }
                     freenode(e11->E2);
                     freenode(e11);
@@ -2654,7 +2658,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 }
                 if (xmmcnt <= XMM7)
                 {
-                    if (tyfloating(ty) && tysize(ty) <= 8)
+                    if (tyfloating(ty) && tysize(ty) <= 8 && !tycomplex(ty))
                     {
                         parameters[i].reg = xmmcnt;
                         xmmcnt++;

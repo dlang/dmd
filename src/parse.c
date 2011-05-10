@@ -486,10 +486,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 if (token.value == TOKlparen)
                 {
                     nextToken();
-                    if (token.value == TOKint32v)
+                    if (token.value == TOKint32v && token.uns64value > 0)
                         n = (unsigned)token.uns64value;
                     else
-                    {   error("integer expected, not %s", token.toChars());
+                    {   error("positive integer expected, not %s", token.toChars());
                         n = 1;
                     }
                     nextToken();
@@ -3564,7 +3564,7 @@ Statement *Parser::parseStatement(int flags)
                 nextToken();
                 Dsymbols *a = parseBlock();
                 Dsymbol *d = new StorageClassDeclaration(STCstatic, a);
-                s = new DeclarationStatement(loc, d);
+                s = new ExpStatement(loc, d);
                 if (flags & PSscope)
                     s = new ScopeStatement(loc, s);
                 break;
@@ -3610,7 +3610,7 @@ Statement *Parser::parseStatement(int flags)
                 for (int i = 0; i < a->dim; i++)
                 {
                     Dsymbol *d = (Dsymbol *)a->data[i];
-                    s = new DeclarationStatement(loc, d);
+                    s = new ExpStatement(loc, d);
                     as->push(s);
                 }
                 s = new CompoundDeclarationStatement(loc, as);
@@ -3618,7 +3618,7 @@ Statement *Parser::parseStatement(int flags)
             else if (a->dim == 1)
             {
                 Dsymbol *d = (Dsymbol *)a->data[0];
-                s = new DeclarationStatement(loc, d);
+                s = new ExpStatement(loc, d);
             }
             else
                 assert(0);
@@ -3634,7 +3634,7 @@ Statement *Parser::parseStatement(int flags)
         {   Dsymbol *d;
 
             d = parseAggregate();
-            s = new DeclarationStatement(loc, d);
+            s = new ExpStatement(loc, d);
             break;
         }
 
@@ -3657,7 +3657,7 @@ Statement *Parser::parseStatement(int flags)
                 else
                     goto Ldeclaration;
             }
-            s = new DeclarationStatement(loc, d);
+            s = new ExpStatement(loc, d);
             break;
         }
 
@@ -3665,16 +3665,21 @@ Statement *Parser::parseStatement(int flags)
         {   t = peek(&token);
             if (t->value == TOKlparen)
             {   // mixin(string)
-                nextToken();
-                check(TOKlparen, "mixin");
                 Expression *e = parseAssignExp();
-                check(TOKrparen);
                 check(TOKsemicolon);
-                s = new CompileStatement(loc, e);
+                if (e->op == TOKmixin)
+                {
+                    CompileExp *cpe = (CompileExp *)e;
+                    s = new CompileStatement(loc, cpe->e1);
+                }
+                else
+                {
+                    s = new ExpStatement(loc, e);
+                }
                 break;
             }
             Dsymbol *d = parseMixin();
-            s = new DeclarationStatement(loc, d);
+            s = new ExpStatement(loc, d);
             break;
         }
 
@@ -3713,7 +3718,7 @@ Statement *Parser::parseStatement(int flags)
             if (!(flags & PSsemi))
                 error("use '{ }' for an empty statement, not a ';'");
             nextToken();
-            s = new ExpStatement(loc, NULL);
+            s = new ExpStatement(loc, (Expression *)NULL);
             break;
 
         case TOKdo:
@@ -5566,6 +5571,7 @@ Expression *Parser::parsePostExp(Expression *e)
                 nextToken();
                 if (token.value == TOKrbracket)
                 {   // array[]
+                    inBrackets--;
                     e = new SliceExp(loc, e, NULL, NULL);
                     nextToken();
                 }

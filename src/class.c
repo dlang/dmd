@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1019,30 +1019,36 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         *poffset = 0;
     while (cd)
     {
-        if (this == cd->baseClass)
-            return 1;
-
         /* cd->baseClass might not be set if cd is forward referenced.
          */
         if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
         {
-#if DMD_OBJC
-            // Fix for a genral problem that happens only with Objective-C classes
-            // because regular D classes all use Object as the root class and Object
-            // implements no interface. Objective-C root classes do implement interfaces.
-            int missing = 0;
-            for (int i = 0; i < cd->baseclasses->dim; ++i)
-            {
-                BaseClass *bc = (BaseClass *)cd->baseclasses->data[i];
-                if (!bc->base)
-                {   missing = 1;
-                    break;
-                }
-            }
-            if (missing)
-#endif
-            cd->error("base class is forward referenced by %s", toChars());
+//<<<<<<< HEAD
+//#if DMD_OBJC
+//            // Fix for a genral problem that happens only with Objective-C classes
+//            // because regular D classes all use Object as the root class and Object
+//            // implements no interface. Objective-C root classes do implement interfaces.
+//            int missing = 0;
+//            for (int i = 0; i < cd->baseclasses->dim; ++i)
+//            {
+//                BaseClass *bc = (BaseClass *)cd->baseclasses->data[i];
+//                if (!bc->base)
+//                {   missing = 1;
+//                    break;
+//                }
+//            }
+//            if (missing)
+//#endif
+//            cd->error("base class is forward referenced by %s", toChars());
+//=======
+            cd->semantic(NULL);
+            if (!cd->baseClass)
+                cd->error("base class is forward referenced by %s", toChars());
+//>>>>>>> master
         }
+
+        if (this == cd->baseClass)
+            return 1;
 
         cd = cd->baseClass;
     }
@@ -1076,14 +1082,14 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    if (scope)
+    if (scope && !symtab)
     {   Scope *sc = scope;
         sc->mustsemantic++;
         semantic(sc);
         sc->mustsemantic--;
     }
 
-    if (!members || !symtab || scope)
+    if (!members || !symtab)
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;

@@ -782,7 +782,7 @@ void FuncDeclaration::semantic(Scope *sc)
             FuncDeclaration *fd = new FuncDeclaration(loc, loc,
                 Id::require, STCundefined, tf);
             fd->fbody = frequire;
-            Statement *s1 = new DeclarationStatement(loc, fd);
+            Statement *s1 = new ExpStatement(loc, fd);
             Expression *e = new CallExp(loc, new VarExp(loc, fd, 0), (Expressions *)NULL);
             Statement *s2 = new ExpStatement(loc, e);
             frequire = new CompoundStatement(loc, s1, s2);
@@ -809,7 +809,7 @@ void FuncDeclaration::semantic(Scope *sc)
             FuncDeclaration *fd = new FuncDeclaration(loc, loc,
                 Id::ensure, STCundefined, tf);
             fd->fbody = fensure;
-            Statement *s1 = new DeclarationStatement(loc, fd);
+            Statement *s1 = new ExpStatement(loc, fd);
             Expression *eresult = NULL;
             if (outId)
                 eresult = new IdentifierExp(loc, outId);
@@ -1055,7 +1055,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 v_arguments->parent = this;
 #endif
             }
-            if (f->linkage == LINKd || (parameters && parameters->dim))
+            if (f->linkage == LINKd || (f->parameters && Parameter::dim(f->parameters)))
             {   // Declare _argptr
 #if IN_GCC
                 t = d_gcc_builtin_va_list_d_type;
@@ -1641,7 +1641,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->type->toBasetype()->ty == Tsarray)
                         continue;
 
-                    Expression *e = v->callScopeDtor(sc2);
+                    if (v->noscope)
+                        continue;
+
+                    Expression *e = v->edtor;
                     if (e)
                     {   Statement *s = new ExpStatement(0, e);
                         s = s->semantic(sc2);
@@ -1685,7 +1688,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             {   /* Wrap the entire function body in a synchronized statement
                  */
                 AggregateDeclaration *ad = isThis();
-                ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+                ClassDeclaration *cd = ad ? ad->isClassDeclaration() : parent->isClassDeclaration();
 
                 if (cd)
                 {
@@ -3389,7 +3392,7 @@ void StaticCtorDeclaration::semantic(Scope *sc)
         VarDeclaration *v = new VarDeclaration(0, Type::tint32, id, NULL);
         v->storage_class = isSharedStaticCtorDeclaration() ? STCstatic : STCtls;
         Statements *sa = new Statements();
-        Statement *s = new DeclarationStatement(0, v);
+        Statement *s = new ExpStatement(0, v);
         sa->push(s);
         Expression *e = new IdentifierExp(0, id);
         e = new AddAssignExp(0, e, new IntegerExp(1));
@@ -3515,7 +3518,7 @@ void StaticDtorDeclaration::semantic(Scope *sc)
         VarDeclaration *v = new VarDeclaration(0, Type::tint32, id, NULL);
         v->storage_class = isSharedStaticDtorDeclaration() ? STCstatic : STCtls;
         Statements *sa = new Statements();
-        Statement *s = new DeclarationStatement(0, v);
+        Statement *s = new ExpStatement(0, v);
         sa->push(s);
         Expression *e = new IdentifierExp(0, id);
         e = new AddAssignExp(0, e, new IntegerExp(-1));

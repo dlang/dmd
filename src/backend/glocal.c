@@ -161,8 +161,16 @@ Loop:
 
         case OPdtor:
         case OPctor:
+        case OPdctor:
             loctop = 0;         // don't move expressions across ctor/dtor
             break;              // boundaries, it would goof up EH cleanup
+
+        case OPddtor:
+            loctop = 0;         // don't move expressions across ctor/dtor
+                                // boundaries, it would goof up EH cleanup
+            local_exp(e->E1,0);
+            loctop = 0;
+            break;
 
         case OPeq:
         case OPstreq:

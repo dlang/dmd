@@ -3,6 +3,8 @@ C=backend
 TK=tk
 ROOT=root
 
+MODEL=-m32
+
 ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
 ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
 SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
@@ -10,8 +12,8 @@ SDK=/Developer/SDKs/MacOSX10.5.sdk
 #SDK=/Developer/SDKs/MacOSX10.6.sdk
 LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
 
-CC=g++ -m32 -isysroot $(SDK)
-#CC=g++ -m32
+CC=g++ $(MODEL) -isysroot $(SDK)
+#CC=g++ $(MODEL)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -48,10 +50,10 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o \
+	imphint.o argtypes.o ti_pvoid.o \
 	libmach.o machobj.o
 
-SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
+SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
@@ -84,6 +86,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/cpp.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
+	$C/ti_pvoid.c \
 	$C/machobj.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
@@ -489,7 +492,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc -m32 -c $C/strtold.c
+	gcc $(MODEL) -c $C/strtold.c
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
@@ -499,6 +502,9 @@ template.o: template.c
 
 ti_achar.o: $C/tinfo.h $C/ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $C/ti_achar.c
+
+ti_pvoid.o: $C/tinfo.h $C/ti_pvoid.c
+	$(CC) -c $(MFLAGS) -I. $C/ti_pvoid.c
 
 tk.o: tk.c
 	$(CC) -c $(MFLAGS) tk.c

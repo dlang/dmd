@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -246,6 +246,9 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
         if (!ics->hdrscan && vd->isDataseg())
             return COST_MAX;
         cost += 1;
+
+        if (vd->edtor)                  // if destructor required
+            return COST_MAX;            // needs work to make this work
 
         // Scan initializer (vd->init)
         if (vd->init)
@@ -669,7 +672,7 @@ Expression *IndexExp::doInline(InlineDoState *ids)
         ids->from.push(vd);
         ids->to.push(vto);
 
-        if (vd->init)
+        if (vd->init && !vd->init->isVoidInitializer())
         {
             ie = vd->init->isExpInitializer();
             assert(ie);
@@ -706,7 +709,7 @@ Expression *SliceExp::doInline(InlineDoState *ids)
         ids->from.push(vd);
         ids->to.push(vto);
 
-        if (vd->init)
+        if (vd->init && !vd->init->isVoidInitializer())
         {
             ie = vd->init->isExpInitializer();
             assert(ie);

@@ -173,8 +173,8 @@ code *gen(code *c,code *cs)
     //printf("ce = %p %02x\n", ce, ce->Iop);
     ccheck(ce);
     if (config.flags4 & CFG4optimized &&
-        ce->IFL2 == FLconst &&
         (ce->Iop == 0x81 || ce->Iop == 0x80) &&
+        ce->IFL2 == FLconst &&
         reghasvalue((ce->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? ce->IEV2.Vsize_t : ce->IEV2.Vlong,&reg) &&
         !(ce->Iflags & CFopsize && I16)
        )

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -17,6 +17,7 @@ struct OutBuffer;
 struct Module;
 struct Scope;
 struct ScopeDsymbol;
+struct DebugCondition;
 #ifdef _DH
 #include "lexer.h" // dmdhg
 #endif
@@ -39,6 +40,7 @@ struct Condition
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
+    virtual DebugCondition *isDebugCondition() { return NULL; }
 };
 
 struct DVCondition : Condition
@@ -62,6 +64,7 @@ struct DebugCondition : DVCondition
 
     int include(Scope *sc, ScopeDsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    DebugCondition *isDebugCondition() { return this; }
 };
 
 struct VersionCondition : DVCondition

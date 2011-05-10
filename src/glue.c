@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -351,6 +351,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = eictor;
+            sictor->Sfunc->Fstartline.Sfilename = arg;
             sictor->Sfunc->Fstartblock = b;
             writefunc(sictor);
         }
@@ -375,6 +376,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = ector;
+            sctor->Sfunc->Fstartline.Sfilename = arg;
             sctor->Sfunc->Fstartblock = b;
             writefunc(sctor);
 #if STATICCTOR
@@ -390,6 +392,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = edtor;
+            sdtor->Sfunc->Fstartline.Sfilename = arg;
             sdtor->Sfunc->Fstartblock = b;
             writefunc(sdtor);
         }
@@ -413,6 +416,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = esharedctor;
+            ssharedctor->Sfunc->Fstartline.Sfilename = arg;
             ssharedctor->Sfunc->Fstartblock = b;
             writefunc(ssharedctor);
 #if STATICCTOR
@@ -428,6 +432,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = eshareddtor;
+            sshareddtor->Sfunc->Fstartline.Sfilename = arg;
             sshareddtor->Sfunc->Fstartblock = b;
             writefunc(sshareddtor);
         }
@@ -441,6 +446,7 @@ void Module::genobjfile(int multiobj)
             block *b = block_calloc();
             b->BC = BCret;
             b->Belem = etest;
+            stest->Sfunc->Fstartline.Sfilename = arg;
             stest->Sfunc->Fstartblock = b;
             writefunc(stest);
         }
@@ -477,11 +483,12 @@ void Module::genobjfile(int multiobj)
     {
         Symbol *ma;
         unsigned rt;
+        unsigned bc;
         switch (i)
         {
-            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     break;
-            case 1:     ma = massert;   rt = RTLSYM_DASSERTM;   break;
-            case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; break;
+            case 0:     ma = marray;    rt = RTLSYM_DARRAY;     bc = BCexit; break;
+            case 1:     ma = massert;   rt = RTLSYM_DASSERTM;   bc = BCexit; break;
+            case 2:     ma = munittest; rt = RTLSYM_DUNITTESTM; bc = BCret;  break;
             default:    assert(0);
         }
 
@@ -513,11 +520,13 @@ void Module::genobjfile(int multiobj)
             e = el_bin(OPcall, TYvoid, e, el_param(elinnum, efilename));
 
             block *b = block_calloc();
-            b->BC = BCret;
+            b->BC = bc;
             b->Belem = e;
+            ma->Sfunc->Fstartline.Sfilename = arg;
             ma->Sfunc->Fstartblock = b;
             ma->Sclass = SCglobal;
             ma->Sfl = 0;
+            ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
             writefunc(ma);
         }
     }
@@ -552,14 +561,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 #endif
 
-    if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
-    {   obj_append(this);
-        return;
-    }
-
     if (semanticRun >= PASSobj) // if toObjFile() already run
         return;
-    semanticRun = PASSobj;
 
     if (!func->fbody)
     {
@@ -567,6 +570,13 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
     if (func->isUnitTestDeclaration() && !global.params.useUnitTests)
         return;
+
+    if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
+    {   obj_append(this);
+        return;
+    }
+
+    semanticRun = PASSobj;
 
     if (global.params.verbose)
         printf("function  %s\n",func->toChars());

@@ -1,5 +1,5 @@
 // Copyright (C) 1994-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -27,8 +27,8 @@
 #include        "scope.h"
 #include        "parser.h"
 #include        "cpp.h"
-#include        "exh.h"
 #endif
+#include        "exh.h"
 
 #if !SPP && NTEXCEPTIONS
 
@@ -94,135 +94,22 @@ STATIC symbol *nteh_scopetable()
  */
 
 void nteh_gentables()
-{   symbol *s;
-    int sz;                     // size so far
-    dt_t **pdt;
-    unsigned fsize;             // target size of function pointer
-    long spoff;
-    block *b;
-    int guarddim;
-    int i;
-
-    s = s_table;
+{
+    symbol *s = s_table;
     symbol_debug(s);
-    fsize = 4;
-    pdt = &s->Sdt;
-    sz = 0;
-
 #if MARS
-    /*
-        void*           pointer to start of function
-        unsigned        offset of ESP from EBP
-        unsigned        offset from start of function to return code
-        {   int last_index;     // previous index
-            unsigned catchoffset;       // offset to catch block from symbol
-            void *finally;      // finally code to execute
-        } guard[];
-      catchoffset:
-        unsigned ncatches;      // number of catch blocks
-        {   void *type;         // symbol representing type
-            unsigned bpoffset;  // EBP offset of catch variable
-            void *handler;      // catch handler code
-        } catch[];
-     */
-
-    sz = 0;
-
-    // Address of start of function
-    symbol_debug(funcsym_p);
-    pdt = dtxoff(pdt,funcsym_p,0,TYnptr);
-    sz += fsize;
-
-    // Get offset of ESP from EBP
-    spoff = cod3_spoff();
-    pdt = dtnbytes(pdt,intsize,(char *)&spoff);
-    sz += intsize;
-
-    // Offset from start of function to return code
-    pdt = dtnbytes(pdt,intsize,(char *)&retoffset);
-    sz += intsize;
-
-    // First, calculate starting catch offset
-    guarddim = 0;                               // max dimension of guard[]
-    for (b = startblock; b; b = b->Bnext)
-    {
-        if (b->BC == BC_try && b->Bscope_index >= guarddim)
-            guarddim = b->Bscope_index + 1;
-    }
-    unsigned catchoffset = sz + guarddim * (3 * 4);
-
-    // Generate guard[]
-    i = 0;
-    for (b = startblock; b; b = b->Bnext)
-    {
-        if (b->BC == BC_try)
-        {   dt_t *dt;
-            block *bhandler;
-            int nsucc;
-
-            assert(b->Bscope_index >= i);
-            if (i < b->Bscope_index)
-            {
-                pdt = dtnzeros(pdt, (b->Bscope_index - i) * (3 * 4));
-                sz += (b->Bscope_index - i) * (3 * 4);
-            }
-            i = b->Bscope_index + 1;
-
-            nsucc = list_nitems(b->Bsucc);
-            pdt = dtdword(pdt,b->Blast_index);  // parent index
-
-            if (b->jcatchvar)                           // if try-catch
-            {
-                pdt = dtdword(pdt,catchoffset);
-                pdt = dtdword(pdt,0);   // no finally handler
-
-                catchoffset += 4 + (nsucc - 1) * (3 * 4);
-            }
-            else                                        // else try-finally
-            {
-                assert(nsucc == 2);
-                pdt = dtdword(pdt,0);           // no catch offset
-                bhandler = list_block(list_next(b->Bsucc));
-                assert(bhandler->BC == BC_finally);
-                // To successor of BC_finally block
-                bhandler = list_block(bhandler->Bsucc);
-                pdt = dtcoff(pdt,bhandler->Boffset);    // finally handler address
-            }
-            sz += 4 + fsize * 2;
-        }
-    }
-
-    // Generate catch[]
-    for (b = startblock; b; b = b->Bnext)
-    {
-        if (b->BC == BC_try)
-        {   block *bhandler;
-            int nsucc;
-
-            if (b->jcatchvar)                           // if try-catch
-            {   list_t bl;
-
-                nsucc = list_nitems(b->Bsucc);
-                pdt = dtdword(pdt,nsucc - 1);           // # of catch blocks
-                sz += 4;
-
-                for (bl = list_next(b->Bsucc); bl; bl = list_next(bl))
-                {
-                    block *bcatch = list_block(bl);
-
-                    pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
-
-                    pdt = dtdword(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
-
-                    pdt = dtcoff(pdt,bcatch->Boffset);  // finally handler address
-
-                    sz += 3 * 4;
-                }
-            }
-        }
-    }
+    except_fillInEHTable(s);
 #else
-    for (b = startblock; b; b = b->Bnext)
+    /* The table consists of triples:
+     *  parent index
+     *  filter address
+     *  handler address
+     */
+    unsigned fsize = 4;             // target size of function pointer
+    dt_t **pdt = &s->Sdt;
+    int sz = 0;                     // size so far
+
+    for (block *b = startblock; b; b = b->Bnext)
     {
         if (b->BC == BC_try)
         {   dt_t *dt;
@@ -251,8 +138,8 @@ void nteh_gentables()
             sz += 4 + fsize * 2;
         }
     }
-#endif
     assert(sz != 0);
+#endif
 
     outdata(s);                 // output the scope table
 #if MARS
@@ -604,7 +491,7 @@ code *nteh_filter(block *b)
 }
 
 /*******************************
- * Generate C++ or Jupiter frame handler.
+ * Generate C++ or D frame handler.
  */
 
 void nteh_framehandler(symbol *scopetable)

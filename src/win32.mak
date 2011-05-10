@@ -91,7 +91,8 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	blockopt.obj cgobj.obj cg.obj cgcv.obj type.obj dt.obj \
 	debug.obj code.obj cg87.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
-	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj
+	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
+	ti_pvoid.obj
 
 # from ROOT
 
@@ -135,7 +136,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\cpp.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
-	$C\md5.h $C\md5.c \
+	$C\md5.h $C\md5.c $C\ti_pvoid.c \
 	$C\backend.txt
 
 # From TK
@@ -154,7 +155,7 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c
 
-MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak
+MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak
 
 #########################################
 
@@ -354,6 +355,9 @@ rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
 ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_achar
 
+ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
+	$(CC) -c $(MFLAGS) -I. $C\ti_pvoid
+
 toctype.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h toctype.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toctype
 
@@ -465,7 +469,7 @@ import.obj : $(TOTALH) dsymbol.h import.h import.c
 inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
-interpret.obj : $(TOTALH) interpret.c
+interpret.obj : $(TOTALH) interpret.c declaration.h expression.h
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libomf.obj : $(TOTALH) lib.h libomf.c

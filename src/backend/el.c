@@ -2381,12 +2381,55 @@ elem * el_const(tym_t ty,union eve *pconst)
     return e;
 }
 
-#if SCPP
 
 /**************************
  * Insert constructor information into tree.
+ *      e       code to construct the object
+ *      decl    VarDeclaration of variable being constructed
  */
 
+#if MARS
+elem *el_dctor(elem *e,void *decl)
+{
+    elem *ector = el_calloc();
+    ector->Eoper = OPdctor;
+    ector->Ety = TYvoid;
+    ector->EV.ed.Edecl = decl;
+    if (e)
+        e = el_bin(OPinfo,e->Ety,ector,e);
+    else
+        e = ector;
+    return e;
+}
+#endif
+
+/**************************
+ * Insert destructor information into tree.
+ *      e       code to destruct the object
+ *      decl    VarDeclaration of variable being destructed
+ *              (must match decl for corresponding OPctor)
+ */
+
+#if MARS
+elem *el_ddtor(elem *e,void *decl)
+{
+    elem *edtor = el_calloc();
+    edtor->Eoper = OPddtor;
+    edtor->Ety = TYvoid;
+    edtor->EV.ed.Edecl = decl;
+    edtor->EV.ed.Eleft = e;
+    return edtor;
+}
+#endif
+
+/**************************
+ * Insert constructor information into tree.
+ *      ector   pointer to object being constructed
+ *      e       code to construct the object
+ *      sdtor   function to destruct the object
+ */
+
+#if SCPP
 elem *el_ctor(elem *ector,elem *e,symbol *sdtor)
 {
     //printf("el_ctor(ector = %p, e = %p, sdtor = %p)\n", ector, e, sdtor);
@@ -2429,9 +2472,12 @@ elem *el_ctor(elem *ector,elem *e,symbol *sdtor)
     }
     return e;
 }
+#endif
 
 /**************************
  * Insert destructor information into tree.
+ *      edtor   pointer to object being destructed
+ *      e       code to do the destruction
  */
 
 elem *el_dtor(elem *edtor,elem *e)
@@ -2446,8 +2492,6 @@ elem *el_dtor(elem *edtor,elem *e)
     }
     return e;
 }
-
-#endif
 
 /**********************************
  * Create an elem of the constant 0, of the type t.

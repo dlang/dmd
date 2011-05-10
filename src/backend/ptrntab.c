@@ -122,7 +122,8 @@ PTRNTAB2 aptb2MOVSD[] =  /* MOVSD */ {
 //
 PTRNTAB1 aptb1BSWAP[] = /* BSWAP */ {
                                 // Really is a 486 only instruction
-        { 0x0fc8, _I386, _plus_r | _r32 },
+        { 0x0fc8,   _I386, _plus_r | _r32 },
+        { 0x0fc8, _64_bit, _plus_r | _r64 },
         { ASM_END, 0, 0 }
 };
 
@@ -217,6 +218,7 @@ PTRNTAB1 aptb1JMP[] = /* JMP */ {
         { 0xea, _cd,_p1616 },
         { 0xff, _5,     _m1616 },
         { 0xff, _4 | _32_bit,   _rm32 },
+        { 0xff, _4 | _64_bit,   _rm64 },
         { 0xea, _cp,_p1632 },
         { 0xff, _5,     _m1632 },
         { ASM_END, 0, 0 }
@@ -389,7 +391,12 @@ PTRNTAB1  aptb1XLAT[] = /* XLAT */ {
         { ASM_END, 0, 0 }
 };
 PTRNTAB1  aptb1CMPXCH8B[] = {
-    { 0x0fc7, _1 | _modaxdx | _I386 , _m64 },
+    { 0x0fc7, _1 | _modaxdx | _I386, _m64 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB1  aptb1CMPXCH16B[] = {
+    { 0x0fc7, _1 | _modaxdx | _64_bit, _m64 },
         { ASM_END, 0, 0 }
 };
 
@@ -556,8 +563,10 @@ PTRNTAB2  aptb2LDS[] = /* LDS */ {
 PTRNTAB2  aptb2LEA[] = /* LEA */ {
         { 0x8d, _r|_16_bit,             _r16,   _m8 | _m16 | _m32 | _m48 },
         { 0x8d, _r|_32_bit,             _r32,   _m8 | _m16 | _m32 | _m48 },
+        { 0x8d, _r|_64_bit,             _r64,   _m8 | _m16 | _m32 | _m48 | _m64 },
         { 0x8d, _r|_16_bit,             _r16,   _rel16 },
         { 0x8d, _r|_32_bit,             _r32,   _rel32 },
+        { 0x8d, _r|_64_bit,             _r64,   _rel32 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2LES[] = /* LES */ {
@@ -739,6 +748,8 @@ PTRNTAB2  aptb2XCHG[] = /* XCHG */ {
         { 0x87, _r|_16_bit|_mod2,               _r16, _rm16 },
         { 0x87, _r|_32_bit|_mod2,               _rm32,  _r32 },
         { 0x87, _r|_32_bit|_mod2,               _r32, _rm32 },
+        { 0x87, _r|_64_bit|_mod2,               _rm64,  _r64 },
+        { 0x87, _r|_64_bit|_mod2,               _r64, _rm64 },
         { ASM_END, 0, 0, 0 }
 };
 
@@ -1198,6 +1209,10 @@ PTRNTAB2 aptb2MOVQ[] = /* MOVQ */ {
         { 0x0F7F,_r,_mmm64,_mm },
         { 0xF30F7E,_r,_xmm,_xmm_m64 },
         { 0x660FD6,_r,_xmm_m64,_xmm },
+        { 0x0F6E,  _r|_64_bit,_mm,  _rm64 },
+        { 0x0F7E,  _r|_64_bit,_rm64,_mm   },
+        { 0x660F6E,_r|_64_bit,_xmm, _rm64 },
+        { 0x660F7E,_r|_64_bit,_rm64,_xmm  },
         { ASM_END }
 };
 
@@ -1470,6 +1485,14 @@ PTRNTAB0 aptb0PAUSE[] =  /* PAUSE */ {
         { 0xf390, 0 }
 };
 #endif
+
+PTRNTAB0 aptb0SYSCALL[] =  /* SYSCALL */ {
+        { 0x0f05, _modcxr11 }
+};
+
+PTRNTAB0 aptb0SYSRET[] =  /* SYSRET */ {
+        { 0x0f07, 0 }
+};
 
 PTRNTAB0 aptb0SYSENTER[] =  /* SYSENTER */ {
         { 0x0f34, 0 }
@@ -2630,8 +2653,9 @@ getsec
         X("cmpsq",      0,              aptb0CMPSQ ) \
         X("cmpss",      3,              (P) aptb3CMPSS ) \
         X("cmpsw",      0,              aptb0CMPSW ) \
-        X("cmpxch8b",   1,              (P) aptb1CMPXCH8B ) \
         X("cmpxchg",    2,              (P) aptb2CMPXCHG ) \
+        X("cmpxchg16b", 1,              (P) aptb1CMPXCH16B ) \
+        X("cmpxchg8b",  1,              (P) aptb1CMPXCH8B ) \
         X("comisd",     2,              (P) aptb2COMISD ) \
         X("comiss",     2,              (P) aptb2COMISS ) \
         X("cpuid",      0,              aptb0CPUID ) \
@@ -3122,8 +3146,10 @@ getsec
         X("subps",      2,              (P) aptb2SUBPS ) \
         X("subsd",      2,              (P) aptb2SUBSD ) \
         X("subss",      2,              (P) aptb2SUBSS ) \
+        X("syscall",    0,              aptb0SYSCALL ) \
         X("sysenter",   0,              aptb0SYSENTER ) \
         X("sysexit",    0,              aptb0SYSEXIT ) \
+        X("sysret",     0,              aptb0SYSRET ) \
         X("test",       2,              (P) aptb2TEST ) \
         X("ucomisd",    2,              (P) aptb2UCOMISD ) \
         X("ucomiss",    2,              (P) aptb2UCOMISS ) \

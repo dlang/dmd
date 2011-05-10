@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2010 by Digital Mars
+ * Copyright (c) 1999-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/iasm.c
@@ -589,7 +589,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
             asmstate.ucItype != ITfloat)
         {
 PARAM_ERROR:
-                asmerr(EM_nops_expected, usActual, asm_opstr(pop), usNumops);
+                asmerr(EM_nops_expected, usNumops, asm_opstr(pop), usActual);
         }
         if (usActual < usNumops)
             *pusNumops = usActual;
@@ -2001,7 +2001,7 @@ ILLEGAL_ADDRESS_ERROR:
 
             size_t index = o2->disp;
             if (index >= tup->objects->dim)
-                error(asmstate.loc, "tuple index %u exceeds %u", index, tup->objects->dim);
+                error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
                 Object *o = (Object *)tup->objects->data[index];
@@ -2361,6 +2361,8 @@ STATIC void asm_make_modrm_byte(
     if (aopty == _reg || amod == _rspecial) {
             mrmb.modregrm.mod = 0x3;
             mrmb.modregrm.rm |= popnd->base->val;
+            if (popnd->base->val & NUM_MASKR)
+                pc->Irex |= REX_B;
     }
     else if (amod == _addr16 || (amod == _flbl && I16))
     {   unsigned rm;
@@ -2578,6 +2580,8 @@ STATIC void asm_make_modrm_byte(
          ASM_GET_amod(popnd2->usFlags) == _rspecial))
     {
             mrmb.modregrm.reg =  popnd2->base->val;
+            if (popnd2->base->val & NUM_MASKR)
+                pc->Irex |= REX_R;
     }
 #ifdef DEBUG
     puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode;
@@ -2690,6 +2694,9 @@ STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
     case _modsinot1:
         usRet |= mSI;
         popnd1 = NULL;
+        break;
+    case _modcxr11:
+        usRet |= (mCX | mR11);
         break;
     }
     if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg)
@@ -4050,6 +4057,7 @@ STATIC OPND *asm_primary_exp()
             case TOKthis:
                 strcpy(tok.TKid,cpp_name_this);
 #endif
+            case TOKthis:
             case TOKidentifier:
             case_ident:
                 o1 = opnd_calloc();

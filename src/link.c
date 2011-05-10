@@ -117,6 +117,19 @@ int runLINK()
     cmdbuf.writeByte(',');
     if (global.params.mapfile)
         writeFilename(&cmdbuf, global.params.mapfile);
+    else if (global.params.map)
+    {
+        FileName *fn = FileName::forceExt(global.params.exefile, "map");
+
+        char *path = FileName::path(global.params.exefile);
+        char *p;
+        if (path[0] == '\0')
+            p = FileName::combine(global.params.objdir, fn->toChars());
+        else
+            p = fn->toChars();
+
+        writeFilename(&cmdbuf, p);
+    }
     else if (global.params.run)
         cmdbuf.writestring("nul");
     cmdbuf.writeByte(',');
@@ -276,14 +289,16 @@ int runLINK()
 #endif
         if (!global.params.mapfile)
         {
-            size_t elen = strlen(global.params.exefile);
-            size_t extlen = strlen(global.map_ext);
-            char *m = (char *)mem.malloc(elen + 1 + extlen + 1);
-            memcpy(m, global.params.exefile, elen);
-            m[elen] = '.';
-            memcpy(m + elen + 1, global.map_ext, extlen);
-            m[elen + 1 + extlen] = 0;
-            global.params.mapfile = m;
+            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+
+            char *path = FileName::path(global.params.exefile);
+            char *p;
+            if (path[0] == '\0')
+                p = FileName::combine(global.params.objdir, fn->toChars());
+            else
+                p = fn->toChars();
+
+            global.params.mapfile = p;
         }
         argv.push((void *)"-Xlinker");
         argv.push(global.params.mapfile);

@@ -1645,6 +1645,8 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     else
                     {
                         c = getlvalue(&cs,e,0);
+                        if (I64)
+                            cs.Irex &= ~REX_W;                  // don't use for x87 ops
                         c = cat(c,makesure87(eleft,eoffset,0,0));
                         cs.Iop = ESC(mf,0);
                         cs.Irm |= modregrm(0,op,0);
@@ -2004,6 +2006,8 @@ code *eq87(elem *e,regm_t *pretregs)
             cs.Iflags &= ~CFopsize;
         else if (ADDFWAIT())
             cs.Iflags |= CFwait;
+        else if (I64)
+            cs.Irex &= ~REX_W;
         c2 = gen(c2, &cs);
 #if LNGDBLSIZE == 12
         if (tysize[TYldouble] == 12)

@@ -115,7 +115,13 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     {
         if (testArgs.mode != TestMode.FAIL_COMPILE)
             testArgs.permuteArgs = envData.all_args;
+
+        string unittestJunk;
+        if(!findTestParameter(file, "unittest", unittestJunk))
+            testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
+    // clean up extra spaces
+    testArgs.permuteArgs = replace(testArgs.permuteArgs, "  ", " ");
 
     findTestParameter(file, "EXECUTE_ARGS", testArgs.executeArgs);
 
@@ -218,9 +224,9 @@ void execute(ref File f, string command, bool expectpass)
     {
         auto value = WEXITSTATUS(rc);
         if (expectpass)
-            enforce(0 == value, "expected rc == 0, exited with rc=" ~ to!string(value));
+            enforce(0 == value, "expected rc == 0, exited with rc == " ~ to!string(value));
         else
-            enforce(1 == value, "expected rc == 1, but exited with rc=" ~ to!string(value));
+            enforce(1 == value, "expected rc == 1, but exited with rc == " ~ to!string(value));
     }
 }
 
@@ -347,7 +353,9 @@ int main(string[] args)
         }
         catch(Exception e)
         {
-            f.writeln("Caught exception, bailing: ", e.toString());
+            f.writeln();
+            f.writeln("==============================");
+            f.writeln("Test failed: ", e.msg);
             f.close();
 
             writeln("Test failed.  The logged output:");
