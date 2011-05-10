@@ -2585,7 +2585,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
             if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
-            newval = new SliceExp(sexp->loc, sexp->e1, lower, upper);
+            // We need the interpreted aggregate, except in the case where it
+            // was a variable.
+            if (sexp->e1->op == TOKvar)
+                e1val = sexp->e1;
+            newval = new SliceExp(sexp->loc, e1val, lower, upper);
             newval->type = sexp->type;
         }
         else
