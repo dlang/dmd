@@ -367,6 +367,13 @@ void ClassDeclaration::toObjFile(int multiobj)
     if (!members)
         return;
 
+#if DMD_OBJC
+    // Objective-C classes and protocols must belong to the same object file
+    // as their corresponding Objective-C module info.
+    if (objc)
+    {}
+    else
+#endif
     if (multiobj)
     {   obj_append(this);
         return;

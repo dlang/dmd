@@ -129,9 +129,6 @@ StringTable *ObjcSymbols::sprototable = NULL;
 
 static StringTable *initStringTable(StringTable *stringtable)
 {
-    if (stringtable && stringtable->count == 0)
-        return stringtable;
-    
     delete stringtable;
     return new StringTable();
 }
