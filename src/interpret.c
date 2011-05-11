@@ -159,6 +159,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     earg->error("%s cannot be passed by reference at compile time", earg->toChars());
                     return NULL;
                 }
+                if (earg->op  == TOKslice)
+                {
+                    earg = earg->interpret(istate, ctfeNeedLvalue);
+                    if (earg == EXP_CANT_INTERPRET)
+                        return NULL;
+                }
+
             }
             else if (arg->storageClass & STClazy)
             {
@@ -1980,68 +1987,7 @@ UnaExp *isUnaExp(Expression *e)
         default:
             break;
     }
-        return NULL;
-}
-
-// To resolve an assignment expression, we need to walk to the end of the
-// expression to find the ultimate variable which is modified. But, in building
-// up the expression, we need to walk the tree *backwards*. There isn't a
-// standard way to do this, but if we know we're at depth d, iterating from
-// the root up to depth d-1 will give us the parent node. Inefficient, but
-// depth is almost always < 3.
-struct ExpressionReverseIterator
-{
-    Expression *totalExpr; // The root expression
-    Expression *thisval;  // The value to be used for TOKthis
-    int totalDepth;
-
-    ExpressionReverseIterator(Expression *root, Expression *thisexpr)
-    {
-       totalExpr = root;
-       thisval = thisexpr;
-       totalDepth = findExpressionDepth(totalExpr);
-    }
-
-    int findExpressionDepth(Expression *e);
-    Expression *getExpressionAtDepth(int depth);
-};
-
-// Determines the depth in unary expressions.
-int ExpressionReverseIterator::findExpressionDepth(Expression *e)
-{
-   int depth = 0;
-   for (;;)
-   {
-        e = resolveReferences(e, thisval);
-        if (e->op == TOKvar)
-            return depth;
-        if (e->op == TOKcall)
-            return depth;
-        ++depth;
-        UnaExp *u = isUnaExp(e);
-        if (u)
-            e = u->e1;
-        else
-            return depth;
-    }
-}
-
-Expression *ExpressionReverseIterator::getExpressionAtDepth(int depth)
-{
-   Expression *e = totalExpr;
-   int d = 0;
-   for (;;)
-   {
-        e = resolveReferences(e, thisval);
-        if (d == depth) return e;
-        ++d;
-        assert(e->op != TOKvar);
-        UnaExp *u = isUnaExp(e);
-        if (u)
-            e = u->e1;
-        else
-            return e;
-    }
+    return NULL;
 }
 
 // Returns the variable which is eventually modified, or NULL if an rvalue.
@@ -2069,39 +2015,6 @@ VarDeclaration * findParentVar(Expression *e, Expression *thisval)
     return v;
 }
 
-// Returns the value to be assigned to the last dotVar, given the existing value at this depth.
-Expression *assignDotVar(ExpressionReverseIterator rvs, int depth, Expression *existing, Expression *newval)
-{
-    if (depth == 0)
-        return newval;
-    assert(existing && existing != EXP_CANT_INTERPRET);
-    Expression *e = rvs.getExpressionAtDepth(depth - 1);
-    if (e->op == TOKdotvar)
-    {
-        VarDeclaration *member = ((DotVarExp *)e)->var->isVarDeclaration();
-        assert(member);
-        assert(existing);
-        assert(existing != EXP_CANT_INTERPRET);
-        assert(existing->op == TOKstructliteral);
-        if (existing->op != TOKstructliteral)
-            return EXP_CANT_INTERPRET;
-
-        StructLiteralExp *se = (StructLiteralExp *)existing;
-        int fieldi = se->getFieldIndex(member->type, member->offset);
-        if (fieldi == -1)
-            return EXP_CANT_INTERPRET;
-        assert(fieldi>=0 && fieldi < se->elements->dim);
-        Expression *ex =  (Expression *)(se->elements->data[fieldi]);
-
-        newval = assignDotVar(rvs, depth - 1, ex, newval);
-        Expressions *expsx = changeOneElement(se->elements, fieldi, newval);
-        Expression * ee = new StructLiteralExp(se->loc, se->sd, expsx);
-        ee->type = se->type;
-        return ee;
-    }
-    assert(0);
-    return NULL;
-}
 
 // Given expr, which evaluates to an array/AA/string literal,
 // return true if it needs to be copied
@@ -2193,6 +2106,9 @@ Expression *copyLiteral(Expression *e)
             Dsymbol *s = (Dsymbol *)sd->fields.data[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
+            // If it is a void assignment, use the default initializer
+            if (!m)
+                m = v->type->defaultInitLiteral(e->loc);
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
             {
                 // Block assignment from inside struct literals
@@ -2217,7 +2133,127 @@ Expression *copyLiteral(Expression *e)
     return r;
 }
 
-void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
+/* Set a slice of char array literal 'existingAE' from a string 'newval'.
+ * existingAE[firstIndex..firstIndex+newval.length] = newval.
+ */
+void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, int firstIndex)
+{
+    size_t newlen =  newval->len;
+    size_t sz = newval->sz;
+    unsigned char *s = (unsigned char *)newval->string;
+    Type *elemType = existingAE->type->nextOf();
+    for (size_t j = 0; j < newlen; j++)
+    {
+        dinteger_t val;
+        switch (sz)
+        {
+            case 1: val = s[j]; break;
+            case 2: val = ((unsigned short *)s)[j]; break;
+            case 4: val = ((unsigned *)s)[j]; break;
+            default:
+                assert(0);
+                break;
+        }
+        existingAE->elements->data[j+firstIndex]
+            = new IntegerExp(newval->loc, val, elemType);
+    }
+}
+
+/* Set a slice of string 'existingSE' from a char array literal 'newae'.
+ *   existingSE[firstIndex..firstIndex+newae.length] = newae.
+ */
+void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, int firstIndex)
+{
+    unsigned char *s = (unsigned char *)existingSE->string;
+    for (size_t j = 0; j < newae->elements->dim; j++)
+    {
+        unsigned value = ((Expression *)(newae->elements->data[j]))->toInteger();
+        switch (existingSE->sz)
+        {
+            case 1: s[j+firstIndex] = value; break;
+            case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+            case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+            default:
+                assert(0);
+                break;
+        }
+    }
+}
+
+/* Set a slice of string 'existingSE' from a string 'newstr'.
+ *   existingSE[firstIndex..firstIndex+newstr.length] = newstr.
+ */
+void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, int firstIndex)
+{
+    unsigned char *s = (unsigned char *)existingSE->string;
+    size_t sz = existingSE->sz;
+    assert(sz == newstr->sz);
+    memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
+}
+
+
+/* Set dest = src, where both dest and src are container value literals
+ * (ie, struct literals, or static arrays (can be an array literal or a string)
+ * Assignment is recursively in-place.
+ * Purpose: any reference to a member of 'dest' will remain valid after the
+ * assignment.
+ */
+void assignInPlace(Expression *dest, Expression *src)
+{
+    assert(dest->op == TOKstructliteral || dest->op == TOKarrayliteral ||
+        dest->op == TOKstring);
+    Expressions *oldelems;
+    Expressions *newelems;
+    if (dest->op == TOKstructliteral)
+    {
+        assert(dest->op == src->op);
+        oldelems = ((StructLiteralExp *)dest)->elements;
+        newelems = ((StructLiteralExp *)src)->elements;
+    }
+    else if (dest->op == TOKarrayliteral && src->op==TOKarrayliteral)
+    {
+        oldelems = ((ArrayLiteralExp *)dest)->elements;
+        newelems = ((ArrayLiteralExp *)src)->elements;
+    }
+    else if (dest->op == TOKstring && src->op == TOKstring)
+    {
+        sliceAssignStringFromString((StringExp *)dest, (StringExp *)src, 0);
+    }
+    else if (dest->op == TOKarrayliteral && src->op == TOKstring)
+    {
+        sliceAssignArrayLiteralFromString((ArrayLiteralExp *)dest, (StringExp *)src, 0);
+        return;
+    }
+    else if (src->op == TOKarrayliteral && dest->op == TOKstring)
+    {
+        sliceAssignStringFromArrayLiteral((StringExp *)dest, (ArrayLiteralExp *)src, 0);
+        return;
+    }
+    else assert(0);
+
+    assert(oldelems->dim == newelems->dim);
+
+    for (size_t i= 0; i < oldelems->dim; ++i)
+    {
+        Expression *e = (Expression *)newelems->data[i];
+        Expression *o = (Expression *)oldelems->data[i];
+        if (e->op == TOKstructliteral)
+        {
+            assert(o->op == e->op);
+            assignInPlace(o, e);
+        }
+        else if (e->type->ty == Tsarray && o->type->ty == Tsarray)
+        {
+            assignInPlace(o, e);
+        }
+        else
+        {
+            oldelems->data[i] = newelems->data[i];
+        }
+    }
+}
+
+void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
 {
     assert( ae->type->ty == Tsarray || ae->type->ty == Tarray);
 #if DMDV2
@@ -2227,13 +2263,23 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val)
     Type *desttype = ((TypeArray *)ae->type)->next;
     bool directblk = (val->type->toBasetype()) == desttype;
 #endif
+
+    bool cow = !(val->op == TOKstructliteral || val->op == TOKarrayliteral
+        || val->op == TOKstring);
+
     for (size_t k = 0; k < ae->elements->dim; k++)
     {
         if (!directblk && ((Expression *)(ae->elements->data[k]))->op == TOKarrayliteral)
         {
-            recursiveBlockAssign((ArrayLiteralExp *)(ae->elements->data[k]), val);
+            recursiveBlockAssign((ArrayLiteralExp *)(ae->elements->data[k]), val, wantRef);
         }
-        else ae->elements->data[k] = val;
+        else
+        {
+            if (wantRef || cow)
+                ae->elements->data[k] = val;
+            else
+                assignInPlace((Expression *)ae->elements->data[k], val);
+        }
     }
 }
 
@@ -2340,6 +2386,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         istate->awaitingLvalueReturn = oldWaiting;
         if (e1 == EXP_CANT_INTERPRET)
             return e1;
+        if (e1->op == TOKarrayliteral || e1->op == TOKstring)
+        {
+            // f() = e2, when f returns an array, is always a slice assignment.
+            // Convert into arr[0..arr.length] = e2
+            e1 = new SliceExp(loc, e1,
+                new IntegerExp(0, 0, Type::tsize_t),
+                ArrayLength(Type::tsize_t, e1));
+        }
     }
 
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
@@ -2486,67 +2540,34 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // ----------------------------------------------------------
     // Because structs are not reference types, dotvar expressions can be
     // collapsed into a single assignment.
-    bool startedWithCall = false;
-    if (e1->op == TOKcall)
-        startedWithCall = true;
-    while (!wantRef && (e1->op == TOKdotvar || e1->op == TOKcall))
+    if (!wantRef && e1->op == TOKdotvar)
     {
-        ExpressionReverseIterator rvs(e1, istate->localThis);
-        Expression *lastNonDotVar = e1;
         // Strip of all of the leading dotvars.
+        e1 = e1->interpret(istate, ctfeNeedLvalue);
+        if (e1 == EXP_CANT_INTERPRET)
+            return e1;
         if (e1->op == TOKdotvar)
         {
-            int numDotVars = 0;
-            while(lastNonDotVar->op == TOKdotvar)
-            {
-                ++numDotVars;
-                if (lastNonDotVar->op == TOKdotvar)
-                    lastNonDotVar = ((DotVarExp *)lastNonDotVar)->e1;
-                lastNonDotVar = resolveReferences(lastNonDotVar, istate->localThis);
-                assert(lastNonDotVar);
-            }
-            // We need the value of this first nonvar, since only part of it will be
-            // modified.
-            Expression * existing = lastNonDotVar->interpret(istate);
-            if (existing == EXP_CANT_INTERPRET)
-                return existing;
-            assert(newval !=EXP_CANT_INTERPRET);
-            newval = assignDotVar(rvs, numDotVars, existing, newval);
-            e1 = lastNonDotVar;
-            if (e1->op == TOKvar)
-            {
-                VarExp *ve = (VarExp *)e1;
-                VarDeclaration *v = ve->var->isVarDeclaration();
-                v->setRefValue(newval);
-                return e;
-            }
-            assert(newval !=EXP_CANT_INTERPRET);
+            VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
+            assert(member);
+            assert(((DotVarExp *)e1)->e1->op == TOKstructliteral);
+            StructLiteralExp *se = (StructLiteralExp *)((DotVarExp *)e1)->e1;
 
-        } // end tokdotvar
-        else
-        {
-            Expression * existing = lastNonDotVar->interpret(istate);
-            if (existing == EXP_CANT_INTERPRET)
-                return existing;
-            // It might be a reference. Turn it into an rvalue, by interpreting again.
-            existing = existing->interpret(istate);
-            if (existing == EXP_CANT_INTERPRET)
-                return existing;
-            assert(newval !=EXP_CANT_INTERPRET);
-            newval = assignDotVar(rvs, 0, existing, newval);
-            assert(newval !=EXP_CANT_INTERPRET);
+            int fieldi = se->getFieldIndex(member->type, member->offset);
+            if (fieldi == -1)
+                return EXP_CANT_INTERPRET;
+            assert(fieldi>=0 && fieldi < se->elements->dim);
+            if (newval->op == TOKstructliteral || newval->op == TOKarrayliteral)
+                assignInPlace((Expression *)(se->elements->data[fieldi]), newval);
+            else
+                se->elements->data[fieldi] = newval;
+            return e;
         }
-        if (e1->op == TOKcall)
+        assert(newval !=EXP_CANT_INTERPRET);
+        if (e1->op == TOKstructliteral &&  newval->op == TOKstructliteral)
         {
-            bool oldWaiting = istate->awaitingLvalueReturn;
-            istate->awaitingLvalueReturn = true;
-            e1 = e1->interpret(istate);
-            istate->awaitingLvalueReturn = oldWaiting;
-
-            if (e1 == EXP_CANT_INTERPRET)
-                return e1;
-            assert(newval);
-            assert(newval != EXP_CANT_INTERPRET);
+            assignInPlace(e1, newval);
+            return e;
         }
     }
     // ---------------------------------------
@@ -2733,13 +2754,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             addVarToInterstate(istate, v);
         if (e1->type->toBasetype()->ty == Tstruct)
         {
-            // This should be an in-place modification
-            if (newval->op == TOKstructliteral)
+            // In-place modification
+            if (newval->op != TOKstructliteral)
             {
-                v->setValueNull();
-                v->createRefValue(copyLiteral(newval));
+                error("CTFE internal error assigning struct");
+                return EXP_CANT_INTERPRET;
             }
-            else v->setRefValue(newval);
+            if (v->getValue())
+                assignInPlace(v->getValue(), newval);
+            else
+                v->createRefValue(copyLiteral(newval));
         }
         else
         {
@@ -3004,57 +3028,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         else if (newval->op == TOKstring && existingSE)
         {
-            StringExp * newstr = (StringExp *)newval;
-            unsigned char *s = (unsigned char *)existingSE->string;
-            size_t sz = existingSE->sz;
-            assert(sz == ((StringExp *)newval)->sz);
-            memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
+            sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, firstIndex);
             return newval;
         }
         else if (newval->op == TOKstring && existingAE)
         {   /* Mixed slice: it was initialized as an array literal of chars.
              * Now a slice of it is being set with a string.
              */
-            size_t newlen =  ((StringExp *)newval)->len;
-            size_t sz = ((StringExp *)newval)->sz;
-            unsigned char *s = (unsigned char *)((StringExp *)newval)->string;
-            Type *elemType = existingAE->type->nextOf();
-            for (size_t j = 0; j < newlen; j++)
-            {
-                dinteger_t val;
-                switch (sz)
-                {
-                    case 1: val = s[j]; break;
-                    case 2: val = ((unsigned short *)s)[j]; break;
-                    case 4: val = ((unsigned *)s)[j]; break;
-                    default:
-                        assert(0);
-                        break;
-                }
-                existingAE->elements->data[j+firstIndex]
-                    = new IntegerExp(newval->loc, val, elemType);
-            }
+            sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, firstIndex);
             return newval;
         }
         else if (newval->op == TOKarrayliteral && existingSE)
         {   /* Mixed slice: it was initialized as a string literal.
              * Now a slice of it is being set with an array literal.
              */
-            unsigned char *s = (unsigned char *)existingSE->string;
-            ArrayLiteralExp *newae = (ArrayLiteralExp *)newval;
-            for (size_t j = 0; j < newae->elements->dim; j++)
-            {
-                unsigned value = ((Expression *)(newae->elements->data[j]))->toInteger();
-                switch (existingSE->sz)
-                {
-                    case 1: s[j+firstIndex] = value; break;
-                    case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
-                    case 4: ((unsigned *)s)[j+firstIndex] = value; break;
-                    default:
-                        assert(0);
-                        break;
-                }
-            }
+            sliceAssignStringFromArrayLiteral(existingSE, (ArrayLiteralExp *)newval, firstIndex);
             return newval;
         }
         else if (existingSE)
@@ -3098,13 +3086,20 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             Type *desttype = ((TypeArray *)existingAE->type)->next;
             bool directblk = (e2->type->toBasetype()) == desttype;
 #endif
+            bool cow = !(newval->op == TOKstructliteral || newval->op == TOKarrayliteral
+                || newval->op == TOKstring);
             for (size_t j = 0; j < upperbound-lowerbound; j++)
             {
                 if (!directblk)
                     // Multidimensional array block assign
-                    recursiveBlockAssign((ArrayLiteralExp *)w->data[j+firstIndex], newval);
+                    recursiveBlockAssign((ArrayLiteralExp *)w->data[j+firstIndex], newval, wantRef);
                 else
-                    existingAE->elements->data[j+firstIndex] = newval;
+                {
+                    if (wantRef || cow)
+                        existingAE->elements->data[j+firstIndex] = newval;
+                    else
+                        assignInPlace((Expression *)existingAE->elements->data[j+firstIndex], newval);
+                }
             }
             if (goal == ctfeNeedNothing)
                 return NULL; // avoid creating an unused literal
@@ -3581,7 +3576,10 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     }
     e = Index(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
+    {
         error("%s cannot be interpreted at compile time", toChars());
+        goto Lcant;
+    }
     return e;
 
 Lcant:
