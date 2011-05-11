@@ -380,6 +380,22 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
+
+    /* If the struct disables postblit, ignore the postblits of members.
+    */
+    if (postblits.dim)
+    {
+        FuncDeclaration *userPostblit = (FuncDeclaration *)postblits.data[0];
+        if (userPostblit->storage_class & STCdisable)
+        {
+            /* Give it an empty body so that it will not cause linking errors
+             * when the copy constructor and aggregate postblits call it.*/
+            if (!userPostblit->fbody)
+                userPostblit->fbody = new ExpStatement(0, (Expression *)NULL);
+            return userPostblit;
+        }
+    }
+
     Expression *e = NULL;
     StorageClass stc = 0;
 
