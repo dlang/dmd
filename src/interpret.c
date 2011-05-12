@@ -496,112 +496,6 @@ Expression *ScopeStatement::interpret(InterState *istate)
     return statement ? statement->interpret(istate) : NULL;
 }
 
-// Helper for ReturnStatement::interpret() for returning references.
-// Given an original expression, which is known to be a reference to a reference,
-// turn it into a reference.
-Expression * replaceReturnReference(Expression *original, InterState *istate)
-{
-    Expression *e = original;
-    if (e->op == TOKcall)
-    {   // If it's a function call, interpret it now.
-        // It also needs to return an lvalue.
-        istate->awaitingLvalueReturn = true;
-        e  = e->interpret(istate);
-        if (e == EXP_CANT_INTERPRET)
-            return e;
-    }
-    // If it is a reference to a reference, convert it to a reference
-    if (e->op == TOKvar)
-    {
-        VarExp *ve = (VarExp *)e;
-        VarDeclaration *v = ve->var->isVarDeclaration();
-        assert (v && v->getValue());
-        return v->getValue();
-    }
-
-    if (e->op == TOKthis)
-    {
-        return istate->localThis;
-    }
-
-    Expression *r = e->copy();
-    e = r;
-    Expression *next;
-    for (;;)
-    {
-        if (e->op == TOKindex)
-            next = ((IndexExp*)e)->e1;
-        else if (e->op == TOKdotvar)
-            next = ((DotVarExp *)e)->e1;
-        else if (e->op == TOKdotti)
-            next = ((DotTemplateInstanceExp *)e)->e1;
-        else if (e->op == TOKslice)
-            next = ((SliceExp*)e)->e1;
-        else
-            return EXP_CANT_INTERPRET;
-
-        Expression *old = next;
-
-        if (next->op == TOKcall)
-        {
-            bool oldWaiting = istate->awaitingLvalueReturn;
-            istate->awaitingLvalueReturn = true;
-            next = next->interpret(istate);
-            istate->awaitingLvalueReturn = oldWaiting;
-            if (next == EXP_CANT_INTERPRET)
-                return next;
-        }
-        if (next->op == TOKvar)
-        {
-            VarDeclaration * v = ((VarExp*)next)->var->isVarDeclaration();
-            if (v)
-                next = v->getValue();
-        }
-        else if (next->op == TOKthis)
-            next = istate->localThis;
-
-        if (old == next)
-        {   // Haven't found the reference yet. Need to keep copying.
-            next = next->copy();
-            old = next;
-        }
-        if (e->op == TOKindex)
-        {   // The index needs to be evaluated now (it isn't part of the ref)
-            ((IndexExp*)e)->e1 = next;
-            ((IndexExp*)e)->e2 = ((IndexExp*)e)->e2->interpret(istate);
-            if (((IndexExp*)e)->e2 == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-        }
-        else if (e->op == TOKdotvar)
-            ((DotVarExp *)e)->e1 = next;
-        else if (e->op == TOKdotti)
-            ((DotTemplateInstanceExp *)e)->e1 = next;
-        else if (e->op == TOKslice)
-        {   /*  Interpret the slice bounds immediately (they are
-             *  not part of the reference).
-             */
-            ((SliceExp*)e)->e1 = next;
-            Expression *x = ((SliceExp*)e)->upr;
-            if (x)
-                x = x->interpret(istate);
-            if (x == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            ((SliceExp*)e)->upr = x;
-            x = ((SliceExp*)e)->lwr;
-            if (x)
-                x = x->interpret(istate);
-            if (x == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            ((SliceExp*)e)->lwr = x;
-        }
-        if (old != next)
-            break;
-        e = next;
-    }
-
-     return r;
-}
-
 Expression *ReturnStatement::interpret(InterState *istate)
 {
 #if LOG
@@ -619,8 +513,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
     {
         TypeFunction *tf = (TypeFunction *)istate->fd->type;
         if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
-        {   // We need to return an lvalue. Can't do a normal interpret.
-//            Expression *e = replaceReturnReference(exp, istate);
+        {   // We need to return an lvalue
             Expression *e = exp->interpret(istate, ctfeNeedLvalue);
             if (e == EXP_CANT_INTERPRET)
                 error("ref return %s is not yet supported in CTFE", exp->toChars());
