@@ -2684,6 +2684,25 @@ int foo5975(wstring replace)
 enum X5975 = foo5975("X"w);
 
 /***************************************************/
+// 5965
+
+template mapx(fun...) if (fun.length >= 1)
+{
+    int mapx(Range)(Range r)
+    {
+        return 1;
+    }
+}
+
+void test140()
+{
+   int foo(int i) { return i; }
+
+   int[] arr;
+   auto x = mapx!( function(int a){return foo(a);} )(arr);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2826,6 +2845,7 @@ int main()
     test137();
     test138();
     test139();
+    test140();
 
     printf("Success\n");
     return 0;

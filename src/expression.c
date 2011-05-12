@@ -4589,7 +4589,8 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
         if (o->dyncast() == DYNCAST_EXPRESSION)
         {
             Expression *e = (Expression *)o;
-            e = e->syntaxCopy();
+            if (e->op == TOKdsymbol)
+                e = e->syntaxCopy();
             exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_DSYMBOL)
