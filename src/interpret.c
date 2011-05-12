@@ -2761,7 +2761,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return EXP_CANT_INTERPRET;
             }
             if (v->getValue())
-                assignInPlace(v->getValue(), newval);
+                assignInPlace(v->getValue(), copyLiteral(newval));
             else
                 v->createRefValue(copyLiteral(newval));
         }
