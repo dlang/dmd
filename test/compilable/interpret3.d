@@ -793,3 +793,92 @@ void oddity4001(int q)
 *******************************************/
 
 static const bug3779 = ["123"][0][$-1];
+
+
+/*******************************************
+    non-Cow struct literals
+*******************************************/
+
+struct Zadok
+{
+    int [3] z;
+    char [4] s = void;
+    ref int[] fog(ref int [] q) { return q; }
+    int bfg()
+    {
+        z[0] = 56;
+        fog(z[]) = [56, 6, 8];
+        assert(z[1] == 6);
+        assert(z[0] == 56);
+        return z[2];
+    }
+}
+
+struct Vug
+{
+    Zadok p;
+    int [] other;
+}
+
+int quop()
+{
+    int [] heap = new int[5];
+    heap[] = 738;
+    Zadok pong;
+    pong.z = 3;
+    int [] w = pong.z;
+    assert(w[0]==3);
+    Zadok phong;
+    phong.z = 61;
+    pong = phong;
+    assert(w[0]==61);
+    Vug b = Vug(Zadok(17, "abcd"));
+    b = Vug(Zadok(17, "abcd"), heap);
+    b.other[2] = 78;
+    assert(heap[2]==78);
+    char [] y = b.p.s;
+    assert(y[2]=='c');
+    phong.s = ['z','x','f', 'g'];
+    w = b.p.z;
+    assert(y[2]=='c');
+    assert(w[0]==17);
+    b.p = phong;
+    assert(y[2]=='f');
+
+    Zadok wok = Zadok(6, "xyzw");
+    b.p = wok;
+    assert(y[2]=='z');
+    b.p = phong;
+    assert(w[0] == 61);
+    Vug q;
+    q.p = pong;
+    return pong.bfg();
+}
+
+static assert(quop()==8);
+static assert(quop()==8); // check for clobbering
+
+/**************************************************
+   Bug 5682 Wrong CTFE with operator overloading
+**************************************************/
+
+struct A {
+    int n;
+    auto opBinary(string op : "*")(A rhs) {
+        return A(n * rhs.n);
+    }
+}
+
+A foo(A[] lhs, A[] rhs) {
+    A current;
+    for (size_t k = 0; k < rhs.length; ++k) {
+        current = lhs[k] * rhs[k];
+    }
+    return current;
+}
+
+auto test() {
+    return foo([A(1), A(2)], [A(3), A(4)]);
+}
+
+static assert(test().n == 8);
