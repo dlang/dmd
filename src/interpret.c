@@ -55,6 +55,37 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
+Expression *copyLiteral(Expression *e);
+
+
+// Used for debugging only
+void showCtfeExpr(Expression *e)
+{
+    Expressions *elements = NULL;
+    if (e->op == TOKstructliteral) {
+        elements = ((StructLiteralExp *)e)->elements;
+        printf("STRUCT type = %s %p :\n", e->type->toChars(), e);
+    }
+    else if (e->op == TOKarrayliteral)
+    {
+        elements = ((ArrayLiteralExp *)e)->elements;
+        printf("ARRAY LITERAL type=%s %p:\n", e->type->toChars(), e);
+    }
+    else if (e->op == TOKassocarrayliteral)
+    {
+        printf("AA LITERAL type=%s %p:\n", e->type->toChars(), e);
+    }
+    else printf(" VALUE %p: %s\n", e, e->toChars());
+
+    if (elements)
+    {
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *z = (Expression *)elements->data[i];
+            showCtfeExpr(z);
+        }
+    }
+}
+
 
 /*************************************
  * Attempt to interpret a function given the arguments.
@@ -118,6 +149,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         return NULL;
     }
 
+    // Evaluate 'this', if present.
+    if (thisarg && thisarg->op != TOKvar)
+        thisarg = thisarg->interpret(istate, ctfeNeedLvalue);
+    if (thisarg == EXP_CANT_INTERPRET)
+        return NULL;
+
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = this;
@@ -159,13 +196,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     earg->error("%s cannot be passed by reference at compile time", earg->toChars());
                     return NULL;
                 }
-                if (earg->op  == TOKslice)
+                // Convert all reference arguments into lvalues
+                if (earg->op != TOKvar)
                 {
                     earg = earg->interpret(istate, ctfeNeedLvalue);
                     if (earg == EXP_CANT_INTERPRET)
                         return NULL;
                 }
-
             }
             else if (arg->storageClass & STClazy)
             {
@@ -583,7 +620,8 @@ Expression *ReturnStatement::interpret(InterState *istate)
         TypeFunction *tf = (TypeFunction *)istate->fd->type;
         if (tf->isref && istate->caller && istate->caller->awaitingLvalueReturn)
         {   // We need to return an lvalue. Can't do a normal interpret.
-            Expression *e = replaceReturnReference(exp, istate);
+//            Expression *e = replaceReturnReference(exp, istate);
+            Expression *e = exp->interpret(istate, ctfeNeedLvalue);
             if (e == EXP_CANT_INTERPRET)
                 error("ref return %s is not yet supported in CTFE", exp->toChars());
             return e;
@@ -1154,8 +1192,10 @@ Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
 
 Expression *ThisExp::interpret(InterState *istate, CtfeGoal goal)
 {
+    if (istate && istate->localThis && istate->localThis->op == TOKstructliteral)
+        return istate->localThis;
     if (istate && istate->localThis)
-        return istate->localThis->interpret(istate);
+        return istate->localThis->interpret(istate, goal);
     error("value of 'this' is not known at compile time");
     return EXP_CANT_INTERPRET;
 }
@@ -1191,7 +1231,7 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("StringExp::interpret() %s\n", toChars());
 #endif
-    return this;
+    return copyLiteral(this);
 }
 
 Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
@@ -1348,9 +1388,9 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 error(loc, "variable %s is used before initialization", v->toChars());
             else if (e == EXP_CANT_INTERPRET)
                 return e;
-            else if (goal == ctfeNeedLvalue && (e->op == TOKstring || e->op == TOKslice ||
-                    e->op == TOKstructliteral || e->op == TOKarrayliteral ||
-                    e->op == TOKassocarrayliteral))
+            else if ((goal == ctfeNeedLvalue)
+                    || e->op == TOKstring || e->op == TOKstructliteral || e->op == TOKarrayliteral
+                    || e->op == TOKassocarrayliteral )
                 return e; // it's already an Lvalue
             else
                 e = e->interpret(istate, goal);
@@ -1385,6 +1425,10 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
     if (e != EXP_CANT_INTERPRET && e->type != type
         && e->implicitConvTo(type) == MATCHexact)
     {
+        if (goal == ctfeNeedLvalue && e->op==TOKarrayliteral)
+        {
+            return e;
+        }
         e = e->implicitCastTo(0, type);
         e = e->interpret(istate, goal);
     }
@@ -1536,7 +1580,7 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         ae->type = type;
         return ae;
     }
-    return this;
+    return copyLiteral(this);
 
 Lerror:
     if (expsx)
@@ -1685,7 +1729,7 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         se->type = type;
         return se;
     }
-    return this;
+    return copyLiteral(this);
 }
 
 /******************************
@@ -2116,7 +2160,9 @@ Expression *copyLiteral(Expression *e)
                 uinteger_t length = tsa->dim->toInteger();
 
                 m = createBlockDuplicatedArrayLiteral(v->type, m, length);
-            } else m = copyLiteral(m);
+            }
+            else if (v->type->ty != Tarray) // NOTE: do not copy array references
+                m = copyLiteral(m);
             newelems->data[i] = m;
         }
 #if DMDV2
@@ -2542,8 +2588,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // collapsed into a single assignment.
     if (!wantRef && e1->op == TOKdotvar)
     {
-        // Strip of all of the leading dotvars.
-        e1 = e1->interpret(istate, ctfeNeedLvalue);
+        // Strip of all of the leading dotvars, unless we started with a call (in which case, we already
+        // have the lvalue).
+        if (this->e1->op != TOKcall)
+            e1 = e1->interpret(istate, ctfeNeedLvalue);
         if (e1 == EXP_CANT_INTERPRET)
             return e1;
         if (e1->op == TOKdotvar)
@@ -2622,7 +2670,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
             || newval->op == TOKstring)
         {
-            if (needToCopyLiteral(this->e2))
+            if (needToCopyLiteral(this->e2) && newval->op != TOKarrayliteral)
                 newval = copyLiteral(newval);
         }
         else if (newval->op == TOKnull)
@@ -2760,10 +2808,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 error("CTFE internal error assigning struct");
                 return EXP_CANT_INTERPRET;
             }
+            newval = copyLiteral(newval);
             if (v->getValue())
-                assignInPlace(v->getValue(), copyLiteral(newval));
+                assignInPlace(v->getValue(), newval);
             else
-                v->createRefValue(copyLiteral(newval));
+                v->createRefValue(newval);
         }
         else
         {
@@ -3530,7 +3579,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("IndexExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate, goal);
+    e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
 
@@ -3574,12 +3623,20 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         e1 = ((SliceExp *)e1)->e1;
         e2 = new IntegerExp(e2->loc, indx, e2->type);
     }
+    if (goal == ctfeNeedLvalue && type->ty != Tarray && type->ty != Tsarray && type->ty != Tstruct)
+    {
+        e = new IndexExp(loc, e1, e2);
+        e->type = type;
+        return e;
+    }
     e = Index(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
     {
         error("%s cannot be interpreted at compile time", toChars());
         goto Lcant;
     }
+    if (goal == ctfeNeedRvalue && (e->op == TOKslice || e->op == TOKdotvar))
+        e = e->interpret(istate);
     return e;
 
 Lcant:
@@ -3885,7 +3942,9 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                         e->op == TOKslice)
                         return e;
                     // ...Otherwise, just return the (simplified) dotvar expression
-                    return new DotVarExp(loc, ex, v);
+                    e = new DotVarExp(loc, ex, v);
+                    e->type = type;
+                    return e;
                 }
                 e = se->getField(type, v->offset);
                 if (!e)
