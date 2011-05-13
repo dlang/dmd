@@ -1124,7 +1124,29 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("StringExp::interpret() %s\n", toChars());
 #endif
-    return copyLiteral(this);
+    /* Since we are using StringExps as reference types for char[] arrays,
+     * we need to dup them if there's any chance they'll be modified.
+     * For efficiency, we try to only dup when necessary.
+     */
+    // Fixed-length char arrays always get duped later anyway.
+    if (type->ty == Tsarray)
+        return this;
+    /* String literals are normally immutable, so we don't need to dup them
+     * In D2, we can detect attempts to write to read-only literals.
+     * For D1, we could be pessimistic, and always dup.
+     * But since it fails only when there has been an explicit cast, and any
+     * such function would give different results at runtime anyway (eg, it
+     * may crash), it hardly seems worth the massive performance hit.
+     */
+#if DMDV2
+    if (!((TypeNext *)type)->next->mod & (MODconst | MODimmutable))
+    {   // It seems this happens only when there has been an explicit cast
+        error("cannot cast a read-only string literal to mutable in CTFE");
+        return EXP_CANT_INTERPRET;
+    }
+#else
+    return this;
+#endif
 }
 
 Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
@@ -1285,6 +1307,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                     || e->op == TOKstring || e->op == TOKstructliteral || e->op == TOKarrayliteral
                     || e->op == TOKassocarrayliteral )
                 return e; // it's already an Lvalue
+            else if (e->op == TOKslice)
+            {   // Has already been processed. We just need to resolve the slice.
+                SliceExp *se = (SliceExp *)e;
+                return Slice(se->type, se->e1, se->lwr, se->upr);
+            }
             else
                 e = e->interpret(istate, goal);
         }
@@ -1473,6 +1500,12 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         ae->type = type;
         return ae;
     }
+#if DMDV2
+    if (((TypeNext *)type)->next->mod & (MODconst | MODimmutable))
+    {   // If it's immutable, we don't need to dup it
+        return this;
+    }
+#endif
     return copyLiteral(this);
 
 Lerror:
@@ -1963,9 +1996,9 @@ bool needToCopyLiteral(Expression *expr)
        {
             case TOKarrayliteral:
             case TOKassocarrayliteral:
-            case TOKstring:
             case TOKstructliteral:
                 return true;
+            case TOKstring:
             case TOKthis:
             case TOKvar:
                 return false;
@@ -2560,14 +2593,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (newval == EXP_CANT_INTERPRET)
             return newval;
 
-        if (newval->op == TOKarrayliteral || (newval->op == TOKassocarrayliteral)
-            || newval->op == TOKstring)
-        {
-            if (needToCopyLiteral(this->e2) && newval->op != TOKarrayliteral)
-                newval = copyLiteral(newval);
-        }
-        else if (newval->op == TOKnull)
+        if (newval->op == TOKnull || newval->op == TOKarrayliteral)
         {    // do nothing
+        }
+        else if (newval->op == TOKassocarrayliteral || newval->op == TOKstring)
+        {
+            if (needToCopyLiteral(this->e2))
+                newval = copyLiteral(newval);
         }
         else if (newval->op == TOKvar)
         {
@@ -2632,6 +2664,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     return newval;
             }
         }
+        else
+        {
+            newval = newval->interpret(istate);
+            if (newval == EXP_CANT_INTERPRET)
+                return newval;
+        }
+
         if (e1->op == TOKvar || e1->op == TOKdotvar)
         {
 
@@ -2712,8 +2751,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
             { // arr op= arr
                 if (!v->getValue())
-                    v->createRefValue(newval->interpret(istate));
-                else v->setRefValue(newval->interpret(istate));
+                    v->createRefValue(newval);
+                else v->setRefValue(newval);
             }
             else
             {
@@ -2776,7 +2815,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         /* The only possible indexable LValue aggregates are array literals,
          * slices of array literals, and AA literals.
          */
-
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
             aggregate->op == TOKslice)
         {
@@ -2789,7 +2827,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             VarExp *ve = (VarExp *)aggregate;
             VarDeclaration *v = ve->var->isVarDeclaration();
             aggregate = v->getValue();
-            if (v->getValue()->op == TOKnull)
+            if (aggregate->op == TOKnull)
             {
                 if (v->type->ty == Taarray)
                 {   // Assign to empty associative array
