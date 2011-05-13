@@ -97,7 +97,7 @@ void flowrd()
 
                         /* Binrd = union of Boutrds of all predecessors of b */
                         vec_clear(b->Binrd);
-                        if (b->BC != BCcatch && b->BC != BCjcatch)
+                        if (b->BC != BCcatch /*&& b->BC != BCjcatch*/)
                         {
                             /* Set Binrd to 0 to account for:
                              * i = 0;
