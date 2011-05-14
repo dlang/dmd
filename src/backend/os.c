@@ -867,19 +867,19 @@ int os_critsecsize64()
 }
 #endif
 
-#if linux
+#if linux || __FreeBSD__
 int os_critsecsize32()
 {
-    return 24;  // sizeof(pthread_mutex_t)
+    return sizeof(pthread_mutex_t);
 }
 
 int os_critsecsize64()
 {
-    return 40;
+    return sizeof(pthread_mutex_t);
 }
 #endif
 
-#if __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if __APPLE__ || __sun&&__SVR4
 int os_critsecsize32()
 {
     return sizeof(pthread_mutex_t);
