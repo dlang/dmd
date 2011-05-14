@@ -3,7 +3,7 @@ C=backend
 TK=tk
 ROOT=root
 
-MODEL=-m32
+MODEL=32
 
 ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
 ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
@@ -12,8 +12,8 @@ SDK=/Developer/SDKs/MacOSX10.5.sdk
 #SDK=/Developer/SDKs/MacOSX10.6.sdk
 LDFLAGS= -isysroot ${SDK} -Wl,-syslibroot,${SDK}
 
-CC=g++ $(MODEL) -isysroot $(SDK)
-#CC=g++ $(MODEL)
+CC=g++ -m$(MODEL) -isysroot $(SDK)
+#CC=g++ -m$(MODEL)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -476,7 +476,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc $(MODEL) -c $C/strtold.c
+	gcc -m$(MODEL) -c $C/strtold.c
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<

@@ -3,9 +3,9 @@ C=backend
 TK=tk
 ROOT=root
 
-MODEL=-m32
+MODEL=32
 
-CC=g++ $(MODEL)
+CC=g++ -m$(MODEL)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -95,7 +95,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	gcc $(MODEL) -lstdc++ -lm -lpthread $(COV) $(DMD_OBJS) -o dmd
+	gcc -m$(MODEL) -lstdc++ -lm -lpthread $(COV) $(DMD_OBJS) -o dmd
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -468,7 +468,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc $(MODEL) -c $C/strtold.c
+	gcc -m$(MODEL) -c $C/strtold.c
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
