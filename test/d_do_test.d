@@ -100,18 +100,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         testArgs.requiredArgs ~= " ";
     }
 
-    // TODO: should the win32 anti -fPIC code be moved out and made unilateral, would eliminate
-    // different ARGS settings in the Makefile
-    if (findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
-    {
-        if (envData.os == "win32")
-        {
-            auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
-            if (index != -1)
-                testArgs.permuteArgs = testArgs.permuteArgs[0 .. index] ~ testArgs.permuteArgs[index+5 .. $];
-        }
-    }
-    else
+    if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
         if (testArgs.mode != TestMode.FAIL_COMPILE)
             testArgs.permuteArgs = envData.all_args;
@@ -120,6 +109,15 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         if(!findTestParameter(file, "unittest", unittestJunk))
             testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
+
+    // win32 doesn't support pic, nor does freebsd/64 currently
+    if (envData.os == "win32" || envData.os == "freebsd")
+    {
+        auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
+        if (index != -1)
+            testArgs.permuteArgs = testArgs.permuteArgs[0 .. index] ~ testArgs.permuteArgs[index+5 .. $];
+    }
+
     // clean up extra spaces
     testArgs.permuteArgs = replace(testArgs.permuteArgs, "  ", " ");
 
