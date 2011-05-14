@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -25,6 +25,7 @@
         linux           Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
+        __OpenBSD__     OpenBSD
         __sun&&__SVR4   Solaris, OpenSolaris (yes, both macros are necessary)
         __OS2__         IBM OS/2
         DOS386          32 bit DOS extended executable
@@ -119,6 +120,21 @@ One and only one of these macros must be set by the makefile:
  * with these goals, and should be fixed.
  */
 
+/* OpenBSD Version
+ * -------------
+ * There are two main issues: hosting the compiler on OpenBSD,
+ * and generating (targetting) OpenBSD executables.
+ * The "__OpenBSD__" and "__GNUC__" macros control hosting issues
+ * for operating system and compiler dependencies, respectively.
+ * To target OpenBSD executables, use ELFOBJ for things specific to the
+ * ELF object file format, and TARGET_FREEBSD for things specific to
+ * the OpenBSD memory model.
+ * If this is all done right, one could generate a OpenBSD object file
+ * even when compiling on win32, and vice versa.
+ * The compiler source code currently uses these macros very inconsistently
+ * with these goals, and should be fixed.
+ */
+
 /* Solaris Version
  * -------------
  * There are two main issues: hosting the compiler on Solaris,
@@ -164,6 +180,11 @@ One and only one of these macros must be set by the makefile:
 // Set to 1 using the makefile
 #ifndef TARGET_FREEBSD
 #define TARGET_FREEBSD  0               // target is a FreeBSD executable
+#endif
+
+// Set to 1 using the makefile
+#ifndef TARGET_OPENBSD
+#define TARGET_OPENBSD  0               // target is an OpenBSD executable
 #endif
 
 // Set to 1 using the makefile
@@ -242,7 +263,7 @@ One and only one of these macros must be set by the makefile:
 
 // Precompiled header variations
 #define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)  // if memory mapped files
+#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4)  // if memory mapped files
 #define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods
@@ -451,7 +472,7 @@ typedef unsigned        targ_uns;
 
 #define CHARSIZE        1
 #define SHORTSIZE       2
-#define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/Solaris
+#define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
 #define LONGSIZE        4
 #define LLONGSIZE       8
 #define FLOATSIZE       4

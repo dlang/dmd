@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -315,7 +315,7 @@ char *Port::strupr(char *s)
 
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
 
 #include <math.h>
 #if linux
