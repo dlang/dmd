@@ -24,7 +24,7 @@
 #include        <fp.h>
 #endif
 
-#if __FreeBSD__
+#if __FreeBSD__ || __OpenBSD__
 #define fmodl fmod
 #endif
 
@@ -42,7 +42,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 int _status87()
 {
     return fetestexcept(FE_ALL_EXCEPT);

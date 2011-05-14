@@ -101,7 +101,7 @@ void WRTYxx(tym_t t)
     if (t & mTYpasobj)
         dbg_printf("mTYpasobj|");
 #endif
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     if (t & mTYtransu)
         dbg_printf("mTYtransu|");
 #endif
