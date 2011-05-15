@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -18,7 +18,11 @@
 #include        <string.h>
 #include        <float.h>
 #include        <time.h>
+
+#if !defined(__OpenBSD__)
+// Mysteriously missing from OpenBSD
 #include        <fenv.h>
+#endif
 
 #if __DMC__
 #include        <fp.h>
@@ -42,7 +46,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
 int _status87()
 {
     return fetestexcept(FE_ALL_EXCEPT);
@@ -615,7 +619,9 @@ elem * evalu8(elem *e)
             return e;
 #endif
         esave = *e;
+#if !__OpenBSD__
         _clear87();
+#endif
     }
     else
         return e;
@@ -2111,7 +2117,12 @@ elem * evalu8(elem *e)
 
     if (!ignore_exceptions &&
         (config.flags4 & CFG4fastfloat) == 0 &&
-        _status87() & 0x3F)
+#if __OpenBSD__
+        1                    // until OpenBSD supports C standard fenv.h
+#else
+        _status87() & 0x3F
+#endif
+       )
     {
         // Exceptions happened. Do not fold the constants.
         *e = esave;
