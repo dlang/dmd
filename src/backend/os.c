@@ -852,6 +852,9 @@ Lfail:
 
 /***********************************
  * Return size of OS critical section.
+ * NOTE: can't use the sizeof() calls directly since cross compiling is
+ * supported and would end up using the host sizes rather than the target
+ * sizes.
  */
 
 #if _WIN32
@@ -867,15 +870,40 @@ int os_critsecsize64()
 }
 #endif
 
-#if linux || __FreeBSD__ || __OpenBSD__
+#if linux
 int os_critsecsize32()
 {
-    return sizeof(pthread_mutex_t);
+    return 24; // sizeof(pthread_mutex_t) on 32 bit
 }
 
 int os_critsecsize64()
 {
-    return sizeof(pthread_mutex_t);
+    return 40; // sizeof(pthread_mutex_t) on 64 bit
+}
+#endif
+
+#if __FreeBSD__
+int os_critsecsize32()
+{
+    return 4; // sizeof(pthread_mutex_t) on 32 bit
+}
+
+int os_critsecsize64()
+{
+    return 8; // sizeof(pthread_mutex_t) on 64 bit
+}
+#endif
+
+#if __OpenBSD__
+int os_critsecsize32()
+{
+    return 4; // sizeof(pthread_mutex_t) on 32 bit
+}
+
+int os_critsecsize64()
+{
+    assert(0);
+    return 8; // sizeof(pthread_mutex_t) on 64 bit
 }
 #endif
 
