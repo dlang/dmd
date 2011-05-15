@@ -15,7 +15,7 @@
 #include <assert.h>
 #include <limits.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #include <errno.h>
 #endif
 
@@ -92,7 +92,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v2.053";
+    version = "v2.054";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
 
 #if _WIN32
     inifilename = inifile(argv[0], "sc.ini");
-#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     inifilename = inifile(argv[0], "dmd.conf");
 #else
 #error "fix this"
@@ -729,6 +729,13 @@ int main(int argc, char *argv[])
                 browse("http://www.digitalmars.com/d/1.0/dmd-freebsd.html");
 #else
                 browse("http://www.digitalmars.com/d/2.0/dmd-freebsd.html");
+#endif
+#endif
+#if __OpenBSD__
+#if DMDV1
+                browse("http://www.digitalmars.com/d/1.0/dmd-openbsd.html");
+#else
+                browse("http://www.digitalmars.com/d/2.0/dmd-openbsd.html");
 #endif
 #endif
                 exit(EXIT_SUCCESS);

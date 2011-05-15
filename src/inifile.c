@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2009 by Digital Mars
+ * Copyright (c) 1999-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -23,7 +23,7 @@
 #include        <sys/syslimits.h>
 #endif
 
-#if __FreeBSD__ || __sun&&__SVR4
+#if __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 // for PATH_MAX
 #include        <limits.h>
 #endif
@@ -111,12 +111,12 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
-#if __GLIBC__ || __APPLE__ || __FreeBSD__ || __sun&&__SVR4   // This fix by Thomas Kuehne
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path
                      */
-#if __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
                     char resolved_name[PATH_MAX + 1];
                     char* real_argv0 = realpath(argv0, resolved_name);
 #else
