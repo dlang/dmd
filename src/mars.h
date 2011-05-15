@@ -37,6 +37,7 @@ Macros defined by the compiler, not the code:
         linux           Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
+        __OpenBSD__     OpenBSD
         __sun&&__SVR4   Solaris, OpenSolaris (yes, both macros are necessary)
 
 For the target systems, there are the target operating system and
@@ -47,6 +48,7 @@ the target object file format:
         TARGET_LINUX    Covers 32 and 64 bit linux
         TARGET_OSX      Covers 32 and 64 bit Mac OSX
         TARGET_FREEBSD  Covers 32 and 64 bit FreeBSD
+        TARGET_OPENBSD  Covers 32 and 64 bit OpenBSD
         TARGET_SOLARIS  Covers 32 and 64 bit Solaris
         TARGET_NET      Covers .Net
 
@@ -55,7 +57,7 @@ the target object file format:
 
     Target object module format:
         OMFOBJ          Intel Object Module Format, used on Windows
-        ELFOBJ          Elf Object Module Format, used on linux, FreeBSD and Solaris
+        ELFOBJ          Elf Object Module Format, used on linux, FreeBSD, OpenBSD and Solaris
         MACHOBJ         Mach-O Object Module Format, used on Mac OSX
 
     There are currently no macros for byte endianness order.
@@ -136,6 +138,7 @@ struct Param
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows
     char isFreeBSD;     // generate code for FreeBSD
+    char isOPenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
     char useDeprecated; // allow use of deprecated features
