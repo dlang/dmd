@@ -110,7 +110,7 @@ struct Declaration;
 #define RMload  (1 << 30)
 #define RMstore (1 << 31)
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // To support positional independent code,
     // must be able to remove BX from available registers
 extern regm_t ALLREGS;
@@ -691,7 +691,7 @@ void WRcodlst (code *c );
 cd_t cdcomma;
 cd_t cdloglog;
 cd_t cdshift;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 cd_t cdindpic;
 #endif
 cd_t cdind;

@@ -151,7 +151,7 @@ code *cdorth(elem *e,regm_t *pretregs)
 
   ty1 = tybasic(e1->Ety);
   if (tyfloating(ty1))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
 #else
         return opdouble(e,pretregs,(e->Eoper == OPadd) ? CLIBdadd
@@ -826,7 +826,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     unsigned grex = rex << 16;
 
     if (tyfloating(tyml))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
 #else
         return opdouble(e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
@@ -3826,7 +3826,7 @@ code *getoffset(elem *e,unsigned reg)
         goto L4;
 
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {
       L5:
         if (I64 && config.flags3 & CFG3pic)
@@ -3918,13 +3918,13 @@ code *getoffset(elem *e,unsigned reg)
         goto L4;
 
     case FLextern:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (e->EV.sp.Vsym->ty() & mTYthread)
             goto L5;
 #endif
     case FLdata:
     case FLudata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
 #endif
@@ -4218,7 +4218,7 @@ code *cdpost(elem *e,regm_t *pretregs)
 
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return post87(e,pretregs);
 #else
         if (config.inline8087)

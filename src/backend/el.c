@@ -1358,7 +1358,7 @@ elem *el_picvar(symbol *s)
     return e;
 }
 #endif
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
 elem *el_picvar(symbol *s)
 {   elem *e;
@@ -1560,10 +1560,10 @@ elem * el_var(symbol *s)
 
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         (!(s->Stype->Tty & mTYthread) || I64) &&
 #endif
         !tyfunc(s->ty()))
@@ -1582,7 +1582,7 @@ elem * el_var(symbol *s)
         //printf("thread local %s\n", s->Sident);
 #if TARGET_OSX
         ;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         /* For 32 bit:
          * Generate for var locals:
          *      MOV reg,GS:[00000000]   // add GS: override in back end
@@ -1687,7 +1687,7 @@ elem * el_var(symbol *s)
 {   elem *e;
 
     //printf("el_var(s = '%s')\n", s->Sident);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && !tyfunc(s->ty()))
         return el_picvar(s);
 #endif
@@ -1784,7 +1784,7 @@ elem * el_ptr(symbol *s)
         return e;
     }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && tyfunc(s->ty()))
         e = el_picvar(s);
     else

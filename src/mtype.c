@@ -73,7 +73,7 @@ int PTRSIZE = 4;
 int REALSIZE = 16;
 int REALPAD = 6;
 int REALALIGNSIZE = 16;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 int REALSIZE = 12;
 int REALPAD = 2;
 int REALALIGNSIZE = 4;
@@ -286,7 +286,7 @@ void Type::init()
 #if TARGET_OSX
         REALSIZE = 16;
         REALPAD = 6;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         REALSIZE = 12;
         REALPAD = 2;
 #else
@@ -2505,7 +2505,7 @@ unsigned TypeBasic::alignsize()
             sz = REALALIGNSIZE;
             break;
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Tint64:
         case Tuns64:
             sz = global.params.isX86_64 ? 8 : 4;

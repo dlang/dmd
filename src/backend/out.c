@@ -410,7 +410,7 @@ void outdata(symbol *s)
                     flags |= CFoffset64;
                 if (tybasic(dt->Dty) == TYcptr)
                     reftocodseg(seg,offset,dt->DTabytes);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 else
                     reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else

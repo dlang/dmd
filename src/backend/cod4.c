@@ -770,7 +770,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   byte = (sz == 1);                     // 1 for byte operation, else 0
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
       if (op == OPnegass)
             c = cdnegass87(e,pretregs);
         else
@@ -1221,7 +1221,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
 
 
   if (tyfloating(tyml))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return opass87(e,pretregs);
 #else
         return opassdbl(e,pretregs,op);
@@ -1714,7 +1714,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   if (tyfloating(tym))                  /* if floating operation        */
   {
         retregs = mPSW;
@@ -2534,7 +2534,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             case OPd_s64:
                 return cnvt87(e,pretregs);
             case OPd_u32:               // use subroutine, not 8087
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 retregs = mST0;
 #else
                 retregs = DOUBLEREGS;

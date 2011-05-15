@@ -1354,7 +1354,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     case FLextern:
         if (s->Sident[0] == '_' && memcmp(s->Sident + 1,"tls_array",10) == 0)
         {
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             // Rewrite as GS:[0000], or FS:[0000] for 64 bit
             if (I64)
             {
@@ -1383,7 +1383,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     case FLdata:
     case FLudata:
     case FLcsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
     case FLtlsdata:
@@ -1417,7 +1417,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         {
             pcs->Iflags |= CFcs | CFoff;
         }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (I64 && config.flags3 & CFG3pic &&
             (fl == FLtlsdata || s->ty() & mTYthread))
         {
@@ -2048,12 +2048,12 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 {
     //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
     //elem_print(e);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   static symbol lib[] =
   {
 /* Convert destroyed regs into saved regs       */
 #define Z(desregs)      (~(desregs) & (mBP| mES | ALLREGS))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define N(name) "_" name
 #else
 #define N(name) name
@@ -2274,7 +2274,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _INTDBL@     intdbl
     {mAX,mAX,0,INFfloat,1,1},                           // _DBLUNS@     dbluns
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _UNSDBL@     unsdbl
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {mDX|mAX,mAX,0,INF32|INFfloat,0,1},                 // _DBLULNG@    dblulng
 #else
     {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLULNG@    dblulng
@@ -2287,7 +2287,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLLLNG@
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LLNGDBL@
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,2,2},             // _DBLULLNG@
 #else
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLULLNG@

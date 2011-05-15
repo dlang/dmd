@@ -60,7 +60,7 @@ Global::Global()
 
 #if TARGET_WINDOS
     obj_ext  = "obj";
-#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     obj_ext  = "o";
 #elif TARGET_NET
 #else
@@ -69,7 +69,7 @@ Global::Global()
 
 #if TARGET_WINDOS
     lib_ext  = "lib";
-#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     lib_ext  = "a";
 #elif TARGET_NET
 #else
@@ -78,7 +78,7 @@ Global::Global()
 
 #if TARGET_WINDOS
     dll_ext  = "dll";
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     dll_ext  = "so";
 #elif TARGET_OSX
     dll_ext = "dylib";
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
 
 #if TARGET_WINDOS
     global.params.defaultlibname = "phobos";
-#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos2";
 #elif TARGET_NET
 #else
@@ -396,6 +396,10 @@ int main(int argc, char *argv[])
 #elif TARGET_FREEBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
+    global.params.isFreeBSD = 1;
+#elif TARGET_OPENBSD
+    VersionCondition::addPredefinedGlobalIdent("Posix");
+    VersionCondition::addPredefinedGlobalIdent("OpenBSD");
     global.params.isFreeBSD = 1;
 #elif TARGET_SOLARIS
     VersionCondition::addPredefinedGlobalIdent("Posix");
@@ -439,7 +443,7 @@ int main(int argc, char *argv[])
                 global.params.link = 0;
             else if (strcmp(p + 1, "cov") == 0)
                 global.params.cov = 1;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             else if (strcmp(p + 1, "fPIC") == 0)
                 global.params.pic = 1;
 #endif

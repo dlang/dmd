@@ -27,7 +27,7 @@
 #include "declaration.h"
 #include "utf.h"
 
-#if __FreeBSD__
+#if __FreeBSD__ || __OpenBSD__
 #define fmodl fmod      // hack for now, fix later
 #endif
 

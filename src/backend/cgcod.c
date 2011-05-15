@@ -129,7 +129,7 @@ void codgen()
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
     functy = tybasic(funcsym_p->ty());
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (0 && config.flags3 & CFG3pic)
     {
         ALLREGS = ALLREGS_INIT_PIC;
@@ -1012,7 +1012,7 @@ STATIC void blcodgen(block *bl)
 #endif
                 if (config.flags2 & CFG2seh)
                     c = cat(c,nteh_unwind(0,toindex));
-#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS)
+#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
                 else if (toindex + 1 <= fromindex)
                 {
                     //c = cat(c, linux_unwind(0, toindex));
@@ -1104,7 +1104,7 @@ STATIC void blcodgen(block *bl)
             assert(!getregs(allregs));
             assert(!e);
             assert(!bl->Bcode);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (config.flags3 & CFG3pic)
             {
                 int nalign = 0;
@@ -1581,7 +1581,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mST0;
 
         case TYcfloat:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
 #endif
@@ -2544,7 +2544,7 @@ reload:                                 /* reload result from memory    */
         case OPrelconst:
             c = cdrelconst(e,pretregs);
             break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case OPgot:
             c = cdgot(e,pretregs);
             break;

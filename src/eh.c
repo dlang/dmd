@@ -33,7 +33,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 /* If we do our own EH tables and stack walking scheme
  * (Otherwise use NT Structured Exception Handling)
  */
-#define OUREH   (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS)
+#define OUREH   (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 
 /****************************
  * Generate and output scope table.

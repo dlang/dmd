@@ -194,7 +194,7 @@ One and only one of these macros must be set by the makefile:
 
 // This is the default
 #ifndef TARGET_WINDOS
-#define TARGET_WINDOS   (!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS))
+#define TARGET_WINDOS   (!(TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS))
 #endif
 
 #if __GNUC__
@@ -479,7 +479,7 @@ typedef unsigned        targ_uns;
 #define DOUBLESIZE      8
 #if TARGET_OSX
 #define LNGDBLSIZE      16      // 80 bit reals
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define LNGDBLSIZE      12      // 80 bit reals
 #else
 #define LNGDBLSIZE      10      // 80 bit reals
@@ -530,7 +530,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define OMFOBJ          TARGET_WINDOS
 #endif
 #ifndef ELFOBJ
-#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS)
+#define ELFOBJ          (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 #endif
 #ifndef MACHOBJ
 #define MACHOBJ         TARGET_OSX
@@ -725,9 +725,12 @@ struct Config
 #define EX_FREEBSD64    0x80000
 #define EX_SOLARIS      0x100000
 #define EX_SOLARIS64    0x200000
+#define EX_OPENBSD      0x400000
+#define EX_OPENBSD64    0x800000
 
 #define EX_flat         (EX_OS2 | EX_NT | EX_LINUX | EX_WIN64 | EX_LINUX64 | \
                          EX_OSX | EX_OSX64 | EX_FREEBSD | EX_FREEBSD64 | \
+                         EX_OPENBSD | EX_OPENBSD64 | \
                          EX_SOLARIS | EX_SOLARIS64)
 #define EX_dos          (EX_DOSX | EX_ZPM | EX_RATIONAL | EX_PHARLAP | \
                          EX_COM | EX_MZ /*| EX_WIN16*/)
@@ -781,7 +784,7 @@ struct Config
 #define CFG3relax       0x200   // relaxed type checking (C only)
 #define CFG3cpp         0x400   // C++ compile
 #define CFG3igninc      0x800   // ignore standard include directory
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define CFG3mars        0x1000  // use mars libs and headers
 #define NO_FAR          (TRUE)  // always ignore __far and __huge keywords
 #else
@@ -793,7 +796,7 @@ struct Config
 #define CFG3cppcomment  0x8000  // allow C++ style comments
 #define CFG3wkfloat     0x10000 // make floating point references weak externs
 #define CFG3digraphs    0x20000 // support ANSI C++ digraphs
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define CFG3semirelax   0x40000 // moderate relaxed type checking
 #endif
 #define CFG3pic         0x80000 // position independent code
@@ -1003,7 +1006,7 @@ union eve
 #define SYMBOLZERO
 #endif
 
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,
 #elif TARGET_OSX
 #define UNIXFIELDS      (unsigned)-1,(unsigned)-1,0,0,0,
