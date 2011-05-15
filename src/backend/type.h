@@ -54,7 +54,7 @@ struct TYPE
     unsigned short Tflags;      // TFxxxxx
 
 #if TX86
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define mTYnoret        0x010000        // function has no return
 #define mTYtransu       0x010000        // transparent union
 #else
@@ -68,7 +68,7 @@ struct TYPE
 #define mTYsyscall      0x400000
 #define mTYjava         0x800000
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define mTYTFF          0xFE0000
 #else
 #define mTYTFF          0xFF0000

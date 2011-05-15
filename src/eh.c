@@ -37,7 +37,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 symbol *except_gentables()
 {
     //printf("except_gentables()\n");
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
     // BUG: alloca() changes the stack size, which is not reflected
     // in the fixed eh tables.
@@ -85,7 +85,7 @@ void except_fillInEHTable(symbol *s)
         } catch[];
      */
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define GUARD_SIZE      (I64 ? 3*8 : 5*4)     // number of bytes in one guard
 #else
 #define GUARD_SIZE      (3*4)
@@ -119,7 +119,7 @@ void except_fillInEHTable(symbol *s)
 //              b->BC, b->Bscope_index, b->Blast_index, b->Boffset);
     }
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     pdt = dtsize_t(pdt,guarddim);
     sz += NPTRSIZE;
 #endif
@@ -143,7 +143,7 @@ void except_fillInEHTable(symbol *s)
 
             int nsucc = list_nitems(b->Bsucc);
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             //printf("DHandlerInfo: offset = %x", (int)(b->Boffset - startblock->Boffset));
             pdt = dtdword(pdt,b->Boffset - startblock->Boffset);        // offset to start of block
 
@@ -179,7 +179,7 @@ void except_fillInEHTable(symbol *s)
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
                 bhandler = list_block(bhandler->Bsucc);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 pdt = dtxoff(pdt,funcsym_p,bhandler->Boffset - startblock->Boffset, TYnptr);    // finally handler address
 #else
                 pdt = dtcoff(pdt,bhandler->Boffset);  // finally handler address
@@ -211,7 +211,7 @@ void except_fillInEHTable(symbol *s)
 
                     pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     pdt = dtxoff(pdt,funcsym_p,bcatch->Boffset - startblock->Boffset, TYnptr);  // catch handler address
 #else
                     pdt = dtcoff(pdt,bcatch->Boffset);        // catch handler address

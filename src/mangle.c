@@ -24,7 +24,7 @@
 #include "id.h"
 #include "module.h"
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 char *cpp_mangle(Dsymbol *s);
 #endif
 
@@ -34,7 +34,7 @@ char *mangle(Declaration *sthis)
     char *id;
     Dsymbol *s;
 
-    //printf("::mangle(%s)\n", sthis->toChars());
+    //printf("::mangle(%s), type %s\n", sthis->toChars(), sthis->type->toChars());
     s = sthis;
     do
     {
@@ -119,7 +119,7 @@ char *Declaration::mangle()
                     return ident->toChars();
 
                 case LINKcpp:
-#if DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS)
+#if DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
                     return cpp_mangle(this);
 #else
                     // Windows C++ mangling is done by C++ back end

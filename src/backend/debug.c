@@ -298,7 +298,7 @@ void WRFL(enum FL fl)
          "ndp   ","farda ","local ","csdat ","tlsdat",
          "bprel ","frameh","asm   ","blocko","alloca",
          "stack ","dsym  ",
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
          "got   ","gotoff",
 #endif
 #endif

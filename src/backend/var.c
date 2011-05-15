@@ -58,7 +58,7 @@ int linkage_spec = 0;           /* using the default                    */
 #if MEMMODELS == 1
 tym_t functypetab[LINK_MAXDIM] =
 {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     TYnfunc,
     TYnpfunc,
     TYnpfunc,
