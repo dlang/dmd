@@ -516,6 +516,25 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     else
     {
+		/*
+		 *	If s points onverload set contains this AliasDeclaration,
+		 *	find Dsymbol* that is not an AliasDeclaration or 
+		 *	an AliasDeclaration already run semantic.
+		 */
+		if (s == this)
+		{
+			s = overnext;
+			while (s)
+			{
+				AliasDeclaration *ad = s->isAliasDeclaration();
+				if (!ad || ad->aliassym)
+					break;
+				s = ad->overnext;
+			}
+			if (!s)
+				s = this;	// recursive alias declaration
+		}
+
         FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
         if (f)
         {
