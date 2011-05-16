@@ -2664,7 +2664,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     return newval;
             }
         }
-        else
+        else if (e1->op != TOKslice || newval->op != TOKslice)
         {
             newval = newval->interpret(istate);
             if (newval == EXP_CANT_INTERPRET)
