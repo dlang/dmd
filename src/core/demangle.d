@@ -1109,7 +1109,17 @@ private struct Demangle
         case 'A':
             // A Number Value...
             // An array literal. Value is repeated Number times.
-            error(); // TODO: Not implemented.
+            next();
+            put( "[" );
+            auto n = decodeNumber();
+            foreach( i; 0 .. n )
+            {
+                if( i != 0 )
+                    put( ", " );
+                parseValue();
+            }
+            put( "]" );
+            return;
         default:
             error();
         }
@@ -1348,36 +1358,33 @@ unittest
 {
     static string[2][] table =
     [
-        ["printf",      "printf"],
-        ["_foo",        "_foo"],
-        ["_D88",        "_D88"],
+        ["printf", "printf"],
+        ["_foo", "_foo"],
+        ["_D88", "_D88"],
         ["_D4test3fooAa", "char[] test.foo"],
         ["_D8demangle8demangleFAaZAa", "char[] demangle.demangle(char[])"],
-        ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(class Object)"],
-        ["_D4test2dgDFiYd", "double delegate(int, ...) test.dg"],
-        ["_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, char[5] \"hello\"c, void* null).factorial"],
-        ["_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, cdouble 6.8+3i, char[5] \"hello\"c, void* null).factorial"],
-        ["_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(wchar[3] \"abc\"w, dchar[3] \"def\"d).x"],
-        ["_D8demangle4testFLC6ObjectLDFLiZiZi", "int demangle.test(lazy class Object, lazy int delegate(lazy int))"],
-        ["_D8demangle4testFAiXi", "int demangle.test(int[] ...)"],
-        ["_D8demangle4testFLAiXi", "int demangle.test(lazy int[] ...)"],
+        ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(Object)"],
+        ["_D4test2dgDFiYd", "double test.dg(int...)"],
+        //["_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", ""],
+        //["_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", ""],
+        ["_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(\"abc\"w, \"def\"d).x"],
+        ["_D8demangle4testFLC6ObjectLDFLiZiZi", "int demangle.test(lazy Object, lazy int delegate(lazy int))"],
+        ["_D8demangle4testFAiXi", "int demangle.test(int[], ...)"],
+        ["_D8demangle4testFLAiXi", "int demangle.test(lazy int[], ...)"],
         ["_D6plugin8generateFiiZAya", "immutable(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAxa", "const(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAOa", "shared(char)[] plugin.generate(int, int)"],
         ["_D8demangle3fnAFZv3fnBMFZv", "void demangle.fnA().void fnB()"],
         ["_D8demangle4mainFZv1S3fnCFZv", "void demangle.main().void S.fnC()"],
-        ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().void S.fnD()"]
+        ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().void S.fnD()"],
+        ["_D8demangle20__T2fnVAiA4i1i2i3i4Z2fnFZv", "void demangle.fn!([1, 2, 3, 4]).fn()"]
     ];
 
     foreach( i, name; table )
     {
         auto r = demangle( name[0] );
-        /*
-        assert(r == name[1],
-                "table entry #" ~ to!string(i) ~ ": '" ~ name[0]
-                ~ "' demangles as '" ~ r ~ "' but is expected to be '"
-                ~ name[1] ~ "'");
-        */
+        assert( r == name[1],
+                "demangled \"" ~ name[0] ~ "\" as \"" ~ r ~ "\" but expected \"" ~ name[1] ~ "\"");
     }
 }
 
