@@ -203,6 +203,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     if (earg == EXP_CANT_INTERPRET)
                         return NULL;
                 }
+                else
+                {   // Convert reference-to-reference into a reference
+                    VarExp *ve = (VarExp *)earg;
+                    VarDeclaration *vv = ve->var->isVarDeclaration();
+                    if (vv && vv->getValue() && vv->getValue()->op == TOKvar)
+                        earg = vv->getValue();
+                }
             }
             else if (arg->storageClass & STClazy)
             {
@@ -2514,6 +2521,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         newval = this->e2->interpret(istate, ctfeNeedLvalue);
         if (newval == EXP_CANT_INTERPRET)
             return newval;
+        // If it is an assignment from a array function parameter passed by
+        // reference, resolve the reference. (This should NOT happen for
+        // non-reference types).
+        if (newval->op == TOKvar && (newval->type->ty == Tarray ||
+            newval->type->ty == Tclass))
+        {
+            newval = newval->interpret(istate);
+        }
 
         if (newval->op == TOKassocarrayliteral || newval->op == TOKstring)
         {
@@ -3429,8 +3444,9 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         e1 = ((SliceExp *)e1)->e1;
         e2 = new IntegerExp(e2->loc, indx, e2->type);
     }
-    if (goal == ctfeNeedLvalue && type->ty != Tarray && type->ty != Tsarray && type->ty != Tstruct)
-    {
+    if (goal == ctfeNeedLvalue && type->ty != Taarray && type->ty != Tarray
+        && type->ty != Tsarray && type->ty != Tstruct && type->ty != Tclass)
+    {   // Pointer or reference of a scalar type
         e = new IndexExp(loc, e1, e2);
         e->type = type;
         return e;
@@ -3942,9 +3958,33 @@ bool isStackValueValid(Expression *newval)
         (newval->op == TOKnull) || (newval->op == TOKslice))
     {   return false;
     }
-    if (newval->op == TOKvar) return true;
-    if (newval->op == TOKdotvar) return true;
-    if (newval->op == TOKindex) return true;
+    if (newval->op == TOKvar)
+    {
+        VarExp *ve = (VarExp *)newval;
+        VarDeclaration *vv = ve->var->isVarDeclaration();
+        // Must not be a reference to a reference
+        if (!(vv && vv->getValue() && vv->getValue()->op == TOKvar))
+            return true;
+    }
+    if (newval->op == TOKdotvar)
+    {
+        if (((DotVarExp *)newval)->e1->op == TOKstructliteral)
+            return true;
+    }
+    if (newval->op == TOKindex)
+    {
+        IndexExp *ie = (IndexExp *)newval;
+        if (ie->e2->op == TOKint64)
+        {
+            if (ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring)
+                return true;
+        }
+        if (ie->e1->op == TOKassocarrayliteral)
+            return true;
+        // BUG: Happens ONLY in ref foreach. Should tighten this.
+        if (ie->e2->op == TOKvar)
+            return true;
+    }
     if (newval->op == TOKfunction) return true; // function/delegate literal
     if (newval->op == TOKdelegate) return true;
     if (newval->op == TOKsymoff)  // function pointer
@@ -3969,8 +4009,8 @@ bool isRefValueValid(Expression *newval)
     if (newval->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)newval;
-        assert(se->lwr && se->lwr != EXP_CANT_INTERPRET);
-        assert(se->upr && se->upr != EXP_CANT_INTERPRET);
+        assert(se->lwr && se->lwr != EXP_CANT_INTERPRET && se->lwr->op == TOKint64);
+        assert(se->upr && se->upr != EXP_CANT_INTERPRET && se->upr->op == TOKint64);
         assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
         return true;
     }
