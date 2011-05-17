@@ -2260,12 +2260,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 #if LOG
     printf("BinExp::interpretAssignCommon() %s\n", toChars());
 #endif
-    Expression *e = EXP_CANT_INTERPRET;
+    Expression *returnValue = EXP_CANT_INTERPRET;
     Expression *e1 = this->e1;
     if (!istate)
     {
         error("value of %s is not known at compile time", e1->toChars());
-        return e;
+        return returnValue;
     }
     /* Before we begin, we need to know if this is a reference assignment
      * (dynamic array, AA, or class) or a value assignment.
@@ -2410,19 +2410,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return EXP_CANT_INTERPRET;
             }
             // Determine the return value
-            e = Cast(type, type, post ? oldval : newval);
-            if (e == EXP_CANT_INTERPRET)
-                return e;
+            returnValue = Cast(type, type, post ? oldval : newval);
+            if (returnValue == EXP_CANT_INTERPRET)
+                return returnValue;
         }
         else
-            e = newval;
+            returnValue = newval;
 
         if (e1->op == TOKarraylength)
         {
             size_t oldlen = oldval->toInteger();
             size_t newlen = newval->toInteger();
             if (oldlen == newlen) // no change required -- we're done!
-                return e;
+                return returnValue;
             // Now change the assignment from arr.length = n into arr = newval
             e1 = ((ArrayLengthExp *)e1)->e1;
             if (oldlen != 0)
@@ -2470,7 +2470,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = type->defaultInitLiteral(loc);
         }
         newval = Cast(type, type, newval);
-        e = newval;
+        returnValue = newval;
     }
     if (newval == EXP_CANT_INTERPRET)
         return newval;
@@ -2506,43 +2506,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
         ultimateVar->createRefValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));
 
-    // ----------------------------------------------------------
-    //      Deal with dotvar expressions - non-reference types
-    // ----------------------------------------------------------
-    // Because structs are not reference types, dotvar expressions can be
-    // collapsed into a single assignment.
-    if (!wantRef && e1->op == TOKdotvar)
-    {
-        // Strip of all of the leading dotvars, unless we started with a call (in which case, we already
-        // have the lvalue).
-        if (this->e1->op != TOKcall)
-            e1 = e1->interpret(istate, ctfeNeedLvalue);
-        if (e1 == EXP_CANT_INTERPRET)
-            return e1;
-        if (e1->op == TOKdotvar)
-        {
-            VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
-            assert(member);
-            assert(((DotVarExp *)e1)->e1->op == TOKstructliteral);
-            StructLiteralExp *se = (StructLiteralExp *)((DotVarExp *)e1)->e1;
-
-            int fieldi = se->getFieldIndex(member->type, member->offset);
-            if (fieldi == -1)
-                return EXP_CANT_INTERPRET;
-            assert(fieldi>=0 && fieldi < se->elements->dim);
-            if (newval->op == TOKstructliteral || newval->op == TOKarrayliteral)
-                assignInPlace((Expression *)(se->elements->data[fieldi]), newval);
-            else
-                se->elements->data[fieldi] = newval;
-            return e;
-        }
-        assert(newval !=EXP_CANT_INTERPRET);
-        if (e1->op == TOKstructliteral &&  newval->op == TOKstructliteral)
-        {
-            assignInPlace(e1, newval);
-            return e;
-        }
-    }
     // ---------------------------------------
     //      Deal with reference assignment
     // ---------------------------------------
@@ -2557,7 +2520,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (needToCopyLiteral(this->e2))
                 newval = copyLiteral(newval);
         }
-        e = newval;
+        returnValue = newval;
 
         if (e1->op == TOKvar || e1->op == TOKdotvar)
         {
@@ -2574,29 +2537,24 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
     }
 
-    if (wantRef && e1->op == TOKdotvar)
+    // ---------------------------------------
+    //      Deal with dotvar expressions
+    // ---------------------------------------
+    // Because structs are not reference types, dotvar expressions can be
+    // collapsed into a single assignment.
+    if (!wantRef && e1->op == TOKdotvar)
     {
-        Expression *exx = ((DotVarExp *)e1)->e1->interpret(istate);
-        if (exx == EXP_CANT_INTERPRET)
-            return exx;
-        if (exx->op != TOKstructliteral)
+        // Strip of all of the leading dotvars, unless we started with a call
+        // (in which case, we already have the lvalue).
+        if (this->e1->op != TOKcall)
+            e1 = e1->interpret(istate, ctfeNeedLvalue);
+        if (e1 == EXP_CANT_INTERPRET)
+            return e1;
+        if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
         {
-            error("CTFE internal error: Dotvar assignment");
-            return EXP_CANT_INTERPRET;
+            assignInPlace(e1, newval);
+            return returnValue;
         }
-        StructLiteralExp *se3 = (StructLiteralExp *)exx;
-        VarDeclaration *vv = ((DotVarExp *)e1)->var->isVarDeclaration();
-        if (!vv)
-        {
-            error("CTFE internal error: Dotvar assignment");
-            return EXP_CANT_INTERPRET;
-        }
-        int se_indx = se3->getFieldIndex(e1->type, vv->offset);
-        se3->elements->data[se_indx] = newval;
-        // Mark the parent variable as modified
-        if (!destinationIsReference)
-            addVarToInterstate(istate, ultimateVar);
-        return newval;
     }
 
     /* Assignment to variable of the form:
@@ -2643,6 +2601,42 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     v->setStackValue(newval);
             }
         }
+    }
+    else if (e1->op == TOKdotvar)
+    {
+        /* Assignment to member variable of the form:
+         *  e.v = newval
+         */
+        Expression *exx = ((DotVarExp *)e1)->e1;
+        if (wantRef)
+        {
+            exx = exx->interpret(istate);
+            if (exx == EXP_CANT_INTERPRET)
+                return exx;
+        }
+        if (exx->op != TOKstructliteral)
+        {
+            error("CTFE internal error: Dotvar assignment");
+            return EXP_CANT_INTERPRET;
+        }
+        StructLiteralExp *se = (StructLiteralExp *)exx;
+        VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
+        if (!member)
+        {
+            error("CTFE internal error: Dotvar assignment");
+            return EXP_CANT_INTERPRET;
+        }
+        int fieldi = se->getFieldIndex(member->type, member->offset);
+        if (fieldi == -1)
+            return EXP_CANT_INTERPRET;
+        assert(fieldi>=0 && fieldi < se->elements->dim);
+        if (!wantRef && (newval->op == TOKstructliteral || newval->op == TOKarrayliteral))
+            assignInPlace((Expression *)(se->elements->data[fieldi]), newval);
+        else
+            se->elements->data[fieldi] = newval;
+        if (ultimateVar && !destinationIsReference)
+            addVarToInterstate(istate, ultimateVar);
+        return returnValue;
     }
     else if (e1->op == TOKindex)
     {
@@ -2723,7 +2717,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     aae2->type = v->type;
                     newval = aae2;
                     v->setRefValue(newval);
-                    return e;
+                    return returnValue;
                 }
                 // This would be a runtime segfault
                 error("cannot index null array %s", v->toChars());
@@ -2751,7 +2745,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (existingAE)
         {
             existingAE->elements->data[indexToModify] = newval;
-            return e;
+            return returnValue;
         }
         if (existingSE)
         {
@@ -2766,20 +2760,20 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     assert(0);
                     break;
             }
-            return e;
+            return returnValue;
         }
         else if (existingAA)
         {
             if (assignAssocArrayElement(loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
-            return e;
+            return returnValue;
         }
         else
         {
             error("Index assignment %s is not yet supported in CTFE ", toChars());
             return EXP_CANT_INTERPRET;
         }
-        return e;
+        return returnValue;
     }
     else if (e1->op == TOKslice)
     {
@@ -2988,7 +2982,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
             if (fp && !v->getValue())
             {   error("variable %s is used before initialization", v->toChars());
-                return e;
+                return returnValue;
             }
             Expression *vie = v->getValue();
             if (vie->op == TOKvar)
@@ -3014,7 +3008,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         dump(0);
 #endif
     }
-    return e;
+    return returnValue;
 }
 
 Expression *AssignExp::interpret(InterState *istate, CtfeGoal goal)
