@@ -882,3 +882,72 @@ auto test() {
 }
 
 static assert(test().n == 8);
+
+
+/**************************************************
+   Attempt to modify a read-only string literal
+**************************************************/
+struct Xarg
+{
+   char [] s;
+}
+int zfs()
+{
+    auto q = Xarg(cast(char[])"abc");
+    assert(q.s[1]=='b');
+    q.s[1] = 'p';
+    return 76;
+}
+
+static assert(!is(typeof(compiles!(zfs()))));
+
+/**************************************************
+   Variation of 5972 which caused segfault
+**************************************************/
+
+int bug5972crash()
+{
+  char [] z = "abc".dup;
+  char[] [] a = [null, null];
+  a[0]  = z[0..2];
+  a[0][1] = 'q';
+  return 56;
+}
+static assert(bug5972crash()==56);
+
+/**************************************************
+   String slice assignment through ref parameter
+**************************************************/
+
+void popft(A)(ref A a)
+{
+    a = a[1 .. $];
+}
+
+int sdfgasf()
+{
+    auto scp = "abc".dup;
+    popft(scp);
+    return 1;
+}
+static assert(sdfgasf() == 1);
+
+/**************************************************
+   Bug 6015
+**************************************************/
+
+struct Foo6015 {
+    string field;
+}
+
+bool func6015(string input){
+    Foo6015 foo;
+    foo.field = input[0..$];
+    assert(foo.field == "test");
+    foo.field = "test2";
+    assert(foo.field != "test");
+    assert(foo.field == "test2");
+    return true;
+}
+
+static assert(func6015("test"));
