@@ -3393,14 +3393,32 @@ Lcant:
 }
 
 Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
-{   Expression *e;
-    Expression *e1;
+{   Expression *e = NULL;
+    Expression *e1 = NULL;
     Expression *e2;
 
 #if LOG
     printf("IndexExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate);
+
+    /* Optimisation: if we're indexing a variable which contains a
+     *  a slice, it's very wasteful to resolve the slice. Instead, we'll
+     * convert it into a index into the original array.
+     */
+    if (this->e1->op == TOKvar)
+    {
+        VarExp *ve = (VarExp *)this->e1;
+        VarDeclaration *v = ve->var->isVarDeclaration();
+        if (v && v->getValue() && v->getValue()->op == TOKslice)
+        {
+            e1 = v->getValue();
+            uinteger_t ilo = ((SliceExp *)e1)->lwr->toInteger();
+            uinteger_t iup = ((SliceExp *)e1)->upr->toInteger();
+            e = new IntegerExp(loc, iup - ilo, Type::tsize_t);
+        }
+    }
+    if (!e1)
+        e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
 
@@ -3417,11 +3435,9 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         e = ArrayLength(Type::tsize_t, e1);
         if (e == EXP_CANT_INTERPRET)
             goto Lcant;
-        if (lengthVar)
-        {
-            lengthVar->createStackValue(e);
-        }
     }
+    if (e && lengthVar)
+        lengthVar->createStackValue(e);
 
     e2 = this->e2->interpret(istate);
     if (lengthVar)
