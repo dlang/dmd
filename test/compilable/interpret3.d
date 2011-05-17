@@ -951,3 +951,85 @@ bool func6015(string input){
 }
 
 static assert(func6015("test"));
+
+/**************************************************
+   Bug 6001
+**************************************************/
+
+void bug6001e(ref int[] s) {
+    int[] r = s;
+    s ~= 0;
+}
+bool bug6001f() {
+    int[] s;
+    bug6001e(s);
+    return true;
+}
+static assert(bug6001f());
+
+// Assignment to AAs
+
+void blah(int[char] as)
+{
+    auto k = [6: as];
+    as = k[6];
+}
+int blaz()
+{
+    int[char] q;
+    blah(q);
+    return 67;
+}
+static assert(blaz()==67);
+
+void bug6001g(ref int[] w)
+{
+    w = [88];
+    bug6001e(w);
+    w[0] = 23;
+}
+
+bool bug6001h() {
+    int[] s;
+    bug6001g(s);
+    assert(s.length == 2);
+    assert(s[1]== 0);
+    assert(s[0]==23);
+    return true;
+}
+static assert(bug6001h());
+
+/**************************************************
+   Bug 4910
+**************************************************/
+
+int bug4910(int a)
+{
+    return a;
+}
+
+static int var4910;
+static assert(!is(typeof(Compiles!(bug4910(var4910)))));
+
+static assert(bug4910(123));
+
+/**************************************************
+    Bug 5845 - Regression(2.041)
+**************************************************/
+
+void test5845(ulong cols) {}
+
+uint solve(bool niv, ref ulong cols) {
+    if (niv)
+        solve(false, cols);
+    else
+        test5845(cols);
+    return 65;
+}
+
+ulong nqueen(int n) {
+    ulong cols    = 0;
+    return solve(true, cols);
+}
+
+static assert(nqueen(2) == 65);
