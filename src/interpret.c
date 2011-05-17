@@ -163,8 +163,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     Expressions vsave;          // place to save previous parameter values
     size_t dim = 0;
     if (needThis() && !thisarg)
-    {   cantInterpret = 1;
-        // error, no this. Prevent segfault.
+    {   // error, no this. Prevent segfault.
         error("need 'this' to access member %s", toChars());
         return NULL;
     }
@@ -227,9 +226,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 }
                 earg = earg->interpret(istate); // ? istate : &istatex);
                 if (earg == EXP_CANT_INTERPRET)
-                {   cantInterpret = 1;
                     return NULL;
-                }
             }
             eargs.data[i] = earg;
         }
