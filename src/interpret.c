@@ -1144,9 +1144,8 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
         error("cannot cast a read-only string literal to mutable in CTFE");
         return EXP_CANT_INTERPRET;
     }
-#else
-    return this;
 #endif
+    return this;
 }
 
 Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
@@ -2549,131 +2548,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // ---------------------------------------
     if (wantRef)
     {
-        if (this->e2->op == TOKvar)
-            newval = this->e2;
-        else if (this->e2->op==TOKslice)
-        {
-            SliceExp * sexp = (SliceExp *)this->e2;
-
-            /* Set the $ variable
-             */
-            Expression *e1val = sexp->e1->interpret(istate);
-            Expression *dollar;
-            if (e1val->op == TOKnull)
-                dollar = new IntegerExp(0, 0, Type::tsize_t);
-            else
-                dollar = ArrayLength(Type::tsize_t, e1val);
-
-            if (dollar != EXP_CANT_INTERPRET && sexp->lengthVar)
-            {
-                sexp->lengthVar->createStackValue(dollar);
-            }
-            Expression *upper = NULL;
-            Expression *lower = NULL;
-            if (sexp->upr)
-                upper = sexp->upr->interpret(istate);
-            else upper = dollar;
-            if (sexp->lwr)
-                lower = sexp->lwr->interpret(istate);
-            else
-                lower = new IntegerExp(loc, 0, Type::tsize_t);
-            if (sexp->lengthVar)
-                sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
-            if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            // We need the interpreted aggregate, except in the case where it
-            // was a variable.
-            if (sexp->e1->op == TOKvar)
-                e1val = sexp->e1;
-            newval = new SliceExp(sexp->loc, e1val, lower, upper);
-            newval->type = sexp->type;
-        }
-        else
-            newval = this->e2->interpret(istate, ctfeNeedLvalue);
+        newval = this->e2->interpret(istate, ctfeNeedLvalue);
         if (newval == EXP_CANT_INTERPRET)
             return newval;
 
-        if (newval->op == TOKnull || newval->op == TOKarrayliteral)
-        {    // do nothing
-        }
-        else if (newval->op == TOKassocarrayliteral || newval->op == TOKstring)
+        if (newval->op == TOKassocarrayliteral || newval->op == TOKstring)
         {
             if (needToCopyLiteral(this->e2))
                 newval = copyLiteral(newval);
         }
-        else if (newval->op == TOKvar)
-        {
-            VarExp *vv = (VarExp *)newval;
-
-            VarDeclaration *v2 = vv->var->isVarDeclaration();
-            assert(v2 && v2->getValue());
-            newval = v2->getValue();
-        }
-        else if ((e1->op == TOKdotvar || e1->op == TOKvar) && newval->op == TOKslice)
-        {
-            // This one is interesting because it could be a slice of itself
-            SliceExp * sexp = (SliceExp *)newval;
-            Expression *agg = sexp->e1;
-            dinteger_t newlo = sexp->lwr->toInteger();
-            dinteger_t newup = sexp->upr->toInteger();
-            if (agg->op == TOKvar)
-            {
-                VarExp *vv = (VarExp *)agg;
-                VarDeclaration *v2 = vv->var->isVarDeclaration();
-                assert(v2 && v2->getValue());
-                if (v2->getValue()->op == TOKarrayliteral
-                    || v2->getValue()->op == TOKstring)
-                {
-                    Expression *dollar = ArrayLength(Type::tsize_t, v2->getValue());
-                    if ((newup < newlo) || (newup > dollar->toInteger()))
-                    {
-                        error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
-                            newlo, newup, dollar->toInteger());
-                        return EXP_CANT_INTERPRET;
-                    }
-                    sexp->e1 = v2->getValue();
-                    newval = sexp;
-                }
-                else if (v2->getValue()->op == TOKslice)
-                {
-                    SliceExp *sexpold = (SliceExp *)v2->getValue();
-                    sexp->e1 = sexpold->e1;
-                    dinteger_t hi = newup + sexpold->lwr->toInteger();
-                    dinteger_t lo = newlo + sexpold->lwr->toInteger();
-                    if ((newup < newlo) || (hi > sexpold->upr->toInteger()))
-                    {
-                        error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
-                            newlo, newup, sexpold->upr->toInteger()-sexpold->lwr->toInteger());
-                        return EXP_CANT_INTERPRET;
-                    }
-                    sexp->lwr = new IntegerExp(loc, lo, Type::tsize_t);
-                    sexp->upr = new IntegerExp(loc, hi, Type::tsize_t);
-                    newval = sexp;
-                }
-                else
-                {
-                    newval = newval->interpret(istate);
-                    if (newval == EXP_CANT_INTERPRET)
-                        return newval;
-                }
-            }
-            else
-            {
-                newval = newval->interpret(istate);
-                if (newval == EXP_CANT_INTERPRET)
-                    return newval;
-            }
-        }
-        else if (e1->op != TOKslice || newval->op != TOKslice)
-        {
-            newval = newval->interpret(istate);
-            if (newval == EXP_CANT_INTERPRET)
-                return newval;
-        }
+        e = newval;
 
         if (e1->op == TOKvar || e1->op == TOKdotvar)
         {
-
             assert((newval->op == TOKarrayliteral ||
                     newval->op == TOKassocarrayliteral ||
                     newval->op == TOKstring ||
@@ -2685,42 +2572,31 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 assert(sss->op == TOKarrayliteral || sss->op == TOKstring);
             }
         }
+    }
 
-        if (e1->op == TOKdotvar)
+    if (wantRef && e1->op == TOKdotvar)
+    {
+        Expression *exx = ((DotVarExp *)e1)->e1->interpret(istate);
+        if (exx == EXP_CANT_INTERPRET)
+            return exx;
+        if (exx->op != TOKstructliteral)
         {
-            Expression *exx = ((DotVarExp *)e1)->e1->interpret(istate);
-            if (exx == EXP_CANT_INTERPRET)
-                return exx;
-            if (exx->op != TOKstructliteral)
-            {
-                error("CTFE internal error: Dotvar assignment");
-                return EXP_CANT_INTERPRET;
-            }
-            StructLiteralExp *se3 = (StructLiteralExp *)exx;
-            VarDeclaration *vv = ((DotVarExp *)e1)->var->isVarDeclaration();
-            if (!vv)
-            {
-                error("CTFE internal error: Dotvar assignment");
-                return EXP_CANT_INTERPRET;
-            }
-            int se_indx = se3->getFieldIndex(e1->type, vv->offset);
-            se3->elements->data[se_indx] = newval;
-            // Mark the parent variable as modified
-            if (!destinationIsReference)
-                addVarToInterstate(istate, ultimateVar);
-            return newval;
+            error("CTFE internal error: Dotvar assignment");
+            return EXP_CANT_INTERPRET;
         }
-        else if (e1->op == TOKvar)
+        StructLiteralExp *se3 = (StructLiteralExp *)exx;
+        VarDeclaration *vv = ((DotVarExp *)e1)->var->isVarDeclaration();
+        if (!vv)
         {
-            VarExp *ve = (VarExp *)e1;
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            if (!destinationIsReference)
-                addVarToInterstate(istate, v);
-            v->setValueNull();
-            v->createRefValue(newval);
-            return newval;
+            error("CTFE internal error: Dotvar assignment");
+            return EXP_CANT_INTERPRET;
         }
-        e = newval;
+        int se_indx = se3->getFieldIndex(e1->type, vv->offset);
+        se3->elements->data[se_indx] = newval;
+        // Mark the parent variable as modified
+        if (!destinationIsReference)
+            addVarToInterstate(istate, ultimateVar);
+        return newval;
     }
 
     /* Assignment to variable of the form:
@@ -2732,7 +2608,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (!destinationIsReference)
             addVarToInterstate(istate, v);
-        if (e1->type->toBasetype()->ty == Tstruct)
+        if (wantRef)
+        {
+            v->setValueNull();
+            v->createRefValue(newval);
+        }
+        else if (e1->type->toBasetype()->ty == Tstruct)
         {
             // In-place modification
             if (newval->op != TOKstructliteral)
@@ -3584,9 +3465,14 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("SliceExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate, goal);
+    if (goal == ctfeNeedRvalue && this->e1->op == TOKstring)
+        e1 = this->e1; // Will get duplicated anyway
+    else
+        e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
+    if (e1->op == TOKvar)
+        e1 = e1->interpret(istate);
 
     if (!this->lwr)
     {
@@ -3607,7 +3493,12 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
             - ((SliceExp *)e1)->lwr->toInteger(), Type::tsize_t);
     }
     else
-        e = ArrayLength(Type::tsize_t, e1);
+    {
+        e = e1;
+        if (goal == ctfeNeedLvalue && e->op != TOKstring)
+            e = e->interpret(istate, ctfeNeedRvalue);
+        e = ArrayLength(Type::tsize_t, e);
+    }
     if (e == EXP_CANT_INTERPRET)
     {
         error("Cannot determine length of %s at compile time\n", e1->toChars());
@@ -3626,9 +3517,11 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         goto Lcant;
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside [L..U]
-    {
-    uinteger_t ilwr = lwr->toInteger();
-    uinteger_t iupr = upr->toInteger();
+
+    uinteger_t ilwr;
+    uinteger_t iupr;
+    ilwr = lwr->toInteger();
+    iupr = upr->toInteger();
     if (e1->op == TOKnull)
     {
         if (ilwr== 0 && iupr == 0)
@@ -3659,6 +3552,22 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
             e->type = type;
             return e;
         }
+        if (e1->op == TOKarrayliteral
+            || e1->op == TOKstring)
+        {
+            uinteger_t dollar=0;
+            if (e1->op == TOKstring)
+                dollar = ((StringExp *)e1)->len;
+            if (e1->op == TOKarrayliteral)
+                dollar = ((ArrayLiteralExp *)e1)->elements->dim;
+            if ((iupr-ilwr) > dollar)
+            {
+                error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
+                    ilwr, iupr, dollar);
+                return EXP_CANT_INTERPRET;
+            }
+        }
+
         e = new SliceExp(loc, e1, lwr, upr);
         e->type = type;
         return e;
@@ -3666,7 +3575,6 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     e = Slice(type, e1, lwr, upr);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
-    }
     return e;
 
 Lcant:
@@ -3883,7 +3791,11 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                     error("couldn't find field %s in %s", v->toChars(), type->toChars());
                     e = EXP_CANT_INTERPRET;
                 }
-                return e;
+                // If it is an rvalue literal, return it...
+                if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
+                    e->op == TOKassocarrayliteral || e->op == TOKstring)
+                        return e;
+                return e->interpret(istate, goal);
             }
         }
         else
