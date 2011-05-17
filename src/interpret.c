@@ -244,7 +244,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 VarExp *ve = (VarExp *)earg;
                 VarDeclaration *v2 = ve->var->isVarDeclaration();
                 if (!v2)
-                {   cantInterpret = 1;
+                {
+                        error("cannot interpret %s as a ref parameter", ve->toChars());
                         return NULL;
                 }
                 v->setValueWithoutChecking(earg);
