@@ -1235,17 +1235,19 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         if (i >= length)
         {   e2->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
         }
-        else if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
+        else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             e = (Expression *)ale->elements->data[i];
             e->type = type;
+            if (e->checkSideEffect(2))
+                e = EXP_CANT_INTERPRET;
         }
     }
     else if (e1->type->toBasetype()->ty == Tarray && e2->op == TOKint64)
     {
         uinteger_t i = e2->toInteger();
 
-        if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
+        if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
             {   e2->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
@@ -1253,10 +1255,12 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             else
             {   e = (Expression *)ale->elements->data[i];
                 e->type = type;
+                if (e->checkSideEffect(2))
+                    e = EXP_CANT_INTERPRET;
             }
         }
     }
-    else if (e1->op == TOKassocarrayliteral && !e1->checkSideEffect(2))
+    else if (e1->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e1;
         /* Search the keys backwards, in case there are duplicate keys
@@ -1271,6 +1275,8 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             if (ex->isBool(TRUE))
             {   e = (Expression *)ae->values->data[i];
                 e->type = type;
+                if (e->checkSideEffect(2))
+                    e = EXP_CANT_INTERPRET;
                 break;
             }
         }
