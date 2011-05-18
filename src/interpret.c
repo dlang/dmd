@@ -2194,6 +2194,7 @@ void assignInPlace(Expression *dest, Expression *src)
     else if (dest->op == TOKstring && src->op == TOKstring)
     {
         sliceAssignStringFromString((StringExp *)dest, (StringExp *)src, 0);
+        return;
     }
     else if (dest->op == TOKarrayliteral && src->op == TOKstring)
     {
