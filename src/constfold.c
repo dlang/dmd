@@ -27,10 +27,6 @@
 #include "declaration.h"
 #include "utf.h"
 
-#if __FreeBSD__ || __OpenBSD__
-#define fmodl fmod      // hack for now, fix later
-#endif
-
 #define LOG 0
 
 Expression *expType(Type *type, Expression *e)
@@ -486,22 +482,22 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
         {   real_t r2 = e2->toReal();
 
 #ifdef __DMC__
-            c = fmodl(e1->toReal(), r2) + fmodl(e1->toImaginary(), r2) * I;
+            c = Port::fmodl(e1->toReal(), r2) + Port::fmodl(e1->toImaginary(), r2) * I;
 #elif defined(IN_GCC)
             c = complex_t(e1->toReal() % r2, e1->toImaginary() % r2);
 #else
-            c = complex_t(fmodl(e1->toReal(), r2), fmodl(e1->toImaginary(), r2));
+            c = complex_t(Port::fmodl(e1->toReal(), r2), Port::fmodl(e1->toImaginary(), r2));
 #endif
         }
         else if (e2->type->isimaginary())
         {   real_t i2 = e2->toImaginary();
 
 #ifdef __DMC__
-            c = fmodl(e1->toReal(), i2) + fmodl(e1->toImaginary(), i2) * I;
+            c = Port::fmodl(e1->toReal(), i2) + Port::fmodl(e1->toImaginary(), i2) * I;
 #elif defined(IN_GCC)
             c = complex_t(e1->toReal() % i2, e1->toImaginary() % i2);
 #else
-            c = complex_t(fmodl(e1->toReal(), i2), fmodl(e1->toImaginary(), i2));
+            c = complex_t(Port::fmodl(e1->toReal(), i2), Port::fmodl(e1->toImaginary(), i2));
 #endif
         }
         else

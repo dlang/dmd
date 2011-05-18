@@ -70,6 +70,11 @@ double Port::pow(double x, double y)
     return ::pow(x, y);
 }
 
+long double Port::fmodl(long double x, long double y)
+{
+    return ::fmodl(x, y);
+}
+
 unsigned long long Port::strtoull(const char *p, char **pend, int base)
 {
     return ::strtoull(p, pend, base);
@@ -199,6 +204,11 @@ double Port::pow(double x, double y)
     if (y == 0)
         return 1;               // even if x is NAN
     return ::pow(x, y);
+}
+
+long double Port::fmodl(long double x, long double y)
+{
+    return ::fmodl(x, y);
 }
 
 unsigned _int64 Port::strtoull(const char *p, char **pend, int base)
@@ -440,6 +450,15 @@ double Port::floor(double d)
 double Port::pow(double x, double y)
 {
     return ::pow(x, y);
+}
+
+long double Port::fmodl(long double x, long double y)
+{
+#if __FreeBSD__ || __OpenBSD__
+    return ::fmod(x, y);        // hack for now, fix later
+#else
+    return ::fmodl(x, y);
+#endif
 }
 
 unsigned long long Port::strtoull(const char *p, char **pend, int base)
