@@ -92,10 +92,11 @@ enum ENUMTY
     Tchar,
     Twchar,
     Tdchar,
+    Tambig,
     Terror,
     Tinstance,
-    Ttypeof,
 
+    Ttypeof,
     Ttuple,
     Tslice,
     Treturn,
@@ -177,6 +178,7 @@ struct Type : Object
     #define tindex      tsize_t         // array/ptr index
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
+    #define tambig      basic[Tambig]   // for ambiguous transfer
     #define terror      basic[Terror]   // for error recovery
 
     #define tsize_t     basic[Tsize_t]          // matches size_t alias
@@ -335,6 +337,20 @@ struct TypeError : Type
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
     d_uns64 size(Loc loc);
+    Expression *getProperty(Loc loc, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *defaultInit(Loc loc);
+    Expression *defaultInitLiteral(Loc loc);
+};
+
+struct TypeAmbig : Type
+{
+    TypeAmbig();
+
+    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+
+    d_uns64 size(Loc loc);
+    Type *semantic(Loc loc, Scope *sc);
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);

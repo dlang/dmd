@@ -237,6 +237,7 @@ void Type::init()
     // '@' shouldn't appear anywhere in the deco'd names
     mangleChar[Tbit] = '@';
     mangleChar[Tinstance] = '@';
+    mangleChar[Tambig] = '@';
     mangleChar[Terror] = '@';
     mangleChar[Ttypeof] = '@';
     mangleChar[Ttuple] = 'B';
@@ -263,6 +264,7 @@ void Type::init()
         t = t->merge();
         basic[basetab[i]] = t;
     }
+    basic[Tambig] = new TypeAmbig();
     basic[Terror] = new TypeError();
 
     tvoidptr = tvoid->pointerTo();
@@ -329,7 +331,8 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
     if (errors != global.errors)        // if any errors happened
     {
         global.errors = errors;
-        t = NULL;
+		if (t != tambig)
+        	t = NULL;
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
     return t;
@@ -2052,6 +2055,25 @@ uinteger_t Type::sizemask()
     }
     return m;
 }
+
+/* ============================= TypeAmbig =========================== */
+
+TypeAmbig::TypeAmbig()
+        : Type(Tambig)
+{
+}
+
+void TypeAmbig::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    buf->writestring("_amgiguous_");
+}
+
+d_uns64 TypeAmbig::size(Loc loc) { return 1; }
+Type *TypeAmbig::semantic(Loc loc, Scope *sc) { return this; }
+Expression *TypeAmbig::getProperty(Loc loc, Identifier *ident) { return new ErrorExp(); }
+Expression *TypeAmbig::dotExp(Scope *sc, Expression *e, Identifier *ident) { return new ErrorExp(); }
+Expression *TypeAmbig::defaultInit(Loc loc) { return new ErrorExp(); }
+Expression *TypeAmbig::defaultInitLiteral(Loc loc) { return new ErrorExp(); }
 
 /* ============================= TypeError =========================== */
 
