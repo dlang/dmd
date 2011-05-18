@@ -1644,11 +1644,13 @@ int FuncDeclaration::equals(Object *o)
     Dsymbol *s = isDsymbol(o);
     if (s)
     {
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        if (fd)
+		FuncDeclaration *fd1 = this->toAliasFunc();
+        FuncDeclaration *fd2 = s->isFuncDeclaration();
+        if (fd2)
         {
-            return toParent()->equals(fd->toParent()) &&
-                ident->equals(fd->ident) && type->equals(fd->type);
+			fd2 = fd2->toAliasFunc();
+            return fd1->toParent()->equals(fd2->toParent()) &&
+                fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
         }
     }
     return FALSE;
@@ -1974,8 +1976,21 @@ int overloadApply(FuncDeclaration *fstart,
 
         if (fa)
         {
-            if (overloadApply(fa->funcalias, fp, param))
-                return 1;
+			if (fa->hasOverloads)
+			{
+	            if (overloadApply(fa->funcalias, fp, param))
+	                return 1;
+			}
+			else
+			{
+				f = fa->toAliasFunc();
+				if (!f)
+				{	d->error("is aliased to a function");
+					break;
+				}
+				if ((*fp)(param, f))
+					return 1;
+			}
             next = fa->overnext;
         }
         else
@@ -2834,11 +2849,37 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
 {
     assert(funcalias != this);
     this->funcalias = funcalias;
+
+	if (FuncAliasDeclaration *fad = funcalias->isFuncAliasDeclaration())
+		this->hasOverloads = fad->hasOverloads;
+	else
+		this->hasOverloads = 1;
+}
+
+FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOverloads)
+    : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
+        funcalias->storage_class, funcalias->type)
+{
+    assert(funcalias != this);
+    this->funcalias = funcalias;
+
+	// for internal use
+	assert(!hasOverloads);
+	assert(!funcalias->isFuncAliasDeclaration());
+	this->hasOverloads = 0;
 }
 
 const char *FuncAliasDeclaration::kind()
 {
     return "function alias";
+}
+
+FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
+{
+	FuncDeclaration *f = funcalias;
+	while (f && f->isFuncAliasDeclaration())
+		f = ((FuncAliasDeclaration *)f)->funcalias;
+	return f;
 }
 
 
