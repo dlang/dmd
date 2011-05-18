@@ -596,6 +596,7 @@ struct TypeFunction : TypeNext
 #endif
     bool parameterEscapes(Parameter *p);
 
+    int modMatch(Expression *ethis);
     int callMatch(Expression *ethis, Expressions *toargs, int flag = 0);
     type *toCtype();
     enum RET retStyle();
