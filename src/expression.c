@@ -3727,7 +3727,7 @@ Lagain:
                     e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
-                    e = new DsymbolExp(loc, s);
+                    e = new DsymbolExp(loc, s, 1);
                 e = e->semantic(sc);
                 //printf("-1ScopeExp::semantic()\n");
                 return e;
@@ -6126,7 +6126,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
                 {
                     if (!eleft)
                         eleft = new ThisExp(loc);
-                    e = new DotVarExp(loc, eleft, f);
+                    e = new DotVarExp(loc, eleft, f, 1);
                     e = e->semantic(sc);
                 }
                 else

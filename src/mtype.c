@@ -7084,7 +7084,7 @@ L1:
         }
         if (d->needThis() && fd && fd->vthis)
         {
-            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            e = new DotVarExp(e->loc, new ThisExp(e->loc), d, 1);
             e = e->semantic(sc);
             return e;
         }
@@ -7121,7 +7121,7 @@ L1:
 #endif
     }
 
-    de = new DotVarExp(e->loc, e, d);
+    de = new DotVarExp(e->loc, e, d, 1);
     return de->semantic(sc);
 }
 
@@ -7621,7 +7621,7 @@ L1:
                     {
                         e = new ThisExp(e->loc);
                         e = new DotTypeExp(e->loc, e, cd);
-                        DotVarExp *de = new DotVarExp(e->loc, e, d);
+                        DotVarExp *de = new DotVarExp(e->loc, e, d, 1);
                         e = de->semantic(sc);
                         return e;
                     }
@@ -7634,7 +7634,7 @@ L1:
             /* Rewrite as:
              *  this.d
              */
-            DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d, 1);
             e = de->semantic(sc);
             return e;
         }
@@ -7667,7 +7667,7 @@ L1:
         return e;
     }
 
-    DotVarExp *de = new DotVarExp(e->loc, e, d);
+    DotVarExp *de = new DotVarExp(e->loc, e, d, 1);
     return de->semantic(sc);
 }
 
