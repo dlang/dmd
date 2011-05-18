@@ -2426,7 +2426,12 @@ Lagain:
     }
     f = s->isFuncDeclaration();
     if (f)
-    {   //printf("'%s' is a function\n", f->toChars());
+    {   //printf("'%s' is a %s %s\n", f->toChars(), f->kind(), f->type->toChars());
+		FuncAliasDeclaration *fa = (FuncAliasDeclaration *)f;
+    	if (fa)
+			hasOverloads = (fa->overnext || fa->hasOverloads);
+		else
+			hasOverloads = !f->isUnique();
 
         if (!f->originalType && f->scope)       // semantic not yet run
             f->semantic(f->scope);
@@ -4281,6 +4286,13 @@ Expression *SymOffExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
         v->checkNestedReference(sc, loc);
+	FuncDeclaration *f = var->isFuncDeclaration();
+	if (f && type->ty != Tambig && hasOverloads)
+	{
+		hasOverloads = !f->isUnique();
+		if (hasOverloads)
+			type = Type::tambig;
+	}
     return this;
 }
 
@@ -4363,6 +4375,19 @@ Expression *VarExp::semantic(Scope *sc)
      * variables as alias template parameters.
      */
     //accessCheck(loc, sc, NULL, var);
+
+	FuncDeclaration *f = var->isFuncDeclaration();
+	if (f)
+	{
+		FuncAliasDeclaration *fa = f->isFuncAliasDeclaration();
+		if (fa)
+			hasOverloads = (fa->overnext || fa->hasOverloads);
+		else
+			hasOverloads = !f->isUnique();
+
+		if (hasOverloads)
+			type = Type::tambig;
+	}
 
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
@@ -6314,7 +6339,51 @@ Expression *DotVarExp::semantic(Scope *sc)
         }
         assert(type);
 
-        if (!var->isFuncDeclaration())  // for functions, do checks after overload resolution
+		// for functions, resolve overloads by 'this' type if itis possible
+		if (FuncDeclaration *f = var->isFuncDeclaration())
+		{
+			FuncAliasDeclaration *fa = var->isFuncAliasDeclaration();
+			if (fa)
+			{
+				hasOverloads = (fa->overnext || fa->hasOverloads);
+			}
+			else if (f->needThis() && !f->isCtorDeclaration())
+			{
+				if (hasOverloads)
+				{
+					unsigned errors = global.errors;
+					FuncDeclaration *fany;
+					FuncDeclaration *fmatch = f->overloadModMatch(loc, e1, &fany);
+					if (global.errors > errors)		// if failed to find match
+						goto Lerr;
+
+					if (fmatch)
+					{
+						if (!fany)		// exact match
+						{
+							var = fmatch;
+							hasOverloads = 0;
+							type = fmatch->type;
+						}
+						else			// better match
+							type = fmatch->type;
+					}
+					else
+					{
+						if (fany)		// ambiguous match
+							type = Type::tambig;
+						else			// no match
+							goto Lerr;
+					}
+				}
+				else
+				{
+					type = f->type;
+				}
+				type = type->semantic(loc, sc);
+			}
+		}
+		else
         {
             Type *t1 = e1->type;
             if (t1->ty == Tpointer)
@@ -6577,7 +6646,31 @@ Expression *DelegateExp::semantic(Scope *sc)
     if (!type)
     {
         e1 = e1->semantic(sc);
-        type = new TypeDelegate(func->type);
+		if (!func->isNested() && hasOverloads)
+		{
+			FuncDeclaration *fany;
+			FuncDeclaration *fmatch = func->overloadModMatch(loc, e1, &fany);
+			if (fmatch)
+			{
+				if (!fany)	// exact match
+				{
+					func = fmatch;
+					hasOverloads = 0;
+					type = new TypeDelegate(fmatch->type);
+				}
+				else		// better match
+					type = new TypeDelegate(fmatch->type);
+			}
+			else
+			{
+				if (fany)	// ambiguous match
+					type = Type::tambig;
+				else		// no match
+					goto Lerr;
+			}
+		}
+		else
+			type = new TypeDelegate(func->type);
         type = type->semantic(loc, sc);
         AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
         if (func->needThis())
@@ -6589,6 +6682,10 @@ Expression *DelegateExp::semantic(Scope *sc)
         }
     }
     return this;
+
+Lerr:
+	error("expression (%s) has no type", toChars());
+	return new ErrorExp();
 }
 
 void DelegateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -7534,20 +7631,28 @@ Expression *AddrExp::semantic(Scope *sc)
             error("cannot take address of %s", e1->toChars());
             return new ErrorExp();
         }
-        if (!e1->type->deco)
+        else if (e1->type->ty == Tambig)
         {
-            /* No deco means semantic() was not run on the type.
-             * We have to run semantic() on the symbol to get the right type:
-             *  auto x = &bar;
-             *  pure: int bar() { return 1;}
-             * otherwise the 'pure' is missing from the type assigned to x.
-             */
+			// resolve overloads after in CallExp::semantic
+			type = Type::tambig;
+		}
+		else
+		{
+	        if (!e1->type->deco)
+	        {
+	            /* No deco means semantic() was not run on the type.
+	             * We have to run semantic() on the symbol to get the right type:
+	             *  auto x = &bar;
+	             *  pure: int bar() { return 1;}
+	             * otherwise the 'pure' is missing from the type assigned to x.
+	             */
 
-            error("forward reference to %s", e1->toChars());
-            return new ErrorExp();
-        }
+	            error("forward reference to %s", e1->toChars());
+	            return new ErrorExp();
+	        }
 
-        type = e1->type->pointerTo();
+	        type = e1->type->pointerTo();
+		}
 
         // See if this should really be a delegate
         if (e1->op == TOKdotvar)
@@ -7603,7 +7708,8 @@ Expression *AddrExp::semantic(Scope *sc)
                 }
             }
         }
-        return optimize(WANTvalue);
+        Expression *e = optimize(WANTvalue);
+        return e->semantic(sc);
     }
     return this;
 }
