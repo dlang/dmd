@@ -203,7 +203,10 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     {
         Type *t = e->type->toBasetype();
 
-        if (t->ty == Tfunction || e->op == TOKoverloadset)
+		int isAmbigFun= isAmbigFun = (t->ty == Tambig)
+		                          && (e->op == TOKvar || e->op == TOKdotvar);
+
+        if (t->ty == Tfunction || isAmbigFun || e->op == TOKoverloadset)
         {
 #if 0
             if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty)
@@ -7088,7 +7091,7 @@ Lagain:
     if (e1->op == TOKerror)
         return e1;
 
-    if (e1->op == TOKdotvar && t1->ty == Tfunction ||
+    if (e1->op == TOKdotvar && (t1->ty == Tfunction || t1->ty == Tambig) ||
         e1->op == TOKdottd)
     {
         DotVarExp *dve;
@@ -7396,6 +7399,29 @@ Lagain:
             e1 = new VarExp(loc, f);
             goto Lagain;
         }
+		else if (t1->ty == Tambig)
+		{
+			if (e1->op == TOKvar)
+			{	// Do overload resolution
+				//printf("TOKvar Tambig\n");
+				goto Lfuncvar;
+			}
+			else if (e1->op == TOKdelegate)
+			{
+				//printf("TOKdelegate Tambig\n");
+				DelegateExp *se = (DelegateExp *)e1;
+				e1 = new DotVarExp(e1->loc, se->e1, se->func, 1);
+			}
+			else if (e1->op == TOKsymoff)
+			{
+				//printf("TOKsymoff Tambig\n");
+				SymOffExp *se = (SymOffExp *)e1;
+				e1 = new VarExp(e1->loc, se->var, 1);
+			}
+			else
+				assert(0);
+			goto Lagain;
+		}
         else
         {   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
             return new ErrorExp();
@@ -7403,14 +7429,14 @@ Lagain:
     }
     else if (e1->op == TOKvar)
     {
+Lfuncvar:
         // Do overload resolution
         VarExp *ve = (VarExp *)e1;
 
         f = ve->var->isFuncDeclaration();
         assert(f);
 
-        if (ve->hasOverloads)
-            f = f->overloadResolve(loc, NULL, arguments);
+        f = f->overloadResolve(loc, NULL, arguments);
         checkDeprecated(sc, f);
 #if DMDV2
         checkPurity(sc, f);
@@ -9294,7 +9320,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
     Type *t1 = e1->type->toBasetype();
 
-    if (t1->ty == Tfunction)
+    if (t1->ty == Tfunction || t1->ty == Tambig)
     {   // Rewrite f=value to f(value)
         Expression *e = new CallExp(loc, e1, e2);
         e = e->semantic(sc);

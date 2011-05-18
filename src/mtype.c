@@ -6163,6 +6163,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
         Scope *sc2 = sc->push();
         sc2->intypeof++;
         exp = exp->semantic(sc2);
+	#if 1
+		VarExp *ve = (exp->op == TOKvar) ? (VarExp *)exp : NULL;
+		if (ve && ve->hasOverloads)
+			exp = exp->semantic(sc2);
+	#endif
 #if DMDV2
         if (exp->type && exp->type->ty == Tfunction &&
             ((TypeFunction *)exp->type)->isproperty)
@@ -6180,6 +6185,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
             error(loc, "expression (%s) has no type", exp->toChars());
             goto Lerr;
         }
+        if (t->ty == Tambig)
+		{
+			error(loc, "expression (%s) has ambiguous type", exp->toChars());
+			goto Lamgig;
+		}
         if (t->ty == Ttypeof)
         {   error(loc, "forward reference to %s", toChars());
             goto Lerr;
@@ -6216,6 +6226,10 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     }
     inuse--;
     return t;
+
+Lamgig:
+	inuse--;
+	return tambig;
 
 Lerr:
     inuse--;
