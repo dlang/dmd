@@ -4600,7 +4600,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
 #if DMDV2
                  !(d->storage_class & STCmanifest) &&
 #endif
-                 (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
+                 (!d->isFuncDeclaration() || d->isFuncDeclaration()->toAliasFunc()->isNested()) &&
                  !isTemplateMixin()
                 ))
             {
