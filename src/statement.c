@@ -3456,6 +3456,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
                     else
                         tf->isref = FALSE;      // return by value
                 }
+				if (exp->type->ty == Tambig)
+					error("failed return type inference from %s type %s",
+						exp->toChars(), exp->type->toChars());
+
                 tf->next = exp->type;
                 fd->type = tf->semantic(loc, sc);
                 if (!fd->tintro)
