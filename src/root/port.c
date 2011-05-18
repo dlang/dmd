@@ -368,12 +368,14 @@ PortInitializer::PortInitializer()
 #endif
 }
 
-#undef isnan
 int Port::isNan(double r)
 {
 #if __APPLE__
     return __inline_isnan(r);
+#elif __OpenBSD__
+    return isnan(r);
 #else
+    #undef isnan
     return ::isnan(r);
 #endif
 }
@@ -382,7 +384,10 @@ int Port::isNan(long double r)
 {
 #if __APPLE__
     return __inline_isnan(r);
+#elif __OpenBSD__
+    return isnan(r);
 #else
+    #undef isnan
     return ::isnan(r);
 #endif
 }
