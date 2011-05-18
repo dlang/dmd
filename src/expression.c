@@ -7103,7 +7103,7 @@ Lagain:
             ad = ((TypeStruct *)t1)->sym;
 #if DMDV2
             // First look for constructor
-            if (ad->ctor && arguments && arguments->dim)
+            if (e1->op == TOKtype && ad->ctor && arguments && arguments->dim)
             {
                 // Create variable that will get constructed
                 Identifier *idtmp = Lexer::uniqueId("__ctmp");
@@ -7133,7 +7133,14 @@ Lagain:
 #endif
             // No constructor, look for overload of opCall
             if (search_function(ad, Id::call))
-                goto L1;        // overload of opCall, therefore it's a call
+            {
+                // Rewrite as e1.call(arguments)
+                Expression *e = new DotIdExp(loc, e1, Id::call);
+                e = new CallExp(loc, e, arguments);
+                e = e->trySemantic(sc);
+                if (e)          // If overload of opCall is valid, therefore it's a call
+                    return e;
+            }
 
             if (e1->op != TOKtype)
             {   error("%s %s does not overload ()", ad->kind(), ad->toChars());
@@ -7149,8 +7156,7 @@ Lagain:
         else if (t1->ty == Tclass)
         {
             ad = ((TypeClass *)t1)->sym;
-            goto L1;
-        L1:
+
             // Rewrite as e1.call(arguments)
             Expression *e = new DotIdExp(loc, e1, Id::call);
             e = new CallExp(loc, e, arguments);
@@ -7509,13 +7515,18 @@ Lagain:
         checkSafety(sc, f);
 #endif
 
-        if (f->needThis() && hasThis(sc))
+        if (f->needThis())
         {
-            // Supply an implicit 'this', as in
-            //    this.ident
-
-            e1 = new DotVarExp(loc, new ThisExp(loc), f);
-            goto Lagain;
+            if (hasThis(sc))
+            {
+                // Supply an implicit 'this', as in
+                //    this.ident
+    
+                e1 = new DotVarExp(loc, new ThisExp(loc), f);
+                goto Lagain;
+            }
+            else
+                error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
         }
 
         accessCheck(loc, sc, NULL, f);
