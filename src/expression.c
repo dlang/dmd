@@ -1632,11 +1632,7 @@ complex_t RealExp::toComplex()
 
 int RealEquals(real_t x1, real_t x2)
 {
-#if __APPLE__
-    return (__inline_isnan(x1) && __inline_isnan(x2)) ||
-#else
-    return (isnan(x1) && isnan(x2)) ||
-#endif
+    return (Port::isNan(x1) && Port::isNan(x2)) ||
         /* In some cases, the REALPAD bytes get garbage in them,
          * so be sure and ignore them.
          */
@@ -1741,11 +1737,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
      * 0X1.9P+2                 => 19P2
      */
 
-#if __APPLE__
-    if (__inline_isnan(value))
-#else
-    if (isnan(value))
-#endif
+    if (Port::isNan(value))
         buf->writestring("NAN");        // no -NAN bugs
     else
     {
