@@ -61,6 +61,8 @@ struct Port
     static double floor(double);
     static double pow(double x, double y);
 
+    static long double fmodl(long double x, long double y);
+
     static ulonglong strtoull(const char *p, char **pend, int base);
 
     static char *ull_to_string(char *buffer, ulonglong ull);
