@@ -507,6 +507,7 @@ void getAMDcacheinfo()
 void getCpuInfo0B()
 {
     int level=0;
+    int threadsPerCore;
     uint a, b, c, d;
     do {
         asm {
@@ -521,8 +522,12 @@ void getCpuInfo0B()
         if (b!=0) {
            // I'm not sure about this. The docs state that there
            // are 2 hyperthreads per core if HT is factory enabled.
-            if (level==0) maxThreads = b & 0xFFFF;
-            else if (level==1) maxCores = b & 0xFFFF;
+            if (level==0)
+                threadsPerCore = b & 0xFFFF;
+            else if (level==1) {
+                maxThreads = b & 0xFFFF;
+                maxCores = maxThreads / threadsPerCore;
+            }
 
         }
         ++level;
