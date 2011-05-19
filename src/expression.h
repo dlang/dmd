@@ -78,6 +78,7 @@ enum CtfeGoal
 {   ctfeNeedRvalue,   // Must return an Rvalue
     ctfeNeedLvalue,   // Must return an Lvalue
     ctfeNeedAnyValue, // Can return either an Rvalue or an Lvalue
+    ctfeNeedLvalueRef,// Must return a reference to an Lvalue (for ref types)
     ctfeNeedNothing   // The return value is not required
 };
 
