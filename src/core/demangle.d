@@ -357,11 +357,30 @@ private struct Demangle
         size_t   tlen = 0;
         real     val  = void;
 
+        if( 'I' == tok() )
+        {
+            match( "INF" );
+            put( "real.infinity" );
+            return;
+        }
         if( 'N' == tok() )
         {
-            tbuf[tlen++] = '-';
             next();
+            if( 'I' == tok() )
+            {
+                match( "INF" );
+                put( "-real.infinity" );
+                return;
+            }
+            if( 'A' == tok() )
+            {
+                match( "AN" );
+                put( "real.nan" );
+                return;
+            }
+            tbuf[tlen++] = '-';
         }
+
         tbuf[tlen++] = '0';
         tbuf[tlen++] = 'X';
         if( !isHexDigit( tok() ) )
@@ -1407,7 +1426,10 @@ unittest
         ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().void S.fnD()"],
         ["_D8demangle20__T2fnVAiA4i1i2i3i4Z2fnFZv", "void demangle.fn!([1, 2, 3, 4]).fn()"],
         ["_D8demangle10__T2fnVi1Z2fnFZv", "void demangle.fn!(1).fn()"],
-        ["_D8demangle26__T2fnVS8demangle1SS2i1i2Z2fnFZv", "void demangle.fn!(demangle.S(1, 2)).fn()"]
+        ["_D8demangle26__T2fnVS8demangle1SS2i1i2Z2fnFZv", "void demangle.fn!(demangle.S(1, 2)).fn()"],
+        ["_D8demangle13__T2fnVeeNANZ2fnFZv", "void demangle.fn!(real.nan).fn()"],
+        ["_D8demangle14__T2fnVeeNINFZ2fnFZv", "void demangle.fn!(-real.infinity).fn()"],
+        ["_D8demangle13__T2fnVeeINFZ2fnFZv", "void demangle.fn!(real.infinity).fn()"]
     ];
 
     foreach( i, name; table )
