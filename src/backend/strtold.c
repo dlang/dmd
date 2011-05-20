@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -16,8 +16,8 @@
 #include        <float.h>
 #include        <string.h>
 #include        <math.h>
-#include        <fenv.h>
 #if _WIN32
+#include        <fenv.h>
 #include        <fltpnt.h>
 #endif
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
@@ -146,11 +146,11 @@ long double strtold(const char *p,char **endp)
         const char *pinit = p;
         static char infinity[] = "infinity";
         static char nans[] = "nans";
-        fenv_t flagp;
         unsigned int old_cw;
         unsigned int old_status;
 
 #if _WIN32
+        fenv_t flagp;
         fegetenv(&flagp);  /* Store all exceptions, and current status word */
         if (_8087)
         {
