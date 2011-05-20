@@ -727,6 +727,7 @@ private struct Demangle
             }
 
             // FuncAttrs
+            breakFuncAttrs:
             while( 'N' == tok() )
             {
                 next();
@@ -756,6 +757,13 @@ private struct Demangle
                     next();
                     put( "@safe " );
                     continue;
+                case 'g':
+                    // NOTE: The inout parameter type is represented as "Ng",
+                    //       which makes it look like a FuncAttr.  So if we
+                    //       see an "Ng" FuncAttr we know we're really in
+                    //       the parameter list.  Rewind and break.
+                    pos--;
+                    break breakFuncAttrs;
                 default:
                     error();
                 }
@@ -868,7 +876,9 @@ private struct Demangle
             case 'g': // Wild (Ng Type)
                 next();
                 // TODO: Anything needed here?
+                put( "inout(" );
                 parseType();
+                put( ")" );
                 return dst[beg .. len];
             case 'e': // TypeNewArray (Ne Type)
                 next();
@@ -1457,7 +1467,8 @@ unittest
         ["_D8demangle13__T2fnVeeNANZ2fnFZv", "void demangle.fn!(real.nan).fn()"],
         ["_D8demangle14__T2fnVeeNINFZ2fnFZv", "void demangle.fn!(-real.infinity).fn()"],
         ["_D8demangle13__T2fnVeeINFZ2fnFZv", "void demangle.fn!(real.infinity).fn()"],
-        ["_D8demangle21__T2fnVHiiA2i1i2i3i4Z2fnFZv", "void demangle.fn!([1:2, 3:4]).fn()"]
+        ["_D8demangle21__T2fnVHiiA2i1i2i3i4Z2fnFZv", "void demangle.fn!([1:2, 3:4]).fn()"],
+        ["_D8demangle2fnFNgiZNgi", "inout(int) demangle.fn(inout(int))"]
     ];
 
     foreach( i, name; table )
