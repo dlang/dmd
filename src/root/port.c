@@ -342,6 +342,7 @@ char *Port::strupr(char *s)
 #include <stdlib.h>
 #include <ctype.h>
 #include <float.h>
+#include <assert.h>
 
 static double zero = 0;
 double Port::nan = NAN;
@@ -424,12 +425,14 @@ int Port::isFinite(double r)
     return ::finite(r);
 }
 
-#undef isinf
 int Port::isInfinity(double r)
 {
 #if __APPLE__
     return fpclassify(r) == FP_INFINITE;
+#elif __OpenBSD__
+    return isinf(r);
 #else
+    #undef isinf
     return ::isinf(r);
 #endif
 }
@@ -474,7 +477,11 @@ char *Port::ull_to_string(char *buffer, ulonglong ull)
 
 wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
 {
+#if __OpenBSD__
+    assert(0);
+#else
     swprintf(buffer, sizeof(ulonglong) * 3 + 1, L"%llu", ull);
+#endif
     return buffer;
 }
 
