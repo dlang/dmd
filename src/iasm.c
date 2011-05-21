@@ -442,7 +442,7 @@ typedef struct opnd
         unsigned uchMultiplier; // register multiplier; valid values are 0,1,2,4,8
         opflag_t usFlags;
         Dsymbol *s;
-        long disp;
+        targ_llong disp;
         long double real;
         Type *ptype;
         ASM_JUMPTYPE ajt;
@@ -1122,11 +1122,13 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
             us = CONSTRUCT_FLAGS(sz, _imm, _normal, 0);
 
         else if (popnd->disp >= CHAR_MIN && popnd->disp <= UCHAR_MAX)
-            us = CONSTRUCT_FLAGS(_8 | _16 | _32, _imm, _normal, 0);
+            us = CONSTRUCT_FLAGS(  _8 | _16 | _32 | _64, _imm, _normal, 0);
         else if (popnd->disp >= SHRT_MIN && popnd->disp <= USHRT_MAX)
-            us = CONSTRUCT_FLAGS(_16 | _32, _imm, _normal, 0);
+            us = CONSTRUCT_FLAGS( _16 | _32 | _64, _imm, _normal, 0);
+        else if (popnd->disp >= INT_MIN && popnd->disp <= UINT_MAX)
+            us = CONSTRUCT_FLAGS( _32 | _64, _imm, _normal, 0);
         else
-            us = CONSTRUCT_FLAGS(_32, _imm, _normal, 0);
+            us = CONSTRUCT_FLAGS( _64, _imm, _normal, 0);
         return us;
 }
 
@@ -1541,6 +1543,7 @@ L1:
                         case _8:
                         case _16:
                         case _32:
+                        case _64:
                             if (popndTmp->s == asmstate.psLocalsize)
                             {
                                 pc->IFL2 = FLlocalsize;
@@ -1564,7 +1567,7 @@ L1:
                             }
                             else
                             {
-                                pc->IEVint2 = popndTmp->disp;
+                                pc->IEVllong2 = popndTmp->disp;
                                 pc->IFL2 = FLconst;
                             }
                             break;
@@ -4213,6 +4216,13 @@ STATIC OPND *asm_primary_exp()
             case TOKuns32v:
                 o1 = opnd_calloc();
                 o1->disp = asmtok->int32value;
+                asm_token();
+                break;
+
+            case TOKint64v:
+            case TOKuns64v:
+                o1 = opnd_calloc();
+                o1->disp = asmtok->int64value;
                 asm_token();
                 break;
 

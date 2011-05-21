@@ -137,6 +137,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
         "Posix",
 #endif
         "OSX", "FreeBSD",
+        "OpenBSD",
         "Solaris",
         "LittleEndian", "BigEndian",
         "all",

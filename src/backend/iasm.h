@@ -96,6 +96,7 @@ typedef unsigned opflag_t;
 #define _imm8   CONSTRUCT_FLAGS(_8, _imm, _normal, 0 )
 #define _imm16  CONSTRUCT_FLAGS(_16, _imm, _normal, 0)
 #define _imm32  CONSTRUCT_FLAGS(_32, _imm, _normal, 0)
+#define _imm64  CONSTRUCT_FLAGS(_64, _imm, _normal, 0)
 #define _rel8   CONSTRUCT_FLAGS(_8, _rel, _normal, 0)
 #define _rel16  CONSTRUCT_FLAGS(_16, _rel, _normal, 0)
 #define _rel32  CONSTRUCT_FLAGS(_32, _rel, _normal, 0)
@@ -178,7 +179,7 @@ typedef unsigned opflag_t;
 enum ASM_OPERAND_TYPE {
     _reg,           // _r8, _r16, _r32
     _m,             // _m8, _m16, _m32, _m48
-    _imm,           // _imm8, _imm16, _imm32
+    _imm,           // _imm8, _imm16, _imm32, _imm64
     _rel,           // _rel8, _rel16, _rel32
     _mnoi,          // _m1616, _m1632
     _p,             // _p1616, _p1632
