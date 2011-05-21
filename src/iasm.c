@@ -442,7 +442,7 @@ typedef struct opnd
         unsigned uchMultiplier; // register multiplier; valid values are 0,1,2,4,8
         opflag_t usFlags;
         Dsymbol *s;
-        long long disp;
+        targ_llong disp;
         long double real;
         Type *ptype;
         ASM_JUMPTYPE ajt;
