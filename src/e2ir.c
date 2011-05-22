@@ -5112,40 +5112,61 @@ elem *StructLiteralExp::toElem(IRState *irs)
 elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 {
     //printf("appendDtors(%d .. %d)\n", starti, endi);
+
+    /* Build edtors, an expression that calls destructors on all the variables
+     * going out of the scope starti..endi
+     */
     elem *edtors = NULL;
-    for (size_t i = endi; i != starti;)
+    for (size_t i = starti; i != endi; ++i)
     {
-        --i;
         VarDeclaration *vd = (VarDeclaration *)irs->varsInScope->data[i];
         if (vd)
         {
             //printf("appending dtor\n");
             irs->varsInScope->data[i] = NULL;
             elem *ed = vd->edtor->toElem(irs);
-            edtors = el_combine(edtors, ed);
+            edtors = el_combine(ed, edtors);    // execute in reverse order
         }
     }
+
     if (edtors)
     {
+        /* Append edtors to er, while preserving the value of er
+         */
         if (tybasic(er->Ety) == TYvoid)
-        {
+        {   /* No value to preserve, so simply append
+             */
             er = el_combine(er, edtors);
-        }
-        else if (tybasic(er->Ety) == TYstruct || tybasic(er->Ety) == TYarray)
-        {
-            elem *ep = el_una(OPaddr, TYnptr, er);
-            elem *e = el_same(&ep);
-            ep = el_combine(ep, edtors);
-            ep = el_combine(ep, e);
-            e = el_una(OPind, er->Ety, ep);
-            e->ET = er->ET;
-            er = e;
         }
         else
         {
-            elem *e = el_same(&er);
-            er = el_combine(er, edtors);
-            er = el_combine(er, e);
+            elem **pe;
+            for (pe = &er; (*pe)->Eoper == OPcomma; pe = &(*pe)->E2)
+                ;
+            elem *erx = *pe;
+
+            if (erx->Eoper == OPconst || erx->Eoper == OPrelconst || erx->Eoper == OPvar)
+            {
+                *pe = el_combine(edtors, erx);
+            }
+            else if (tybasic(erx->Ety) == TYstruct || tybasic(erx->Ety) == TYarray)
+            {
+                /* Expensive to copy, to take a pointer to it instead
+                 */
+                elem *ep = el_una(OPaddr, TYnptr, erx);
+                elem *e = el_same(&ep);
+                ep = el_combine(ep, edtors);
+                ep = el_combine(ep, e);
+                e = el_una(OPind, erx->Ety, ep);
+                e->ET = erx->ET;
+                *pe = e;
+            }
+            else
+            {
+                elem *e = el_same(&erx);
+                erx = el_combine(erx, edtors);
+                *pe = el_combine(erx, e);
+            }
         }
     }
     return er;
