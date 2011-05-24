@@ -1084,3 +1084,17 @@ int bug5258c() {
     return qq.r.length;
 }
 static assert(bug5258c() == 20);
+
+/**************************************************
+    Bug 6049
+**************************************************/
+
+struct Bug6049 {
+    int m;
+    this(int x)  {  m = x; }
+    invariant() { }
+}
+
+const Bug6049[] foo6049 = [Bug6049(6),  Bug6049(17)];
+
+static assert(foo6049[0].m == 6);
