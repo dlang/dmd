@@ -326,6 +326,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         VarDeclaration *v = (VarDeclaration *)parameters->data[i];
         v->setValueWithoutChecking((Expression *)vsave.data[i]);
     }
+    /* Clear __result. (Bug 6049).
+     */
+    if (vresult)
+        vresult->setValueNull();
 
     if (istate && !isNested())
     {
