@@ -1287,8 +1287,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             else
                 e = v->type->defaultInitLiteral(loc);
         }
-        else if (!v->isDataseg() && !istate) {
-            error(loc, "variable %s cannot be read at compile time", v->toChars());
+        else if (!v->isDataseg() && !v->isCTFE() && !istate)
+        {   error(loc, "variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
         else
