@@ -404,6 +404,14 @@ tryagain:
     debugw && printf("code jump optimization complete\n");
 #endif
 
+#if MARS
+    if (usednteh & NTEH_try)
+    {
+        // Do this before code is emitted because we patch some instructions
+        nteh_filltables();
+    }
+#endif
+
     // Compute starting offset for switch tables
 #if ELFOBJ || MACHOBJ
     swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
@@ -520,8 +528,6 @@ tryagain:
                 retoffset = b->Boffset + b->Bsize - funcoffset;
                 break;
         }
-        code_free(b->Bcode);
-        b->Bcode = NULL;
     }
     if (flag && configv.addlinenumbers && !(funcsym_p->ty() & mTYnaked))
         /* put line number at end of function on the
@@ -533,6 +539,7 @@ tryagain:
 #if MARS
     if (usednteh & NTEH_try)
     {
+        // Do this before code is emitted because we patch some instructions
         nteh_gentables();
     }
     if (usednteh & EHtry)
@@ -561,6 +568,12 @@ tryagain:
         ;
     }
 #endif
+    for (b = startblock; b; b = b->Bnext)
+    {
+        code_free(b->Bcode);
+        b->Bcode = NULL;
+    }
+
     }
 
     // Mask of regs saved
@@ -1390,7 +1403,7 @@ STATIC void cgcod_eh()
             if ((c->Iop & 0xFF) == ESCAPE)
             {
                 c1 = NULL;
-                switch (c->Iop & 0xFF00)
+                switch (c->Iop & 0xFFFF00)
                 {
                     case ESCctor:
 //printf("ESCctor\n");

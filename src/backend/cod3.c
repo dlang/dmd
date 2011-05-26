@@ -551,7 +551,7 @@ void doswitch(block *b)
             code *cgot;
 
             ce = cat(ce, getregs(mDX));
-            cx = genc2(NULL,0xE8,0,0);  //     CALL L1
+            cx = genc2(NULL,CALL,0,0);  //     CALL L1
             gen1(cx, 0x58 + DI);        // L1: POP EDI
 
                                         //     ADD EDI,_GLOBAL_OFFSET_TABLE_+3
@@ -1021,7 +1021,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
         c = cat(c,getregs(used));
                                                 // CALL __ptrchk
-        gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,rtlsym[RTLSYM_PTRCHK]);
+        gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,rtlsym[RTLSYM_PTRCHK]);
     }
 
     *pc = cat(c,cs2);
@@ -1124,7 +1124,7 @@ code *cdgot(elem *e, regm_t *pretregs)
         retregs = allregs;
     c = allocreg(&retregs, &reg, TYnptr);
 
-    c = genc(c,0xE8,0,0,0,FLgot,0);     //     CALL L1
+    c = genc(c,CALL,0,0,0,FLgot,0);     //     CALL L1
     gen1(c, 0x58 + reg);                // L1: POP reg
 
     return cat(c,fixresult(e,retregs,pretregs));
@@ -1139,7 +1139,7 @@ code *cdgot(elem *e, regm_t *pretregs)
         retregs = allregs;
     c = allocreg(&retregs, &reg, TYnptr);
 
-    c = genc2(c,0xE8,0,0);      //     CALL L1
+    c = genc2(c,CALL,0,0);      //     CALL L1
     gen1(c, 0x58 + reg);        // L1: POP reg
 
                                 //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
@@ -1512,7 +1512,7 @@ Lagain:
                     c = movregconst(c,AX,xlocalsize,FALSE); // MOV AX,localsize
                     makeitextern(rtlsym[RTLSYM_CHKSTK]);
                                                             // CALL _chkstk
-                    gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,rtlsym[RTLSYM_CHKSTK]);
+                    gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,rtlsym[RTLSYM_CHKSTK]);
                     useregs((ALLREGS | mBP | mES) & ~rtlsym[RTLSYM_CHKSTK]->Sregsaved);
                 }
                 else
@@ -1640,7 +1640,7 @@ Lagain:
 
         symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_PRO_F : RTLSYM_TRACE_PRO_N];
         makeitextern(s);
-        c = gencs(c,I16 ? 0x9A : 0xE8,0,FLfunc,s);      // CALL _trace
+        c = gencs(c,I16 ? 0x9A : CALL,0,FLfunc,s);      // CALL _trace
         if (!I16)
             code_orflag(c,CFoff | CFselfrel);
         /* Embedding the function name inline after the call works, but it
@@ -2089,7 +2089,7 @@ void epilog(block *b)
     {
         symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N];
         makeitextern(s);
-        c = gencs(c,I16 ? 0x9A : 0xE8,0,FLfunc,s);      // CALLF _trace
+        c = gencs(c,I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
         if (!I16)
             code_orflag(c,CFoff | CFselfrel);
         useregs((ALLREGS | mBP | mES) & ~s->Sregsaved);
@@ -2247,7 +2247,7 @@ Lopt:
         }
 #if 0   // These optimizations don't work if the called function
         // cleans off the stack.
-        else if (c->Iop == 0xC3 && cr->Iop == 0xE8)     // CALL near
+        else if (c->Iop == 0xC3 && cr->Iop == CALL)     // CALL near
         {   cr->Iop = 0xE9;                             // JMP near
             c->Iop = NOP;
         }
@@ -2281,7 +2281,7 @@ code *cod3_load_got()
     code *c;
     code *cgot;
 
-    c = genc2(NULL,0xE8,0,0);   //     CALL L1
+    c = genc2(NULL,CALL,0,0);   //     CALL L1
     gen1(c, 0x58 + BX);         // L1: POP EBX
 
                                 //     ADD EBX,_GLOBAL_OFFSET_TABLE_+3
@@ -2639,7 +2639,7 @@ int branch(block *bl,int flag)
                         config.target_cpu >= TARGET_80386 &&
                         disp == (I16 ? 3 : 5) &&
                         cn &&
-                        cn->Iop == 0xE8 &&
+                        cn->Iop == CALL &&
                         cn->IFL2 == FLfunc &&
                         cn->IEVsym2->Sflags & SFLexit &&
                         !(cn->Iflags & (CFtarg | CFtarg2))
@@ -3688,7 +3688,7 @@ void jmpaddr(code *c)
         if (op <= 0xEB &&
             inssize[op] & T &&   // if second operand
             c->IFL2 == FLcode &&
-            ((op & ~0x0F) == 0x70 || op == JMP || op == JMPS || op == JCXZ))
+            ((op & ~0x0F) == 0x70 || op == JMP || op == JMPS || op == JCXZ || op == CALL))
         {       ci = code_next(c);
                 ctarg = c->IEV2.Vcode;  /* target code                  */
                 ad = 0;                 /* IP displacement              */
@@ -3699,7 +3699,7 @@ void jmpaddr(code *c)
                 }
                 if (!ci)
                     goto Lbackjmp;      // couldn't find it
-                if (!I16 || op == JMP || op == JMPS || op == JCXZ)
+                if (!I16 || op == JMP || op == JMPS || op == JCXZ || op == CALL)
                         c->IEVpointer2 = ad;
                 else                    /* else conditional             */
                 {       if (!(c->Iflags & CFjmp16))     /* if branch    */
@@ -4080,7 +4080,7 @@ unsigned codout(code *c)
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
         {   case ESCAPE:
-                switch (op & 0xFF00)
+                switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
                         objlinnum(c->IEV2.Vsrcpos,OFFSET());
@@ -4351,8 +4351,8 @@ unsigned codout(code *c)
                             else
                                 goto case_default;
 
-                        case 0xE8:              // CALL rel
-                        case 0xE9:              // JMP  rel
+                        case CALL:              // CALL rel
+                        case JMP:               // JMP  rel
                             flags |= CFselfrel;
                             goto case_default;
 
@@ -4414,8 +4414,8 @@ unsigned codout(code *c)
                             else
                                 goto case_default16;
 
-                        case 0xE8:
-                        case 0xE9:
+                        case CALL:
+                        case JMP:
                             flags |= CFselfrel;
                         default:
                         case_default16:
@@ -5039,10 +5039,12 @@ void code_hydrate(code **pc)
             case FLblockoff:
                 (void) ph_hydrate(&c->IEV1.Vblock);
                 break;
+#if SCPP
             case FLctor:
             case FLdtor:
                 el_hydrate(&c->IEV1.Vtor);
                 break;
+#endif
             case FLasm:
                 (void) ph_hydrate(&c->IEV1.as.bytes);
                 break;

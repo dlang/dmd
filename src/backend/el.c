@@ -2398,6 +2398,9 @@ elem *el_dctor(elem *e,void *decl)
     if (e)
         e = el_bin(OPinfo,e->Ety,ector,e);
     else
+        /* Remember that a "constructor" may execute no code, hence
+         * the need for OPinfo if there is code to execute.
+         */
         e = ector;
     return e;
 }
@@ -2413,6 +2416,10 @@ elem *el_dctor(elem *e,void *decl)
 #if MARS
 elem *el_ddtor(elem *e,void *decl)
 {
+    /* A destructor always executes code, or we wouldn't need
+     * eh for it.
+     * An OPddtor must match 1:1 with an OPdctor
+     */
     elem *edtor = el_calloc();
     edtor->Eoper = OPddtor;
     edtor->Ety = TYvoid;
@@ -2461,7 +2468,6 @@ elem *el_ctor(elem *ector,elem *e,symbol *sdtor)
         else
         {
             ector = el_unat(OPctor,ector->ET,ector);
-            symbol_debug(sdtor);
             ector->EV.eop.Edtor = sdtor;
             symbol_debug(sdtor);
             if (e)
