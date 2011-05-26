@@ -1152,3 +1152,23 @@ bool bug6052b() {
 }
 
 static assert(bug6052b());
+
+/**************************************************
+    Index + slice assign to function returns
+**************************************************/
+
+int[] funcRetArr(int[] a)
+{
+    return a;
+}
+
+int testFuncRetAssign()
+{
+    int [] x = new int[20];
+    funcRetArr(x)[2] = 4;
+    assert(x[2]==4);
+    funcRetArr(x)[] = 27;
+    assert(x[15]==27);
+    return 5;
+}
+static assert(testFuncRetAssign() == 5);
