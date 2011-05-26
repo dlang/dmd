@@ -2646,7 +2646,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (fieldi == -1)
             return EXP_CANT_INTERPRET;
         assert(fieldi>=0 && fieldi < se->elements->dim);
-        if (!wantRef && (newval->op == TOKstructliteral || newval->op == TOKarrayliteral))
+        if (newval->op == TOKstructliteral)
             assignInPlace((Expression *)(se->elements->data[fieldi]), newval);
         else
             se->elements->data[fieldi] = newval;
@@ -2760,7 +2760,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         if (existingAE)
         {
-            existingAE->elements->data[indexToModify] = newval;
+            if (newval->op == TOKstructliteral)
+                assignInPlace((Expression *)(existingAE->elements->data[indexToModify]), newval);
+            else
+                existingAE->elements->data[indexToModify] = newval;
             return returnValue;
         }
         if (existingSE)
