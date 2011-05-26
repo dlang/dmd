@@ -196,6 +196,21 @@ Expression *TraitsExp::semantic(Scope *sc)
         StringExp *se = new StringExp(loc, s->ident->toChars());
         return se->semantic(sc);
     }
+    else if (ident == Id::moduleOf)
+    {   // Get the module name for symbol as a string literal
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = (Object *)args->data[0];
+        Dsymbol *s = getDsymbol(o);
+        StringExp *se;
+        if (!s || !s->getModule()->md)
+        {
+            se = new StringExp(loc, s->getModule()->toChars());
+        }
+        else
+            se = new StringExp(loc, s->getModule()->md->toChars());
+        return se->semantic(sc);
+    }
     else if (ident == Id::parent)
     {
         if (dim != 1)
