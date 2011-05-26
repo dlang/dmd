@@ -1033,3 +1033,68 @@ ulong nqueen(int n) {
 }
 
 static assert(nqueen(2) == 65);
+
+/**************************************************
+    Bug 5258
+**************************************************/
+
+struct Foo5258 { int x; }
+void bar5258(int n, ref Foo5258 fong) {
+    if (n)
+        bar5258(n - 1, fong);
+    else
+        fong.x++;
+}
+int bug5258() {
+    bar5258(1, Foo5258());
+    return 45;
+}
+static assert(bug5258()==45);
+
+
+struct Foo5258b  { int[2] r; }
+void baqopY(int n, ref int[2] fongo) {
+    if (n)
+        baqopY(n - 1, fongo);
+    else
+        fongo[0]++;
+}
+int bug5258b() {
+    Foo5258b qq;
+    baqopY(1, qq.r);
+    return 618;
+}
+static assert(bug5258b()==618);
+
+// Notice that this case involving reassigning the dynamic array
+struct Foo5258c { int[] r; }
+void baqop(int n, ref int[] fongo) {
+    if (n)
+        baqop(n - 1, fongo);
+    else
+    {
+        fongo = new int[20];
+        fongo[0]++;
+    }
+}
+int bug5258c() {
+    Foo5258c qq;
+    qq.r = new int[30];
+    baqop(1, qq.r);
+    return qq.r.length;
+}
+static assert(bug5258c() == 20);
+
+/**************************************************
+    Bug 6049
+**************************************************/
+
+struct Bug6049 {
+    int m;
+    this(int x)  {  m = x; }
+    invariant() { }
+}
+
+const Bug6049[] foo6049 = [Bug6049(6),  Bug6049(17)];
+
+static assert(foo6049[0].m == 6);
