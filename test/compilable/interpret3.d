@@ -1114,3 +1114,41 @@ struct Bug6049 {
 const Bug6049[] foo6049 = [Bug6049(6),  Bug6049(17)];
 
 static assert(foo6049[0].m == 6);
+
+/**************************************************
+    Bug 6052
+**************************************************/
+
+struct Bug6052 {
+    int a;
+}
+
+bool bug6052() {
+    Bug6052[2] arr;
+    for (int i = 0; i < 2; ++ i) {
+        Bug6052 el = {i};
+        Bug6052 ek = el;
+        arr[i] = el;
+        el.a = i + 2;
+        assert(ek.a == i);      // ok
+        assert(arr[i].a == i);  // fail
+    }
+    assert(arr[1].a == 1);  // ok
+    assert(arr[0].a == 0);  // fail
+    return true;
+}
+
+static assert(bug6052());
+
+bool bug6052b() {
+    int[][1] arr;
+    int[1] z = [7];
+    arr[0] = z;
+    assert(arr[0][0] == 7);
+    arr[0] = z;
+    z[0] = 3;
+    assert(arr[0][0] == 3);
+    return true;
+}
+
+static assert(bug6052b());
