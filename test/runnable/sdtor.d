@@ -1,6 +1,7 @@
 
 import core.vararg;
 import std.c.stdio;
+import core.exception;
 
 int sdtor;
 
@@ -1282,18 +1283,18 @@ struct A52
     this(this)
     {
         printf("this(this) %p\n", &this);
-      s52 ~= 'a';
+	s52 ~= 'a';
     }
     ~this()
     {
         printf("~this() %p\n", &this);
-      s52 ~= 'b';
+	s52 ~= 'b';
     }
     A52 copy()
     {
-      s52 ~= 'c';
-      A52 another = this;
-      return another;
+	s52 ~= 'c';
+	A52 another = this;
+	return another;
     }
 }
 
@@ -1316,6 +1317,155 @@ struct A53 {
     ~this() { }
     void opAssign(A53 a) {}
     int blah(A53 a) { return 0; }
+}
+
+/**********************************/
+
+struct S54
+{
+    int x = 1;
+
+    int bar() { return x; }
+
+    this(int i)
+    {
+	printf("ctor %p(%d)\n", &this, i);
+	t ~= "a";
+    }
+
+    this(this)
+    {
+	printf("postblit %p\n", &this);
+	t ~= "b";
+    }
+
+    ~this()
+    {
+	printf("dtor %p\n", &this);
+	t ~= "c";
+    }
+
+    static string t;
+}
+
+void bar54(S54 s) { }
+
+S54 abc54() { return S54(1); }
+
+void test54()
+{
+    {	S54.t = null;
+	S54 s = S54(1);
+    }
+    assert(S54.t == "ac");
+
+    {	S54.t = null;
+	S54 s = S54();
+    }
+    assert(S54.t == "c");
+
+    {	S54.t = null;
+	int b = 1 && (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "ac");
+
+    {	S54.t = null;
+	int b = 0 && (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "");
+
+    {	S54.t = null;
+	int b = 0 || (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "ac");
+
+    {	S54.t = null;
+	int b = 1 || (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "");
+
+    {
+	S54.t = null;
+	{ const S54 s = S54(1); }
+	assert(S54.t == "ac");
+    }
+    {
+	S54.t = null;
+	abc54();
+	assert(S54.t == "ac");
+    }
+    {
+	S54.t = null;
+	abc54().x += 1;
+	assert(S54.t == "ac");
+    }
+}
+
+/**********************************/
+
+void test55()
+{
+    S55 s;
+    auto t = s.copy();
+    assert(t.count == 1);   // (5)
+}
+
+struct S55
+{
+    int count;
+    this(this) { ++count; }
+    S55 copy() { return this; }
+}
+
+/**********************************/
+
+struct S56
+{
+    int x = 1;
+
+    int bar() { return x; }
+
+    this(int i)
+    {
+	printf("ctor %p(%d)\n", &this, i);
+	t ~= "a";
+    }
+
+    this(this)
+    {
+	printf("postblit %p\n", &this);
+	t ~= "b";
+    }
+
+    ~this()
+    {
+	printf("dtor %p\n", &this);
+	t ~= "c";
+    }
+
+    static string t;
+}
+
+int foo56()
+{
+    throw new Throwable("hello");
+    return 5;
+}
+
+
+void test56()
+{
+   int i;
+   try
+   {
+       i = S56(1).x + foo56() + 1;
+   }
+   catch (Throwable o)
+   {
+	printf("caught\n");
+   }
+   printf("i = %d\n", i);
+   assert(i == 0);
 }
 
 /**********************************/
@@ -1374,6 +1524,10 @@ int main()
     test50();
     test51();
     test52();
+
+    test54();
+    test55();
+    test56();
 
     printf("Success\n");
     return 0;

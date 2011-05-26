@@ -460,6 +460,41 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
     }
 }
 
+/************************************************
+ * If we want the value of this expression, but do not want to call
+ * the destructor on it.
+ */
+
+void valueNoDtor(Expression *e)
+{
+    if (e->op == TOKcall)
+    {
+        /* The struct value returned from the function is transferred
+         * so do not call the destructor on it.
+         * Recognize:
+         *       ((S _ctmp = S.init), _ctmp).this(...)
+         * and make sure the destructor is not called on _ctmp
+         * BUG: if e is a CommaExp, we should go down the right side.
+         */
+        CallExp *ce = (CallExp *)e;
+        if (ce->e1->op == TOKdotvar)
+        {   DotVarExp *dve = (DotVarExp *)ce->e1;
+            if (dve->var->isCtorDeclaration())
+            {   // It's a constructor call
+                if (dve->e1->op == TOKcomma)
+                {   CommaExp *comma = (CommaExp *)dve->e1;
+                    if (comma->e2->op == TOKvar)
+                    {   VarExp *ve = (VarExp *)comma->e2;
+                        VarDeclaration *ctmp = ve->var->isVarDeclaration();
+                        if (ctmp)
+                            ctmp->noscope = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /*********************************************
  * Call copy constructor for struct value argument.
  */
@@ -686,24 +721,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     /* The struct value returned from the function is transferred
                      * to the function, so the callee should not call the destructor
                      * on it.
-                     * ((S _ctmp = S.init), _ctmp).this(...)
                      */
-                    CallExp *ce = (CallExp *)arg;
-                    if (ce->e1->op == TOKdotvar)
-                    {   DotVarExp *dve = (DotVarExp *)ce->e1;
-                        if (dve->var->isCtorDeclaration())
-                        {   // It's a constructor call
-                            if (dve->e1->op == TOKcomma)
-                            {   CommaExp *comma = (CommaExp *)dve->e1;
-                                if (comma->e2->op == TOKvar)
-                                {   VarExp *ve = (VarExp *)comma->e2;
-                                    VarDeclaration *ctmp = ve->var->isVarDeclaration();
-                                    if (ctmp)
-                                        ctmp->noscope = 1;
-                                }
-                            }
-                        }
-                    }
+                    valueNoDtor(arg);
                 }
                 else
                 {   /* Not transferring it, so call the copy constructor
@@ -9265,24 +9284,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 {
                     /* The struct value returned from the function is transferred
                      * so should not call the destructor on it.
-                     * ((S _ctmp = S.init), _ctmp).this(...)
                      */
-                    CallExp *ce = (CallExp *)e2;
-                    if (ce->e1->op == TOKdotvar)
-                    {   DotVarExp *dve = (DotVarExp *)ce->e1;
-                        if (dve->var->isCtorDeclaration())
-                        {   // It's a constructor call
-                            if (dve->e1->op == TOKcomma)
-                            {   CommaExp *comma = (CommaExp *)dve->e1;
-                                if (comma->e2->op == TOKvar)
-                                {   VarExp *ve = (VarExp *)comma->e2;
-                                    VarDeclaration *ctmp = ve->var->isVarDeclaration();
-                                    if (ctmp)
-                                        ctmp->noscope = 1;
-                                }
-                            }
-                        }
-                    }
+                    valueNoDtor(e2);
                 }
             }
         }

@@ -4651,7 +4651,28 @@ code *cdinfo(elem *e,regm_t *pretregs)
 
 code *cddctor(elem *e,regm_t *pretregs)
 {
+#if MARS
+    /* Generate:
+        ESCAPE | ESCdctor
+        MOV     sindex[BP],index
+     */
+    usednteh |= EHcleanup;
+    if (config.exe == EX_NT)
+        usednteh |= NTEHcleanup;
+    assert(*pretregs == 0);
+    code cs;
+    cs.Iop = ESCAPE | ESCdctor;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+    cs.IFL1 = FLctor;
+    cs.IEV1.Vtor = e;
+    code *c = gen(CNIL,&cs);
+    c = cat(c, nteh_gensindex(0));      // the actual index will be patched in later
+                                        // by except_fillInEHTable()
+    return c;
+#else
     return NULL;
+#endif
 }
 
 /*******************************************
@@ -4660,7 +4681,46 @@ code *cddctor(elem *e,regm_t *pretregs)
 
 code *cdddtor(elem *e,regm_t *pretregs)
 {
+#if MARS
+    /* Generate:
+        ESCAPE | ESCddtor
+        MOV     sindex[BP],index
+        CALL    dtor
+        JMP     L1
+    Ldtor:
+        ... e->E1 ...
+        RET
+    L1: NOP
+    */
+    usednteh |= EHcleanup;
+    if (config.exe == EX_NT)
+        usednteh |= NTEHcleanup;
+
+    code cs;
+    cs.Iop = ESCAPE | ESCddtor;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+    cs.IFL1 = FLdtor;
+    cs.IEV1.Vtor = e;
+    code *cd = gen(CNIL,&cs);
+
+    cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
+                                        // by except_fillInEHTable()
+
+    assert(*pretregs == 0);
+    code *c = codelem(e->E1,pretregs,FALSE);
+    gen1(c,0xC3);               // RET
+
+    genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+
+    code *cnop = gennop(CNIL);
+
+    genjmp(cd,JMP,FLcode,(block *)cnop);
+
+    return cat4(cd, c, cnop, NULL);
+#else
     return NULL;
+#endif
 }
 
 

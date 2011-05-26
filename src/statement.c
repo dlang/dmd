@@ -2459,7 +2459,7 @@ Statement *ConditionalStatement::syntaxCopy()
 
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
-    printf("ConditionalStatement::semantic()\n");
+    //printf("ConditionalStatement::semantic()\n");
 
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
@@ -3614,6 +3614,17 @@ Statement *ReturnStatement::semantic(Scope *sc)
         exp = NULL;
         s = s->semantic(sc);
         return new CompoundStatement(loc, s, this);
+    }
+
+    if (exp)
+    {   if (exp->op == TOKcall)
+            valueNoDtor(exp);
+        else
+        {
+            Expression *e = exp->isTemp();
+            if (e)
+                exp = e;                // don't need temporary
+        }
     }
 
     return this;

@@ -71,6 +71,7 @@ void expandTuples(Expressions *exps);
 FuncDeclaration *hasThis(Scope *sc);
 Expression *fromConstInitializer(int result, Expression *e);
 int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
+void valueNoDtor(Expression *e);
 
 /* Interpreter: what form of return value expression is required?
  */

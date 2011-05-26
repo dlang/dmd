@@ -196,6 +196,7 @@ extern regm_t BYTEREGS;
 #define SEGFS   0x64
 #define SEGGS   0x65
 
+#define CALL    0xE8
 #define JMP     0xE9    /* Intra-Segment Direct */
 #define JMPS    0xEB    /* JMP SHORT            */
 #define JCXZ    0xE3
@@ -241,6 +242,8 @@ extern regm_t BYTEREGS;
     #define ESCmark2    (8 << 8)       // mark eh stack
     #define ESCrelease2 (9 << 8)       // release eh stack
     #define ESCframeptr (10 << 8)      // replace with load of frame pointer
+    #define ESCdctor    (11 << 8)      // D object is constructed
+    #define ESCddtor    (12 << 8)      // D object is destructed
 
 #define ASM     0x36    // string of asm bytes, actually an SS: opcode
 
@@ -834,6 +837,7 @@ regm_t iasm_regs( block *bp );
 code *nteh_prolog(void);
 code *nteh_epilog(void);
 void nteh_usevars(void);
+void nteh_filltables(void);
 void nteh_gentables(void);
 code *nteh_setsp(int op);
 code *nteh_filter(block *b);

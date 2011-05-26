@@ -5113,6 +5113,10 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 {
     //printf("appendDtors(%d .. %d)\n", starti, endi);
 
+    /* Code gen can be improved by determining if no exceptions can be thrown
+     * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.
+     */
+
     /* Build edtors, an expression that calls destructors on all the variables
      * going out of the scope starti..endi
      */
@@ -5125,6 +5129,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
             //printf("appending dtor\n");
             irs->varsInScope->data[i] = NULL;
             elem *ed = vd->edtor->toElem(irs);
+            ed = el_ddtor(ed, vd);
             edtors = el_combine(ed, edtors);    // execute in reverse order
         }
     }
@@ -5145,7 +5150,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
                 ;
             elem *erx = *pe;
 
-            if (erx->Eoper == OPconst || erx->Eoper == OPrelconst || erx->Eoper == OPvar)
+            if (erx->Eoper == OPconst || erx->Eoper == OPrelconst)
             {
                 *pe = el_combine(edtors, erx);
             }

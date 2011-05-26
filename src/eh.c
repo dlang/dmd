@@ -16,6 +16,7 @@
 
 #include        <stdio.h>
 #include        <string.h>
+#include        <stdlib.h>
 #include        <time.h>
 
 #include        "cc.h"
@@ -34,6 +35,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
  * (Otherwise use NT Structured Exception Handling)
  */
 #define OUREH   (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+
 
 /****************************
  * Generate and output scope table.
@@ -87,7 +89,7 @@ void except_fillInEHTable(symbol *s)
         unsigned        offset of ESP from EBP
         unsigned        offset from start of function to return code
         unsigned nguards;       // dimension of guard[] (Linux)
-        Guard guard[];
+        Guard guard[];          // sorted such that the enclosing guarded sections come first
       catchoffset:
         unsigned ncatches;      // number of catch blocks
         {   void *type;         // symbol representing type
@@ -125,20 +127,28 @@ void except_fillInEHTable(symbol *s)
 
     // First, calculate starting catch offset
     int guarddim = 0;                               // max dimension of guard[]
+    int ndctors = 0;                                // number of ESCdctor's
     for (block *b = startblock; b; b = b->Bnext)
     {
         if (b->BC == BC_try && b->Bscope_index >= guarddim)
             guarddim = b->Bscope_index + 1;
 //      printf("b->BC = %2d, Bscope_index = %2d, last_index = %2d, offset = x%x\n",
 //              b->BC, b->Bscope_index, b->Blast_index, b->Boffset);
+        if (usednteh & EHcleanup)
+            for (code *c = b->Bcode; c; c = code_next(c))
+            {
+                if (c->Iop == (ESCAPE | ESCddtor))
+                    ndctors++;
+            }
     }
+    //printf("guarddim = %d, ndctors = %d\n", guarddim, ndctors);
 
 #if OUREH
-    pdt = dtsize_t(pdt,guarddim);
+    pdt = dtsize_t(pdt,guarddim + ndctors);
     sz += NPTRSIZE;
 #endif
 
-    unsigned catchoffset = sz + guarddim * GUARD_SIZE;
+    unsigned catchoffset = sz + (guarddim + ndctors) * GUARD_SIZE;
 
     // Generate guard[]
     int i = 0;
@@ -201,6 +211,101 @@ void except_fillInEHTable(symbol *s)
             }
             sz += GUARD_SIZE;
         }
+    }
+
+    /* Append to guard[] the guard blocks for temporaries that are created and destroyed
+     * within a single expression. These are marked by the special instruction pairs
+     * (ESCAPE | ESCdctor) and (ESCAPE | ESCddtor).
+     */
+    if (usednteh & EHcleanup)
+    {
+    int scopeindex = guarddim;
+    for (block *b = startblock; b; b = b->Bnext)
+    {
+        /* Set up stack of scope indices
+         */
+        #define STACKINC 16
+        int stackbuf[STACKINC];
+        int *stack = stackbuf;
+        int stackmax = STACKINC;
+        stack[0] = b->Bscope_index;
+        int stacki = 1;
+
+        unsigned boffset = b->Boffset;
+        for (code *c = b->Bcode; c; c = code_next(c))
+        {
+            if (c->Iop == (ESCAPE | ESCdctor))
+            {
+                code *c2 = code_next(c);
+                if (config.flags2 & CFG2seh)
+                    c2->IEV2.Vsize_t = scopeindex;
+#if OUREH
+                pdt = dtdword(pdt,boffset - startblock->Boffset); // guard offset
+#endif
+                // Find corresponding ddtor instruction
+                int n = 0;
+                unsigned eoffset = boffset;
+                unsigned foffset;
+                for (; 1; c2 = code_next(c2))
+                {
+                    assert(c2);
+                    if (c2->Iop == (ESCAPE | ESCddtor))
+                    {
+                        if (n)
+                            n--;
+                        else
+                        {
+                            foffset = eoffset;
+                            code *cf = code_next(c2);
+                            if (config.flags2 & CFG2seh)
+                            {   cf->IEV2.Vsize_t = scopeindex;
+                                foffset += calccodsize(cf);
+                                cf = code_next(cf);
+                            }
+                            foffset += calccodsize(cf);
+                            cf = code_next(cf);
+                            foffset += calccodsize(cf);
+#if OUREH
+                            pdt = dtdword(pdt,eoffset - startblock->Boffset); // guard offset
+#endif
+                            break;
+                        }
+                    }
+                    else if (c2->Iop == (ESCAPE | ESCdctor))
+                    {
+                        n++;
+                    }
+                    else
+                        eoffset += calccodsize(c2);
+                }
+                //printf("boffset = %x, eoffset = %x, foffset = %x\n", boffset, eoffset, foffset);
+                pdt = dtdword(pdt,stack[stacki - 1]);   // parent index
+                pdt = dtdword(pdt,0);           // no catch offset
+#if OUREH
+                pdt = dtxoff(pdt,funcsym_p,foffset - startblock->Boffset, TYnptr);    // finally handler offset
+#else
+                pdt = dtcoff(pdt,foffset);  // finally handler address
+#endif
+                if (stacki == stackmax)
+                {   // stack[] is out of space; enlarge it
+                    int *pi = (int *)alloca((stackmax + STACKINC) * sizeof(int));
+                    assert(pi);
+                    memcpy(pi, stack, stackmax * sizeof(int));
+                    stack = pi;
+                    stackmax += STACKINC;
+                }
+                stack[stacki++] = scopeindex;
+                ++scopeindex;
+                sz += GUARD_SIZE;
+            }
+            else if (c->Iop == (ESCAPE | ESCddtor))
+            {
+                stacki--;
+                assert(stacki != 0);
+            }
+            boffset += calccodsize(c);
+        }
+    }
     }
 
     // Generate catch[]
