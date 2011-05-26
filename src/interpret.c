@@ -3649,7 +3649,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("CastExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate);
+    e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
     e = Cast(type, to, e1);
