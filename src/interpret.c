@@ -3882,7 +3882,7 @@ Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
     Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
     Type *elemType = ((TypeAArray *)aae->type)->index;
     e->type = new TypeSArray(elemType, new IntegerExp(arguments ? arguments->dim : 0));
-    return e;
+    return copyLiteral(e);
 }
 
 Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
@@ -3904,8 +3904,8 @@ Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
     Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
     Type *elemType = ((TypeAArray *)aae->type)->next;
     e->type = new TypeSArray(elemType, new IntegerExp(arguments ? arguments->dim : 0));
-    printf("result is %s\n", e->toChars());
-    return e;
+    //printf("result is %s\n", e->toChars());
+    return copyLiteral(e);
 }
 
 #endif
@@ -3944,7 +3944,7 @@ Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration
     assert(fd->type->nextOf()->ty == Tarray);
     Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
     e->type = new TypeSArray(elemType, new IntegerExp(aae->keys->dim));
-    return e;
+    return copyLiteral(e);
 }
 
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd)
@@ -3967,7 +3967,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
     Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
     e->type = new TypeSArray(elemType, new IntegerExp(aae->values->dim));
     //printf("result is %s\n", e->toChars());
-    return e;
+    return copyLiteral(e);
 }
 
 #endif
