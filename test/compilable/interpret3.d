@@ -1077,7 +1077,7 @@ void baqop(int n, ref int[] fongo) {
         fongo[0]++;
     }
 }
-int bug5258c() {
+size_t bug5258c() {
     Foo5258c qq;
     qq.r = new int[30];
     baqop(1, qq.r);
