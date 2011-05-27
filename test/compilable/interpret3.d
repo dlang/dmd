@@ -1183,3 +1183,16 @@ int keyAssign()
     return 5;
 }
 static assert(keyAssign()==5);
+
+/**************************************************
+    Bug 6054 -- AA literals
+**************************************************/
+
+enum x6054 = {
+    auto p = {
+        int[string] pieces;
+        pieces[['a'].idup] = 1;
+        return pieces;
+    }();
+    return p;
+}();
