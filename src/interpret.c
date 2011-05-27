@@ -2034,6 +2034,18 @@ bool needToCopyLiteral(Expression *expr)
     }
 }
 
+Expressions *copyLiteralArray(Expressions *oldelems)
+{
+    if (!oldelems)
+        return oldelems;
+    Expressions *newelems = new Expressions();
+    newelems->setDim(oldelems->dim);
+    for (size_t i = 0; i < oldelems->dim; i++)
+        newelems->data[i] = copyLiteral((Expression *)(oldelems->data[i]));
+    return newelems;
+}
+
+
 
 // Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
 // This value will be used for in-place modification.
@@ -2055,12 +2067,16 @@ Expression *copyLiteral(Expression *e)
     else if (e->op == TOKarrayliteral)
     {
         ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-        Expressions *oldelems = ae->elements;
-        Expressions *newelems = new Expressions();
-        newelems->setDim(oldelems->dim);
-        for (size_t i = 0; i < oldelems->dim; i++)
-            newelems->data[i] = copyLiteral((Expression *)(oldelems->data[i]));
-        ArrayLiteralExp *r = new ArrayLiteralExp(ae->loc, newelems);
+        ArrayLiteralExp *r = new ArrayLiteralExp(e->loc,
+            copyLiteralArray(ae->elements));
+        r->type = e->type;
+        return r;
+    }
+    else if (e->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
+        AssocArrayLiteralExp *r = new AssocArrayLiteralExp(e->loc,
+            copyLiteralArray(aae->keys), copyLiteralArray(aae->values));
         r->type = e->type;
         return r;
     }
