@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -76,6 +76,7 @@ enum CtfeGoal
 {   ctfeNeedRvalue,   // Must return an Rvalue
     ctfeNeedLvalue,   // Must return an Lvalue
     ctfeNeedAnyValue, // Can return either an Rvalue or an Lvalue
+    ctfeNeedLvalueRef,// Must return a reference to an Lvalue (for ref types)
     ctfeNeedNothing   // The return value is not required
 };
 
