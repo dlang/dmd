@@ -1093,7 +1093,7 @@ void baqop(int n, ref int[] fongo) {
         fongo[0]++;
     }
 }
-int bug5258c() {
+size_t bug5258c() {
     Foo5258c qq;
     qq.r = new int[30];
     baqop(1, qq.r);
@@ -1172,3 +1172,14 @@ int testFuncRetAssign()
     return 5;
 }
 static assert(testFuncRetAssign() == 5);
+
+int keyAssign()
+{
+        int[int] pieces;
+        pieces[3] = 1;
+        pieces.keys[0]= 4;
+        pieces.values[0]=27;
+        assert(pieces[3]== 1);
+    return 5;
+}
+static assert(keyAssign()==5);
