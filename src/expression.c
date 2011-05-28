@@ -3244,7 +3244,10 @@ int ArrayLiteralExp::isBool(int result)
 #if DMDV2
 int ArrayLiteralExp::canThrow(bool mustNotThrow)
 {
-    return 1;   // because it can fail allocating memory
+    /* Memory allocation failures throw non-recoverable exceptions, which
+     * we don't need to count as 'throwing'.
+     */
+    return arrayExpressionCanThrow(elements, mustNotThrow);
 }
 #endif
 
@@ -3339,7 +3342,11 @@ int AssocArrayLiteralExp::isBool(int result)
 #if DMDV2
 int AssocArrayLiteralExp::canThrow(bool mustNotThrow)
 {
-    return 1;
+    /* Memory allocation failures throw non-recoverable exceptions, which
+     * we don't need to count as 'throwing'.
+     */
+    return (arrayExpressionCanThrow(keys,   mustNotThrow) ||
+            arrayExpressionCanThrow(values, mustNotThrow));
 }
 #endif
 
@@ -4148,7 +4155,22 @@ int NewExp::checkSideEffect(int flag)
 #if DMDV2
 int NewExp::canThrow(bool mustNotThrow)
 {
-    return 0;           // regard storage allocation failures as not recoverable
+    if (arrayExpressionCanThrow(newargs, mustNotThrow) ||
+        arrayExpressionCanThrow(arguments, mustNotThrow))
+        return 1;
+    if (member)
+    {
+        // See if constructor call can throw
+        Type *t = member->type->toBasetype();
+        if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
+        {
+            if (mustNotThrow)
+                error("constructor %s is not nothrow", member->toChars());
+            return 1;
+        }
+    }
+    // regard storage allocation failures as not recoverable
+    return 0;
 }
 #endif
 
@@ -4222,6 +4244,7 @@ int NewAnonClassExp::checkSideEffect(int flag)
 #if DMDV2
 int NewAnonClassExp::canThrow(bool mustNotThrow)
 {
+    assert(0);          // should have been lowered by semantic()
     return 1;
 }
 #endif
@@ -4891,14 +4914,87 @@ int DeclarationExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int DeclarationExp::canThrow(bool mustNotThrow)
+/**************************************
+ * Does symbol, when initialized, throw?
+ * Mirrors logic in Dsymbol_toElem().
+ */
+
+int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
 {
-    VarDeclaration *v = declaration->isVarDeclaration();
-    if (v && v->init)
-    {   ExpInitializer *ie = v->init->isExpInitializer();
-        return ie && ie->exp->canThrow(mustNotThrow);
+    AttribDeclaration *ad;
+    VarDeclaration *vd;
+    TemplateMixin *tm;
+    TupleDeclaration *td;
+
+    //printf("Dsymbol_toElem() %s\n", s->toChars());
+    ad = s->isAttribDeclaration();
+    if (ad)
+    {
+        Array *decl = ad->include(NULL, NULL);
+        if (decl && decl->dim)
+        {
+            for (size_t i = 0; i < decl->dim; i++)
+            {
+                s = (Dsymbol *)decl->data[i];
+                if (Dsymbol_canThrow(s, mustNotThrow))
+                    return 1;
+            }
+        }
+    }
+    else if ((vd = s->isVarDeclaration()) != NULL)
+    {
+        s = s->toAlias();
+        if (s != vd)
+            return Dsymbol_canThrow(s, mustNotThrow);
+        if (vd->storage_class & STCmanifest)
+            ;
+        else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
+            ;
+        else
+        {
+            if (vd->init)
+            {   ExpInitializer *ie = vd->init->isExpInitializer();
+                if (ie && ie->exp->canThrow(mustNotThrow))
+                    return 1;
+            }
+            if (vd->edtor && !vd->noscope)
+                return vd->edtor->canThrow(mustNotThrow);
+        }
+    }
+    else if ((tm = s->isTemplateMixin()) != NULL)
+    {
+        //printf("%s\n", tm->toChars());
+        if (tm->members)
+        {
+            for (size_t i = 0; i < tm->members->dim; i++)
+            {
+                Dsymbol *sm = (Dsymbol *)tm->members->data[i];
+                if (Dsymbol_canThrow(sm, mustNotThrow))
+                    return 1;
+            }
+        }
+    }
+    else if ((td = s->isTupleDeclaration()) != NULL)
+    {
+        for (size_t i = 0; i < td->objects->dim; i++)
+        {   Object *o = (Object *)td->objects->data[i];
+            if (o->dyncast() == DYNCAST_EXPRESSION)
+            {   Expression *eo = (Expression *)o;
+                if (eo->op == TOKdsymbol)
+                {   DsymbolExp *se = (DsymbolExp *)eo;
+                    if (Dsymbol_canThrow(se->s, mustNotThrow))
+                        return 1;
+                }
+            }
+        }
     }
     return 0;
+}
+
+
+int DeclarationExp::canThrow(bool mustNotThrow)
+{
+    return Dsymbol_canThrow(declaration, mustNotThrow);
 }
 #endif
 
@@ -7415,12 +7511,8 @@ int CallExp::canThrow(bool mustNotThrow)
 
     /* If any of the arguments can throw, then this expression can throw
      */
-    for (size_t i = 0; i < arguments->dim; i++)
-    {   Expression *e = (Expression *)arguments->data[i];
-
-        if (e && e->canThrow(mustNotThrow))
-            return 1;
-    }
+    if (arrayExpressionCanThrow(arguments, mustNotThrow))
+        return 1;
 
     if (global.errors && !e1->type)
         return 0;                       // error recovery

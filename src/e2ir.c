@@ -1118,6 +1118,7 @@ elem *FuncExp::toElem(IRState *irs)
 }
 
 /**************************************
+ * Mirrors logic in Dsymbol_canThrow().
  */
 
 elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
