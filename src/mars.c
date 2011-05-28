@@ -290,7 +290,6 @@ Usage:\n\
   -odobjdir      write object & library files to directory objdir\n\
   -offilename    name output file to filename\n\
   -op            do not strip paths from source file\n\
-  -oq            use fully qualified module name for object filenames\n\
   -profile       profile runtime performance of generated code\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
@@ -515,12 +514,6 @@ int main(int argc, char *argv[])
                         if (p[3])
                             goto Lerror;
                         global.params.preservePaths = 1;
-                        break;
-
-                    case 'q':
-                        if (p[3])
-                            goto Lerror;
-                        global.params.packagePaths = 1;
                         break;
 
                     case 0:
@@ -959,6 +952,7 @@ int main(int argc, char *argv[])
     // Create Modules
     Array modules;
     modules.reserve(files.dim);
+    int firstmodule = 1;
     for (i = 0; i < files.dim; i++)
     {
         char *ext;
@@ -1075,6 +1069,11 @@ int main(int argc, char *argv[])
         Identifier *id = Lexer::idPool(name);
         m = new Module((char *) files.data[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
+
+        if (firstmodule)
+        {   global.params.objfiles->push(m->objfile->name->str);
+            firstmodule = 0;
+        }
     }
 
 #if WINDOWS_SEH
@@ -1103,7 +1102,6 @@ int main(int argc, char *argv[])
 
     // Parse files
     int anydocfiles = 0;
-	int firstmodule = 1;
     for (i = 0; i < modules.dim; i++)
     {
         m = (Module *)modules.data[i];
@@ -1112,6 +1110,8 @@ int main(int argc, char *argv[])
         if (!Module::rootModule)
             Module::rootModule = m;
         m->importedFrom = m;
+        if (!global.params.oneobj || i == 0 || m->isDocFile)
+            m->deleteObjFile();
 #if ASYNCREAD
         if (aw->read(i))
         {
@@ -1119,9 +1119,6 @@ int main(int argc, char *argv[])
         }
 #endif
         m->parse();
-        m->prepareObjfile();
-        if (!global.params.oneobj || i == 0 || m->isDocFile)
-            m->deleteObjFile();
         if (m->isDocFile)
         {
             anydocfiles = 1;
@@ -1143,11 +1140,6 @@ int main(int argc, char *argv[])
 
             if (global.params.objfiles->dim == 0)
                 global.params.link = 0;
-        }
-
-        if (firstmodule)
-        {   global.params.objfiles->push(m->objfile->name->str);
-            firstmodule = 0;
         }
     }
 #if ASYNCREAD
