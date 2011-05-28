@@ -1287,8 +1287,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             else
                 e = v->type->defaultInitLiteral(loc);
         }
-        else if (!v->isDataseg() && !istate) {
-            error(loc, "variable %s cannot be read at compile time", v->toChars());
+        else if (!v->isDataseg() && !v->isCTFE() && !istate)
+        {   error(loc, "variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
         else
@@ -2034,6 +2034,18 @@ bool needToCopyLiteral(Expression *expr)
     }
 }
 
+Expressions *copyLiteralArray(Expressions *oldelems)
+{
+    if (!oldelems)
+        return oldelems;
+    Expressions *newelems = new Expressions();
+    newelems->setDim(oldelems->dim);
+    for (size_t i = 0; i < oldelems->dim; i++)
+        newelems->data[i] = copyLiteral((Expression *)(oldelems->data[i]));
+    return newelems;
+}
+
+
 
 // Make a copy of the ArrayLiteral, AALiteral, String, or StructLiteral.
 // This value will be used for in-place modification.
@@ -2055,12 +2067,16 @@ Expression *copyLiteral(Expression *e)
     else if (e->op == TOKarrayliteral)
     {
         ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-        Expressions *oldelems = ae->elements;
-        Expressions *newelems = new Expressions();
-        newelems->setDim(oldelems->dim);
-        for (size_t i = 0; i < oldelems->dim; i++)
-            newelems->data[i] = copyLiteral((Expression *)(oldelems->data[i]));
-        ArrayLiteralExp *r = new ArrayLiteralExp(ae->loc, newelems);
+        ArrayLiteralExp *r = new ArrayLiteralExp(e->loc,
+            copyLiteralArray(ae->elements));
+        r->type = e->type;
+        return r;
+    }
+    else if (e->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
+        AssocArrayLiteralExp *r = new AssocArrayLiteralExp(e->loc,
+            copyLiteralArray(aae->keys), copyLiteralArray(aae->values));
         r->type = e->type;
         return r;
     }
@@ -2646,7 +2662,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (fieldi == -1)
             return EXP_CANT_INTERPRET;
         assert(fieldi>=0 && fieldi < se->elements->dim);
-        if (!wantRef && (newval->op == TOKstructliteral || newval->op == TOKarrayliteral))
+        if (newval->op == TOKstructliteral)
             assignInPlace((Expression *)(se->elements->data[fieldi]), newval);
         else
             se->elements->data[fieldi] = newval;
@@ -2707,7 +2723,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          * slices of array literals, and AA literals.
          */
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice)
+            aggregate->op == TOKslice || aggregate->op == TOKcall)
         {
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
             if (aggregate == EXP_CANT_INTERPRET)
@@ -2760,7 +2776,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         if (existingAE)
         {
-            existingAE->elements->data[indexToModify] = newval;
+            if (newval->op == TOKstructliteral)
+                assignInPlace((Expression *)(existingAE->elements->data[indexToModify]), newval);
+            else
+                existingAE->elements->data[indexToModify] = newval;
             return returnValue;
         }
         if (existingSE)
@@ -2844,7 +2863,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          */
 
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice)
+            aggregate->op == TOKslice || aggregate->op == TOKcall)
         {
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
             if (aggregate == EXP_CANT_INTERPRET)
@@ -3649,7 +3668,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("CastExp::interpret() %s\n", toChars());
 #endif
-    e1 = this->e1->interpret(istate);
+    e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
     e = Cast(type, to, e1);
@@ -3879,7 +3898,7 @@ Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
     Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
     Type *elemType = ((TypeAArray *)aae->type)->index;
     e->type = new TypeSArray(elemType, new IntegerExp(arguments ? arguments->dim : 0));
-    return e;
+    return copyLiteral(e);
 }
 
 Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
@@ -3901,8 +3920,8 @@ Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
     Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
     Type *elemType = ((TypeAArray *)aae->type)->next;
     e->type = new TypeSArray(elemType, new IntegerExp(arguments ? arguments->dim : 0));
-    printf("result is %s\n", e->toChars());
-    return e;
+    //printf("result is %s\n", e->toChars());
+    return copyLiteral(e);
 }
 
 #endif
@@ -3941,7 +3960,7 @@ Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration
     assert(fd->type->nextOf()->ty == Tarray);
     Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
     e->type = new TypeSArray(elemType, new IntegerExp(aae->keys->dim));
-    return e;
+    return copyLiteral(e);
 }
 
 Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd)
@@ -3964,7 +3983,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
     Type *elemType = ((TypeFunction *)fd->type)->nextOf()->nextOf();
     e->type = new TypeSArray(elemType, new IntegerExp(aae->values->dim));
     //printf("result is %s\n", e->toChars());
-    return e;
+    return copyLiteral(e);
 }
 
 #endif
