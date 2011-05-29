@@ -469,8 +469,6 @@ Expression *IfStatement::interpret(InterState *istate)
     }
 
     Expression *e = condition->interpret(istate);
-    if (arg)
-        e = e->interpret(istate);   // interpret value from var
     assert(e);
     //if (e == EXP_CANT_INTERPRET) printf("cannot interpret\n");
     if (e != EXP_CANT_INTERPRET)
