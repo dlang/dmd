@@ -2315,6 +2315,9 @@ Statement *IfStatement::syntaxCopy()
 
 Statement *IfStatement::semantic(Scope *sc)
 {
+    condition = condition->semantic(sc);
+    condition = resolveProperties(sc, condition);
+
     // Evaluate at runtime
     unsigned cs0 = sc->callSuper;
     unsigned cs1;
@@ -2328,21 +2331,24 @@ Statement *IfStatement::semantic(Scope *sc)
         sym->parent = sc->scopesym;
         scd = sc->push(sym);
 
-        match = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, condition));
+        Type *t = arg->type ? arg->type : condition->type;
+        match = new VarDeclaration(loc, t, arg->ident, NULL);
         match->noscope = 1;
+        match->semantic(scd);
+        if (!scd->insert(match))
+            assert(0);
         match->parent = sc->func;
 
-        DeclarationExp *de = new DeclarationExp(loc, match);
-        VarExp *ve = new VarExp(0, match);
-        condition = new CommaExp(loc, de, ve);
+        /* Generate:
+         *  ((arg = condition), arg)
+         */
+        VarExp *v = new VarExp(0, match);
+        condition = new AssignExp(loc, v, condition);
+        condition = new CommaExp(loc, condition, v);
         condition = condition->semantic(scd);
     }
     else
-    {
-	    condition = condition->semantic(sc);
-	    condition = resolveProperties(sc, condition);
         scd = sc->push();
-    }
 
     // Convert to boolean after declaring arg so this works:
     //  if (S arg = S()) {}
