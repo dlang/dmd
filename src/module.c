@@ -139,13 +139,13 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         }
     }
 
+    srcfile = new File(srcfilename);
+
     if (doDocComment)
         setDocfile();
 
     if (doHdrGen)
         setHdrfile();
-
-    srcfile = new File(srcfilename);
 }
 
 void Module::prepareObjfile()
