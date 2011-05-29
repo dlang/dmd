@@ -1165,6 +1165,47 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     {
         return this;
     }
+    if (type->ty != Tpointer)
+    {   // Probably impossible
+        error("Cannot interpret %s at compile time", toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    Type *pointee = ((TypePointer *)type)->next;
+    if (offset == 0 && pointee == var->type)
+    {
+        if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
+        {
+            VarExp *ve = new VarExp(loc, var);
+            ve->type = type;
+            return ve;
+        }
+        return getVarExp(loc, istate, var, goal);
+    }
+    Expression *val = getVarExp(loc, istate, var, goal);
+    if (val->type->ty == Tarray || val->type->ty == Tsarray)
+    {
+        TypeArray *tar = (TypeArray *)val->type;
+        dinteger_t sz = pointee->size();
+        dinteger_t indx = offset/sz;
+        assert(sz * indx == offset);
+        Expression *aggregate = NULL;
+        if (val->op == TOKarrayliteral || val->op == TOKstring)
+            aggregate = val;
+        else if (val->op == TOKslice)
+        {
+            aggregate = ((SliceExp *)val)->e1;
+            Expression *lwr = ((SliceExp *)val)->lwr->interpret(istate);
+            indx += lwr->toInteger();
+        }
+        if (aggregate)
+        {
+            IntegerExp *ofs = new IntegerExp(loc, indx, Type::tsize_t);
+            IndexExp *ie = new IndexExp(loc, aggregate, ofs);
+            ie->type = type;
+            return ie;
+        }
+    }
+
     error("Cannot interpret %s at compile time", toChars());
     return EXP_CANT_INTERPRET;
 }
@@ -1815,6 +1856,75 @@ BIN_INTERPRET(Xor)
 
 typedef Expression *(*fp2_t)(enum TOK, Type *, Expression *, Expression *);
 
+Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
+{
+    *ofs = 0;
+    if (e->op == TOKindex)
+    {
+        IndexExp *ie = (IndexExp *)e;
+        if (ie->e2->op == TOKint64)
+            *ofs = ie->e2->toInteger();
+        return ie->e1;
+    }
+    return e;
+}
+
+// Only allow equality comparison
+Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
+{
+    dinteger_t ofs1, ofs2;
+    Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
+    Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
+    if (agg1 == agg2)
+    {
+        dinteger_t cm = ofs1 - ofs2;
+        dinteger_t n;
+        dinteger_t zero = 0;
+        switch(op)
+        {
+        case TOKlt: n = ofs1 <  ofs2;   break;
+        case TOKle: n = ofs1 <= ofs2;   break;
+        case TOKgt: n = ofs1 >  ofs2;   break;
+        case TOKge: n = ofs1 >= ofs2;   break;
+        case TOKidentity:
+        case TOKequal: n = ofs1 == ofs2; break;
+        case TOKnotidentity:
+        case TOKnotequal: n = ofs1 != ofs2; break;
+        default:
+            assert(0);
+        }
+        return new IntegerExp(loc, n, type);
+    }
+    int cmp;
+    if (e1->op == TOKnull)
+    {
+        cmp = (e2->op == TOKnull);
+    }
+    else if (e2->op == TOKnull)
+    {
+        cmp = 0;
+    }
+    else
+    {
+        switch(op)
+        {
+        case TOKidentity:
+        case TOKequal:
+        case TOKnotidentity:
+        case TOKnotequal:
+            cmp = 0;
+            break;
+        default:
+            error(loc, "%s and %s point to independent memory blocks and "
+                "cannot be compared at compile time", e1->toChars(), e2->toChars());
+            break;
+        }
+    }
+    if (op == TOKnotidentity || op == TOKnotequal)
+        cmp^=-1;
+    return new IntegerExp(loc, cmp, type);
+}
+
 Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp)
 {   Expression *e;
     Expression *e1;
@@ -1823,6 +1933,12 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
 #if LOG
     printf("BinExp::interpretCommon2() %s\n", toChars());
 #endif
+    if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer)
+    {
+        e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        return comparePointers(loc, op, type, e1, e2);
+    }
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
@@ -1848,7 +1964,6 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         error("cannot compare %s at compile time", e2->toChars());
         goto Lcant;
     }
-
     e = (*fp)(op, type, e1, e2);
     return e;
 
@@ -2332,7 +2447,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     bool wantRef = false;
     if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
         (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray ||
-         e1->type->toBasetype()->ty == Tclass)
+         e1->type->toBasetype()->ty == Tclass
+         || (e1->type->toBasetype()->ty == Tpointer && e1->type->nextOf()->ty != Tfunction)
+         )
         )
     {
 #if DMDV2
@@ -2395,6 +2512,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 new IntegerExp(0, 0, Type::tsize_t),
                 ArrayLength(Type::tsize_t, e1));
         }
+    }
+    if (e1->op == TOKstar)
+    {
+        e1 = e1->interpret(istate, ctfeNeedLvalue);
+        if (e1 == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
     }
 
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
@@ -2539,6 +2662,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         v->createStackValue(e2);
         return e2;
     }
+
     bool destinationIsReference = false;
     e1 = resolveReferences(e1, istate->localThis, &destinationIsReference);
 
@@ -3007,40 +3131,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         else
             error("Slice operation %s cannot be evaluated at compile time", toChars());
     }
-    else if (e1->op == TOKstar)
-    {
-        /* Assignment to struct member of the form:
-         *   *(symoffexp) = newval
-         */
-        if (((PtrExp *)e1)->e1->op == TOKsymoff)
-        {   SymOffExp *soe = (SymOffExp *)((PtrExp *)e1)->e1;
-            VarDeclaration *v = soe->var->isVarDeclaration();
-            if (v->isDataseg() && !v->isCTFE())
-            {
-                error("%s cannot be modified at compile time", v->toChars());
-                return EXP_CANT_INTERPRET;
-            }
-            if (fp && !v->getValue())
-            {   error("variable %s is used before initialization", v->toChars());
-                return returnValue;
-            }
-            Expression *vie = v->getValue();
-            if (vie->op == TOKvar)
-            {
-                Declaration *d = ((VarExp *)vie)->var;
-                vie = getVarExp(e1->loc, istate, d, ctfeNeedRvalue);
-            }
-            if (vie->op != TOKstructliteral)
-                return EXP_CANT_INTERPRET;
-
-            StructLiteralExp *se = (StructLiteralExp *)vie;
-
-            newval = modifyStructField(type, se, soe->offset, newval);
-
-            addVarToInterstate(istate, v);
-            v->setRefValue(newval);
-        }
-    }
     else
     {
         error("%s cannot be evaluated at compile time", toChars());
@@ -3382,9 +3472,9 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
     if (e != EXP_CANT_INTERPRET)
     {
         if (e->isBool(TRUE))
-            e = e1->interpret(istate);
+            e = e1->interpret(istate, goal);
         else if (e->isBool(FALSE))
-            e = e2->interpret(istate);
+            e = e2->interpret(istate, goal);
         else
             e = EXP_CANT_INTERPRET;
     }
@@ -3751,7 +3841,6 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("PtrExp::interpret() %s\n", toChars());
 #endif
-
     // Constant fold *(&structliteral + offset)
     if (e1->op == TOKadd)
     {   AddExp *ae = (AddExp *)e1;
@@ -3773,19 +3862,6 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         }
         e = Ptr(type, e1);
     }
-    else if (e1->op == TOKsymoff)
-    {   SymOffExp *soe = (SymOffExp *)e1;
-        VarDeclaration *v = soe->var->isVarDeclaration();
-        if (v)
-        {   Expression *ev = getVarExp(loc, istate, v, ctfeNeedLvalue);
-            if (ev != EXP_CANT_INTERPRET && ev->op == TOKstructliteral)
-            {   StructLiteralExp *se = (StructLiteralExp *)ev;
-                e = se->getField(type, soe->offset);
-                if (!e)
-                    e = EXP_CANT_INTERPRET;
-            }
-        }
-    }
 #if DMDV2
 #else // this is required for D1, where structs return *this instead of 'this'.
     else if (e1->op == TOKthis)
@@ -3795,7 +3871,16 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
     }
 #endif
     else
-        error("Cannot interpret %s at compile time", toChars());
+    {
+        e = e1->interpret(istate, goal);
+        if (e == EXP_CANT_INTERPRET)
+            return e;
+        if (e->op == TOKnull)
+        {
+            error("dereference of null pointer '%s'", e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+    }
 
 #if LOG
     if (e == EXP_CANT_INTERPRET)
@@ -4067,6 +4152,8 @@ bool isRefValueValid(Expression *newval)
         assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
         return true;
     }
+    if (newval->type->ty == Tpointer)
+        return isStackValueValid(newval);
     newval->error("CTFE internal error: illegal reference value %s\n", newval->toChars());
     return false;
 }
