@@ -2515,7 +2515,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (op==TOKconstruct && this->e1->op==TOKvar && this->e2->op != TOKthis
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
-        //error("assignment to ref variable %s is not yet supported in CTFE", this->toChars());
         VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
         v->setValueNull();
         v->createStackValue(e2);
@@ -2553,20 +2552,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 newval = copyLiteral(newval);
         }
         returnValue = newval;
-
-        if (e1->op == TOKvar || e1->op == TOKdotvar)
-        {
-            assert((newval->op == TOKarrayliteral ||
-                    newval->op == TOKassocarrayliteral ||
-                    newval->op == TOKstring ||
-                    newval->op == TOKslice ||
-                    newval->op == TOKnull) );
-            if (newval->op == TOKslice)
-            {
-                Expression *sss = ((SliceExp *)newval)->e1;
-                assert(sss->op == TOKarrayliteral || sss->op == TOKstring);
-            }
-        }
     }
 
     // ---------------------------------------
@@ -4047,6 +4032,12 @@ bool isRefValueValid(Expression *newval)
         (newval->op == TOKnull))
     {   return true;
     }
+    // Dynamic arrays passed by ref may be null. When this happens
+    // they may originate from an index or dotvar expression.
+    if (newval->type->ty == Tarray || newval->type->ty == Taarray
+        || newval->type->ty == Tclass)
+        if (newval->op == TOKdotvar || newval->op == TOKindex)
+            return isStackValueValid(newval); // actually must be null
     if (newval->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)newval;
