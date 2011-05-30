@@ -2812,12 +2812,6 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
         fparameters = fdtype->parameters;
         fvarargs = fdtype->varargs;
     }
-    else // Constructors don't have type's
-    {   CtorDeclaration *fctor = isCtorDeclaration();
-        assert(fctor);
-        fparameters = fctor->arguments;
-        fvarargs = fctor->varargs;
-    }
     if (pvarargs)
         *pvarargs = fvarargs;
     return fparameters;
@@ -2905,17 +2899,15 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* CtorDeclaration ****************************/
 
-CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs, StorageClass stc)
-    : FuncDeclaration(loc, endloc, Id::ctor, stc, NULL)
+CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type)
+    : FuncDeclaration(loc, endloc, Id::ctor, stc, type)
 {
-    this->arguments = arguments;
-    this->varargs = varargs;
     //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
 }
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    CtorDeclaration *f = new CtorDeclaration(loc, endloc, NULL, varargs, storage_class);
+    CtorDeclaration *f = new CtorDeclaration(loc, endloc, storage_class, type->syntaxCopy());
 
     f->outId = outId;
     f->frequire = frequire ? frequire->syntaxCopy() : NULL;
@@ -2923,7 +2915,6 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
     f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
     assert(!fthrows); // deprecated
 
-    f->arguments = Parameter::arraySyntaxCopy(arguments);
     return f;
 }
 
@@ -2931,6 +2922,10 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 void CtorDeclaration::semantic(Scope *sc)
 {
     //printf("CtorDeclaration::semantic() %s\n", toChars());
+    TypeFunction *tf = (TypeFunction *)type;
+    assert(tf && tf->ty == Tfunction);
+    Expressions *fargs = ((TypeFunction *)type)->fargs;		// for auto ref
+
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static constructor
 
@@ -2948,15 +2943,16 @@ void CtorDeclaration::semantic(Scope *sc)
         assert(tret);
         tret = tret->addStorageClass(storage_class | sc->stc);
     }
-    if (!type)
-        type = new TypeFunction(arguments, tret, varargs, LINKd, storage_class | sc->stc);
+    tf = new TypeFunction(tf->parameters, tret, tf->varargs, LINKd, storage_class | sc->stc);
+    tf->fargs = fargs;
+    type = tf;
 
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
     {   ((TypeFunction *)type)->isref = 1;
         if (!originalType)
             // Leave off the "ref"
-            originalType = new TypeFunction(arguments, tret, varargs, LINKd, storage_class | sc->stc);
+            originalType = new TypeFunction(tf->parameters, tret, tf->varargs, LINKd, storage_class | sc->stc);
     }
 #endif
     if (!originalType)
@@ -2979,7 +2975,7 @@ void CtorDeclaration::semantic(Scope *sc)
     sc->pop();
 
     // See if it's the default constructor
-    if (ad && varargs == 0 && Parameter::dim(arguments) == 0)
+    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0)
     {   if (ad->isStructDeclaration())
             error("default constructor not allowed for structs");
         else
@@ -3015,10 +3011,13 @@ int CtorDeclaration::addPostInvariant()
 
 void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    TypeFunction *tf = (TypeFunction *)type;
+    assert(tf && tf->ty == Tfunction);
+
     if (originalType && originalType->ty == Tfunction)
         ((TypeFunction *)originalType)->attributesToCBuffer(buf, 0);
     buf->writestring("this");
-    Parameter::argsToCBuffer(buf, hgs, arguments, varargs);
+    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
     bodyToCBuffer(buf, hgs);
 }
 

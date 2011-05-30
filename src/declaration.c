@@ -245,6 +245,7 @@ int TupleDeclaration::needThis()
     return 0;
 }
 
+
 /********************************* TypedefDeclaration ****************************/
 
 TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, Initializer *init)
@@ -1592,6 +1593,7 @@ int VarDeclaration::canTakeAddressOf()
 #endif
     return 1;
 }
+
 
 /*******************************
  * Does symbol go into data segment?

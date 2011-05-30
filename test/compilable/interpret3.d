@@ -743,6 +743,22 @@ public:
 const testTODsThrownZ = TimeOfDayZ(0);
 
 /*******************************************
+        Bug 5954
+*******************************************/
+
+struct Bug5954 {
+    int x;
+    this(int xx) {
+        this.x = xx;
+    }
+}
+void bug5954() {
+    enum f = Bug5954(10);
+    static assert(f.x == 10);
+}
+
+
+/*******************************************
         Bug 5972
 *******************************************/
 
@@ -969,18 +985,21 @@ static assert(bug6001f());
 
 // Assignment to AAs
 
-void blah(int[char] as)
+version(X86)
 {
-    auto k = [6: as];
-    as = k[6];
+    void blah(int[char] as)
+    {
+        auto k = [6: as];
+        as = k[6];
+    }
+    int blaz()
+    {
+        int[char] q;
+        blah(q);
+        return 67;
+    }
+    static assert(blaz()==67);
 }
-int blaz()
-{
-    int[char] q;
-    blah(q);
-    return 67;
-}
-static assert(blaz()==67);
 
 void bug6001g(ref int[] w)
 {
@@ -1033,3 +1052,150 @@ ulong nqueen(int n) {
 }
 
 static assert(nqueen(2) == 65);
+
+/**************************************************
+    Bug 5258
+**************************************************/
+
+struct Foo5258 { int x; }
+void bar5258(int n, ref Foo5258 fong) {
+    if (n)
+        bar5258(n - 1, fong);
+    else
+        fong.x++;
+}
+int bug5258() {
+    bar5258(1, Foo5258());
+    return 45;
+}
+static assert(bug5258()==45);
+
+
+struct Foo5258b  { int[2] r; }
+void baqopY(int n, ref int[2] fongo) {
+    if (n)
+        baqopY(n - 1, fongo);
+    else
+        fongo[0]++;
+}
+int bug5258b() {
+    Foo5258b qq;
+    baqopY(1, qq.r);
+    return 618;
+}
+static assert(bug5258b()==618);
+
+// Notice that this case involving reassigning the dynamic array
+struct Foo5258c { int[] r; }
+void baqop(int n, ref int[] fongo) {
+    if (n)
+        baqop(n - 1, fongo);
+    else
+    {
+        fongo = new int[20];
+        fongo[0]++;
+    }
+}
+size_t bug5258c() {
+    Foo5258c qq;
+    qq.r = new int[30];
+    baqop(1, qq.r);
+    return qq.r.length;
+}
+static assert(bug5258c() == 20);
+
+/**************************************************
+    Bug 6049
+**************************************************/
+
+struct Bug6049 {
+    int m;
+    this(int x)  {  m = x; }
+    invariant() { }
+}
+
+const Bug6049[] foo6049 = [Bug6049(6),  Bug6049(17)];
+
+static assert(foo6049[0].m == 6);
+
+/**************************************************
+    Bug 6052
+**************************************************/
+
+struct Bug6052 {
+    int a;
+}
+
+bool bug6052() {
+    Bug6052[2] arr;
+    for (int i = 0; i < 2; ++ i) {
+        Bug6052 el = {i};
+        Bug6052 ek = el;
+        arr[i] = el;
+        el.a = i + 2;
+        assert(ek.a == i);      // ok
+        assert(arr[i].a == i);  // fail
+    }
+    assert(arr[1].a == 1);  // ok
+    assert(arr[0].a == 0);  // fail
+    return true;
+}
+
+static assert(bug6052());
+
+bool bug6052b() {
+    int[][1] arr;
+    int[1] z = [7];
+    arr[0] = z;
+    assert(arr[0][0] == 7);
+    arr[0] = z;
+    z[0] = 3;
+    assert(arr[0][0] == 3);
+    return true;
+}
+
+static assert(bug6052b());
+
+/**************************************************
+    Index + slice assign to function returns
+**************************************************/
+
+int[] funcRetArr(int[] a)
+{
+    return a;
+}
+
+int testFuncRetAssign()
+{
+    int [] x = new int[20];
+    funcRetArr(x)[2] = 4;
+    assert(x[2]==4);
+    funcRetArr(x)[] = 27;
+    assert(x[15]==27);
+    return 5;
+}
+static assert(testFuncRetAssign() == 5);
+
+int keyAssign()
+{
+        int[int] pieces;
+        pieces[3] = 1;
+        pieces.keys[0]= 4;
+        pieces.values[0]=27;
+        assert(pieces[3]== 1);
+    return 5;
+}
+static assert(keyAssign()==5);
+
+/**************************************************
+    Bug 6054 -- AA literals
+**************************************************/
+
+enum x6054 = {
+    auto p = {
+        int[string] pieces;
+        pieces[['a'].idup] = 1;
+        return pieces;
+    }();
+    return p;
+}();

@@ -3785,7 +3785,7 @@ unsigned calccodsize(code *c)
         case 0x0F:
             ins = inssize2[c->Iop & 0xFF];
             size = ins & 7;
-            if (c->Iop & 0xFF0000)
+            if (c->Iop & 0xFF0000 || (c->Iop & 0xFFFFFF) == 0x000F38) // Opcode 0F_38_00 PSHUFB ( ssse3 )
                 size++;
             break;
 

@@ -689,10 +689,8 @@ struct FuncLiteralDeclaration : FuncDeclaration
 };
 
 struct CtorDeclaration : FuncDeclaration
-{   Parameters *arguments;
-    int varargs;
-
-    CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs, StorageClass stc);
+{
+    CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

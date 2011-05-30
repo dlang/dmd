@@ -2434,6 +2434,124 @@ PTRNTAB2 aptb2MOVSLDUP[] = /* MOVSLDUP */ {
         { ASM_END, 0, 0 }
 };
 
+/* ======================= SSSE3 ======================= */
+
+/*
+palignr
+phaddd
+phaddw
+phaddsw
+phsubd
+phsubw
+phsubsw
+pmaddubsw
+pmulhrsw
+pshufb
+pabsb
+pabsd
+pabsw
+psignb
+psignd
+psignw
+*/
+
+PTRNTAB3 aptb3PALIGNR[] = /* PALIGNR */ {
+        { 0x0F3A0F, _r,_mm,_mmm64, _imm8 },
+        { 0x660F3A0F, _r,_xmm,_xmm_m128, _imm8 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHADDD[] = /* PHADDD */ {
+        { 0x0F3802, _r,_mm,_mmm64 },
+        { 0x660F3802, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHADDW[] = /* PHADDW */ {
+        { 0x0F3801, _r,_mm,_mmm64 },
+        { 0x660F3801, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHADDSW[] = /* PHADDSW */ {
+        { 0x0F3803, _r,_mm,_mmm64 },
+        { 0x660F3803, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHSUBD[] = /* PHSUBD */ {
+        { 0x0F3806, _r,_mm,_mmm64 },
+        { 0x660F3806, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHSUBW[] = /* PHSUBW */ {
+        { 0x0F3805, _r,_mm,_mmm64 },
+        { 0x660F3805, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHSUBSW[] = /* PHSUBSW */ {
+        { 0x0F3807, _r,_mm,_mmm64 },
+        { 0x660F3807, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PMADDUBSW[] = /* PMADDUBSW */ {
+        { 0x0F3804, _r,_mm,_mmm64 },
+        { 0x660F3804, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PMULHRSW[] = /* PMULHRSW */ {
+        { 0x0F380B, _r,_mm,_mmm64 },
+        { 0x660F380B, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSHUFB[] = /* PSHUFB */ {
+        { 0x0F3800, _r,_mm,_mmm64 },
+        { 0x660F3800, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PABSB[] = /* PABSB */ {
+        { 0x0F381C, _r,_mm,_mmm64 },
+        { 0x660F381C, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PABSD[] = /* PABSD */ {
+        { 0x0F381E, _r,_mm,_mmm64 },
+        { 0x660F381E, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PABSW[] = /* PABSW */ {
+        { 0x0F381D, _r,_mm,_mmm64 },
+        { 0x660F381D, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSIGNB[] = /* PSIGNB */ {
+        { 0x0F3808, _r,_mm,_mmm64 },
+        { 0x660F3808, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSIGND[] = /* PSIGND */ {
+        { 0x0F380A, _r,_mm,_mmm64 },
+        { 0x660F380A, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSIGNW[] = /* PSIGNW */ {
+        { 0x0F3809, _r,_mm,_mmm64 },
+        { 0x660F3809, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+
 /* ======================= SSE4.1 ======================= */
 
 /*
@@ -2955,6 +3073,9 @@ getsec
         X("outsb",      0,              aptb0OUTSB ) \
         X("outsd",      0,              aptb0OUTSD ) \
         X("outsw",      0,              aptb0OUTSW ) \
+        X("pabsb",      2,              (P) aptb2PABSB ) \
+        X("pabsd",      2,              (P) aptb2PABSD ) \
+        X("pabsw",      2,              (P) aptb2PABSW ) \
         X("packssdw",   2,              (P) aptb2PACKSSDW ) \
         X("packsswb",   2,              (P) aptb2PACKSSWB ) \
         X("packuswb",   2,              (P) aptb2PACKUSWB ) \
@@ -2966,6 +3087,7 @@ getsec
         X("paddusb",    2,              (P) aptb2PADDUSB ) \
         X("paddusw",    2,              (P) aptb2PADDUSW ) \
         X("paddw",      2,              (P) aptb2PADDW ) \
+        X("palignr",    3,              (P) aptb3PALIGNR ) \
         X("pand",       2,              (P) aptb2PAND ) \
         X("pandn",      2,              (P) aptb2PANDN ) \
         /* X("pause",   0,              aptb0PAUSE) */ \
@@ -2997,14 +3119,22 @@ getsec
         X("pfrsqrt",    2,              (P) aptb2PFRSQRT ) \
         X("pfsub",      2,              (P) aptb2PFSUB ) \
         X("pfsubr",     2,              (P) aptb2PFSUBR ) \
+        X("phaddd",     2,              (P) aptb2PHADDD ) \
+        X("phaddsw",    2,              (P) aptb2PHADDSW ) \
+        X("phaddw",     2,              (P) aptb2PHADDW ) \
+        X("phsubd",     2,              (P) aptb2PHSUBD ) \
+        X("phsubsw",    2,              (P) aptb2PHSUBSW ) \
+        X("phsubw",     2,              (P) aptb2PHSUBW ) \
         X("pi2fd",      2,              (P) aptb2PI2FD ) \
         X("pinsrw",     3,              (P) aptb3PINSRW ) \
+        X("pmaddubsw",  2,              (P) aptb2PMADDUBSW ) \
         X("pmaddwd",    2,              (P) aptb2PMADDWD ) \
         X("pmaxsw",     2,              (P) aptb2PMAXSW ) \
         X("pmaxub",     2,              (P) aptb2PMAXUB ) \
         X("pminsw",     2,              (P) aptb2PMINSW ) \
         X("pminub",     2,              (P) aptb2PMINUB ) \
         X("pmovmskb",   2,              (P) aptb2PMOVMSKB ) \
+        X("pmulhrsw",   2,              (P) aptb2PMULHRSW ) \
         X("pmulhrw",    2,              (P) aptb2PMULHRW ) \
         X("pmulhuw",    2,              (P) aptb2PMULHUW ) \
         X("pmulhw",     2,              (P) aptb2PMULHW ) \
@@ -3021,10 +3151,14 @@ getsec
         X("prefetcht1", 1,              (P) aptb1PREFETCHT1 ) \
         X("prefetcht2", 1,              (P) aptb1PREFETCHT2 ) \
         X("psadbw",     2,              (P) aptb2PSADBW ) \
+        X("pshufb",     2,              (P) aptb2PSHUFB ) \
         X("pshufd",     3,              (P) aptb3PSHUFD ) \
         X("pshufhw",    3,              (P) aptb3PSHUFHW ) \
         X("pshuflw",    3,              (P) aptb3PSHUFLW ) \
         X("pshufw",     3,              (P) aptb3PSHUFW ) \
+        X("psignb",     2,              (P) aptb2PSIGNB ) \
+        X("psignd",     2,              (P) aptb2PSIGND ) \
+        X("psignw",     2,              (P) aptb2PSIGNW ) \
         X("pslld",      2,              (P) aptb2PSLLD ) \
         X("pslldq",     2,              (P) aptb2PSLLDQ ) \
         X("psllq",      2,              (P) aptb2PSLLQ ) \
