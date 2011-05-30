@@ -1196,3 +1196,31 @@ enum x6054 = {
     }();
     return p;
 }();
+
+/**************************************************
+    Bug 6078 -- Pass null array by ref
+**************************************************/
+
+struct Foo6078 {
+  int[] bar;
+}
+
+static assert( {
+  Foo6078 f;
+  int i;
+  foreach (ref e; f.bar) {
+    i += e;
+  }
+  return i;
+}() == 0);
+
+int bug6078(ref int[] z)
+{
+    int [] q = z;
+    return 2;
+}
+
+static assert( {
+  Foo6078 f;
+  return bug6078(f.bar);
+}() == 2);
