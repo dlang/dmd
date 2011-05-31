@@ -1234,3 +1234,15 @@ static assert( {
   Foo6078 f;
   return bug6078(f.bar);
 }() == 2);
+
+
+/**************************************************
+    Bug 6079 -- Array bounds checking
+**************************************************/
+
+static assert(!is(typeof(compiles!({
+    int[] x = [1,2,3,4];
+    x[4] = 1;
+    return true;
+}()
+))));
