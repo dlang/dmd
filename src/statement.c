@@ -3944,7 +3944,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorenter);
 #if DMD_OBJC
-        if (cd->objc) // replace with Objective-C's equivalent function
+        if (cd && cd->objc) // replace with Objective-C's equivalent function
             fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::objc_sync_enter);
 #endif
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
@@ -3953,7 +3953,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorexit);
 #if DMD_OBJC
-        if (cd->objc) // replace with Objective-C's equivalent function
+        if (cd && cd->objc) // replace with Objective-C's equivalent function
             fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::objc_sync_exit);
 #endif
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
@@ -4424,7 +4424,7 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
     body = body->semantic(sc);
 #if DMD_OBJC
     // Make sure all Objective-C exceptions from body are rethrown in D
-    if (!objcdisable && (body->blockExit(false) & BEthrowobjc))
+    if (!objcdisable && body && (body->blockExit(false) & BEthrowobjc))
     {
         body = new PeelStatement(body);
         body = new ObjcExceptionBridge(loc, body, THROWd);
