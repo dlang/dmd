@@ -1,17 +1,49 @@
 
-D/Objective-C Preliminary Design Document
-=========================================
-
-On some platforms, D can interact directly with Objective-C objects almost 
-exactly as if they were regular D objects. All we need to do is provide a
-declaration for the classes we want to use.
-
-When interacting with Objective-C objects or creating new derived classes, 
-the D compiler will emit compiled code similar to what an Objective-C compiler 
-would emit. There is no performance penalty when calling Objective-C code from D.
+D/Objective-C: Syntax
+=====================
 
 
-## Using an existing Objective-C class
+This document is an overview of the extensions D/Objective-C brings to the D programming language. It assumes some prior knowledge of both [D] and [Objective-C].
+
+ [D]: http://d-programming-language.org/
+ [Objective-C]: http://developer.apple.com/library/mac/#documentation/Cocoa/Conceptual/ObjectiveC/Introduction/introObjectiveC.html
+
+<p class="note" markdown="1">
+Note: Some parts of this document describe features which are not yet implemented and are very much subject to change. Unimplemented sections of this document are marked as such.
+</p>
+
+*   [Using an existing Objective-C class](#extern-class)
+    *   [Declaring instance methods](#instance-methods)
+    *   [Overloading](#overloading)
+*   [Defining a subclass](#subclass)
+    *   [Constructors](#constructors)
+    *   [Properties](#properties)
+*   [Objective-C Protocols](#protocols)
+*   [Class Methods](#class-methods)
+    *   [Class References](#class-ref)
+*   [Class Extensions (also known as Categories)](#class-ext)
+*   [`NSString` Literals](#nsstring-literals)
+*   [Selector Literals](#selector-literals)
+*   [Protocol References](#protocol-ref)
+*   [Interface Builder Attributes](#interface-builder)
+*   [Special Considerations](#special-considerations)
+    *   [Casts](#casts)
+    *   [`NSObject` vs. `ObjcObject` vs. `id`](#id)
+    *   [Exceptions](#exceptions)
+    *   [Memory Management](#memory)
+    *   [Null Objects](#null)
+    *   [Applying D Attributes](#attrib)
+    *   [Design By Contract, Unit Tests](#dbc-unittest)
+    *   [Global Functions](#global-func)
+    *   [Inner Classes](#inner)
+    *   [Memory Safety](#safety)
+    *   [Generated Selectors](#generated-selectors)
+    *   [Blocks](#blocs)
+
+ - - -
+
+
+## Using an existing Objective-C class   {#extern-class}
 
 To use an existing Objective-C class, we must first write a declaration for 
 that class, and we must mark this class as comming from Objective-C. Here is
@@ -34,7 +66,7 @@ on using them, they are needed to properly calculate the size of derived
 classes. 
 
 
-### Declaring Instance Methods
+### Declaring Instance Methods   {#instance-methods}
 
 Objective-C uses a syntax that greatly differs from D when it comes to 
 calling member functions -- instance methods and class methods in Objective-C 
@@ -63,7 +95,7 @@ function:
 	comboBox.insertItem(val, idx);
 
 
-### Overloading
+### Overloading   {#overloading}
 
 Objective-C does not support function overloading, which makes it impossible to 
 have two methods with the same name. D supports overloading, and we can take 
@@ -82,7 +114,7 @@ advantage of that in a class declaration:
 	comboBox.insertItem(val);      // calls insertItemWithObjectValue:
 
 
-## Defining a Subclass
+## Defining a Subclass    {#subclass}
 
 Creating a subclass from an existing Objective-C class is easy, first we must
 make sure the base class is declared:
@@ -123,7 +155,7 @@ implementing a function from an interface, the Objective-C selector would be
 inherited.
 
 
-### Constructors
+### Constructors   {#constructors}
 
 To create a new Objective-C object in Objective-C, one would call the allocator
 function and then the initializer:
@@ -151,11 +183,8 @@ generate one. But if a constructor is inherited from a base class or
 implements a constructor defined in an interface, it'll inherit that selector 
 instead.
 
-{Question: What do we do when "virtual" constructors call each other? Should
-the compiler know about designated initializers?}
 
-
-### Properties
+### Properties   {#properties}
 
 When not given explicit selecectors, property functions are given the 
 appropriate method names so they can participate in key-value coding.
@@ -173,7 +202,7 @@ getter, and the second alternate setter will get the same compiler-generated
 selector as a normal function.
 
 
-## Objective-C Protocols
+## Objective-C Protocols  {#protocols}
 
 Protocols in Objective-C are mapped to interfaces in D. This declares an 
 Objective-C protocol:
@@ -208,7 +237,7 @@ The protocol than then be implemented in any Objective-C class:
 {Note: We probably need support for @optional interface methods too.}
 
 
-## Class Methods
+## Class Methods   {#class-methods}
 
 Each class in Objective-C is an object in itself that contains a set of methods
 that relates to the class itself, with no access to instances of that class. 
@@ -243,10 +272,9 @@ class if it overrides one in the current class. Here is an example:
 This is not possible with regular static functions in D.
 
 
-### Using the Class Object
+### Class References  {#class-ref}
 
-In Objective-C, you can get the class object for a given instance by calling
-the `class` method:
+In Objective-C, you can get a reference to a class by calling the `class` method:
 
 	[instance class]; // return the class object for instance
 	[NSObject class]; // return the class object for the NSObject type
@@ -261,12 +289,12 @@ returns a different type depending on the type of `x`.
 
 Inside an instance method, use `this.class` to get the current class object;
 you cannot omit `this` like you can for regular members as it would be 
-ambiguous to the parser.
+ambiguous for the parser.
 
 There is no `classinfo` property for Objective-C objects.
 
 
-## Categories {unimplemented}
+## Class Extensions (also known as Categories) {unimplemented} {#class-ext}
 
 With Objective-C it is possible for different compilation units, and even 
 different libraries, to define new methods that will apply to existing classes.
@@ -279,7 +307,7 @@ different libraries, to define new methods that will apply to existing classes.
 	}
 	
 	extern (Objective-C)
-	__objc_category LastCharacter : NSString
+	__classext LastCharacter : NSString
 	{
 		wchar lastCharacter() @property;
 	}
@@ -290,19 +318,19 @@ different libraries, to define new methods that will apply to existing classes.
 		assert(s.lastCharacter == 'o');
 	}
 
-The `__objc_category LastCharacter : NSString` syntax maps to an Objective-C 
-category named `LastCharacter` adding methods to the `NSString` class. Methods
-in the category are dispatched dynamically, so you can override them in 
-a subclass of `NSString`, or in an category of that subclass.
+The `__classext LastCharacter : NSString` syntax maps to an Objective-C 
+class extension named `LastCharacter` adding methods to the `NSString` class. 
+Methods in the extension are dispatched dynamically, so you can override them in 
+a subclass of `NSString`, or in an extension of that subclass.
 
-Having two categories defining a function with the same selector will make the 
+Having two extensions defining a function with the same selector will make the 
 Objective-C runtime use one of the two implementations in both cases.
 
-{Question: should we mangled the category name in the selector to avoid 
-conflicts between different categories?}
+{Question: should we mangle the extension name in the selector to avoid 
+conflicts? This would transparently implement Apple's recommendation that methods in third-party extensions should use a prefix to avoid clashes with future versions of the extended class and other extensions.}
 
 
-## `NSString` Literals
+## `NSString` Literals   {#nsstring-literals}
 
 D string literals are changed to NSString literals whenever the context 
 requires it. The following Objective-C code:
@@ -317,7 +345,7 @@ Automatic conversion only works for strings literals. If the string comes from
 a variable, you'll need to construct the `NSString` object yourself.
 
 
-## Selector Literals
+## Selector Literals   {#selector-literals}
 
 When you need to express a selector, in Objective-C you use the `@selector`
 keyword:
@@ -337,9 +365,9 @@ first argument:
     sel(s, "world"); // same as s.hasSuffix("world")
 
 
-## Protocol Literals
+## Protocol References   {#protocol-ref}
 
-When you need to express a protocol, in Objective-C you use the `@protocol`
+When you need to get a reference to a protocol, in Objective-C you use the `@protocol`
 keyword:
 
 	Protocol *p = @protocol(NSCoding);
@@ -349,7 +377,7 @@ In D, you use the `protocolof` property of the interface:
 	Protocol p = NSCoding.protocolof;
 
 
-## Interface Builder Attributes {unimplemented}
+## Interface Builder Attributes {unimplemented} {#interface-builder}
 
 The `@IBAction` attribute forces the compiler generate a function selector 
 matching the name of the function, making the function usable as an action in
@@ -368,10 +396,10 @@ The `@IBOutlet` attribute mark fields that should be available in Interface Buil
 	}
 
 
-Special Considerations
+Special Considerations  {#special-considerations}
 ----------------------
 
-### Casts {unimplemented}
+### Casts  {#casts}
 
 The `cast` operator works the same as for regular D objects: if the object you 
 try to cast to is not of the right type, you will get a `null` refrence.
@@ -386,20 +414,19 @@ For interfaces, the cast is implemented similarily:
 	NSCoding coding = cast(NSCoding)object;
 	
 	// produce the same result as:
-	NSCoding coding = ( object && object.conformsToProtocol(NSCoding.interface) ? object : null );
+	NSCoding coding = ( object && object.conformsToProtocol(NSCoding.protocolof) ? object : null );
 
-The compiler will do emit any runtime check when casting to a base type.
+The compiler will not emit any runtime check when casting to a base type.
 
 
-### `NSObject` vs. `ObjcObject` vs. `id`
+### `NSObject` vs. `ObjcObject` vs. `id` {#id}
 
-There are two `NSObject` in Objective-C: `NSObject` There protocol and `NSObject` 
+There are two `NSObject` in Objective-C: `NSObject` the protocol and `NSObject` 
 the class. Not all classes are derived from the `NSObject` class, but they all 
 implement the `NSObject` protocol.
 
 In D having, an interface and a class with the same name is less practical. 
-So the `NSObject` protocol is mapped to the `ObjcObject` interface instead. 
-`ObjcObject` is defined in the objc module.
+So the `NSObject` protocol is mapped to the `ObjcObject` interface instead.
 
 Because all Objective-C objects implement `ObjcObject` (the `NSObject` 
 protocol), `ObjcObject` is used as the base type to hold a generic Objective-C 
@@ -417,12 +444,32 @@ functions, you must first cast it to the right type, like this:
 	}
 
 
-### Exceptions {unimplemented}
+### Exceptions   {#exceptions}
 
-{Question: How to mix the two models? Perhaps we can just ignore the problem...}
+Exceptions are bridged between Objective-C and D code. Since the two 
+languages use a different exception handling mechanism, the compiler has to 
+track which function can throw which kind of exception. It works this way:
+
+1. Function with `extern(Objective-C)` linkage are assumed to throw using the
+   Objective-C mechanism.
+2. Any other function is assumed to throw using the D exception mechanism.
+
+You can put an Objective-C type in a catch clause to catch an Objective-C 
+exception inside your D program:
+
+    try
+        NSLog("%@", obj);
+    catch (NSException e)
+        writeln(e.description);
+
+Note that when propagating in D code, Objective-C exceptions are 
+wrapped inside a `Throwable` object, so if you catch `Throwable` you'll also 
+catch Objective-C exceptions. Similarily, Objective-C code will see any 
+thrown D object wrapped inside an instance of `NSException`, so Objective-C
+code will be able to catch your exceptions.
 
 
-### Memory Management {unimplemented}
+### Memory Management {unimplemented}  {#memory}
 
 Only the reference-counted variant of Objective-C is supported, but reference
 counting is automated which makes things much easier.
@@ -469,7 +516,7 @@ the garbage collector as usual.
 runtime.}
 
 
-### Null Objects {unimplemented}
+### Null Objects {unimplemented}  {#null}
 
 Because of the way the Objective-C runtime handle dynamic dispatch, calling a 
 function on a `null` Objective-C object does nothing and return a zero value
@@ -489,7 +536,7 @@ it encounters `null`.
 memory-safety for struct return values?}
 
 
-### Applying D attributes
+### Applying D attributes  {#attrib}
 
 You can apply D attributes to Objective-C methods as usual and they'll have
 the same effect as on any D function.
@@ -502,39 +549,37 @@ Type modifiers such as `const`, `immutable`, and `shared` can also be used on
 Objective-C classes.
 
 
-### Design by Contract, Unit Tests {unimplemented}
+### Design by Contract, Unit Tests  {#dbc-unittest}
 
 D features such as `unittest`, `in` and `out` contracts as well as `invariant`
 all work as expected when defining Objective-C classes in D.
 
 Note that `invariant` will only be called upon entering public functions 
 defined in D. External Objective-C function won't check the invariants since
-Objective-C is unaware of this feature.
+Objective-C is unaware of them.
 
 
-## Global Functions
+## Global Functions   {#global-func}
 
-Objective-C uses the same global functions as in C. As a convenience, global
-functions tagged with `extern (Objective-C)` will automatically become 
-`extern (C)`.
-
-{Note: this might need to be revised to implement memory management.}
+`extern(Objective-C)` global functions use the same ABI as C functions, with 
+the exception that any exception thrown from Objective-C functions are assumed
+to use Objective-C's exception handling.
 
 
-### Inner Classes {unimplemented}
+### Inner Classes {unimplemented}  {#inner}
 
 Objective-C classes defined in D can contain inner classes. You can also 
 derive an inner class from an Objective-C object.
 
 
-### Memory Safety
+### Memory Safety   {#safety}
 
 While the Objective-C language provide no construct to guarenty memory safety, 
 D does. Properly declared external Objective-C objects should be usable in 
 SafeD and provide the same guarenties.
 
 
-### Generated Selectors
+### Generated Selectors   {#generated-selectors}
 
 When a function has no explicit selector, the compiler generate one in a way 
 that permits function overloading. To this end, a function with one or more
@@ -554,12 +599,12 @@ a function, take its adress and simply assign it to a selector variable:
     void __selector(NSView view) sel = &NSView.addSubview;
 
 
-## Blocks {unimplemented}
+## Blocks {unimplemented}  {#blocks}
 
 While not stricly speaking part of Objective-C, Apple's block extension for C
 and Objective-C is now used at many places through the Mac OS X Objective-C 
-Cocoa APIs. A block is the same thing as a D delegate, but it is stored in a 
-different data structure.
+Cocoa APIs. A block is roughly the same thing as a D delegate, but it is 
+stored in a different data structure.
 
 The type of a block in D is expressed using the same syntax as a delegate, 
 except that you must use the `__block` keyword. If an Objective-C function 
