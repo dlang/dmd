@@ -2694,7 +2694,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (ie->e1->type->toBasetype()->ty != Taarray)
         {
             indexToModify = index->toInteger();
-            if (indexToModify > destarraylen)
+            if (indexToModify >= destarraylen)
             {
                 error("array index %d is out of bounds [0..%d]", indexToModify,
                     destarraylen);
