@@ -4175,7 +4175,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
 {
     // Run semantic on each argument, place results in tiargs[]
-    //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
+    //printf("+TemplateInstance::semanticTiargs()\n");
     if (!tiargs)
         return;
     for (size_t j = 0; j < tiargs->dim; j++)
@@ -4285,7 +4285,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         //printf("1: tiargs->data[%d] = %p\n", j, tiargs->data[j]);
     }
 #if 0
-    printf("-TemplateInstance::semanticTiargs('%s', this=%p)\n", toChars(), this);
+    printf("-TemplateInstance::semanticTiargs()\n");
     for (size_t j = 0; j < tiargs->dim; j++)
     {
         Object *o = (Object *)tiargs->data[j];

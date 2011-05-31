@@ -2631,6 +2631,79 @@ void test138()
 
 /***************************************************/
 
+// 5939, 5940
+
+template map(fun...)
+{
+    auto map(double[] r)
+    {
+        struct Result
+        {
+            this(double[] input)
+            {
+            }
+        }
+
+        return Result(r);
+    }
+}
+
+
+void test139()
+{
+    double[] x;
+    alias typeof(map!"a"(x)) T;
+    T a = void;
+    auto b = map!"a"(x);
+    auto c = [map!"a"(x)];
+    T[3] d;
+}
+
+
+/***************************************************/
+// 5966
+
+string[] foo5966(string[] a)
+{
+    a[0] = a[0][0..$];
+    return a;
+}
+
+enum var5966 = foo5966([""]);
+
+/***************************************************/
+// 5975
+
+int foo5975(wstring replace)
+{
+  wstring value = "";
+  value ~= replace;
+  return 1;
+}
+
+enum X5975 = foo5975("X"w);
+
+/***************************************************/
+// 5965
+
+template mapx(fun...) if (fun.length >= 1)
+{
+    int mapx(Range)(Range r)
+    {
+        return 1;
+    }
+}
+
+void test140()
+{
+   int foo(int i) { return i; }
+
+   int[] arr;
+   auto x = mapx!( function(int a){return foo(a);} )(arr);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2771,6 +2844,8 @@ int main()
     test136();
     test137();
     test138();
+    test139();
+    test140();
 
     printf("Success\n");
     return 0;
