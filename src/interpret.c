@@ -2471,9 +2471,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
                 for (size_t i = 0; i < copylen; i++)
                      elements->data[i] = ae->elements->data[i];
-
-                for (size_t i = copylen; i < newlen; i++)
-                    elements->data[i] = defaultElem;
+                if (elemType->ty == Tstruct || elemType->ty == Tsarray)
+                {   /* If it is an aggregate literal representing a value type,
+                     * we need to create a unique copy for each element
+                     */
+                    for (size_t i = copylen; i < newlen; i++)
+                        elements->data[i] = copyLiteral(defaultElem);
+                }
+                else
+                {
+                    for (size_t i = copylen; i < newlen; i++)
+                        elements->data[i] = defaultElem;
+                }
                 ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
                 aae->type = t;
                 newval = aae;
