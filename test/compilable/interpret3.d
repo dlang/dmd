@@ -1156,6 +1156,70 @@ bool bug6052b() {
 
 static assert(bug6052b());
 
+struct Bug6052c {
+    int x;
+    this(int a) { x = a; }
+}
+
+int bug6052c()
+{
+    Bug6052c[] pieces = [];
+    for (int c = 0; c < 2; ++ c)
+        pieces ~= Bug6052c(c);
+    assert(pieces[1].x == 1);
+    assert(pieces[0].x == 0);
+    return 1;
+}
+static assert(bug6052c()==1);
+static assert(bug6052c()==1);
+
+
+static assert({
+    Bug6052c[] pieces = [];
+    pieces.length = 2;
+    int c = 0;
+    pieces[0] = Bug6052c(c);
+    ++c;
+    pieces[1] = Bug6052c(c);
+    assert(pieces[0].x == 0);
+    return true;
+}());
+
+static assert({
+    int[1][] pieces = [];
+    pieces.length = 2;
+    for (int c = 0; c < 2; ++ c)
+        pieces[c][0] = c;
+    assert(pieces[1][0] == 1);
+    assert(pieces[0][0] == 0);
+    return true;
+}());
+
+
+static assert({
+    Bug6052c[] pieces = [];
+    for (int c = 0; c < 2; ++ c)
+        pieces ~= Bug6052c(c);
+    assert(pieces[1].x == 1);
+    assert(pieces[0].x == 0);
+    return true;
+}());
+
+
+static assert({
+    int[1] z = 7;
+    int[1][] pieces = [z,z];
+    pieces[1][0]=3;
+    assert(pieces[0][0] == 7);
+    pieces = pieces ~ [z,z];
+    pieces[3][0] = 16;
+    assert(pieces[2][0] == 7);
+    pieces = [z,z] ~ pieces;
+    pieces[5][0] = 16;
+    assert(pieces[4][0] == 7);
+    return true;
+}());
+
 /**************************************************
     Index + slice assign to function returns
 **************************************************/
@@ -1199,3 +1263,53 @@ enum x6054 = {
     }();
     return p;
 }();
+
+/**************************************************
+    Bug 6077
+**************************************************/
+
+enum bug6077 = {
+  string s;
+  string t;
+  return s ~ t;
+}();
+
+/**************************************************
+    Bug 6078 -- Pass null array by ref
+**************************************************/
+
+struct Foo6078 {
+  int[] bar;
+}
+
+static assert( {
+  Foo6078 f;
+  int i;
+  foreach (ref e; f.bar) {
+    i += e;
+  }
+  return i;
+}() == 0);
+
+int bug6078(ref int[] z)
+{
+    int [] q = z;
+    return 2;
+}
+
+static assert( {
+  Foo6078 f;
+  return bug6078(f.bar);
+}() == 2);
+
+
+/**************************************************
+    Bug 6079 -- Array bounds checking
+**************************************************/
+
+static assert(!is(typeof(compiles!({
+    int[] x = [1,2,3,4];
+    x[4] = 1;
+    return true;
+}()
+))));
