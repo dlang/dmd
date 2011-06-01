@@ -1210,6 +1210,21 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     return EXP_CANT_INTERPRET;
 }
 
+Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
+{
+#if LOG
+    printf("AddrExp::interpret() %s\n", toChars());
+#endif
+    if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
+    {
+        Expression *e = e1->interpret(istate, goal);
+        e->type = type;
+        return e;
+    }
+    error("Cannot interpret %s at compile time", toChars());
+    return EXP_CANT_INTERPRET;
+}
+
 Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG

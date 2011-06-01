@@ -973,6 +973,7 @@ struct AddrExp : UnaExp
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 };
 
 struct PtrExp : UnaExp
