@@ -160,7 +160,6 @@ struct Param
     char useInline;     // inline expand functions
     char release;       // build release version
     char preservePaths; // !=0 means don't strip path from source file
-    char packagePaths;  // !=0 means use the fully qualified module name as object file output filename
     char warnings;      // 0: enable warnings
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
