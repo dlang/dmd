@@ -1153,6 +1153,70 @@ bool bug6052b() {
 
 static assert(bug6052b());
 
+struct Bug6052c {
+    int x;
+    this(int a) { x = a; }
+}
+
+int bug6052c()
+{
+    Bug6052c[] pieces = [];
+    for (int c = 0; c < 2; ++ c)
+        pieces ~= Bug6052c(c);
+    assert(pieces[1].x == 1);
+    assert(pieces[0].x == 0);
+    return 1;
+}
+static assert(bug6052c()==1);
+static assert(bug6052c()==1);
+
+
+static assert({
+    Bug6052c[] pieces = [];
+    pieces.length = 2;
+    int c = 0;
+    pieces[0] = Bug6052c(c);
+    ++c;
+    pieces[1] = Bug6052c(c);
+    assert(pieces[0].x == 0);
+    return true;
+}());
+
+static assert({
+    int[1][] pieces = [];
+    pieces.length = 2;
+    for (int c = 0; c < 2; ++ c)
+        pieces[c][0] = c;
+    assert(pieces[1][0] == 1);
+    assert(pieces[0][0] == 0);
+    return true;
+}());
+
+
+static assert({
+    Bug6052c[] pieces = [];
+    for (int c = 0; c < 2; ++ c)
+        pieces ~= Bug6052c(c);
+    assert(pieces[1].x == 1);
+    assert(pieces[0].x == 0);
+    return true;
+}());
+
+
+static assert({
+    int[1] z = 7;
+    int[1][] pieces = [z,z];
+    pieces[1][0]=3;
+    assert(pieces[0][0] == 7);
+    pieces = pieces ~ [z,z];
+    pieces[3][0] = 16;
+    assert(pieces[2][0] == 7);
+    pieces = [z,z] ~ pieces;
+    pieces[5][0] = 16;
+    assert(pieces[4][0] == 7);
+    return true;
+}());
+
 /**************************************************
     Index + slice assign to function returns
 **************************************************/
