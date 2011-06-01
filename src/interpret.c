@@ -2017,19 +2017,19 @@ bool needToCopyLiteral(Expression *expr)
                 expr = ((UnaExp *)expr)->e1;
                 continue;
             case TOKcat:
+                return needToCopyLiteral(((BinExp *)expr)->e1) ||
+                    needToCopyLiteral(((BinExp *)expr)->e2);
             case TOKcatass:
-                return false;
+                expr = ((BinExp *)expr)->e2;
+                continue;
             case TOKcall:
                 // TODO: Return statement should
                 // guarantee we never return a naked literal, but
                 // currently it doesn't.
                 return true;
 
-            // There are probably other cases which don't need
-            // a copy. But for now, we conservatively copy all
-            // other cases.
             default:
-                return true;
+                return false;
         }
     }
 }
@@ -2427,6 +2427,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
         if (fp)
         {
+            // ~= can create new values (see bug 6052)
+            if (op == TOKcatass && needToCopyLiteral(this->e2))
+                    newval = copyLiteral(newval);
             newval = (*fp)(type, oldval, newval);
             if (newval == EXP_CANT_INTERPRET)
             {
@@ -2555,7 +2558,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = newval->interpret(istate);
         }
 
-        if (newval->op == TOKassocarrayliteral || newval->op == TOKstring)
+        if (newval->op == TOKassocarrayliteral || newval->op == TOKstring ||
+            newval->op==TOKarrayliteral)
         {
             if (needToCopyLiteral(this->e2))
                 newval = copyLiteral(newval);
