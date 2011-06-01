@@ -3338,7 +3338,8 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
     // If the comma returns a temporary variable, it needs to be an lvalue
     // (this is particularly important for struct constructors)
     if (e1->op == TOKdeclaration && e2->op == TOKvar
-       && ((DeclarationExp *)e1)->declaration == ((VarExp*)e2)->var)
+       && ((DeclarationExp *)e1)->declaration == ((VarExp*)e2)->var
+       && ((VarExp*)e2)->var->storage_class & STCctfe)  // same as Expression::isTemp
     {
         VarExp* ve = (VarExp *)e2;
         VarDeclaration *v = ve->var->isVarDeclaration();
