@@ -2717,6 +2717,64 @@ void bug5976()
 } 
 
 /***************************************************/
+// 5771
+
+struct S141
+{
+    this(A)(auto ref A a){}
+}
+
+void test141()
+{
+    S141 s = S141(10);
+}
+
+/***************************************************/
+// 3688
+
+struct S142
+{
+    int v;
+    this(int n) { v = n; }
+    const bool opCast(T:bool)() { return true; }
+}
+
+void test142()
+{
+    if (int a = 1)
+        assert(a == 1);
+    else assert(0);
+
+    if (const int a = 2)
+        assert(a == 2);
+    else assert(0);
+
+    if (immutable int a = 3)
+        assert(a == 3);
+    else assert(0);
+
+    if (auto s = S142(10))
+        assert(s.v == 10);
+    else assert(0);
+
+    if (auto s = const(S142)(20))
+        assert(s.v == 20);
+    else assert(0);
+
+    if (auto s = immutable(S142)(30))
+        assert(s.v == 30);
+    else assert(0);
+}
+
+/***************************************************/
+// 6072
+
+static assert({
+    if (int x = 5) {}
+    return true;
+}());
+
+/***************************************************/
 
 int main()
 {
@@ -2860,6 +2918,8 @@ int main()
     test138();
     test139();
     test140();
+    test141();
+    test142();
 
     printf("Success\n");
     return 0;
