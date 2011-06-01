@@ -679,6 +679,7 @@ ObjcSelector *ObjcSelector::create(FuncDeclaration *fdecl)
         buf.write("set", 3);
         buf.writeByte(firstChar);
         buf.write(fdecl->ident->string+1, fdecl->ident->len-1);
+        buf.writeByte(':');
         goto Lcomplete;
     }
 
