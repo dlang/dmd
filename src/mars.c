@@ -88,6 +88,9 @@ Global::Global()
 
     copyright = "Copyright (c) 1999-2011 by Digital Mars";
     written = "written by Walter Bright"
+#if DMD_OBJC
+    "\nD/Objective-C (alpha 1 release) by Michel Fortin.";
+#endif
 #if TARGET_NET
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
