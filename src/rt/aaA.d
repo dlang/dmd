@@ -790,7 +790,7 @@ BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] val
  *      1       equal
  *      0       not equal
  */
-int _aaEqual(TypeInfo_AssociativeArray ti, AA e1, AA e2)
+int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
 {
     //printf("_aaEqual()\n");
     //printf("keyti = %.*s\n", ti.key.classinfo.name);
@@ -802,6 +802,28 @@ int _aaEqual(TypeInfo_AssociativeArray ti, AA e1, AA e2)
     size_t len = _aaLen(e1);
     if (len != _aaLen(e2))
         return 0;
+
+    // Check for Bug 5925. ti_raw could be a TypeInfo_Const, we need to unwrap
+    //   it until reaching a real TypeInfo_AssociativeArray.
+    TypeInfo_AssociativeArray ti;
+    while (true)
+    {
+        if ((ti = cast(TypeInfo_AssociativeArray)tiRaw) !is null)
+            break;
+        else if (auto tiConst = cast(TypeInfo_Const)tiRaw) {
+            // The member in object_.d and object.di differ. This is to ensure
+            //  the file can be compiled both independently in unittest and
+            //  collectively in generating the library. Fixing object.di
+            //  requires changes to std.format in Phobos, fixing object_.d
+            //  makes Phobos's unittest fail, so this hack is employed here to
+            //  avoid irrelevant changes.
+            static if (is(typeof(&tiConst.base) == TypeInfo*))
+                tiRaw = tiConst.base;
+            else
+                tiRaw = tiConst.next;
+        } else
+            assert(0);  // ???
+    }
 
     /* Algorithm: Visit each key/value pair in e1. If that key doesn't exist
      * in e2, or if the value in e1 doesn't match the one in e2, the arrays
