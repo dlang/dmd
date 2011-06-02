@@ -133,6 +133,7 @@ LINK =  <a href=\"$0\">$0</a>\n\
 LINK2 = <a href=\"$1\">$+</a>\n\
 LPAREN= (\n\
 RPAREN= )\n\
+DOLLAR= $\n\
 \n\
 RED =   <font color=red>$0</font>\n\
 BLUE =  <font color=blue>$0</font>\n\
@@ -374,6 +375,12 @@ void escapeDdocString(OutBuffer *buf, unsigned start)
         unsigned char c = buf->data[u];
         switch(c)
         {
+            case '$':
+                buf->remove(u, 1);
+                buf->insert(u, "$(DOLLAR)", 9);
+                u += 8;
+                break;
+
             case '(':
                 buf->remove(u, 1); //remove the (
                 buf->insert(u, "$(LPAREN)", 9); //insert this instead
