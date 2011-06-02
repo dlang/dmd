@@ -248,8 +248,15 @@ void initStaticDataGC()
     }
     else version( FreeBSD )
     {
-        gc_addRange( &etext, cast(size_t) &_deh_end - cast(size_t) &etext );
-        gc_addRange( &__progname, cast(size_t) &_end - cast(size_t) &__progname );
+        version (X86_64)
+        {
+            gc_addRange( &etext, cast(size_t) &_deh_end - cast(size_t) &etext );
+            gc_addRange( &__progname, cast(size_t) &_end - cast(size_t) &__progname );
+        }
+        else
+        {
+            gc_addRange( &etext, cast(size_t) &_end - cast(size_t) &etext );
+        }
     }
     else version( Solaris )
     {
