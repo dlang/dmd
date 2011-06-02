@@ -43,6 +43,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "attrib.h"
 #include "hdrgen.h"
 #include "parse.h"
+#include "doc.h"
 
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
@@ -1717,13 +1718,18 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                      break;
                 }
             case Tchar:
+            {
+                unsigned o = buf->offset;
                 if (v == '\'')
                     buf->writestring("'\\''");
                 else if (isprint(v) && v != '\\')
                     buf->printf("'%c'", (int)v);
                 else
                     buf->printf("'\\x%02x'", (int)v);
+                if (hgs->ddoc)
+                    escapeDdocString(buf, o);
                 break;
+            }
 
             case Tint8:
                 buf->writestring("cast(byte)");
@@ -3096,6 +3102,7 @@ unsigned StringExp::charAt(size_t i)
 void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('"');
+    unsigned o = buf->offset;
     for (size_t i = 0; i < len; i++)
     {   unsigned c = charAt(i);
 
@@ -3120,6 +3127,8 @@ void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 break;
         }
     }
+    if (hgs->ddoc)
+        escapeDdocString(buf, o);
     buf->writeByte('"');
     if (postfix)
         buf->writeByte(postfix);
