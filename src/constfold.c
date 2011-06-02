@@ -1367,6 +1367,14 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         e->type = type;
         return e;
     }
+    else if (e1->op == TOKnull && e2->op == TOKnull)
+    {
+        if (type == e1->type)
+            return e1;
+        if (type == e2->type)
+            return e2;
+        return new NullExp(e1->loc, type);
+    }
     else if (e1->op == TOKstring && e2->op == TOKstring)
     {
         // Concatenate the strings

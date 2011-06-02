@@ -2017,19 +2017,19 @@ bool needToCopyLiteral(Expression *expr)
                 expr = ((UnaExp *)expr)->e1;
                 continue;
             case TOKcat:
+                return needToCopyLiteral(((BinExp *)expr)->e1) ||
+                    needToCopyLiteral(((BinExp *)expr)->e2);
             case TOKcatass:
-                return false;
+                expr = ((BinExp *)expr)->e2;
+                continue;
             case TOKcall:
                 // TODO: Return statement should
                 // guarantee we never return a naked literal, but
                 // currently it doesn't.
                 return true;
 
-            // There are probably other cases which don't need
-            // a copy. But for now, we conservatively copy all
-            // other cases.
             default:
-                return true;
+                return false;
         }
     }
 }
@@ -2427,6 +2427,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
         if (fp)
         {
+            // ~= can create new values (see bug 6052)
+            if (op == TOKcatass && needToCopyLiteral(this->e2))
+                    newval = copyLiteral(newval);
             newval = (*fp)(type, oldval, newval);
             if (newval == EXP_CANT_INTERPRET)
             {
@@ -2471,9 +2474,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
                 for (size_t i = 0; i < copylen; i++)
                      elements->data[i] = ae->elements->data[i];
-
-                for (size_t i = copylen; i < newlen; i++)
-                    elements->data[i] = defaultElem;
+                if (elemType->ty == Tstruct || elemType->ty == Tsarray)
+                {   /* If it is an aggregate literal representing a value type,
+                     * we need to create a unique copy for each element
+                     */
+                    for (size_t i = copylen; i < newlen; i++)
+                        elements->data[i] = copyLiteral(defaultElem);
+                }
+                else
+                {
+                    for (size_t i = copylen; i < newlen; i++)
+                        elements->data[i] = defaultElem;
+                }
                 ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
                 aae->type = t;
                 newval = aae;
@@ -2515,7 +2527,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (op==TOKconstruct && this->e1->op==TOKvar && this->e2->op != TOKthis
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
-        //error("assignment to ref variable %s is not yet supported in CTFE", this->toChars());
         VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
         v->setValueNull();
         v->createStackValue(e2);
@@ -2547,26 +2558,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = newval->interpret(istate);
         }
 
-        if (newval->op == TOKassocarrayliteral || newval->op == TOKstring)
+        if (newval->op == TOKassocarrayliteral || newval->op == TOKstring ||
+            newval->op==TOKarrayliteral)
         {
             if (needToCopyLiteral(this->e2))
                 newval = copyLiteral(newval);
         }
         returnValue = newval;
-
-        if (e1->op == TOKvar || e1->op == TOKdotvar)
-        {
-            assert((newval->op == TOKarrayliteral ||
-                    newval->op == TOKassocarrayliteral ||
-                    newval->op == TOKstring ||
-                    newval->op == TOKslice ||
-                    newval->op == TOKnull) );
-            if (newval->op == TOKslice)
-            {
-                Expression *sss = ((SliceExp *)newval)->e1;
-                assert(sss->op == TOKarrayliteral || sss->op == TOKstring);
-            }
-        }
     }
 
     // ---------------------------------------
@@ -2709,7 +2707,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (ie->e1->type->toBasetype()->ty != Taarray)
         {
             indexToModify = index->toInteger();
-            if (indexToModify > destarraylen)
+            if (indexToModify >= destarraylen)
             {
                 error("array index %d is out of bounds [0..%d]", indexToModify,
                     destarraylen);
@@ -4048,6 +4046,12 @@ bool isRefValueValid(Expression *newval)
         (newval->op == TOKnull))
     {   return true;
     }
+    // Dynamic arrays passed by ref may be null. When this happens
+    // they may originate from an index or dotvar expression.
+    if (newval->type->ty == Tarray || newval->type->ty == Taarray
+        || newval->type->ty == Tclass)
+        if (newval->op == TOKdotvar || newval->op == TOKindex)
+            return isStackValueValid(newval); // actually must be null
     if (newval->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)newval;
