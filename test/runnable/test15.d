@@ -526,6 +526,7 @@ void foo28(ClassInfo ci)
 		break;
 	case 1:	assert(ci.name == "test15.B28");
 		break;
+	default: assert(0);
     }
 }
 

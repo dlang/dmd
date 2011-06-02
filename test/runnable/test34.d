@@ -439,6 +439,7 @@ class myclass20
 	{
 	    case XX!(cast(uint)type20.a,cast(uint)type20.b)():
 		break;
+	    default: assert(0);
 	}
     }
 }

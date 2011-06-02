@@ -565,6 +565,7 @@ void test28()
 	    case 0:	assert(is(T == int));	 break;
 	    case 1:	assert(is(T == long));	 break;
 	    case 2:	assert(is(T == double)); break;
+	    default:	assert(0);
 	}
     }
 }

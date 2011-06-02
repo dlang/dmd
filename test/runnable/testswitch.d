@@ -181,6 +181,9 @@ void test8()
 
 	case "abc":
 	    break;
+
+	default:
+	    assert(0);
     }
     assert(0);
 }
@@ -242,6 +245,7 @@ void test11()
 	case 3: break;
 	case 4: break;
 	case 5: break;
+	default: assert(0);
     }
 }
 
@@ -284,6 +288,9 @@ void foo14(A...)(int i)
                 case a:
                         printf("%d\n", a);
                 }
+		break;
+	    default:
+		assert(0);
         }
 }
 
@@ -296,6 +303,9 @@ void bar14(A...)(int i)
                 case A[j]:
                         printf("a = %d, A[%d] = %d\n", a, j, A[j]);
                 }
+		break;
+	    default:
+		assert(0);
         }
 }
 
@@ -382,6 +392,8 @@ void test17()
 	case 1: .. case 3:
 	    i = 5;
 	    break;
+	default:
+	    assert(0);
     }
     if (i != 5)
 	assert(0);
@@ -394,6 +406,8 @@ void test17()
 	case 5:
 	    i = 6;
 	    break;
+	default:
+	    assert(0);
     }
     if (i != 6)
 	assert(0);

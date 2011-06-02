@@ -259,6 +259,8 @@ template duff_for(alias id1, alias id2, alias s)
         case 3: s(); ++id;
         case 2: s(); ++id;
         case 1: s(); ++id;
+	     break;
+	default: assert(0);
 	 }
         }
     }

@@ -46,6 +46,7 @@ int main()
     {
 	case "foo":
 	    break;
+	default: assert(0);
     }
 
     switch (1)
@@ -78,6 +79,8 @@ int main()
 
 	case 2:
 	    break;
+
+	default: assert(0);
     }
 
     writefln("Success\n");

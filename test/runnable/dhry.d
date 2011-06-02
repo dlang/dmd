@@ -726,7 +726,7 @@ void Proc_6 (Enumeration Enum_Val_Par, Enumeration *Enum_Ref_Par)
   if (! Func_3 (Enum_Val_Par))
     /* then, not executed */
     *Enum_Ref_Par = Ident_4;
-  switch (Enum_Val_Par)
+  final switch (Enum_Val_Par)
   {
     case Ident_1: 
       *Enum_Ref_Par = Ident_1;

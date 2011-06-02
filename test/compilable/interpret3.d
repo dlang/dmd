@@ -280,6 +280,7 @@ int cov2()
     SWITCHLABEL:
                 i = 27;
                 goto case 3;
+	     default: assert(0);
             }
             return i;
         }

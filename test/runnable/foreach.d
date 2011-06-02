@@ -14,6 +14,7 @@ void test1()
 	    case 1:	assert(c == 'b');	break;
 	    case 2:	assert(c == 'c');	break;
 	    case 3:	assert(c == 'd');	break;
+	    default:	assert(0);
 	}
     }
 
@@ -25,6 +26,7 @@ void test1()
 	    case 1:	assert(c == 's');	break;
 	    case 2:	assert(c == 'd');	break;
 	    case 3:	assert(c == 'f');	break;
+	    default:	assert(0);
 	}
     }
 
@@ -36,6 +38,7 @@ void test1()
 	    case 1:	assert(c == 'n');	break;
 	    case 2:	assert(c == 'c');	break;
 	    case 3:	assert(c == 'd');	break;
+	    default:	assert(0);
 	}
     }
 }
@@ -61,6 +64,7 @@ void test2()
 	    case 2:	assert(u == 5);		break;
 	    case 3:	assert(u == 8);		break;
 	    case 4:	assert(u == 3);		break;
+	    default:	assert(0);
 	}
     }
 
@@ -75,6 +79,7 @@ void test2()
 	    case 2:	assert(u == 5);		break;
 	    case 3:	assert(u == 8);		break;
 	    case 4:	assert(u == 3);		break;
+	    default:	assert(0);
 	}
     }
 
@@ -93,6 +98,7 @@ void test2_x(uint[5] a)
 	    case 2:	assert(u == 5);		break;
 	    case 3:	assert(u == 8);		break;
 	    case 4:	assert(u == 3);		break;
+	    default:	assert(0);
 	}
     }
 }

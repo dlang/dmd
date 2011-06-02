@@ -2339,8 +2339,8 @@ Statement *IfStatement::semantic(Scope *sc)
     }
     else
     {
-	    condition = condition->semantic(sc);
-	    condition = resolveProperties(sc, condition);
+            condition = condition->semantic(sc);
+            condition = resolveProperties(sc, condition);
         scd = sc->push();
     }
 
@@ -2811,7 +2811,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault && !isFinal)
     {   hasNoDefault = 1;
 
-        warning("switch statement has no default");
+        error("non-final switch statement must have a default");
 
         // Generate runtime error if the default is hit
         Statements *a = new Statements();
