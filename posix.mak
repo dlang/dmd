@@ -237,11 +237,7 @@ MANIFEST= \
 	src/rt/util/string.d \
 	src/rt/util/utf.d
 
-ifeq ($(OS)$(MODEL),freebsd64)
-GC_MODULES = gcstub/gc
-else
 GC_MODULES = gc/gc gc/gcalloc gc/gcbits gc/gcstats gc/gcx
-endif
 
 SRC_D_MODULES = \
 	object_ \
