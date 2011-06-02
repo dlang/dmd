@@ -1171,16 +1171,6 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
         return EXP_CANT_INTERPRET;
     }
     Type *pointee = ((TypePointer *)type)->next;
-    if (offset == 0 && pointee == var->type)
-    {
-        if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
-        {
-            VarExp *ve = new VarExp(loc, var);
-            ve->type = type;
-            return ve;
-        }
-        return getVarExp(loc, istate, var, goal);
-    }
     Expression *val = getVarExp(loc, istate, var, goal);
     if (val->type->ty == Tarray || val->type->ty == Tsarray)
     {
@@ -1204,6 +1194,16 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
             ie->type = type;
             return ie;
         }
+    }
+    else if (offset == 0 && pointee == var->type)
+    {
+        if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
+        {
+            VarExp *ve = new VarExp(loc, var);
+            ve->type = type;
+            return ve;
+        }
+        return getVarExp(loc, istate, var, goal);
     }
 
     error("Cannot interpret %s at compile time", toChars());
@@ -1257,6 +1257,8 @@ Expression * resolveReferences(Expression *e, Expression *thisval, bool *isRefer
             // Chase down rebinding of out and ref.
             VarExp *ve = (VarExp *)e;
             VarDeclaration *v = ve->var->isVarDeclaration();
+            if (v->type->ty == Tpointer)
+                break;
             if (v && v->getValue() && v->getValue()->op == TOKvar) // it's probably a reference
             {
                 // Make sure it's a real reference.
@@ -1820,6 +1822,76 @@ UNA_INTERPRET(Com)
 UNA_INTERPRET(Not)
 UNA_INTERPRET(Bool)
 
+Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
+{
+    *ofs = 0;
+    if (e->op == TOKindex)
+    {
+        IndexExp *ie = (IndexExp *)e;
+        // Note that each AA element is part of its own memory block
+        if ((ie->e1->type->ty == Tarray || ie->e1->type->ty == Tsarray
+            || ie->e1->op == TOKstring || ie->e1->op==TOKarrayliteral) &&
+            ie->e2->op == TOKint64)
+        {
+            *ofs = ie->e2->toInteger();
+            return ie->e1;
+        }
+    }
+    return e;
+}
+
+// return e1 - e2 as an integer, or error if not possible
+Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e2)
+{
+    dinteger_t ofs1, ofs2;
+    Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
+    Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
+    if (agg1 == agg2)
+    {
+        Type *pointee = ((TypePointer *)agg1->type)->next;
+        dinteger_t sz = pointee->size();
+        return new IntegerExp(loc, (ofs1-ofs2)*sz, type);
+    }
+    error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract"
+        "pointers to two different memory blocks",
+        e1->toChars(), e2->toChars());
+    return EXP_CANT_INTERPRET;
+}
+
+Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type, Expression *eptr, Expression *e2)
+{
+    dinteger_t ofs1, ofs2;
+    Expression *agg1 = getAggregateFromPointer(eptr, &ofs1);
+    ofs2 = e2->toInteger();
+    Type *pointee = ((TypePointer *)agg1->type)->next;
+    dinteger_t sz = pointee->size();
+    if (eptr->op != TOKindex && eptr->op!=TOKstring && eptr->op!=TOKarrayliteral)
+    {
+        error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
+        return EXP_CANT_INTERPRET;
+    }
+    Expression *dollar = ArrayLength(Type::tsize_t, agg1);
+    dinteger_t len = dollar->toInteger();
+
+    Expression *val = agg1;
+    TypeArray *tar = (TypeArray *)val->type;
+    dinteger_t indx = ofs1 + ofs2/sz;
+    if (val->op != TOKarrayliteral && val->op != TOKstring)
+    {
+        error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    if (indx < 0 || indx > len)
+    {
+        error(loc, "cannot assign pointer to index %jd inside memory block [0..%jd]", indx, len);
+        return EXP_CANT_INTERPRET;
+    }
+
+    IntegerExp *ofs = new IntegerExp(loc, indx, Type::tsize_t);
+    IndexExp *ie = new IndexExp(loc, val, ofs);
+    ie->type = type;
+    return ie;
+}
 
 typedef Expression *(*fp_t)(Type *, Expression *, Expression *);
 
@@ -1831,6 +1903,31 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
 #if LOG
     printf("BinExp::interpretCommon() %s\n", toChars());
 #endif
+    if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer && op == TOKmin)
+    {
+        e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        return pointerDifference(loc, type, e1, e2);
+    }
+    if (this->e1->type->ty == Tpointer && this->e2->type->isintegral())
+    {
+        e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        e2 = this->e2->interpret(istate);
+        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+        return pointerArithmetic(loc, op, type, e1, e2);
+    }
+    if (this->e2->type->ty == Tpointer && this->e1->type->ty == TOKint64 && op==TOKadd)
+    {
+        e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        e1 = this->e1->interpret(istate);
+        return pointerArithmetic(loc, op, type, e2, e1);
+    }
+    if (this->e1->type->ty == Tpointer || this->e2->type->ty == Tpointer)
+    {
+        error("pointer expression %s cannot be interpreted at compile time", toChars());
+        return EXP_CANT_INTERPRET;
+    }
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
@@ -1871,40 +1968,30 @@ BIN_INTERPRET(Xor)
 
 typedef Expression *(*fp2_t)(enum TOK, Type *, Expression *, Expression *);
 
-Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
-{
-    *ofs = 0;
-    if (e->op == TOKindex)
-    {
-        IndexExp *ie = (IndexExp *)e;
-        if (ie->e2->op == TOKint64)
-            *ofs = ie->e2->toInteger();
-        return ie->e1;
-    }
-    return e;
-}
-
-// Only allow equality comparison
+// Return EXP_CANT_INTERPRET if they point to independent memory blocks
 Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
 {
     dinteger_t ofs1, ofs2;
     Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
     Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
-    if (agg1 == agg2)
+    if (agg1 == agg2 ||
+        (agg1->op == TOKstring && agg2->op == TOKstring &&
+        ((StringExp *)agg1)->string == ((StringExp *)agg2)->string))
+
     {
         dinteger_t cm = ofs1 - ofs2;
         dinteger_t n;
         dinteger_t zero = 0;
         switch(op)
         {
-        case TOKlt: n = ofs1 <  ofs2;   break;
-        case TOKle: n = ofs1 <= ofs2;   break;
-        case TOKgt: n = ofs1 >  ofs2;   break;
-        case TOKge: n = ofs1 >= ofs2;   break;
+        case TOKlt:          n = (ofs1 <  ofs2); break;
+        case TOKle:          n = (ofs1 <= ofs2); break;
+        case TOKgt:          n = (ofs1 >  ofs2); break;
+        case TOKge:          n = (ofs1 >= ofs2); break;
         case TOKidentity:
-        case TOKequal: n = ofs1 == ofs2; break;
+        case TOKequal:       n = (ofs1 == ofs2); break;
         case TOKnotidentity:
-        case TOKnotequal: n = ofs1 != ofs2; break;
+        case TOKnotequal:    n = (ofs1 != ofs2); break;
         default:
             assert(0);
         }
@@ -1925,18 +2012,16 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
         {
         case TOKidentity:
         case TOKequal:
-        case TOKnotidentity:
+        case TOKnotidentity: // 'cmp' gets inverted below
         case TOKnotequal:
             cmp = 0;
             break;
         default:
-            error(loc, "%s and %s point to independent memory blocks and "
-                "cannot be compared at compile time", e1->toChars(), e2->toChars());
-            break;
+            return EXP_CANT_INTERPRET;
         }
     }
     if (op == TOKnotidentity || op == TOKnotequal)
-        cmp^=-1;
+        cmp ^= -1;
     return new IntegerExp(loc, cmp, type);
 }
 
@@ -1952,7 +2037,14 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
-        return comparePointers(loc, op, type, e1, e2);
+        e = comparePointers(loc, op, type, e1, e2);
+        if (e == EXP_CANT_INTERPRET)
+        {
+            error("%s and %s point to independent memory blocks and "
+                "cannot be compared at compile time", this->e1->toChars(),
+                this->e2->toChars());
+        }
+        return e;
     }
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
@@ -3886,10 +3978,35 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
     }
 #endif
     else
-    {
-        e = e1->interpret(istate, goal);
+    {   // It's possible we have an array bounds error. We need to make sure it
+        // errors with this line number, not the one where the pointer was set.
+        e = e1->interpret(istate, ctfeNeedLvalue);
         if (e == EXP_CANT_INTERPRET)
             return e;
+        if (goal != ctfeNeedLvalue)
+        {
+            if (e->op == TOKindex && e->type->ty == Tpointer)
+            {
+                IndexExp *ie = (IndexExp *)e;
+                if ((ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring)
+                    && ie->e2->op == TOKint64)
+                {
+                    Expression *dollar = ArrayLength(Type::tsize_t, ie->e1);
+                    dinteger_t len = dollar->toInteger();
+                    dinteger_t indx = ie->e2->toInteger();
+                    assert(indx >=0 && indx <= len); // invalid pointer
+                    if (indx == len)
+                    {
+                        error("dereference of pointer %s one past end of memory block limits [0..%jd]", 
+                            toChars(), len);
+                        return EXP_CANT_INTERPRET;
+                    }
+                }
+            }
+            e = e->interpret(istate, goal);
+            if (e == EXP_CANT_INTERPRET)
+                return e;
+        }
         if (e->op == TOKnull)
         {
             error("dereference of null pointer '%s'", e1->toChars());
