@@ -3862,66 +3862,70 @@ version( unittest )
             assert(fib.sum == TestFiber.expSum);
         }
     }
+}
 
-    // Single thread running separate fibers
-    unittest
+// Single thread running separate fibers
+unittest
+{
+    runTen();
+}
+
+// Multiple threads running separate fibers
+unittest
+{
+    auto group = new ThreadGroup();
+    foreach(_; 0 .. 4)
     {
-        runTen();
+        group.create(&runTen);
     }
+    group.joinAll();
+}
 
-    // Multiple threads running separate fibers
-    unittest
+// Multiple threads running shared fibers
+unittest
+{
+    shared bool[10] locks;
+    TestFiber[10] fibs;
+
+    void runShared()
     {
-        foreach(_; 0 .. 4)
-        {
-            auto thr = new Thread(&runTen);
-            thr.start();
-        }
-        thread_joinAll();
-    }
-
-    // Multiple threads running shared fibers
-    unittest
-    {
-        shared bool[10] locks;
-        TestFiber[10] fibs;
-
-        void runShared()
-        {
-            bool cont;
-            do {
-                cont = false;
-                foreach(idx; 0 .. 10)
+        bool cont;
+        do {
+            cont = false;
+            foreach(idx; 0 .. 10)
+            {
+                if (cas(&locks[idx], false, true))
                 {
-                    if (cas(&locks[idx], false, true))
+                    if (fibs[idx].state == Fiber.State.HOLD)
                     {
-                        if (fibs[idx].state == Fiber.State.HOLD)
-                        {
-                            fibs[idx].call();
-                            cont |= fibs[idx].state != Fiber.State.TERM;
-                        }
-                        locks[idx] = false;
+                        fibs[idx].call();
+                        cont |= fibs[idx].state != Fiber.State.TERM;
                     }
-                    else
-                    {
-                        cont = true;
-                    }
+                    locks[idx] = false;
                 }
-            } while (cont);
-        }
+                else
+                {
+                    cont = true;
+                }
+            }
+        } while (cont);
+    }
 
-        foreach(ref fib; fibs)
-            fib = new TestFiber();
+    foreach(ref fib; fibs)
+    {
+        fib = new TestFiber();
+    }
 
-        foreach(_; 0 .. 4)
-        {
-            auto thr = new Thread(&runShared);
-            thr.start();
-        }
-        thread_joinAll();
+    auto group = new ThreadGroup();
+    foreach(_; 0 .. 4)
+    {
+        group.create(&runShared);
+    }
+    group.joinAll();
 
-        foreach(fib; fibs)
-            assert(fib.sum == TestFiber.expSum);
+    foreach(fib; fibs)
+    {
+        assert(fib.sum == TestFiber.expSum);
     }
 }
 
