@@ -2794,11 +2794,17 @@ private
             version = AsmX86_Win32;
         else version( Posix )
             version = AsmX86_Posix;
+
+        version( OSX )
+            version = AlignFiberStackTo16Byte;
     }
     else version( D_InlineAsm_X86_64 )
     {
         version( Posix )
+        {
             version = AsmX86_64_Posix;
+            version = AlignFiberStackTo16Byte;
+        }
     }
     else version( PPC )
     {
@@ -3613,9 +3619,10 @@ private:
             }
         }
 
-        // NOTE: On OS X the stack must be 16-byte aligned according to the
-        // IA-32 call spec.
-        version( OSX )
+        // NOTE: On OS X the stack must be 16-byte aligned according
+        // to the IA-32 call spec. For x86_64 the stack also needs to
+        // be aligned to 16-byte according to SysV AMD64 ABI.
+        version( AlignFiberStackTo16Byte )
         {
             version( StackGrowsDown )
             {
@@ -3649,7 +3656,7 @@ private:
         }
         else version( AsmX86_Posix )
         {
-            push( 0x00000000 );                                     // Pad stack for OSX
+            push( 0x00000000 );                                     // Return address of fiber_entryPoint call
             push( cast(size_t) &fiber_entryPoint );                 // EIP
             push( 0x00000000 );                                     // EBP
             push( 0x00000000 );                                     // EAX
@@ -3659,7 +3666,7 @@ private:
         }
         else version( AsmX86_64_Posix )
         {
-            push(0);                                                // Pad stack for OSX
+            push(0);                                                // Return address of fiber_entryPoint call
             push( cast(size_t) &fiber_entryPoint );                 // RIP
             push(0);                                                // RBX
             push(0);                                                // RBP
@@ -3926,6 +3933,25 @@ unittest
     foreach(fib; fibs)
     {
         assert(fib.sum == TestFiber.expSum);
+    }
+}
+
+version( AsmX86_64_Posix )
+{
+    unittest
+    {
+        void testStackAlignment()
+        {
+            void* pRSP;
+            asm
+            {
+                mov pRSP, RSP;
+            }
+            assert((cast(size_t)pRSP & 0xF) == 0);
+        }
+
+        auto fib = new Fiber(&testStackAlignment);
+        fib.call();
     }
 }
 
