@@ -2790,20 +2790,16 @@ private
 {
     version( D_InlineAsm_X86 )
     {
-        version( Windows )
-            version = AsmX86_Win32;
-        else version( Posix )
-            version = AsmX86_Posix;
-
-        version( OSX )
-            version = AlignFiberStackTo16Byte;
-    }
-    else version( D_InlineAsm_X86_64 )
-    {
-        version( Posix )
+        version( X86_64 )
         {
-            version = AsmX86_64_Posix;
-            version = AlignFiberStackTo16Byte;
+
+        }
+        else
+        {
+            version( Windows )
+                version = AsmX86_Win32;
+            else version( Posix )
+                version = AsmX86_Posix;
         }
     }
     else version( PPC )
@@ -2821,7 +2817,6 @@ private
         version( AsmX86_Win32 ) {} else
         version( AsmX86_Posix ) {} else
         version( AsmPPC_Posix ) {} else
-        version( AsmX86_64_Posix ) {} else
         {
             // NOTE: The ucontext implementation requires architecture specific
             //       data definitions to operate so testing for it must be done
@@ -2973,39 +2968,7 @@ private
                 pop EBP;
 
                 // 'return' to complete switch
-                pop ECX;
-                jmp ECX;
-            }
-        }
-        else version( AsmX86_64_Posix )
-        {
-            asm
-            {
-                naked;
-                // save current stack state
-                push RBX;
-                push RBP;
-                push R12;
-                push R13;
-                push R14;
-                push R15;
-
-                // store oldp
-                mov [RDI], RSP;
-                // load newp to begin context switch
-                mov RSP, RSI;
-
-                // load saved state from new stack
-                pop R15;
-                pop R14;
-                pop R13;
-                pop R12;
-                pop RBP;
-                pop RBX;
-
-                // 'return' to complete switch
-                pop RCX;
-                jmp RCX;
+                ret;
             }
         }
         else static if( __traits( compiles, ucontext_t ) )
@@ -3347,11 +3310,18 @@ class Fiber
      *
      * Returns:
      *  The fiber object representing the calling fiber or null if no fiber
-     *  is currently active within this thread. The result of deleting this object is undefined.
+     *  is currently active.  The result of deleting this object is undefined.
      */
     static Fiber getThis()
     {
-        return sm_this;
+        version( Windows )
+        {
+            return cast(Fiber) TlsGetValue( sm_this );
+        }
+        else version( Posix )
+        {
+            return cast(Fiber) pthread_getspecific( sm_this );
+        }
     }
 
 
@@ -3360,17 +3330,28 @@ class Fiber
     ///////////////////////////////////////////////////////////////////////////
 
 
-    version( Posix )
+    shared static this()
     {
-        static this()
+        version( Windows )
         {
-            static if( __traits( compiles, ucontext_t ) )
-            {
-              int status = getcontext( &sm_utxt );
-              assert( status == 0 );
-            }
+            sm_this = TlsAlloc();
+            assert( sm_this != TLS_OUT_OF_INDEXES );
+        }
+        else version( Posix )
+        {
+            int status;
+
+            status = pthread_key_create( &sm_this, null );
+            assert( status == 0 );
+
+          static if( __traits( compiles, ucontext_t ) )
+          {
+            status = getcontext( &sm_utxt );
+            assert( status == 0 );
+          }
         }
     }
+
 
 private:
     //
@@ -3619,10 +3600,9 @@ private:
             }
         }
 
-        // NOTE: On OS X the stack must be 16-byte aligned according
-        // to the IA-32 call spec. For x86_64 the stack also needs to
-        // be aligned to 16-byte according to SysV AMD64 ABI.
-        version( AlignFiberStackTo16Byte )
+        // NOTE: On OS X the stack must be 16-byte aligned according to the
+        // IA-32 call spec.
+        version( OSX )
         {
             version( StackGrowsDown )
             {
@@ -3656,24 +3636,13 @@ private:
         }
         else version( AsmX86_Posix )
         {
-            push( 0x00000000 );                                     // Return address of fiber_entryPoint call
+            push( 0x00000000 );                                     // Pad stack for OSX
             push( cast(size_t) &fiber_entryPoint );                 // EIP
             push( 0x00000000 );                                     // EBP
             push( 0x00000000 );                                     // EAX
             push( 0x00000000 );                                     // EBX
             push( 0x00000000 );                                     // ESI
             push( 0x00000000 );                                     // EDI
-        }
-        else version( AsmX86_64_Posix )
-        {
-            push(0);                                                // Return address of fiber_entryPoint call
-            push( cast(size_t) &fiber_entryPoint );                 // RIP
-            push(0);                                                // RBX
-            push(0);                                                // RBP
-            push(0);                                                // R12
-            push(0);                                                // R13
-            push(0);                                                // R14
-            push(0);                                                // R15
         }
         else version( AsmPPC_Posix )
         {
@@ -3722,8 +3691,8 @@ private:
     static if( __traits( compiles, ucontext_t ) )
     {
         // NOTE: The static ucontext instance is used to represent the context
-        //       of the executing thread.
-        static ucontext_t       sm_utxt = void;
+        //       of the main application thread.
+        __gshared ucontext_t    sm_utxt = void;
         ucontext_t              m_utxt  = void;
         ucontext_t*             m_ucur  = null;
     }
@@ -3740,10 +3709,18 @@ private:
     //
     static void setThis( Fiber f )
     {
-        sm_this = f;
+        version( Windows )
+        {
+            TlsSetValue( sm_this, cast(void*) f );
+        }
+        else version( Posix )
+        {
+            pthread_setspecific( sm_this, cast(void*) f );
+        }
     }
 
-    static Fiber sm_this;
+
+    __gshared Thread.TLSKey sm_this;
 
 
 private:
@@ -3819,139 +3796,6 @@ private:
         tobj = Thread.getThis();
         volatile tobj.m_lock = false;
         tobj.m_curr.tstack = tobj.m_curr.bstack;
-    }
-}
-
-version( unittest )
-{
-    import core.atomic;
-
-    class TestFiber : Fiber
-    {
-        this()
-        {
-            super(&run);
-        }
-
-        void run()
-        {
-            foreach(i; 0 .. 1000)
-            {
-                sum += i;
-                Fiber.yield();
-            }
-        }
-
-        enum expSum = 1000 * 999 / 2;
-        size_t sum;
-    }
-
-    void runTen()
-    {
-        TestFiber[10] fibs;
-        foreach(ref fib; fibs)
-            fib = new TestFiber();
-
-        bool cont;
-        do {
-            cont = false;
-            foreach(fib; fibs) {
-                if (fib.state == Fiber.State.HOLD)
-                {
-                    fib.call();
-                    cont |= fib.state != Fiber.State.TERM;
-                }
-            }
-        } while (cont);
-
-        foreach(fib; fibs)
-        {
-            assert(fib.sum == TestFiber.expSum);
-        }
-    }
-}
-
-// Single thread running separate fibers
-unittest
-{
-    runTen();
-}
-
-// Multiple threads running separate fibers
-unittest
-{
-    auto group = new ThreadGroup();
-    foreach(_; 0 .. 4)
-    {
-        group.create(&runTen);
-    }
-    group.joinAll();
-}
-
-// Multiple threads running shared fibers
-unittest
-{
-    shared bool[10] locks;
-    TestFiber[10] fibs;
-
-    void runShared()
-    {
-        bool cont;
-        do {
-            cont = false;
-            foreach(idx; 0 .. 10)
-            {
-                if (cas(&locks[idx], false, true))
-                {
-                    if (fibs[idx].state == Fiber.State.HOLD)
-                    {
-                        fibs[idx].call();
-                        cont |= fibs[idx].state != Fiber.State.TERM;
-                    }
-                    locks[idx] = false;
-                }
-                else
-                {
-                    cont = true;
-                }
-            }
-        } while (cont);
-    }
-
-    foreach(ref fib; fibs)
-    {
-        fib = new TestFiber();
-    }
-
-    auto group = new ThreadGroup();
-    foreach(_; 0 .. 4)
-    {
-        group.create(&runShared);
-    }
-    group.joinAll();
-
-    foreach(fib; fibs)
-    {
-        assert(fib.sum == TestFiber.expSum);
-    }
-}
-
-version( AsmX86_64_Posix )
-{
-    unittest
-    {
-        void testStackAlignment()
-        {
-            void* pRSP;
-            asm
-            {
-                mov pRSP, RSP;
-            }
-            assert((cast(size_t)pRSP & 0xF) == 0);
-        }
-
-        auto fib = new Fiber(&testStackAlignment);
-        fib.call();
     }
 }
 
