@@ -887,6 +887,7 @@ private struct Demangle
                 return dst[beg .. len];
             default:
                 error();
+                assert(0);
             }
         case 'A': // TypeArray (A Type)
             next();
