@@ -3564,9 +3564,6 @@ private:
     }
     body
     {
-        // NOTE: Since this routine is only ever expected to be called from
-        //       the dtor, pointers to freed data are not set to null.
-
         // NOTE: m_ctxt is guaranteed to be alive because it is held in the
         //       global context list.
         Thread.remove( m_ctxt );
@@ -3587,7 +3584,8 @@ private:
         {
             free( m_pmem );
         }
-        delete m_ctxt;
+        m_pmem = null;
+        m_ctxt = null;
     }
 
 
