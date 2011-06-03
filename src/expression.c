@@ -192,6 +192,48 @@ Lno:
     return NULL;                // don't have 'this' available
 }
 
+/*****************************************
+ * Determine if compile time 'this' of d is available.
+ */
+
+AggregateDeclaration *hasThis(Scope *sc, Declaration *d)
+{
+    if (!d->needThis())
+        return NULL;
+
+    AggregateDeclaration *ad;
+    if (d->isFuncDeclaration())
+        ad = ((FuncDeclaration *)d)->isMember2();
+    else
+        ad = d->isMember();
+
+    // allow reference members inside typeof
+    if (sc->intypeof && sc->enclosing->intypeof != sc->intypeof)
+        return ad;
+
+    ClassDeclaration *cad = ad->isClassDeclaration();
+    StructDeclaration *sad = ad->isStructDeclaration();
+
+    for (Dsymbol *s = sc->parent; 1; s = s->parent)
+    {
+        if (!s)
+            return NULL;
+
+        if (cad)
+        {
+            ClassDeclaration *cd = s->isClassDeclaration();
+            if (cd && (cd == cad || cd->isBaseOf(cad, NULL)))
+                return cd;
+        }
+        if (sad)
+        {
+            StructDeclaration *sd = s->isStructDeclaration();
+            if (sd && sd == sad)
+                return sd;
+        }
+    }
+    return NULL;
+}
 
 /***************************************
  * Pull out any properties.
@@ -7521,11 +7563,13 @@ Lagain:
             {
                 // Supply an implicit 'this', as in
                 //    this.ident
-    
+
                 e1 = new DotVarExp(loc, new ThisExp(loc), f);
                 goto Lagain;
             }
-            else
+
+            // Compile time 'this' is not available
+            if (!hasThis(sc, f))
                 error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
         }
 
