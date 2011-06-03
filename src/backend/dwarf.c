@@ -75,7 +75,7 @@ int dwarf_getsegment(const char *name, int align)
 #if ELFOBJ
     return elf_getsegment(name, NULL, SHT_PROGDEF, 0, align * 4);
 #elif MACHOBJ
-    return mach_getsegment(name, "__DWARF", align * 2, S_REGULAR);
+    return mach_getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
 #else
     assert(0);
     return 0;
@@ -447,6 +447,27 @@ static DebugLineHeader debugline;
 
 unsigned typidx_tab[TYMAX];
 
+#if MACHOBJ
+const char* debug_frame = "__debug_frame";
+const char* debug_str = "__debug_str";
+const char* debug_ranges = "__debug_ranges";
+const char* debug_loc = "__debug_loc";
+const char* debug_line = "__debug_line";
+const char* debug_abbrev = "__debug_abbrev";
+const char* debug_info = "__debug_info";
+const char* debug_pubnames = "__debug_pubnames";
+const char* debug_aranges = "__debug_aranges";
+#elif ELFOBJ
+const char* debug_frame = ".debug_frame";
+const char* debug_str = ".debug_str";
+const char* debug_ranges = ".debug_ranges";
+const char* debug_loc = ".debug_loc";
+const char* debug_line = ".debug_line";
+const char* debug_abbrev = ".debug_abbrev";
+const char* debug_info = ".debug_info";
+const char* debug_pubnames = ".debug_pubnames";
+const char* debug_aranges = ".debug_aranges";
+#endif
 
 void dwarf_initfile(const char *filename)
 {
@@ -487,7 +508,7 @@ void dwarf_initfile(const char *filename)
     }
     assert(debugFrameHeader.data_alignment_factor == 0x80 - OFFSET_FAC);
 
-    int seg = dwarf_getsegment(".debug_frame", 1);
+    int seg = dwarf_getsegment(debug_frame, 1);
     debug_frame_secidx = SegData[seg]->SDshtidx;
     Outbuffer *debug_frame_buf = SegData[seg]->SDbuf;
     debug_frame_buf->reserve(1000);
@@ -496,21 +517,21 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    seg = dwarf_getsegment(".debug_str", 0);
+    seg = dwarf_getsegment(debug_str, 0);
     debug_str_secidx = SegData[seg]->SDshtidx;
     debug_str_buf = SegData[seg]->SDbuf;
     debug_str_buf->reserve(1000);
 
     /* ======================================== */
 
-    debug_ranges_seg = dwarf_getsegment(".debug_ranges", 0);
+    debug_ranges_seg = dwarf_getsegment(debug_ranges, 0);
     debug_ranges_secidx = SegData[debug_ranges_seg]->SDshtidx;
     debug_ranges_buf = SegData[debug_ranges_seg]->SDbuf;
     debug_ranges_buf->reserve(1000);
 
     /* ======================================== */
 
-    debug_loc_seg = dwarf_getsegment(".debug_loc", 0);
+    debug_loc_seg = dwarf_getsegment(debug_loc, 0);
     debug_loc_secidx = SegData[debug_loc_seg]->SDshtidx;
     debug_loc_buf = SegData[debug_loc_seg]->SDbuf;
     debug_loc_buf->reserve(1000);
@@ -522,7 +543,7 @@ void dwarf_initfile(const char *filename)
         infoFileName_table = NULL;
     }
 
-    lineseg = dwarf_getsegment(".debug_line", 0);
+    lineseg = dwarf_getsegment(debug_line, 0);
     linebuf = SegData[lineseg]->SDbuf;
 
     debugline = debugline_init;
@@ -556,7 +577,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    abbrevseg = dwarf_getsegment(".debug_abbrev", 0);
+    abbrevseg = dwarf_getsegment(debug_abbrev, 0);
     abbrevbuf = SegData[abbrevseg]->SDbuf;
     abbrevcode = 1;
 
@@ -586,7 +607,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    infoseg = dwarf_getsegment(".debug_info", 0);
+    infoseg = dwarf_getsegment(debug_info, 0);
     infobuf = SegData[infoseg]->SDbuf;
 
     debuginfo = debuginfo_init;
@@ -654,7 +675,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    seg = dwarf_getsegment(".debug_pubnames", 0);
+    seg = dwarf_getsegment(debug_pubnames, 0);
     debug_pubnames_secidx = SegData[seg]->SDshtidx;
     debug_pubnames_buf = SegData[seg]->SDbuf;
     debug_pubnames_buf->reserve(1000);
@@ -667,7 +688,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    debug_aranges_seg = dwarf_getsegment(".debug_aranges", 0);
+    debug_aranges_seg = dwarf_getsegment(debug_aranges, 0);
     debug_aranges_secidx = SegData[debug_aranges_seg]->SDshtidx;
     debug_aranges_buf = SegData[debug_aranges_seg]->SDbuf;
     debug_aranges_buf->reserve(1000);
@@ -994,7 +1015,7 @@ void dwarf_func_term(Symbol *sfunc)
         //debugFrameFDE.initial_location = sfunc->Soffset;
 
         IDXSEC dfseg;
-        dfseg = dwarf_getsegment(".debug_frame", 1);
+        dfseg = dwarf_getsegment(debug_frame, 1);
         debug_frame_secidx = SegData[dfseg]->SDshtidx;
         debug_frame_buf = SegData[dfseg]->SDbuf;
         debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
@@ -1034,7 +1055,7 @@ void dwarf_func_term(Symbol *sfunc)
         //debugFrameFDE.initial_location = sfunc->Soffset;
 
         IDXSEC dfseg;
-        dfseg = dwarf_getsegment(".debug_frame", 1);
+        dfseg = dwarf_getsegment(debug_frame, 1);
         debug_frame_secidx = SegData[dfseg]->SDshtidx;
         debug_frame_buf = SegData[dfseg]->SDbuf;
         debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
@@ -2112,7 +2133,7 @@ unsigned dwarf_typidx(type *t)
             infobuf->writeByte(0);              // no more siblings
             idxsibling = infobuf->size();
             *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
-
+ 
             s->Stypidx = idx;
             return idx;                 // no need to cache it
         }
