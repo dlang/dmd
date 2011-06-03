@@ -7087,24 +7087,22 @@ L1:
     assert(d);
 
     if (e->op == TOKtype)
-    {   //FuncDeclaration *fd = sc->func;
-
+    {
         if (d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, d->isTupleDeclaration());
             e = e->semantic(sc);
             return e;
         }
-#if 0
-        //if (d->needThis() && fd && fd->vthis)
-        //if (d->needThis() && hasThis(sc, d->isMember()))
         if (d->needThis() && hasThis(sc))
         {
+            /* Rewrite as:
+             *  this.d
+             */
             e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
             e = e->semantic(sc);
             return e;
         }
-#endif
         return new VarExp(e->loc, d, 1);
     }
 
@@ -7645,7 +7643,7 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        else if (d->needThis() && (hasThis(sc) || !(sc->intypeof || d->isFuncDeclaration())))
+        if (d->needThis() && hasThis(sc))
         {
             if (sc->func)
             {
@@ -7673,15 +7671,11 @@ L1:
             /* Rewrite as:
              *  this.d
              */
-            DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-            e = de->semantic(sc);
+            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            e = e->semantic(sc);
             return e;
         }
-        else
-        {
-            VarExp *ve = new VarExp(e->loc, d, 1);
-            return ve;
-        }
+        return new VarExp(e->loc, d, 1);
     }
 
     if (d->isDataseg())
