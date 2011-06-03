@@ -73,6 +73,7 @@ void expandTuples(Expressions *exps);
 TupleDeclaration *isAliasThisTuple(Expression *e);
 int expandAliasThisTuples(Expressions *exps, int starti = 0);
 FuncDeclaration *hasThis(Scope *sc);
+AggregateDeclaration *hasThis(Scope *sc, Declaration *d);
 Expression *fromConstInitializer(int result, Expression *e);
 int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);

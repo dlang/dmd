@@ -7041,7 +7041,7 @@ L1:
     assert(d);
 
     if (e->op == TOKtype)
-    {   FuncDeclaration *fd = sc->func;
+    {   //FuncDeclaration *fd = sc->func;
 
         if (d->isTupleDeclaration())
         {
@@ -7049,12 +7049,16 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        if (d->needThis() && fd && fd->vthis)
+#if 0
+        //if (d->needThis() && fd && fd->vthis)
+        //if (d->needThis() && hasThis(sc, d->isMember()))
+        if (d->needThis() && hasThis(sc))
         {
             e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
             e = e->semantic(sc);
             return e;
         }
+#endif
         return new VarExp(e->loc, d, 1);
     }
 
