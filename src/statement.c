@@ -2370,18 +2370,26 @@ Statement *IfStatement::semantic(Scope *sc)
         scd = sc->push(sym);
 
         match = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, condition));
-        match->noscope = 1;
         match->parent = sc->func;
 
         DeclarationExp *de = new DeclarationExp(loc, match);
         VarExp *ve = new VarExp(0, match);
         condition = new CommaExp(loc, de, ve);
         condition = condition->semantic(scd);
+
+       if (match->edtor)
+       {
+            Statement *sdtor = new ExpStatement(loc, match->edtor);
+            sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
+            ifbody = new CompoundStatement(loc, sdtor, ifbody);
+            match->noscope = 1;
+       }
     }
     else
     {
-            condition = condition->semantic(sc);
-            condition = resolveProperties(sc, condition);
+        condition = condition->semantic(sc);
+        condition = condition->addDtorHook(sc);
+        condition = resolveProperties(sc, condition);
         scd = sc->push();
     }
 
