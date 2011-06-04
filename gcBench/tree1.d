@@ -36,7 +36,7 @@ class TreeNode {
 
 
 void main(string[] args) {
-    auto sw = StopWatch(autoStart);
+    auto sw = StopWatch(AutoStart.yes);
 
     enum int minDepth = 4;
     enum n = 18;
