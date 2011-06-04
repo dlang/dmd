@@ -5207,6 +5207,25 @@ void TypeFunction::purityLevel()
     }
 }
 
+int TypeFunction::modMatch(Expression *ethis)
+{
+    assert(ethis);
+
+    if (isAmbiguous())
+        return MATCHnomatch;
+
+    Type *t = ethis->type;
+    if (t->toBasetype()->ty == Tpointer)
+        t = t->toBasetype()->nextOf();      // change struct* to struct
+    if (t->mod != mod)
+    {
+        if (MODimplicitConv(t->mod, mod))
+            return MATCHconst;
+        else
+            return MATCHnomatch;
+    }
+    return MATCHexact;
+}
 
 /********************************
  * 'args' are being matched to function 'this'
@@ -5225,16 +5244,9 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
     bool wildmatch = FALSE;
 
     if (ethis)
-    {   Type *t = ethis->type;
-        if (t->toBasetype()->ty == Tpointer)
-            t = t->toBasetype()->nextOf();      // change struct* to struct
-        if (t->mod != mod)
-        {
-            if (MODimplicitConv(t->mod, mod))
-                match = MATCHconst;
-            else
-                return MATCHnomatch;
-        }
+    {   match = (MATCH) modMatch(ethis);
+        if (match == MATCHnomatch)
+            return match;
     }
 
     size_t nparams = Parameter::dim(parameters);
