@@ -263,6 +263,9 @@ int main(string[] args)
         case "compilable":       testArgs.mode = TestMode.COMPILE;      break;
         case "fail_compilation": testArgs.mode = TestMode.FAIL_COMPILE; break;
         case "runnable":         testArgs.mode = TestMode.RUN;          break;
+        default:
+            writeln("input_dir must be one of 'compilable', 'fail_compilation', or 'runnable'");
+            return 1;
     }
 
     gatherTestParameters(testArgs, input_dir, input_file, envData);
