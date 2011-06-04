@@ -615,7 +615,10 @@ void dwarf_initfile(const char *filename)
         debuginfo.address_size = 8;
 
     infobuf->write(&debuginfo, sizeof(debuginfo));
+#if !MACHOBJ
+    // Contrary to the DWARF spec, OS X complains if the offset is included
     dwarf_addrel(infoseg,6,abbrevseg);
+#endif
 
     infobuf->writeuLEB128(1);                   // abbreviation code
 #if MARS
