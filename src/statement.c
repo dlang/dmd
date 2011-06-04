@@ -162,6 +162,11 @@ int Statement::isEmpty()
     return FALSE;
 }
 
+Statement *Statement::last()
+{
+    return this;
+}
+
 /****************************************
  * If this statement has code that needs to run in a finally clause
  * at the end of the current scope, return that code in the form of
@@ -600,6 +605,22 @@ ReturnStatement *CompoundStatement::isReturnStatement()
     return rs;
 }
 
+Statement *CompoundStatement::last()
+{
+    Statement *s = NULL;
+
+    for (size_t i = statements->dim; i; --i)
+    {   s = (Statement *) statements->data[i - 1];
+        if (s)
+        {
+            s = s->last();
+            if (s)
+                break;
+        }
+    }
+    return s;
+}
+
 void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     for (int i = 0; i < statements->dim; i++)
@@ -623,12 +644,31 @@ int CompoundStatement::blockExit(bool mustNotThrow)
 {
     //printf("CompoundStatement::blockExit(%p) %d\n", this, statements->dim);
     int result = BEfallthru;
+    Statement *slast = NULL;
     for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *) statements->data[i];
         if (s)
         {
-//printf("result = x%x\n", result);
-//printf("%s\n", s->toChars());
+            //printf("result = x%x\n", result);
+            //printf("%s\n", s->toChars());
+            if (global.params.warnings && result & BEfallthru && slast)
+            {
+                slast = slast->last();
+                if (slast && (s->isCaseStatement() || s->isDefaultStatement()))
+                {
+                    // Allow if last case/default was empty
+                    CaseStatement *sc = slast->isCaseStatement();
+                    DefaultStatement *sd = slast->isDefaultStatement();
+                    if (sc && sc->statement->isEmpty())
+                        ;
+                    else if (sd && sd->statement->isEmpty())
+                        ;
+                    else
+                        s->error("switch case fallthrough - use 'goto %s;' if intended",
+                            s->isCaseStatement() ? "case" : "default");
+                }
+            }
+
             if (!(result & BEfallthru) && !s->comeFrom())
             {
                 if (s->blockExit(mustNotThrow) != BEhalt && !s->isEmpty())
@@ -639,6 +679,7 @@ int CompoundStatement::blockExit(bool mustNotThrow)
                 result &= ~BEfallthru;
                 result |= s->blockExit(mustNotThrow);
             }
+            slast = s;
         }
     }
     return result;
