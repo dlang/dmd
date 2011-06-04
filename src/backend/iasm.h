@@ -48,6 +48,7 @@
 #define _16_bit 0x20
 #define _32_bit 0x40
 #define _64_bit 0x10000
+#define _i64_bit 0x20000        // opcode is invalid in 64bit mode
 #define _I386   0x80            // opcode is only for 386 and later
 #define _16_bit_addr    0x100
 #define _32_bit_addr    0x200
