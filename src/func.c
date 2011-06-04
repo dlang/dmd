@@ -2348,6 +2348,193 @@ if (arguments)
     }
 }
 
+/********************************************
+ * Decide which function matches the modifier.
+ */
+
+struct ParamM
+{
+    Match *m;
+#if DMDV2
+    Expression *ethis;
+    int property;       // 0: unintialized
+                        // 1: seen @property
+                        // 2: not @property
+#endif
+};
+
+int fpm(void *param, FuncDeclaration *f)
+{
+#define LOG_MODMATCH    0
+
+    ParamM *p = (ParamM *)param;
+    Match *m = p->m;
+    MATCH match;
+
+    if (f != m->lastf)          // skip duplicates
+    {
+        m->anyf = f;
+        TypeFunction *tf = (TypeFunction *)f->type;
+
+#if 0
+        int property = (tf->isproperty) ? 1 : 2;
+        if (p->property == 0)
+            p->property = property;
+        else if (p->property != property)
+            error(f->loc, "cannot overload both property and non-property functions");
+#endif
+
+        /* 
+         * 
+         * 
+         * 
+         */
+        if (p->ethis)   // Virtual functions are preferred than static ones
+        {
+            if (f->needThis())
+                match = f->isCtorDeclaration() ? MATCHexact : (MATCH) tf->modMatch(p->ethis);
+            else
+                match = MATCHconvert;   // less than ethis match (MATCHexact/const)
+        }
+        else            // Static functions are preferred than virtual ones
+        {
+            if (f->needThis())
+                match = MATCHconvert;
+            else
+                match = MATCHexact;
+        }
+#if LOG_MODMATCH
+        printf("test1: match = %d, %s : %s\n", match, f->toChars(), tf->toChars());
+#endif
+        if (match != MATCHnomatch)
+        {
+            if (match > m->last)
+            {
+#if LOG_MODMATCH
+                printf("\tmatch > m->last(%d)\n", m->last);
+#endif
+                goto LfIsBetter;
+            }
+
+            if (match < m->last)
+            {
+#if LOG_MODMATCH
+                printf("\tmatch < m->last(%d)\n", m->last);
+#endif
+                goto LlastIsBetter;
+            }
+
+            /* See if one of the matches overrides the other.
+             */
+            if (m->lastf->overrides(f))
+            {
+#if LOG_MODMATCH
+                printf("\tm->lastf overrides f\n");
+#endif
+                goto LlastIsBetter;
+            }
+            else if (f->overrides(m->lastf))
+            {
+#if LOG_MODMATCH
+                printf("\tf overrides m->lastf\n");
+#endif
+                goto LfIsBetter;
+            }
+
+#if 0//DMDV2    // don't check 'more specialized' because parameter types should not be considered in here.
+            /* Try to disambiguate using template-style partial ordering rules.
+             * In essence, if f() and g() are ambiguous, if f() can call g(),
+             * but g() cannot call f(), then pick f().
+             * This is because f() is "more specialized."
+             */
+            {
+            MATCH c1 = f->leastAsSpecialized(m->lastf);
+            MATCH c2 = m->lastf->leastAsSpecialized(f);
+            //printf("c1 = %d, c2 = %d\n", c1, c2);
+            if (c1 > c2)
+            {
+                printf("\tc1(%d) > c2(%d)\n", c1, c2);
+                goto LfIsBetter;
+            }
+            if (c1 < c2)
+            {
+                printf("\tc1(%d) < c2(%d)\n", c1, c2);
+                goto LlastIsBetter;
+            }
+            }
+#endif
+        Lambiguous:
+#if LOG_MODMATCH
+            printf("\tambiguous\n");
+#endif
+            m->nextf = f;
+            m->count++;
+            return 0;
+
+        LfIsBetter:
+            if (m->last <= MATCHconvert)    // primary match against secondary matches
+            {   //reset ambiguous of secondary matches
+                m->nextf = NULL;
+                m->count = 0;
+            }
+            m->last = match;
+            m->lastf = f;
+            m->count++;     // count up
+            return 0;
+
+        LlastIsBetter:
+            return 0;
+        }
+    }
+    return 0;
+
+#undef LOG_MODMATCH
+}
+
+
+void overloadResolveMod(Match *m, FuncDeclaration *fstart, Expression *ethis)
+{
+    ParamM p;
+    p.m = m;
+    p.ethis = ethis;
+    p.property = 0;
+    overloadApply(fstart, &fpm, &p);
+}
+
+FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Expression *ethis, Type **pt)
+{
+    //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
+    TypeFunction *tf;
+    Match m;
+
+    assert(pt);
+
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+    overloadResolveMod(&m, this, ethis);
+
+    if (m.count == 1)       // exact match
+        *pt = m.lastf->type;
+    else if (m.count > 1)
+    {
+        if (!m.nextf)       // better match
+            *pt = m.lastf->type;
+        else                // ambiguous match
+            *pt = Type::tambig;
+        m.lastf = NULL;
+    }
+    else                    // no match
+    {
+        *pt = NULL;
+        if (ethis)
+            error(ethis->loc, "expression (%s.%s) has no type", ethis->toChars(), toChars());
+        else
+            assert(0);
+    }
+
+    return m.lastf;
+}
+
 /*************************************
  * Determine partial specialization order of 'this' vs g.
  * This is very similar to TemplateDeclaration::leastAsSpecialized().
@@ -2380,6 +2567,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
      */
+    // Question: What about const vs shared const?
     if (needThis() && g->needThis())
     {
         if (tf->mod != tg->mod)

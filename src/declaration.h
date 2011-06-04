@@ -602,6 +602,7 @@ struct FuncDeclaration : Declaration
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
+    FuncDeclaration *overloadModMatch(Loc loc, Expression *ethis, Type **pt);
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
