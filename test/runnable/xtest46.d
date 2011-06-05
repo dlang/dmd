@@ -2792,6 +2792,26 @@ static assert({
 }());
 
 /***************************************************/
+// 5959
+
+int n;
+
+void test143()
+{
+    ref int f(){ return n; }            // NG
+    f() = 1;
+    assert(n == 1);
+
+    nothrow ref int f1(){ return n; }    // OK
+    f1() = 2;
+    assert(n == 2);
+
+    auto ref int f2(){ return n; }       // OK
+    f2() = 3;
+    assert(n == 3);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2937,6 +2957,7 @@ int main()
     test140();
     test141();
     test142();
+    test143();
 
     printf("Success\n");
     return 0;
