@@ -1647,6 +1647,32 @@ struct bar5574b
 }
 
 /**********************************/
+// 5777
+
+int sdtor58 = 0;
+S58* ps58;
+
+struct S58
+{
+	@disable this(this);
+	~this(){ ++sdtor58; }
+}
+
+S58 makeS58()
+{
+	S58 s;
+	ps58 = &s;
+	return s;
+}
+
+void test58()
+{
+	auto s1 = makeS58();
+	assert(ps58 == &s1);
+	assert(sdtor58 == 0);
+}
+
+/**********************************/
 
 int main()
 {
@@ -1707,6 +1733,7 @@ int main()
     test55();
     test56();
     test57();
+    test58();
 
     printf("Success\n");
     return 0;
