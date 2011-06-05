@@ -754,6 +754,12 @@ void VarDeclaration::semantic(Scope *sc)
         else
             type = init->inferType(sc);
 
+        if (type->isAmbiguous())
+        {
+            type = Type::terror;
+            return;
+        }
+
 //printf("test2: %s, %s, %s\n", toChars(), type->toChars(), type->deco);
 //      type = type->semantic(loc, sc);
 

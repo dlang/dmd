@@ -685,6 +685,12 @@ MATCH SymOffExp::implicitConvTo(Type *t)
                         (t->ty == Tpointer && !(f->needThis() || f->isNested())))
                     {
                         result = MATCHexact;
+                        if (type->isAmbiguous())
+                        {
+                            var = f;
+                            type = t;
+                            hasOverloads = 0;
+                        }
                     }
                 }
             }
@@ -707,13 +713,22 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     if (result == MATCHnomatch)
     {
         // Look for pointers to functions where the functions are overloaded.
+        FuncDeclaration *f;
 
         t = t->toBasetype();
         if (type->ty == Tdelegate &&
             t->ty == Tdelegate)
         {
-            if (func && func->overloadExactMatch(t->nextOf()))
+            if (func && (f = func->overloadExactMatch(t->nextOf())) != NULL)
+            {
                 result = MATCHexact;
+                if (type->isAmbiguous())
+                {
+                    func = f;
+                    type = t;
+                    hasOverloads = 0;
+                }
+            }
         }
     }
     return result;
