@@ -2633,7 +2633,10 @@ Lagain:
             error("forward reference to %s", toChars());
             return new ErrorExp();
         }
-        return new VarExp(loc, f, hasOverloads);
+        //printf("DsymbolExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
+        e = new VarExp(loc, f, hasOverloads);
+        e = e->semantic(sc);
+        return e;
     }
     o = s->isOverloadSet();
     if (o)
@@ -3926,7 +3929,7 @@ Lagain:
                     e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
-                    e = new DsymbolExp(loc, s);
+                    e = new DsymbolExp(loc, s, 1);
                 e = e->semantic(sc);
                 //printf("-1ScopeExp::semantic()\n");
                 return e;
@@ -4498,9 +4501,23 @@ Expression *SymOffExp::semantic(Scope *sc)
     //var->semantic(sc);
     if (!type)
         type = var->type->pointerTo();
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
+
+    VarDeclaration *v;
+    FuncDeclaration *f;
+    if ((v = var->isVarDeclaration()) != NULL)
+    {
         v->checkNestedReference(sc, loc);
+    }
+    else if ((f = var->isFuncDeclaration()) != NULL)
+    {
+        if (hasOverloads)
+        {
+            hasOverloads = !f->isUnique();
+            if (hasOverloads)
+                type = Type::tambig->pointerTo();
+        }
+    }
+
     return this;
 }
 
@@ -4584,13 +4601,33 @@ Expression *VarExp::semantic(Scope *sc)
      */
     //accessCheck(loc, sc, NULL, var);
 
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
+    VarDeclaration *v;
+    FuncDeclaration *f;
+    if ((v = var->isVarDeclaration()) != NULL)
     {
         v->checkNestedReference(sc, loc);
 #if DMDV2
         checkPurity(sc, v, NULL);
 #endif
+    }
+    else if ((f = var->isFuncDeclaration()) != NULL)
+    {
+        //printf("VarExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
+        if (hasOverloads)
+        {
+            FuncDeclaration *fd = f->overloadModMatch(loc, NULL, &type);
+            if (fd && type)     // exact match
+            {
+                var = fd;
+                hasOverloads = 0;
+            }
+            else if (type)      // better/ambiguous match
+                ;
+            else                // no match
+                assert(0);      // -> least one match should exist
+        }
+        else
+            type = f->type;
     }
 #if 0
     else if ((fd = var->isFuncLiteralDeclaration()) != NULL)
@@ -4731,7 +4768,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
         else if (o->dyncast() == DYNCAST_DSYMBOL)
         {
             Dsymbol *s = (Dsymbol *)o;
-            Expression *e = new DsymbolExp(loc, s);
+            Expression *e = new DsymbolExp(loc, s, 1);
             exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_TYPE)
@@ -6311,7 +6348,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
                 {
                     if (!eleft)
                         eleft = new ThisExp(loc);
-                    e = new DotVarExp(loc, eleft, f);
+                    e = new DotVarExp(loc, eleft, f, 1);
                     e = e->semantic(sc);
                 }
                 else
@@ -6525,7 +6562,29 @@ Expression *DotVarExp::semantic(Scope *sc)
         assert(type);
 
         Type *t1 = e1->type;
-        if (!var->isFuncDeclaration())  // for functions, do checks after overload resolution
+
+        // for functions, resolve overloads by 'this' type if itis possible
+        if (FuncDeclaration *f = var->isFuncDeclaration())
+        {
+            //printf("DotVarExp f = (%s) %s, hasOverloads = %d\n", f->kind(), f->toChars(), hasOverloads);
+            if (hasOverloads)
+            {
+                FuncDeclaration *fd = f->overloadModMatch(loc, e1, &type);
+                if (fd && type)     // exact match
+                {
+                    var = fd;
+                    hasOverloads = 0;
+                }
+                else if (type)      // better/ambiguous match
+                    ;
+                else                // no match
+                    goto Lerr;
+            }
+            else
+                type = f->type;
+            type = type->semantic(loc, sc);
+        }
+        else
         {
             if (t1->ty == Tpointer)
                 t1 = t1->nextOf();
@@ -6803,7 +6862,22 @@ Expression *DelegateExp::semantic(Scope *sc)
     if (!type)
     {
         e1 = e1->semantic(sc);
-        type = new TypeDelegate(func->type);
+        if (!func->isNested() && hasOverloads)
+        {
+            FuncDeclaration *fd = func->overloadModMatch(loc, e1, &type);
+            if (fd && type)     // exact match
+            {
+                func = fd;
+                hasOverloads = 0;
+            }
+            else if (type)      // better/ambiguous match
+                ;
+            else                // no match
+                goto Lerr;
+        }
+        else
+            type = func->type;
+        type = new TypeDelegate(type);  // function to delegate
         type = type->semantic(loc, sc);
         AggregateDeclaration *ad = func->toParent()->isAggregateDeclaration();
         if (func->needThis())
@@ -6815,6 +6889,9 @@ Expression *DelegateExp::semantic(Scope *sc)
         }
     }
     return this;
+
+Lerr:
+    return new ErrorExp();
 }
 
 void DelegateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -7483,7 +7560,13 @@ Lagain:
     else if (t1->ty != Tfunction)
     {
         if (t1->ty == Tdelegate)
-        {   TypeDelegate *td = (TypeDelegate *)t1;
+        {
+            if (t1->isAmbiguous() && e1->op == TOKdelegate)
+            {   DelegateExp *de = (DelegateExp *)e1;
+                e1 = new DotVarExp(de->e1->loc, de->e1, de->func, 1);
+                goto Lagain;
+            }
+            TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
             if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
@@ -7500,6 +7583,11 @@ Lagain:
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
+            if (t1->isAmbiguous() && e1->op == TOKsymoff)
+            {   SymOffExp *se = (SymOffExp *)e1;
+                e1 = new VarExp(se->loc, se->var, 1);
+                goto Lagain;
+            }
             Expression *e = new PtrExp(loc, e1);
             t1 = ((TypePointer *)t1)->next;
             if (sc->func && !((TypeFunction *)t1)->purity && !(sc->flags & SCOPEdebug))
@@ -7551,6 +7639,26 @@ Lagain:
 
         if (ve->hasOverloads)
             f = f->overloadResolve(loc, NULL, arguments);
+        else
+        {
+            tf = (TypeFunction *)f->type;
+            if (!tf->callMatch(NULL, arguments))
+            {
+                OutBuffer buf;
+                buf.writeByte('(');
+                if (arguments)
+                {
+                    HdrGenState hgs;
+                    argExpTypesToCBuffer(&buf, arguments, &hgs);
+                }
+                buf.writeByte(')');
+
+                error("%s%s is not callable using argument types %s",
+                    f->toChars(),
+                    Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                    buf.toChars());
+            }
+        }
         checkDeprecated(sc, f);
 #if DMDV2
         checkPurity(sc, f);
@@ -7575,9 +7683,12 @@ Lagain:
 
         accessCheck(loc, sc, NULL, f);
 
-        ve->var = f;
-//      ve->hasOverloads = 0;
-        ve->type = f->type;
+        if (ve->hasOverloads)
+        {
+            ve->var = f;
+            ve->hasOverloads = 0;
+            ve->type = f->type;
+        }
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
@@ -7873,7 +7984,8 @@ Expression *AddrExp::semantic(Scope *sc)
                 }
             }
         }
-        return optimize(WANTvalue);
+        Expression *e = optimize(WANTvalue);
+        return e->semantic(sc);
     }
     return this;
 }
