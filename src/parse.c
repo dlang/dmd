@@ -3476,6 +3476,7 @@ Statement *Parser::parseStatement(int flags)
         case TOKwild:
         case TOKnothrow:
         case TOKpure:
+        case TOKref:
         case TOKtls:
         case TOKgshared:
         case TOKat:
