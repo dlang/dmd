@@ -1773,12 +1773,29 @@ struct S95
 
 @disable void foo95() { }
 
+struct T95A
+{
+    @disable this(this);
+}
+
+struct S95A
+{
+    T95A t;
+}
+
+@disable void foo95A() { }
+
 void test95()
 {
     S95 s;
     S95 t;
     static assert(!__traits(compiles, t = s));
     static assert(!__traits(compiles, foo95()));
+
+    S95A u;
+    S95A v;
+    static assert(!__traits(compiles, v = u));
+    static assert(!__traits(compiles, foo95A()));
 }
 
 /***************************************************/

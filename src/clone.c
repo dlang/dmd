@@ -338,21 +338,26 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
         fcp = new FuncDeclaration(loc, 0, Id::cpctor, STCundefined, ftype);
         fcp->storage_class |= postblit->storage_class & STCdisable;
 
-        // Build *this = p;
-        Expression *e = new ThisExp(0);
+        if (!(fcp->storage_class & STCdisable))
+        {
+            // Build *this = p;
+            Expression *e = new ThisExp(0);
 #if !STRUCTTHISREF
-        e = new PtrExp(0, e);
+            e = new PtrExp(0, e);
 #endif
-        AssignExp *ea = new AssignExp(0, e, new IdentifierExp(0, Id::p));
-        ea->op = TOKblit;
-        Statement *s = new ExpStatement(0, ea);
+            AssignExp *ea = new AssignExp(0, e, new IdentifierExp(0, Id::p));
+            ea->op = TOKblit;
+            Statement *s = new ExpStatement(0, ea);
 
-        // Build postBlit();
-        e = new VarExp(0, postblit, 0);
-        e = new CallExp(0, e);
+            // Build postBlit();
+            e = new VarExp(0, postblit, 0);
+            e = new CallExp(0, e);
 
-        s = new CompoundStatement(0, s, new ExpStatement(0, e));
-        fcp->fbody = s;
+            s = new CompoundStatement(0, s, new ExpStatement(0, e));
+            fcp->fbody = s;
+        }
+        else
+            fcp->fbody = new ExpStatement(0, (Expression *)NULL);
 
         members->push(fcp);
 
@@ -401,12 +406,17 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         {   TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->postblit)
-            {   Expression *ex;
-
+            {
                 stc |= sd->postblit->storage_class & STCdisable;
 
+                if (stc & STCdisable)
+                {
+                    e = NULL;
+                    break;
+                }
+
                 // this.v
-                ex = new ThisExp(0);
+                Expression *ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, v, 0);
 
                 if (dim == 1)
@@ -432,7 +442,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 
     /* Build our own "postblit" which executes e
      */
-    if (e)
+    if (e || (stc & STCdisable))
     {   //printf("Building __fieldPostBlit()\n");
         PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, Lexer::idPool("__fieldPostBlit"));
         dd->storage_class |= stc;
@@ -455,6 +465,11 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
             for (size_t i = 0; i < postblits.dim; i++)
             {   FuncDeclaration *fd = (FuncDeclaration *)postblits.data[i];
                 stc |= fd->storage_class & STCdisable;
+                if (stc & STCdisable)
+                {
+                    e = NULL;
+                    break;
+                }
                 Expression *ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, fd, 0);
                 ex = new CallExp(0, ex);
