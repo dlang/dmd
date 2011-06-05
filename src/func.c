@@ -1764,11 +1764,13 @@ int FuncDeclaration::equals(Object *o)
     Dsymbol *s = isDsymbol(o);
     if (s)
     {
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        if (fd)
+        FuncDeclaration *fd1 = this->toAliasFunc();
+        FuncDeclaration *fd2 = s->isFuncDeclaration();
+        if (fd2)
         {
-            return toParent()->equals(fd->toParent()) &&
-                ident->equals(fd->ident) && type->equals(fd->type);
+            fd2 = fd2->toAliasFunc();
+            return fd1->toParent()->equals(fd2->toParent()) &&
+                fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
         }
     }
     return FALSE;
@@ -2121,8 +2123,21 @@ int overloadApply(FuncDeclaration *fstart,
 
         if (fa)
         {
-            if (overloadApply(fa->funcalias, fp, param))
-                return 1;
+            if (fa->hasOverloads)
+            {
+                if (overloadApply(fa->funcalias, fp, param))
+                    return 1;
+            }
+            else
+            {
+                f = fa->toAliasFunc();
+                if (!f)
+                {   d->error("is aliased to a function");
+                    break;
+                }
+                if ((*fp)(param, f))
+                    return 1;
+            }
             next = fa->overnext;
         }
         else
@@ -2884,21 +2899,16 @@ bool FuncDeclaration::setUnsafe()
 
 int FuncDeclaration::isNested()
 {
-    //if (!toParent())
-        //printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
-    //printf("\ttoParent2() = '%s'\n", toParent2()->toChars());
-    return ((storage_class & STCstatic) == 0) &&
-           (toParent2()->isFuncDeclaration() != NULL);
+    FuncDeclaration *f = toAliasFunc();
+    //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
+    return ((f->storage_class & STCstatic) == 0) &&
+           (f->toParent2()->isFuncDeclaration() != NULL);
 }
 
 int FuncDeclaration::needThis()
 {
     //printf("FuncDeclaration::needThis() '%s'\n", toChars());
-    int i = isThis() != NULL;
-    //printf("\t%d\n", i);
-    if (!i && isFuncAliasDeclaration())
-        i = ((FuncAliasDeclaration *)this)->funcalias->needThis();
-    return i;
+    return toAliasFunc()->isThis() != NULL;
 }
 
 int FuncDeclaration::addPreInvariant()
@@ -3140,17 +3150,34 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 // Used as a way to import a set of functions from another scope into this one.
 
-FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
+FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOverloads)
     : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
         funcalias->storage_class, funcalias->type)
 {
     assert(funcalias != this);
     this->funcalias = funcalias;
+
+    this->hasOverloads = hasOverloads;
+    if (hasOverloads)
+    {
+        if (FuncAliasDeclaration *fad = funcalias->isFuncAliasDeclaration())
+            this->hasOverloads = fad->hasOverloads;
+    }
+    else
+    {   // for internal use
+        assert(!funcalias->isFuncAliasDeclaration());
+        this->hasOverloads = 0;
+    }
 }
 
 const char *FuncAliasDeclaration::kind()
 {
     return "function alias";
+}
+
+FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
+{
+    return funcalias->toAliasFunc();
 }
 
 
