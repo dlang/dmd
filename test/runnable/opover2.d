@@ -457,6 +457,24 @@ int bug4913()
 static assert(bug4913() == 83);
 
 /**************************************/
+// 5551
+
+struct Foo11 {
+    Foo11 opUnary(string op:"++")() {
+        return this;
+    }
+    Foo11 opBinary(string op)(int y) {
+        return this;
+    }
+}
+
+void test11()
+{
+    auto f = Foo11();
+    f++;
+}
+
+/**************************************/
 
 int main()
 {
@@ -470,6 +488,7 @@ int main()
     test8();
     test9();
     test10();
+    test11();
 
     printf("Success\n");
     return 0;
