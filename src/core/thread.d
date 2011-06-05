@@ -3624,11 +3624,11 @@ private:
         {
             version( StackGrowsDown )
             {
-                pstack = cast(void*)(cast(uint)(pstack) - (cast(uint)(pstack) & 0x0F));
+                pstack = cast(void*)(cast(size_t)(pstack) - (cast(size_t)(pstack) & 0x0F));
             }
             else
             {
-                pstack = cast(void*)(cast(uint)(pstack) + (cast(uint)(pstack) & 0x0F));
+                pstack = cast(void*)(cast(size_t)(pstack) + (cast(size_t)(pstack) & 0x0F));
             }
         }
 
@@ -3698,7 +3698,7 @@ private:
                 pstack += int.sizeof * 20;
             }
 
-            assert( (cast(uint) pstack & 0x0f) == 0 );
+            assert( (cast(size_t) pstack & 0x0f) == 0 );
         }
         else static if( __traits( compiles, ucontext_t ) )
         {
