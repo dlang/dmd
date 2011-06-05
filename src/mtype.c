@@ -112,6 +112,7 @@ TemplateDeclaration *Type::associativearray;
 
 Type *Type::tvoidptr;
 Type *Type::tstring;
+Type *Type::tambig;
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
 unsigned char Type::sizeTy[TMAX];
@@ -262,6 +263,10 @@ void Type::init()
 
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->invariantOf()->arrayOf();
+
+    tambig = new TypeFunction(NULL, NULL, 0, LINKd);
+    ((TypeFunction *)tambig)->isambiguous = 1;
+    ((TypeFunction *)tambig)->deco = "@";
 
     if (global.params.is64bit)
     {
@@ -1598,6 +1603,11 @@ int Type::isAssignable()
     return TRUE;
 }
 
+int Type::isAmbiguous()
+{
+    return FALSE;
+}
+
 int Type::checkBoolean()
 {
     return isscalar();
@@ -1664,6 +1674,9 @@ int Type::isBaseOf(Type *t, int *poffset)
 
 MATCH Type::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
@@ -2077,6 +2090,11 @@ TypeNext::TypeNext(TY ty, Type *next)
         : Type(ty)
 {
     this->next = next;
+}
+
+int TypeNext::isAmbiguous()
+{
+    return next && next->isAmbiguous();
 }
 
 void TypeNext::toDecoBuffer(OutBuffer *buf, int flag)
@@ -3510,6 +3528,9 @@ MATCH TypeSArray::constConv(Type *to)
 
 MATCH TypeSArray::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
 
     // Allow implicit conversion of static array to pointer or dynamic array
@@ -3746,6 +3767,9 @@ int TypeDArray::isString()
 
 MATCH TypeDArray::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
     if (equals(to))
         return MATCHexact;
@@ -4155,6 +4179,9 @@ int TypeAArray::hasPointers()
 
 MATCH TypeAArray::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
     if (equals(to))
         return MATCHexact;
@@ -4257,6 +4284,9 @@ void TypePointer::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 MATCH TypePointer::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypePointer::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
 
     if (equals(to))
@@ -4452,6 +4482,8 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
         this->trust = TRUSTsystem;
     if (stc & STCtrusted)
         this->trust = TRUSTtrusted;
+
+    isambiguous = 0;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -4467,6 +4499,11 @@ Type *TypeFunction::syntaxCopy()
     t->trust = trust;
     t->fargs = fargs;
     return t;
+}
+
+int TypeFunction::isAmbiguous()
+{
+    return isambiguous || TypeNext::isAmbiguous();
 }
 
 /*******************************
@@ -4624,6 +4661,12 @@ Lnotcovariant:
 void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 {   unsigned char mc;
 
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     //printf("TypeFunction::toDecoBuffer() this = %p %s\n", this, toChars());
     //static int nest; if (++nest == 50) *(char*)0=0;
     if (inuse)
@@ -4679,6 +4722,12 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
 void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
 {
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     const char *p = NULL;
 
@@ -4761,6 +4810,12 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
 
 void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
     const char *p = NULL;
 
@@ -5423,6 +5478,9 @@ unsigned TypeDelegate::alignsize()
 
 MATCH TypeDelegate::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
@@ -5437,6 +5495,12 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
 
 void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
