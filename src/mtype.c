@@ -3992,7 +3992,6 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
 
     switch (index->toBasetype()->ty)
     {
-        case Tbool:
         case Tfunction:
         case Tvoid:
         case Tnone:
