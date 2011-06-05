@@ -757,19 +757,24 @@ void cpuidX86()
 // BUG(WONTFIX): Returns false for Cyrix 6x86 and 6x86L. They will be treated as 486 machines.
 bool hasCPUID()
 {
-    uint flags;
-    asm {
-        pushfd;
-        pop EAX;
-        mov flags, EAX;
-        xor EAX, 0x0020_0000;
-        push EAX;
-        popfd;
-        pushfd;
-        pop EAX;
-        xor flags, EAX;
+    version(D_InlineAsm_X86_64)
+        return true;
+    else
+    {
+        uint flags;
+        asm {
+            pushfd;
+            pop EAX;
+            mov flags, EAX;
+            xor EAX, 0x0020_0000;
+            push EAX;
+            popfd;
+            pushfd;
+            pop EAX;
+            xor flags, EAX;
+        }
+        return (flags & 0x0020_0000) !=0;
     }
-    return (flags & 0x0020_0000) !=0;
 }
 
 } else { // inline asm X86
