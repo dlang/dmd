@@ -33,7 +33,7 @@
 #include "aggregate.h"
 #include "template.h"
 
-static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments);
+static FuncDeclaration *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
@@ -1190,12 +1190,15 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 
     /* Return if no arguments need types.
      */
-    for (size_t u = 0; 1; u++)
-    {   if (u == arguments->dim)
-            return;
-        Parameter *arg = (Parameter *)arguments->data[u];
-        if (!arg->type)
-            break;
+    if (!aggr->type->isAmbiguous())
+    {
+        for (size_t u = 0; 1; u++)
+        {   if (u == arguments->dim)
+                return;
+            Parameter *arg = (Parameter *)arguments->data[u];
+            if (!arg->type)
+                break;
+        }
     }
 
     Dsymbol *s;
@@ -1294,12 +1297,20 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 
         case Tdelegate:
         {
-            if (0 && aggr->op == TOKdelegate)
+            if (tab->isAmbiguous() && aggr->op == TOKdelegate)
             {   DelegateExp *de = (DelegateExp *)aggr;
 
                 FuncDeclaration *fd = de->func->isFuncDeclaration();
                 if (fd)
-                    inferApplyArgTypesX(fd, arguments);
+                {
+                    fd = inferApplyArgTypesX(fd, arguments);
+                    if (fd)
+                    {
+                        de->func = fd;
+                        de->type = new TypeDelegate(fd->type);
+                        de->hasOverloads = 0;
+                    }
+                }
             }
             else
             {
@@ -1318,20 +1329,34 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
  * analogous to func.overloadResolveX().
  */
 
+struct Param3
+{
+    Parameters *args;
+    FuncDeclaration *fd;
+};
+
 int fp3(void *param, FuncDeclaration *f)
 {
-    Parameters *arguments = (Parameters *)param;
+    Param3* p = (Param3 *)param;
+    Parameters *arguments = p->args;
     TypeFunction *tf = (TypeFunction *)f->type;
     if (inferApplyArgTypesY(tf, arguments) == 1)
         return 0;
     if (arguments->dim == 0)
         return 1;
+    p->fd = f;
     return 0;
 }
 
-static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments)
+static FuncDeclaration *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments)
 {
-    overloadApply(fstart, &fp3, arguments);
+    Param3 p;
+    p.args = arguments;
+    p.fd = NULL;
+
+    overloadApply(fstart, &fp3, &p);
+
+    return p.fd;
 }
 
 /******************************

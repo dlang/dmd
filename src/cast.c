@@ -662,6 +662,12 @@ MATCH SymOffExp::implicitConvTo(Type *t)
                         (t->ty == Tpointer && !(f->needThis() || f->isNested())))
                     {
                         result = MATCHexact;
+                        if (type->isAmbiguous())
+                        {
+                            var = f;
+                            type = t;
+                            hasOverloads = 0;
+                        }
                     }
                 }
             }
@@ -690,8 +696,16 @@ MATCH DelegateExp::implicitConvTo(Type *t)
         if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
             t->ty == Tdelegate && t->nextOf()->ty == Tfunction)
         {
-            if (func && func->overloadExactMatch(t->nextOf()))
+            if (func && (f = func->overloadExactMatch(t->nextOf())) != NULL)
+            {
                 result = MATCHexact;
+                if (type->isAmbiguous())
+                {
+                    func = f;
+                    type = t;
+                    hasOverloads = 0;
+                }
+            }
         }
     }
     return result;

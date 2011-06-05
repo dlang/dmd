@@ -332,7 +332,8 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
     if (errors != global.errors)        // if any errors happened
     {
         global.errors = errors;
-        t = NULL;
+        if (!t->isAmbiguous())
+            t = NULL;
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
     return t;
@@ -6269,6 +6270,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
             error(loc, "expression (%s) has no type", exp->toChars());
             goto Lerr;
         }
+        if (t->isAmbiguous())
+        {
+            error(loc, "expression (%s) has ambiguous type", exp->toChars());
+            goto Lamgig;
+        }
         if (t->ty == Ttypeof)
         {   error(loc, "forward reference to %s", toChars());
             goto Lerr;
@@ -6305,6 +6311,10 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     }
     inuse--;
     return t;
+
+Lamgig:
+    inuse--;
+    return tambig;
 
 Lerr:
     inuse--;
