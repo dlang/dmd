@@ -586,6 +586,7 @@ struct TypeFunction : TypeNext
     void purityLevel();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+    void toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void attributesToCBuffer(OutBuffer *buf, int mod);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);

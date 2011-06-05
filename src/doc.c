@@ -809,12 +809,14 @@ void Declaration::toDocBuffer(OutBuffer *buf)
         if (type)
         {   HdrGenState hgs;
             hgs.ddoc = 1;
-            if (originalType)
-            {   //originalType->print();
-                originalType->toCBuffer(buf, ident, &hgs);
+            Type *origType = originalType ? originalType : type;
+            if (origType->ty == Tfunction)
+            {
+                TypeFunction *attrType = (TypeFunction*)(ident == Id::ctor ? origType : type);
+                ((TypeFunction*)origType)->toCBufferWithAttributes(buf, ident, &hgs, attrType);
             }
             else
-                type->toCBuffer(buf, ident, &hgs);
+                origType->toCBuffer(buf, ident, &hgs);
         }
         else
             buf->writestring(ident->toChars());

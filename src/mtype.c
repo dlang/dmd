@@ -4709,6 +4709,11 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
+    toCBufferWithAttributes(buf, ident, hgs, this);
+}
+
+void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs)
+{
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     const char *p = NULL;
 
@@ -4720,22 +4725,22 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     /* Use 'storage class' style for attributes
      */
-    if (mod)
+    if (attrs->mod)
     {
-        MODtoBuffer(buf, mod);
+        MODtoBuffer(buf, attrs->mod);
         buf->writeByte(' ');
     }
 
-    if (purity)
+    if (attrs->purity)
         buf->writestring("pure ");
-    if (isnothrow)
+    if (attrs->isnothrow)
         buf->writestring("nothrow ");
-    if (isproperty)
+    if (attrs->isproperty)
         buf->writestring("@property ");
-    if (isref)
+    if (attrs->isref)
         buf->writestring("ref ");
 
-    switch (trust)
+    switch (attrs->trust)
     {
         case TRUSTsystem:
             buf->writestring("@system ");
@@ -4754,7 +4759,7 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
         next->toCBuffer2(buf, hgs, 0);
     if (hgs->ddoc != 1)
     {
-        switch (linkage)
+        switch (attrs->linkage)
         {
             case LINKd:         p = NULL;       break;
             case LINKc:         p = "C ";       break;
