@@ -3500,6 +3500,32 @@ elem *DotTypeExp::toElem(IRState *irs)
     return e;
 }
 
+// check ce is nrvo_var.__dtor()
+int isNrvoDtorCall(CallExp *ce)
+{
+    if (ce->e1->op == TOKdotvar)
+    {   DotVarExp *dve = (DotVarExp *)ce->e1;
+        if (dve->e1->op == TOKvar)
+        {   Declaration *var = ((VarExp *)dve->e1)->var;
+            FuncDeclaration *fd = var->toParent2()->isFuncDeclaration();
+            if (fd && fd->nrvo_can && fd->nrvo_var)
+            {   if (var == fd->nrvo_var)
+                {   // NRVO var exists
+                    Type *tret = fd->type->nextOf()->toBasetype();
+                    if (tret->ty == Tstruct)
+                    {   Declaration *dtor = ((TypeStruct *)tret)->sym->dtor;
+                        if (dtor && dve->var == dtor)
+                        {   // dtor call of nevo_var
+                            return 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 elem *CallExp::toElem(IRState *irs)
 {
     //printf("CallExp::toElem('%s')\n", toChars());
@@ -3516,6 +3542,10 @@ elem *CallExp::toElem(IRState *irs)
 
     directcall = 0;
     fd = NULL;
+
+    if (isNrvoDtorCall(this))
+        return IntegerExp(0).toElem(irs);
+
     if (e1->op == TOKdotvar && t1->ty != Tdelegate)
     {   DotVarExp *dve = (DotVarExp *)e1;
 
