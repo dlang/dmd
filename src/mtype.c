@@ -4709,10 +4709,10 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
-    toCBufferWithAttributes(buf, ident, hgs, this);
+    toCBufferWithAttributes(buf, ident, hgs, this, NULL);
 }
 
-void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs)
+void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     const char *p = NULL;
@@ -4757,6 +4757,8 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
 
     if (next && (!ident || ident->toHChars2() == ident->toChars()))
         next->toCBuffer2(buf, hgs, 0);
+    else if (hgs->ddoc && !next)
+        buf->writestring("auto");
     if (hgs->ddoc != 1)
     {
         switch (attrs->linkage)
@@ -4776,6 +4778,17 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     if (ident)
     {   buf->writeByte(' ');
         buf->writestring(ident->toHChars2());
+    }
+    if (td)
+    {   buf->writeByte('(');
+        for (int i = 0; i < td->origParameters->dim; i++)
+        {
+            TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
+            if (i)
+                buf->writestring(", ");
+            tp->toCBuffer(buf, hgs);
+        }
+        buf->writeByte(')');
     }
     Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
     inuse--;
