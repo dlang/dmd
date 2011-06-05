@@ -69,6 +69,7 @@ void test3()
     {
 	case 7:
 	    i = 6;
+	    goto default;
 	default:
 	    i = 8;
 	    break;
@@ -94,6 +95,8 @@ void test4()
 
 	case 7:
 	    i = 6;
+	    goto default;
+
 	default:
 	    i = 8;
 	    break;
@@ -220,14 +223,14 @@ void test10()
     int id;
     switch (id1)
     {
-        case 0: ++id;
-        case 7: ++id;
-        case 6: ++id;
-        case 5: ++id;
-        case 4: ++id;
-        case 3: ++id;
-        case 2: ++id;
-        case 1: ++id;
+        case 0: ++id; goto case;
+        case 7: ++id; goto case;
+        case 6: ++id; goto case;
+        case 5: ++id; goto case;
+        case 4: ++id; goto case;
+        case 3: ++id; goto case;
+        case 2: ++id; goto case;
+        case 1: ++id; goto default;
 	default:
 	    break;
     }
@@ -285,6 +288,7 @@ void foo14(A...)(int i)
         {
                 foreach(a; A)
                 {
+			goto case;
                 case a:
                         printf("%d\n", a);
                 }
@@ -300,6 +304,7 @@ void bar14(A...)(int i)
         {
                 foreach(j, a; A)
                 {
+			goto case;
                 case A[j]:
                         printf("a = %d, A[%d] = %d\n", a, j, A[j]);
                 }
@@ -328,11 +333,13 @@ int foo15(int i)
     {
 	case X15:
 	    y += 1;
+	    goto case;
 	case 3:
 	    y += 2;
 	    break;
 	case Y15:
 	    y += 20;
+	    goto case;
 	case Z15:
 	    y += 10;
 	    break;

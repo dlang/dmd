@@ -810,7 +810,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                         continue;
                     if (fd->leastAsSpecialized(fd2) || fd2->leastAsSpecialized(fd))
                     {
-                        if (global.params.warnings)
+                        if (1 || global.params.warnings)
                         {
                             TypeFunction *tf = (TypeFunction *)fd->type;
                             if (tf->ty == Tfunction)

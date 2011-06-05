@@ -1249,28 +1249,34 @@ void test50()
 
 /**********************************/
 
+int A51_a;
+
 struct A51
 {
-    ~this() { }
+    ~this() { ++A51_a; }
 }
 
 void test51()
 {
-  while(0) A51 a;
-  if(0) A51 a;
-  if(1){} else A51 a;
-  for(;0;) A51 a;  
-  if (1) { A51 a; }
-  if (1) A51 a;
-  if(0) {} else A51 a;
-  if (0) for(A51 a;;) {}
-  if (0) for(;;) A51 a;
-  do A51 a; while(0);
-  if (0) while(1) A51 a;
-  try A51 a; catch(Error e) {}
-  if (0) switch(1) A51 a;
-  final switch(0) A51 a;
-  A51 a; with(a) A51 b;
+  A51_a = 0; { while(0) A51 a;                      } assert(A51_a == 0);
+  A51_a = 0; { if(0) A51 a;                         } assert(A51_a == 0);
+  A51_a = 0; { if(1){} else A51 a;                  } assert(A51_a == 0);
+  A51_a = 0; { for(;0;) A51 a;                      } assert(A51_a == 0);
+  A51_a = 0; { if (1) { A51 a; }                    } assert(A51_a == 1);
+  A51_a = 0; { if (1) A51 a;                        } assert(A51_a == 1);
+  A51_a = 0; { if(0) {} else A51 a;                 } assert(A51_a == 1);
+  A51_a = 0; { if (0) for(A51 a;;) {}               } assert(A51_a == 0);
+  A51_a = 0; { if (0) for(;;) A51 a;                } assert(A51_a == 0);
+  A51_a = 0; { do A51 a; while(0);                  } assert(A51_a == 1);
+  A51_a = 0; { if (0) while(1) A51 a;               } assert(A51_a == 0);
+  A51_a = 0; { try A51 a; catch(Error e) {}         } assert(A51_a == 1);
+  A51_a = 0; { if (0) final switch(1) A51 a;        } assert(A51_a == 0); // should fail to build
+  A51_a = 0; { if (0) switch(1) { A51 a; default: } } assert(A51_a == 0);
+  A51_a = 0; { if (0) switch(1) { default: A51 a; } } assert(A51_a == 0);
+  A51_a = 0; { if (1) switch(1) { A51 a; default: } } assert(A51_a == 1); // should be 0, right?
+  A51_a = 0; { if (1) switch(1) { default: A51 a; } } assert(A51_a == 1);
+  A51_a = 0; { final switch(0) A51 a;               } assert(A51_a == 0);
+  A51_a = 0; { A51 a; with(a) A51 b;                } assert(A51_a == 2);
 }
 
 /**********************************/
