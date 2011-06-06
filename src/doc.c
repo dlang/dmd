@@ -133,6 +133,7 @@ LINK =  <a href=\"$0\">$0</a>\n\
 LINK2 = <a href=\"$1\">$+</a>\n\
 LPAREN= (\n\
 RPAREN= )\n\
+DOLLAR= $\n\
 \n\
 RED =   <font color=red>$0</font>\n\
 BLUE =  <font color=blue>$0</font>\n\
@@ -374,6 +375,12 @@ void escapeDdocString(OutBuffer *buf, unsigned start)
         unsigned char c = buf->data[u];
         switch(c)
         {
+            case '$':
+                buf->remove(u, 1);
+                buf->insert(u, "$(DOLLAR)", 9);
+                u += 8;
+                break;
+
             case '(':
                 buf->remove(u, 1); //remove the (
                 buf->insert(u, "$(LPAREN)", 9); //insert this instead
@@ -792,29 +799,35 @@ void prefix(OutBuffer *buf, Dsymbol *s)
     }
 }
 
-void Declaration::toDocBuffer(OutBuffer *buf)
+void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclaration *td)
 {
-    //printf("Declaration::toDocbuffer() %s, originalType = %p\n", toChars(), originalType);
-    if (ident)
+    //printf("declarationToDocBuffer() %s, originalType = %s, td = %s\n", decl->toChars(), decl->originalType ? decl->originalType->toChars() : "--", td ? td->toChars() : "--");
+    if (decl->ident)
     {
-        prefix(buf, this);
+        prefix(buf, decl);
 
-        if (type)
+        if (decl->type)
         {   HdrGenState hgs;
             hgs.ddoc = 1;
-            if (originalType)
-            {   //originalType->print();
-                originalType->toCBuffer(buf, ident, &hgs);
+            Type *origType = decl->originalType ? decl->originalType : decl->type;
+            if (origType->ty == Tfunction)
+            {
+                TypeFunction *attrType = (TypeFunction*)(decl->ident == Id::ctor ? origType : decl->type);
+                ((TypeFunction*)origType)->toCBufferWithAttributes(buf, decl->ident, &hgs, attrType, td);
             }
             else
-                type->toCBuffer(buf, ident, &hgs);
+                origType->toCBuffer(buf, decl->ident, &hgs);
         }
         else
-            buf->writestring(ident->toChars());
+            buf->writestring(decl->ident->toChars());
         buf->writestring(";\n");
     }
 }
 
+void Declaration::toDocBuffer(OutBuffer *buf)
+{
+    declarationToDocBuffer(this, buf, NULL);
+}
 
 void AliasDeclaration::toDocBuffer(OutBuffer *buf)
 {
@@ -859,31 +872,9 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
             td->onemember == this)
         {   /* It's a function template
              */
-            HdrGenState hgs;
             unsigned o = buf->offset;
-            TypeFunction *tf = (TypeFunction *)type;
 
-            hgs.ddoc = 1;
-            prefix(buf, td);
-            if (tf)
-            {   if (tf->nextOf())
-                    tf->nextOf()->toCBuffer(buf, NULL, &hgs);
-                else
-                    buf->writestring("auto");
-            }
-            buf->writeByte(' ');
-            buf->writestring(ident->toChars());
-            buf->writeByte('(');
-            for (int i = 0; i < td->origParameters->dim; i++)
-            {
-                TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
-                if (i)
-                    buf->writestring(", ");
-                tp->toCBuffer(buf, &hgs);
-            }
-            buf->writeByte(')');
-            Parameter::argsToCBuffer(buf, &hgs, tf ? tf->parameters : NULL, tf ? tf->varargs : 0);
-            buf->writestring(";\n");
+            declarationToDocBuffer(this, buf, td);
 
             highlightCode(NULL, this, buf, o);
         }

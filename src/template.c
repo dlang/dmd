@@ -378,6 +378,19 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->literal = 0;
     this->ismixin = ismixin;
     this->previous = NULL;
+
+    if (members)
+    {
+        Dsymbol *s;
+        if (Dsymbol::oneMembers(members, &s))
+        {
+            if (s && s->ident && s->ident->equals(ident))
+            {
+                onemember = s;
+                s->parent = this;
+            }
+        }
+    }
 }
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
@@ -494,6 +507,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     paramscope->pop();
 
+    onemember = NULL;
     if (members)
     {
         Dsymbol *s;
