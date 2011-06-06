@@ -375,6 +375,20 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->overroot = NULL;
     this->semanticRun = 0;
     this->onemember = NULL;
+
+    // Compute in advance for Ddoc's use
+    if (members)
+    {
+        Dsymbol *s;
+        if (Dsymbol::oneMembers(members, &s))
+        {
+            if (s && s->ident && s->ident->equals(ident))
+            {
+                onemember = s;
+                s->parent = this;
+            }
+        }
+    }
 }
 
 Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
@@ -484,6 +498,8 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     paramscope->pop();
 
+    // Compute again
+    onemember = NULL;
     if (members)
     {
         Dsymbol *s;
