@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -884,6 +884,17 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf)
         }
     }
 }
+
+#if DMDV1
+void CtorDeclaration::toDocBuffer(OutBuffer *buf)
+{
+    HdrGenState hgs;
+
+    buf->writestring("this");
+    Parameter::argsToCBuffer(buf, &hgs, arguments, varargs);
+    buf->writestring(";\n");
+}
+#endif
 
 void AggregateDeclaration::toDocBuffer(OutBuffer *buf)
 {

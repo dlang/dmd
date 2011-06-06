@@ -379,6 +379,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->ismixin = ismixin;
     this->previous = NULL;
 
+    // Compute in advance for Ddoc's use
     if (members)
     {
         Dsymbol *s;
@@ -507,6 +508,7 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     paramscope->pop();
 
+    // Compute again
     onemember = NULL;
     if (members)
     {
