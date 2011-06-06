@@ -1858,7 +1858,10 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
     return EXP_CANT_INTERPRET;
 }
 
-Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type, Expression *eptr, Expression *e2)
+// Return eptr op e2, where eptr is a pointer, e2 is an integer,
+// and op is TOKadd or TOKmin
+Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
+    Expression *eptr, Expression *e2)
 {
     dinteger_t ofs1, ofs2;
     Expression *agg1 = getAggregateFromPointer(eptr, &ofs1);
@@ -1875,7 +1878,11 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type, Expression *eptr
 
     Expression *val = agg1;
     TypeArray *tar = (TypeArray *)val->type;
-    dinteger_t indx = ofs1 + ofs2/sz;
+    dinteger_t indx = ofs1;
+    if (op == TOKadd)
+        indx = indx + ofs2/sz;
+    else
+        indx -= ofs2/sz;
     if (val->op != TOKarrayliteral && val->op != TOKstring)
     {
         error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
