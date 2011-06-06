@@ -55,6 +55,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
+void addVarToInterstate(InterState *istate, VarDeclaration *v);
 Expression *copyLiteral(Expression *e);
 
 
@@ -1370,6 +1371,11 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
     VarDeclaration *v = declaration->isVarDeclaration();
     if (v)
     {
+        if (v->getValue())
+        {
+            addVarToInterstate(istate, v);
+            v->setValueNull();
+        }
         Dsymbol *s = v->toAlias();
         if (s == v && !v->isStatic() && v->init)
         {
