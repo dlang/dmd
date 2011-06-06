@@ -596,6 +596,7 @@ struct TypeFunction : TypeNext
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     bool parameterEscapes(Parameter *p);
+    MATCH constConv(Type *to);
 
     int callMatch(Expression *ethis, Expressions *toargs, int flag = 0);
     type *toCtype();

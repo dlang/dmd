@@ -4504,6 +4504,65 @@ Type *TypeFunction::syntaxCopy()
     return t;
 }
 
+MATCH TypeFunction::constConv(Type *to)
+{
+    if (equals(to) && TypeNext::constConv(to) == MATCHexact)
+    {
+        return MATCHexact;
+    } else if (ty == to->ty)
+    {   // modifiers don't matter for function types
+        TypeFunction* tf = (TypeFunction*)to;
+
+        // Return types must match
+        if (!next || !tf->next || !next->equals(tf->next))
+            return MATCHnomatch;
+
+        // Parameters must match
+        size_t dim = Parameter::dim(parameters);
+        if (dim != Parameter::dim(tf->parameters))
+            return MATCHnomatch;
+        for (size_t i = 0; i < dim; i++)
+        {
+            Parameter *p1 = (Parameter *)parameters->data[i];
+            Parameter *p2 = (Parameter *)tf->parameters->data[i];
+
+            if (!p1->type->equals(p2->type))
+                return MATCHnomatch;
+
+            /* Cannot change parameter storage classes
+             * Ignore STCin as it has been passed on to the
+             * parameter types but when some attributes are
+             * present it is not removed
+             */
+            if ((p1->storageClass & ~STCin) != (p2->storageClass & ~STCin))
+                return MATCHnomatch;
+        }
+
+        // linkage, ref return and varargs must match
+        if (linkage != tf->linkage ||
+            isref != tf->isref ||
+            varargs != tf->varargs)
+            return MATCHnomatch;
+
+        // non-nothrow cannot convert to nothrow
+        if (!isnothrow && tf->isnothrow)
+            return MATCHnomatch;
+
+        // @safe can convert to @system or @trusted
+        // @trusted can convert to @system
+        if (trust < tf->trust)
+            return MATCHnomatch;
+
+        // Cannot convert from non-pure to pure
+        if (!purity && tf->purity)
+            return MATCHnomatch;
+
+        return MATCHconvert;
+    }
+
+    return MATCHnomatch;
+}
+
 /*******************************
  * Covariant means that 'this' can substitute for 't',
  * i.e. a pure function is a match for an impure type.
