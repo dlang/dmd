@@ -1111,6 +1111,7 @@ struct SliceExp : UnaExp
     void scanForNestedRef(Scope *sc);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    int canThrow(bool mustNotThrow);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
