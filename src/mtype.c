@@ -338,7 +338,7 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
  * Determine if converting 'this' to 'to' is an identity operation,
  * a conversion to const operation, or the types aren't the same.
  * Returns:
- *      MATCHequal      'this' == 'to'
+ *      MATCHexact      'this' == 'to'
  *      MATCHconst      'to' is const
  *      MATCHnomatch    conversion to mutable or invariant
  */
@@ -5331,6 +5331,17 @@ Ldone:
 
 Nomatch:
     //printf("no match\n");
+    return MATCHnomatch;
+}
+
+/**
+ * Regard function types as equivalent when they are covariant for function
+ * pointer typechecking.
+ */
+MATCH TypeFunction::constConv(Type *to)
+{
+    if (equals(to) || (covariant(to) == 1))
+        return MATCHexact;
     return MATCHnomatch;
 }
 
