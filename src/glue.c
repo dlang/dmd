@@ -545,6 +545,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+    //if (type) printf("type = %s\n", func->type->toChars());
 #if 0
     //printf("line = %d\n",func->getWhere() / LINEINC);
     EEcontext *ee = env->getEEcontext();
@@ -559,6 +560,10 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
 
     if (semanticRun >= PASSobj) // if toObjFile() already run
+        return;
+
+    // If errors occurred compiling it, such as bugzilla 6118
+    if (type && type->ty == Tfunction && ((TypeFunction *)type)->next->ty == Terror)
         return;
 
     if (!func->fbody)

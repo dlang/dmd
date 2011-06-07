@@ -2812,6 +2812,22 @@ void test143()
 }
 
 /***************************************************/
+// 6119
+
+void startsWith(alias pred) ()   if (is(typeof(pred('c', 'd')) : bool))
+{
+}
+
+void startsWith(alias pred) ()   if (is(typeof(pred('c', "abc")) : bool))
+{
+}
+
+void test144()
+{
+    startsWith!((a, b) { return a == b; })();
+} 
+
+/***************************************************/
 
 int main()
 {
@@ -2958,6 +2974,7 @@ int main()
     test141();
     test142();
     test143();
+    test144();
 
     printf("Success\n");
     return 0;
