@@ -2943,6 +2943,26 @@ void test149()
  
 
 /***************************************************/
+// 5046
+
+void test5046()
+{
+    auto va = S5046!("", int)();
+    auto vb = makeS5046!("", int)();
+}
+
+struct S5046(alias p, T)
+{
+    T s;
+    T fun() { return s; }   // (10)
+}
+
+S5046!(p, T) makeS5046(alias p, T)()
+{
+    return typeof(return)();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3095,6 +3115,7 @@ int main()
     test147();
     test148();
     test149();
+    test5046();
 
     printf("Success\n");
     return 0;
