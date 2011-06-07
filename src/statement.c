@@ -3429,7 +3429,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        exp = exp->optimize(WANTvalue);
+        if (!((TypeFunction *)fd->type)->isref)
+            exp = exp->optimize(WANTvalue);
 
         if (fd->nrvo_can && exp->op == TOKvar)
         {   VarExp *ve = (VarExp *)exp;
@@ -3511,7 +3512,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else if (tbret->ty != Tvoid)
         {
             exp = exp->implicitCastTo(sc, tret);
-            exp = exp->optimize(WANTvalue);
+            if (!((TypeFunction *)fd->type)->isref)
+                exp = exp->optimize(WANTvalue);
         }
     }
     else if (fd->inferRetType)
