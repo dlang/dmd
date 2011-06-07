@@ -2531,6 +2531,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
     // This happens inside compiler-generated foreach statements.
     if (op==TOKconstruct && this->e1->op==TOKvar && this->e2->op != TOKthis
+        && this->e2->op != TOKcomma
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
         VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
