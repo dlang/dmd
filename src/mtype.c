@@ -7170,6 +7170,8 @@ int TypeStruct::isAssignable()
     {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
         if (v->isConst() || v->isImmutable())
             return FALSE;
+        if (!v->type->isAssignable())
+            return FALSE;
     }
     return TRUE;
 }
