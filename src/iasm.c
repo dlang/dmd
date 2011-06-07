@@ -2513,14 +2513,17 @@ STATIC void asm_make_modrm_byte(
             else
             {
                 sib.sib.base = popnd->pregDisp1->val;
+                if (popnd->pregDisp1->val & NUM_MASKR)
+                    pc->Irex |= REX_B;
                 //
                 // This is to handle the special case
-                // of using the EBP register and no
+                // of using the EBP (or R13) register and no
                 // displacement.  You must put in an
                 // 8 byte displacement in order to
                 // get the correct opcodes.
                 //
-                if (popnd->pregDisp1->val == _EBP &&
+                if ((popnd->pregDisp1->val == _EBP ||
+                     popnd->pregDisp1->val == _R13) &&
                     (!popnd->disp && !s))
                 {
 #ifdef DEBUG
@@ -2534,6 +2537,9 @@ STATIC void asm_make_modrm_byte(
                 }
 
                 sib.sib.index = popnd->pregDisp2->val;
+                if (popnd->pregDisp2->val & NUM_MASKR)
+                    pc->Irex |= REX_X;
+
             }
             switch (popnd->uchMultiplier)
             {
