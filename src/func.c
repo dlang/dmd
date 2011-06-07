@@ -2758,6 +2758,8 @@ int FuncDeclaration::needsClosure()
      * 1) is a virtual function
      * 2) has its address taken
      * 3) has a parent that escapes
+     * -or-
+     * 4) this function returns a local struct/class
      *
      * Note that since a non-virtual function can be called by
      * a virtual one, if that non-virtual function accesses a closure
@@ -2788,6 +2790,25 @@ int FuncDeclaration::needsClosure()
             }
         }
     }
+
+    /* Look for case (4)
+     */
+    if (closureVars.dim)
+    {
+        assert(type->ty == Tfunction);
+        Type *tret = ((TypeFunction *)type)->next;
+        assert(tret);
+        tret = tret->toBasetype();
+        if (tret->ty == Tclass || tret->ty == Tstruct)
+        {   Dsymbol *st = tret->toDsymbol(NULL);
+            for (Dsymbol *s = st->parent; s; s = s->parent)
+            {
+                if (s == this)
+                    goto Lyes;
+            }
+        }
+    }
+
     return 0;
 
 Lyes:
@@ -2924,7 +2945,7 @@ void CtorDeclaration::semantic(Scope *sc)
     //printf("CtorDeclaration::semantic() %s\n", toChars());
     TypeFunction *tf = (TypeFunction *)type;
     assert(tf && tf->ty == Tfunction);
-    Expressions *fargs = ((TypeFunction *)type)->fargs;		// for auto ref
+    Expressions *fargs = ((TypeFunction *)type)->fargs;         // for auto ref
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static constructor
