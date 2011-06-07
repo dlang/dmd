@@ -32,8 +32,8 @@ private:
     {
         // don't let symbols leak into other modules
 
-        const SystemProcessInformation = 5;
-        const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
+        enum SystemProcessInformation = 5;
+        enum STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
         // abbreviated versions of these structs (full info can be found
         //  here: http://undocumented.ntinternals.net )
@@ -59,7 +59,7 @@ private:
         alias extern(Windows)
         HRESULT fnNtQuerySystemInformation( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength );
 
-        const ThreadBasicInformation = 0;
+        enum ThreadBasicInformation = 0;
 
         struct THREAD_BASIC_INFORMATION
         {
@@ -75,10 +75,10 @@ private:
         alias extern(Windows)
         int fnNtQueryInformationThread( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength );
 
-        const SYNCHRONIZE = 0x00100000;
-        const THREAD_GET_CONTEXT = 8;
-        const THREAD_QUERY_INFORMATION = 0x40;
-        const THREAD_SUSPEND_RESUME = 2;
+        enum SYNCHRONIZE = 0x00100000;
+        enum THREAD_GET_CONTEXT = 8;
+        enum THREAD_QUERY_INFORMATION = 0x40;
+        enum THREAD_SUSPEND_RESUME = 2;
 
         ///////////////////////////////////////////////////////////////////
         // get the thread environment block (TEB) of the thread with the given handle
