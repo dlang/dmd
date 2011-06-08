@@ -169,6 +169,25 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
      * we'll do that another day.
      */
 
+    if (s1)
+    {
+        VarDeclaration *v1 = s1->isVarDeclaration();
+        if (v1 && v1->storage_class & STCmanifest)
+        {   ExpInitializer *ei1 = v1->init->isExpInitializer();
+            if (ei1)
+                e1 = ei1->exp, s1 = NULL;
+        }
+    }
+    if (s2)
+    {
+        VarDeclaration *v2 = s2->isVarDeclaration();
+        if (v2 && v2->storage_class & STCmanifest)
+        {   ExpInitializer *ei2 = v2->init->isExpInitializer();
+            if (ei2)
+                e2 = ei2->exp, s2 = NULL;
+        }
+    }
+
     if (t1)
     {
         /* if t1 is an instance of ti, then give error
@@ -215,30 +234,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
     else if (s1)
     {
         if (!s2 || !s1->equals(s2) || s1->parent != s2->parent)
-        {
-            if (s2)
-            {
-                VarDeclaration *v1 = s1->isVarDeclaration();
-                VarDeclaration *v2 = s2->isVarDeclaration();
-                if (v1 && v2 && v1->storage_class & v2->storage_class & STCmanifest)
-                {   ExpInitializer *ei1 = v1->init->isExpInitializer();
-                    ExpInitializer *ei2 = v2->init->isExpInitializer();
-                    if (ei1 && ei2 && ei1->exp->equals(ei2->exp))
-                        goto Lmatch;
-                }
-            }
             goto Lnomatch;
-        }
-#if DMDV2
-        VarDeclaration *v1 = s1->isVarDeclaration();
-        VarDeclaration *v2 = s2->isVarDeclaration();
-        if (v1 && v2 && v1->storage_class & v2->storage_class & STCmanifest)
-        {   ExpInitializer *ei1 = v1->init->isExpInitializer();
-            ExpInitializer *ei2 = v2->init->isExpInitializer();
-            if (ei1 && ei2 && !ei1->exp->equals(ei2->exp))
-                goto Lnomatch;
-        }
-#endif
     }
     else if (v1)
     {
