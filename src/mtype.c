@@ -7163,17 +7163,36 @@ int TypeStruct::needsDestruction()
 
 int TypeStruct::isAssignable()
 {
+    int assignable = TRUE;
+    unsigned offset;
+
     /* If any of the fields are const or invariant,
      * then one cannot assign this struct.
      */
     for (size_t i = 0; i < sym->fields.dim; i++)
     {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
-        if (v->isConst() || v->isImmutable())
-            return FALSE;
-        if (!v->type->isAssignable())
-            return FALSE;
+        //printf("%s [%d] v = (%s) %s, v->offset = %d, v->parent = %s", sym->toChars(), i, v->kind(), v->toChars(), v->offset, v->parent->kind());
+        if (i == 0)
+            ;
+        else if (v->offset == offset)
+        {
+            /* If some fields of anonymous union are assignable,
+             * then totally assignable
+             */
+            if (assignable)
+                return TRUE;
+        }
+        else
+        {
+            if (!assignable)
+                return FALSE;
+        }
+        assignable = v->type->isMutable() && v->type->isAssignable();
+        offset = v->offset;
+        //printf(" -> assignable = %d\n", assignable);
     }
-    return TRUE;
+
+    return assignable;
 }
 
 int TypeStruct::hasPointers()
