@@ -237,6 +237,8 @@ MANIFEST= \
 	src/rt/util/string.d \
 	src/rt/util/utf.d
 
+GC_MODULES = gc/gc gc/gcalloc gc/gcbits gc/gcstats gc/gcx
+
 SRC_D_MODULES = \
 	object_ \
 	\
@@ -280,11 +282,7 @@ SRC_D_MODULES = \
 	core/sync/rwmutex \
 	core/sync/semaphore \
 	\
-	gc/gc \
-	gc/gcalloc \
-	gc/gcbits \
-	gc/gcstats \
-	gc/gcx \
+	$(GC_MODULES) \
 	\
 	rt/aaA \
 	rt/aApply \

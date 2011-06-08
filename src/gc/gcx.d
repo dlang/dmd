@@ -454,6 +454,9 @@ class GC
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
 
+        if (gcx.running)
+            onOutOfMemoryError();
+
         size += SENTINEL_EXTRA;
         bin = gcx.findBin(size);
         Pool *pool;
@@ -582,6 +585,9 @@ class GC
     //
     private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null)
     {
+        if (gcx.running)
+            onOutOfMemoryError();
+
         if (!size)
         {   if (p)
             {   freeNoSync(p);
@@ -760,6 +766,9 @@ class GC
     }
     body
     {
+        if (gcx.running)
+            onOutOfMemoryError();
+
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
         version (SENTINEL)
         {
@@ -848,6 +857,9 @@ class GC
         assert(size != 0);
         assert(gcx);
 
+        if (gcx.running)
+            onOutOfMemoryError();
+
         return gcx.reserve(size);
     }
 
@@ -880,6 +892,9 @@ class GC
     {
         debug(PRINTF) printf("Freeing %p\n", cast(size_t) p);
         assert (p);
+
+        if (gcx.running)
+            onOutOfMemoryError();
 
         Pool*  pool;
         size_t pagenum;
@@ -1486,6 +1501,7 @@ struct Gcx
     uint anychanges;
     void *stackBottom;
     uint inited;
+    uint running;
     int disabled;       // turn off collections if >0
 
     byte *minAddr;      // min(baseAddr)
@@ -2363,7 +2379,7 @@ struct Gcx
                 push R13  ;
                 push R14  ;
                 push R15  ;
-                push EAX ;   // 16 byte align the stack
+                push RAX ;   // 16 byte align the stack
                 mov sp[RBP],RSP     ;
             }
         }
@@ -2389,7 +2405,7 @@ struct Gcx
         {
             asm
             {
-                pop EAX ;   // 16 byte align the stack
+                pop RAX ;   // 16 byte align the stack
                 pop R15  ;
                 pop R14  ;
                 pop R13  ;
@@ -2431,6 +2447,10 @@ struct Gcx
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
+
+        if (running)
+            onOutOfMemoryError();
+        running = 1;
 
         thread_suspendAll();
 
@@ -2778,6 +2798,8 @@ struct Gcx
 
         debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
         debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedpages, npools);
+
+        running = 0; // only clear on success
 
         return freedpages + recoveredpages;
     }

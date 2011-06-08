@@ -14,6 +14,8 @@
  */
 module rt.arrayint;
 
+// debug=PRINTF
+
 private import core.cpuid;
 
 version (unittest)
@@ -213,7 +215,7 @@ body
 
 unittest
 {
-    printf("_arraySliceExpAddSliceAssign_i unittest\n");
+    debug(PRINTF) printf("_arraySliceExpAddSliceAssign_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -397,7 +399,7 @@ normal:
 
 unittest
 {
-    printf("_arraySliceSliceAddSliceAssign_i unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceAddSliceAssign_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -581,7 +583,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
 
 unittest
 {
-    printf("_arrayExpSliceAddass_i unittest\n");
+    debug(PRINTF) printf("_arrayExpSliceAddass_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -754,7 +756,7 @@ normal:
 
 unittest
 {
-    printf("_arraySliceSliceAddass_i unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceAddass_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -958,7 +960,7 @@ body
 
 unittest
 {
-    printf("_arraySliceExpMinSliceAssign_i unittest\n");
+    debug(PRINTF) printf("_arraySliceExpMinSliceAssign_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -1138,7 +1140,7 @@ body
 
 unittest
 {
-    printf("_arrayExpSliceMinSliceAssign_i unittest\n");
+    debug(PRINTF) printf("_arrayExpSliceMinSliceAssign_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -1320,7 +1322,7 @@ body
 
 unittest
 {
-    printf("_arraySliceSliceMinSliceAssign_i unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceMinSliceAssign_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -1504,7 +1506,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
 
 unittest
 {
-    printf("_arrayExpSliceMinass_i unittest\n");
+    debug(PRINTF) printf("_arrayExpSliceMinass_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -1676,7 +1678,7 @@ body
 
 unittest
 {
-    printf("_arraySliceSliceMinass_i unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceMinass_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -1856,7 +1858,7 @@ body
 
 unittest
 {
-    printf("_arraySliceExpMulSliceAssign_s unittest\n");
+    debug(PRINTF) printf("_arraySliceExpMulSliceAssign_s unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -2043,7 +2045,7 @@ body
 
 unittest
 {
-    printf("_arraySliceSliceMulSliceAssign_i unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceMulSliceAssign_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -2204,7 +2206,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
 
 unittest
 {
-    printf("_arrayExpSliceMulass_i unittest\n");
+    debug(PRINTF) printf("_arrayExpSliceMulass_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
@@ -2393,7 +2395,7 @@ body
 
 unittest
 {
-    printf("_arraySliceSliceMulass_i unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceMulass_i unittest\n");
 
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {

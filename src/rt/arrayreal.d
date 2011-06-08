@@ -13,6 +13,8 @@
  */
 module rt.arrayreal;
 
+// debug=PRINTF
+
 import core.cpuid;
 
 version (unittest)
@@ -70,7 +72,7 @@ body
 
 unittest
 {
-    printf("_arraySliceSliceAddSliceAssign_r unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceAddSliceAssign_r unittest\n");
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
         version (log) printf("    cpuid %d\n", cpuid);
@@ -130,7 +132,7 @@ body
 
 unittest
 {
-    printf("_arraySliceSliceMinSliceAssign_r unittest\n");
+    debug(PRINTF) printf("_arraySliceSliceMinSliceAssign_r unittest\n");
     for (cpuid = 0; cpuid < CPUID_MAX; cpuid++)
     {
         version (log) printf("    cpuid %d\n", cpuid);
@@ -203,7 +205,7 @@ body
 
 unittest
 {
-    printf("_arraySliceExpMulSliceAddass_r unittest\n");
+    debug(PRINTF) printf("_arraySliceExpMulSliceAddass_r unittest\n");
 
     cpuid = 1;
     {
