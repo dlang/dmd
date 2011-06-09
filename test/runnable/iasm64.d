@@ -203,11 +203,83 @@ L1:	pop	RAX	;
 
 /****************************************************/
 
+void test3()
+{   int x;
+    ubyte* p;
+    static ubyte data[] =
+    [
+              0xFE, 0xC8,                // dec    AL
+              0xFE, 0xCC,                // dec    AH
+        0x66, 0xFF, 0xC8,                // dec    AX
+              0xFF, 0xC8,                // dec    EAX
+        0x48, 0xFF, 0xC8,                // dec    RAX
+        0x49, 0xFF, 0xCA,                // dec    R10
+
+              0xFE, 0xC0,                // inc    AL
+              0xFE, 0xC4,                // inc    AH
+        0x66, 0xFF, 0xC0,                // inc    AX
+              0xFF, 0xC0,                // inc    EAX
+        0x48, 0xFF, 0xC0,                // inc    RAX
+        0x49, 0xFF, 0xC2,                // inc    R10
+
+        0x44, 0x0F, 0xA4, 0xC0, 0x04,    // shld   EAX, R8D, 4
+        0x44, 0x0F, 0xA5, 0xC0,          // shld   EAX, R8D, CL
+        0x4C, 0x0F, 0xA4, 0xC0, 0x04,    // shld   RAX, R8,  4
+        0x4C, 0x0F, 0xA5, 0xC0,          // shld   RAX, R8 , CL
+
+        0x44, 0x0F, 0xAC, 0xC0, 0x04,    // shrd   EAX, R8D, 4
+        0x44, 0x0F, 0xAD, 0xC0,          // shrd   EAX, R8D, CL
+        0x4C, 0x0F, 0xAC, 0xC0, 0x04,    // shrd   RAX, R8 , 4
+        0x4C, 0x0F, 0xAD, 0xC0           // shrd   RAX, R8 , CL
+    ];
+
+    asm
+    {
+        call  L1;
+
+        dec   AL;
+        dec   AH;
+        dec   AX;
+        dec   EAX;
+        dec   RAX;
+        dec   R10;
+
+        inc   AL;
+        inc   AH;
+        inc   AX;
+        inc   EAX;
+        inc   RAX;
+        inc   R10;
+
+        shld  EAX, R8D, 4;
+        shld  EAX, R8D, CL;
+        shld  RAX, R8 , 4;
+        shld  RAX, R8 , CL;
+
+        shrd  EAX, R8D, 4;
+        shrd  EAX, R8D, CL;
+        shrd  RAX, R8 , 4;
+        shrd  RAX, R8 , CL;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm64.d\n");
     test1();
     test2();
+    test3();
 
     printf("Success\n");
     return 0;
