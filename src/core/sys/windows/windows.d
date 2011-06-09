@@ -668,10 +668,10 @@ export LONG RegQueryInfoKeyW(HKEY hKey, LPWSTR lpClass, LPDWORD lpcbClass,
     LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor,
     PFILETIME lpftLastWriteTime);
 
-export LONG RegQueryValueA(HKEY hKey, LPCSTR lpSubKey, LPSTR lpValue,
-    LPLONG lpcbValue);
-export LONG RegQueryValueW(HKEY hKey, LPCWSTR lpSubKey, LPWSTR lpValue,
-    LPLONG lpcbValue);
+export LONG RegQueryValueA(HKEY hKey, LPCSTR lpSubKey, LPSTR lpValue, LPLONG lpcbValue);
+export LONG RegQueryValueW(HKEY hKey, LPCWSTR lpSubKey, LPWSTR lpValue, LPLONG lpcbValue);
+export LONG RegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
+export LONG RegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
 
 export LONG RegCreateKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD Reserved, LPSTR lpClass,
    DWORD dwOptions, REGSAM samDesired, SECURITY_ATTRIBUTES* lpSecurityAttributes,
@@ -684,6 +684,9 @@ export LONG RegSetValueExA(HKEY hKey, LPCSTR lpValueName, DWORD Reserved, DWORD 
 export LONG RegSetValueExW(HKEY hKey, LPCWSTR lpValueName, DWORD Reserved, DWORD dwType, BYTE* lpData, DWORD cbData);
 
 export LONG RegOpenCurrentUser(REGSAM samDesired, PHKEY phkResult);
+
+export LONG RegConnectRegistryA(LPCSTR lpMachineName, HKEY hKey, PHKEY phkResult);
+export LONG RegConnectRegistryW(LPCWSTR lpMachineName, HKEY hKey, PHKEY phkResult);
 
 struct MEMORY_BASIC_INFORMATION {
     PVOID BaseAddress;
