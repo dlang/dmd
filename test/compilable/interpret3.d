@@ -1334,7 +1334,7 @@ static const S6100[2] s6100a = [ init6100(1), init6100(2) ];
 static assert(s6100a[0].a == 1);
 
 /**************************************************
-    Bug 6120
+    Bug 6120 -- failed with -inline
 **************************************************/
 
 struct Bug6120(T) {
@@ -1342,6 +1342,20 @@ struct Bug6120(T) {
 }
 static assert({
     auto s = Bug6120!int(0);
+    return true;
+}());
+
+/**************************************************
+    Bug 6123 -- failed with -inline
+**************************************************/
+
+struct Bug6123(T) {
+    void f() {}
+    // can also trigger if the struct is normal but f is template
+}
+static assert({
+    auto piece = Bug6123!int(); 
+    piece.f();
     return true;
 }());
 
@@ -1521,3 +1535,24 @@ static assert( is(typeof(compiles!(ptrDeref(5, false)))));
 static assert(!is(typeof(compiles!(ptrDeref(5, true)))));
 static assert(!is(typeof(compiles!(ptrDeref(6, false)))));
 static assert(!is(typeof(compiles!(ptrDeref(6, true)))));
+
+/**************************************************
+  Pointer +=
+**************************************************/
+static assert({
+    int [12] x;
+    int zzz;
+    assert(&zzz);
+    int *p = &x[10];
+    int *q = &x[4];
+    q = p;
+    assert(p == q);
+    q = &x[4];
+    assert(p != q);    
+    q += 4;
+    assert(q == &x[8]);
+    q = q - 2;
+    q = q + 4;    
+    assert(q is p);    
+    return 6;
+}() == 6);
