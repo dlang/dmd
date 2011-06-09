@@ -8191,7 +8191,11 @@ Expression *CastExp::semantic(Scope *sc)
     {   // Disallow unsafe casts
         Type *tob = to->toBasetype();
         Type *t1b = e1->type->toBasetype();
-        if (!t1b->isMutable() && tob->isMutable())
+
+        if (tob->isTypeBasic() && t1b->isTypeBasic())
+        {   // Allow casting between basic types
+        }
+        else if (!t1b->isMutable() && tob->isMutable())
         {   // Cast not mutable to mutable
           Lunsafe:
             error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
