@@ -1197,7 +1197,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         uinteger_t i = e2->toInteger();
 
         if (i >= length)
-        {   e2->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
+        {   e1->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
         }
         else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
@@ -1214,7 +1214,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
-            {   e2->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+            {   e1->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
             }
             else
             {   e = (Expression *)ale->elements->data[i];
