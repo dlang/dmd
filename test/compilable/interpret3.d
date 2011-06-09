@@ -1334,6 +1334,26 @@ static const S6100[2] s6100a = [ init6100(1), init6100(2) ];
 static assert(s6100a[0].a == 1);
 
 /**************************************************
+    Bug 4825 -- failed with -inline
+**************************************************/
+
+int a4825() {
+    int r;
+    return r;
+}
+
+int b4825() {
+    return a4825();
+}
+
+void c4825() {
+    void d() {
+        auto e = b4825();
+    }
+    static const int f = b4825();
+}
+
+/**************************************************
     Bug 6120 -- failed with -inline
 **************************************************/
 
@@ -1556,3 +1576,46 @@ static assert({
     assert(q is p);    
     return 6;
 }() == 6);
+
+/**************************************************
+  Reduced version of bug 5615
+**************************************************/
+
+const(char)[] passthrough(const(char)[] x) {
+    return x;
+}
+
+sizediff_t checkPass(Char1)(const(Char1)[] s)
+{
+    const(Char1)[] balance = s[1..$];
+    return passthrough(balance).ptr - s.ptr;
+}
+static assert(checkPass("foobar")==1);
+
+/**************************************************
+  Pointers must not escape from CTFE
+**************************************************/
+
+struct Toq {
+    const(char) * m;
+}
+
+Toq ptrRet(bool b) {
+    string x = "abc";
+    return Toq(b ? x[0..1].ptr: null);
+}
+
+static assert(is(typeof(compiles!(
+{
+    enum Toq boz = ptrRet(false); // OK - ptr is null
+    Toq z = ptrRet(true); // OK -- ptr doesn't escape
+    return 4;
+}()
+))));
+
+static assert(!is(typeof(compiles!(
+{
+    enum Toq boz = ptrRet(true); // fail - ptr escapes
+    return 4;
+}()
+))));
