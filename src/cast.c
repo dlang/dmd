@@ -203,7 +203,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
 
     switch (ty)
     {
-        case Tbit:
         case Tbool:
             value &= 1;
             ty = Tint32;
@@ -248,7 +247,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
     // Only allow conversion if no change in value
     switch (toty)
     {
-        case Tbit:
         case Tbool:
             if ((value & 1) != value)
                 goto Lno;
@@ -1911,7 +1909,6 @@ Expression *Expression::integralPromotions(Scope *sc)
         case Tuns8:
         case Tint16:
         case Tuns16:
-        case Tbit:
         case Tbool:
         case Tchar:
         case Twchar:

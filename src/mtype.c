@@ -234,7 +234,6 @@ void Type::init()
     mangleChar[Tdchar] = 'w';
 
     // '@' shouldn't appear anywhere in the deco'd names
-    mangleChar[Tbit] = '@';
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
     mangleChar[Ttypeof] = '@';
