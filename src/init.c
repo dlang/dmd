@@ -726,6 +726,61 @@ Initializer *ExpInitializer::syntaxCopy()
     return new ExpInitializer(loc, exp->syntaxCopy());
 }
 
+bool arrayHasNonConstPointers(Expressions *elems);
+
+bool hasNonConstPointers(Expression *e)
+{
+    if (e->op == TOKnull)
+        return false;
+    if (e->op == TOKstructliteral)
+    {
+        StructLiteralExp *se = (StructLiteralExp *)e;
+        return arrayHasNonConstPointers(se->elements);
+    }
+    if (e->op == TOKarrayliteral)
+    {
+        if (!e->type->nextOf()->hasPointers())
+            return false;
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+        return arrayHasNonConstPointers(ae->elements);
+    }
+    if (e->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e;
+        if (ae->type->nextOf()->hasPointers() &&
+            arrayHasNonConstPointers(ae->values))
+                return true;
+        if (((TypeAArray *)ae->type)->index->hasPointers())
+            return arrayHasNonConstPointers(ae->keys);
+        return false;
+    }
+    if (e->type->ty== Tpointer && e->type->nextOf()->ty != Tfunction)
+    {
+        if (e->op == TOKsymoff) // address of a global is OK
+            return false;
+        if (e->op == TOKint64)  // cast(void *)int is OK
+            return false;
+        if (e->op == TOKstring) // "abc".ptr is OK
+            return false;
+        return true;
+    }
+    return false;
+}
+
+bool arrayHasNonConstPointers(Expressions *elems)
+{
+    for (size_t i = 0; i < elems->dim; i++)
+    {
+        if (!(Expression *)elems->data[i])
+            continue;
+        if (hasNonConstPointers((Expression *)elems->data[i]))
+            return true;
+    }
+    return false;
+}
+
+
+
 Initializer *ExpInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
@@ -737,6 +792,14 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, int needInterpret)
     exp = exp->optimize(wantOptimize);
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
+
+    // Make sure all pointers are constants
+    if (needInterpret && hasNonConstPointers(exp))
+    {
+        exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
+        return this;
+    }
+
     Type *tb = t->toBasetype();
 
     /* Look for case of initializing a static array with a too-short
