@@ -1314,3 +1314,346 @@ static assert(!is(typeof(compiles!({
     return true;
 }()
 ))));
+
+/**************************************************
+    Bug 6100
+**************************************************/
+
+struct S6100
+{
+    int a;
+}
+
+S6100 init6100(int x)
+{
+    S6100 s = S6100(x);
+    return s;
+}
+
+static const S6100[2] s6100a = [ init6100(1), init6100(2) ];
+static assert(s6100a[0].a == 1);
+
+/**************************************************
+    Bug 4825 -- failed with -inline
+**************************************************/
+
+int a4825() {
+    int r;
+    return r;
+}
+
+int b4825() {
+    return a4825();
+}
+
+void c4825() {
+    void d() {
+        auto e = b4825();
+    }
+    static const int f = b4825();
+}
+
+/**************************************************
+    Bug 6120 -- failed with -inline
+**************************************************/
+
+struct Bug6120(T) {
+    this(int x) { }
+}
+static assert({
+    auto s = Bug6120!int(0);
+    return true;
+}());
+
+/**************************************************
+    Bug 6123 -- failed with -inline
+**************************************************/
+
+struct Bug6123(T) {
+    void f() {}
+    // can also trigger if the struct is normal but f is template
+}
+static assert({
+    auto piece = Bug6123!int(); 
+    piece.f();
+    return true;
+}());
+
+/**************************************************
+    Bug 6053 -- ICE involving pointers
+**************************************************/
+
+static assert({
+    int *a = null;
+    assert(a is null);
+    assert(a == null);
+    return true;
+}());
+
+static assert({
+    int b;
+    int* a= &b;
+    assert(a !is null);
+    *a = 7;
+    assert(b==7);
+    assert(*a == 7);
+    return true;
+}());
+
+int dontbreak6053()
+{
+    auto q = &dontbreak6053;
+    void caz() {}
+    auto tr = &caz;
+    return 5;
+}
+static assert(dontbreak6053());
+
+static assert({
+    int a; *(&a) = 15;
+    assert(a==15);
+    assert(*(&a)==15);
+    return true;
+}());
+
+static assert({
+    int a=5, b=6, c=2;
+    assert( *(c ? &a : &b) == 5);
+    assert( *(!c ? &a : &b) == 6);
+    return true;
+}());
+
+static assert({
+    int a, b, c; (c ? a : b) = 1;
+    return true;
+}());
+
+static assert({
+    int a, b, c=1;
+    int *p=&a; (c ? *p : b) = 51;
+    assert(a==51);
+    return true;
+}());
+
+/**************************************************
+  Pointer arithmetic, dereference, and comparison
+**************************************************/
+
+// dereference null pointer
+static assert(!is(typeof(compiles!({
+    int a, b, c=1; int *p; (c ? *p : b) = 51; return 6;
+}()
+))));
+static assert(!is(typeof(compiles!({
+    int *a = null; assert(*a!=6); return 72;
+}()
+))));
+
+// cannot <, > compare pointers to different arrays
+static assert(!is(typeof(compiles!({
+    int a[5]; int b[5]; bool c = (&a[0] > &b[0]);
+    return 72;
+}()
+))));
+
+// can ==, is,!is,!= compare pointers for different arrays
+static assert({
+    int a[5]; int b[5];
+    assert(!(&a[0] == &b[0]));
+    assert(&a[0] != &b[0]);
+    assert(!(&a[0] is &b[0]));
+    assert(&a[0] !is &b[0]);
+    return 72;
+}());
+
+static assert({
+    int a[5];
+    a[0] = 25;
+    a[1] = 5;
+    int *b = &a[1];
+    assert(*b == 5);
+    *b = 34;
+    int c = *b;
+    *b += 6;
+    assert(b == &a[1]);
+    assert(b != &a[0]);
+    assert(&a[0] < &a[1]);
+    assert(&a[0] <= &a[1]);
+    assert(!(&a[0] >= &a[1]));
+    assert(&a[4] > &a[0]);
+    assert(c==34);
+    assert(*b ==40);
+    assert(a[1] == 40);
+    return true;
+}());
+
+static assert({
+    int [12] x;
+    int *p = &x[10];
+    int *q = &x[4];
+    return p-q;
+}() == 6);
+
+static assert({
+    int [12] x;
+    int *p = &x[10];
+    int *q = &x[4];
+    q = p;
+    assert(p == q);
+    q = &x[4];
+    assert(p != q);
+    q = q + 6;
+    assert(q is p);
+    return 6;
+}() == 6);
+
+static assert({
+    int [12] x;
+    int [] y = x[2..8];
+    int *p = &y[4];
+    int *q = &x[6];
+    assert(p == q);
+    p = &y[5];
+    assert(p > q);
+    p = p + 5; // OK, as long as we don't dereference
+    assert(p > q);
+    return 6;
+}() == 6);
+
+static assert({
+    char [12] x;
+    const(char) *p = "abcdef";
+    const (char) *q = p;
+    q = q + 2;
+    assert(*q == 'c');
+    assert(q > p);
+    assert(q - p == 2);
+    assert(p - q == -2);
+    q = &x[7];
+    p = &x[1];
+    assert(q>p);
+    return 6;
+}() == 6);
+
+/**************************************************
+  Out-of-bounds pointer assignment and deference
+**************************************************/
+
+int ptrDeref(int ofs, bool wantDeref)
+{
+    int a[5];
+    int *b = &a[0];
+    b = b + ofs; // OK
+    if (wantDeref)
+        return *b; // out of bounds
+    return 72;
+}
+
+static assert(!is(typeof(compiles!(ptrDeref(-1, true)))));
+static assert( is(typeof(compiles!(ptrDeref(4, true)))));
+static assert( is(typeof(compiles!(ptrDeref(5, false)))));
+static assert(!is(typeof(compiles!(ptrDeref(5, true)))));
+static assert(!is(typeof(compiles!(ptrDeref(6, false)))));
+static assert(!is(typeof(compiles!(ptrDeref(6, true)))));
+
+/**************************************************
+  Pointer +=
+**************************************************/
+static assert({
+    int [12] x;
+    int zzz;
+    assert(&zzz);
+    int *p = &x[10];
+    int *q = &x[4];
+    q = p;
+    assert(p == q);
+    q = &x[4];
+    assert(p != q);    
+    q += 4;
+    assert(q == &x[8]);
+    q = q - 2;
+    q = q + 4;    
+    assert(q is p);    
+    return 6;
+}() == 6);
+
+/**************************************************
+  Reduced version of bug 5615
+**************************************************/
+
+const(char)[] passthrough(const(char)[] x) {
+    return x;
+}
+
+sizediff_t checkPass(Char1)(const(Char1)[] s)
+{
+    const(Char1)[] balance = s[1..$];
+    return passthrough(balance).ptr - s.ptr;
+}
+static assert(checkPass("foobar")==1);
+
+/**************************************************
+  Pointers must not escape from CTFE
+**************************************************/
+
+struct Toq {
+    const(char) * m;
+}
+
+Toq ptrRet(bool b) {
+    string x = "abc";
+    return Toq(b ? x[0..1].ptr: null);
+}
+
+static assert(is(typeof(compiles!(
+{
+    enum Toq boz = ptrRet(false); // OK - ptr is null
+    Toq z = ptrRet(true); // OK -- ptr doesn't escape
+    return 4;
+}()
+))));
+
+static assert(!is(typeof(compiles!(
+{
+    enum Toq boz = ptrRet(true); // fail - ptr escapes
+    return 4;
+}()
+))));
+
+/**************************************************
+    Pointers to struct members
+**************************************************/
+
+struct Qoz
+{
+    int w;
+    int[3] yof;
+}
+
+static assert(
+{
+    int [3] gaz;
+    gaz[2] = 3156;
+    Toq z = ptrRet(true);
+    auto p = z.m;
+    assert(*z.m == 'a');
+    assert(*p == 'a');
+    auto q = &z.m;
+    assert(*q == p);
+    assert(**q == 'a');
+    Qoz g = Qoz(2,[5,6,7]);
+    auto r = &g.w;
+    assert(*r == 2);
+    r = &g.yof[1];
+    assert(*r == 6);
+    g.yof[0]=15;
+    ++r;
+    assert(*r == 7);
+    r-=2;
+    assert(*r == 15);
+    r = &gaz[0];
+    r+=2;
+    assert(*r == 3156);
+    return *p;
+}() == 'a'
+);
