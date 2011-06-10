@@ -1619,3 +1619,41 @@ static assert(!is(typeof(compiles!(
     return 4;
 }()
 ))));
+
+/**************************************************
+    Pointers to struct members
+**************************************************/
+
+struct Qoz
+{
+    int w;
+    int[3] yof;
+}
+
+static assert(
+{
+    int [3] gaz;
+    gaz[2] = 3156;
+    Toq z = ptrRet(true);
+    auto p = z.m;
+    assert(*z.m == 'a');
+    assert(*p == 'a');
+    auto q = &z.m;
+    assert(*q == p);
+    assert(**q == 'a');
+    Qoz g = Qoz(2,[5,6,7]);
+    auto r = &g.w;
+    assert(*r == 2);
+    r = &g.yof[1];
+    assert(*r == 6);
+    g.yof[0]=15;
+    ++r;
+    assert(*r == 7);
+    r-=2;
+    assert(*r == 15);
+    r = &gaz[0];
+    r+=2;
+    assert(*r == 3156);
+    return *p;
+}() == 'a'
+);
