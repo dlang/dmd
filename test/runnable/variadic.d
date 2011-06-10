@@ -1389,6 +1389,16 @@ void test63()
 }
 
 /***************************************/
+// Bugzilla 4444
+
+void test64()
+{
+    alias TypeTuple!(1) index;
+    auto arr = new int[4];
+    auto x = arr[index];    // error
+}
+
+/***************************************/
 
 int main()
 {
@@ -1455,6 +1465,7 @@ int main()
     test61();
     test62();
     test63();
+    test64();
 
     printf("Success\n");
     return 0;
