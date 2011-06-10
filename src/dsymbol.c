@@ -632,6 +632,10 @@ Module *Dsymbol::getModule()
     Dsymbol *s;
 
     //printf("Dsymbol::getModule()\n");
+    TemplateDeclaration *td = getFuncTemplateDecl(this);
+    if (td)
+        return td->getModule();
+
     s = this;
     while (s)
     {

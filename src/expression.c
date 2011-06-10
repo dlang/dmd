@@ -423,6 +423,29 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 }
 
 /****************************************
+ * Get TemplateDeclaration enclosing FuncDeclaration.
+ */
+
+TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
+{
+    FuncDeclaration *f = s->isFuncDeclaration();
+    if (f && f->parent)
+    {   TemplateInstance *ti = f->parent->isTemplateInstance();
+
+        if (ti &&
+            !ti->isTemplateMixin() &&
+            (ti->name == f->ident ||
+             ti->toAlias()->ident == f->ident)
+            &&
+            ti->tempdecl && ti->tempdecl->onemember)
+        {
+            return ti->tempdecl;
+        }
+    }
+    return NULL;
+}
+
+/****************************************
  * Preprocess arguments to function.
  */
 
@@ -2247,17 +2270,10 @@ Expression *IdentifierExp::semantic(Scope *sc)
              * then replace f with the function template declaration.
              */
             FuncDeclaration *f = s->isFuncDeclaration();
-            if (f && f->parent)
-            {   TemplateInstance *ti = f->parent->isTemplateInstance();
-
-                if (ti &&
-                    !ti->isTemplateMixin() &&
-                    (ti->name == f->ident ||
-                     ti->toAlias()->ident == f->ident)
-                    &&
-                    ti->tempdecl && ti->tempdecl->onemember)
+            if (f)
+            {   TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
+                if (tempdecl)
                 {
-                    TemplateDeclaration *tempdecl = ti->tempdecl;
                     if (tempdecl->overroot)         // if not start of overloaded list of TemplateDeclaration's
                         tempdecl = tempdecl->overroot; // then get the start
                     e = new TemplateExp(loc, tempdecl);
