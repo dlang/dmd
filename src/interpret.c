@@ -1313,8 +1313,13 @@ Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
         Expression *e = e1->interpret(istate, goal);
         if (e == EXP_CANT_INTERPRET)
             return e;
-        if (e == e1)
-            return this;
+        if (e->op == TOKindex)
+        {
+            IndexExp *ie = (IndexExp *)e;
+            e = new IndexExp(ie->loc, ie->e1, ie->e2);
+            e->type = type;
+            return e;
+        }
         e = new AddrExp(loc, e);
         e->type = type;
         return e;
@@ -2800,7 +2805,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
             if (oldval->op == TOKslice)
                 oldval = resolveSlice(oldval);
-            if (this->e1->type->ty == Tpointer && this->e2->type->isintegral() && op==TOKaddass)
+            if (this->e1->type->ty == Tpointer && this->e2->type->isintegral()
+                && (op==TOKaddass || op == TOKminass))
             {
                 oldval = this->e1->interpret(istate, ctfeNeedLvalue);
                 newval = this->e2->interpret(istate);
@@ -4211,6 +4217,8 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         e = e1->interpret(istate, ctfeNeedLvalue);
         if (e == EXP_CANT_INTERPRET)
             return e;
+        if (e->op == TOKaddress)
+            e = ((AddrExp*)e)->e1;
         if (goal != ctfeNeedLvalue)
         {
             if (e->op == TOKindex && e->type->ty == Tpointer)
@@ -4281,7 +4289,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                     if ((type->ty == Tsarray || goal == ctfeNeedLvalue) && (
                         e->op == TOKarrayliteral ||
                         e->op == TOKassocarrayliteral || e->op == TOKstring ||
-                        e->op == TOKslice))
+                        e->op == TOKslice || e->type->ty == Tpointer))
                         return e;
                     // ...Otherwise, just return the (simplified) dotvar expression
                     e = new DotVarExp(loc, ex, v);
