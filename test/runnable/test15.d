@@ -346,7 +346,7 @@ void test16()
 class A17 { }
 class B17 : A17 { }
 
-void foo17(A17[] a) { }
+void foo17(const(A17)[] a) { }
 
 void test17()
 {

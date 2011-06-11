@@ -379,7 +379,7 @@ void test20()
 //	uSar(sar);	// T[2] => U[2]
 //	uDar(sar);	// T[2] => U[]
 
-	uDar(dar);	// T[] => U[]
+	uDar(dar);	// T[] => const(U)[]
 	vPtr(ptr);	// T* => void*
 	vPtr(sar.ptr);
 	vPtr(dar.ptr);
@@ -392,7 +392,7 @@ void tPtr(T*t){}
 void tDar(T[]t){}
 void uPtr(U*u){}
 void uSar(U[2]u){}
-void uDar(U[]u){}
+void uDar(const(U)[]u){}
 void vPtr(void*v){}
 void vDar(void[]v){}
 
