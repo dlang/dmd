@@ -798,8 +798,8 @@ void test37()
 
 class C38 { }
 
-Object[] foo38(C38[3] c)
-{   Object[] x = c;
+const(Object)[] foo38(C38[3] c)
+{   const(Object)[] x = c;
     return x.dup;
 }
 
