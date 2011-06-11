@@ -814,6 +814,14 @@ void VarDeclaration::semantic(Scope *sc)
         {
             error("void initializers not allowed in safe functions");
         }
+        if (type->hasPointers() && type->toDsymbol(sc))
+        {
+            AggregateDeclaration* ad = type->toDsymbol(sc)->isAggregateDeclaration();
+            if (ad && ad->hasUnions)
+            {
+                error("unions containing pointers are not allowed in @safe functions");
+            }
+        }
     }
 #endif
 

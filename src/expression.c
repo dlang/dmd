@@ -6447,6 +6447,17 @@ Expression *DotVarExp::semantic(Scope *sc)
                 return e;
         }
     }
+
+    if (sc->func && sc->func->isSafe() && !sc->intypeof && e1->type->hasPointers() && e1->type->toDsymbol(sc))
+    {
+        AggregateDeclaration* ad = e1->type->toDsymbol(sc)->isAggregateDeclaration();
+        if (ad && ad->hasUnions)
+        {
+            error("unions containing pointers are not allowed in @safe functions");
+            goto Lerr;
+        }
+    }
+
     //printf("-DotVarExp::semantic('%s')\n", toChars());
     return this;
 

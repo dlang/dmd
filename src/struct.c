@@ -706,6 +706,7 @@ const char *StructDeclaration::kind()
 UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
     : StructDeclaration(loc, id)
 {
+    hasUnions = 1;
 }
 
 Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)
