@@ -211,11 +211,9 @@ void test11()
 
 void test12()
 {
-    class Exception { }
+    class ExceptioN { }
 
-    class ExceptioX { }
-
-    static assert(Exception.mangleof[0 ..$-1] == ExceptioX.mangleof[0 .. $-1]);
+    static assert(ExceptioN.mangleof[0 ..$-1] == ExceptioX.mangleof[0 .. $-1]);
 }
 
 /*******************************************/
