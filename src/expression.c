@@ -8199,6 +8199,9 @@ Expression *CastExp::semantic(Scope *sc)
         if (t1b->implicitConvTo(tob))
             goto Lsafe;
 
+        if (!tob->hasPointers())
+            goto Lsafe;
+
         error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
         return new ErrorExp();
     }
