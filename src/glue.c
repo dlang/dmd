@@ -1075,7 +1075,6 @@ unsigned Type::totym()
         case Tcomplex32: t = TYcfloat;  break;
         case Tcomplex64: t = TYcdouble; break;
         case Tcomplex80: t = TYcldouble; break;
-        //case Tbit:    t = TYuchar;    break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS

@@ -1574,7 +1574,6 @@ dinteger_t IntegerExp::toInteger()
     {
         switch (t->ty)
         {
-            case Tbit:
             case Tbool:         value = (value != 0);           break;
             case Tint8:         value = (d_int8)  value;        break;
             case Tchar:
@@ -1766,7 +1765,6 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 buf->printf("%juLU", v);
                 break;
 
-            case Tbit:
             case Tbool:
                 buf->writestring((char *)(v ? "true" : "false"));
                 break;
@@ -8191,6 +8189,7 @@ Expression *CastExp::semantic(Scope *sc)
     {   // Disallow unsafe casts
         Type *tob = to->toBasetype();
         Type *t1b = e1->type->toBasetype();
+
         if (!t1b->isMutable() && tob->isMutable())
         {   // Cast not mutable to mutable
           Lunsafe:
@@ -9578,7 +9577,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
         e1->checkNoBool();
         if (tb1->ty == Tpointer && tb2->isintegral())
             e = scaleFactor(sc);
-        else if (tb1->ty == Tbit || tb1->ty == Tbool)
+        else if (tb1->ty == Tbool)
         {
 #if 0
             // Need to rethink this
