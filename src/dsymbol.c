@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -199,10 +199,13 @@ char *Dsymbol::locToChars()
     OutBuffer buf;
     char *p;
 
-    Module *m = getModule();
+    if (!loc.filename)  // avoid bug 5861.
+    {
+        Module *m = getModule();
 
-    if (m && m->srcfile)
-        loc.filename = m->srcfile->toChars();
+        if (m && m->srcfile)
+            loc.filename = m->srcfile->toChars();
+    }
     return loc.toChars();
 }
 
