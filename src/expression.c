@@ -7685,6 +7685,14 @@ Expression *AddrExp::semantic(Scope *sc)
                 return new ErrorExp();
             }
 
+            if (sc->func && sc->func->isSafe() && !sc->intypeof && !v->isDataseg())
+            {
+                if (v->isParameter())
+                    error("cannot take address of parameters in safe functions");
+                else
+                    error("cannot take address of local variable in safe functions");
+            }
+
             FuncDeclaration *f = ve->var->isFuncDeclaration();
 
             if (f)
