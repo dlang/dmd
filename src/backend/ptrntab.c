@@ -147,21 +147,21 @@ PTRNTAB1 aptb1CALL[] = /* CALL */ {
 
 PTRNTAB1 aptb1DEC[] = /* DEC */ {
         { 0xfe, _1,                        _rm8 },
-        { 0xff, _1  |            _16_bit,  _m16 },         // Also _r16 synonym
-        { 0xff, _1  |            _32_bit,  _m32 },         // Also _r32 synonym
-        { 0xff, _1  |            _64_bit,  _rm64 },        // Also _r64 synonym
         { 0x48, _rw | _i64_bit | _16_bit,  _r16 | _plus_r },
-        { 0x48, _rw | _i64_bit | _32_bit,  _r32 | _plus_r },
+        { 0x48, _rd | _i64_bit | _32_bit,  _r32 | _plus_r },
+        { 0xff, _1  |            _16_bit,  _rm16 },
+        { 0xff, _1  |            _32_bit,  _rm32 },
+        { 0xff, _1  |            _64_bit,  _rm64 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB1 aptb1INC[] = /* INC */ {
         { 0xfe, _0,                        _rm8 },
-        { 0xff, _0  |            _16_bit,  _m16 },         // Also _r16 synonym
-        { 0xff, _0  |            _32_bit,  _m32 },         // Also _r32 synonym
-        { 0xff, _0  |            _64_bit,  _rm64 },        // Also _r64 synonym
         { 0x40, _rw | _i64_bit | _16_bit,  _r16 | _plus_r },
         { 0x40, _rd | _i64_bit | _32_bit,  _r32 | _plus_r },
+        { 0xff, _0  |            _16_bit,  _rm16 },
+        { 0xff, _0  |            _32_bit,  _rm32 },
+        { 0xff, _0  |            _64_bit,  _rm64 },
         { ASM_END, 0, 0 }
 };
 // INT and INT 3
@@ -450,19 +450,19 @@ PTRNTAB2  aptb2BOUND[] = /* BOUND */ {
 PTRNTAB2  aptb2BSF[] = /* BSF */ {
         { 0x0fbc,       _cw | _16_bit,          _r16,   _rm16 },
         { 0x0fbc,       _cd|_32_bit,            _r32,   _rm32 },
-        { 0x0fbc,       _cd|_64_bit,            _r64,   _rm64 },
+        { 0x0fbc,       _cq|_64_bit,            _r64,   _rm64 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2BSR[] = /* BSR */ {
         { 0x0fbd,       _cw|_16_bit,            _r16,   _rm16 },
         { 0x0fbd,       _cd|_32_bit,            _r32,   _rm32 },
-        { 0x0fbd,       _cd|_64_bit,            _r64,   _rm64 },
+        { 0x0fbd,       _cq|_64_bit,            _r64,   _rm64 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2BT[] = /* BT */ {
         { 0x0fa3,       _cw|_16_bit|_modnot1,           _rm16,  _r16 },
         { 0x0fa3,       _cd|_32_bit|_modnot1,           _rm32,  _r32 },
-        { 0x0fa3,       _cd|_64_bit|_modnot1,           _rm64,  _r64 },
+        { 0x0fa3,       _cq|_64_bit|_modnot1,           _rm64,  _r64 },
         { 0x0fba,       _4|_ib|_16_bit|_modnot1,        _rm16,  _imm8 },
         { 0x0fba,       _4|_ib|_32_bit|_modnot1,        _rm32,  _imm8 },
         { 0x0fba,       _4|_ib|_64_bit|_modnot1,        _rm64,  _imm8 },
@@ -471,7 +471,7 @@ PTRNTAB2  aptb2BT[] = /* BT */ {
 PTRNTAB2  aptb2BTC[] = /* BTC */ {
         { 0x0fbb,       _cw|_16_bit,            _rm16,  _r16 },
         { 0x0fbb,       _cd|_32_bit,            _rm32,  _r32 },
-        { 0x0fbb,       _cd|_64_bit,            _rm64,  _r64 },
+        { 0x0fbb,       _cq|_64_bit,            _rm64,  _r64 },
         { 0x0fba,       _7|_ib|_16_bit, _rm16,  _imm8 },
         { 0x0fba,       _7|_ib|_32_bit, _rm32,  _imm8 },
         { 0x0fba,       _7|_ib|_64_bit, _rm64,  _imm8 },
@@ -480,7 +480,7 @@ PTRNTAB2  aptb2BTC[] = /* BTC */ {
 PTRNTAB2  aptb2BTR[] = /* BTR */ {
         { 0x0fb3,       _cw|_16_bit,            _rm16,  _r16 },
         { 0x0fb3,       _cd|_32_bit,            _rm32,  _r32 },
-        { 0x0fb3,       _cd|_64_bit,            _rm64,  _r64 },
+        { 0x0fb3,       _cq|_64_bit,            _rm64,  _r64 },
         { 0x0fba,       _6|_ib|_16_bit,         _rm16,  _imm8 },
         { 0x0fba,       _6|_ib|_32_bit,         _rm32,  _imm8 },
         { 0x0fba,       _6|_ib|_64_bit,         _rm64,  _imm8 },
@@ -489,7 +489,7 @@ PTRNTAB2  aptb2BTR[] = /* BTR */ {
 PTRNTAB2  aptb2BTS[] = /* BTS */ {
         { 0x0fab,       _cw|_16_bit,            _rm16,  _r16 },
         { 0x0fab,       _cd|_32_bit,            _rm32,  _r32 },
-        { 0x0fab,       _cd|_64_bit,            _rm64,  _r64 },
+        { 0x0fab,       _cq|_64_bit,            _rm64,  _r64 },
         { 0x0fba,       _5|_ib|_16_bit,         _rm16,  _imm8 },
         { 0x0fba,       _5|_ib|_32_bit,         _rm32,  _imm8 },
         { 0x0fba,       _5|_ib|_64_bit,         _rm64,  _imm8 },
@@ -807,15 +807,19 @@ PTRNTAB3  aptb3IMUL[] = /* IMUL */ {
 PTRNTAB3  aptb3SHLD[] = /* SHLD */ {
         { 0x0fa4,       _cw|_16_bit, _rm16, _r16, _imm8 },
         { 0x0fa4,       _cd|_32_bit, _rm32, _r32, _imm8 },
+        { 0x0fa4,       _cq|_64_bit, _rm64, _r64, _imm8 },
         { 0x0fa5,       _cw|_16_bit, _rm16, _r16, _cl },
         { 0x0fa5,       _cd|_32_bit, _rm32, _r32, _cl },
+        { 0x0fa5,       _cq|_64_bit, _rm64, _r64, _cl },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB3  aptb3SHRD[] = /* SHRD */ {
         { 0x0fac,       _cw|_16_bit, _rm16, _r16, _imm8 },
         { 0x0fac,       _cd|_32_bit, _rm32, _r32, _imm8 },
+        { 0x0fac,       _cq|_64_bit, _rm64, _r64, _imm8 },
         { 0x0fad,       _cw|_16_bit, _rm16, _r16, _cl },
         { 0x0fad,       _cd|_32_bit, _rm32, _r32, _cl },
+        { 0x0fad,       _cq|_64_bit, _rm64, _r64, _cl },
         { ASM_END, 0, 0, 0 }
 };
 //
