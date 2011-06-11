@@ -9056,7 +9056,14 @@ Expression *PostExp::semantic(Scope *sc)
         e1->checkScalar();
         e1->checkNoBool();
         if (e1->type->ty == Tpointer)
+        {
+            if (sc->func && sc->func->isSafe() && !sc->intypeof)
+            {
+                error("pointer arithmetic not allowed in safe code");
+                return new ErrorExp();
+            }
             e = scaleFactor(sc);
+        }
         else
             e2 = e2->castTo(sc, e1->type);
         e->type = e1->type;
@@ -9544,7 +9551,14 @@ Expression *AddAssignExp::semantic(Scope *sc)
         e1->checkScalar();
         e1->checkNoBool();
         if (tb1->ty == Tpointer && tb2->isintegral())
+        {
+            if (sc->func && sc->func->isSafe() && !sc->intypeof)
+            {
+                error("pointer arithmetic not allowed in safe code");
+                return new ErrorExp();
+            }
             e = scaleFactor(sc);
+        }
         else if (tb1->ty == Tbit || tb1->ty == Tbool)
         {
 #if 0
@@ -9640,7 +9654,14 @@ Expression *MinAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     if (e1->type->ty == Tpointer && e2->type->isintegral())
+    {
+        if (sc->func && sc->func->isSafe() && !sc->intypeof)
+        {
+            error("pointer arithmetic not allowed in safe code");
+            return new ErrorExp();
+        }
         e = scaleFactor(sc);
+    }
     else
     {
         e1 = e1->checkArithmetic();
@@ -10117,7 +10138,14 @@ Expression *AddExp::semantic(Scope *sc)
         }
         else if (tb1->ty == Tpointer && e2->type->isintegral() ||
             tb2->ty == Tpointer && e1->type->isintegral())
+        {
+            if (sc->func && sc->func->isSafe() && !sc->intypeof)
+            {
+                error("pointer arithmetic not allowed in safe code");
+                return new ErrorExp();
+            }
             e = scaleFactor(sc);
+        }
         else if (tb1->ty == Tpointer && tb2->ty == Tpointer)
         {
             incompatibleTypes();
@@ -10208,7 +10236,14 @@ Expression *MinExp::semantic(Scope *sc)
             return e;
         }
         else if (t2->isintegral())
+        {
+            if (sc->func && sc->func->isSafe() && !sc->intypeof)
+            {
+                error("pointer arithmetic not allowed in safe code");
+                return new ErrorExp();
+            }
             e = scaleFactor(sc);
+        }
         else
         {   error("incompatible types for minus");
             return new ErrorExp();
