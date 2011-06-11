@@ -1,9 +1,12 @@
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
 
 import std.c.stdio;
+
+version (D_InlineAsm_X86_64)
+{
 
 struct M128 { int a,b,c,d; };
 struct M64 { int a,b; };
@@ -211,5 +214,11 @@ int main()
 
     printf("Success\n");
     return 0;
+}
+
+}
+else
+{
+    int main() { return 0; }
 }
 
