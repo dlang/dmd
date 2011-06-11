@@ -2617,6 +2617,8 @@ Initializer *Parser::parseInitializer()
                         break;
 
                     default:
+                        if (comma == 1)
+                            error("comma expected separating field initializers");
                         value = parseInitializer();
                         is->addInit(NULL, value);
                         comma = 1;
