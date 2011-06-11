@@ -388,6 +388,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
                 condexp.type = NULL;
                 condexp.e1 = e0;
                 condexp.e2 = e;
+                condexp.loc = e->loc;
                 condexp.semantic(sc);
                 exps->data[j0] = (void *)condexp.e1;
                 e = condexp.e2;
