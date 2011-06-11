@@ -3533,7 +3533,8 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         if (next->equals(ta->next) ||
 //          next->implicitConvTo(ta->next) >= MATCHconst ||
             next->constConv(ta->next) != MATCHnomatch ||
-            (ta->next->isBaseOf(next, &offset) && offset == 0) ||
+            (ta->next->isBaseOf(next, &offset) && offset == 0 &&
+             !ta->next->isMutable()) ||
             ta->next->ty == Tvoid)
             return MATCHconvert;
         return MATCHnomatch;
