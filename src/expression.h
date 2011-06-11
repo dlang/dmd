@@ -921,6 +921,7 @@ struct AddrExp : UnaExp
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 };
 
 struct PtrExp : UnaExp
@@ -1048,6 +1049,7 @@ struct SliceExp : UnaExp
     void scanForNestedRef(Scope *sc);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    int canThrow();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
