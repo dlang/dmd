@@ -8213,6 +8213,22 @@ Expression *CastExp::semantic(Scope *sc)
         if (!tob->hasPointers())
             goto Lsafe;
 
+        if (tob->ty == Tarray && t1b->ty == Tarray)
+        {
+            Type* tobn = tob->nextOf()->toBasetype();
+            Type* t1bn = t1b->nextOf()->toBasetype();
+            if (!tobn->hasPointers() && MODimplicitConv(t1bn->mod, tobn->mod))
+                goto Lsafe;
+        }
+        if (tob->ty == Tpointer && t1b->ty == Tpointer)
+        {
+            Type* tobn = tob->nextOf()->toBasetype();
+            Type* t1bn = t1b->nextOf()->toBasetype();
+            if (!tobn->hasPointers() && tobn->size() <= t1bn->size() &&
+                MODimplicitConv(t1bn->mod, tobn->mod))
+                goto Lsafe;
+        }
+
         error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
         return new ErrorExp();
     }

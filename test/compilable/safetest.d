@@ -12,9 +12,9 @@ void pointercast()
     static assert(!__traits(compiles, cast(int*)b));
     static assert(!__traits(compiles, cast(int*)b));
     static assert(!__traits(compiles, cast(short*)b));
-    static assert(!__traits(compiles, cast(byte*)b));
-    static assert(!__traits(compiles, cast(short*)a));
-    static assert(!__traits(compiles, cast(byte*)a));
+    static assert( __traits(compiles, cast(byte*)b));
+    static assert( __traits(compiles, cast(short*)a));
+    static assert( __traits(compiles, cast(byte*)a));
 }
 
 @safe
@@ -294,7 +294,9 @@ void arraycast()
     int[] x;
     void[] y = x;
     static assert( __traits(compiles, cast(void[])x));
-    static assert(!__traits(compiles, cast(int[])y));
+    static assert( __traits(compiles, cast(int[])y));
+    static assert(!__traits(compiles, cast(int*[])y));
+    static assert(!__traits(compiles, cast(void[][])y));
 
     int[3] a;
     int[] b = cast(int[])a;
