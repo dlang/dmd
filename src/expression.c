@@ -8183,52 +8183,19 @@ Expression *CastExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-#if 1
     if (sc->func && sc->func->isSafe() && !sc->intypeof)
-#else
-    if (global.params.safe && !sc->module->safe && !sc->intypeof)
-#endif
     {   // Disallow unsafe casts
         Type *tob = to->toBasetype();
         Type *t1b = e1->type->toBasetype();
-        if (!t1b->isMutable() && tob->isMutable())
-        {   // Cast not mutable to mutable
-          Lunsafe:
-            error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
-            return new ErrorExp();
-        }
-        else if (t1b->isShared() && !tob->isShared())
-            // Cast away shared
-            goto Lunsafe;
-        else if (tob->ty == Tpointer)
-        {   if (t1b->ty != Tpointer)
-                goto Lunsafe;
-            Type *tobn = tob->nextOf()->toBasetype();
-            Type *t1bn = t1b->nextOf()->toBasetype();
 
-            if (!t1bn->isMutable() && tobn->isMutable())
-                // Cast away pointer to not mutable
-                goto Lunsafe;
+        if (t1b->implicitConvTo(tob))
+            goto Lsafe;
 
-            if (t1bn->isShared() && !tobn->isShared())
-                // Cast away pointer to shared
-                goto Lunsafe;
-
-            if (t1bn->isWild() && !tobn->isConst() && !tobn->isWild())
-                // Cast wild to anything but const | wild
-                goto Lunsafe;
-
-            if (tobn->isTypeBasic() && tobn->size() < t1bn->size())
-                // Allow things like casting a long* to an int*
-                ;
-            else if (tobn->ty != Tvoid)
-                // Cast to a pointer other than void*
-                goto Lunsafe;
-        }
-
-        // BUG: Check for casting array types, such as void[] to int*[]
+        error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
+        return new ErrorExp();
     }
 
+Lsafe:
     e = e1->castTo(sc, to);
     return e;
 }
