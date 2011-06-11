@@ -258,6 +258,18 @@ void test2246(){
 }
 
 /**********************************/
+// 2579
+
+void foo2579(T)(T delegate(in Object) dlg)
+{
+}
+
+void test2579()
+{
+    foo2579( (in Object) { return 15; } );
+}
+
+/**********************************/
 
 int main()
 {
@@ -272,6 +284,7 @@ int main()
     test9();
     test6404();
     test2246();
+    test2579();
 
     printf("Success\n");
     return 0;
