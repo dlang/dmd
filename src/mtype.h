@@ -745,6 +745,7 @@ struct TypeStruct : Type
 
     type *toCtype();
     int mutableHeadLength();
+    int recursive;
 };
 
 struct TypeEnum : Type
@@ -874,6 +875,7 @@ struct TypeClass : Type
     Symbol *toSymbol();
 
     int mutableHeadLength();
+    int recursive;
 };
 
 struct TypeTuple : Type

@@ -5276,7 +5276,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             {
             }
             /* Don't allow using ref where a pointer wouldn't work */
-            else if (!arg->type->pointerTo()->implicitConvTo(p->type->pointerTo()))
+            else if (!arg->type->toBasetype()->pointerTo()->implicitConvTo(p->type->toBasetype()->pointerTo()))
                 goto Nomatch;
         }
 
@@ -6906,6 +6906,7 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
         : Type(Tstruct)
 {
     this->sym = sym;
+    recursive = 0;
 }
 
 char *TypeStruct::toChars()
@@ -7407,6 +7408,10 @@ int TypeStruct::mutableHeadLength()
     if (!isMutable())
         return 0;
 
+    if (recursive)
+        return 1 << 16;
+    recursive = 1;
+
     int len = 0;
     for (size_t i = 0; i < sym->fields.dim; i++)
     {
@@ -7415,6 +7420,8 @@ int TypeStruct::mutableHeadLength()
         if (d && d->type->mutableHeadLength() > len)
             len = d->type->mutableHeadLength();
     }
+
+    recursive = 0;
     return len;
 }
 
@@ -7425,6 +7432,7 @@ TypeClass::TypeClass(ClassDeclaration *sym)
         : Type(Tclass)
 {
     this->sym = sym;
+    recursive = 0;
 }
 
 char *TypeClass::toChars()
@@ -7861,6 +7869,10 @@ int TypeClass::mutableHeadLength()
     if (!isMutable())
         return 0;
 
+    if (recursive)
+        return 1 << 16;
+    recursive = 1;
+
     int len = 0;
     for (size_t i = 0; i < sym->fields.dim; i++)
     {
@@ -7869,6 +7881,8 @@ int TypeClass::mutableHeadLength()
         if (d && d->type->mutableHeadLength() > len)
             len = d->type->mutableHeadLength();
     }
+
+    recursive = 0;
     return len + 1;
 }
 
