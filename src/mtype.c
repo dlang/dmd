@@ -5223,6 +5223,14 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             if (targb->nextOf() && tparb->ty == Tsarray &&
                 !MODimplicitConv(targb->nextOf()->mod, tparb->nextOf()->mod))
                 goto Nomatch;
+
+            // Allow string literals to convert to ref static arrays
+            if (arg->op == TOKstring && tparb->ty == Tsarray)
+            {
+            }
+            /* Don't allow using ref where a pointer wouldn't work */
+            else if (!arg->type->pointerTo()->implicitConvTo(p->type->pointerTo()))
+                goto Nomatch;
         }
 
         if (p->storageClass & STClazy && p->type->ty == Tvoid &&
