@@ -68,3 +68,117 @@ void checkconstref()
     static assert(!__traits(compiles, rcfun(buf4)));
     static assert(!__traits(compiles, pcfun(buf4)));
 }
+
+void classconv()
+{
+    class C {}
+
+    static assert(!__traits(compiles, {
+        C[] a = [new C()];
+        const(C)[]* b = &a;
+        *b = [new immutable(C)()];
+    }));
+}
+
+void ptrconv()
+{
+    static assert(!__traits(compiles, {
+        int** g = [new int].ptr;
+        const(int*)** h = &g;
+        *h = [new immutable(int)].ptr;
+    }));
+    static assert(!__traits(compiles, {
+        int** g = [new int].ptr;
+        const(int**)* h = &g;
+        *h = [new immutable(int)].ptr;
+    }));
+}
+
+
+void arrayconv()
+{
+    static assert(!__traits(compiles, {
+        int[][] a = [[1]];
+        const(int[][])[] b = [a];
+        *b = [[1].idup];
+    }));
+}
+
+
+void test70()
+{
+    digestToString70("1234567890123456");
+}
+
+void digestToString70(const char[16] digest)
+{
+    assert(digest[0] == '1');
+    assert(digest[15] == '6');
+}
+
+void messwith(T)(const(T)[]* ts, const(T) t) {
+    *ts ~= t;
+}
+void messwith(T)(ref const(T)[] ts, const(T) t) {
+    ts ~= t;
+}
+
+class C {
+    int x;
+    this(int i) { x = i; }
+}
+
+void mainy(string[] args) {
+
+    C[] cs;
+    immutable C ci = new immutable(C)(6);
+
+    assert (ci.x == 6);
+
+    static assert(!__traits(compiles, messwith(&cs,ci)));
+    static assert(!__traits(compiles, messwith(cs,ci)));
+
+    cs[$-1].x = 14;
+
+    assert (ci.x == 14); //whoops.
+}
+
+void main() {}
+
+void sharedconv()
+{
+    shared(int)* a;
+    shared(int*) b = a;
+    a = b;
+
+    inout(int)* c;
+    inout(int*) d = c;
+}
+
+void ptrconv2()
+{
+    int*** a;
+    const(int*)** b;
+    const(int**)* c;
+    const(int***) d;
+
+    static assert( __traits(compiles, a = a));
+    static assert(!__traits(compiles, a = b));
+    static assert(!__traits(compiles, a = c));
+    static assert(!__traits(compiles, a = d));
+
+    static assert(!__traits(compiles, b = a));
+    static assert( __traits(compiles, b = b));
+    static assert(!__traits(compiles, b = c));
+    static assert(!__traits(compiles, b = d));
+
+    static assert( __traits(compiles, c = a));
+    static assert( __traits(compiles, c = b));
+    static assert( __traits(compiles, c = c));
+    static assert( __traits(compiles, c = d));
+
+    static assert( __traits(compiles, { const(int***) dx = a; } ));
+    static assert( __traits(compiles, { const(int***) dx = b; } ));
+    static assert( __traits(compiles, { const(int***) dx = c; } ));
+    static assert( __traits(compiles, { const(int***) dx = d; } ));
+}

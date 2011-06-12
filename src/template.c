@@ -1570,6 +1570,18 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         if (!m)                 // if no match
             continue;
 
+        if (m == MATCHconst)
+        {
+            ti = new TemplateInstance(loc, td, &dedargs);
+            ti->semantic(sc, fargs);
+            if (ti->inst == ti)
+                ti->tiargs = (Objects*)dedargs.copy();
+
+            if ((fd = ti->toAlias()->isFuncDeclaration()) &&
+                !((TypeFunction*)fd->type)->callMatch(ethis, fargs, flags))
+                continue;
+        }
+
         if (m < m_best)
             goto Ltd_best;
         if (m > m_best)
@@ -3889,6 +3901,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         // It's a match
         inst = ti;
         parent = ti->parent;
+        tiargs = ti->tiargs;
 #if LOG
         printf("\tit's a match with instance %p\n", inst);
 #endif

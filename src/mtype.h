@@ -324,6 +324,8 @@ struct Type : Object
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
+
+    virtual int mutableHeadLength();
 };
 
 struct TypeError : Type
@@ -337,6 +339,8 @@ struct TypeError : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
+
+    int mutableHeadLength();
 };
 
 struct TypeNext : Type
@@ -392,6 +396,8 @@ struct TypeBasic : Type
 
     // For eliminating dynamic_cast
     TypeBasic *isTypeBasic();
+
+    int mutableHeadLength();
 };
 
 struct TypeArray : TypeNext
@@ -435,6 +441,8 @@ struct TypeSArray : TypeArray
 
     type *toCtype();
     type *toCParamtype();
+
+    int mutableHeadLength();
 };
 
 // Dynamic array, no dimension
@@ -463,6 +471,7 @@ struct TypeDArray : TypeArray
 #endif
 
     type *toCtype();
+    int mutableHeadLength();
 };
 
 struct TypeAArray : TypeArray
@@ -499,6 +508,7 @@ struct TypeAArray : TypeArray
     Symbol *aaGetSymbol(const char *func, int flags);
 
     type *toCtype();
+    int mutableHeadLength();
 };
 
 struct TypePointer : TypeNext
@@ -520,6 +530,7 @@ struct TypePointer : TypeNext
 #endif
 
     type *toCtype();
+    int mutableHeadLength();
 };
 
 struct TypeReference : TypeNext
@@ -535,6 +546,7 @@ struct TypeReference : TypeNext
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+    int mutableHeadLength();
 };
 
 enum RET
@@ -599,6 +611,7 @@ struct TypeFunction : TypeNext
     enum RET retStyle();
 
     unsigned totym();
+    int mutableHeadLength();
 };
 
 struct TypeDelegate : TypeNext
@@ -624,6 +637,7 @@ struct TypeDelegate : TypeNext
 #endif
 
     type *toCtype();
+    int mutableHeadLength();
 };
 
 struct TypeQualified : Type
@@ -730,6 +744,7 @@ struct TypeStruct : Type
 #endif
 
     type *toCtype();
+    int mutableHeadLength();
 };
 
 struct TypeEnum : Type
@@ -771,6 +786,7 @@ struct TypeEnum : Type
 #endif
 
     type *toCtype();
+    int mutableHeadLength();
 };
 
 struct TypeTypedef : Type
@@ -817,6 +833,7 @@ struct TypeTypedef : Type
 
     type *toCtype();
     type *toCParamtype();
+    int mutableHeadLength();
 };
 
 struct TypeClass : Type
@@ -855,6 +872,8 @@ struct TypeClass : Type
     type *toCtype();
 
     Symbol *toSymbol();
+
+    int mutableHeadLength();
 };
 
 struct TypeTuple : Type
@@ -874,6 +893,8 @@ struct TypeTuple : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *getProperty(Loc loc, Identifier *ident);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+
+    int mutableHeadLength();
 };
 
 struct TypeSlice : TypeNext
@@ -886,6 +907,8 @@ struct TypeSlice : TypeNext
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+
+    int mutableHeadLength();
 };
 
 struct TypeNewArray : TypeNext

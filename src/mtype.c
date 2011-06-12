@@ -87,6 +87,8 @@ int REALALIGNSIZE = 2;
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
 
+MATCH checkTail(Type* from, Type* to, MATCH m);
+
 /***************************** Type *****************************/
 
 ClassDeclaration *Type::typeinfo;
@@ -2051,6 +2053,12 @@ uinteger_t Type::sizemask()
     return m;
 }
 
+int Type::mutableHeadLength()
+{
+    assert(0);
+    return 0;
+}
+
 /* ============================= TypeError =========================== */
 
 TypeError::TypeError()
@@ -2068,6 +2076,7 @@ Expression *TypeError::getProperty(Loc loc, Identifier *ident) { return new Erro
 Expression *TypeError::dotExp(Scope *sc, Expression *e, Identifier *ident) { return new ErrorExp(); }
 Expression *TypeError::defaultInit(Loc loc) { return new ErrorExp(); }
 Expression *TypeError::defaultInitLiteral(Loc loc) { return new ErrorExp(); }
+int TypeError::mutableHeadLength() { return 1; }
 
 /* ============================= TypeNext =========================== */
 
@@ -3068,6 +3077,11 @@ TypeBasic *TypeBasic::isTypeBasic()
     return (TypeBasic *)this;
 }
 
+int TypeBasic::mutableHeadLength()
+{
+    return isMutable() ? 1 : 0;
+}
+
 /***************************** TypeArray *****************************/
 
 TypeArray::TypeArray(TY ty, Type *next)
@@ -3554,11 +3568,12 @@ MATCH TypeSArray::implicitConvTo(Type *to)
              * ones, just like we allow conversion from const int
              * to int.
              */
-            MATCH m = next->implicitConvTo(tsa->next);
+            MATCH m = checkTail(this, to, next->implicitConvTo(tsa->next));
             if (m >= MATCHconst)
             {
                 if (mod != to->mod)
                     m = MATCHconst;
+
                 return m;
             }
         }
@@ -3625,6 +3640,11 @@ int TypeSArray::hasPointers()
         return TRUE;
     else
         return next->hasPointers();
+}
+
+int TypeSArray::mutableHeadLength()
+{
+    return isMutable() ? next->mutableHeadLength() : 0;
 }
 
 /***************************** TypeDArray *****************************/
@@ -3762,7 +3782,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
             return MATCHconvert;
         }
 
-        return next->constConv(to);
+        return checkTail(this, to, next->constConv(to));
     }
 
     if (to->ty == Tarray)
@@ -3779,12 +3799,12 @@ MATCH TypeDArray::implicitConvTo(Type *to)
             return MATCHconvert;
         }
 
-        MATCH m = next->constConv(ta->next);
+        MATCH m = checkTail(this, to, next->constConv(ta->next));
         if (m != MATCHnomatch)
         {
             if (m == MATCHexact && mod != to->mod)
                 m = MATCHconst;
-            return m;
+            return checkTail(this, to, m);
         }
 
 #if 0
@@ -3792,7 +3812,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
          */
         if (mod == ta->mod && next->ty == Tarray && ta->next->ty == Tarray)
         {
-            m = next->implicitConvTo(ta->next);
+            m = checkTail(this, to, next->implicitConvTo(ta->next));
             if (m == MATCHconst)
                 return m;
         }
@@ -3803,7 +3823,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
         if (ta->next->isBaseOf(next, &offset) && offset == 0)
             return MATCHconvert;
     }
-    return Type::implicitConvTo(to);
+    return checkTail(this, to, Type::implicitConvTo(to));
 }
 
 Expression *TypeDArray::defaultInit(Loc loc)
@@ -3827,6 +3847,11 @@ int TypeDArray::checkBoolean()
 int TypeDArray::hasPointers()
 {
     return TRUE;
+}
+
+int TypeDArray::mutableHeadLength()
+{
+    return isMutable() ? 1 + next->mutableHeadLength() : 0;
 }
 
 
@@ -4238,18 +4263,18 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(index->mod, ta->index->mod))
             return MATCHnomatch;        // not const-compatible
 
-        MATCH m = next->constConv(ta->next);
-        MATCH mi = index->constConv(ta->index);
+        MATCH m = checkTail(this, to, next->constConv(ta->next));
+        MATCH mi = checkTail(this, to, index->constConv(ta->index));
         if (m != MATCHnomatch && mi != MATCHnomatch)
         {
             if (m == MATCHexact && mod != to->mod)
-                m = MATCHconst;
+                m = checkTail(this, to, MATCHconst);
             if (mi < m)
                 m = mi;
             return m;
         }
     }
-    return Type::implicitConvTo(to);
+    return checkTail(this, to, Type::implicitConvTo(to));
 }
 
 MATCH TypeAArray::constConv(Type *to)
@@ -4264,6 +4289,18 @@ MATCH TypeAArray::constConv(Type *to)
     }
     else
         return Type::constConv(to);
+}
+
+int TypeAArray::mutableHeadLength()
+{
+    if (isMutable())
+    {
+        int nl = next->mutableHeadLength();
+        int il = index->mutableHeadLength();
+        return nl < il ? nl : il;
+    }
+    else
+        return 0;
 }
 
 /***************************** TypePointer *****************************/
@@ -4345,12 +4382,12 @@ MATCH TypePointer::implicitConvTo(Type *to)
             return MATCHconvert;
         }
 
-        MATCH m = next->constConv(tp->next);
+        MATCH m = checkTail(this, to, next->constConv(tp->next));
         if (m != MATCHnomatch)
         {
             if (m == MATCHexact && mod != to->mod)
                 m = MATCHconst;
-            return m;
+            return checkTail(this, to, m);
         }
 
         /* Conversion of ptr to derived to ptr to base
@@ -4383,6 +4420,11 @@ int TypePointer::isZeroInit(Loc loc)
 int TypePointer::hasPointers()
 {
     return TRUE;
+}
+
+int TypePointer::mutableHeadLength()
+{
+    return isMutable() ? 1 + next->mutableHeadLength() : 0;
 }
 
 
@@ -4454,6 +4496,11 @@ Expression *TypeReference::defaultInit(Loc loc)
 int TypeReference::isZeroInit(Loc loc)
 {
     return 1;
+}
+
+int TypeReference::mutableHeadLength()
+{
+    return isMutable() ? 1 + next->mutableHeadLength() : 0;
 }
 
 
@@ -5391,6 +5438,11 @@ bool TypeFunction::parameterEscapes(Parameter *p)
     return TRUE;
 }
 
+int TypeFunction::mutableHeadLength()
+{
+    return 0;
+}
+
 /***************************** TypeDelegate *****************************/
 
 TypeDelegate::TypeDelegate(Type *t)
@@ -5525,7 +5577,10 @@ int TypeDelegate::hasPointers()
     return TRUE;
 }
 
-
+int TypeDelegate::mutableHeadLength()
+{
+    return isMutable() ? 1 : 0;
+}
 
 /***************************** TypeQualified *****************************/
 
@@ -6521,7 +6576,7 @@ MATCH TypeEnum::implicitConvTo(Type *to)
 
     //printf("TypeEnum::implicitConvTo()\n");
     if (ty == to->ty && sym == ((TypeEnum *)to)->sym)
-        m = (mod == to->mod) ? MATCHexact : MATCHconst;
+        m = (mod == to->mod) ? MATCHexact : checkTail(this, to, MATCHconst);
     else if (sym->memtype->implicitConvTo(to))
         m = MATCHconvert;       // match with conversions
     else
@@ -6575,6 +6630,11 @@ int TypeEnum::isZeroInit(Loc loc)
 int TypeEnum::hasPointers()
 {
     return toBasetype()->hasPointers();
+}
+
+int TypeEnum::mutableHeadLength()
+{
+    return toBasetype()->mutableHeadLength();
 }
 
 /***************************** TypeTypedef *****************************/
@@ -6749,7 +6809,7 @@ MATCH TypeTypedef::implicitConvTo(Type *to)
         m = MATCHconvert;       // match with conversions
     else if (ty == to->ty && sym == ((TypeTypedef *)to)->sym)
     {
-        m = constConv(to);
+        m = checkTail(this, to, constConv(to));
     }
     else
         m = MATCHnomatch;       // no match
@@ -6833,6 +6893,11 @@ int TypeTypedef::hasPointers()
 int TypeTypedef::hasWild()
 {
     return mod & MODwild || toBasetype()->hasWild();
+}
+
+int TypeTypedef::mutableHeadLength()
+{
+    return toBasetype()->mutableHeadLength();
 }
 
 /***************************** TypeStruct *****************************/
@@ -7319,7 +7384,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         m = aliasthisConvTo(sym, this, to);
     else
         m = MATCHnomatch;       // no match
-    return m;
+    return checkTail(this, to, m);
 }
 
 Type *TypeStruct::toHeadMutable()
@@ -7335,6 +7400,22 @@ MATCH TypeStruct::constConv(Type *to)
         MODimplicitConv(mod, to->mod))
         return MATCHconst;
     return MATCHnomatch;
+}
+
+int TypeStruct::mutableHeadLength()
+{
+    if (!isMutable())
+        return 0;
+
+    int len = 0;
+    for (size_t i = 0; i < sym->fields.dim; i++)
+    {
+        Dsymbol *sm = (Dsymbol *)sym->fields.data[i];
+        Declaration *d = sm->isDeclaration();
+        if (d && d->type->mutableHeadLength() > len)
+            len = d->type->mutableHeadLength();
+    }
+    return len;
 }
 
 
@@ -7713,7 +7794,7 @@ int TypeClass::isBaseOf(Type *t, int *poffset)
 MATCH TypeClass::implicitConvTo(Type *to)
 {
     //printf("TypeClass::implicitConvTo(to = '%s') %s\n", to->toChars(), toChars());
-    MATCH m = constConv(to);
+    MATCH m = checkTail(this, to, constConv(to));
     if (m != MATCHnomatch)
         return m;
 
@@ -7734,7 +7815,7 @@ MATCH TypeClass::implicitConvTo(Type *to)
     if (sym->aliasthis)
         m = aliasthisConvTo(sym, this, to);
 
-    return m;
+    return checkTail(this, to, m);
 }
 
 MATCH TypeClass::constConv(Type *to)
@@ -7773,6 +7854,22 @@ int TypeClass::checkBoolean()
 int TypeClass::hasPointers()
 {
     return TRUE;
+}
+
+int TypeClass::mutableHeadLength()
+{
+    if (!isMutable())
+        return 0;
+
+    int len = 0;
+    for (size_t i = 0; i < sym->fields.dim; i++)
+    {
+        Dsymbol *sm = (Dsymbol *)sym->fields.data[i];
+        Declaration *d = sm->isDeclaration();
+        if (d && d->type->mutableHeadLength() > len)
+            len = d->type->mutableHeadLength();
+    }
+    return len + 1;
 }
 
 /***************************** TypeTuple *****************************/
@@ -7957,6 +8054,22 @@ Expression *TypeTuple::getProperty(Loc loc, Identifier *ident)
     return e;
 }
 
+
+int TypeTuple::mutableHeadLength()
+{
+    if (!isMutable)
+        return 0;
+
+    int len = 0;
+    for (size_t i = 0; i < arguments->dim; i++)
+    {
+        Parameter *arg = (Parameter *)arguments->data[i];
+        if (arg->type->mutableHeadLength() > len)
+            len = arg->type->mutableHeadLength();
+    }
+    return len;
+}
+
 /***************************** TypeSlice *****************************/
 
 /* This is so we can slice a TypeTuple */
@@ -8088,6 +8201,11 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
     buf->printf("[%s .. ", lwr->toChars());
     buf->printf("%s]", upr->toChars());
+}
+
+int TypeSlice::mutableHeadLength()
+{
+    return next->mutableHeadLength();
 }
 
 /***************************** TypeNewArray *****************************/
@@ -8399,4 +8517,44 @@ Parameter *Parameter::getNth(Parameters *args, size_t nth, size_t *pn)
     if (pn)
         *pn += n;
     return NULL;
+}
+
+/*****************************************
+ * When implicitly converting types with
+ * indirections, only allow the following
+ * results:
+ * > completely mutable
+ * > completely non-mutable
+ * > exactly one mutable indirection
+ * > the same number of mutable indirections as before
+ *
+ * eg.
+ * T*** => const(T***)   allowed, full const
+ * T*** => const(T**)*   allowed, tail const
+ * T*** => const(T*)**   not allowed
+ * T*** => const(T)***   not allowed
+ * T*** => T***          allowed, same number of mutable indirections
+ * immutable(T*)** => const(T*)** allowed, same number of mutable indirections
+ */
+MATCH checkTail(Type* from, Type* to, MATCH m)
+{
+    if (m == MATCHconst)
+    {
+        int fl = from->mutableHeadLength();
+
+        int tl = to->mutableHeadLength();
+
+        if (fl == tl) // Full or same number of mutable indirections
+            return m;
+        else if (tl == 1) // Tail const
+            return m;
+        else if (tl == 0)// Full const
+            return m;
+        else
+        {
+            //printf("FAIL: %s -> %s (%d -> %d)\n", from->toChars(), to->toChars(), fl, tl);
+            return MATCHnomatch;
+        }
+    }
+    return m;
 }
