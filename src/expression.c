@@ -8999,7 +8999,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     if (e1->op == TOKstring)
         error("string literals are immutable");
-    if (type && !type->isMutable())
+    if (type && (!type->isMutable() || !type->isAssignable()))
         error("%s isn't mutable", e->toChars());
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
@@ -9442,7 +9442,7 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (e1->op == TOKslice)
     {
         Type *tn = e1->type->nextOf();
-        if (tn && !tn->isMutable() && op != TOKconstruct)
+        if (op == TOKassign && tn && (!tn->isMutable() || !tn->isAssignable()))
         {   error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }
