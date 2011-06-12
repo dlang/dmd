@@ -1892,6 +1892,9 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         dim = dim->optimize(WANTvalue);
         dinteger_t d2 = dim->toInteger();
 
+        if (dim->op == TOKerror)
+            goto Lerror;
+
         if (d1 != d2)
             goto Loverflow;
 
@@ -1916,7 +1919,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             {
               Loverflow:
                 error(loc, "index %jd overflow for static array", d1);
-                dim = new IntegerExp(0, 1, tsize_t);
+                goto Lerror;
             }
         }
     }
@@ -1930,7 +1933,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
             if (d >= tt->arguments->dim)
             {   error(loc, "tuple index %ju exceeds %u", d, tt->arguments->dim);
-                return Type::terror;
+                goto Lerror;
             }
             Parameter *arg = (Parameter *)tt->arguments->data[(size_t)d];
             return arg->type;
@@ -1938,12 +1941,16 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         case Tfunction:
         case Tnone:
             error(loc, "can't have array of %s", tbn->toChars());
-            tbn = next = tint32;
-            break;
+            goto Lerror;
     }
     if (tbn->isscope())
-        error(loc, "cannot have array of auto %s", tbn->toChars());
+    {   error(loc, "cannot have array of auto %s", tbn->toChars());
+        goto Lerror;
+    }
     return merge();
+
+Lerror:
+    return Type::terror;
 }
 
 void TypeSArray::toDecoBuffer(OutBuffer *buf)
