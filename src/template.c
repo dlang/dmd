@@ -1577,8 +1577,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
             if (ti->inst == ti)
                 ti->tiargs = (Objects*)dedargs.copy();
 
-            if ((fd = ti->toAlias()->isFuncDeclaration()) &&
-                !((TypeFunction*)fd->type)->callMatch(ethis, fargs, flags))
+            fd = ti->toAlias()->isFuncDeclaration();
+            if (fd && !((TypeFunction*)fd->type)->callMatch(ethis, fargs, flags))
                 continue;
         }
 
