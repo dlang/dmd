@@ -39,3 +39,32 @@ static assert(6.0i % 3.0i == 0);
 static assert(6.0i % 4.0i == 2i);
 
 
+void checkconstref()
+{
+    void pfun(immutable(char)[]* a) {}
+    void rfun(ref immutable(char)[] a) {}
+
+    immutable char[] buf = "hello";
+    static assert(!__traits(compiles, rfun(buf)));
+    static assert(!__traits(compiles, pfun(buf)));
+
+    immutable char[5] buf2 = "hello";
+    static assert(!__traits(compiles, rfun(buf2)));
+    static assert(!__traits(compiles, pfun(buf2)));
+
+    void pcfun(const(char)[]* a) {}
+    void rcfun(ref const(char)[] a) {}
+
+    static assert(!__traits(compiles, rcfun(buf)));
+    static assert(!__traits(compiles, pcfun(buf)));
+    static assert(!__traits(compiles, rcfun(buf2)));
+    static assert(!__traits(compiles, pcfun(buf2)));
+
+    const char[] buf3 = "hello";
+    const char[5] buf4 = "hello";
+
+    static assert(!__traits(compiles, rcfun(buf3)));
+    static assert(!__traits(compiles, pcfun(buf3)));
+    static assert(!__traits(compiles, rcfun(buf4)));
+    static assert(!__traits(compiles, pcfun(buf4)));
+}
