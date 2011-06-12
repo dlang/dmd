@@ -1160,6 +1160,15 @@ Expression *AsmStatement::interpret(InterState *istate)
     return EXP_CANT_INTERPRET;
 }
 
+Expression *ImportStatement::interpret(InterState *istate)
+{
+#if LOG
+    printf("ImportStatement::interpret()\n");
+#endif
+    START();
+    return NULL;
+}
+
 /******************************** Expression ***************************/
 
 Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
@@ -2701,6 +2710,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         VarDeclaration * targetVar = findParentVar(e2, istate->localThis);
         if (!(targetVar && targetVar->isConst()))
             wantRef = true;
+        // slice assignment of static arrays is not reference assignment
+        if ((e1->op==TOKslice) && ((SliceExp *)e1)->e1->type->ty == Tsarray)
+            wantRef = false;
 #endif
     }
     if (isBlockAssignment && (e2->type->toBasetype()->ty == Tarray || e2->type->toBasetype()->ty == Tsarray))
@@ -4233,7 +4245,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                     assert(indx >=0 && indx <= len); // invalid pointer
                     if (indx == len)
                     {
-                        error("dereference of pointer %s one past end of memory block limits [0..%jd]", 
+                        error("dereference of pointer %s one past end of memory block limits [0..%jd]",
                             toChars(), len);
                         return EXP_CANT_INTERPRET;
                     }

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -968,7 +968,7 @@ Dsymbol *Parser::parseCtor()
 
         Expression *constraint = tpl ? parseConstraint() : NULL;
 
-		Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);	// RetrunType -> auto
+                Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
         CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
         parseContracts(f);
 
@@ -985,7 +985,7 @@ Dsymbol *Parser::parseCtor()
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
     StorageClass stc = parsePostfix();
-	Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);	// RetrunType -> auto
+        Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
     CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
     parseContracts(f);
     return f;
@@ -3428,9 +3428,8 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKstatic:
         {   // Look ahead to see if it's static assert() or static if()
-            Token *t;
 
-            t = peek(&token);
+            Token *t = peek(&token);
             if (t->value == TOKassert)
             {
                 nextToken();
@@ -3451,6 +3450,13 @@ Statement *Parser::parseStatement(int flags)
                 s = new ExpStatement(loc, d);
                 if (flags & PSscope)
                     s = new ScopeStatement(loc, s);
+                break;
+            }
+            if (t->value == TOKimport)
+            {   nextToken();
+                Dsymbols *imports = new Dsymbols();
+                parseImport(imports, 1);                // static import ...
+                s = new ImportStatement(loc, imports);
                 break;
             }
             goto Ldeclaration;
@@ -4232,6 +4238,13 @@ Statement *Parser::parseStatement(int flags)
             }
             s = new CompoundStatement(loc, statements);
             nextToken();
+            break;
+        }
+
+        case TOKimport:
+        {   Dsymbols *imports = new Dsymbols();
+            parseImport(imports, 0);
+            s = new ImportStatement(loc, imports);
             break;
         }
 

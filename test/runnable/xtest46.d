@@ -2829,6 +2829,21 @@ void test144()
 
 /***************************************************/
 
+void test145()
+{
+    import std.c.stdio;
+    printf("hello world 145\n");
+}
+
+void test146()
+{
+    test1();
+    static import std.c.stdio;
+    std.c.stdio.printf("hello world 146\n");
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -2975,6 +2990,8 @@ int main()
     test142();
     test143();
     test144();
+    test145();
+    test146();
 
     printf("Success\n");
     return 0;

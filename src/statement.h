@@ -849,4 +849,23 @@ struct AsmStatement : Statement
     void toIR(IRState *irs);
 };
 
+struct ImportStatement : Statement
+{
+    Dsymbols *imports;          // Array of Import's
+
+    ImportStatement(Loc loc, Dsymbols *imports);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    int blockExit(bool mustNotThrow);
+    int isEmpty();
+    Expression *interpret(InterState *istate);
+
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
+
+    void toIR(IRState *irs);
+};
+
 #endif /* DMD_STATEMENT_H */

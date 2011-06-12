@@ -4880,3 +4880,49 @@ void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
+/************************ ImportStatement ***************************************/
+
+ImportStatement::ImportStatement(Loc loc, Dsymbols *imports)
+    : Statement(loc)
+{
+    this->imports = imports;
+}
+
+Statement *ImportStatement::syntaxCopy()
+{
+    Dsymbols *m = new Dsymbols();
+    m->setDim(imports->dim);
+    for (int i = 0; i < imports->dim; i++)
+    {   Dsymbol *s = (Dsymbol *)imports->data[i];
+        m->data[i] = (void *)s->syntaxCopy(NULL);
+    }
+    return new ImportStatement(loc, m);
+}
+
+Statement *ImportStatement::semantic(Scope *sc)
+{
+    for (int i = 0; i < imports->dim; i++)
+    {   Dsymbol *s = (Dsymbol *)imports->data[i];
+        s->semantic(sc);
+        sc->insert(s);
+    }
+    return this;
+}
+
+int ImportStatement::blockExit(bool mustNotThrow)
+{
+    return BEfallthru;
+}
+
+int ImportStatement::isEmpty()
+{
+    return TRUE;
+}
+
+void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    for (int i = 0; i < imports->dim; i++)
+    {   Dsymbol *s = (Dsymbol *)imports->data[i];
+        s->toCBuffer(buf, hgs);
+    }
+}
