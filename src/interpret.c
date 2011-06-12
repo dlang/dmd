@@ -610,7 +610,13 @@ Expression *ReturnStatement::interpret(InterState *istate)
         }
     }
 #endif
-    Expression *e = exp->interpret(istate);
+    // We need to treat pointers specially, because TOKsymoff can be used to
+    // return a value OR a pointer
+    Expression *e;
+    if ((exp->type->ty == Tpointer && exp->type->nextOf()->ty != Tfunction))
+        e = exp->interpret(istate, ctfeNeedLvalue);
+    else
+        e = exp->interpret(istate);
     if (e == EXP_CANT_INTERPRET)
         return e;
     if (!istate->caller)
@@ -2777,6 +2783,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     Expression * newval = NULL;
 
     if (!wantRef)
+        // We need to treat pointers specially, because TOKsymoff can be used to
+        // return a value OR a pointer
         if ((e1->type->toBasetype()->ty == Tpointer && e1->type->nextOf()->ty != Tfunction))
             newval = this->e2->interpret(istate, ctfeNeedLvalue);
         else
