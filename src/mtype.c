@@ -7196,11 +7196,12 @@ int TypeStruct::isAssignable()
             ;
         else if (v->offset == offset)
         {
-            /* If some fields of anonymous union are assignable,
-             * then totally assignable
+            /* If any fields of anonymous union are assignable,
+             * then regard union as assignable.
+             * This is to support unsafe things like Rebindable templates.
              */
             if (assignable)
-                return TRUE;
+                continue;
         }
         else
         {
