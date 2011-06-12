@@ -15,6 +15,7 @@
 #include "identifier.h"
 #include "lexer.h"
 #include "arraytypes.h"
+#include "intrange.h"
 
 struct Type;
 struct Scope;
@@ -81,11 +82,6 @@ enum CtfeGoal
     ctfeNeedAnyValue, // Can return either an Rvalue or an Lvalue
     ctfeNeedLvalueRef,// Must return a reference to an Lvalue (for ref types)
     ctfeNeedNothing   // The return value is not required
-};
-
-struct IntRange
-{   uinteger_t imin;
-    uinteger_t imax;
 };
 
 struct Expression : Object
@@ -1002,6 +998,7 @@ struct NegExp : UnaExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1026,6 +1023,7 @@ struct ComExp : UnaExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1294,6 +1292,7 @@ struct AddExp : BinExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    IntRange getIntRange();
 
     // For operator overloading
     int isCommutative();
@@ -1311,6 +1310,7 @@ struct MinExp : BinExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
@@ -1341,6 +1341,7 @@ struct MulExp : BinExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    IntRange getIntRange();
 
     // For operator overloading
     int isCommutative();
@@ -1375,6 +1376,7 @@ struct ModExp : BinExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    IntRange getIntRange();
 
     // For operator overloading
     Identifier *opId();
