@@ -3365,6 +3365,9 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         dim = dim->optimize(WANTvalue);
         dinteger_t d2 = dim->toInteger();
 
+        if (dim->op == TOKerror)
+            goto Lerror;
+
         if (d1 != d2)
             goto Loverflow;
 
