@@ -11183,6 +11183,21 @@ Expression *CmpExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
+    /* Disallow integer comparisons S>=U, S>U, S<=U and S<U
+     */
+    if (op == TOKge || op == TOKgt || op == TOKle || op == TOKlt)
+    {
+        if ((e1->op != TOKint64 && t1->isintegral() && e2->op != TOKint64 && t2->isintegral()) ||
+            (t1->isintegral() && e2->op == TOKint64 && e2->toInteger() < 0) ||
+            (t2->isintegral() && e1->op == TOKint64 && e1->toInteger() < 0))
+        {
+            if (t1->isunsigned() != t2->isunsigned())
+            {   warning("comparison between signed and unsigned integer expressions");
+                //return new ErrorExp();
+            }
+        }
+    }
+
     typeCombine(sc);
     type = Type::tboolean;
 
