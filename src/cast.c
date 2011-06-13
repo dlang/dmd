@@ -2100,6 +2100,10 @@ IntRange ModExp::getIntRange()
     return irNum.cast(type) DUMP;
 }
 
+// The algorithms for &, |, ^ are not yet the best! Sometimes they will produce
+//  not the tightest bound. See
+//      https://github.com/D-Programming-Language/dmd/pull/116
+//  for detail.
 static IntRange unsignedBitwiseAnd(const IntRange& a, const IntRange& b)
 {
     // the DiffMasks stores the mask of bits which are variable in the range.
@@ -2125,12 +2129,11 @@ static IntRange unsignedBitwiseOr(const IntRange& a, const IntRange& b)
     // the DiffMasks stores the mask of bits which are variable in the range.
     uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
     uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
-    // Since '|' computes the digitwise-maximum, the we could set all varying 
-    //  digits to 0 to get a lower bound, and set all varying digits to 1 to get
-    //  an upper bound.
+    // The imax algorithm by Adam D. Ruppe.
+    // http://www.digitalmars.com/pnews/read.php?server=news.digitalmars.com&group=digitalmars.D&artnum=108796
     IntRange result;
     result.imin.value = (a.imin.value & ~aDiffMask) | (b.imin.value & ~bDiffMask);
-    result.imax.value = (a.imax.value | aDiffMask) | (b.imax.value | bDiffMask);
+    result.imax.value = a.imax.value | b.imax.value | getMask(a.imax.value & b.imax.value);
     // Sometimes the lower bound is underestimated. The lower bound will never
     //  less than the input.
     if (result.imin.value < a.imin.value)
@@ -2177,11 +2180,6 @@ IntRange AndExp::getIntRange()
     assert(hasResult);
     return result.cast(type) DUMP;
 }
-
-/*
- * Adam D. Ruppe's algo for bitwise OR:
- * http://www.digitalmars.com/d/archives/digitalmars/D/value_range_propagation_for_logical_OR_108765.html#N108793
- */
 
 IntRange OrExp::getIntRange()
 {
