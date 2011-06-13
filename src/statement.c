@@ -37,11 +37,9 @@ extern int os_critsecsize64();
 Statement::Statement(Loc loc)
     : loc(loc)
 {
-#ifdef _DH
     // If this is an in{} contract scope statement (skip for determining
     //  inlineStatus of a function body for header content)
     incontract = 0;
-#endif
 }
 
 Statement *Statement::syntaxCopy()

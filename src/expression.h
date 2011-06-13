@@ -264,9 +264,7 @@ struct ComplexExp : Expression
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-#ifdef _DH
     OutBuffer hexp;
-#endif
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };

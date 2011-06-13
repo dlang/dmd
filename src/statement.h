@@ -92,9 +92,7 @@ struct Statement : Object
     void error(const char *format, ...);
     void warning(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     int incontract;
-#endif
     virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
