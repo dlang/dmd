@@ -33,7 +33,8 @@
 #include "aggregate.h"
 #include "template.h"
 
-static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments);
+static int queryApplyArgTypesY(TypeFunction *tf, Parameters *arguments);
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments, int mod);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
@@ -1284,7 +1285,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
             {
                 FuncDeclaration *fd = s->isFuncDeclaration();
                 if (fd)
-                {   inferApplyArgTypesX(fd, arguments);
+                {   inferApplyArgTypesX(fd, arguments, aggr->type->mod);
                     break;
                 }
 #if 0
@@ -1300,17 +1301,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
 
         case Tdelegate:
         {
-            if (0 && aggr->op == TOKdelegate)
-            {   DelegateExp *de = (DelegateExp *)aggr;
-
-                FuncDeclaration *fd = de->func->isFuncDeclaration();
-                if (fd)
-                    inferApplyArgTypesX(fd, arguments);
-            }
-            else
-            {
-                inferApplyArgTypesY((TypeFunction *)tab->nextOf(), arguments);
-            }
+            inferApplyArgTypesY((TypeFunction *)tab->nextOf(), arguments);
             break;
         }
 
@@ -1324,20 +1315,99 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
  * analogous to func.overloadResolveX().
  */
 
-int fp3(void *param, FuncDeclaration *f)
+struct Param2
 {
-    Parameters *arguments = (Parameters *)param;
+    int mod;
+    int count;
+    MATCH bestmatch;
+    Parameters* arguments;
+    FuncDeclaration* best;
+};
+
+int bestOpApplyMatch(void *param, FuncDeclaration *f)
+{
+    Param2 *p = (Param2 *)param;
+    Parameters *arguments = p->arguments;
     TypeFunction *tf = (TypeFunction *)f->type;
-    if (inferApplyArgTypesY(tf, arguments) == 1)
+    if (!queryApplyArgTypesY(tf, arguments))
         return 0;
-    if (arguments->dim == 0)
+    MATCH m = (p->mod == f->type->mod) ? MATCHexact :
+              (MODimplicitConv(p->mod, f->type->mod) ? MATCHconst : MATCHnomatch);
+    if (m)
+    {
+        if (m > p->bestmatch)
+        {
+            p->bestmatch = m;
+            p->count = 1;
+            p->best = f;
+        }
+        else
+            p->count++;
         return 1;
+    }
     return 0;
 }
 
-static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments)
+/******************************
+ *  Infer argument types for opApply
+ *  from an overload set
+ *  Sets arguments->dim to 0 to indicate ambiguous match
+ */
+static void inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments, int mod)
 {
-    overloadApply(fstart, &fp3, arguments);
+    Param2 p;
+    p.mod = mod;
+    p.count = 0;
+    p.bestmatch = MATCHnomatch;
+    p.arguments = arguments;
+    p.best = NULL;
+    // Use overloadApply as a scanner
+    overloadApply(fstart, &bestOpApplyMatch, &p);
+    if (p.count == 1)
+        inferApplyArgTypesY((TypeFunction*)p.best->type, arguments);
+    else if (p.count > 1)
+        arguments->dim = 0; // flag as failed
+}
+
+
+/******************************
+ * Trial infer arguments from type of function.
+ * Returns:
+ *      1 match for this function
+ *      0 no match for this function
+ * Gives the same result as infer* but does not
+ * modify arguments.
+ */
+
+static int queryApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
+{   size_t nparams;
+    Parameter *p;
+
+    if (Parameter::dim(tf->parameters) != 1)
+        return 0;
+    p = Parameter::getNth(tf->parameters, 0);
+    if (p->type->ty != Tdelegate)
+        return 0;
+    tf = (TypeFunction *)p->type->nextOf();
+    assert(tf->ty == Tfunction);
+
+    /* We now have tf, the type of the delegate. Match it against
+     * the arguments, filling in missing argument types.
+     */
+    nparams = Parameter::dim(tf->parameters);
+    if (nparams == 0 || tf->varargs)
+        return 0;          // not enough parameters
+    if (arguments->dim != nparams)
+        return 0;          // not enough parameters
+
+    for (size_t u = 0; u < nparams; u++)
+    {
+        Parameter *arg = (Parameter *)arguments->data[u];
+        Parameter *param = Parameter::getNth(tf->parameters, u);
+        if (arg->type && !arg->type->equals(param->type))
+            return 0;
+    }
+    return 1;
 }
 
 /******************************
