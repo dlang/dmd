@@ -607,7 +607,7 @@ typedef int bool;
 #endif
 
 // gcc defines this for us, dmc doesn't, so look for it's __I86__
-#if defined(__I86__) || defined(i386)
+#if defined(__I86__) || defined(i386) || defined(__x86_64__)
 #define ITTLE_ENDIAN 1
 #else
 #error unknown platform, so unknown endianness
