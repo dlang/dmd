@@ -190,10 +190,8 @@ struct TypedefDeclaration : Declaration
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Type *hbasetype;
-#endif
 
     void toDocBuffer(OutBuffer *buf);
 
@@ -224,10 +222,8 @@ struct AliasDeclaration : Declaration
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Dsymbol *haliassym;
-#endif
 
     void toDocBuffer(OutBuffer *buf);
 
@@ -277,10 +273,8 @@ struct VarDeclaration : Declaration
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Initializer *hinit;
-#endif
     AggregateDeclaration *isThis();
     int needThis();
     int isImportedSymbol();
@@ -857,9 +851,7 @@ struct DeleteDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-#ifdef _DH
     DeleteDeclaration *isDeleteDeclaration() { return this; }
-#endif
 };
 
 #endif /* DMD_DECLARATION_H */

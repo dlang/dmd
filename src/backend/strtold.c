@@ -537,7 +537,7 @@ long double strtold(const char *p,char **endp)
     L1:
         if (endp)
         {
-            *endp = (void *) p;
+            *endp = (char *) p;
         }
     L3:
 #if _WIN32

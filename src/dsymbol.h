@@ -154,10 +154,8 @@ struct Dsymbol : Object
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, Identifier *id);
     virtual int overloadInsert(Dsymbol *s);
-#ifdef _DH
     char *toHChars();
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
-#endif
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf);
     virtual void toJsonBuffer(OutBuffer *buf);
@@ -236,9 +234,7 @@ struct Dsymbol : Object
     virtual ArrayScopeSymbol *isArrayScopeSymbol() { return NULL; }
     virtual Import *isImport() { return NULL; }
     virtual EnumDeclaration *isEnumDeclaration() { return NULL; }
-#ifdef _DH
     virtual DeleteDeclaration *isDeleteDeclaration() { return NULL; }
-#endif
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
