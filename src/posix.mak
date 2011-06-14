@@ -60,7 +60,6 @@ MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_$(TARGET)=1
 
 CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
-TOTALH=
 
 DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o bit.o blockopt.o \
@@ -360,7 +359,7 @@ glocal.o: $C/rtlsym.h $C/glocal.c
 gloop.o: $C/gloop.c
 	$(CC) -c $(MFLAGS) $<
 
-glue.o: $(CH) $(TOTALH) $C/rtlsym.h mars.h module.h glue.c
+glue.o: $(CH) $C/rtlsym.h mars.h module.h glue.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) glue.c
 
 gnuc.o: $(ROOT)/gnuc.h $(ROOT)/gnuc.c
@@ -375,10 +374,10 @@ gother.o: $C/gother.c
 hdrgen.o: hdrgen.c
 	$(CC) -c $(CFLAGS) $<
 
-html.o: $(CH) $(TOTALH) $C/html.h $C/html.c
+html.o: $(CH) $C/html.h $C/html.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) $C/html.c
 
-iasm.o: $(CH) $(TOTALH) $C/iasm.h iasm.c
+iasm.o: $(CH) $C/iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) iasm.c
 
 id.o: id.h id.c
@@ -444,7 +443,7 @@ mars.o: mars.c
 rmem.o: $(ROOT)/rmem.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $(ROOT)/rmem.c
 
-module.o: $(TOTALH) $C/html.h module.c
+module.o: $C/html.h module.c
 	$(CC) -c $(CFLAGS) -I$C module.c
 
 msc.o: $(CH) mars.h msc.c
@@ -528,31 +527,31 @@ ti_pvoid.o: $C/tinfo.h $C/ti_pvoid.c
 tk.o: tk.c
 	$(CC) -c $(MFLAGS) tk.c
 
-tocsym.o: $(CH) $(TOTALH) mars.h module.h tocsym.c
+tocsym.o: $(CH) mars.h module.h tocsym.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym.c
 
-toctype.o: $(CH) $(TOTALH) $C/rtlsym.h mars.h module.h toctype.c
+toctype.o: $(CH) $C/rtlsym.h mars.h module.h toctype.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toctype.c
 
 todt.o: mtype.h expression.h $C/dt.h todt.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) todt.c
 
-toelfdebug.o: $(CH) $(TOTALH) mars.h toelfdebug.c
+toelfdebug.o: $(CH) mars.h toelfdebug.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toelfdebug.c
 
 toir.o: $C/rtlsym.h expression.h toir.h toir.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toir.c
 
-toobj.o: $(CH) $(TOTALH) mars.h module.h toobj.c
+toobj.o: $(CH) mars.h module.h toobj.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toobj.c
 
-traits.o: $(TOTALH) traits.c
+traits.o: traits.c
 	$(CC) -c $(CFLAGS) $<
 
 type.o: $C/type.c
 	$(CC) -c $(MFLAGS) $C/type.c
 
-typinf.o: $(CH) $(TOTALH) mars.h module.h mtype.h typinf.c
+typinf.o: $(CH) mars.h module.h mtype.h typinf.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) typinf.c
 
 util.o: util.c
