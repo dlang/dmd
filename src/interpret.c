@@ -2765,6 +2765,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             e1 = new SliceExp(loc, e1,
                 new IntegerExp(0, 0, Type::tsize_t),
                 ArrayLength(Type::tsize_t, e1));
+            e1->type = type;
         }
     }
     if (e1->op == TOKstar)
