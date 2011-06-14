@@ -208,7 +208,7 @@ bcomplex.o: $C/bcomplex.c
 	$(CC) -c $(MFLAGS) $<
 
 bit.o: expression.h bit.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) bit.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) bit.c
 
 blockopt.o: $C/blockopt.c
 	$(CC) -c $(MFLAGS) $C/blockopt.c
@@ -217,7 +217,7 @@ builtin.o: builtin.c
 	$(CC) -c $(CFLAGS) $<
 
 cast.o: cast.c
-	$(CC) -c $(CFLAGS) $< 
+	$(CC) -c $(CFLAGS) $<
 
 cg.o: fltables.c $C/cg.c
 	$(CC) -c $(MFLAGS) -I. $C/cg.c
@@ -279,7 +279,7 @@ constfold.o: constfold.c
 irstate.o: irstate.h irstate.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) irstate.c
 
-csymbol.o : $C/symbol.c
+csymbol.o: $C/symbol.c
 	$(CC) -c $(MFLAGS) $C/symbol.c -o csymbol.o
 
 dchar.o: $(ROOT)/dchar.c
@@ -316,12 +316,12 @@ dwarf.o: $C/dwarf.h $C/dwarf.c
 	$(CC) -c $(MFLAGS) -I. $C/dwarf.c
 
 e2ir.o: $C/rtlsym.h expression.h toir.h e2ir.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) e2ir.c
 
 ee.o: $C/ee.c
 	$(CC) -c $(MFLAGS) $<
 
-eh.o : $C/cc.h $C/code.h $C/type.h $C/dt.h eh.c
+eh.o: $C/cc.h $C/code.h $C/type.h $C/dt.h eh.c
 	$(CC) -c $(MFLAGS) eh.c
 
 el.o: $C/rtlsym.h $C/el.h $C/el.c
@@ -376,12 +376,12 @@ hdrgen.o: hdrgen.c
 	$(CC) -c $(CFLAGS) $<
 
 html.o: $(CH) $(TOTALH) $C/html.h $C/html.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) $C/html.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) $C/html.c
 
-iasm.o : $(CH) $(TOTALH) $C/iasm.h iasm.c
+iasm.o: $(CH) $(TOTALH) $C/iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) iasm.c
 
-id.o : id.h id.c
+id.o: id.h id.c
 	$(CC) -c $(CFLAGS) id.c
 
 identifier.o: identifier.c
@@ -443,7 +443,7 @@ mars.o: mars.c
 
 rmem.o: $(ROOT)/rmem.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $(ROOT)/rmem.c
-	
+
 module.o: $(TOTALH) $C/html.h module.c
 	$(CC) -c $(CFLAGS) -I$C module.c
 
@@ -468,7 +468,7 @@ os.o: $C/os.c
 out.o: $C/out.c
 	$(CC) -c $(MFLAGS) $<
 
-outbuf.o : $C/outbuf.h $C/outbuf.c
+outbuf.o: $C/outbuf.h $C/outbuf.c
 	$(CC) -c $(MFLAGS) $C/outbuf.c
 
 parse.o: parse.c
@@ -492,8 +492,8 @@ root.o: $(ROOT)/root.c
 rtlsym.o: $C/rtlsym.h $C/rtlsym.c
 	$(CC) -c $(MFLAGS) $C/rtlsym.c
 
-s2ir.o : $C/rtlsym.h statement.h s2ir.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir.c
+s2ir.o: $C/rtlsym.h statement.h s2ir.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) s2ir.c
 
 scope.o: scope.c
 	$(CC) -c $(CFLAGS) $<
@@ -534,14 +534,14 @@ tocsym.o: $(CH) $(TOTALH) mars.h module.h tocsym.c
 toctype.o: $(CH) $(TOTALH) $C/rtlsym.h mars.h module.h toctype.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toctype.c
 
-todt.o : mtype.h expression.h $C/dt.h todt.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) todt.c
+todt.o: mtype.h expression.h $C/dt.h todt.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) todt.c
 
 toelfdebug.o: $(CH) $(TOTALH) mars.h toelfdebug.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toelfdebug.c
 
 toir.o: $C/rtlsym.h expression.h toir.h toir.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) toir.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) toir.c
 
 toobj.o: $(CH) $(TOTALH) mars.h module.h toobj.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toobj.c
