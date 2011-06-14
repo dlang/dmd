@@ -176,8 +176,8 @@ impcnvgen : mtype.h impcnvgen.c
 
 $(DMD_OBJS) : $(idgen_output) $(optabgen_output) $(impcnvgen_output)
 
-aa.o: $C/aa.h $C/tinfo.h $C/aa.c
-	$(CC) -c $(MFLAGS) -I. $C/aa.c
+aa.o: $C/aa.c $C/aa.h $C/tinfo.h
+	$(CC) -c $(MFLAGS) -I. $<
 
 aav.o: $(ROOT)/aav.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
@@ -206,11 +206,11 @@ attrib.o: attrib.c
 bcomplex.o: $C/bcomplex.c
 	$(CC) -c $(MFLAGS) $<
 
-bit.o: expression.h bit.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) bit.c
+bit.o: bit.c expression.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 blockopt.o: $C/blockopt.c
-	$(CC) -c $(MFLAGS) $C/blockopt.c
+	$(CC) -c $(MFLAGS) $<
 
 builtin.o: builtin.c
 	$(CC) -c $(CFLAGS) $<
@@ -218,8 +218,8 @@ builtin.o: builtin.c
 cast.o: cast.c
 	$(CC) -c $(CFLAGS) $<
 
-cg.o: fltables.c $C/cg.c
-	$(CC) -c $(MFLAGS) -I. $C/cg.c
+cg.o: $C/cg.c fltables.c
+	$(CC) -c $(MFLAGS) -I. $<
 
 cg87.o: $C/cg87.c
 	$(CC) -c $(MFLAGS) $<
@@ -233,11 +233,11 @@ cgcs.o: $C/cgcs.c
 cgcv.o: $C/cgcv.c
 	$(CC) -c $(MFLAGS) $<
 
-cgelem.o: $C/rtlsym.h $C/cgelem.c
-	$(CC) -c $(MFLAGS) -I. $C/cgelem.c
+cgelem.o: $C/cgelem.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) -I. $<
 
-cgen.o: $C/rtlsym.h $C/cgen.c
-	$(CC) -c $(MFLAGS) $C/cgen.c
+cgen.o: $C/cgen.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 cgobj.o: $C/cgobj.c
 	$(CC) -c $(MFLAGS) $<
@@ -245,8 +245,8 @@ cgobj.o: $C/cgobj.c
 cgreg.o: $C/cgreg.c
 	$(CC) -c $(MFLAGS) $<
 
-cgsched.o: $C/rtlsym.h $C/cgsched.c
-	$(CC) -c $(MFLAGS) $C/cgsched.c
+cgsched.o: $C/cgsched.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 class.o: class.c
 	$(CC) -c $(CFLAGS) $<
@@ -254,14 +254,14 @@ class.o: class.c
 clone.o: clone.c
 	$(CC) -c $(CFLAGS) $<
 
-cod1.o: $C/rtlsym.h $C/cod1.c
-	$(CC) -c $(MFLAGS) $C/cod1.c
+cod1.o: $C/cod1.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
-cod2.o: $C/rtlsym.h $C/cod2.c
-	$(CC) -c $(MFLAGS) $C/cod2.c
+cod2.o: $C/cod2.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
-cod3.o: $C/rtlsym.h $C/cod3.c
-	$(CC) -c $(MFLAGS) $C/cod3.c
+cod3.o: $C/cod3.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 cod4.o: $C/cod4.c
 	$(CC) -c $(MFLAGS) $<
@@ -275,11 +275,11 @@ code.o: $C/code.c
 constfold.o: constfold.c
 	$(CC) -c $(CFLAGS) $<
 
-irstate.o: irstate.h irstate.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) irstate.c
+irstate.o: irstate.c irstate.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 csymbol.o: $C/symbol.c
-	$(CC) -c $(MFLAGS) $C/symbol.c -o csymbol.o
+	$(CC) -c $(MFLAGS) $< -o $@
 
 dchar.o: $(ROOT)/dchar.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
@@ -305,26 +305,26 @@ doc.o: doc.c
 dsymbol.o: dsymbol.c
 	$(CC) -c $(CFLAGS) $<
 
-dt.o: $C/dt.h $C/dt.c
-	$(CC) -c $(MFLAGS) $C/dt.c
+dt.o: $C/dt.c $C/dt.h
+	$(CC) -c $(MFLAGS) $<
 
 dump.o: dump.c
 	$(CC) -c $(CFLAGS) $<
 
-dwarf.o: $C/dwarf.h $C/dwarf.c
-	$(CC) -c $(MFLAGS) -I. $C/dwarf.c
+dwarf.o: $C/dwarf.c $C/dwarf.h
+	$(CC) -c $(MFLAGS) -I. $<
 
-e2ir.o: $C/rtlsym.h expression.h toir.h e2ir.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) e2ir.c
+e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 ee.o: $C/ee.c
 	$(CC) -c $(MFLAGS) $<
 
-eh.o: $C/cc.h $C/code.h $C/type.h $C/dt.h eh.c
-	$(CC) -c $(MFLAGS) eh.c
+eh.o: eh.c $C/cc.h $C/code.h $C/type.h $C/dt.h
+	$(CC) -c $(MFLAGS) $<
 
-el.o: $C/rtlsym.h $C/el.h $C/el.c
-	$(CC) -c $(MFLAGS) $C/el.c
+el.o: $C/el.c $C/rtlsym.h $C/el.h $C/el.c
+	$(CC) -c $(MFLAGS) $<
 
 elfobj.o: $C/elfobj.c
 	$(CC) -c $(MFLAGS) $<
@@ -353,17 +353,17 @@ gflow.o: $C/gflow.c
 #globals.o: globals.c
 #	$(CC) -c $(CFLAGS) $<
 
-glocal.o: $C/rtlsym.h $C/glocal.c
-	$(CC) -c $(MFLAGS) $C/glocal.c
+glocal.o: $C/glocal.c $C/rtlsym.h 
+	$(CC) -c $(MFLAGS) $<
 
 gloop.o: $C/gloop.c
 	$(CC) -c $(MFLAGS) $<
 
-glue.o: $(CH) $C/rtlsym.h mars.h module.h glue.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) glue.c
+glue.o: glue.c $(CH) $C/rtlsym.h mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-gnuc.o: $(ROOT)/gnuc.h $(ROOT)/gnuc.c
-	$(CC) -c $(GFLAGS) $(ROOT)/gnuc.c
+gnuc.o: $(ROOT)/gnuc.c $(ROOT)/gnuc.h
+	$(CC) -c $(GFLAGS) $<
 
 go.o: $C/go.c
 	$(CC) -c $(MFLAGS) $<
@@ -374,20 +374,20 @@ gother.o: $C/gother.c
 hdrgen.o: hdrgen.c
 	$(CC) -c $(CFLAGS) $<
 
-html.o: $(CH) $C/html.h $C/html.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) $C/html.c
+html.o: $C/html.c $(CH) $C/html.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-iasm.o: $(CH) $C/iasm.h iasm.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) iasm.c
+iasm.o: iasm.c $(CH) $C/iasm.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-id.o: id.h id.c
-	$(CC) -c $(CFLAGS) id.c
+id.o: id.c id.h
+	$(CC) -c $(CFLAGS) $<
 
 identifier.o: identifier.c
 	$(CC) -c $(CFLAGS) $<
 
-impcnvtab.o: mtype.h impcnvtab.c
-	$(CC) -c $(CFLAGS) -I$(ROOT) impcnvtab.c
+impcnvtab.o: impcnvtab.c mtype.h
+	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
 imphint.o: imphint.c
 	$(CC) -c $(CFLAGS) $<
@@ -441,19 +441,19 @@ mars.o: mars.c
 	$(CC) -c $(CFLAGS) $<
 
 rmem.o: $(ROOT)/rmem.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $(ROOT)/rmem.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-module.o: $C/html.h module.c
-	$(CC) -c $(CFLAGS) -I$C module.c
+module.o: module.c $C/html.h
+	$(CC) -c $(CFLAGS) -I$C $<
 
-msc.o: $(CH) mars.h msc.c
-	$(CC) -c $(MFLAGS) msc.c
+msc.o: msc.c $(CH) mars.h
+	$(CC) -c $(MFLAGS) $<
 
 mtype.o: mtype.c
 	$(CC) -c $(CFLAGS) $<
 
-nteh.o: $C/rtlsym.h $C/nteh.c
-	$(CC) -c $(MFLAGS) $C/nteh.c
+nteh.o: $C/nteh.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 opover.o: opover.c
 	$(CC) -c $(CFLAGS) $<
@@ -467,8 +467,8 @@ os.o: $C/os.c
 out.o: $C/out.c
 	$(CC) -c $(MFLAGS) $<
 
-outbuf.o: $C/outbuf.h $C/outbuf.c
-	$(CC) -c $(MFLAGS) $C/outbuf.c
+outbuf.o: $C/outbuf.c $C/outbuf.h
+	$(CC) -c $(MFLAGS) $<
 
 parse.o: parse.c
 	$(CC) -c $(CFLAGS) $<
@@ -479,8 +479,8 @@ ph.o: ph.c
 port.o: $(ROOT)/port.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-ptrntab.o: $C/iasm.h $C/ptrntab.c
-	$(CC) -c $(MFLAGS) $C/ptrntab.c
+ptrntab.o: $C/ptrntab.c $C/iasm.h
+	$(CC) -c $(MFLAGS) $<
 
 response.o: $(ROOT)/response.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
@@ -488,11 +488,11 @@ response.o: $(ROOT)/response.c
 root.o: $(ROOT)/root.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-rtlsym.o: $C/rtlsym.h $C/rtlsym.c
-	$(CC) -c $(MFLAGS) $C/rtlsym.c
+rtlsym.o: $C/rtlsym.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
-s2ir.o: $C/rtlsym.h statement.h s2ir.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) s2ir.c
+s2ir.o: s2ir.c $C/rtlsym.h statement.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 scope.o: scope.c
 	$(CC) -c $(CFLAGS) $<
@@ -503,14 +503,14 @@ speller.o: $(ROOT)/speller.c
 statement.o: statement.c
 	$(CC) -c $(CFLAGS) $<
 
-staticassert.o: staticassert.h staticassert.c
-	$(CC) -c $(CFLAGS) staticassert.c
+staticassert.o: staticassert.c staticassert.h
+	$(CC) -c $(CFLAGS) $<
 
 stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc -m$(MODEL) -c $C/strtold.c
+	gcc -m$(MODEL) -c $<
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
@@ -518,47 +518,47 @@ struct.o: struct.c
 template.o: template.c
 	$(CC) -c $(CFLAGS) $<
 
-ti_achar.o: $C/tinfo.h $C/ti_achar.c
-	$(CC) -c $(MFLAGS) -I. $C/ti_achar.c
+ti_achar.o: $C/ti_achar.c $C/tinfo.h
+	$(CC) -c $(MFLAGS) -I. $<
 
-ti_pvoid.o: $C/tinfo.h $C/ti_pvoid.c
-	$(CC) -c $(MFLAGS) -I. $C/ti_pvoid.c
+ti_pvoid.o: $C/ti_pvoid.c $C/tinfo.h
+	$(CC) -c $(MFLAGS) -I. $<
 
 tk.o: tk.c
-	$(CC) -c $(MFLAGS) tk.c
+	$(CC) -c $(MFLAGS) $<
 
-tocsym.o: $(CH) mars.h module.h tocsym.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym.c
+tocsym.o: tocsym.c $(CH) mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toctype.o: $(CH) $C/rtlsym.h mars.h module.h toctype.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toctype.c
+toctype.o: toctype.c $(CH) $C/rtlsym.h mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-todt.o: mtype.h expression.h $C/dt.h todt.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) todt.c
+todt.o: todt.c mtype.h expression.h $C/dt.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toelfdebug.o: $(CH) mars.h toelfdebug.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toelfdebug.c
+toelfdebug.o: toelfdebug.c $(CH) mars.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toir.o: $C/rtlsym.h expression.h toir.h toir.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toir.c
+toir.o: toir.c $C/rtlsym.h expression.h toir.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toobj.o: $(CH) mars.h module.h toobj.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toobj.c
+toobj.o: toobj.c $(CH) mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 traits.o: traits.c
 	$(CC) -c $(CFLAGS) $<
 
 type.o: $C/type.c
-	$(CC) -c $(MFLAGS) $C/type.c
+	$(CC) -c $(MFLAGS) $<
 
-typinf.o: $(CH) mars.h module.h mtype.h typinf.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) typinf.c
+typinf.o: typinf.c $(CH) mars.h module.h mtype.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 util.o: util.c
 	$(CC) -c $(MFLAGS) $<
 
-utf.o: utf.h utf.c
-	$(CC) -c $(CFLAGS) utf.c
+utf.o: utf.c utf.h
+	$(CC) -c $(CFLAGS) $<
 
 unialpha.o: unialpha.c
 	$(CC) -c $(CFLAGS) $<
@@ -567,7 +567,7 @@ unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
 var.o: $C/var.c optab.c
-	$(CC) -c $(MFLAGS) -I. $C/var.c
+	$(CC) -c $(MFLAGS) -I. $<
 
 version.o: version.c
 	$(CC) -c $(CFLAGS) $<
