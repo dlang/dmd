@@ -289,21 +289,20 @@ struct relocation_info
 
 struct scattered_relocation_info
 {
-    #if __LITTLE_ENDIAN__ || __I86__ || __i386 || __i386__ || __x86_64__
+    #if LITTLE_ENDIAN
         uint32_t r_address:24,
         r_type:4,
         r_length:2,
         r_pcrel:1,
         r_scattered:1;
         int32_t r_value;
-    #elif __BIG_ENDIAN__
+    #elif BIG_ENDIAN
         uint32_t r_scattered:1,
         r_pcrel:1,
         r_length:2,
         r_type:4,
         r_address:24;
         int32_t r_value;
-    #else
     #endif
 };
 
