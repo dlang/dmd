@@ -1,0 +1,34 @@
+
+<HTML>
+
+<head>
+<title>Digital Mars - Hello World!</title>
+</head>
+
+<BODY>
+
+
+<hr>
+<h1 align=center><u>Hello World!</u></h1>
+
+
+<code>
+<pre>
+
+import std.c.stdio;
+
+int <b><u>main</u></b>(char[][] args)
+{
+    printf(<font color="blue">"hello world\n"</font>);
+    printf(<font color="blue">"args.length = %d\n"</font>, args.length);
+    for (int i = 0; i &lt; args.length; i++)
+        printf(<font color="blue">"args[%d] = '%s'\n"</font>, i, cast(char *)args[i]);
+    return 0;
+}
+
+</pre>
+</code>
+
+</BODY>
+</HTML>
+
