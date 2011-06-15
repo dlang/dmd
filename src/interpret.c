@@ -1323,24 +1323,13 @@ Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("AddrExp::interpret() %s\n", toChars());
 #endif
-    if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
-    {
-        Expression *e = e1->interpret(istate, goal);
-        if (e == EXP_CANT_INTERPRET)
-            return e;
-        if (e->op == TOKindex)
-        {
-            IndexExp *ie = (IndexExp *)e;
-            e = new IndexExp(ie->loc, ie->e1, ie->e2);
-            e->type = type;
-            return e;
-        }
-        e = new AddrExp(loc, e);
-        e->type = type;
+    Expression *e = e1->interpret(istate, goal);
+    if (e == EXP_CANT_INTERPRET)
         return e;
-    }
-    error("Cannot interpret %s at compile time", toChars());
-    return EXP_CANT_INTERPRET;
+    // Return a simplified address expression
+    e = new AddrExp(loc, e);
+    e->type = type;
+    return e;
 }
 
 Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
@@ -2786,13 +2775,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (!wantRef)
         // We need to treat pointers specially, because TOKsymoff can be used to
         // return a value OR a pointer
-        if ((e1->type->toBasetype()->ty == Tpointer && e1->type->nextOf()->ty != Tfunction))
+        assert(e1);
+        assert(e1->type);
+        if ((e1->type->ty == Tpointer && e1->type->nextOf()->ty != Tfunction) && (e2->op == TOKsymoff || e2->op==TOKaddress || e2->op==TOKvar)) // && (e1->op==TOKaddress)) //TOKsymoff || e1->op==TOKdotvar))
             newval = this->e2->interpret(istate, ctfeNeedLvalue);
         else
             newval = this->e2->interpret(istate);
     if (newval == EXP_CANT_INTERPRET)
         return newval;
-
     // ----------------------------------------------------
     //  Deal with read-modify-write assignments.
     //  Set 'newval' to the final assignment value
@@ -4112,6 +4102,12 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
             e->type = type;
             return e;
         }
+        if (e1->op == TOKarrayliteral)
+        {
+            e = new IndexExp(loc, e1, new IntegerExp(loc, 0, Type::tsize_t));
+            e->type = type;
+            return e;
+        }
         if (e1->op == TOKstring)
         {
             return e1;
@@ -4158,7 +4154,7 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
         }
     }
     // Deal with pointers (including compiler-inserted assert(&this, "null this"))
-    if (this->e1->op == TOKaddress || this->e1->op == TOKsymoff)
+    if (this->e1->type->ty == Tpointer && this->e1->type->nextOf()->ty != Tfunction)
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
         if (e1 == EXP_CANT_INTERPRET)
@@ -4258,9 +4254,14 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                             toChars(), len);
                         return EXP_CANT_INTERPRET;
                     }
+                    return Index(type, ie->e1, ie->e2);
                 }
             }
-            e = e->interpret(istate, goal);
+            if (e->op == TOKstructliteral)
+                return e;
+            e = e1->interpret(istate, goal);
+            if (e->op == TOKaddress)
+                e = ((AddrExp*)e)->e1;
             if (e == EXP_CANT_INTERPRET)
                 return e;
             e->type = type;
@@ -4289,6 +4290,8 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *ex = e1->interpret(istate);
     if (ex != EXP_CANT_INTERPRET)
     {
+        if (ex->op == TOKaddress)
+            ex = ((AddrExp *)ex)->e1;
         if (ex->op == TOKstructliteral)
         {   StructLiteralExp *se = (StructLiteralExp *)ex;
             VarDeclaration *v = var->isVarDeclaration();
@@ -4310,7 +4313,14 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                     if ((type->ty == Tsarray || goal == ctfeNeedLvalue) && (
                         e->op == TOKarrayliteral ||
                         e->op == TOKassocarrayliteral || e->op == TOKstring ||
-                        e->op == TOKslice || e->type->ty == Tpointer))
+                        e->op == TOKslice))
+                        return e;
+                    /* Element is an allocated pointer, which was created in
+                     * CastExp.
+                     */
+                    if (goal == ctfeNeedLvalue && e->op == TOKindex &&
+                        e->type == type &&
+                        (type->ty == Tpointer && type->nextOf()->ty != Tfunction))
                         return e;
                     // ...Otherwise, just return the (simplified) dotvar expression
                     e = new DotVarExp(loc, ex, v);
@@ -4327,6 +4337,11 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                 if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
                     e->op == TOKassocarrayliteral || e->op == TOKstring)
                         return e;
+                if (type->ty == Tpointer && type->nextOf()->ty != Tfunction)
+                {
+                    assert(e->type == type);
+                    return e;
+                }
                 return e->interpret(istate, goal);
             }
         }
