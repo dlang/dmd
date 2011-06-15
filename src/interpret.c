@@ -4120,6 +4120,21 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         e1->type = to;
         return e1;
     }
+    // Disallow array type painting, except for conversions between built-in
+    // types of identical size.
+    if ((to->ty == Tsarray || to->ty == Tarray) &&
+        (e1->type->ty == Tsarray || e1->type->ty == Tarray) &&
+#if DMDV2
+        e1->type->nextOf()->castMod(0) != to->nextOf()->castMod(0)
+#else
+        e1->type->nextOf() != to->nextOf()
+#endif
+        && !(to->nextOf()->isTypeBasic() && e1->type->nextOf()->isTypeBasic()
+            && to->nextOf()->size() == e1->type->nextOf()->size()) )
+    {
+        error("array cast from %s to %s is not supported at compile time", e1->type->toChars(), to->toChars());
+        return EXP_CANT_INTERPRET;
+    }
     if (to->ty == Tsarray && e1->op == TOKslice)
         e1 = resolveSlice(e1);
     e = Cast(type, to, e1);
