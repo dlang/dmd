@@ -1,5 +1,8 @@
 $(VERSION 054, mmm dd, 2011, =================================================,
 
+    $(WHATSNEW
+$(LI Added core.sys.posix.netdb.)
+    )
     $(RUNTIMEBUGSFIXED
 $(LI $(BUGZILLA 4323): std.demangle incorrectly handles template floating point numbers)
 $(LI $(BUGZILLA 5956): Undocumented mangling of struct value)
