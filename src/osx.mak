@@ -25,8 +25,8 @@ WARNINGS=-Wno-deprecated -Wstrict-aliasing
 #GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -D__I86__=1 -DMARS=1 -DTARGET_OSX=1
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -D__I86__=1 -DMARS=1 -DTARGET_OSX=1
+CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_OSX=1
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_OSX=1
 
 CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h

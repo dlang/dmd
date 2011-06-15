@@ -327,7 +327,7 @@ hash_t Dchar::calcHash(const dchar *str, size_t len)
 
             case 2:
                 hash *= 37;
-#if __I86__
+#if LITTLE_ENDIAN
                 hash += *(const uint16_t *)str;
 #else
                 hash += str[0] * 256 + str[1];
@@ -336,7 +336,7 @@ hash_t Dchar::calcHash(const dchar *str, size_t len)
 
             case 3:
                 hash *= 37;
-#if __I86__
+#if LITTLE_ENDIAN
                 hash += (*(const uint16_t *)str << 8) +
                         ((const uint8_t *)str)[2];
 #else
@@ -346,7 +346,7 @@ hash_t Dchar::calcHash(const dchar *str, size_t len)
 
             default:
                 hash *= 37;
-#if __I86__
+#if LITTLE_ENDIAN
                 hash += *(const uint32_t *)str;
 #else
                 hash += ((str[0] * 256 + str[1]) * 256 + str[2]) * 256 + str[3];
@@ -379,7 +379,7 @@ hash_t Dchar::calcHash(const dchar *str, size_t len)
 
             case 2:
                 hash *= 37;
-#if __I86__
+#if LITTLE_ENDIAN
                 hash += *(const uint16_t *)str;
 #else
                 hash += str[0] * 256 + str[1];
@@ -388,7 +388,7 @@ hash_t Dchar::calcHash(const dchar *str, size_t len)
 
             case 3:
                 hash *= 37;
-#if __I86__
+#if LITTLE_ENDIAN
                 hash += (*(const uint16_t *)str << 8) +
                         ((const uint8_t *)str)[2];
 #else
@@ -398,7 +398,7 @@ hash_t Dchar::calcHash(const dchar *str, size_t len)
 
             default:
                 hash *= 37;
-#if __I86__
+#if LITTLE_ENDIAN
                 hash += *(const uint32_t *)str;
 #else
                 hash += ((str[0] * 256 + str[1]) * 256 + str[2]) * 256 + str[3];

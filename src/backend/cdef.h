@@ -606,6 +606,15 @@ typedef int bool;
 #define __near
 #endif
 
+// gcc defines this for us, dmc doesn't, so look for it's __I86__
+#if ! (defined(LITTLE_ENDIAN) || defined(BIG_ENDIAN) )
+#if defined(__I86__) || defined(i386) || defined(__x86_64__)
+#define LITTLE_ENDIAN 1
+#else
+#error unknown platform, so unknown endianness
+#endif
+#endif
+
 #if _WINDLL
 #define COPYRIGHT "Copyright © 2001 Digital Mars"
 #else
