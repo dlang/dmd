@@ -1657,3 +1657,43 @@ static assert(
     return *p;
 }() == 'a'
 );
+
+struct AList
+{
+    AList * next;
+    int value;
+    static AList * newList()
+    {
+        AList[] z = new AList[1];
+        return &z[0];
+    }
+    static AList * make(int i, int j)
+    {
+        auto r = newList();
+        r.next = (new AList[1]).ptr;
+        r.value = 1;
+        AList * z= r.next;
+        (*z).value = 2;
+        r.next.value = j;
+        assert(r.value == 1);
+        assert(r.next.value == 2);
+        r.next.next = &(new AList[1])[0];
+        assert(r.next.next != null);
+        assert(r.next.next);
+        r.next.next.value = 3;
+        assert(r.next.next.value == 3);
+        r.next.next = newList();
+        r.next.next.value = 9;
+        return r;
+    }
+    static int checkList()
+    {
+        auto r = make(1,2);
+        assert(r.value == 1);
+        assert(r.next.value == 2);
+        assert(r.next.next.value == 9);
+        return 2;
+    }
+}
+
+static assert(AList.checkList()==2);
