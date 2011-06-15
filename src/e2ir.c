@@ -2444,7 +2444,7 @@ elem *IdentityExp::toElem(IRState *irs)
 
     //printf("IdentityExp::toElem() %s\n", toChars());
 
-    if (t1->ty == Tstruct)
+    if (t1->ty == Tstruct || t1->isfloating())
     {   // Do bit compare of struct's
         elem *es1;
         elem *es2;
