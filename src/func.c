@@ -1463,15 +1463,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             // Merge contracts together with body into one compound statement
 
-#ifdef _DH
             if (frequire && global.params.useIn)
             {   frequire->incontract = 1;
                 a->push(frequire);
             }
-#else
-            if (frequire && global.params.useIn)
-                a->push(frequire);
-#endif
 
             // Precondition invariant
             if (addPreInvariant())

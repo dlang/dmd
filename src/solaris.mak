@@ -17,8 +17,8 @@ WARNINGS=-Wno-deprecated -Wstrict-aliasing
 #GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_SOLARIS=1 -D_DH
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_SOLARIS=1 -D_DH
+CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_SOLARIS=1
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_SOLARIS=1
 
 CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
@@ -174,7 +174,7 @@ builtin.o: builtin.c
 	$(CC) -c $(CFLAGS) $<
 
 cast.o: cast.c
-	$(CC) -c $(CFLAGS) $< 
+	$(CC) -c $(CFLAGS) $<
 
 cg.o: fltables.c $C/cg.c
 	$(CC) -c $(MFLAGS) -I. $C/cg.c
@@ -400,7 +400,7 @@ mars.o: mars.c
 
 rmem.o: $(ROOT)/rmem.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $(ROOT)/rmem.c
-	
+
 module.o: $(TOTALH) $C/html.h module.c
 	$(CC) -c $(CFLAGS) -I$C module.c
 

@@ -54,8 +54,6 @@
 #include        "iasm.h"
 #include        "cpp.h"
 
-#undef _DH
-
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
 #undef I16

@@ -10,8 +10,6 @@
 
 // Routines to emit header files
 
-#ifdef _DH
-
 #define PRETTY_PRINT
 #define TEST_EMIT_ALL  0        // For Testing
 
@@ -100,5 +98,3 @@ void Dsymbol::toHBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 
 /*************************************/
-
-#endif // #ifdef _DH
