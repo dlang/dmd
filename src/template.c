@@ -1528,11 +1528,14 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 
 void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-#if 0 // Should handle template functions
+#if 0 // Should handle template functions for doc generation
     if (onemember && onemember->isFuncDeclaration())
         buf->writestring("foo ");
 #endif
-    buf->writestring(kind());
+    if (hgs->ddoc)
+        buf->writestring(kind());
+    else
+        buf->writestring("template");
     buf->writeByte(' ');
     buf->writestring(ident->toChars());
     buf->writeByte('(');
