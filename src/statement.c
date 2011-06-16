@@ -3509,7 +3509,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else if (tbret->ty != Tvoid)
         {
             exp = exp->implicitCastTo(sc, tret);
-            exp = exp->optimize(WANTvalue);
+            if (!((TypeFunction *)fd->type)->isref)
+                exp = exp->optimize(WANTvalue);
         }
     }
     else if (fd->inferRetType)
