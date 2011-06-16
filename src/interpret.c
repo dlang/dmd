@@ -1160,6 +1160,7 @@ Expression *AsmStatement::interpret(InterState *istate)
     return EXP_CANT_INTERPRET;
 }
 
+#if DMDV2
 Expression *ImportStatement::interpret(InterState *istate)
 {
 #if LOG
@@ -1168,6 +1169,7 @@ Expression *ImportStatement::interpret(InterState *istate)
     START();
     return NULL;
 }
+#endif
 
 /******************************** Expression ***************************/
 
@@ -1881,6 +1883,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
     if (newtype->toBasetype()->ty == Tstruct)
     {
         Expression *se = newtype->defaultInitLiteral();
+#if DMDV2
         if (member)
         {
             int olderrors = global.errors;
@@ -1891,6 +1894,10 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                 return EXP_CANT_INTERPRET;
             }
         }
+#else   // The above code would fail on D1 because it doesn't use STRUCTTHISREF,
+        // but that's OK because D1 doesn't have struct constructors anyway.
+        assert(!member);
+#endif
         Expression *e = new AddrExp(loc, se);
         e->type = type;
         return e;
