@@ -1706,3 +1706,23 @@ struct AList
 }
 
 static assert(AList.checkList()==2);
+
+/**************************************************
+    4065 [CTFE] AA "in" operator doesn't work
+**************************************************/
+
+bool bug4065(string s) {
+    enum int[string] aa = ["aa":14, "bb":2];
+    int *p = s in aa;
+    if (s == "aa")
+        assert(*p == 14);
+    else if (s=="bb")
+        assert(*p == 2);
+    else assert(!p);
+    bool c = !p;
+    return cast(bool)(s in aa);
+}
+
+static assert(!bug4065("xx"));
+static assert(bug4065("aa"));
+static assert(bug4065("bb"));
