@@ -1916,9 +1916,6 @@ Expression *UnaExp::interpretCommon(InterState *istate,  CtfeGoal goal, Expressi
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
-    if (e1->isConst() != 1)
-        goto Lcant;
-
     e = (*fp)(type, e1);
     return e;
 
@@ -1997,12 +1994,12 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     dinteger_t ofs1, ofs2;
     if (eptr->op == TOKaddress)
         eptr = ((AddrExp *)eptr)->e1;
-    if (eptr->op != TOKindex && eptr->op!=TOKstring && eptr->op!=TOKarrayliteral)
+    Expression *agg1 = getAggregateFromPointer(eptr, &ofs1);
+    if (agg1->op != TOKstring && agg1->op != TOKarrayliteral)
     {
         error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
         return EXP_CANT_INTERPRET;
     }
-    Expression *agg1 = getAggregateFromPointer(eptr, &ofs1);
     ofs2 = e2->toInteger();
     Type *pointee = ((TypePointer *)agg1->type)->next;
     dinteger_t sz = pointee->size();
@@ -4156,6 +4153,37 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
+Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
+{   Expression *e = EXP_CANT_INTERPRET;
+
+#if LOG
+    printf("InExp::interpret() %s\n", toChars());
+#endif
+    Expression *e1 = this->e1->interpret(istate);
+    if (e1 == EXP_CANT_INTERPRET)
+        return e1;
+    Expression *e2 = this->e2->interpret(istate);
+    if (e2 == EXP_CANT_INTERPRET)
+        return e2;
+    if (e2->op == TOKnull)
+    {
+        error("cannot use 'in' on a null associative array");
+        return EXP_CANT_INTERPRET;
+    }
+    if (e2->op != TOKassocarrayliteral)
+    {
+        error(" %s cannot be interpreted at compile time", toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    e = findKeyInAA((AssocArrayLiteralExp *)e2, e1);
+    if (e == EXP_CANT_INTERPRET)
+        return e;
+    if (!e)
+        return new NullExp(loc, type);
+    e = new IndexExp(loc, e2, e1);
+    e->type = type;
+    return e;
+}
 
 Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
@@ -4245,6 +4273,11 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (to->ty == Tsarray && e1->op == TOKslice)
         e1 = resolveSlice(e1);
+    if (to->toBasetype()->ty == Tbool && e1->type->ty==Tpointer)
+    {
+        return new IntegerExp(loc, e1->op != TOKnull, to);
+    }
+
     e = Cast(type, to, e1);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
