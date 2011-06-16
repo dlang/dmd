@@ -30,3 +30,23 @@ return 0;
 }
 
 }
+template foo3(T)
+{
+T foo3()
+{
+}
+}
+template Foo4(T)
+{
+struct Foo4
+{
+    T x;
+}
+}
+template C4(T)
+{
+class C4
+{
+    T x;
+}
+}
