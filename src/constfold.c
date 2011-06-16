@@ -873,11 +873,11 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
 
         cmp = (es1->var == es2->var && es1->offset == es2->offset);
     }
-    else if (e1->isConst() == 1 && e2->isConst() == 1)
+    else
+    {
         return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
                 type, e1, e2);
-    else
-        assert(0);
+    }
     if (op == TOKnotidentity)
         cmp ^= 1;
     return new IntegerExp(loc, cmp, type);
