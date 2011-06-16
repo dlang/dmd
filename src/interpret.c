@@ -180,12 +180,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         return NULL;
     }
 
-    // Evaluate 'this', if present.
-    if (thisarg && thisarg->op != TOKvar)
-        thisarg = thisarg->interpret(istate, ctfeNeedLvalue);
-    if (thisarg == EXP_CANT_INTERPRET)
-        return NULL;
-
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = this;
@@ -1883,6 +1877,23 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         return createBlockDuplicatedArrayLiteral(newtype,
             ((TypeArray *)newtype)->next->defaultInitLiteral(),
             lenExpr->toInteger());
+    }
+    if (newtype->toBasetype()->ty == Tstruct)
+    {
+        Expression *se = newtype->defaultInitLiteral();
+        if (member)
+        {
+            int olderrors = global.errors;
+            member->interpret(istate, arguments, se);
+            if (olderrors != global.errors)
+            {
+                error("cannot evaluate %s at compile time", toChars());
+                return EXP_CANT_INTERPRET;
+            }
+        }
+        Expression *e = new AddrExp(loc, se);
+        e->type = type;
+        return e;
     }
     if (newtype->ty == Tclass)
     {
@@ -3654,6 +3665,14 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             pthis = istate ? istate->localThis : NULL;
         else if (pthis->op == TOKcomma)
             pthis = pthis->interpret(istate);
+        if (pthis == EXP_CANT_INTERPRET)
+            return NULL;
+            // Evaluate 'this'
+        if (pthis->op != TOKvar)
+            pthis = pthis->interpret(istate, ctfeNeedLvalue);
+        if (pthis == EXP_CANT_INTERPRET)
+            return NULL;
+
         if (!fd->fbody)
         {
             error("%s cannot be interpreted at compile time,"
