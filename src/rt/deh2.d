@@ -87,7 +87,7 @@ private
         void*       addr;
         Throwable   t;
     }
-    
+
     InFlight* __inflight = null;
 }
 
@@ -267,7 +267,7 @@ extern (C) void _d_throwc(Object *h)
                 }
                 else
                 {
-                    debug printf("replacing thrown %p with inflight %p\n", h, inflight.t);
+                    debug printf("replacing thrown %p with inflight %p\n", h, __inflight.t);
 
                     auto t = curr.t;
                     auto n = curr.t;
@@ -350,7 +350,7 @@ extern (C) void _d_throwc(Object *h)
 
                 auto     blockaddr = phi.finally_code;
                 InFlight inflight;
-                
+
                 inflight.addr = blockaddr;
                 inflight.next = __inflight;
                 inflight.t    = cast(Throwable) h;

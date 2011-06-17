@@ -94,7 +94,7 @@ private
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
 
-    extern (C) void rt_finalize( void* p, bool det = true );
+    extern (C) void rt_finalize(void* p, bool det = true);
 
     version (MULTI_THREADED)
     {
@@ -103,8 +103,8 @@ private
         extern (C) void thread_resumeAll();
         extern (C) void thread_processGCMarks();
 
-        alias void delegate( void*, void* ) scanFn;
-        extern (C) void thread_scanAll( scanFn fn, void* curStackTop = null );
+        alias void delegate(void*, void*) scanFn;
+        extern (C) void thread_scanAll(scanFn fn, void* curStackTop = null);
     }
 
     extern (C) void onOutOfMemoryError();
@@ -505,7 +505,7 @@ class GC
             // Return next item from free list
             gcx.bucket[bin] = (cast(List*)p).next;
             pool = (cast(List*)p).pool;
-            if( !(bits & BlkAttr.NO_SCAN) )
+            if (!(bits & BlkAttr.NO_SCAN))
                 memset(p + size, 0, binsize[bin] - size);
             //debug(PRINTF) printf("\tmalloc => %p\n", p);
             debug (MEMSTOMP) memset(p, 0xF0, size);
@@ -762,7 +762,7 @@ class GC
     private size_t extendNoSync(void* p, size_t minsize, size_t maxsize)
     in
     {
-        assert( minsize <= maxsize );
+        assert(minsize <= maxsize);
     }
     body
     {
@@ -1671,7 +1671,7 @@ struct Gcx
     int rootIter(int delegate(ref void*) dg)
     {
         int result = 0;
-        for( size_t i = 0; i < nroots; ++i )
+        for (size_t i = 0; i < nroots; ++i)
         {
             result = dg(roots[i]);
             if (result)
@@ -1740,7 +1740,7 @@ struct Gcx
     int rangeIter(int delegate(ref Range) dg)
     {
         int result = 0;
-        for( size_t i = 0; i < nranges; ++i )
+        for (size_t i = 0; i < nranges; ++i)
         {
             result = dg(ranges[i]);
             if (result)
@@ -2352,7 +2352,7 @@ struct Gcx
             __builtin_unwind_init();
             sp = & sp;
         }
-        else version( D_InlineAsm_X86 )
+        else version (D_InlineAsm_X86)
         {
             asm
             {
@@ -2360,7 +2360,7 @@ struct Gcx
                 mov sp[EBP],ESP     ;
             }
         }
-        else version ( D_InlineAsm_X86_64 )
+        else version (D_InlineAsm_X86_64)
         {
             asm
             {
@@ -2385,23 +2385,23 @@ struct Gcx
         }
         else
         {
-            static assert( false, "Architecture not supported." );
+            static assert(false, "Architecture not supported.");
         }
 
         result = fullcollect(sp);
 
-        version( GNU )
+        version (GNU)
         {
             // registers will be popped automatically
         }
-        else version( D_InlineAsm_X86 )
+        else version (D_InlineAsm_X86)
         {
             asm
             {
                 popad;
             }
         }
-        else version ( D_InlineAsm_X86_64 )
+        else version (D_InlineAsm_X86_64)
         {
             asm
             {
@@ -2425,7 +2425,7 @@ struct Gcx
         }
         else
         {
-            static assert( false, "Architecture not supported." );
+            static assert(false, "Architecture not supported.");
         }
         return result;
     }
@@ -2499,7 +2499,7 @@ struct Gcx
             {
                 debug(COLLECT_PRINTF) printf("scanning multithreaded stack.\n");
                 // Scan stacks and registers for each paused thread
-                thread_scanAll( &mark, stackTop );
+                thread_scanAll(&mark, stackTop);
             }
         }
         else
@@ -2838,7 +2838,7 @@ struct Gcx
     uint getBits(Pool* pool, size_t biti)
     in
     {
-        assert( pool );
+        assert(pool);
     }
     body
     {
@@ -2864,7 +2864,7 @@ struct Gcx
     void setBits(Pool* pool, size_t biti, uint mask)
     in
     {
-        assert( pool );
+        assert(pool);
     }
     body
     {
@@ -2897,7 +2897,7 @@ struct Gcx
     void clrBits(Pool* pool, size_t biti, uint mask)
     in
     {
-        assert( pool );
+        assert(pool);
     }
     body
     {
@@ -3164,7 +3164,7 @@ struct Pool
     }
 
 
-    void Invariant() { }
+    void Invariant() {}
 
 
     invariant()
@@ -3185,15 +3185,17 @@ struct Pool
         }
 
         for (size_t i = 0; i < npages; i++)
-        {   Bins bin = cast(Bins)pagetable[i];
-
+        {
+            Bins bin = cast(Bins)pagetable[i];
             assert(bin < B_MAX);
         }
     }
 
     // The divisor used for determining bit indices.
-    size_t divisor()
+    private size_t divisor()
     {
+        // NOTE: Since this is called by initialize it must be private or
+        //       invariant() will be called and fail.
         return isLargeObject ? PAGESIZE : 16;
     }
 

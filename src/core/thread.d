@@ -1596,7 +1596,7 @@ private:
     //
     static Mutex slock()
     {
-        static Mutex m = null;
+        __gshared Mutex m = null;
 
         if( m !is null )
             return m;
