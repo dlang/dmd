@@ -304,13 +304,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     /* Save the values of the local variables used
      */
     Expressions valueSaves;
-    if (istate && !isNested())
+    if (istate)
     {
         //printf("saving local variables...\n");
         valueSaves.setDim(istate->vars.dim);
         for (size_t i = 0; i < istate->vars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
-            if (v)
+            if (v && v->parent == this)
             {
                 //printf("\tsaving [%d] %s = %s\n", i, v->toChars(), v->getValue() ? v->getValue()->toChars() : "");
                 valueSaves.data[i] = v->getValue();
@@ -358,14 +358,14 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     if (vresult)
         vresult->setValueNull();
 
-    if (istate && !isNested())
+    if (istate)
     {
         /* Restore the variable values
          */
         //printf("restoring local variables...\n");
         for (size_t i = 0; i < istate->vars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
-            if (v)
+            if (v && v->parent == this)
             {   v->setValueWithoutChecking((Expression *)valueSaves.data[i]);
                 //printf("\trestoring [%d] %s = %s\n", i, v->toChars(), v->getValue() ? v->getValue()->toChars() : "");
             }
