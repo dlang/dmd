@@ -1,11 +1,12 @@
 $(VERSION 054, mmm dd, 2011, =================================================,
 
     $(WHATSNEW
-$(LI Added core.sys.posix.netdb.)
+$(LI Added core.sys.posix.netdb)
     )
     $(RUNTIMEBUGSFIXED
 $(LI $(BUGZILLA 4323): std.demangle incorrectly handles template floating point numbers)
 $(LI $(BUGZILLA 5956): Undocumented mangling of struct value)
+$(LI $(BUGZILLA 6135): Thread/GC interaction bug on OS X)
     )
 )
 $(VERSION 053, mmm dd, 2011, =================================================,
