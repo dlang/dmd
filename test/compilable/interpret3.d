@@ -704,6 +704,21 @@ auto bug5852(const(string) s) {
 static assert(bug5852("abc")==3);
 
 /*******************************************
+    Set array length
+*******************************************/
+
+static assert(
+{
+    struct W{ int [] z;}
+    W w;
+    w.z.length = 2;
+    assert(w.z.length == 2);
+    w.z.length = 6;
+    assert(w.z.length == 6);
+    return true;
+}());
+
+/*******************************************
              Bug 5671
 *******************************************/
 
