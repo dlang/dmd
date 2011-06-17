@@ -201,6 +201,8 @@ version( linux )
     enum NI_NUMERICSERV     = 2;
     //enum NI_NUMERICSCOPE    = ?;
     enum NI_DGRAM           = 16;
+    enum NI_MAXHOST         = 1025; // non-standard
+    enum NI_MAXSERV         = 32;   // non-standard
 
     enum EAI_AGAIN          = -3;
     enum EAI_BADFLAGS       = -1;
@@ -282,6 +284,8 @@ else version( OSX )
     enum NI_NUMERICSERV     = 0x8;
     //enum NI_NUMERICSCOPE    = ?;
     enum NI_DGRAM           = 0x10;
+    enum NI_MAXHOST         = 1025; // non-standard
+    enum NI_MAXSERV         = 32;   // non-standard
 
     enum EAI_AGAIN          = 2;
     enum EAI_BADFLAGS       = 3;
@@ -363,6 +367,8 @@ else version( FreeBSD )
     enum NI_NUMERICSERV     = 0x8;
     //enum NI_NUMERICSCOPE    = ?;
     enum NI_DGRAM           = 0x10;
+    enum NI_MAXHOST         = 1025; // non-standard
+    enum NI_MAXSERV         = 32;   // non-standard
 
     enum EAI_AGAIN          = 2;
     enum EAI_BADFLAGS       = 3;
