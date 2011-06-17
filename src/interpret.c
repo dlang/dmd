@@ -2899,7 +2899,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         else
             returnValue = newval;
-
         if (e1->op == TOKarraylength)
         {
             size_t oldlen = oldval->toInteger();
@@ -2929,7 +2928,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 size_t copylen = oldlen < newlen ? oldlen : newlen;
                 ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
                 for (size_t i = 0; i < copylen; i++)
-                     elements->data[i] = ae->elements->data[i];
+                    elements->data[i] = ae->elements->data[i];
                 if (elemType->ty == Tstruct || elemType->ty == Tsarray)
                 {   /* If it is an aggregate literal representing a value type,
                      * we need to create a unique copy for each element
@@ -2945,6 +2944,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
                 aae->type = t;
                 newval = aae;
+                // We have changed it into a reference assignment
+                // Note that returnValue is still the new length.
+                wantRef = true;
             }
             else
             {
@@ -3009,8 +3011,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
     // ---------------------------------------
     //      Deal with reference assignment
+    // (We already have 'newval' for arraylength operations)
     // ---------------------------------------
-    if (wantRef)
+    if (wantRef && this->e1->op != TOKarraylength)
     {
         newval = this->e2->interpret(istate, ctfeNeedLvalue);
         if (newval == EXP_CANT_INTERPRET)
