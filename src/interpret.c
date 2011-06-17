@@ -3856,7 +3856,17 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("CondExp::interpret() %s\n", toChars());
 #endif
-    Expression *e = econd->interpret(istate);
+    Expression *e;
+    if (econd->type->ty == Tpointer && econd->type->nextOf()->ty != Tfunction)
+    {
+        e = econd->interpret(istate, ctfeNeedLvalue);
+        if (e == EXP_CANT_INTERPRET)
+            return e;
+        if (e->op != TOKnull)
+            e = new IntegerExp(loc, 1, Type::tbool);
+    }
+    else
+        e = econd->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
     {
         if (e->isBool(TRUE))
@@ -3864,7 +3874,11 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
         else if (e->isBool(FALSE))
             e = e2->interpret(istate, goal);
         else
+        {
+            error("%s does not evaluate to boolean result at compile time",
+                econd->toChars());
             e = EXP_CANT_INTERPRET;
+        }
     }
     return e;
 }
