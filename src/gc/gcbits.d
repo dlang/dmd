@@ -40,10 +40,10 @@ struct GCBits
 {
     alias size_t wordtype;
 
-    const BITS_PER_WORD = (wordtype.sizeof * 8);
-    const BITS_SHIFT = (wordtype.sizeof == 8 ? 6 : 5);
-    const BITS_MASK = (BITS_PER_WORD - 1);
-    const BITS_1 = cast(wordtype)1;
+    enum BITS_PER_WORD = (wordtype.sizeof * 8);
+    enum BITS_SHIFT = (wordtype.sizeof == 8 ? 6 : 5);
+    enum BITS_MASK = (BITS_PER_WORD - 1);
+    enum BITS_1 = cast(wordtype)1;
 
     wordtype*  data = null;
     size_t nwords = 0;    // allocated words in data[] excluding sentinals
