@@ -5,6 +5,7 @@ $(LI Added core.sys.posix.netdb.)
     )
     $(RUNTIMEBUGSFIXED
 $(LI $(BUGZILLA 4323): std.demangle incorrectly handles template floating point numbers)
+$(LI $(BUGZILLA 5272): Postblit not called on copying due to array append)
 $(LI $(BUGZILLA 5956): Undocumented mangling of struct value)
     )
 )
