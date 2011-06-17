@@ -1758,3 +1758,14 @@ bool bug4065(string s) {
 static assert(!bug4065("xx"));
 static assert(bug4065("aa"));
 static assert(bug4065("bb"));
+
+/**************************************************
+    Pointers in ? :
+**************************************************/
+
+static assert(
+{
+    int[2] x;
+    int *p = &x[1];
+    return p ? true: false;
+}());
