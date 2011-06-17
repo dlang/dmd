@@ -238,7 +238,24 @@ struct Matrix5248 {
 
 static assert(Matrix5248().Compile());
 
-// Interpreter code coverage tests
+/**************************************************
+    Bug 6164
+**************************************************/
+
+int bug6164(){
+    int[] ctfe2(int n){
+        int[] r=[];
+        if(n!=0) r~=[1] ~ ctfe2(n-1);
+        return r;
+    }
+    return ctfe2(2).length;
+}
+static assert(bug6164()==2);
+
+/**************************************************
+    Interpreter code coverage tests
+**************************************************/
+
 int cov1(int a)
 {
    a %= 15382;
