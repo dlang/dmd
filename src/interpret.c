@@ -4277,6 +4277,8 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     {
         return new IntegerExp(loc, e1->op != TOKnull, to);
     }
+    if (e1->op == TOKnull)
+        return paintTypeOntoLiteral(to, e1);
 
     e = Cast(type, to, e1);
     if (e == EXP_CANT_INTERPRET)
