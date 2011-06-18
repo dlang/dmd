@@ -738,7 +738,7 @@ void Proc_6(Enumeration Enum_Val_Par, Enumeration *Enum_Ref_Par)
         /* then, not executed */
         *Enum_Ref_Par = Ident_4;
 
-    final switch (Enum_Val_Par)
+    switch (Enum_Val_Par)
     {
         case Ident_1:
             *Enum_Ref_Par = Ident_1;
@@ -763,6 +763,8 @@ void Proc_6(Enumeration Enum_Val_Par, Enumeration *Enum_Ref_Par)
         case Ident_5:
             *Enum_Ref_Par = Ident_3;
             break;
+        
+        default:
     } /* switch */
 
 } /* Proc_6 */
