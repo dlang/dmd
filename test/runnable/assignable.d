@@ -134,12 +134,30 @@ void test3()
 }
 
 /***************************************************/
+// 3511
+
+struct S4
+{
+    private int _prop = 42;
+    ref int property() { return _prop; }
+}
+
+void test4()
+{
+    S4 s;
+    assert(s.property == 42);
+    s.property = 23;    // Rewrite to s.property() = 23
+    assert(s.property == 23);
+}
+
+/***************************************************/
 
 int main()
 {
     test1();
     test2();
     test3();
+    test4();
 
     printf("Success\n");
     return 0;
