@@ -103,12 +103,38 @@ void test4()
 
 /**********************************************/
 
+struct Foo {
+  void opIndexAssign(int x, size_t i) {
+    val = x;
+  }
+  void opSliceAssign(int x, size_t a, size_t b) {
+    val = x;
+  }
+  int val;
+}
+
+struct Bar {
+   Foo foo;
+   alias foo this;
+}
+
+void test5() {
+   Bar b;
+   b[0] = 1;
+   assert(b.val == 1);
+   b[0 .. 1] = 2;
+   assert(b.val == 2);
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
     test2();
     test3();
     test4();
+    test5();
 
     printf("Success\n");
     return 0;
