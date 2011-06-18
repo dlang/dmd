@@ -9332,6 +9332,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 VarDeclaration *v = new VarDeclaration(loc, aaValueType,
                     id, new VoidInitializer(NULL));
                 v->storage_class |= STCctfe;
+                v->semantic(sc);
 
                 Expression *de = new DeclarationExp(loc, v);
                 VarExp *ve = new VarExp(loc, v);

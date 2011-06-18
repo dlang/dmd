@@ -587,7 +587,7 @@ class A31
 
 class B31 : A31
 {
-    void foo(scope int* p) { }
+    override void foo(scope int* p) { }
 }
 
 void test31()
@@ -2900,6 +2900,22 @@ void test148()
 }
 
 /***************************************************/
+// 6075
+
+struct Bug6075 {
+    int z;
+    void opAssign(in int x) pure { z = x; }
+}
+
+void test6075() {
+    Bug6075[int] x;
+    x[6] = 9;
+    auto p = 6 in x;
+    assert(p);
+    assert(p.z == 9);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3051,6 +3067,8 @@ int main()
     test146();
     test147();
     test148();
+
+    test6075();
 
     printf("Success\n");
     return 0;
