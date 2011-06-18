@@ -9171,7 +9171,7 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e1->op == TOKarray)
     {
         ArrayExp *ae = (ArrayExp *)e1;
-        AggregateDeclaration *ad;
+        AggregateDeclaration *ad = NULL;
         Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
@@ -9212,6 +9212,24 @@ Expression *AssignExp::semantic(Scope *sc)
                 }
             }
         }
+
+        // No opIndexAssign found yet, but there might be an alias this to try.
+        if (ad && ad->aliasthis)
+        {   Expression *at = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
+            at = at->semantic(sc);
+            Type *attype = at->type->toBasetype();
+
+            if (attype->ty == Tstruct)
+            {
+                ad = ((TypeStruct *)attype)->sym;
+                goto L1;
+            }
+            else if (attype->ty == Tclass)
+            {
+                ad = ((TypeClass *)attype)->sym;
+                goto L1;
+            }
+        }
     }
     /* Look for operator overloading of a[i..j]=value.
      * Do it before semantic() otherwise the a[i..j] will have been
@@ -9220,7 +9238,7 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice)
     {   Type *t1;
         SliceExp *ae = (SliceExp *)e1;
-        AggregateDeclaration *ad;
+        AggregateDeclaration *ad = NULL;
         Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
@@ -9251,6 +9269,24 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
+            }
+        }
+
+        // No opSliceAssign found yet, but there might be an alias this to try.
+        if (ad && ad->aliasthis)
+        {   Expression *at = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
+            at = at->semantic(sc);
+            Type *attype = at->type->toBasetype();
+
+            if (attype->ty == Tstruct)
+            {
+                ad = ((TypeStruct *)attype)->sym;
+                goto L2;
+            }
+            else if (attype->ty == Tclass)
+            {
+                ad = ((TypeClass *)attype)->sym;
+                goto L2;
             }
         }
     }
