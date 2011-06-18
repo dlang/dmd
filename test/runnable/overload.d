@@ -549,6 +549,48 @@ void test12()
 }
 
 /**************************************/
+// 1680
+
+struct X13
+{
+  int _y;
+  int blah()
+  {
+    return _y;
+  }
+
+  static X13 blah(int n)
+  {
+    return X13(n);
+  }
+
+  static X13 blah2(int n)
+  {
+    return X13(n);
+  }
+
+  static X13 blah2(char[] n)
+  {
+    return X13(n.length);
+  }
+}
+
+void test13()
+{
+  // OK
+  X13 v = X13.blah(5);
+  void f()
+  {
+    // OK
+    X13 v1 = X13.blah2(5);
+    X13 v2 = X13.blah2("hello".dup);
+
+    // Error: 'this' is only allowed in non-static member functions, not f
+    X13 v3 = X13.blah(5);
+  }
+}
+
+/**************************************/
 
 void main()
 {
@@ -564,4 +606,5 @@ void main()
     test10();
     test11();
     test12();
+    test13();
 }
