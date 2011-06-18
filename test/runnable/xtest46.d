@@ -2843,6 +2843,63 @@ void test146()
 }
 
 /***************************************************/
+// 5856
+
+struct X147
+{
+    void f()       { writeln("X.f mutable"); }
+    void f() const { writeln("X.f const"); }
+
+    void g()()       { writeln("X.g mutable"); }
+    void g()() const { writeln("X.g const"); }
+
+    void opOpAssign(string op)(int n)       { writeln("X+= mutable"); }
+    void opOpAssign(string op)(int n) const { writeln("X+= const"); }
+}
+
+void test147()
+{
+    X147 xm;
+    xm.f();     // prints "X.f mutable"
+    xm.g();     // prints "X.g mutable"
+    xm += 10;   // should print "X+= mutable" (1)
+
+    const(X147) xc;
+    xc.f();     // prints "X.f const"
+    xc.g();     // prints "X.g const"
+    xc += 10;   // should print "X+= const" (2)
+}
+
+
+/***************************************************/
+// 5897
+
+struct A148{ int n; }
+struct B148{
+    int n, m;
+    this(A148 a){ n = a.n, m = a.n*2; }
+}
+
+struct C148{
+    int n, m;
+    static C148 opCall(A148 a)
+    {
+        C148 b;
+        b.n = a.n, b.m = a.n*2;
+        return b;
+    }
+}
+
+void test148()
+{
+    auto a = A148(10);
+    auto b = cast(B148)a;
+    assert(b.n == 10 && b.m == 20);
+    auto c = cast(C148)a;
+    assert(c.n == 10 && c.m == 20);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2992,6 +3049,8 @@ int main()
     test144();
     test145();
     test146();
+    test147();
+    test148();
 
     printf("Success\n");
     return 0;

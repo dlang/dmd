@@ -132,9 +132,7 @@ struct Module : Package
     void semantic3();   // pass 3 semantic analysis
     void inlineScan();  // scan for functions to inline
     void setHdrfile();  // set hdrfile member
-#ifdef _DH
     void genhdrfile();  // generate D import file
-#endif
     void genobjfile(int multiobj);
     void gensymfile();
     void gendocfile();

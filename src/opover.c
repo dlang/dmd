@@ -523,7 +523,7 @@ Expression *BinExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
             }
         }
 
@@ -538,7 +538,7 @@ Expression *BinExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
+                templateResolve(&m, td, sc, loc, targsi, e2, &args1);
             }
         }
 
@@ -616,7 +616,7 @@ L1:
                 }
                 else
                 {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                    templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+                    templateResolve(&m, td, sc, loc, targsi, e1, &args2);
                 }
             }
             FuncDeclaration *lastf = m.lastf;
@@ -630,7 +630,7 @@ L1:
                 }
                 else
                 {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                    templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
+                    templateResolve(&m, td, sc, loc, targsi, e2, &args1);
                 }
             }
 
@@ -1070,7 +1070,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
             }
         }
 

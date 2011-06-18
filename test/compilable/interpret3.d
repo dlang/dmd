@@ -693,6 +693,15 @@ static assert(bug5852("abc")==3);
 static assert( ['a', 'b'] ~ "c" == "abc" );
 
 /*******************************************
+        Bug 6159
+*******************************************/
+
+struct A6159 {}
+
+static assert({ return A6159.init is A6159.init;}());
+static assert({ return [1] is [1];}());
+
+/*******************************************
         Bug 5685
 *******************************************/
 
@@ -1657,3 +1666,63 @@ static assert(
     return *p;
 }() == 'a'
 );
+
+struct AList
+{
+    AList * next;
+    int value;
+    static AList * newList()
+    {
+        AList[] z = new AList[1];
+        return &z[0];
+    }
+    static AList * make(int i, int j)
+    {
+        auto r = newList();
+        r.next = (new AList[1]).ptr;
+        r.value = 1;
+        AList * z= r.next;
+        (*z).value = 2;
+        r.next.value = j;
+        assert(r.value == 1);
+        assert(r.next.value == 2);
+        r.next.next = &(new AList[1])[0];
+        assert(r.next.next != null);
+        assert(r.next.next);
+        r.next.next.value = 3;
+        assert(r.next.next.value == 3);
+        r.next.next = newList();
+        r.next.next.value = 9;
+        return r;
+    }
+    static int checkList()
+    {
+        auto r = make(1,2);
+        assert(r.value == 1);
+        assert(r.next.value == 2);
+        assert(r.next.next.value == 9);
+        return 2;
+    }
+}
+
+static assert(AList.checkList()==2);
+
+/**************************************************
+    4065 [CTFE] AA "in" operator doesn't work
+**************************************************/
+
+bool bug4065(string s) {
+    enum int[string] aa = ["aa":14, "bb":2];
+    int *p = s in aa;
+    if (s == "aa")
+        assert(*p == 14);
+    else if (s=="bb")
+        assert(*p == 2);
+    else assert(!p);
+    bool c = !p;
+    return cast(bool)(s in aa);
+}
+
+static assert(!bug4065("xx"));
+static assert(bug4065("aa"));
+static assert(bug4065("bb"));

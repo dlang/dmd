@@ -260,9 +260,7 @@ struct ComplexExp : Expression
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-#ifdef _DH
     OutBuffer hexp;
-#endif
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -1542,6 +1540,7 @@ struct InExp : BinExp
 {
     InExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     int isBit();
 
     // For operator overloading
