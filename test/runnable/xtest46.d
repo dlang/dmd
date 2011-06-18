@@ -2872,6 +2872,34 @@ void test147()
 
 
 /***************************************************/
+// 5897
+
+struct A148{ int n; }
+struct B148{
+    int n, m;
+    this(A148 a){ n = a.n, m = a.n*2; }
+}
+
+struct C148{
+    int n, m;
+    static C148 opCall(A148 a)
+    {
+        C148 b;
+        b.n = a.n, b.m = a.n*2;
+        return b;
+    }
+}
+
+void test148()
+{
+    auto a = A148(10);
+    auto b = cast(B148)a;
+    assert(b.n == 10 && b.m == 20);
+    auto c = cast(C148)a;
+    assert(c.n == 10 && c.m == 20);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3022,6 +3050,7 @@ int main()
     test145();
     test146();
     test147();
+    test148();
 
     printf("Success\n");
     return 0;
