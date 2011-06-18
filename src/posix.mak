@@ -87,7 +87,7 @@ else
     DMD_OBJS += libelf.o elfobj.o
 endif
 
-SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
+SRC = win32.mak posix.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
