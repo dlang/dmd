@@ -2843,6 +2843,35 @@ void test146()
 }
 
 /***************************************************/
+// 5856
+
+struct X147
+{
+    void f()       { writeln("X.f mutable"); }
+    void f() const { writeln("X.f const"); }
+
+    void g()()       { writeln("X.g mutable"); }
+    void g()() const { writeln("X.g const"); }
+
+    void opOpAssign(string op)(int n)       { writeln("X+= mutable"); }
+    void opOpAssign(string op)(int n) const { writeln("X+= const"); }
+}
+
+void test147()
+{
+    X147 xm;
+    xm.f();     // prints "X.f mutable"
+    xm.g();     // prints "X.g mutable"
+    xm += 10;   // should print "X+= mutable" (1)
+
+    const(X147) xc;
+    xc.f();     // prints "X.f const"
+    xc.g();     // prints "X.g const"
+    xc += 10;   // should print "X+= const" (2)
+}
+
+
+/***************************************************/
 
 int main()
 {
@@ -2992,6 +3021,7 @@ int main()
     test144();
     test145();
     test146();
+    test147();
 
     printf("Success\n");
     return 0;
