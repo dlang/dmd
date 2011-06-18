@@ -256,6 +256,34 @@ void test12()
 }
 
 /********************************************************/
+// 1570
+
+class A13
+{
+    int f()
+    {
+        return 1;
+    }
+}
+
+class B13 : A13
+{
+    int f()
+    {
+        return 2;
+    }
+}
+
+void test13()
+{
+    B13 b = new B13;
+    assert(b.f() == 2);
+    assert(b.A13.f() == 1);
+    assert((&b.f)() == 2);
+    assert((&b.A13.f)() == 1);
+}
+
+/********************************************************/
 
 int main()
 {
@@ -271,6 +299,7 @@ int main()
     test10();
     test11();
     test12();
+    test13();
 
     printf("Success\n");
     return 0;
