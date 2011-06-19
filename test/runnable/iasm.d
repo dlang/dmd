@@ -6,6 +6,9 @@
 
 import std.stdio;
 
+version (D_InlineAsm_X86)
+{
+
 struct M128 { int a,b,c,d; };
 struct M64 { int a,b; };
 
@@ -3922,3 +3925,10 @@ int main()
     printf("Success\n");
     return 0;
 }
+
+}
+else
+{
+    int main() { return 0; }
+}
+
