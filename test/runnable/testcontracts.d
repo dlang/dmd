@@ -242,6 +242,31 @@ void test6()
 +/
 
 /*******************************************/
+// 4785
+
+int cnt;
+
+auto foo4785()
+in{
+	int r;
+	++cnt;
+}
+out(r){
+	assert(r == 10);
+	++cnt;
+}body{
+	++cnt;
+	int r = 10;
+	return r;
+}
+void test4785()
+{
+	cnt = 0;
+	assert(foo4785() == 10);
+	assert(cnt == 3);
+}
+
+/*******************************************/
 // 7218
 
 void test7218()
@@ -262,6 +287,7 @@ int main()
     test4();
     test5();
 //    test6();
+    test4785();
     test7218();
 
     printf("Success\n");
