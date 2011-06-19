@@ -1014,6 +1014,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
 #endif
 
     BinExp::semantic(sc);
+    e1 = resolveProperties(sc, e1);
     e2 = resolveProperties(sc, e2);
 
     Identifier *id = opId();
