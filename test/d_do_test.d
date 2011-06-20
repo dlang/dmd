@@ -119,7 +119,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     }
 
     // clean up extra spaces
-    testArgs.permuteArgs = replace(testArgs.permuteArgs, "  ", " ");
+    testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
     findTestParameter(file, "EXECUTE_ARGS", testArgs.executeArgs);
 
