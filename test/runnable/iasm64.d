@@ -2740,7 +2740,7 @@ L1:
     /*
     for (;;)
     {
-        writef("");
+        printf("\n");
         asm { hlt; }
     }
     //*/
@@ -2749,7 +2749,7 @@ L1:
     for (;;)
     {
         asm { hlt; }
-        writef("");
+        printf("\n");
     }
     //*/
     /* The same loop that doesn't compile above 
@@ -2758,7 +2758,7 @@ L1:
     //*
     for (;;)
     {
-        writef("");
+        printf("\n");
         asm { hlt; }
     }
     //*/
