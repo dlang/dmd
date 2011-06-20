@@ -1552,8 +1552,16 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
     //dump(0);
 
-    Expression *e1 = (*pe1)->integralPromotions(sc);
-    Expression *e2 = (*pe2)->integralPromotions(sc);
+    Expression *e1 = *pe1;
+    Expression *e2 = *pe2;
+
+    if (!(e1->type->isTypeBasic() && e1->type->ty != Tvoid &&
+          e2->type->isTypeBasic() && e2->type->ty != Tvoid &&
+          e1->type->ty == e2->type->ty))
+    {
+        e1 = e1->integralPromotions(sc);
+        e2 = e2->integralPromotions(sc);
+    }
 
     Type *t1 = e1->type;
     Type *t2 = e2->type;
@@ -1796,7 +1804,15 @@ Lagain:
     }
     else if (t1->isintegral() && t2->isintegral())
     {
-        assert(0);
+        assert(t1->ty == t2->ty);
+        unsigned char mod = MODmerge(t1->mod, t2->mod);
+
+        t1 = t1->castMod(mod);
+        t2 = t2->castMod(mod);
+        t = t1;
+        e1 = e1->castTo(sc, t);
+        e2 = e2->castTo(sc, t);
+        goto Lagain;
     }
     else if (e1->isArrayOperand() && t1->ty == Tarray &&
              e2->implicitConvTo(t1->nextOf()))
