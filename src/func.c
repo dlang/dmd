@@ -64,7 +64,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     naked = 0;
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
-    inlineAsm = 0;
     cantInterpret = 0;
     isArrayOp = 0;
     semanticRun = PASSinit;
@@ -85,6 +84,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
 #if DMDV2
     builtin = BUILTINunknown;
     tookAddressOf = 0;
+    flags = 0;
 #endif
 }
 
@@ -248,6 +248,18 @@ void FuncDeclaration::semantic(Scope *sc)
 
     linkage = sc->linkage;
     protection = sc->protection;
+
+    /* Purity for literals and function templates is determined by examining the body
+     * of the function, unless overridden with the keyword.
+     */
+    if (fbody &&
+        f->purity == PUREimpure &&      // purity not specified
+        (isFuncLiteralDeclaration() || parent->isTemplateInstance()) &&
+        !f->hasLazyParameters()
+       )
+    {
+        flags |= FUNCFLAGpurityInprocess;
+    }
 
     if (storage_class & STCscope)
         error("functions cannot be scope");
@@ -1315,7 +1327,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
                 error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
-            else if (!inlineAsm)
+            else if (!(hasReturnExp & 8))               // if no inline asm
             {
 #if DMDV2
                 // Check for errors related to 'nothrow'.
@@ -1612,6 +1624,14 @@ void FuncDeclaration::semantic3(Scope *sc)
 
         sc2->callSuper = 0;
         sc2->pop();
+    }
+
+    /* If function survived being marked as impure, then it is pure
+     */
+    if (flags & FUNCFLAGpurityInprocess)
+    {
+        flags &= ~FUNCFLAGpurityInprocess;
+        f->purity = PUREfwdref;
     }
 
     if (global.gag && global.errors != nerrors)
@@ -2632,6 +2652,22 @@ enum PURE FuncDeclaration::isPure()
             purity = PUREweak;
     }
     return purity;
+}
+
+/**************************************
+ * The function is doing something impure,
+ * so mark it as impure.
+ * If there's a purity error, return TRUE.
+ */
+bool FuncDeclaration::setImpure()
+{
+    if (flags & FUNCFLAGpurityInprocess)
+    {
+        flags &= ~FUNCFLAGpurityInprocess;
+    }
+    else if (isPure())
+        return TRUE;
+    return FALSE;
 }
 
 int FuncDeclaration::isSafe()

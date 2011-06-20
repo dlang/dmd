@@ -1221,6 +1221,11 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 }
 
 #if DMDV2
+/*********************************************
+ * Calling function f.
+ * Check the purity, i.e. if we're in a pure function
+ * we can only call other pure functions.
+ */
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
 #if 1
@@ -1256,12 +1261,14 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         }
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
-        if (outerfunc->isPure() && !sc->intypeof &&
+        if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
+            !sc->intypeof &&
             !(sc->flags & SCOPEdebug) &&
             !(f->isPure() || (calledparent == outerfunc)))
         {
-            error("pure function '%s' cannot call impure function '%s'",
-            outerfunc->toChars(), f->toChars());
+            if (outerfunc->setImpure())
+                error("pure function '%s' cannot call impure function '%s'",
+                    outerfunc->toChars(), f->toChars());
         }
     }
 #else
@@ -4405,21 +4412,83 @@ Expression *VarExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
-#if 0
-        if ((v->isConst() || v->isImmutable()) &&
-            type->toBasetype()->ty != Tsarray && v->init)
-        {
-            ExpInitializer *ei = v->init->isExpInitializer();
-            if (ei)
-            {
-                //ei->exp->implicitCastTo(sc, type)->print();
-                return ei->exp->implicitCastTo(sc, type);
-            }
-        }
-#endif
         v->checkNestedReference(sc, loc);
 #if DMDV2
 #if 1
+        /* Look for purity and safety violations when accessing variable v
+         * from current function.
+         */
+        if (sc->func &&
+            !sc->intypeof &&             // allow violations inside typeof(expression)
+            !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
+            v->ident != Id::ctfe &&      // magic variable never violates pure and safe
+            !v->isImmutable() &&         // always safe and pure to access immutables...
+            !(v->storage_class & STCmanifest) // ...or manifest constants
+           )
+        {
+            if (v->isDataseg())
+            {
+                /* Accessing global mutable state.
+                 * Therefore, this function and all its immediately enclosing
+                 * functions must be pure.
+                 */
+                bool msg = FALSE;
+                for (Dsymbol *s = sc->func; s; s = s->toParent2())
+                {
+                    FuncDeclaration *ff = s->isFuncDeclaration();
+                    if (!ff)
+                        break;
+                    if (ff->setImpure() && !msg)
+                    {   error("pure function '%s' cannot access mutable static data '%s'",
+                            sc->func->toChars(), v->toChars());
+printf("test1\n");
+                        msg = TRUE;                     // only need the innermost message
+                    }
+                }
+            }
+            else
+            {
+                /* Given:
+                 * void f()
+                 * { int fx;
+                 *   pure void g()
+                 *   {  int gx;
+                 *      void h()
+                 *      {  int hx;
+                 *         void i() { }
+                 *      }
+                 *   }
+                 * }
+                 * i() can modify hx and gx but not fx
+                 */
+
+                /* Back up until we find the parent function of v,
+                 * requiring each function in between to be impure.
+                 */
+                Dsymbol *vparent = v->toParent2();
+                for (Dsymbol *s = sc->func; s; s = s->toParent2())
+                {
+                    if (s == vparent)
+                        break;
+                    FuncDeclaration *ff = s->isFuncDeclaration();
+                    if (!ff)
+                        break;
+                    if (ff->setImpure())
+                    {   error("pure nested function '%s' cannot access mutable data '%s'",
+                            ff->toChars(), v->toChars());
+printf("test2\n");
+                        break;
+                    }
+                }
+            }
+
+            /* Do not allow safe functions to access __gshared data
+             */
+            if (sc->func->isSafe() && v->storage_class & STCgshared)
+                error("safe function '%s' cannot access __gshared data '%s'",
+                    sc->func->toChars(), v->toChars());
+        }
+#else
         if (sc->func && !sc->intypeof && !(sc->flags & SCOPEdebug))
         {
             /* Given:
@@ -4485,12 +4554,6 @@ Expression *VarExp::semantic(Scope *sc)
             if (sc->func->isSafe() && v->storage_class & STCgshared)
                 error("safe function '%s' cannot access __gshared data '%s'",
                     sc->func->toChars(), v->toChars());
-        }
-#else
-        if (sc->func && sc->func->isPure() && !sc->intypeof)
-        {
-            if (v->isDataseg() && !v->isImmutable())
-                error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
         }
 #endif
 #endif
@@ -7365,9 +7428,10 @@ Lagain:
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
-            if (sc->func && sc->func->isPure() && !tf->purity && !(sc->flags & SCOPEdebug))
+            if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
             {
-                error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
+                if (sc->func->setImpure())
+                    error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
             }
             if (sc->func && sc->func->isSafe() && tf->trust <= TRUSTsystem)
             {
@@ -7379,9 +7443,10 @@ Lagain:
         {
             Expression *e = new PtrExp(loc, e1);
             t1 = ((TypePointer *)t1)->next;
-            if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->purity && !(sc->flags & SCOPEdebug))
+            if (sc->func && !((TypeFunction *)t1)->purity && !(sc->flags & SCOPEdebug))
             {
-                error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
+                if (sc->func->setImpure())
+                    error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
             }
             if (sc->func && sc->func->isSafe() && !((TypeFunction *)t1)->trust <= TRUSTsystem)
             {
@@ -9332,6 +9397,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 VarDeclaration *v = new VarDeclaration(loc, aaValueType,
                     id, new VoidInitializer(NULL));
                 v->storage_class |= STCctfe;
+                v->semantic(sc);
+                v->parent = sc->parent;
 
                 Expression *de = new DeclarationExp(loc, v);
                 VarExp *ve = new VarExp(loc, v);

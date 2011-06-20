@@ -1077,6 +1077,13 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         to->implicitConvTo(e1->type) >= MATCHconst)
         return expType(to, e1);
 
+    // Allow covariant converions of delegates
+    // (Perhaps implicit conversion from pure to impure should be a MATCHconst,
+    // then we wouldn't need this extra check.)
+    if (e1->type->toBasetype()->ty == Tdelegate &&
+        e1->type->implicitConvTo(to) == MATCHconvert)
+        return expType(to, e1);
+
     Type *tb = to->toBasetype();
     Type *typeb = type->toBasetype();
 
