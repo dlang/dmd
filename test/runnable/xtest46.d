@@ -2900,6 +2900,22 @@ void test148()
 }
 
 /***************************************************/
+// 5659
+
+void test5659()
+{
+    import std.traits;
+
+    char a;
+    immutable(char) b;
+
+    static assert(is(typeof(true ? a : b) == const(char)));
+    static assert(is(typeof([a, b][0]) == const(char)));
+
+    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char)));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3051,6 +3067,8 @@ int main()
     test146();
     test147();
     test148();
+
+    test5659();
 
     printf("Success\n");
     return 0;
