@@ -2900,6 +2900,32 @@ void test148()
 }
 
 /***************************************************/
+// 4969
+
+class MyException : Exception
+{
+    this()
+    {
+        super("An exception!");
+    }
+}
+
+void throwAway()
+{
+    throw new MyException;
+}
+
+void cantthrow() nothrow
+{
+    try
+        throwAway();
+    catch(MyException me)
+        assert(0);
+    catch(Exception e)
+        assert(0);
+}
+
+/***************************************************/
 
 int main()
 {
