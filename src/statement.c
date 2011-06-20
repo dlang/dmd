@@ -3935,15 +3935,28 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
     assert(body);
     int result = body->blockExit(false);
 
+    int catchresult = 0;
     for (size_t i = 0; i < catches->dim; i++)
     {
         Catch *c = (Catch *)catches->data[i];
         if (c->type == Type::terror)
             continue;
 
-        result |= c->blockExit(mustNotThrow);
+        catchresult |= c->blockExit(mustNotThrow);
+
+        /* If we're catching Object, then there is no throwing
+         */
+        Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
+        if (id == Id::Object)
+        {
+            result &= ~BEthrow;
+        }
     }
-    return result;
+    if (mustNotThrow && (result & BEthrow))
+    {
+        body->blockExit(mustNotThrow); // now explain why this is nothrow
+    }
+    return result | catchresult;
 }
 
 
