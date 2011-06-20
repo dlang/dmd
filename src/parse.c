@@ -4159,7 +4159,6 @@ int Parser::skipParens(Token *t, Token **pt)
                 break;
 
             case TOKeof:
-            case TOKsemicolon:
                 goto Lfalse;
 
              default:
