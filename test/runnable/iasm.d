@@ -1,5 +1,4 @@
-
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -707,8 +706,10 @@ void test13()
     static ubyte data[] =
     [
 	0x0F,0x0B,		// ud2
+	0x0F,0x05,		// syscall
 	0x0F,0x34,		// sysenter
 	0x0F,0x35,		// sysexit
+	0x0F,0x07,		// sysret
 	0x0F,0xAE,0xE8,		// lfence
 	0x0F,0xAE,0xF0,		// mfence
 	0x0F,0xAE,0xF8,		// sfence
@@ -883,8 +884,10 @@ void test13()
     {
 	call	L1			;
 	ud2				;
+	syscall				;
 	sysenter			;
 	sysexit				;
+	sysret				;
 	lfence				;
 	mfence				;
 	sfence				;
@@ -2524,10 +2527,10 @@ void fn26(ref byte val)
 void test26()
 {
     byte b;
-    printf( "%i\n", b );
+    //printf( "%i\n", b );
     assert(b == 0);
     fn26(b);
-    printf( "%i\n", b );
+    //printf( "%i\n", b );
     assert(b == 1);
 }
 
@@ -3840,6 +3843,183 @@ class Test51
 
 /****************************************************/
 
+void test52()
+{   int x;
+    ubyte* p;
+    static ubyte data[] =
+    [
+	0xF6, 0xD8,             	// neg	AL
+0x66, 	0xF7, 0xD8,             	// neg	AX
+	0xF7, 0xD8,             	// neg	EAX
+	0xF6, 0xDC,             	// neg	AH
+
+	0xF7, 0x5D, 0xe8,          	// neg	dword ptr -8[EBP]
+	0xF6, 0x1B,             	// neg	byte ptr [EBX]
+    ];
+
+    asm
+    {
+	call	L1	;
+
+	neg	AL	;
+	neg	AX	;
+	neg	EAX	;
+	neg	AH	;
+//	neg	b	;
+//	neg	w	;
+//	neg	i	;
+//	neg	l	;
+	neg	x	;
+	neg	[EBX]	;
+
+L1:	pop	EAX	;
+	mov	p[EBP],EAX ;
+    }
+
+    foreach (i,b; data)
+    {
+	//printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+	assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
+void test53()
+{   int x;
+    ubyte* p;
+    static ubyte data[] =
+    [
+	0x8D, 0x04, 0x00,       	// lea	EAX,[EAX][EAX]
+	0x8D, 0x04, 0x08,       	// lea	EAX,[ECX][EAX]
+	0x8D, 0x04, 0x10,       	// lea	EAX,[EDX][EAX]
+	0x8D, 0x04, 0x18,       	// lea	EAX,[EBX][EAX]
+	0x8D, 0x04, 0x28,       	// lea	EAX,[EBP][EAX]
+	0x8D, 0x04, 0x30,       	// lea	EAX,[ESI][EAX]
+	0x8D, 0x04, 0x38,       	// lea	EAX,[EDI][EAX]
+	0x8D, 0x04, 0x00,       	// lea	EAX,[EAX][EAX]
+	0x8D, 0x04, 0x01,       	// lea	EAX,[EAX][ECX]
+	0x8D, 0x04, 0x02,       	// lea	EAX,[EAX][EDX]
+	0x8D, 0x04, 0x03,       	// lea	EAX,[EAX][EBX]
+	0x8D, 0x04, 0x04,       	// lea	EAX,[EAX][ESP]
+	0x8D, 0x44, 0x05, 0x00, 	// lea	EAX,0[EAX][EBP]
+	0x8D, 0x04, 0x06,       	// lea	EAX,[EAX][ESI]
+	0x8D, 0x04, 0x07,       	// lea	EAX,[EAX][EDI]
+	0x8D, 0x44, 0x01, 0x12,    			// lea	EAX,012h[EAX][ECX]
+	0x8D, 0x84, 0x01, 0x34, 0x12, 0x00, 0x00, 	// lea	EAX,01234h[EAX][ECX]
+	0x8D, 0x84, 0x01, 0x78, 0x56, 0x34, 0x12, 	// lea	EAX,012345678h[EAX][ECX]
+	0x8D, 0x44, 0x05, 0x12,    			// lea	EAX,012h[EAX][EBP]
+	0x8D, 0x84, 0x05, 0x34, 0x12, 0x00, 0x00, 	// lea	EAX,01234h[EAX][EBP]
+	0x8D, 0x84, 0x05, 0x78, 0x56, 0x34, 0x12, 	// lea	EAX,012345678h[EAX][EBP]
+    ];
+
+    asm
+    {
+	call	L1	;
+
+	// Right
+	lea EAX, [EAX+EAX];
+	lea EAX, [EAX+ECX];
+	lea EAX, [EAX+EDX];
+	lea EAX, [EAX+EBX];
+	//lea EAX, [EAX+ESP]; RSP can't be on the right
+	lea EAX, [EAX+EBP];
+	lea EAX, [EAX+ESI];
+	lea EAX, [EAX+EDI];
+	// Left
+	lea EAX, [EAX+EAX];
+	lea EAX, [ECX+EAX];
+	lea EAX, [EDX+EAX];
+	lea EAX, [EBX+EAX];
+	lea EAX, [ESP+EAX];
+	lea EAX, [EBP+EAX]; // Good gets disp+8 correctly
+	lea EAX, [ESI+EAX];
+	lea EAX, [EDI+EAX];
+
+	// Disp8/32 checks
+	lea EAX, [ECX+EAX+0x12];
+	lea EAX, [ECX+EAX+0x1234];
+	lea EAX, [ECX+EAX+0x1234_5678];
+	lea EAX, [EBP+EAX+0x12];
+	lea EAX, [EBP+EAX+0x1234];
+	lea EAX, [EBP+EAX+0x1234_5678];
+
+L1:	pop	EAX	;
+	mov	p[EBP],EAX ;
+    }
+
+    foreach (i,b; data)
+    {
+	//printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+	assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
+void test54()
+{   int x;
+    ubyte* p;
+    static ubyte data[] =
+    [
+        0xFE, 0xC8,                // dec    AL
+        0xFE, 0xCC,                // dec    AH
+  0x66, 0x48,                      // dec    AX
+        0x48,                      // dec    EAX
+
+        0xFE, 0xC0,                // inc    AL
+        0xFE, 0xC4,                // inc    AH
+  0x66, 0x40,                      // inc    AX
+        0x40,                      // inc    EAX
+
+  0x66, 0x0F, 0xA4, 0xC8, 0x04,    // shld    AX,  CX, 4
+  0x66, 0x0F, 0xA5, 0xC8,          // shld    AX,  CX, CL
+        0x0F, 0xA4, 0xC8, 0x04,    // shld   EAX, ECX, 4
+        0x0F, 0xA5, 0xC8,          // shld   EAX, ECX, CL
+
+  0x66, 0x0F, 0xAC, 0xC8, 0x04,    // shrd    AX,  CX, 4
+  0x66, 0x0F, 0xAD, 0xC8,          // shrd    AX,  CX, CL
+        0x0F, 0xAC, 0xC8, 0x04,    // shrd   EAX, ECX, 4
+        0x0F, 0xAD, 0xC8,          // shrd   EAX, ECX, CL
+    ];
+
+    asm
+    {
+        call  L1;
+
+        dec   AL;
+        dec   AH;
+        dec   AX;
+        dec   EAX;
+
+        inc   AL;
+        inc   AH;
+        inc   AX;
+        inc   EAX;
+
+        shld   AX,  CX, 4;
+        shld   AX,  CX, CL;
+        shld  EAX, ECX, 4;
+        shld  EAX, ECX, CL;
+
+        shrd   AX,  CX, 4;
+        shrd   AX,  CX, CL;
+        shrd  EAX, ECX, 4;
+        shrd  EAX, ECX, CL;
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
 /* ======================= SSSE3 ======================= */
 
 /*
@@ -3921,6 +4101,10 @@ int main()
     test48();
     test49();
     test50();
+    //Test51
+    test52();
+    test53();
+    test54();
   }
     printf("Success\n");
     return 0;
