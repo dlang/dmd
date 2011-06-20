@@ -4219,8 +4219,7 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
         /* If we're catching Object, then there is no throwing
          */
         Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
-        if (i == 0 &&
-            (id == Id::Object || id == Id::Throwable || id == Id::Exception))
+        if (id == Id::Object || id == Id::Throwable || id == Id::Exception)
         {
             result &= ~BEthrow;
         }
