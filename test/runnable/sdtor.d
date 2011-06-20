@@ -1621,6 +1621,27 @@ void test57()
 }
 
 /**********************************/
+// 5574
+
+struct foo5574a
+{
+    ~this() {}
+}
+class bar5574a
+{
+    foo5574a[1] frop;
+}
+
+struct foo5574b
+{
+    this(this){}
+}
+struct bar5574b
+{
+    foo5574b[1] frop;
+}
+
+/**********************************/
 
 int main()
 {
