@@ -47,6 +47,7 @@ struct TryCatchStatement;
 struct TryFinallyStatement;
 struct CaseStatement;
 struct DefaultStatement;
+struct LabelStatement;
 struct HdrGenState;
 struct InterState;
 
@@ -122,6 +123,7 @@ struct Statement : Object
     virtual IfStatement *isIfStatement() { return NULL; }
     virtual CaseStatement *isCaseStatement() { return NULL; }
     virtual DefaultStatement *isDefaultStatement() { return NULL; }
+    virtual LabelStatement *isLabelStatement() { return NULL; }
 };
 
 struct PeelStatement : Statement
@@ -811,6 +813,7 @@ struct LabelStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
+    LabelStatement *isLabelStatement() { return this; }
 
     void toIR(IRState *irs);
 };
