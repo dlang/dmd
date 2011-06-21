@@ -242,7 +242,7 @@ static assert(Matrix5248().Compile());
     Bug 6164
 **************************************************/
 
-int bug6164(){
+size_t bug6164(){
     int[] ctfe2(int n){
         int[] r=[];
         if(n!=0) r~=[1] ~ ctfe2(n-1);
