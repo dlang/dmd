@@ -1739,7 +1739,23 @@ Lcont:
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
+
+    // may not use registers if still blocked by parameters
+    regm_t usedregm = 0;
+    regm_t oldusedregm;
+    vec_t vdefer = NULL;
     for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        if (s->Sclass == SCfastpar)
+            usedregm |= mask[s->Spreg];
+    }
+
+    int firstpass = 1;
+Ldeferagain:
+    oldusedregm = usedregm;
+    for (si = firstpass ? 0 : vec_index(0, vdefer);
+         si < globsym.top;
+         si = firstpass ? si+1 : vec_index(si, vdefer))
     {   symbol *s = globsym.tab[si];
         code *c2;
         unsigned sz = type_size(s->Stype);
@@ -1755,6 +1771,15 @@ Lcont:
         {
             /* MOV reg,param[BP]        */
             //assert(refparam);
+            if (usedregm & s->Sregm)
+            {   if (!vdefer) vdefer = vec_calloc(globsym.top);
+                vec_setbit(si, vdefer);
+                continue;
+            }
+            if (vdefer)
+                vec_clearbit(si, vdefer);
+            usedregm |= mask[s->Sreglsw];
+
             code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
                 modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
             if (!I16 && sz == SHORTSIZE)
@@ -1770,6 +1795,7 @@ Lcont:
             }
             if (sz > REGSIZE)
             {
+                usedregm |= mask[s->Sregmsw];
                 code *c3 = genc1(CNIL,0x8B,
                     modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
                 if (I64)
@@ -1789,13 +1815,33 @@ Lcont:
         {   // Argument is passed in a register
             unsigned preg = s->Spreg;
 
+            usedregm &= ~mask[preg];
             namedargs |= mask[preg];
 
             if (s->Sfl == FLreg)
             {   // MOV reg,preg
-                c = genmovreg(c,s->Sreglsw,preg);
-                if (I64 && sz == 8)
-                    code_orrex(c, REX_W);
+                if (usedregm & mask[s->Sreglsw])
+                {   if (!vdefer) vdefer = vec_calloc(globsym.top);
+                    vec_setbit(si, vdefer);
+                    // no move -> add back bitmask
+                    usedregm |= mask[preg];
+                    continue;
+                }
+                if (vdefer)
+                    vec_clearbit(si, vdefer);
+
+                usedregm |= mask[s->Sreglsw];
+                if (s->Sreglsw != preg)
+                {   c = genmovreg(c,s->Sreglsw,preg);
+                    if (I64 && sz == 8)
+                        code_orrex(c, REX_W);
+                }
+                else
+                {   // stays in place
+                    // clear bit in oldusedregm to pretend progress
+                    assert(oldusedregm & mask[preg]);
+                    oldusedregm &= ~mask[preg];
+                }
             }
             else if (s->Sflags & SFLdead ||
                 (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
@@ -1869,6 +1915,12 @@ Lcont:
             }
         }
     }
+    firstpass = 0;
+    // need to assert progress to abort mutually blocking parameters
+    assert(!oldusedregm || usedregm != oldusedregm);
+    if (vdefer && vec_index(0, vdefer) != globsym.top)
+        goto Ldeferagain;
+    vec_free(vdefer);
 
     /* Load arguments passed in registers into the varargs save area
      * so they can be accessed by va_arg().
