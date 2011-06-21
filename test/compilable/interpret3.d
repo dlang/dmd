@@ -1751,6 +1751,8 @@ bool bug4065(string s) {
     else if (s=="bb")
         assert(*p == 2);
     else assert(!p);
+    int[string] zz;
+    assert(!("xx" in zz));
     bool c = !p;
     return cast(bool)(s in aa);
 }
