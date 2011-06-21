@@ -5,7 +5,11 @@
 
 import std.stdio;
 
-version (D_InlineAsm_X86)
+version (D_PIC)
+{
+    int main() { return 0; }
+}
+else version (D_InlineAsm_X86)
 {
 
 struct M128 { int a,b,c,d; };
