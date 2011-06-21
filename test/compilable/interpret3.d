@@ -1769,3 +1769,27 @@ static assert(
     int *p = &x[1];
     return p ? true: false;
 }());
+
+/**************************************************
+    Pointer slicing
+**************************************************/
+
+int ptrSlice()
+{
+    auto arr = new int[5];
+    int * x = &arr[0];
+    int [] y = x[0..5];
+    x[1..3] = 6;
+    ++x;
+    x[1..3] = 14;
+    assert(arr[1]==6);
+    assert(arr[2]==14);
+    x[-1..4]= 5;
+    int [] z = arr[1..2];
+    z.length = 4;
+    z[$-1] = 17;
+    assert(arr.length ==5);
+    return 2;
+}
+
+static assert(ptrSlice()==2);
