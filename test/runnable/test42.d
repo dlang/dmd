@@ -4178,6 +4178,31 @@ void bug3809b() {
 
 /***************************************************/
 
+struct S6189 {
+  float x, y;
+}
+
+void f6189(S6189 p0, S6189 p1, S6189 p2, ref S6189[3] quad) {
+  quad[0] = p0;
+  quad[1] = S6189(p1.x, p1.y);
+  quad[$-1] = p2;
+}
+
+void bug6189() {
+  auto p0 = S6189(0, 0);
+  auto p1 = S6189(1, 1);
+  auto p2 = S6189(2, 2);
+
+  // avoid inline of call
+  S6189[3] quad;
+  auto f = &f6189;
+  f(p0, p1, p2, quad);
+
+  assert(quad == [p0, p1, p2]);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4401,6 +4426,7 @@ int main()
     test231();
     test232();
     test233();
+    bug6189();
 
     writefln("Success");
     return 0;
