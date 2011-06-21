@@ -3489,7 +3489,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             return EXP_CANT_INTERPRET;
         }
         if (upperbound == lowerbound)
-            return returnValue;
+            return newval;
 
         Expression *aggregate = resolveReferences(((SliceExp *)e1)->e1, istate->localThis);
         int firstIndex = lowerbound;
