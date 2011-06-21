@@ -1439,7 +1439,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             if (e && e != EXP_CANT_INTERPRET)
                 v->setValueWithoutChecking(e);
         }
-        else if ((v->isCTFE() || (!v->isDataseg() && istate)) && !v->getValue())
+        else if (v->isCTFE() && !v->getValue())
         {
             if (v->init && v->type->size() != 0)
             {
