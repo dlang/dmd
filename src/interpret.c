@@ -4261,10 +4261,7 @@ Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
     if (e2 == EXP_CANT_INTERPRET)
         return e2;
     if (e2->op == TOKnull)
-    {
-        error("cannot use 'in' on a null associative array");
-        return EXP_CANT_INTERPRET;
-    }
+        return new NullExp(loc, type);
     if (e2->op != TOKassocarrayliteral)
     {
         error(" %s cannot be interpreted at compile time", toChars());
