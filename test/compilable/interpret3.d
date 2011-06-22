@@ -1795,3 +1795,45 @@ int ptrSlice()
 }
 
 static assert(ptrSlice()==2);
+
+/**************************************************
+    4448 - labelled break + continue
+**************************************************/
+
+int bug4448()
+{
+    int n=2;
+    L1:{ switch(n)
+    {
+       case 5:
+        return 7;
+       default:
+       n = 5;
+       break L1;
+    }
+    int w = 7;
+    }
+    return 3;
+}
+
+static assert(bug4448()==3);
+
+int bug4448b()
+{
+    int n=2;
+    L1:for (n=2; n<5; ++n)
+    {
+        for (int m=1; m<6; ++m)
+        {
+            if (n<3)
+            {
+                assert(m==1);
+                continue L1;
+            }
+        }
+        break;
+    }
+    return 3;
+}
+
+static assert(bug4448b()==3);
