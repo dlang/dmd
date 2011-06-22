@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -45,6 +45,9 @@ struct GotoStatement;
 struct ScopeStatement;
 struct TryCatchStatement;
 struct TryFinallyStatement;
+struct CaseStatement;
+struct DefaultStatement;
+struct LabelStatement;
 struct HdrGenState;
 struct InterState;
 
@@ -122,6 +125,9 @@ struct Statement : Object
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
     virtual IfStatement *isIfStatement() { return NULL; }
+    virtual CaseStatement *isCaseStatement() { return NULL; }
+    virtual DefaultStatement *isDefaultStatement() { return NULL; }
+    virtual LabelStatement *isLabelStatement() { return NULL; }
 };
 
 struct PeelStatement : Statement
@@ -484,6 +490,7 @@ struct CaseStatement : Statement
     int comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    CaseStatement *isCaseStatement() { return this; }
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -521,6 +528,7 @@ struct DefaultStatement : Statement
     int comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    DefaultStatement *isDefaultStatement() { return this; }
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -795,6 +803,7 @@ struct LabelStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
+    LabelStatement *isLabelStatement() { return this; }
 
     void toIR(IRState *irs);
 };
