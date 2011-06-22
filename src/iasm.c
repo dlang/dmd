@@ -4394,8 +4394,11 @@ Statement *AsmStatement::semantic(Scope *sc)
     //printf("AsmStatement::semantic()\n");
 
 #if DMDV2
-    if (sc->func && sc->func->isSafe())
-        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    if (sc->func)
+    {
+        if (sc->func->setUnsafe())
+            error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    }
 #endif
 
     OP *o;

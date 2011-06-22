@@ -579,6 +579,8 @@ struct FuncDeclaration : Declaration
 
     unsigned flags;
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
+    #define FUNCFLAGsafetyInprocess 2   // working on determining safety
+    #define FUNDFLAGSnothrowInprocess 4 // working on determining nothrow
 #else
     int nestedFrameRef;                 // !=0 if nested variables referenced
 #endif
@@ -621,6 +623,7 @@ struct FuncDeclaration : Declaration
     bool setImpure();
     int isSafe();
     int isTrusted();
+    bool setUnsafe();
     virtual int isNested();
     int needThis();
     virtual int isVirtual();

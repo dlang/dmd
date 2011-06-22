@@ -249,16 +249,20 @@ void FuncDeclaration::semantic(Scope *sc)
     linkage = sc->linkage;
     protection = sc->protection;
 
-    /* Purity for literals and function templates is determined by examining the body
-     * of the function, unless overridden with the keyword.
+    /* Purity and safety can be inferred for some functions by examining
+     * the function body.
      */
     if (fbody &&
-        f->purity == PUREimpure &&      // purity not specified
-        (isFuncLiteralDeclaration() || parent->isTemplateInstance()) &&
-        !f->hasLazyParameters()
-       )
+        (isFuncLiteralDeclaration() || parent->isTemplateInstance()))
     {
-        flags |= FUNCFLAGpurityInprocess;
+        if (f->purity == PUREimpure &&      // purity not specified
+            !f->hasLazyParameters()
+           )
+        {
+            flags |= FUNCFLAGpurityInprocess;
+        }
+        if (f->trust == TRUSTdefault)
+            flags |= FUNCFLAGsafetyInprocess;
     }
 
     if (storage_class & STCscope)
@@ -1634,6 +1638,12 @@ void FuncDeclaration::semantic3(Scope *sc)
         f->purity = PUREfwdref;
     }
 
+    if (flags & FUNCFLAGsafetyInprocess)
+    {
+        flags &= ~FUNCFLAGsafetyInprocess;
+        f->trust = TRUSTsafe;
+    }
+
     if (global.gag && global.errors != nerrors)
         semanticRun = PASSsemanticdone; // Ensure errors get reported again
     else
@@ -2639,6 +2649,8 @@ enum PURE FuncDeclaration::isPure()
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());
     assert(type->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)type;
+    if (flags & FUNCFLAGpurityInprocess)
+        setImpure();
     enum PURE purity = tf->purity;
     if (purity == PUREfwdref)
         tf->purityLevel();
@@ -2673,13 +2685,34 @@ bool FuncDeclaration::setImpure()
 int FuncDeclaration::isSafe()
 {
     assert(type->ty == Tfunction);
+    if (flags & FUNCFLAGsafetyInprocess)
+        setUnsafe();
     return ((TypeFunction *)type)->trust == TRUSTsafe;
 }
 
 int FuncDeclaration::isTrusted()
 {
     assert(type->ty == Tfunction);
+    if (flags & FUNCFLAGsafetyInprocess)
+        setUnsafe();
     return ((TypeFunction *)type)->trust == TRUSTtrusted;
+}
+
+/**************************************
+ * The function is doing something unsave,
+ * so mark it as unsafe.
+ * If there's a safe error, return TRUE.
+ */
+bool FuncDeclaration::setUnsafe()
+{
+    if (flags & FUNCFLAGsafetyInprocess)
+    {
+        flags &= ~FUNCFLAGsafetyInprocess;
+        ((TypeFunction *)type)->trust = TRUSTsystem;
+    }
+    else if (isSafe())
+        return TRUE;
+    return FALSE;
 }
 
 // Determine if function needs
