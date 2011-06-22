@@ -63,6 +63,7 @@ struct TemplateDeclaration : ScopeDsymbol
 
     int literal;                // this template declaration is a literal
     int ismixin;                // template declaration is only to be used as a mixin
+    enum PROT protection;
 
     struct Previous
     {   Previous *prev;

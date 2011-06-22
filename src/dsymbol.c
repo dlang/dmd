@@ -31,6 +31,7 @@
 #include "import.h"
 #include "template.h"
 #include "attrib.h"
+#include "enum.h"
 
 /****************************** Dsymbol ******************************/
 
@@ -850,11 +851,27 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
         if (s)
         {
-            Declaration *d = s->isDeclaration();
-            if (d && d->protection == PROTprivate &&
-                !d->parent->isTemplateMixin() &&
-                !(flags & 2))
-                error(loc, "%s is private", d->toPrettyChars());
+            if (!(flags & 2))
+            {   Declaration *d = s->isDeclaration();
+                if (d && d->protection == PROTprivate &&
+                    !d->parent->isTemplateMixin())
+                    error(loc, "%s is private", d->toPrettyChars());
+
+                AggregateDeclaration *ad = s->isAggregateDeclaration();
+                if (ad && ad->protection == PROTprivate &&
+                    !ad->parent->isTemplateMixin())
+                    error(loc, "%s is private", ad->toPrettyChars());
+
+                EnumDeclaration *ed = s->isEnumDeclaration();
+                if (ed && ed->protection == PROTprivate &&
+                    !ed->parent->isTemplateMixin())
+                    error(loc, "%s is private", ed->toPrettyChars());
+
+                TemplateDeclaration *td = s->isTemplateDeclaration();
+                if (td && td->protection == PROTprivate &&
+                    !td->parent->isTemplateMixin())
+                    error(loc, "%s is private", td->toPrettyChars());
+            }
         }
     }
     return s;

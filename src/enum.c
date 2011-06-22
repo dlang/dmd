@@ -115,6 +115,7 @@ void EnumDeclaration::semantic(Scope *sc)
         isdeprecated = 1;
 
     parent = sc->parent;
+    protection = sc->protection;
 
     /* The separate, and distinct, cases are:
      *  1. enum { ... }
