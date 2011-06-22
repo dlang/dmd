@@ -1853,13 +1853,17 @@ code *cdcmp(elem *e,regm_t *pretregs)
             reg = findregmsw(retregs);
             rreg = findregmsw(rretregs);
             c = genregs(CNIL,0x3B ^ reverse,reg,rreg);  /* CMP reg,rreg */
-            if (!I16 && sz == 6)
+            if (I32 && sz == 6)
                 c->Iflags |= CFopsize;          /* seg is only 16 bits  */
+            else if (I64)
+                code_orrex(c, REX_W);
             genjmp(c,JNE,FLcode,(block *) ce);          /* JNE nop      */
 
             reg = findreglsw(retregs);
             rreg = findreglsw(rretregs);
             genregs(c,0x3B ^ reverse,reg,rreg);         /* CMP reg,rreg */
+            if (I64)
+                code_orrex(c, REX_W);
         }
         break;
       case OPrelconst:
