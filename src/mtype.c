@@ -5093,10 +5093,8 @@ void TypeFunction::purityLevel()
             {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
                 if (fparam->storageClass & STClazy)
                 {
-                    /* We could possibly allow this by doing further analysis on the
-                     * lazy parameter to see if it's pure.
-                     */
-                    error(0, "cannot have lazy parameters to a pure function");
+                    tf->purity = PUREweak;
+                    break;
                 }
                 if (fparam->storageClass & STCout)
                 {
