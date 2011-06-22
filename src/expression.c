@@ -7077,7 +7077,8 @@ Lagain:
     }
 
     if (e1->op == TOKcomma)
-    {
+    {   /* Rewrite (a,b)(args) as (a,(b(args)))
+         */
         CommaExp *ce = (CommaExp *)e1;
 
         e1 = ce->e2;
@@ -9274,7 +9275,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-#if 0   // Masked to allow rewriting to a.opIndex(i) = value
+#if 0 // Turned off to allow rewriting (a[i]=value) to (a.opIndex(i)=value)
             else
             {
                 // Rewrite (a[i] = value) to (a.opIndex(i, value))
@@ -9388,14 +9389,25 @@ Expression *AssignExp::semantic(Scope *sc)
     Type *t1 = e1->type->toBasetype();
 
     if (t1->ty == Tfunction)
-    {   // Rewrite f=value to f(value)
-        Expression *e = new CallExp(loc, e1, e2);
-        e = e->trySemantic(sc);
-        if (e)
+    {   /* We have f=value.
+         * Could mean:
+         *      f() = value
+         * or:
+         *      f(value)
+         */
+        TypeFunction *tf = (TypeFunction *)t1;
+        if (tf->isref)
+        {
+            // Rewrite e1 = e2 to e1() = e2
+            e1 = resolveProperties(sc, e1);
+        }
+        else
+        {
+            // Rewrite f=value to f(value)
+            Expression *e = new CallExp(loc, e1, e2);
+            e = e->semantic(sc);
             return e;
-
-        // Rewrite e1 = e2 to e1() = e2
-        e1 = resolveProperties(sc, e1);
+        }
     }
 
     /* If it is an assignment from a 'foreign' type,
