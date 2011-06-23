@@ -176,7 +176,7 @@ string genTempFilename()
     foreach (ref e; 0 .. 8)
     {  
         formattedWrite(a, "%x", rndGen.front);
-        rndGen.popFront;
+        rndGen.popFront();
     }
 
     return a.data;

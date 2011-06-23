@@ -124,6 +124,7 @@ struct Parser : Lexer
     int isExpression(Token **pt);
     int isTemplateInstance(Token *t, Token **pt);
     int skipParens(Token *t, Token **pt);
+    int skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();
