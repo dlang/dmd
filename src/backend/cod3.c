@@ -1742,17 +1742,18 @@ Lcont:
 
     // may not use registers if still blocked by parameters
     regm_t usedregm = 0;
-    regm_t oldusedregm;
-    vec_t vdefer = NULL;
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
         if (s->Sclass == SCfastpar)
             usedregm |= mask[s->Spreg];
     }
 
-    int firstpass = 1;
+    vec_t vdefer = NULL;
+    int firstpass = 1, progress;
 Ldeferagain:
-    oldusedregm = usedregm;
+    // need to assert progress to abort mutually blocking parameters
+    assert(firstpass || progress);
+    progress = 0;
     for (si = firstpass ? 0 : vec_index(0, vdefer);
          si < globsym.top;
          si = firstpass ? si+1 : vec_index(si, vdefer))
@@ -1779,6 +1780,7 @@ Ldeferagain:
             if (vdefer)
                 vec_clearbit(si, vdefer);
             usedregm |= mask[s->Sreglsw];
+            progress = 1;
 
             code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
                 modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
@@ -1823,7 +1825,7 @@ Ldeferagain:
                 if (usedregm & mask[s->Sreglsw])
                 {   if (!vdefer) vdefer = vec_calloc(globsym.top);
                     vec_setbit(si, vdefer);
-                    // no move -> add back bitmask
+                    // no move -> register stays occupied
                     usedregm |= mask[preg];
                     continue;
                 }
@@ -1831,16 +1833,12 @@ Ldeferagain:
                     vec_clearbit(si, vdefer);
 
                 usedregm |= mask[s->Sreglsw];
+                progress = 1;
+
                 if (s->Sreglsw != preg)
                 {   c = genmovreg(c,s->Sreglsw,preg);
                     if (I64 && sz == 8)
                         code_orrex(c, REX_W);
-                }
-                else
-                {   // stays in place
-                    // clear bit in oldusedregm to pretend progress
-                    assert(oldusedregm & mask[preg]);
-                    oldusedregm &= ~mask[preg];
                 }
             }
             else if (s->Sflags & SFLdead ||
@@ -1852,12 +1850,14 @@ Ldeferagain:
                  (config.flags4 & CFG4optimized || !config.fulltypes)))
             {
                 // Ignore it, as it is never referenced
-                ;
+                progress = 1;
             }
             else
             {
                 targ_size_t offset = Aoff + BPoff + s->Soffset;
                 int op = 0x89;                  // MOV x[EBP],preg
+                progress = 1;
+
                 if (preg >= XMM0 && preg <= XMM15)
                 {
                     if (sz == 8)
@@ -1916,8 +1916,6 @@ Ldeferagain:
         }
     }
     firstpass = 0;
-    // need to assert progress to abort mutually blocking parameters
-    assert(!oldusedregm || usedregm != oldusedregm);
     if (vdefer && vec_index(0, vdefer) != globsym.top)
         goto Ldeferagain;
     vec_free(vdefer);
