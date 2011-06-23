@@ -2948,7 +2948,7 @@ int SwitchStatement::blockExit(bool mustNotThrow)
 
 void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("switch (");
+    buf->writestring(isFinal ? "final switch (" : "switch (");
     condition->toCBuffer(buf, hgs);
     buf->writebyte(')');
     buf->writenl();
