@@ -580,7 +580,7 @@ struct FuncDeclaration : Declaration
     unsigned flags;
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
     #define FUNCFLAGsafetyInprocess 2   // working on determining safety
-    #define FUNDFLAGSnothrowInprocess 4 // working on determining nothrow
+    #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
 #else
     int nestedFrameRef;                 // !=0 if nested variables referenced
 #endif
