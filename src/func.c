@@ -263,6 +263,9 @@ void FuncDeclaration::semantic(Scope *sc)
         }
         if (f->trust == TRUSTdefault)
             flags |= FUNCFLAGsafetyInprocess;
+
+        if (!f->isnothrow)
+            flags |= FUNCFLAGnothrowInprocess;
     }
 
     if (storage_class & STCscope)
@@ -1331,7 +1334,11 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
                 error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
-            else if (!(hasReturnExp & 8))               // if no inline asm
+            else if (hasReturnExp & 8)               // if inline asm
+            {
+                flags &= ~FUNCFLAGnothrowInprocess;
+            }
+            else
             {
 #if DMDV2
                 // Check for errors related to 'nothrow'.
@@ -1339,6 +1346,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 int blockexit = fbody ? fbody->blockExit(f->isnothrow) : BEfallthru;
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
+                if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    flags &= ~FUNCFLAGnothrowInprocess;
+                    if (!(blockexit & BEthrow))
+                        f->isnothrow = TRUE;
+                }
 
                 int offend = blockexit & BEfallthru;
 #endif
