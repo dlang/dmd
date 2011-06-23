@@ -2953,6 +2953,54 @@ void bar150(T)(T n) {  }
 
 /***************************************************/
 
+void bar151(T)(T n) {  }
+
+nothrow void test151()
+{
+    bar151(1);
+}
+
+/***************************************************/
+
+@property int coo() { return 1; }
+@property auto doo(int i) { return i; }
+
+@property int eoo() { return 1; }
+@property auto ref hoo(int i) { return i; }
+
+// 3359
+
+int goo(int i) pure { return i; }
+auto ioo(int i) pure { return i; }
+auto ref boo(int i) pure nothrow { return i; }
+
+class A152 {
+    auto hoo(int i) pure  { return i; }
+    const boo(int i) const { return i; }
+    auto coo(int i) const { return i; }
+    auto doo(int i) immutable { return i; }
+    auto eoo(int i) shared { return i; }
+} 
+
+// 4706
+
+struct Foo152(T) {
+    @property auto ref front() {
+        return T.init;
+    }
+
+    @property void front(T num) {}
+}
+
+void test152() {
+    Foo152!int foo;
+    auto a = foo.front;
+    foo.front = 2;
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3105,6 +3153,8 @@ int main()
     test148();
     test149();
     test150();
+    test151();
+    test152();
 
     printf("Success\n");
     return 0;
