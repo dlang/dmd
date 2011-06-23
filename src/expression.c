@@ -7714,6 +7714,8 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
         UnaExp::semantic(sc);
+        if (e1->type == Type::terror)
+            return new ErrorExp();
         e1 = e1->toLvalue(sc, NULL);
         if (e1->op == TOKerror)
             return e1;
