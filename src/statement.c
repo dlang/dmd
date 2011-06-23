@@ -1748,7 +1748,7 @@ Lagain:
 
             // __r.next
             e = new VarExp(loc, r);
-            Expression *increment = new DotIdExp(loc, e, idnext);
+            Expression *increment = new CallExp(loc, new DotIdExp(loc, e, idnext));
 
             /* Declaration statement for e:
              *    auto e = __r.idhead;

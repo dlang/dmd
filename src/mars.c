@@ -277,6 +277,7 @@ Usage:\n\
   --help         print help\n\
   -Ipath         where to look for imports\n\
   -ignore        ignore unsupported pragmas\n\
+  -property      enforce property syntax\n\
   -inline        do function inlining\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
@@ -588,6 +589,8 @@ int main(int argc, char *argv[])
             }
             else if (strcmp(p + 1, "ignore") == 0)
                 global.params.ignoreUnsupportedPragmas = 1;
+            else if (strcmp(p + 1, "property") == 0)
+                global.params.enforcePropertySyntax = 1;
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = 1;
             else if (strcmp(p + 1, "lib") == 0)
