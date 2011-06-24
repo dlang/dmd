@@ -1138,6 +1138,9 @@ class Thread
 
 
     /**
+     * $(RED Scheduled for deprecation in December 2011. Please use the version
+     *       which takes a $(D Duration) instead.)
+     *
      * Suspends the calling thread for at least the supplied period.  This may
      * result in multiple OS calls if period is greater than the maximum sleep
      * duration supported by the operating system.
