@@ -691,7 +691,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (!ctor && baseClass && baseClass->ctor)
     {
         //printf("Creating default this(){} for class %s\n", toChars());
-		Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
+                Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
         CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
         ctor->fbody = new CompoundStatement(0, new Statements());
         members->push(ctor);
@@ -751,6 +751,12 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 #endif
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
+
+    if (deferred)
+    {
+        deferred->semantic2(sc);
+        deferred->semantic3(sc);
+    }
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

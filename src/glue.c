@@ -578,6 +578,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
     }
 
+    assert(semanticRun == PASSsemantic3done);
     semanticRun = PASSobj;
 
     if (global.params.verbose)
