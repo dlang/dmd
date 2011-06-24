@@ -1,11 +1,11 @@
 module imports.test41a;
 
-void foo()
+int foo()
 {
         assert(false, "GO");
 }
 
-public void func(T)()
+public int func(T)()
 {
         assert(false, "Blah");
 }
