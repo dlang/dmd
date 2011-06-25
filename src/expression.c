@@ -9582,6 +9582,17 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else if (e1->op == TOKslice)
     {
+        if (e2->op != TOKarrayliteral && e2->op != TOKstring)
+        {
+            Type *t1n = t1->toBasetype()->nextOf();
+            Type *t2n = t2->toBasetype()->nextOf();
+            assert(t1n && t2n);
+            if (!t2n->implicitConvTo(t1n))
+            {
+                error("cannot assign from %s to %s", t2->toChars(), t1->toChars());
+                return new ErrorExp();
+            }
+        }
         e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
     else
