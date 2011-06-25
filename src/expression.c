@@ -6401,6 +6401,8 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         {
             s = s->toAlias();
             checkDeprecated(sc, s);
+            if (Declaration *d = s->isDeclaration())
+                accessCheck(loc, sc, 0, d);
 
             EnumMember *em = s->isEnumMember();
             if (em)
