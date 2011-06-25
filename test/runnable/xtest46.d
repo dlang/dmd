@@ -3000,6 +3000,18 @@ void test152() {
 
 
 /***************************************************/
+// 3799
+
+void test153()
+{
+    void bar()
+    {
+    }
+
+    static assert(!__traits(isStaticFunction, bar));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3155,6 +3167,7 @@ int main()
     test150();
     test151();
     test152();
+    test153();
 
     printf("Success\n");
     return 0;
