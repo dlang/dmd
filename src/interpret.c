@@ -1726,6 +1726,15 @@ Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
             return ex;
         }
 
+        // A tuple of assignments can contain void (Bug 5676).
+        if (goal == ctfeNeedNothing)
+            continue;
+        if (ex == EXP_VOID_INTERPRET)
+        {
+            error("ICE: void element %s in tuple", e->toChars());
+            assert(0);
+        }
+
         /* If any changes, do Copy On Write
          */
         if (ex != e)
@@ -4002,7 +4011,7 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             return e2;
         return e2->interpret(istate, goal);
     }
-    Expression *e = e1->interpret(istate, goal);
+    Expression *e = e1->interpret(istate, ctfeNeedNothing);
     if (e != EXP_CANT_INTERPRET)
         e = e2->interpret(istate, goal);
     return e;
