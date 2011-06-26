@@ -51,7 +51,7 @@ void vec_init()
 void vec_term()
 {
     if (--vec_initcount == 0)
-    {   int i;
+    {
 
 #ifdef DEBUG
         if (vec_count != 0)

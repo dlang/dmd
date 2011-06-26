@@ -2138,7 +2138,7 @@ ILLEGAL_ADDRESS_ERROR:
  */
 
 STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
-{   Type *ptype;
+{
     VarDeclaration *v;
     EnumMember *em;
 
@@ -3211,7 +3211,6 @@ STATIC unsigned asm_type_size(Type * ptype)
 STATIC code *asm_da_parse(OP *pop)
 {
     code *clst = NULL;
-    elem *e;
 
     while (1)
     {   code *c;
@@ -3707,7 +3706,6 @@ STATIC OPND *asm_rel_exp()
 STATIC OPND *asm_shift_exp()
 {
     OPND *o1,*o2;
-    int op;
     enum TOK tk;
 
     o1 = asm_add_exp();
@@ -3852,7 +3850,6 @@ STATIC OPND *asm_mul_exp()
 STATIC OPND *asm_br_exp()
 {
     OPND *o1,*o2;
-    Declaration *s;
 
     //printf("asm_br_exp()\n");
     o1 = asm_una_exp();
@@ -3892,9 +3889,7 @@ STATIC OPND *asm_br_exp()
 STATIC OPND *asm_una_exp()
 {
         OPND *o1;
-        int op;
         Type *ptype;
-        Type *ptypeSpec;
         ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
         char bPtr = 0;
 
@@ -4064,11 +4059,9 @@ STATIC OPND *asm_primary_exp()
 {
         OPND *o1 = NULL;
         OPND *o2 = NULL;
-        Type *ptype;
         Dsymbol *s;
         Dsymbol *scopesym;
 
-        enum TOK tkOld;
         int global;
         REG *regp;
 
@@ -4405,10 +4398,6 @@ Statement *AsmStatement::semantic(Scope *sc)
     OPND *o1 = NULL,*o2 = NULL, *o3 = NULL;
     PTRNTAB ptb;
     unsigned usNumops;
-    unsigned char uchPrefix = 0;
-    unsigned char bAsmseen;
-    char *pszLabel = NULL;
-    code *c;
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);

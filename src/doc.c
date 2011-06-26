@@ -1013,8 +1013,7 @@ DocComment::DocComment()
 }
 
 DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
-{   unsigned idlen;
-
+{
     //printf("parse(%s): '%s'\n", s->toChars(), comment);
     if (sc->lastdc && isDitto(comment))
         return NULL;
@@ -1774,7 +1773,6 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 
     int leadingBlank = 1;
     int inCode = 0;
-    int inComment = 0;                  // in <!-- ... --> comment
     unsigned iCodeStart;                // start of code section
 
     unsigned iLineStart = offset;

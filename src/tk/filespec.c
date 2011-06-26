@@ -97,7 +97,7 @@ char * filespecrootpath(char *filespec)
 #define DIRCHAR ':'
 #endif
 
-    char *cwd, *cwd_t, cwd_d[132];
+    char *cwd, *cwd_t;
     char *p, *p2;
 
     if (!filespec)

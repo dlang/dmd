@@ -197,7 +197,7 @@ STATIC void rd_compute()
  */
 
 STATIC void conpropwalk(elem *n,vec_t IN)
-{       register unsigned op,i;
+{       register unsigned op;
         Elemdata *pdata;
         vec_t L,R;
         elem *t;
@@ -271,8 +271,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
 
         // Collect data for subsequent optimizations
         if (OTbinary(op) && n->E1->Eoper == OPvar && n->E2->Eoper == OPconst)
-        {   Symbol *v = n->E1->EV.sp.Vsym;
-
+        {
             switch (op)
             {
                 case OPlt:
@@ -451,7 +450,6 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 {
     elem *foundelem = NULL;
     int unambig;
-    register unsigned i;
     symbol *sv;
     tym_t nty;
     unsigned nsize;
@@ -763,7 +761,6 @@ STATIC void intranges()
 
         // Check that all paths from rdinc to rdinc must pass through rdrel
         {   int i;
-            block *b;
 
             // ib:      block of increment
             // rb:      block of relational
@@ -1152,7 +1149,7 @@ void rmdeadass()
                 vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
                 foreach (j,asstop,POSS) /* for each possible dead asg.  */
                 {       symbol *v;      /* v = target of assignment     */
-                        register elem *n,*t,*nv;
+                        register elem *n,*nv;
 
                         n = assnod[j];
                         nv = Elvalue(n);

@@ -35,7 +35,7 @@ ifeq (OSX,$(TARGET))
     ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
     SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
     SDK=/Developer/SDKs/MacOSX10.5.sdk
-    #SDK=/Developer/SDKs/MacOSX10.6.sdk
+    SDK=/Developer/SDKs/MacOSX10.6.sdk
 
     TARGET_CFLAGS=-isysroot ${SDK}
     LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
@@ -50,10 +50,10 @@ CC=g++ -m$(MODEL) $(TARGET_CFLAGS)
 
 #COV=-fprofile-arcs -ftest-coverage
 
-WARNINGS=-Wno-deprecated -Wstrict-aliasing
+WARNINGS=-Wno-deprecated -Wstrict-aliasing -Wall
 
-#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
+GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
+#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_$(TARGET)=1

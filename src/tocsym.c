@@ -754,7 +754,6 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
     __body
 #endif
     {
-        int sz;
         char *id;
         type *t;
         Symbol *s;

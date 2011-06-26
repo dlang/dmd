@@ -686,7 +686,6 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     code cs;
     code *cs1;
     code *cs2;
-    int i;
     regm_t desregs;
     int reg;
     int local_unwind;
@@ -886,7 +885,6 @@ code *nteh_monitor_epilog(regm_t retregs)
     code *cs1;
     code *cs2;
     code *cpop;
-    int i;
     regm_t desregs;
     Symbol *s;
 

@@ -692,7 +692,6 @@ StorageClass Parser::parsePostfix()
 Dsymbols *Parser::parseBlock()
 {
     Dsymbols *a = NULL;
-    Dsymbol *s;
 
     //printf("parseBlock()\n");
     switch (token.value)
@@ -911,8 +910,6 @@ Condition *Parser::parseVersionCondition()
 Condition *Parser::parseStaticIfCondition()
 {   Expression *exp;
     Condition *condition;
-    Array *aif;
-    Array *aelse;
     Loc loc = this->loc;
 
     nextToken();
@@ -1214,7 +1211,7 @@ Parameters *Parser::parseParameters(int *pvarargs)
 
     check(TOKlparen);
     while (1)
-    {   Type *tb;
+    {
         Identifier *ai = NULL;
         Type *at;
         Parameter *a;
@@ -2871,7 +2868,6 @@ L2:
         }
         else if (t->ty == Tfunction)
         {
-            TypeFunction *tf = (TypeFunction *)t;
             Expression *constraint = NULL;
 #if 0
             if (Parameter::isTPL(tf->parameters))
@@ -4354,9 +4350,6 @@ int Parser::isBasicType(Token **pt)
 {
     // This code parallels parseBasicType()
     Token *t = *pt;
-    Token *t2;
-    int parens;
-    int haveId = 0;
 
     switch (t->value)
     {
@@ -5463,7 +5456,6 @@ Expression *Parser::parsePostExp(Expression *e)
                     nextToken();
                     if (token.value == TOKnot && peekNext() != TOKis)
                     {   // identifier!(template-argument-list)
-                        TemplateInstance *tempinst = new TemplateInstance(loc, id);
                         Objects *tiargs;
                         nextToken();
                         if (token.value == TOKlparen)

@@ -1594,7 +1594,6 @@ code *loadComplex(elem *e)
 
 code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
 {
-        elem *e1;
         code *ccomma,*c,*c2,*cpush;
         code cs;
         regm_t retregs;
@@ -1790,8 +1789,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 break;
 
             case OPu16_d:
-            {   regm_t mswregs;
-
+            {
                 /* This opcode should never be generated        */
                 /* (probably shouldn't be for 16 bit code too)  */
                 assert(!I32);
@@ -2188,7 +2186,6 @@ code *cnvteq87(elem *e,regm_t *pretregs)
         code cs;
         unsigned op1;
         unsigned op2;
-        tym_t ty1;
 
         assert(e->Eoper == OPeq);
         assert(!*pretregs);
@@ -2373,7 +2370,6 @@ code *opass87(elem *e,regm_t *pretregs)
 code *opmod_complex87(elem *e,regm_t *pretregs)
 {
     regm_t retregs;
-    regm_t idxregs;
     code *cl,*cr,*c;
     code cs;
     tym_t ty1;
@@ -2765,7 +2761,6 @@ code *cdnegass87(elem *e,regm_t *pretregs)
 {   regm_t retregs;
     tym_t tyml;
     unsigned op;
-    targ_long val;
     code *cl,*cr,*c,cs;
     elem *e1;
     int sz;
@@ -3073,9 +3068,8 @@ code *cdrndtol(elem *e,regm_t *pretregs)
 {
         regm_t retregs;
         code *c1,*c2;
-        unsigned mf,reg;
+        unsigned reg;
         tym_t tym;
-        int clib;
         unsigned sz;
         unsigned char op1,op2;
 
@@ -3387,7 +3381,6 @@ __body
 
 code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
 {
-    regm_t regm;
     tym_t tym;
     code *c1,*c2;
     unsigned sz;
@@ -3541,7 +3534,6 @@ __body
     unsigned sz;
     unsigned char ldop;
     regm_t retregs;
-    symbol *s;
     int i;
 
     //printf("cload87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
