@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// PERMUTE_ARGS: -inline
 
 struct ArrayRet{
    int x;
@@ -1392,6 +1392,18 @@ void c4825() {
         auto e = b4825();
     }
     static const int f = b4825();
+}
+
+/**************************************************
+    Bug 5708 -- failed with -inline
+**************************************************/
+string b5708(string s) { return s; }
+string a5708(string s) { return b5708(s); }
+
+void bug5708() {
+    void m() { a5708("lit"); }
+    static assert(a5708("foo") == "foo");
+    static assert(a5708("bar") == "bar");
 }
 
 /**************************************************
