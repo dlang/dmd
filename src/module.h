@@ -58,6 +58,7 @@ struct Module : Package
 
 
     const char *arg;    // original argument name
+    char *orig_filename; //original filename (passed to Module ctor)
     ModuleDeclaration *md; // if !NULL, the contents of the ModuleDeclaration declaration
     File *srcfile;      // input source file
     File *objfile;      // output .obj file
@@ -113,6 +114,8 @@ struct Module : Package
 
     Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     ~Module();
+
+    void prepareObjfile();
 
     static Module *load(Loc loc, Array *packages, Identifier *ident);
 
