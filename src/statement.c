@@ -4299,6 +4299,15 @@ void Catch::semantic(Scope *sc)
             type = Type::terror;
         }
     }
+    else if (sc->func &&
+        !sc->intypeof &&
+        cd != ClassDeclaration::exception &&
+        !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
+        sc->func->setUnsafe())
+    {
+        error(loc, "can only catch class objects derived from Exception in @safe code, not '%s'", type->toChars());
+        type = Type::terror;
+    }
     else if (ident)
     {
         var = new VarDeclaration(loc, type, ident, NULL);
