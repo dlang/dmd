@@ -475,7 +475,11 @@ Expression *BinExp::op_overload(Scope *sc)
     Objects *targsi = NULL;
 #if DMDV2
     if (!s && !s_r && op != TOKequal && op != TOKnotequal && op != TOKassign)
-    {   /* Try the new D2 scheme, opBinary and opBinaryRight
+    {
+        if (op == TOKplusplus || op == TOKminusminus)
+            return NULL;
+
+        /* Try the new D2 scheme, opBinary and opBinaryRight
          */
         if (ad1)
             s = search_function(ad1, Id::opBinary);
@@ -519,7 +523,7 @@ Expression *BinExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
             }
         }
 
@@ -534,7 +538,7 @@ Expression *BinExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
+                templateResolve(&m, td, sc, loc, targsi, e2, &args1);
             }
         }
 
@@ -612,7 +616,7 @@ L1:
                 }
                 else
                 {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                    templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+                    templateResolve(&m, td, sc, loc, targsi, e1, &args2);
                 }
             }
             FuncDeclaration *lastf = m.lastf;
@@ -626,7 +630,7 @@ L1:
                 }
                 else
                 {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                    templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
+                    templateResolve(&m, td, sc, loc, targsi, e2, &args1);
                 }
             }
 
@@ -1010,6 +1014,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
 #endif
 
     BinExp::semantic(sc);
+    e1 = resolveProperties(sc, e1);
     e2 = resolveProperties(sc, e2);
 
     Identifier *id = opId();
@@ -1066,7 +1071,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
             }
         }
 

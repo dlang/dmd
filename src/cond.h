@@ -18,13 +18,9 @@ struct Module;
 struct Scope;
 struct ScopeDsymbol;
 struct DebugCondition;
-#ifdef _DH
 #include "lexer.h" // dmdhg
-#endif
 enum TOK;
-#ifdef _DH
 struct HdrGenState;
-#endif
 
 int findCondition(Array *ids, Identifier *ident);
 

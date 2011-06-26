@@ -32,8 +32,8 @@ LFLAGS=
 
 LINKN=$(SCROOT)\bin\link /de
 
-CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp -D_DH
-MFLAGS=-I$C;$(TK) -DMARS -cpp $(DEBUG) -e -wx -D_DH
+CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp
+MFLAGS=-I$C;$(TK) -DMARS -cpp $(DEBUG) -e -wx
 
 # Makerules:
 .c.obj:
@@ -155,7 +155,7 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c
 
-MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak
+MAKEFILES=win32.mak posix.mak
 
 #########################################
 

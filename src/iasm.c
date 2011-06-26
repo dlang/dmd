@@ -54,8 +54,6 @@
 #include        "iasm.h"
 #include        "cpp.h"
 
-#undef _DH
-
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
 #undef I16
@@ -98,6 +96,7 @@ enum ASMERRMSGS
     EM_label_expected,
     EM_uplevel,
     EM_type_as_operand,
+    EM_invalid_64bit_opcode,
 };
 
 const char *asmerrmsgs[] =
@@ -126,7 +125,8 @@ const char *asmerrmsgs[] =
     "character is truncated",
     "label expected",
     "uplevel nested reference to variable %s",
-    "cannot use type %s as an operand"
+    "cannot use type %s as an operand",
+    "opcode %s is unavailable in 64bit mode"
 };
 
 // Additional tokens for the inline assembler
@@ -466,7 +466,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd);
 code *asm_genloc(Loc loc, code *c);
 int asm_getnum();
 
-STATIC void asmerr(char *, ...);
+STATIC void asmerr(const char *, ...);
 STATIC void asmerr(int, ...);
 #pragma SC noreturn(asmerr)
 
@@ -557,6 +557,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
         opflag_t opflags2 = 0;
         opflag_t opflags3 = 0;
         char    bFake = FALSE;
+        char    bInvalid64bit = FALSE;
 
         unsigned char   bMatch1, bMatch2, bMatch3, bRetry = FALSE;
 
@@ -604,7 +605,11 @@ RETRY:
         switch (usActual)
         {
             case 0:
-                ptbRet = pop->ptb ;
+                if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
+                    asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));  // illegal opcode in 64bit mode
+
+                ptbRet = pop->ptb;
+
                 goto RETURN_IT;
 
             case 1:
@@ -623,6 +628,14 @@ RETRY:
                               )
                                 // Don't match PUSH imm16 in 32 bit code
                                 continue;
+
+                            // Check if match is invalid in 64bit mode
+                            if (I64 && (table1->usFlags & _i64_bit))
+                            {
+                                bInvalid64bit = TRUE;
+                                continue;
+                            }
+
                             break;
                         }
                         if ((asmstate.ucItype == ITimmed) &&
@@ -695,7 +708,10 @@ TYPE_SIZE_ERROR:
                         }
                         if (bRetry)
                         {
-                            asmerr(EM_bad_op, asm_opstr(pop));  // illegal type/size of operands
+                            if(bInvalid64bit)
+                                asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
+                            else
+                                asmerr(EM_bad_op, asm_opstr(pop));  // illegal type/size of operands
                         }
                         bRetry = TRUE;
                         goto RETRY;
@@ -714,6 +730,9 @@ TYPE_SIZE_ERROR:
                 {
                         //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
                         //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
+                        if (I64 && (table2->usFlags & _i64_bit))
+                            asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));
+
                         bMatch1 = asm_match_flags(opflags1, table2->usOp1);
                         bMatch2 = asm_match_flags(opflags2, table2->usOp2);
                         //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
@@ -1014,7 +1033,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
                                     us = CONSTRUCT_FLAGS(_8, _rel, _flbl,0);
                                 else
                                 if (popnd->disp >= SHRT_MIN &&
-                                    popnd->disp <= SHRT_MAX)
+                                    popnd->disp <= SHRT_MAX && !I64)
                                     us = CONSTRUCT_FLAGS(_16, _rel, _flbl,0);
                                 else
                                     us = CONSTRUCT_FLAGS(_32, _rel, _flbl,0);
@@ -2492,14 +2511,17 @@ STATIC void asm_make_modrm_byte(
             else
             {
                 sib.sib.base = popnd->pregDisp1->val;
+                if (popnd->pregDisp1->val & NUM_MASKR)
+                    pc->Irex |= REX_B;
                 //
                 // This is to handle the special case
-                // of using the EBP register and no
+                // of using the EBP (or R13) register and no
                 // displacement.  You must put in an
                 // 8 byte displacement in order to
                 // get the correct opcodes.
                 //
-                if (popnd->pregDisp1->val == _EBP &&
+                if ((popnd->pregDisp1->val == _EBP ||
+                     popnd->pregDisp1->val == _R13) &&
                     (!popnd->disp && !s))
                 {
 #ifdef DEBUG
@@ -2513,6 +2535,9 @@ STATIC void asm_make_modrm_byte(
                 }
 
                 sib.sib.index = popnd->pregDisp2->val;
+                if (popnd->pregDisp2->val & NUM_MASKR)
+                    pc->Irex |= REX_X;
+
             }
             switch (popnd->uchMultiplier)
             {
@@ -4369,8 +4394,11 @@ Statement *AsmStatement::semantic(Scope *sc)
     //printf("AsmStatement::semantic()\n");
 
 #if DMDV2
-    if (sc->func && sc->func->isSafe())
-        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    if (sc->func)
+    {
+        if (sc->func->setUnsafe())
+            error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    }
 #endif
 
     OP *o;
@@ -4384,7 +4412,6 @@ Statement *AsmStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);
-    fd->inlineAsm = 1;
 
     if (!tokens)
         return NULL;

@@ -1475,6 +1475,173 @@ void test56()
 }
 
 /**********************************/
+// 5859
+
+import std.stdio : writeln;
+int dtor_cnt = 0;
+struct S57
+{
+	int v;
+	this(int n){ writeln("S.ctor v=", v=n); }
+	~this(){ ++dtor_cnt; writeln("S.dtor v=", v); }
+	bool opCast(T:bool)(){ writeln("S.cast v=", v); return true; }
+}
+S57 f(int n){ return S57(n); }
+
+void test57()
+{
+	writeln("----");
+	dtor_cnt = 0;
+	if (auto s = S57(10))
+	{
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 1);
+
+	writeln("----");	//+
+	dtor_cnt = 0;
+	if (auto s = (S57(1), S57(2), S57(10)))
+	{
+		assert(dtor_cnt == 2);
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 3);	// +/
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = S57(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+
+
+
+	writeln("----");
+	dtor_cnt = 0;
+	if (auto s = f(10))
+	{
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 1);
+
+	writeln("----");	//+
+	dtor_cnt = 0;
+	if (auto s = (f(1), f(2), f(10)))
+	{
+		assert(dtor_cnt == 2);
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 3);	// +/
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = f(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+
+
+
+
+	writeln("----");
+	dtor_cnt = 0;
+	if (S57(10))
+	{
+		assert(dtor_cnt == 1);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	if ((S57(1), S57(2), S57(10)))
+	{
+		assert(dtor_cnt == 3);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = S57(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+
+
+
+	writeln("----");
+	dtor_cnt = 0;
+	if (f(10))
+	{
+		assert(dtor_cnt == 1);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	if ((f(1), f(2), f(10)))
+	{
+		assert(dtor_cnt == 3);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = f(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+}
+
+/**********************************/
+// 5574
+
+struct foo5574a
+{
+    ~this() {}
+}
+class bar5574a
+{
+    foo5574a[1] frop;
+}
+
+struct foo5574b
+{
+    this(this){}
+}
+struct bar5574b
+{
+    foo5574b[1] frop;
+}
+
+/**********************************/
 
 int main()
 {
@@ -1534,6 +1701,7 @@ int main()
     test54();
     test55();
     test56();
+    test57();
 
     printf("Success\n");
     return 0;

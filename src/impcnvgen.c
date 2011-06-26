@@ -23,7 +23,6 @@ int integral_promotion(int t)
     {
         case Tchar:
         case Twchar:
-        //case Tbit:
         case Tbool:
         case Tint8:
         case Tuns8:
@@ -51,29 +50,6 @@ void init()
         impcnvType1[t1][t2] = nt1;      \
         impcnvType2[t1][t2] = nt2;
 
-    /* ======================= */
-
-#if 0
-    X(Tbit,Tbit,    Tint32,Tint32,  Tint32)
-    X(Tbit,Tint8,   Tint32,Tint32,  Tint32)
-    X(Tbit,Tuns8,   Tint32,Tint32,  Tint32)
-    X(Tbit,Tint16,  Tint32,Tint32,  Tint32)
-    X(Tbit,Tuns16,  Tint32,Tint32,  Tint32)
-    X(Tbit,Tint32,  Tint32,Tint32,  Tint32)
-    X(Tbit,Tuns32,  Tuns32,Tuns32,  Tuns32)
-    X(Tbit,Tint64,  Tint64,Tint64,  Tint64)
-    X(Tbit,Tuns64,  Tuns64,Tuns64,  Tuns64)
-
-    X(Tbit,Tfloat32,     Tfloat32,Tfloat32,     Tfloat32)
-    X(Tbit,Tfloat64,     Tfloat64,Tfloat64,     Tfloat64)
-    X(Tbit,Tfloat80,     Tfloat80,Tfloat80,     Tfloat80)
-    X(Tbit,Timaginary32, Tfloat32,Timaginary32, Tfloat32)
-    X(Tbit,Timaginary64, Tfloat64,Timaginary64, Tfloat64)
-    X(Tbit,Timaginary80, Tfloat80,Timaginary80, Tfloat80)
-    X(Tbit,Tcomplex32,   Tfloat32,Tcomplex32,   Tcomplex32)
-    X(Tbit,Tcomplex64,   Tfloat64,Tcomplex64,   Tcomplex64)
-    X(Tbit,Tcomplex80,   Tfloat80,Tcomplex80,   Tcomplex80)
-#endif
 
     /* ======================= */
 
@@ -321,17 +297,6 @@ void init()
 #undef X
 
 #define Y(t1,t2)        impcnvWarn[t1][t2] = 1;
-
-#if 0
-    Y(Tint8, Tbit)
-    Y(Tuns8, Tbit)
-    Y(Tint16, Tbit)
-    Y(Tuns16, Tbit)
-    Y(Tint32, Tbit)
-    Y(Tuns32, Tbit)
-    Y(Tint64, Tbit)
-    Y(Tuns64, Tbit)
-#endif
 
     Y(Tuns8, Tint8)
     Y(Tint16, Tint8)

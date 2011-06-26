@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -45,6 +45,9 @@ struct GotoStatement;
 struct ScopeStatement;
 struct TryCatchStatement;
 struct TryFinallyStatement;
+struct CaseStatement;
+struct DefaultStatement;
+struct LabelStatement;
 struct HdrGenState;
 struct InterState;
 
@@ -90,9 +93,7 @@ struct Statement : Object
     void error(const char *format, ...);
     void warning(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     int incontract;
-#endif
     virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
@@ -106,6 +107,7 @@ struct Statement : Object
     virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
+    virtual Statement *last();
 
     virtual int inlineCost(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
@@ -119,6 +121,9 @@ struct Statement : Object
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
     virtual IfStatement *isIfStatement() { return NULL; }
+    virtual CaseStatement *isCaseStatement() { return NULL; }
+    virtual DefaultStatement *isDefaultStatement() { return NULL; }
+    virtual LabelStatement *isLabelStatement() { return NULL; }
 };
 
 struct PeelStatement : Statement
@@ -180,6 +185,7 @@ struct CompoundStatement : Statement
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
     Expression *interpret(InterState *istate);
+    Statement *last();
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -485,6 +491,7 @@ struct CaseStatement : Statement
     int comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    CaseStatement *isCaseStatement() { return this; }
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -522,6 +529,7 @@ struct DefaultStatement : Statement
     int comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    DefaultStatement *isDefaultStatement() { return this; }
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -805,6 +813,7 @@ struct LabelStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
+    LabelStatement *isLabelStatement() { return this; }
 
     void toIR(IRState *irs);
 };
@@ -837,6 +846,25 @@ struct AsmStatement : Statement
     Expression *interpret(InterState *istate);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    void toIR(IRState *irs);
+};
+
+struct ImportStatement : Statement
+{
+    Dsymbols *imports;          // Array of Import's
+
+    ImportStatement(Loc loc, Dsymbols *imports);
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    int blockExit(bool mustNotThrow);
+    int isEmpty();
+    Expression *interpret(InterState *istate);
+
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    int inlineCost(InlineCostState *ics);
+    Expression *doInline(InlineDoState *ids);
 
     void toIR(IRState *irs);
 };

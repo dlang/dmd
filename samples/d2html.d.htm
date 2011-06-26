@@ -1,0 +1,465 @@
+<html><head><title>d2html.d</title></head>
+<body color='#000000' bgcolor='#FFFFFF'><pre><code>
+
+<font color='#808080'>/*
+ * Copyright (c) 2001
+ * Pavel "EvilOne" Minayev
+ *
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Author makes no representations about
+ * the suitability of this software for any purpose. It is provided
+ * "as is" without express or implied warranty.
+ */</font>
+
+<font color='#0000FF'>import</font> std.c.stdio;
+
+<font color='#0000FF'>import</font> std.conv;
+<font color='#0000FF'>import</font> std.<font color='#0000FF'>string</font>;
+<font color='#0000FF'>import</font> std.stream;    <font color='#808080'>//   don't forget to link with stream.obj!
+</font>
+
+<font color='#808080'>// colors for syntax highlighting, default values are
+</font>
+<font color='#808080'>// my preferences in Microsoft Visual Studio editor
+</font>
+<font color='#0000FF'>class</font> Colors
+{
+    <font color='#0000FF'>static</font> <font color='#0000FF'>string</font> keyword = <font color='#000080'>"0000FF"</font>;
+    <font color='#0000FF'>static</font> <font color='#0000FF'>string</font> number  = <font color='#000080'>"008000"</font>;
+    <font color='#0000FF'>static</font> <font color='#0000FF'>string</font> astring = <font color='#000080'>"000080"</font>;
+    <font color='#0000FF'>static</font> <font color='#0000FF'>string</font> comment = <font color='#000080'>"808080"</font>;
+}
+
+<font color='#0000FF'>const</font> <font color='#0000FF'>int</font> tabsize = <font color='#008000'>4</font>;  <font color='#808080'>// number of spaces in tab
+</font>
+<font color='#0000FF'>const</font> <font color='#0000FF'>char</font>[<font color='#008000'>24</font>] symbols = <font color='#000080'>"()[]{}.,;:=&lt;>+-*/%&|^!~?"</font>;
+<font color='#0000FF'>string</font>[] keywords;
+
+<font color='#808080'>// true if c is whitespace, false otherwise
+</font>
+<font color='#0000FF'>byte</font> isspace(<font color='#0000FF'>char</font> c)
+{
+    <font color='#0000FF'>return</font> indexOf(whitespace, c) >= <font color='#008000008000'>0;</font>
+}
+
+<font color='#808080'>// true if c is a letter or an underscore, false otherwise
+</font>
+<font color='#0000FF'>byte</font> isalpha(<font color='#0000FF'>char</font> c)
+{
+    <font color='#808080'>// underscore doesn't differ from letters in D anyhow...
+</font>
+    <font color='#0000FF'>return</font> c == <font color='#000080'>'_'</font> || indexOf(letters, c) >= <font color='#008000008000'>0;</font>
+}
+
+<font color='#808080'>// true if c is a decimal digit, false otherwise
+</font>
+<font color='#0000FF'>byte</font> isdigit(<font color='#0000FF'>char</font> c)
+{
+    <font color='#0000FF'>return</font> indexOf(digits, c) >= <font color='#008000008000'>0;</font>
+}
+
+<font color='#808080'>// true if c is a hexadecimal digit, false otherwise
+</font>
+<font color='#0000FF'>byte</font> ishexdigit(<font color='#0000FF'>char</font> c)
+{
+    <font color='#0000FF'>return</font> indexOf(hexdigits, c) >= <font color='#008000008000'>0;</font>
+}
+
+<font color='#808080'>// true if c is an octal digit, false otherwise
+</font>
+<font color='#0000FF'>byte</font> isoctdigit(<font color='#0000FF'>char</font> c)
+{
+    <font color='#0000FF'>return</font> indexOf(octdigits, c) >= <font color='#008000008000'>0;</font>
+}
+
+<font color='#808080'>// true if c is legal D symbol other than above, false otherwise
+</font>
+<font color='#0000FF'>byte</font> issymbol(<font color='#0000FF'>char</font> c)
+{
+    <font color='#0000FF'>return</font> indexOf(symbols, c) >= <font color='#008000008000'>0;</font>
+}
+
+<font color='#808080'>// true if token is a D keyword, false otherwise
+</font>
+<font color='#0000FF'>byte</font> iskeyword(<font color='#0000FF'>string</font> token)
+{
+    <font color='#0000FF'>foreach</font> (index, key; keywords)
+    {
+        <font color='#0000FF'>if</font> (!cmp(keywords[index], token))
+            <font color='#0000FF'>return</font> <font color='#0000FF'>true</font>;
+    }
+
+    <font color='#0000FF'>return</font> <font color='#0000FF'>false</font>;
+}
+
+<font color='#0000FF'>int</font> main(<font color='#0000FF'>string</font>[] args)
+{
+    <font color='#808080'>// need help?
+</font>
+    <font color='#0000FF'>if</font> (args.length &lt; <font color='#008000'>2</font> || args.length > <font color='#008000'>3</font>)
+    {
+        printf(<font color='#000080'>"D to HTML converter\n"</font>
+               <font color='#000080'>"Usage: D2HTML &lt;program>.d [&lt;file>.htm]\n"</font>);
+        <font color='#0000FF'>return</font> <font color='#008000008000'>0;</font>
+    }
+
+    <font color='#808080'>// auto-name output file
+</font>
+    <font color='#0000FF'>if</font> (args.length == <font color='#008000'>2</font>)
+        args ~= args[<font color='#008000'>1</font>] ~ <font color='#000080'>".htm"</font>;
+
+    <font color='#808080'>// load keywords
+</font>
+    File kwd = <font color='#0000FF'>new</font> File(<font color='#000080'>"d2html.kwd"</font>);
+
+    <font color='#0000FF'>while</font> (!kwd.eof())
+        keywords ~= to!<font color='#0000FF'>string</font>(kwd.readLine());
+
+    kwd.close();
+
+    <font color='#808080'>// open input and output files
+</font>
+    File src = <font color='#0000FF'>new</font> File(args[<font color='#008000'>1</font>]), dst = <font color='#0000FF'>new</font> File;
+    dst.create(args[<font color='#008000'>2</font>]);
+
+    <font color='#808080'>// write HTML header
+</font>
+    dst.writeLine(<font color='#000080'>"&lt;html>&lt;head>&lt;title>"</font> ~ args[<font color='#008000'>1</font>] ~ <font color='#000080'>"&lt;/title>&lt;/head>"</font>);
+    dst.writeLine(<font color='#000080'>"&lt;body color='#000000' bgcolor='#FFFFFF'>&lt;pre>&lt;code>"</font>);
+
+    <font color='#808080'>// the main part is wrapped into try..catch block because
+</font>
+    <font color='#808080'>// when end of file is reached, an exception is raised;
+</font>
+    <font color='#808080'>// so we can omit any checks for EOF inside this block...
+</font>
+    <font color='#0000FF'>try</font>
+    {
+        <font color='#0000FF'>ulong</font> linestart = <font color='#008000008000'>0;</font>             <font color='#808080'>// for tabs
+</font>
+        <font color='#0000FF'>char</font> c;
+        src.read(c);
+
+        <font color='#0000FF'>while</font> (<font color='#0000FF'>true</font>)
+        {
+            <font color='#0000FF'>if</font> (isspace(c))                     <font color='#808080'>// whitespace
+</font>
+            {
+                <font color='#0000FF'>do</font>
+                {
+                    <font color='#0000FF'>if</font> (c == <font color='#008000'>9</font>)
+                    {
+                        <font color='#808080'>// expand tabs to spaces
+</font>
+                        <font color='#0000FF'>auto</font> spaces = tabsize -
+                                     (src.position() - linestart) % tabsize;
+
+                        <font color='#0000FF'>for</font> (<font color='#0000FF'>int</font> i = <font color='#008000008000'>0;</font> i &lt; spaces; i++)
+                            dst.writeString(<font color='#000080'>" "</font>);
+
+                        linestart = src.position() - tabsize + <font color='#008000'>1</font>;
+                    }
+                    <font color='#0000FF'>else</font>
+                    {
+                        <font color='#808080'>// reset line start on newline
+</font>
+                        <font color='#0000FF'>if</font> (c == <font color='#008000'>10</font> || c == <font color='#008000'>13</font>)
+                            linestart = src.position() + <font color='#008000'>1</font>;
+
+                        dst.write(c);
+                    }
+
+                    src.read(c);
+                } <font color='#0000FF'>while</font> (isspace(c));
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (isalpha(c))                <font color='#808080'>// keyword or identifier
+</font>
+            {
+                <font color='#0000FF'>string</font> token;
+
+                <font color='#0000FF'>do</font>
+                {
+                    token ~= c;
+                    src.read(c);
+                } <font color='#0000FF'>while</font> (isalpha(c) || isdigit(c));
+
+                <font color='#0000FF'>if</font> (iskeyword(token))                   <font color='#808080'>// keyword
+</font>
+                    dst.writeString(<font color='#000080'>"&lt;font color='#"</font> ~ Colors.keyword ~
+                                    <font color='#000080'>"'>"</font> ~ token ~ <font color='#000080'>"&lt;/font>"</font>);
+                <font color='#0000FF'>else</font>                    <font color='#808080'>// simple identifier
+</font>
+                    dst.writeString(token);
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#000080'>'0'</font>)                  <font color='#808080'>// binary, octal or hexadecimal number
+</font>
+            {
+                dst.writeString(<font color='#000080'>"&lt;font color='#"</font> ~ Colors.number ~ <font color='#000080'>"008000'>"</font>);
+                dst.write(c);
+                src.read(c);
+
+                <font color='#0000FF'>if</font> (c == <font color='#000080'>'X'</font> || c == <font color='#000080'>'x'</font>)                       <font color='#808080'>// hexadecimal
+</font>
+                {
+                    dst.write(c);
+                    src.read(c);
+
+                    <font color='#0000FF'>while</font> (ishexdigit(c))
+                        dst.write(c);
+
+                    <font color='#808080'>// TODO: add support for hexadecimal floats
+</font>
+                }
+                <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#000080'>'B'</font> || c == <font color='#000080'>'b'</font>)                  <font color='#808080'>// binary
+</font>
+                {
+                    dst.write(c);
+                    src.read(c);
+
+                    <font color='#0000FF'>while</font> (c == <font color='#000080'>'0'</font> || c == <font color='#000080'>'1'</font>)
+                        dst.write(c);
+                }
+                <font color='#0000FF'>else</font>                    <font color='#808080'>// octal
+</font>
+                {
+                    <font color='#0000FF'>do</font>
+                    {
+                        dst.write(c);
+                        src.read(c);
+                    } <font color='#0000FF'>while</font> (isoctdigit(c));
+                }
+
+                dst.writeString(<font color='#000080'>"&lt;/font>"</font>);
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#000080'>'#'</font>)                <font color='#808080'>// hash
+</font>
+            {
+                dst.write(c);
+                src.read(c);
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#000080'>'\\'</font>)                <font color='#808080'>// backward slash
+</font>
+            {
+                dst.write(c);
+                src.read(c);
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (isdigit(c))                <font color='#808080'>// decimal number
+</font>
+            {
+                dst.writeString(<font color='#000080'>"&lt;font color='#"</font> ~ Colors.number ~ <font color='#000080'>"'>"</font>);
+
+                <font color='#808080'>// integral part
+</font>
+                <font color='#0000FF'>do</font>
+                {
+                    dst.write(c);
+                    src.read(c);
+                } <font color='#0000FF'>while</font> (isdigit(c));
+
+                <font color='#808080'>// fractional part
+</font>
+                <font color='#0000FF'>if</font> (c == <font color='#000080'>'.'</font>)
+                {
+                    dst.write(c);
+                    src.read(c);
+
+                    <font color='#0000FF'>while</font> (isdigit(c))
+                    {
+                        dst.write(c);
+                        src.read(c);
+                    }
+                }
+
+                <font color='#808080'>// scientific notation
+</font>
+                <font color='#0000FF'>if</font> (c == <font color='#000080'>'E'</font> || c == <font color='#000080'>'e'</font>)
+                {
+                    dst.write(c);
+                    src.read(c);
+
+                    <font color='#0000FF'>if</font> (c == <font color='#000080'>'+'</font> || c == <font color='#000080'>'-'</font>)
+                    {
+                        dst.write(c);
+                        src.read(c);
+                    }
+
+                    <font color='#0000FF'>while</font> (isdigit(c))
+                    {
+                        dst.write(c);
+                        src.read(c);
+                    }
+                }
+
+                <font color='#808080'>// suffices
+</font>
+                <font color='#0000FF'>while</font> (c == <font color='#000080'>'U'</font> || c == <font color='#000080'>'u'</font> || c == <font color='#000080'>'L'</font> ||
+                       c == <font color='#000080'>'l'</font> || c == <font color='#000080'>'F'</font> || c == <font color='#000080'>'f'</font>)
+                {
+                    dst.write(c);
+                    src.read(c);
+                }
+
+                dst.writeString(<font color='#000080'>"&lt;/font>"</font>);
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#000080'>'\'</font><font color='#000080'>')                 // string without escape sequences
+            {
+                dst.writeString("&lt;font color='</font>#<font color='#000080'>" ~ Colors.astring ~ "</font><font color='#000080'>'>");
+
+                do
+                {
+                    if (c == '</font>&lt;<font color='#000080'>')                       // special symbol in HTML
+                        dst.writeString("&lt;");
+                    else
+                        dst.write(c);
+
+                    src.read(c);
+                } while (c != '</font>\<font color='#000080'>''</font>);
+                dst.write(c);
+                src.read(c);
+                dst.writeString(<font color='#000080'>"&lt;/font>"</font>);
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#008000'>34</font>)                   <font color='#808080'>// string with escape sequences
+</font>
+            {
+                dst.writeString(<font color='#000080'>"&lt;font color='#"</font> ~ Colors.astring ~ <font color='#000080'>"'>"</font>);
+                <font color='#0000FF'>char</font> prev;                      <font color='#808080'>// used to handle \" properly
+</font>
+
+                <font color='#0000FF'>do</font>
+                {
+                    <font color='#0000FF'>if</font> (c == <font color='#000080'>'&lt;'</font>)                       <font color='#808080'>// special symbol in HTML
+</font>
+                        dst.writeString(<font color='#000080'>"&lt;"</font>);
+                    <font color='#0000FF'>else</font>
+                        dst.write(c);
+
+                    prev = c;
+                    src.read(c);
+                } <font color='#0000FF'>while</font> (!(c == <font color='#008000'>34</font> && prev != <font color='#000080'>'\\'</font>));                   <font color='#808080'>// handle \"
+</font>
+                dst.write(c);
+                src.read(c);
+                dst.writeString(<font color='#000080'>"&lt;/font>"</font>);
+            }
+            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (issymbol(c))               <font color='#808080'>// either operator or comment
+</font>
+            {
+                <font color='#0000FF'>if</font> (c == <font color='#000080'>'&lt;'</font>)                   <font color='#808080'>// special symbol in HTML
+</font>
+                {
+                    dst.writeString(<font color='#000080'>"&lt;"</font>);
+                    src.read(c);
+                }
+                <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#000080'>'/'</font>)                      <font color='#808080'>// could be a comment...
+</font>
+                {
+                    src.read(c);
+
+                    <font color='#0000FF'>if</font> (c == <font color='#000080'>'/'</font>)                       <font color='#808080'>// single-line one
+</font>
+                    {
+                        dst.writeString(<font color='#000080'>"&lt;font color='#"</font> ~ Colors.comment ~ <font color='#000080'>"'>/"</font>);
+
+                        <font color='#0000FF'>while</font> (c != <font color='#008000'>10</font>)
+                        {
+                            <font color='#0000FF'>if</font> (c == <font color='#000080'>'&lt;'</font>)                               <font color='#808080'>// special symbol in HTML
+</font>
+                                dst.writeString(<font color='#000080'>"&lt;"</font>);
+                            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#008000'>9</font>)
+                            {
+                                <font color='#808080'>// expand tabs
+</font>
+                                <font color='#0000FF'>auto</font> spaces2 = tabsize -
+                                              (src.position() - linestart) % tabsize;
+
+                                <font color='#0000FF'>for</font> (<font color='#0000FF'>int</font> i2 = <font color='#008000008000'>0;</font> i2 &lt; spaces2; i2++)
+                                    dst.writeString(<font color='#000080'>" "</font>);
+
+                                linestart = src.position() - tabsize + <font color='#008000'>1</font>;
+                            }
+                            <font color='#0000FF'>else</font>
+                                dst.write(c);
+
+                            src.read(c);
+                        }
+
+                        dst.writeString(<font color='#000080'>"&lt;/font>"</font>);
+                    }
+                    <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#000080'>'*'</font>)                          <font color='#808080'>// multi-line one
+</font>
+                    {
+                        dst.writeString(<font color='#000080'>"&lt;font color='#"</font> ~ Colors.comment ~ <font color='#000080'>"'>/"</font>);
+                        <font color='#0000FF'>char</font> prev2;
+
+                        <font color='#0000FF'>do</font>
+                        {
+                            <font color='#0000FF'>if</font> (c == <font color='#000080'>'&lt;'</font>)                               <font color='#808080'>// special symbol in HTML
+</font>
+                                dst.writeString(<font color='#000080'>"&lt;"</font>);
+                            <font color='#0000FF'>else</font> <font color='#0000FF'>if</font> (c == <font color='#008000'>9</font>)
+                            {
+                                <font color='#808080'>// expand tabs
+</font>
+                                <font color='#0000FF'>auto</font> spaces3 = tabsize -
+                                              (src.position() - linestart) % tabsize;
+
+                                <font color='#0000FF'>for</font> (<font color='#0000FF'>int</font> i3 = <font color='#008000008000'>0;</font> i3 &lt; spaces3; i3++)
+                                    dst.writeString(<font color='#000080'>" "</font>);
+
+                                linestart = src.position() - tabsize + <font color='#008000'>1</font>;
+                            }
+                            <font color='#0000FF'>else</font>
+                            {
+                                <font color='#808080'>// reset line start on newline
+</font>
+                                <font color='#0000FF'>if</font> (c == <font color='#008000'>10</font> || c == <font color='#008000'>13</font>)
+                                    linestart = src.position() + <font color='#008000'>1</font>;
+
+                                dst.write(c);
+                            }
+
+                            prev2 = c;
+                            src.read(c);
+                        } <font color='#0000FF'>while</font> (!(c == <font color='#000080'>'/'</font> && prev2 == <font color='#000080'>'*'</font>));
+                        dst.write(c);
+                        dst.writeString(<font color='#000080'>"&lt;/font>"</font>);
+                        src.read(c);
+                    }
+                    <font color='#0000FF'>else</font>                        <font color='#808080'>// just an operator
+</font>
+                        dst.write(<font color='#0000FF'>cast</font>(<font color='#0000FF'>char</font>) <font color='#000080'>'/'</font>);
+                }
+                <font color='#0000FF'>else</font>                    <font color='#808080'>// just an operator
+</font>
+                {
+                    dst.write(c);
+                    src.read(c);
+                }
+            }
+            <font color='#0000FF'>else</font>
+                <font color='#808080'>// whatever it is, it's not a valid D token
+</font>
+                <font color='#0000FF'>throw</font> <font color='#0000FF'>new</font> Error(<font color='#000080'>"unrecognized token"</font>);
+                <font color='#808080'>//~ break;
+</font>
+        }
+    }
+
+    <font color='#808080'>// if end of file is reached and we try to read something
+</font>
+    <font color='#808080'>// with typed read(), a ReadError is thrown; in our case,
+</font>
+    <font color='#808080'>// this means that job is successfully done
+</font>
+    <font color='#0000FF'>catch</font> (Exception e)
+    {
+        <font color='#808080'>// write HTML footer
+</font>
+        dst.writeLine(<font color='#000080'>"&lt;/code>&lt;/pre>&lt;/body>&lt;/html>"</font>);
+    }
+    <font color='#0000FF'>return</font> <font color='#008000008000'>0;</font>
+}
+</code></pre></body></html>

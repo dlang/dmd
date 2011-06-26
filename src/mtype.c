@@ -48,7 +48,6 @@
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
-#include "doc.h"
 
 FuncDeclaration *hasThis(Scope *sc);
 
@@ -235,7 +234,6 @@ void Type::init()
     mangleChar[Tdchar] = 'w';
 
     // '@' shouldn't appear anywhere in the deco'd names
-    mangleChar[Tbit] = '@';
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
     mangleChar[Ttypeof] = '@';
@@ -3367,6 +3365,9 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         dim = dim->optimize(WANTvalue);
         dinteger_t d2 = dim->toInteger();
 
+        if (dim->op == TOKerror)
+            goto Lerror;
+
         if (d1 != d2)
             goto Loverflow;
 
@@ -4710,6 +4711,11 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
+    toCBufferWithAttributes(buf, ident, hgs, this, NULL);
+}
+
+void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
+{
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     const char *p = NULL;
 
@@ -4721,22 +4727,22 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     /* Use 'storage class' style for attributes
      */
-    if (mod)
+    if (attrs->mod)
     {
-        MODtoBuffer(buf, mod);
+        MODtoBuffer(buf, attrs->mod);
         buf->writeByte(' ');
     }
 
-    if (purity)
+    if (attrs->purity)
         buf->writestring("pure ");
-    if (isnothrow)
+    if (attrs->isnothrow)
         buf->writestring("nothrow ");
-    if (isproperty)
+    if (attrs->isproperty)
         buf->writestring("@property ");
-    if (isref)
+    if (attrs->isref)
         buf->writestring("ref ");
 
-    switch (trust)
+    switch (attrs->trust)
     {
         case TRUSTsystem:
             buf->writestring("@system ");
@@ -4753,9 +4759,11 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     if (next && (!ident || ident->toHChars2() == ident->toChars()))
         next->toCBuffer2(buf, hgs, 0);
+    else if (hgs->ddoc && !next)
+        buf->writestring("auto");
     if (hgs->ddoc != 1)
     {
-        switch (linkage)
+        switch (attrs->linkage)
         {
             case LINKd:         p = NULL;       break;
             case LINKc:         p = "C ";       break;
@@ -4772,6 +4780,17 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
     if (ident)
     {   buf->writeByte(' ');
         buf->writestring(ident->toHChars2());
+    }
+    if (td)
+    {   buf->writeByte('(');
+        for (int i = 0; i < td->origParameters->dim; i++)
+        {
+            TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
+            if (i)
+                buf->writestring(", ");
+            tp->toCBuffer(buf, hgs);
+        }
+        buf->writeByte(')');
     }
     Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
     inuse--;
@@ -5329,6 +5348,20 @@ Type *TypeFunction::reliesOnTident()
     return next ? next->reliesOnTident() : NULL;
 }
 
+/********************************************
+ * Return TRUE if there are lazy parameters.
+ */
+bool TypeFunction::hasLazyParameters()
+{
+    size_t dim = Parameter::dim(parameters);
+    for (size_t i = 0; i < dim; i++)
+    {   Parameter *fparam = Parameter::getNth(parameters, i);
+        if (fparam->storageClass & STClazy)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /***************************
  * Examine function signature for parameter p and see if
  * p can 'escape' the scope of the function.
@@ -5427,7 +5460,7 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
     //printf("to  : %s\n", to->toChars());
     if (this == to)
         return MATCHexact;
-#if 0 // not allowing covariant conversions because it interferes with overriding
+#if 1 // not allowing covariant conversions because it interferes with overriding
     if (to->ty == Tdelegate && this->nextOf()->covariant(to->nextOf()) == 1)
         return MATCHconvert;
 #endif
@@ -7164,15 +7197,37 @@ int TypeStruct::needsDestruction()
 
 int TypeStruct::isAssignable()
 {
+    int assignable = TRUE;
+    unsigned offset;
+
     /* If any of the fields are const or invariant,
      * then one cannot assign this struct.
      */
     for (size_t i = 0; i < sym->fields.dim; i++)
     {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
-        if (v->isConst() || v->isImmutable())
-            return FALSE;
+        //printf("%s [%d] v = (%s) %s, v->offset = %d, v->parent = %s", sym->toChars(), i, v->kind(), v->toChars(), v->offset, v->parent->kind());
+        if (i == 0)
+            ;
+        else if (v->offset == offset)
+        {
+            /* If any fields of anonymous union are assignable,
+             * then regard union as assignable.
+             * This is to support unsafe things like Rebindable templates.
+             */
+            if (assignable)
+                continue;
+        }
+        else
+        {
+            if (!assignable)
+                return FALSE;
+        }
+        assignable = v->type->isMutable() && v->type->isAssignable();
+        offset = v->offset;
+        //printf(" -> assignable = %d\n", assignable);
     }
-    return TRUE;
+
+    return assignable;
 }
 
 int TypeStruct::hasPointers()
@@ -8177,12 +8232,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             if (arg->defaultArg)
             {
                 argbuf.writestring(" = ");
-                unsigned o = argbuf.offset;
                 arg->defaultArg->toCBuffer(&argbuf, hgs);
-                if (hgs->ddoc)
-                {
-                    escapeDdocString(&argbuf, o);
-                }
             }
             buf->write(&argbuf);
         }

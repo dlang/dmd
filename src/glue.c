@@ -545,6 +545,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+    //if (type) printf("type = %s\n", func->type->toChars());
 #if 0
     //printf("line = %d\n",func->getWhere() / LINEINC);
     EEcontext *ee = env->getEEcontext();
@@ -561,6 +562,10 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (semanticRun >= PASSobj) // if toObjFile() already run
         return;
 
+    // If errors occurred compiling it, such as bugzilla 6118
+    if (type && type->ty == Tfunction && ((TypeFunction *)type)->next->ty == Terror)
+        return;
+
     if (!func->fbody)
     {
         return;
@@ -573,6 +578,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
     }
 
+    assert(semanticRun == PASSsemantic3done);
     semanticRun = PASSobj;
 
     if (global.params.verbose)
@@ -1070,7 +1076,6 @@ unsigned Type::totym()
         case Tcomplex32: t = TYcfloat;  break;
         case Tcomplex64: t = TYcdouble; break;
         case Tcomplex80: t = TYcldouble; break;
-        //case Tbit:    t = TYuchar;    break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS

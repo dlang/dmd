@@ -137,6 +137,7 @@ struct Expression : Object
     Expression *checkArithmetic();
     void checkDeprecated(Scope *sc, Dsymbol *s);
     void checkPurity(Scope *sc, FuncDeclaration *f);
+    void checkPurity(Scope *sc, VarDeclaration *v, Expression *e1);
     void checkSafety(Scope *sc, FuncDeclaration *f);
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
@@ -264,9 +265,7 @@ struct ComplexExp : Expression
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
-#ifdef _DH
     OutBuffer hexp;
-#endif
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 };
@@ -973,6 +972,7 @@ struct AddrExp : UnaExp
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result);
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 };
 
 struct PtrExp : UnaExp
@@ -1111,6 +1111,7 @@ struct SliceExp : UnaExp
     void scanForNestedRef(Scope *sc);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
+    int canThrow(bool mustNotThrow);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -1538,6 +1539,7 @@ struct InExp : BinExp
 {
     InExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     int isBit();
 
     // For operator overloading

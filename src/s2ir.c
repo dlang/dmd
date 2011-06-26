@@ -1690,3 +1690,13 @@ void AsmStatement::toIR(IRState *irs)
         blx->funcsym->Stype->Tty |= mTYnaked;
     }
 }
+
+/****************************************
+ */
+
+void ImportStatement::toIR(IRState *irs)
+{
+}
+
+
+

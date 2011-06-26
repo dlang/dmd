@@ -128,6 +128,11 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
     return exp ? exp->inlineCost(ics) : 0;
 }
 
+int ImportStatement::inlineCost(InlineCostState *ics)
+{
+    return 0;
+}
+
 /* -------------------------- */
 
 int arrayInlineCost(InlineCostState *ics, Array *arguments)
@@ -443,6 +448,11 @@ Expression *ReturnStatement::doInline(InlineDoState *ids)
 {
     //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
     return exp ? exp->doInline(ids) : 0;
+}
+
+Expression *ImportStatement::doInline(InlineDoState *ids)
+{
+    return NULL;
 }
 
 /* --------------------------------------------------------------- */

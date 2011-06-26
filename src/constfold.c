@@ -864,11 +864,30 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
 
         cmp = (es1->var == es2->var && es1->offset == es2->offset);
     }
-    else if (e1->isConst() == 1 && e2->isConst() == 1)
-        return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
-                type, e1, e2);
     else
-        assert(0);
+    {
+       if (e1->type->isreal())
+       {
+           real_t v1 = e1->toReal();
+           real_t v2 = e2->toReal();
+           cmp = !memcmp(&v1, &v2, sizeof(real_t));
+       }
+       else if (e1->type->isimaginary())
+       {
+           real_t v1 = e1->toImaginary();
+           real_t v2 = e2->toImaginary();
+           cmp = !memcmp(&v1, &v2, sizeof(real_t));
+       }
+       else if (e1->type->iscomplex())
+       {
+           complex_t v1 = e1->toComplex();
+           complex_t v2 = e2->toComplex();
+           cmp = !memcmp(&v1, &v2, sizeof(complex_t));
+       }
+       else
+           return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
+                   type, e1, e2);
+    }
     if (op == TOKnotidentity)
         cmp ^= 1;
     return new IntegerExp(loc, cmp, type);
@@ -1077,6 +1096,13 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         to->implicitConvTo(e1->type) >= MATCHconst)
         return expType(to, e1);
 
+    // Allow covariant converions of delegates
+    // (Perhaps implicit conversion from pure to impure should be a MATCHconst,
+    // then we wouldn't need this extra check.)
+    if (e1->type->toBasetype()->ty == Tdelegate &&
+        e1->type->implicitConvTo(to) == MATCHconvert)
+        return expType(to, e1);
+
     Type *tb = to->toBasetype();
     Type *typeb = type->toBasetype();
 
@@ -1229,7 +1255,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         uinteger_t i = e2->toInteger();
 
         if (i >= length)
-        {   e2->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
+        {   e1->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
         }
         else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
@@ -1246,7 +1272,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
-            {   e2->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+            {   e1->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
             }
             else
             {   e = (Expression *)ale->elements->data[i];

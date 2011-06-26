@@ -252,12 +252,13 @@ template duff_for(alias id1, alias id2, alias s)
 	 {
 	     printf("wid = %d\n", id);
 	     s(); ++id;
-        case 7: s(); ++id;
-        case 6: s(); ++id;
-        case 5: s(); ++id;
-        case 4: s(); ++id;
-        case 3: s(); ++id;
-        case 2: s(); ++id;
+	     goto case;
+        case 7: s(); ++id; goto case;
+        case 6: s(); ++id; goto case;
+        case 5: s(); ++id; goto case;
+        case 4: s(); ++id; goto case;
+        case 3: s(); ++id; goto case;
+        case 2: s(); ++id; goto case;
         case 1: s(); ++id;
 	     break;
 	default: assert(0);

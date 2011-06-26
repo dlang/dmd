@@ -98,40 +98,9 @@ enum LANG
         LANGjapanese,
 };
 
-#if __I86__
-
 #include        "cdef.h"        // host and target compiler definition
 
 #define INITIALIZED_STATIC_DEF  static
-
-#else
-#include        "TGcc.h"
-#include        "str4.h"
-
-#if MULTI_FILE
-/* Make statics that require re-initialization available */
-#define INITIALIZED_STATIC_DEF
-#define INITIALIZED_STATIC_REF  extern
-#else
-#define INITIALIZED_STATIC_DEF  STATIC
-#define INITIALIZED_STATIC_REF  error
-#endif
-
-#ifndef PASCAL
-#define PASCAL pascal
-#endif
-
-#define TOOLKIT_H
-
-/* Segments     */
-#define CODE    1       /* code segment                 */
-#define DATA    2       /* initialized data             */
-#define CDATA   3       /* constant data                */
-#define UDATA   4       /* uninitialized data           */
-#ifndef UNKNOWN
-#define UNKNOWN -1      /* unknown segment              */
-#endif
-#endif
 
 #if MEMMODELS == 1
 #define LARGEDATA 0     /* don't want 48 bit pointers */
