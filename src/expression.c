@@ -6468,9 +6468,9 @@ Expression *DotVarExp::semantic(Scope *sc)
         }
         assert(type);
 
+        Type *t1 = e1->type;
         if (!var->isFuncDeclaration())  // for functions, do checks after overload resolution
         {
-            Type *t1 = e1->type;
             if (t1->ty == Tpointer)
                 t1 = t1->nextOf();
 
@@ -6489,7 +6489,21 @@ Expression *DotVarExp::semantic(Scope *sc)
             if (e)
                 return e;
         }
+        Dsymbol *s;
+        if (sc->func && !sc->intypeof && t1->hasPointers() &&
+            (s = t1->toDsymbol(sc)) != NULL)
+        {
+            AggregateDeclaration *ad = s->isAggregateDeclaration();
+            if (ad && ad->hasUnions)
+            {
+                if (sc->func->setUnsafe())
+                {   error("union %s containing pointers are not allowed in @safe functions", t1->toChars());
+                    goto Lerr;
+                }
+            }
+        }
     }
+
     //printf("-DotVarExp::semantic('%s')\n", toChars());
     return this;
 
@@ -7740,9 +7754,23 @@ Expression *AddrExp::semantic(Scope *sc)
             VarExp *ve = (VarExp *)e1;
 
             VarDeclaration *v = ve->var->isVarDeclaration();
-            if (v && !v->canTakeAddressOf())
-            {   error("cannot take address of %s", e1->toChars());
-                return new ErrorExp();
+            if (v)
+            {
+                if (!v->canTakeAddressOf())
+                {   error("cannot take address of %s", e1->toChars());
+                    return new ErrorExp();
+                }
+
+                if (sc->func && !sc->intypeof && !v->isDataseg())
+                {
+                    if (sc->func->setUnsafe())
+                    {
+                        error("cannot take address of %s %s in @safe function %s",
+                            v->isParameter() ? "parameter" : "local",
+                            v->toChars(),
+                            sc->func->toChars());
+                    }
+                }
             }
 
             FuncDeclaration *f = ve->var->isFuncDeclaration();
@@ -8242,59 +8270,52 @@ Expression *CastExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-#if 1
+    // Check for unsafe casts
     if (sc->func && !sc->intypeof)
-#endif
     {   // Disallow unsafe casts
         Type *tob = to->toBasetype();
         Type *t1b = e1->type->toBasetype();
 
+        // Implicit conversions are always safe
+        if (t1b->implicitConvTo(tob))
+            goto Lsafe;
+
         if (!t1b->isMutable() && tob->isMutable())
-        {   // Cast not mutable to mutable
-          Lunsafe:
-            if (sc->func->setUnsafe())
-            {   error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
-                return new ErrorExp();
-            }
-            else
-                goto Lok;
-        }
-        else if (t1b->isShared() && !tob->isShared())
+            goto Lunsafe;
+
+        if (t1b->isShared() && !tob->isShared())
             // Cast away shared
             goto Lunsafe;
-        else if (tob->ty == Tpointer)
-        {   if (t1b->ty != Tpointer)
-                goto Lunsafe;
-            Type *tobn = tob->nextOf()->toBasetype();
-            Type *t1bn = t1b->nextOf()->toBasetype();
 
-            if (!t1bn->isMutable() && tobn->isMutable())
-                // Cast away pointer to not mutable
-                goto Lunsafe;
+        if (!tob->hasPointers())
+            goto Lsafe;
 
-            if (t1bn->isShared() && !tobn->isShared())
-                // Cast away pointer to shared
-                goto Lunsafe;
-
-            if (t1bn->isWild() && !tobn->isConst() && !tobn->isWild())
-                // Cast wild to anything but const | wild
-                goto Lunsafe;
-
-            if (tobn->isTypeBasic() && t1bn->isTypeBasic() &&
-                tobn->ty != Tvoid && t1bn->ty != Tvoid &&
-                tobn->size() < t1bn->size())
-                // Allow things like casting a long* to an int*
-                ;
-            else if (tobn->ty != Tvoid)
-                // Cast to a pointer other than void*
-                goto Lunsafe;
+        if (tob->ty == Tarray && t1b->ty == Tarray)
+        {
+            Type* tobn = tob->nextOf()->toBasetype();
+            Type* t1bn = t1b->nextOf()->toBasetype();
+            if (!tobn->hasPointers() && MODimplicitConv(t1bn->mod, tobn->mod))
+                goto Lsafe;
+        }
+        if (tob->ty == Tpointer && t1b->ty == Tpointer)
+        {
+            Type* tobn = tob->nextOf()->toBasetype();
+            Type* t1bn = t1b->nextOf()->toBasetype();
+            if (!tobn->hasPointers() &&
+                tobn->ty != Tfunction && t1bn->ty != Tfunction &&
+                tobn->size() <= t1bn->size() &&
+                MODimplicitConv(t1bn->mod, tobn->mod))
+                goto Lsafe;
         }
 
-        // BUG: Check for casting array types, such as void[] to int*[]
-    Lok:
-        ;
+    Lunsafe:
+        if (sc->func->setUnsafe())
+        {   error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
+            return new ErrorExp();
+        }
     }
 
+Lsafe:
     e = e1->castTo(sc, to);
     return e;
 }

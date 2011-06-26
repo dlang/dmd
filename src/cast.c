@@ -17,6 +17,7 @@
 #include "utf.h"
 #include "declaration.h"
 #include "aggregate.h"
+#include "scope.h"
 
 /* ==================== implicitCast ====================== */
 
@@ -1473,7 +1474,17 @@ Expression *CommaExp::castTo(Scope *sc, Type *t)
  */
 
 Expression *BinExp::scaleFactor(Scope *sc)
-{   d_uns64 stride;
+{
+    if (sc->func && !sc->intypeof)
+    {
+        if (sc->func->setUnsafe())
+        {
+            error("pointer arithmetic not allowed in @safe functions");
+            return new ErrorExp();
+        }
+    }
+
+    d_uns64 stride;
     Type *t1b = e1->type->toBasetype();
     Type *t2b = e2->type->toBasetype();
 
