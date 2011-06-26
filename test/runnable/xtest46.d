@@ -3012,6 +3012,23 @@ void test153()
 }
 
 /***************************************************/
+// 3632
+
+
+void test154() {
+    float f;
+    assert(f is float.init);
+    double d;
+    assert(d is double.init);
+    real r;
+    assert(r is real.init);
+
+    assert(float.nan is float.nan);
+    assert(double.nan is double.nan);
+    assert(real.nan is real.nan);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3168,6 +3185,7 @@ int main()
     test151();
     test152();
     test153();
+    test154();
 
     printf("Success\n");
     return 0;
