@@ -2331,7 +2331,7 @@ static assert( is (food5195 == good5195));
 
 struct Foo129
 {
-    void add(T)(T value) pure nothrow
+    void add(T)(T value) nothrow
     {
         this.value += value;
     }
@@ -2361,7 +2361,7 @@ void test129()
     writeln(foo.value);
     assert(foo.value == 13);
 
-    void delegate (int) pure nothrow dg = &foo.add!(int);    
+    void delegate (int) nothrow dg = &foo.add!(int);    
     dg(7);
     assert(foo.value == 20);
 }

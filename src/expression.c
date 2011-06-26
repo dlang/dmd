@@ -1281,6 +1281,120 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 #endif
 }
 
+/*******************************************
+ * Accessing variable v.
+ * Check for purity and safety violations.
+ * If ethis is not NULL, then ethis is the 'this' pointer as in ethis.v
+ */
+
+void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
+{
+    /* Look for purity and safety violations when accessing variable v
+     * from current function.
+     */
+    if (sc->func &&
+        !sc->intypeof &&             // allow violations inside typeof(expression)
+        !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
+        v->ident != Id::ctfe &&      // magic variable never violates pure and safe
+        !v->isImmutable() &&         // always safe and pure to access immutables...
+        !(v->storage_class & STCmanifest) // ...or manifest constants
+       )
+    {
+        if (v->isDataseg())
+        {
+            /* Accessing global mutable state.
+             * Therefore, this function and all its immediately enclosing
+             * functions must be pure.
+             */
+            bool msg = FALSE;
+            for (Dsymbol *s = sc->func; s; s = s->toParent2())
+            {
+                FuncDeclaration *ff = s->isFuncDeclaration();
+                if (!ff)
+                    break;
+                if (ff->setImpure() && !msg)
+                {   error("pure function '%s' cannot access mutable static data '%s'",
+                        sc->func->toChars(), v->toChars());
+                    msg = TRUE;                     // only need the innermost message
+                }
+            }
+        }
+        else
+        {
+            if (ethis)
+            {
+                Type *t1 = ethis->type->toBasetype();
+
+                if (t1->isImmutable() ||
+                    (t1->ty == Tpointer && t1->nextOf()->isImmutable()))
+                {
+                    goto L1;
+                }
+                if (ethis->op == TOKvar)
+                {   VarExp *ve = (VarExp *)ethis;
+
+                    v = ve->var->isVarDeclaration();
+                    if (v)
+                        checkPurity(sc, v, NULL);
+                    return;
+                }
+                if (ethis->op == TOKdotvar)
+                {   DotVarExp *ve = (DotVarExp *)ethis;
+
+                    v = ve->var->isVarDeclaration();
+                    if (v)
+                        checkPurity(sc, v, ve->e1);
+                    return;
+                }
+            }
+
+            /* Given:
+             * void f()
+             * { int fx;
+             *   pure void g()
+             *   {  int gx;
+             *      void h()
+             *      {  int hx;
+             *         void i() { }
+             *      }
+             *   }
+             * }
+             * i() can modify hx and gx but not fx
+             */
+
+            /* Back up until we find the parent function of v,
+             * requiring each function in between to be impure.
+             */
+            Dsymbol *vparent = v->toParent2();
+            for (Dsymbol *s = sc->func; s; s = s->toParent2())
+            {
+                if (s == vparent)
+                    break;
+                FuncDeclaration *ff = s->isFuncDeclaration();
+                if (!ff)
+                    break;
+                if (ff->setImpure())
+                {   error("pure nested function '%s' cannot access mutable data '%s'",
+                        ff->toChars(), v->toChars());
+                    break;
+                }
+            }
+        }
+
+
+        /* Do not allow safe functions to access __gshared data
+         */
+        if (v->storage_class & STCgshared)
+        {
+            if (sc->func->setUnsafe())
+                error("safe function '%s' cannot access __gshared data '%s'",
+                    sc->func->toChars(), v->toChars());
+        }
+
+    L1: ;
+    }
+}
+
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
     if (sc->func && !sc->intypeof &&
@@ -4420,152 +4534,7 @@ Expression *VarExp::semantic(Scope *sc)
     {
         v->checkNestedReference(sc, loc);
 #if DMDV2
-#if 1
-        /* Look for purity and safety violations when accessing variable v
-         * from current function.
-         */
-        if (sc->func &&
-            !sc->intypeof &&             // allow violations inside typeof(expression)
-            !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
-            v->ident != Id::ctfe &&      // magic variable never violates pure and safe
-            !v->isImmutable() &&         // always safe and pure to access immutables...
-            !(v->storage_class & STCmanifest) // ...or manifest constants
-           )
-        {
-            if (v->isDataseg())
-            {
-                /* Accessing global mutable state.
-                 * Therefore, this function and all its immediately enclosing
-                 * functions must be pure.
-                 */
-                bool msg = FALSE;
-                for (Dsymbol *s = sc->func; s; s = s->toParent2())
-                {
-                    FuncDeclaration *ff = s->isFuncDeclaration();
-                    if (!ff)
-                        break;
-                    if (ff->setImpure() && !msg)
-                    {   error("pure function '%s' cannot access mutable static data '%s'",
-                            sc->func->toChars(), v->toChars());
-                        msg = TRUE;                     // only need the innermost message
-                    }
-                }
-            }
-            else
-            {
-                /* Given:
-                 * void f()
-                 * { int fx;
-                 *   pure void g()
-                 *   {  int gx;
-                 *      void h()
-                 *      {  int hx;
-                 *         void i() { }
-                 *      }
-                 *   }
-                 * }
-                 * i() can modify hx and gx but not fx
-                 */
-
-                /* Back up until we find the parent function of v,
-                 * requiring each function in between to be impure.
-                 */
-                Dsymbol *vparent = v->toParent2();
-                for (Dsymbol *s = sc->func; s; s = s->toParent2())
-                {
-                    if (s == vparent)
-                        break;
-                    FuncDeclaration *ff = s->isFuncDeclaration();
-                    if (!ff)
-                        break;
-                    if (ff->setImpure())
-                    {   error("pure nested function '%s' cannot access mutable data '%s'",
-                            ff->toChars(), v->toChars());
-                        break;
-                    }
-                }
-            }
-
-            /* Do not allow safe functions to access __gshared data
-             */
-            if (v->storage_class & STCgshared)
-            {
-                if (sc->func->setUnsafe())
-                    error("safe function '%s' cannot access __gshared data '%s'",
-                        sc->func->toChars(), v->toChars());
-            }
-        }
-#else
-        if (sc->func && !sc->intypeof && !(sc->flags & SCOPEdebug))
-        {
-            /* Given:
-             * void f()
-             * { int fx;
-             *   pure void g()
-             *   {  int gx;
-             *      void h()
-             *      {  int hx;
-             *         void i() { }
-             *      }
-             *   }
-             * }
-             * i() can modify hx and gx but not fx
-             */
-
-            /* Determine if sc->func is pure or if any function that
-             * encloses it is also pure.
-             */
-            bool hasPureParent = false;
-            for (FuncDeclaration *outerfunc = sc->func; outerfunc;)
-            {
-                if (outerfunc->isPure())
-                {
-                    hasPureParent = true;
-                    break;
-                }
-                Dsymbol *parent = outerfunc->toParent2();
-                if (!parent)
-                    break;
-                outerfunc = parent->isFuncDeclaration();
-            }
-
-            /* Magic variable __ctfe never violates pure or safe
-             */
-            if (v->ident != Id::ctfe)
-            {
-                /* If ANY of its enclosing functions are pure,
-                 * it cannot do anything impure.
-                 * If it is pure, it cannot access any mutable variables other
-                 * than those inside itself
-                 */
-                if (hasPureParent && v->isDataseg() &&
-                    !v->isImmutable())
-                {
-                    error("pure function '%s' cannot access mutable static data '%s'",
-                        sc->func->toChars(), v->toChars());
-                }
-                else if (sc->func->isPure() &&
-                    sc->parent->pastMixin() != v->parent->pastMixin() &&
-                    !v->isImmutable() &&
-                    !(v->storage_class & STCmanifest))
-                {
-                    error("pure nested function '%s' cannot access mutable data '%s'",
-                        sc->func->toChars(), v->toChars());
-                    if (v->isEnumDeclaration())
-                        error("enum");
-                }
-            }
-
-            /* Do not allow safe functions to access __gshared data
-             */
-            if (v->storage_class & STCgshared)
-            {
-                if (sc->func->setUnsafe())
-                    error("safe function '%s' cannot access __gshared data '%s'",
-                        sc->func->toChars(), v->toChars());
-            }
-        }
-#endif
+        checkPurity(sc, v, NULL);
 #endif
     }
 #if 0
@@ -6514,6 +6483,8 @@ Expression *DotVarExp::semantic(Scope *sc)
                 accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
+            if (v)
+                checkPurity(sc, v, e1);
             Expression *e = expandVar(WANTvalue, v);
             if (e)
                 return e;
@@ -7561,31 +7532,43 @@ Lcheckargs:
 int CallExp::checkSideEffect(int flag)
 {
 #if DMDV2
-    if (flag != 2)
-        return 1;
+    int result = 1;
 
-    if (e1->checkSideEffect(2))
-        return 1;
+    /* Calling a function or delegate that is pure nothrow
+     * has no side effects.
+     */
+    if (e1->type)
+    {
+        Type *t = e1->type->toBasetype();
+        if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
+                                   ((TypeFunction *)t)->isnothrow)
+            ||
+            (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
+                                   ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+           )
+        {
+            result = 0;
+            //if (flag == 0)
+                //warning("pure nothrow function %s has no effect", e1->toChars());
+        }
+        else
+            result = 1;
+    }
+
+    result |= e1->checkSideEffect(1);
 
     /* If any of the arguments have side effects, this expression does
      */
     for (size_t i = 0; i < arguments->dim; i++)
     {   Expression *e = (Expression *)arguments->data[i];
 
-        if (e->checkSideEffect(2))
-            return 1;
+        result |= e->checkSideEffect(1);
     }
 
-    /* If calling a function or delegate that is typed as pure,
-     * then this expression has no side effects.
-     */
-    Type *t = e1->type->toBasetype();
-    if (t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak)
-        return 0;
-    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak)
-        return 0;
-#endif
+    return result;
+#else
     return 1;
+#endif
 }
 
 #if DMDV2
@@ -9582,6 +9565,9 @@ Expression *AssignExp::semantic(Scope *sc)
     }
     else if (e1->op == TOKslice)
     {
+        /* This test is so we can do things like:
+         *    byte[] b; b[] = [1,2,3];
+         */
         if (e2->op != TOKarrayliteral && e2->op != TOKstring)
         {
             Type *t1n = t1->toBasetype()->nextOf();
