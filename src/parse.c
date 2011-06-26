@@ -101,14 +101,14 @@ Dsymbols *Parser::parseModule()
         }
         else
         {
-            Array *a = NULL;
+            Identifiers *a = NULL;
             Identifier *id;
 
             id = token.ident;
             while (nextToken() == TOKdot)
             {
                 if (!a)
-                    a = new Array();
+                    a = new Identifiers();
                 a->push(id);
                 nextToken();
                 if (token.value != TOKidentifier)
@@ -909,8 +909,8 @@ Condition *Parser::parseVersionCondition()
 Condition *Parser::parseStaticIfCondition()
 {   Expression *exp;
     Condition *condition;
-    Array *aif;
-    Array *aelse;
+    Dsymbols *aif;
+    Dsymbols *aelse;
     Loc loc = this->loc;
 
     nextToken();
@@ -1857,7 +1857,7 @@ Dsymbol *Parser::parseMixin()
     Identifier *id;
     Type *tqual;
     Objects *tiargs;
-    Array *idents;
+    Identifiers *idents;
 
     //printf("parseMixin()\n");
     nextToken();
@@ -1883,7 +1883,7 @@ Dsymbol *Parser::parseMixin()
         nextToken();
     }
 
-    idents = new Array();
+    idents = new Identifiers();
     while (1)
     {
         tiargs = NULL;
@@ -2090,7 +2090,7 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
 {   Import *s;
     Identifier *id;
     Identifier *aliasid = NULL;
-    Array *a;
+    Identifiers *a;
     Loc loc;
 
     //printf("Parser::parseImport()\n");
@@ -2115,7 +2115,7 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
         while (token.value == TOKdot)
         {
             if (!a)
-                a = new Array();
+                a = new Identifiers();
             a->push(id);
             nextToken();
             if (token.value != TOKidentifier)
@@ -3040,7 +3040,7 @@ L1:
 #if 0 // Dumped feature
         case TOKthrow:
             if (!f->fthrows)
-                f->fthrows = new Array();
+                f->fthrows = new Types();
             nextToken();
             check(TOKlparen);
             while (1)
@@ -3480,7 +3480,7 @@ Statement *Parser::parseStatement(int flags)
 #endif
 //      case TOKtypeof:
         Ldeclaration:
-        {   Array *a;
+        {   Dsymbols *a;
 
             a = parseDeclarations(STCundefined, NULL);
             if (a->dim > 1)
@@ -3890,7 +3890,7 @@ Statement *Parser::parseStatement(int flags)
         case TOKcase:
         {   Expression *exp;
             Statements *statements;
-            Array cases;        // array of Expression's
+            Expressions cases;        // array of Expression's
             Expression *last = NULL;
 
             while (1)
@@ -4077,7 +4077,7 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKtry:
         {   Statement *body;
-            Array *catches = NULL;
+            Catches *catches = NULL;
             Statement *finalbody = NULL;
 
             nextToken();
@@ -4106,7 +4106,7 @@ Statement *Parser::parseStatement(int flags)
                 handler = parseStatement(0);
                 c = new Catch(loc, t, id, handler);
                 if (!catches)
-                    catches = new Array();
+                    catches = new Catches();
                 catches->push(c);
             }
 

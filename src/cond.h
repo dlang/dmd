@@ -26,7 +26,7 @@ enum TOK;
 struct HdrGenState;
 #endif
 
-int findCondition(Array *ids, Identifier *ident);
+int findCondition(Identifiers *ids, Identifier *ident);
 
 struct Condition
 {

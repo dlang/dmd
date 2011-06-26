@@ -52,7 +52,7 @@ struct TemplateDeclaration : ScopeDsymbol
 
     TemplateParameters *origParameters; // originals for Ddoc
     Expression *constraint;
-    Array instances;                    // array of TemplateInstance's
+    TemplateInstances instances;        // array of TemplateInstance's
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
@@ -272,7 +272,7 @@ struct TemplateInstance : ScopeDsymbol
      *      tiargs = args
      */
     Identifier *name;
-    //Array idents;
+    //Identifiers idents;
     Objects *tiargs;            // Array of Types/Expressions of template
                                 // instance arguments [int*, char, 10*10]
 
@@ -335,10 +335,10 @@ struct TemplateInstance : ScopeDsymbol
 
 struct TemplateMixin : TemplateInstance
 {
-    Array *idents;
+    Identifiers *idents;
     Type *tqual;
 
-    TemplateMixin(Loc loc, Identifier *ident, Type *tqual, Array *idents, Objects *tiargs);
+    TemplateMixin(Loc loc, Identifier *ident, Type *tqual, Identifiers *idents, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

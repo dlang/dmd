@@ -26,26 +26,91 @@ struct FuncDeclaration;
 struct Identifier;
 struct Initializer;
 
-struct TemplateParameters : Array { };
+struct Dsymbol;
+struct ClassDeclaration;
+struct Parameter;
 
-struct Expressions : Array { };
+struct VarDeclaration;
+struct Type;
+struct ScopeDsymbol;
+struct Catch;
+struct StaticDtorDeclaration;
+struct SharedStaticDtorDeclaration;
+struct AliasDeclaration;
+struct Module;
+struct File;
+struct CaseStatement;
+struct CompoundStatement;
+struct GotoCaseStatement;
+struct TemplateInstance;
+struct TemplateParameter;
 
-struct Statements : Array { };
+struct block;
+struct Symbol;
 
-struct BaseClasses : Array { };
+#define ArrayOf(TYPE) struct ArrayOf_##TYPE : ArrayBase \
+{ \
+    TYPE **tdata() { return (TYPE **)data; } \
+    void insert(unsigned index, TYPE *v) { ArrayBase::insert(index, (void *)v); } \
+    void insert(unsigned index, ArrayOf_##TYPE *a) { ArrayBase::insert(index, (ArrayBase *)a); } \
+    void append(ArrayOf_##TYPE *a) { ArrayBase::append((ArrayBase *)a); } \
+    ArrayOf_##TYPE *copy() { return (ArrayOf_##TYPE *)ArrayBase::copy(); } \
+}
 
-struct ClassDeclarations : Array { };
+typedef ArrayOf(TemplateParameter) TemplateParameters;
 
-struct Dsymbols : Array { };
+typedef ArrayOf(Expression) Expressions;
 
-struct Objects : Array { };
+typedef ArrayOf(Statement) Statements;
 
-struct FuncDeclarations : Array { };
+typedef ArrayOf(BaseClass) BaseClasses;
 
-struct Parameters : Array { };
+typedef ArrayOf(ClassDeclaration) ClassDeclarations;
 
-struct Identifiers : Array { };
+typedef ArrayOf(Dsymbol) Dsymbols;
 
-struct Initializers : Array { };
+typedef ArrayOf(Object) Objects;
+
+typedef ArrayOf(FuncDeclaration) FuncDeclarations;
+
+typedef ArrayOf(Parameter) Parameters;
+
+typedef ArrayOf(Identifier) Identifiers;
+
+typedef ArrayOf(Initializer) Initializers;
+
+typedef ArrayOf(VarDeclaration) VarDeclarations;
+
+typedef ArrayOf(Type) Types;
+
+typedef ArrayOf(ScopeDsymbol) ScopeDsymbols;
+
+typedef ArrayOf(Catch) Catches;
+
+typedef ArrayOf(StaticDtorDeclaration) StaticDtorDeclarations;
+
+typedef ArrayOf(SharedStaticDtorDeclaration) SharedStaticDtorDeclarations;
+
+typedef ArrayOf(AliasDeclaration) AliasDeclarations;
+
+typedef ArrayOf(Module) Modules;
+
+typedef ArrayOf(File) Files;
+
+typedef ArrayOf(CaseStatement) CaseStatements;
+
+typedef ArrayOf(CompoundStatement) CompoundStatements;
+
+typedef ArrayOf(GotoCaseStatement) GotoCaseStatements;
+
+typedef ArrayOf(TemplateInstance) TemplateInstances;
+
+typedef ArrayOf(char) Strings;
+
+typedef ArrayOf(void) Voids;
+
+typedef ArrayOf(block) Blocks;
+
+typedef ArrayOf(Symbol) Symbols;
 
 #endif

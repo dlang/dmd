@@ -130,7 +130,7 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
 
 /* -------------------------- */
 
-int arrayInlineCost(InlineCostState *ics, Array *arguments)
+int arrayInlineCost(InlineCostState *ics, Expressions *arguments)
 {   int cost = 0;
 
     if (arguments)
@@ -330,8 +330,8 @@ int CondExp::inlineCost(InlineCostState *ics)
 struct InlineDoState
 {
     VarDeclaration *vthis;
-    Array from;         // old Dsymbols
-    Array to;           // parallel array of new Dsymbols
+    Dsymbols from;      // old Dsymbols
+    Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol *parent;    // new parent
 };
 
@@ -1019,7 +1019,7 @@ Statement *LabelStatement::inlineScan(InlineScanState *iss)
 
 /* -------------------------- */
 
-void arrayInlineScan(InlineScanState *iss, Array *arguments)
+void arrayInlineScan(InlineScanState *iss, Expressions *arguments)
 {
     if (arguments)
     {
@@ -1394,7 +1394,7 @@ Lno:
     return 0;
 }
 
-Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, Array *arguments)
+Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, Expressions *arguments)
 {
     InlineDoState ids;
     DeclarationExp *de;

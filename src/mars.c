@@ -311,8 +311,8 @@ extern signed char tyalignsize[];
 int main(int argc, char *argv[])
 {
     int i;
-    Array files;
-    Array libmodules;
+    Strings files;
+    Strings libmodules;
     char *p;
     Module *m;
     int status = EXIT_SUCCESS;
@@ -355,10 +355,10 @@ int main(int argc, char *argv[])
     global.params.Dversion = 2;
     global.params.quiet = 1;
 
-    global.params.linkswitches = new Array();
-    global.params.libfiles = new Array();
-    global.params.objfiles = new Array();
-    global.params.ddocfiles = new Array();
+    global.params.linkswitches = new Strings();
+    global.params.libfiles = new Strings();
+    global.params.objfiles = new Strings();
+    global.params.ddocfiles = new Strings();
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
     global.params.isX86_64 = (sizeof(size_t) == 8);
@@ -605,13 +605,13 @@ int main(int argc, char *argv[])
             else if (p[1] == 'I')
             {
                 if (!global.params.imppath)
-                    global.params.imppath = new Array();
+                    global.params.imppath = new Strings();
                 global.params.imppath->push(p + 2);
             }
             else if (p[1] == 'J')
             {
                 if (!global.params.fileImppath)
-                    global.params.fileImppath = new Array();
+                    global.params.fileImppath = new Strings();
                 global.params.fileImppath->push(p + 2);
             }
             else if (memcmp(p + 1, "debug", 5) == 0 && p[6] != 'l')
@@ -910,12 +910,12 @@ int main(int argc, char *argv[])
         for (i = 0; i < global.params.imppath->dim; i++)
         {
             char *path = (char *)global.params.imppath->data[i];
-            Array *a = FileName::splitPath(path);
+            Strings *a = FileName::splitPath(path);
 
             if (a)
             {
                 if (!global.path)
-                    global.path = new Array();
+                    global.path = new Strings();
                 global.path->append(a);
             }
         }
@@ -927,19 +927,19 @@ int main(int argc, char *argv[])
         for (i = 0; i < global.params.fileImppath->dim; i++)
         {
             char *path = (char *)global.params.fileImppath->data[i];
-            Array *a = FileName::splitPath(path);
+            Strings *a = FileName::splitPath(path);
 
             if (a)
             {
                 if (!global.filePath)
-                    global.filePath = new Array();
+                    global.filePath = new Strings();
                 global.filePath->append(a);
             }
         }
     }
 
     // Create Modules
-    Array modules;
+    Modules modules;
     modules.reserve(files.dim);
     int firstmodule = 1;
     for (i = 0; i < files.dim; i++)
@@ -1391,7 +1391,7 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
     env = mem.strdup(env);      // create our own writable copy
 
     int argc = *pargc;
-    Array *argv = new Array();
+    Strings *argv = new Strings();
     argv->setDim(argc);
 
     for (int i = 0; i < argc; i++)

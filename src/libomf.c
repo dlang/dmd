@@ -212,7 +212,7 @@ void Library::scanObjModule(ObjModule *om)
     unsigned char result = 0;
     char name[LIBIDMAX + 1];
 
-    Array names;
+    Strings names;
     names.push(NULL);           // don't use index 0
 
     assert(om);

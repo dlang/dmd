@@ -48,7 +48,7 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Array *arguments);
+        Expressions *arguments);
 
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
@@ -103,7 +103,7 @@ block *labelToBlock(Loc loc, Blockx *blx, LabelDsymbol *label, int flag = 0)
         {
             // Keep track of the forward reference to this block, so we can check it later
             if (!s->fwdrefs)
-                s->fwdrefs = new Array();
+                s->fwdrefs = new Blocks();
             s->fwdrefs->push(blx->curblock);
         }
     }

@@ -53,12 +53,12 @@ void clearStringTab();
 elem *eictor;
 symbol *ictorlocalgot;
 elem *ector;
-Array ectorgates;
+StaticDtorDeclarations ectorgates;
 elem *edtor;
 elem *etest;
 
 elem *esharedctor;
-Array esharedctorgates;
+SharedStaticDtorDeclarations esharedctorgates;
 elem *eshareddtor;
 
 int dtorcount;
@@ -70,7 +70,7 @@ char *lastmname;
  * Append s to list of object files to generate later.
  */
 
-Array obj_symbols_towrite;
+Dsymbols obj_symbols_towrite;
 
 void obj_append(Dsymbol *s)
 {
@@ -670,7 +670,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     IRState irs(m, func);
-    Array deferToObj;                   // write these to OBJ file later
+    Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
 
     TypeFunction *tf;

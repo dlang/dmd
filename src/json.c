@@ -46,7 +46,7 @@ const char Pmembers[] = "members";
 
 void JsonRemoveComma(OutBuffer *buf);
 
-void json_generate(Array *modules)
+void json_generate(Modules *modules)
 {   OutBuffer buf;
 
     buf.writestring("[\n");
@@ -211,7 +211,7 @@ void AttribDeclaration::toJsonBuffer(OutBuffer *buf)
 {
     //printf("AttribDeclaration::toJsonBuffer()\n");
 
-    Array *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL, NULL);
 
     if (d)
     {

@@ -42,6 +42,8 @@
 
 extern Symbol *static_sym();
 
+typedef ArrayOf(dt_t) Dts;
+
 /* ================================================================ */
 
 dt_t *Initializer::toDt()
@@ -64,7 +66,7 @@ dt_t *VoidInitializer::toDt()
 
 dt_t *StructInitializer::toDt()
 {
-    Array dts;
+    Dts dts;
     unsigned i;
     unsigned j;
     dt_t *dt;
@@ -193,7 +195,7 @@ dt_t *ArrayInitializer::toDt()
     Type *tb = type->toBasetype();
     Type *tn = tb->nextOf()->toBasetype();
 
-    Array dts;
+    Dts dts;
     unsigned size;
     unsigned length;
     unsigned i;
@@ -626,7 +628,7 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
 
 dt_t **StructLiteralExp::toDt(dt_t **pdt)
 {
-    Array dts;
+    Dts dts;
     unsigned i;
     unsigned j;
     dt_t *dt;

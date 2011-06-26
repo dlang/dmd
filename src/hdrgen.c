@@ -48,7 +48,7 @@
 #include "mtype.h"
 #include "hdrgen.h"
 
-void argsToCBuffer(OutBuffer *buf, Array *arguments, HdrGenState *hgs);
+void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 
 void Module::genhdrfile()
 {

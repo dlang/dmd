@@ -46,6 +46,8 @@
 #include "dchar.h"
 #include "rmem.h"
 
+#include "../arraytypes.h"
+
 #if 0 //__SC__ //def DEBUG
 extern "C" void __cdecl _assert(void *e, void *f, unsigned line)
 {
@@ -357,14 +359,14 @@ FileName::FileName(char *path, char *name)
 }
 
 // Split a path into an Array of paths
-Array *FileName::splitPath(const char *path)
+Strings *FileName::splitPath(const char *path)
 {
     char c = 0;                         // unnecessary initializer is for VC /W4
     const char *p;
     OutBuffer buf;
-    Array *array;
+    Strings *array;
 
-    array = new Array();
+    array = new Strings();
     if (path)
     {
         p = path;
@@ -786,7 +788,7 @@ void FileName::CopyTo(FileName *to)
  *      cwd     if !=0, search current directory before searching path
  */
 
-char *FileName::searchPath(Array *path, const char *name, int cwd)
+char *FileName::searchPath(Strings *path, const char *name, int cwd)
 {
     if (absolute(name))
     {
@@ -826,7 +828,7 @@ char *FileName::searchPath(Array *path, const char *name, int cwd)
  *      !=NULL  mem.malloc'd file name
  */
 
-char *FileName::safeSearchPath(Array *path, const char *name)
+char *FileName::safeSearchPath(Strings *path, const char *name)
 {
 #if _WIN32
     /* Disallow % / \ : and .. in name characters
@@ -1441,23 +1443,23 @@ void File::remove()
 #endif
 }
 
-Array *File::match(char *n)
+Files *File::match(char *n)
 {
     return match(new FileName(n, 0));
 }
 
-Array *File::match(FileName *n)
+Files *File::match(FileName *n)
 {
 #if POSIX
     return NULL;
 #elif _WIN32
     HANDLE h;
     WIN32_FIND_DATAA fileinfo;
-    Array *a;
+    Files *a;
     char *c;
     char *name;
 
-    a = new Array();
+    a = new Files();
     c = n->toChars();
     name = n->name();
     h = FindFirstFileA(c,&fileinfo);

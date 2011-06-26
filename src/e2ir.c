@@ -75,7 +75,7 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Array *arguments)
+        Expressions *arguments)
 {
     elem *ep;
     elem *e;
@@ -1137,7 +1137,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     ad = s->isAttribDeclaration();
     if (ad)
     {
-        Array *decl = ad->include(NULL, NULL);
+        Dsymbols *decl = ad->include(NULL, NULL);
         if (decl && decl->dim)
         {
             for (size_t i = 0; i < decl->dim; i++)
@@ -1178,7 +1178,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
 
                 // Put vd on list of things needing destruction
                 if (!irs->varsInScope)
-                    irs->varsInScope = new Array();
+                    irs->varsInScope = new Dsymbols();
                 irs->varsInScope->push(vd);
             }
         }
@@ -4784,7 +4784,7 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, Type *t
     symbol *stmp = symbol_genauto(tsarray->toCtype());
     targ_size_t szelem = telem->size();
 
-    Array elems;
+    Voids elems;
     elems.setDim(dim);
 
     ::type *te = telem->toCtype();      // stmp[] element type

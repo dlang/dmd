@@ -1750,7 +1750,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
 
             if (sf)
             {   Catch *c = new Catch(loc, NULL, NULL, sf);
-                Array *catches = new Array();
+                Catches *catches = new Catches();
                 catches->push(c);
                 sf = new TryCatchStatement(loc, s2, catches);
             }
@@ -1846,7 +1846,7 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
  *      -2      can't determine because of forward references
  */
 
-int FuncDeclaration::findVtblIndex(Array *vtbl, int dim)
+int FuncDeclaration::findVtblIndex(FuncDeclarations *vtbl, int dim)
 {
     FuncDeclaration *mismatch = NULL;
     int bestvi = -1;

@@ -105,7 +105,7 @@ int Dsymbol::oneMember(Dsymbol **ps)
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
 
-int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
+int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps)
 {
     //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);
     Dsymbol *s = NULL;
@@ -865,7 +865,7 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
     if (s != this)
     {
         if (!imports)
-            imports = new Array();
+            imports = new ScopeDsymbols();
         else
         {
             for (int i = 0; i < imports->dim; i++)
@@ -960,7 +960,7 @@ Dsymbol *ScopeDsymbol::symtabInsert(Dsymbol *s)
  */
 
 #if DMDV2
-size_t ScopeDsymbol::dim(Array *members)
+size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
     if (members)
@@ -990,7 +990,7 @@ size_t ScopeDsymbol::dim(Array *members)
  */
 
 #if DMDV2
-Dsymbol *ScopeDsymbol::getNth(Array *members, size_t nth, size_t *pn)
+Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
     if (!members)
         return NULL;

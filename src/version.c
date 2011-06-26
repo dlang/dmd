@@ -63,7 +63,7 @@ int DebugSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
             if (findCondition(m->debugidsNot, ident))
                 error("defined after use");
             if (!m->debugids)
-                m->debugids = new Array();
+                m->debugids = new Identifiers();
             m->debugids->push(ident->toChars());
         }
     }
@@ -144,7 +144,7 @@ int VersionSymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
             if (findCondition(m->versionidsNot, ident))
                 error("defined after use");
             if (!m->versionids)
-                m->versionids = new Array();
+                m->versionids = new Identifiers();
             m->versionids->push(ident->toChars());
         }
     }

@@ -967,7 +967,7 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
     //printf("ClassDeclaration::findFunc(%s, %s) %s\n", ident->toChars(), tf->toChars(), toChars());
 
     ClassDeclaration *cd = this;
-    Array *vtbl = &cd->vtbl;
+    FuncDeclarations *vtbl = &cd->vtbl;
     while (1)
     {
         for (size_t i = 0; i < vtbl->dim; i++)
@@ -1465,7 +1465,7 @@ BaseClass::BaseClass(Type *type, enum PROT protection)
  *      by base classes)
  */
 
-int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
+int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance)
 {
     ClassDeclaration *id = base;
     int j;

@@ -25,7 +25,7 @@
 #include "scope.h"
 #endif
 
-int findCondition(Array *ids, Identifier *ident)
+int findCondition(Identifiers *ids, Identifier *ident)
 {
     if (ids)
     {
@@ -74,7 +74,7 @@ void DebugCondition::setGlobalLevel(unsigned level)
 void DebugCondition::addGlobalIdent(const char *ident)
 {
     if (!global.params.debugids)
-        global.params.debugids = new Array();
+        global.params.debugids = new Identifiers();
     global.params.debugids->push((void *)ident);
 }
 
@@ -98,7 +98,7 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
                 inc = 1;
             else
             {   if (!mod->debugidsNot)
-                    mod->debugidsNot = new Array();
+                    mod->debugidsNot = new Identifiers();
                 mod->debugidsNot->push(ident->toChars());
             }
         }
@@ -168,7 +168,7 @@ void VersionCondition::addGlobalIdent(const char *ident)
 void VersionCondition::addPredefinedGlobalIdent(const char *ident)
 {
     if (!global.params.versionids)
-        global.params.versionids = new Array();
+        global.params.versionids = new Identifiers();
     global.params.versionids->push((void *)ident);
 }
 
@@ -194,7 +194,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
             else
             {
                 if (!mod->versionidsNot)
-                    mod->versionidsNot = new Array();
+                    mod->versionidsNot = new Identifiers();
                 mod->versionidsNot->push(ident->toChars());
             }
         }

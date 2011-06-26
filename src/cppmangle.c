@@ -40,14 +40,14 @@
 
 struct CppMangleState
 {
-    static Array components;
+    static Voids components;
 
     int substitute(OutBuffer *buf, void *p);
     int exist(void *p);
     void store(void *p);
 };
 
-Array CppMangleState::components;
+Voids CppMangleState::components;
 
 
 void writeBase36(OutBuffer *buf, unsigned i)

@@ -180,7 +180,7 @@ struct Dsymbol : Object
     virtual enum PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual int oneMember(Dsymbol **ps);
-    static int oneMembers(Array *members, Dsymbol **ps);
+    static int oneMembers(Dsymbols *members, Dsymbol **ps);
     virtual int hasPointers();
     virtual void addLocalClass(ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
@@ -254,7 +254,7 @@ struct ScopeDsymbol : Dsymbol
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
 
-    Array *imports;             // imported ScopeDsymbol's
+    ScopeDsymbols *imports;     // imported ScopeDsymbol's
     unsigned char *prots;       // array of PROT, one for each import
 
     ScopeDsymbol();
@@ -272,8 +272,8 @@ struct ScopeDsymbol : Dsymbol
 
     void emitMemberComments(Scope *sc);
 
-    static size_t dim(Array *members);
-    static Dsymbol *getNth(Array *members, size_t nth, size_t *pn = NULL);
+    static size_t dim(Dsymbols *members);
+    static Dsymbol *getNth(Dsymbols *members, size_t nth, size_t *pn = NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
 };

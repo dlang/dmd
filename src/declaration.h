@@ -521,7 +521,7 @@ enum BUILTIN { };
 
 struct FuncDeclaration : Declaration
 {
-    Array *fthrows;                     // Array of Type's of exceptions (not used)
+    Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statement *frequire;
     Statement *fensure;
     Statement *fbody;
@@ -599,7 +599,7 @@ struct FuncDeclaration : Declaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
-    int findVtblIndex(Array *vtbl, int dim);
+    int findVtblIndex(FuncDeclarations *vtbl, int dim);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
@@ -633,7 +633,7 @@ struct FuncDeclaration : Declaration
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void inlineScan();
     int canInline(int hasthis, int hdrscan = 0);
-    Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
+    Expression *doInline(InlineScanState *iss, Expression *ethis, Expressions *arguments);
     const char *kind();
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();

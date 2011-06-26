@@ -3907,7 +3907,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // will get called on the instance members
 #if 1
     int dosemantic3 = 0;
-    {   Array *a;
+    {   Dsymbols *a;
 
         Scope *scx = sc;
 #if 0
@@ -4267,7 +4267,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 if (dim)
                 {   tiargs->reserve(dim);
                     for (size_t i = 0; i < dim; i++)
-                        tiargs->insert(j + i, te->exps->data[i]);
+                        tiargs->insert(j + i, te->exps->tdata()[i]);
                 }
                 j--;
             }
@@ -5080,7 +5080,7 @@ char *TemplateInstance::toChars()
 /* ======================== TemplateMixin ================================ */
 
 TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, Type *tqual,
-        Array *idents, Objects *tiargs)
+        Identifiers *idents, Objects *tiargs)
         : TemplateInstance(loc, (Identifier *)idents->data[idents->dim - 1])
 {
     //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");
@@ -5093,7 +5093,7 @@ TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, Type *tqual,
 Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
 {   TemplateMixin *tm;
 
-    Array *ids = new Array();
+    Identifiers *ids = new Identifiers();
     ids->setDim(idents->dim);
     for (int i = 0; i < idents->dim; i++)
     {   // Matches TypeQualified::syntaxCopyHelper()

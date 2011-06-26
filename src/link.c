@@ -31,6 +31,8 @@
 
 #include        "rmem.h"
 
+#include        "arraytypes.h"
+
 int executecmd(char *cmd, char *args, int useenv);
 int executearg0(char *cmd, char *args);
 
@@ -217,7 +219,7 @@ int runLINK()
     int status;
 
     // Build argv[]
-    Array argv;
+    Strings argv;
 
     const char *cc = getenv("CC");
     if (!cc)
@@ -539,7 +541,7 @@ int runProgram()
     }
 
     // Build argv[]
-    Array argv;
+    Strings argv;
 
     argv.push((void *)global.params.exefile);
     for (size_t i = 0; i < global.params.runargs_length; i++)

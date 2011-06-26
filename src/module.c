@@ -48,9 +48,9 @@ ClassDeclaration *Module::moduleinfo;
 
 Module *Module::rootModule;
 DsymbolTable *Module::modules;
-Array Module::amodules;
+Modules Module::amodules;
 
-Array Module::deferred; // deferred Dsymbol's needing semantic() run on them
+Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
 unsigned Module::dprogress;
 
 void Module::init()
@@ -260,7 +260,7 @@ const char *Module::kind()
     return "module";
 }
 
-Module *Module::load(Loc loc, Array *packages, Identifier *ident)
+Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {   Module *m;
     char *filename;
 
@@ -1096,7 +1096,7 @@ int Module::selfImports()
 
 /* =========================== ModuleDeclaration ===================== */
 
-ModuleDeclaration::ModuleDeclaration(Array *packages, Identifier *id, bool safe)
+ModuleDeclaration::ModuleDeclaration(Identifiers *packages, Identifier *id, bool safe)
 {
     this->packages = packages;
     this->id = id;
@@ -1136,7 +1136,7 @@ const char *Package::kind()
 }
 
 
-DsymbolTable *Package::resolve(Array *packages, Dsymbol **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
 {
     DsymbolTable *dst = Module::modules;
     Dsymbol *parent = NULL;

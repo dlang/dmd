@@ -116,8 +116,11 @@ void unittests();
 #endif
 
 
-struct Array;
 struct OutBuffer;
+
+// Can't include arraytypes.h here, need to declare these directly.
+typedef struct ArrayOf_Identifier Identifiers;
+typedef struct ArrayOf_char Strings;
 
 // Put command line switches in here
 struct Param
@@ -167,8 +170,8 @@ struct Param
     char ignoreUnsupportedPragmas;      // rather than error on them
 
     char *argv0;        // program name
-    Array *imppath;     // array of char*'s of where to look for import modules
-    Array *fileImppath; // array of char*'s of where to look for file import modules
+    Strings *imppath;     // array of char*'s of where to look for import modules
+    Strings *fileImppath; // array of char*'s of where to look for file import modules
     char *objdir;       // .obj/.lib file output directory
     char *objname;      // .obj file output name
     char *libname;      // .lib file output name
@@ -176,7 +179,7 @@ struct Param
     char doDocComments; // process embedded documentation comments
     char *docdir;       // write documentation file to docdir directory
     char *docname;      // write documentation file to docname
-    Array *ddocfiles;   // macro include files for Ddoc
+    Strings *ddocfiles;   // macro include files for Ddoc
 
     char doHdrGeneration;       // process embedded documentation comments
     char *hdrdir;               // write 'header' file to docdir directory
@@ -186,10 +189,10 @@ struct Param
     char *xfilename;            // write JSON file to xfilename
 
     unsigned debuglevel;        // debug level
-    Array *debugids;            // debug identifiers
+    Identifiers *debugids;      // debug identifiers
 
     unsigned versionlevel;      // version level
-    Array *versionids;          // version identifiers
+    Identifiers *versionids;    // version identifiers
 
     bool dump_source;
 
@@ -214,9 +217,9 @@ struct Param
     char** runargs;     // arguments for executable
 
     // Linker stuff
-    Array *objfiles;
-    Array *linkswitches;
-    Array *libfiles;
+    Strings *objfiles;
+    Strings *linkswitches;
+    Strings *libfiles;
     char *deffile;
     char *resfile;
     char *exefile;
@@ -237,8 +240,8 @@ struct Global
     const char *map_ext;        // for .map files
     const char *copyright;
     const char *written;
-    Array *path;        // Array of char*'s which form the import lookup path
-    Array *filePath;    // Array of char*'s which form the file import lookup path
+    Strings *path;        // Array of char*'s which form the import lookup path
+    Strings *filePath;    // Array of char*'s which form the file import lookup path
     int structalign;
     const char *version;
 
