@@ -917,6 +917,33 @@ static assert(quop()==8);
 static assert(quop()==8); // check for clobbering
 
 /**************************************************
+   Bug 5676 tuple assign of struct that has void opAssign
+**************************************************/
+
+struct S5676
+{
+    int x;
+    void opAssign(S5676 rhs) { x = rhs.x;}
+}
+
+
+struct Tup5676(E...)
+{
+    E g;
+    void foo(E values) { g = values;   }
+}
+
+bool ice5676()
+{
+    Tup5676!(S5676) q;
+    q.foo( S5676(3) );
+    assert( q.g[0].x == 3);
+    return true;
+}
+
+static assert(ice5676());
+
+/**************************************************
    Bug 5682 Wrong CTFE with operator overloading
 **************************************************/
 
@@ -940,7 +967,6 @@ auto test() {
 }
 
 static assert(test().n == 8);
-
 
 /**************************************************
    Attempt to modify a read-only string literal
