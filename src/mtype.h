@@ -589,6 +589,7 @@ struct TypeFunction : TypeNext
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident();
+    bool hasLazyParameters();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif

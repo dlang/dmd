@@ -396,7 +396,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        size_t dim = 1;
+        size_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -419,7 +419,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                 Expression *ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, v, 0);
 
-                if (dim == 1)
+                if (dim == 0)
                 {   // this.v.postblit()
                     ex = new DotVarExp(0, ex, sd->postblit, 0);
                     ex = new CallExp(0, ex);
@@ -508,7 +508,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        size_t dim = 1;
+        size_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -524,7 +524,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, v, 0);
 
-                if (dim == 1)
+                if (dim == 0)
                 {   // this.v.dtor()
                     ex = new DotVarExp(0, ex, sd->dtor, 0);
                     ex = new CallExp(0, ex);

@@ -130,7 +130,7 @@ int runLINK()
 
         writeFilename(&cmdbuf, p);
     }
-    else if (global.params.run)
+    else
         cmdbuf.writestring("nul");
     cmdbuf.writeByte(',');
 

@@ -1748,7 +1748,7 @@ Lagain:
 
             // __r.next
             e = new VarExp(loc, r);
-            Expression *increment = new DotIdExp(loc, e, idnext);
+            Expression *increment = new CallExp(loc, new DotIdExp(loc, e, idnext));
 
             /* Declaration statement for e:
              *    auto e = __r.idhead;
@@ -2948,7 +2948,7 @@ int SwitchStatement::blockExit(bool mustNotThrow)
 
 void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("switch (");
+    buf->writestring(isFinal ? "final switch (" : "switch (");
     condition->toCBuffer(buf, hgs);
     buf->writebyte(')');
     buf->writenl();
@@ -4219,8 +4219,7 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
         /* If we're catching Object, then there is no throwing
          */
         Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
-        if (i == 0 &&
-            (id == Id::Object || id == Id::Throwable || id == Id::Exception))
+        if (id == Id::Object || id == Id::Throwable || id == Id::Exception)
         {
             result &= ~BEthrow;
         }
@@ -4299,6 +4298,15 @@ void Catch::semantic(Scope *sc)
         {   error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
             type = Type::terror;
         }
+    }
+    else if (sc->func &&
+        !sc->intypeof &&
+        cd != ClassDeclaration::exception &&
+        !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
+        sc->func->setUnsafe())
+    {
+        error(loc, "can only catch class objects derived from Exception in @safe code, not '%s'", type->toChars());
+        type = Type::terror;
     }
     else if (ident)
     {

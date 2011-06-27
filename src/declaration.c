@@ -796,17 +796,33 @@ void VarDeclaration::semantic(Scope *sc)
     //printf("storage_class = x%x\n", storage_class);
 
 #if DMDV2
-#if 1
-    if (storage_class & STCgshared && sc->func && sc->func->isSafe())
+    // Safety checks
+    if (sc->func && !sc->intypeof)
     {
-        error("__gshared not allowed in safe functions; use shared");
+        if (storage_class & STCgshared)
+        {
+            if (sc->func->setUnsafe())
+                error("__gshared not allowed in safe functions; use shared");
+        }
+        if (init && init->isVoidInitializer() && type->hasPointers())
+        {
+            if (sc->func->setUnsafe())
+                error("void initializers for pointers not allowed in safe functions");
+        }
+        if (type->hasPointers() && type->toDsymbol(sc))
+        {
+            Dsymbol *s = type->toDsymbol(sc);
+            if (s)
+            {
+                AggregateDeclaration *ad = s->isAggregateDeclaration();
+                if (ad && ad->hasUnions)
+                {
+                    if (sc->func->setUnsafe())
+                        error("unions containing pointers are not allowed in @safe functions");
+                }
+            }
+        }
     }
-#else
-    if (storage_class & STCgshared && global.params.safe && !sc->module->safe)
-    {
-        error("__gshared not allowed in safe mode; use shared");
-    }
-#endif
 #endif
 
     Dsymbol *parent = toParent();

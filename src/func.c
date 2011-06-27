@@ -64,7 +64,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     naked = 0;
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
-    inlineAsm = 0;
     cantInterpret = 0;
     isArrayOp = 0;
     semanticRun = PASSinit;
@@ -85,6 +84,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
 #if DMDV2
     builtin = BUILTINunknown;
     tookAddressOf = 0;
+    flags = 0;
 #endif
 }
 
@@ -168,7 +168,7 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         sc = sc->push();
         sc->stc |= storage_class & (STCref | STCnothrow | STCpure | STCdisable
-            | STCsafe | STCtrusted | STCsystem);      // forward to function type
+            | STCsafe | STCtrusted | STCsystem | STCproperty);      // forward to function type
 
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
@@ -248,6 +248,25 @@ void FuncDeclaration::semantic(Scope *sc)
 
     linkage = sc->linkage;
     protection = sc->protection;
+
+    /* Purity and safety can be inferred for some functions by examining
+     * the function body.
+     */
+    if (fbody &&
+        (isFuncLiteralDeclaration() || parent->isTemplateInstance()))
+    {
+        if (f->purity == PUREimpure &&      // purity not specified
+            !f->hasLazyParameters()
+           )
+        {
+            flags |= FUNCFLAGpurityInprocess;
+        }
+        if (f->trust == TRUSTdefault)
+            flags |= FUNCFLAGsafetyInprocess;
+
+        if (!f->isnothrow)
+            flags |= FUNCFLAGnothrowInprocess;
+    }
 
     if (storage_class & STCscope)
         error("functions cannot be scope");
@@ -1315,7 +1334,11 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
                 error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
-            else if (!inlineAsm)
+            else if (hasReturnExp & 8)               // if inline asm
+            {
+                flags &= ~FUNCFLAGnothrowInprocess;
+            }
+            else
             {
 #if DMDV2
                 // Check for errors related to 'nothrow'.
@@ -1323,6 +1346,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 int blockexit = fbody ? fbody->blockExit(f->isnothrow) : BEfallthru;
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
+                if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    flags &= ~FUNCFLAGnothrowInprocess;
+                    if (!(blockexit & BEthrow))
+                        f->isnothrow = TRUE;
+                }
 
                 int offend = blockexit & BEfallthru;
 #endif
@@ -1612,6 +1641,20 @@ void FuncDeclaration::semantic3(Scope *sc)
 
         sc2->callSuper = 0;
         sc2->pop();
+    }
+
+    /* If function survived being marked as impure, then it is pure
+     */
+    if (flags & FUNCFLAGpurityInprocess)
+    {
+        flags &= ~FUNCFLAGpurityInprocess;
+        f->purity = PUREfwdref;
+    }
+
+    if (flags & FUNCFLAGsafetyInprocess)
+    {
+        flags &= ~FUNCFLAGsafetyInprocess;
+        f->trust = TRUSTsafe;
     }
 
     if (global.gag && global.errors != nerrors)
@@ -2619,6 +2662,8 @@ enum PURE FuncDeclaration::isPure()
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());
     assert(type->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)type;
+    if (flags & FUNCFLAGpurityInprocess)
+        setImpure();
     enum PURE purity = tf->purity;
     if (purity == PUREfwdref)
         tf->purityLevel();
@@ -2634,16 +2679,53 @@ enum PURE FuncDeclaration::isPure()
     return purity;
 }
 
+/**************************************
+ * The function is doing something impure,
+ * so mark it as impure.
+ * If there's a purity error, return TRUE.
+ */
+bool FuncDeclaration::setImpure()
+{
+    if (flags & FUNCFLAGpurityInprocess)
+    {
+        flags &= ~FUNCFLAGpurityInprocess;
+    }
+    else if (isPure())
+        return TRUE;
+    return FALSE;
+}
+
 int FuncDeclaration::isSafe()
 {
     assert(type->ty == Tfunction);
+    if (flags & FUNCFLAGsafetyInprocess)
+        setUnsafe();
     return ((TypeFunction *)type)->trust == TRUSTsafe;
 }
 
 int FuncDeclaration::isTrusted()
 {
     assert(type->ty == Tfunction);
+    if (flags & FUNCFLAGsafetyInprocess)
+        setUnsafe();
     return ((TypeFunction *)type)->trust == TRUSTtrusted;
+}
+
+/**************************************
+ * The function is doing something unsave,
+ * so mark it as unsafe.
+ * If there's a safe error, return TRUE.
+ */
+bool FuncDeclaration::setUnsafe()
+{
+    if (flags & FUNCFLAGsafetyInprocess)
+    {
+        flags &= ~FUNCFLAGsafetyInprocess;
+        ((TypeFunction *)type)->trust = TRUSTsystem;
+    }
+    else if (isSafe())
+        return TRUE;
+    return FALSE;
 }
 
 // Determine if function needs

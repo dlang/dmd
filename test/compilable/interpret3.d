@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// PERMUTE_ARGS: -inline
 
 struct ArrayRet{
    int x;
@@ -238,7 +238,24 @@ struct Matrix5248 {
 
 static assert(Matrix5248().Compile());
 
-// Interpreter code coverage tests
+/**************************************************
+    Bug 6164
+**************************************************/
+
+size_t bug6164(){
+    int[] ctfe2(int n){
+        int[] r=[];
+        if(n!=0) r~=[1] ~ ctfe2(n-1);
+        return r;
+    }
+    return ctfe2(2).length;
+}
+static assert(bug6164()==2);
+
+/**************************************************
+    Interpreter code coverage tests
+**************************************************/
+
 int cov1(int a)
 {
    a %= 15382;
@@ -687,6 +704,21 @@ auto bug5852(const(string) s) {
 static assert(bug5852("abc")==3);
 
 /*******************************************
+    Set array length
+*******************************************/
+
+static assert(
+{
+    struct W{ int [] z;}
+    W w;
+    w.z.length = 2;
+    assert(w.z.length == 2);
+    w.z.length = 6;
+    assert(w.z.length == 6);
+    return true;
+}());
+
+/*******************************************
              Bug 5671
 *******************************************/
 
@@ -885,6 +917,33 @@ static assert(quop()==8);
 static assert(quop()==8); // check for clobbering
 
 /**************************************************
+   Bug 5676 tuple assign of struct that has void opAssign
+**************************************************/
+
+struct S5676
+{
+    int x;
+    void opAssign(S5676 rhs) { x = rhs.x;}
+}
+
+
+struct Tup5676(E...)
+{
+    E g;
+    void foo(E values) { g = values;   }
+}
+
+bool ice5676()
+{
+    Tup5676!(S5676) q;
+    q.foo( S5676(3) );
+    assert( q.g[0].x == 3);
+    return true;
+}
+
+static assert(ice5676());
+
+/**************************************************
    Bug 5682 Wrong CTFE with operator overloading
 **************************************************/
 
@@ -908,7 +967,6 @@ auto test() {
 }
 
 static assert(test().n == 8);
-
 
 /**************************************************
    Attempt to modify a read-only string literal
@@ -1363,6 +1421,18 @@ void c4825() {
 }
 
 /**************************************************
+    Bug 5708 -- failed with -inline
+**************************************************/
+string b5708(string s) { return s; }
+string a5708(string s) { return b5708(s); }
+
+void bug5708() {
+    void m() { a5708("lit"); }
+    static assert(a5708("foo") == "foo");
+    static assert(a5708("bar") == "bar");
+}
+
+/**************************************************
     Bug 6120 -- failed with -inline
 **************************************************/
 
@@ -1719,6 +1789,8 @@ bool bug4065(string s) {
     else if (s=="bb")
         assert(*p == 2);
     else assert(!p);
+    int[string] zz;
+    assert(!("xx" in zz));
     bool c = !p;
     return cast(bool)(s in aa);
 }
@@ -1726,3 +1798,80 @@ bool bug4065(string s) {
 static assert(!bug4065("xx"));
 static assert(bug4065("aa"));
 static assert(bug4065("bb"));
+
+/**************************************************
+    Pointers in ? :
+**************************************************/
+
+static assert(
+{
+    int[2] x;
+    int *p = &x[1];
+    return p ? true: false;
+}());
+
+/**************************************************
+    Pointer slicing
+**************************************************/
+
+int ptrSlice()
+{
+    auto arr = new int[5];
+    int * x = &arr[0];
+    int [] y = x[0..5];
+    x[1..3] = 6;
+    ++x;
+    x[1..3] = 14;
+    assert(arr[1]==6);
+    assert(arr[2]==14);
+    x[-1..4]= 5;
+    int [] z = arr[1..2];
+    z.length = 4;
+    z[$-1] = 17;
+    assert(arr.length ==5);
+    return 2;
+}
+
+static assert(ptrSlice()==2);
+
+/**************************************************
+    4448 - labelled break + continue
+**************************************************/
+
+int bug4448()
+{
+    int n=2;
+    L1:{ switch(n)
+    {
+       case 5:
+        return 7;
+       default:
+       n = 5;
+       break L1;
+    }
+    int w = 7;
+    }
+    return 3;
+}
+
+static assert(bug4448()==3);
+
+int bug4448b()
+{
+    int n=2;
+    L1:for (n=2; n<5; ++n)
+    {
+        for (int m=1; m<6; ++m)
+        {
+            if (n<3)
+            {
+                assert(m==1);
+                continue L1;
+            }
+        }
+        break;
+    }
+    return 3;
+}
+
+static assert(bug4448b()==3);

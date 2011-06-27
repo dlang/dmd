@@ -2331,7 +2331,7 @@ static assert( is (food5195 == good5195));
 
 struct Foo129
 {
-    void add(T)(T value) pure nothrow
+    void add(T)(T value) nothrow
     {
         this.value += value;
     }
@@ -2361,7 +2361,7 @@ void test129()
     writeln(foo.value);
     assert(foo.value == 13);
 
-    void delegate (int) pure nothrow dg = &foo.add!(int);    
+    void delegate (int) nothrow dg = &foo.add!(int);    
     dg(7);
     assert(foo.value == 20);
 }
@@ -2900,6 +2900,135 @@ void test148()
 }
 
 /***************************************************/
+// 4969
+
+class MyException : Exception
+{
+    this()
+    {
+        super("An exception!");
+    }
+}
+
+void throwAway()
+{
+    throw new MyException;
+}
+
+void cantthrow() nothrow
+{
+    try
+        throwAway();
+    catch(MyException me)
+        assert(0);
+    catch(Exception e)
+        assert(0);
+}
+
+/***************************************************/
+// 5659 
+ 
+void test149() 
+{ 
+    import std.traits; 
+ 
+    char a; 
+    immutable(char) b; 
+ 
+    static assert(is(typeof(true ? a : b) == const(char))); 
+    static assert(is(typeof([a, b][0]) == const(char))); 
+ 
+    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char))); 
+} 
+ 
+
+/***************************************************/
+
+void bar150(T)(T n) {  }
+
+@safe void test150()
+{
+    bar150(1);
+}
+
+/***************************************************/
+
+void bar151(T)(T n) {  }
+
+nothrow void test151()
+{
+    bar151(1);
+}
+
+/***************************************************/
+
+@property int coo() { return 1; }
+@property auto doo(int i) { return i; }
+
+@property int eoo() { return 1; }
+@property auto ref hoo(int i) { return i; }
+
+// 3359
+
+int goo(int i) pure { return i; }
+auto ioo(int i) pure { return i; }
+auto ref boo(int i) pure nothrow { return i; }
+
+class A152 {
+    auto hoo(int i) pure  { return i; }
+    const boo(int i) const { return i; }
+    auto coo(int i) const { return i; }
+    auto doo(int i) immutable { return i; }
+    auto eoo(int i) shared { return i; }
+} 
+
+// 4706
+
+struct Foo152(T) {
+    @property auto ref front() {
+        return T.init;
+    }
+
+    @property void front(T num) {}
+}
+
+void test152() {
+    Foo152!int foo;
+    auto a = foo.front;
+    foo.front = 2;
+}
+
+
+/***************************************************/
+// 3799
+
+void test153()
+{
+    void bar()
+    {
+    }
+
+    static assert(!__traits(isStaticFunction, bar));
+}
+
+/***************************************************/
+// 3632
+
+
+void test154() {
+    float f;
+    assert(f is float.init);
+    double d;
+    assert(d is double.init);
+    real r;
+    assert(r is real.init);
+
+    assert(float.nan is float.nan);
+    assert(double.nan is double.nan);
+    assert(real.nan is real.nan);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3051,6 +3180,12 @@ int main()
     test146();
     test147();
     test148();
+    test149();
+    test150();
+    test151();
+    test152();
+    test153();
+    test154();
 
     printf("Success\n");
     return 0;

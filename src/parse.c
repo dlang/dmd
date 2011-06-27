@@ -427,8 +427,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 if (token.value == TOKidentifier &&
                     (tk = peek(&token))->value == TOKlparen &&
                     skipParens(tk, &tk) &&
-                    (peek(tk)->value == TOKlparen ||
-                     peek(tk)->value == TOKlcurly)
+                    ((tk = peek(tk)), 1) &&
+                    skipAttributes(tk, &tk) &&
+                    (tk->value == TOKlparen ||
+                     tk->value == TOKlcurly)
                    )
                 {
                     a = parseDeclarations(storageClass, comment);
@@ -4907,7 +4909,6 @@ int Parser::skipParens(Token *t, Token **pt)
                 break;
 
             case TOKeof:
-            case TOKsemicolon:
                 goto Lfalse;
 
              default:
@@ -4922,6 +4923,61 @@ int Parser::skipParens(Token *t, Token **pt)
     return 1;
 
   Lfalse:
+    return 0;
+}
+
+/*******************************************
+ * Skip attributes.
+ * Input:
+ *      t is on a candidate attribute
+ * Output:
+ *      *pt is set to first non-attribute token on success
+ * Returns:
+ *      !=0     successful
+ *      0       some parsing error
+ */
+
+int Parser::skipAttributes(Token *t, Token **pt)
+{
+    while (1)
+    {
+        switch (t->value)
+        {
+            case TOKconst:
+            case TOKinvariant:
+            case TOKimmutable:
+            case TOKshared:
+            case TOKwild:
+            case TOKfinal:
+            case TOKauto:
+            case TOKscope:
+            case TOKoverride:
+            case TOKabstract:
+            case TOKsynchronized:
+            case TOKdeprecated:
+            case TOKnothrow:
+            case TOKpure:
+            case TOKref:
+            case TOKtls:
+            case TOKgshared:
+            //case TOKmanifest:
+                break;
+            case TOKat:
+                if (parseAttribute() == STCundefined)
+                    break;
+                goto Lerror;
+            default:
+                goto Ldone;
+        }
+        t = peek(t);
+    }
+
+  Ldone:
+    if (*pt)
+        *pt = t;
+    return 1;
+    
+  Lerror:
     return 0;
 }
 

@@ -29,6 +29,8 @@
 
 #define LOG 0
 
+int RealEquals(real_t x1, real_t x2);
+
 Expression *expType(Type *type, Expression *e)
 {
     if (type != e->type)
@@ -866,8 +868,24 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
     }
     else
     {
-        return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
-                type, e1, e2);
+       if (e1->type->isreal())
+       {
+           cmp = RealEquals(e1->toReal(), e2->toReal());
+       }
+       else if (e1->type->isimaginary())
+       {
+           cmp = RealEquals(e1->toImaginary(), e2->toImaginary());
+       }
+       else if (e1->type->iscomplex())
+       {
+           complex_t v1 = e1->toComplex();
+           complex_t v2 = e2->toComplex();
+           cmp = RealEquals(creall(v1), creall(v2)) &&
+                 RealEquals(cimagl(v1), cimagl(v1));
+       }
+       else
+           return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
+                   type, e1, e2);
     }
     if (op == TOKnotidentity)
         cmp ^= 1;
@@ -1075,6 +1093,13 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         return e1;
     if (e1->type->implicitConvTo(to) >= MATCHconst ||
         to->implicitConvTo(e1->type) >= MATCHconst)
+        return expType(to, e1);
+
+    // Allow covariant converions of delegates
+    // (Perhaps implicit conversion from pure to impure should be a MATCHconst,
+    // then we wouldn't need this extra check.)
+    if (e1->type->toBasetype()->ty == Tdelegate &&
+        e1->type->implicitConvTo(to) == MATCHconvert)
         return expType(to, e1);
 
     Type *tb = to->toBasetype();

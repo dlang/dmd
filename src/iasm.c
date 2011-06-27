@@ -607,7 +607,7 @@ RETRY:
             case 0:
                 if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
                     asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));  // illegal opcode in 64bit mode
-        
+
                 ptbRet = pop->ptb;
 
                 goto RETURN_IT;
@@ -4394,8 +4394,11 @@ Statement *AsmStatement::semantic(Scope *sc)
     //printf("AsmStatement::semantic()\n");
 
 #if DMDV2
-    if (sc->func && sc->func->isSafe())
-        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    if (sc->func)
+    {
+        if (sc->func->setUnsafe())
+            error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    }
 #endif
 
     OP *o;
@@ -4409,7 +4412,6 @@ Statement *AsmStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);
-    fd->inlineAsm = 1;
 
     if (!tokens)
         return NULL;

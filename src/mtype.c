@@ -5348,6 +5348,20 @@ Type *TypeFunction::reliesOnTident()
     return next ? next->reliesOnTident() : NULL;
 }
 
+/********************************************
+ * Return TRUE if there are lazy parameters.
+ */
+bool TypeFunction::hasLazyParameters()
+{
+    size_t dim = Parameter::dim(parameters);
+    for (size_t i = 0; i < dim; i++)
+    {   Parameter *fparam = Parameter::getNth(parameters, i);
+        if (fparam->storageClass & STClazy)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /***************************
  * Examine function signature for parameter p and see if
  * p can 'escape' the scope of the function.
@@ -5446,7 +5460,7 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
     //printf("to  : %s\n", to->toChars());
     if (this == to)
         return MATCHexact;
-#if 0 // not allowing covariant conversions because it interferes with overriding
+#if 1 // not allowing covariant conversions because it interferes with overriding
     if (to->ty == Tdelegate && this->nextOf()->covariant(to->nextOf()) == 1)
         return MATCHconvert;
 #endif
