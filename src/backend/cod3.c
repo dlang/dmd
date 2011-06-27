@@ -4357,6 +4357,8 @@ unsigned codout(code *c)
                             goto case_default;
 
                         default:
+                            if ((op|0xF) == 0x0F8F) // Jcc rel16 rel32
+                                flags |= CFselfrel;
                             if (I64 && (op & ~7) == 0xB8 && c->Irex & REX_W)
                                 goto do64;
                         case_default:

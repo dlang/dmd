@@ -2775,7 +2775,7 @@ L1:
         writef("");
     }
     //*/
-    /* The same loop that doesn't compile above 
+    /* The same loop that doesn't compile above
      * /does/ compile after previous one:
      */
     //*
@@ -2803,9 +2803,9 @@ void test32()
 void test33()
 {
     int x = 1;
- 
+
     alias x y;
- 
+
     asm
     {
 	mov EAX, x;
@@ -2829,7 +2829,7 @@ int test34()
 /****************************************************/
 
 void foo35() { printf("hello\n"); }
- 
+
 void test35()
 {
     void function() p;
@@ -3926,7 +3926,7 @@ void test53()
 	lea EAX, [EAX+ECX];
 	lea EAX, [EAX+EDX];
 	lea EAX, [EAX+EBX];
-	//lea EAX, [EAX+ESP]; RSP can't be on the right
+	//lea EAX, [EAX+ESP]; ESP can't be on the right
 	lea EAX, [EAX+EBP];
 	lea EAX, [EAX+ESI];
 	lea EAX, [EAX+EDI];
@@ -4024,6 +4024,84 @@ L1:     pop     EAX;
 
 /****************************************************/
 
+void test55()
+{   int x;
+    ubyte* p;
+    enum NOP = 0x9090_9090_9090_9090;
+    static ubyte data[] =
+    [
+        0x0F, 0x87, 0xFF, 0xFF, 0, 0,    //    ja    $ + 0xFFFF
+        0x72, 0x18,                      //    jb    Lb
+        0x0F, 0x82, 0x92, 0x00, 0, 0,    //    jc    Lc
+        0x0F, 0x84, 0x0C, 0x01, 0, 0,    //    je    Le
+        0xEB, 0x0A,                      //    jmp   Lb
+        0xE9, 0x85, 0x00, 0x00, 0,       //    jmp   Lc
+        0xE9, 0x00, 0x01, 0x00, 0,       //    jmp   Le
+    ];
+
+    asm
+    {
+        call  L1;
+
+        ja  $+0x0_FFFF;
+        jb  Lb;
+        jc  Lc;
+        je  Le;
+        jmp Lb;
+        jmp Lc;
+        jmp Le;
+
+    Lb: dq NOP,NOP,NOP,NOP;    //  32
+        dq NOP,NOP,NOP,NOP;    //  64
+        dq NOP,NOP,NOP,NOP;    //  96
+        dq NOP,NOP,NOP,NOP;    // 128
+    Lc: dq NOP,NOP,NOP,NOP;    // 160
+        dq NOP,NOP,NOP,NOP;    // 192
+        dq NOP,NOP,NOP,NOP;    // 224
+        dq NOP,NOP,NOP,NOP;    // 256
+    Le: nop;
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
+void test56()
+{   int x;
+
+    x = foo56();
+
+    assert(x == 42);
+}
+
+int foo56()
+{
+    asm
+    {   naked;
+        xor  EAX,EAX;
+        jz   bar56;
+        ret;
+    }
+}
+void bar56()
+{
+    asm
+    {   naked;
+        mov EAX, 42;
+        ret;
+    }
+}
+
+/****************************************************/
+
 /* ======================= SSSE3 ======================= */
 
 /*
@@ -4109,6 +4187,8 @@ int main()
     test52();
     test53();
     test54();
+    test55();
+    test56();
   }
     printf("Success\n");
     return 0;
