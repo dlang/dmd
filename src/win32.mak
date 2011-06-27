@@ -77,7 +77,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj aliasthis.obj \
+	interpret.obj traits.obj aliasthis.obj intrange.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
@@ -110,12 +110,12 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	eh.c toctype.c class.c mangle.c bit.c tocsym.c func.c inline.c \
 	access.c complex_t.h unialpha.c irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
-	identifier.h parse.h scope.h enum.h import.h \
+	identifier.h parse.h scope.h enum.h import.h intrange.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
-	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
+	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c intrange.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c
 
 # From C++ compiler
@@ -470,6 +470,7 @@ inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
 interpret.obj : $(TOTALH) interpret.c declaration.h expression.h
+intrange.obj : $(TOTALH) intrange.h intrange.c
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libomf.obj : $(TOTALH) lib.h libomf.c
