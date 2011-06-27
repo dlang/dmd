@@ -536,8 +536,6 @@ void Module::genobjfile(int multiobj)
 
 void FuncDeclaration::toObjFile(int multiobj)
 {
-    Symbol *senter;
-    Symbol *sexit;
     FuncDeclaration *func = this;
     ClassDeclaration *cd = func->parent->isClassDeclaration();
     int reverse;

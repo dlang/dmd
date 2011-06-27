@@ -113,7 +113,6 @@ void outdata(symbol *s)
     int seg;
     targ_size_t offset;
     int flags;
-    char *p;
     tym_t ty;
     int tls;
 
@@ -553,11 +552,11 @@ void outcommon(symbol *s,targ_size_t n)
 STATIC void outelem(elem *e)
 {
     symbol *s;
-    char *p;
-    targ_size_t sz;
-    type *t;
     tym_t tym;
     elem *e1;
+#if SCPP
+    type *t;
+#endif
 
 again:
     assert(e);
@@ -920,7 +919,7 @@ void writefunc(symbol *sfunc)
 }
 
 STATIC void writefunc2(symbol *sfunc)
-{   unsigned i,n;
+{
     block *b;
     unsigned nsymbols;
     SYMIDX si;
@@ -1367,14 +1366,13 @@ STATIC void writefunc2(symbol *sfunc)
         goto Ldone;
     if (sfunc->Sclass == SCglobal)
     {
-        char *id;
-
 #if OMFOBJ
         if (!(config.flags4 & CFG4allcomdat))
             objpubdef(cseg,sfunc,sfunc->Soffset);       // make a public definition
 #endif
 
 #if SCPP && _WIN32
+        char *id;
         // Determine which startup code to reference
         if (!CPP || !isclassmember(sfunc))              // if not member function
         {   static char *startup[] =

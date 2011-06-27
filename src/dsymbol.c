@@ -198,7 +198,6 @@ const char *Dsymbol::toPrettyChars()
 char *Dsymbol::locToChars()
 {
     OutBuffer buf;
-    char *p;
 
     if (!loc.filename)  // avoid bug 5861.
     {

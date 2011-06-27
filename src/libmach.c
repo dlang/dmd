@@ -391,8 +391,6 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
         unsigned offset = 8;
         char *symtab = NULL;
         unsigned symtab_size = 0;
-        char *filenametab = NULL;
-        unsigned filenametab_size = 0;
         unsigned mstart = objmodules.dim;
         while (offset < buflen)
         {

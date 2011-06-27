@@ -754,7 +754,6 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
     __body
 #endif
     {
-        int sz;
         char *id;
         type *t;
         Symbol *s;
@@ -765,6 +764,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 
         //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
 #if 0
+        int sz;
         OutBuffer buf;
         key->toKeyBuffer(&buf);
 

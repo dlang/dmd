@@ -1348,7 +1348,6 @@ Lmatch:
          *  static assert(!is(typeof(foo(7))));
          * Recursive attempts are regarded as a constraint failure.
          */
-        int nmatches = 0;
         for (Previous *p = previous; p; p = p->prev)
         {
             if (arrayObjectMatch(p->dedargs, dedargs, this, sc))
@@ -2335,9 +2334,9 @@ MATCH TypeInstance::deduceType(Scope *sc,
             Dsymbol *s1 = isDsymbol(o1);
             Dsymbol *s2 = isDsymbol(o2);
 
+#if 0
             Tuple *v1 = isTuple(o1);
             Tuple *v2 = isTuple(o2);
-#if 0
             if (t1)     printf("t1 = %s\n", t1->toChars());
             if (t2)     printf("t2 = %s\n", t2->toChars());
             if (e1)     printf("e1 = %s\n", e1->toChars());
@@ -4229,7 +4228,6 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
                 if (d)
                 {
-                    size_t dim = d->objects->dim;
                     tiargs->remove(j);
                     tiargs->insert(j, d->objects);
                     j--;
@@ -4334,7 +4332,6 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
         Dsymbol *s;
         Dsymbol *scopesym;
         Identifier *id;
-        int i;
 
         id = name;
         s = sc->search(loc, id, &scopesym);
@@ -4699,8 +4696,6 @@ Identifier *TemplateInstance::genIdent(Objects *args)
         else if (ea)
         {
           Lea:
-            sinteger_t v;
-            real_t r;
             // Don't interpret it yet, it might actually be an alias
             ea = ea->optimize(WANTvalue);
             if (ea->op == TOKvar)

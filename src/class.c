@@ -241,7 +241,6 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
 
 void ClassDeclaration::semantic(Scope *sc)
 {   int i;
-    unsigned offset;
 
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
     //printf("\tparent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
