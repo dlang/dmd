@@ -574,8 +574,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
     targ_size_t regv = regcon.immed.value[reg];
 
     if (flags & 1)      // 8 bits
-    {   unsigned msk;
-
+    {
         value &= 0xFF;
         regm &= BYTEREGS;
 

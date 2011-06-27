@@ -791,7 +791,9 @@ void dotytab()
                                 TYdchar,TYullong,TYucent,TYchar16 };
     static tym_t _mptr[]    = { TYmemptr };
     static tym_t _nullptr[] = { TYnullptr };
+#if OMFOBJ
     static tym_t _fv[]      = { TYfptr, TYvptr };
+#endif
 #if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
 #endif

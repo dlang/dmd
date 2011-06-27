@@ -188,9 +188,9 @@ void symbol_keep(symbol *s)
  */
 
 char *symbol_ident(symbol *s)
-{   static char noname[] = "__unnamed";
-
+{
 #if SCPP
+    static char noname[] = "__unnamed";
     switch (s->Sclass)
     {   case SCstruct:
             if (s->Sstruct->Salias)

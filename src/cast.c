@@ -35,9 +35,10 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 
     MATCH match = implicitConvTo(t);
     if (match)
-    {   TY tyfrom = type->toBasetype()->ty;
-        TY tyto = t->toBasetype()->ty;
+    {
 #if DMDV1
+        TY tyfrom = type->toBasetype()->ty;
+        TY tyto = t->toBasetype()->ty;
         if (global.params.warnings &&
             Type::impcnvWarn[tyfrom][tyto] &&
             op != TOKint64)
@@ -442,8 +443,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
 #endif
 
 MATCH StringExp::implicitConvTo(Type *t)
-{   MATCH m;
-
+{
 #if 0
     printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
         toChars(), committed, type->toChars(), t->toChars());
@@ -508,6 +508,7 @@ MATCH StringExp::implicitConvTo(Type *t)
     }
     return Expression::implicitConvTo(t);
 #if 0
+    MATCH m;
     m = (MATCH)type->implicitConvTo(t);
     if (m)
     {
@@ -684,8 +685,6 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     if (result == MATCHnomatch)
     {
         // Look for pointers to functions where the functions are overloaded.
-        FuncDeclaration *f;
-
         t = t->toBasetype();
         if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
             t->ty == Tdelegate && t->nextOf()->ty == Tfunction)

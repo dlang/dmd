@@ -508,7 +508,6 @@ Lerr:
 
 Expression *ArrayInitializer::toExpression()
 {   Expressions *elements;
-    Expression *e;
 
     //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
     //static int i; if (++i == 2) halt();

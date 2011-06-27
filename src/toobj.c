@@ -47,16 +47,11 @@ void Module::genmoduleinfo()
     //printf("Module::genmoduleinfo() %s\n", toChars());
 
     Symbol *msym = toSymbol();
-    unsigned offset;
 #if DMDV2
     unsigned sizeof_ModuleInfo = 16 * PTRSIZE;
 #else
     unsigned sizeof_ModuleInfo = 14 * PTRSIZE;
 #endif
-#if !MODULEINFO_IS_STRUCT
-    sizeof_ModuleInfo -= 2 * PTRSIZE;
-#endif
-    //printf("moduleinfo size = x%x\n", sizeof_ModuleInfo);
 
     //////////////////////////////////////////////
 
@@ -918,7 +913,6 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
 void InterfaceDeclaration::toObjFile(int multiobj)
 {   unsigned i;
-    Symbol *sinit;
     enum_SC scclass;
 
     //printf("InterfaceDeclaration::toObjFile('%s')\n", toChars());

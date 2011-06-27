@@ -3346,7 +3346,6 @@ const char *asm_opstr(OP *pop)
 
 OP *asm_op_lookup(const char *s)
 {
-    OP  *pop;
     int i;
     char szBuf[12];
 
