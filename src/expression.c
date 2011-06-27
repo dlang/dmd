@@ -7562,8 +7562,8 @@ int CallExp::checkSideEffect(int flag)
            )
         {
             result = 0;
-            if (flag == 0)
-                warning("pure nothrow function %s has no effect", e1->toChars());
+            //if (flag == 0)
+                //warning("pure nothrow function %s has no effect", e1->toChars());
         }
         else
             result = 1;
