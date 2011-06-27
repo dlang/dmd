@@ -607,7 +607,9 @@ void stackoffsets(int flags)
     targ_size_t Amax,sz;
     unsigned alignsize;
     int offi;
+#if AUTONEST
     targ_size_t offstack[20];
+#endif
     vec_t tbl = NULL;
 
 
@@ -1733,8 +1735,6 @@ STATIC void resetEcomsub(elem *e)
 
 int isregvar(elem *e,regm_t *pregm,unsigned *preg)
 {   symbol *s;
-    unsigned u;
-    regm_t m;
     regm_t regm;
     unsigned reg;
 
@@ -2637,7 +2637,6 @@ elem_print(e);
 code *codelem(elem *e,regm_t *pretregs,bool constflag)
 { code *c;
   Symbol *s;
-  tym_t tym;
   unsigned op;
 
 #ifdef DEBUG

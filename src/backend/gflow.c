@@ -262,7 +262,7 @@ STATIC void rdelem(vec_t *pgen,vec_t *pkill,                    /* where to put 
 
 STATIC void accumrd(vec_t GEN,vec_t KILL,elem *n)
 {       vec_t Gl,Kl,Gr,Kr;
-        unsigned op,i;
+        unsigned op;
 
         assert(GEN && KILL && n);
         op = n->Eoper;

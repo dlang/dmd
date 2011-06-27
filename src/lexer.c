@@ -1983,7 +1983,6 @@ TOK Lexer::number(Token *t)
     };
     enum FLAGS flags = FLAGS_decimal;
 
-    int i;
     int base;
     unsigned c;
     unsigned char *start;

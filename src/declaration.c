@@ -1709,7 +1709,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     bool array = false;
     Type *tv = type->toBasetype();
     while (tv->ty == Tsarray)
-    {   TypeSArray *ta = (TypeSArray *)tv;
+    {
         array = true;
         tv = tv->nextOf()->toBasetype();
     }

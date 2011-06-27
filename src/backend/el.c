@@ -2280,7 +2280,6 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
          */
         volatile long double v = e->EV.Vldouble;
         volatile double vDouble;
-        volatile double z = v;
         *(&vDouble) = v;
         if (v == vDouble)       // This will fail if compiler does NaN incorrectly!
         {

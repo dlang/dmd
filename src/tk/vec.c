@@ -51,7 +51,7 @@ void vec_init()
 void vec_term()
 {
     if (--vec_initcount == 0)
-    {   int i;
+    {
 
 #ifdef DEBUG
         if (vec_count != 0)
@@ -63,6 +63,7 @@ void vec_term()
         assert(vec_count == 0);
 #endif
 #if TERMCODE
+        int i;
         for (i = 0; i < VECMAX; i++)
         {   void **v;
             void **vn;
