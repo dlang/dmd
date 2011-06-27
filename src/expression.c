@@ -6920,7 +6920,11 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
         UnaExp::semantic(sc);
+        if (e1->type == Type::terror)
+            return new ErrorExp();
         e1 = e1->toLvalue(sc, NULL);
+        if (e1->op == TOKerror)
+            return e1;
         if (!e1->type)
         {
             error("cannot take address of %s", e1->toChars());
@@ -6958,9 +6962,8 @@ Expression *AddrExp::semantic(Scope *sc)
             FuncDeclaration *f = dve->var->isFuncDeclaration();
 
             if (f && f->isNested())
-            {   Expression *e;
-
-                e = new DelegateExp(loc, e1, f);
+            {
+                Expression *e = new DelegateExp(loc, e1, f);
                 e = e->semantic(sc);
                 return e;
             }
@@ -7010,12 +7013,12 @@ Expression *PtrExp::semantic(Scope *sc)
         switch (tb->ty)
         {
             case Tpointer:
-                type = tb->next;
+                type = ((TypePointer *)tb)->next;
                 break;
 
             case Tsarray:
             case Tarray:
-                type = tb->next;
+                type = ((TypeArray *)tb)->next;
                 e1 = e1->castTo(sc, type->pointerTo());
                 break;
 
@@ -7261,7 +7264,7 @@ Expression *DeleteExp::semantic(Scope *sc)
                     break;
             }
             error("cannot delete type %s", e1->type->toChars());
-            break;
+            return new ErrorExp();
     }
 
     if (e1->op == TOKindex)
@@ -7285,7 +7288,7 @@ int DeleteExp::checkSideEffect(int flag)
 Expression *DeleteExp::checkToBoolean()
 {
     error("delete does not give a boolean result");
-    return this;
+    return new ErrorExp();
 }
 
 void DeleteExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -7534,31 +7537,34 @@ Expression *SliceExp::semantic(Scope *sc)
     else
         goto Lerror;
 
+    {
+    Scope *sc2 = sc;
     if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
     {
         sym = new ArrayScopeSymbol(this);
         sym->loc = loc;
         sym->parent = sc->scopesym;
-        sc = sc->push(sym);
+        sc2 = sc->push(sym);
     }
 
     if (lwr)
-    {   lwr = lwr->semantic(sc);
-        lwr = resolveProperties(sc, lwr);
-        lwr = lwr->implicitCastTo(sc, Type::tsize_t);
+    {   lwr = lwr->semantic(sc2);
+        lwr = resolveProperties(sc2, lwr);
+        lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
         if (lwr->type == Type::terror)
             goto Lerr;
     }
     if (upr)
-    {   upr = upr->semantic(sc);
-        upr = resolveProperties(sc, upr);
-        upr = upr->implicitCastTo(sc, Type::tsize_t);
-        if (lwr->type == Type::terror)
+    {   upr = upr->semantic(sc2);
+        upr = resolveProperties(sc2, upr);
+        upr = upr->implicitCastTo(sc2, Type::tsize_t);
+        if (upr->type == Type::terror)
             goto Lerr;
     }
 
-    if (t->ty == Tsarray || t->ty == Tarray || t->ty == Ttuple)
-        sc->pop();
+    if (sc2 != sc)
+        sc2->pop();
+    }
 
     if (t->ty == Ttuple)
     {
