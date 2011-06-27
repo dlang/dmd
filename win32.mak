@@ -87,6 +87,7 @@ MANIFEST= \
 	src\core\sys\posix\fcntl.d \
 	src\core\sys\posix\inttypes.d \
 	src\core\sys\posix\net\if_.d \
+	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\poll.d \
 	src\core\sys\posix\pthread.d \
 	src\core\sys\posix\pwd.d \
@@ -421,6 +422,7 @@ IMPORTS=\
 	$(IMPDIR)\core\sys\posix\dlfcn.di \
 	$(IMPDIR)\core\sys\posix\fcntl.di \
 	$(IMPDIR)\core\sys\posix\inttypes.di \
+	$(IMPDIR)\core\sys\posix\netdb.di \
 	$(IMPDIR)\core\sys\posix\poll.di \
 	$(IMPDIR)\core\sys\posix\pthread.di \
 	$(IMPDIR)\core\sys\posix\pwd.di \
@@ -668,6 +670,9 @@ $(IMPDIR)\core\sys\posix\fcntl.di : src\core\sys\posix\fcntl.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\posix\inttypes.di : src\core\sys\posix\inttypes.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sys\posix\netdb.di : src\core\sys\posix\netdb.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\posix\net\if_.di : src\core\sys\posix\net\if_.d
