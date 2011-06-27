@@ -259,6 +259,9 @@ class Semaphore
 
 
     /**
+     * $(RED Scheduled for deprecation in December 2011. Please use the version
+     *       which takes a $(D Duration) instead.)
+     *
      * Suspends the calling thread until the current count moves above zero or
      * until the supplied time period has elapsed.  If the count moves above
      * zero in this interval, then atomically decrement the count by one and
