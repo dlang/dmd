@@ -3935,6 +3935,7 @@ STATIC OPND *asm_una_exp()
 
 #if 0
                 case TOKlparen:
+                    Type *ptypeSpec;
                     // stoken() is called directly here because we really
                     // want the INT token to be an INT.
                     stoken();

@@ -554,6 +554,9 @@ STATIC void outelem(elem *e)
     symbol *s;
     tym_t tym;
     elem *e1;
+#if SCPP
+    type *t;
+#endif
 
 again:
     assert(e);
@@ -1369,6 +1372,7 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
 
 #if SCPP && _WIN32
+        char *id;
         // Determine which startup code to reference
         if (!CPP || !isclassmember(sfunc))              // if not member function
         {   static char *startup[] =

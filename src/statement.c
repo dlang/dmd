@@ -2232,6 +2232,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     if (!arg->type->isscalar())
         error("%s is not a scalar type", arg->type->toChars());
 
+    ScopeDsymbol *sym;
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);

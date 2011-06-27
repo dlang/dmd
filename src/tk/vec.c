@@ -63,6 +63,7 @@ void vec_term()
         assert(vec_count == 0);
 #endif
 #if TERMCODE
+        int i;
         for (i = 0; i < VECMAX; i++)
         {   void **v;
             void **vn;

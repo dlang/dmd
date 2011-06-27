@@ -34,6 +34,8 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
     if (match)
     {
 #if DMDV1
+        TY tyfrom = type->toBasetype()->ty;
+        TY tyto = t->toBasetype()->ty;
         if (global.params.warnings &&
             Type::impcnvWarn[tyfrom][tyto] &&
             op != TOKint64)
@@ -501,6 +503,7 @@ MATCH StringExp::implicitConvTo(Type *t)
     }
     return Expression::implicitConvTo(t);
 #if 0
+    MATCH m;
     m = (MATCH)type->implicitConvTo(t);
     if (m)
     {

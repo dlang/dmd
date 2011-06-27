@@ -607,6 +607,9 @@ void stackoffsets(int flags)
     targ_size_t Amax,sz;
     unsigned alignsize;
     int offi;
+#if AUTONEST
+    targ_size_t offstack[20];
+#endif
     vec_t tbl = NULL;
 
 

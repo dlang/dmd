@@ -784,7 +784,7 @@ void obj_term()
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
             Relocation *rend = (Relocation *)(pseg->SDrel->buf + pseg->SDrel->size());
             for (; r != rend; r++)
-            {
+            {//   const char *rs = r->rtype == RELaddr ? "addr" : "rel";
                 symbol *s = r->targsym;
                 //printf("%d:x%04x : tseg %d tsym %p REL%s\n",
                     //seg, r->offset, r->targseg, s, rs);
@@ -1572,6 +1572,9 @@ void obj_alias(const char *n1,const char *n2)
     //printf("obj_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
+    unsigned len;
+    char *buffer;
+
     buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
