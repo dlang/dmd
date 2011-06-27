@@ -29,6 +29,8 @@
 
 #define LOG 0
 
+int RealEquals(real_t x1, real_t x2);
+
 Expression *expType(Type *type, Expression *e)
 {
     if (type != e->type)
@@ -868,21 +870,18 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
     {
        if (e1->type->isreal())
        {
-           real_t v1 = e1->toReal();
-           real_t v2 = e2->toReal();
-           cmp = !memcmp(&v1, &v2, sizeof(real_t));
+           cmp = RealEquals(e1->toReal(), e2->toReal());
        }
        else if (e1->type->isimaginary())
        {
-           real_t v1 = e1->toImaginary();
-           real_t v2 = e2->toImaginary();
-           cmp = !memcmp(&v1, &v2, sizeof(real_t));
+           cmp = RealEquals(e1->toImaginary(), e2->toImaginary());
        }
        else if (e1->type->iscomplex())
        {
            complex_t v1 = e1->toComplex();
            complex_t v2 = e2->toComplex();
-           cmp = !memcmp(&v1, &v2, sizeof(complex_t));
+           cmp = RealEquals(creall(v1), creall(v2)) &&
+                 RealEquals(cimagl(v1), cimagl(v1));
        }
        else
            return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
