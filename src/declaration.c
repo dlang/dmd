@@ -1032,6 +1032,43 @@ Lagain:
     {
         // Provide a default initializer
         //printf("Providing default initializer for '%s'\n", toChars());
+        Expression *edtor = NULL;
+        if (storage_class & STCout)
+        {
+            Type *tv = type->toBasetype();
+            size_t dim = (tv->ty == Tsarray ? 1 : 0);
+            while (tv->ty == Tsarray)
+            {   TypeSArray *ta = (TypeSArray *)tv;
+                dim *= ((TypeSArray *)tv)->dim->toInteger();
+                tv = tv->nextOf()->toBasetype();
+            }
+            if (tv->ty == Tstruct)
+            {   TypeStruct *ts = (TypeStruct *)tv;
+                StructDeclaration *sd = ts->sym;
+                if (sd->dtor)
+                {
+                    // v
+                    edtor = new VarExp(loc, this);
+                    if (dim == 0)
+                    {   // v.dtor()
+                        edtor = new DotVarExp(loc, edtor, sd->dtor);
+                        edtor = new CallExp(loc, edtor);
+                    }
+                    else
+                    {
+                        // Typeinfo.destroy(cast(void*)&v);
+                        Expression *ea = new AddrExp(loc, edtor);
+                        ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
+
+                        Expression *et = type->getTypeInfo(sc);
+                        et = new DotIdExp(loc, et, Id::destroy);
+
+                        edtor = new CallExp(loc, et, ea);
+                    }
+                    edtor = edtor->semantic(sc);
+                }
+            }
+        }
         if (type->ty == Tstruct &&
             ((TypeStruct *)type)->sym->zeroInit == 1)
         {   /* If a struct is all zeros, as a special case
@@ -1044,6 +1081,7 @@ Lagain:
             Expression *e1;
             e1 = new VarExp(loc, this);
             e = new ConstructExp(loc, e1, e);
+            e = Expression::combine(edtor, e);
             e->type = e1->type;         // don't type check this, it would fail
             init = new ExpInitializer(loc, e);
             goto Ldtor;
@@ -1064,6 +1102,13 @@ Lagain:
         {
             init = getExpInitializer();
         }
+
+        if (edtor)
+        {
+            Expression *ei = init ? init->toExpression() : NULL;
+            init = new ExpInitializer(loc, Expression::combine(edtor, ei));
+        }
+
         // Default initializer is always a blit
         op = TOKblit;
     }

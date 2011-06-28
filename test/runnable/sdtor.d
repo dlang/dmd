@@ -1642,6 +1642,55 @@ struct bar5574b
 }
 
 /**********************************/
+// 6186
+
+struct S58
+{
+    static int sdtor;
+    static S58* ptr;
+
+    int n;
+    ~this(){ sdtor++; ptr = &this; }
+}
+void test58a()
+{
+    void f(out S58 s)
+    {
+        assert(s.n == 0);
+        s.n = 2;
+    }
+
+    S58 s = S58(1);
+    assert(s.n == 1);
+    S58.sdtor = 0;
+    f(s);
+    assert(S58.sdtor == 1);
+    assert(S58.ptr == &s);
+    assert(s.n == 2);
+}
+void test58b()
+{
+    void f(out S58[1] sa)
+    {
+        assert(sa[0].n == 0);
+        sa[0].n = 2;
+    }
+
+    S58[1] sa = [S58(1)];
+    assert(sa[0].n == 1);
+    S58.sdtor = 0;
+    f(sa);
+    assert(S58.sdtor == 1);
+    assert(S58.ptr == &sa[0]);
+    assert(sa[0].n == 2);
+}
+void test58()
+{
+    test58a();
+    test58b();
+}
+
+/**********************************/
 
 int main()
 {
@@ -1702,6 +1751,7 @@ int main()
     test55();
     test56();
     test57();
+    test58();
 
     printf("Success\n");
     return 0;
