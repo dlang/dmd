@@ -219,9 +219,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
             if (arg->storageClass & (STCout | STCref))
             {
-                if (!istate)
-                {
-                    earg->error("%s cannot be passed by reference at compile time", earg->toChars());
+                if (!istate && (arg->storageClass & STCout))
+                {   // initializing an out parameter involves writing to it.
+                    earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
                     return NULL;
                 }
                 // Convert all reference arguments into lvalue references
@@ -270,8 +270,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 v->setValueWithoutChecking(earg);
                 /* Don't restore the value of v2 upon function return
                  */
-                assert(istate);
-                for (size_t i = 0; i < istate->vars.dim; i++)
+                for (size_t i = 0; i < (istate ? istate->vars.dim : 0); i++)
                 {   VarDeclaration *vx = (VarDeclaration *)istate->vars.data[i];
                     if (vx == v2)
                     {   istate->vars.data[i] = NULL;
