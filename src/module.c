@@ -62,6 +62,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         : Package(ident)
 {
     FileName *srcfilename;
+    FileName *cfilename;
+    FileName *hfilename;
     FileName *objfilename;
     FileName *symfilename;
 
@@ -1043,8 +1045,8 @@ void Module::runDeferredSemantic()
 int Module::imports(Module *m)
 {
     //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
-#if 0
     int aimports_dim = aimports.dim;
+#if 0
     for (int i = 0; i < aimports.dim; i++)
     {   Module *mi = (Module *)aimports.data[i];
         printf("\t[%d] %s\n", i, mi->toChars());

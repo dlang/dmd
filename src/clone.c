@@ -51,7 +51,7 @@ int StructDeclaration::needOpAssign()
             continue;
         Type *tv = v->type->toBasetype();
         while (tv->ty == Tsarray)
-        {
+        {   TypeSArray *ta = (TypeSArray *)tv;
             tv = tv->nextOf()->toBasetype();
         }
         if (tv->ty == Tstruct)
@@ -94,7 +94,7 @@ int StructDeclaration::needOpEquals()
             continue;
         Type *tv = v->type->toBasetype();
         while (tv->ty == Tsarray)
-        {
+        {   TypeSArray *ta = (TypeSArray *)tv;
             tv = tv->nextOf()->toBasetype();
         }
         if (tv->ty == Tstruct)
@@ -398,7 +398,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         Type *tv = v->type->toBasetype();
         size_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
-        {
+        {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
             tv = tv->nextOf()->toBasetype();
         }
@@ -510,7 +510,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         Type *tv = v->type->toBasetype();
         size_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
-        {
+        {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
             tv = tv->nextOf()->toBasetype();
         }

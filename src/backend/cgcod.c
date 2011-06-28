@@ -1735,6 +1735,8 @@ STATIC void resetEcomsub(elem *e)
 
 int isregvar(elem *e,regm_t *pregm,unsigned *preg)
 {   symbol *s;
+    unsigned u;
+    regm_t m;
     regm_t regm;
     unsigned reg;
 

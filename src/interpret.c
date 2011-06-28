@@ -176,6 +176,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     Type *tb = type->toBasetype();
     assert(tb->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)tb;
+    Type *tret = tf->next->toBasetype();
     if (tf->varargs && arguments &&
         ((parameters && arguments->dim != parameters->dim) || (!parameters && arguments->dim)))
     {   cantInterpret = 1;
@@ -1405,6 +1406,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *val = getVarExp(loc, istate, var, goal);
     if (val->type->ty == Tarray || val->type->ty == Tsarray)
     {
+        TypeArray *tar = (TypeArray *)val->type;
         dinteger_t sz = pointee->size();
         dinteger_t indx = offset/sz;
         assert(sz * indx == offset);
@@ -2143,6 +2145,7 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     dinteger_t len = dollar->toInteger();
 
     Expression *val = agg1;
+    TypeArray *tar = (TypeArray *)val->type;
     dinteger_t indx = ofs1;
     if (op == TOKadd || op == TOKaddass)
         indx = indx + ofs2/sz;
@@ -2255,7 +2258,9 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
         ((StringExp *)agg1)->string == ((StringExp *)agg2)->string))
 
     {
+        dinteger_t cm = ofs1 - ofs2;
         dinteger_t n;
+        dinteger_t zero = 0;
         switch(op)
         {
         case TOKlt:          n = (ofs1 <  ofs2); break;
@@ -4257,6 +4262,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         }
         assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
         dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
+        Type *pointee = ((TypePointer *)agg->type)->next;
         if ((ilwr + ofs) < 0 || (iupr+ofs) > (len + 1) || iupr < ilwr)
         {
             error("pointer slice [%jd..%jd] exceeds allocated memory block [0..%jd]",

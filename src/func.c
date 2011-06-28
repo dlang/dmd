@@ -372,11 +372,9 @@ void FuncDeclaration::semantic(Scope *sc)
     cd = parent->isClassDeclaration();
     if (cd)
     {   int vi;
-#if 0
-        CtorDelclaration *ctor;
+        CtorDeclaration *ctor;
         DtorDeclaration *dtor;
         InvariantDeclaration *inv;
-#endif
 
         if (isCtorDeclaration())
         {
@@ -2332,6 +2330,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     TypeFunction *tf = (TypeFunction *)type;
     TypeFunction *tg = (TypeFunction *)g->type;
     size_t nfparams = Parameter::dim(tf->parameters);
+    size_t ngparams = Parameter::dim(tg->parameters);
     MATCH match = MATCHexact;
 
     /* If both functions have a 'this' pointer, and the mods are not
@@ -3433,6 +3432,8 @@ Dsymbol *StaticDtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void StaticDtorDeclaration::semantic(Scope *sc)
 {
+    ClassDeclaration *cd = sc->scopesym->isClassDeclaration();
+
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 

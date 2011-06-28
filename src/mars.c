@@ -101,6 +101,7 @@ Global::Global()
 char *Loc::toChars()
 {
     OutBuffer buf;
+    char *p;
 
     if (filename)
     {

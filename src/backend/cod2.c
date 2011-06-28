@@ -1524,6 +1524,7 @@ code *cdcom(elem *e,regm_t *pretregs)
   tym = tybasic(e->Ety);
   sz = tysize[tym];
   unsigned rex = (I64 && sz == 8) ? REX_W : 0;
+  unsigned grex = rex << 16;
   possregs = (sz == 1) ? BYTEREGS : allregs;
   retregs = *pretregs & possregs;
   if (retregs == 0)
@@ -1560,10 +1561,11 @@ code *cdcom(elem *e,regm_t *pretregs)
  */
 
 code *cdbswap(elem *e,regm_t *pretregs)
-{   unsigned reg;
+{   unsigned reg,op;
     regm_t retregs;
     code *c,*c1,*cg;
     tym_t tym;
+    int sz;
 
     if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
@@ -1591,6 +1593,7 @@ code *cdcond(elem *e,regm_t *pretregs)
   code *cc,*c,*c1,*cnop1,*c2,*cnop2;
   con_t regconold,regconsave;
   unsigned stackpushold,stackpushsave;
+  int ehindexold,ehindexsave;
   unsigned jop;
   unsigned op1;
   unsigned sz1;
@@ -2057,7 +2060,7 @@ code *cdshift(elem *e,regm_t *pretregs)
                     !(*pretregs & mPSW) &&
                     config.flags4 & CFG4speed
                    )
-                {
+                {   Symbol *s1 = e1->EV.sp.Vsym;
                     unsigned reg;
                     regm_t regm;
                     code cs;
@@ -2410,7 +2413,7 @@ code *cdind(elem *e,regm_t *pretregs)
 { code *c,*ce,cs;
   tym_t tym;
   regm_t idxregs,retregs;
-  unsigned reg,byte;
+  unsigned reg,nreg,byte;
   elem *e1;
   unsigned sz;
 
@@ -2765,7 +2768,7 @@ code *cdstrlen( elem *e, regm_t *pretregs)
  */
 
 code *cdstrcmp( elem *e, regm_t *pretregs)
-{   code *c1,*c2,*c3,*c4;
+{   code *c1,*c1a,*c2,*c3,*c4;
     char need_DS;
     int segreg;
 
@@ -3093,7 +3096,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
  */
 
 code *cdmemcpy(elem *e,regm_t *pretregs)
-{   code *c1,*c2,*c3;
+{   code *c1,*c2,*c3,*c4;
     regm_t retregs1;
     regm_t retregs2;
     regm_t retregs3;
@@ -3235,13 +3238,14 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
 
 #if 1
 code *cdmemset(elem *e,regm_t *pretregs)
-{   code *c1,*c2,*c3 = NULL;
+{   code *c1,*c2,*c3 = NULL,*c4;
     regm_t retregs1;
     regm_t retregs2;
     regm_t retregs3;
     unsigned reg,vreg;
     tym_t ty1;
     elem *e2,*e1;
+    int segreg;
     unsigned remainder;
     targ_uns numbytes,numwords;
     int op;
@@ -4139,6 +4143,7 @@ code *cdabs( elem *e, regm_t *pretregs)
   cg = getregs(retregs);                /* retregs will be destroyed    */
   if (sz <= REGSIZE)
   {     unsigned reg;
+        code *c2;
 
         /*      cwd
                 xor     AX,DX
@@ -4191,13 +4196,14 @@ code *cdabs( elem *e, regm_t *pretregs)
  */
 
 code *cdpost(elem *e,regm_t *pretregs)
-{ code cs,*c1,*c2,*c3,*c4,*c5;
+{ code cs,*c1,*c2,*c3,*c4,*c5,*c6;
   unsigned reg,op,byte;
   tym_t tyml;
   regm_t retregs,possregs,idxregs;
   targ_int n;
   elem *e2;
   int sz;
+  int stackpushsave;
 
   //printf("cdpost(pretregs = %s)\n", regm_str(*pretregs));
   retregs = *pretregs;

@@ -2113,6 +2113,8 @@ elem * evalu8(elem *e)
         return e;
   }
 #if TX86
+    int flags;
+
     if (!ignore_exceptions &&
         (config.flags4 & CFG4fastfloat) == 0 &&
 #if __OpenBSD__

@@ -3155,6 +3155,7 @@ code *params(elem *e,unsigned stackalign)
   elem *e1;
   elem *e2;
   symbol *s;
+  int fl;
 
   //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
   cp = NULL;

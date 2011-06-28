@@ -35,10 +35,9 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 
     MATCH match = implicitConvTo(t);
     if (match)
-    {
-#if DMDV1
-        TY tyfrom = type->toBasetype()->ty;
+    {   TY tyfrom = type->toBasetype()->ty;
         TY tyto = t->toBasetype()->ty;
+#if DMDV1
         if (global.params.warnings &&
             Type::impcnvWarn[tyfrom][tyto] &&
             op != TOKint64)
@@ -443,7 +442,8 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
 #endif
 
 MATCH StringExp::implicitConvTo(Type *t)
-{
+{   MATCH m;
+
 #if 0
     printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
         toChars(), committed, type->toChars(), t->toChars());
@@ -508,7 +508,6 @@ MATCH StringExp::implicitConvTo(Type *t)
     }
     return Expression::implicitConvTo(t);
 #if 0
-    MATCH m;
     m = (MATCH)type->implicitConvTo(t);
     if (m)
     {
@@ -685,6 +684,8 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     if (result == MATCHnomatch)
     {
         // Look for pointers to functions where the functions are overloaded.
+        FuncDeclaration *f;
+
         t = t->toBasetype();
         if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
             t->ty == Tdelegate && t->nextOf()->ty == Tfunction)
@@ -2039,14 +2040,14 @@ IntRange AddExp::getIntRange()
 {
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
-    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type) DUMP; 
+    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type) DUMP;
 }
 
 IntRange MinExp::getIntRange()
 {
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
-    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type) DUMP; 
+    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type) DUMP;
 }
 
 IntRange DivExp::getIntRange()
@@ -2087,18 +2088,18 @@ IntRange ModExp::getIntRange()
 {
     IntRange irNum = e1->getIntRange();
     IntRange irDen = e2->getIntRange().absNeg();
-    
+
     /*
     due to the rules of D (C)'s % operator, we need to consider the cases
     separately in different range of signs.
-    
+
         case 1. [500, 1700] % [7, 23] (numerator is always positive)
             = [0, 22]
         case 2. [-500, 1700] % [7, 23] (numerator can be negative)
             = [-22, 22]
         case 3. [-1700, -500] % [7, 23] (numerator is always negative)
             = [-22, 0]
-        
+
     the number 22 is the maximum absolute value in the denomator's range. We
     don't care about divide by zero.
     */
@@ -2110,7 +2111,7 @@ IntRange ModExp::getIntRange()
     ++ irDen.imin;
     irDen.imax = -irDen.imin;
 
-    if (!irNum.imin.negative) 
+    if (!irNum.imin.negative)
         irNum.imin.value = 0;
     else if (irNum.imin < irDen.imin)
         irNum.imin = irDen.imin;
@@ -2135,7 +2136,7 @@ static IntRange unsignedBitwiseAnd(const IntRange& a, const IntRange& b)
     // the DiffMasks stores the mask of bits which are variable in the range.
     uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
     uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
-    // Since '&' computes the digitwise-minimum, the we could set all varying 
+    // Since '&' computes the digitwise-minimum, the we could set all varying
     //  digits to 0 to get a lower bound, and set all varying digits to 1 to get
     //  an upper bound.
     IntRange result;

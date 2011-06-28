@@ -618,7 +618,8 @@ STATIC void eltonear(elem **pe)
  */
 
 STATIC elem * elstrcpy(elem *e)
-{
+{   tym_t ty;
+
     elem_debug(e);
     switch (e->E2->Eoper)
     {
@@ -1904,7 +1905,8 @@ L2:
                 ;
             if ((OTopeq(e2->Eoper)) &&
                 el_match(e1->E1,e2->E1))
-            {
+            {   elem *ex;
+
                 e->E1 = el_long(TYint,0);
                 e1->Eoper = opeqtoop(e1op);
                 e2->E2 = el_bin(opeqtoop(e2->Eoper),e2->Ety,e1,e2->E2);
@@ -1936,6 +1938,8 @@ STATIC elem * elremquo(elem *e)
 
 STATIC elem * elmod(elem *e)
 {
+    elem *e1;
+    elem *e2;
     tym_t tym;
 
     tym = e->E1->Ety;
@@ -2542,7 +2546,8 @@ STATIC elem * eladdr(elem *e)
     case OPstreq:
             //  & (v1 = e) => ((v1 = e), &v1)
             if (e1->E1->Eoper == OPvar)
-            {
+            {   elem *ex;
+
                 e->Eoper = OPcomma;
                 e->E2 = el_una(OPaddr,tym,el_copytree(e1->E1));
                 goto L1;
@@ -2781,7 +2786,10 @@ CEXTERN elem * elstruct(elem *e)
  */
 
 STATIC elem * eleq(elem *e)
-{   elem *e1;
+{   targ_ullong m;
+    unsigned t,w,b;
+    unsigned sz;
+    elem *l,*l2,*r,*r2,*e1,*eres;
     int wantres;
     tym_t tyl;
 
@@ -2876,6 +2884,7 @@ STATIC elem * eleq(elem *e)
             && op2 != OPdiv && op2 != OPmod
            )
         {   tym_t ty;
+            int op3;
 
             // Replace (e1 = e1 op e) with (e1 op= e)
             if (el_match(e1,e2->E1))
@@ -2917,7 +2926,8 @@ STATIC elem * eleq(elem *e)
         }
 
         if (op2 == OPneg && el_match(e1,e2->E1) && !el_sideeffect(e1))
-        {
+        {   int offset;
+
             tyl = tybasic(e1->Ety);
         Ldef:
             // Replace (i = -i) with (negass i)
@@ -3098,8 +3108,11 @@ STATIC elem * elnegass(elem *e)
  */
 
 STATIC elem * elopass(elem *e)
-{
-    elem *e1;
+{   targ_llong m;
+    unsigned w,b,op;
+    tym_t t;
+    tym_t tyl;
+    elem *l,*r,*e1,*l2,*l3,*op2,*eres;
     int wantres;
 
     wantres = expgoal;

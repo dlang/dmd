@@ -3034,7 +3034,7 @@ void test154() {
 
 void test155()
 {
-    byte b;
+    byte b = 1;
     short s;
     int i;
     long l;
@@ -3042,6 +3042,7 @@ void test155()
     s = b + b;
     b = s % b;
     s = s >> b;
+    b = 1;
     b = i % b;
     b = b >> i;
 }

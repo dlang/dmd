@@ -1327,7 +1327,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         if (iupr > es1->len || ilwr > iupr)
             e1->error("string slice [%ju .. %ju] is out of bounds", ilwr, iupr);
         else
-        {
+        {   dinteger_t value;
             void *s;
             size_t len = iupr - ilwr;
             int sz = es1->sz;

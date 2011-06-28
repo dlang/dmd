@@ -153,6 +153,7 @@ Expression *fromConstInitializer(int result, Expression *e1)
     if (e1->op == TOKvar)
     {   VarExp *ve = (VarExp *)e1;
         VarDeclaration *v = ve->var->isVarDeclaration();
+        int fwdref = (v && !v->originalType && v->scope);
         e = expandVar(result, v);
         if (e)
         {

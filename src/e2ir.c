@@ -199,6 +199,7 @@ elem *callfunc(Loc loc,
 
     if (fd && fd->isMember2())
     {
+        InterfaceDeclaration *intd;
         Symbol *sfunc;
         AggregateDeclaration *ad;
 
@@ -1702,6 +1703,8 @@ elem *NewExp::toElem(IRState *irs)
 #if DMDV2
     else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
     {
+        Symbol *csym;
+
         t = newtype->toBasetype();
         assert(t->ty == Tstruct);
         TypeStruct *tclass = (TypeStruct *)(t);
@@ -1748,6 +1751,8 @@ elem *NewExp::toElem(IRState *irs)
         }
         else
         {
+            d_uns64 elemsize = cd->size(loc);
+
             // call _d_newarrayT(ti, 1)
             e = el_long(TYsize_t, 1);
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
@@ -1805,6 +1810,7 @@ elem *NewExp::toElem(IRState *irs)
         {   // Single dimension array allocations
             Expression *arg = (Expression *)arguments->data[0]; // gives array length
             e = arg->toElem(irs);
+            d_uns64 elemsize = tda->next->size();
 
             // call _d_newT(ti, arg)
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
@@ -1833,6 +1839,9 @@ elem *NewExp::toElem(IRState *irs)
     else if (t->ty == Tpointer)
     {
         TypePointer *tp = (TypePointer *)t;
+        d_uns64 elemsize = tp->next->size();
+        Expression *di = tp->next->defaultInit();
+        d_uns64 disize = di->type->size();
 
         // call _d_newarrayT(ti, 1)
         e = el_long(TYsize_t, 1);
@@ -2594,7 +2603,9 @@ elem *AssignExp::toElem(IRState *irs)
     // Look for array[]=n
     if (e1->op == TOKslice)
     {
+        SliceExp *are = (SliceExp *)(e1);
         Type *t1 = t1b;
+        Type *t2 = e2->type->toBasetype();
 
         // which we do if the 'next' types match
         if (ismemset)
@@ -2605,9 +2616,11 @@ elem *AssignExp::toElem(IRState *irs)
             elem *enbytes;
             elem *elength;
             elem *einit;
+            dinteger_t value;
             Type *ta = are->e1->type->toBasetype();
             Type *tb = ta->nextOf()->toBasetype();
             int sz = tb->size();
+            tym_t tym = type->totym();
 
             elem *n1 = are->e1->toElem(irs);
             elem *elwr = are->lwr ? are->lwr->toElem(irs) : NULL;
@@ -2843,6 +2856,9 @@ elem *AssignExp::toElem(IRState *irs)
 
     if (e1->op == TOKindex)
     {
+        elem *eb;
+        elem *ei;
+        elem *ev;
         TY ty;
         Type *ta;
 
@@ -3586,6 +3602,7 @@ elem *CallExp::toElem(IRState *irs)
 
 elem *AddrExp::toElem(IRState *irs)
 {   elem *e;
+    elem **pe;
 
     //printf("AddrExp::toElem('%s')\n", toChars());
 
@@ -3663,7 +3680,7 @@ elem *DeleteExp::toElem(IRState *irs)
             elem *et = NULL;
             Type *tv = tb->nextOf()->toBasetype();
             while (tv->ty == Tsarray)
-            {
+            {   TypeSArray *ta = (TypeSArray *)tv;
                 tv = tv->nextOf()->toBasetype();
             }
             if (tv->ty == Tstruct)

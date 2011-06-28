@@ -341,7 +341,7 @@ void cod3_align()
 void doswitch(block *b)
 {   code *cc,*c,*ce;
     regm_t retregs;
-    unsigned ncases,n,reg,reg2;
+    unsigned ncases,n,reg,reg2,rm;
     targ_llong vmax,vmin,val;
     targ_llong *p;
     list_t bl;
@@ -908,7 +908,7 @@ L1:
 void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
 {   code *c;
     code *cs2;
-    unsigned char rm;
+    unsigned char rm,sib;
     unsigned reg;
     unsigned flagsave;
     unsigned opsave;
@@ -1931,6 +1931,7 @@ Lcont:
         */
         targ_size_t voff = Aoff + BPoff + sv->Soffset;  // EBP offset of start of sv
         const int vregnum = 6;
+        const unsigned vsize = vregnum * 8 + 8 * 16;
         code *cv = CNIL;
 
         static unsigned char regs[vregnum] = { DI,SI,DX,CX,R8,R9 };
@@ -3121,6 +3122,7 @@ void pinholeopt(code *c,block *b)
   unsigned char ins;
   int usespace;
   int useopsize;
+  int space;
   block *bn;
 
 #ifdef DEBUG
@@ -4056,7 +4058,7 @@ STATIC void cod3_flush()
 
 unsigned codout(code *c)
 { unsigned op;
-  unsigned char rm;
+  unsigned char rm,mod;
   unsigned char ins;
   code *cn;
   unsigned flags;
@@ -4457,9 +4459,10 @@ unsigned codout(code *c)
 
 
 STATIC void do64bit(enum FL fl,union evc *uev,int flags)
-{
+{   char *p;
     symbol *s;
     targ_size_t ad;
+    long tmp;
 
     assert(I64);
     switch (fl)
@@ -4542,9 +4545,10 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 
 
 STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
-{
+{ char *p;
   symbol *s;
   targ_size_t ad;
+  long tmp;
 
   //printf("do32bit(flags = x%x)\n", flags);
   switch (fl)
@@ -4651,7 +4655,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 
 
 STATIC void do16bit(enum FL fl,union evc *uev,int flags)
-{
+{ char *p;
   symbol *s;
   targ_size_t ad;
 

@@ -312,7 +312,7 @@ void except_fillInEHTable(symbol *s)
     for (block *b = startblock; b; b = b->Bnext)
     {
         if (b->BC == BC_try)
-        {
+        {   block *bhandler;
             int nsucc;
 
             if (b->jcatchvar)                           // if try-catch

@@ -519,6 +519,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     FuncDeclaration *fd;
     FuncDeclaration *fdx;
+    TypeFunction *tf;
+    Type *ta;
     Dsymbol *s;
 
     static TypeFunction *tftohash;

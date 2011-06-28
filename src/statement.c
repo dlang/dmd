@@ -2123,6 +2123,7 @@ Statement *ForeachRangeStatement::syntaxCopy()
 Statement *ForeachRangeStatement::semantic(Scope *sc)
 {
     //printf("ForeachRangeStatement::semantic() %p\n", this);
+    ScopeDsymbol *sym;
     Statement *s = this;
 
     lwr = lwr->semantic(sc);
@@ -2163,6 +2164,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         else
         {
             AddExp ea(loc, lwr, upr);
+            Expression *e = ea.typeCombine(sc);
             arg->type = ea.type->mutableOf();
             lwr = ea.e1;
             upr = ea.e2;
@@ -2232,7 +2234,6 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     if (!arg->type->isscalar())
         error("%s is not a scalar type", arg->type->toChars());
 
-    ScopeDsymbol *sym;
     sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
