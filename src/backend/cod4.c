@@ -323,8 +323,6 @@ code *cdeq(elem *e,regm_t *pretregs)
   int i;
   code *cl,*cr,*c,cs;
   elem *e11;
-  bool widen;                   /* TRUE means byte widen                */
-  int nwords;                   /* # of words to transfer               */
   bool regvar;                  /* TRUE means evaluate into register variable */
   regm_t varregm;
   unsigned varreg;
@@ -1287,7 +1285,6 @@ code *cdmulass(elem *e,regm_t *pretregs)
         else // /= or %=
         {   targ_size_t e2factor;
             int pow2;
-            targ_ulong m;
 
             assert(!byte);                      // should never happen
             assert(I16 || sz != SHORTSIZE);
@@ -1462,7 +1459,6 @@ code *cdshass(elem *e,regm_t *pretregs)
   assert(tysize(e2->Ety) <= REGSIZE);
 
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-    unsigned grex = rex << 16;          // 64 bit operands
 
   // if our lvalue is a cse, make sure we evaluate for result in register
   if (e1->Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,&retregs,&reg))
@@ -1853,13 +1849,17 @@ code *cdcmp(elem *e,regm_t *pretregs)
             reg = findregmsw(retregs);
             rreg = findregmsw(rretregs);
             c = genregs(CNIL,0x3B ^ reverse,reg,rreg);  /* CMP reg,rreg */
-            if (!I16 && sz == 6)
+            if (I32 && sz == 6)
                 c->Iflags |= CFopsize;          /* seg is only 16 bits  */
+            else if (I64)
+                code_orrex(c, REX_W);
             genjmp(c,JNE,FLcode,(block *) ce);          /* JNE nop      */
 
             reg = findreglsw(retregs);
             rreg = findreglsw(rretregs);
             genregs(c,0x3B ^ reverse,reg,rreg);         /* CMP reg,rreg */
+            if (I64)
+                code_orrex(c, REX_W);
         }
         break;
       case OPrelconst:
@@ -2784,7 +2784,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
  */
 
 code *cdbyteint(elem *e,regm_t *pretregs)
-{   code *c,*ce,*c0,*c1,*c2,*c3,*c4;
+{   code *c,*c0,*c1,*c2,*c3,*c4;
     regm_t retregs;
     unsigned reg;
     char op;
@@ -3177,7 +3177,6 @@ code *cdbt(elem *e, regm_t *pretregs)
     unsigned reg;
     unsigned char word;
     tym_t ty1;
-    targ_int i;
     int op;
     int mode;
 
@@ -3330,7 +3329,6 @@ code *cdpair(elem *e, regm_t *pretregs)
     regm_t retregs;
     regm_t regs1;
     regm_t regs2;
-    unsigned reg;
     code *cg;
     code *c1;
     code *c2;

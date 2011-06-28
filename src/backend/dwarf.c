@@ -821,10 +821,6 @@ void dwarf_termfile()
             unsigned address = 0;       // instruction address
             unsigned file = ld->filenumber;
             unsigned line = 1;          // line numbers beginning with 1
-            unsigned column = 0;        // column number, leftmost column is 1
-            int is_stmt = debugline.default_is_stmt;    // TRUE if beginning of a statement
-            int basic_block = FALSE;  // TRUE if start of basic block
-            int end_sequence = FALSE; // TRUE if address is after end of sequence
 
             linebuf->writeByte(DW_LNS_set_file);
             linebuf->writeuLEB128(file);
@@ -1580,7 +1576,6 @@ unsigned dwarf_typidx(type *t)
     if (idx)
         return idx;
 
-    const char *name;
     unsigned char ate;
     ate = tyuns(t->Tty) ? DW_ATE_unsigned : DW_ATE_signed;
     switch (tybasic(t->Tty))

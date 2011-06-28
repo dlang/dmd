@@ -1619,7 +1619,6 @@ STATIC void movelis(elem *n,block *b,loop *l,int *pdomexit)
   register list_t nl;
   symbol *v;
   tym_t ty;
-  tym_t jty;
 
 Lnextlis:
   //if (isLI(n)) { printf("movelis("); WReqn(n); printf(")\n"); }
@@ -3414,11 +3413,11 @@ STATIC void elimbasivs(register loop *l)
  */
 
 STATIC void elimopeqs(register loop *l)
-{   famlist *fl;
+{
     Iv *biv;
     unsigned i;
     tym_t ty;
-    elem **pref,*fofe,*C2;
+    elem **pref;
     symbol *X;
     int refcount;
 

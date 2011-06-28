@@ -260,7 +260,6 @@ unsigned buildModregrm(int mod, int reg, int rm)
         m = modregrm(mod, reg, rm);
     else
     {
-        unsigned rex = 0;
         if ((rm & 7) == SP && mod != 3)
             m = (modregrm(0,4,SP) << 8) | modregrm(mod,reg & 7,4);
         else
@@ -980,7 +979,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         )
                 {
                     regm_t scratchm;
-                    int ss2;
 
 #if 0 && TARGET_LINUX
                     assert(f != FLgot && f != FLgotoff);
@@ -2011,7 +2009,6 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
                 if (sz == 8)
                     code_orrex(ce,REX_W);
                 // MOVSS/MOVSD XMMreg,floatreg
-                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
                 ce = genfltreg(ce,0xF20F10,rreg - XMM0,0);
             }
             else
@@ -2631,7 +2628,6 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
 
             unsigned stackalign = REGSIZE;
-            tym_t tyf = tybasic(e->E1->Ety);
 
             // Figure out which parameters go in registers
             // Compute numpara, the total bytes pushed on the stack
@@ -3615,8 +3611,7 @@ code *params(elem *e,unsigned stackalign)
         targ_ullong *pl = (targ_ullong *)pi;
         i /= regsize;
         do
-        {   code *cp;
-
+        {
             if (i)                      /* be careful not to go negative */
                 i--;
             targ_size_t value = (regsize == 4) ? pi[i] : ps[i];
