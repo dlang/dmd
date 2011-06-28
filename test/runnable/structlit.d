@@ -347,6 +347,27 @@ void test3198and1914()
 
 /********************************************/
 
+struct T5885 {
+    uint a, b;
+}
+
+double mulUintToDouble(T5885 t, double m) {
+    return t.a * m;
+}
+
+void test5885()
+{
+    enum ae = mulUintToDouble(T5885(10, 0), 10.0);
+    enum be = mulUintToDouble(T5885(10, 20), 10.0);
+    static assert(ae == be);
+
+    auto a = mulUintToDouble(T5885(10, 0), 10.0);
+    auto b = mulUintToDouble(T5885(10, 20), 10.0);
+    assert(a == b);
+}
+
+/********************************************/
+
 int main()
 {
     test1();
@@ -363,6 +384,7 @@ int main()
     test12();
     test13();
     test3198and1914();
+    test5885();
 
     printf("Success\n");
     return 0;
