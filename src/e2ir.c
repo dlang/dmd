@@ -3432,7 +3432,7 @@ elem *DelegateExp::toElem(IRState *irs)
         if (e1->type->ty != Tclass && e1->type->ty != Tpointer)
             ethis = addressElem(ethis, e1->type);
 
-        if (e1->op == TOKsuper)
+        if (e1->op == TOKsuper || e1->op == TOKdottype)
             directcall = 1;
 
         if (!func->isThis())
