@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1700,7 +1700,7 @@ elem *AssertExp::toElem(IRState *irs)
         if (global.params.useInvariants && t1->ty == Tclass &&
             !((TypeClass *)t1)->sym->isInterfaceDeclaration())
         {
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), e);
 #else
             e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), e);
@@ -3187,7 +3187,7 @@ elem *DelegateExp::toElem(IRState *irs)
         if (e1->type->ty != Tclass && e1->type->ty != Tpointer)
             ethis = addressElem(ethis, e1->type);
 
-        if (e1->op == TOKsuper)
+        if (e1->op == TOKsuper || e1->op == TOKdottype)
             directcall = 1;
 
         if (!func->isThis())
