@@ -1299,15 +1299,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     sc = sc->push(this);
-    sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic |
-                 STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
-    sc->stc |= storage_class & STC_TYPECTOR;
+    sc->stc &= STCsafe | STCtrusted | STCsystem;
     sc->parent = this;
     if (isCOMinterface())
         sc->linkage = LINKwindows;
     else if (isCPPinterface())
         sc->linkage = LINKcpp;
     sc->structalign = 8;
+    sc->protection = PROTpublic;
+    sc->explicitProtection = 0;
     structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
     inuse++;
