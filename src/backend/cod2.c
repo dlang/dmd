@@ -4711,7 +4711,26 @@ code *cdddtor(elem *e,regm_t *pretregs)
     code *c = codelem(e->E1,pretregs,FALSE);
     gen1(c,0xC3);               // RET
 
-    genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (config.flags3 & CFG3pic)
+    {
+        int nalign = 0;
+        if (STACKALIGN == 16)
+        {   nalign = STACKALIGN - REGSIZE;
+            cd = genc2(cd,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+            if (I64)
+                code_orrex(cd, REX_W);
+        }
+        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+        if (nalign)
+        {   cd = genc2(cd,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+            if (I64)
+                code_orrex(cd, REX_W);
+        }
+    }
+    else
+#endif
+        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
 
     code *cnop = gennop(CNIL);
 
