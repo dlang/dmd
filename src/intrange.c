@@ -439,12 +439,14 @@ void IntRange::unionOrAssign(const IntRange& other, bool& union_)
 void IntRange::splitBySign(IntRange& negRange, bool& hasNegRange,
                            IntRange& nonNegRange, bool& hasNonNegRange) const
 {
-    if ((hasNegRange = imin.negative))
+    hasNegRange = imin.negative;
+    if (hasNegRange)
     {
         negRange.imin = imin;
         negRange.imax = imax.negative ? imax : SignExtendedNumber(-1, true);
     }
-    if ((hasNonNegRange = !imax.negative))
+    hasNonNegRange = !imax.negative;
+    if (hasNonNegRange)
     {
         nonNegRange.imin = imin.negative ? SignExtendedNumber(0) : imin;
         nonNegRange.imax = imax;
