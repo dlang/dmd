@@ -2916,8 +2916,15 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
 
     if (!t0)
         t0 = Type::tvoid;
+
     type = new TypeSArray(t0, new IntegerExp(elements->dim));
     type = type->semantic(loc, sc);
+
+    /* Disallow array literals of type void being used.
+     */
+    if (elements->dim > 0 && t0->ty == Tvoid)
+        error("%s of type %s has no value", toChars(), type->toChars());
+
     return this;
 }
 
