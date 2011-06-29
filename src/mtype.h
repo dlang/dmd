@@ -600,6 +600,8 @@ struct TypeFunction : TypeNext
     enum RET retStyle();
 
     unsigned totym();
+
+    Expression *defaultInit(Loc loc);
 };
 
 struct TypeDelegate : TypeNext

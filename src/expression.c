@@ -6172,7 +6172,8 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     }
     else
     {
-        e1 = resolveProperties(sc, e1);
+        if (e1->op != TOKtype)
+            e1 = resolveProperties(sc, e1);
         eleft = NULL;
         eright = e1;
     }
