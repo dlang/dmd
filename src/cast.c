@@ -393,12 +393,24 @@ MATCH NullExp::implicitConvTo(Type *t)
     if (this->type->equals(t))
         return MATCHexact;
 
+    // NULL has a primary type of void*, so converting to void*
+    // is preferred over a polysemous match
+    if (!committed && t->ty == Tpointer && t->nextOf()->ty == Tvoid)
+    {
+        if (t->equals(Type::tvoidptr))
+            return MATCHexact;
+        if (Type::tvoidptr->constConv(t))
+            return MATCHconst;
+        // Allow conversion to immutable or shared
+        return MATCHpoly;
+    }
+
     /* Allow implicit conversions from invariant to mutable|const,
      * and mutable to invariant. It works because, after all, a null
      * doesn't actually point to anything.
      */
     if (t->invariantOf()->equals(type->invariantOf()))
-        return MATCHconst;
+        return committed ? MATCHconst : MATCHpoly;
 
     // NULL implicitly converts to any pointer type or dynamic array
     if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
@@ -408,7 +420,7 @@ MATCH NullExp::implicitConvTo(Type *t)
         if (t->ty == Tpointer || t->ty == Tarray ||
             t->ty == Taarray  || t->ty == Tclass ||
             t->ty == Tdelegate)
-            return committed ? MATCHconvert : MATCHexact;
+            return committed ? MATCHconvert : MATCHpoly;
     }
     return Expression::implicitConvTo(t);
 }
@@ -459,6 +471,18 @@ MATCH StringExp::implicitConvTo(Type *t)
         {   Type *tn;
             MATCH m;
 
+            // Strings have a primary type of immutable(char)[], so
+            // prefer this conversion over polysemous ones.
+            if (!committed && t->ty == Tarray && t->nextOf()->ty == Tchar)
+            {
+                if (t->nextOf()->mod == MODimmutable)
+                    return MATCHexact;
+                if (t->nextOf()->mod == MODconst)
+                    return MATCHconst;
+                // Allow conversion to mutable or shared etc
+                return MATCHpoly;
+            }
+
             switch (t->ty)
             {
                 case Tsarray:
@@ -469,9 +493,9 @@ MATCH StringExp::implicitConvTo(Type *t)
                             return MATCHnomatch;
                         TY tynto = t->nextOf()->ty;
                         if (tynto == tyn)
-                            return MATCHexact;
+                            return committed ? MATCHexact : MATCHpoly;
                         if (!committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
-                            return MATCHexact;
+                            return MATCHpoly;
                     }
                     else if (type->ty == Tarray)
                     {
@@ -480,18 +504,18 @@ MATCH StringExp::implicitConvTo(Type *t)
                             return MATCHnomatch;
                         TY tynto = t->nextOf()->ty;
                         if (tynto == tyn)
-                            return MATCHexact;
+                            return committed ? MATCHexact : MATCHpoly;
                         if (!committed && (tynto == Tchar || tynto == Twchar || tynto == Tdchar))
-                            return MATCHexact;
+                            return MATCHpoly;
                     }
                 case Tarray:
                 case Tpointer:
                     tn = t->nextOf();
-                    m = MATCHexact;
+                    m = committed ? MATCHexact : MATCHpoly;
                     if (type->nextOf()->mod != tn->mod)
                     {   if (!tn->isConst())
                             return MATCHnomatch;
-                        m = MATCHconst;
+                        m = committed ? MATCHconst : MATCHpoly;
                     }
                     switch (tn->ty)
                     {
