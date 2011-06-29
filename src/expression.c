@@ -8050,7 +8050,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->toLvalue(sc, NULL);
+    e1 = e1->modifiableLvalue(sc, NULL);
     if (e1->op == TOKerror)
         return e1;
     type = Type::tvoid;
