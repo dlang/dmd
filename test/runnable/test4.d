@@ -1058,7 +1058,7 @@ int dummy()
 }
 
 void bar40(){
-	return dummy();
+	return cast(void)dummy();
 }
 
 int foo40()
@@ -1534,7 +1534,7 @@ float x59;
 
 void test59()
 {
-    return x59 = -x59;
+    return cast(void)(x59 = -x59);
 }
 
 
