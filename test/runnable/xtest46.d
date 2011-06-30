@@ -3048,6 +3048,34 @@ void test155()
 }
 
 /***************************************************/
+// 2521
+
+immutable int val = 23;
+const int val2 = 23;
+
+ref immutable(int) func2521_() {
+    return val;
+}
+ref immutable(int) func2521_2() {
+    return *&val;
+}
+ref immutable(int) func2521_3() {
+    return func2521_;
+}
+ref const(int) func2521_4() {
+    return val2;
+}
+ref const(int) func2521_5() {
+    return val;
+}
+auto ref func2521_6() {
+    return val;
+}
+ref func2521_7() {
+    return val;
+}
+
+/***************************************************/
 
 int main()
 {

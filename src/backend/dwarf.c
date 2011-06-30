@@ -2131,7 +2131,7 @@ unsigned dwarf_typidx(type *t)
             infobuf->writeByte(0);              // no more siblings
             idxsibling = infobuf->size();
             *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
- 
+
             s->Stypidx = idx;
             return idx;                 // no need to cache it
         }
