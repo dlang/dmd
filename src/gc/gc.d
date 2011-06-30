@@ -152,7 +152,10 @@ extern (C) void gc_disable()
 extern (C) void gc_collect()
 {
     if( proxy is null )
-        return cast(void)_gc.fullCollect();
+    {
+        _gc.fullCollect();
+        return;
+    }
     return proxy.gc_collect();
 }
 
