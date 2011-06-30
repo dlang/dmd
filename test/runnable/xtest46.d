@@ -3048,6 +3048,23 @@ void test155()
 }
 
 /***************************************************/
+// 4258
+
+struct Vec {
+    Vec opOpAssign(string Op)(auto ref Vec other) if (Op == "+") {
+        return this;
+    }
+    Vec opBinary(string Op:"+")(Vec other) {
+        Vec result;
+        return result += other;
+    }
+}
+void test156() {
+    Vec v;
+    v += Vec() + Vec(); // line 12
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3206,6 +3223,7 @@ int main()
     test153();
     test154();
     test155();
+    test156();
 
     printf("Success\n");
     return 0;
