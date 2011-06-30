@@ -34,7 +34,7 @@ void main()
     // Bring in unit test for module by referencing a function in it
     shared(int) i;
     cas( &i, i.init, i.init + 1 ); // atomic
-    bsf( 0 ); // bitop
+    auto b = bsf( 0 ); // bitop
     mmx(); // cpuid
     demangle( "" ); // demangle
     setAssertHandler( null ); // exception

@@ -2,6 +2,9 @@ $(VERSION 054, mmm dd, 2011, =================================================,
 
     $(WHATSNEW
 $(LI Added core.sys.posix.netdb)
+$(LI For functions which have a version which takes a core.time.Duration
+     and another version which takes an integral value, the version which
+     takes an integral value is now scheduled for deprecation.)
     )
     $(RUNTIMEBUGSFIXED
 $(LI $(BUGZILLA 4323): std.demangle incorrectly handles template floating point numbers)
