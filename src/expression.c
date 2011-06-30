@@ -2493,9 +2493,10 @@ Lagain:
         return this;
     if (!s->isFuncDeclaration())        // functions are checked after overloading
         checkDeprecated(sc, s);
+    Dsymbol *olds = s;
     s = s->toAlias();
     //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
-    if (!s->isFuncDeclaration())
+    if (s != olds && !s->isFuncDeclaration())
         checkDeprecated(sc, s);
 
     if (sc->func)
