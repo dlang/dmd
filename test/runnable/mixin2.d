@@ -136,6 +136,22 @@ void test9()
 
 /*********************************************/
 
+void test10()
+{
+    pragma(msg, "hello");
+    pragma(msg, ['h', 'e', 'l', 'l', 'o']);
+    pragma(msg, "");
+    pragma(msg, []);
+    pragma(msg, null);
+    mixin("string hello;");
+    mixin(['i', 'n', 't', ' ', 'a', ';']);
+    mixin("");
+    mixin([]);
+    mixin(null);
+}
+
+/*********************************************/
+
 void main()
 {
     test1();
@@ -147,6 +163,7 @@ void main()
     test7();
     test8();
     test9();
+    test10();
 
     writeln("Success");
 }
