@@ -1865,7 +1865,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
         {   /* Rewrite e.ident as:
              *  e.opDot().ident
              */
-            e = build_overload(e->loc, sc, e, NULL, fd->ident);
+            e = build_overload(e->loc, sc, e, NULL, fd);
             e = new DotIdExp(e->loc, e, ident);
             return e->semantic(sc);
         }
