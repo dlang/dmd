@@ -3064,6 +3064,42 @@ void test156() {
     v += Vec() + Vec(); // line 12
 }
 
+// regression fix test
+
+struct Foo156 {
+    // binary ++/--
+    int opPostInc()() if (false) { return 0; }
+
+    // binary 1st
+    int opAdd(R)(R rhs) if (false) { return 0; }
+    int opAdd_r(R)(R rhs) if (false) { return 0; }
+
+    // compare
+    int opCmp(R)(R rhs) if (false) { return 0; }
+
+    // binary-op assign
+    int opAddAssign(R)(R rhs) if (false) { return 0; }
+}
+struct Bar156 {
+    // binary commutive 1
+    int opAdd_r(R)(R rhs) if (false) { return 0; }
+
+    // binary-op assign
+    int opOpAssign(string op, R)(R rhs) if (false) { return 0; }
+}
+struct Baz156 {
+    // binary commutive 2
+    int opAdd(R)(R rhs) if (false) { return 0; }
+}
+static assert(!is(typeof(Foo156.init++)));
+static assert(!is(typeof(Foo156.init + 1)));
+static assert(!is(typeof(1 + Foo156.init)));
+static assert(!is(typeof(Foo156.init < Foo156.init)));
+static assert(!is(typeof(Foo156.init += 1)));
+static assert(!is(typeof(Bar156.init + 1)));
+static assert(!is(typeof(Bar156.init += 1)));
+static assert(!is(typeof(1 + Baz156.init)));
+
 /***************************************************/
 
 int main()
