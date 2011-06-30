@@ -483,6 +483,12 @@ void bug5284_3()
     immutable(int) i;
     m = i;
 }
+void bug5284_4()
+{
+    struct S {}
+    int[] ma;
+    static assert(!is(typeof(ma[] = S())));
+}
 
 void test5()
 {
@@ -490,6 +496,7 @@ void test5()
     bug5284_2a();
     bug5284_2b();
     bug5284_3();
+    bug5284_4();
 }
 
 /************************************************************************/
