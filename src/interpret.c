@@ -542,6 +542,32 @@ Expression *resolveSlice(Expression *e)
         ((SliceExp *)e)->lwr, ((SliceExp *)e)->upr);
 }
 
+/* Determine the array length, without interpreting it.
+ * e must be an array literal, or a slice
+ * It's very wasteful to resolve the slice when we only
+ * need the length.
+ */
+uinteger_t resolveArrayLength(Expression *e)
+{
+    if (e->op == TOKslice)
+    {   uinteger_t ilo = ((SliceExp *)e)->lwr->toInteger();
+        uinteger_t iup = ((SliceExp *)e)->upr->toInteger();
+        return iup - ilo;
+    }
+    if (e->op == TOKstring)
+    {   return ((StringExp *)e)->len;
+    }
+    if (e->op == TOKarrayliteral)
+    {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e;
+        return ale->elements ? ale->elements->dim : 0;
+    }
+    if (e->op == TOKassocarrayliteral)
+    {   AssocArrayLiteralExp *ale = (AssocArrayLiteralExp *)e;
+        return ale->keys->dim;
+    }
+    assert(0);
+    return 0;
+}
 
 void scrubArray(Expressions *elems);
 
@@ -4108,7 +4134,7 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
 }
 
 Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
-{   Expression *e = NULL;
+{
     Expression *e1 = NULL;
     Expression *e2;
 
@@ -4116,49 +4142,31 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     printf("IndexExp::interpret() %s\n", toChars());
 #endif
 
-    /* Optimisation: if we're indexing a variable which contains a
-     *  a slice, it's very wasteful to resolve the slice. Instead, we'll
-     * convert it into a index into the original array.
-     */
-    if (this->e1->op == TOKvar)
-    {
-        VarExp *ve = (VarExp *)this->e1;
-        VarDeclaration *v = ve->var->isVarDeclaration();
-        if (v && v->getValue() && v->getValue()->op == TOKslice)
-        {
-            e1 = v->getValue();
-            uinteger_t ilo = ((SliceExp *)e1)->lwr->toInteger();
-            uinteger_t iup = ((SliceExp *)e1)->upr->toInteger();
-            e = new IntegerExp(loc, iup - ilo, Type::tsize_t);
-        }
-    }
-    if (!e1)
-        e1 = this->e1->interpret(istate);
+    e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
 
     if (e1->op == TOKnull)
     {
         error("cannot index null array %s", this->e1->toChars());
         return EXP_CANT_INTERPRET;
     }
-
-    if (e1->op == TOKstring || e1->op == TOKarrayliteral)
+    /* Set the $ variable.
+     *  Note that foreach uses indexing but doesn't need $
+     */
+    IntegerExp dollar(loc, 0, Type::tsize_t);
+    if (lengthVar && (e1->op == TOKstring || e1->op == TOKarrayliteral
+        || e1->op == TOKslice))
     {
-        /* Set the $ variable
-         */
-        e = ArrayLength(Type::tsize_t, e1);
-        if (e == EXP_CANT_INTERPRET)
-            goto Lcant;
+        dollar.value = resolveArrayLength(e1);
+        lengthVar->createStackValue(&dollar);
     }
-    if (e && lengthVar)
-        lengthVar->createStackValue(e);
 
     e2 = this->e2->interpret(istate);
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside []
     if (e2 == EXP_CANT_INTERPRET)
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     if (e1->op == TOKslice && e2->op == TOKint64)
     {
         // Simplify index of slice:  agg[lwr..upr][indx] --> agg[indx']
@@ -4169,12 +4177,13 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         if (indx > iup - ilo)
         {
             error("index %ju exceeds array length %ju", indx, iup - ilo);
-            goto Lcant;
+            return EXP_CANT_INTERPRET;
         }
         indx += ilo;
         e1 = ((SliceExp *)e1)->e1;
         e2 = new IntegerExp(e2->loc, indx, e2->type);
     }
+    Expression *e = NULL;
     if ((goal == ctfeNeedLvalue && type->ty != Taarray && type->ty != Tarray
         && type->ty != Tsarray && type->ty != Tstruct && type->ty != Tclass)
         || (goal == ctfeNeedLvalueRef && type->ty != Tsarray && type->ty != Tstruct)
@@ -4205,14 +4214,11 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     if (e == EXP_CANT_INTERPRET)
     {
         error("%s cannot be interpreted at compile time", toChars());
-        goto Lcant;
+        return e;
     }
     if (goal == ctfeNeedRvalue && (e->op == TOKslice || e->op == TOKdotvar))
         e = e->interpret(istate);
     return e;
-
-Lcant:
-    return EXP_CANT_INTERPRET;
 }
 
 
