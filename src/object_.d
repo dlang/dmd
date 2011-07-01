@@ -792,6 +792,7 @@ class TypeInfo_Class : TypeInfo
     //  8:                      // has constructors
     // 16:                      // has xgetMembers member
     // 32:                      // has typeinfo member
+    // 64:                      // is not constructable
     void*       deallocator;
     OffsetTypeInfo[] m_offTi;
     void function(Object) defaultConstructor;   // default Constructor
@@ -823,6 +824,8 @@ class TypeInfo_Class : TypeInfo
     Object create()
     {
         if (m_flags & 8 && !defaultConstructor)
+            return null;
+        if (m_flags & 64) // abstract
             return null;
         Object o = _d_newclass(this);
         if (m_flags & 8 && defaultConstructor)
