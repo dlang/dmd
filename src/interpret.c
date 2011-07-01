@@ -4154,12 +4154,12 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     /* Set the $ variable.
      *  Note that foreach uses indexing but doesn't need $
      */
-    IntegerExp dollar(loc, 0, Type::tsize_t);
     if (lengthVar && (e1->op == TOKstring || e1->op == TOKarrayliteral
         || e1->op == TOKslice))
     {
-        dollar.value = resolveArrayLength(e1);
-        lengthVar->createStackValue(&dollar);
+        uinteger_t dollar = resolveArrayLength(e1);
+        Expression *dollarExp = new IntegerExp(loc, dollar, Type::tsize_t);
+        lengthVar->createStackValue(dollarExp);
     }
 
     e2 = this->e2->interpret(istate);
@@ -4223,7 +4223,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 
 
 Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
-{   Expression *e;
+{
     Expression *e1;
     Expression *lwr;
     Expression *upr;
@@ -4231,26 +4231,27 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("SliceExp::interpret() %s\n", toChars());
 #endif
+
     if (this->e1->type->toBasetype()->ty == Tpointer)
     {
         // Slicing a pointer. Note that there is no $ in this case.
         e1 = this->e1->interpret(istate);
         if (e1 == EXP_CANT_INTERPRET)
-            goto Lcant;
+            return EXP_CANT_INTERPRET;
 
         /* Evaluate lower and upper bounds of slice
          */
         lwr = this->lwr->interpret(istate);
         if (lwr == EXP_CANT_INTERPRET)
-            goto Lcant;
+            return EXP_CANT_INTERPRET;
         upr = this->upr->interpret(istate);
         if (upr == EXP_CANT_INTERPRET)
-            goto Lcant;
+            return EXP_CANT_INTERPRET;
         uinteger_t ilwr;
         uinteger_t iupr;
         ilwr = lwr->toInteger();
         iupr = upr->toInteger();
-
+        Expression *e;
         dinteger_t ofs;
         Expression *agg = getAggregateFromPointer(e1, &ofs);
         if (agg->op == TOKnull)
@@ -4263,7 +4264,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
                 return e;
             }
             error("cannot slice null pointer %s", this->e1->toChars());
-            goto Lcant;
+            return EXP_CANT_INTERPRET;
         }
         assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
         dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
@@ -4283,7 +4284,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     else
         e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     if (e1->op == TOKvar)
         e1 = e1->interpret(istate);
 
@@ -4291,46 +4292,51 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
             return e1;
-        e = e1->castTo(NULL, type);
+        Expression *e = e1->castTo(NULL, type);
         return e->interpret(istate);
     }
 
     /* Set the $ variable
      */
+    uinteger_t dollar = 0;
     if (e1->op == TOKnull)
-        e = new IntegerExp(0, 0, Type::tsize_t);
+        dollar = 0;
     else if (e1->op == TOKslice)
-    {
-        // For lvalue slices, slice ends have already been calculated
-        e = new IntegerExp(0, ((SliceExp *)e1)->upr->toInteger()
-            - ((SliceExp *)e1)->lwr->toInteger(), Type::tsize_t);
+    {   // For lvalue slices, slice ends have already been calculated
+        dollar = resolveArrayLength(e1);
     }
     else
     {
-        e = e1;
+        Expression *e = e1;
         if ((goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef) && e->op != TOKstring)
             e = e->interpret(istate, ctfeNeedRvalue);
-        e = ArrayLength(Type::tsize_t, e);
-    }
-    if (e == EXP_CANT_INTERPRET)
-    {
-        error("Cannot determine length of %s at compile time\n", e1->toChars());
-        goto Lcant;
+        if (e == EXP_CANT_INTERPRET || !(e->op == TOKslice ||
+            e->op == TOKarrayliteral || e->op == TOKstring))
+        {
+            error("Cannot determine length of %s at compile time\n", e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        dollar = resolveArrayLength(e);
     }
     if (lengthVar)
-        lengthVar->createStackValue(e);
+    {
+        IntegerExp *dollarExp = new IntegerExp(loc, dollar, Type::tsize_t);
+        lengthVar->createStackValue(dollarExp);
+    }
 
     /* Evaluate lower and upper bounds of slice
      */
     lwr = this->lwr->interpret(istate);
-    if (lwr == EXP_CANT_INTERPRET)
-        goto Lcant;
-    upr = this->upr->interpret(istate);
-    if (upr == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (lwr != EXP_CANT_INTERPRET)
+        upr = this->upr->interpret(istate);
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside [L..U]
+    if (lwr == EXP_CANT_INTERPRET || upr == EXP_CANT_INTERPRET)
+    {
+        return EXP_CANT_INTERPRET;
+    }
 
+    Expression *e;
     uinteger_t ilwr;
     uinteger_t iupr;
     ilwr = lwr->toInteger();
@@ -4353,7 +4359,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         {
             error("slice[%ju..%ju] exceeds array bounds[%ju..%ju]",
                 ilwr, iupr, lo1, up1);
-            goto Lcant;
+            return EXP_CANT_INTERPRET;
         }
         ilwr += lo1;
         iupr += lo1;
@@ -4366,11 +4372,6 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1->op == TOKarrayliteral
         || e1->op == TOKstring)
     {
-        uinteger_t dollar=0;
-        if (e1->op == TOKstring)
-            dollar = ((StringExp *)e1)->len;
-        if (e1->op == TOKarrayliteral)
-            dollar = ((ArrayLiteralExp *)e1)->elements->dim;
         if (iupr < ilwr || ilwr < 0 || iupr > dollar)
         {
             error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
@@ -4381,11 +4382,6 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     e = new SliceExp(loc, e1, lwr, upr);
     e->type = type;
     return e;
-
-Lcant:
-    if (lengthVar)
-        lengthVar->setValueNull();
-    return EXP_CANT_INTERPRET;
 }
 
 Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
