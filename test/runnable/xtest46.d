@@ -1223,7 +1223,8 @@ void digestToString(const ubyte[16] digest)
 
 void test69()
 {
-    digestToString69(cast(ubyte[16])x"c3fcd3d76192e4007dfb496cca67e13b");
+    auto d = cast(ubyte[16])x"c3fcd3d76192e4007dfb496cca67e13b";
+    digestToString69(d);
 }
 
 void digestToString69(ref const ubyte[16] digest)
@@ -1236,7 +1237,8 @@ void digestToString69(ref const ubyte[16] digest)
 
 void test70()
 {
-    digestToString70("1234567890123456");
+    char[16] s = "1234567890123456";
+    digestToString70(s);
 }
 
 void digestToString70(ref const char[16] digest)
