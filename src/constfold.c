@@ -1242,7 +1242,10 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         uinteger_t i = e2->toInteger();
 
         if (i >= es1->len)
+        {
             e1->error("string index %ju is out of bounds [0 .. %zu]", i, es1->len);
+            e = new ErrorExp();
+        }
         else
         {   unsigned value = es1->charAt(i);
             e = new IntegerExp(loc, value, type);
@@ -1254,7 +1257,9 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         uinteger_t i = e2->toInteger();
 
         if (i >= length)
-        {   e1->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
+        {
+            e1->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
+            e = new ErrorExp();
         }
         else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
@@ -1271,7 +1276,9 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
-            {   e1->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+            {
+                e1->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+                e = new ErrorExp();
             }
             else
             {   e = (Expression *)ale->elements->data[i];
@@ -1325,7 +1332,10 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         uinteger_t iupr = upr->toInteger();
 
         if (iupr > es1->len || ilwr > iupr)
+        {
             e1->error("string slice [%ju .. %ju] is out of bounds", ilwr, iupr);
+            e = new ErrorExp();
+        }
         else
         {   dinteger_t value;
             void *s;
@@ -1352,7 +1362,10 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         uinteger_t iupr = upr->toInteger();
 
         if (iupr > es1->elements->dim || ilwr > iupr)
+        {
             e1->error("array slice [%ju .. %ju] is out of bounds", ilwr, iupr);
+            e = new ErrorExp();
+        }
         else
         {
             Expressions *elements = new Expressions();
