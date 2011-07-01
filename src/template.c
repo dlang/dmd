@@ -4263,6 +4263,12 @@ Identifier *TemplateInstance::genIdent()
                 ea = NULL;
                 goto Lsa;
             }
+            if (ea->op == TOKthis)
+            {
+                sa = ((ThisExp *)ea)->var;
+                ea = NULL;
+                goto Lsa;
+            }
             if (ea->op == TOKfunction)
             {
                 sa = ((FuncExp *)ea)->fd;
