@@ -3048,25 +3048,53 @@ void test155()
 }
 
 /***************************************************/
+// 2521
+
+immutable int val = 23;
+const int val2 = 23;
+
+ref immutable(int) func2521_() {
+    return val;
+}
+ref immutable(int) func2521_2() {
+    return *&val;
+}
+ref immutable(int) func2521_3() {
+    return func2521_;
+}
+ref const(int) func2521_4() {
+    return val2;
+}
+ref const(int) func2521_5() {
+    return val;
+}
+auto ref func2521_6() {
+    return val;
+}
+ref func2521_7() {
+    return val;
+}
+
+/***************************************************/
 // 4258
 
-struct Vec {
-    Vec opOpAssign(string Op)(auto ref Vec other) if (Op == "+") {
+struct Vec4258 {
+    Vec4258 opOpAssign(string Op)(auto ref Vec4258 other) if (Op == "+") {
         return this;
     }
-    Vec opBinary(string Op:"+")(Vec other) {
-        Vec result;
+    Vec4258 opBinary(string Op:"+")(Vec4258 other) {
+        Vec4258 result;
         return result += other;
     }
 }
-void test156() {
-    Vec v;
-    v += Vec() + Vec(); // line 12
+void test4258() {
+    Vec4258 v;
+    v += Vec4258() + Vec4258(); // line 12
 }
 
 // regression fix test
 
-struct Foo156 {
+struct Foo4258 {
     // binary ++/--
     int opPostInc()() if (false) { return 0; }
 
@@ -3080,25 +3108,25 @@ struct Foo156 {
     // binary-op assign
     int opAddAssign(R)(R rhs) if (false) { return 0; }
 }
-struct Bar156 {
+struct Bar4258 {
     // binary commutive 1
     int opAdd_r(R)(R rhs) if (false) { return 0; }
 
     // binary-op assign
     int opOpAssign(string op, R)(R rhs) if (false) { return 0; }
 }
-struct Baz156 {
+struct Baz4258 {
     // binary commutive 2
     int opAdd(R)(R rhs) if (false) { return 0; }
 }
-static assert(!is(typeof(Foo156.init++)));
-static assert(!is(typeof(Foo156.init + 1)));
-static assert(!is(typeof(1 + Foo156.init)));
-static assert(!is(typeof(Foo156.init < Foo156.init)));
-static assert(!is(typeof(Foo156.init += 1)));
-static assert(!is(typeof(Bar156.init + 1)));
-static assert(!is(typeof(Bar156.init += 1)));
-static assert(!is(typeof(1 + Baz156.init)));
+static assert(!is(typeof(Foo4258.init++)));
+static assert(!is(typeof(Foo4258.init + 1)));
+static assert(!is(typeof(1 + Foo4258.init)));
+static assert(!is(typeof(Foo4258.init < Foo4258.init)));
+static assert(!is(typeof(Foo4258.init += 1)));
+static assert(!is(typeof(Bar4258.init + 1)));
+static assert(!is(typeof(Bar4258.init += 1)));
+static assert(!is(typeof(1 + Baz4258.init)));
 
 /***************************************************/
 
@@ -3259,7 +3287,7 @@ int main()
     test153();
     test154();
     test155();
-    test156();
+    test4258();
 
     printf("Success\n");
     return 0;

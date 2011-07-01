@@ -1566,14 +1566,13 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
 int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
-    //dump(0);
+    //e->dump(0);
 
     Expression *e1 = *pe1;
     Expression *e2 = *pe2;
 
-    if (!(e1->type->isTypeBasic() && e1->type->ty != Tvoid &&
-          e2->type->isTypeBasic() && e2->type->ty != Tvoid &&
-          e1->type->ty == e2->type->ty))
+    if (e->op != TOKquestion ||
+        e1->type->toBasetype()->ty != e2->type->toBasetype()->ty)
     {
         e1 = e1->integralPromotions(sc);
         e2 = e2->integralPromotions(sc);
