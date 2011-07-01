@@ -1138,9 +1138,6 @@ class Thread
 
 
     /**
-     * $(RED Scheduled for deprecation in December 2011. Please use the version
-     *       which takes a $(D Duration) instead.)
-     *
      * Suspends the calling thread for at least the supplied period.  This may
      * result in multiple OS calls if period is greater than the maximum sleep
      * duration supported by the operating system.
@@ -2239,13 +2236,9 @@ extern (C) void thread_suspendAll()
 
             CONTEXT context = void;
             context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
-            
-            for( int i = 0; !GetThreadContext( t.m_hndl, &context ); i++ )
-            {
-                if( i > 99 )
-                    throw new ThreadException( "Unable to load thread context" );
-                Thread.yield();
-            }
+
+            if( !GetThreadContext( t.m_hndl, &context ) )
+                throw new ThreadException( "Unable to load thread context" );
 
             version( X86 )
             {
