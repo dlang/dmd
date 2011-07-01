@@ -177,7 +177,7 @@ FuncDeclaration *hasThis(Scope *sc)
                 break;
         }
 
-        fd = fd->parent->isFuncDeclaration();
+        fd = parent->isFuncDeclaration();
     }
 
     if (!fd->isThis())
