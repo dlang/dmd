@@ -4083,16 +4083,11 @@ Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
     e1 = this->e1->interpret(istate);
     assert(e1);
     if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
-    if (e1->op == TOKslice)
-        e1 = resolveSlice(e1);
-    if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
+        return EXP_CANT_INTERPRET;
+    if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKslice
+        || e1->op == TOKassocarrayliteral || e1->op == TOKnull)
     {
-        e = ArrayLength(type, e1);
-    }
-    else if (e1->op == TOKnull)
-    {
-        e = new IntegerExp(loc, 0, type);
+        e = new IntegerExp(loc, resolveArrayLength(e1), type);
     }
     else
     {
@@ -4100,9 +4095,6 @@ Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
         return EXP_CANT_INTERPRET;
     }
     return e;
-
-Lcant:
-    return EXP_CANT_INTERPRET;
 }
 
 /*  Given an AA literal 'ae', and a key 'e2':
