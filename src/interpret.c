@@ -549,6 +549,8 @@ Expression *resolveSlice(Expression *e)
  */
 uinteger_t resolveArrayLength(Expression *e)
 {
+    if (e->op == TOKnull)
+        return 0;
     if (e->op == TOKslice)
     {   uinteger_t ilo = ((SliceExp *)e)->lwr->toInteger();
         uinteger_t iup = ((SliceExp *)e)->upr->toInteger();
@@ -3315,7 +3317,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          *   aggregate[i] = newval
          */
         IndexExp *ie = (IndexExp *)e1;
-        int destarraylen = 0; // not for AAs
+        uinteger_t destarraylen = 0; // not for AAs
 
         // Set the $ variable, and find the array literal to modify
         if (ie->e1->type->toBasetype()->ty != Taarray)
@@ -3326,17 +3328,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 error("cannot index null array %s", ie->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            if (oldval->op == TOKslice)
-                // @@@BUG@@@ -- Very inefficient!
-                oldval = resolveSlice(oldval);
-            Expression *dollar = ArrayLength(Type::tsize_t, oldval);
-            if (dollar == EXP_CANT_INTERPRET)
+            if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
+                && oldval->op != TOKslice)
             {
+                error("cannot determine length of %s at compile time",
+                    ie->e1->toChars());
                 return EXP_CANT_INTERPRET;
-                }
-            destarraylen = dollar->toInteger();
+            }
+            destarraylen = resolveArrayLength(oldval);
             if (ie->lengthVar)
-                ie->lengthVar->createStackValue(dollar);
+            {
+                IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
+                ie->lengthVar->createStackValue(dollarExp);
+            }
         }
         Expression *index = ie->e2->interpret(istate);
         if (ie->lengthVar)
@@ -3473,7 +3477,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         SliceExp * sexp = (SliceExp *)e1;
         // Set the $ variable
         Expression *oldval = sexp->e1;
-        Expression *arraylen;
         bool assignmentToSlicedPointer = false;
         if (oldval->type->toBasetype()->ty == Tpointer && oldval->type->toBasetype()->nextOf()->ty != Tfunction)
         {   // Slicing a pointer
@@ -3483,25 +3486,20 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             assignmentToSlicedPointer = true;
         } else
             oldval = oldval->interpret(istate);
-        if (oldval->op == TOKnull || (oldval->op == TOKslice && ((SliceExp *)oldval)->e1->op == TOKnull))
-            arraylen = new IntegerExp(0, 0, Type::tsize_t);
-        else
-        {
-            if (oldval->op == TOKslice)
-            {   // @@@BUG@@@ -- Very inefficient!
-                oldval = resolveSlice(oldval);
-            }
-            arraylen = ArrayLength(Type::tsize_t, oldval);
-        }
-        if (arraylen == EXP_CANT_INTERPRET)
+
+        if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
+            && oldval->op != TOKslice && oldval->op != TOKnull)
         {
             error("CTFE ICE: cannot resolve array length");
             return EXP_CANT_INTERPRET;
         }
+        uinteger_t dollar = resolveArrayLength(oldval);
         if (sexp->lengthVar)
         {
+            Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
             sexp->lengthVar->createStackValue(arraylen);
         }
+
         Expression *upper = NULL;
         Expression *lower = NULL;
         if (sexp->upr)
@@ -3512,7 +3510,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
         if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
-        int dim = arraylen->toInteger();
+
+        int dim = dollar;
         int upperbound = upper ? upper->toInteger() : dim;
         int lowerbound = lower ? lower->toInteger() : 0;
 
@@ -4298,26 +4297,13 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
 
     /* Set the $ variable
      */
-    uinteger_t dollar = 0;
-    if (e1->op == TOKnull)
-        dollar = 0;
-    else if (e1->op == TOKslice)
-    {   // For lvalue slices, slice ends have already been calculated
-        dollar = resolveArrayLength(e1);
-    }
-    else
+    if (e1->op != TOKarrayliteral && e1->op != TOKstring &&
+        e1->op != TOKnull && e1->op != TOKslice)
     {
-        Expression *e = e1;
-        if ((goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef) && e->op != TOKstring)
-            e = e->interpret(istate, ctfeNeedRvalue);
-        if (e == EXP_CANT_INTERPRET || !(e->op == TOKslice ||
-            e->op == TOKarrayliteral || e->op == TOKstring))
-        {
-            error("Cannot determine length of %s at compile time\n", e1->toChars());
-            return EXP_CANT_INTERPRET;
-        }
-        dollar = resolveArrayLength(e);
+        error("Cannot determine length of %s at compile time\n", e1->toChars());
+        return EXP_CANT_INTERPRET;
     }
+    uinteger_t dollar = resolveArrayLength(e1);
     if (lengthVar)
     {
         IntegerExp *dollarExp = new IntegerExp(loc, dollar, Type::tsize_t);
