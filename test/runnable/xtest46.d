@@ -2943,6 +2943,25 @@ void test149()
  
 
 /***************************************************/
+// 1373
+
+void func1373a(){}
+
+static assert(typeof(func1373a).stringof == "void()");
+static assert(typeof(func1373a).mangleof == "FZv");
+static assert(!__traits(compiles, typeof(func1373a).alignof));
+static assert(!__traits(compiles, typeof(func1373a).init));
+static assert(!__traits(compiles, typeof(func1373a).offsetof));
+
+void func1373b(int n){}
+
+static assert(typeof(func1373b).stringof == "void(int n)");
+static assert(typeof(func1373b).mangleof == "FiZv");
+static assert(!__traits(compiles, typeof(func1373b).alignof));
+static assert(!__traits(compiles, typeof(func1373b).init));
+static assert(!__traits(compiles, typeof(func1373b).offsetof));
+
+/***************************************************/
 
 void bar150(T)(T n) {  }
 
