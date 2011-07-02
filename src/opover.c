@@ -563,13 +563,13 @@ Expression *BinExp::op_overload(Scope *sc)
             // as unary, but it's implemented as a binary.
             // Rewrite (e1 ++ e2) as e1.postinc()
             // Rewrite (e1 -- e2) as e1.postdec()
-            e = build_overload(loc, sc, e1, NULL, m.lastf);
-        else if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
+            e = build_overload(loc, sc, e1, NULL, m.lastf ? m.lastf : s);
+        else if (lastf && m.lastf == lastf || !s_r && m.last == MATCHnomatch)
             // Rewrite (e1 op e2) as e1.opfunc(e2)
-            e = build_overload(loc, sc, e1, e2, m.lastf);
+            e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
         else
             // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-            e = build_overload(loc, sc, e2, e1, m.lastf);
+            e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s_r);
         return e;
     }
 
@@ -648,13 +648,12 @@ L1:
             }
 
             Expression *e;
-            if (lastf && m.lastf == lastf ||
-                id_r && m.last == MATCHnomatch)
+            if (lastf && m.lastf == lastf || !s && m.last == MATCHnomatch)
                 // Rewrite (e1 op e2) as e1.opfunc_r(e2)
-                e = build_overload(loc, sc, e1, e2, m.lastf);
+                e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s_r);
             else
                 // Rewrite (e1 op e2) as e2.opfunc(e1)
-                e = build_overload(loc, sc, e2, e1, m.lastf);
+                e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s);
 
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
@@ -828,12 +827,12 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         }
 
         Expression *e;
-        if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
+        if (lastf && m.lastf == lastf || !s_r && m.last == MATCHnomatch)
             // Rewrite (e1 op e2) as e1.opfunc(e2)
-            e = build_overload(loc, sc, e1, e2, m.lastf);
+            e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
         else
         {   // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-            e = build_overload(loc, sc, e2, e1, m.lastf);
+            e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s_r);
 
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
@@ -1091,7 +1090,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
         }
 
         // Rewrite (e1 op e2) as e1.opOpAssign(e2)
-        return build_overload(loc, sc, e1, e2, m.lastf);
+        return build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
     }
 
 L1:
@@ -1134,6 +1133,7 @@ L1:
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg,
         Dsymbol *d)
 {
+    assert(d);
     Expression *e;
 
     //printf("build_overload(id = '%s')\n", id->toChars());
