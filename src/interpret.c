@@ -1659,6 +1659,14 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
         VarDeclaration *v = var->isVarDeclaration();
         if (v && v->getValue() && (v->storage_class & (STCref | STCout)))
             return v->getValue();
+        if (v && !v->isDataseg() && !v->isCTFE() && !istate)
+        {   error("variable %s cannot be referenced at compile time", v->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        else if (v && !v->getValue() && !v->isCTFE() && v->isDataseg())
+        {   error("static variable %s cannot be referenced at compile time", v->toChars());
+                return EXP_CANT_INTERPRET;
+        }
         return this;
     }
     Expression *e = getVarExp(loc, istate, var, goal);
