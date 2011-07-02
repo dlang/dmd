@@ -3166,6 +3166,14 @@ static assert(!is(typeof(1 + Baz4258.init)));
 
 /***************************************************/
 
+pure int test4031()
+{
+    static const int x = 8;
+    return x;
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3325,6 +3333,7 @@ int main()
     test155();
     test156();
     test4258();
+    test4031();
 
     printf("Success\n");
     return 0;
