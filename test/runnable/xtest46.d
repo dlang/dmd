@@ -3076,6 +3076,23 @@ ref func2521_7() {
 }
 
 /***************************************************/
+// 5962
+
+struct S156
+{
+          auto g()(){ return 1; }
+    const auto g()(){ return 2; }
+}
+
+void test156()
+{
+    auto ms = S156();
+    assert(ms.g() == 1);
+    auto cs = const(S156)();
+    assert(cs.g() == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3234,6 +3251,7 @@ int main()
     test153();
     test154();
     test155();
+    test156();
 
     printf("Success\n");
     return 0;

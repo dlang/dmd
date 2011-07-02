@@ -1,5 +1,7 @@
 // PERMUTE_ARGS:
 
+module breaker;
+
 import std.c.stdio;
 
 /**********************************/
@@ -182,6 +184,21 @@ void test9()
 {
     assert((new CTest9()).f1() == 10);
     assert((new CTest9()).f2() == 10);
+}
+
+/**********************************/
+// 5015
+
+import breaker;
+
+static if (is(ElemType!(int))){}
+
+template ElemType(T) {
+  alias _ElemType!(T).type ElemType;
+}
+
+template _ElemType(T) {
+    alias r type;
 }
 
 /**********************************/
