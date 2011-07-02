@@ -3093,6 +3093,59 @@ void test156()
 }
 
 /***************************************************/
+// 4258
+
+struct Vec4258 {
+    Vec4258 opOpAssign(string Op)(auto ref Vec4258 other) if (Op == "+") {
+        return this;
+    }
+    Vec4258 opBinary(string Op:"+")(Vec4258 other) {
+        Vec4258 result;
+        return result += other;
+    }
+}
+void test4258() {
+    Vec4258 v;
+    v += Vec4258() + Vec4258(); // line 12
+}
+
+// regression fix test
+
+struct Foo4258 {
+    // binary ++/--
+    int opPostInc()() if (false) { return 0; }
+
+    // binary 1st
+    int opAdd(R)(R rhs) if (false) { return 0; }
+    int opAdd_r(R)(R rhs) if (false) { return 0; }
+
+    // compare
+    int opCmp(R)(R rhs) if (false) { return 0; }
+
+    // binary-op assign
+    int opAddAssign(R)(R rhs) if (false) { return 0; }
+}
+struct Bar4258 {
+    // binary commutive 1
+    int opAdd_r(R)(R rhs) if (false) { return 0; }
+
+    // binary-op assign
+    int opOpAssign(string op, R)(R rhs) if (false) { return 0; }
+}
+struct Baz4258 {
+    // binary commutive 2
+    int opAdd(R)(R rhs) if (false) { return 0; }
+}
+static assert(!is(typeof(Foo4258.init++)));
+static assert(!is(typeof(Foo4258.init + 1)));
+static assert(!is(typeof(1 + Foo4258.init)));
+static assert(!is(typeof(Foo4258.init < Foo4258.init)));
+static assert(!is(typeof(Foo4258.init += 1)));
+static assert(!is(typeof(Bar4258.init + 1)));
+static assert(!is(typeof(Bar4258.init += 1)));
+static assert(!is(typeof(1 + Baz4258.init)));
+
+/***************************************************/
 
 int main()
 {
@@ -3252,6 +3305,7 @@ int main()
     test154();
     test155();
     test156();
+    test4258();
 
     printf("Success\n");
     return 0;
