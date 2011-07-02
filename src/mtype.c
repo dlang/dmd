@@ -1707,6 +1707,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     {
         if (ty == Tvoid)
             error(loc, "void does not have an initializer");
+        if (ty == Tfunction)
+            error(loc, "function does not have an initializer");
         e = defaultInitLiteral(loc);
     }
     else if (ident == Id::mangleof)
@@ -5401,6 +5403,12 @@ bool TypeFunction::parameterEscapes(Parameter *p)
     /* Assume it escapes in the absence of better information.
      */
     return TRUE;
+}
+
+Expression *TypeFunction::defaultInit(Loc loc)
+{
+    error(loc, "function does not have a default initializer");
+    return new ErrorExp();
 }
 
 /***************************** TypeDelegate *****************************/
