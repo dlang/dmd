@@ -927,6 +927,8 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
  *      dedargs         Expression/Type deduced template arguments
  * Returns:
  *      match level
+ *          bit 0-3     Match template parameters by inferred template arguments
+ *          bit 4-7     Match template parameters by initial template arguments
  */
 
 MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objects *targsi,
@@ -939,6 +941,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
     int fptupindex = -1;
     int tuple_dim = 0;
     MATCH match = MATCHexact;
+    MATCH matchTargsi = MATCHexact;
     FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
     Parameters *fparameters;            // function parameter list
     int fvarargs;                       // function varargs
@@ -1033,8 +1036,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
             //printf("\tdeduceType m = %d\n", m);
             if (m == MATCHnomatch)
                 goto Lnomatch;
-            if (m < match)
-                match = m;
+            if (m < matchTargsi)
+                matchTargsi = m;
 
             sparam->semantic(paramscope);
             if (!paramscope->insert(sparam))
@@ -1719,7 +1722,7 @@ Lmatch:
 
     paramscope->pop();
     //printf("\tmatch %d\n", match);
-    return match;
+    return (MATCH)(match | (matchTargsi<<4));
 
 Lnomatch:
     paramscope->pop();
@@ -1841,6 +1844,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         Objects *targsi, Expression *ethis, Expressions *fargs, int flags)
 {
     MATCH m_best = MATCHnomatch;
+    MATCH m_best2 = MATCHnomatch;
     TemplateDeclaration *td_ambig = NULL;
     TemplateDeclaration *td_best = NULL;
     Objects *tdargs = new Objects();
@@ -1878,13 +1882,21 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
             goto Lerror;
         }
 
+        MATCH m, m2;
         Objects dedargs;
         FuncDeclaration *fd = NULL;
 
-        MATCH m = td->deduceFunctionTemplateMatch(sc, loc, targsi, ethis, fargs, &dedargs);
-        //printf("deduceFunctionTemplateMatch = %d\n", m);
+        m = td->deduceFunctionTemplateMatch(sc, loc, targsi, ethis, fargs, &dedargs);
+        m2 = (MATCH)(m >> 4);
+        m = (MATCH)(m & 0xF);
+        //printf("deduceFunctionTemplateMatch = %d, m2 = %d\n", m, m2);
         if (!m)                 // if no match
             continue;
+
+        if (m2 < m_best2)
+            goto Ltd_best;
+        if (m2 > m_best2)
+            goto Ltd;
 
         if (m < m_best)
             goto Ltd_best;
@@ -1956,6 +1968,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         td_best = td;
         fd_best = fd;
         m_best = m;
+        m_best2 = m2;
         tdargs->setDim(dedargs.dim);
         memcpy(tdargs->tdata(), dedargs.tdata(), tdargs->dim * sizeof(void *));
         continue;
