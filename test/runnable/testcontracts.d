@@ -193,6 +193,25 @@ void test5()
 
 /*******************************************/
 
+// http://d.puremagic.com/issues/show_bug.cgi?id=3722
+
+class Bug3722A
+{
+    void fun() {}
+}
+class Bug3722B : Bug3722A
+{
+    override void fun() in { assert(false); } body {}
+}
+
+void test6()
+{
+    auto x = new Bug3722B();
+    x.fun();
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -200,6 +219,7 @@ int main()
     test3();
     test4();
     test5();
+    test6();
 
     printf("Success\n");
     return 0;

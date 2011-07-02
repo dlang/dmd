@@ -1775,7 +1775,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
         }
 
         sf = fdv->mergeFrequire(sf);
-        if (fdv->fdrequire)
+        if (sf && fdv->fdrequire)
         {
             //printf("fdv->frequire: %s\n", fdv->frequire->toChars());
             /* Make the call:
@@ -1786,15 +1786,13 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire, 0), eresult);
             Statement *s2 = new ExpStatement(loc, e);
 
-            if (sf)
-            {   Catch *c = new Catch(loc, NULL, NULL, sf);
-                Array *catches = new Array();
-                catches->push(c);
-                sf = new TryCatchStatement(loc, s2, catches);
-            }
-            else
-                sf = s2;
+            Catch *c = new Catch(loc, NULL, NULL, sf);
+            Array *catches = new Array();
+            catches->push(c);
+            sf = new TryCatchStatement(loc, s2, catches);
         }
+        else
+            return NULL;
     }
     return sf;
 }
