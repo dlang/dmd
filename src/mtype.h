@@ -486,6 +486,8 @@ struct TypeFunction : Type
     enum RET retStyle();
 
     unsigned totym();
+
+    Expression *defaultInit(Loc loc);
 };
 
 struct TypeDelegate : Type
