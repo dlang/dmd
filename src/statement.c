@@ -3592,15 +3592,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp)
     {
-        if (fd->returnLabel && tbret->ty != Tvoid)
-        {
-            assert(fd->vresult);
-            VarExp *v = new VarExp(0, fd->vresult);
-
-            exp = new ConstructExp(loc, v, exp);
-            exp = exp->semantic(sc);
-        }
-
         if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
         {   // Function returns a reference
             if (tbret->isMutable())
@@ -3615,6 +3606,15 @@ Statement *ReturnStatement::semantic(Scope *sc)
             //exp->dump(0);
             //exp->print();
             exp->checkEscape();
+        }
+
+        if (fd->returnLabel && tbret->ty != Tvoid)
+        {
+            assert(fd->vresult);
+            VarExp *v = new VarExp(0, fd->vresult);
+
+            exp = new ConstructExp(loc, v, exp);
+            exp = exp->semantic(sc);
         }
     }
 

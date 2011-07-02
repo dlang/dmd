@@ -192,6 +192,35 @@ void test5()
 }
 
 /*******************************************/
+// 3273
+
+// original case
+struct Bug3273
+{
+    ~this() {}
+    invariant() {}
+}
+
+// simplest case
+ref int func3273()
+out(r)
+{
+	// Regression check of issue 3390
+	static assert(!__traits(compiles, r = 1));
+}
+body
+{
+	static int dummy;
+	return dummy;
+}
+
+void test6()
+{
+	func3273() = 1;
+	assert(func3273() == 1);
+}
+
+/*******************************************/
 
 int main()
 {
