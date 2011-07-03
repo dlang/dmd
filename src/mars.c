@@ -322,6 +322,10 @@ int main(int argc, char *argv[])
     char noboundscheck = 0;
     const char *inifilename = NULL;
 
+#ifdef DEBUG
+    printf("DMD %s DEBUG\n", global.version);
+#endif
+
     unittests();
 
     // Check for malformed input
