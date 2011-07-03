@@ -473,9 +473,9 @@ elem *array_toDarray(Type *t, elem *e)
 
                     if (ty == TYstruct)
                     {   unsigned sz = type_size(e->ET);
-                        if (sz == 4)
+                        if (sz <= 4)
                             ty = TYint;
-                        else if (sz == 8)
+                        else if (sz <= 8)
                             ty = TYllong;
                     }
                     e->Ety = ty;
