@@ -5266,6 +5266,12 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             }
         }
 
+        /* prefer matching the element type rather than the array
+         * type when more arguments are present with T[]...
+         */
+        if (varargs == 2 && u + 1 == nparams && nargs > nparams)
+            goto L1;
+
         //printf("\tm = %d\n", m);
         if (m == MATCHnomatch)                  // if no match
         {
