@@ -1461,17 +1461,22 @@ int foo56()
 
 void test56()
 {
-   int i;
-   try
-   {
-       i = S56(1).x + foo56() + 1;
-   }
-   catch (Throwable o)
-   {
-	printf("caught\n");
-   }
-   printf("i = %d\n", i);
-   assert(i == 0);
+    int i;
+    int j;
+    try
+    {
+        j |= 1;
+        i = S56(1).x + foo56() + 1;
+        j |= 2;
+    }
+    catch (Throwable o)
+    {
+        printf("caught\n");
+        j |= 4;
+    }
+    printf("i = %d, j = %d\n", i, j);
+    assert(i == 0);
+    assert(j == 5);
 }
 
 /**********************************/
