@@ -1206,7 +1206,7 @@ DeleteDeclaration *Parser::parseDelete()
  * Parse parameter list.
  */
 
-Parameters *Parser::parseParameters(int *pvarargs)
+Parameters *Parser::parseParameters(int *pvarargs, int *phasdefault)
 {
     Parameters *arguments = new Parameters();
     int varargs = 0;
@@ -1360,6 +1360,8 @@ Parameters *Parser::parseParameters(int *pvarargs)
     }
     check(TOKrparen);
     *pvarargs = varargs;
+    if (phasdefault)
+        *phasdefault = hasdefault;
     return arguments;
 }
 
@@ -2451,7 +2453,11 @@ Type *Parser::parseBasicType2(Type *t)
                 enum TOK save = token.value;
 
                 nextToken();
-                arguments = parseParameters(&varargs);
+                int hasdefault = 0;
+                arguments = parseParameters(&varargs, &hasdefault);
+
+                if (hasdefault)
+                    error("%s types cannot have default arguments", save == TOKdelegate ? "delegate" : "function");
 
                 StorageClass stc = parsePostfix();
                 if (stc & (STCconst | STCimmutable | STCshared | STCwild))
@@ -5426,7 +5432,15 @@ Expression *Parser::parsePrimaryExp()
                     t = parseBasicType();
                     t = parseBasicType2(t);     // function return type
                 }
-                arguments = parseParameters(&varargs);
+                int hasdefault = 0;
+                arguments = parseParameters(&varargs, &hasdefault);
+                if (hasdefault)
+                {
+                    if (save == TOKfunction)
+                        error("function literals cannot have default parameters");
+                    else if (save == TOKdelegate)
+                        error("delegate literals cannot have default parameters");
+                }
                 stc = parsePostfix();
                 if (stc & (STCconst | STCimmutable | STCshared | STCwild))
                     error("const/immutable/shared/inout attributes are only valid for non-static member functions");
