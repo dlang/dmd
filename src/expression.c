@@ -8427,7 +8427,9 @@ Expression *CastExp::semantic(Scope *sc)
         }
 
         // Struct casts are possible only when the sizes match
-        if (tob->ty == Tstruct || t1b->ty == Tstruct)
+        // Same with static array -> static array
+        if (tob->ty == Tstruct || t1b->ty == Tstruct ||
+            (tob->ty == Tsarray && t1b->ty == Tsarray))
         {
             size_t fromsize = t1b->size(loc);
             size_t tosize = tob->size(loc);
