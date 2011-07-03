@@ -3166,6 +3166,22 @@ static assert(!is(typeof(1 + Baz4258.init)));
 
 /***************************************************/
 
+void test4963()
+{
+    struct Value {
+        byte a;
+    };
+    Value single()
+    {
+        return Value();
+    }
+
+    Value[] list;
+    auto x = single() ~ list;
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3325,6 +3341,7 @@ int main()
     test155();
     test156();
     test4258();
+    test4963();
 
     printf("Success\n");
     return 0;
