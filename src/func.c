@@ -714,6 +714,20 @@ void FuncDeclaration::semantic3(Scope *sc)
     frequire = mergeFrequire(frequire);
     fensure = mergeFensure(fensure);
 
+    if (frequire)
+    {
+        for (int i = 0; i < foverrides.dim; i++)
+        {
+            FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+
+            if (fdv->fbody && !fdv->frequire)
+            {
+                error("cannot have an in contract when overriden function %s does not have an in contract", fdv->toPrettyChars());
+                break;
+            }
+        }
+    }
+
     if (fbody || frequire)
     {
         /* Symbol table into which we place parameters and nested functions,
