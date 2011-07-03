@@ -245,6 +245,56 @@ void test13()
 
 /***************************************/
 
+template CommonType(T, U)
+{
+    alias typeof(true ? T.init : U.init) CommonType;
+}
+
+void test14()
+{
+    static assert(is(CommonType!(bool, ifloat) == cfloat));
+    static assert(is(CommonType!(bool, idouble) == cdouble));
+    static assert(is(CommonType!(bool, ireal) == creal));
+
+    static assert(is(CommonType!(short, ifloat) == cfloat));
+    static assert(is(CommonType!(short, idouble) == cdouble));
+    static assert(is(CommonType!(short, ireal) == creal));
+
+    static assert(is(CommonType!(ushort, ifloat) == cfloat));
+    static assert(is(CommonType!(ushort, idouble) == cdouble));
+    static assert(is(CommonType!(ushort, ireal) == creal));
+
+    static assert(is(CommonType!(int, ifloat) == cfloat));
+    static assert(is(CommonType!(int, idouble) == cdouble));
+    static assert(is(CommonType!(int, ireal) == creal));
+
+    static assert(is(CommonType!(uint, ifloat) == cfloat));
+    static assert(is(CommonType!(uint, idouble) == cdouble));
+    static assert(is(CommonType!(uint, ireal) == creal));
+
+    static assert(is(CommonType!(long, ifloat) == cfloat));
+    static assert(is(CommonType!(long, idouble) == cdouble));
+    static assert(is(CommonType!(long, ireal) == creal));
+
+    static assert(is(CommonType!(ulong, ifloat) == cfloat));
+    static assert(is(CommonType!(ulong, idouble) == cdouble));
+    static assert(is(CommonType!(ulong, ireal) == creal));
+
+    static assert(is(CommonType!(float, ifloat) == cfloat));
+    static assert(is(CommonType!(float, idouble) == cdouble));
+    static assert(is(CommonType!(float, ireal) == creal));
+
+    static assert(is(CommonType!(double, ifloat) == cdouble));
+    static assert(is(CommonType!(double, idouble) == cdouble));
+    static assert(is(CommonType!(double, ireal) == creal));
+
+    static assert(is(CommonType!(real, ifloat) == creal));
+    static assert(is(CommonType!(real, idouble) == creal));
+    static assert(is(CommonType!(real, ireal) == creal));
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -261,6 +311,7 @@ int main(char[][] args)
     test11();
     test12();
     test13();
+    test14();
 
     printf("Success!\n");
     return 0;
