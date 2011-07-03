@@ -5018,8 +5018,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     size_t tdim = tt->arguments->dim;
                     for (size_t j = 0; j < tdim; j++)
                     {   Parameter *narg = (Parameter *)tt->arguments->data[j];
-                        narg->storageClass = fparam->storageClass;
+                        narg->storageClass |= fparam->storageClass;
                     }
+                    fparam->storageClass = 0;
                 }
 
                 /* Reset number of parameters, and back up one to do this fparam again,
