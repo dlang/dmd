@@ -3773,7 +3773,7 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
         printf("2: e:%p s:%p ", e, s);
 #endif
         error(loc, "%s is used as a type", toChars());
-        t = tvoid;
+        t = terror;
     }
     return t;
 }
