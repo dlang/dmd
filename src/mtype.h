@@ -312,6 +312,7 @@ struct Type : Object
     virtual Type *nextOf();
     uinteger_t sizemask();
     virtual int needsDestruction();
+    virtual void stripDefaultArgs();
 
     static void error(Loc loc, const char *format, ...);
     static void warning(Loc loc, const char *format, ...);
@@ -333,6 +334,7 @@ struct TypeError : Type
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
     d_uns64 size(Loc loc);
+    Type *syntaxCopy();
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
@@ -515,6 +517,7 @@ struct TypePointer : TypeNext
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
+    void stripDefaultArgs();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -594,6 +597,7 @@ struct TypeFunction : TypeNext
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     bool parameterEscapes(Parameter *p);
+    void stripDefaultArgs();
 
     int callMatch(Expression *ethis, Expressions *toargs, int flag = 0);
     type *toCtype();
@@ -622,6 +626,7 @@ struct TypeDelegate : TypeNext
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int hasPointers();
     TypeTuple *toArgTypes();
+    void stripDefaultArgs();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif

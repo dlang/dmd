@@ -7743,6 +7743,8 @@ Expression *AddrExp::semantic(Scope *sc)
 
         type = e1->type->pointerTo();
 
+        type->stripDefaultArgs();
+
         // See if this should really be a delegate
         if (e1->op == TOKdotvar)
         {
