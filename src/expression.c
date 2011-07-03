@@ -10289,30 +10289,6 @@ Expression *AddExp::semantic(Scope *sc)
         else
         {
             typeCombine(sc);
-            if ((e1->type->isreal() && e2->type->isimaginary()) ||
-                (e1->type->isimaginary() && e2->type->isreal()))
-            {
-                switch (type->toBasetype()->ty)
-                {
-                    case Tfloat32:
-                    case Timaginary32:
-                        type = Type::tcomplex32;
-                        break;
-
-                    case Tfloat64:
-                    case Timaginary64:
-                        type = Type::tcomplex64;
-                        break;
-
-                    case Tfloat80:
-                    case Timaginary80:
-                        type = Type::tcomplex80;
-                        break;
-
-                    default:
-                        assert(0);
-                }
-            }
             e = this;
         }
         return e;
@@ -10385,32 +10361,6 @@ Expression *MinExp::semantic(Scope *sc)
     else
     {
         typeCombine(sc);
-        t1 = e1->type->toBasetype();
-        t2 = e2->type->toBasetype();
-        if ((t1->isreal() && t2->isimaginary()) ||
-            (t1->isimaginary() && t2->isreal()))
-        {
-            switch (type->ty)
-            {
-                case Tfloat32:
-                case Timaginary32:
-                    type = Type::tcomplex32;
-                    break;
-
-                case Tfloat64:
-                case Timaginary64:
-                    type = Type::tcomplex64;
-                    break;
-
-                case Tfloat80:
-                case Timaginary80:
-                    type = Type::tcomplex80;
-                    break;
-
-                default:
-                    assert(0);
-            }
-        }
     }
     return e;
 }
