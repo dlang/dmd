@@ -263,6 +263,11 @@ void except_fillInEHTable(symbol *s)
                                 cf = code_next(cf);
                             }
                             foffset += calccodsize(cf);
+                            while (cf->Iop != JMP && cf->Iop != JMPS)
+                            {
+                                cf = code_next(cf);
+                                foffset += calccodsize(cf);
+                            }
                             cf = code_next(cf);
                             foffset += calccodsize(cf);
 #if OUREH
