@@ -1279,7 +1279,7 @@ class Throwable : Object
 }
 
 
-alias Throwable.TraceInfo function(void* ptr = null) TraceHandler;
+alias Throwable.TraceInfo function(void* ptr) TraceHandler;
 private __gshared TraceHandler traceHandler = null;
 
 
