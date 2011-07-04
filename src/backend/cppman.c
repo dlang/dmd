@@ -625,11 +625,7 @@ char *template_mangle(symbol *s,param_t *arglist)
                                 p = (char *)&e->EV.Vdouble;
                             else
                             {
-#if DDRT
-                                d = Xxtod(e->EV.Vldouble);
-#else
                                 d = e->EV.Vldouble;
-#endif
                             }
                             p = (char *)&d;
 //                          ni = tysize[TYdouble];
@@ -656,13 +652,7 @@ char *template_mangle(symbol *s,param_t *arglist)
                         case TYldouble: if (config.flags & CFGldblisdbl)
                                             d = e->EV.Vdouble;
                                         else
-                                        {
-#if DDRT
-                                            d = Xxtod(e->EV.Vldouble);
-#else
                                             d = e->EV.Vldouble;
-#endif
-                                        }
                         L1: char buf[32];
                             n = cpp_catname(n,"N");
                             ni = sprintf(buf, "%g", d);

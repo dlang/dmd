@@ -19,10 +19,6 @@
 #include        <time.h>
 #include        <stdarg.h>
 
-#if DDRT
-#include        "paccfp.h"
-#endif
-
 #include        "cc.h"
 #include        "type.h"
 #include        "el.h"
@@ -2450,7 +2446,6 @@ L1:
                             goto nomatch;
                         break;
 #endif
-#if !DDRT
                         /* Compare bit patterns w/o worrying about
                            exceptions, unordered comparisons, etc.
                          */
@@ -2498,19 +2493,6 @@ L1:
 #endif
                             goto nomatch;
                         break;
-#else /* DDRT */
-                    case TYfloat:
-                        if (memcmp(&n1->EV.Vfloat,&n2->EV.Vfloat,FLOATSIZE))
-                            goto nomatch;
-                        break;
-                    case TYdouble:
-                        if (memcmp(&n1->EV.Vdouble,&n2->EV.Vdouble,DOUBLESIZE))
-                            goto nomatch;
-                    case TYldouble:
-                        if (memcmp(&n1->EV.Vldouble,&n2->EV.Vldouble,LNGDBLSIZE))
-                                goto nomatch;
-                        break;
-#endif /* DDRT */
                     case TYvoid:
                         break;                  // voids always match
 #if SCPP
@@ -2755,11 +2737,7 @@ L1:
         case TYcldouble:
         case TYcdouble:
         case TYcfloat:
-#if !DDRT
             result = (targ_llong)el_toldouble(e);
-#else
-            result = Xxtoi(el_toldouble(e));
-#endif
             break;
 
 #if SCPP
@@ -2864,7 +2842,6 @@ targ_ldouble el_toldouble(elem *e)
             break;
     }
 #else
-#if !DDRT
     switch (tysize[tybasic(typemask(e))])
     {
     case FLOATSIZE:             // TYfloat
@@ -2882,23 +2859,6 @@ targ_ldouble el_toldouble(elem *e)
         break;
 #endif
     }
-#else /* DDRT */
-    switch (tysize[tybasic(typemask(e))])
-    {
-        case FLOATSIZE:         // TYfloat
-            result = Xftox(e->EV.Vfloat);
-            break;
-        case DOUBLESIZE:        // TYdouble
-            result = Xdtox(e->EV.Vdouble);
-            break;
-        case LNGDBLSIZE:        // TYldouble
-#ifdef LNGHDBLSIZE
-        case LNGHDBLSIZE:
-#endif
-                result = e->EV.Vldouble;
-            break;
-    }
-#endif /* DDRT */
 #endif
     return result;
 }
