@@ -80,7 +80,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	interpret.obj traits.obj aliasthis.obj intrange.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
-	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
+	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj
 
 # from C/C++ compiler optimizer and back end
@@ -107,7 +107,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h version.c inifile.c iasm.c staticassert.c \
 	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
-	eh.c toctype.c class.c mangle.c bit.c tocsym.c func.c inline.c \
+	eh.c toctype.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h unialpha.c irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
 	identifier.h parse.h scope.h enum.h import.h intrange.h \
@@ -210,9 +210,6 @@ bcomplex.obj : $C\bcomplex.c
 
 aa.obj : $C\tinfo.h $C\aa.h $C\aa.c
 	$(CC) -c $(MFLAGS) -I. $C\aa
-
-bit.obj : expression.h bit.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) bit
 
 blockopt.obj : $C\blockopt.c
 	$(CC) -c $(MFLAGS) $C\blockopt
