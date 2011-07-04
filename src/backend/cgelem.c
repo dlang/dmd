@@ -164,14 +164,6 @@ int elemisone(elem *e)
             case TYdouble:
             case TYidouble:
             case TYdouble_alias:
-#if HOST_THINK
-                if (PCrel_option & PC_THINKC_DBL) {
-                    if (e->EV.Vldouble != 1)
-                        goto nomatch;
-                    break;
-                }
-                // - fall through -
-#endif
                 if (e->EV.Vdouble != 1)
                         goto nomatch;
                 break;
@@ -238,14 +230,6 @@ int elemisnegone(elem *e)
             case TYdouble:
             //case TYidouble:
             case TYdouble_alias:
-#if HOST_THINK
-                if (PCrel_option & PC_THINKC_DBL) {
-                    if (e->EV.Vldouble != -1)
-                        goto nomatch;
-                    break;
-                }
-                // - fall through -
-#endif
                 if (e->EV.Vdouble != -1)
                         goto nomatch;
                 break;

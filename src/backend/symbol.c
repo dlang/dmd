@@ -1012,7 +1012,7 @@ SYMIDX symbol_add(symbol *s)
     assert(sitop <= cstate.CSpsymtab->symmax);
     if (sitop == cstate.CSpsymtab->symmax)
     {
-#if defined(DEBUG) && !HOST_MPW
+#ifdef DEBUG
 #define SYMINC  1                       /* flush out reallocation bugs  */
 #else
 #define SYMINC  99
@@ -1690,13 +1690,7 @@ void symbol_symdefs_hydrate(symbol **ps,symbol **parent,int flag)
 
             p = s->Sident;
             c = *p;
-            if (CPP)
-            {
-#if HOST_MPW
-            if (c == '_' &&  (strcmp(p,"__pasmeth") == 0))
-                continue;               // predefined struct, can't define twice
-#endif
-            }
+
             // Put symbol s into symbol table
 
 #if MMFIO
@@ -1802,11 +1796,6 @@ void symboltable_hydrate(symbol *s,symbol **parent)
         p = s->Sident;
 
         //dbg_printf("symboltable_hydrate('%s')\n",p);
-
-#if HOST_MPW
-        if(p[0] == '_' &&  (strcmp(p,"__pasmeth") == 0))
-            goto L1;            /* predefined struct, can't define twice */
-#endif
 
         /* Put symbol s into symbol table       */
         {   symbol **ps;

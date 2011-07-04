@@ -246,10 +246,7 @@ L1:
             break;
         case OPstring:
         case OPasm:
-#if HOST_MPW
-            if ( !(e->Eflags&EFsmasm) )
-#endif
-#if TX86 || HOST_MPW
+#if TX86
                 // never free; it's alloc'd from temp mem in most (all?) cases
             MEM_PH_FREE(e->EV.ss.Vstring);
 #endif

@@ -993,9 +993,6 @@ STATIC void bropt()
                         list_free(&b->Bsucc,FPNULL);
                         list_append(&b->Bsucc,db);
                         b->BC = BCgoto;
-#if !HOST_THINK
-                        MEM_PH_FREE(b->BS.Bswitch);
-#endif
                         b->Belem = doptelem(b->Belem,GOALnone | GOALagain);
                         cmes("CHANGE: switch (const)\n");
                         changes++;
@@ -1676,9 +1673,6 @@ STATIC void bltailmerge()
                     if (bnew->BC == BCswitch)
                     {
                         bnew->BS.Bswitch = b->BS.Bswitch;
-#if !HOST_THINK
-                        MEM_PH_FREE(bn->BS.Bswitch);
-#endif
                         b->BS.Bswitch = NULL;
                         bn->BS.Bswitch = NULL;
                     }

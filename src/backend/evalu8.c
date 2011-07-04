@@ -667,13 +667,6 @@ elem * evalu8(elem *e)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                    #if HOST_THINK
-                        // if this is true, then our "double" is really an ldouble
-                        if (PCrel_option & PC_THINKC_DBL) {
-                            e->EV.Vldouble = d1 + d2;
-                        }
-                        else
-                    #endif
                             e->EV.Vdouble = e1->EV.Vdouble + e2->EV.Vdouble;
                         break;
                     case TYidouble:
@@ -869,14 +862,7 @@ elem * evalu8(elem *e)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                    #if HOST_THINK
-                        // if this is true, then our "double" is really an ldouble
-                        if (PCrel_option & PC_THINKC_DBL) {
-                            e->EV.Vldouble = d1 - d2;
-                        }
-                        else
-                    #endif
-                            e->EV.Vdouble = e1->EV.Vdouble - e2->EV.Vdouble;
+                        e->EV.Vdouble = e1->EV.Vdouble - e2->EV.Vdouble;
                         break;
                     case TYidouble:
                         e->EV.Vcdouble.re =  e1->EV.Vdouble;
@@ -1062,12 +1048,6 @@ elem * evalu8(elem *e)
                     {
                         case TYdouble:
                         case TYdouble_alias:
-#if HOST_THINK
-                            if (PCrel_option & PC_THINKC_DBL) {
-                                e->EV.Vldouble = d1 * d2;
-                            }
-                            else
-#endif
                         case TYidouble:
                             e->EV.Vdouble = e1->EV.Vdouble * e2->EV.Vdouble;
                             break;
@@ -1245,12 +1225,6 @@ elem * evalu8(elem *e)
                     {
                         case TYdouble:
                         case TYdouble_alias:
-#if HOST_THINK
-                            if (PCrel_option & PC_THINKC_DBL) {
-                                e->EV.Vldouble = d1 / d2;
-                            }
-                            else
-#endif
                             e->EV.Vdouble = e1->EV.Vdouble / e2->EV.Vdouble;
                             break;
                         case TYidouble:
@@ -1616,12 +1590,6 @@ elem * evalu8(elem *e)
         switch (tym)
         {   case TYdouble:
             T68000(case TYcomp:)
-#if HOST_THINK
-                if (PCrel_option & PC_THINKC_DBL) {
-                    e->EV.Vldouble = -d1;
-                }
-                else
-#endif
                 e->EV.Vdouble = -e1->EV.Vdouble;
                 break;
             case TYfloat:

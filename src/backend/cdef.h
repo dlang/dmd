@@ -45,14 +45,6 @@
         DOS16RM         Rational Systems 286 DOS extender
         _MSDOS          MSDOS
 
-Host systems no longer supported:
-
-        HOST_THINK
-        HOST_RAINBOW
-        HOST_MPW        Macintosh Programmers' Workbench
-        HOST_UNIX       Unix systems other than linux
-        HOST_MAC
-
 One and only one of these macros must be set by the makefile:
 
         SPP             Build C/C++ preprocessor

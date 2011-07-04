@@ -242,10 +242,6 @@ char *cpp_mangle(symbol *s)
     s->Sfunc && s->Sfunc->Fflags & Ftypesafe)
     {   if (!s->Sscope)
             p = cpp_catname(p,"__");
-#if HOST_MPW
-        if (pasobj && s->Sfunc->Fflags&Foperator)
-            p = cpp_catname(p,"S");
-#endif
         p = cpp_typetostring(s->Stype,p);
     }
     /*dbg_printf("cpp_mangle(%s)\n",p);*/
