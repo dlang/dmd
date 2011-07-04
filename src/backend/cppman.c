@@ -212,7 +212,6 @@ char *cpp_mangle(symbol *s)
     if (!CPP)
         return s->Sident;
 
-    T68000(short pasobj = FALSE;)
     ssymbol = s;
 
     symbol_debug(s);
@@ -671,7 +670,6 @@ char *template_mangle(symbol *s,param_t *arglist)
                             {   char buf[sizeof(long) * 3 + 1];
                                 sprintf(buf,"%lu",el_tolong(e));
                                 cpp_catname(n,buf);
-                                T68000(n = cpp_catname(n,"_");)
                                 break;
                             }
                             assert(0);

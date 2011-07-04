@@ -939,7 +939,7 @@ void symbol_free(symbol *s)
                 case SCfastpar:
                 case SCregister:
                 case SCtmp:
-                T80x86(case SCauto:)
+                case SCauto:
                     vec_free(s->Srange);
                     /* FALL-THROUGH */
 #if 0
@@ -1083,7 +1083,6 @@ symbol * symbol_copy(symbol *s)
     memcpy(scopy,s,sizeof(symbol) - sizeof(s->Sident));
     scopy->Sl = scopy->Sr = scopy->Snext = NULL;
     scopy->Ssymnum = -1;
-    T68000(scopy->Sidnum = 0;)
     if (scopy->Sdt)
         dtsymsize(scopy);
     if (scopy->Sflags & (SFLvalue | SFLdtorexp))
@@ -1214,7 +1213,6 @@ symbol *symbol_hydrate(symbol **ps)
 #if SOURCE_4SYMS
         s->Ssrcpos.Sfilnum += File_Hydrate_Num; /* file number relative header build */
 #endif
-        T68000(file_progress();)
         if (pstate.SThflag != FLAG_INPLACE && s->Sfl != FLreg)
             s->Sxtrnnum = 0;            // not written to .OBJ file yet
         type_hydrate(&s->Stype);
@@ -1417,7 +1415,6 @@ void symbol_dehydrate(symbol **ps)
         if (xsym_gen && ph_in_head(s))
             return;
 #endif
-        T68000(file_progress();)
         symbol_debug(s);
         t = s->Stype;
         if (isdehydrated(t))
@@ -2167,8 +2164,7 @@ void symboltable_balance(symbol **ps)
 
     dbg_printf("symbol table before balance:\n");
     symbol_table_metrics();
-    T68000(ticks = TickCount();)
-    T80x86(ticks = clock();)
+    ticks = clock();
 #endif
     balancesave = balance;              // so we can nest
     balance.nsyms = 0;
@@ -2191,8 +2187,7 @@ void symboltable_balance(symbol **ps)
 
     *ps = create_tree(balance.nsyms / 2, 0, balance.nsyms - 1);
 
-    T68000(release_temp_memory();)
-    T80x86(free(balance.array);)
+    free(balance.array);
 #if METRICS
     dbg_printf("time to balance: %ld\n", clock() - ticks);
     dbg_printf("symbol table after balance:\n");

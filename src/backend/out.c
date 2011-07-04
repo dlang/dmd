@@ -777,10 +777,10 @@ void out_regcand(symtab_t *psymtab)
 {
     block *b;
     SYMIDX si;
-    T80x86(int ifunc;)
+    int ifunc;
 
     //printf("out_regcand()\n");
-    T80x86(ifunc = (tybasic(funcsym_p->ty()) == TYifunc);)
+    ifunc = (tybasic(funcsym_p->ty()) == TYifunc);
     for (si = 0; si < psymtab->top; si++)
     {   symbol *s = psymtab->tab[si];
 

@@ -753,7 +753,6 @@ restart:
     addblk = FALSE;                     /* assume no blocks added        */
     for (l = startloop; l; l = l->Lnext)/* for each loop                 */
     {
-        T68000(file_progress();)
 #ifdef DEBUG
         //if (debugc) l->print();
 #endif

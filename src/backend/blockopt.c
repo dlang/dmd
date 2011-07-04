@@ -1034,7 +1034,7 @@ STATIC void brrear()
                                 bt->Btry == list_block(bt->Bsucc)->Btry &&
 #endif
 
-                               ++iter < T68000(numblks) T80x86(10))
+                               ++iter < 10)
                         {
                                 list_ptr(bl) = list_ptr(bt->Bsucc);
                                 if (bt->Bsrcpos.Slinnum && !b->Bsrcpos.Slinnum)

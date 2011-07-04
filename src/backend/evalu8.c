@@ -159,7 +159,6 @@ HINT boolres(elem *e)
                 case TYdouble_alias:
                 case TYildouble:
                 case TYldouble:
-                T68000(case TYcomp:)
                 {   targ_ldouble ld = el_toldouble(e);
 
                     if (isnan((double)ld))
@@ -597,14 +596,14 @@ elem * evalu8(elem *e)
             elem_debug(e2);
             if (e2->Eoper == OPconst)
             {
-                T68000(c2 =) i2 = l2 = el_tolong(e2);
+                i2 = l2 = el_tolong(e2);
                 d2 = el_toldouble(e2);
             }
             else
                 return e;
             tym2 = tybasic(typemask(e2));
         }
-        T68000(c1 =) i1 = l1 = el_tolong(e1);
+        i1 = l1 = el_tolong(e1);
         d1 = el_toldouble(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
 
@@ -1589,7 +1588,6 @@ elem * evalu8(elem *e)
 #else
         switch (tym)
         {   case TYdouble:
-            T68000(case TYcomp:)
                 e->EV.Vdouble = -e1->EV.Vdouble;
                 break;
             case TYfloat:

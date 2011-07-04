@@ -157,7 +157,6 @@ int elemisone(elem *e)
                 break;
             case TYldouble:
             case TYildouble:
-            T68000(case TYcomp:)
                 if (e->EV.Vldouble != 1)
                     goto nomatch;
                 break;
@@ -223,7 +222,6 @@ int elemisnegone(elem *e)
                 break;
             case TYldouble:
             //case TYildouble:
-            T68000(case TYcomp:)
                 if (e->EV.Vldouble != -1)
                     goto nomatch;
                 break;
@@ -888,7 +886,6 @@ L1:
                 e = el_una((tysize[ety] > tysize[e11ty]) ? OPptrlptr : OPoffset,
                             e->Ety,e);
                 e->E1->Ety = e1->Ety;
-                T68000(return optelem(e,TRUE);)
             }
 #endif
         }
@@ -1133,7 +1130,7 @@ L1:
   /* for floating or far or huge pointers!                              */
   if (e1->Eoper == OPadd && e2->Eoper == OPadd &&
       cnst(e1->E2) && cnst(e2->E2) &&
-      (tyintegral(tym) T80x86(|| tybasic(tym) == TYjhandle || tybasic(tym) == TYnptr || tybasic(tym) == TYsptr) ))
+      (tyintegral(tym) || tybasic(tym) == TYjhandle || tybasic(tym) == TYnptr || tybasic(tym) == TYsptr ))
   {     elem *tmp;
 
         e->Eoper = OPadd;
@@ -2156,7 +2153,6 @@ STATIC elem * elandand(elem *e)
             el_free(e->E2);
             e->E2 = el_int(t,0);
         }
-        T68000(return elcomma(e);)
     }
     else
         goto L1;
@@ -2313,7 +2309,6 @@ STATIC elem * eladdr(elem *e)
     case OPvar:
         e1->Eoper = OPrelconst;
         e1->EV.sp.Vsym->Sflags &= ~(SFLunambig | GTregcand);
-        T68000(e1->EV.sp.Vsym->Sflags |= GTadrof;)
         e1->Ety = tym;
         e = optelem(el_selecte1(e),TRUE);
         break;
@@ -3413,7 +3408,6 @@ STATIC elem * elvptrfptr(elem *e)
 STATIC elem * ellngsht(elem *e)
 { elem *e1;
   tym_t ty;
-  T68000(unsigned short op = e->Eoper;)
 
   ty = e->Ety;
   e1 = e->E1;
@@ -3472,25 +3466,21 @@ STATIC elem * ellngsht(elem *e)
             switch (e->Eoper)
             {   case OPint8:
                     /* Make sure e1->E1 is of the type we're converting from */
-                    if (tysize(ty1) <= T80x86(intsize) T68000(SHORTSIZE))
+                    if (tysize(ty1) <= intsize)
                     {
                         ty1 = (tyuns(ty1) ? TYuchar : TYschar) |
                                     (ty1 & ~mTYbasic);
                         e1->E1 = el_una(e->Eoper,ty1,e1->E1);
-                        T68000(e1->E1 = ellngsht(e1->E1));
-                                        // eliminate conversion op if possible here
                     }
                     /* Rvalue may be an int if it is a shift operator */
                     if (OTbinary(e1->Eoper))
                     {   tym_t ty2 = e1->E2->Ety;
 
-                        if (tysize(ty2) <= T80x86(intsize) T68000(SHORTSIZE))
+                        if (tysize(ty2) <= intsize)
                         {
                             ty2 = (tyuns(ty2) ? TYuchar : TYschar) |
                                         (ty2 & ~mTYbasic);
                             e1->E2 = el_una(e->Eoper,ty2,e1->E2);
-                            T68000(e1->E2 = ellngsht(e1->E2));
-                                        // eliminate conversion op if possible here
                         }
                     }
                     break;
@@ -3525,8 +3515,6 @@ STATIC elem * ellngsht(elem *e)
                     {
                         ty1 = (tyuns(ty1) ? TYushort : TYshort) | (ty1 & ~mTYbasic);
                         e1->E1 = el_una(e->Eoper,ty1,e1->E1);
-                        T68000(e1->E1 = ellngsht(e1->E1));
-                                        // eliminate conversion op if possible here
                     }
                     /* Rvalue may be an int if it is a shift operator */
                     if (OTbinary(e1->Eoper))
@@ -3537,8 +3525,6 @@ STATIC elem * ellngsht(elem *e)
                             ty2 = (tyuns(ty2) ? TYushort : TYshort) |
                                         (ty2 & ~mTYbasic);
                             e1->E2 = el_una(e->Eoper,ty2,e1->E2);
-                            T68000(e1->E2 = ellngsht(e1->E2));
-                                        // eliminate conversion op if possible here
                         }
                     }
                     break;
