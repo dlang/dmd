@@ -3946,9 +3946,6 @@ STATIC elem * elparam(elem *e)
 STATIC elem * optelem(elem *e,HINT goal)
 { elem *e1,*e2;
   unsigned op;
-#if TX86
-  static
-#endif
 #include "elxxx.c"                      /* jump table                   */
 
 beg:
