@@ -1297,6 +1297,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
         !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
         v->ident != Id::ctfe &&      // magic variable never violates pure and safe
         !v->isImmutable() &&         // always safe and pure to access immutables...
+        !(v->isConst() && v->isDataseg()) && // const global data is immutable
         !(v->storage_class & STCmanifest) // ...or manifest constants
        )
     {
