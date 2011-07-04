@@ -837,11 +837,11 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
 #endif
 
-    frequire = mergeFrequire(frequire);
     fensure = mergeFensure(fensure);
 
     if (frequire)
     {
+        int errors = global.errors;
         for (int i = 0; i < foverrides.dim; i++)
         {
             FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
@@ -852,6 +852,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 break;
             }
         }
+
+        if (errors == global.errors)
+            frequire = mergeFrequire(frequire);
     }
 
     if (fbody || frequire || fensure)
