@@ -1073,25 +1073,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPu16_d:   case OPdbluns:
         case OPs8int:   case OPint8:
         case OPd_u32:   case OPu32_d:
-#if TARGET_68K
-        case OPacos:
-        case OPasin:
-        case OPatan:
-        case OPatanh:
-        case OPcos:
-        case OPcosh:
-        case OPexp:
-        case OPexp1:
-        case OPexp10:
-        case OPlog:
-        case OPlog10:
-        case OPlog2:
-        case OPsin:
-        case OPsincos:
-        case OPsinh:
-        case OPtan:
-        case OPtanh:
-#endif
 
 #if LONGLONG
         case OPlngllng: case OPu32_64:
@@ -2069,18 +2050,8 @@ STATIC famlist * newfamlist(tym_t ty)
                 c.Vdouble = 1;
                 break;
             case TYldouble:
-#if TARGET_68K && __POWERPC
-                c.Vldouble = Xone();
-#else
                 c.Vldouble = 1;
-#endif
                 break;
-#if TARGET_68K && !__POWERPC
-            case TYcomp:
-                c.Vldouble = 1;
-                ty = TYldouble;
-                break;
-#endif
 #if _MSDOS || __OS2__ || _WIN32         // if no byte ordering problems
             case TYsptr:
             case TYcptr:
@@ -3137,11 +3108,7 @@ STATIC void elimbasivs(register loop *l)
                  */
                 if (!tyuns(ty) &&
                     (tyintegral(ty) && el_tolong(fl->c1) < 0 ||
-#if TARGET_68K && __POWERPC
-                     tyfloating(ty) && Xlt(el_toldouble(fl->c1),Xzero()) ))
-#else
                      tyfloating(ty) && el_toldouble(fl->c1) < 0.0))
-#endif
                         refEoper = swaprel(refEoper);
 
                 /* Replace (X relop e) with (X relop (short)e)
@@ -3530,13 +3497,8 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                         goto Lf2;
                 break;
             case TYldouble:
-#if TARGET_68K && __POWERPC
-                if (Xis1(t2->Vldouble) ||
-                    !(Xis1(t2->Vldouble)) && Xis0(f2->c2->EV.Vldouble) )
-#else
                 if (t2->Vldouble == 1.0 ||
                     t1->Vldouble != 1.0 && f2->c2->EV.Vldouble == 0)
-#endif
                         goto Lf2;
                 break;
             case TYllong:

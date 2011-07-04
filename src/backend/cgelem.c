@@ -686,7 +686,7 @@ STATIC elem * elmemxxx(elem *e)
                     elem *enbytes = e->E2->E1;
                     elem *evalue = e->E2->E2;
 
-#if MARS && (TX86 || TARGET_68K)
+#if MARS && TX86
                     if (enbytes->Eoper == OPconst && evalue->Eoper == OPconst
                         /* && tybasic(e->E1->Ety) == TYstruct*/)
                     {   tym_t tym;
@@ -1452,11 +1452,7 @@ STATIC elem * elnot(elem *e)
             {
                   /* Find the logical negation of the operator  */
                   op = rel_not(op);
-                  if (!tyfloating(e1->E1->Ety)
-#if TARGET_68K
-                                T68000(|| !config.inline68881)
-#endif
-                     )
+                  if (!tyfloating(e1->E1->Ety))
                   {   op = rel_integral(op);
                       assert(OTrel(op));
                   }
@@ -2479,8 +2475,7 @@ CEXTERN elem * elstruct(elem *e)
     if (e->ET)
     switch ((int) type_size(e->ET))
     {
-#if TX86 || TARGET_68K
-        // powerPC rtm structs are always in memory
+#if TX86
         case CHARSIZE:  tym = TYchar;   goto L1;
         case SHORTSIZE: tym = TYshort;  goto L1;
         case LONGSIZE:  tym = TYlong;   goto L1;

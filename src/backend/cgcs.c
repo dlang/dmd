@@ -172,10 +172,6 @@ STATIC void ecom(elem **pe)
     case OPconst:
     case OPvar:
     case OPrelconst:
-#if TARGET_68K
-        if (tyfloating(tym) && !config.inline68881)
-            return;                     /* don't cse float vars for SANE */
-#endif
         break;
     case OPstreq:
     case OPpostinc:
@@ -390,9 +386,6 @@ STATIC void ecom(elem **pe)
   if (tym == TYstruct ||
       tym == TYvoid ||
       e->Ety & mTYvolatile
-#if TARGET_68K
-      || (tyfloating(tym) && !config.inline68881)
-#endif
 #if TX86
     // don't CSE doubles if inline 8087 code (code generator can't handle it)
       || (tyfloating(tym) && config.inline8087)

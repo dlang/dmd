@@ -56,7 +56,7 @@ void out_extdef(symbol *s)
 
 #endif
 
-#if TX86 || (!HOST_THINK && (TARGET_68K))
+#if TX86
 #if SCPP
 /********************************
  * Put out code segment name record.

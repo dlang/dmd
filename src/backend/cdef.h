@@ -163,7 +163,6 @@ One and only one of these macros must be set by the makefile:
  */
 
 #define TX86            1               // target is Intel 80X86 processor
-#define TARGET_68K      0               // target is a 68K processor
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX

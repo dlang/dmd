@@ -338,11 +338,6 @@ typedef struct Pstate
 #endif
     block *STbtry;              // current try block
     block *STgotolist;          // threaded goto scoping list
-#if MPW_OBJ && TARGET_68K
-    short STpush_value;
-    short STpop_value;
-    char  STdo_push;
-#endif
 #if !TX86
     char STdo_pop;
     char STprogressShown;       // true if func_body() has already shown progress info
@@ -1607,9 +1602,6 @@ typedef struct Filename
 struct SAVED_OPTIONS
 {
         struct Config config;
-#if TARGET_68K
-        short PCrel_option;
-#endif
         mftype mfoptim;
         signed char tysizeTYldouble;
         unsigned char war_to_msg_enable[40];    // Assumes that the max warning number is 40

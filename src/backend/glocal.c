@@ -363,12 +363,7 @@ Loop:
             {   unsigned u;
 
                 // If potential candidate for replacement
-#if TARGET_68K
-                if (s->Sflags & SFLunambig &&
-                   (config.inline68881 & CFG68881 || !(tyfloating(s->Sty))) )
-#else
                 if (s->Sflags & SFLunambig)
-#endif
                 {
                     for (u = 0; u < loctop; u++)
                     {   elem *em;
@@ -415,11 +410,7 @@ Loop:
             s = e->E1->EV.sp.Vsym;
             if (loctop)
             {
-                if (s->Sflags & SFLunambig
-#if TARGET_68K
-                   && (config.inline68881 & CFG68881 || !(tyfloating(s->Sty)))
-#endif
-                   )
+                if (s->Sflags & SFLunambig)
                     local_symref(s);
                 else
                     local_ambigref();           // ambiguous reference

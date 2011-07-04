@@ -37,11 +37,6 @@
 #include        "global.h"
 #include        "go.h"
 
-#if __POWERPC && TARGET_68K
-#undef DDRT
-#define DDRT 1          // turn ddrt on
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -1936,15 +1931,6 @@ elem *el_convstring(elem *e)
     }
 #endif
 
-#if TARGET_68K
-    /*
-     * When using PC relative strings, strings cannot be saved because this
-     * would lead to problems.  We do not know how to emit PC-relative
-     * relocations for stuff in other functions.
-     */
-    if (!(PCrel_option & PC_STRINGS))
-#endif
-
     if (eecontext.EEin)                 // if compiling debugger expression
     {
         s = out_readonly_sym(e->Ety, p, len);
@@ -1980,42 +1966,19 @@ elem *el_convstring(elem *e)
     stable[stable_si].len = len;
     stable[stable_si].sym = s;
     stable_si = (stable_si + 1) & (arraysize(stable) - 1);
-
 #else
     s = symboldata(Doffset,e->Ety);
-#if TARGET_68K
-    if (PCrel_option & PC_STRINGS)
-    {   s = symbol_generate(SCstatic,type_fake(e->Ety));
-        s->Sfl = FLoffset;              // relative offset from code
-        symbol_keep(s);
-        s->Sidnum = obj_PCrel_start();
-        for (i=0; i<len; ++i)
-            obj_PCrel_byte(p[i]);
-    }
-    else
-#endif
-    {   s->Sfl = FLdatseg;              // string in data segment
-        s->Sidnum = obj_module(DATA,SClocstat,0);
-        obj_bytes(DATA,0,len,p);
-    }
+    s->Sfl = FLdatseg;              // string in data segment
+    s->Sidnum = obj_module(DATA,SClocstat,0);
+    obj_bytes(DATA,0,len,p);
 
-#if TARGET_68K
-    /*
-     * When using PC relative strings, strings cannot be saved because this
-     * would lead to problems.  We do not know how to emit PC-relative
-     * relocations for stuff in other functions.
-     */
-    if (!(PCrel_option & PC_STRINGS))
-#endif
-    {
-        // Remember the string for possible reuse later
-        //dbg_printf("Adding %d, '%s'\n",stable_si,p);
-        MEM_PH_FREE(stable[stable_si].p);
-        stable[stable_si].p   = p;
-        stable[stable_si].len = len;
-        stable[stable_si].sym = s;
-        stable_si = (stable_si + 1) & (arraysize(stable) - 1);
-    }
+    // Remember the string for possible reuse later
+    //dbg_printf("Adding %d, '%s'\n",stable_si,p);
+    MEM_PH_FREE(stable[stable_si].p);
+    stable[stable_si].p   = p;
+    stable[stable_si].len = len;
+    stable[stable_si].sym = s;
+    stable_si = (stable_si + 1) & (arraysize(stable) - 1);
 #endif
 
 L1:

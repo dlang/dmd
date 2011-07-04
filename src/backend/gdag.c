@@ -523,13 +523,6 @@ L1:     e = *pe;
             else if (op == OPushtlng && !I32 && e->Ecount)
                 e = delcse(pe);
 #endif
-#if TARGET_68K
-            // Remove size conversions of float vars
-            else if (OTconv(op) && (e->E1->Eoper == OPvar) &&
-                flt_881mixtype[convidx(op)] && !config.inline68881 && e->Ecount)
-                e = delcse(pe);
-
-#endif
         }
         else if (OTbinary(op))
         {
@@ -546,11 +539,6 @@ L1:     e = *pe;
         }
         else /* leaf node */
         {
-#if TARGET_68K
-                if ((op == OPconst || op == OPvar) &&
-                    tyfloating(e->Ety) && !config.inline68881 && e->Ecount)
-                        e = delcse(pe); /* don't force vars to SANE frame or cse consts*/
-#endif
                 return;
         }
         pe = &(e->E1);

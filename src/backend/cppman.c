@@ -30,12 +30,6 @@
 #include        "cpp.h"
 #include        "filespec.h"
 
-
-#if __POWERPC && TARGET_68K
-#undef DDRT
-#define DDRT 1          // turn ddrt on
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -607,11 +601,7 @@ char *template_mangle(symbol *s,param_t *arglist)
                         L1:
                             a[1] = 0;
                             n = cpp_catname(n,a);
-#if TARGET_68K
-                            p = (char *)&e->EV.Vldouble;
-#else
                             p = (char *)&e->EV.Vdouble;
-#endif
 
 #elif !NEW_UNMANGLER
                         case TYfloat:
