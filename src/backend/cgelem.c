@@ -34,11 +34,6 @@ STATIC elem * eldiv(elem *);
 
 CEXTERN elem * evalu8(elem *);
 
-#if TX86
-STATIC void sdconst(elem *);
-extern targ_size_t dfuncptr();
-#endif
-
 static int expgoal;
 static int again;
 static int cgelem_goal;
@@ -346,7 +341,6 @@ STATIC elem *fixconvop(elem *e)
         tym_t tycop,tym,tyme;
         static char invconvtab[] =
         {
-#if TX86
                 OPbool,         // OPb_8
                 OPs32_d,        // OPd_s32
                 OPd_s32,        // OPs32_d
@@ -383,9 +377,6 @@ STATIC elem *fixconvop(elem *e)
                 OPd_ld,         // OPld_d
                 OPld_d,         // OPd_ld
                 OPu64_d,        // OPld_u64
-#else
-        TARGET_INVERS_CONV
-#endif
         };
 
 //dbg_printf("fixconvop before\n");

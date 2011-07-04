@@ -1590,12 +1590,10 @@ typedef struct Filename
     unsigned idx;                       // # used in array
 } Filename;
 
-//
 // NOTE: In order to save the full settings of all of the options,
 // the following will need to be saved:
 //
 // config
-// PCrel_option
 // tysize[TYldouble]
 // war_to_msg_enable[]  - Array of warnings that are enabled/disabled 0 = enabled, 1 = disabled
 

@@ -105,7 +105,6 @@ int cpp_ctor(Classsym *stag);
 int cpp_dtor(type *tclass);
 void cpp_fixdestructor(symbol *s_dtor);
 elem *cpp_structcopy(elem *e);
-elem *cpp_hdlptr(elem *e);
 void cpp_fixmain(void);
 int cpp_needInvariant(type *tclass);
 void cpp_fixinvariant(symbol *s_dtor);

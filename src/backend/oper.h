@@ -135,8 +135,6 @@ enum OPER
 
 // parallel array inconvtab[] in cgelem.c)
 
-#if TX86
-
 /* Convert from conversion operator to conversion index         */
 #define convidx(op)     ((int)(op) - CNVOPMIN)
 
@@ -176,8 +174,6 @@ enum OPER
         OPu64_128,
         OPs64_128,
         OP128_64,
-#define OPsfltdbl       OPunde
-#define OPdblsflt       OPunde
         OPoffset,       // get offset of far pointer
         OPnp_fp,        // convert near pointer to far
         OPnp_f16p,      // from 0:32 to 16:16
@@ -185,9 +181,6 @@ enum OPER
         OPld_d,
         OPd_ld,
         OPld_u64,
-#else
-TARGET_CONVERSION_OPS
-#endif
 
 #define CNVOPMAX        (OPc_r-1)
 #define convidx(op)     ((int)(op) - CNVOPMIN)
@@ -216,8 +209,6 @@ TARGET_CONVERSION_OPS
 #define OPint8          OP16_8          // short to 8 bits
 #define OPlngllng       OPs32_64        // long to long long
 #define OPllnglng       OP64_32         // long long to long
-#define OPsfltdbl       OPunde
-#define OPdblsflt       OPunde
 #define OPoffset        OPoffset        // get offset of far pointer
 #define OPptrlptr       OPnp_fp         // convert near pointer to far
 #define OPtofar16       OPnp_f16p       // from 0:32 to 16:16

@@ -1097,8 +1097,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPbsf:
         case OPbsr:
         case OPbswap:
-#else
-        case OPsfltdbl: case OPdblsflt:
 #endif
                 markinvar(n->E1,rd);
                 if (isLI(n->E1))        /* if child is LI               */
