@@ -1336,9 +1336,6 @@ struct Symbol
     vec_t       Slvreg;         // when symbol is in register
     targ_size_t Ssize;          // tyfunc: size of function
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
-#if TARGET_MAC
-#define Smemoff Soffset
-#endif
 
     // CPP || OPTIMIZER
     SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])

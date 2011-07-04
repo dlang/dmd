@@ -32,10 +32,6 @@
 #include        "el.h"
 #endif
 
-#if TARGET_MAC
-#include        "TG.h"
-#endif
-
 #if TARGET_POWERPC
 #include "cgobjxcoff.h"
 #include "xcoff.h"
@@ -937,10 +933,6 @@ STATIC void writefunc2(symbol *sfunc)
 #if SCPP
     if (CPP)
     {
-#if TARGET_MAC
-    if (configv.verbose == 2)
-        dbg_printf(" %s\n",sfunc->Sident);
-#endif // TARGET_MAC
 
     // If constructor or destructor, make sure it has been fixed.
     if (f->Fflags & (Fctor | Fdtor))
@@ -951,13 +943,6 @@ STATIC void writefunc2(symbol *sfunc)
     {   Classsym *stag;
 
         stag = (Classsym *) sfunc->Sscope;
-#if TARGET_MAC
-        if (stag->Sstruct->Sflags & STRpasobj)
-        {
-            po_func_Methout(stag);
-        }
-        else
-#endif // TARGET_MAC
         {
             enum SC scvtbl;
 
@@ -1077,9 +1062,6 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
 
     // TX86 computes parameter offsets in stackoffsets()
-#if TARGET_MAC
-    Poffset = 0;
-#endif
     //printf("globsym.top = %d\n", globsym.top);
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
@@ -1130,66 +1112,10 @@ STATIC void writefunc2(symbol *sfunc)
             case SCparameter:
 #endif
                 s->Sfl = FLpara;
-#if TARGET_MAC
-                {
-                unsigned Ssize;
-                unsigned short tsize;
-
-                assert(funcsym_p);
-                /* Handle case where float parameter is really passed as a double */
-                /* Watch out because SFLimplem == SFLdouble (ugh)               */
-                if (s->Sflags & SFLdouble)
-                {
-                    switch(type_size(s->Stype))
-                    {
-                        case CHARSIZE:
-                        case SHORTSIZE:
-                            Ssize = 4;
-                            break;
-                        case FLOATSIZE:
-                        case DOUBLESIZE:
-#if TARGET_POWERPC
-                                Ssize = LNGDBLSIZE;
-#else
-                            Ssize = (config.inline68881) ? LNGHDBLSIZE:LNGDBLSIZE;
-#endif
-                            break;
-                        default:
-                            assert(0);
-                    }
-                }
-                else
-                    Ssize = type_size(s->Stype);
-#ifdef DEBUG
-                if (debugx) dbg_printf("size=%d ",Ssize);
-#endif
-                Poffset = align(sizeof(targ_short),Poffset);
-                                                /* align on short stack boundary */
-                s->Sclass = SCparameter;        /* SCregpar used equivalently */
-                s->Soffset = Poffset;
-                if ( ((Ssize > LONGSIZE) || tyfloating(s->Sty)) &&
-                   typasfunc(funcsym_p->Sty) )
-                    {                           /* ptr to param was passed for pascal*/
-                    s->Sfl = FLptr2param;       /* will need to copy into temporary for pascal */
-                    s->Sflags &= ~GTregcand;    /* pascal long dbl ptrs to param float */
-                    }
-                if(Ssize == CHARSIZE)           /* 68000 stack must stay word aligned */
-                    Poffset += CHARSIZE;
-                if(tyintegral(tybasic(s->Sty)) && (Ssize > (tsize = size(s->Sty))) )
-                    {
-                    if(tsize == 1)
-                        s->Soffset += 4-CHARSIZE;
-                    else if(tsize == SHORTSIZE)
-                        s->Soffset += 4-SHORTSIZE;
-                    }
-                Poffset += ((s->Sfl == FLptr2param) && (Ssize > LONGSIZE)) ? LONGSIZE:Ssize;
-                }
-#else
                 if (tyf == TYifunc)
                 {   s->Sflags |= SFLlivexit;
                     break;
                 }
-#endif
             L3:
                 if (!(s->ty() & mTYvolatile))
                     s->Sflags |= GTregcand | SFLunambig; // assume register candidate   */
@@ -1327,8 +1253,6 @@ STATIC void writefunc2(symbol *sfunc)
 #else
         sfunc->Sseg = cseg;             // current code seg
 #endif
-#elif TARGET_MAC
-        Coffset = 0;                    // all PC relative from start of this module
 #endif
         sfunc->Soffset = Coffset;       // offset of start of function
         searchfixlist(sfunc);           // backpatch any refs to this function
@@ -1501,10 +1425,6 @@ Ldone:
     MEM_PARF_FREE(dfo);
 #endif
     dfo = NULL;
-#if TARGET_MAC
-    release_temp_memory();              /* release temporary memory */
-    PARSER = 1;
-#endif
 }
 
 /*************************
@@ -1604,9 +1524,5 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
     return s;
 }
 
-
-#if TARGET_MAC
-#include "TGout.c"
-#endif
-
 #endif /* !SPP */
+

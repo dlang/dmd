@@ -223,21 +223,10 @@ char *cpp_mangle(symbol *s)
 
     symbol_debug(s);
     //dbg_printf("cpp_mangle(%s)\n",s->Sident);
-#if TARGET_MAC
-    if (s->Stype == tsclib)
-        return (char *)s->Sident;
-#endif
     p = symbol_ident(s);
     sclass = s->Sscope;
     if (sclass)
     {   symbol_debug(sclass);
-#if TARGET_MAC
-        if (tyfunc(s->Stype->Tty) && (s->Sscope->Sstruct->Sflags & STRpasobj))
-            pasobj = TRUE;
-        if (pasobj && s->Sfunc->Fflags & Fvirtual)
-                p = cpp_catname(cpp_catname(symbol_ident(s->Sscope),"$"),p);
-        else
-#endif
         p = cpp_genname(symbol_ident(sclass),p);
         while (1)
         {
@@ -254,21 +243,8 @@ char *cpp_mangle(symbol *s)
         }
     }
     type_debug(s->Stype);
-#if TARGET_MAC
-    if (typasfunc(s->Stype->Tty) && s->Sfunc->Fclass)
-        {                       /* pascal member function */
-#if HOST_MPW
-        p = strupr(p);
-#endif
-        }
-    else
-#endif
     // Function symbols defined statically don't have Sfunc
     if (tyfunc(s->Stype->Tty) &&
-#if TARGET_MAC
-      !(s->Stype->Tty & mTYpasobj) &&   /* pascal object functions not typed */
-                                        /* even if C++ func not pascal */
-#endif
     s->Sfunc && s->Sfunc->Fflags & Ftypesafe)
     {   if (!s->Sscope)
             p = cpp_catname(p,"__");
@@ -525,9 +501,6 @@ char *cpp_typetostring(type *t,char *prefix)
                     warerr(WM_notagname, ssymbol ? (char *)ssymbol->Sident : "Unknown" );               /* no tag name for struct       */
 #endif
                 }
-#if TARGET_MAC
-                t = t->Tnext;           // skip enum type in mangled name
-#endif
             L5:
             {   int len;
                 char *p;
@@ -568,13 +541,6 @@ char *cpp_typetostring(type *t,char *prefix)
         if (c1)
             cpp_name[i++] = c1;
         cpp_name[i++] = c2;
-#if TARGET_MAC
-        if (c2 == 'm')                  /* ptr to member */
-        {
-            s = t->Ttag;
-            goto L6;
-        }
-#endif
     }
 L1:
     cpp_name[i] = 0;                    // terminate the string
@@ -594,11 +560,7 @@ char *template_mangle(symbol *s,param_t *arglist)
         type        ::= mangled type
         expr        ::= "V" value
         value       ::= integer | string | address | float | double | long_double | numeric 
-#if TARGET_MAC
-        integer     ::= digit { digit } "_"
-#else
         integer     ::= digit { digit }
-#endif
         string      ::= "S" integer "_" { char }
         address     ::= "R" integer "_" { char }
         float       ::= "F" hex_digits
@@ -640,13 +602,8 @@ char *template_mangle(symbol *s,param_t *arglist)
                     {
 #if !(NEW_UNMANGLER)
                         case TYfloat:   ni = FLOATSIZE;  a[0] = 'F'; goto L1;
-#if TARGET_MAC
-                        case TYdouble:  ni = tysize[TYdouble]; a[0] = 'D'; goto L1;
-                        case TYldouble: ni = tysize[TYldouble]; a[0] = 'L'; goto L1;
-#else
                         case TYdouble:  ni = DOUBLESIZE; a[0] = 'D'; goto L1;
                         case TYldouble: ni = LNGDBLSIZE; a[0] = 'L'; goto L1;
-#endif
                         L1:
                             a[1] = 0;
                             n = cpp_catname(n,a);
@@ -784,17 +741,10 @@ symbol *mangle_tbl(
 {   const char *id;
     symbol *s;
 
-#if TARGET_MAC
-    if (flag == 0)
-        id = config.flags3 & CFG3rtti ? "_rttivtbl" : "_vtbl";
-    else
-        id = "_vbtbl";
-#else
     if (flag == 0)
         id = config.flags3 & CFG3rtti ? "rttivtbl" : "vtbl";
     else
         id = "vbtbl";
-#endif
     if (sbase)
         id = cpp_genname((char *)stag->Sident,cpp_genname((char *)sbase->Sident,id));
     else

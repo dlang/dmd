@@ -94,9 +94,6 @@ enum
 dt_t *dt_calloc(char dtx);
 void dt_free(dt_t *);
 void dt_term(void);
-#elif TARGET_MAC
-dt_t *dt_calloc(void);
-void dt_free(dt_t *);
 #endif
 
 dt_t **dtnbytes(dt_t **,targ_size_t,const char *);

@@ -140,10 +140,6 @@ static  bool addblk;                    /* if TRUE, then we added a block */
 /****************************
  */
 
-#if !(TARGET_MAC)
-/* These routines are not used for the Mac compiler build */
-
-
 void famlist::print()
 {
 #ifdef DEBUG
@@ -173,12 +169,9 @@ void Iv::print()
 #endif
 }
 
-#endif  /* !(TARGET_MAC) */
-
 /***********************
  * Write loop.
  */
-
 
 void loop::print()
 {
@@ -1027,10 +1020,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPvoid:
         case OPstrlen:
         case OPinp:
-#endif
-#if TARGET_MAC
-        case OPvptrfptr:
-        case OPcvptrfptr:
 #endif
                 markinvar(n->E1,rd);
                 break;
@@ -2943,10 +2932,6 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     continue;           /* can't increase size of var   */
 #endif
                 flse1 = el_var(fls->FLtemp);
-#if TARGET_MAC
-                if (tysize(fl->FLty) > tysize(flse1->Ety))
-                    goto L1;            /* can't increase size of var   */
-#endif
                 flse1->Ety = fl->FLty;
                 goto L2;
         }

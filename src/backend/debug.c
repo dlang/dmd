@@ -67,9 +67,6 @@ void WROP(unsigned oper)
   if (oper >= OPMAX)
   {     dbg_printf("op = x%x, OPMAX = %d\n",oper,OPMAX);
         assert(0);
-#if TARGET_MAC
-        return;                         /* try to keep on after assert, for now */
-#endif
   }
   ferr(debtab[oper]);
   ferr(" ");
@@ -93,14 +90,6 @@ void WRTYxx(tym_t t)
         dbg_printf("mTYconst|");
     if (t & mTYvolatile)
         dbg_printf("mTYvolatile|");
-#if TARGET_MAC
-    if (t & mTYpasret)
-        dbg_printf("mTYpasret|");
-    if (t & mTYmachdl)
-        dbg_printf("mTYmachdl|");
-    if (t & mTYpasobj)
-        dbg_printf("mTYpasobj|");
-#endif
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     if (t & mTYtransu)
         dbg_printf("mTYtransu|");
@@ -232,16 +221,6 @@ void WReqn(elem *e)
                         dbg_printf(".%ld",(long)e->Eoffset);
                 break;
             case OPasm:
-#if TARGET_MAC
-                if (e->Eflags & EFsmasm)
-                    {
-                    if (e->EV.mac.Vasmdat[1])
-                        dbg_printf("\"%c%c\"",e->EV.mac.Vasmdat[0],e->EV.mac.Vasmdat[1]);
-                    else
-                        dbg_printf("\"%c\"",e->EV.mac.Vasmdat[0]);
-                    break;
-                    };
-#endif
             case OPstring:
                 dbg_printf("\"%s\"",e->EV.ss.Vstring);
                 if (e->EV.ss.Voffset)
@@ -301,9 +280,6 @@ void WRFL(enum FL fl)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
          "got   ","gotoff",
 #endif
-#endif
-#if TARGET_MAC
-         TARGET_enumFL_names
 #endif
         };
 

@@ -18,10 +18,6 @@
 #ifndef OPER_H
 #define OPER_H  1
 
-#if TARGET_MAC
-#include "TGoper.h"
-#endif
-
 enum OPER
 {
         OPunde,                 /* place holder for undefined operator  */

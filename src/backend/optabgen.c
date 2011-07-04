@@ -56,9 +56,6 @@ int _unary[] =
          OPu32_64,OPlngllng,OP64_32,OPmsw,
          OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
          OP128_64,OPs64_128,OPu64_128,
-#if TARGET_MAC
-         OPsfltdbl,OPdblsflt,
-#endif
          OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPdbluns,
          OPinp,OPptrlptr,OPtofar16,OPfromfar16,OParrow,OPnegass,
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
@@ -131,9 +128,6 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPu32_64,OPlngllng,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
                 OP128_64,OPs64_128,OPu64_128,
-#if TARGET_MAC
-                OPsfltdbl,OPdblsflt,
-#endif
                 OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
                 OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
                 OPbsf,OPbsr,OPbt,OPbswap,OPb_8,
@@ -155,9 +149,6 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPu32_64,OPlngllng,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
                 OP128_64,OPs64_128,OPu64_128,
-#if TARGET_MAC
-                OPsfltdbl,OPdblsflt,
-#endif
                 OPbit,OPind,OPucall,OPucallns,OPnullcheck,
                 OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,OPhstring,
                 OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
@@ -172,9 +163,6 @@ int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPd_ld, OPld_d,
                 OPu32_64,OPlngllng,/*OP64_32,OPmsw,*/
                 OPs64_128,OPu64_128,
-#if TARGET_MAC
-                OPsfltdbl,OPdblsflt,
-#endif
                 OPu16_d,OPptrlptr,OPb_8,
                 OPnullptr,
                 };
@@ -579,10 +567,6 @@ void dotab()
         case OPd_u64:   X("d_u64",      evalu8, cdcnvt);
         case OPu64_d:   X("u64_d",      evalu8, cdcnvt);
         case OPld_u64:  X("ld_u64",     evalu8, cdcnvt);
-#if TARGET_MAC
-        case OPsfltdbl: X("sfltdbl",    evalu8, cdcnvt);
-        case OPdblsflt: X("dblsflt",    evalu8, cdcnvt);
-#endif
         case OPparam:   X("param",      elparam, cderr);
         case OPsizeof:  X("sizeof",     elzot,  cderr);
         case OParrow:   X("->",         elzot,  cderr);
@@ -718,16 +702,11 @@ void fltables()
                 case FLgot:     segfl[i] = -1;  break;
                 case FLgotoff:  segfl[i] = -1;  break;
 #endif
-#if TARGET_MAC
-                case FLsf:      segfl[i] = -1;  break;
-                case FLpaspara: segfl[i] = -1;  break;
-#else
                 case FLlocalsize: segfl[i] = -1;        break;
                 case FLtlsdata: segfl[i] = -1;  break;
                 case FLframehandler:    segfl[i] = -1;  break;
                 case FLasm:     segfl[i] = -1;  break;
                 case FLallocatmp:       segfl[i] = SS;  break;
-#endif
                 default:
                         printf("error in segfl[%d]\n", i);
                         exit(1);
@@ -776,14 +755,9 @@ void dotytab()
                                  TYlong,TYulong,TYllong,TYullong,TYdchar,
                                  TYchar16, TYcent, TYucent };
     static tym_t _ref[]      = { TYnref,TYfref,TYref };
-#if TARGET_MAC
-    static tym_t _func[]     = { TYnfunc,TYffunc,TYnpfunc,TYfpfunc,TYpsfunc,
-                                 TYnsfunc,TYfsfunc };
-#else
     static tym_t _func[]     = { TYnfunc,TYffunc,TYnpfunc,TYfpfunc,TYf16func,
                                  TYnsfunc,TYfsfunc,TYifunc,TYmfunc,TYjfunc,
                                  TYnsysfunc,TYfsysfunc, TYhfunc };
-#endif
     static tym_t _uns[]     = { TYuchar,TYushort,TYuint,TYulong,
 #if MARS
                                 TYwchar_t,
@@ -797,13 +771,8 @@ void dotytab()
 #if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
 #endif
-#if TARGET_MAC
-    static tym_t _pasfunc[] = { TYnpfunc,TYfpfunc,TYpsfunc,TYnsfunc,TYfsfunc };
-    static tym_t _revfunc[] = { TYnpfunc,TYfpfunc,TYpsfunc };
-#else
     static tym_t _pasfunc[] = { TYnpfunc,TYfpfunc,TYf16func,TYnsfunc,TYfsfunc,TYmfunc,TYjfunc };
     static tym_t _revfunc[] = { TYnpfunc,TYfpfunc,TYf16func,TYjfunc };
-#endif
     static tym_t _short[]     = { TYbool,TYchar,TYschar,TYuchar,TYshort,
                                   TYwchar_t,TYushort,TYchar16 };
     static tym_t _aggregate[] = { TYstruct,TYarray };
@@ -879,15 +848,9 @@ void dotytab()
 "member func",  TYmfunc,        TYmfunc,   TYmfunc,     -1,     0x64,   0,
 "D func",        TYjfunc,       TYjfunc,   TYjfunc,     -1,     0x74,   0,
 "interrupt func", TYifunc,      TYifunc,   TYifunc,     -1,     0x64,   0,
-#if TARGET_MAC
-"near Cpp func", TYnpfunc,      TYnpfunc,  TYnpfunc,    -1,     0x74,   0,
-"far Cpp func",  TYfpfunc,      TYfpfunc,  TYfpfunc,    -1,     0x73,   0,
-"far pascal func",  TYpsfunc,   TYpsfunc,  TYpsfunc,    -1,     0x75,   0,
-#else
 "_far16 Pascal func", TYf16func, TYf16func, TYf16func,  -1,     0x63,   0,
 "Pascal func",  TYnpfunc,       TYnpfunc,  TYnpfunc,    -1,     0x74,   0,
 "far Pascal func",  TYfpfunc,   TYfpfunc,  TYfpfunc,    -1,     0x73,   0,
-#endif
 "void",         TYvoid,         TYvoid,    TYvoid,      -1,     0x85,   3,
 "memptr",       TYmemptr,       TYmemptr,  TYmemptr,    -1,     0,      0,
 "ident",        TYident,        TYident,   TYident,     -1,     0,      0,

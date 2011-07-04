@@ -36,9 +36,6 @@
 
 #include        "global.h"
 #include        "go.h"
-#if TARGET_MAC
-#include        "TG.h"
-#endif
 
 #if __POWERPC && TARGET_68K
 #undef DDRT
@@ -519,7 +516,6 @@ elem * el_selecte2(elem *e)
         if (e->Esrcpos.Slinnum)
             e2->Esrcpos = e->Esrcpos;
     }
-#if !(TARGET_MAC)
     if (PARSER)
         el_settype(e2,e->ET);
     else
@@ -527,7 +523,6 @@ elem * el_selecte2(elem *e)
 //      if (tyaggregate(e->Ety))
 //          e2->Enumbytes = e->Enumbytes;
     }
-#endif
     el_free(e);
     return e2;
 }
@@ -933,115 +928,7 @@ void el_toconst(elem *e)
         elem_debug(es);
         e->Eoper = es->Eoper;
         assert(e->Eoper == OPconst);
-#if TARGET_MAC
-#if !DDRT
-        if (tyfloating(tybasic(es->ET->Tty)))
-        {
-            long double ld;
-
-            switch (tysize[tybasic(es->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                ld = es->EV.Vfloat;
-                break;
-            case DOUBLESIZE:            // TYdouble
-                ld = es->EV.Vdouble;
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if (TARGET_POWERPC)
-                if (config.flags & CFGldblisdbl)
-                    ld = es->EV.Vdouble;
-                else
-#endif
-                    ld = es->EV.Vldouble;
-                break;
-            default:
-                assert(0);
-            }
-
-            switch(tysize[tybasic(e->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                e->EV.Vfloat = ld;
-                break;
-            case DOUBLESIZE:            // TYdouble
-                e->EV.Vdouble = ld;
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if (TARGET_POWERPC)
-                if (config.flags & CFGldblisdbl)
-                    e->EV.Vdouble = ld;
-                else
-#endif
-                    e->EV.Vldouble = ld;
-                break;
-            default:
-                assert(0);
-            }
-        }
-#else /* DDRT */
-        if (tyfloating(tybasic(es->ET->Tty)))
-        {
-            _extended_ ld;
-
-            switch (tysize[tybasic(es->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                ld = Xftox(es->EV.Vfloat);
-                break;
-            case DOUBLESIZE:            // TYdouble
-                ld = Xdtox(es->EV.Vdouble);
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if TARGET_POWERPC
-                if (config.flags & CFGldblisdbl)
-                    ld = Xdtox(es->EV.Vdouble);
-                else
-#endif
-                    ld = es->EV.Vldouble;
-                break;
-            default:
-                assert(0);
-            }
-
-            switch(tysize[tybasic(e->ET->Tty)])
-            {
-            case FLOATSIZE:             // TYfloat
-                e->EV.Vfloat = Xxtof(ld);
-                break;
-            case DOUBLESIZE:            // TYdouble
-                e->EV.Vdouble = Xxtod(ld);
-                break;
-            case LNGDBLSIZE:            // TYldouble
-#ifdef LNGHDBLSIZE
-            case LNGHDBLSIZE:
-#endif
-#if TARGET_POWERPC
-                if (config.flags & CFGldblisdbl)
-                    e->EV.Vdouble = Xxtod(ld);
-                else
-#endif
-                    e->EV.Vldouble = ld;
-                break;
-            default:
-                assert(0);
-            }
-        }
-#endif /* DDRT */
-        else
-#endif
-        {
-            e->EV = es->EV;
-        }
+        e->EV = es->EV;
     }
 }
 #endif
@@ -2649,10 +2536,6 @@ L1:
                     case TYlong:
                     case TYulong:
                     case TYdchar:
-#if TARGET_MAC
-                    case TYfptr:
-                    case TYvptr:
-#endif
                     case_long:
                         if (n1->EV.Vlong != n2->EV.Vlong)
                                 goto nomatch;
@@ -2832,15 +2715,6 @@ L1:
                 }
                 break;
             case OPasm:
-#if TARGET_MAC
-                if ((n1->Eflags&EFsmasm && !(n2->Eflags&EFsmasm)) ||
-                    (n2->Eflags&EFsmasm && !(n1->Eflags&EFsmasm)) ||
-                    (n1->EV.mac.Vasmdat[0] != n2->EV.mac.Vasmdat[0]) ||
-                   (n1->EV.mac.Vasmdat[1] != n2->EV.mac.Vasmdat[1]) )
-                        goto nomatch;
-                if (n1->Eflags&EFsmasm)
-                        break;          /* flags & data match,otherwise check strings */
-#endif
             case OPstring:
             case OPhstring:
                 if (n1->EV.ss.Vstrlen != (n = n2->EV.ss.Vstrlen) ||
@@ -2997,15 +2871,6 @@ L1:
             assert(0);
 #endif
 
-#if TARGET_MAC // DJB
-        case TYint:
-            if (intsize == SHORTSIZE)
-                goto Ishort;
-            goto Ulong;
-#if SCPP
-        case TYenum:
-#endif
-#endif
         case TYuint:
             if (intsize == SHORTSIZE)
                 goto Ushort;
@@ -3304,8 +3169,8 @@ void elem_print(elem *e)
         dbg_printf("fil=%d lin=%u ",((struct ELEMsrcpos *)e)->Esrcpos.Sfilnum,
         ((struct ELEMsrcpos *)e)->Esrcpos.Slinnum);
 #endif
-#if TARGET_MAC && SOURCE_OFFSETS
-        dbg_printf("off %d) ",((struct ELEMsrcpos *)e)->Esrcpos.Sfiloff);
+#if SOURCE_OFFSETS
+        dbg_printf("off %d ",((struct ELEMsrcpos *)e)->Esrcpos.Sfiloff);
 #endif
   }
   if (!PARSER)
@@ -3452,28 +3317,7 @@ void elem_print(elem *e)
                         dbg_printf("%g ",(double)e->EV.Vdouble);
                         break;
                     case TYldouble:
-#if TARGET_MAC
-#if (TARGET_POWERPC)
-                        if (config.flags & CFGldblisdbl)
-                            dbg_printf("%gL ",e->EV.Vdouble);
-                        else
-#endif
-#if !DDRT
-                            dbg_printf("%LgL ",e->EV.Vldouble);
-#else /* DDRT */
-                        {
-                            static char buffer[75];
-                            __g_fmt(buffer, (DD)e->EV.Vldouble);
-                            dbg_printf("%sL", buffer);
-                        }
-#endif /* DDRT */
-                        break;
-                    case TYvptr:
-                        dbg_printf("%ldL ",e->EV.Vlong);
-                        break;
-#else
                         dbg_printf("%Lg ", e->EV.Vldouble);
-#endif
                         break;
 
                     case TYifloat:
@@ -3542,13 +3386,10 @@ void el_hydrate(elem **pe)
 #endif
     debug_assert(e->Eoper < OPMAX);
     type_hydrate(&e->ET);
-#if TARGET_MAC
-#else
     if (configv.addlinenumbers)
     {   filename_translate(&e->Esrcpos);
         srcpos_hydrate(&e->Esrcpos);
     }
-#endif
     if (EOP(e))
     {   el_hydrate(&e->E1);
         if (EBIN(e))

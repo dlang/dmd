@@ -19,10 +19,6 @@
 #ifndef EL_H
 #define EL_H    1
 
-#if TARGET_MAC
-#include "TGel.h"
-#endif
-
 /******************************************
  * Elems:
  *      Elems are the basic tree element. They can be either
