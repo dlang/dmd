@@ -570,23 +570,6 @@ STATIC elem * elstring(elem *e)
 /************************
  */
 
-#if (TARGET_POWERPC)
-
-STATIC elem * elmemconst(elem *e)
-{
-    tym_t       tym;
-
-    assert(e->Eoper == OPconst);
-    tym = tybasic(typemask(e));
-    if (tyfloating(tym))
-    {
-        el_convconst(e);        // convert float | double consts to OPrelconst
-    }
-    return e;
-}
-
-#endif
-
 #if TX86
 
 /************************
@@ -4012,16 +3995,6 @@ beg:
     op = e->Eoper;
     if (OTleaf(op))                     // if not an operator node
     {
-#if 0
-        if (
-#if TARGET_POWERPC
-            // this is to change float and double consts to OPrelconst
-            // as in OPstring
-            || op == OPconst
-#endif
-           )
-            goto L1;
-#endif
         if (goal || OTsideff(op) || e->Ety & mTYvolatile)
         {
             return e;
@@ -4343,16 +4316,10 @@ beg:
         e1 = e->E1 = optelem(e->E1,TRUE);
         if (e1->Eoper == OPconst)
         {
-#if TARGET_POWERPC
-                // this is to make sure that if the evalu8ed const is a float it will be properly
-                // generated as an initialized static var
-                return optelem(evalu8(e), goal);
-#else
 #if TX86
             if (!(op == OPptrlptr && el_tolong(e1) != 0))
 #endif
                 return evalu8(e);
-#endif
         }
         e2 = NULL;
   }

@@ -1636,7 +1636,6 @@ elem * evalu8(elem *e)
         }
 #endif
         break;
-#if !(TARGET_POWERPC)
     case OPabs:
 #if 1
         switch (tym)
@@ -1679,7 +1678,6 @@ elem * evalu8(elem *e)
     case OPcos:
     case OPrint:
         return e;
-#endif
     case OPngt:
         i++;
     case OPgt:

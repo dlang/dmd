@@ -32,12 +32,6 @@
 #include        "el.h"
 #endif
 
-#if TARGET_POWERPC
-#include "cgobjxcoff.h"
-#include "xcoff.h"
-#include "cgfunc.h"
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -924,9 +918,6 @@ STATIC void writefunc2(symbol *sfunc)
     targ_size_t coffsetsave;
     func_t *f = sfunc->Sfunc;
     tym_t tyf;
-#if TARGET_POWERPC
-    type *tyArr;
-#endif
 
     //printf("writefunc(%s)\n",sfunc->Sident);
     debug(debugy && dbg_printf("writefunc(%s)\n",sfunc->Sident));
@@ -985,24 +976,6 @@ STATIC void writefunc2(symbol *sfunc)
     assert(globsym.top == 0);
     memcpy(&globsym.tab[0],&f->Flocsym.tab[0],nsymbols * sizeof(symbol *));
     globsym.top = nsymbols;
-#if TARGET_POWERPC
-    //
-    // JTM: I moved the code in cgcntrl.c to here
-    // and made SpillSym a global
-    //
-    // Is it OK to add to globsym.tab here?  When will the memory for the _TMP symbol
-    // get freed?       We may need to add an explicit free of this symbol somewhere within
-    // this function
-    // Need to chat with PLS about this
-
-    // initialize the spill area symbol, fake it to be an array
-    tyArr = type_alloc(TYarray);        /* array of                     */
-    tyArr->Tdim = 1;
-    tyArr->Tnext = tslong;
-    SpillSym = symbol_generate(SCtmp, tyArr);
-    symbol_add(SpillSym);
-    SpillSym->Sfl = FLauto; // mark it as auto since it is the last in that area
-#endif
 
     assert(startblock == NULL);
     if (f->Fflags & Finline)            // if keep function around
@@ -1402,11 +1375,7 @@ STATIC void writefunc2(symbol *sfunc)
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
 #endif
-#if !(TARGET_POWERPC)
             obj_funcptr(sfunc);
-#else
-                ;
-#endif
     }
 
 Ldone:

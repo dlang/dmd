@@ -50,11 +50,6 @@ static int elfreed = 0;                 /* number of freed elems        */
 static int eprm_cnt;                    /* max # of allocs at any point */
 #endif
 
-#if TARGET_POWERPC
-#include "cgobjxcoff.h"
-#include "xcoff.h"
-#endif
-
 #if TARGET_OSX
 extern void slist_add(Symbol *s);
 #endif
@@ -1811,108 +1806,6 @@ int el_countCommas(elem *e)
     return ncommas;
 }
 
-#if (TARGET_POWERPC)
-void el_convconst(elem *e)
-{
-
-    int i;
-    symbol *s;
-    long    *   p;
-    targ_size_t len;
-    struct CONST_VALUE {
-#if !DDRT
-        long    val[2];                 // Largest floating constant is 8 bytes
-#else
-        fix!!
-#endif
-        symbol  *s;                     // Symbol for that floating constant
-    } *pcv;
-
-    static list_t value_list;
-    list_t pcl;
-
-    tym_t       tym;
-    type * T;
-//    float cnv_float;  // the compiler stores all constants in double accuracy
-                        // hence when the elem is of type TYfloat we have to
-                        // implicitly convert it from double to float
-    assert(!PARSER);
-    elem_debug(e);
-
-    assert(e->Eoper == OPconst);
-
-
-    tym = tybasic(typemask(e));
-
-    assert(tyfloating(tym));    // it shouldn't get here otherwise....
-
-#if !DDRT
-        // all float constants are stored as doubles
-        // NOTE at this point double and long double are the same (11/18/93 -udi-)
-        if (tym == TYdouble || tym == TYldouble) {
-//              tym = TYdouble;
-                p = (long *) &e->EV.Vdouble;
-        } else {
-                p = (long *) &e->EV.Vfloat;
-
-//              cnv_float = e->EV.Vdouble;
-//              p = (long *) & cnv_float;
-        }
-
-#else
-        fix!!
-#endif
-
-
-
-
-//
-// Look for another floating constant with the identical value
-// linear list should be fast enough, How many floating constants are there
-// that appear in trees.  Any that appear in data declarations, etc. are already
-// taken care of elsewhere
-//
-        for (pcl = value_list;pcl; pcl = list_next(pcl)) {
-            pcv = (CONST_VALUE *) list_ptr( pcl );
-            if (tysize[tym] == type_size(pcv->s->Stype) &&
-                !memcmp( pcv->val, p, tysize[tym])) {
-                s = pcv->s;
-                goto returnelem;
-            }
-        }
-
-    // Replace float with a symbol that refers to a float constant stored
-    // in the DATA segment
-
-        tym |= mTYconst;
-        T = type_alloc( tym );
-        s = symbol_generate( SCstatic, T);
-        s->Sfl = FLdatseg;
-
-        pcv = (CONST_VALUE *) MEM_PARC_CALLOC(sizeof(CONST_VALUE));
-        memcpy( pcv->val, p, type_size(T));
-        pcv->s = s;
-        list_append( &value_list, pcv );
-
-        obj_module( s, STYP_DATA, 0 );
-        obj_bytes( STYP_DATA, type_size(T), p);
-
-
-        // NOTE: unlike el_convstring() i'm not implementing any machinery for
-        // remembering already defined constant floats. on a rare occasion that
-        // may create duplications, however i don't think it warrants the extra
-        // effort. should it become necessary, i'll do it. (-udi-  11/7/93)
-
-returnelem:
-    // Refer e to the symbol generated
-    e->Ety = tym;
-    e->Eoper = OPvar;
-    e->EV.sp.Vsym = s;
-    e->EV.sp.Voffset = 0;       // making sure no remnants of the float constat
-                                // appear as some kind of offset into the var
-}       // el_convconst
-#endif
-
 /************************************
  * Convert floating point constant to a read-only symbol.
  * Needed iff floating point code can't load immediate constants.
@@ -2089,12 +1982,6 @@ elem *el_convstring(elem *e)
     stable_si = (stable_si + 1) & (arraysize(stable) - 1);
 
 #else
-#if TARGET_POWERPC
-    s = symbol_generate( SCstatic, obj_charstr_type(len));
-    s->Sfl = FLdatseg;
-    obj_module( s, STYP_DATA, 0 );
-    obj_bytes( STYP_DATA, len, p );
-#else
     s = symboldata(Doffset,e->Ety);
 #if TARGET_68K
     if (PCrel_option & PC_STRINGS)
@@ -2111,7 +1998,6 @@ elem *el_convstring(elem *e)
         s->Sidnum = obj_module(DATA,SClocstat,0);
         obj_bytes(DATA,0,len,p);
     }
-#endif
 
 #if TARGET_68K
     /*
@@ -2658,14 +2544,6 @@ L1:
                         if (memcmp(&n1->EV.Vdouble,&n2->EV.Vdouble,DOUBLESIZE))
                             goto nomatch;
                     case TYldouble:
-#if TARGET_POWERPC
-                        if (config.flags & CFGldblisdbl)
-                        {
-                            if (memcmp(&n1->EV.Vdouble,&n2->EV.Vdouble,DOUBLESIZE))
-                                goto nomatch;
-                        }
-                        else
-#endif
                         if (memcmp(&n1->EV.Vldouble,&n2->EV.Vldouble,LNGDBLSIZE))
                                 goto nomatch;
                         break;
@@ -3037,11 +2915,6 @@ targ_ldouble el_toldouble(elem *e)
 #ifdef LNGHDBLSIZE
     case LNGHDBLSIZE:
 #endif
-#if (TARGET_POWERPC)
-        if (config.flags & CFGldblisdbl)
-            result = e->EV.Vdouble;
-        else
-#endif
             result = e->EV.Vldouble;
         break;
 #endif
@@ -3058,11 +2931,6 @@ targ_ldouble el_toldouble(elem *e)
         case LNGDBLSIZE:        // TYldouble
 #ifdef LNGHDBLSIZE
         case LNGHDBLSIZE:
-#endif
-#if TARGET_POWERPC
-            if (config.flags & CFGldblisdbl)
-                result = Xdtox(e->EV.Vdouble);
-            else
 #endif
                 result = e->EV.Vldouble;
             break;

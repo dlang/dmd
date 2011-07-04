@@ -455,16 +455,7 @@ void type_init()
     tsildouble  = type_allocbasic(TYildouble);
     tscldouble  = type_allocbasic(TYcldouble);
 #else
-#if TARGET_POWERPC
-// for powerPC the size of  long double is user determined
-    if (config.flags & CFGldblisdbl) {
-        tsldouble = type_allocbasic(TYdouble);  /* ldouble is same as double per user's request */
-    } else {
-        tsldouble = type_allocbasic(TYldouble);
-    }
-#else
     tsldouble = type_allocbasic(TYldouble);
-#endif
     tscomp = type_allocbasic(TYcomp);
     chartype = tschar;                          /* default is signed chars */
 #endif

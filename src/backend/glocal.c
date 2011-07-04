@@ -64,10 +64,6 @@ STATIC void local_ambigdef(void);
 STATIC void local_symref(symbol *s);
 STATIC void local_symdef(symbol *s);
 
-#if TARGET_POWERPC
-static  bool    computing_params = FALSE;
-#endif
-
 #if !TX86
 static  bool    fcall_seen = FALSE;
 #endif
@@ -106,9 +102,6 @@ void localize()
              */
             !b->Btry)
         {
-#if TARGET_POWERPC
-            fcall_seen = FALSE;
-#endif
             local_exp(b->Belem,0);
         }
     }
@@ -132,12 +125,6 @@ Loop:
     {   case OPcomma:
             local_exp(e->E1,0);
             e = e->E2;
-#if TARGET_POWERPC
-            if (!goal)
-            {
-                fcall_seen = FALSE;
-            }
-#endif
             goto Loop;
 
         case OPandand:
@@ -341,13 +328,7 @@ Loop:
         case OPcall:
         case OPcallns:
         {
-#if TARGET_POWERPC
-            bool cp_save = computing_params;
             local_exp(e->E2,1);
-            computing_params = cp_save;
-#else
-            local_exp(e->E2,1);
-#endif
         }
         case OPstrctor:
         case OPucall:
@@ -395,9 +376,7 @@ Loop:
                         em = loctab[u].e;
                         if (em->E1->EV.sp.Vsym == s &&
                             (em->Eoper == OPeq || em->Eoper == OPstreq)
-#if TARGET_POWERPC
-                                && !(computing_params && (em->Nflags & NFLfcall))
-#elif !TX86
+#if !TX86
                                 && !(em->Nflags & NFLfcall)
 #endif
                                 )
@@ -484,15 +463,6 @@ Loop:
         case_bin:
             if (EBIN(e))
             {   local_exp(e->E1,1);
-#if TARGET_POWERPC
-// for powerPC localize only the rightmost parameter otherwise this could potentially  cause
-// unnecessary spills set this to true only after the rigtmost parameter has already been
-// computed
-                if (e->Eoper ==  OPparam)
-                {
-                        computing_params = TRUE;
-                }
-#endif
                 goal = 1;
                 e = e->E2;
                 goto Loop;

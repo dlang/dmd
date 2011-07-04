@@ -297,10 +297,6 @@ TARGET_CONVERSION_OPS
         TARGET_INLINEFUNC_OPS
 #endif
 
-#if (TARGET_POWERPC)
-        OPeieio,
-#endif
-
         OPMAX                   /* 1 past last operator         */
 };
 typedef enum OPER OPER;         /* needed for optabgen          */

@@ -551,13 +551,6 @@ L1:     e = *pe;
                     tyfloating(e->Ety) && !config.inline68881 && e->Ecount)
                         e = delcse(pe); /* don't force vars to SANE frame or cse consts*/
 #endif
-#if TARGET_POWERPC
-                if ((op == OPconst) && !(tyfloating(e->Ety)) &&
-                        ((e->EV.Vlong < 32767) && (e->EV.Vlong > -32768)) && e->Ecount && (e->Ecount < 3))
-                {
-                        e = delcse(pe);
-                }
-#endif
                 return;
         }
         pe = &(e->E1);

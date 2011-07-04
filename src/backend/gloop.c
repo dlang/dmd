@@ -1103,14 +1103,12 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPs64_128:
         case OPu64_128:
 #endif
-#if !(TARGET_POWERPC)
         case OPabs:
         case OPsqrt:
         case OPrndtol:
         case OPsin:
         case OPcos:
         case OPrint:
-#endif
 #if TX86
         case OPvptrfptr: /* BUG for MacHandles */
         case OPtofar16: case OPfromfar16: case OPoffset: case OPptrlptr:
@@ -2796,39 +2794,6 @@ STATIC void intronvars(loop *l)
             /* of a previous induction variable, skip it.                */
             if (funcprev(biv,fl))
                 continue;
-
-#if TARGET_POWERPC
- extern INT32 numbitsset(UINT32);
-
-            if (!fl->c1) {
-                fl->FLtemp = FLELIM;
-                continue;
-
-            }
-
-
-
-
-            if (cnst(fl->c1))
-            {
-                elem * ec1 = fl->c1;
-                if (tyfloating(tybasic(ec1->Ety)))
-                        goto create_temp;
-
-                {
-                targ_llong v = el_tolong(ec1);
-                if (numbitsset((UINT32) v) != 1)
-                    goto create_temp;
-
-                fl->FLtemp = FLELIM;
-
-                continue;
-                }
-            }
-
-create_temp:
-
-#endif
 
             ty = fl->FLty;
             T = el_alloctmp(ty);        /* allocate temporary T          */

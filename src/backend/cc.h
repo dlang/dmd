@@ -506,11 +506,6 @@ typedef struct block
         #define BFLehcode     0x10      // set when we need to load exception code
         #define BFLunwind     0x1000    // do local_unwind following block
 #endif
-#if TARGET_POWERPC
-        #define BFLstructret  0x10      /* Set if a struct return is changed to
-                                           block type BCret.  This is done to avoid
-                                           error messages */
-#endif
         #define BFLnomerg      0x20     // do not merge with other blocks
 #if TX86
         #define BFLprolog      0x80     // generate function prolog
@@ -1128,10 +1123,6 @@ typedef struct STRUCT
 #define list_symbol(l)          ((Symbol *) list_ptr(l))
 #define list_setsymbol(l,s)     list_ptr(l) = (s)
 #define list_Classsym(l)        ((Classsym *) list_ptr(l))
-
-#if TARGET_POWERPC
-#pragma SC align 4
-#endif
 
 struct Symbol
 {
