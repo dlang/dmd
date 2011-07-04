@@ -5858,6 +5858,29 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     Dsymbol *scopesym;
 
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
+
+    if ((ident->equals(Id::super) || ident->equals(Id::This)) && !hasThis(sc))
+    {
+        AggregateDeclaration *ad = sc->getStructClassScope();
+        if (ad)
+        {
+            ClassDeclaration *cd = ad->isClassDeclaration();
+            if (cd)
+            {
+                if (ident->equals(Id::This))
+                    ident = cd->ident;
+                else if (cd->baseClass && ident->equals(Id::super))
+                    ident = cd->baseClass->ident;
+            }
+            else
+            {
+                StructDeclaration *sd = ad->isStructDeclaration();
+                if (sd && ident->equals(Id::This))
+                    ident = sd->ident;
+            }
+        }
+    }
+
     Dsymbol *s = sc->search(loc, ident, &scopesym);
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
     if (*pt)

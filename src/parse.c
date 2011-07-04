@@ -227,6 +227,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKalias:
             case TOKtypedef:
             case TOKidentifier:
+            case TOKsuper:
             case TOKtypeof:
             case TOKdot:
             Ldeclaration:
@@ -235,7 +236,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 continue;
 
             case TOKthis:
-                s = parseCtor();
+                if (peekNext() == TOKdot)
+                    goto Ldeclaration;
+                else
+                    s = parseCtor();
                 break;
 
 #if 0 // dead end, use this(this){} instead
@@ -2269,6 +2273,8 @@ Type *Parser::parseBasicType()
             nextToken();
             break;
 
+        case TOKthis:
+        case TOKsuper:
         case TOKidentifier:
             id = token.ident;
             nextToken();

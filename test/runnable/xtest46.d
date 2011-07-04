@@ -2926,6 +2926,44 @@ void cantthrow() nothrow
 }
 
 /***************************************************/
+
+class A2540
+{
+    int a;
+    int foo() { return 0; }
+    alias int X;
+}
+
+class B2540 : A2540
+{
+    int b;
+    super.X foo() { return 1; }
+
+    alias this athis;
+    alias this.b thisb;
+    alias super.a supera;
+    alias super.foo superfoo;
+    alias this.foo thisfoo;
+}
+
+struct X2540
+{
+    alias this athis;
+}
+
+void test2540()
+{
+    auto x = X2540.athis.init;
+    static assert(is(typeof(x) == X2540));
+
+    B2540 b = new B2540();
+
+    assert(&b.a == &b.supera);
+    assert(&b.b == &b.thisb);
+    assert(b.thisfoo() == 1);
+}
+
+/***************************************************/
 // 5659 
  
 void test149() 
@@ -3180,8 +3218,6 @@ void test4963()
     auto x = single() ~ list;
 }
 
-/***************************************************/
-
 /***************************************************/ 
 
 pure int test4031() 
@@ -3416,6 +3452,7 @@ int main()
     test147();
     test148();
     test149();
+    test2540();
     test150();
     test151();
     test152();
