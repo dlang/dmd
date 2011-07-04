@@ -31,11 +31,7 @@
 #include        "go.h"
 #include        "code.h"
 #if SCPP
-#if TX86
 #include        "iasm.h"
-#else
-#include        "TG.h"
-#endif
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
