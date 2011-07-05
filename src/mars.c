@@ -98,6 +98,24 @@ Global::Global()
     memset(&params, 0, sizeof(Param));
 }
 
+unsigned Global::startGagging()
+{
+    ++gag;
+    return gaggedErrors;
+}
+
+bool Global::endGagging(unsigned oldGagged)
+{
+    bool anyErrs = (gaggedErrors != oldGagged);
+    --gag;
+    // Restore the original state of gagged errors; set total errors
+    // to be original errors + new ungagged errors.
+    errors -= (gaggedErrors - oldGagged);
+    gaggedErrors = oldGagged;
+    return anyErrs;
+}
+
+
 char *Loc::toChars()
 {
     OutBuffer buf;
@@ -176,6 +194,10 @@ void verror(Loc loc, const char *format, va_list ap)
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
 //halt();
+    }
+    else
+    {
+        global.gaggedErrors++;
     }
     global.errors++;
 }

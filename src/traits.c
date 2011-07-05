@@ -263,7 +263,10 @@ Expression *TraitsExp::semantic(Scope *sc)
             e = e->trySemantic(sc);
             if (!e)
             {   if (global.gag)
+                {
                     global.errors++;
+                    global.gaggedErrors++;
+                }
                 goto Lfalse;
             }
             else

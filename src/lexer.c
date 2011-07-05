@@ -318,6 +318,10 @@ void Lexer::error(const char *format, ...)
         if (global.errors >= 20)        // moderate blizzard of cascading messages
             fatal();
     }
+    else
+    {
+        global.gaggedErrors++;
+    }
     global.errors++;
 }
 
@@ -340,6 +344,10 @@ void Lexer::error(Loc loc, const char *format, ...)
 
         if (global.errors >= 20)        // moderate blizzard of cascading messages
             fatal();
+    }
+    else
+    {
+        global.gaggedErrors++;
     }
     global.errors++;
 }
