@@ -1106,13 +1106,10 @@ Expression *Expression::semantic(Scope *sc)
 Expression *Expression::trySemantic(Scope *sc)
 {
     //printf("+trySemantic(%s)\n", toChars());
-    unsigned errors = global.errors;
-    global.gag++;
+    unsigned errors = global.startGagging();
     Expression *e = semantic(sc);
-    global.gag--;
-    if (errors != global.errors)
+    if (global.endGagging(errors))
     {
-        global.errors = errors;
         e = NULL;
     }
     //printf("-trySemantic(%s)\n", toChars());
@@ -6503,14 +6500,11 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
          * as:
          *   .ident(e1)
          */
-        unsigned errors = global.errors;
-        global.gag++;
+        unsigned errors = global.startGagging();
         Type *t1 = e1->type;
         e = e1->type->dotExp(sc, e1, ident);
-        global.gag--;
-        if (errors != global.errors)    // if failed to find the property
+        if (global.endGagging(errors))    // if failed to find the property
         {
-            global.errors = errors;
             e1->type = t1;              // kludge to restore type
             e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
             e = new CallExp(loc, e, e1);

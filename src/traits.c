@@ -403,8 +403,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         {   Object *o = args->tdata()[i];
             Expression *e;
 
-            unsigned errors = global.errors;
-            global.gag++;
+            unsigned errors = global.startGagging();
 
             Type *t = isType(o);
             if (t)
@@ -425,10 +424,8 @@ Expression *TraitsExp::semantic(Scope *sc)
                 }
             }
 
-            global.gag--;
-            if (errors != global.errors)
+            if (global.endGagging(errors))
             {
-                global.errors = errors;
                 goto Lfalse;
             }
         }
