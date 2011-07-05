@@ -2106,6 +2106,27 @@ void test116()
 }
 
 /***************************************************/
+
+void test1891()
+{
+    struct C {
+        char[8] x = "helloabc";
+    }
+
+    int main()
+    {
+        C* a = new C;
+        C*[] b;
+        b ~= new C;
+
+        auto g = a ~ b;
+        assert(g[0] && g[1] && g[0].x == g[1].x);
+
+        return 0;
+    }
+}
+
+/***************************************************/
 // Bugzilla 4291
 
 void test117() pure
@@ -3395,6 +3416,7 @@ int main()
 
     test127();
     test128();
+    test1891();
     test129();
     test130();
     test131();
