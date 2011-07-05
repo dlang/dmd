@@ -10771,7 +10771,7 @@ Expression *PowExp::semantic(Scope *sc)
         if ((e2->op == TOKint64 && e2->toInteger() == 0) ||
                 (e2->op == TOKfloat64 && e2->toReal() == 0.0))
         {
-            if (e1->op == TOKint64)
+            if (e1->type->isintegral())
                 e = new IntegerExp(loc, 1, e1->type);
             else
                 e = new RealExp(loc, 1.0, e1->type);
