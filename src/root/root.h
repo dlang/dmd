@@ -271,7 +271,7 @@ struct OutBuffer : Object
 
     OutBuffer();
     ~OutBuffer();
-    void *extractData();
+    char *extractData();
     void mark();
 
     void reserve(unsigned nbytes);
@@ -314,7 +314,7 @@ struct OutBuffer : Object
 struct ArrayBase : Object
 {
     unsigned dim;
-  //protected:
+  protected:
     void **data;
 
   private:
@@ -336,7 +336,7 @@ struct ArrayBase : Object
     void *pop();
     void shift(void *ptr);
     void insert(unsigned index, void *ptr);
-  //protected:
+  protected:
     void insert(unsigned index, ArrayBase *a);
     void append(ArrayBase *a);
   public:
@@ -344,7 +344,7 @@ struct ArrayBase : Object
     void zero();
     void *tos();
     void sort();
-  //protected:
+  protected:
     ArrayBase *copy();
 };
 

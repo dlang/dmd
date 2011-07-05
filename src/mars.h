@@ -189,10 +189,10 @@ struct Param
     char *xfilename;            // write JSON file to xfilename
 
     unsigned debuglevel;        // debug level
-    Identifiers *debugids;      // debug identifiers
+    Strings *debugids;     // debug identifiers
 
     unsigned versionlevel;      // version level
-    Identifiers *versionids;    // version identifiers
+    Strings *versionids;   // version identifiers
 
     bool dump_source;
 

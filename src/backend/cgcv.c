@@ -238,7 +238,7 @@ void debtyp_check(debtyp_t *d,int linnum)
     //printf("linnum = %d\n",linnum);
     //printf(" length = %d\n",d->length);
     for (i = 0; i < d->length; i++)
-        c = d->data[i];
+        c = d->tdata()[i];
 }
 
 #define debtyp_check(d) debtyp_check(d,__LINE__);
@@ -890,7 +890,7 @@ idx_t cv4_struct(Classsym *s,int flags)
                         descriptor |= 5;
                     if (tyfarfunc(ty))
                         descriptor++;
-                    vshape->data[4 + n / 2] = descriptor;
+                    vshape->tdata()[4 + n / 2] = descriptor;
                     descriptor <<= 4;
                     n++;
                 }
@@ -930,7 +930,7 @@ printf("fwd struct ref\n");
 {int i;
  printf("len = %d, length = %d\n",len,d->length);
  for (i=0;i<d->length;i++)
- printf("%02x ",d->data[i]);
+ printf("%02x ",d->tdata()[i]);
  printf("\n");
 }
 #endif
@@ -1250,15 +1250,15 @@ printf("fwd struct ref\n");
                 if (config.fulltypes == CV4)
                 {   db = debtyp_alloc(6);
                     TOWORD(db->data,LF_BITFIELD);
-                    db->data[2] = sf->Swidth;
-                    db->data[3] = sf->Sbit;
+                    db->tdata()[2] = sf->Swidth;
+                    db->tdata()[3] = sf->Sbit;
                     TOWORD(db->data + 4,cv4_symtypidx(sf));
                 }
                 else
                 {   db = debtyp_alloc(8);
                     TOWORD(db->data,LF_BITFIELD);
-                    db->data[6] = sf->Swidth;
-                    db->data[7] = sf->Sbit;
+                    db->tdata()[6] = sf->Swidth;
+                    db->tdata()[7] = sf->Sbit;
                     TOLONG(db->data + 2,cv4_symtypidx(sf));
                 }
                 typidx = cv_debtyp(db);
@@ -1861,7 +1861,7 @@ L1:
                 TOWORD(d->data,LF_ARRAY);
                 TOWORD(d->data + 2,next);
                 TOWORD(d->data + 4,I32 ? 0x12 : 0x11);  // T_LONG : T_SHORT
-                d->data[6 + u] = 0;             // no name
+                d->tdata()[6 + u] = 0;             // no name
                 cv4_storenumeric(d->data + 6,size);
             }
             else
@@ -1870,7 +1870,7 @@ L1:
                 TOWORD(d->data,LF_ARRAY);
                 TOLONG(d->data + 2,next);
                 TOLONG(d->data + 6,I32 ? 0x12 : 0x11);  // T_LONG : T_SHORT
-                d->data[10 + u] = 0;            // no name
+                d->tdata()[10 + u] = 0;            // no name
                 cv4_storenumeric(d->data + 10,size);
             }
             typidx = cv_debtyp(d);
@@ -1901,8 +1901,8 @@ L1:
             {   d = debtyp_alloc(2 + 2 + 1 + 1 + 2 + 2);
                 TOWORD(d->data,LF_PROCEDURE);
                 TOWORD(d->data + 2,next);               // return type
-                d->data[4] = call;
-                d->data[5] = 0;                 // reserved
+                d->tdata()[4] = call;
+                d->tdata()[5] = 0;                 // reserved
                 TOWORD(d->data + 6,nparam);
                 TOWORD(d->data + 8,paramidx);
             }
@@ -1910,8 +1910,8 @@ L1:
             {   d = debtyp_alloc(2 + 4 + 1 + 1 + 2 + 4);
                 TOWORD(d->data,LF_PROCEDURE);
                 TOLONG(d->data + 2,next);               // return type
-                d->data[6] = call;
-                d->data[7] = 0;                 // reserved
+                d->tdata()[6] = call;
+                d->tdata()[7] = 0;                 // reserved
                 TOWORD(d->data + 8,nparam);
                 TOLONG(d->data + 10,paramidx);
             }

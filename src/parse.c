@@ -1984,7 +1984,7 @@ Objects *Parser::parseTemplateArgumentList2()
                          */
                         TemplateParameters *tpl = NULL;
                         for (int i = 0; i < tf->parameters->dim; i++)
-                        {   Parameter *param = (Parameter *)tf->parameters->data[i];
+                        {   Parameter *param = tf->parameters->tdata()[i];
                             if (param->ident == NULL &&
                                 param->type &&
                                 param->type->ty == Tident &&
@@ -3489,7 +3489,7 @@ Statement *Parser::parseStatement(int flags)
                 as->reserve(a->dim);
                 for (int i = 0; i < a->dim; i++)
                 {
-                    Dsymbol *d = (Dsymbol *)a->data[i];
+                    Dsymbol *d = a->tdata()[i];
                     s = new ExpStatement(loc, d);
                     as->push(s);
                 }
@@ -3497,7 +3497,7 @@ Statement *Parser::parseStatement(int flags)
             }
             else if (a->dim == 1)
             {
-                Dsymbol *d = (Dsymbol *)a->data[0];
+                Dsymbol *d = a->tdata()[0];
                 s = new ExpStatement(loc, d);
             }
             else
@@ -3707,7 +3707,7 @@ Statement *Parser::parseStatement(int flags)
             Expression *aggr = parseExpression();
             if (token.value == TOKslice && arguments->dim == 1)
             {
-                Parameter *a = (Parameter *)arguments->data[0];
+                Parameter *a = arguments->tdata()[0];
                 delete arguments;
                 nextToken();
                 Expression *upr = parseExpression();
@@ -3939,7 +3939,7 @@ Statement *Parser::parseStatement(int flags)
                 // Keep cases in order by building the case statements backwards
                 for (int i = cases.dim; i; i--)
                 {
-                    exp = (Expression *)cases.data[i - 1];
+                    exp = cases.tdata()[i - 1];
                     s = new CaseStatement(loc, exp, s);
                 }
             }

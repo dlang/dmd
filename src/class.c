@@ -223,9 +223,9 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     cd->baseclasses->setDim(this->baseclasses->dim);
     for (int i = 0; i < cd->baseclasses->dim; i++)
     {
-        BaseClass *b = (BaseClass *)this->baseclasses->data[i];
+        BaseClass *b = this->baseclasses->tdata()[i];
         BaseClass *b2 = new BaseClass(b->type->syntaxCopy(), b->protection);
-        cd->baseclasses->data[i] = b2;
+        cd->baseclasses->tdata()[i] = b2;
     }
 
     ScopeDsymbol::syntaxCopy(cd);
@@ -290,7 +290,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+    {   BaseClass *b = baseclasses->tdata()[i];
 //printf("test1 %s %s\n", toChars(), b->type->toChars());
         b->type = b->type->semantic(loc, sc);
 //printf("test2\n");
@@ -317,7 +317,7 @@ void ClassDeclaration::semantic(Scope *sc)
         BaseClass *b;
         Type *tb;
 
-        b = (BaseClass *)baseclasses->data[0];
+        b = baseclasses->tdata()[0];
         //b->type = b->type->semantic(loc, sc);
         tb = b->type->toBasetype();
         if (tb->ty != Tclass)
@@ -386,7 +386,7 @@ void ClassDeclaration::semantic(Scope *sc)
         BaseClass *b;
         Type *tb;
 
-        b = (BaseClass *)baseclasses->data[i];
+        b = baseclasses->tdata()[i];
         b->type = b->type->semantic(loc, sc);
         tb = b->type->toBasetype();
         if (tb->ty == Tclass)
@@ -415,7 +415,7 @@ void ClassDeclaration::semantic(Scope *sc)
             // Check for duplicate interfaces
             for (size_t j = (baseClass ? 1 : 0); j < i; j++)
             {
-                BaseClass *b2 = (BaseClass *)baseclasses->data[j];
+                BaseClass *b2 = baseclasses->tdata()[j];
                 if (b2->base == tc->sym)
                     error("inherits from duplicate interface %s", b2->base->toChars());
             }
@@ -469,7 +469,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     interfaces_dim = baseclasses->dim;
-    interfaces = (BaseClass **)baseclasses->data;
+    interfaces = baseclasses->tdata();
 
 
     if (baseClass)
@@ -482,7 +482,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         // Copy vtbl[] from base class
         vtbl.setDim(baseClass->vtbl.dim);
-        memcpy(vtbl.data, baseClass->vtbl.data, sizeof(void *) * vtbl.dim);
+        memcpy(vtbl.tdata(), baseClass->vtbl.tdata(), sizeof(void *) * vtbl.dim);
 
         // Inherit properties from base class
         com = baseClass->isCOMclass();
@@ -506,7 +506,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         for (i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = members->tdata()[i];
             s->addMember(sc, this, 1);
         }
 
@@ -625,7 +625,7 @@ void ClassDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (i = 0; i < members_dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = members->tdata()[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
@@ -637,7 +637,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     for (i = 0; i < members_dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = members->tdata()[i];
         s->semantic(sc);
     }
 
@@ -714,7 +714,7 @@ void ClassDeclaration::semantic(Scope *sc)
     // Allocate instance of each new interface
     for (i = 0; i < vtblInterfaces->dim; i++)
     {
-        BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+        BaseClass *b = vtblInterfaces->tdata()[i];
         unsigned thissize = PTRSIZE;
 
         alignmember(structalign, thissize, &sc->offset);
@@ -744,7 +744,7 @@ void ClassDeclaration::semantic(Scope *sc)
     // Fill in base class vtbl[]s
     for (i = 0; i < vtblInterfaces->dim; i++)
     {
-        BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+        BaseClass *b = vtblInterfaces->tdata()[i];
 
         //b->fillVtbl(this, &b->vtbl, 1);
     }
@@ -763,7 +763,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     for (int i = 0; i < baseclasses->dim; i++)
     {
-        BaseClass *b = (BaseClass *)baseclasses->data[i];
+        BaseClass *b = baseclasses->tdata()[i];
 
         if (i)
             buf->writeByte(',');
@@ -777,7 +777,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
         for (int i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = members->tdata()[i];
 
             buf->writestring("    ");
             s->toCBuffer(buf, hgs);
@@ -812,7 +812,7 @@ int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
         return 0;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (int i = 0; i < cd->baseclasses->dim; i++)
-    {   BaseClass *b = (BaseClass *)cd->baseclasses->data[i];
+    {   BaseClass *b = cd->baseclasses->tdata()[i];
 
         if (b->base == this || isBaseOf2(b->base))
             return 1;
@@ -858,7 +858,7 @@ int ClassDeclaration::isBaseInfoComplete()
     if (!baseClass)
         return ident == Id::Object;
     for (int i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+    {   BaseClass *b = baseclasses->tdata()[i];
         if (!b->base || !b->base->isBaseInfoComplete())
             return 0;
     }
@@ -893,7 +893,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 
         for (i = 0; i < baseclasses->dim; i++)
         {
-            BaseClass *b = (BaseClass *)baseclasses->data[i];
+            BaseClass *b = baseclasses->tdata()[i];
 
             if (b->base)
             {
@@ -941,7 +941,7 @@ int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
     if (os)
     {
         for (int i = 0; i < os->a.dim; i++)
-        {   Dsymbol *s = (Dsymbol *)os->a.data[i];
+        {   Dsymbol *s = os->a.tdata()[i];
             FuncDeclaration *f2 = s->isFuncDeclaration();
             if (f2 && overloadApply(f2, &isf, fd))
                 return 0;
@@ -967,12 +967,12 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
     //printf("ClassDeclaration::findFunc(%s, %s) %s\n", ident->toChars(), tf->toChars(), toChars());
 
     ClassDeclaration *cd = this;
-    FuncDeclarations *vtbl = &cd->vtbl;
+    Dsymbols *vtbl = &cd->vtbl;
     while (1)
     {
         for (size_t i = 0; i < vtbl->dim; i++)
         {
-            FuncDeclaration *fd = ((Dsymbol*)vtbl->data[i])->isFuncDeclaration();
+            FuncDeclaration *fd = vtbl->tdata()[i]->isFuncDeclaration();
             if (!fd)
                 continue;               // the first entry might be a ClassInfo
 
@@ -1049,7 +1049,7 @@ int ClassDeclaration::isAbstract()
         return TRUE;
     for (int i = 1; i < vtbl.dim; i++)
     {
-        FuncDeclaration *fd = ((Dsymbol *)vtbl.data[i])->isFuncDeclaration();
+        FuncDeclaration *fd = vtbl.tdata()[i]->isFuncDeclaration();
 
         //printf("\tvtbl[%d] = %p\n", i, fd);
         if (!fd || fd->isAbstract())
@@ -1156,7 +1156,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (BaseClass *)baseclasses->data[0];
+    {   BaseClass *b = baseclasses->tdata()[0];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
 
@@ -1184,7 +1184,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         BaseClass *b;
         Type *tb;
 
-        b = (BaseClass *)baseclasses->data[i];
+        b = baseclasses->tdata()[i];
         b->type = b->type->semantic(loc, sc);
         tb = b->type->toBasetype();
         if (tb->ty == Tclass)
@@ -1202,7 +1202,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             // Check for duplicate interfaces
             for (size_t j = 0; j < i; j++)
             {
-                BaseClass *b2 = (BaseClass *)baseclasses->data[j];
+                BaseClass *b2 = baseclasses->tdata()[j];
                 if (b2->base == tc->sym)
                     error("inherits from duplicate interface %s", b2->base->toChars());
             }
@@ -1238,7 +1238,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     interfaces_dim = baseclasses->dim;
-    interfaces = (BaseClass **)baseclasses->data;
+    interfaces = baseclasses->tdata();
 
     interfaceSemantic(sc);
 
@@ -1263,7 +1263,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             {
                 vtbl.reserve(d - 1);
                 for (int j = 1; j < d; j++)
-                    vtbl.push(b->base->vtbl.data[j]);
+                    vtbl.push(b->base->vtbl.tdata()[j]);
             }
         }
         else
@@ -1280,7 +1280,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     for (i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)members->data[i];
+        Dsymbol *s = members->tdata()[i];
         s->addMember(sc, this, 1);
     }
 
@@ -1299,7 +1299,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     inuse++;
     for (i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)members->data[i];
+        Dsymbol *s = members->tdata()[i];
         s->semantic(sc);
     }
     inuse--;
@@ -1393,7 +1393,7 @@ int InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
     for (int i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+    {   BaseClass *b = baseclasses->tdata()[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
             return 0;
     }
@@ -1478,7 +1478,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
     // first entry is ClassInfo reference
     for (j = base->vtblOffset(); j < base->vtbl.dim; j++)
     {
-        FuncDeclaration *ifd = ((Dsymbol *)base->vtbl.data[j])->isFuncDeclaration();
+        FuncDeclaration *ifd = base->vtbl.tdata()[j]->isFuncDeclaration();
         FuncDeclaration *fd;
         TypeFunction *tf;
 
@@ -1515,7 +1515,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
             fd = NULL;
         }
         if (vtbl)
-            vtbl->data[j] = fd;
+            vtbl->tdata()[j] = fd;
     }
 
     return result;

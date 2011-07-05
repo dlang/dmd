@@ -322,7 +322,7 @@ struct ForeachStatement : Statement
 
     FuncDeclaration *func;      // function we're lexically in
 
-    CaseStatements *cases;      // put breaks, continues, gotos and returns here
+    Statements *cases;          // put breaks, continues, gotos and returns here
     CompoundStatements *gotos;  // forward referenced goto's go here
 
     ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);

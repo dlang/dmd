@@ -501,9 +501,9 @@ Expression *BinExp::op_overload(Scope *sc)
          */
 
         args1.setDim(1);
-        args1.data[0] = (void*) e1;
+        args1.tdata()[0] = e1;
         args2.setDim(1);
-        args2.data[0] = (void*) e2;
+        args2.tdata()[0] = e2;
         argsset = 1;
 
         Match m;
@@ -594,9 +594,9 @@ L1:
 
             if (!argsset)
             {   args1.setDim(1);
-                args1.data[0] = (void*) e1;
+                args1.tdata()[0] = e1;
                 args2.setDim(1);
-                args2.data[0] = (void*) e2;
+                args2.tdata()[0] = e2;
             }
 
             Match m;
@@ -753,9 +753,9 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         Expressions args2;
 
         args1.setDim(1);
-        args1.data[0] = (void*) e1;
+        args1.tdata()[0] = e1;
         args2.setDim(1);
-        args2.data[0] = (void*) e2;
+        args2.tdata()[0] = e2;
 
         Match m;
         memset(&m, 0, sizeof(m));
@@ -939,7 +939,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 Expressions *a = new Expressions();
                 a->push(e2);
                 for (int i = 0; i < ae->arguments->dim; i++)
-                    a->push(ae->arguments->data[i]);
+                    a->push(ae->arguments->tdata()[i]);
 
                 Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
@@ -1051,7 +1051,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
          */
 
         args2.setDim(1);
-        args2.data[0] = (void*) e2;
+        args2.tdata()[0] = e2;
 
         Match m;
         memset(&m, 0, sizeof(m));
@@ -1195,7 +1195,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
     for (size_t u = 0; 1; u++)
     {   if (u == arguments->dim)
             return;
-        Parameter *arg = (Parameter *)arguments->data[u];
+        Parameter *arg = arguments->tdata()[u];
         if (!arg->type)
             break;
     }
@@ -1203,7 +1203,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
     Dsymbol *s;
     AggregateDeclaration *ad;
 
-    Parameter *arg = (Parameter *)arguments->data[0];
+    Parameter *arg = arguments->tdata()[0];
     Type *taggr = aggr->type;
     if (!taggr)
         return;
@@ -1217,7 +1217,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
             {
                 if (!arg->type)
                     arg->type = Type::tsize_t;  // key type
-                arg = (Parameter *)arguments->data[1];
+                arg = arguments->tdata()[1];
             }
             if (!arg->type && tab->ty != Ttuple)
                 arg->type = tab->nextOf();      // value type
@@ -1230,7 +1230,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
             {
                 if (!arg->type)
                     arg->type = taa->index;     // key type
-                arg = (Parameter *)arguments->data[1];
+                arg = arguments->tdata()[1];
             }
             if (!arg->type)
                 arg->type = taa->next;          // value type
@@ -1366,7 +1366,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
 
     for (size_t u = 0; u < nparams; u++)
     {
-        Parameter *arg = (Parameter *)arguments->data[u];
+        Parameter *arg = arguments->tdata()[u];
         Parameter *param = Parameter::getNth(tf->parameters, u);
         if (arg->type)
         {   if (!arg->type->equals(param->type))
@@ -1410,7 +1410,7 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
         }
         if (!td->parameters || td->parameters->dim != 1)
             continue;
-        TemplateParameter *tp = (TemplateParameter *)td->parameters->data[0];
+        TemplateParameter *tp = td->parameters->tdata()[0];
         TemplateAliasParameter *tap = tp->isTemplateAliasParameter();
         if (!tap || !tap->specType || tap->specType->ty != Tfunction)
             continue;

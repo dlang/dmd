@@ -54,6 +54,7 @@ struct Symbol;
     void insert(unsigned index, TYPE *v) { ArrayBase::insert(index, (void *)v); } \
     void insert(unsigned index, ArrayOf_##TYPE *a) { ArrayBase::insert(index, (ArrayBase *)a); } \
     void append(ArrayOf_##TYPE *a) { ArrayBase::append((ArrayBase *)a); } \
+    void push(TYPE *a) { ArrayBase::push((void *)a); } \
     ArrayOf_##TYPE *copy() { return (ArrayOf_##TYPE *)ArrayBase::copy(); } \
 }
 

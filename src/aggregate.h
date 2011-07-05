@@ -210,8 +210,8 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;
-    FuncDeclarations vtbl;              // Array of FuncDeclaration's making up the vtbl[]
-    FuncDeclarations vtblFinal;         // More FuncDeclaration's that aren't in vtbl[]
+    Dsymbols vtbl;                      // Array of FuncDeclaration's making up the vtbl[]
+    Dsymbols vtblFinal;                 // More FuncDeclaration's that aren't in vtbl[]
 
     BaseClasses *baseclasses;           // Array of BaseClass's; first is super,
                                         // rest are Interface's

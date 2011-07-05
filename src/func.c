@@ -453,7 +453,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 return;
 
             default:
-            {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl.data[vi];
+            {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl.tdata()[vi];
                 // This function is covariant with fdv
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
@@ -480,7 +480,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         )
                         error("multiple overrides of same function");
                 }
-                cd->vtbl.data[vi] = (void *)this;
+                cd->vtbl.tdata()[vi] = this;
                 vtblIndex = vi;
 
                 /* Remember which functions this overrides
@@ -531,7 +531,7 @@ void FuncDeclaration::semantic(Scope *sc)
                     return;
 
                 default:
-                {   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl.data[vi];
+                {   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl.tdata()[vi];
                     Type *ti = NULL;
 
                     /* Remember which functions this overrides
@@ -809,7 +809,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     {
         for (int i = 0; i < fthrows->dim; i++)
         {
-            Type *t = (Type *)fthrows->data[i];
+            Type *t = fthrows->tdata()[i];
 
             t = t->semantic(loc, sc);
             if (!t->isClassHandle())
@@ -991,7 +991,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (f->parameters)
         {
             for (size_t i = 0; i < f->parameters->dim; i++)
-            {   Parameter *arg = (Parameter *)f->parameters->data[i];
+            {   Parameter *arg = f->parameters->tdata()[i];
 
                 //printf("[%d] arg->type->ty = %d %s\n", i, arg->type->ty, arg->type->toChars());
                 if (arg->type->ty == Ttuple)
@@ -1014,7 +1014,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         {   /* parameters[] has all the tuples removed, as the back end
              * doesn't know about tuples
              */
-            parameters = new Dsymbols();
+            parameters = new VarDeclarations();
             parameters->reserve(nparams);
             for (size_t i = 0; i < nparams; i++)
             {
@@ -1051,7 +1051,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (f->parameters)
         {
             for (size_t i = 0; i < f->parameters->dim; i++)
-            {   Parameter *arg = (Parameter *)f->parameters->data[i];
+            {   Parameter *arg = f->parameters->tdata()[i];
 
                 if (!arg->ident)
                     continue;                   // never used, so ignore
@@ -1066,7 +1066,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         VarDeclaration *v = sc2->search(0, narg->ident, NULL)->isVarDeclaration();
                         assert(v);
                         Expression *e = new VarExp(v->loc, v);
-                        exps->data[j] = (void *)e;
+                        exps->tdata()[j] = e;
                     }
                     assert(arg->ident);
                     TupleDeclaration *v = new TupleDeclaration(loc, arg->ident, exps);
@@ -1228,7 +1228,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isCtorDeclaration() && cd)
             {
                 for (int i = 0; i < cd->fields.dim; i++)
-                {   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
+                {   VarDeclaration *v = cd->fields.tdata()[i];
 
                     v->ctorinit = 0;
                 }
@@ -1265,7 +1265,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 else
                 {
                     for (int i = 0; i < ad->members->dim; i++)
-                    {   Dsymbol *s = (Dsymbol *)ad->members->data[i];
+                    {   Dsymbol *s = ad->members->tdata()[i];
 
                         s->checkCtorConstInit();
                     }
@@ -1280,7 +1280,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (!(sc2->callSuper & CSXthis_ctor))
                 {
                     for (int i = 0; i < cd->fields.dim; i++)
-                    {   VarDeclaration *v = (VarDeclaration *)cd->fields.data[i];
+                    {   VarDeclaration *v = cd->fields.tdata()[i];
 
                         if (v->ctorinit == 0 && v->isCtorinit() && !v->type->isMutable())
                             error("missing initializer for final field %s", v->toChars());
@@ -1372,7 +1372,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (parameters)
             {   for (size_t i = 0; i < parameters->dim; i++)
                 {
-                    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+                    VarDeclaration *v = parameters->tdata()[i];
                     if (v->storage_class & STCout)
                     {
                         assert(v->init);
@@ -1412,7 +1412,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (parameters && parameters->dim)
                     {
                         int lastNonref = parameters->dim -1;
-                        p = (VarDeclaration *)parameters->data[lastNonref];
+                        p = parameters->tdata()[lastNonref];
                         /* The trouble with out and ref parameters is that taking
                          * the address of it doesn't work, because later processing
                          * adds in an extra level of indirection. So we skip over them.
@@ -1426,7 +1426,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                                 p = v_arguments;
                                 break;
                             }
-                            p = (VarDeclaration *)parameters->data[lastNonref];
+                            p = parameters->tdata()[lastNonref];
                         }
                     }
                     else
@@ -1545,7 +1545,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (parameters)
             {   for (size_t i = 0; i < parameters->dim; i++)
                 {
-                    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+                    VarDeclaration *v = parameters->tdata()[i];
 
                     if (v->storage_class & (STCref | STCout))
                         continue;
@@ -1722,7 +1722,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
      */
     for (int i = 0; i < foverrides.dim; i++)
     {
-        FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+        FuncDeclaration *fdv = foverrides.tdata()[i];
 
         /* The semantic pass on the contracts of the overridden functions must
          * be completed before code generation occurs (bug 3602).
@@ -1779,7 +1779,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
      */
     for (int i = 0; i < foverrides.dim; i++)
     {
-        FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+        FuncDeclaration *fdv = foverrides.tdata()[i];
 
         /* The semantic pass on the contracts of the overridden functions must
          * be completed before code generation occurs (bug 3602 and 5230).
@@ -1846,13 +1846,13 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
  *      -2      can't determine because of forward references
  */
 
-int FuncDeclaration::findVtblIndex(FuncDeclarations *vtbl, int dim)
+int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 {
     FuncDeclaration *mismatch = NULL;
     int bestvi = -1;
     for (int vi = 0; vi < dim; vi++)
     {
-        FuncDeclaration *fdv = ((Dsymbol *)vtbl->data[vi])->isFuncDeclaration();
+        FuncDeclaration *fdv = vtbl->tdata()[vi]->isFuncDeclaration();
         if (fdv && fdv->ident == ident)
         {
             if (type->equals(fdv->type))        // if exact match
@@ -2195,7 +2195,7 @@ if (arguments)
     for (i = 0; i < arguments->dim; i++)
     {   Expression *arg;
 
-        arg = (Expression *)arguments->data[i];
+        arg = arguments->tdata()[i];
         assert(arg->type);
         printf("\t%s: ", arg->toChars());
         arg->type->print();
@@ -2238,7 +2238,7 @@ if (arguments)
             OutBuffer buf2;
             tf->modToBuffer(&buf2);
 
-            //printf("tf = %s, args = %s\n", tf->deco, ((Expression *)arguments->data[0])->type->deco);
+            //printf("tf = %s, args = %s\n", tf->deco, arguments->tdata()[0]->type->deco);
             error(loc, "%s%s is not callable using argument types %s",
                 Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                 buf2.toChars(),
@@ -2324,7 +2324,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
         }
         else
             e = p->type->defaultInit();
-        args.data[u] = e;
+        args.tdata()[u] = e;
     }
 
     MATCH m = (MATCH) tg->callMatch(NULL, &args, 1);
@@ -2767,12 +2767,12 @@ int FuncDeclaration::needsClosure()
 
     //printf("FuncDeclaration::needsClosure() %s\n", toChars());
     for (int i = 0; i < closureVars.dim; i++)
-    {   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
+    {   VarDeclaration *v = closureVars.tdata()[i];
         assert(v->isVarDeclaration());
         //printf("\tv = %s\n", v->toChars());
 
         for (int j = 0; j < v->nestedrefs.dim; j++)
-        {   FuncDeclaration *f = (FuncDeclaration *)v->nestedrefs.data[j];
+        {   FuncDeclaration *f = v->nestedrefs.tdata()[j];
             assert(f != this);
 
             //printf("\t\tf = %s, %d, %p, %d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);

@@ -785,7 +785,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 
         // See if symbol is already in sarray
         for (i = 0; i < sarray->dim; i++)
-        {   s = (Symbol *)sarray->data[i];
+        {   s = sarray->tdata()[i];
             if (strcmp(id, s->Sident) == 0)
                 return s;                       // use existing Symbol
         }

@@ -42,7 +42,7 @@ void Library::setFilename(char *dir, char *filename)
     char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = (char *)global.params.objfiles->data[0];
+        char *n = global.params.objfiles->tdata()[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.lib_ext);

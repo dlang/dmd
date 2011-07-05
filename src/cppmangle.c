@@ -69,7 +69,7 @@ int CppMangleState::substitute(OutBuffer *buf, void *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
-        if (p == components.data[i])
+        if (p == components.tdata()[i])
         {
             /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
              */
@@ -88,7 +88,7 @@ int CppMangleState::exist(void *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
-        if (p == components.data[i])
+        if (p == components.tdata()[i])
         {
             return 1;
         }
@@ -409,7 +409,7 @@ void Parameter::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *a
     if (arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Parameter *arg = (Parameter *)arguments->data[i];
+        {   Parameter *arg = arguments->tdata()[i];
             Type *t = arg->type;
             if (arg->storageClass & (STCout | STCref))
                 t = t->referenceTo();

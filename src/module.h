@@ -97,12 +97,12 @@ struct Module : Package
     ModuleInfoDeclaration *vmoduleinfo;
 
     unsigned debuglevel;        // debug level
-    Identifiers *debugids;      // debug identifiers
-    Identifiers *debugidsNot;   // forward referenced debug identifiers
+    Strings *debugids;      // debug identifiers
+    Strings *debugidsNot;       // forward referenced debug identifiers
 
     unsigned versionlevel;      // version level
-    Identifiers *versionids;    // version identifiers
-    Identifiers *versionidsNot; // forward referenced version identifiers
+    Strings *versionids;    // version identifiers
+    Strings *versionidsNot;     // forward referenced version identifiers
 
     Macro *macrotable;          // document comment macros
     Escape *escapetable;        // document comment escapes

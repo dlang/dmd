@@ -804,7 +804,7 @@ char *FileName::searchPath(Strings *path, const char *name, int cwd)
 
         for (i = 0; i < path->dim; i++)
         {
-            char *p = (char *)path->data[i];
+            char *p = path->tdata()[i];
             char *n = combine(p, name);
 
             if (exists(n))
@@ -865,7 +865,7 @@ char *FileName::safeSearchPath(Strings *path, const char *name)
         for (i = 0; i < path->dim; i++)
         {
             char *cname = NULL;
-            char *cpath = canonicalName((char *)path->data[i]);
+            char *cpath = canonicalName(path->tdata()[i]);
             //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
             //      name, (char *)path->data[i], cpath);
             if (cpath == NULL)
@@ -1552,11 +1552,11 @@ OutBuffer::~OutBuffer()
     mem.free(data);
 }
 
-void *OutBuffer::extractData()
+char *OutBuffer::extractData()
 {
-    void *p;
+    char *p;
 
-    p = (void *)data;
+    p = (char *)data;
     data = NULL;
     offset = 0;
     size = 0;

@@ -862,8 +862,8 @@ void objlinnum(Srcpos srcpos,targ_size_t offset)
                 ln->i < LINNUMMAX - 6)
                 break;
         }
-        TOWORD(&ln->data[ln->i],linnum);
-        TOOFFSET(&ln->data[ln->i + 2],offset);
+        TOWORD(&ln->tdata()[ln->i],linnum);
+        TOOFFSET(&ln->tdata()[ln->i + 2],offset);
         ln->i += 2 + intsize;
     }
     else
@@ -1052,12 +1052,12 @@ STATIC void linnum_term()
 #endif
             for (u = 0; u < ln->i; )
             {
-                srcpos.Slinnum = *(unsigned short *)&ln->data[u];
+                srcpos.Slinnum = *(unsigned short *)&ln->tdata()[u];
                 u += 2;
                 if (I32)
-                    offset = *(unsigned long *)&ln->data[u];
+                    offset = *(unsigned long *)&ln->tdata()[u];
                 else
-                    offset = *(unsigned short *)&ln->data[u];
+                    offset = *(unsigned short *)&ln->tdata()[u];
                 objlinnum(srcpos,offset);
                 u += intsize;
             }
@@ -2909,7 +2909,7 @@ L1:     ;
   i = offset - obj.ledata->offset;
   if (obj.ledata->i <= i)
         obj.ledata->i = i + 1;
-  obj.ledata->data[i] = byte;           // 1st byte of data
+  obj.ledata->tdata()[i] = byte;           // 1st byte of data
 }
 
 /***********************************

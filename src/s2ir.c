@@ -203,7 +203,7 @@ void PragmaStatement::toIR(IRState *irs)
     if (ident == Id::startaddress)
     {
         assert(args && args->dim == 1);
-        Expression *e = (Expression *)args->data[0];
+        Expression *e = args->tdata()[0];
         Dsymbol *sa = getDsymbol(e);
         FuncDeclaration *f = sa->isFuncDeclaration();
         assert(f);
@@ -869,7 +869,7 @@ void LabelStatement::toIR(IRState *irs)
         if (fwdrefs)
         {
             for (int i = 0; i < fwdrefs->dim; i++)
-            {   block *b = (block *)fwdrefs->data[i];
+            {   block *b = fwdrefs->tdata()[i];
 
                 if (b->Btry != lblock->Btry)
                 {
@@ -941,7 +941,7 @@ void SwitchStatement::toIR(IRState *irs)
         }
 
         for (int i = 0; i < numcases; i++)
-        {   CaseStatement *cs = (CaseStatement *)cases->data[i];
+        {   CaseStatement *cs = cases->tdata()[i];
 
             elem *ecase = cs->exp->toElem(&mystate);
             elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
@@ -974,7 +974,7 @@ void SwitchStatement::toIR(IRState *irs)
     {
         // Number the cases so we can unscramble things after the sort()
         for (int i = 0; i < numcases; i++)
-        {   CaseStatement *cs = (CaseStatement *)cases->data[i];
+        {   CaseStatement *cs = cases->tdata()[i];
             cs->index = i;
         }
 
@@ -992,7 +992,7 @@ void SwitchStatement::toIR(IRState *irs)
         dtxoff(&dt, si, PTRSIZE * 2, TYnptr);
 
         for (int i = 0; i < numcases; i++)
-        {   CaseStatement *cs = (CaseStatement *)cases->data[i];
+        {   CaseStatement *cs = cases->tdata()[i];
 
             if (cs->exp->op != TOKstring)
             {   error("case '%s' is not a string", cs->exp->toChars()); // BUG: this should be an assert
@@ -1050,7 +1050,7 @@ void SwitchStatement::toIR(IRState *irs)
      */
     for (int i = 0; i < numcases; i++)
     {
-        CaseStatement *cs = (CaseStatement *)cases->data[i];
+        CaseStatement *cs = cases->tdata()[i];
         if (string)
         {
             pu[cs->index] = i;
@@ -1324,7 +1324,7 @@ void CompoundStatement::toIR(IRState *irs)
         size_t dim = statements->dim;
         for (size_t i = 0 ; i < dim ; i++)
         {
-            Statement *s = (Statement *)statements->data[i];
+            Statement *s = statements->tdata()[i];
             if (s != NULL)
             {
                 s->toIR(irs);
@@ -1355,7 +1355,7 @@ void UnrolledLoopStatement::toIR(IRState *irs)
     size_t dim = statements->dim;
     for (size_t i = 0 ; i < dim ; i++)
     {
-        Statement *s = (Statement *)statements->data[i];
+        Statement *s = statements->tdata()[i];
         if (s != NULL)
         {
             mystate.contBlock = block_calloc(blx);
@@ -1501,7 +1501,7 @@ void TryCatchStatement::toIR(IRState *irs)
     assert(catches);
     for (int i = 0 ; i < catches->dim; i++)
     {
-        Catch *cs = (Catch *)(catches->data[i]);
+        Catch *cs = catches->tdata()[i];
         if (cs->var)
             cs->var->csym = tryblock->jcatchvar;
         block *bcatch = blx->curblock;

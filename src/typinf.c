@@ -641,7 +641,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         {
             if (i < tup->arguments->dim)
             {
-                Type *targ = ((Parameter *)tup->arguments->data[i])->type;
+                Type *targ = (tup->arguments->tdata()[i])->type;
                 targ = targ->merge();
                 targ->getTypeInfo(NULL);
                 dtxoff(pdt, targ->vtinfo->toSymbol(), 0, TYnptr);       // m_argi
@@ -712,7 +712,7 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
 
     dt_t *d = NULL;
     for (size_t i = 0; i < dim; i++)
-    {   Parameter *arg = (Parameter *)tu->arguments->data[i];
+    {   Parameter *arg = tu->arguments->tdata()[i];
         Expression *e = arg->type->getTypeInfo(NULL);
         e = e->optimize(WANTvalue);
         e->toDt(&d);
@@ -839,7 +839,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {   Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
-        args->data[i] = (void *)arg;
+        args->tdata()[i] = arg;
     }
     TypeTuple *tup = new TypeTuple(args);
     Expression *e = tup->getTypeInfo(sc);

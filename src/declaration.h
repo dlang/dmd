@@ -542,7 +542,7 @@ struct FuncDeclaration : Declaration
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
     VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
-    Dsymbols *parameters;               // Array of VarDeclaration's for parameters
+    VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
     Declaration *overnext;              // next in overload list
     Loc endloc;                         // location of closing curly bracket
@@ -580,7 +580,7 @@ struct FuncDeclaration : Declaration
 
     int tookAddressOf;                  // set if someone took the address of
                                         // this function
-    Dsymbols closureVars;               // local variables in this function
+    VarDeclarations closureVars;        // local variables in this function
                                         // which are referenced by nested
                                         // functions
 #else
@@ -599,7 +599,7 @@ struct FuncDeclaration : Declaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
-    int findVtblIndex(FuncDeclarations *vtbl, int dim);
+    int findVtblIndex(Dsymbols *vtbl, int dim);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
