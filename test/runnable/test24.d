@@ -6,5 +6,5 @@ import imports.test24a, imports.test24b;
 
 void main()
 {
-    string hi = std.string.toString(3);
+    string hi = std.string.format("%s", 3);
 }
