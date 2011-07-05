@@ -494,9 +494,9 @@ elem *array_toDarray(Type *t, elem *e)
 
                     if (ty == TYstruct)
                     {   unsigned sz = type_size(e->ET);
-                        if (sz == 4)
+                        if (sz <= 4)
                             ty = TYint;
-                        else if (sz == 8)
+                        else if (sz <= 8)
                             ty = TYllong;
                     }
                     e->Ety = ty;
@@ -1119,6 +1119,7 @@ elem *FuncExp::toElem(IRState *irs)
 }
 
 /**************************************
+ * Mirrors logic in Dsymbol_canThrow().
  */
 
 elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
@@ -2444,7 +2445,7 @@ elem *IdentityExp::toElem(IRState *irs)
 
     //printf("IdentityExp::toElem() %s\n", toChars());
 
-    if (t1->ty == Tstruct)
+    if (t1->ty == Tstruct || t1->isfloating())
     {   // Do bit compare of struct's
         elem *es1;
         elem *es2;
@@ -3101,8 +3102,12 @@ elem *CatAssignExp::toElem(IRState *irs)
             elength = el_bin(OPmin, TYsize_t, elength, el_long(TYsize_t, 1));
             elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, this->e2->type->size()));
             eptr = el_bin(OPadd, TYnptr, eptr, elength);
-            eptr = el_una(OPind, e2->Ety, eptr);
-            elem *eeq = el_bin(OPeq, e2->Ety, eptr, e2);
+            StructDeclaration *sd = needsPostblit(tb2);
+            elem *epost = NULL;
+            if (sd)
+                epost = el_same(&eptr);
+            elem *ederef = el_una(OPind, e2->Ety, eptr);
+            elem *eeq = el_bin(OPeq, e2->Ety, ederef, e2);
 
             if (tybasic(e2->Ety) == TYstruct)
             {
@@ -3114,6 +3119,14 @@ elem *CatAssignExp::toElem(IRState *irs)
                 eeq->Eoper = OPstreq;
                 eeq->Ejty = eeq->Ety = TYstruct;
                 eeq->ET = tb1n->toCtype();
+            }
+
+            /* Need to call postblit on eeq
+             */
+            if (sd)
+            {   FuncDeclaration *fd = sd->postblit;
+                epost = callfunc(loc, irs, 1, Type::tvoid, epost, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
+                eeq = el_bin(OPcomma, epost->Ety, eeq, epost);
             }
 
             e = el_combine(e2x, e);
@@ -3432,7 +3445,7 @@ elem *DelegateExp::toElem(IRState *irs)
         if (e1->type->ty != Tclass && e1->type->ty != Tpointer)
             ethis = addressElem(ethis, e1->type);
 
-        if (e1->op == TOKsuper)
+        if (e1->op == TOKsuper || e1->op == TOKdottype)
             directcall = 1;
 
         if (!func->isThis())
@@ -5113,40 +5126,66 @@ elem *StructLiteralExp::toElem(IRState *irs)
 elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 {
     //printf("appendDtors(%d .. %d)\n", starti, endi);
+
+    /* Code gen can be improved by determining if no exceptions can be thrown
+     * between the OPdctor and OPddtor, and eliminating the OPdctor and OPddtor.
+     */
+
+    /* Build edtors, an expression that calls destructors on all the variables
+     * going out of the scope starti..endi
+     */
     elem *edtors = NULL;
-    for (size_t i = endi; i != starti;)
+    for (size_t i = starti; i != endi; ++i)
     {
-        --i;
         VarDeclaration *vd = irs->varsInScope->tdata()[i];
         if (vd)
         {
             //printf("appending dtor\n");
             irs->varsInScope->tdata()[i] = NULL;
             elem *ed = vd->edtor->toElem(irs);
-            edtors = el_combine(edtors, ed);
+            ed = el_ddtor(ed, vd);
+            edtors = el_combine(ed, edtors);    // execute in reverse order
         }
     }
+
     if (edtors)
     {
+        /* Append edtors to er, while preserving the value of er
+         */
         if (tybasic(er->Ety) == TYvoid)
-        {
+        {   /* No value to preserve, so simply append
+             */
             er = el_combine(er, edtors);
-        }
-        else if (tybasic(er->Ety) == TYstruct || tybasic(er->Ety) == TYarray)
-        {
-            elem *ep = el_una(OPaddr, TYnptr, er);
-            elem *e = el_same(&ep);
-            ep = el_combine(ep, edtors);
-            ep = el_combine(ep, e);
-            e = el_una(OPind, er->Ety, ep);
-            e->ET = er->ET;
-            er = e;
         }
         else
         {
-            elem *e = el_same(&er);
-            er = el_combine(er, edtors);
-            er = el_combine(er, e);
+            elem **pe;
+            for (pe = &er; (*pe)->Eoper == OPcomma; pe = &(*pe)->E2)
+                ;
+            elem *erx = *pe;
+
+            if (erx->Eoper == OPconst || erx->Eoper == OPrelconst)
+            {
+                *pe = el_combine(edtors, erx);
+            }
+            else if (tybasic(erx->Ety) == TYstruct || tybasic(erx->Ety) == TYarray)
+            {
+                /* Expensive to copy, to take a pointer to it instead
+                 */
+                elem *ep = el_una(OPaddr, TYnptr, erx);
+                elem *e = el_same(&ep);
+                ep = el_combine(ep, edtors);
+                ep = el_combine(ep, e);
+                e = el_una(OPind, erx->Ety, ep);
+                e->ET = erx->ET;
+                *pe = e;
+            }
+            else
+            {
+                elem *e = el_same(&erx);
+                erx = el_combine(erx, edtors);
+                *pe = el_combine(erx, e);
+            }
         }
     }
     return er;

@@ -5,8 +5,9 @@ void foo()
         assert(false, "GO");
 }
 
+int i; // make func impure so it is not ctfed away
 public void func(T)()
 {
-        assert(false, "Blah");
+        assert(i, "Blah");
 }
 

@@ -64,7 +64,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     naked = 0;
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
-    inlineAsm = 0;
     cantInterpret = 0;
     isArrayOp = 0;
     semanticRun = PASSinit;
@@ -85,6 +84,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
 #if DMDV2
     builtin = BUILTINunknown;
     tookAddressOf = 0;
+    flags = 0;
 #endif
 }
 
@@ -168,7 +168,7 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         sc = sc->push();
         sc->stc |= storage_class & (STCref | STCnothrow | STCpure | STCdisable
-            | STCsafe | STCtrusted | STCsystem);      // forward to function type
+            | STCsafe | STCtrusted | STCsystem | STCproperty);      // forward to function type
 
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
@@ -248,6 +248,25 @@ void FuncDeclaration::semantic(Scope *sc)
 
     linkage = sc->linkage;
     protection = sc->protection;
+
+    /* Purity and safety can be inferred for some functions by examining
+     * the function body.
+     */
+    if (fbody &&
+        (isFuncLiteralDeclaration() || parent->isTemplateInstance()))
+    {
+        if (f->purity == PUREimpure &&      // purity not specified
+            !f->hasLazyParameters()
+           )
+        {
+            flags |= FUNCFLAGpurityInprocess;
+        }
+        if (f->trust == TRUSTdefault)
+            flags |= FUNCFLAGsafetyInprocess;
+
+        if (!f->isnothrow)
+            flags |= FUNCFLAGnothrowInprocess;
+    }
 
     if (storage_class & STCscope)
         error("functions cannot be scope");
@@ -818,6 +837,20 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
 #endif
 
+    if (frequire)
+    {
+        for (int i = 0; i < foverrides.dim; i++)
+        {
+            FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+
+            if (fdv->fbody && !fdv->frequire)
+            {
+                error("cannot have an in contract when overriden function %s does not have an in contract", fdv->toPrettyChars());
+                break;
+            }
+        }
+    }
+
     frequire = mergeFrequire(frequire);
     fensure = mergeFensure(fensure);
 
@@ -1315,7 +1348,11 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else if (!hasReturnExp && type->nextOf()->ty != Tvoid)
                 error("has no return statement, but is expected to return a value of type %s", type->nextOf()->toChars());
-            else if (!inlineAsm)
+            else if (hasReturnExp & 8)               // if inline asm
+            {
+                flags &= ~FUNCFLAGnothrowInprocess;
+            }
+            else
             {
 #if DMDV2
                 // Check for errors related to 'nothrow'.
@@ -1323,6 +1360,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 int blockexit = fbody ? fbody->blockExit(f->isnothrow) : BEfallthru;
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
+                if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    flags &= ~FUNCFLAGnothrowInprocess;
+                    if (!(blockexit & BEthrow))
+                        f->isnothrow = TRUE;
+                }
 
                 int offend = blockexit & BEfallthru;
 #endif
@@ -1463,15 +1506,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             // Merge contracts together with body into one compound statement
 
-#ifdef _DH
             if (frequire && global.params.useIn)
             {   frequire->incontract = 1;
                 a->push(frequire);
             }
-#else
-            if (frequire && global.params.useIn)
-                a->push(frequire);
-#endif
 
             // Precondition invariant
             if (addPreInvariant())
@@ -1619,6 +1657,20 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->pop();
     }
 
+    /* If function survived being marked as impure, then it is pure
+     */
+    if (flags & FUNCFLAGpurityInprocess)
+    {
+        flags &= ~FUNCFLAGpurityInprocess;
+        f->purity = PUREfwdref;
+    }
+
+    if (flags & FUNCFLAGsafetyInprocess)
+    {
+        flags &= ~FUNCFLAGsafetyInprocess;
+        f->trust = TRUSTsafe;
+    }
+
     if (global.gag && global.errors != nerrors)
         semanticRun = PASSsemanticdone; // Ensure errors get reported again
     else
@@ -1737,7 +1789,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
         }
 
         sf = fdv->mergeFrequire(sf);
-        if (fdv->fdrequire)
+        if (sf && fdv->fdrequire)
         {
             //printf("fdv->frequire: %s\n", fdv->frequire->toChars());
             /* Make the call:
@@ -1748,15 +1800,13 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdrequire, 0), eresult);
             Statement *s2 = new ExpStatement(loc, e);
 
-            if (sf)
-            {   Catch *c = new Catch(loc, NULL, NULL, sf);
-                Catches *catches = new Catches();
-                catches->push(c);
-                sf = new TryCatchStatement(loc, s2, catches);
-            }
-            else
-                sf = s2;
+            Catch *c = new Catch(loc, NULL, NULL, sf);
+            Array *catches = new Array();
+            catches->push(c);
+            sf = new TryCatchStatement(loc, s2, catches);
         }
+        else
+            return NULL;
     }
     return sf;
 }
@@ -2624,6 +2674,8 @@ enum PURE FuncDeclaration::isPure()
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());
     assert(type->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)type;
+    if (flags & FUNCFLAGpurityInprocess)
+        setImpure();
     enum PURE purity = tf->purity;
     if (purity == PUREfwdref)
         tf->purityLevel();
@@ -2639,16 +2691,53 @@ enum PURE FuncDeclaration::isPure()
     return purity;
 }
 
+/**************************************
+ * The function is doing something impure,
+ * so mark it as impure.
+ * If there's a purity error, return TRUE.
+ */
+bool FuncDeclaration::setImpure()
+{
+    if (flags & FUNCFLAGpurityInprocess)
+    {
+        flags &= ~FUNCFLAGpurityInprocess;
+    }
+    else if (isPure())
+        return TRUE;
+    return FALSE;
+}
+
 int FuncDeclaration::isSafe()
 {
     assert(type->ty == Tfunction);
+    if (flags & FUNCFLAGsafetyInprocess)
+        setUnsafe();
     return ((TypeFunction *)type)->trust == TRUSTsafe;
 }
 
 int FuncDeclaration::isTrusted()
 {
     assert(type->ty == Tfunction);
+    if (flags & FUNCFLAGsafetyInprocess)
+        setUnsafe();
     return ((TypeFunction *)type)->trust == TRUSTtrusted;
+}
+
+/**************************************
+ * The function is doing something unsave,
+ * so mark it as unsafe.
+ * If there's a safe error, return TRUE.
+ */
+bool FuncDeclaration::setUnsafe()
+{
+    if (flags & FUNCFLAGsafetyInprocess)
+    {
+        flags &= ~FUNCFLAGsafetyInprocess;
+        ((TypeFunction *)type)->trust = TRUSTsystem;
+    }
+    else if (isSafe())
+        return TRUE;
+    return FALSE;
 }
 
 // Determine if function needs
@@ -2758,6 +2847,8 @@ int FuncDeclaration::needsClosure()
      * 1) is a virtual function
      * 2) has its address taken
      * 3) has a parent that escapes
+     * -or-
+     * 4) this function returns a local struct/class
      *
      * Note that since a non-virtual function can be called by
      * a virtual one, if that non-virtual function accesses a closure
@@ -2788,6 +2879,25 @@ int FuncDeclaration::needsClosure()
             }
         }
     }
+
+    /* Look for case (4)
+     */
+    if (closureVars.dim)
+    {
+        assert(type->ty == Tfunction);
+        Type *tret = ((TypeFunction *)type)->next;
+        assert(tret);
+        tret = tret->toBasetype();
+        if (tret->ty == Tclass || tret->ty == Tstruct)
+        {   Dsymbol *st = tret->toDsymbol(NULL);
+            for (Dsymbol *s = st->parent; s; s = s->parent)
+            {
+                if (s == this)
+                    goto Lyes;
+            }
+        }
+    }
+
     return 0;
 
 Lyes:
@@ -2811,12 +2921,6 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
         TypeFunction *fdtype = (TypeFunction *)type;
         fparameters = fdtype->parameters;
         fvarargs = fdtype->varargs;
-    }
-    else // Constructors don't have type's
-    {   CtorDeclaration *fctor = isCtorDeclaration();
-        assert(fctor);
-        fparameters = fctor->arguments;
-        fvarargs = fctor->varargs;
     }
     if (pvarargs)
         *pvarargs = fvarargs;
@@ -2905,17 +3009,15 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* CtorDeclaration ****************************/
 
-CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs, StorageClass stc)
-    : FuncDeclaration(loc, endloc, Id::ctor, stc, NULL)
+CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type)
+    : FuncDeclaration(loc, endloc, Id::ctor, stc, type)
 {
-    this->arguments = arguments;
-    this->varargs = varargs;
     //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
 }
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 {
-    CtorDeclaration *f = new CtorDeclaration(loc, endloc, NULL, varargs, storage_class);
+    CtorDeclaration *f = new CtorDeclaration(loc, endloc, storage_class, type->syntaxCopy());
 
     f->outId = outId;
     f->frequire = frequire ? frequire->syntaxCopy() : NULL;
@@ -2923,7 +3025,6 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
     f->fbody    = fbody    ? fbody->syntaxCopy()    : NULL;
     assert(!fthrows); // deprecated
 
-    f->arguments = Parameter::arraySyntaxCopy(arguments);
     return f;
 }
 
@@ -2931,6 +3032,10 @@ Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
 void CtorDeclaration::semantic(Scope *sc)
 {
     //printf("CtorDeclaration::semantic() %s\n", toChars());
+    TypeFunction *tf = (TypeFunction *)type;
+    assert(tf && tf->ty == Tfunction);
+    Expressions *fargs = ((TypeFunction *)type)->fargs;         // for auto ref
+
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static constructor
 
@@ -2948,15 +3053,16 @@ void CtorDeclaration::semantic(Scope *sc)
         assert(tret);
         tret = tret->addStorageClass(storage_class | sc->stc);
     }
-    if (!type)
-        type = new TypeFunction(arguments, tret, varargs, LINKd, storage_class | sc->stc);
+    tf = new TypeFunction(tf->parameters, tret, tf->varargs, LINKd, storage_class | sc->stc);
+    tf->fargs = fargs;
+    type = tf;
 
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
     {   ((TypeFunction *)type)->isref = 1;
         if (!originalType)
             // Leave off the "ref"
-            originalType = new TypeFunction(arguments, tret, varargs, LINKd, storage_class | sc->stc);
+            originalType = new TypeFunction(tf->parameters, tret, tf->varargs, LINKd, storage_class | sc->stc);
     }
 #endif
     if (!originalType)
@@ -2979,7 +3085,7 @@ void CtorDeclaration::semantic(Scope *sc)
     sc->pop();
 
     // See if it's the default constructor
-    if (ad && varargs == 0 && Parameter::dim(arguments) == 0)
+    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0)
     {   if (ad->isStructDeclaration())
             error("default constructor not allowed for structs");
         else
@@ -3015,10 +3121,13 @@ int CtorDeclaration::addPostInvariant()
 
 void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+    TypeFunction *tf = (TypeFunction *)type;
+    assert(tf && tf->ty == Tfunction);
+
     if (originalType && originalType->ty == Tfunction)
         ((TypeFunction *)originalType)->attributesToCBuffer(buf, 0);
     buf->writestring("this");
-    Parameter::argsToCBuffer(buf, hgs, arguments, varargs);
+    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
     bodyToCBuffer(buf, hgs);
 }
 

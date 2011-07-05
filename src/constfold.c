@@ -27,11 +27,9 @@
 #include "declaration.h"
 #include "utf.h"
 
-#if __FreeBSD__
-#define fmodl fmod      // hack for now, fix later
-#endif
-
 #define LOG 0
+
+int RealEquals(real_t x1, real_t x2);
 
 Expression *expType(Type *type, Expression *e)
 {
@@ -486,22 +484,22 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
         {   real_t r2 = e2->toReal();
 
 #ifdef __DMC__
-            c = fmodl(e1->toReal(), r2) + fmodl(e1->toImaginary(), r2) * I;
+            c = Port::fmodl(e1->toReal(), r2) + Port::fmodl(e1->toImaginary(), r2) * I;
 #elif defined(IN_GCC)
             c = complex_t(e1->toReal() % r2, e1->toImaginary() % r2);
 #else
-            c = complex_t(fmodl(e1->toReal(), r2), fmodl(e1->toImaginary(), r2));
+            c = complex_t(Port::fmodl(e1->toReal(), r2), Port::fmodl(e1->toImaginary(), r2));
 #endif
         }
         else if (e2->type->isimaginary())
         {   real_t i2 = e2->toImaginary();
 
 #ifdef __DMC__
-            c = fmodl(e1->toReal(), i2) + fmodl(e1->toImaginary(), i2) * I;
+            c = Port::fmodl(e1->toReal(), i2) + Port::fmodl(e1->toImaginary(), i2) * I;
 #elif defined(IN_GCC)
             c = complex_t(e1->toReal() % i2, e1->toImaginary() % i2);
 #else
-            c = complex_t(fmodl(e1->toReal(), i2), fmodl(e1->toImaginary(), i2));
+            c = complex_t(Port::fmodl(e1->toReal(), i2), Port::fmodl(e1->toImaginary(), i2));
 #endif
         }
         else
@@ -868,11 +866,27 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
 
         cmp = (es1->var == es2->var && es1->offset == es2->offset);
     }
-    else if (e1->isConst() == 1 && e2->isConst() == 1)
-        return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
-                type, e1, e2);
     else
-        assert(0);
+    {
+       if (e1->type->isreal())
+       {
+           cmp = RealEquals(e1->toReal(), e2->toReal());
+       }
+       else if (e1->type->isimaginary())
+       {
+           cmp = RealEquals(e1->toImaginary(), e2->toImaginary());
+       }
+       else if (e1->type->iscomplex())
+       {
+           complex_t v1 = e1->toComplex();
+           complex_t v2 = e2->toComplex();
+           cmp = RealEquals(creall(v1), creall(v2)) &&
+                 RealEquals(cimagl(v1), cimagl(v1));
+       }
+       else
+           return Equal((op == TOKidentity) ? TOKequal : TOKnotequal,
+                   type, e1, e2);
+    }
     if (op == TOKnotidentity)
         cmp ^= 1;
     return new IntegerExp(loc, cmp, type);
@@ -1081,6 +1095,13 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         to->implicitConvTo(e1->type) >= MATCHconst)
         return expType(to, e1);
 
+    // Allow covariant converions of delegates
+    // (Perhaps implicit conversion from pure to impure should be a MATCHconst,
+    // then we wouldn't need this extra check.)
+    if (e1->type->toBasetype()->ty == Tdelegate &&
+        e1->type->implicitConvTo(to) == MATCHconvert)
+        return expType(to, e1);
+
     Type *tb = to->toBasetype();
     Type *typeb = type->toBasetype();
 
@@ -1233,30 +1254,34 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         uinteger_t i = e2->toInteger();
 
         if (i >= length)
-        {   e2->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
+        {   e1->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
         }
-        else if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
+        else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             e = ale->elements->tdata()[i];
             e->type = type;
+            if (e->checkSideEffect(2))
+                e = EXP_CANT_INTERPRET;
         }
     }
     else if (e1->type->toBasetype()->ty == Tarray && e2->op == TOKint64)
     {
         uinteger_t i = e2->toInteger();
 
-        if (e1->op == TOKarrayliteral && !e1->checkSideEffect(2))
+        if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
-            {   e2->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+            {   e1->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
             }
             else
             {   e = ale->elements->tdata()[i];
                 e->type = type;
+                if (e->checkSideEffect(2))
+                    e = EXP_CANT_INTERPRET;
             }
         }
     }
-    else if (e1->op == TOKassocarrayliteral && !e1->checkSideEffect(2))
+    else if (e1->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)e1;
         /* Search the keys backwards, in case there are duplicate keys
@@ -1271,6 +1296,8 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             if (ex->isBool(TRUE))
             {   e = ae->values->tdata()[i];
                 e->type = type;
+                if (e->checkSideEffect(2))
+                    e = EXP_CANT_INTERPRET;
                 break;
             }
         }
@@ -1396,6 +1423,14 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         }
         e->type = type;
         return e;
+    }
+    else if (e1->op == TOKnull && e2->op == TOKnull)
+    {
+        if (type == e1->type)
+            return e1;
+        if (type == e2->type)
+            return e2;
+        return new NullExp(e1->loc, type);
     }
     else if (e1->op == TOKstring && e2->op == TOKstring)
     {

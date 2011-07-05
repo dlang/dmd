@@ -34,10 +34,10 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 #define OPTABLE0(str,op,mod) PTRNTAB0 aptb0##str[] = { { op, mod }, };
 
-OPTABLE0(AAA,     0x37,_modax);
-OPTABLE0(AAD,     0xd50a,_modax);
-OPTABLE0(AAM,     0xd40a,_modax);
-OPTABLE0(AAS,     0x3f,_modax);
+OPTABLE0(AAA,     0x37  ,_i64_bit | _modax);
+OPTABLE0(AAD,     0xd50a,_i64_bit | _modax);
+OPTABLE0(AAM,     0xd40a,_i64_bit | _modax);
+OPTABLE0(AAS,     0x3f,  _i64_bit | _modax);
 OPTABLE0(CBW,     0x98,_16_bit | _modax);
 OPTABLE0(CWDE,    0x98,_32_bit | _I386 | _modax);
 OPTABLE0(CDQE,    0x98,_64_bit | _modax);
@@ -53,13 +53,13 @@ OPTABLE0(CMPSQ,   0xa7,_64_bit | _modsidi);
 OPTABLE0(CWD,     0x99, _16_bit | _modaxdx);
 OPTABLE0(CDQ,     0x99,_32_bit | _I386 | _modaxdx);
 OPTABLE0(CQO,     0x99, _64_bit | _modaxdx);
-OPTABLE0(DAA,     0x27,_modax);
-OPTABLE0(DAS,     0x2f,_modax);
+OPTABLE0(DAA,     0x27,_i64_bit | _modax );
+OPTABLE0(DAS,     0x2f,_i64_bit | _modax );
 OPTABLE0(HLT,     0xf4,0);
 OPTABLE0(INSB,    0x6c,_I386 | _modsi);
 OPTABLE0(INSW,    0x6d,_16_bit | _I386 | _modsi);
 OPTABLE0(INSD,    0x6d,_32_bit | _I386 | _modsi);
-OPTABLE0(INTO,    0xce,0);
+OPTABLE0(INTO,    0xce,_i64_bit);
 OPTABLE0(INVD,    0x0f08,_I386);               // Actually a 486 only instruction
 OPTABLE0(IRET,    0xcf,_16_bit);
 OPTABLE0(IRETD,   0xcf,_32_bit | _I386);
@@ -77,14 +77,16 @@ OPTABLE0(NOP,     0x90, 0);
 OPTABLE0(OUTSB,   0x6e, _I386 | _modsi);
 OPTABLE0(OUTSW,   0x6f, _16_bit | _I386 | _modsi);
 OPTABLE0(OUTSD,   0x6f, _32_bit | _I386 | _modsi);
-OPTABLE0(POPA,    0x61, _16_bit | _I386 | _modall);
-OPTABLE0(POPAD,   0x61, _32_bit | _I386 | _modall);
-OPTABLE0(POPF,    0x9d, _16_bit);
-OPTABLE0(POPFD,   0x9d, _32_bit | _I386);
-OPTABLE0(PUSHA,   0x60, _16_bit | _I386);
-OPTABLE0(PUSHAD,  0x60, _32_bit | _I386);
-OPTABLE0(PUSHF,   0x9c, _16_bit);
-OPTABLE0(PUSHFD,  0x9c, _32_bit | _I386);
+OPTABLE0(POPA,    0x61,_i64_bit | _16_bit | _I386 | _modall);
+OPTABLE0(POPAD,   0x61,_i64_bit | _32_bit | _I386 | _modall);
+OPTABLE0(POPF,    0x9d,           _16_bit);
+OPTABLE0(POPFD,   0x9d,_i64_bit | _32_bit | _I386);
+OPTABLE0(POPFQ,   0x9d, _64_bit);
+OPTABLE0(PUSHA,   0x60,_i64_bit | _16_bit | _I386);
+OPTABLE0(PUSHAD,  0x60,_i64_bit | _32_bit | _I386);
+OPTABLE0(PUSHF,   0x9c,           _16_bit);
+OPTABLE0(PUSHFD,  0x9c,_i64_bit | _32_bit | _I386);
+OPTABLE0(PUSHFQ,  0x9c, _64_bit);                // TODO REX_W override is implicit
 OPTABLE0(REP,     0xf3, _modcx);
 OPTABLE0(REPNE,   0xf2, _modcx);
 OPTABLE0(SAHF,    0x9e, 0);
@@ -107,7 +109,7 @@ OPTABLE0(RDMSR,   0x0f32, _I386 | _modaxdx);
 OPTABLE0(RDPMC,   0x0f33, _I386 | _modaxdx);
 OPTABLE0(RDTSC,   0x0f31, _I386 | _modaxdx);
 OPTABLE0(WRMSR,   0x0f30, _I386);
-OPTABLE0(RSM,     0x0faa,   _I386);
+OPTABLE0(RSM,     0x0faa,_i64_bit | _I386);
 
 PTRNTAB2 aptb2MOVSD[] =  /* MOVSD */ {
         { 0xa5, _32_bit | _I386 | _modsidi },
@@ -128,38 +130,38 @@ PTRNTAB1 aptb1BSWAP[] = /* BSWAP */ {
 };
 
 PTRNTAB1 aptb1CALL[] = /* CALL */ {
-        { 0xe8, _cw | _modall , _rel16  },
-        { 0xff, _2 | _16_bit | _modall, _r16 },
-        { 0xff, _2 | _modall ,  _m16 },
-        { 0x9a, _cd | _modall , _p1616  },
-        { 0xff, _3 | _modall ,  _m1616  },
-        { 0xe8, _cd | _modall , _rel32  },
-        { 0xff, _2 | _32_bit | _modall ,        _r32  },
-        { 0xff, _2 | _64_bit | _modall ,        _r64  },
-        { 0xff, _2 | _modall ,  _m32  },
-        { 0xff, _2 | _64_bit | _modall ,  _m64  },
-        { 0x9a, _cp | _modall , _p1632 },
-        { 0xff, _3 | _modall ,  _m1632  },
+        { 0xe8, _cw| _i64_bit |           _modall,  _rel16  },
+        { 0xff, _2 | _i64_bit | _16_bit | _modall,  _r16 },
+        { 0xff, _2 | _i64_bit |           _modall,  _m16 },
+        { 0x9a, _cd| _i64_bit |           _modall,  _p1616  },
+        { 0xff, _3 |                      _modall,  _m1616  },
+        { 0xe8, _cd|                      _modall,  _rel32  },
+        { 0xff, _2 | _i64_bit | _32_bit | _modall,  _r32  },
+        { 0xff, _2 |            _32_bit | _modall,  _r64  },       // REX_W override is implicit
+        { 0xff, _2 | _i64_bit |           _modall,  _m32  },
+        { 0xff, _2 |            _64_bit | _modall,  _m64  },       // TODO REX_W override is implicit
+        { 0x9a, _cp| _i64_bit |           _modall,  _p1632 },
+        { 0xff, _3 |                      _modall,  _m1632 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB1 aptb1DEC[] = /* DEC */ {
-        { 0xfe, _1,             _rm8 },
-        { 0xff, _1 | _16_bit,           _m16 },         // Also _r16 synonym
-        { 0xff, _1 | _32_bit,           _m32 },         // Also _r32 synonym
-        { 0xff, _1 | _64_bit,           _rm64 },        // Also _r64 synonym
-        { 0x48, _rw | _16_bit,          _r16 | _plus_r },
-        { 0x48, _rw | _32_bit,          _r32 | _plus_r },
+        { 0xfe, _1,                        _rm8 },
+        { 0x48, _rw | _i64_bit | _16_bit,  _r16 | _plus_r },
+        { 0x48, _rd | _i64_bit | _32_bit,  _r32 | _plus_r },
+        { 0xff, _1  |            _16_bit,  _rm16 },
+        { 0xff, _1  |            _32_bit,  _rm32 },
+        { 0xff, _1  |            _64_bit,  _rm64 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB1 aptb1INC[] = /* INC */ {
-        { 0xfe, _0,     _rm8 },
-        { 0xff, _0 | _16_bit,   _m16 },                 // Also _r16 synonym
-        { 0xff, _0 | _32_bit,   _m32 },                 // Also _r32 synonym
-        { 0xff, _0 | _64_bit,   _rm64 },                // Also _r64 synonym
-        { 0x40, _rw | _16_bit,_r16 | _plus_r },
-        { 0x40, _rd | _32_bit,_r32 | _plus_r },
+        { 0xfe, _0,                        _rm8 },
+        { 0x40, _rw | _i64_bit | _16_bit,  _r16 | _plus_r },
+        { 0x40, _rd | _i64_bit | _32_bit,  _r32 | _plus_r },
+        { 0xff, _0  |            _16_bit,  _rm16 },
+        { 0xff, _0  |            _32_bit,  _rm32 },
+        { 0xff, _0  |            _64_bit,  _rm64 },
         { ASM_END, 0, 0 }
 };
 // INT and INT 3
@@ -176,11 +178,11 @@ PTRNTAB1 aptb1INVLPG[] = /* INVLPG */ {         // 486 only instruction
 };
 
 #define OPTABLE(str,op) \
-PTRNTAB1 aptb1##str[] = {               \
-        { 0x70|op,   _cb,_rel8 },       \
-        { 0x0f80|op, _cw,_rel16 },      \
-        { 0x0f80|op, _cd,_rel32 },      \
-        { ASM_END, 0, 0 }               \
+PTRNTAB1 aptb1##str[] = {                    \
+        { 0x70|op,   _cb,         _rel8 },   \
+        { 0x0f80|op, _cw|_i64_bit,_rel16 },  \
+        { 0x0f80|op, _cd,         _rel32 },  \
+        { ASM_END, 0, 0 }                    \
 }
 
 OPTABLE(JO,0);
@@ -203,7 +205,7 @@ OPTABLE(JNLE,0xF);
 #undef OPTABLE
 
 PTRNTAB1 aptb1JCXZ[] = /* JCXZ */ {
-        { 0xe3, _cb | _16_bit_addr,_rel8 },
+        { 0xe3, _cb | _i64_bit | _16_bit_addr, _rel8 },
         { ASM_END, 0, 0 }
 };
 PTRNTAB1 aptb1JECXZ[] = /* JECXZ */ {
@@ -211,16 +213,16 @@ PTRNTAB1 aptb1JECXZ[] = /* JECXZ */ {
         { ASM_END, 0, 0 }
 };
 PTRNTAB1 aptb1JMP[] = /* JMP */ {
-        { 0xe9, _cw,_rel16 },
-        { 0xe9, _cd,_rel32 },
-        { 0xeb, _cb,_rel8 },
-        { 0xff, _4 | _16_bit,   _rm16 },
-        { 0xea, _cd,_p1616 },
-        { 0xff, _5,     _m1616 },
-        { 0xff, _4 | _32_bit,   _rm32 },
-        { 0xff, _4 | _64_bit,   _rm64 },
-        { 0xea, _cp,_p1632 },
-        { 0xff, _5,     _m1632 },
+        { 0xe9, _cw| _i64_bit,           _rel16 },
+        { 0xe9, _cd,                     _rel32 },
+        { 0xeb, _cb,                     _rel8  },
+        { 0xff, _4 | _i64_bit | _16_bit, _rm16  },
+        { 0xea, _cd| _i64_bit,           _p1616 },
+        { 0xff, _5,                      _m1616 },
+        { 0xff, _4 | _i64_bit | _32_bit, _rm32  },
+        { 0xff, _4 |            _64_bit, _rm64  },       // TODO REX_W override is implicit
+        { 0xea, _cp| _i64_bit,          _p1632  },
+        { 0xff, _5,                     _m1632  },
         { ASM_END, 0, 0 }
 };
 PTRNTAB1 aptb1LGDT[] = /* LGDT */ {
@@ -276,36 +278,37 @@ PTRNTAB1 aptb1NOT[] = /* NOT */ {
         { ASM_END, 0, 0 }
 };
 PTRNTAB1 aptb1POP[] = /* POP */ {
-        { 0x8f, _0 | _16_bit, _m16 },
-        { 0x8f, _0 | _32_bit,   _m32},
-        { 0x58, _rw | _16_bit, _r16 | _plus_r },
-        { 0x58, _rd | _32_bit, _r32 | _plus_r },
-        { 0x58, _r | _32_bit,   _r64 | _plus_r },       // REX_W override is implicit
-        { 0x1f, 0,      _ds | _seg },
-        { 0x07, _modes, _es | _seg},
-        { 0x17, 0,      _ss | _seg},
-        { 0x0fa1,       0,      _fs | _seg},
-        { 0x0fa9,       0,      _gs | _seg},
+        { 0x8f, _0  |            _16_bit, _m16 },
+        { 0x8f, _0  | _i64_bit | _32_bit, _m32 },
+        { 0x8f, _0  |            _64_bit, _m64 },                 // TODO REX_W override is implicit
+        { 0x58, _rw |            _16_bit, _r16 | _plus_r },
+        { 0x58, _rd | _i64_bit | _32_bit, _r32 | _plus_r },
+        { 0x58, _r  |            _32_bit, _r64 | _plus_r },       // REX_W override is implicit
+        { 0x1f,       _i64_bit,            _ds | _seg },
+        { 0x07,       _i64_bit | _modes,   _es | _seg },
+        { 0x17,       _i64_bit,            _ss | _seg },
+        { 0x0fa1,       0,                 _fs | _seg },
+        { 0x0fa9,       0,                 _gs | _seg },
         { ASM_END, 0, 0 }
 };
 PTRNTAB1 aptb1PUSH[] = /* PUSH */ {
-        { 0xff, _6 | _16_bit,   _m16 },
-        { 0xff, _6 | _32_bit,   _m32 },
-        { 0xff, _6 | _64_bit,   _m64 },
-        { 0x50, _r | _16_bit,   _r16 | _plus_r },
-        { 0x50, _r | _32_bit,   _r32 | _plus_r },
-        { 0x50, _r | _32_bit,   _r64 | _plus_r },       // REX_W override is implicit
-        { 0x6a, 0,_imm8 },
+        { 0xff, _6 |            _16_bit,  _m16 },
+        { 0xff, _6 | _i64_bit | _32_bit,  _m32 },
+        { 0xff, _6 |            _64_bit,  _m64 },                // TODO REX_W override is implicit
+        { 0x50, _r |            _16_bit, _r16 | _plus_r },
+        { 0x50, _r | _i64_bit | _32_bit, _r32 | _plus_r },
+        { 0x50, _r |            _32_bit, _r64 | _plus_r },       // REX_W override is implicit
+        { 0x6a,       0,_imm8 },
         { 0x68, _16_bit,_imm16 },
         { 0x68, _16_bit,_rel16 },
         { 0x68, _32_bit,_imm32 },
         { 0x68, _32_bit,_rel32 },
-        { 0x0e, 0,_cs | _seg},
-        { 0x16, 0,_ss | _seg},
-        { 0x1e, 0,_ds | _seg},
-        { 0x06, 0,_es | _seg},
-        { 0x0fa0,       0,_fs | _seg},
-        { 0x0fa8,       0,_gs | _seg},
+        { 0x0e, _i64_bit,_cs | _seg  },
+        { 0x16, _i64_bit,_ss | _seg  },
+        { 0x1e, _i64_bit,_ds | _seg  },
+        { 0x06, _i64_bit,_es | _seg  },
+        { 0x0fa0,      0,_fs | _seg},
+        { 0x0fa8,      0,_gs | _seg},
         { ASM_END, 0, 0 }
 };
 PTRNTAB1 aptb1RET[] = /* RET */ {
@@ -436,30 +439,30 @@ OPTABLE(CMP,0x38,_7,_modnot1);
 #undef OPTABLE
 
 PTRNTAB2  aptb2ARPL[] = /* ARPL */ {
-        { 0x63, _r,                     _rm16,  _r16 },
+        { 0x63, _r|_i64_bit,               _rm16, _r16 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2BOUND[] = /* BOUND */ {
-        { 0x62, _r|_16_bit|_modnot1,_r16,_m16 },// Should really b3 _m16_16
-        { 0x62, _r|_32_bit|_modnot1,_r32,_m32 },// Should really be _m32_32
+        { 0x62, _r|_i64_bit|_16_bit|_modnot1,_r16,_m16 },// Should really b3 _m16_16
+        { 0x62, _r|_i64_bit|_32_bit|_modnot1,_r32,_m32 },// Should really be _m32_32
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2BSF[] = /* BSF */ {
         { 0x0fbc,       _cw | _16_bit,          _r16,   _rm16 },
         { 0x0fbc,       _cd|_32_bit,            _r32,   _rm32 },
-        { 0x0fbc,       _cd|_64_bit,            _r64,   _rm64 },
+        { 0x0fbc,       _cq|_64_bit,            _r64,   _rm64 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2BSR[] = /* BSR */ {
         { 0x0fbd,       _cw|_16_bit,            _r16,   _rm16 },
         { 0x0fbd,       _cd|_32_bit,            _r32,   _rm32 },
-        { 0x0fbd,       _cd|_64_bit,            _r64,   _rm64 },
+        { 0x0fbd,       _cq|_64_bit,            _r64,   _rm64 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2BT[] = /* BT */ {
         { 0x0fa3,       _cw|_16_bit|_modnot1,           _rm16,  _r16 },
         { 0x0fa3,       _cd|_32_bit|_modnot1,           _rm32,  _r32 },
-        { 0x0fa3,       _cd|_64_bit|_modnot1,           _rm64,  _r64 },
+        { 0x0fa3,       _cq|_64_bit|_modnot1,           _rm64,  _r64 },
         { 0x0fba,       _4|_ib|_16_bit|_modnot1,        _rm16,  _imm8 },
         { 0x0fba,       _4|_ib|_32_bit|_modnot1,        _rm32,  _imm8 },
         { 0x0fba,       _4|_ib|_64_bit|_modnot1,        _rm64,  _imm8 },
@@ -468,7 +471,7 @@ PTRNTAB2  aptb2BT[] = /* BT */ {
 PTRNTAB2  aptb2BTC[] = /* BTC */ {
         { 0x0fbb,       _cw|_16_bit,            _rm16,  _r16 },
         { 0x0fbb,       _cd|_32_bit,            _rm32,  _r32 },
-        { 0x0fbb,       _cd|_64_bit,            _rm64,  _r64 },
+        { 0x0fbb,       _cq|_64_bit,            _rm64,  _r64 },
         { 0x0fba,       _7|_ib|_16_bit, _rm16,  _imm8 },
         { 0x0fba,       _7|_ib|_32_bit, _rm32,  _imm8 },
         { 0x0fba,       _7|_ib|_64_bit, _rm64,  _imm8 },
@@ -477,7 +480,7 @@ PTRNTAB2  aptb2BTC[] = /* BTC */ {
 PTRNTAB2  aptb2BTR[] = /* BTR */ {
         { 0x0fb3,       _cw|_16_bit,            _rm16,  _r16 },
         { 0x0fb3,       _cd|_32_bit,            _rm32,  _r32 },
-        { 0x0fb3,       _cd|_64_bit,            _rm64,  _r64 },
+        { 0x0fb3,       _cq|_64_bit,            _rm64,  _r64 },
         { 0x0fba,       _6|_ib|_16_bit,         _rm16,  _imm8 },
         { 0x0fba,       _6|_ib|_32_bit,         _rm32,  _imm8 },
         { 0x0fba,       _6|_ib|_64_bit,         _rm64,  _imm8 },
@@ -486,7 +489,7 @@ PTRNTAB2  aptb2BTR[] = /* BTR */ {
 PTRNTAB2  aptb2BTS[] = /* BTS */ {
         { 0x0fab,       _cw|_16_bit,            _rm16,  _r16 },
         { 0x0fab,       _cd|_32_bit,            _rm32,  _r32 },
-        { 0x0fab,       _cd|_64_bit,            _rm64,  _r64 },
+        { 0x0fab,       _cq|_64_bit,            _rm64,  _r64 },
         { 0x0fba,       _5|_ib|_16_bit,         _rm16,  _imm8 },
         { 0x0fba,       _5|_ib|_32_bit,         _rm32,  _imm8 },
         { 0x0fba,       _5|_ib|_64_bit,         _rm64,  _imm8 },
@@ -555,8 +558,8 @@ PTRNTAB2  aptb2LAR[] = /* LAR */ {
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2LDS[] = /* LDS */ {
-        { 0xc5, _r|_16_bit,                     _r16,   _m32 },
-        { 0xc5, _r|_32_bit,                     _r32,   _m48 },
+        { 0xc5, _r|_i64_bit|_16_bit,                    _r16,   _m32 },
+        { 0xc5, _r|_i64_bit|_32_bit,                    _r32,   _m48 },
         { ASM_END, 0, 0, 0 }
 };
 
@@ -570,8 +573,8 @@ PTRNTAB2  aptb2LEA[] = /* LEA */ {
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2LES[] = /* LES */ {
-        { 0xc4, _r|_16_bit|_modes,              _r16,   _m32 },
-        { 0xc4, _r|_32_bit|_modes,              _r32,   _m48 },
+        { 0xc4, _r|_i64_bit|_16_bit|_modes,             _r16,   _m32 },
+        { 0xc4, _r|_i64_bit|_32_bit|_modes,             _r32,   _m48 },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB2  aptb2LFS[] = /* LFS */ {
@@ -617,7 +620,7 @@ PTRNTAB2 aptb2MOV[] = /* MOV */ {
         { 0xb0, _rb,            _r8 | _plus_r,  _imm8           },
         { 0xb8, _rw | _16_bit,  _r16 | _plus_r, _imm16          },
         { 0xb8, _rd|_32_bit,    _r32 | _plus_r, _imm32          },
-        { 0xb8, _rd|_64_bit,    _r64 | _plus_r, _imm32          },
+        { 0xb8, _rd|_64_bit,    _r64 | _plus_r, _imm64          },
         { 0xc6, _cb,            _rm8,           _imm8           },
         { 0xc7, _cw|_16_bit,    _rm16,          _imm16          },
         { 0xc7, _cd|_32_bit,    _rm32,          _imm32          },
@@ -804,15 +807,19 @@ PTRNTAB3  aptb3IMUL[] = /* IMUL */ {
 PTRNTAB3  aptb3SHLD[] = /* SHLD */ {
         { 0x0fa4,       _cw|_16_bit, _rm16, _r16, _imm8 },
         { 0x0fa4,       _cd|_32_bit, _rm32, _r32, _imm8 },
+        { 0x0fa4,       _cq|_64_bit, _rm64, _r64, _imm8 },
         { 0x0fa5,       _cw|_16_bit, _rm16, _r16, _cl },
         { 0x0fa5,       _cd|_32_bit, _rm32, _r32, _cl },
+        { 0x0fa5,       _cq|_64_bit, _rm64, _r64, _cl },
         { ASM_END, 0, 0, 0 }
 };
 PTRNTAB3  aptb3SHRD[] = /* SHRD */ {
         { 0x0fac,       _cw|_16_bit, _rm16, _r16, _imm8 },
         { 0x0fac,       _cd|_32_bit, _rm32, _r32, _imm8 },
+        { 0x0fac,       _cq|_64_bit, _rm64, _r64, _imm8 },
         { 0x0fad,       _cw|_16_bit, _rm16, _r16, _cl },
         { 0x0fad,       _cd|_32_bit, _rm32, _r32, _cl },
+        { 0x0fad,       _cq|_64_bit, _rm64, _r64, _cl },
         { ASM_END, 0, 0, 0 }
 };
 //
@@ -2434,6 +2441,124 @@ PTRNTAB2 aptb2MOVSLDUP[] = /* MOVSLDUP */ {
         { ASM_END, 0, 0 }
 };
 
+/* ======================= SSSE3 ======================= */
+
+/*
+palignr
+phaddd
+phaddw
+phaddsw
+phsubd
+phsubw
+phsubsw
+pmaddubsw
+pmulhrsw
+pshufb
+pabsb
+pabsd
+pabsw
+psignb
+psignd
+psignw
+*/
+
+PTRNTAB3 aptb3PALIGNR[] = /* PALIGNR */ {
+        { 0x0F3A0F, _r,_mm,_mmm64, _imm8 },
+        { 0x660F3A0F, _r,_xmm,_xmm_m128, _imm8 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHADDD[] = /* PHADDD */ {
+        { 0x0F3802, _r,_mm,_mmm64 },
+        { 0x660F3802, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHADDW[] = /* PHADDW */ {
+        { 0x0F3801, _r,_mm,_mmm64 },
+        { 0x660F3801, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHADDSW[] = /* PHADDSW */ {
+        { 0x0F3803, _r,_mm,_mmm64 },
+        { 0x660F3803, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHSUBD[] = /* PHSUBD */ {
+        { 0x0F3806, _r,_mm,_mmm64 },
+        { 0x660F3806, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHSUBW[] = /* PHSUBW */ {
+        { 0x0F3805, _r,_mm,_mmm64 },
+        { 0x660F3805, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PHSUBSW[] = /* PHSUBSW */ {
+        { 0x0F3807, _r,_mm,_mmm64 },
+        { 0x660F3807, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PMADDUBSW[] = /* PMADDUBSW */ {
+        { 0x0F3804, _r,_mm,_mmm64 },
+        { 0x660F3804, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PMULHRSW[] = /* PMULHRSW */ {
+        { 0x0F380B, _r,_mm,_mmm64 },
+        { 0x660F380B, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSHUFB[] = /* PSHUFB */ {
+        { 0x0F3800, _r,_mm,_mmm64 },
+        { 0x660F3800, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PABSB[] = /* PABSB */ {
+        { 0x0F381C, _r,_mm,_mmm64 },
+        { 0x660F381C, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PABSD[] = /* PABSD */ {
+        { 0x0F381E, _r,_mm,_mmm64 },
+        { 0x660F381E, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PABSW[] = /* PABSW */ {
+        { 0x0F381D, _r,_mm,_mmm64 },
+        { 0x660F381D, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSIGNB[] = /* PSIGNB */ {
+        { 0x0F3808, _r,_mm,_mmm64 },
+        { 0x660F3808, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSIGND[] = /* PSIGND */ {
+        { 0x0F380A, _r,_mm,_mmm64 },
+        { 0x660F380A, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+PTRNTAB2 aptb2PSIGNW[] = /* PSIGNW */ {
+        { 0x0F3809, _r,_mm,_mmm64 },
+        { 0x660F3809, _r,_xmm,_xmm_m128 },
+        { ASM_END, 0, 0 }
+};
+
+
 /* ======================= SSE4.1 ======================= */
 
 /*
@@ -2955,6 +3080,9 @@ getsec
         X("outsb",      0,              aptb0OUTSB ) \
         X("outsd",      0,              aptb0OUTSD ) \
         X("outsw",      0,              aptb0OUTSW ) \
+        X("pabsb",      2,              (P) aptb2PABSB ) \
+        X("pabsd",      2,              (P) aptb2PABSD ) \
+        X("pabsw",      2,              (P) aptb2PABSW ) \
         X("packssdw",   2,              (P) aptb2PACKSSDW ) \
         X("packsswb",   2,              (P) aptb2PACKSSWB ) \
         X("packuswb",   2,              (P) aptb2PACKUSWB ) \
@@ -2966,6 +3094,7 @@ getsec
         X("paddusb",    2,              (P) aptb2PADDUSB ) \
         X("paddusw",    2,              (P) aptb2PADDUSW ) \
         X("paddw",      2,              (P) aptb2PADDW ) \
+        X("palignr",    3,              (P) aptb3PALIGNR ) \
         X("pand",       2,              (P) aptb2PAND ) \
         X("pandn",      2,              (P) aptb2PANDN ) \
         /* X("pause",   0,              aptb0PAUSE) */ \
@@ -2997,14 +3126,22 @@ getsec
         X("pfrsqrt",    2,              (P) aptb2PFRSQRT ) \
         X("pfsub",      2,              (P) aptb2PFSUB ) \
         X("pfsubr",     2,              (P) aptb2PFSUBR ) \
+        X("phaddd",     2,              (P) aptb2PHADDD ) \
+        X("phaddsw",    2,              (P) aptb2PHADDSW ) \
+        X("phaddw",     2,              (P) aptb2PHADDW ) \
+        X("phsubd",     2,              (P) aptb2PHSUBD ) \
+        X("phsubsw",    2,              (P) aptb2PHSUBSW ) \
+        X("phsubw",     2,              (P) aptb2PHSUBW ) \
         X("pi2fd",      2,              (P) aptb2PI2FD ) \
         X("pinsrw",     3,              (P) aptb3PINSRW ) \
+        X("pmaddubsw",  2,              (P) aptb2PMADDUBSW ) \
         X("pmaddwd",    2,              (P) aptb2PMADDWD ) \
         X("pmaxsw",     2,              (P) aptb2PMAXSW ) \
         X("pmaxub",     2,              (P) aptb2PMAXUB ) \
         X("pminsw",     2,              (P) aptb2PMINSW ) \
         X("pminub",     2,              (P) aptb2PMINUB ) \
         X("pmovmskb",   2,              (P) aptb2PMOVMSKB ) \
+        X("pmulhrsw",   2,              (P) aptb2PMULHRSW ) \
         X("pmulhrw",    2,              (P) aptb2PMULHRW ) \
         X("pmulhuw",    2,              (P) aptb2PMULHUW ) \
         X("pmulhw",     2,              (P) aptb2PMULHW ) \
@@ -3015,16 +3152,21 @@ getsec
         X("popad",      0,              aptb0POPAD ) \
         X("popf",       0,              aptb0POPF ) \
         X("popfd",      0,              aptb0POPFD ) \
+        X("popfq",      0,              aptb0POPFQ ) \
         X("por",        2,              (P) aptb2POR ) \
         X("prefetchnta",1,              (P) aptb1PREFETCHNTA ) \
         X("prefetcht0", 1,              (P) aptb1PREFETCHT0 ) \
         X("prefetcht1", 1,              (P) aptb1PREFETCHT1 ) \
         X("prefetcht2", 1,              (P) aptb1PREFETCHT2 ) \
         X("psadbw",     2,              (P) aptb2PSADBW ) \
+        X("pshufb",     2,              (P) aptb2PSHUFB ) \
         X("pshufd",     3,              (P) aptb3PSHUFD ) \
         X("pshufhw",    3,              (P) aptb3PSHUFHW ) \
         X("pshuflw",    3,              (P) aptb3PSHUFLW ) \
         X("pshufw",     3,              (P) aptb3PSHUFW ) \
+        X("psignb",     2,              (P) aptb2PSIGNB ) \
+        X("psignd",     2,              (P) aptb2PSIGND ) \
+        X("psignw",     2,              (P) aptb2PSIGNW ) \
         X("pslld",      2,              (P) aptb2PSLLD ) \
         X("pslldq",     2,              (P) aptb2PSLLDQ ) \
         X("psllq",      2,              (P) aptb2PSLLQ ) \
@@ -3057,6 +3199,7 @@ getsec
         X("pushad",     0,              aptb0PUSHAD ) \
         X("pushf",      0,              aptb0PUSHF ) \
         X("pushfd",     0,              aptb0PUSHFD ) \
+        X("pushfq",     0,              aptb0PUSHFQ ) \
         X("pxor",       2,              (P) aptb2PXOR ) \
         X("rcl",        ITshift | 2,    (P) aptb2RCL ) \
         X("rcpps",      2,              (P) aptb2RCPPS ) \
@@ -3203,7 +3346,6 @@ const char *asm_opstr(OP *pop)
 
 OP *asm_op_lookup(const char *s)
 {
-    OP  *pop;
     int i;
     char szBuf[12];
 

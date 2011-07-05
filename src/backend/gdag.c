@@ -294,8 +294,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
         }
 
         if (OTdef(op))
-        {       int e1op;
-
+        {
                 assert(n->Eexp == 0);   // should not be an AE
                 /* remove all AEs that could be affected by this def    */
                 if (Eunambig(n))        // if unambiguous definition
@@ -645,7 +644,7 @@ void boolopt()
 
 STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
 {   vec_t aer,aerval;
-    unsigned i,op,e1op;
+    unsigned i,op;
     unsigned i1,i2;
     elem *t;
 

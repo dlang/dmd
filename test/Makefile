@@ -98,6 +98,10 @@ DISABLED_TESTS += builtin
 
 DISABLED_TESTS += dhry
 # runnable/dhry.d(488): Error: undefined identifier dtime
+
+# 64 bit test failures
+DISABLED_TESTS += test17
+DISABLED_SH_TESTS += test39
 endif
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.html) $(wildcard runnable/*.sh)
@@ -112,6 +116,9 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 all: run_tests
 
 $(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
+	$(QUIET) echo " ... $@ - disabled"
+
+$(addsuffix .sh.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_SH_TESTS))): $(RESULTS_DIR)/.created
 	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)

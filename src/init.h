@@ -26,9 +26,8 @@ struct VoidInitializer;
 struct StructInitializer;
 struct ArrayInitializer;
 struct ExpInitializer;
-#ifdef _DH
 struct HdrGenState;
-#endif
+
 
 struct Initializer : Object
 {

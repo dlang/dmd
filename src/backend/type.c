@@ -821,7 +821,7 @@ type *type_setdependent(type *t)
  */
 
 int type_isdependent(type *t)
-{   param_t *p;
+{
     Symbol *stempl;
     type *tstart;
 
@@ -1279,7 +1279,9 @@ unsigned param_t::length()
 
 param_t *param_t::createTal(param_t *ptali)
 {
+#if SCPP
     param_t *ptalistart = ptali;
+#endif
     param_t *ptal = NULL;
     param_t **pp = &ptal;
     param_t *p;

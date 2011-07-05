@@ -29,4 +29,14 @@ struct Foo3
 
 class C3 { @property int get() { return 0; } }
 
+T foo3(T)() {}
 
+struct Foo4(T)
+{
+   T x;
+}
+
+class C4(T)
+{
+  T x;
+}

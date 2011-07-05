@@ -32,6 +32,7 @@
 ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
+ClassDeclaration *ClassDeclaration::exception;
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : AggregateDeclaration(loc, id)
@@ -186,6 +187,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         {   if (throwable)
                 throwable->error("%s", msg);
             throwable = this;
+        }
+
+        if (id == Id::Exception)
+        {   if (exception)
+                exception->error("%s", msg);
+            exception = this;
         }
 
         //if (id == Id::ClassInfo)
@@ -691,7 +698,8 @@ void ClassDeclaration::semantic(Scope *sc)
     if (!ctor && baseClass && baseClass->ctor)
     {
         //printf("Creating default this(){} for class %s\n", toChars());
-        CtorDeclaration *ctor = new CtorDeclaration(loc, 0, NULL, 0, 0);
+                Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
+        CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
         ctor->fbody = new CompoundStatement(0, new Statements());
         members->push(ctor);
         ctor->addMember(sc, this, 1);
@@ -750,6 +758,12 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 #endif
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
+
+    if (deferred)
+    {
+        deferred->semantic2(sc);
+        deferred->semantic3(sc);
+    }
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

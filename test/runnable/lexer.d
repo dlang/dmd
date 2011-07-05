@@ -279,6 +279,23 @@ void test7()
 }
 
 /*********************************************************/
+// 4633
+
+template Types(alias v)
+{
+    alias typeof(v) Types;
+}
+
+typeof({return 1;}()) a; // ok
+Types!({return 1;}()) x; // ok
+
+void test8()
+{
+    typeof({return 1;}()) b;
+    Types!({return 1;}()) y;
+}
+
+/*********************************************************/
 
 int main()
 {
@@ -289,6 +306,7 @@ int main()
     test5();
     test6();
     test7();
+    test8();
 
     printf("Success\n");
     return 0;

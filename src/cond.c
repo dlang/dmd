@@ -20,10 +20,8 @@
 #include "module.h"
 #include "template.h"
 #include "lexer.h"
-#ifdef _DH
 #include "mtype.h"
 #include "scope.h"
-#endif
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -138,6 +136,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
         "D_NET",
 #endif
         "OSX", "FreeBSD",
+        "OpenBSD",
         "Solaris",
         "LittleEndian", "BigEndian",
         "all",

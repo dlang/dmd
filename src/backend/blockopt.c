@@ -221,7 +221,6 @@ void block_goto(block *bgoto,block *bnew)
 
 void block_ptr()
 {   block *b;
-    unsigned i;
 
 /*    dbg_printf("block_ptr()\n");*/
 
@@ -293,10 +292,7 @@ void block_visit(block *b)
  */
 
 void block_compbcount()
-{   block *b;
-    list_t bl;
-    int again;
-
+{
     block_clearvisit();
     block_visit(startblock);                    // visit all reachable blocks
     elimblks();                                 // eliminate unvisited blocks
@@ -701,7 +697,7 @@ void brcombine()
             /* Replace with [(e1 && e2),e3]                             */
             bc = b->BC;
             if (bc == BCiftrue)
-            {   unsigned char bc2,bc3;
+            {   unsigned char bc2;
 
                 b2 = list_block(b->Bsucc);
                 b3 = list_block(list_next(b->Bsucc));
@@ -1093,7 +1089,7 @@ STATIC void brrear()
  */
 
 void compdfo()
-{ register block *b;
+{
   register int i;
 
   cmes("compdfo()\n");
@@ -1324,7 +1320,6 @@ STATIC int mergeblks()
 STATIC void blident()
 {   block *bn;
     block *bnext;
-    block *btry;
 
     cmes("blident()\n");
     assert(startblock);
@@ -1867,7 +1862,6 @@ STATIC void block_check()
 STATIC void brtailrecursion()
 {   block *b;
     block *bs;
-    list_t bl;
     elem **pe;
 
 #if SCPP
@@ -1980,7 +1974,6 @@ STATIC elem * assignparams(elem **pe,int *psi,elem **pe2)
         Symbol *sp;
         Symbol *s;
         int op;
-        unsigned numbytes;
         elem *es;
         type *t;
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -427,8 +427,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 if (token.value == TOKidentifier &&
                     (tk = peek(&token))->value == TOKlparen &&
                     skipParens(tk, &tk) &&
-                    (peek(tk)->value == TOKlparen ||
-                     peek(tk)->value == TOKlcurly)
+                    ((tk = peek(tk)), 1) &&
+                    skipAttributes(tk, &tk) &&
+                    (tk->value == TOKlparen ||
+                     tk->value == TOKlcurly)
                    )
                 {
                     a = parseDeclarations(storageClass, comment);
@@ -968,7 +970,8 @@ Dsymbol *Parser::parseCtor()
 
         Expression *constraint = tpl ? parseConstraint() : NULL;
 
-        CtorDeclaration *f = new CtorDeclaration(loc, 0, parameters, varargs, stc);
+                Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
+        CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
         parseContracts(f);
 
         // Wrap a template around it
@@ -984,7 +987,8 @@ Dsymbol *Parser::parseCtor()
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
     StorageClass stc = parsePostfix();
-    CtorDeclaration *f = new CtorDeclaration(loc, 0, parameters, varargs, stc);
+        Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
+    CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
     parseContracts(f);
     return f;
 }
@@ -2071,6 +2075,7 @@ Objects *Parser::parseTemplateArgument()
         case TOKstring:
         case TOKfile:
         case TOKline:
+        case TOKthis:
         {   // Template argument is an expression
             Expression *ea = parsePrimaryExp();
             tiargs->push(ea);
@@ -2470,7 +2475,7 @@ Type *Parser::parseBasicType2(Type *t)
     return NULL;
 }
 
-Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl)
+Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl, StorageClass storage_class)
 {   Type *ts;
 
     //printf("parseDeclarator(tpl = %p)\n", tpl);
@@ -2599,6 +2604,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                 /* Parse const/immutable/shared/inout/nothrow/pure postfix
                  */
                 StorageClass stc = parsePostfix();
+                stc |= storage_class;   // merge prefix storage classes
                 Type *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
 
                 if (stc & STCconst)
@@ -2813,7 +2819,7 @@ L2:
         TemplateParameters *tpl = NULL;
 
         ident = NULL;
-        t = parseDeclarator(ts, &ident, &tpl);
+        t = parseDeclarator(ts, &ident, &tpl, storage_class);
         assert(t);
         if (!tfirst)
             tfirst = t;
@@ -2876,6 +2882,9 @@ L2:
                     tpl = new TemplateParameters();
             }
 #endif
+
+            //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
+
             FuncDeclaration *f =
                 new FuncDeclaration(loc, 0, ident, storage_class, t);
             addComment(f, comment);
@@ -3181,6 +3190,8 @@ Initializer *Parser::parseInitializer()
                         break;
 
                     default:
+                        if (comma == 1)
+                            error("comma expected separating field initializers");
                         value = parseInitializer();
                         is->addInit(NULL, value);
                         comma = 1;
@@ -3424,9 +3435,8 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKstatic:
         {   // Look ahead to see if it's static assert() or static if()
-            Token *t;
 
-            t = peek(&token);
+            Token *t = peek(&token);
             if (t->value == TOKassert)
             {
                 nextToken();
@@ -3447,6 +3457,13 @@ Statement *Parser::parseStatement(int flags)
                 s = new ExpStatement(loc, d);
                 if (flags & PSscope)
                     s = new ScopeStatement(loc, s);
+                break;
+            }
+            if (t->value == TOKimport)
+            {   nextToken();
+                Dsymbols *imports = new Dsymbols();
+                parseImport(imports, 1);                // static import ...
+                s = new ImportStatement(loc, imports);
                 break;
             }
             goto Ldeclaration;
@@ -3474,6 +3491,7 @@ Statement *Parser::parseStatement(int flags)
         case TOKwild:
         case TOKnothrow:
         case TOKpure:
+        case TOKref:
         case TOKtls:
         case TOKgshared:
         case TOKat:
@@ -4230,6 +4248,13 @@ Statement *Parser::parseStatement(int flags)
             break;
         }
 
+        case TOKimport:
+        {   Dsymbols *imports = new Dsymbols();
+            parseImport(imports, 0);
+            s = new ImportStatement(loc, imports);
+            break;
+        }
+
         default:
             error("found '%s' instead of statement", token.toChars());
             goto Lerror;
@@ -4889,7 +4914,6 @@ int Parser::skipParens(Token *t, Token **pt)
                 break;
 
             case TOKeof:
-            case TOKsemicolon:
                 goto Lfalse;
 
              default:
@@ -4904,6 +4928,61 @@ int Parser::skipParens(Token *t, Token **pt)
     return 1;
 
   Lfalse:
+    return 0;
+}
+
+/*******************************************
+ * Skip attributes.
+ * Input:
+ *      t is on a candidate attribute
+ * Output:
+ *      *pt is set to first non-attribute token on success
+ * Returns:
+ *      !=0     successful
+ *      0       some parsing error
+ */
+
+int Parser::skipAttributes(Token *t, Token **pt)
+{
+    while (1)
+    {
+        switch (t->value)
+        {
+            case TOKconst:
+            case TOKinvariant:
+            case TOKimmutable:
+            case TOKshared:
+            case TOKwild:
+            case TOKfinal:
+            case TOKauto:
+            case TOKscope:
+            case TOKoverride:
+            case TOKabstract:
+            case TOKsynchronized:
+            case TOKdeprecated:
+            case TOKnothrow:
+            case TOKpure:
+            case TOKref:
+            case TOKtls:
+            case TOKgshared:
+            //case TOKmanifest:
+                break;
+            case TOKat:
+                if (parseAttribute() == STCundefined)
+                    break;
+                goto Lerror;
+            default:
+                goto Ldone;
+        }
+        t = peek(t);
+    }
+
+  Ldone:
+    if (*pt)
+        *pt = t;
+    return 1;
+
+  Lerror:
     return 0;
 }
 

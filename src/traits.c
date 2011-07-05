@@ -163,7 +163,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 #if DMDV2
     else if (ident == Id::isStaticFunction)
     {
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis())
+        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
     }
     else if (ident == Id::isRef)
     {

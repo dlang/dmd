@@ -40,7 +40,8 @@ struct Port
     static double dbl_min;
     static long double ldbl_max;
 
-#if __GNUC__
+#if __OpenBSD__
+#elif __GNUC__
     // These conflict with macros in math.h, should rename them
     #undef isnan
     #undef isfinite
@@ -59,6 +60,8 @@ struct Port
 
     static double floor(double);
     static double pow(double x, double y);
+
+    static long double fmodl(long double x, long double y);
 
     static ulonglong strtoull(const char *p, char **pend, int base);
 

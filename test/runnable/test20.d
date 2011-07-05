@@ -573,6 +573,7 @@ void Lookup( int which )
    switch( which )
    {
      case 0 : return cast(void)array[which];
+     default: assert(0);
    }
 }
 

@@ -128,6 +128,11 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
     return exp ? exp->inlineCost(ics) : 0;
 }
 
+int ImportStatement::inlineCost(InlineCostState *ics)
+{
+    return 0;
+}
+
 /* -------------------------- */
 
 int arrayInlineCost(InlineCostState *ics, Expressions *arguments)
@@ -443,6 +448,11 @@ Expression *ReturnStatement::doInline(InlineDoState *ids)
 {
     //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
     return exp ? exp->doInline(ids) : 0;
+}
+
+Expression *ImportStatement::doInline(InlineDoState *ids)
+{
+    return NULL;
 }
 
 /* --------------------------------------------------------------- */
@@ -1312,12 +1322,6 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
         if (tf->next && tf->next->ty != Tvoid &&
             !(hasReturnExp & 1) &&
             !hdrscan)
-            goto Lno;
-    }
-    else
-    {   CtorDeclaration *ctor = isCtorDeclaration();
-
-        if (ctor && ctor->varargs == 1)
             goto Lno;
     }
 

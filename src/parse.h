@@ -107,7 +107,7 @@ struct Parser : Lexer
     Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
-    Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL);
+    Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0);
     Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);
@@ -124,6 +124,7 @@ struct Parser : Lexer
     int isExpression(Token **pt);
     int isTemplateInstance(Token *t, Token **pt);
     int skipParens(Token *t, Token **pt);
+    int skipAttributes(Token *t, Token **pt);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();

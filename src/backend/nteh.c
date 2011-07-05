@@ -89,8 +89,21 @@ STATIC symbol *nteh_scopetable()
     return s_table;
 }
 
+/*************************************
+ */
+
+void nteh_filltables()
+{
+#if MARS
+    symbol *s = s_table;
+    symbol_debug(s);
+    except_fillInEHTable(s);
+#endif
+}
+
 /****************************
  * Generate and output scope table.
+ * Not called for NTEH C++ exceptions
  */
 
 void nteh_gentables()
@@ -98,9 +111,10 @@ void nteh_gentables()
     symbol *s = s_table;
     symbol_debug(s);
 #if MARS
-    except_fillInEHTable(s);
+    //except_fillInEHTable(s);
 #else
-    /* The table consists of triples:
+    /* NTEH table for C.
+     * The table consists of triples:
      *  parent index
      *  filter address
      *  handler address
@@ -672,7 +686,6 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     code cs;
     code *cs1;
     code *cs2;
-    int i;
     regm_t desregs;
     int reg;
     int local_unwind;
@@ -872,7 +885,6 @@ code *nteh_monitor_epilog(regm_t retregs)
     code *cs1;
     code *cs2;
     code *cpop;
-    int i;
     regm_t desregs;
     Symbol *s;
 

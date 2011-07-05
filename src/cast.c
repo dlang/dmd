@@ -17,6 +17,10 @@
 #include "utf.h"
 #include "declaration.h"
 #include "aggregate.h"
+#include "scope.h"
+
+//#define DUMP .dump(__PRETTY_FUNCTION__, this)
+#define DUMP
 
 /* ==================== implicitCast ====================== */
 
@@ -158,8 +162,10 @@ MATCH Expression::implicitConvTo(Type *t)
      */
     if (type->isintegral() && t->isintegral() &&
         type->isTypeBasic() && t->isTypeBasic())
-    {   IntRange ir = getIntRange();
-        if (ir.imax <= t->sizemask())
+    {   IntRange src = this->getIntRange() DUMP;
+        IntRange targetUnsigned = IntRange::fromType(t, /*isUnsigned*/true) DUMP;
+        IntRange targetSigned = IntRange::fromType(t, /*isUnsigned*/false) DUMP;
+        if (targetUnsigned.contains(src) || targetSigned.contains(src))
             return MATCHconvert;
     }
 
@@ -203,7 +209,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
 
     switch (ty)
     {
-        case Tbit:
         case Tbool:
             value &= 1;
             ty = Tint32;
@@ -248,7 +253,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
     // Only allow conversion if no change in value
     switch (toty)
     {
-        case Tbit:
         case Tbool:
             if ((value & 1) != value)
                 goto Lno;
@@ -1475,7 +1479,17 @@ Expression *CommaExp::castTo(Scope *sc, Type *t)
  */
 
 Expression *BinExp::scaleFactor(Scope *sc)
-{   d_uns64 stride;
+{
+    if (sc->func && !sc->intypeof)
+    {
+        if (sc->func->setUnsafe())
+        {
+            error("pointer arithmetic not allowed in @safe functions");
+            return new ErrorExp();
+        }
+    }
+
+    d_uns64 stride;
     Type *t1b = e1->type->toBasetype();
     Type *t2b = e2->type->toBasetype();
 
@@ -1552,10 +1566,17 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
 int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
-    //dump(0);
+    //e->dump(0);
 
-    Expression *e1 = (*pe1)->integralPromotions(sc);
-    Expression *e2 = (*pe2)->integralPromotions(sc);
+    Expression *e1 = *pe1;
+    Expression *e2 = *pe2;
+
+    if (e->op != TOKquestion ||
+        e1->type->toBasetype()->ty != e2->type->toBasetype()->ty)
+    {
+        e1 = e1->integralPromotions(sc);
+        e2 = e2->integralPromotions(sc);
+    }
 
     Type *t1 = e1->type;
     Type *t2 = e2->type;
@@ -1798,7 +1819,15 @@ Lagain:
     }
     else if (t1->isintegral() && t2->isintegral())
     {
-        assert(0);
+        assert(t1->ty == t2->ty);
+        unsigned char mod = MODmerge(t1->mod, t2->mod);
+
+        t1 = t1->castMod(mod);
+        t2 = t2->castMod(mod);
+        t = t1;
+        e1 = e1->castTo(sc, t);
+        e2 = e2->castTo(sc, t);
+        goto Lagain;
     }
     else if (e1->isArrayOperand() && t1->ty == Tarray &&
              e2->implicitConvTo(t1->nextOf()))
@@ -1911,7 +1940,6 @@ Expression *Expression::integralPromotions(Scope *sc)
         case Tuns8:
         case Tint16:
         case Tuns16:
-        case Tbit:
         case Tbool:
         case Tchar:
         case Twchar:
@@ -1983,233 +2011,309 @@ int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
 
 uinteger_t getMask(uinteger_t v)
 {
-    uinteger_t u = 0;
-    if (v >= 0x80)
-        u = 0xFF;
-    while (u < v)
-        u = (u << 1) | 1;
-    return u;
+    // Ref: http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v |= v >> 32;
+    return v /* | 0xff*/;
 }
-
 IntRange Expression::getIntRange()
 {
-    IntRange ir;
-    ir.imin = 0;
-    if (type->isintegral())
-        ir.imax = type->sizemask();
-    else
-        ir.imax = 0xFFFFFFFFFFFFFFFFULL; // assume the worst
-    return ir;
+    return IntRange::fromType(type) DUMP;
 }
 
 IntRange IntegerExp::getIntRange()
 {
-    IntRange ir;
-    ir.imin = value & type->sizemask();
-    ir.imax = ir.imin;
-    return ir;
+    return IntRange(value).cast(type) DUMP;
 }
 
 IntRange CastExp::getIntRange()
 {
-    IntRange ir;
-    ir = e1->getIntRange();
-    // Do sign extension
-    switch (e1->type->toBasetype()->ty)
-    {
-        case Tint8:
-            if (ir.imax & 0x80)
-                ir.imax |= 0xFFFFFFFFFFFFFF00ULL;
-            break;
-        case Tint16:
-            if (ir.imax & 0x8000)
-                ir.imax |= 0xFFFFFFFFFFFF0000ULL;
-            break;
-        case Tint32:
-            if (ir.imax & 0x80000000)
-                ir.imax |= 0xFFFFFFFF00000000ULL;
-            break;
-    }
-    if (type->isintegral())
-    {
-        ir.imin &= type->sizemask();
-        ir.imax &= type->sizemask();
-    }
-//printf("CastExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-    return ir;
+    return e1->getIntRange().cast(type) DUMP;
+}
+
+IntRange AddExp::getIntRange()
+{
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type) DUMP;
+}
+
+IntRange MinExp::getIntRange()
+{
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type) DUMP;
 }
 
 IntRange DivExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    if (!(e1->type->isunsigned() || ir1.imax < 0x8000000000000000ULL) &&
-        !(e2->type->isunsigned() || ir2.imax < 0x8000000000000000ULL))
-    {
-        return Expression::getIntRange();
-    }
+    // Should we ignore the possibility of div-by-0???
+    if (ir2.containsZero())
+        return Expression::getIntRange() DUMP;
 
-    if (ir2.imax == 0 || ir2.imin == 0)
-        return Expression::getIntRange();
-
-    ir.imin = ir1.imin / ir2.imax;
-    ir.imax = ir1.imax / ir2.imin;
-
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
-
-//printf("DivExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
+    SignExtendedNumber bdy[4] = {
+        ir1.imin / ir2.imin,
+        ir1.imin / ir2.imax,
+        ir1.imax / ir2.imin,
+        ir1.imax / ir2.imax
+    };
+    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
 }
+
+IntRange MulExp::getIntRange()
+{
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    // [a,b] * [c,d] = [min (ac, ad, bc, bd), max (ac, ad, bc, bd)]
+    SignExtendedNumber bdy[4] = {
+        ir1.imin * ir2.imin,
+        ir1.imin * ir2.imax,
+        ir1.imax * ir2.imin,
+        ir1.imax * ir2.imax
+    };
+    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
+}
+
+IntRange ModExp::getIntRange()
+{
+    IntRange irNum = e1->getIntRange();
+    IntRange irDen = e2->getIntRange().absNeg();
+
+    /*
+    due to the rules of D (C)'s % operator, we need to consider the cases
+    separately in different range of signs.
+
+        case 1. [500, 1700] % [7, 23] (numerator is always positive)
+            = [0, 22]
+        case 2. [-500, 1700] % [7, 23] (numerator can be negative)
+            = [-22, 22]
+        case 3. [-1700, -500] % [7, 23] (numerator is always negative)
+            = [-22, 0]
+
+    the number 22 is the maximum absolute value in the denomator's range. We
+    don't care about divide by zero.
+    */
+
+    // Modding on 0 is invalid anyway.
+    if (!irDen.imin.negative)
+        return Expression::getIntRange() DUMP;
+
+    ++ irDen.imin;
+    irDen.imax = -irDen.imin;
+
+    if (!irNum.imin.negative)
+        irNum.imin.value = 0;
+    else if (irNum.imin < irDen.imin)
+        irNum.imin = irDen.imin;
+
+    if (irNum.imax.negative)
+    {
+        irNum.imax.negative = false;
+        irNum.imax.value = 0;
+    }
+    else if (irNum.imax > irDen.imax)
+        irNum.imax = irDen.imax;
+
+    return irNum.cast(type) DUMP;
+}
+
+// The algorithms for &, |, ^ are not yet the best! Sometimes they will produce
+//  not the tightest bound. See
+//      https://github.com/D-Programming-Language/dmd/pull/116
+//  for detail.
+static IntRange unsignedBitwiseAnd(const IntRange& a, const IntRange& b)
+{
+    // the DiffMasks stores the mask of bits which are variable in the range.
+    uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
+    uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+    // Since '&' computes the digitwise-minimum, the we could set all varying
+    //  digits to 0 to get a lower bound, and set all varying digits to 1 to get
+    //  an upper bound.
+    IntRange result;
+    result.imin.value = (a.imin.value & ~aDiffMask) & (b.imin.value & ~bDiffMask);
+    result.imax.value = (a.imax.value | aDiffMask) & (b.imax.value | bDiffMask);
+    // Sometimes the upper bound is overestimated. The upper bound will never
+    //  exceed the input.
+    if (result.imax.value > a.imax.value)
+        result.imax.value = a.imax.value;
+    if (result.imax.value > b.imax.value)
+        result.imax.value = b.imax.value;
+    result.imin.negative = result.imax.negative = a.imin.negative && b.imin.negative;
+    return result;
+}
+static IntRange unsignedBitwiseOr(const IntRange& a, const IntRange& b)
+{
+    // the DiffMasks stores the mask of bits which are variable in the range.
+    uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
+    uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+    // The imax algorithm by Adam D. Ruppe.
+    // http://www.digitalmars.com/pnews/read.php?server=news.digitalmars.com&group=digitalmars.D&artnum=108796
+    IntRange result;
+    result.imin.value = (a.imin.value & ~aDiffMask) | (b.imin.value & ~bDiffMask);
+    result.imax.value = a.imax.value | b.imax.value | getMask(a.imax.value & b.imax.value);
+    // Sometimes the lower bound is underestimated. The lower bound will never
+    //  less than the input.
+    if (result.imin.value < a.imin.value)
+        result.imin.value = a.imin.value;
+    if (result.imin.value < b.imin.value)
+        result.imin.value = b.imin.value;
+    result.imin.negative = result.imax.negative = a.imin.negative || b.imin.negative;
+    return result;
+}
+static IntRange unsignedBitwiseXor(const IntRange& a, const IntRange& b)
+{
+    // the DiffMasks stores the mask of bits which are variable in the range.
+    uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
+    uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+    IntRange result;
+    result.imin.value = (a.imin.value ^ b.imin.value) & ~(aDiffMask | bDiffMask);
+    result.imax.value = (a.imax.value ^ b.imax.value) | (aDiffMask | bDiffMask);
+    result.imin.negative = result.imax.negative = a.imin.negative != b.imin.negative;
+    return result;
+}
+
 
 IntRange AndExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin;
-    if (ir2.imin < ir.imin)
-        ir.imin = ir2.imin;
+    IntRange ir1neg, ir1pos, ir2neg, ir2pos;
+    bool has1neg, has1pos, has2neg, has2pos;
 
-    ir.imax = ir1.imax;
-    if (ir2.imax > ir.imax)
-        ir.imax = ir2.imax;
+    ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
+    ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
 
-    uinteger_t u;
-
-    u = getMask(ir1.imax);
-    ir.imin &= u;
-    ir.imax &= u;
-
-    u = getMask(ir2.imax);
-    ir.imin &= u;
-    ir.imax &= u;
-
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
-
-//printf("AndExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    IntRange result;
+    bool hasResult = false;
+    if (has1pos && has2pos)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2pos), /*ref*/hasResult);
+    if (has1pos && has2neg)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2neg), /*ref*/hasResult);
+    if (has1neg && has2pos)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), /*ref*/hasResult);
+    if (has1neg && has2neg)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), /*ref*/hasResult);
+    assert(hasResult);
+    return result.cast(type) DUMP;
 }
-
-/*
- * Adam D. Ruppe's algo for bitwise OR:
- * http://www.digitalmars.com/d/archives/digitalmars/D/value_range_propagation_for_logical_OR_108765.html#N108793
- */
 
 IntRange OrExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin;
-    if (ir2.imin < ir.imin)
-        ir.imin = ir2.imin;
+    IntRange ir1neg, ir1pos, ir2neg, ir2pos;
+    bool has1neg, has1pos, has2neg, has2pos;
 
-    ir.imax = ir1.imax;
-    if (ir2.imax > ir.imax)
-        ir.imax = ir2.imax;
+    ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
+    ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    IntRange result;
+    bool hasResult = false;
+    if (has1pos && has2pos)
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2pos), /*ref*/hasResult);
+    if (has1pos && has2neg)
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2neg), /*ref*/hasResult);
+    if (has1neg && has2pos)
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), /*ref*/hasResult);
+    if (has1neg && has2neg)
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), /*ref*/hasResult);
 
-//printf("OrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    assert(hasResult);
+    return result.cast(type) DUMP;
 }
 
 IntRange XorExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin;
-    if (ir2.imin < ir.imin)
-        ir.imin = ir2.imin;
+    IntRange ir1neg, ir1pos, ir2neg, ir2pos;
+    bool has1neg, has1pos, has2neg, has2pos;
 
-    ir.imax = ir1.imax;
-    if (ir2.imax > ir.imax)
-        ir.imax = ir2.imax;
+    ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
+    ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    IntRange result;
+    bool hasResult = false;
+    if (has1pos && has2pos)
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2pos), /*ref*/hasResult);
+    if (has1pos && has2neg)
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2neg), /*ref*/hasResult);
+    if (has1neg && has2pos)
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), /*ref*/hasResult);
+    if (has1neg && has2neg)
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), /*ref*/hasResult);
 
-//printf("XorExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    assert(hasResult);
+    return result.cast(type) DUMP;
 }
 
 IntRange ShlExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = getMask(ir1.imin) << ir2.imin;
-    ir.imax = getMask(ir1.imax) << ir2.imax;
+    if (ir2.imin.negative)
+        ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    SignExtendedNumber lower = ir1.imin << (ir1.imin.negative ? ir2.imax : ir2.imin);
+    SignExtendedNumber upper = ir1.imax << (ir1.imax.negative ? ir2.imin : ir2.imax);
 
-//printf("ShlExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    return IntRange(lower, upper).cast(type) DUMP;
 }
 
 IntRange ShrExp::getIntRange()
 {
-    if (!e1->type->isunsigned())
-        return Expression::getIntRange();
-
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin >> ir2.imax;
-    ir.imax = ir1.imax >> ir2.imin;
+    if (ir2.imin.negative)
+        ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    SignExtendedNumber lower = ir1.imin >> (ir1.imin.negative ? ir2.imin : ir2.imax);
+    SignExtendedNumber upper = ir1.imax >> (ir1.imax.negative ? ir2.imax : ir2.imin);
 
-//printf("ShrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    return IntRange(lower, upper).cast(type) DUMP;
 }
 
 IntRange UshrExp::getIntRange()
 {
-    IntRange ir;
-    IntRange ir1 = e1->getIntRange();
+    IntRange ir1 = e1->getIntRange().castUnsigned(e1->type);
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin >> ir2.imax;
-    ir.imax = ir1.imax >> ir2.imin;
+    if (ir2.imin.negative)
+        ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    return IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(type) DUMP;
 
-//printf("UshrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
 }
 
 IntRange CommaExp::getIntRange()
 {
-    return e2->getIntRange();
+    return e2->getIntRange() DUMP;
 }
 
+IntRange ComExp::getIntRange()
+{
+    IntRange ir = e1->getIntRange();
+    return IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative),
+                    SignExtendedNumber(~ir.imin.value, !ir.imin.negative)).cast(type) DUMP;
+}
+
+IntRange NegExp::getIntRange()
+{
+    IntRange ir = e1->getIntRange();
+    return IntRange(-ir.imax, -ir.imin).cast(type) DUMP;
+}
 

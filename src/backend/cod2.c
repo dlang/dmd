@@ -151,7 +151,7 @@ code *cdorth(elem *e,regm_t *pretregs)
 
   ty1 = tybasic(e1->Ety);
   if (tyfloating(ty1))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
 #else
         return opdouble(e,pretregs,(e->Eoper == OPadd) ? CLIBdadd
@@ -826,7 +826,7 @@ code *cdmul(elem *e,regm_t *pretregs)
     unsigned grex = rex << 16;
 
     if (tyfloating(tyml))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
 #else
         return opdouble(e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
@@ -3826,7 +3826,7 @@ code *getoffset(elem *e,unsigned reg)
         goto L4;
 
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {
       L5:
         if (I64 && config.flags3 & CFG3pic)
@@ -3918,13 +3918,13 @@ code *getoffset(elem *e,unsigned reg)
         goto L4;
 
     case FLextern:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (e->EV.sp.Vsym->ty() & mTYthread)
             goto L5;
 #endif
     case FLdata:
     case FLudata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
 #endif
@@ -4218,7 +4218,7 @@ code *cdpost(elem *e,regm_t *pretregs)
 
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return post87(e,pretregs);
 #else
         if (config.inline8087)
@@ -4651,7 +4651,28 @@ code *cdinfo(elem *e,regm_t *pretregs)
 
 code *cddctor(elem *e,regm_t *pretregs)
 {
+#if MARS
+    /* Generate:
+        ESCAPE | ESCdctor
+        MOV     sindex[BP],index
+     */
+    usednteh |= EHcleanup;
+    if (config.exe == EX_NT)
+        usednteh |= NTEHcleanup;
+    assert(*pretregs == 0);
+    code cs;
+    cs.Iop = ESCAPE | ESCdctor;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+    cs.IFL1 = FLctor;
+    cs.IEV1.Vtor = e;
+    code *c = gen(CNIL,&cs);
+    c = cat(c, nteh_gensindex(0));      // the actual index will be patched in later
+                                        // by except_fillInEHTable()
+    return c;
+#else
     return NULL;
+#endif
 }
 
 /*******************************************
@@ -4660,7 +4681,66 @@ code *cddctor(elem *e,regm_t *pretregs)
 
 code *cdddtor(elem *e,regm_t *pretregs)
 {
+#if MARS
+    /* Generate:
+        ESCAPE | ESCddtor
+        MOV     sindex[BP],index
+        CALL    dtor
+        JMP     L1
+    Ldtor:
+        ... e->E1 ...
+        RET
+    L1: NOP
+    */
+    usednteh |= EHcleanup;
+    if (config.exe == EX_NT)
+        usednteh |= NTEHcleanup;
+
+    code cs;
+    cs.Iop = ESCAPE | ESCddtor;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+    cs.IFL1 = FLdtor;
+    cs.IEV1.Vtor = e;
+    code *cd = gen(CNIL,&cs);
+
+    cd = cat(cd, nteh_gensindex(0));    // the actual index will be patched in later
+                                        // by except_fillInEHTable()
+
+    assert(*pretregs == 0);
+    code *c = codelem(e->E1,pretregs,FALSE);
+    gen1(c,0xC3);               // RET
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (config.flags3 & CFG3pic)
+    {
+        int nalign = 0;
+        if (STACKALIGN == 16)
+        {   nalign = STACKALIGN - REGSIZE;
+            cd = genc2(cd,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+            if (I64)
+                code_orrex(cd, REX_W);
+        }
+        calledafunc = 1;
+        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+        if (nalign)
+        {   cd = genc2(cd,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+            if (I64)
+                code_orrex(cd, REX_W);
+        }
+    }
+    else
+#endif
+        genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
+
+    code *cnop = gennop(CNIL);
+
+    genjmp(cd,JMP,FLcode,(block *)cnop);
+
+    return cat4(cd, c, cnop, NULL);
+#else
     return NULL;
+#endif
 }
 
 

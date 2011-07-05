@@ -1358,7 +1358,7 @@ elem *el_picvar(symbol *s)
     return e;
 }
 #endif
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 
 elem *el_picvar(symbol *s)
 {   elem *e;
@@ -1560,10 +1560,10 @@ elem * el_var(symbol *s)
 
     //printf("el_var(s = '%s')\n", s->Sident);
     //printf("%x\n", s->Stype->Tty);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         (!(s->Stype->Tty & mTYthread) || I64) &&
 #endif
         !tyfunc(s->ty()))
@@ -1582,7 +1582,7 @@ elem * el_var(symbol *s)
         //printf("thread local %s\n", s->Sident);
 #if TARGET_OSX
         ;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         /* For 32 bit:
          * Generate for var locals:
          *      MOV reg,GS:[00000000]   // add GS: override in back end
@@ -1687,7 +1687,7 @@ elem * el_var(symbol *s)
 {   elem *e;
 
     //printf("el_var(s = '%s')\n", s->Sident);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && !tyfunc(s->ty()))
         return el_picvar(s);
 #endif
@@ -1784,7 +1784,7 @@ elem * el_ptr(symbol *s)
         return e;
     }
 #endif
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && tyfunc(s->ty()))
         e = el_picvar(s);
     else
@@ -2280,7 +2280,6 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
          */
         volatile long double v = e->EV.Vldouble;
         volatile double vDouble;
-        volatile double z = v;
         *(&vDouble) = v;
         if (v == vDouble)       // This will fail if compiler does NaN incorrectly!
         {
@@ -2398,6 +2397,9 @@ elem *el_dctor(elem *e,void *decl)
     if (e)
         e = el_bin(OPinfo,e->Ety,ector,e);
     else
+        /* Remember that a "constructor" may execute no code, hence
+         * the need for OPinfo if there is code to execute.
+         */
         e = ector;
     return e;
 }
@@ -2413,6 +2415,10 @@ elem *el_dctor(elem *e,void *decl)
 #if MARS
 elem *el_ddtor(elem *e,void *decl)
 {
+    /* A destructor always executes code, or we wouldn't need
+     * eh for it.
+     * An OPddtor must match 1:1 with an OPdctor
+     */
     elem *edtor = el_calloc();
     edtor->Eoper = OPddtor;
     edtor->Ety = TYvoid;
@@ -2461,7 +2467,6 @@ elem *el_ctor(elem *ector,elem *e,symbol *sdtor)
         else
         {
             ector = el_unat(OPctor,ector->ET,ector);
-            symbol_debug(sdtor);
             ector->EV.eop.Edtor = sdtor;
             symbol_debug(sdtor);
             if (e)

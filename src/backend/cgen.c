@@ -328,7 +328,7 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
     cs.Iop = op & 0xFF;
     cs.Iflags = 0;
     cs.Irex = 0;
-    if (op != JMP)                      /* if not already long branch   */
+    if (op != JMP && op != 0xE8)        // if not already long branch
           cs.Iflags = CFjmp16;          /* assume long branch for op = 0x7x */
     cs.IFL2 = fltarg;                   /* FLblock (or FLcode)          */
     cs.IEV2.Vblock = targ;              /* target block (or code)       */
@@ -574,8 +574,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
     targ_size_t regv = regcon.immed.value[reg];
 
     if (flags & 1)      // 8 bits
-    {   unsigned msk;
-
+    {
         value &= 0xFF;
         regm &= BYTEREGS;
 

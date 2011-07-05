@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -68,6 +68,11 @@ double Port::floor(double d)
 double Port::pow(double x, double y)
 {
     return ::pow(x, y);
+}
+
+long double Port::fmodl(long double x, long double y)
+{
+    return ::fmodl(x, y);
 }
 
 unsigned long long Port::strtoull(const char *p, char **pend, int base)
@@ -201,6 +206,11 @@ double Port::pow(double x, double y)
     return ::pow(x, y);
 }
 
+long double Port::fmodl(long double x, long double y)
+{
+    return ::fmodl(x, y);
+}
+
 unsigned _int64 Port::strtoull(const char *p, char **pend, int base)
 {
     unsigned _int64 number = 0;
@@ -315,7 +325,7 @@ char *Port::strupr(char *s)
 
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
 
 #include <math.h>
 #if linux
@@ -332,6 +342,7 @@ char *Port::strupr(char *s)
 #include <stdlib.h>
 #include <ctype.h>
 #include <float.h>
+#include <assert.h>
 
 static double zero = 0;
 double Port::nan = NAN;
@@ -368,12 +379,14 @@ PortInitializer::PortInitializer()
 #endif
 }
 
-#undef isnan
 int Port::isNan(double r)
 {
 #if __APPLE__
     return __inline_isnan(r);
+#elif __OpenBSD__
+    return isnan(r);
 #else
+    #undef isnan
     return ::isnan(r);
 #endif
 }
@@ -382,7 +395,10 @@ int Port::isNan(long double r)
 {
 #if __APPLE__
     return __inline_isnan(r);
+#elif __OpenBSD__
+    return isnan(r);
 #else
+    #undef isnan
     return ::isnan(r);
 #endif
 }
@@ -409,12 +425,14 @@ int Port::isFinite(double r)
     return ::finite(r);
 }
 
-#undef isinf
 int Port::isInfinity(double r)
 {
 #if __APPLE__
     return fpclassify(r) == FP_INFINITE;
+#elif __OpenBSD__
+    return isinf(r);
 #else
+    #undef isinf
     return ::isinf(r);
 #endif
 }
@@ -437,6 +455,15 @@ double Port::pow(double x, double y)
     return ::pow(x, y);
 }
 
+long double Port::fmodl(long double x, long double y)
+{
+#if __FreeBSD__ || __OpenBSD__
+    return ::fmod(x, y);        // hack for now, fix later
+#else
+    return ::fmodl(x, y);
+#endif
+}
+
 unsigned long long Port::strtoull(const char *p, char **pend, int base)
 {
     return ::strtoull(p, pend, base);
@@ -450,7 +477,11 @@ char *Port::ull_to_string(char *buffer, ulonglong ull)
 
 wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
 {
+#if __OpenBSD__
+    assert(0);
+#else
     swprintf(buffer, sizeof(ulonglong) * 3 + 1, L"%llu", ull);
+#endif
     return buffer;
 }
 

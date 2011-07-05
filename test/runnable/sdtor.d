@@ -1,6 +1,7 @@
 
 import core.vararg;
 import std.c.stdio;
+import core.exception;
 
 int sdtor;
 
@@ -1248,28 +1249,34 @@ void test50()
 
 /**********************************/
 
+int A51_a;
+
 struct A51
 {
-    ~this() { }
+    ~this() { ++A51_a; }
 }
 
 void test51()
 {
-  while(0) A51 a;
-  if(0) A51 a;
-  if(1){} else A51 a;
-  for(;0;) A51 a;  
-  if (1) { A51 a; }
-  if (1) A51 a;
-  if(0) {} else A51 a;
-  if (0) for(A51 a;;) {}
-  if (0) for(;;) A51 a;
-  do A51 a; while(0);
-  if (0) while(1) A51 a;
-  try A51 a; catch(Error e) {}
-  if (0) switch(1) A51 a;
-  final switch(0) A51 a;
-  A51 a; with(a) A51 b;
+  A51_a = 0; { while(0) A51 a;                      } assert(A51_a == 0);
+  A51_a = 0; { if(0) A51 a;                         } assert(A51_a == 0);
+  A51_a = 0; { if(1){} else A51 a;                  } assert(A51_a == 0);
+  A51_a = 0; { for(;0;) A51 a;                      } assert(A51_a == 0);
+  A51_a = 0; { if (1) { A51 a; }                    } assert(A51_a == 1);
+  A51_a = 0; { if (1) A51 a;                        } assert(A51_a == 1);
+  A51_a = 0; { if(0) {} else A51 a;                 } assert(A51_a == 1);
+  A51_a = 0; { if (0) for(A51 a;;) {}               } assert(A51_a == 0);
+  A51_a = 0; { if (0) for(;;) A51 a;                } assert(A51_a == 0);
+  A51_a = 0; { do A51 a; while(0);                  } assert(A51_a == 1);
+  A51_a = 0; { if (0) while(1) A51 a;               } assert(A51_a == 0);
+  A51_a = 0; { try A51 a; catch(Error e) {}         } assert(A51_a == 1);
+  A51_a = 0; { if (0) final switch(1) A51 a;        } assert(A51_a == 0); // should fail to build
+  A51_a = 0; { if (0) switch(1) { A51 a; default: } } assert(A51_a == 0);
+  A51_a = 0; { if (0) switch(1) { default: A51 a; } } assert(A51_a == 0);
+  A51_a = 0; { if (1) switch(1) { A51 a; default: } } assert(A51_a == 1); // should be 0, right?
+  A51_a = 0; { if (1) switch(1) { default: A51 a; } } assert(A51_a == 1);
+  A51_a = 0; { final switch(0) A51 a;               } assert(A51_a == 0);
+  A51_a = 0; { A51 a; with(a) A51 b;                } assert(A51_a == 2);
 }
 
 /**********************************/
@@ -1282,18 +1289,18 @@ struct A52
     this(this)
     {
         printf("this(this) %p\n", &this);
-      s52 ~= 'a';
+	s52 ~= 'a';
     }
     ~this()
     {
         printf("~this() %p\n", &this);
-      s52 ~= 'b';
+	s52 ~= 'b';
     }
     A52 copy()
     {
-      s52 ~= 'c';
-      A52 another = this;
-      return another;
+	s52 ~= 'c';
+	A52 another = this;
+	return another;
     }
 }
 
@@ -1316,6 +1323,327 @@ struct A53 {
     ~this() { }
     void opAssign(A53 a) {}
     int blah(A53 a) { return 0; }
+}
+
+/**********************************/
+
+struct S54
+{
+    int x = 1;
+
+    int bar() { return x; }
+
+    this(int i)
+    {
+	printf("ctor %p(%d)\n", &this, i);
+	t ~= "a";
+    }
+
+    this(this)
+    {
+	printf("postblit %p\n", &this);
+	t ~= "b";
+    }
+
+    ~this()
+    {
+	printf("dtor %p\n", &this);
+	t ~= "c";
+    }
+
+    static string t;
+}
+
+void bar54(S54 s) { }
+
+S54 abc54() { return S54(1); }
+
+void test54()
+{
+    {	S54.t = null;
+	S54 s = S54(1);
+    }
+    assert(S54.t == "ac");
+
+    {	S54.t = null;
+	S54 s = S54();
+    }
+    assert(S54.t == "c");
+
+    {	S54.t = null;
+	int b = 1 && (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "ac");
+
+    {	S54.t = null;
+	int b = 0 && (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "");
+
+    {	S54.t = null;
+	int b = 0 || (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "ac");
+
+    {	S54.t = null;
+	int b = 1 || (bar54(S54(1)), 1);
+    }
+    assert(S54.t == "");
+
+    {
+	S54.t = null;
+	{ const S54 s = S54(1); }
+	assert(S54.t == "ac");
+    }
+    {
+	S54.t = null;
+	abc54();
+	assert(S54.t == "ac");
+    }
+    {
+	S54.t = null;
+	abc54().x += 1;
+	assert(S54.t == "ac");
+    }
+}
+
+/**********************************/
+
+void test55()
+{
+    S55 s;
+    auto t = s.copy();
+    assert(t.count == 1);   // (5)
+}
+
+struct S55
+{
+    int count;
+    this(this) { ++count; }
+    S55 copy() { return this; }
+}
+
+/**********************************/
+
+struct S56
+{
+    int x = 1;
+
+    int bar() { return x; }
+
+    this(int i)
+    {
+	printf("ctor %p(%d)\n", &this, i);
+	t ~= "a";
+    }
+
+    this(this)
+    {
+	printf("postblit %p\n", &this);
+	t ~= "b";
+    }
+
+    ~this()
+    {
+	printf("dtor %p\n", &this);
+	t ~= "c";
+    }
+
+    static string t;
+}
+
+int foo56()
+{
+    throw new Throwable("hello");
+    return 5;
+}
+
+
+void test56()
+{
+    int i;
+    int j;
+    try
+    {
+        j |= 1;
+        i = S56(1).x + foo56() + 1;
+        j |= 2;
+    }
+    catch (Throwable o)
+    {
+        printf("caught\n");
+        j |= 4;
+    }
+    printf("i = %d, j = %d\n", i, j);
+    assert(i == 0);
+    assert(j == 5);
+}
+
+/**********************************/
+// 5859
+
+import std.stdio : writeln;
+int dtor_cnt = 0;
+struct S57
+{
+	int v;
+	this(int n){ writeln("S.ctor v=", v=n); }
+	~this(){ ++dtor_cnt; writeln("S.dtor v=", v); }
+	bool opCast(T:bool)(){ writeln("S.cast v=", v); return true; }
+}
+S57 f(int n){ return S57(n); }
+
+void test57()
+{
+	writeln("----");
+	dtor_cnt = 0;
+	if (auto s = S57(10))
+	{
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 1);
+
+	writeln("----");	//+
+	dtor_cnt = 0;
+	if (auto s = (S57(1), S57(2), S57(10)))
+	{
+		assert(dtor_cnt == 2);
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 3);	// +/
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = S57(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+
+
+
+	writeln("----");
+	dtor_cnt = 0;
+	if (auto s = f(10))
+	{
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 1);
+
+	writeln("----");	//+
+	dtor_cnt = 0;
+	if (auto s = (f(1), f(2), f(10)))
+	{
+		assert(dtor_cnt == 2);
+		writeln("ifbody");
+	}
+	else assert(0);
+	assert(dtor_cnt == 3);	// +/
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = f(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+
+
+
+
+	writeln("----");
+	dtor_cnt = 0;
+	if (S57(10))
+	{
+		assert(dtor_cnt == 1);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	if ((S57(1), S57(2), S57(10)))
+	{
+		assert(dtor_cnt == 3);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = S57(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+
+
+
+	writeln("----");
+	dtor_cnt = 0;
+	if (f(10))
+	{
+		assert(dtor_cnt == 1);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	if ((f(1), f(2), f(10)))
+	{
+		assert(dtor_cnt == 3);
+		writeln("ifbody");
+	}
+	else assert(0);
+
+	writeln("----");
+	dtor_cnt = 0;
+	try{
+		if (auto s = f(10))
+		{
+			writeln("ifbody");
+			throw new Exception("test");
+		}
+		else assert(0);
+	}catch (Exception e){}
+	assert(dtor_cnt == 1);
+}
+
+/**********************************/
+// 5574
+
+struct foo5574a
+{
+    ~this() {}
+}
+class bar5574a
+{
+    foo5574a[1] frop;
+}
+
+struct foo5574b
+{
+    this(this){}
+}
+struct bar5574b
+{
+    foo5574b[1] frop;
 }
 
 /**********************************/
@@ -1374,6 +1702,11 @@ int main()
     test50();
     test51();
     test52();
+
+    test54();
+    test55();
+    test56();
+    test57();
 
     printf("Success\n");
     return 0;

@@ -147,6 +147,7 @@ void test7()
 {
      switch (i7)
      {
+	default: assert(0);
 	case 3:
          int x;
 
