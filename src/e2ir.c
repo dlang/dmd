@@ -3101,8 +3101,12 @@ elem *CatAssignExp::toElem(IRState *irs)
             elength = el_bin(OPmin, TYsize_t, elength, el_long(TYsize_t, 1));
             elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, this->e2->type->size()));
             eptr = el_bin(OPadd, TYnptr, eptr, elength);
-            eptr = el_una(OPind, e2->Ety, eptr);
-            elem *eeq = el_bin(OPeq, e2->Ety, eptr, e2);
+            StructDeclaration *sd = needsPostblit(tb2);
+            elem *epost = NULL;
+            if (sd)
+                epost = el_same(&eptr);
+            elem *ederef = el_una(OPind, e2->Ety, eptr);
+            elem *eeq = el_bin(OPeq, e2->Ety, ederef, e2);
 
             if (tybasic(e2->Ety) == TYstruct)
             {
@@ -3114,6 +3118,14 @@ elem *CatAssignExp::toElem(IRState *irs)
                 eeq->Eoper = OPstreq;
                 eeq->Ejty = eeq->Ety = TYstruct;
                 eeq->ET = tb1n->toCtype();
+            }
+
+            /* Need to call postblit on eeq
+             */
+            if (sd)
+            {   FuncDeclaration *fd = sd->postblit;
+                epost = callfunc(loc, irs, 1, Type::tvoid, epost, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
+                eeq = el_bin(OPcomma, epost->Ety, eeq, epost);
             }
 
             e = el_combine(e2x, e);
