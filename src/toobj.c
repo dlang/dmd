@@ -554,6 +554,8 @@ void ClassDeclaration::toObjFile(int multiobj)
     flags |= 32;
     if (ctor)
         flags |= 8;
+    if (isabstract)
+        flags |= 64;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
     {
         if (cd->members)
