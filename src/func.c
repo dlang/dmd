@@ -837,9 +837,6 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
 #endif
 
-    frequire = mergeFrequire(frequire);
-    fensure = mergeFensure(fensure);
-
     if (frequire)
     {
         for (int i = 0; i < foverrides.dim; i++)
@@ -853,6 +850,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
         }
     }
+
+    frequire = mergeFrequire(frequire);
+    fensure = mergeFensure(fensure);
 
     if (fbody || frequire || fensure)
     {
