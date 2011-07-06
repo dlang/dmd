@@ -841,7 +841,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     {
         for (int i = 0; i < foverrides.dim; i++)
         {
-            FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+            FuncDeclaration *fdv = foverrides.tdata()[i];
 
             if (fdv->fbody && !fdv->frequire)
             {
@@ -1801,7 +1801,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             Statement *s2 = new ExpStatement(loc, e);
 
             Catch *c = new Catch(loc, NULL, NULL, sf);
-            Array *catches = new Array();
+            Catches *catches = new Catches();
             catches->push(c);
             sf = new TryCatchStatement(loc, s2, catches);
         }

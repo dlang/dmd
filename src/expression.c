@@ -4987,12 +4987,12 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
     ad = s->isAttribDeclaration();
     if (ad)
     {
-        Array *decl = ad->include(NULL, NULL);
+        Dsymbols *decl = ad->include(NULL, NULL);
         if (decl && decl->dim)
         {
             for (size_t i = 0; i < decl->dim; i++)
             {
-                s = (Dsymbol *)decl->data[i];
+                s = decl->tdata()[i];
                 if (Dsymbol_canThrow(s, mustNotThrow))
                     return 1;
             }
@@ -5025,7 +5025,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
         {
             for (size_t i = 0; i < tm->members->dim; i++)
             {
-                Dsymbol *sm = (Dsymbol *)tm->members->data[i];
+                Dsymbol *sm = tm->members->tdata()[i];
                 if (Dsymbol_canThrow(sm, mustNotThrow))
                     return 1;
             }
@@ -5034,7 +5034,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
     else if ((td = s->isTupleDeclaration()) != NULL)
     {
         for (size_t i = 0; i < td->objects->dim; i++)
-        {   Object *o = (Object *)td->objects->data[i];
+        {   Object *o = td->objects->tdata()[i];
             if (o->dyncast() == DYNCAST_EXPRESSION)
             {   Expression *eo = (Expression *)o;
                 if (eo->op == TOKdsymbol)

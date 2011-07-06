@@ -608,7 +608,7 @@ Statement *CompoundStatement::last()
     Statement *s = NULL;
 
     for (size_t i = statements->dim; i; --i)
-    {   s = (Statement *) statements->data[i - 1];
+    {   s = statements->tdata()[i - 1];
         if (s)
         {
             s = s->last();
@@ -4901,8 +4901,8 @@ Statement *ImportStatement::syntaxCopy()
     Dsymbols *m = new Dsymbols();
     m->setDim(imports->dim);
     for (int i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)imports->data[i];
-        m->data[i] = (void *)s->syntaxCopy(NULL);
+    {   Dsymbol *s = imports->tdata()[i];
+        m->tdata()[i] = s->syntaxCopy(NULL);
     }
     return new ImportStatement(loc, m);
 }
@@ -4910,7 +4910,7 @@ Statement *ImportStatement::syntaxCopy()
 Statement *ImportStatement::semantic(Scope *sc)
 {
     for (int i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)imports->data[i];
+    {   Dsymbol *s = imports->tdata()[i];
         s->semantic(sc);
         sc->insert(s);
     }
@@ -4930,7 +4930,7 @@ int ImportStatement::isEmpty()
 void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     for (int i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)imports->data[i];
+    {   Dsymbol *s = imports->tdata()[i];
         s->toCBuffer(buf, hgs);
     }
 }

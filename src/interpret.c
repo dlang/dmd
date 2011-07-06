@@ -99,10 +99,10 @@ void showCtfeExpr(Expression *e)
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *z = (Expression *)elements->data[i];
+        {   Expression *z = elements->tdata()[i];
             if (sd)
             {
-                Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+                Dsymbol *s = sd->fields.tdata()[i];
                 VarDeclaration *v = s->isVarDeclaration();
                 assert(v);
                 // If it is a void assignment, use the default initializer
@@ -606,11 +606,11 @@ void scrubArray(Expressions *elems)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
-        Expression *m = (Expression *)elems->data[i];
+        Expression *m = elems->tdata()[i];
         if (!m)
             continue;
         m = scrubReturnValue(m);
-        elems->data[i] = m;
+        elems->tdata()[i] = m;
     }
 }
 
@@ -2583,7 +2583,7 @@ Expressions *copyLiteralArray(Expressions *oldelems)
     Expressions *newelems = new Expressions();
     newelems->setDim(oldelems->dim);
     for (size_t i = 0; i < oldelems->dim; i++)
-        newelems->data[i] = copyLiteral((Expression *)(oldelems->data[i]));
+        newelems->tdata()[i] = copyLiteral(oldelems->tdata()[i]);
     return newelems;
 }
 
@@ -2734,7 +2734,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *n
                 assert(0);
                 break;
         }
-        existingAE->elements->data[j+firstIndex]
+        existingAE->elements->tdata()[j+firstIndex]
             = new IntegerExp(newval->loc, val, elemType);
     }
 }
@@ -2747,7 +2747,7 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
     unsigned char *s = (unsigned char *)existingSE->string;
     for (size_t j = 0; j < newae->elements->dim; j++)
     {
-        unsigned value = ((Expression *)(newae->elements->data[j]))->toInteger();
+        unsigned value = newae->elements->tdata()[j]->toInteger();
         switch (existingSE->sz)
         {
             case 1: s[j+firstIndex] = value; break;
@@ -2816,8 +2816,8 @@ void assignInPlace(Expression *dest, Expression *src)
 
     for (size_t i= 0; i < oldelems->dim; ++i)
     {
-        Expression *e = (Expression *)newelems->data[i];
-        Expression *o = (Expression *)oldelems->data[i];
+        Expression *e = newelems->tdata()[i];
+        Expression *o = oldelems->tdata()[i];
         if (e->op == TOKstructliteral)
         {
             assert(o->op == e->op);
@@ -2829,7 +2829,7 @@ void assignInPlace(Expression *dest, Expression *src)
         }
         else
         {
-            oldelems->data[i] = newelems->data[i];
+            oldelems->tdata()[i] = newelems->tdata()[i];
         }
     }
 }
@@ -2852,12 +2852,12 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
     {
         if (!directblk && ae->elements->tdata()[k]->op == TOKarrayliteral)
         {
-            recursiveBlockAssign(ae->elements->tdata()[k], val, wantRef);
+            recursiveBlockAssign((ArrayLiteralExp *)ae->elements->tdata()[k], val, wantRef);
         }
         else
         {
             if (wantRef || cow)
-                ae->elements->data[k] = val;
+                ae->elements->tdata()[k] = val;
             else
                 assignInPlace(ae->elements->tdata()[k], val);
         }
@@ -3103,7 +3103,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     assert(oldval->op == TOKarrayliteral);
                 ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
                 for (size_t i = 0; i < copylen; i++)
-                    elements->data[i] = ae->elements->tdata()[i];
+                    elements->tdata()[i] = ae->elements->tdata()[i];
                 if (elemType->ty == Tstruct || elemType->ty == Tsarray)
                 {   /* If it is an aggregate literal representing a value type,
                      * we need to create a unique copy for each element
@@ -3312,9 +3312,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             return EXP_CANT_INTERPRET;
         assert(fieldi>=0 && fieldi < se->elements->dim);
         if (newval->op == TOKstructliteral)
-            assignInPlace((Expression *)(se->elements->data[fieldi]), newval);
+            assignInPlace(se->elements->tdata()[fieldi], newval);
         else
-            se->elements->data[fieldi] = newval;
+            se->elements->tdata()[fieldi] = newval;
         if (ultimateVar && !destinationIsReference)
             addVarToInterstate(istate, ultimateVar);
         return returnValue;
@@ -3686,7 +3686,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             {
                 if (!directblk)
                     // Multidimensional array block assign
-                    recursiveBlockAssign((ArrayLiteralExp *)w->data[j+firstIndex], newval, wantRef);
+                    recursiveBlockAssign((ArrayLiteralExp *)w->tdata()[j+firstIndex], newval, wantRef);
                 else
                 {
                     if (wantRef || cow)
@@ -4116,7 +4116,7 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
     for (size_t i = ae->keys->dim; i;)
     {
         i--;
-        Expression *ekey = (Expression *)ae->keys->data[i];
+        Expression *ekey = ae->keys->tdata()[i];
         Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
         if (ex == EXP_CANT_INTERPRET)
         {
@@ -4126,7 +4126,7 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
         }
         if (ex->isBool(TRUE))
         {
-            return (Expression *)ae->values->data[i];
+            return ae->values->tdata()[i];
         }
     }
     return NULL;

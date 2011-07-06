@@ -771,9 +771,9 @@ bool arrayHasNonConstPointers(Expressions *elems)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
-        if (!(Expression *)elems->data[i])
+        if (!elems->tdata()[i])
             continue;
-        if (hasNonConstPointers((Expression *)elems->data[i]))
+        if (hasNonConstPointers(elems->tdata()[i]))
             return true;
     }
     return false;
