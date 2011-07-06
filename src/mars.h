@@ -121,8 +121,9 @@ void unittests();
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
-typedef struct ArrayOf_Identifier Identifiers;
-typedef struct ArrayOf_char Strings;
+template <typename TYPE> struct Array;
+typedef Array<struct Identifier> Identifiers;
+typedef Array<char> Strings;
 
 // Put command line switches in here
 struct Param

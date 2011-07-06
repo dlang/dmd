@@ -62,8 +62,9 @@ longlong randomx();
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
-typedef struct ArrayOf_File Files;
-typedef struct ArrayOf_char Strings;
+template <typename TYPE> struct Array;
+typedef Array<struct File> Files;
+typedef Array<char> Strings;
 
 
 struct Object
@@ -346,6 +347,40 @@ struct ArrayBase : Object
     void sort();
   protected:
     ArrayBase *copy();
+};
+
+template <typename TYPE>
+struct Array : ArrayBase
+{
+    TYPE **tdata()
+    {
+        return (TYPE **)data;
+    }
+    
+    void insert(unsigned index, TYPE *v)
+    {
+        ArrayBase::insert(index, (void *)v);
+    }
+    
+    void insert(unsigned index, Array *a)
+    {
+        ArrayBase::insert(index, (ArrayBase *)a);
+    }
+    
+    void append(Array *a)
+    {
+        ArrayBase::append((ArrayBase *)a);
+    }
+    
+    void push(TYPE *a)
+    {
+        ArrayBase::push((void *)a);
+    }
+    
+    Array *copy()
+    {
+        return (Array *)ArrayBase::copy();
+    }
 };
 
 struct Bits : Object

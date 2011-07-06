@@ -25,8 +25,8 @@ struct ObjSymbol
 
 #import "arraytypes.h"
 
-typedef ArrayOf(ObjModule) ObjModules;
-typedef ArrayOf(ObjSymbol) ObjSymbols;
+typedef Array<ObjModule> ObjModules;
+typedef Array<ObjSymbol> ObjSymbols;
 
 struct Library
 {

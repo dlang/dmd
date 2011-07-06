@@ -18,100 +18,60 @@
 
 #include "root.h"
 
-struct Expression;
-struct Statement;
-struct BaseClass;
-struct TemplateParameter;
-struct FuncDeclaration;
-struct Identifier;
-struct Initializer;
+typedef Array<struct TemplateParameter> TemplateParameters;
 
-struct Dsymbol;
-struct ClassDeclaration;
-struct Parameter;
+typedef Array<struct Expression> Expressions;
 
-struct VarDeclaration;
-struct Type;
-struct ScopeDsymbol;
-struct Catch;
-struct StaticDtorDeclaration;
-struct SharedStaticDtorDeclaration;
-struct AliasDeclaration;
-struct Module;
-struct File;
-struct CaseStatement;
-struct CompoundStatement;
-struct GotoCaseStatement;
-struct TemplateInstance;
-struct TemplateParameter;
+typedef Array<struct Statement> Statements;
 
-struct block;
-struct Symbol;
+typedef Array<struct BaseClass> BaseClasses;
 
-#define ArrayOf(TYPE) struct ArrayOf_##TYPE : ArrayBase \
-{ \
-    TYPE **tdata() { return (TYPE **)data; } \
-    void insert(unsigned index, TYPE *v) { ArrayBase::insert(index, (void *)v); } \
-    void insert(unsigned index, ArrayOf_##TYPE *a) { ArrayBase::insert(index, (ArrayBase *)a); } \
-    void append(ArrayOf_##TYPE *a) { ArrayBase::append((ArrayBase *)a); } \
-    void push(TYPE *a) { ArrayBase::push((void *)a); } \
-    ArrayOf_##TYPE *copy() { return (ArrayOf_##TYPE *)ArrayBase::copy(); } \
-}
+typedef Array<struct ClassDeclaration> ClassDeclarations;
 
-typedef ArrayOf(TemplateParameter) TemplateParameters;
+typedef Array<struct Dsymbol> Dsymbols;
 
-typedef ArrayOf(Expression) Expressions;
+typedef Array<struct Object> Objects;
 
-typedef ArrayOf(Statement) Statements;
+typedef Array<struct FuncDeclaration> FuncDeclarations;
 
-typedef ArrayOf(BaseClass) BaseClasses;
+typedef Array<struct Parameter> Parameters;
 
-typedef ArrayOf(ClassDeclaration) ClassDeclarations;
+typedef Array<struct Identifier> Identifiers;
 
-typedef ArrayOf(Dsymbol) Dsymbols;
+typedef Array<struct Initializer> Initializers;
 
-typedef ArrayOf(Object) Objects;
+typedef Array<struct VarDeclaration> VarDeclarations;
 
-typedef ArrayOf(FuncDeclaration) FuncDeclarations;
+typedef Array<struct Type> Types;
 
-typedef ArrayOf(Parameter) Parameters;
+typedef Array<struct ScopeDsymbol> ScopeDsymbols;
 
-typedef ArrayOf(Identifier) Identifiers;
+typedef Array<struct Catch> Catches;
 
-typedef ArrayOf(Initializer) Initializers;
+typedef Array<struct StaticDtorDeclaration> StaticDtorDeclarations;
 
-typedef ArrayOf(VarDeclaration) VarDeclarations;
+typedef Array<struct SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
 
-typedef ArrayOf(Type) Types;
+typedef Array<struct AliasDeclaration> AliasDeclarations;
 
-typedef ArrayOf(ScopeDsymbol) ScopeDsymbols;
+typedef Array<struct Module> Modules;
 
-typedef ArrayOf(Catch) Catches;
+typedef Array<struct File> Files;
 
-typedef ArrayOf(StaticDtorDeclaration) StaticDtorDeclarations;
+typedef Array<struct CaseStatement> CaseStatements;
 
-typedef ArrayOf(SharedStaticDtorDeclaration) SharedStaticDtorDeclarations;
+typedef Array<struct CompoundStatement> CompoundStatements;
 
-typedef ArrayOf(AliasDeclaration) AliasDeclarations;
+typedef Array<struct GotoCaseStatement> GotoCaseStatements;
 
-typedef ArrayOf(Module) Modules;
+typedef Array<struct TemplateInstance> TemplateInstances;
 
-typedef ArrayOf(File) Files;
+typedef Array<char> Strings;
 
-typedef ArrayOf(CaseStatement) CaseStatements;
+typedef Array<void> Voids;
 
-typedef ArrayOf(CompoundStatement) CompoundStatements;
+typedef Array<struct block> Blocks;
 
-typedef ArrayOf(GotoCaseStatement) GotoCaseStatements;
-
-typedef ArrayOf(TemplateInstance) TemplateInstances;
-
-typedef ArrayOf(char) Strings;
-
-typedef ArrayOf(void) Voids;
-
-typedef ArrayOf(block) Blocks;
-
-typedef ArrayOf(Symbol) Symbols;
+typedef Array<struct Symbol> Symbols;
 
 #endif

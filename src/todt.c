@@ -42,7 +42,7 @@
 
 extern Symbol *static_sym();
 
-typedef ArrayOf(dt_t) Dts;
+typedef Array<dt_t> Dts;
 
 /* ================================================================ */
 

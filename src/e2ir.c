@@ -44,7 +44,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-typedef ArrayOf(elem) Elems;
+typedef Array<elem> Elems;
 
 elem *addressElem(elem *e, Type *t);
 elem *array_toPtr(Type *t, elem *e);

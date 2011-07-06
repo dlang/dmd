@@ -65,7 +65,7 @@ struct MacroSection : Section
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
-typedef ArrayOf(Section) Sections;
+typedef Array<Section> Sections;
 
 struct DocComment
 {
