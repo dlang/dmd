@@ -294,7 +294,7 @@ public:
             not have access to std.traits, and naming it Unqual as well would
             result in a name clash, so it's TUnqual.
       +/
-    /+ref+/ Duration opOpAssign(string op, D)(in D rhs) nothrow
+    /+ref+/ Duration opOpAssign(string op, D)(in D rhs) pure nothrow
         if((op == "+" || op == "-") &&
            (is(TUnqual!D == Duration) ||
             is(TUnqual!D == TickDuration)))
@@ -464,7 +464,7 @@ public:
         Params:
             value = The value to multiply this duration by.
       +/
-    /+ref+/ Duration opOpAssign(string op)(long value) nothrow
+    /+ref+/ Duration opOpAssign(string op)(long value) pure nothrow
         if(op == "*")
     {
         _hnsecs *= value;
@@ -568,7 +568,7 @@ public:
         Throws:
             TimeException if an attempt to divide by 0 is made.
       +/
-    /+ref+/ Duration opOpAssign(string op)(long value)
+    /+ref+/ Duration opOpAssign(string op)(long value) pure
         if(op == "/")
     {
         if(value == 0)
@@ -1598,7 +1598,7 @@ struct TickDuration
 
        BUG: This should be return "ref TickDuration", but bug2460 prevents that.
       +/
-    /+ref TickDuration+/ void opOpAssign(string op)(in TickDuration rhs) nothrow
+    /+ref TickDuration+/ void opOpAssign(string op)(in TickDuration rhs) pure nothrow
         if(op == "+" || op == "-")
     {
         mixin("length " ~ op ~ "= rhs.length;");
@@ -1700,7 +1700,7 @@ struct TickDuration
         Params:
             value = The value to divide from this duration.
       +/
-    void opOpAssign(string op, T)(T value) nothrow
+    void opOpAssign(string op, T)(T value) pure nothrow
         if(op == "*" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
@@ -1732,7 +1732,7 @@ struct TickDuration
         Throws:
             TimeException if an attempt to divide by 0 is made.
       +/
-    void opOpAssign(string op, T)(T value)
+    void opOpAssign(string op, T)(T value) pure
         if(op == "/" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
