@@ -118,7 +118,7 @@ public:
             $(TR $(TD this &gt; rhs) $(TD &gt; 0))
             )
      +/
-    int opCmp(in Duration rhs) const nothrow
+    int opCmp(in Duration rhs) const pure nothrow
     {
         if(_hnsecs < rhs._hnsecs)
             return -1;
@@ -174,7 +174,7 @@ public:
             not have access to std.traits, and naming it Unqual as well would
             result in a name clash, so it's TUnqual.
       +/
-    Duration opBinary(string op, D)(in D rhs) const nothrow
+    Duration opBinary(string op, D)(in D rhs) const pure nothrow
         if((op == "+" || op == "-") &&
            (is(TUnqual!D == Duration) ||
            is(TUnqual!D == TickDuration)))
@@ -302,7 +302,7 @@ public:
             not have access to std.traits, and naming it Unqual as well would
             result in a name clash, so it's TUnqual.
       +/
-    /+ref+/ Duration opOpAssign(string op, D)(in D rhs) nothrow
+    /+ref+/ Duration opOpAssign(string op, D)(in D rhs) pure nothrow
         if((op == "+" || op == "-") &&
            (is(TUnqual!D == Duration) ||
             is(TUnqual!D == TickDuration)))
@@ -430,7 +430,7 @@ public:
         Params:
             value = The value to multiply this duration by.
       +/
-    Duration opBinary(string op)(long value) const nothrow
+    Duration opBinary(string op)(long value) const pure nothrow
         if(op == "*")
     {
         return Duration(_hnsecs * value);
@@ -472,7 +472,7 @@ public:
         Params:
             value = The value to multiply this duration by.
       +/
-    /+ref+/ Duration opOpAssign(string op)(long value) nothrow
+    /+ref+/ Duration opOpAssign(string op)(long value) pure nothrow
         if(op == "*")
     {
         _hnsecs *= value;
@@ -528,7 +528,7 @@ public:
         Throws:
             TimeException if an attempt to divide by 0 is made.
       +/
-    Duration opBinary(string op)(long value) const
+    Duration opBinary(string op)(long value) pure const
         if(op == "/")
     {
         if(value == 0)
@@ -576,7 +576,7 @@ public:
         Throws:
             TimeException if an attempt to divide by 0 is made.
       +/
-    /+ref+/ Duration opOpAssign(string op)(long value)
+    /+ref+/ Duration opOpAssign(string op)(long value) pure
         if(op == "/")
     {
         if(value == 0)
@@ -634,7 +634,7 @@ public:
         Params:
             value = The number of units to multiply this duration by.
       +/
-    Duration opBinaryRight(string op)(long value) const nothrow
+    Duration opBinaryRight(string op)(long value) const pure nothrow
         if(op == "*")
     {
         return opBinary!op(value);
@@ -667,7 +667,7 @@ public:
     /++
         Returns the negation of this Duration.
       +/
-    Duration opUnary(string op)() const nothrow
+    Duration opUnary(string op)() const pure nothrow
         if(op == "-")
     {
         return Duration(-_hnsecs);
@@ -704,7 +704,7 @@ assert(dur!"hours"(49).get!"days"() == 2);
 assert(dur!"hours"(49).get!"hours"() == 1);
 --------------------
       +/
-    long get(string units)() const nothrow
+    long get(string units)() const pure nothrow
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -898,7 +898,7 @@ assert(dur!"hnsecs"(-50_007).fracSec == FracSec.from!"hnsecs"(-50_007));
 assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
 --------------------
      +/
-    @property FracSec fracSec() const nothrow
+    @property FracSec fracSec() const pure nothrow
     {
         try
         {
@@ -958,7 +958,7 @@ assert(dur!"nsecs"(2007).total!"hnsecs"() == 20);
 assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 --------------------
       +/
-    long total(string units)() const nothrow
+    long total(string units)() const pure nothrow
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -1017,7 +1017,7 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
     //with modifiers and one without.
-    string toString() const nothrow
+    string toString() const pure nothrow
     {
         return _toStringImpl();
     }
@@ -1033,7 +1033,7 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
     }
 
 
-    @property bool isNegative() const nothrow
+    @property bool isNegative() const pure nothrow
     {
         return _hnsecs < 0;
     }
@@ -1054,7 +1054,7 @@ private:
         Since we have two versions of toString(), we have _toStringImpl()
         so that they can share implementations.
       +/
-    string _toStringImpl() const nothrow
+    string _toStringImpl() const pure nothrow
     {
         long hnsecs = _hnsecs;
 
@@ -1195,7 +1195,7 @@ private:
             hnsecs = The total number of hecto-nanoseconds in this duration.
       +/
     @safe
-    nothrow this(long hnsecs)
+    pure nothrow this(long hnsecs)
     {
         _hnsecs = hnsecs;
     }
@@ -1218,7 +1218,7 @@ private:
         length = The number of units in the duration.
   +/
 @safe
-Duration dur(string units)(long length) nothrow
+Duration dur(string units)(long length) pure nothrow
     if(units == "weeks" ||
        units == "days" ||
        units == "hours" ||
@@ -1334,7 +1334,7 @@ struct TickDuration
             units = The units to convert to. "seconds" and smaller only.
             T     = The integral type to convert to.
       +/
-    T to(string units, T)() const nothrow
+    T to(string units, T)() const pure nothrow
         if((units == "seconds" ||
             units == "msecs" ||
             units == "usecs" ||
@@ -1358,7 +1358,7 @@ struct TickDuration
             units = The units to convert to. "seconds" and smaller only.
             T     = The floating point type to convert to.
       +/
-    T to(string units, T)() const nothrow
+    T to(string units, T)() const pure nothrow
         if((units == "seconds" ||
             units == "msecs" ||
             units == "usecs" ||
@@ -1437,7 +1437,7 @@ struct TickDuration
             units = The units to convert from. "seconds" and smaller.
             value = The number of the units to convert from.
       +/
-    static TickDuration from(string units)(long value) nothrow
+    static TickDuration from(string units)(long value) pure nothrow
         if(units == "seconds" ||
            units == "msecs" ||
            units == "usecs" ||
@@ -1568,7 +1568,7 @@ struct TickDuration
     /++
         Returns a Duration with the same number of hnsecs as this TickDuration.
       +/
-    Duration opCast(T)() const nothrow
+    Duration opCast(T)() const pure nothrow
         if(is(T == Duration))
     {
         return Duration(hnsecs);
@@ -1611,7 +1611,7 @@ struct TickDuration
 
        BUG: This should be return "ref TickDuration", but bug2460 prevents that.
       +/
-    /+ref TickDuration+/ void opOpAssign(string op)(in TickDuration rhs) nothrow
+    /+ref TickDuration+/ void opOpAssign(string op)(in TickDuration rhs) pure nothrow
         if(op == "+" || op == "-")
     {
         mixin("length " ~ op ~ "= rhs.length;");
@@ -1631,7 +1631,7 @@ struct TickDuration
     /++
        operator overloading "-, +"
       +/
-    TickDuration opBinary(string op)(in TickDuration rhs) const nothrow
+    TickDuration opBinary(string op)(in TickDuration rhs) const pure nothrow
         if(op == "-" || op == "+")
     {
         return TickDuration(mixin("length " ~ op ~ " rhs.length"));
@@ -1649,7 +1649,7 @@ struct TickDuration
     /++
         Returns the negation of this TickDuration.
       +/
-    TickDuration opUnary(string op)() const nothrow
+    TickDuration opUnary(string op)() const pure nothrow
         if(op == "-")
     {
         return TickDuration(-length);
@@ -1673,7 +1673,7 @@ struct TickDuration
     /++
        operator overloading "=="
       +/
-    bool opEquals(ref const TickDuration rhs) const nothrow
+    bool opEquals(ref const TickDuration rhs) const pure nothrow
     {
         return length == rhs.length;
     }
@@ -1688,7 +1688,7 @@ struct TickDuration
     /++
        operator overloading "<, >, <=, >="
       +/
-    int opCmp(ref const TickDuration rhs) const nothrow
+    int opCmp(ref const TickDuration rhs) const pure nothrow
     {
         return length < rhs.length ? -1 : (length == rhs.length ? 0 : 1);
     }
@@ -1713,7 +1713,7 @@ struct TickDuration
         Params:
             value = The value to divide from this duration.
       +/
-    void opOpAssign(string op, T)(T value) nothrow
+    void opOpAssign(string op, T)(T value) pure nothrow
         if(op == "*" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
@@ -1745,7 +1745,7 @@ struct TickDuration
         Throws:
             TimeException if an attempt to divide by 0 is made.
       +/
-    void opOpAssign(string op, T)(T value)
+    void opOpAssign(string op, T)(T value) pure
         if(op == "/" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
@@ -1777,7 +1777,7 @@ struct TickDuration
         Params:
             value = The value to divide from this duration.
       +/
-    TickDuration opBinary(string op, T)(T value) const nothrow
+    TickDuration opBinary(string op, T)(T value) const pure nothrow
         if(op == "*" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
@@ -1807,7 +1807,7 @@ struct TickDuration
         Throws:
             TimeException if an attempt to divide by 0 is made.
       +/
-    TickDuration opBinary(string op, T)(T value) const
+    TickDuration opBinary(string op, T)(T value) const pure
         if(op == "/" &&
            (__traits(isIntegral, T) || __traits(isFloating, T)))
     {
@@ -1822,7 +1822,7 @@ struct TickDuration
         Params:
             ticks = The number of ticks in the TickDuration.
       +/
-    nothrow this(long ticks)
+    pure nothrow this(long ticks)
     {
         this.length = ticks;
     }
@@ -1928,7 +1928,7 @@ assert(convert!("months", "years")(12) == 1);
 --------------------
   +/
 @safe
-long convert(string from, string to)(long value) nothrow
+long convert(string from, string to)(long value) pure nothrow
     if((from == "years" || from == "months") &&
        (to == "years" || to == "months"))
 {
@@ -1999,7 +1999,7 @@ assert(convert!("seconds", "days")(86_400) == 1);
 --------------------
   +/
 @safe
-static long convert(string from, string to)(long value) nothrow
+static long convert(string from, string to)(long value) pure nothrow
     if((from == "weeks" ||
         from == "days" ||
         from == "hours" ||
@@ -2098,7 +2098,7 @@ assert(convert!("seconds", "nsecs")(1) == 1_000_000_000);
 --------------------
   +/
 @safe
-static long convert(string from, string to)(long value) nothrow
+static long convert(string from, string to)(long value) pure nothrow
     if((from == "nsecs" &&
         (to == "weeks" ||
          to == "days" ||
@@ -2198,7 +2198,7 @@ public:
             greater than or equal to $(D 1) second or less than or equal to
             $(D -1) seconds.
       +/
-    static FracSec from(string units)(long value)
+    static FracSec from(string units)(long value) pure
         if(units == "msecs" ||
            units == "usecs" ||
            units == "hnsecs" ||
@@ -2273,7 +2273,7 @@ public:
     /++
         The value of this FracSec as milliseconds.
       +/
-    @property int msecs() const nothrow
+    @property int msecs() const pure nothrow
     {
         return cast(int)convert!("hnsecs", "msecs")(_hnsecs);
     }
@@ -2308,7 +2308,7 @@ public:
         Throws:
             TimeException if the given value is not less than one second.
       +/
-    @property void msecs(int milliseconds)
+    @property void msecs(int milliseconds) pure
     {
         immutable hnsecs = cast(int)convert!("msecs", "hnsecs")(milliseconds);
 
@@ -2348,7 +2348,7 @@ public:
     /++
         The value of this FracSec as microseconds.
       +/
-    @property int usecs() const nothrow
+    @property int usecs() const pure nothrow
     {
         return cast(int)convert!("hnsecs", "usecs")(_hnsecs);
     }
@@ -2383,7 +2383,7 @@ public:
         Throws:
             TimeException if the given value is not less than one second.
       +/
-    @property void usecs(int microseconds)
+    @property void usecs(int microseconds) pure
     {
         immutable hnsecs = cast(int)convert!("usecs", "hnsecs")(microseconds);
 
@@ -2424,7 +2424,7 @@ public:
     /++
         The value of this FracSec as hnsecs.
       +/
-    @property int hnsecs() const nothrow
+    @property int hnsecs() const pure nothrow
     {
         return _hnsecs;
     }
@@ -2459,7 +2459,7 @@ public:
         Throws:
             TimeException if the given value is not less than one second.
       +/
-    @property void hnsecs(int hnsecs)
+    @property void hnsecs(int hnsecs) pure
     {
         _enforceValid(hnsecs);
         _hnsecs = hnsecs;
@@ -2502,7 +2502,7 @@ public:
         Note that this does not give you any greater precision
         than getting the value of this FracSec as hnsecs.
       +/
-    @property int nsecs() const nothrow
+    @property int nsecs() const pure nothrow
     {
         return cast(int)convert!("hnsecs", "nsecs")(_hnsecs);
     }
@@ -2540,7 +2540,7 @@ public:
         Throws:
             TimeException if the given value is not less than one second.
       +/
-    @property void nsecs(long nsecs)
+    @property void nsecs(long nsecs) pure
     {
         //So that -99 through -1 throw instead of result in FracSec(0).
         if(nsecs < 0)
@@ -2603,7 +2603,7 @@ public:
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
     //with modifiers and one without.
-    string toString() const nothrow
+    string toString() const pure nothrow
     {
         return _toStringImpl();
     }
@@ -2625,7 +2625,7 @@ private:
         Since we have two versions of toString(), we have _toStringImpl()
         so that they can share implementations.
       +/
-    string _toStringImpl() const nothrow
+    string _toStringImpl() const pure nothrow
     {
         try
         {
@@ -2744,14 +2744,14 @@ private:
             TimeException if the given hnsecs less than 0 or would result in a
             FracSec greater than or equal to 1 second.
       +/
-    this(int hnsecs)
+    pure this(int hnsecs)
     {
         _enforceValid(hnsecs);
         _hnsecs = hnsecs;
     }
 
 
-    invariant()
+    pure invariant()
     {
         if(!_valid(_hnsecs))
             throw new AssertError("Invaliant Failure: hnsecs [" ~ numToString(_hnsecs) ~ "]", __FILE__, __LINE__);

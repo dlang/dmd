@@ -188,7 +188,7 @@ version( Windows )
                     last.next = t;
                 }
             }
-            
+
             version( D_InlineAsm_X86 )
             {
                 asm { fninit; }
@@ -793,7 +793,7 @@ class Thread
         //       starting thread.  In effect, not doing the add here risks
         //       having thread being treated like a daemon thread.
         synchronized( slock )
-        {       
+        {
             version( Windows )
             {
                 m_hndl = cast(HANDLE) _beginthreadex( null, m_sz, &thread_entryPoint, cast(void*) this, 0, &m_addr );
@@ -1064,9 +1064,9 @@ class Thread
     // Actions on Calling Thread
     ///////////////////////////////////////////////////////////////////////////
 
-    
+
     /**
-     * $(RED Scheduled for deprecation in December 2011. Please use the version
+     * $(RED Scheduled for deprecation in January 2012. Please use the version
      *       which takes a $(D Duration) instead.)
      *
      * Suspends the calling thread for at least the supplied period.  This may

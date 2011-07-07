@@ -190,7 +190,7 @@ class Condition
 
 
     /**
-     * $(RED Scheduled for deprecation in December 2011. Please use the version
+     * $(RED Scheduled for deprecation in January 2012. Please use the version
      *       which takes a $(D Duration) instead.)
      *
      * Suspends the calling thread until a notification occurs or until the
