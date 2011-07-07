@@ -1367,17 +1367,23 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
              * requiring each function in between to be impure.
              */
             Dsymbol *vparent = v->toParent2();
-            for (Dsymbol *s = sc->func; s; s = s->toParent2())
+            Dsymbol *s = sc->func, *snext = s->toParent2();
+            // Make sure we're really finding parent *functions*, not parent
+            // class.
+            if (vparent->isFuncDeclaration() || snext != vparent)
             {
-                if (s == vparent)
-                    break;
-                FuncDeclaration *ff = s->isFuncDeclaration();
-                if (!ff)
-                    break;
-                if (ff->setImpure())
-                {   error("pure nested function '%s' cannot access mutable data '%s'",
-                        ff->toChars(), v->toChars());
-                    break;
+                for (; s; s = s->toParent2())
+                {
+                    if (s == vparent)
+                        break;
+                    FuncDeclaration *ff = s->isFuncDeclaration();
+                    if (!ff)
+                        break;
+                    if (ff->setImpure())
+                    {   error("pure nested function '%s' cannot access mutable data '%s'",
+                            ff->toChars(), v->toChars());
+                        break;
+                    }
                 }
             }
         }
