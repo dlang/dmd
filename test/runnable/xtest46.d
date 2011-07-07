@@ -3192,6 +3192,64 @@ pure int test4031()
  
 /***************************************************/
 
+struct S6230 {
+    int p;
+    int q() const pure {
+        return p;
+    }
+    void r() pure {
+        p = 231;
+    }
+}
+class C6230 {
+    int p;
+    int q() const pure {
+        return p;
+    }
+    void r() pure {
+        p = 552;
+    }
+}
+int q6230(ref const S6230 s) pure {    // <-- Currently OK
+    return s.p;
+}
+int q6230(ref const C6230 c) pure {    // <-- Currently OK
+    return c.p;
+}
+void r6230(ref S6230 s) pure {
+    s.p = 244;
+}
+void r6230(ref C6230 c) pure {
+    c.p = 156;
+}
+bool test6230pure() pure {
+    auto s = S6230(4);
+    assert(s.p == 4);
+    assert(q6230(s) == 4);
+    assert(s.q == 4);
+
+    auto c = new C6230;
+    c.p = 6;
+    assert(q6230(c) == 6);
+    assert(c.q == 6);
+
+    r6230(s);
+    assert(s.p == 244);
+    s.r();
+    assert(s.p == 231);
+
+    r6230(c);
+    assert(c.p == 156);
+    c.r();
+    assert(c.p == 552);
+
+    return true;
+}
+void test6230() {
+    assert(test6230pure());
+}
+
+
 int main()
 {
     test1();
@@ -3353,6 +3411,7 @@ int main()
     test4258();
     test4963();
     test4031();
+    test6230();
 
     printf("Success\n");
     return 0;

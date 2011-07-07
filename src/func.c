@@ -2676,9 +2676,9 @@ enum PURE FuncDeclaration::isPure()
     TypeFunction *tf = (TypeFunction *)type;
     if (flags & FUNCFLAGpurityInprocess)
         setImpure();
-    enum PURE purity = tf->purity;
-    if (purity == PUREfwdref)
+    if (tf->purity == PUREfwdref)
         tf->purityLevel();
+    enum PURE purity = tf->purity;
     if (purity > PUREweak && needThis())
     {   // The attribute of the 'this' reference affects purity strength
         if (type->mod & (MODimmutable | MODwild))
@@ -2688,6 +2688,9 @@ enum PURE FuncDeclaration::isPure()
         else
             purity = PUREweak;
     }
+    tf->purity = purity;
+    // ^ This rely on the current situation that every FuncDeclaration has a
+    //   unique TypeFunction.
     return purity;
 }
 
