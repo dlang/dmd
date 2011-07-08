@@ -2997,7 +2997,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     Expression * newval = NULL;
 
     if (!wantRef)
-        // We need to treat pointers specially, because TOKsymoff can be used to
+    {    // We need to treat pointers specially, because TOKsymoff can be used to
         // return a value OR a pointer
         assert(e1);
         assert(e1->type);
@@ -3005,6 +3005,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = this->e2->interpret(istate, ctfeNeedLvalue);
         else
             newval = this->e2->interpret(istate);
+    }
     if (newval == EXP_CANT_INTERPRET)
         return newval;
     // ----------------------------------------------------
@@ -3969,6 +3970,8 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             e = e->interpret(istate);
             if (e != EXP_CANT_INTERPRET)
             {
+                if (e->op == TOKslice)
+                    e= resolveSlice(e);
                 e = expType(type, e);
                 e = copyLiteral(e);
             }
