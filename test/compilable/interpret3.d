@@ -986,6 +986,29 @@ int zfs()
 static assert(!is(typeof(compiles!(zfs()))));
 
 /**************************************************
+   .dup must protect string literals
+**************************************************/
+
+string mutateTheImmutable(immutable string _s)
+{
+   char[] s = _s.dup;
+   foreach(ref c; s)
+       c = 'x';
+   return s.idup;
+}
+
+string doharm(immutable string _name)
+{
+   return mutateTheImmutable(_name[2..$].idup);
+}
+
+enum victimLiteral = "CL_INVALID_CONTEXT";
+
+enum thug = doharm(victimLiteral);
+static assert(victimLiteral == "CL_INVALID_CONTEXT");
+
+
+/**************************************************
         Use $ in a slice of a dotvar slice
 **************************************************/
 
