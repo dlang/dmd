@@ -4253,6 +4253,8 @@ void test6270()
 {
   auto painter = new XMMPainter;
   assert(XMMPainter.sumFloats(20, painter.call()) == 20.0f);
+  auto dg = () { return XMMPainter.sumFloats(0.0f, 0.0f); };
+  assert(XMMPainter.sumFloats(20, dg()) == 20.0f);
 }
 
 /***************************************************/
