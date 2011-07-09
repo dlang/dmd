@@ -2972,6 +2972,15 @@ void bar150(T)(T n) {  }
 
 /***************************************************/
 
+void test5785()
+{
+    static struct x { static int y; }
+    assert(x.y !is 1);
+    assert(x.y !in [1:0]);
+}
+
+/***************************************************/
+
 void bar151(T)(T n) {  }
 
 nothrow void test151()
@@ -3338,6 +3347,7 @@ int main()
     test69();
     test70();
 
+    test5785();
     test72();
     test73();
     test74();

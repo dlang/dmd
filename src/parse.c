@@ -5466,7 +5466,7 @@ Expression *Parser::parsePostExp(Expression *e)
                 {   Identifier *id = token.ident;
 
                     nextToken();
-                    if (token.value == TOKnot && peekNext() != TOKis)
+                    if (token.value == TOKnot && peekNext() != TOKis && peekNext() != TOKin)
                     {   // identifier!(template-argument-list)
                         TemplateInstance *tempinst = new TemplateInstance(loc, id);
                         Objects *tiargs;
