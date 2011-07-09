@@ -1112,6 +1112,24 @@ void test2740()
 
 /*******************************************/
 
+mixin template MTestFoo()
+{
+    int foo(){ return 2; }
+}
+class TestFoo
+{
+    mixin MTestFoo!() test;
+    int foo(){ return 1; }
+}
+void test42()
+{
+    auto p = new TestFoo();
+    assert(p.foo() == 1);
+    assert(p.test.foo() == 2);
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -1157,6 +1175,7 @@ int main()
     test41();
     test2245();
     test2740();
+    test42();
 
     printf("Success\n");
     return 0;

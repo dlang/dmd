@@ -962,7 +962,10 @@ int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
     {
         FuncDeclaration *fdstart = s->isFuncDeclaration();
         //printf("%s fdstart = %p\n", s->kind(), fdstart);
-        return !overloadApply(fdstart, &isf, fd);
+        if (overloadApply(fdstart, &isf, fd))
+            return 0;
+
+        return !fd->parent->isTemplateMixin();
     }
 }
 #endif
