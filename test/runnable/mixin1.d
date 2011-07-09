@@ -1043,6 +1043,74 @@ void test2245()
 }
 
 /*******************************************/
+// 2740
+
+interface IFooable2740
+{
+    bool foo();
+}
+abstract class CFooable2740
+{
+    bool foo();
+}
+
+mixin template MFoo2740()
+{
+    override bool foo() { return true; }
+}
+
+class Foo2740i1 : IFooable2740
+{
+    override bool foo() { return false; }
+    mixin MFoo2740;
+}
+class Foo2740i2 : IFooable2740
+{
+    mixin MFoo2740;
+    override bool foo() { return false; }
+}
+
+class Foo2740c1 : CFooable2740
+{
+    override bool foo() { return false; }
+    mixin MFoo2740;
+}
+class Foo2740c2 : CFooable2740
+{
+    mixin MFoo2740;
+    override bool foo() { return false; }
+}
+
+void test2740()
+{
+    {
+        auto p = new Foo2740i1();
+        IFooable2740 i = p;
+        assert(p.foo() == false);
+        assert(i.foo() == false);
+    }
+    {
+        auto p = new Foo2740i2();
+        IFooable2740 i = p;
+        assert(p.foo() == false);
+        assert(i.foo() == false);
+    }
+
+    {
+        auto p = new Foo2740c1();
+        CFooable2740 i = p;
+        assert(p.foo() == false);
+        assert(i.foo() == false);
+    }
+    {
+        auto p = new Foo2740c2();
+        CFooable2740 i = p;
+        assert(p.foo() == false);
+        assert(i.foo() == false);
+    }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1088,6 +1156,7 @@ int main()
     test40();
     test41();
     test2245();
+    test2740();
 
     printf("Success\n");
     return 0;

@@ -459,6 +459,25 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 else
                 {
+                    vi = findVtblIndex(&cd->vtbl, cd->vtbl.dim);
+                    if (vi != -1)
+                    {
+                        FuncDeclaration *fdc = cd->vtbl.tdata()[vi];
+                        if (fdc->toParent() == parent)
+                        {
+                            // If either is not mixin, the one that is
+                            // overrides the other.
+                            if (fdc->parent->isClassDeclaration())
+                                break;
+                            if (this->parent->isClassDeclaration())
+                            {
+                                introducing = 1;
+                                cd->vtbl.tdata()[vi] = this;
+                                vtblIndex = vi;
+                                break;
+                            }
+                        }
+                    }
                     // Append to end of vtbl[]
                     //printf("\tintroducing function\n");
                     introducing = 1;
@@ -484,12 +503,13 @@ void FuncDeclaration::semantic(Scope *sc)
                     warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 #endif
 
-                if (fdv->toParent() == parent)
+                FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
+                if (fdc->toParent() == parent)
                 {
                     // If both are mixins, then error.
                     // If either is not, the one that is not overrides
                     // the other.
-                    if (fdv->parent->isClassDeclaration())
+                    if (fdc->parent->isClassDeclaration())
                         break;
                     if (!this->parent->isClassDeclaration()
 #if !BREAKABI
