@@ -620,6 +620,7 @@ struct FuncDeclaration : Declaration
     int isCodeseg();
     int isOverloadable();
     enum PURE isPure();
+    enum PURE isPureBypassingInference();
     bool setImpure();
     int isSafe();
     int isTrusted();

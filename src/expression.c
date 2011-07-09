@@ -1250,14 +1250,14 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         FuncDeclaration *outerfunc = sc->func;
         // Find the closest pure parent of the calling function
         while (outerfunc->toParent2() &&
-                !outerfunc->isPure() &&
+                !outerfunc->isPureBypassingInference() &&
                 outerfunc->toParent2()->isFuncDeclaration())
         {
             outerfunc = outerfunc->toParent2()->isFuncDeclaration();
         }
         // Find the closest pure parent of the called function
         FuncDeclaration *calledparent = f;
-        while (calledparent->toParent2() && !calledparent->isPure()
+        while (calledparent->toParent2() && !calledparent->isPureBypassingInference()
             && calledparent->toParent2()->isFuncDeclaration() )
         {
             calledparent = calledparent->toParent2()->isFuncDeclaration();
