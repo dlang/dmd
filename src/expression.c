@@ -9600,22 +9600,9 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         //error("cannot assign to static array %s", e1->toChars());
     }
-    else if (e1->op == TOKslice)
+    else if (e1->op == TOKslice && t2->toBasetype()->ty == Tarray &&
+        t2->toBasetype()->nextOf()->implicitConvTo(t1->nextOf()))
     {
-        /* This test is so we can do things like:
-         *    byte[] b; b[] = [1,2,3];
-         */
-        if (e2->op != TOKarrayliteral && e2->op != TOKstring)
-        {
-            Type *t1n = t1->toBasetype()->nextOf();
-            Type *t2n = t2->toBasetype()->nextOf();
-            assert(t1n && t2n);
-            if (!t2n->implicitConvTo(t1n))
-            {
-                error("cannot assign from %s to %s", t2->toChars(), t1->toChars());
-                return new ErrorExp();
-            }
-        }
         e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
     else
