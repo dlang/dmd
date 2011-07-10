@@ -168,20 +168,15 @@ public:
 
         Params:
             duration = The duration to add to or subtract from this duration.
-
-        Note:
-            TUnqual is just a local copy of std.traits' Unqual, since core does
-            not have access to std.traits, and naming it Unqual as well would
-            result in a name clash, so it's TUnqual.
       +/
     Duration opBinary(string op, D)(in D rhs) const pure nothrow
         if((op == "+" || op == "-") &&
-           (is(TUnqual!D == Duration) ||
-           is(TUnqual!D == TickDuration)))
+           (is(_Unqual!D == Duration) ||
+           is(_Unqual!D == TickDuration)))
     {
-        static if(is(TUnqual!D == Duration))
+        static if(is(_Unqual!D == Duration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs._hnsecs"));
-        else if(is(TUnqual!D == TickDuration))
+        else if(is(_Unqual!D == TickDuration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs.hnsecs"));
     }
 
@@ -296,20 +291,15 @@ public:
 
         Params:
             rhs = The duration to add to or subtract from this DateTime.
-
-        Note:
-            TUnqual is just a local copy of std.traits' Unqual, since core does
-            not have access to std.traits, and naming it Unqual as well would
-            result in a name clash, so it's TUnqual.
       +/
     /+ref+/ Duration opOpAssign(string op, D)(in D rhs) pure nothrow
         if((op == "+" || op == "-") &&
-           (is(TUnqual!D == Duration) ||
-            is(TUnqual!D == TickDuration)))
+           (is(_Unqual!D == Duration) ||
+            is(_Unqual!D == TickDuration)))
     {
-        static if(is(TUnqual!D == Duration))
+        static if(is(_Unqual!D == Duration))
             mixin("_hnsecs " ~ op ~ "= rhs._hnsecs;");
-        else if(is(TUnqual!D == TickDuration))
+        else if(is(_Unqual!D == TickDuration))
             mixin("_hnsecs " ~ op ~ "= rhs.hnsecs;");
 
         return this;
@@ -3096,38 +3086,38 @@ string numToString(long value) pure nothrow
 /+
   Copied from std.traits for Duration's template constraints. Because of
   bug #2775 makes it impossible to make templates actually private, it
-  was renamed to TUnqual to avoid name clashes. version(D_Ddoc) sections
+  was renamed to _Unqual to avoid name clashes. version(D_Ddoc) sections
   are used on any functions which use it in their template constraints,
-  so TUnqual is at least hidden name-wise.
+  so _Unqual is at least hidden name-wise.
  +/
-template TUnqual(T)
+template _Unqual(T)
 {
     version (none) // Error: recursive alias declaration @@@BUG1308@@@
     {
-             static if (is(T U ==     const U)) alias TUnqual!U TUnqual;
-        else static if (is(T U == immutable U)) alias TUnqual!U TUnqual;
-        else static if (is(T U ==    shared U)) alias TUnqual!U TUnqual;
-        else                                    alias        T TUnqual;
+             static if (is(T U ==     const U)) alias _Unqual!U _Unqual;
+        else static if (is(T U == immutable U)) alias _Unqual!U _Unqual;
+        else static if (is(T U ==    shared U)) alias _Unqual!U _Unqual;
+        else                                    alias        T _Unqual;
     }
     else // workaround
     {
-             static if (is(T U == shared(const U))) alias U TUnqual;
-        else static if (is(T U ==        const U )) alias U TUnqual;
-        else static if (is(T U ==    immutable U )) alias U TUnqual;
-        else static if (is(T U ==       shared U )) alias U TUnqual;
-        else                                        alias T TUnqual;
+             static if (is(T U == shared(const U))) alias U _Unqual;
+        else static if (is(T U ==        const U )) alias U _Unqual;
+        else static if (is(T U ==    immutable U )) alias U _Unqual;
+        else static if (is(T U ==       shared U )) alias U _Unqual;
+        else                                        alias T _Unqual;
     }
 }
 
 unittest
 {
-    static assert(is(TUnqual!(int) == int));
-    static assert(is(TUnqual!(const int) == int));
-    static assert(is(TUnqual!(immutable int) == int));
-    static assert(is(TUnqual!(shared int) == int));
-    static assert(is(TUnqual!(shared(const int)) == int));
+    static assert(is(_Unqual!(int) == int));
+    static assert(is(_Unqual!(const int) == int));
+    static assert(is(_Unqual!(immutable int) == int));
+    static assert(is(_Unqual!(shared int) == int));
+    static assert(is(_Unqual!(shared(const int)) == int));
     alias immutable(int[]) ImmIntArr;
-    static assert(is(TUnqual!(ImmIntArr) == immutable(int)[]));
+    static assert(is(_Unqual!(ImmIntArr) == immutable(int)[]));
 }
 
 
