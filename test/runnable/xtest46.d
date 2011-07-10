@@ -3249,6 +3249,21 @@ void test6230() {
     assert(test6230pure());
 }
 
+/***************************************************/
+
+void test6264()
+{
+    struct S { auto opSlice() { return this; } }
+    int[] a;
+    S s;
+    static assert(!is(typeof(a[] = s[])));
+    int*[] b;
+    static assert(!is(typeof(b[] = [new immutable(int)])));
+    char[] c = new char[](5);
+    c[] = "hello";
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3412,6 +3427,7 @@ int main()
     test4963();
     test4031();
     test6230();
+    test6264();
 
     printf("Success\n");
     return 0;
