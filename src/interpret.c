@@ -2335,7 +2335,7 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
         }
     }
     if (op == TOKnotidentity || op == TOKnotequal)
-        cmp ^= -1;
+        cmp ^= 1;
     return new IntegerExp(loc, cmp, type);
 }
 
