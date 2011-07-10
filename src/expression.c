@@ -620,7 +620,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         Identifier *id = Lexer::uniqueId("__arrayArg");
                         Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
                         t = t->semantic(loc, sc);
-                        VarDeclaration *v = new VarDeclaration(loc, t, id, new VoidInitializer(loc));
+                        VarDeclaration *v = new VarDeclaration(loc, t, id, fd->isSafe() ? NULL : new VoidInitializer(loc));
                         v->storage_class |= STCctfe;
                         v->semantic(sc);
                         v->parent = sc->parent;
