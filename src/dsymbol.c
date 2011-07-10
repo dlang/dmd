@@ -1006,6 +1006,8 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = members->tdata()[i];
         AttribDeclaration *a = s->isAttribDeclaration();
+        TemplateMixin *tm = s->isTemplateMixin();
+        TemplateInstance *ti = s->isTemplateInstance();
 
         if (a)
         {
@@ -1013,6 +1015,14 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
             if (s)
                 return s;
         }
+        else if (tm)
+        {
+            s = getNth(tm->members, nth - n, &n);
+            if (s)
+                return s;
+        }
+        else if (ti)
+            ;
         else if (n == nth)
             return s;
         else
