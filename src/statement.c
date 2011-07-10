@@ -2612,23 +2612,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
     if (ident == Id::msg)
     {
         if (args)
-        {
-            for (size_t i = 0; i < args->dim; i++)
-            {
-                Expression *e = (Expression *)args->data[i];
-
-                e = e->semantic(sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
-                if (e->op == TOKstring)
-                {
-                    StringExp *se = (StringExp *)e;
-                    fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
-                }
-                else
-                    fprintf(stdmsg, "%s", e->toChars());
-            }
-            fprintf(stdmsg, "\n");
-        }
+            print_expressions_to_stdmsg(args, sc);
     }
     else if (ident == Id::lib)
     {

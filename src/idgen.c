@@ -293,6 +293,9 @@ Msgtable msgtable[] =
     { "_pow", "pow" },
     { "fabs" },
 
+    { "stdio" },
+    { "writeln" },
+
     // Traits
     { "isAbstractClass" },
     { "isArithmetic" },

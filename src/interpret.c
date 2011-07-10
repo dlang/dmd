@@ -3935,7 +3935,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     else if (fd)
     {    // function call
 #if DMDV2
-        enum BUILTIN b = fd->isBuiltin();
+        enum BUILTIN b = fd->isBuiltin(BuiltinPurposeCTFE);
         if (b)
         {   Expressions args;
             args.setDim(arguments->dim);
