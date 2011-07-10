@@ -203,6 +203,25 @@ template _ElemType(T) {
 
 /**********************************/
 
+void bug4984a(int n)() if (n > 0 && is(typeof(bug4984a!(n-1) ()))) {
+}
+
+void bug4984a(int n : 0)() {
+}
+
+void bug4984b(U...)(U args) if ( is(typeof( bug4984b(args[1..$]) )) ) {
+}
+
+void bug4984b(U)(U u) {
+}
+
+void bug4984() {
+    bug4984a!400();
+    bug4984b(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -214,6 +233,7 @@ int main()
     test7();
     test8();
     test9();
+    bug4984();
 
     printf("Success\n");
     return 0;

@@ -740,7 +740,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     }
 
 #if DMDV2
-    if (m && constraint && !(flag & 1))
+    if (m && !(m == MATCHexact && flag == 2) && constraint && !(flag & 1))
     {   /* Check to see if constraint is satisfied.
          */
         makeParamNamesVisibleInConstraint(paramscope);
@@ -2879,7 +2879,8 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     else
     {
         // So that matches with specializations are better
-        m = MATCHconvert;
+        if (!(flags & 1))
+            m = MATCHconvert;
 
         /* This is so that:
          *   template Foo(T), Foo!(const int), => ta == int
