@@ -539,8 +539,8 @@ public:
 
     unittest
     {
-        tAssertExThrown!TimeException((){Duration(5) / 0;}());
-        tAssertExThrown!TimeException((){Duration(-5) / 0;}());
+        _assertThrown!TimeException((){Duration(5) / 0;}());
+        _assertThrown!TimeException((){Duration(-5) / 0;}());
 
         assert(Duration(5) / 7 == Duration(0));
         assert(Duration(7) / 5 == Duration(1));
@@ -589,8 +589,8 @@ public:
 
     unittest
     {
-        tAssertExThrown!TimeException((){Duration(5) /= 0;}());
-        tAssertExThrown!TimeException((){Duration(-5) /= 0;}());
+        _assertThrown!TimeException((){Duration(5) /= 0;}());
+        _assertThrown!TimeException((){Duration(-5) /= 0;}());
 
         static void testDur(Duration dur, long value, in Duration expected, size_t line = __LINE__)
         {
@@ -2215,18 +2215,18 @@ public:
 
         foreach(sign; [1, -1])
         {
-            tAssertExThrown!TimeException(from!"msecs"(1000 * sign));
+            _assertThrown!TimeException(from!"msecs"(1000 * sign));
 
             assert(FracSec.from!"msecs"(1 * sign) == FracSec(10_000 * sign));
             assert(FracSec.from!"msecs"(999 * sign) == FracSec(9_990_000 * sign));
 
-            tAssertExThrown!TimeException(from!"usecs"(1_000_000 * sign));
+            _assertThrown!TimeException(from!"usecs"(1_000_000 * sign));
 
             assert(FracSec.from!"usecs"(1 * sign) == FracSec(10 * sign));
             assert(FracSec.from!"usecs"(999 * sign) == FracSec(9990 * sign));
             assert(FracSec.from!"usecs"(999_999 * sign) == FracSec(9999_990 * sign));
 
-            tAssertExThrown!TimeException(from!"hnsecs"(10_000_000 * sign));
+            _assertThrown!TimeException(from!"hnsecs"(10_000_000 * sign));
 
             assert(FracSec.from!"hnsecs"(1 * sign) == FracSec(1 * sign));
             assert(FracSec.from!"hnsecs"(999 * sign) == FracSec(999 * sign));
@@ -2327,8 +2327,8 @@ public:
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-1000));
-        tAssertExThrown!TimeException(testFS(1000));
+        _assertThrown!TimeException(testFS(-1000));
+        _assertThrown!TimeException(testFS(1000));
 
         testFS(0, FracSec(0));
 
@@ -2402,8 +2402,8 @@ public:
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-1_000_000));
-        tAssertExThrown!TimeException(testFS(1_000_000));
+        _assertThrown!TimeException(testFS(-1_000_000));
+        _assertThrown!TimeException(testFS(1_000_000));
 
         testFS(0, FracSec(0));
 
@@ -2476,8 +2476,8 @@ public:
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-10_000_000));
-        tAssertExThrown!TimeException(testFS(10_000_000));
+        _assertThrown!TimeException(testFS(-10_000_000));
+        _assertThrown!TimeException(testFS(10_000_000));
 
         testFS(0, FracSec(0));
 
@@ -2563,8 +2563,8 @@ public:
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-1_000_000_000));
-        tAssertExThrown!TimeException(testFS(1_000_000_000));
+        _assertThrown!TimeException(testFS(-1_000_000_000));
+        _assertThrown!TimeException(testFS(1_000_000_000));
 
         testFS(0, FracSec(0));
 
@@ -3150,11 +3150,11 @@ version(unittest)
 
     Examples:
 --------------------
-tAssertExThrown!Exception(myfunc(param1, param2));
+_assertThrown!Exception(myfunc(param1, param2));
 --------------------
   +/
-void tAssertExThrown(E : Throwable = Exception, T)
-                    (lazy T funcToCall, string msg = null, string file = __FILE__, size_t line = __LINE__)
+void _assertThrown(E : Throwable = Exception, T)
+                  (lazy T funcToCall, string msg = null, string file = __FILE__, size_t line = __LINE__)
 {
     bool thrown = false;
 
@@ -3184,22 +3184,22 @@ unittest
     }
 
     try
-        tAssertExThrown!Exception(throwEx(new Exception("It's an Exception")));
+        _assertThrown!Exception(throwEx(new Exception("It's an Exception")));
     catch(AssertError)
         assert(0);
 
     try
-        tAssertExThrown!Exception(throwEx(new Exception("It's an Exception")), "It's a message");
+        _assertThrown!Exception(throwEx(new Exception("It's an Exception")), "It's a message");
     catch(AssertError)
         assert(0);
 
     try
-        tAssertExThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)));
+        _assertThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)));
     catch(AssertError)
         assert(0);
 
     try
-        tAssertExThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)), "It's a message");
+        _assertThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)), "It's a message");
     catch(AssertError)
         assert(0);
 
@@ -3207,7 +3207,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!Exception(nothrowEx());
+            _assertThrown!Exception(nothrowEx());
         catch(AssertError)
             thrown = true;
 
@@ -3217,7 +3217,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!Exception(nothrowEx(), "It's a message");
+            _assertThrown!Exception(nothrowEx(), "It's a message");
         catch(AssertError)
             thrown = true;
 
@@ -3227,7 +3227,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!AssertError(nothrowEx());
+            _assertThrown!AssertError(nothrowEx());
         catch(AssertError)
             thrown = true;
 
@@ -3237,7 +3237,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!AssertError(nothrowEx(), "It's a message");
+            _assertThrown!AssertError(nothrowEx(), "It's a message");
         catch(AssertError)
             thrown = true;
 
