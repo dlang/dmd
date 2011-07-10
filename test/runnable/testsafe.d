@@ -320,6 +320,13 @@ void structcast()
     static assert(!__traits(compiles, c = cast(C)a)); 
     static assert(!__traits(compiles, c = cast(C)b)); 
 } 
- 
+
+@safe
+void varargs()
+{
+    static void fun(string[] val...) {}
+    fun("a");
+}
+
 void main() { } 
 
