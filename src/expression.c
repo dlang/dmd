@@ -9600,7 +9600,8 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         //error("cannot assign to static array %s", e1->toChars());
     }
-    else if (e1->op == TOKslice && t2->toBasetype()->ty == Tarray &&
+    else if (e1->op == TOKslice &&
+        (t2->toBasetype()->ty == Tarray || t2->toBasetype()->ty == Tsarray) &&
         t2->toBasetype()->nextOf()->implicitConvTo(t1->nextOf()))
     {
         e2 = e2->implicitCastTo(sc, e1->type->constOf());
