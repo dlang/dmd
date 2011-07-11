@@ -3265,6 +3265,47 @@ void test6264()
 
 /***************************************************/
 
+struct S6284 {
+    int a;
+}
+class C6284 {
+    int a;
+}
+pure int bug6284a() {
+    S6284 s = {4};
+    auto b = s.a;   // ok
+    with (s) {
+        b += a;     // should be ok.
+    }
+    return b;
+}
+pure int bug6284b() {
+    auto s = new S6284;
+    s.a = 4;
+    auto b = s.a;
+    with (*s) {
+        b += a;
+    }
+    return b;
+}
+pure int bug6284c() {
+    auto s = new C6284;
+    s.a = 4;
+    auto b = s.a;
+    with (s) {
+        b += a;
+    }
+    return b;
+}
+void test6284() {
+    assert(bug6284a() == 8);
+    assert(bug6284b() == 8);
+    assert(bug6284c() == 8);
+}
+
+/***************************************************/
+
+
 int main()
 {
     test1();
@@ -3428,6 +3469,7 @@ int main()
     test4031();
     test6230();
     test6264();
+    test6284();
 
     printf("Success\n");
     return 0;

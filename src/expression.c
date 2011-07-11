@@ -1331,6 +1331,23 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
                 {
                     goto L1;
                 }
+                if (ethis->op == TOKstar)
+                {   PtrExp *pe = (PtrExp *)ethis;
+                    VarExp *target = (VarExp *)pe->e1;
+                    if (target->op == TOKvar)
+                    {
+#if 1  // disable this to only allow (*__withSym).a to be pure
+                        ethis = target;
+#else
+                        VarDeclaration *wsym = target->var->isVarDeclaration();
+                        if (wsym && wsym->ident == Id::withSym)
+                        {
+                            checkPurity(sc, wsym, NULL);
+                            return;
+                        }
+#endif
+                    }
+                }
                 if (ethis->op == TOKvar)
                 {   VarExp *ve = (VarExp *)ethis;
 
