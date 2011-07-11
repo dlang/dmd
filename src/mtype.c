@@ -7062,21 +7062,11 @@ L1:
 
     OverloadSet *o = s->isOverloadSet();
     if (o)
-    {   /* We really should allow this, triggered by:
-         *   template c()
-         *   {
-         *      void a();
-         *      void b () { this.a(); }
-         *   }
-         *   struct S
-         *   {
-         *      mixin c;
-         *      mixin c;
-         *  }
-         *  alias S e;
-         */
-        error(e->loc, "overload set for %s.%s not allowed in struct declaration", e->toChars(), ident->toChars());
-        return new ErrorExp();
+    {
+        OverExp *oe = new OverExp(o);
+        if (e->op == TOKtype)
+            return oe;
+        return new DotExp(e->loc, e, oe);
     }
 
     d = s->isDeclaration();
@@ -7617,10 +7607,11 @@ L1:
 
     OverloadSet *o = s->isOverloadSet();
     if (o)
-    {   /* We really should allow this
-         */
-        error(e->loc, "overload set for %s.%s not allowed in struct declaration", e->toChars(), ident->toChars());
-        return new ErrorExp();
+    {
+        OverExp *oe = new OverExp(o);
+        if (e->op == TOKtype)
+            return oe;
+        return new DotExp(e->loc, e, oe);
     }
 
     Declaration *d = s->isDeclaration();

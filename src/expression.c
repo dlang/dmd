@@ -6714,6 +6714,11 @@ L1:
     else if (e->op == TOKdotexp)
     {   DotExp *de = (DotExp *)e;
 
+        if (de->e2->op == TOKoverloadset)
+        {
+            return e;
+        }
+
         if (de->e2->op == TOKimport)
         {   // This should *really* be moved to ScopeExp::semantic()
             ScopeExp *se = (ScopeExp *)de->e2;
@@ -6856,6 +6861,7 @@ Expression *CallExp::semantic(Scope *sc)
     int istemp;
     Objects *targsi = NULL;     // initial list of template arguments
     TemplateInstance *tierror = NULL;
+    Expression *ethis = NULL;
 
 #if LOGSEMANTIC
     printf("CallExp::semantic() %s\n", toChars());
@@ -7056,6 +7062,12 @@ Lagain:
         else if (e1->op == TOKdotexp)
         {
             DotExp *de = (DotExp *) e1;
+
+            if (de->e2->op == TOKoverloadset)
+            {
+                ethis = de->e1;
+                e1 = de->e2;
+            }
 
             if (de->e2->op == TOKimport)
             {   // This should *really* be moved to ScopeExp::semantic()
@@ -7395,12 +7407,12 @@ Lagain:
             FuncDeclaration *f2 = s->isFuncDeclaration();
             if (f2)
             {
-                f2 = f2->overloadResolve(loc, NULL, arguments, 1);
+                f2 = f2->overloadResolve(loc, ethis, arguments, 1);
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
                 assert(td);
-                f2 = td->deduceFunctionTemplate(sc, loc, targsi, NULL, arguments, 1);
+                f2 = td->deduceFunctionTemplate(sc, loc, targsi, ethis, arguments, 1);
             }
             if (f2)
             {   if (f)
@@ -7418,7 +7430,10 @@ Lagain:
             error("no overload matches for %s", s->toChars());
             return new ErrorExp();
         }
-        e1 = new VarExp(loc, f);
+        if (ethis)
+            e1 = new DotVarExp(loc, ethis, f);
+        else
+            e1 = new VarExp(loc, f);
         goto Lagain;
     }
     else if (!t1)
