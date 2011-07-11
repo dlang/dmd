@@ -3261,6 +3261,30 @@ void test6264()
     static assert(!is(typeof(b[] = [new immutable(int)])));
     char[] c = new char[](5);
     c[] = "hello";
+
+    // fixed array have value semantic and copying from/to const is
+    // allowed as long as their element type has no aliasing
+    const(int[3]) cints = [3, 1, 2];
+    immutable(int[3]) iints = [3, 1, 2];
+    int[3] ints = cints;
+    assert(ints == cints);
+    assert(ints !is cints);
+
+    ints = iints;
+    assert(ints == iints);
+    assert(ints !is iints);
+
+    int[3] ints2;
+    ints2 = ints;
+    assert(ints2 == ints);
+    assert(ints2 !is ints);
+
+    const(int[3]) cints2 = ints2;
+    assert(cints2 == ints2);
+    assert(cints2 !is ints2);
+
+    // initializing immutable doesn't work ???
+    // immutable(int[3]) iints2 = ints2;
 }
 
 /***************************************************/
