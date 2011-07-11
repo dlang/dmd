@@ -9545,6 +9545,14 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         else
         {
+            Type *t2 = e2->type->toBasetype();
+            // Convert e2 to e2[], unless e2-> e1[0]
+            if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
+            {
+                e2 = new SliceExp(e2->loc, e2, NULL, NULL);
+                e2 = e2->semantic(sc);
+            }
+
             // Convert e1 to e1[]
             Expression *e = new SliceExp(e1->loc, e1, NULL, NULL);
             e1 = e->semantic(sc);
