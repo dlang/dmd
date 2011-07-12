@@ -56,7 +56,7 @@ FuncDeclaration *hasThis(Scope *sc);
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
 
 // Allow implicit conversion of T[] to T*
-#define IMPLICIT_ARRAY_TO_PTR   global.params.useDeprecated
+#define IMPLICIT_ARRAY_TO_PTR   (global.params.deprecation != 1)
 
 /* These have default values for 32 bit code, they get
  * adjusted for 64 bit code.
@@ -1699,8 +1699,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::typeinfo)
     {
-        if (!global.params.useDeprecated)
-            error(loc, ".typeinfo deprecated, use typeid(type)");
+        if (global.params.deprecation)
+            deprecation(loc, ".typeinfo deprecated, use typeid(type)");
         e = getTypeInfo(NULL);
     }
     else if (ident == Id::init)
@@ -1768,8 +1768,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
         if (ident == Id::offset)
         {
-            if (!global.params.useDeprecated)
-                error(e->loc, ".offset deprecated, use .offsetof");
+            if (global.params.deprecation)
+                deprecation(e->loc, ".offset deprecated, use .offsetof");
             goto Loffset;
         }
         else if (ident == Id::offsetof)
@@ -1818,8 +1818,8 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     if (ident == Id::typeinfo)
     {
-        if (!global.params.useDeprecated)
-            error(e->loc, ".typeinfo deprecated, use typeid(type)");
+        if (global.params.deprecation)
+            deprecation(e->loc, ".typeinfo deprecated, use typeid(type)");
         e = getTypeInfo(sc);
     }
     else if (ident == Id::stringof)
@@ -7542,8 +7542,8 @@ L1:
 
         if (ident == Id::typeinfo)
         {
-            if (!global.params.useDeprecated)
-                error(e->loc, ".typeinfo deprecated, use typeid(type)");
+            if (global.params.deprecation)
+                deprecation(e->loc, ".typeinfo deprecated, use typeid(type)");
             return getTypeInfo(sc);
         }
         if (ident == Id::outer && sym->vthis)

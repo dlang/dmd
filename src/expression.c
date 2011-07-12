@@ -1058,6 +1058,17 @@ void Expression::warning(const char *format, ...)
     }
 }
 
+void Expression::deprecation(const char *format, ...)
+{
+    if (type != Type::terror)
+    {
+        va_list ap;
+        va_start(ap, format);
+        ::vdeprecation(loc, format, ap);
+        va_end( ap );
+    }
+}
+
 void Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
@@ -4928,7 +4939,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                 error("declaration %s is already defined in another scope in %s",
                     s->toPrettyChars(), sc->func->toChars());
             }
-            else if (!global.params.useDeprecated)
+            else if (global.params.deprecation)
             {   // Disallow shadowing
 
                 for (Scope *scx = sc->enclosing; scx && scx->func == sc->func; scx = scx->enclosing)
@@ -4938,7 +4949,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                         (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                         s != s2)
                     {
-                        error("shadowing declaration %s is deprecated", s->toPrettyChars());
+                        deprecation("shadowing declaration %s is deprecated", s->toPrettyChars());
                     }
                 }
             }
@@ -5314,8 +5325,8 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
 
             case TOKinvariant:
-                if (!global.params.useDeprecated)
-                    error("use of 'invariant' rather than 'immutable' is deprecated");
+                if (global.params.deprecation)
+                    deprecation("use of 'invariant' rather than 'immutable' is deprecated");
             case TOKimmutable:
                 if (!targ->isImmutable())
                     goto Lno;
@@ -8150,8 +8161,8 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
-        {   if (!global.params.useDeprecated)
-                error("delete aa[key] deprecated, use aa.remove(key)");
+        {   if (global.params.deprecation)
+                deprecation("delete aa[key] deprecated, use aa.remove(key)");
         }
     }
 
@@ -9305,8 +9316,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (search_function(ad, id))
                 {   Expression *e = new DotIdExp(loc, ae->e1, id);
 
-                    if (1 || !global.params.useDeprecated)
-                    {   error("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
+                    if (global.params.deprecation)
+                    {   deprecation("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
                         return new ErrorExp();
                     }
 

@@ -300,48 +300,84 @@ Lexer::Lexer(Module *mod,
 
 void Lexer::error(const char *format, ...)
 {
-    if (mod && !global.gag)
+    if (mod)
     {
-        char *p = loc.toChars();
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
         va_list ap;
         va_start(ap, format);
-        vfprintf(stdmsg, format, ap);
+        ::verror(loc, format, ap);
         va_end(ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
 
         if (global.errors >= 20)        // moderate blizzard of cascading messages
             fatal();
     }
-    global.errors++;
+    else
+        global.errors++;
 }
 
 void Lexer::error(Loc loc, const char *format, ...)
 {
-    if (mod && !global.gag)
+    if (mod)
     {
-        char *p = loc.toChars();
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
         va_list ap;
         va_start(ap, format);
-        vfprintf(stdmsg, format, ap);
+        ::verror(loc, format, ap);
         va_end(ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
 
         if (global.errors >= 20)        // moderate blizzard of cascading messages
             fatal();
     }
-    global.errors++;
+    else
+        global.errors++;
+}
+
+void Lexer::deprecation(const char *format, ...)
+{
+    if (mod)
+    {
+        va_list ap;
+        va_start(ap, format);
+        ::vdeprecation(loc, format, ap);
+        va_end(ap);
+
+        if (global.params.deprecation > 1 &&
+                global.warnings >= 20)  // moderate blizzard of cascading messages
+            fatal();
+        else if (global.params.deprecation == 1 &&
+                global.errors >= 20)    // moderate blizzard of cascading messages
+            fatal();
+    }
+    else
+    {
+        if (global.params.deprecation > 1)
+            global.warnings++;
+        else
+            global.errors++;
+    }
+}
+
+void Lexer::deprecation(Loc loc, const char *format, ...)
+{
+    if (mod)
+    {
+        va_list ap;
+        va_start(ap, format);
+        ::vdeprecation(loc, format, ap);
+        va_end(ap);
+
+        if (global.params.deprecation > 1 &&
+                global.warnings >= 20)  // moderate blizzard of cascading messages
+            fatal();
+        else if (global.params.deprecation == 1 &&
+                global.errors >= 20)    // moderate blizzard of cascading messages
+            fatal();
+    }
+    else
+    {
+        if (global.params.deprecation > 1)
+            global.warnings++;
+        else
+            global.errors++;
+    }
 }
 
 TOK Lexer::nextToken()
@@ -624,8 +660,8 @@ void Lexer::scan(Token *t)
                 t->postfix = 0;
                 t->value = TOKstring;
 #if DMDV2
-                if (!global.params.useDeprecated)
-                    error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
+                if (global.params.deprecation)
+                    deprecation("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
 #endif
                 return;
             }
@@ -2274,8 +2310,8 @@ done:
                 goto L1;
 
             case 'l':
-                if (1 || !global.params.useDeprecated)
-                    error("'l' suffix is deprecated, use 'L' instead");
+                if (1 || global.params.deprecation)
+                    deprecation("'l' suffix is deprecated, use 'L' instead");
             case 'L':
                 f = FLAGS_long;
             L1:
@@ -2290,8 +2326,8 @@ done:
         break;
     }
 
-    if (state == STATE_octal && n >= 8 && !global.params.useDeprecated)
-        error("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
+    if (state == STATE_octal && n >= 8 && global.params.deprecation)
+        deprecation("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
                 n, p - psuffix, psuffix, n, p - psuffix, psuffix);
 
     switch (flags)
@@ -2522,8 +2558,8 @@ done:
             break;
 
         case 'l':
-            if (!global.params.useDeprecated)
-                error("'l' suffix is deprecated, use 'L' instead");
+            if (global.params.deprecation)
+                deprecation("'l' suffix is deprecated, use 'L' instead");
         case 'L':
             result = TOKfloat80v;
             p++;
@@ -2531,8 +2567,8 @@ done:
     }
     if (*p == 'i' || *p == 'I')
     {
-        if (!global.params.useDeprecated && *p == 'I')
-            error("'I' suffix is deprecated, use 'i' instead");
+        if (global.params.deprecation && *p == 'I')
+            deprecation("'I' suffix is deprecated, use 'i' instead");
         p++;
         switch (result)
         {
