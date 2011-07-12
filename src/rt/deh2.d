@@ -14,6 +14,7 @@
 module rt.deh2;
 
 //debug=1;
+debug import core.stdc.stdio : printf;
 
 extern (C)
 {
@@ -27,7 +28,6 @@ extern (C)
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
 
-    void _d_setUnhandled(Object*);
     void _d_createTrace(Object*);
 }
 
@@ -77,6 +77,18 @@ struct FuncTable
     void *fptr;                 // pointer to start of function
     DHandlerTable *handlertable; // eh data for this function
     uint fsize;         // size of function in bytes
+}
+
+private
+{
+    struct InFlight
+    {
+        InFlight*   next;
+        void*       addr;
+        Throwable   t;
+    }
+
+    InFlight* __inflight = null;
 }
 
 void terminate()
@@ -145,6 +157,7 @@ size_t __eh_find_caller(size_t regbp, size_t *pretaddr)
     return bp;
 }
 
+
 /***********************************
  * Throw a D object.
  */
@@ -173,7 +186,6 @@ extern (C) void _d_throwc(Object *h)
         static assert(0);
 
     _d_createTrace(h);
-    _d_setUnhandled(h);
 
 //static uint abc;
 //if (++abc == 2) *(char *)0=0;
@@ -235,6 +247,40 @@ extern (C) void _d_throwc(Object *h)
         }
         debug printf("index = %d\n", index);
 
+        if (dim)
+        {
+            auto phi = &handler_table.handler_info[index+1];
+            debug printf("next finally_code %p\n", phi.finally_code);
+            auto prev = cast(InFlight*) &__inflight;
+            auto curr = prev.next;
+
+            if (curr !is null && curr.addr == phi.finally_code)
+            {
+                auto e = cast(Error)(cast(Throwable) h);
+                if (e !is null && (cast(Error) curr.t) is null)
+                {
+                    debug printf("new error %p bypassing inflight %p\n", h, curr.t);
+
+                    e.bypassedException = curr.t;
+                    prev.next = curr.next;
+                    //h = cast(Object*) t;
+                }
+                else
+                {
+                    debug printf("replacing thrown %p with inflight %p\n", h, __inflight.t);
+
+                    auto t = curr.t;
+                    auto n = curr.t;
+
+                    while (n.next)
+                        n = n.next;
+                    n.next = cast(Throwable) h;
+                    prev.next = curr.next;
+                    h = cast(Object*) t;
+                }
+            }
+        }
+
         // walk through handler table, checking each handler
         // with an index smaller than the current table_index
         int prev_ndx;
@@ -255,9 +301,8 @@ extern (C) void _d_throwc(Object *h)
                     auto pcb = &pci.catch_block[i];
 
                     if (_d_isbaseof(ci, pcb.type))
-                    {   // Matched the catch type, so we've found the handler.
-
-                        _d_setUnhandled(null);
+                    {
+                        // Matched the catch type, so we've found the handler.
 
                         // Initialize catch variable
                         *cast(void **)(regebp + (pcb.bpoffset)) = h;
@@ -297,11 +342,19 @@ extern (C) void _d_throwc(Object *h)
                 }
             }
             else if (phi.finally_code)
-            {   // Call finally block
+            {
+                // Call finally block
                 // Note that it is unnecessary to adjust the ESP, as the finally block
                 // accesses all items on the stack as relative to EBP.
+                debug printf("calling finally_code %p\n", phi.finally_code);
 
-                auto blockaddr = phi.finally_code;
+                auto     blockaddr = phi.finally_code;
+                InFlight inflight;
+
+                inflight.addr = blockaddr;
+                inflight.next = __inflight;
+                inflight.t    = cast(Throwable) h;
+                __inflight    = &inflight;
 
                 version (OSX)
                 {
@@ -363,6 +416,9 @@ extern (C) void _d_throwc(Object *h)
                     else
                         static assert(0);
                 }
+
+                if (__inflight is &inflight)
+                    __inflight = __inflight.next;
             }
         }
     }

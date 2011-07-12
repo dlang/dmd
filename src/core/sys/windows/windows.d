@@ -38,7 +38,7 @@ extern (Windows)
 
     alias LPSTR LPTCH, PTCH;
     alias LPSTR PTSTR, LPTSTR;
-    alias LPCSTR LPCTSTR;
+    alias LPCSTR PCTSTR, LPCTSTR;
 
     alias WCHAR* LPWSTR;
 
@@ -418,6 +418,8 @@ export
 {
 BOOL SetCurrentDirectoryA(LPCSTR lpPathName);
 BOOL SetCurrentDirectoryW(LPCWSTR lpPathName);
+UINT GetSystemDirectoryA(LPSTR lpBuffer, UINT uSize);
+UINT GetSystemDirectoryW(LPWSTR lpBuffer, UINT uSize);
 DWORD GetCurrentDirectoryA(DWORD nBufferLength, LPSTR lpBuffer);
 DWORD GetCurrentDirectoryW(DWORD nBufferLength, LPWSTR lpBuffer);
 BOOL CreateDirectoryA(LPCSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes);
@@ -477,6 +479,7 @@ struct MEMORYSTATUS {
 alias MEMORYSTATUS *LPMEMORYSTATUS;
 
 HMODULE LoadLibraryA(LPCSTR lpLibFileName);
+HMODULE LoadLibraryW(LPCWSTR lpLibFileName);
 FARPROC GetProcAddress(HMODULE hModule, LPCSTR lpProcName);
 DWORD GetVersion();
 BOOL FreeLibrary(HMODULE hLibModule);
@@ -595,7 +598,9 @@ enum
 
 
 int MessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType);
+int MessageBoxW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType);
 int MessageBoxExA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType, WORD wLanguageId);
+int MessageBoxExW(HWND hWnd, LPCWSTR lpText, LPCWSTR lpCaption, UINT uType, WORD wLanguageId);
 
 
 enum : HKEY
@@ -635,31 +640,53 @@ enum
 }
 
 export LONG RegDeleteKeyA(HKEY hKey, LPCSTR lpSubKey);
+export LONG RegDeleteKeyW(HKEY hKey, LPCWSTR lpSubKey);
 export LONG RegDeleteValueA(HKEY hKey, LPCSTR lpValueName);
+export LONG RegDeleteValueW(HKEY hKey, LPCWSTR lpValueName);
 
 export LONG  RegEnumKeyExA(HKEY hKey, DWORD dwIndex, LPSTR lpName, LPDWORD lpcbName, LPDWORD lpReserved, LPSTR lpClass, LPDWORD lpcbClass, FILETIME* lpftLastWriteTime);
+export LONG  RegEnumKeyExW(HKEY hKey, DWORD dwIndex, LPWSTR lpName, LPDWORD lpcbName, LPDWORD lpReserved, LPWSTR lpClass, LPDWORD lpcbClass, FILETIME* lpftLastWriteTime);
 export LONG RegEnumValueA(HKEY hKey, DWORD dwIndex, LPSTR lpValueName, LPDWORD lpcbValueName, LPDWORD lpReserved,
+    LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
+export LONG RegEnumValueW(HKEY hKey, DWORD dwIndex, LPWSTR lpValueName, LPDWORD lpcbValueName, LPDWORD lpReserved,
     LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
 
 export LONG RegCloseKey(HKEY hKey);
 export LONG RegFlushKey(HKEY hKey);
 
 export LONG RegOpenKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult);
+export LONG RegOpenKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult);
 export LONG RegOpenKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
+export LONG RegOpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
 
 export LONG RegQueryInfoKeyA(HKEY hKey, LPSTR lpClass, LPDWORD lpcbClass,
     LPDWORD lpReserved, LPDWORD lpcSubKeys, LPDWORD lpcbMaxSubKeyLen, LPDWORD lpcbMaxClassLen,
     LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor,
     PFILETIME lpftLastWriteTime);
+export LONG RegQueryInfoKeyW(HKEY hKey, LPWSTR lpClass, LPDWORD lpcbClass,
+    LPDWORD lpReserved, LPDWORD lpcSubKeys, LPDWORD lpcbMaxSubKeyLen, LPDWORD lpcbMaxClassLen,
+    LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor,
+    PFILETIME lpftLastWriteTime);
 
-export LONG RegQueryValueA(HKEY hKey, LPCSTR lpSubKey, LPSTR lpValue,
-    LPLONG lpcbValue);
+export LONG RegQueryValueA(HKEY hKey, LPCSTR lpSubKey, LPSTR lpValue, LPLONG lpcbValue);
+export LONG RegQueryValueW(HKEY hKey, LPCWSTR lpSubKey, LPWSTR lpValue, LPLONG lpcbValue);
+export LONG RegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPVOID lpData, LPDWORD lpcbData);
+export LONG RegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPVOID lpData, LPDWORD lpcbData);
 
 export LONG RegCreateKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD Reserved, LPSTR lpClass,
    DWORD dwOptions, REGSAM samDesired, SECURITY_ATTRIBUTES* lpSecurityAttributes,
     PHKEY phkResult, LPDWORD lpdwDisposition);
+export LONG RegCreateKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD Reserved, LPWSTR lpClass,
+   DWORD dwOptions, REGSAM samDesired, SECURITY_ATTRIBUTES* lpSecurityAttributes,
+    PHKEY phkResult, LPDWORD lpdwDisposition);
 
 export LONG RegSetValueExA(HKEY hKey, LPCSTR lpValueName, DWORD Reserved, DWORD dwType, BYTE* lpData, DWORD cbData);
+export LONG RegSetValueExW(HKEY hKey, LPCWSTR lpValueName, DWORD Reserved, DWORD dwType, BYTE* lpData, DWORD cbData);
+
+export LONG RegOpenCurrentUser(REGSAM samDesired, PHKEY phkResult);
+
+export LONG RegConnectRegistryA(LPCSTR lpMachineName, HKEY hKey, PHKEY phkResult);
+export LONG RegConnectRegistryW(LPCWSTR lpMachineName, HKEY hKey, PHKEY phkResult);
 
 struct MEMORY_BASIC_INFORMATION {
     PVOID BaseAddress;
@@ -846,7 +873,8 @@ export BOOL DosDateTimeToFileTime(WORD wFatDate, WORD wFatTime, FILETIME* lpFile
 export DWORD GetTickCount();
 export BOOL SetSystemTimeAdjustment(DWORD dwTimeAdjustment, BOOL bTimeAdjustmentDisabled);
 export BOOL GetSystemTimeAdjustment(DWORD* lpTimeAdjustment, DWORD* lpTimeIncrement, BOOL* lpTimeAdjustmentDisabled);
-export DWORD FormatMessageA(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPSTR lpBuffer, DWORD nSize, void* *Arguments);export DWORD FormatMessageW(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPWSTR lpBuffer, DWORD nSize, void* *Arguments);
+export DWORD FormatMessageA(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPSTR lpBuffer, DWORD nSize, void* *Arguments);
+export DWORD FormatMessageW(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPWSTR lpBuffer, DWORD nSize, void* *Arguments);
 
 enum
 {
@@ -1272,6 +1300,8 @@ enum
     THREAD_PRIORITY_IDLE =            THREAD_BASE_PRIORITY_IDLE,
 }
 
+export BOOL GetUserNameA(LPSTR lpBuffer, LPDWORD lpnSize);
+export BOOL GetUserNameW(LPWSTR lpBuffer, LPDWORD lpnSize);
 export HANDLE GetCurrentThread();
 export BOOL GetProcessTimes(HANDLE hProcess, LPFILETIME lpCreationTime, LPFILETIME lpExitTime, LPFILETIME lpKernelTime, LPFILETIME lpUserTime);
 export HANDLE GetCurrentProcess();
@@ -2113,7 +2143,9 @@ export
 
 export void PostQuitMessage(int nExitCode);
 export LRESULT DefWindowProcA(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+export LRESULT DefWindowProcW(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
 export HMODULE GetModuleHandleA(LPCSTR lpModuleName);
+export HMODULE GetModuleHandleW(LPCWSTR lpModuleName);
 
 alias LRESULT function (HWND, UINT, WPARAM, LPARAM) WNDPROC;
 
@@ -2351,6 +2383,7 @@ export
 }
 
 export DWORD ExpandEnvironmentStringsA(LPCSTR lpSrc, LPSTR lpDst, DWORD nSize);
+export DWORD ExpandEnvironmentStringsW(LPCWSTR lpSrc, LPWSTR lpDst, DWORD nSize);
 
 export
 {
@@ -2915,8 +2948,11 @@ export UINT IsDlgButtonChecked(HWND hDlg, int nIDButton);
 
 export HWND SetFocus(HWND hWnd);
 
-export int wsprintfA(LPSTR, LPCSTR, ...);
-export int wsprintfW(LPWSTR, LPCWSTR, ...);
+extern (C)
+{
+    export int wsprintfA(LPSTR, LPCSTR, ...);
+    export int wsprintfW(LPWSTR, LPCWSTR, ...);
+}
 
 enum : uint
 {

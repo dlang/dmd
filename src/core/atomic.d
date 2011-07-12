@@ -31,12 +31,13 @@ version( D_InlineAsm_X86_64 )
 
 private
 {
-    template NakedType(T: shared(T))  { alias T  NakedType; }
-    template NakedType(T: shared(T*)) { alias T* NakedType; }
-    template NakedType(T: const(T))   { alias T  NakedType; }
-    template NakedType(T: const(T*))  { alias T* NakedType; }
-    template NamedType(T: T*)         { alias T  NakedType; }
-    template NakedType(T)             { alias T  NakedType; }
+    template HeadUnshared(T)
+    {
+        static if( is( T U : shared(U*) ) )
+            alias shared(U)* HeadUnshared;
+        else
+            alias T HeadUnshared;
+    }
 }
 
 
@@ -64,9 +65,10 @@ version( D_Ddoc )
      * Returns:
      *  The result of the operation.
      */
-    T atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     {
-        return val;
+        return HeadUnshared!(T).init;
     }
 
 
@@ -83,17 +85,60 @@ version( D_Ddoc )
      * Returns:
      *  true if the store occurred, false if not.
      */
-     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-         if( is( NakedType!(V1) == NakedType!(T) ) &&
-             is( NakedType!(V2) == NakedType!(T) ) )
-     {
-         return false;
-     }
+    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
+        if( __traits( compiles, mixin( "*here = writeThis" ) ) )
+    {
+        return false;
+    }
+
+
+    /**
+     * Loads 'val' from memory and returns it.  The memory barrier specified
+     * by 'ms' is applied to the operation, which is fully sequenced by
+     * default.
+     *
+     * Params:
+     *  val = The target variable.
+     *
+     * Returns:
+     *  The value of 'val'.
+     */
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq,T)( ref const shared T val )
+    {
+        return HeadUnshared!(T).init;
+    }
+
+
+    /**
+     * Writes 'newval' into 'val'.  The memory barrier specified by 'ms' is
+     * applied to the operation, which is fully sequenced by default.
+     *
+     * Params:
+     *  val    = The target variable.
+     *  newval = The value to store.
+     */
+    void atomicStore(msync ms = msync.seq,T,V1)( ref shared T val, V1 newval )
+        if( __traits( compiles, mixin( "val = newval" ) ) )
+    {
+
+    }
+
+
+    /**
+     *
+     */
+    enum msync
+    {
+        raw,    /// not sequenced
+        acq,    /// hoist-load + hoist-store barrier
+        rel,    /// sink-load + sink-store barrier
+        seq,    /// fully sequenced (acq + rel)
+    }
 }
 else version( AsmX86_32 )
 {
-    T atomicOp(string op, T, V1)( ref shared T val, V1 mod )
-        if( is( NakedType!(V1) == NakedType!(T) ) )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -117,7 +162,7 @@ else version( AsmX86_32 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            T get = atomicLoad!(msync.raw)( val );
+            HeadUnshared!(T) get = atomicLoad!(msync.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -129,7 +174,7 @@ else version( AsmX86_32 )
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
-            T get, set;
+            HeadUnshared!(T) get, set;
 
             do
             {
@@ -146,8 +191,7 @@ else version( AsmX86_32 )
 
 
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( is( NakedType!(V1) == NakedType!(T) ) &&
-            is( NakedType!(V2) == NakedType!(T) ) )
+        if( __traits( compiles, mixin( "*here = writeThis" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -165,7 +209,6 @@ else version( AsmX86_32 )
             // 1 Byte CAS
             //////////////////////////////////////////////////////////////////
 
-
             asm
             {
                 mov DL, writeThis;
@@ -181,7 +224,6 @@ else version( AsmX86_32 )
             //////////////////////////////////////////////////////////////////
             // 2 Byte CAS
             //////////////////////////////////////////////////////////////////
-
 
             asm
             {
@@ -199,7 +241,6 @@ else version( AsmX86_32 )
             // 4 Byte CAS
             //////////////////////////////////////////////////////////////////
 
-
             asm
             {
                 mov EDX, writeThis;
@@ -216,7 +257,6 @@ else version( AsmX86_32 )
             // 8 Byte CAS on a 32-Bit Processor
             //////////////////////////////////////////////////////////////////
 
-
             asm
             {
                 push EDI;
@@ -229,7 +269,7 @@ else version( AsmX86_32 )
                 mov EDX, 4[EDI];
                 mov EDI, here;
                 lock; // lock always needed to make this op atomic
-                cmpxch8b [EDI];
+                cmpxchg8b [EDI];
                 setz AL;
                 pop EBX;
                 pop EDI;
@@ -239,6 +279,16 @@ else version( AsmX86_32 )
         {
             static assert( false, "Invalid template type specified." );
         }
+    }
+
+
+
+    enum msync
+    {
+        raw,    /// not sequenced
+        acq,    /// hoist-load + hoist-store barrier
+        rel,    /// sink-load + sink-store barrier
+        seq,    /// fully sequenced (acq + rel)
     }
 
 
@@ -277,130 +327,238 @@ else version( AsmX86_32 )
         }
 
 
-        enum msync
+        // NOTE: x86 stores implicitly have release semantics so a memory
+        //       barrier is only necessary on acquires.
+        template needsStoreBarrier( msync ms )
         {
-            raw,    /// not sequenced
-            acq,    /// hoist-load + hoist-store barrier
-            rel,    /// sink-load + sink-store barrier
-            seq,    /// fully sequenced (acq + rel)
+            const bool needsStoreBarrier = ms == msync.seq ||
+                                                 isHoistOp!(ms);
         }
+    }
 
 
-        T atomicLoad(msync ms = msync.seq, T)( const ref shared T val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
+    {
+        static if( T.sizeof == byte.sizeof )
         {
-            static if( T.sizeof == byte.sizeof )
+            //////////////////////////////////////////////////////////////////
+            // 1 Byte Load
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsLoadBarrier!(ms) )
             {
-                //////////////////////////////////////////////////////////////////
-                // 1 Byte Load
-                //////////////////////////////////////////////////////////////////
-
-                static if( needsLoadBarrier!(ms) )
-                {
-                    asm
-                    {
-                        mov DL, 0;
-                        mov AL, 0;
-                        mov ECX, val;
-                        lock; // lock always needed to make this op atomic
-                        cmpxchg [ECX], DL;
-                    }
-                }
-                else
-                {
-                    asm
-                    {
-                        mov EAX, val;
-                        mov AL, [EAX];
-                    }
-                }
-            }
-            else static if( T.sizeof == short.sizeof )
-            {
-                //////////////////////////////////////////////////////////////////
-                // 2 Byte Load
-                //////////////////////////////////////////////////////////////////
-
-
-                static if( needsLoadBarrier!(ms) )
-                {
-                    asm
-                    {
-                        mov DX, 0;
-                        mov AX, 0;
-                        mov ECX, val;
-                        lock; // lock always needed to make this op atomic
-                        cmpxchg [ECX], DX;
-                    }
-                }
-                else
-                {
-                    asm
-                    {
-                        mov EAX, val;
-                        mov AX, [EAX];
-                    }
-                }
-            }
-            else static if( T.sizeof == int.sizeof )
-            {
-                //////////////////////////////////////////////////////////////////
-                // 4 Byte Load
-                //////////////////////////////////////////////////////////////////
-
-
-                static if( needsLoadBarrier!(ms) )
-                {
-                    asm
-                    {
-                        mov EDX, 0;
-                        mov EAX, 0;
-                        mov ECX, val;
-                        lock; // lock always needed to make this op atomic
-                        cmpxchg [ECX], EDX;
-                    }
-                }
-                else
-                {
-                    asm
-                    {
-                        mov EAX, val;
-                        mov EAX, [EAX];
-                    }
-                }
-            }
-            else static if( T.sizeof == long.sizeof && has64BitCAS )
-            {
-                //////////////////////////////////////////////////////////////////
-                // 8 Byte Load on a 32-Bit Processor
-                //////////////////////////////////////////////////////////////////
-
-
                 asm
                 {
-                    push EDI;
-                    push EBX;
-                    mov EBX, 0;
-                    mov ECX, 0;
-                    mov EAX, 0;
-                    mov EDX, 0;
-                    mov EDI, val;
+                    mov DL, 0;
+                    mov AL, 0;
+                    mov ECX, val;
                     lock; // lock always needed to make this op atomic
-                    cmpxch8b [EDI];
-                    pop EBX;
-                    pop EDI;
+                    cmpxchg [ECX], DL;
                 }
             }
             else
             {
-                static assert( false, "Invalid template type specified." );
+                asm
+                {
+                    mov EAX, val;
+                    mov AL, [EAX];
+                }
             }
+        }
+        else static if( T.sizeof == short.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 2 Byte Load
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsLoadBarrier!(ms) )
+            {
+                asm
+                {
+                    mov DX, 0;
+                    mov AX, 0;
+                    mov ECX, val;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg [ECX], DX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov AX, [EAX];
+                }
+            }
+        }
+        else static if( T.sizeof == int.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 4 Byte Load
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsLoadBarrier!(ms) )
+            {
+                asm
+                {
+                    mov EDX, 0;
+                    mov EAX, 0;
+                    mov ECX, val;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg [ECX], EDX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov EAX, [EAX];
+                }
+            }
+        }
+        else static if( T.sizeof == long.sizeof && has64BitCAS )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 8 Byte Load on a 32-Bit Processor
+            //////////////////////////////////////////////////////////////////
+
+            asm
+            {
+                push EDI;
+                push EBX;
+                mov EBX, 0;
+                mov ECX, 0;
+                mov EAX, 0;
+                mov EDX, 0;
+                mov EDI, val;
+                lock; // lock always needed to make this op atomic
+                cmpxchg8b [EDI];
+                pop EBX;
+                pop EDI;
+            }
+        }
+        else
+        {
+            static assert( false, "Invalid template type specified." );
+        }
+    }
+
+
+    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
+        if( __traits( compiles, mixin( "val = newval" ) ) )
+    {
+        static if( T.sizeof == byte.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 1 Byte Store
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsStoreBarrier!(ms) )
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov DL, newval;
+                    lock;
+                    xchg [EAX], DL;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov DL, newval;
+                    mov [EAX], DL;
+                }
+            }
+        }
+        else static if( T.sizeof == short.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 2 Byte Store
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsStoreBarrier!(ms) )
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov DX, newval;
+                    lock;
+                    xchg [EAX], DX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov DX, newval;
+                    mov [EAX], DX;
+                }
+            }
+        }
+        else static if( T.sizeof == int.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 4 Byte Store
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsStoreBarrier!(ms) )
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov EDX, newval;
+                    lock;
+                    xchg [EAX], EDX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov EAX, val;
+                    mov EDX, newval;
+                    mov [EAX], EDX;
+                }
+            }
+        }
+        else static if( T.sizeof == long.sizeof && has64BitCAS )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 8 Byte Store on a 32-Bit Processor
+            //////////////////////////////////////////////////////////////////
+
+            asm
+            {
+                push EDI;
+                push EBX;
+                lea EDI, newval;
+                mov EBX, [EDI];
+                mov ECX, 4[EDI];
+                mov EDI, val;
+                mov EAX, [EDI];
+                mov EDX, 4[EDI];
+            L1: lock; // lock always needed to make this op atomic
+                cmpxchg8b [EDI];
+                jne L1;
+                pop EBX;
+                pop EDI;
+            }
+        }
+        else
+        {
+            static assert( false, "Invalid template type specified." );
         }
     }
 }
 else version( AsmX86_64 )
 {
-    T atomicOp(string op, T, V1)( ref shared T val, V1 mod )
-        if( is( NakedType!(V1) == NakedType!(T) ) )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+        if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -424,7 +582,7 @@ else version( AsmX86_64 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            T get = atomicLoad!(msync.raw)( val );
+            HeadUnshared!(T) get = atomicLoad!(msync.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -436,7 +594,7 @@ else version( AsmX86_64 )
                    op == "%=" || op == "^^=" || op == "&="  || op == "|=" ||
                    op == "^=" || op == "<<=" || op == ">>=" || op == ">>>=" ) // skip "~="
         {
-            T get, set;
+            HeadUnshared!(T) get, set;
 
             do
             {
@@ -453,8 +611,7 @@ else version( AsmX86_64 )
 
 
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( is( NakedType!(V1) == NakedType!(T) ) &&
-            is( NakedType!(V2) == NakedType!(T) ) )
+        if( __traits( compiles, mixin( "*here = writeThis" ) ) )
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -472,7 +629,6 @@ else version( AsmX86_64 )
             // 1 Byte CAS
             //////////////////////////////////////////////////////////////////
 
-
             asm
             {
                 mov DL, writeThis;
@@ -489,7 +645,6 @@ else version( AsmX86_64 )
             // 2 Byte CAS
             //////////////////////////////////////////////////////////////////
 
-
             asm
             {
                 mov DX, writeThis;
@@ -505,7 +660,6 @@ else version( AsmX86_64 )
             //////////////////////////////////////////////////////////////////
             // 4 Byte CAS
             //////////////////////////////////////////////////////////////////
-
 
             asm
             {
@@ -540,6 +694,15 @@ else version( AsmX86_64 )
     }
 
 
+    enum msync
+    {
+        raw,    /// not sequenced
+        acq,    /// hoist-load + hoist-store barrier
+        rel,    /// sink-load + sink-store barrier
+        seq,    /// fully sequenced (acq + rel)
+    }
+
+
     private
     {
         template isHoistOp(msync ms)
@@ -575,128 +738,239 @@ else version( AsmX86_64 )
         }
 
 
-        enum msync
+        // NOTE: x86 stores implicitly have release semantics so a memory
+        //       barrier is only necessary on acquires.
+        template needsStoreBarrier( msync ms )
         {
-            raw,    /// not sequenced
-            acq,    /// hoist-load + hoist-store barrier
-            rel,    /// sink-load + sink-store barrier
-            seq,    /// fully sequenced (acq + rel)
+            const bool needsStoreBarrier = ms == msync.seq ||
+                                                 isHoistOp!(ms);
         }
+    }
 
 
-        T atomicLoad(msync ms = msync.seq, T)( const ref shared T val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
+    {
+        static if( T.sizeof == byte.sizeof )
         {
-            static if( T.sizeof == byte.sizeof )
+            //////////////////////////////////////////////////////////////////
+            // 1 Byte Load
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsLoadBarrier!(ms) )
             {
-                //////////////////////////////////////////////////////////////////
-                // 1 Byte Load
-                //////////////////////////////////////////////////////////////////
-
-                static if( needsLoadBarrier!(ms) )
+                asm
                 {
-                    asm
-                    {
-                        mov DL, 0;
-                        mov AL, 0;
-                        mov RCX, val;
-                        lock; // lock always needed to make this op atomic
-                        cmpxchg [RCX], DL;
-                    }
-                }
-                else
-                {
-                    asm
-                    {
-                        mov RAX, val;
-                        mov AL, [RAX];
-                    }
-                }
-            }
-            else static if( T.sizeof == short.sizeof )
-            {
-                //////////////////////////////////////////////////////////////////
-                // 2 Byte Load
-                //////////////////////////////////////////////////////////////////
-
-
-                static if( needsLoadBarrier!(ms) )
-                {
-                    asm
-                    {
-                        mov DX, 0;
-                        mov AX, 0;
-                        mov RCX, val;
-                        lock; // lock always needed to make this op atomic
-                        cmpxchg [RCX], DX;
-                    }
-                }
-                else
-                {
-                    asm
-                    {
-                        mov RAX, val;
-                        mov AX, [RAX];
-                    }
-                }
-            }
-            else static if( T.sizeof == int.sizeof )
-            {
-                //////////////////////////////////////////////////////////////////
-                // 4 Byte Load
-                //////////////////////////////////////////////////////////////////
-
-
-                static if( needsLoadBarrier!(ms) )
-                {
-                    asm
-                    {
-                        mov EDX, 0;
-                        mov EAX, 0;
-                        mov RCX, val;
-                        lock; // lock always needed to make this op atomic
-                        cmpxchg [RCX], EDX;
-                    }
-                }
-                else
-                {
-                    asm
-                    {
-                        mov RAX, val;
-                        mov EAX, [RAX];
-                    }
-                }
-            }
-            else static if( T.sizeof == long.sizeof )
-            {
-                //////////////////////////////////////////////////////////////////
-                // 8 Byte Load
-                //////////////////////////////////////////////////////////////////
-
-
-                static if( needsLoadBarrier!(ms) )
-                {
-                    asm
-                    {
-                        mov RDX, 0;
-                        mov RAX, 0;
-                        mov RCX, val;
-                        lock; // lock always needed to make this op atomic
-                        cmpxchg [RCX], RDX;
-                    }
-                }
-                else
-                {
-                    asm
-                    {
-                        mov RAX, val;
-                        mov RAX, [RAX];
-                    }
+                    mov DL, 0;
+                    mov AL, 0;
+                    mov RCX, val;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg [RCX], DL;
                 }
             }
             else
             {
-                static assert( false, "Invalid template type specified." );
+                asm
+                {
+                    mov RAX, val;
+                    mov AL, [RAX];
+                }
             }
+        }
+        else static if( T.sizeof == short.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 2 Byte Load
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsLoadBarrier!(ms) )
+            {
+                asm
+                {
+                    mov DX, 0;
+                    mov AX, 0;
+                    mov RCX, val;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg [RCX], DX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov AX, [RAX];
+                }
+            }
+        }
+        else static if( T.sizeof == int.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 4 Byte Load
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsLoadBarrier!(ms) )
+            {
+                asm
+                {
+                    mov EDX, 0;
+                    mov EAX, 0;
+                    mov RCX, val;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg [RCX], EDX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov EAX, [RAX];
+                }
+            }
+        }
+        else static if( T.sizeof == long.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 8 Byte Load
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsLoadBarrier!(ms) )
+            {
+                asm
+                {
+                    mov RDX, 0;
+                    mov RAX, 0;
+                    mov RCX, val;
+                    lock; // lock always needed to make this op atomic
+                    cmpxchg [RCX], RDX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov RAX, [RAX];
+                }
+            }
+        }
+        else
+        {
+            static assert( false, "Invalid template type specified." );
+        }
+    }
+
+
+    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
+        if( __traits( compiles, mixin( "val = newval" ) ) )
+    {
+        static if( T.sizeof == byte.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 1 Byte Store
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsStoreBarrier!(ms) )
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov DL, newval;
+                    lock;
+                    xchg [RAX], DL;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov DL, newval;
+                    mov [RAX], DL;
+                }
+            }
+        }
+        else static if( T.sizeof == short.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 2 Byte Store
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsStoreBarrier!(ms) )
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov DX, newval;
+                    lock;
+                    xchg [RAX], DX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov DX, newval;
+                    mov [RAX], DX;
+                }
+            }
+        }
+        else static if( T.sizeof == int.sizeof )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 4 Byte Store
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsStoreBarrier!(ms) )
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov EDX, newval;
+                    lock;
+                    xchg [RAX], EDX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov EDX, newval;
+                    mov [RAX], EDX;
+                }
+            }
+        }
+        else static if( T.sizeof == long.sizeof && has64BitCAS )
+        {
+            //////////////////////////////////////////////////////////////////
+            // 8 Byte Store on a 64-Bit Processor
+            //////////////////////////////////////////////////////////////////
+
+            static if( needsStoreBarrier!(ms) )
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov RDX, newval;
+                    lock;
+                    xchg [RAX], RDX;
+                }
+            }
+            else
+            {
+                asm
+                {
+                    mov RAX, val;
+                    mov RDX, newval;
+                    mov [RAX], RDX;
+                }
+            }
+        }
+        else
+        {
+            static assert( false, "Invalid template type specified." );
         }
     }
 }
@@ -709,26 +983,40 @@ else version( AsmX86_64 )
 
 version( unittest )
 {
-    template testCAS( msyT )
+    void testCAS(T)( T val = T.init + 1 )
     {
-        void testCAS(T)( T val = T.init + 1 )
-        {
-            T         base;
-            shared(T) atom;
+        T         base;
+        shared(T) atom;
 
-            assert( base != val );
-            assert( atom == base );
-            assert( cas( &atom, base, val ) );
-            assert( atom == val );
-            assert( !cas( &atom, base, base ) );
-            assert( atom == val );
-        }
+        assert( base != val );
+        assert( atom == base );
+        assert( cas( &atom, base, val ) );
+        assert( atom == val );
+        assert( !cas( &atom, base, base ) );
+        assert( atom == val );
+    }
+
+
+    void testLoadStore(msync ms = msync.seq, T)( T val = T.init + 1 )
+    {
+        T         base;
+        shared(T) atom;
+
+        assert( base != val );
+        assert( atom == base );
+        atomicStore!(ms)( atom, val );
+        base = atomicLoad!(ms)( atom );
+        assert( base == val );
+        assert( atom == val );
     }
 
 
     void testType(T)( T val = T.init + 1 )
     {
-        testCAS!(T)( val );
+        static if( !is( T U : U* ) )
+            testCAS!(T)( val );
+        testLoadStore!(msync.seq, T)( val );
+        testLoadStore!(msync.raw, T)( val );
     }
 
 
@@ -745,7 +1033,7 @@ version( unittest )
         testType!(int)();
         testType!(uint)();
 
-        testType!(int*)();
+        testType!(shared int*)();
 
         static if( has64BitCAS )
         {
@@ -753,12 +1041,12 @@ version( unittest )
             testType!(ulong)();
         }
 
-        size_t i;
+        shared(size_t) i;
 
-        atomicOp!"+="(i, cast(size_t)1);
-        assert(i == 1);
+        atomicOp!"+="( i, cast(size_t) 1 );
+        assert( i == 1 );
 
-        atomicOp!"-="(i, cast(size_t)1);
-        assert(i == 0);
+        atomicOp!"-="( i, cast(size_t) 1 );
+        assert( i == 0 );
     }
 }

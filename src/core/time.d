@@ -12,15 +12,10 @@
     are a few functions that also allow "nsecs", but very little actually
     has precision greater than hnsecs.
 
-    Copyright: Copyright Jonathan M Davis 2010 - 2010.
-    License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+    Copyright: Copyright 2010 - 2011
+    License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:   Jonathan M Davis and Kato Shoichi
- +/
-
-/+         Copyright Jonathan M Davis 2010 - 2010.
-   Distributed under the Boost Software License, Version 1.0.
-      (See accompanying file LICENSE_1_0.txt or copy at
-            http://www.boost.org/LICENSE_1_0.txt)
+    Source:    $(PHOBOSSRC std/_datetime.d)
  +/
 module core.time;
 
@@ -40,7 +35,6 @@ import core.sys.posix.sys.time;
 
 //This probably should be moved somewhere else in druntime which
 //is OSX-specific.
-//It's also totally untested, since I don't a have a Mac.
 version(OSX)
 {
 
@@ -1534,11 +1528,9 @@ struct TickDuration
     //test from!"nsecs"().
     unittest
     {
-        //Skipping tests on Windows until properly robust tests
-        //can be devised and tested on a Windows box.
-        //The differences in ticksPerSec on Windows makes testing
-        //exact values a bit precarious.
-        version(Posix)
+        //Skipping tests everywhere except for Linux until properly robust tests
+        //can be devised.
+        version(linux)
         {
             auto t = TickDuration.from!"nsecs"(1_000_000_000);
             assert(t.nsecs == 1_000_000_000);

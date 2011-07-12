@@ -12,7 +12,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 
-module core.thread_helper;
+module core.sys.windows.threadaux;
 
 version( Windows )
 {
@@ -28,12 +28,12 @@ version( Windows )
 
 private:
     ///////////////////////////////////////////////////////////////////
-    struct thread_helper_aux
+    struct thread_aux
     {
         // don't let symbols leak into other modules
 
-        const SystemProcessInformation = 5;
-        const STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
+        enum SystemProcessInformation = 5;
+        enum STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
         // abbreviated versions of these structs (full info can be found
         //  here: http://undocumented.ntinternals.net )
@@ -59,7 +59,7 @@ private:
         alias extern(Windows)
         HRESULT fnNtQuerySystemInformation( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength );
 
-        const ThreadBasicInformation = 0;
+        enum ThreadBasicInformation = 0;
 
         struct THREAD_BASIC_INFORMATION
         {
@@ -75,10 +75,10 @@ private:
         alias extern(Windows)
         int fnNtQueryInformationThread( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength );
 
-        const SYNCHRONIZE = 0x00100000;
-        const THREAD_GET_CONTEXT = 8;
-        const THREAD_QUERY_INFORMATION = 0x40;
-        const THREAD_SUSPEND_RESUME = 2;
+        enum SYNCHRONIZE = 0x00100000;
+        enum THREAD_GET_CONTEXT = 8;
+        enum THREAD_QUERY_INFORMATION = 0x40;
+        enum THREAD_SUSPEND_RESUME = 2;
 
         ///////////////////////////////////////////////////////////////////
         // get the thread environment block (TEB) of the thread with the given handle
@@ -201,7 +201,7 @@ private:
                 return;
             }
 
-            // temporarily set current TLS data pointer to the data pointer of the referenced thread
+            // temporarily set current TLS array pointer to the array pointer of the referenced thread
             void** curteb = getTEB();
             void** teb    = getTEB( id );
             assert( teb && curteb );
@@ -211,24 +211,20 @@ private:
             if( !curtlsarray || !tlsarray )
                 return;
 
-            void** curtlsdata = cast(void**) curtlsarray[_tls_index];
-            void** tlsdata    = cast(void**) tlsarray[_tls_index];
-            if( !curtlsdata || !tlsdata )
-                return;
-
-            curtlsarray[_tls_index] = tlsdata;
+            curteb[11] = tlsarray;
             fn();
-            curtlsarray[_tls_index] = curtlsdata;
+            curteb[11] = curtlsarray;
         }
     }
 
 public:
     // forward as few symbols as possible into the "global" name space
-    alias thread_helper_aux.getTEB getTEB;
-    alias thread_helper_aux.getThreadStackBottom getThreadStackBottom;
-    alias thread_helper_aux.OpenThreadHandle OpenThreadHandle;
-    alias thread_helper_aux.enumProcessThreads enumProcessThreads;
+    alias thread_aux.getTEB getTEB;
+    alias thread_aux.getThreadStackBottom getThreadStackBottom;
+    alias thread_aux.OpenThreadHandle OpenThreadHandle;
+    alias thread_aux.enumProcessThreads enumProcessThreads;
 
+    // get the start of the TLS memory of the thread with the given handle
     void* GetTlsDataAddress( HANDLE hnd )
     {
         if( void** teb = getTEB( hnd ) )
@@ -237,18 +233,29 @@ public:
         return null;
     }
 
+    // get the start of the TLS memory of the thread with the given identifier
+    void* GetTlsDataAddress( uint id )
+    {
+        HANDLE hnd = OpenThread( thread_aux.THREAD_QUERY_INFORMATION, FALSE, id );
+        assert( hnd, "OpenThread failed" );
+
+        void* tls = GetTlsDataAddress( hnd );
+        CloseHandle( hnd );
+        return tls;
+    }
+
     ///////////////////////////////////////////////////////////////////
     // run _moduleTlsCtor in the context of the given thread
     void thread_moduleTlsCtor( uint id )
     {
-        thread_helper_aux.impersonate_thread(id, &_moduleTlsCtor);
+        thread_aux.impersonate_thread(id, &_moduleTlsCtor);
     }
 
     ///////////////////////////////////////////////////////////////////
     // run _moduleTlsDtor in the context of the given thread
     void thread_moduleTlsDtor( uint id )
     {
-        thread_helper_aux.impersonate_thread(id, &_moduleTlsDtor);
+        thread_aux.impersonate_thread(id, &_moduleTlsDtor);
     }
 }
 

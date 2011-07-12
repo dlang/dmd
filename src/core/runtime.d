@@ -58,6 +58,10 @@ private
         extern (C) void   backtrace_symbols_fd(void**,int,int);
         import core.sys.posix.signal; // segv handler
     }
+    else version( Windows )
+    {
+        import core.sys.windows.stacktrace;
+    }
 
     // For runModuleUnitTests error reporting.
     version( Windows )
@@ -510,6 +514,10 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         }
 
         return new DefaultTraceInfo;
+    }
+    else static if( __traits( compiles, new StackTrace ) )
+    {
+        return new StackTrace;
     }
     else
     {

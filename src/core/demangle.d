@@ -196,6 +196,14 @@ private struct Demangle
             assert( !contains( dst[0 .. len], val ) );
             debug(info) printf( "appending (%.*s)\n", cast(int) val.length, val.ptr );
 
+            if( dst.ptr + len == val.ptr &&
+                dst.length - len >= val.length )
+            {
+                // data is already in place
+                auto t = dst[len .. len + val.length];
+                len += val.length;
+                return t;
+            }
             if( dst.length - len >= val.length )
             {
                 dst[len .. len + val.length] = val[];
@@ -349,11 +357,30 @@ private struct Demangle
         size_t   tlen = 0;
         real     val  = void;
 
+        if( 'I' == tok() )
+        {
+            match( "INF" );
+            put( "real.infinity" );
+            return;
+        }
         if( 'N' == tok() )
         {
-            tbuf[tlen++] = '-';
             next();
+            if( 'I' == tok() )
+            {
+                match( "INF" );
+                put( "-real.infinity" );
+                return;
+            }
+            if( 'A' == tok() )
+            {
+                match( "AN" );
+                put( "real.nan" );
+                return;
+            }
+            tbuf[tlen++] = '-';
         }
+
         tbuf[tlen++] = '0';
         tbuf[tlen++] = 'X';
         if( !isHexDigit( tok() ) )
@@ -368,6 +395,7 @@ private struct Demangle
             next();
         }
         match( 'P' );
+        tbuf[tlen++] = 'p';
         if( 'N' == tok() )
         {
             tbuf[tlen++] = '-';
@@ -386,7 +414,7 @@ private struct Demangle
         tbuf[tlen] = 0;
         debug(info) printf( "got (%s)\n", tbuf.ptr );
         val = strtold( tbuf.ptr, null );
-        tlen = snprintf( tbuf.ptr, tbuf.length, "%Lf", val );
+        tlen = snprintf( tbuf.ptr, tbuf.length, "%#Lg", val );
         debug(info) printf( "converted (%.*s)\n", cast(int) tlen, tbuf.ptr );
         put( tbuf[0 .. tlen] );
     }
@@ -699,6 +727,7 @@ private struct Demangle
             }
 
             // FuncAttrs
+            breakFuncAttrs:
             while( 'N' == tok() )
             {
                 next();
@@ -728,6 +757,13 @@ private struct Demangle
                     next();
                     put( "@safe " );
                     continue;
+                case 'g':
+                    // NOTE: The inout parameter type is represented as "Ng",
+                    //       which makes it look like a FuncAttr.  So if we
+                    //       see an "Ng" FuncAttr we know we're really in
+                    //       the parameter list.  Rewind and break.
+                    pos--;
+                    break breakFuncAttrs;
                 default:
                     error();
                 }
@@ -840,7 +876,9 @@ private struct Demangle
             case 'g': // Wild (Ng Type)
                 next();
                 // TODO: Anything needed here?
+                put( "inout(" );
                 parseType();
+                put( ")" );
                 return dst[beg .. len];
             case 'e': // TypeNewArray (Ne Type)
                 next();
@@ -849,6 +887,7 @@ private struct Demangle
                 return dst[beg .. len];
             default:
                 error();
+                assert(0);
             }
         case 'A': // TypeArray (A Type)
             next();
@@ -1053,7 +1092,7 @@ private struct Demangle
         E
         F
     */
-    void parseValue()
+    void parseValue( char[] name = null, char type = '\0' )
     {
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
@@ -1106,9 +1145,61 @@ private struct Demangle
                 put( (cast(char*) &t)[0 .. 1] );
             return;
         case 'A':
+            // NOTE: This is kind of a hack.  An associative array literal
+            //       [1:2, 3:4] is represented as HiiA2i1i2i3i4, so the type
+            //       is "Hii" and the value is "A2i1i2i3i4".  Thus the only
+            //       way to determine that this is an AA value rather than an
+            //       array value is for the caller to supply the type char.
+            //       Hopefully, this will change so that the value is
+            //       "H2i1i2i3i4", rendering this unnecesary.
+            if( 'H' == type )
+                goto LassocArray;
             // A Number Value...
             // An array literal. Value is repeated Number times.
-            error(); // TODO: Not implemented.
+            next();
+            put( "[" );
+            auto n = decodeNumber();
+            foreach( i; 0 .. n )
+            {
+                if( i != 0 )
+                    put( ", " );
+                parseValue();
+            }
+            put( "]" );
+            return;
+        case 'H':
+        LassocArray:
+            // H Number Value...
+            // An associative array literal. Value is repeated 2*Number times.
+            next();
+            put( "[" );
+            auto n = decodeNumber();
+            foreach( i; 0 .. n )
+            {
+                if( i != 0 )
+                    put( ", " );
+                parseValue();
+                put(":");
+                parseValue();
+            }
+            put( "]" );
+            return;
+        case 'S':
+            // S Number Value...
+            // A struct literal. Value is repeated Number times.
+            next();
+            if( name.length )
+                put( name );
+            put( "(" );
+            auto n = decodeNumber();
+            foreach( i; 0 .. n )
+            {
+                if( i != 0 )
+                    put( ", " );
+                parseValue();
+            }
+            put( ")" );
+            return;
         default:
             error();
         }
@@ -1142,8 +1233,13 @@ private struct Demangle
             case 'V':
                 next();
                 if( n ) put( ", " );
-                silent( parseType() );
-                parseValue();
+                // NOTE: In the few instances where the type is actually
+                //       desired in the output it should precede the value
+                //       generated by parseValue, so it is safe to simply
+                //       decrement len and let put/append do its thing.
+                char t = tok(); // peek at type for parseValue
+                char[] name; silent( name = parseType() );
+                parseValue( name, t );
                 continue;
             case 'S':
                 next();
@@ -1347,36 +1443,40 @@ unittest
 {
     static string[2][] table =
     [
-        ["printf",      "printf"],
-        ["_foo",        "_foo"],
-        ["_D88",        "_D88"],
+        ["printf", "printf"],
+        ["_foo", "_foo"],
+        ["_D88", "_D88"],
         ["_D4test3fooAa", "char[] test.foo"],
         ["_D8demangle8demangleFAaZAa", "char[] demangle.demangle(char[])"],
-        ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(class Object)"],
-        ["_D4test2dgDFiYd", "double delegate(int, ...) test.dg"],
-        ["_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, char[5] \"hello\"c, void* null).factorial"],
-        ["_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", "float test.factorial!(double 4.2, cdouble 6.8+3i, char[5] \"hello\"c, void* null).factorial"],
-        ["_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(wchar[3] \"abc\"w, dchar[3] \"def\"d).x"],
-        ["_D8demangle4testFLC6ObjectLDFLiZiZi", "int demangle.test(lazy class Object, lazy int delegate(lazy int))"],
-        ["_D8demangle4testFAiXi", "int demangle.test(int[] ...)"],
-        ["_D8demangle4testFLAiXi", "int demangle.test(lazy int[] ...)"],
+        ["_D6object6Object8opEqualsFC6ObjectZi", "int object.Object.opEquals(Object)"],
+        ["_D4test2dgDFiYd", "double test.dg(int...)"],
+        //["_D4test58__T9factorialVde67666666666666860140VG5aa5_68656c6c6fVPvnZ9factorialf", ""],
+        //["_D4test101__T9factorialVde67666666666666860140Vrc9a999999999999d9014000000000000000c00040VG5aa5_68656c6c6fVPvnZ9factorialf", ""],
+        ["_D4test34__T3barVG3uw3_616263VG3wd3_646566Z1xi", "int test.bar!(\"abc\"w, \"def\"d).x"],
+        ["_D8demangle4testFLC6ObjectLDFLiZiZi", "int demangle.test(lazy Object, lazy int delegate(lazy int))"],
+        ["_D8demangle4testFAiXi", "int demangle.test(int[], ...)"],
+        ["_D8demangle4testFLAiXi", "int demangle.test(lazy int[], ...)"],
         ["_D6plugin8generateFiiZAya", "immutable(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAxa", "const(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAOa", "shared(char)[] plugin.generate(int, int)"],
         ["_D8demangle3fnAFZv3fnBMFZv", "void demangle.fnA().void fnB()"],
         ["_D8demangle4mainFZv1S3fnCFZv", "void demangle.main().void S.fnC()"],
-        ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().void S.fnD()"]
+        ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().void S.fnD()"],
+        ["_D8demangle20__T2fnVAiA4i1i2i3i4Z2fnFZv", "void demangle.fn!([1, 2, 3, 4]).fn()"],
+        ["_D8demangle10__T2fnVi1Z2fnFZv", "void demangle.fn!(1).fn()"],
+        ["_D8demangle26__T2fnVS8demangle1SS2i1i2Z2fnFZv", "void demangle.fn!(demangle.S(1, 2)).fn()"],
+        ["_D8demangle13__T2fnVeeNANZ2fnFZv", "void demangle.fn!(real.nan).fn()"],
+        ["_D8demangle14__T2fnVeeNINFZ2fnFZv", "void demangle.fn!(-real.infinity).fn()"],
+        ["_D8demangle13__T2fnVeeINFZ2fnFZv", "void demangle.fn!(real.infinity).fn()"],
+        ["_D8demangle21__T2fnVHiiA2i1i2i3i4Z2fnFZv", "void demangle.fn!([1:2, 3:4]).fn()"],
+        ["_D8demangle2fnFNgiZNgi", "inout(int) demangle.fn(inout(int))"]
     ];
 
     foreach( i, name; table )
     {
         auto r = demangle( name[0] );
-        /*
-        assert(r == name[1],
-                "table entry #" ~ to!string(i) ~ ": '" ~ name[0]
-                ~ "' demangles as '" ~ r ~ "' but is expected to be '"
-                ~ name[1] ~ "'");
-        */
+        assert( r == name[1],
+                "demangled \"" ~ name[0] ~ "\" as \"" ~ r ~ "\" but expected \"" ~ name[1] ~ "\"");
     }
 }
 

@@ -12,6 +12,11 @@
  */
 module object;
 
+private
+{
+    extern(C) void rt_finalize(void *ptr, bool det=true);
+}
+
 alias typeof(int.sizeof)                    size_t;
 alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
 alias ptrdiff_t                             sizediff_t;
@@ -431,27 +436,7 @@ unittest
 
 void clear(T)(T obj) if (is(T == class))
 {
-    if (!obj) return;
-    auto ci = obj.classinfo;
-    auto defaultCtor =
-        cast(void function(Object)) ci.defaultConstructor;
-    version(none) // enforce isn't available in druntime
-        _enforce(defaultCtor || (ci.flags & 8) == 0);
-    immutable size = ci.init.length;
-
-    auto ci2 = ci;
-    do
-    {
-        auto dtor = cast(void function(Object))ci2.destructor;
-        if (dtor)
-            dtor(obj);
-        ci2 = ci2.base;
-    } while (ci2)
-
-        auto buf = (cast(void*) obj)[0 .. size];
-    buf[] = ci.init;
-    if (defaultCtor)
-        defaultCtor(obj);
+    rt_finalize(cast(void*)obj);
 }
 
 void clear(T)(ref T obj) if (is(T == struct))

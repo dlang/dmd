@@ -40,10 +40,10 @@ struct GCBits
 {
     alias size_t wordtype;
 
-    const BITS_PER_WORD = (wordtype.sizeof * 8);
-    const BITS_SHIFT = (wordtype.sizeof == 8 ? 6 : 5);
-    const BITS_MASK = (BITS_PER_WORD - 1);
-    const BITS_1 = cast(wordtype)1;
+    enum BITS_PER_WORD = (wordtype.sizeof * 8);
+    enum BITS_SHIFT = (wordtype.sizeof == 8 ? 6 : 5);
+    enum BITS_MASK = (BITS_PER_WORD - 1);
+    enum BITS_1 = cast(wordtype)1;
 
     wordtype*  data = null;
     size_t nwords = 0;    // allocated words in data[] excluding sentinals
@@ -84,7 +84,7 @@ struct GCBits
     {
         version (none)
         {
-            return std.intrinsic.bt(data + 1, i);   // this is actually slower! don't use
+            return core.bitop.bt(data + 1, i);   // this is actually slower! don't use
         }
         else
         {
@@ -119,7 +119,7 @@ struct GCBits
     {
         version (bitops)
         {
-            return std.intrinsic.btr(data + 1, i);   // this is faster!
+            return core.bitop.btr(data + 1, i);   // this is faster!
         }
         else version (Asm86)
         {
@@ -150,7 +150,7 @@ struct GCBits
     {
         version (bitops)
         {
-            return std.intrinsic.bts(data + 1, i);   // this is faster!
+            return core.bitop.bts(data + 1, i);   // this is faster!
         }
         else version (Asm86)
         {
