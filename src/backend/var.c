@@ -63,11 +63,6 @@ tym_t functypetab[LINK_MAXDIM] =
     TYnpfunc,
     TYnpfunc,
     TYnfunc,
-#elif TARGET_MAC
-    TYffunc,
-    TYfpfunc,
-    TYpsfunc,
-    TYpsfunc,
 #endif
 };
 #else
@@ -99,12 +94,6 @@ mangle_t funcmangletab[LINK_MAXDIM] =
     mTYman_sys,
     mTYman_std,
     mTYman_d,
-#endif
-#if TARGET_MAC
-    mTYman_c,
-    mTYman_c,
-    mTYman_c,
-    mTYman_c,
 #endif
 };
 

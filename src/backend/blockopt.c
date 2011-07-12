@@ -31,11 +31,7 @@
 #include        "go.h"
 #include        "code.h"
 #if SCPP
-#if TX86
 #include        "iasm.h"
-#else
-#include        "TG.h"
-#endif
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
@@ -993,9 +989,6 @@ STATIC void bropt()
                         list_free(&b->Bsucc,FPNULL);
                         list_append(&b->Bsucc,db);
                         b->BC = BCgoto;
-#if !HOST_THINK
-                        MEM_PH_FREE(b->BS.Bswitch);
-#endif
                         b->Belem = doptelem(b->Belem,GOALnone | GOALagain);
                         cmes("CHANGE: switch (const)\n");
                         changes++;
@@ -1037,7 +1030,7 @@ STATIC void brrear()
                                 bt->Btry == list_block(bt->Bsucc)->Btry &&
 #endif
 
-                               ++iter < T68000(numblks) T80x86(10))
+                               ++iter < 10)
                         {
                                 list_ptr(bl) = list_ptr(bt->Bsucc);
                                 if (bt->Bsrcpos.Slinnum && !b->Bsrcpos.Slinnum)
@@ -1676,9 +1669,6 @@ STATIC void bltailmerge()
                     if (bnew->BC == BCswitch)
                     {
                         bnew->BS.Bswitch = b->BS.Bswitch;
-#if !HOST_THINK
-                        MEM_PH_FREE(bn->BS.Bswitch);
-#endif
                         b->BS.Bswitch = NULL;
                         bn->BS.Bswitch = NULL;
                     }
