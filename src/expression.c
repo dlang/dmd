@@ -9419,7 +9419,7 @@ Expression *AssignExp::semantic(Scope *sc)
          *      f(value)
          */
         TypeFunction *tf = (TypeFunction *)t1;
-        if (tf->isref)
+        if (tf->isref && tf->next && tf->next->isMutable())
         {
             // Rewrite e1 = e2 to e1() = e2
             e1 = resolveProperties(sc, e1);

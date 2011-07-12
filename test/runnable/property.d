@@ -7,7 +7,7 @@ struct Foo
     int bar() { return 73; }
 }
 
-int main()
+void test1()
 {
     Foo f;
     int i;
@@ -18,7 +18,22 @@ int main()
 
     i = f.bar;
     assert(i == 73);
-
-    return 0;
 }
 
+/***************************************************/
+
+@property ref const(int) bug6259() { return *(new int); }
+@property void bug6259(int) {}
+
+void test6259()
+{
+    bug6259 = 3;
+}
+
+/***************************************************/
+
+void main()
+{
+    test1();
+    test6259();
+}
