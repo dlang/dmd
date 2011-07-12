@@ -326,7 +326,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
             Objects dedtypes;
             dedtypes.setDim(1);
 
-            m = targ->deduceType(NULL, tspec, &parameters, &dedtypes);
+            m = targ->deduceType(sc, tspec, &parameters, &dedtypes);
             if (m == MATCHnomatch ||
                 (m != MATCHexact && tok == TOKequal))
                 inc = 2;

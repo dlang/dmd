@@ -5431,7 +5431,7 @@ Expression *IsExp::semantic(Scope *sc)
         dedtypes.setDim(parameters->dim);
         dedtypes.zero();
 
-        MATCH m = targ->deduceType(NULL, tspec, parameters, &dedtypes);
+        MATCH m = targ->deduceType(sc, tspec, parameters, &dedtypes);
 //printf("targ: %s\n", targ->toChars());
 //printf("tspec: %s\n", tspec->toChars());
         if (m == MATCHnomatch ||
