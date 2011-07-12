@@ -80,14 +80,14 @@ int runLINK()
     int status;
     OutBuffer cmdbuf;
 
-    global.params.libfiles->push((void *) "user32");
-    global.params.libfiles->push((void *) "kernel32");
+    global.params.libfiles->push("user32");
+    global.params.libfiles->push("kernel32");
 
     for (i = 0; i < global.params.objfiles->dim; i++)
     {
         if (i)
             cmdbuf.writeByte('+');
-        p = (char *)global.params.objfiles->data[i];
+        p = global.params.objfiles->tdata()[i];
         char *basename = FileName::removeExt(FileName::name(p));
         char *ext = FileName::ext(p);
         if (ext && !strchr(basename, '.'))
@@ -104,7 +104,7 @@ int runLINK()
     {   /* Generate exe file name from first obj name.
          * No need to add it to cmdbuf because the linker will default to it.
          */
-        char *n = (char *)global.params.objfiles->data[0];
+        char *n = global.params.objfiles->tdata()[0];
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, "exe");
         global.params.exefile = fn->toChars();
@@ -140,7 +140,7 @@ int runLINK()
     {
         if (i)
             cmdbuf.writeByte('+');
-        writeFilename(&cmdbuf, (char *) global.params.libfiles->data[i]);
+        writeFilename(&cmdbuf, global.params.libfiles->tdata()[i]);
     }
 
     if (global.params.deffile)
@@ -183,7 +183,7 @@ int runLINK()
     cmdbuf.writestring("/noi");
     for (i = 0; i < global.params.linkswitches->dim; i++)
     {
-        cmdbuf.writestring((char *) global.params.linkswitches->data[i]);
+        cmdbuf.writestring(global.params.linkswitches->tdata()[i]);
     }
     cmdbuf.writeByte(';');
 
@@ -565,7 +565,7 @@ int runProgram()
         ex = FileName::combine(".", ex);
     else
         ex = global.params.exefile;
-    return spawnv(0,ex,(char **)argv.data);
+    return spawnv(0,ex,argv.tdata());
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     pid_t childpid;
     int status;

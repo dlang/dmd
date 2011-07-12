@@ -491,12 +491,12 @@ void ClassDeclaration::toDebug()
             n = 0;
             descriptor = 0;
             for (i = 0; i < vtbl.dim; i++)
-            {   FuncDeclaration *fd = (FuncDeclaration *)vtbl.data[i];
+            {   FuncDeclaration *fd = (FuncDeclaration *)vtbl.tdata()[i];
                 tym_t ty;
 
                 //if (intsize == 4)
                     descriptor |= 5;
-                vshape->tdata()[4 + n / 2] = descriptor;
+                vshape->data[4 + n / 2] = descriptor;
                 descriptor <<= 4;
                 n++;
             }

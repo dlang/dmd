@@ -23,7 +23,7 @@ struct ObjSymbol
     ObjModule *om;
 };
 
-#import "arraytypes.h"
+#include "arraytypes.h"
 
 typedef Array<ObjModule> ObjModules;
 typedef Array<ObjSymbol> ObjSymbols;
