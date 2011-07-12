@@ -71,7 +71,7 @@ class TypeInfo
     @property size_t   tsize();
     void     swap(void* p1, void* p2);
     @property TypeInfo next();
-    @property void[]   init();
+    void[]   init(); // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
     @property uint     flags();
     // 1:    // has possible pointers into GC memory
     OffsetTypeInfo[] offTi();

@@ -285,7 +285,8 @@ class TypeInfo
 
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
-    @property void[] init() { return null; }
+    // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
+    void[] init() { return null; }
 
     /// Get flags for type: 1 means GC should scan for pointers
     @property uint flags() { return 0; }
@@ -331,7 +332,7 @@ class TypeInfo_Typedef : TypeInfo
 
     @property override TypeInfo next() { return base.next; }
     @property override uint flags() { return base.flags; }
-    @property override void[] init() { return m_init.length ? m_init : base.init; }
+    override void[] init() { return m_init.length ? m_init : base.init(); }
 
     @property override size_t talign() { return base.talign; }
 
@@ -561,7 +562,7 @@ class TypeInfo_StaticArray : TypeInfo
             delete pbuffer;
     }
 
-    @property override void[] init() { return value.init(); }
+    override void[] init() { return value.init(); }
     @property override TypeInfo next() { return value; }
     @property override uint flags() { return value.flags(); }
 
@@ -977,7 +978,7 @@ class TypeInfo_Struct : TypeInfo
         return init.length;
     }
 
-    @property override void[] init() { return m_init; }
+    override void[] init() { return m_init; }
 
     @property override uint flags() { return m_flags; }
 
@@ -1136,7 +1137,7 @@ class TypeInfo_Const : TypeInfo
 
     @property override TypeInfo next() { return base.next; }
     @property override uint flags() { return base.flags; }
-    @property override void[] init() { return base.init; }
+    override void[] init() { return base.init; }
 
     @property override size_t talign() { return base.talign(); }
 
