@@ -103,12 +103,25 @@ void test4()
 
 /**********************************************/
 
+void test5()
+{
+    static struct Double1 {
+        double val = 1;
+        alias val this;
+    }
+    static Double1 x() { return Double1(); }
+    x()++;
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
     test2();
     test3();
     test4();
+    test5();
 
     printf("Success\n");
     return 0;

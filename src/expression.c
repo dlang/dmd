@@ -620,7 +620,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         Identifier *id = Lexer::uniqueId("__arrayArg");
                         Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
                         t = t->semantic(loc, sc);
-                        VarDeclaration *v = new VarDeclaration(loc, t, id, new VoidInitializer(loc));
+                        VarDeclaration *v = new VarDeclaration(loc, t, id, fd->isSafe() ? NULL : new VoidInitializer(loc));
                         v->storage_class |= STCctfe;
                         v->semantic(sc);
                         v->parent = sc->parent;
@@ -1367,17 +1367,23 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
              * requiring each function in between to be impure.
              */
             Dsymbol *vparent = v->toParent2();
-            for (Dsymbol *s = sc->func; s; s = s->toParent2())
+            Dsymbol *s = sc->func, *snext = s->toParent2();
+            // Make sure we're really finding parent *functions*, not parent
+            // class.
+            if (vparent->isFuncDeclaration() || snext != vparent)
             {
-                if (s == vparent)
-                    break;
-                FuncDeclaration *ff = s->isFuncDeclaration();
-                if (!ff)
-                    break;
-                if (ff->setImpure())
-                {   error("pure nested function '%s' cannot access mutable data '%s'",
-                        ff->toChars(), v->toChars());
-                    break;
+                for (; s; s = s->toParent2())
+                {
+                    if (s == vparent)
+                        break;
+                    FuncDeclaration *ff = s->isFuncDeclaration();
+                    if (!ff)
+                        break;
+                    if (ff->setImpure())
+                    {   error("pure nested function '%s' cannot access mutable data '%s'",
+                            ff->toChars(), v->toChars());
+                        break;
+                    }
                 }
             }
         }
@@ -9594,22 +9600,9 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         //error("cannot assign to static array %s", e1->toChars());
     }
-    else if (e1->op == TOKslice)
+    else if (e1->op == TOKslice && t2->toBasetype()->ty == Tarray &&
+        t2->toBasetype()->nextOf()->implicitConvTo(t1->nextOf()))
     {
-        /* This test is so we can do things like:
-         *    byte[] b; b[] = [1,2,3];
-         */
-        if (e2->op != TOKarrayliteral && e2->op != TOKstring)
-        {
-            Type *t1n = t1->toBasetype()->nextOf();
-            Type *t2n = t2->toBasetype()->nextOf();
-            assert(t1n && t2n);
-            if (!t2n->implicitConvTo(t1n))
-            {
-                error("cannot assign from %s to %s", t2->toChars(), t1->toChars());
-                return new ErrorExp();
-            }
-        }
         e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
     else
