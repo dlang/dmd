@@ -193,7 +193,8 @@ private:
         }
 
         // execute function on the TLS for the given thread
-        static void impersonate_thread( uint id, void function() fn )
+        alias extern(C) void function() externCVoidFunc;
+        static void impersonate_thread( uint id, externCVoidFunc fn )
         {
             if( id == GetCurrentThreadId() )
             {
