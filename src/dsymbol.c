@@ -195,11 +195,8 @@ const char *Dsymbol::toPrettyChars()
     return s;
 }
 
-char *Dsymbol::locToChars()
+Loc& Dsymbol::getLoc()
 {
-    OutBuffer buf;
-    char *p;
-
     if (!loc.filename)  // avoid bug 5861.
     {
         Module *m = getModule();
@@ -207,7 +204,12 @@ char *Dsymbol::locToChars()
         if (m && m->srcfile)
             loc.filename = m->srcfile->toChars();
     }
-    return loc.toChars();
+    return loc;
+}
+
+char *Dsymbol::locToChars()
+{
+    return getLoc().toChars();
 }
 
 const char *Dsymbol::kind()
@@ -527,70 +529,71 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     return 0;
 }
 
+char *Dsymbol::genMsg(const char *format)
+{
+    const char* kind = this->kind();
+    const char* name;
+    size_t len = strlen(format);
+    if (!isAnonymous())
+    {
+        name = toPrettyChars();
+        len += strlen(name) + 1; // +1 for a space
+    }
+    len += strlen(kind) + 1; // +1 for a space
+    char *s = (char *)mem.malloc(len + 1); // +1 for \0
+    strcpy(s, kind);
+    strcat(s, " ");
+    if (!isAnonymous()) {
+        strcat(s, name);
+        strcat(s, " ");
+    }
+    strcat(s, format);
+    return s;
+}
+
 void Dsymbol::error(const char *format, ...)
 {
-    //printf("Dsymbol::error()\n");
-    if (!global.gag)
-    {
-        char *p = locToChars();
-
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        fprintf(stdmsg, "Error: ");
-        if (isAnonymous())
-            fprintf(stdmsg, "%s ", kind());
-        else
-            fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
-
-        va_list ap;
-        va_start(ap, format);
-        vfprintf(stdmsg, format, ap);
-        va_end(ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-//halt();
-    }
-    global.errors++;
-
-    //fatal();
+    char *s = genMsg(format);
+    va_list ap;
+    va_start(ap, format);
+    ::verror(getLoc(), s, ap);
+    va_end(ap);
+    mem.free(s);
 }
 
 void Dsymbol::error(Loc loc, const char *format, ...)
 {
-    if (!global.gag)
-    {
-        char *p = loc.toChars();
-        if (!*p)
-            p = locToChars();
+    char *s = genMsg(format);
+    va_list ap;
+    va_start(ap, format);
+    ::verror(loc, s, ap);
+    va_end(ap);
+    mem.free(s);
+}
 
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
+void Dsymbol::deprecation(const char *format, ...)
+{
+    char *s = genMsg(format);
+    va_list ap;
+    va_start(ap, format);
+    ::vdeprecation(getLoc(), s, ap);
+    va_end(ap);
+    mem.free(s);
+}
 
-        fprintf(stdmsg, "Error: ");
-        fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
-
-        va_list ap;
-        va_start(ap, format);
-        vfprintf(stdmsg, format, ap);
-        va_end(ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-//halt();
-    }
-
-    global.errors++;
-
-    //fatal();
+void Dsymbol::deprecation(Loc loc, const char *format, ...)
+{
+    char *s = genMsg(format);
+    va_list ap;
+    va_start(ap, format);
+    ::vdeprecation(loc, s, ap);
+    va_end(ap);
+    mem.free(s);
 }
 
 void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 {
-    if (!global.params.useDeprecated && isDeprecated())
+    if (global.params.deprecation && isDeprecated())
     {
         // Don't complain if we're inside a deprecated symbol's scope
         for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)
@@ -608,7 +611,7 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
                 goto L1;
         }
 
-        error(loc, "is deprecated");
+        deprecation(loc, "is deprecated");
     }
 
   L1:
@@ -1109,8 +1112,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     {   VarDeclaration **pvar;
         Expression *ce;
 
-        if (ident == Id::length && !global.params.useDeprecated)
-            error("using 'length' inside [ ] is deprecated, use '$' instead");
+        if (ident == Id::length && global.params.deprecation)
+            deprecation("using 'length' inside [ ] is deprecated, use '$' instead");
 
     L1:
 

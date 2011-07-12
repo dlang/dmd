@@ -155,6 +155,17 @@ void warning(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
+void deprecation(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    if (global.params.deprecation > 1)
+        vwarning(loc, format, ap);
+    else
+        verror(loc, format, ap);
+    va_end( ap );
+}
+
 void verror(Loc loc, const char *format, va_list ap)
 {
     if (!global.gag)
@@ -206,6 +217,19 @@ void vwarning(Loc loc, const char *format, va_list ap)
         if (global.params.warnings == 1)
             global.warnings++;  // warnings don't count if gagged
     }
+}
+
+void vdeprecation(Loc loc, const char *format, va_list ap)
+{
+    if (global.params.deprecation > 1)
+    {
+        char oldw = global.params.warnings;
+        global.params.warnings = 2; // activate warnings temporarly
+        vwarning(loc, format, ap);
+        global.params.warnings = oldw;
+    }
+    else
+        verror(loc, format, ap);
 }
 
 /***************************************
@@ -260,6 +284,7 @@ Usage:\n\
   -Dddocdir      write documentation file to docdir directory\n\
   -Dffilename    write documentation file to filename\n\
   -d             allow deprecated features\n\
+  -di            show use of deprecated features as warnings\n\
   -debug         compile in debug code\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
@@ -359,6 +384,7 @@ int main(int argc, char *argv[])
     global.params.obj = 1;
     global.params.Dversion = 2;
     global.params.quiet = 1;
+    global.params.deprecation = 1; // deprecated features are errors
 
     global.params.linkswitches = new Array();
     global.params.libfiles = new Array();
@@ -443,7 +469,9 @@ int main(int argc, char *argv[])
         if (*p == '-')
         {
             if (strcmp(p + 1, "d") == 0)
-                global.params.useDeprecated = 1;
+                global.params.deprecation = 0;
+            else if (strcmp(p + 1, "di") == 0)
+                global.params.deprecation = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = 0;
             else if (strcmp(p + 1, "cov") == 0)

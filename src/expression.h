@@ -105,6 +105,7 @@ struct Expression : Object
     virtual void dump(int indent);
     void error(const char *format, ...);
     void warning(const char *format, ...);
+    void deprecation(const char *format, ...);
     virtual void rvalue();
 
     static Expression *combine(Expression *e1, Expression *e2);

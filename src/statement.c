@@ -116,6 +116,14 @@ void Statement::warning(const char *format, ...)
     va_end( ap );
 }
 
+void Statement::deprecation(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    ::vdeprecation(loc, format, ap);
+    va_end( ap );
+}
+
 int Statement::hasBreak()
 {
     //printf("Statement::hasBreak()\n");
@@ -2858,8 +2866,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault && !isFinal)
     {   hasNoDefault = 1;
 
-        if (!global.params.useDeprecated)
-           error("non-final switch statement without a default is deprecated");
+        if (global.params.deprecation)
+           deprecation("non-final switch statement without a default is deprecated");
 
         // Generate runtime error if the default is hit
         Statements *a = new Statements();

@@ -123,11 +123,15 @@ struct Dsymbol : Object
     Dsymbol();
     Dsymbol(Identifier *);
     char *toChars();
+    Loc& getLoc();
     char *locToChars();
     int equals(Object *o);
     int isAnonymous();
+    char *genMsg(const char *format);
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
+    void deprecation(Loc loc, const char *format, ...);
+    void deprecation(const char *format, ...);
     void checkDeprecated(Loc loc, Scope *sc);
     Module *getModule();
     Dsymbol *pastMixin();

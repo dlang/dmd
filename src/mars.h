@@ -146,7 +146,9 @@ struct Param
     char isOPenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
-    char useDeprecated; // allow use of deprecated features
+    char deprecation;   // 0: sillently allow use of deprecated features
+                        // 1: use of deprecated features as errors
+                        // 2: informational warnings (no errors)
     char useAssert;     // generate runtime code for assert()'s
     char useInvariants; // generate class invariant checks
     char useIn;         // generate precondition checks
@@ -247,9 +249,10 @@ struct Global
     const char *version;
 
     Param params;
-    unsigned errors;    // number of errors reported so far
-    unsigned warnings;  // number of warnings reported so far
-    unsigned gag;       // !=0 means gag reporting of errors & warnings
+    unsigned errors;        // number of errors reported so far
+    unsigned warnings;      // number of warnings reported so far
+    unsigned deprecations;  // number of deprecations reported so far
+    unsigned gag;           // !=0 means gag reporting of errors & warnings
 
     Global();
 };
@@ -389,8 +392,10 @@ typedef uint64_t StorageClass;
 
 void warning(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
+void deprecation(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list);
 void vwarning(Loc loc, const char *format, va_list);
+void vdeprecation(Loc loc, const char *format, va_list);
 void fatal();
 void err_nomem();
 int runLINK();
