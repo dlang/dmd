@@ -21,7 +21,7 @@ struct Symbol;
 struct FuncDeclaration;
 struct Blockx;
 struct elem;
-#import "arraytypes.h"
+#include "arraytypes.h"
 
 struct IRState
 {

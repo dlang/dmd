@@ -16,7 +16,7 @@
 #pragma once
 #endif /* __DMC__ */
 
-#import "arraytypes.h"
+#include "arraytypes.h"
 
 void json_generate(Modules *);
 
