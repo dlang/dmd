@@ -965,24 +965,24 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
     unittest
     {
         //Verify Examples.
-        assert(dur!"weeks"(12).total!"weeks"() == 12);
-        assert(dur!"weeks"(12).total!"days"() == 84);
+        assert(dur!"weeks"(12).total!"weeks" == 12);
+        assert(dur!"weeks"(12).total!"days" == 84);
 
-        assert(dur!"days"(13).total!"weeks"() == 1);
-        assert(dur!"days"(13).total!"days"() == 13);
+        assert(dur!"days"(13).total!"weeks" == 1);
+        assert(dur!"days"(13).total!"days" == 13);
 
-        assert(dur!"hours"(49).total!"days"() == 2);
-        assert(dur!"hours"(49).total!"hours"() == 49);
+        assert(dur!"hours"(49).total!"days" == 2);
+        assert(dur!"hours"(49).total!"hours" == 49);
 
-        assert(dur!"nsecs"(2007).total!"hnsecs"() == 20);
-        assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
+        assert(dur!"nsecs"(2007).total!"hnsecs" == 20);
+        assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
 
         const dur = Duration(12);
         const cdur = Duration(12);
         immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.total!"days"()));
-        static assert(__traits(compiles, cdur.total!"days"()));
-        static assert(__traits(compiles, idur.total!"days"()));
+        dur.total!"days"; // just check that it compiles
+        cdur.total!"days"; // just check that it compiles
+        idur.total!"days"; // just check that it compiles
     }
 
 
