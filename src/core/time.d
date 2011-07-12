@@ -1628,8 +1628,8 @@ struct TickDuration
     {
         auto a = TickDuration.currSystemTick;
         auto b = TickDuration.currSystemTick;
-        assert((a + b).to!("seconds", real) > 0);
-        assert((a - b).to!("seconds", real) <= 0);
+        assert((a + b).to!("seconds", real)() > 0);
+        assert((a - b).to!("seconds", real)() <= 0);
     }
 
 
