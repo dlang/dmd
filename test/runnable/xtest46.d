@@ -3265,6 +3265,81 @@ void test6264()
 
 /***************************************************/
 
+struct S6295(int N) {
+    int[N] x;
+    const nothrow pure @safe f() { return x.length; }
+}
+
+void test6295() {
+    auto bar(T: S6295!(N), int N)(T x) {
+        return x.f();
+    }
+    S6295!4 x;
+    assert(bar(x) == 4);
+}
+
+/***************************************************/
+
+struct S6284 {
+    int a;
+}
+class C6284 {
+    int a;
+}
+pure int bug6284a() {
+    S6284 s = {4};
+    auto b = s.a;   // ok
+    with (s) {
+        b += a;     // should be ok.
+    }
+    return b;
+}
+pure int bug6284b() {
+    auto s = new S6284;
+    s.a = 4;
+    auto b = s.a;
+    with (*s) {
+        b += a;
+    }
+    return b;
+}
+pure int bug6284c() {
+    auto s = new C6284;
+    s.a = 4;
+    auto b = s.a;
+    with (s) {
+        b += a;
+    }
+    return b;
+}
+void test6284() {
+    assert(bug6284a() == 8);
+    assert(bug6284b() == 8);
+    assert(bug6284c() == 8);
+}
+
+/***************************************************/
+
+class C6293 {
+    C6293 token;
+}
+void f6293(in C6293[] a) pure {
+    auto x0 = a[0].token;
+    assert(x0 is a[0].token.token.token);
+    assert(x0 is (&x0).token);
+    auto p1 = &x0 + 1;
+    assert(x0 is (p1 - 1).token);
+    int c = 0;
+    assert(x0 is a[c].token);
+}
+void test6293() {
+    auto x = new C6293;
+    x.token = x;
+    f6293([x]);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3428,6 +3503,9 @@ int main()
     test4031();
     test6230();
     test6264();
+    test6284();
+    test6295();
+    test6293();
 
     printf("Success\n");
     return 0;
