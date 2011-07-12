@@ -212,7 +212,7 @@ class TypeInfo_Inout : TypeInfo_Const
 
 abstract class MemberInfo
 {
-    string name();
+    @property string name();
 }
 
 class MemberInfo_field : MemberInfo

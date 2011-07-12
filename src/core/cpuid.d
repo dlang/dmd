@@ -224,7 +224,6 @@ public:
     uint stepping, model, family;
     uint numCacheLevels = 1;
 private:
-    @property {
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
     string processorName;
@@ -237,8 +236,7 @@ private:
     uint maxCores = 1;
     uint maxThreads = 1;
     // Note that this may indicate multi-core rather than hyperthreading.
-    bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
-    }
+    @property bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
 
     // feature flags CPUID1_EDX
     enum : uint
