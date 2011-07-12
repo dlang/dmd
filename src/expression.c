@@ -1322,33 +1322,6 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
         }
         else
         {
-            if (ethis)
-            {
-                Type *t1 = ethis->type->toBasetype();
-
-                if (t1->isImmutable() ||
-                    (t1->ty == Tpointer && t1->nextOf()->isImmutable()))
-                {
-                    goto L1;
-                }
-                if (ethis->op == TOKvar)
-                {   VarExp *ve = (VarExp *)ethis;
-
-                    v = ve->var->isVarDeclaration();
-                    if (v)
-                        checkPurity(sc, v, NULL);
-                    return;
-                }
-                if (ethis->op == TOKdotvar)
-                {   DotVarExp *ve = (DotVarExp *)ethis;
-
-                    v = ve->var->isVarDeclaration();
-                    if (v)
-                        checkPurity(sc, v, ve->e1);
-                    return;
-                }
-            }
-
             /* Given:
              * void f()
              * { int fx;
@@ -1363,31 +1336,21 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
              * i() can modify hx and gx but not fx
              */
 
-            /* Back up until we find the parent function of v,
-             * requiring each function in between to be impure.
-             */
             Dsymbol *vparent = v->toParent2();
-            Dsymbol *s = sc->func, *snext = s->toParent2();
-            // Make sure we're really finding parent *functions*, not parent
-            // class.
-            if (vparent->isFuncDeclaration() || snext != vparent)
+            for (Dsymbol *s = sc->func; s; s = s->toParent2())
             {
-                for (; s; s = s->toParent2())
-                {
-                    if (s == vparent)
-                        break;
-                    FuncDeclaration *ff = s->isFuncDeclaration();
-                    if (!ff)
-                        break;
-                    if (ff->setImpure())
-                    {   error("pure nested function '%s' cannot access mutable data '%s'",
-                            ff->toChars(), v->toChars());
-                        break;
-                    }
+                if (s == vparent)
+	                break;
+                FuncDeclaration *ff = s->isFuncDeclaration();
+                if (!ff)
+                    break;
+                if (ff->setImpure())
+                {   error("pure nested function '%s' cannot access mutable data '%s'",
+                        ff->toChars(), v->toChars());
+                    break;
                 }
             }
         }
-
 
         /* Do not allow safe functions to access __gshared data
          */
@@ -6497,8 +6460,6 @@ Expression *DotVarExp::semantic(Scope *sc)
                 accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
-            if (v)
-                checkPurity(sc, v, e1);
             Expression *e = expandVar(WANTvalue, v);
             if (e)
                 return e;
