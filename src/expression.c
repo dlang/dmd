@@ -1370,7 +1370,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
             Dsymbol *s = sc->func, *snext = s->toParent2();
             // Make sure we're really finding parent *functions*, not parent
             // class.
-            if (vparent->isFuncDeclaration() || snext != vparent)
+            if (vparent && vparent->isFuncDeclaration() || snext != vparent)
             {
                 for (; s; s = s->toParent2())
                 {
