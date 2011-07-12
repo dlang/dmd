@@ -315,7 +315,7 @@ extern (C) char[] _adSortChar(char[] a)
 {
     if (a.length > 1)
     {
-        dstring da = toUTF32(a);
+        dchar[] da = cast()toUTF32(a);
         da.sort;
         size_t i = 0;
         foreach (dchar d; da)
@@ -337,7 +337,7 @@ extern (C) wchar[] _adSortWchar(wchar[] a)
 {
     if (a.length > 1)
     {
-        dstring da = toUTF32(a);
+        dchar[] da = cast()toUTF32(a);
         da.sort;
         size_t i = 0;
         foreach (dchar d; da)
