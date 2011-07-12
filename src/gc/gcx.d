@@ -3192,7 +3192,7 @@ struct Pool
     }
 
     // The divisor used for determining bit indices.
-    private size_t divisor()
+    @property private size_t divisor()
     {
         // NOTE: Since this is called by initialize it must be private or
         //       invariant() will be called and fail.
@@ -3200,7 +3200,7 @@ struct Pool
     }
 
     // Bit shift for fast division by divisor.
-    uint shiftBy()
+    @property uint shiftBy()
     {
         return isLargeObject ? 12 : 4;
     }
