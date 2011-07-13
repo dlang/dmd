@@ -200,6 +200,12 @@ int func2779b2(Tup!(int, string) t){ return 2; }
 
 int func2779b3(string s, int n){ return 1; }
 
+void tfunc2779(A, B)(A a, B b)
+{
+    assert(a == 10);
+    assert(b == "str");
+}
+
 void test2779()
 {
     auto t1 = Tup!(int, string)(10, "str");
@@ -209,6 +215,9 @@ void test2779()
     assert(func2779b1(t2) == 1);
     assert(func2779b2(t2) == 2);
     static assert(!__traits(compiles, func2779b3(t2)));
+
+    auto t3 = tup(10, "str");
+    tfunc2779(t3);
 }
 
 /**********************************************/
