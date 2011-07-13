@@ -1576,33 +1576,6 @@ struct EEcontext
 extern EEcontext eecontext;
 #endif
 
-#if !TX86
-////////// Filenames
-
-typedef struct Filename
-{
-    char **arr;                         // array of filenames
-    unsigned dim;                       // dimension of array
-    unsigned idx;                       // # used in array
-} Filename;
-
-// NOTE: In order to save the full settings of all of the options,
-// the following will need to be saved:
-//
-// config
-// tysize[TYldouble]
-// war_to_msg_enable[]  - Array of warnings that are enabled/disabled 0 = enabled, 1 = disabled
-
-struct SAVED_OPTIONS
-{
-        struct Config config;
-        mftype mfoptim;
-        signed char tysizeTYldouble;
-        unsigned char war_to_msg_enable[40];    // Assumes that the max warning number is 40
-        struct SAVED_OPTIONS *psoNext;
-};
-#endif
-
 #include "rtlsym.h"
 
 #undef SYMBOL_Z
