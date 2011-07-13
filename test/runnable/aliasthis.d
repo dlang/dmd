@@ -1,5 +1,29 @@
 
-import std.c.stdio;
+extern (C) int printf(const(char*) fmt, ...);
+
+struct Tup(T...)
+{
+    T field;
+    alias field this;
+
+    bool opEquals()(auto ref Tup rhs) const
+    {
+        foreach (i, _; T)
+            if (field[i] != rhs.field[i])
+                return false;
+        return true;
+    }
+}
+
+Tup!T tup(T...)(T fields)
+{
+    return typeof(return)(fields);
+}
+
+template Seq(T...)
+{
+    alias T Seq;
+}
 
 /**********************************************/
 
@@ -64,15 +88,9 @@ void test2()
 
 /**********************************************/
 
-struct MyTuple(T...)
-{
-    T value;
-    alias value this;
-}
-
 void test3()
 {
-    MyTuple!(int, double) t;
+    Tup!(int, double) t;
     t[0] = 1;
     t[1] = 1.1;
     assert(t[0] == 1);
@@ -82,17 +100,11 @@ void test3()
 
 /**********************************************/
 
-struct Tuple4(U...)
-{
-    U field;
-    alias field this;
-}
-
 struct Iter
 {
     bool empty() { return true; }
     void popFront() { }
-    ref Tuple4!(int, int) front() { return *new Tuple4!(int, int); }
+    ref Tup!(int, int) front() { return *new Tup!(int, int); }
     ref Iter opSlice() { return this; }
 }
 
