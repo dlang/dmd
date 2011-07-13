@@ -19,7 +19,7 @@ import core.stdc.stdio;
 
 private
 {
-    alias void function( string file, size_t line, string msg = null ) errorHandlerType;
+    alias void function( string file, size_t line, string msg ) errorHandlerType;
 
     // NOTE: One assert handler is used for all threads.  Thread-local
     //       behavior should occur within the handler itself.  This delegate
@@ -361,7 +361,7 @@ extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ )
 {
     if( assertHandler is null )
         throw new AssertError( file, line );
-    assertHandler( file, line );
+    assertHandler( file, line, null);
 }
 
 
