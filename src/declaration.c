@@ -859,6 +859,34 @@ void VarDeclaration::semantic(Scope *sc)
         Objects *exps = new Objects();
         exps->setDim(nelems);
         Expression *ie = init ? init->toExpression() : NULL;
+        if (ie) ie = ie->semantic(sc);
+
+        if (nelems > 0 && ie)
+        {
+            Expressions *iexps = new Expressions();
+            iexps->push(ie);
+
+            for (size_t u = 0; u < iexps->dim ; u++)
+            {
+Lexpand:
+                Expression *e = (Expression *)iexps->data[u];
+
+                Parameter *arg = Parameter::getNth(tt->arguments, u);
+                //printf("e = %s %s, type = %s\n", Token::tochars[e->op], e->toChars(), e->type->toChars());
+                //printf("arg = %s, type = %s\n", arg->toChars(), arg->type->toChars());
+
+                if (!e->type->implicitConvTo(arg->type))
+                {
+                    // expand initializer to tuple
+                    if (expandAliasThisTuples(iexps, u) != -1)
+                        goto Lexpand;
+
+                    goto Lnomatch;
+                }
+            }
+            ie = new TupleExp(init->loc, iexps);
+        }
+Lnomatch:
 
         for (size_t i = 0; i < nelems; i++)
         {   Parameter *arg = Parameter::getNth(tt->arguments, i);

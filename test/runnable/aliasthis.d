@@ -158,6 +158,82 @@ void test6_2()
 
 /**********************************************/
 
+alias Seq!(int, string) Field7;
+
+void test7_1()
+{
+    auto t = Tup!(int, string)(10, "str");
+    Field7 field = t;           // NG -> OK
+    assert(field[0] == 10);
+    assert(field[1] == "str");
+}
+
+void test7_2()
+{
+    auto t = Tup!(int, string)(10, "str");
+    Field7 field = t.field;     // NG -> OK
+    assert(field[0] == 10);
+    assert(field[1] == "str");
+}
+
+void test7_3()
+{
+    auto t = Tup!(int, string)(10, "str");
+    Field7 field;
+    field = t.field;
+    assert(field[0] == 10);
+    assert(field[1] == "str");
+}
+
+/**********************************************/
+
+void test8_1()
+{
+    auto t = Tup!(Tup!(int, double), string)(tup(10, 3.14), "str");
+
+    Seq!(int, double, string) fs1 = t;
+    assert(fs1[0] == 10);
+    assert(fs1[1] == 3.14);
+    assert(fs1[2] == "str");
+
+    Seq!(Tup!(int, double), string) fs2 = t;
+    assert(fs2[0][0] == 10);
+    assert(fs2[0][1] == 3.14);
+    assert(fs2[0] == tup(10, 3.14));
+    assert(fs2[1] == "str");
+
+    Tup!(Tup!(int, double), string) fs3 = t;
+    assert(fs3[0][0] == 10);
+    assert(fs3[0][1] == 3.14);
+    assert(fs3[0] == tup(10, 3.14));
+    assert(fs3[1] == "str");
+}
+
+void test8_2()
+{
+    auto t = Tup!(Tup!(int, double), Tup!(string, int[]))(tup(10, 3.14), tup("str", [1,2]));
+
+    Seq!(int, double, string, int[]) fs1 = t;
+    assert(fs1[0] == 10);
+    assert(fs1[1] == 3.14);
+    assert(fs1[2] == "str");
+    assert(fs1[3] == [1,2]);
+
+    Seq!(int, double, Tup!(string, int[])) fs2 = t;
+    assert(fs2[0] == 10);
+    assert(fs2[1] == 3.14);
+    assert(fs2[2] == tup("str", [1,2]));
+
+    Seq!(Tup!(int, double), string, int[]) fs3 = t;
+    assert(fs3[0] == tup(10, 3.14));
+    assert(fs3[0][0] == 10);
+    assert(fs3[0][1] == 3.14);
+    assert(fs3[1] == "str");
+    assert(fs3[2] == [1,2]);
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
@@ -167,6 +243,11 @@ int main()
     test5();
     test6_1();
     test6_2();
+    test7_1();
+    test7_2();
+    test7_3();
+    test8_1();
+    test8_2();
 
     printf("Success\n");
     return 0;
