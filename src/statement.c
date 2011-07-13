@@ -1409,6 +1409,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     if (tab->ty == Ttuple)      // don't generate new scope for tuple loops
     {
+Ltuple:
         if (dim < 1 || dim > 2)
         {
             error("only one (value) or two (key,value) arguments for tuple foreach");
@@ -1420,6 +1421,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
         //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
         size_t n;
         TupleExp *te = NULL;
+        Expression *prelude = NULL;
+        while (aggr->op == TOKcomma)
+        {
+            CommaExp *ce = (CommaExp *)aggr;
+            prelude = Expression::combine(prelude, ce->e1);
+            aggr = ce->e2;
+        }
         if (aggr->op == TOKtuple)       // expression tuple
         {   te = (TupleExp *)aggr;
             n = te->exps->dim;
@@ -1497,6 +1505,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
 
         s = new UnrolledLoopStatement(loc, statements);
+        if (prelude)
+            s = new CompoundStatement(loc,
+                    new ExpStatement(prelude->loc, prelude), s);
         s = s->semantic(sc);
         return s;
     }
@@ -1696,7 +1707,7 @@ Lagain:
             /* Prefer using opApply, if it exists
              */
             if (dim != 1)       // only one argument allowed with ranges
-                goto Lapply;
+                goto Lexpandtuple;
 
             sapply = search_function((AggregateDeclaration *)tab->toDsymbol(sc), idapply);
             if (sapply)
@@ -1726,7 +1737,7 @@ Lagain:
             }
             Dsymbol *shead = search_function(ad, idhead);
             if (!shead)
-                goto Lapply;
+                goto Lexpandtuple;
 
             /* Generate a temporary __r and initialize it with the aggregate.
              */
@@ -1777,6 +1788,47 @@ Lagain:
             break;
         }
 #endif
+        Lexpandtuple:
+        {   // expand tuple
+            Loc loc = aggr->loc;
+            Identifier *id = Lexer::uniqueId("__tup");
+            ExpInitializer *ei = new ExpInitializer(loc, aggr);
+            VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
+            vd->storage_class |= STCctfe | STCref | STCforeach;
+
+            Expression *de = new DeclarationExp(loc, vd);
+            Expression *ve = new VarExp(loc, vd);
+            CommaExp *ag = new CommaExp(loc, de, ve);
+            ve->type = aggr->type;
+
+            Expressions *exps = new Expressions();
+            exps->push(ve);
+            int pos = 0;
+        #if 1   // shallow expansion
+            while (1)
+            {
+                size_t dim = exps->dim;
+                pos = expandAliasThisTuples(exps, pos);
+                if (pos == -1)
+                    break;
+                pos += exps->dim - (dim - 1);
+            }
+        #else   // flatten expansion
+            while ((pos = expandAliasThisTuples(exps, pos)) != -1)
+                ;
+        #endif
+
+            if (exps->data[0] != ve)
+            {
+                ag->e2 = new TupleExp(loc, exps);
+
+                aggr = ag->semantic(sc);
+                tab = aggr->type->toBasetype();
+                goto Ltuple;
+            }
+            goto Lapply;    // fallback;
+        }
+
         case Tdelegate:
         Lapply:
         {

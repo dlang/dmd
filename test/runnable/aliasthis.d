@@ -234,6 +234,77 @@ void test8_2()
 
 /**********************************************/
 
+void test9_1a()
+{
+    auto t = tup(10, "str");
+
+    size_t i = 0;
+    foreach (e; t)
+    {
+        pragma(msg, "[] = ", typeof(e));
+        static if (is(typeof(e) == int   )) assert(i == 0 && e == 10);
+        static if (is(typeof(e) == string)) assert(i == 1 && e == "str");
+        ++i;
+    }
+}
+
+void test9_1b()
+{
+    auto t = tup(10, "str");
+
+    foreach (i, e; t)
+    {
+        pragma(msg, "[", cast(int)i, "] = ", typeof(e));
+        static if (is(typeof(e) == int   )) { static assert(i == 0); assert(e == 10); }
+        static if (is(typeof(e) == string)) { static assert(i == 1); assert(e == "str"); }
+    }
+}
+
+void test9_2a()
+{
+    auto t = tup(10, "str");
+
+    size_t i = 1;
+    foreach_reverse (e; t)
+    {
+        pragma(msg, "[] = ", typeof(e));
+        static if (is(typeof(e) == int   )) assert(i == 0 && e == 10);
+        static if (is(typeof(e) == string)) assert(i == 1 && e == "str");
+        --i;
+    }
+}
+
+void test9_2b()
+{
+    auto t = tup(10, "str");
+
+    foreach_reverse (i, e; t)
+    {
+        pragma(msg, "[", cast(int)i, "] = ", typeof(e));
+        static if (is(typeof(e) == int   )) { static assert(i == 0); assert(e == 10); }
+        static if (is(typeof(e) == string)) { static assert(i == 1); assert(e == "str"); }
+    }
+}
+
+/**********************************************/
+
+void test10()
+{
+    foreach (i, e; tup(tup(10, 3.14), tup("str", [1,2])))
+    {
+        static if (i == 0) assert(e == tup(10, 3.14));
+        static if (i == 1) assert(e == tup("str", [1,2]));
+    }
+
+    foreach (i, e; tup(10, tup(3.14, tup("str", tup([1,2])))))
+    {
+        static if (i == 0) assert(e == 10);
+        static if (i == 1) assert(e == tup(3.14, tup("str", tup([1,2]))));
+    }
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
@@ -248,6 +319,11 @@ int main()
     test7_3();
     test8_1();
     test8_2();
+    test9_1a();
+    test9_1b();
+    test9_2a();
+    test9_2b();
+    test10();
 
     printf("Success\n");
     return 0;
