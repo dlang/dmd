@@ -3265,6 +3265,21 @@ void test6264()
 
 /***************************************************/
 
+struct S6295(int N) {
+    int[N] x;
+    const nothrow pure @safe f() { return x.length; }
+}
+
+void test6295() {
+    auto bar(T: S6295!(N), int N)(T x) {
+        return x.f();
+    }
+    S6295!4 x;
+    assert(bar(x) == 4);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3428,6 +3443,7 @@ int main()
     test4031();
     test6230();
     test6264();
+    test6295();
 
     printf("Success\n");
     return 0;
