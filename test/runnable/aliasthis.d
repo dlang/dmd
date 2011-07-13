@@ -185,6 +185,33 @@ void test6() {
 }
 
 /**********************************************/
+// 2779
+
+void func2779a(int n, string s)
+{
+    assert(n == 10);
+    assert(s == "str");
+}
+
+int func2779b1(int n, string s){ return 1; }
+
+int func2779b2(int n, string s){ return 1; }
+int func2779b2(Tup!(int, string) t){ return 2; }
+
+int func2779b3(string s, int n){ return 1; }
+
+void test2779()
+{
+    auto t1 = Tup!(int, string)(10, "str");
+    func2779a(t1);   // t -> t.field
+
+    auto t2 = Tup!(int, string)(10, "str");
+    assert(func2779b1(t2) == 1);
+    assert(func2779b2(t2) == 2);
+    static assert(!__traits(compiles, func2779b3(t2)));
+}
+
+/**********************************************/
 
 int main()
 {
@@ -196,6 +223,7 @@ int main()
     test4773();
     test5188();
     test6();
+    test2779();
 
     printf("Success\n");
     return 0;
