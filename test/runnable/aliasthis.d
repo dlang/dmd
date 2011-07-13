@@ -305,6 +305,20 @@ void test10()
 
 /**********************************************/
 
+void tfunc11(A, B)(A a, B b)
+{
+    assert(a == 10);
+    assert(b == "str");
+}
+
+void test11()
+{
+    auto t = tup(10, "str");
+    tfunc11(t);
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
@@ -324,6 +338,7 @@ int main()
     test9_2a();
     test9_2b();
     test10();
+    test11();
 
     printf("Success\n");
     return 0;
