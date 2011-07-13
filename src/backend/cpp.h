@@ -120,6 +120,8 @@ symbol *cpp_lookformatch(symbol *sfunc , type *tthis , list_t arglist,
                 unsigned flags, symbol *sfunc2, type *tthis2, symbol *stagfriend = NULL);
 #endif
 
+#define M68HDL(e)       (e)
+
 struct OPTABLE
 {   unsigned char tokn;         /* token(TKxxxx)                */
     unsigned char oper;         /* corresponding operator(OPxxxx) */
