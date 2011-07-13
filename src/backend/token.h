@@ -320,7 +320,7 @@ extern  token_t tok;
 extern  int ininclude;
 CEXTERN char tok_ident[];       // identifier
 extern  unsigned char _chartype[];
-#if TX86 || TARGET_MAC
+#if TX86
 extern token_t *toklist;
 #endif
 
@@ -347,16 +347,11 @@ Srcpos token_linnum(void);
 enum_TK token_peek();
 
 enum_TK rtoken(int);
-#if TARGET_MAC
-#define stoken ptoken
-extern void tok_retrieve(void);
-#else
 #if SPP
 #define stoken() rtoken(1)
 #else
 enum_TK stokenx(void);
 inline enum_TK stoken() { return toklist ? stokenx() : rtoken(1); }
-#endif
 #endif
 
 void token_init(void);

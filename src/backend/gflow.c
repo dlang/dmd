@@ -139,7 +139,7 @@ STATIC void rdgenkill()
 
 #if TX86
         util_free(defnod);              /* free existing junk           */
-#elif !(TARGET_MAC)     /* might be from previous memory pool */
+#else                                   /* might be from previous memory pool */
         MEM_BEF_FREE(defnod);           /* free existing junk           */
 #endif
         defnod = NULL;
@@ -480,7 +480,7 @@ STATIC void aecpgenkill()
 
 #if TX86
         util_free(expnod);              /* dump any existing one        */
-#elif !(TARGET_MAC)     /* might be from previous memory pool */
+#else                                   /* might be from previous memory pool */
         MEM_BEF_FREE(expnod);           /* dump any existing one        */
 #endif
         expnod = NULL;
@@ -508,9 +508,7 @@ STATIC void aecpgenkill()
                 ? (block **) util_calloc(sizeof(block *),exptop) : NULL;
 #else
         expnod = (elem **) MEM_BEF_CALLOC(sizeof(elem *) * exptop);
-#if !(TARGET_MAC)       /* might be from previous memory pool */
         MEM_BEF_FREE(expblk);
-#endif
         expblk = (flowxx == VBE)
                 ? (block **) MEM_BEF_CALLOC(sizeof(block *) * exptop) : NULL;
 #endif
@@ -838,11 +836,6 @@ void main()
                     case OPvptrfptr:
                     case OPcvptrfptr:
                         vec_setbit(i,vptrkill);
-#if TARGET_MAC          /* implied 'starred' ref */
-                        vec_setbit(i,defkill);
-                        vec_setbit(i,starkill);
-                        break;
-#endif
                         goto Lunary;
 
                     default:

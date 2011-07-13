@@ -519,11 +519,6 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 
         if (d->E2->Eoper == OPconst || d->E2->Eoper == OPrelconst)
         {
-#if TARGET_68K
-        if (d->E2->Eoper == OPrelconst)
-            if(tyfunc(d->E2->Esym->ty()))
-                goto noprop;            /* ruins relocation information */
-#endif
             if (foundelem)              /* already found one            */
             {                           /* then they must be the same   */
                 if (!el_match(foundelem,d->E2))
