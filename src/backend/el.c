@@ -2947,19 +2947,7 @@ void elem_print(elem *e)
   elem_debug(e);
   if (configv.addlinenumbers)
   {
-#if TX86
-#if MARS
-        dbg_printf("fil=%p lin=%u ",e->Esrcpos.Sfilename,e->Esrcpos.Slinnum);
-#elif SCPP
-        dbg_printf("fil=%p lin=%u ",e->Esrcpos.Sfilptr,e->Esrcpos.Slinnum);
-#endif
-#else
-        dbg_printf("fil=%d lin=%u ",((struct ELEMsrcpos *)e)->Esrcpos.Sfilnum,
-        ((struct ELEMsrcpos *)e)->Esrcpos.Slinnum);
-#endif
-#if SOURCE_OFFSETS
-        dbg_printf("off %d ",((struct ELEMsrcpos *)e)->Esrcpos.Sfiloff);
-#endif
+        e->Esrcpos.print("elem_print");
   }
   if (!PARSER)
   {     dbg_printf("cnt=%d ",e->Ecount);
