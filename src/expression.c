@@ -8484,6 +8484,7 @@ Expression *SliceExp::semantic(Scope *sc)
     if (type)
         return this;
 
+Lagain:
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
 
@@ -8529,6 +8530,11 @@ Expression *SliceExp::semantic(Scope *sc)
             }
             e = e->semantic(sc);
             return e;
+        }
+        if (ad->aliasthis)
+        {
+            e1 = new DotIdExp(e1->loc, e1, ad->aliasthis->ident);
+            goto Lagain;
         }
         goto Lerror;
     }

@@ -333,6 +333,22 @@ void test12()
 
 /**********************************************/
 
+void test13()
+{
+    auto t = Tup!(int, double, string, int[])(10, 3.14, "str", [1,2]);
+    auto f1 = t[];
+    assert(f1[0] == 10);
+    assert(f1[1] == 3.14);
+    assert(f1[2] == "str");
+    assert(f1[3] == [1,2]);
+
+    auto f2 = t[1..3];
+    assert(f2[0] == 3.14);
+    assert(f2[1] == "str");
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
@@ -354,6 +370,7 @@ int main()
     test10();
     test11();
     test12();
+    test13();
 
     printf("Success\n");
     return 0;
