@@ -338,11 +338,6 @@ typedef struct Pstate
 #endif
     block *STbtry;              // current try block
     block *STgotolist;          // threaded goto scoping list
-#if MPW_OBJ && TARGET_68K
-    short STpush_value;
-    short STpop_value;
-    char  STdo_push;
-#endif
 #if !TX86
     char STdo_pop;
     char STprogressShown;       // true if func_body() has already shown progress info
@@ -505,11 +500,6 @@ typedef struct block
 #if NTEXCEPTIONS
         #define BFLehcode     0x10      // set when we need to load exception code
         #define BFLunwind     0x1000    // do local_unwind following block
-#endif
-#if TARGET_POWERPC
-        #define BFLstructret  0x10      /* Set if a struct return is changed to
-                                           block type BCret.  This is done to avoid
-                                           error messages */
 #endif
         #define BFLnomerg      0x20     // do not merge with other blocks
 #if TX86
@@ -1129,10 +1119,6 @@ typedef struct STRUCT
 #define list_setsymbol(l,s)     list_ptr(l) = (s)
 #define list_Classsym(l)        ((Classsym *) list_ptr(l))
 
-#if TARGET_POWERPC
-#pragma SC align 4
-#endif
-
 struct Symbol
 {
 #ifdef DEBUG
@@ -1336,9 +1322,6 @@ struct Symbol
     vec_t       Slvreg;         // when symbol is in register
     targ_size_t Ssize;          // tyfunc: size of function
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
-#if TARGET_MAC
-#define Smemoff Soffset
-#endif
 
     // CPP || OPTIMIZER
     SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
@@ -1607,21 +1590,16 @@ typedef struct Filename
     unsigned idx;                       // # used in array
 } Filename;
 
-//
 // NOTE: In order to save the full settings of all of the options,
 // the following will need to be saved:
 //
 // config
-// PCrel_option
 // tysize[TYldouble]
 // war_to_msg_enable[]  - Array of warnings that are enabled/disabled 0 = enabled, 1 = disabled
 
 struct SAVED_OPTIONS
 {
         struct Config config;
-#if TARGET_68K
-        short PCrel_option;
-#endif
         mftype mfoptim;
         signed char tysizeTYldouble;
         unsigned char war_to_msg_enable[40];    // Assumes that the max warning number is 40

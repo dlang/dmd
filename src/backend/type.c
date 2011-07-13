@@ -21,12 +21,9 @@
 #include "type.h"
 #include "el.h"
 #include "parser.h"
-#if TARGET_MAC
-#include "TG.h"
-#else
+
 #undef MEM_PH_MALLOC
 #define MEM_PH_MALLOC mem_fmalloc
-#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -57,10 +54,6 @@ targ_size_t type_size(type *t)
 
     type_debug(t);
     tyb = tybasic(t->Tty);
-#if TARGET_MAC
-    if (!ANSI && tyb == TYenum)
-        tyb = tybasic(t->Tnext->Tty);
-#endif
 #ifdef DEBUG
     if (tyb >= TYMAX)
         /*type_print(t),*/
@@ -75,9 +68,6 @@ targ_size_t type_size(type *t)
             // in case program plays games with function pointers
             case TYffunc:
             case TYfpfunc:
-#if TARGET_MAC
-            case TYpsfunc:
-#endif
 #if TX86
             case TYnfunc:       /* in case program plays games with function pointers */
             case TYhfunc:
@@ -465,16 +455,7 @@ void type_init()
     tsildouble  = type_allocbasic(TYildouble);
     tscldouble  = type_allocbasic(TYcldouble);
 #else
-#if TARGET_POWERPC
-// for powerPC the size of  long double is user determined
-    if (config.flags & CFGldblisdbl) {
-        tsldouble = type_allocbasic(TYdouble);  /* ldouble is same as double per user's request */
-    } else {
-        tsldouble = type_allocbasic(TYldouble);
-    }
-#else
     tsldouble = type_allocbasic(TYldouble);
-#endif
     tscomp = type_allocbasic(TYcomp);
     chartype = tschar;                          /* default is signed chars */
 #endif
@@ -543,7 +524,7 @@ void type_init()
     type_num = 0;
     type_max = 0;
 #endif /* DEBUG */
-#endif /* TARGET_MACHINE */
+#endif /* TX86 */
 }
 
 /**********************************
@@ -947,12 +928,7 @@ void type_print(type *t)
   {     case TYstruct:
         case TYmemptr:
             dbg_printf(" Ttag=%p,'%s'",t->Ttag,t->Ttag->Sident);
-#if TARGET_MAC
-            dbg_printf(" Sfldlst=x%08lx Sflags=x%x",
-                            t->Ttag->Sstruct->Sfldlst,t->Ttag->Sstruct->Sflags);
-#else
             //dbg_printf(" Sfldlst=%p",t->Ttag->Sstruct->Sfldlst);
-#endif
             break;
         case TYarray:
             dbg_printf(" Tdim=%ld",t->Tdim);
