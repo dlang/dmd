@@ -328,6 +328,67 @@ void expandTuples(Expressions *exps)
     }
 }
 
+/****************************************
+ * Expand alias this tuples.
+ */
+
+int expandAliasThisTuples(Expressions *exps, int starti)
+{
+    if (!exps || exps->dim == 0)
+        return -1;
+
+    for (size_t u = starti; u < exps->dim; u++)
+    {
+        Expression *exp = (Expression *)exps->data[u];
+
+        Dsymbol *s = NULL;
+        if (exp->type)
+        {
+            if (exp->type->ty == Tstruct)
+                s = ((TypeStruct *)exp->type)->sym->aliasthis;
+            else if (exp->type->ty == Tclass)
+                s = ((TypeClass *)exp->type)->sym->aliasthis;
+        }
+        if (s && s->isVarDeclaration())
+        {
+            TupleDeclaration *td = s->isVarDeclaration()->toAlias()->isTupleDeclaration();
+            if (td && td->isexp)
+            {
+                exps->remove(u);
+                for (size_t i = 0; i<td->objects->dim; ++i)
+                {
+                    Expression *e = isExpression((Object *)td->objects->data[i]);
+                    assert(e);
+                    assert(e->op == TOKdsymbol);
+                    DsymbolExp *se = (DsymbolExp *)e;
+                    Declaration *d = se->s->isDeclaration();
+                    assert(d);
+                    e = new DotVarExp(exp->loc, exp, d);
+                    assert(d->type);
+                    e->type = d->type;
+                    exps->insert(u + i, e);
+                }
+        #if 0
+                printf("expansion ->\n");
+                for (size_t i = 0; i<exps->dim; ++i)
+                {
+                    Object *o = (Object *)exps->data[i];
+                    Expression *e = isExpression(o);
+                    Dsymbol *s = isDsymbol(o);
+                    Type *t = isType(o);
+                    if (e) printf("\texps[%d] e = %s %s\n", i, Token::tochars[e->op], e->toChars());
+                    if (s) printf("\texps[%d] s = %s %s\n", i, s->kind(), s->toChars());
+                    if (t) printf("\texps[%d] t = %d %s\n", i, t->ty, t->toChars());
+                }
+        #endif
+                return u;
+            }
+        }
+    }
+
+    return -1;
+}
+
 Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
 #if DMDV1
