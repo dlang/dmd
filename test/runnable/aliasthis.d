@@ -319,6 +319,20 @@ void test11()
 
 /**********************************************/
 
+void test12()
+{
+    auto t1 = Tup!(Tup!(int, double), Tup!(string, int[]))(tup(10, 3.14), tup("str", [1,2]));
+    auto t2 = Tup!(int, double, string, int[])(t1);
+    // expand on struct literal syntax
+
+    assert(t2[0] == 10);
+    assert(t2[1] == 3.14);
+    assert(t2[2] == "str");
+    assert(t2[3] == [1,2]);
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
@@ -339,6 +353,7 @@ int main()
     test9_2b();
     test10();
     test11();
+    test12();
 
     printf("Success\n");
     return 0;
