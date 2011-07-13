@@ -2866,8 +2866,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault && !isFinal)
     {   hasNoDefault = 1;
 
-        if (global.params.deprecation)
-           deprecation("non-final switch statement without a default is deprecated");
+        deprecation("non-final switch statement without a default is deprecated");
 
         // Generate runtime error if the default is hit
         Statements *a = new Statements();

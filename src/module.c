@@ -128,8 +128,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         if (srcfilename->equalsExt("html") ||
             srcfilename->equalsExt("htm")  ||
             srcfilename->equalsExt("xhtml"))
-        {   if (global.params.deprecation)
-                deprecation("html source files is deprecated %s", srcfilename->toChars());
+        {
+            deprecation("html source files is deprecated %s", srcfilename->toChars());
             isHtml = 1;
         }
         else

@@ -218,15 +218,19 @@ void vwarning(Loc loc, const char *format, va_list ap)
 
 void vdeprecation(Loc loc, const char *format, va_list ap)
 {
-    if (global.params.deprecation > 1)
+    char oldw;
+    switch (global.params.deprecation)
     {
-        char oldw = global.params.warnings;
+    case 2:
+        oldw = global.params.warnings;
         global.params.warnings = 2; // activate informational warnings temporarly
         vwarning(loc, format, ap);
         global.params.warnings = oldw;
-    }
-    else
+        break;
+    case 1:
         verror(loc, format, ap);
+        break;
+    }
 }
 
 /***************************************

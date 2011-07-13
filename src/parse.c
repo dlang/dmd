@@ -668,8 +668,7 @@ StorageClass Parser::parsePostfix()
         {
             case TOKconst:              stc |= STCconst;                break;
             case TOKinvariant:
-                if (global.params.deprecation)
-                    deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
             case TOKimmutable:          stc |= STCimmutable;            break;
             case TOKshared:             stc |= STCshared;               break;
             case TOKwild:               stc |= STCwild;                 break;
@@ -2337,8 +2336,7 @@ Type *Parser::parseBasicType()
             break;
 
         case TOKinvariant:
-            if (global.params.deprecation)
-                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+            deprecation("use of 'invariant' rather than 'immutable' is deprecated");
         case TOKimmutable:
             // invariant(type)
             nextToken();
@@ -2503,10 +2501,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                  * although the D style would be:
                  *  int[]*[3] ident
                  */
-                if (global.params.deprecation)
-                {
-                    deprecation("C-style function pointer and pointer to array syntax is deprecated. Use 'function' to declare function pointers");
-                }
+                deprecation("C-style function pointer and pointer to array syntax is deprecated. Use 'function' to declare function pointers");
                 nextToken();
                 ts = parseDeclarator(t, pident);
                 check(TOKrparen);
@@ -3792,8 +3787,7 @@ Statement *Parser::parseStatement(int flags)
                     arg = new Parameter(0, NULL, token.ident, NULL);
                     nextToken();
                     nextToken();
-                    if (1 || global.params.deprecation)
-                        deprecation("if (v; e) is deprecated, use if (auto v = e)");
+                    error("if (v; e) is no longer legal, use if (auto v = e)");
                 }
             }
 
@@ -4159,8 +4153,7 @@ Statement *Parser::parseStatement(int flags)
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
 #if DMDV2
-            if (global.params.deprecation)
-                deprecation("volatile statements deprecated; used synchronized statements instead");
+            deprecation("volatile statements deprecated; used synchronized statements instead");
 #endif
             s = new VolatileStatement(loc, s);
             break;

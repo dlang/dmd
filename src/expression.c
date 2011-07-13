@@ -5325,8 +5325,7 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
 
             case TOKinvariant:
-                if (global.params.deprecation)
-                    deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
             case TOKimmutable:
                 if (!targ->isImmutable())
                     goto Lno;
@@ -8161,9 +8160,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
-        {   if (global.params.deprecation)
-                deprecation("delete aa[key] deprecated, use aa.remove(key)");
-        }
+            deprecation("delete aa[key] deprecated, use aa.remove(key)");
     }
 
     return this;
@@ -9314,16 +9311,9 @@ Expression *AssignExp::semantic(Scope *sc)
             {
                 // Rewrite (a[i] = value) to (a.opIndex(i, value))
                 if (search_function(ad, id))
-                {   Expression *e = new DotIdExp(loc, ae->e1, id);
-
-                    if (global.params.deprecation)
-                    {   deprecation("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
-                        return new ErrorExp();
-                    }
-
-                    e = new CallExp(loc, e, (Expression *)ae->arguments->data[0], e2);
-                    e = e->semantic(sc);
-                    return e;
+                {
+                    deprecation("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
+                    return new ErrorExp();
                 }
             }
 #endif
