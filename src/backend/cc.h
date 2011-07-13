@@ -315,11 +315,6 @@ typedef struct Pstate
                                 // functions to parse
     Classsym *STstag;           // returned by struct_searchmember() and with_search()
     SYMIDX STmarksi;            // to determine if temporaries are created
-#if !TX86
-    int STnest;                 // nesting of ext_def()
-    symlist_t STclasslist;      // list of classes that have inline functions
-                                // to parse
-#endif
     char STnoparse;             // add to classlist instead of parsing
     char STdeferparse;          // defer member func parse
     enum SC STgclass;           // default function storage class
@@ -504,16 +499,15 @@ typedef struct block
         #define BFLunwind     0x1000    // do local_unwind following block
 #endif
         #define BFLnomerg      0x20     // do not merge with other blocks
-#if TX86
+#if !TX86
+        #define BFLlooprt      0x40     // set if looprotate() changes it's Bnext
+#endif
         #define BFLprolog      0x80     // generate function prolog
         #define BFLepilog      0x100    // generate function epilog
         #define BFLrefparam    0x200    // referenced parameter
         #define BFLreflocal    0x400    // referenced local
         #define BFLoutsideprolog 0x800  // outside function prolog/epilog
         #define BFLlabel        0x2000  // block preceded by label
-#else
-        #define BFLlooprt      0x40     // set if looprotate() changes it's Bnext
-#endif
         #define BFLvolatile     0x4000  // block is volatile
     code        *Bcode;         // code generated for this block
 
@@ -1580,33 +1574,6 @@ struct EEcontext
 };
 
 extern EEcontext eecontext;
-#endif
-
-#if !TX86
-////////// Filenames
-
-typedef struct Filename
-{
-    char **arr;                         // array of filenames
-    unsigned dim;                       // dimension of array
-    unsigned idx;                       // # used in array
-} Filename;
-
-// NOTE: In order to save the full settings of all of the options,
-// the following will need to be saved:
-//
-// config
-// tysize[TYldouble]
-// war_to_msg_enable[]  - Array of warnings that are enabled/disabled 0 = enabled, 1 = disabled
-
-struct SAVED_OPTIONS
-{
-        struct Config config;
-        mftype mfoptim;
-        signed char tysizeTYldouble;
-        unsigned char war_to_msg_enable[40];    // Assumes that the max warning number is 40
-        struct SAVED_OPTIONS *psoNext;
-};
 #endif
 
 #include "rtlsym.h"
