@@ -52,7 +52,6 @@ STATIC elem * assignparams(elem **pe,int *psi,elem **pe2);
 STATIC void emptyloops();
 int el_anyframeptr(elem *e);
 
-#if TX86
 unsigned numblks;       // number of basic blocks in current function
 block *startblock;      /* beginning block of function                  */
                         /* (can have no predecessors)                   */
@@ -62,8 +61,6 @@ unsigned dfotop;        /* # of items in dfo[]                          */
 
 block *curblock;        /* current block being read in                  */
 block *block_last;      // last block read in
-
-#endif
 
 static block * block_freelist;
 
@@ -327,11 +324,7 @@ void block_optimizer_free(block *b)
     vec_free(b->Bgen2);
     vec_free(b->Bkill2);
 
-#if TX86
     memset(&b->_BLU,0,sizeof(b->_BLU));
-#else
-    memset(&b->_BLU.BLCG,0,sizeof(b->_BLU.BLCG));
-#endif
 }
 
 /****************************

@@ -1493,5 +1493,22 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
     return s;
 }
 
+void Srcpos::print(const char *func)
+{
+    printf("%s(", func);
+#if MARS
+    printf("Sfilename = %s", Sfilename ? Sfilename : "null");
+#else
+    Sfile *sf = Sfilptr ? *Sfilptr : NULL;
+    printf("Sfilptr = %p (filename = %s)", sf, sf ? sf->SFname : "null");
+#endif
+    printf(", Slinnum = %u", Slinnum);
+#if SOURCE_OFFSETS
+    printf(", Sfiloff = %d", Sfiloff);
+#endif
+    printf(")\n");
+}
+
+
 #endif /* !SPP */
 

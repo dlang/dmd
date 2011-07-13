@@ -828,13 +828,8 @@ L1:
   else if (e2->Eoper == OPneg)
   {     e->E2 = el_selecte1(e2);
         e->Eoper = OPmin;
-#if TX86
         again = 1;
         return e;
-#else
-        return elmin(e);
-        //return optelem(e,TRUE);
-#endif
   }
   /* Replace (-v + e) with (e + -v)     */
   else if (e1->Eoper == OPneg && OTleaf(e1->E1->Eoper))
@@ -880,13 +875,8 @@ L1:
             }
 #endif
         }
-#if TX86
         again = 1;
         return e;
-#else
-        goto L1;
-        //return optelem(e,TRUE);
-#endif
   }
   /* Replace (e + e) with (e * 2)       */
   else if (el_match(e1,e2) && !el_sideeffect(e1) && !tyfloating(e->Ety))
@@ -894,13 +884,8 @@ L1:
         e->Eoper = OPmul;
         el_free(e2);
         e->E2 = el_long(e->Ety,2);
-#if TX86
         again = 1;
         return e;
-#else
-        return elmul(e);
-        //return optelem(e,TRUE);
-#endif
   }
   // Replace ((e11 + c) + e2) with ((e11 + e2) + c)
   if (e1->Eoper == OPadd && e1->E2->Eoper == OPconst &&
@@ -979,12 +964,8 @@ STATIC elem * elmul(elem *e)
                     e1->Eoper = OPmul;
                     e->E2 = el_bin(OPmul,tym,e1->E2,e2);
                     e1->E2 = el_copytree(e2);
-#if TX86
                     again = 1;
                     return e;
-#else
-                    return eladd(e);
-#endif
                 }
 
                 // ((e << c1) * c2) => e * ((1 << c1) * c2)
@@ -1069,30 +1050,10 @@ L1:
 
   /* Convert subtraction of long pointers to subtraction of integers    */
   if (tyfv(e2->Ety) && tyfv(e1->Ety))
-#if TX86
   {     e->E1 = el_una(OPlngsht,tym,e1);
         e->E2 = el_una(OPlngsht,tym,e2);
-#if TX86
         return optelem(e,TRUE);
-#else
-        goto L1;
-        //return optelem(e,TRUE);
-#endif
   }
-#else
-  {
-        e->E1->Ety = TYlong;
-        e->E2->Ety = TYlong;
-        e->Ety = TYlong;
-#if TX86
-        return optelem(e,TRUE);
-#else
-        goto L1;
-        //return optelem(e,TRUE);
-#endif
-  }
-#endif
-
 
   /* Replace (0 - e2) with (-e2)        */
   if (cnst(e1) && !boolres(e1))
@@ -1100,12 +1061,7 @@ L1:
         e->E1 = e2;
         e->E2 = NULL;
         e->Eoper = OPneg;
-#if TX86
         return optelem(e,TRUE);
-#else
-        return elneg(e);
-        //return optelem(e,TRUE);
-#endif
   }
 
   /* Replace (e - e) with (0)   */
@@ -1130,12 +1086,7 @@ L1:
         tmp = e1->E2;
         e1->E2 = e2->E1;
         e2->E1 = tmp;
-#if TX86
         return optelem(e,TRUE);
-#else
-        return eladd(e);
-        //return optelem(e,TRUE);
-#endif
   }
   }
 
@@ -1476,12 +1427,7 @@ STATIC elem * elnot(elem *e)
             e1->Ety = e->Ety;
             e1->E1 = e1->E2;            // b
             e1->E2 = NULL;
-#if TX86
             e = optelem(e,TRUE);
-#else
-            e = elcomma(e);
-            //e = optelem(e,TRUE);
-#endif
             break;
   }
   return e;
@@ -1758,9 +1704,7 @@ L2:
                 )
         {
             /* ((a = b),(a || c)) => ((a = b) || c)     */
-#if TX86
             e1->Ety = e2->E1->Ety;
-#endif
             e->E1 = e2->E1;
             e2->E1 = e1;
             e = el_selecte2(e);
@@ -2122,12 +2066,7 @@ STATIC elem * elandand(elem *e)
         else                            /* e1 && (x,0)  =>  e1 , (x,0)  */
         {   if (e2 == e->E2)
             {   e->Eoper = OPcomma;
-#if TX86
                 goto L3;
-#else
-                return elcomma(e);
-                //goto L3;
-#endif
             }
         }
   }
@@ -2269,14 +2208,8 @@ STATIC elem * elind(elem *e)
             e->Ety = tym;
             e->E2 = el_una(OPind,tym,e->E2);
             e->E2->ET = t;
-#if TX86
             again = 1;
             return e;
-#else
-            e = elcomma(e);
-            //e = optelem(e,TRUE);
-#endif
-            break;
   }
   return e;
 }
@@ -3082,26 +3015,16 @@ L1:
         e1->Ety = TYptrdiff;
         e2->Eoper = OPconst;
         e2->Ety = TYptrdiff;
-#if TX86
         return optelem(e,TRUE);
-#else
-        goto L1;
-        //return optelem(e,TRUE);
-#endif
   }
 
     // Convert comparison of long pointers to comparison of integers
     if ((op == OPlt || op == OPle || op == OPgt || op == OPge) &&
         tyfv(e2->Ety) && tyfv(e1->Ety))
     {
-#if TX86
         e->E1 = el_una(OPlngsht,e->Ety,e1);
         e->E2 = el_una(OPlngsht,e->Ety,e2);
         return optelem(e,TRUE);
-#else
-        e->E1->Ety = e->Ety;
-        e->E2->Ety = e->Ety;
-#endif
     }
 
     // Convert ((e & 1) == 1) => (e & 1)
@@ -3336,12 +3259,7 @@ STATIC elem * elbool(elem *e)
             i = boolres(e1) != 0;
             e->Eoper = OPcomma;
             e->E2 = el_int(e->Ety,i);
-#if TX86
             e = optelem(e,TRUE);
-#else
-            e = elcomma(e);
-            //e = optelem(e,TRUE);
-#endif
         }
     }
     return e;
@@ -3427,9 +3345,7 @@ STATIC elem * ellngsht(elem *e)
             /* 68000 - preclude using An                                */
             e1->EV.sp.Vsym->Sflags |= GTbyte;
         }
-#if TX86
         else
-#endif
             e1->Ety = ty;
         e = el_selecte1(e);
         break;

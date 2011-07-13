@@ -801,19 +801,12 @@ void objlinnum(Srcpos srcpos,targ_size_t offset)
     unsigned linnum = srcpos.Slinnum;
 
 #if 0
-#if MARS
-    printf("objlinnum(cseg=%d, filename=%s linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilename ? srcpos.Sfilename : "null",linnum,offset);
-#else
-    printf("objlinnum(cseg=%d, filptr=%p linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilptr ? *srcpos.Sfilptr : 0,linnum,offset);
-    if (srcpos.Sfilptr)
-    {
-        Sfile *sf = *srcpos.Sfilptr;
-        printf("filename = %s\n", sf ? sf->SFname : "null");
-    }
+#if MARS || SCPP
+    printf("objlinnum(cseg=%d, offset=0x%lx) ", cseg, offset);
 #endif
+    srcpos.print("");
 #endif
+
     char linos2 = config.exe == EX_OS2 && cseg >= 0;
 
 #if MARS

@@ -220,10 +220,10 @@ typedef struct Srcpos
     #define srcpos_sfile(p)     (**(p).Sfilptr)
     #define srcpos_name(p)      (srcpos_sfile(p).SFname)
 #endif
+#endif
 #if MARS
     const char *Sfilename;
     #define srcpos_name(p)      ((p).SFname)
-#endif
 #endif
 #if M_UNIX
     short Sfilnum;              // file number
@@ -231,6 +231,8 @@ typedef struct Srcpos
 #if SOURCE_OFFSETS
     unsigned long Sfiloff;      // byte offset
 #endif
+
+    void print(const char *func);
 } Srcpos;
 
 #ifndef TOKEN_H

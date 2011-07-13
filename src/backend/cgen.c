@@ -463,11 +463,7 @@ code *genlinnum(code *c,Srcpos srcpos)
 {   code cs;
 
 #if 0
-#if MARS
-    printf("genlinnum(Sfilename = %p, Slinnum = %u)\n", srcpos.Sfilename, srcpos.Slinnum);
-#else
-    printf("genlinnum(Sfilptr = %p, Slinnum = %u)\n", srcpos.Sfilptr, srcpos.Slinnum);
-#endif
+    srcpos.print("genlinnum");
 #endif
     cs.Iop = ESCAPE | ESClinnum;
     cs.Iflags = 0;
