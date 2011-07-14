@@ -140,10 +140,6 @@ static  bool addblk;                    /* if TRUE, then we added a block */
 /****************************
  */
 
-#if !(TARGET_MAC)
-/* These routines are not used for the Mac compiler build */
-
-
 void famlist::print()
 {
 #ifdef DEBUG
@@ -173,12 +169,9 @@ void Iv::print()
 #endif
 }
 
-#endif  /* !(TARGET_MAC) */
-
 /***********************
  * Write loop.
  */
-
 
 void loop::print()
 {
@@ -760,7 +753,6 @@ restart:
     addblk = FALSE;                     /* assume no blocks added        */
     for (l = startloop; l; l = l->Lnext)/* for each loop                 */
     {
-        T68000(file_progress();)
 #ifdef DEBUG
         //if (debugc) l->print();
 #endif
@@ -1028,10 +1020,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstrlen:
         case OPinp:
 #endif
-#if TARGET_MAC
-        case OPvptrfptr:
-        case OPcvptrfptr:
-#endif
                 markinvar(n->E1,rd);
                 break;
         case OPcond:
@@ -1084,25 +1072,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPu16_d:   case OPdbluns:
         case OPs8int:   case OPint8:
         case OPd_u32:   case OPu32_d:
-#if TARGET_68K
-        case OPacos:
-        case OPasin:
-        case OPatan:
-        case OPatanh:
-        case OPcos:
-        case OPcosh:
-        case OPexp:
-        case OPexp1:
-        case OPexp10:
-        case OPlog:
-        case OPlog10:
-        case OPlog2:
-        case OPsin:
-        case OPsincos:
-        case OPsinh:
-        case OPtan:
-        case OPtanh:
-#endif
 
 #if LONGLONG
         case OPlngllng: case OPu32_64:
@@ -1114,14 +1083,12 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPs64_128:
         case OPu64_128:
 #endif
-#if !(TARGET_POWERPC)
         case OPabs:
         case OPsqrt:
         case OPrndtol:
         case OPsin:
         case OPcos:
         case OPrint:
-#endif
 #if TX86
         case OPvptrfptr: /* BUG for MacHandles */
         case OPtofar16: case OPfromfar16: case OPoffset: case OPptrlptr:
@@ -1130,8 +1097,6 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPbsf:
         case OPbsr:
         case OPbswap:
-#else
-        case OPsfltdbl: case OPdblsflt:
 #endif
                 markinvar(n->E1,rd);
                 if (isLI(n->E1))        /* if child is LI               */
@@ -2082,18 +2047,8 @@ STATIC famlist * newfamlist(tym_t ty)
                 c.Vdouble = 1;
                 break;
             case TYldouble:
-#if TARGET_68K && __POWERPC
-                c.Vldouble = Xone();
-#else
                 c.Vldouble = 1;
-#endif
                 break;
-#if TARGET_68K && !__POWERPC
-            case TYcomp:
-                c.Vldouble = 1;
-                ty = TYldouble;
-                break;
-#endif
 #if _MSDOS || __OS2__ || _WIN32         // if no byte ordering problems
             case TYsptr:
             case TYcptr:
@@ -2808,39 +2763,6 @@ STATIC void intronvars(loop *l)
             if (funcprev(biv,fl))
                 continue;
 
-#if TARGET_POWERPC
- extern INT32 numbitsset(UINT32);
-
-            if (!fl->c1) {
-                fl->FLtemp = FLELIM;
-                continue;
-
-            }
-
-
-
-
-            if (cnst(fl->c1))
-            {
-                elem * ec1 = fl->c1;
-                if (tyfloating(tybasic(ec1->Ety)))
-                        goto create_temp;
-
-                {
-                targ_llong v = el_tolong(ec1);
-                if (numbitsset((UINT32) v) != 1)
-                    goto create_temp;
-
-                fl->FLtemp = FLELIM;
-
-                continue;
-                }
-            }
-
-create_temp:
-
-#endif
-
             ty = fl->FLty;
             T = el_alloctmp(ty);        /* allocate temporary T          */
             fl->FLtemp = T->EV.sp.Vsym;
@@ -2943,10 +2865,6 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     continue;           /* can't increase size of var   */
 #endif
                 flse1 = el_var(fls->FLtemp);
-#if TARGET_MAC
-                if (tysize(fl->FLty) > tysize(flse1->Ety))
-                    goto L1;            /* can't increase size of var   */
-#endif
                 flse1->Ety = fl->FLty;
                 goto L2;
         }
@@ -3187,11 +3105,7 @@ STATIC void elimbasivs(register loop *l)
                  */
                 if (!tyuns(ty) &&
                     (tyintegral(ty) && el_tolong(fl->c1) < 0 ||
-#if TARGET_68K && __POWERPC
-                     tyfloating(ty) && Xlt(el_toldouble(fl->c1),Xzero()) ))
-#else
                      tyfloating(ty) && el_toldouble(fl->c1) < 0.0))
-#endif
                         refEoper = swaprel(refEoper);
 
                 /* Replace (X relop e) with (X relop (short)e)
@@ -3580,13 +3494,8 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                         goto Lf2;
                 break;
             case TYldouble:
-#if TARGET_68K && __POWERPC
-                if (Xis1(t2->Vldouble) ||
-                    !(Xis1(t2->Vldouble)) && Xis0(f2->c2->EV.Vldouble) )
-#else
                 if (t2->Vldouble == 1.0 ||
                     t1->Vldouble != 1.0 && f2->c2->EV.Vldouble == 0)
-#endif
                         goto Lf2;
                 break;
             case TYllong:

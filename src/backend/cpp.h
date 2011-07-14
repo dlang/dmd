@@ -105,7 +105,6 @@ int cpp_ctor(Classsym *stag);
 int cpp_dtor(type *tclass);
 void cpp_fixdestructor(symbol *s_dtor);
 elem *cpp_structcopy(elem *e);
-elem *cpp_hdlptr(elem *e);
 void cpp_fixmain(void);
 int cpp_needInvariant(type *tclass);
 void cpp_fixinvariant(symbol *s_dtor);
@@ -121,12 +120,7 @@ symbol *cpp_lookformatch(symbol *sfunc , type *tthis , list_t arglist,
                 unsigned flags, symbol *sfunc2, type *tthis2, symbol *stagfriend = NULL);
 #endif
 
-#if TARGET_MAC
-elem *cpp_hdlptr(elem *e);
-#define M68HDL(e)       cpp_hdlptr(e)
-#else
 #define M68HDL(e)       (e)
-#endif
 
 struct OPTABLE
 {   unsigned char tokn;         /* token(TKxxxx)                */

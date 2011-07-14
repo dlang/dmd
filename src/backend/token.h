@@ -40,10 +40,6 @@
 #ifndef TOKEN_H
 #define TOKEN_H 1
 
-#if !TX86
-extern int skipping;    /* TRUE ==> skipping false part of #conditional */
-#endif
-
 #if !defined(TOKENS_ONLY) || TOKENS_ONLY
 // Keyword tokens. Needn't be ascii sorted
 typedef unsigned char enum_TK;
@@ -320,9 +316,7 @@ extern  token_t tok;
 extern  int ininclude;
 CEXTERN char tok_ident[];       // identifier
 extern  unsigned char _chartype[];
-#if TX86 || TARGET_MAC
 extern token_t *toklist;
-#endif
 
 void token_setdbcs(int);
 void token_setlocale(const char *);
@@ -330,11 +324,7 @@ token_t *token_copy(void);
 void token_free(token_t *tl);
 void token_hydrate(token_t **ptl);
 void token_dehydrate(token_t **ptl);
-#if TX86
-token_t *token_funcbody(int);
-#else
 token_t *token_funcbody(int bFlag);
-#endif
 token_t *token_defarg(void);
 void token_funcbody_print(token_t *t);
 void token_setlist(token_t *t);
@@ -347,16 +337,11 @@ Srcpos token_linnum(void);
 enum_TK token_peek();
 
 enum_TK rtoken(int);
-#if TARGET_MAC
-#define stoken ptoken
-extern void tok_retrieve(void);
-#else
 #if SPP
 #define stoken() rtoken(1)
 #else
 enum_TK stokenx(void);
 inline enum_TK stoken() { return toklist ? stokenx() : rtoken(1); }
-#endif
 #endif
 
 void token_init(void);

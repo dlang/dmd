@@ -1034,24 +1034,14 @@ void obj_term()
 
 void objlinnum(Srcpos srcpos, targ_size_t offset)
 {
-    unsigned linnum = srcpos.Slinnum;
-    if (linnum == 0)
+    if (srcpos.Slinnum == 0)
         return;
 
 #if 0
-#if MARS
-    printf("objlinnum(cseg=%d, filename=%s linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilename ? srcpos.Sfilename : "null",linnum,offset);
+#if MARS || SCPP
+    printf("objlinnum(cseg=%d, offset=x%lx) ", cseg, offset);
 #endif
-#if SCPP
-    printf("objlinnum(cseg=%d, filptr=%p linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilptr ? *srcpos.Sfilptr : 0,linnum,offset);
-    if (srcpos.Sfilptr)
-    {
-        Sfile *sf = *srcpos.Sfilptr;
-        printf("filename = %s\n", sf ? sf->SFname : "null");
-    }
-#endif
+    srcpos.print("");
 #endif
 
 #if MARS
@@ -1059,13 +1049,10 @@ void objlinnum(Srcpos srcpos, targ_size_t offset)
         return;
 #endif
 #if SCPP
-    Sfile *sf;
-    if (srcpos.Sfilptr)
-    {   sfile_debug(&srcpos_sfile(srcpos));
-        sf = *srcpos.Sfilptr;
-    }
-    else
+    if (!srcpos.Sfilptr)
         return;
+    sfile_debug(&srcpos_sfile(srcpos));
+    Sfile *sf = *srcpos.Sfilptr;
 #endif
 
     size_t i;
