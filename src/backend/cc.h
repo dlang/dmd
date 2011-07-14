@@ -171,17 +171,10 @@ enum LANG
 
 #define arraysize(array)        (sizeof(array) / sizeof(array[0]))
 
-#if TX86
-
 #define IDMAX   900 //467 //254 // identifier max (excluding terminating 0)
 #define IDOHD   (4+1+sizeof(int)*3)     // max amount of overhead to ID added by
 #define STRMAX  65000           // max length of string (determined by
                                 // max ph size)
-#else
-// USER_IDMAX is the max allowed for a user identifier
-// IDMAX in TGcc.h is the maximum mangled name allowed by the target linker
-#define USER_IDMAX 254
-#endif
 
 enum SC;
 struct Thunk;
@@ -1353,12 +1346,9 @@ struct Symbol
 #endif
     // Target Additions
     TARGET_structSYMBOL
-#if TX86
+
     char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
                                 // (the size is for static Symbols)
-#else
-    long Sident[];      // identifier string (dynamic array) as a str4
-#endif
 
     int needThis();     // !=0 if symbol needs a 'this' pointer
 };
