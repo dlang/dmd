@@ -157,6 +157,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
         if (ad->ctor)
             error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
                 ad->kind(), ad->toChars(), ad->toChars());
+        int nfields = ad->fields.dim;
+        if (((StructDeclaration *)ad)->isnested) nfields--;
         for (size_t i = 0; i < field.dim; i++)
         {
             Identifier *id = (Identifier *)field.data[i];
@@ -166,7 +168,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 
             if (id == NULL)
             {
-                if (fieldi >= ad->fields.dim)
+                if (fieldi >= nfields)
                 {   error(loc, "too many initializers for %s", ad->toChars());
                     errors = 1;
                     field.remove(i);
@@ -192,7 +194,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
                 // Find out which field index it is
                 for (fieldi = 0; 1; fieldi++)
                 {
-                    if (fieldi >= ad->fields.dim)
+                    if (fieldi >= nfields)
                     {
                         error(loc, "%s.%s is not a per-instance initializable field",
                             t->toChars(), s->toChars());
@@ -260,7 +262,9 @@ Expression *StructInitializer::toExpression()
     if (!sd)
         return NULL;
     Expressions *elements = new Expressions();
-    elements->setDim(ad->fields.dim);
+    int nfields = ad->fields.dim;
+    if (sd->isnested) nfields--;
+    elements->setDim(nfields);
     for (int i = 0; i < elements->dim; i++)
     {
         elements->data[i] = NULL;
@@ -281,7 +285,7 @@ Expression *StructInitializer::toExpression()
             // Find out which field index it is
             for (fieldi = 0; 1; fieldi++)
             {
-                if (fieldi >= ad->fields.dim)
+                if (fieldi >= nfields)
                 {
                     s->error("is not a per-instance initializable field");
                     goto Lno;
@@ -290,7 +294,7 @@ Expression *StructInitializer::toExpression()
                     break;
             }
         }
-        else if (fieldi >= ad->fields.dim)
+        else if (fieldi >= nfields)
         {   error(loc, "too many initializers for '%s'", ad->toChars());
             goto Lno;
         }
