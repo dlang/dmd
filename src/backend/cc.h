@@ -195,9 +195,7 @@ struct elem;
 typedef struct MACRO macro_t;
 typedef struct BLKLST blklst;
 typedef list_t symlist_t;       /* list of pointers to Symbols          */
-#if TX86
 typedef struct SYMTAB_S symtab_t;
-#endif
 struct code;
 
 extern Config config;
@@ -291,18 +289,22 @@ typedef struct Pstate
 #       define PFLinclude       0x8000  // read a .h file
 #       define PFLmfc           0x10000 // something will affect MFC compatibility
 #endif
-#if TX86
+#if !MARS
     int STinparamlist;          // if != 0, then parser is in
                                 // function parameter list
     int STingargs;              // in template argument list
+    list_t STincalias;          // list of include aliases
+    list_t STsysincalias;       // list of system include aliases
+#endif
+
+#if TX86
+    // should probably be inside #if HYDRATE, but unclear for the dmc source
     char SThflag;               // FLAG_XXXX: hydration flag
 #define FLAG_INPLACE    0       // in place hydration
 #define FLAG_HX         1       // HX file hydration
 #define FLAG_SYM        2       // .SYM file hydration
-
-    list_t STincalias;          // list of include aliases
-    list_t STsysincalias;       // list of system include aliases
 #endif
+
     Classsym *STclasssym;       // if in the scope of this class
     symlist_t STclasslist;      // list of classes that have deferred inline
                                 // functions to parse
@@ -316,23 +318,8 @@ typedef struct Pstate
                                 // never does get done later)
     int STnewtypeid;            // parsing new-type-id
     int STdefaultargumentexpression;    // parsing default argument expression
-#if !TX86
-    char STone_id;              // TRUE if only one declaration is allowed, used
-                                // for declarations appearing in for statements,
-                                // while, if, etc.  that are not allowed to declare multiple
-                                // identifiers
-    char STno_scope;            // The next lcur should not create it's own scope, the
-                                // scoping work has already been done for it
-                                // by an enclosing conditional.  This is to make the
-                                // conditional expression declarations for RTTI behave as specified
-#endif
     block *STbtry;              // current try block
     block *STgotolist;          // threaded goto scoping list
-#if !TX86
-    char STdo_pop;
-    char STprogressShown;       // true if func_body() has already shown progress info
-    char STno_ambig;            // true if lookups should not report ambiguous errors
-#endif
     long STtdbtimestamp;        // timestamp of tdb file
     Symbol *STlastfunc;         // last function symbol parsed by ext_def()
 
@@ -344,7 +331,6 @@ typedef struct Pstate
 
 extern Pstate pstate;
 
-#if TX86
 /****************************
  * Global variables.
  */
@@ -362,8 +348,6 @@ typedef struct Cstate
 } Cstate;
 
 extern Cstate cstate;
-
-#endif
 
 /* Bits for sytab[] that give characteristics of storage classes        */
 #define SCEXP   1       // valid inside expressions
@@ -425,9 +409,6 @@ typedef struct block
     list_t        Bsucc;        // linked list of pointers to successors
                                 //     of this block
     list_t        Bpred;        // and the predecessor list
-#if !TX86
-    block *Boldnext;            // Saves original pointer to next block in list
-#endif
     int Bindex;                 // into created object stack
     int Bendindex;              // index at end of block
     block *Btry;                // BCtry,BC_try: enclosing try block, if any
@@ -492,9 +473,6 @@ typedef struct block
         #define BFLunwind     0x1000    // do local_unwind following block
 #endif
         #define BFLnomerg      0x20     // do not merge with other blocks
-#if !TX86
-        #define BFLlooprt      0x40     // set if looprotate() changes it's Bnext
-#endif
         #define BFLprolog      0x80     // generate function prolog
         #define BFLepilog      0x100    // generate function epilog
         #define BFLrefparam    0x200    // referenced parameter
@@ -589,9 +567,6 @@ typedef struct block
 } block;
 
 #define list_block(l)   ((block *) list_ptr(l))
-#if !TX86
-#define block_calloc()  ((block *) MEM_PH_CALLOC(sizeof(block)))
-#endif
 
 /** Basic block control flow operators. **/
 
