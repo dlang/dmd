@@ -5,11 +5,13 @@
 {
 "name" : "X",
 "kind" : "struct",
+"protection" : "public",
 "line" : 5}
 ,
 {
 "name" : "Y",
 "kind" : "enum",
+"protection" : "public",
 "line" : 7}
 ]
 }
