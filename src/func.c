@@ -2594,14 +2594,14 @@ AggregateDeclaration *FuncDeclaration::isMember2()
 //printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
         ad = s->isMember();
         if (ad)
-{
+        {
             break;
-}
+        }
         if (!s->parent ||
             (!s->parent->isTemplateInstance()))
-{
+        {
             break;
-}
+        }
     }
     //printf("-FuncDeclaration::isMember2() %p\n", ad);
     return ad;
