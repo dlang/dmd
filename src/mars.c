@@ -92,7 +92,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v1.069";
+    version = "v1.070";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
