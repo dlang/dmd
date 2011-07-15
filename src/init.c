@@ -143,19 +143,23 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
 
 Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 {
-    TypeStruct *ts;
     int errors = 0;
 
     //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
     vars.setDim(field.dim);
     t = t->toBasetype();
     if (t->ty == Tstruct)
-    {   unsigned i;
+    {
         unsigned fieldi = 0;
 
-        ts = (TypeStruct *)t;
+        TypeStruct *ts = (TypeStruct *)t;
         ad = ts->sym;
-        for (i = 0; i < field.dim; i++)
+        int nfields = ad->fields.dim;
+#if DMDV2
+        if (((StructDeclaration *)ad)->isnested)
+            nfields--;          // don't count pointer to outer
+#endif
+        for (size_t i = 0; i < field.dim; i++)
         {
             Identifier *id = (Identifier *)field.data[i];
             Initializer *val = (Initializer *)value.data[i];
@@ -164,7 +168,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 
             if (id == NULL)
             {
-                if (fieldi >= ad->fields.dim)
+                if (fieldi >= nfields)
                 {   error(loc, "too many initializers for %s", ad->toChars());
                     errors = 1;
                     field.remove(i);
@@ -190,9 +194,10 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
                 // Find out which field index it is
                 for (fieldi = 0; 1; fieldi++)
                 {
-                    if (fieldi >= ad->fields.dim)
+                    if (fieldi >= nfields)
                     {
-                        s->error("is not a per-instance initializable field");
+                        error(loc, "%s.%s is not a per-instance initializable field",
+                            t->toChars(), s->toChars());
                         errors = 1;
                         break;
                     }
@@ -257,7 +262,12 @@ Expression *StructInitializer::toExpression()
     if (!sd)
         return NULL;
     Expressions *elements = new Expressions();
-    elements->setDim(ad->fields.dim);
+    int nfields = ad->fields.dim;
+#if DMDV2
+    if (sd->isnested)
+       nfields--;
+#endif
+    elements->setDim(nfields);
     for (int i = 0; i < elements->dim; i++)
     {
         elements->data[i] = NULL;
@@ -278,7 +288,7 @@ Expression *StructInitializer::toExpression()
             // Find out which field index it is
             for (fieldi = 0; 1; fieldi++)
             {
-                if (fieldi >= ad->fields.dim)
+                if (fieldi >= nfields)
                 {
                     s->error("is not a per-instance initializable field");
                     goto Lno;
@@ -287,7 +297,7 @@ Expression *StructInitializer::toExpression()
                     break;
             }
         }
-        else if (fieldi >= ad->fields.dim)
+        else if (fieldi >= nfields)
         {   error(loc, "too many initializers for '%s'", ad->toChars());
             goto Lno;
         }
@@ -576,15 +586,14 @@ Lno:
  */
 
 Initializer *ArrayInitializer::toAssocArrayInitializer()
-{   Expressions *keys;
-    Expressions *values;
+{
     Expression *e;
 
     //printf("ArrayInitializer::toAssocArrayInitializer()\n");
     //static int i; if (++i == 2) halt();
-    keys = new Expressions();
+    Expressions *keys = new Expressions();
     keys->setDim(value.dim);
-    values = new Expressions();
+    Expressions *values = new Expressions();
     values->setDim(value.dim);
 
     for (size_t i = 0; i < value.dim; i++)
