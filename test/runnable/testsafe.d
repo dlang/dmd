@@ -328,5 +328,42 @@ void varargs()
     fun("a");
 }
 
+extern(C++) interface E {}
+extern(C++) interface F : E {}
+
+@safe
+void classcast()
+{
+    class A {};
+    class B : A {};
+
+    A a;
+    B b;
+
+    static assert( __traits(compiles, cast(A)a));
+    static assert( __traits(compiles, cast(B)a));
+    static assert( __traits(compiles, cast(A)b));
+    static assert( __traits(compiles, cast(B)b));
+
+    interface C {};
+    interface D : C {};
+
+    C c;
+    D d;
+
+    static assert( __traits(compiles, cast(C)c));
+    static assert( __traits(compiles, cast(D)c));
+    static assert( __traits(compiles, cast(C)d));
+    static assert( __traits(compiles, cast(D)d));
+
+    E e;
+    F f;
+
+    static assert( __traits(compiles, cast(E)e));
+    static assert(!__traits(compiles, cast(F)e));
+    static assert( __traits(compiles, cast(E)f));
+    static assert( __traits(compiles, cast(F)f));
+}
+
 void main() { } 
 
