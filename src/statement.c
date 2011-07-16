@@ -1409,6 +1409,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
     if (tab->ty == Ttuple)      // don't generate new scope for tuple loops
     {
+Ltuple:
         if (dim < 1 || dim > 2)
         {
             error("only one (value) or two (key,value) arguments for tuple foreach");
@@ -1420,6 +1421,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
         //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
         size_t n;
         TupleExp *te = NULL;
+        Expression *prelude = NULL;
+        while (aggr->op == TOKcomma)
+        {
+            CommaExp *ce = (CommaExp *)aggr;
+            prelude = Expression::combine(prelude, ce->e1);
+            aggr = ce->e2;
+        }
         if (aggr->op == TOKtuple)       // expression tuple
         {   te = (TupleExp *)aggr;
             n = te->exps->dim;
@@ -1497,6 +1505,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
 
         s = new UnrolledLoopStatement(loc, statements);
+        if (prelude)
+            s = new CompoundStatement(loc,
+                    new ExpStatement(prelude->loc, prelude), s);
         s = s->semantic(sc);
         return s;
     }
@@ -1695,9 +1706,6 @@ Lagain:
 #if DMDV2
             /* Prefer using opApply, if it exists
              */
-            if (dim != 1)       // only one argument allowed with ranges
-                goto Lapply;
-
             sapply = search_function((AggregateDeclaration *)tab->toDsymbol(sc), idapply);
             if (sapply)
                 goto Lapply;
@@ -1726,7 +1734,7 @@ Lagain:
             }
             Dsymbol *shead = search_function(ad, idhead);
             if (!shead)
-                goto Lapply;
+                goto Lexpandtuple;
 
             /* Generate a temporary __r and initialize it with the aggregate.
              */
@@ -1736,10 +1744,7 @@ Lagain:
             if (!rinit)                 // if application of [] failed
                 rinit = aggr;
             VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, rinit));
-//          r->semantic(sc);
-//printf("r: %s, init: %s\n", r->toChars(), r->init->toChars());
             Statement *init = new ExpStatement(loc, r);
-//printf("init: %s\n", init->toChars());
 
             // !__r.empty
             Expression *e = new VarExp(loc, r);
@@ -1755,16 +1760,70 @@ Lagain:
              */
             e = new VarExp(loc, r);
             Expression *einit = new DotIdExp(loc, e, idhead);
-//          einit = einit->semantic(sc);
-            Parameter *arg = (Parameter *)arguments->data[0];
-            VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
-            ve->storage_class |= STCforeach;
-            ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+            Statement *makeargs;
+            if (dim == 1)
+            {
+                Parameter *arg = (Parameter *)arguments->data[0];
+                VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
+                ve->storage_class |= STCforeach;
+                ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
 
-            DeclarationExp *de = new DeclarationExp(loc, ve);
+                DeclarationExp *de = new DeclarationExp(loc, ve);
+                makeargs = new ExpStatement(loc, de);
+            }
+            else
+            {
+                Identifier *id = Lexer::uniqueId("__front");
+                ExpInitializer *ei = new ExpInitializer(loc, einit);
+                VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
+                vd->storage_class |= STCctfe | STCref | STCforeach;
+
+                Expression *de = new DeclarationExp(loc, vd);
+                makeargs = new ExpStatement(loc, de);
+
+                Expression *ve = new VarExp(loc, vd);
+                ve->type = shead->isDeclaration()->type;
+                if (ve->type->toBasetype()->ty == Tfunction)
+                    ve->type = ve->type->toBasetype()->nextOf();
+                if (!ve->type || ve->type->ty == Terror)
+                    goto Lrangeerr;
+
+                Expressions *exps = new Expressions();
+                exps->push(ve);
+                int pos = 0;
+                while (exps->dim < dim)
+                {
+                    pos = expandAliasThisTuples(exps, pos);
+                    if (pos == -1)
+                        break;
+                }
+                if (exps->dim > dim)
+                    goto Lrangeerr;
+
+                for (size_t i = 0; i < dim; i++)
+                {
+                    Parameter *arg = (Parameter *)arguments->data[i];
+                    Expression *exp = (Expression *)exps->data[i];
+                #if 0
+                    printf("[%d] arg = %s %s, exp = %s %s\n", i,
+                            arg->type ? arg->type->toChars() : "?", arg->ident->toChars(),
+                            exp->type->toChars(), exp->toChars());
+                #endif
+                    if (arg->type && !exp->implicitConvTo(arg->type))
+                        goto Lrangeerr;
+                    if (!arg->type)
+                        arg->type = exp->type;
+
+                    VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, exp));
+                    var->storage_class |= STCctfe | STCref | STCforeach;
+                    DeclarationExp *de = new DeclarationExp(loc, var);
+                    makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, de));
+                }
+
+            }
 
             Statement *body = new CompoundStatement(loc,
-                new ExpStatement(loc, de), this->body);
+                makeargs, this->body);
 
             s = new ForStatement(loc, init, condition, increment, body);
 #if 0
@@ -1775,8 +1834,53 @@ Lagain:
 #endif
             s = s->semantic(sc);
             break;
+
+        Lrangeerr:
+            error("cannot infer argument types");
+            break;
         }
 #endif
+        Lexpandtuple:
+        {   // expand tuple
+            Loc loc = aggr->loc;
+            Identifier *id = Lexer::uniqueId("__tup");
+            ExpInitializer *ei = new ExpInitializer(loc, aggr);
+            VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
+            vd->storage_class |= STCctfe | STCref | STCforeach;
+
+            Expression *de = new DeclarationExp(loc, vd);
+            Expression *ve = new VarExp(loc, vd);
+            CommaExp *ag = new CommaExp(loc, de, ve);
+            ve->type = aggr->type;
+
+            Expressions *exps = new Expressions();
+            exps->push(ve);
+            int pos = 0;
+        #if 1   // shallow expansion
+            while (1)
+            {
+                size_t dim = exps->dim;
+                pos = expandAliasThisTuples(exps, pos);
+                if (pos == -1)
+                    break;
+                pos += exps->dim - (dim - 1);
+            }
+        #else   // flatten expansion
+            while ((pos = expandAliasThisTuples(exps, pos)) != -1)
+                ;
+        #endif
+
+            if (exps->data[0] != ve)
+            {
+                ag->e2 = new TupleExp(loc, exps);
+
+                aggr = ag->semantic(sc);
+                tab = aggr->type->toBasetype();
+                goto Ltuple;
+            }
+            goto Lapply;    // fallback;
+        }
+
         case Tdelegate:
         Lapply:
         {

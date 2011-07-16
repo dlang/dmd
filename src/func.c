@@ -2256,12 +2256,29 @@ if (arguments)
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
     overloadResolveX(&m, this, ethis, arguments);
-
     if (m.count == 1)           // exactly one match
-    {
         return m.lastf;
+
+    if (arguments && arguments->dim > 0)
+    {   // tuple expansion matching
+        Expressions *args;      // keep original arguments
+        args = Expression::arraySyntaxCopy(arguments);
+
+        while (expandAliasThisTuples(args) != -1)
+        {
+            memset(&m, 0, sizeof(m));
+            m.last = MATCHnomatch;
+            overloadResolveX(&m, this, ethis, args);
+            if (m.count == 1)
+            {   // rewrite arguments
+                arguments->setDim(args->dim);
+                for (size_t i = 0; i < args->dim; i++)
+                    arguments->data[i] = args->data[i];
+                return m.lastf;
+            }
+        }
     }
-    else
+
     {
         OutBuffer buf;
 

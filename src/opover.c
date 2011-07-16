@@ -1265,8 +1265,19 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
                         goto Lapply;
                     }
                     arg->type = fd->type->nextOf();
+                    break;
                 }
-                break;
+            }
+            if (ad->aliasthis && ad->aliasthis->isVarDeclaration())
+            {
+                TupleDeclaration *td = ad->aliasthis->isVarDeclaration()->toAlias()->isTupleDeclaration();
+                if (td && td->isexp)
+                {
+                    if (arguments->dim == 2)
+                        if (!arg->type)
+                            arg->type = Type::tsize_t;  // key type
+                    break;
+                }
             }
 
         Lapply:
