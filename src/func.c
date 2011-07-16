@@ -1696,11 +1696,13 @@ int FuncDeclaration::equals(Object *o)
     Dsymbol *s = isDsymbol(o);
     if (s)
     {
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        if (fd)
+        FuncDeclaration *fd1 = this->toAliasFunc();
+        FuncDeclaration *fd2 = s->isFuncDeclaration();
+        if (fd2)
         {
-            return toParent()->equals(fd->toParent()) &&
-                ident->equals(fd->ident) && type->equals(fd->type);
+            fd2 = fd2->toAliasFunc();
+            return fd1->toParent()->equals(fd2->toParent()) &&
+                fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
         }
     }
     return FALSE;
@@ -2024,8 +2026,21 @@ int overloadApply(FuncDeclaration *fstart,
 
         if (fa)
         {
-            if (overloadApply(fa->funcalias, fp, param))
-                return 1;
+            if (fa->hasOverloads)
+            {
+                if (overloadApply(fa->funcalias, fp, param))
+                    return 1;
+            }
+            else
+            {
+                f = fa->toAliasFunc();
+                if (!f)
+                {   d->error("is aliased to a function");
+                    break;
+                }
+                if ((*fp)(param, f))
+                    return 1;
+            }
             next = fa->overnext;
         }
         else
@@ -2316,6 +2331,193 @@ if (arguments)
     }
 }
 
+/********************************************
+ * Decide which function matches the modifier.
+ */
+
+struct ParamM
+{
+    Match *m;
+#if DMDV2
+    Expression *ethis;
+    int property;       // 0: unintialized
+                        // 1: seen @property
+                        // 2: not @property
+#endif
+};
+
+int fpm(void *param, FuncDeclaration *f)
+{
+#define LOG_MODMATCH    0
+
+    ParamM *p = (ParamM *)param;
+    Match *m = p->m;
+    MATCH match;
+
+    if (f != m->lastf)          // skip duplicates
+    {
+        m->anyf = f;
+        TypeFunction *tf = (TypeFunction *)f->type;
+
+#if 0
+        int property = (tf->isproperty) ? 1 : 2;
+        if (p->property == 0)
+            p->property = property;
+        else if (p->property != property)
+            error(f->loc, "cannot overload both property and non-property functions");
+#endif
+
+        /* 
+         * 
+         * 
+         * 
+         */
+        if (p->ethis)   // Virtual functions are preferred than static ones
+        {
+            if (f->needThis())
+                match = f->isCtorDeclaration() ? MATCHexact : (MATCH) tf->modMatch(p->ethis);
+            else
+                match = MATCHconvert;   // less than ethis match (MATCHexact/const)
+        }
+        else            // Static functions are preferred than virtual ones
+        {
+            if (f->needThis())
+                match = MATCHconvert;
+            else
+                match = MATCHexact;
+        }
+#if LOG_MODMATCH
+        printf("test1: match = %d, %s : %s\n", match, f->toChars(), tf->toChars());
+#endif
+        if (match != MATCHnomatch)
+        {
+            if (match > m->last)
+            {
+#if LOG_MODMATCH
+                printf("\tmatch > m->last(%d)\n", m->last);
+#endif
+                goto LfIsBetter;
+            }
+
+            if (match < m->last)
+            {
+#if LOG_MODMATCH
+                printf("\tmatch < m->last(%d)\n", m->last);
+#endif
+                goto LlastIsBetter;
+            }
+
+            /* See if one of the matches overrides the other.
+             */
+            if (m->lastf->overrides(f))
+            {
+#if LOG_MODMATCH
+                printf("\tm->lastf overrides f\n");
+#endif
+                goto LlastIsBetter;
+            }
+            else if (f->overrides(m->lastf))
+            {
+#if LOG_MODMATCH
+                printf("\tf overrides m->lastf\n");
+#endif
+                goto LfIsBetter;
+            }
+
+#if 0//DMDV2    // don't check 'more specialized' because parameter types should not be considered in here.
+            /* Try to disambiguate using template-style partial ordering rules.
+             * In essence, if f() and g() are ambiguous, if f() can call g(),
+             * but g() cannot call f(), then pick f().
+             * This is because f() is "more specialized."
+             */
+            {
+            MATCH c1 = f->leastAsSpecialized(m->lastf);
+            MATCH c2 = m->lastf->leastAsSpecialized(f);
+            //printf("c1 = %d, c2 = %d\n", c1, c2);
+            if (c1 > c2)
+            {
+                printf("\tc1(%d) > c2(%d)\n", c1, c2);
+                goto LfIsBetter;
+            }
+            if (c1 < c2)
+            {
+                printf("\tc1(%d) < c2(%d)\n", c1, c2);
+                goto LlastIsBetter;
+            }
+            }
+#endif
+        Lambiguous:
+#if LOG_MODMATCH
+            printf("\tambiguous\n");
+#endif
+            m->nextf = f;
+            m->count++;
+            return 0;
+
+        LfIsBetter:
+            if (m->last <= MATCHconvert)    // primary match against secondary matches
+            {   //reset ambiguous of secondary matches
+                m->nextf = NULL;
+                m->count = 0;
+            }
+            m->last = match;
+            m->lastf = f;
+            m->count++;     // count up
+            return 0;
+
+        LlastIsBetter:
+            return 0;
+        }
+    }
+    return 0;
+
+#undef LOG_MODMATCH
+}
+
+
+void overloadResolveMod(Match *m, FuncDeclaration *fstart, Expression *ethis)
+{
+    ParamM p;
+    p.m = m;
+    p.ethis = ethis;
+    p.property = 0;
+    overloadApply(fstart, &fpm, &p);
+}
+
+FuncDeclaration *FuncDeclaration::overloadModMatch(Loc loc, Expression *ethis, Type **pt)
+{
+    //printf("FuncDeclaration::overloadModMatch('%s')\n", toChars());
+    TypeFunction *tf;
+    Match m;
+
+    assert(pt);
+
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+    overloadResolveMod(&m, this, ethis);
+
+    if (m.count == 1)       // exact match
+        *pt = m.lastf->type;
+    else if (m.count > 1)
+    {
+        if (!m.nextf)       // better match
+            *pt = m.lastf->type;
+        else                // ambiguous match
+            *pt = Type::tambig;
+        m.lastf = NULL;
+    }
+    else                    // no match
+    {
+        *pt = NULL;
+        if (ethis)
+            error(ethis->loc, "expression (%s.%s) has no type", ethis->toChars(), toChars());
+        else
+            assert(0);
+    }
+
+    return m.lastf;
+}
+
 /*************************************
  * Determine partial specialization order of 'this' vs g.
  * This is very similar to TemplateDeclaration::leastAsSpecialized().
@@ -2348,6 +2550,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
      */
+    // Question: What about const vs shared const?
     if (needThis() && g->needThis())
     {
         if (tf->mod != tg->mod)
@@ -2477,14 +2680,14 @@ AggregateDeclaration *FuncDeclaration::isMember2()
 //printf("\ts = '%s', parent = '%s', kind = %s\n", s->toChars(), s->parent->toChars(), s->parent->kind());
         ad = s->isMember();
         if (ad)
-{
+        {
             break;
-}
+        }
         if (!s->parent ||
             (!s->parent->isTemplateInstance()))
-{
+        {
             break;
-}
+        }
     }
     //printf("-FuncDeclaration::isMember2() %p\n", ad);
     return ad;
@@ -2748,21 +2951,16 @@ bool FuncDeclaration::setUnsafe()
 
 int FuncDeclaration::isNested()
 {
-    //if (!toParent())
-        //printf("FuncDeclaration::isNested('%s') parent=%p\n", toChars(), parent);
-    //printf("\ttoParent2() = '%s'\n", toParent2()->toChars());
-    return ((storage_class & STCstatic) == 0) &&
-           (toParent2()->isFuncDeclaration() != NULL);
+    FuncDeclaration *f = toAliasFunc();
+    //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
+    return ((f->storage_class & STCstatic) == 0) &&
+           (f->toParent2()->isFuncDeclaration() != NULL);
 }
 
 int FuncDeclaration::needThis()
 {
     //printf("FuncDeclaration::needThis() '%s'\n", toChars());
-    int i = isThis() != NULL;
-    //printf("\t%d\n", i);
-    if (!i && isFuncAliasDeclaration())
-        i = ((FuncAliasDeclaration *)this)->funcalias->needThis();
-    return i;
+    return toAliasFunc()->isThis() != NULL;
 }
 
 int FuncDeclaration::addPreInvariant()
@@ -2935,17 +3133,34 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 // Used as a way to import a set of functions from another scope into this one.
 
-FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias)
+FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOverloads)
     : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
         funcalias->storage_class, funcalias->type)
 {
     assert(funcalias != this);
     this->funcalias = funcalias;
+
+    this->hasOverloads = hasOverloads;
+    if (hasOverloads)
+    {
+        if (FuncAliasDeclaration *fad = funcalias->isFuncAliasDeclaration())
+            this->hasOverloads = fad->hasOverloads;
+    }
+    else
+    {   // for internal use
+        assert(!funcalias->isFuncAliasDeclaration());
+        this->hasOverloads = 0;
+    }
 }
 
 const char *FuncAliasDeclaration::kind()
 {
     return "function alias";
+}
+
+FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
+{
+    return funcalias->toAliasFunc();
 }
 
 

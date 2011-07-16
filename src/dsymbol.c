@@ -360,6 +360,9 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
     if (global.gag)
         return NULL;            // don't do it for speculative compiles; too time consuming
 
+    if (global.errors)          // don't do it when error already occurs; too error messages
+        return NULL;
+
     return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
 }
 

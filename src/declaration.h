@@ -601,6 +601,7 @@ struct FuncDeclaration : Declaration
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
+    FuncDeclaration *overloadModMatch(Loc loc, Expression *ethis, Type **pt);
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
@@ -652,6 +653,8 @@ struct FuncDeclaration : Declaration
     void buildClosure(IRState *irs);
 
     FuncDeclaration *isFuncDeclaration() { return this; }
+
+    virtual FuncDeclaration *toAliasFunc() { return this; }
 };
 
 #if DMDV2
@@ -665,12 +668,16 @@ FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
 struct FuncAliasDeclaration : FuncDeclaration
 {
     FuncDeclaration *funcalias;
+    int hasOverloads;
 
-    FuncAliasDeclaration(FuncDeclaration *funcalias);
+    FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOverloads = 1);
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();
     Symbol *toSymbol();
+    char *mangle() { return toAliasFunc()->mangle(); }
+
+    FuncDeclaration *toAliasFunc();
 };
 
 struct FuncLiteralDeclaration : FuncDeclaration

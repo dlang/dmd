@@ -111,6 +111,7 @@ TemplateDeclaration *Type::associativearray;
 
 Type *Type::tvoidptr;
 Type *Type::tstring;
+Type *Type::tambig;
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
 unsigned char Type::sizeTy[TMAX];
@@ -264,6 +265,10 @@ void Type::init()
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->invariantOf()->arrayOf();
 
+    tambig = new TypeFunction(NULL, NULL, 0, LINKd);
+    ((TypeFunction *)tambig)->isambiguous = 1;
+    ((TypeFunction *)tambig)->deco = "@";
+
     if (global.params.isX86_64)
     {
         PTRSIZE = 8;
@@ -325,7 +330,8 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
     if (errors != global.errors)        // if any errors happened
     {
         global.errors = errors;
-        t = NULL;
+        if (!t->isAmbiguous())
+            t = NULL;
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
     return t;
@@ -1602,6 +1608,11 @@ int Type::isAssignable()
     return TRUE;
 }
 
+int Type::isAmbiguous()
+{
+    return FALSE;
+}
+
 int Type::checkBoolean()
 {
     return isscalar();
@@ -1668,6 +1679,9 @@ int Type::isBaseOf(Type *t, int *poffset)
 
 MATCH Type::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
@@ -2081,6 +2095,11 @@ TypeNext::TypeNext(TY ty, Type *next)
         : Type(ty)
 {
     this->next = next;
+}
+
+int TypeNext::isAmbiguous()
+{
+    return next && next->isAmbiguous();
 }
 
 void TypeNext::toDecoBuffer(OutBuffer *buf, int flag)
@@ -3515,6 +3534,9 @@ MATCH TypeSArray::constConv(Type *to)
 
 MATCH TypeSArray::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
 
     // Allow implicit conversion of static array to pointer or dynamic array
@@ -3751,6 +3773,9 @@ int TypeDArray::isString()
 
 MATCH TypeDArray::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
     if (equals(to))
         return MATCHexact;
@@ -4149,6 +4174,9 @@ int TypeAArray::hasPointers()
 
 MATCH TypeAArray::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
     if (equals(to))
         return MATCHexact;
@@ -4251,6 +4279,9 @@ void TypePointer::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 MATCH TypePointer::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypePointer::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
 
     if (equals(to))
@@ -4413,6 +4444,8 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
         this->trust = TRUSTsystem;
     if (stc & STCtrusted)
         this->trust = TRUSTtrusted;
+
+    isambiguous = 0;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -4428,6 +4461,11 @@ Type *TypeFunction::syntaxCopy()
     t->trust = trust;
     t->fargs = fargs;
     return t;
+}
+
+int TypeFunction::isAmbiguous()
+{
+    return isambiguous || TypeNext::isAmbiguous();
 }
 
 /*******************************
@@ -4585,6 +4623,12 @@ Lnotcovariant:
 void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 {   unsigned char mc;
 
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     //printf("TypeFunction::toDecoBuffer() this = %p %s\n", this, toChars());
     //static int nest; if (++nest == 50) *(char*)0=0;
     if (inuse)
@@ -4640,6 +4684,12 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
 void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
 {
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     const char *p = NULL;
 
@@ -4722,6 +4772,12 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
 
 void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
     const char *p = NULL;
 
@@ -5069,6 +5125,25 @@ void TypeFunction::purityLevel()
     }
 }
 
+int TypeFunction::modMatch(Expression *ethis)
+{
+    assert(ethis);
+
+    if (isAmbiguous())
+        return MATCHnomatch;
+
+    Type *t = ethis->type;
+    if (t->toBasetype()->ty == Tpointer)
+        t = t->toBasetype()->nextOf();      // change struct* to struct
+    if (t->mod != mod)
+    {
+        if (MODimplicitConv(t->mod, mod))
+            return MATCHconst;
+        else
+            return MATCHnomatch;
+    }
+    return MATCHexact;
+}
 
 /********************************
  * 'args' are being matched to function 'this'
@@ -5087,16 +5162,9 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
     bool wildmatch = FALSE;
 
     if (ethis)
-    {   Type *t = ethis->type;
-        if (t->toBasetype()->ty == Tpointer)
-            t = t->toBasetype()->nextOf();      // change struct* to struct
-        if (t->mod != mod)
-        {
-            if (MODimplicitConv(t->mod, mod))
-                match = MATCHconst;
-            else
-                return MATCHnomatch;
-        }
+    {   match = (MATCH) modMatch(ethis);
+        if (match == MATCHnomatch)
+            return match;
     }
 
     size_t nparams = Parameter::dim(parameters);
@@ -5386,6 +5454,9 @@ unsigned TypeDelegate::alignsize()
 
 MATCH TypeDelegate::implicitConvTo(Type *to)
 {
+    if (isAmbiguous())
+        return MATCHnomatch;
+
     //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
     //printf("from: %s\n", toChars());
     //printf("to  : %s\n", to->toChars());
@@ -5400,6 +5471,12 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
 
 void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
+    if (isAmbiguous())
+    {
+        buf->writestring("_ambiguous_");
+        return;
+    }
+
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
@@ -6110,6 +6187,11 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
             error(loc, "expression (%s) has no type", exp->toChars());
             goto Lerr;
         }
+        if (t->isAmbiguous())
+        {
+            error(loc, "expression (%s) has ambiguous type", exp->toChars());
+            goto Lamgig;
+        }
         if (t->ty == Ttypeof)
         {   error(loc, "forward reference to %s", toChars());
             goto Lerr;
@@ -6146,6 +6228,10 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     }
     inuse--;
     return t;
+
+Lamgig:
+    inuse--;
+    return tambig;
 
 Lerr:
     inuse--;
@@ -7004,17 +7090,19 @@ L1:
     assert(d);
 
     if (e->op == TOKtype)
-    {   FuncDeclaration *fd = sc->func;
-
+    {
         if (d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, d->isTupleDeclaration());
             e = e->semantic(sc);
             return e;
         }
-        if (d->needThis() && fd && fd->vthis)
+        if (d->needThis() && hasThis(sc))
         {
-            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            /* Rewrite as:
+             *  this.d
+             */
+            e = new DotVarExp(e->loc, new ThisExp(e->loc), d, 1);
             e = e->semantic(sc);
             return e;
         }
@@ -7051,7 +7139,7 @@ L1:
 #endif
     }
 
-    de = new DotVarExp(e->loc, e, d);
+    de = new DotVarExp(e->loc, e, d, 1);
     return de->semantic(sc);
 }
 
@@ -7558,7 +7646,7 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        else if (d->needThis() && (hasThis(sc) || !(sc->intypeof || d->isFuncDeclaration())))
+        if (d->needThis() && hasThis(sc))
         {
             if (sc->func)
             {
@@ -7573,7 +7661,7 @@ L1:
                     {
                         e = new ThisExp(e->loc);
                         e = new DotTypeExp(e->loc, e, cd);
-                        DotVarExp *de = new DotVarExp(e->loc, e, d);
+                        DotVarExp *de = new DotVarExp(e->loc, e, d, 1);
                         e = de->semantic(sc);
                         return e;
                     }
@@ -7586,15 +7674,11 @@ L1:
             /* Rewrite as:
              *  this.d
              */
-            DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-            e = de->semantic(sc);
+            e = new DotVarExp(e->loc, new ThisExp(e->loc), d, 1);
+            e = e->semantic(sc);
             return e;
         }
-        else
-        {
-            VarExp *ve = new VarExp(e->loc, d, 1);
-            return ve;
-        }
+        return new VarExp(e->loc, d, 1);
     }
 
     if (d->isDataseg())
@@ -7619,7 +7703,7 @@ L1:
         return e;
     }
 
-    DotVarExp *de = new DotVarExp(e->loc, e, d);
+    DotVarExp *de = new DotVarExp(e->loc, e, d, 1);
     return de->semantic(sc);
 }
 
