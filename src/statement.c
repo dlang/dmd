@@ -346,7 +346,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
                         e->type = Type::tbool;
                     }
 #endif
-                    *sfinally = new ExpStatement(loc, e);
+                    *sfinally = new DtorExpStatement(loc, e, v);
                 }
                 v->noscope = 1;         // don't add in dtor again
             }
@@ -355,6 +355,21 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
     return this;
 }
 
+
+/******************************** DtorExpStatement ***************************/
+
+DtorExpStatement::DtorExpStatement(Loc loc, Expression *exp, VarDeclaration *v)
+    : ExpStatement(loc, exp)
+{
+    this->var = v;
+}
+
+Statement *DtorExpStatement::syntaxCopy()
+{
+    Expression *e = exp ? exp->syntaxCopy() : NULL;
+    DtorExpStatement *es = new DtorExpStatement(loc, e, var);
+    return es;
+}
 
 /******************************** CompileStatement ***************************/
 
@@ -3439,31 +3454,19 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 fd->nrvo_can = 0;
             else if (!v || v->isOut() || v->isRef())
                 fd->nrvo_can = 0;
-            else if (tbret->ty == Tstruct && ((TypeStruct *)tbret)->sym->dtor)
-            {
-                StructDeclaration *sdret = ((TypeStruct *)tbret)->sym;
-                if (sdret->postblit)
-                {   FuncDeclaration *fdret = sdret->postblit;
-                    if (fdret->storage_class & STCdisable)
-                        goto L1;
+//            else if (tbret->ty == Tstruct && ((TypeStruct *)tbret)->sym->dtor)
+//                // Struct being returned has destructors
+//                fd->nrvo_can = 0;
+            else if (fd->nrvo_var == NULL)
+            {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
+                {   //printf("Setting nrvo to %s\n", v->toChars());
+                    fd->nrvo_var = v;
                 }
-                // Struct being returned has destructors
-                fd->nrvo_can = 0;
-            }
-            else
-            {
-L1:
-                if (fd->nrvo_var == NULL)
-                {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
-                    {   //printf("Setting nrvo to %s\n", v->toChars());
-                        fd->nrvo_var = v;
-                    }
-                    else
-                        fd->nrvo_can = 0;
-                }
-                else if (fd->nrvo_var != v)
+                else
                     fd->nrvo_can = 0;
             }
+            else if (fd->nrvo_var != v)
+                fd->nrvo_can = 0;
         }
         else
             fd->nrvo_can = 0;

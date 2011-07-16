@@ -809,7 +809,7 @@ void test32()
   {
     S32 s = bar32();
   }
-  assert(S32.x == 0x211);
+  assert(S32.x == 0x101);
 }
 
 /**********************************/
@@ -1016,7 +1016,7 @@ void test38()
   {
     auto s1 = foo38;
     assert(S38.count == 1);
-    assert(S38.postblit == 1);
+    assert(S38.postblit == 0);
   }
   assert(S38.count == 0);
   S38.postblit = 0;
@@ -1312,7 +1312,7 @@ void test52()
     printf("a: %p, b: %p\n", &a, &b);
   }
     printf("s = '%.*s'\n", s52.length, s52.ptr);
-    assert(s52 == "caabbb");
+    assert(s52 == "cabb");
 }
 
 /**********************************/

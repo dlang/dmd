@@ -1318,6 +1318,29 @@ void ExpStatement::toIR(IRState *irs)
 /**************************************
  */
 
+void DtorExpStatement::toIR(IRState *irs)
+{
+    Blockx *blx = irs->blx;
+
+    //printf("DtorExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
+
+    FuncDeclaration *fd = irs->getFunc();
+    assert(fd);
+    if (fd->nrvo_can && fd->nrvo_var == var)
+        /* Do not call destructor, because var is returned as the nrvo variable.
+         * This is done at this stage because nrvo can be turned off at a
+         * very late stage in semantic analysis.
+         */
+        ;
+    else
+    {
+        ExpStatement::toIR(irs);
+    }
+}
+
+/**************************************
+ */
+
 void CompoundStatement::toIR(IRState *irs)
 {
     if (statements)

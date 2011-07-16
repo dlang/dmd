@@ -157,6 +157,18 @@ struct ExpStatement : Statement
     ExpStatement *isExpStatement() { return this; }
 };
 
+struct DtorExpStatement : ExpStatement
+{
+    /* Wraps an expression that is the destruction of 'var'
+     */
+
+    VarDeclaration *var;
+
+    DtorExpStatement(Loc loc, Expression *exp, VarDeclaration *v);
+    Statement *syntaxCopy();
+    void toIR(IRState *irs);
+};
+
 struct CompileStatement : Statement
 {
     Expression *exp;
