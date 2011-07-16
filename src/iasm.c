@@ -1406,10 +1406,8 @@ L386_WARNING2:
         unsigned usOpcode = ptb.pptb0->usOpcode;
 
         pc->Iop = usOpcode;
-        if ((usOpcode & 0xFFFFFF00) == 0x660F3A00 ||    // SSE4
-            (usOpcode & 0xFFFFFF00) == 0x660F3800)      // SSE4
+        if ((usOpcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
         {
-            pc->Iop = 0x66000F00 | ((usOpcode >> 8) & 0xFF) | ((usOpcode & 0xFF) << 16);
             goto L3;
         }
         switch (usOpcode & 0xFF0000)

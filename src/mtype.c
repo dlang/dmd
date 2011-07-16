@@ -176,7 +176,6 @@ void Type::init()
         sizeTy[i] = sizeof(TypeBasic);
     sizeTy[Tsarray] = sizeof(TypeSArray);
     sizeTy[Tarray] = sizeof(TypeDArray);
-    //sizeTy[Tnarray] = sizeof(TypeNArray);
     sizeTy[Taarray] = sizeof(TypeAArray);
     sizeTy[Tpointer] = sizeof(TypePointer);
     sizeTy[Treference] = sizeof(TypeReference);
@@ -195,7 +194,6 @@ void Type::init()
 
     mangleChar[Tarray] = 'A';
     mangleChar[Tsarray] = 'G';
-    mangleChar[Tnarray] = '@';
     mangleChar[Taarray] = 'H';
     mangleChar[Tpointer] = 'P';
     mangleChar[Treference] = 'R';
@@ -3837,87 +3835,6 @@ int TypeDArray::hasPointers()
     return TRUE;
 }
 
-
-/***************************** TypeNewArray *****************************/
-
-#if 0
-
-TypeNewArray::TypeNewArray(Type *telement)
-        : TypeArray(Tnewarray, telement)
-{
-    sym = NULL;
-}
-
-Type *TypeNewArray::syntaxCopy()
-{
-    Type *t = next->syntaxCopy();
-    if (t == next)
-        t = this;
-    else
-    {   t = new TypeNewArray(t);
-        t->mod = mod;
-    }
-    return t;
-}
-
-d_uns64 TypeNewArray::size(Loc loc)
-{
-    //printf("TypeNewArray::size()\n");
-    return PTRSIZE;
-}
-
-unsigned TypeNewArray::alignsize()
-{
-    return PTRSIZE;
-}
-
-Type *TypeNewArray::semantic(Loc loc, Scope *sc)
-{   Type *tn = next;
-
-    tn = next->semantic(loc,sc);
-    Type *tbn = tn->toBasetype();
-    switch (tbn->ty)
-    {
-        case Tfunction:
-        case Tnone:
-        case Ttuple:
-            error(loc, "can't have array of %s", tbn->toChars());
-            tn = next = tint32;
-            break;
-        case Tstruct:
-        {   TypeStruct *ts = (TypeStruct *)tbn;
-            if (0 && ts->sym->isnested)
-                error(loc, "cannot have array of inner structs %s", ts->toChars());
-            break;
-        }
-    }
-    if (tn->isscope())
-        error(loc, "cannot have array of scope %s", tn->toChars());
-
-    next = tn;
-    transitive();
-    return merge();
-}
-
-void TypeNewArray::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    buf->writeByte('e');
-    if (next)
-        next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
-}
-
-void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writestring("[new]");
-}
-
-#endif
 
 /***************************** TypeAArray *****************************/
 
@@ -8106,27 +8023,6 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 
     buf->printf("[%s .. ", lwr->toChars());
     buf->printf("%s]", upr->toChars());
-}
-
-/***************************** TypeNewArray *****************************/
-
-/* T[new]
- */
-
-TypeNewArray::TypeNewArray(Type *next)
-    : TypeNext(Tnarray, next)
-{
-    //printf("TypeNewArray\n");
-}
-
-void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writestring("[new]");
 }
 
 /***************************** Parameter *****************************/

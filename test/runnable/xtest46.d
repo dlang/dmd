@@ -1458,6 +1458,19 @@ void test79()
 
 /***************************************************/
 
+void test6317()
+{
+    int b = 12345;
+    struct nested { int a; int fun() { return b; } }
+    static assert(!__traits(compiles, { nested x = { 3, null }; }));
+    nested g = { 7 };
+    auto h = nested(7);
+    assert(g.fun() == 12345);
+    assert(h.fun() == 12345);
+}
+
+/***************************************************/
+
 void test80()
 {
     auto array = new int[10];
@@ -3408,6 +3421,7 @@ int main()
     test139();
     test140();
     test141();
+    test6317();
     test142();
     test143();
     test144();

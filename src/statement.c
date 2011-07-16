@@ -3440,18 +3440,30 @@ Statement *ReturnStatement::semantic(Scope *sc)
             else if (!v || v->isOut() || v->isRef())
                 fd->nrvo_can = 0;
             else if (tbret->ty == Tstruct && ((TypeStruct *)tbret)->sym->dtor)
+            {
+                StructDeclaration *sdret = ((TypeStruct *)tbret)->sym;
+                if (sdret->postblit)
+                {   FuncDeclaration *fdret = sdret->postblit;
+                    if (fdret->storage_class & STCdisable)
+                        goto L1;
+                }
                 // Struct being returned has destructors
                 fd->nrvo_can = 0;
-            else if (fd->nrvo_var == NULL)
-            {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
-                {   //printf("Setting nrvo to %s\n", v->toChars());
-                    fd->nrvo_var = v;
+            }
+            else
+            {
+L1:
+                if (fd->nrvo_var == NULL)
+                {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
+                    {   //printf("Setting nrvo to %s\n", v->toChars());
+                        fd->nrvo_var = v;
+                    }
+                    else
+                        fd->nrvo_can = 0;
                 }
-                else
+                else if (fd->nrvo_var != v)
                     fd->nrvo_can = 0;
             }
-            else if (fd->nrvo_var != v)
-                fd->nrvo_can = 0;
         }
         else
             fd->nrvo_can = 0;

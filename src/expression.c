@@ -8306,6 +8306,22 @@ Expression *CastExp::semantic(Scope *sc)
         if (!tob->hasPointers())
             goto Lsafe;
 
+        if (tob->ty == Tclass && t1b->ty == Tclass)
+        {
+            ClassDeclaration *cdfrom = t1b->isClassHandle();
+            ClassDeclaration *cdto   = tob->isClassHandle();
+
+            int offset;
+            if (!cdfrom->isBaseOf(cdto, &offset))
+                goto Lunsafe;
+
+            if (cdfrom->isCPPinterface() ||
+                cdto->isCPPinterface())
+                goto Lunsafe;
+
+            goto Lsafe;
+        }
+
         if (tob->ty == Tarray && t1b->ty == Tarray)
         {
             Type* tobn = tob->nextOf()->toBasetype();
