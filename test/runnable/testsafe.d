@@ -237,11 +237,11 @@ void sharedcast()
     shared(Object) xshared; 
     immutable(Object) ishared; 
  
-    static assert(!__traits(compiles, cast()xshared)); 
-    static assert(!__traits(compiles, cast(shared)local)); 
+    static assert(!__traits(compiles, cast(Object)xshared)); 
+    static assert(!__traits(compiles, cast(shared(Object)ref)local)); 
  
-    static assert(!__traits(compiles, cast(immutable)xshared)); 
-    static assert(!__traits(compiles, cast(shared)ishared)); 
+    static assert(!__traits(compiles, cast(immutable(Object)ref)xshared)); 
+    static assert(!__traits(compiles, cast(shared(Object)ref)ishared)); 
 } 
  
 int threadlocalvar; 
