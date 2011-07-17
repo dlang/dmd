@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2010 by Digital Mars
+// Copyright (c) 2000-2011 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -1256,6 +1256,7 @@ void ReturnStatement::toIR(IRState *irs)
             assert(e);
         }
 
+        elem_setLoc(e, loc);
         block_appendexp(blx->curblock, e);
         block_next(blx, BCretexp, NULL);
     }
