@@ -563,7 +563,6 @@ typedef struct block
             #define Btryoff             _BLU._UD.Btryoff
         } _UD;
     } _BLU;
-    TARGET_structBLOCK
 } block;
 
 #define list_block(l)   ((block *) list_ptr(l))
@@ -726,7 +725,6 @@ typedef struct FUNC_S
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     char *Fredirect;            // redirect function name to this name in object
 #endif
-    TARGET_structFUNC_S
 } func_t;
 
 #if TX86
@@ -1064,7 +1062,6 @@ typedef struct STRUCT
                                 // It is NULL for the
                                 // primary template class (since it would be
                                 // identical to Sarglist).
-    TARGET_structSTRUCT
 } struct_t;
 
 #if TX86
@@ -1319,8 +1316,6 @@ struct Symbol
 #if SOURCE_4SYMS
     Srcpos Ssrcpos;             // file position for definition
 #endif
-    // Target Additions
-    TARGET_structSYMBOL
 
     char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
                                 // (the size is for static Symbols)
@@ -1403,7 +1398,6 @@ struct PARAM
 #if SOURCE_4PARAMS
     Srcpos Psrcpos;             // parameter source definition
 #endif
-    TARGET_structPARAM
 
     PARAM *createTal(PARAM *);  // create template-argument-list blank from
                                 // template-parameter-list
@@ -1464,8 +1458,6 @@ enum FL
         //FLoncedata,   // link once data
         //FLoncecode,   // link once code
 #endif
-#else
-        TARGET_enumFL
 #endif
         FLMAX
 };
