@@ -1309,9 +1309,7 @@ struct Symbol
           #define Sregm _SXR._SR.Sregm_
         }_SR;                   // SCregister,SCregpar,SCpseudo: register number
     }_SXR;
-#if TX86
     regm_t      Sregsaved;      // mask of registers not affected by this func
-#endif
 
 #if SOURCE_4SYMS
     Srcpos Ssrcpos;             // file position for definition
