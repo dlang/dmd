@@ -424,8 +424,7 @@ STATIC type * __near type_allocbasic(tym_t ty)
 }
 
 void type_init()
-{   int i;
-
+{
     tsbool    = type_allocbasic(TYbool);
     tswchar_t = type_allocbasic(TYwchar_t);
     tsdchar   = type_allocbasic(TYdchar);
@@ -503,7 +502,7 @@ void type_init()
     // Type of logical expression
     tslogical = (config.flags4 & CFG4bool) ? tsbool : tsint;
 
-    for (i = 0; i < TYMAX; i++)
+    for (int i = 0; i < TYMAX; i++)
     {
         if (tstypes[i])
         {   tsptr2types[i] = type_allocn(pointertype,tstypes[i]);
