@@ -206,7 +206,6 @@ enum TOK
         case TOKcomplex32: t = Type::tcomplex32; goto LabelX;   \
         case TOKcomplex64: t = Type::tcomplex64; goto LabelX;   \
         case TOKcomplex80: t = Type::tcomplex80; goto LabelX;   \
-        case TOKbit:     t = Type::tbit;     goto LabelX;       \
         case TOKbool:    t = Type::tbool;    goto LabelX;       \
         case TOKchar:    t = Type::tchar;    goto LabelX;       \
         case TOKwchar:   t = Type::twchar; goto LabelX; \

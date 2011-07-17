@@ -1,5 +1,5 @@
 
-// Copyright (c) 2009-2010 by Digital Mars
+// Copyright (c) 2009-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -21,7 +21,7 @@
 #include        <malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #include        <signal.h>
 #include        <unistd.h>
 #endif
@@ -471,7 +471,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
     mach_getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
     mach_getsegment("__data",  "__DATA", 2, S_REGULAR);         // DATA
     mach_getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
-    mach_getsegment("__bss",   "__DATA", 2, S_ZEROFILL);        // UDATA
+    mach_getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
 
     if (config.fulltypes)
         dwarf_initfile(filename);
@@ -784,7 +784,7 @@ void obj_term()
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
             Relocation *rend = (Relocation *)(pseg->SDrel->buf + pseg->SDrel->size());
             for (; r != rend; r++)
-            {   const char *rs = r->rtype == RELaddr ? "addr" : "rel";
+            {//   const char *rs = r->rtype == RELaddr ? "addr" : "rel";
                 symbol *s = r->targsym;
                 //printf("%d:x%04x : tseg %d tsym %p REL%s\n",
                     //seg, r->offset, r->targseg, s, rs);
@@ -1034,24 +1034,14 @@ void obj_term()
 
 void objlinnum(Srcpos srcpos, targ_size_t offset)
 {
-    unsigned linnum = srcpos.Slinnum;
-    if (linnum == 0)
+    if (srcpos.Slinnum == 0)
         return;
 
 #if 0
-#if MARS
-    printf("objlinnum(cseg=%d, filename=%s linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilename ? srcpos.Sfilename : "null",linnum,offset);
+#if MARS || SCPP
+    printf("objlinnum(cseg=%d, offset=x%lx) ", cseg, offset);
 #endif
-#if SCPP
-    printf("objlinnum(cseg=%d, filptr=%p linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilptr ? *srcpos.Sfilptr : 0,linnum,offset);
-    if (srcpos.Sfilptr)
-    {
-        Sfile *sf = *srcpos.Sfilptr;
-        printf("filename = %s\n", sf ? sf->SFname : "null");
-    }
-#endif
+    srcpos.print("");
 #endif
 
 #if MARS
@@ -1059,13 +1049,10 @@ void objlinnum(Srcpos srcpos, targ_size_t offset)
         return;
 #endif
 #if SCPP
-    Sfile *sf;
-    if (srcpos.Sfilptr)
-    {   sfile_debug(&srcpos_sfile(srcpos));
-        sf = *srcpos.Sfilptr;
-    }
-    else
+    if (!srcpos.Sfilptr)
         return;
+    sfile_debug(&srcpos_sfile(srcpos));
+    Sfile *sf = *srcpos.Sfilptr;
 #endif
 
     size_t i;
@@ -1456,6 +1443,8 @@ int mach_getsegment(const char *sectname, const char *segname,
     sec->flags = flags;
 
     pseg->SDshtidx = section_cnt++;
+    pseg->SDaranges_offset = 0;
+    pseg->SDlinnum_count = 0;
 
     if (flags2)
     {
@@ -1566,12 +1555,13 @@ seg_data *obj_tlsseg_bss()
  */
 
 void obj_alias(const char *n1,const char *n2)
-{   unsigned len;
-    char *buffer;
-
+{
     //printf("obj_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
+    unsigned len;
+    char *buffer;
+
     buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
@@ -1620,7 +1610,7 @@ char *obj_mangle2(Symbol *s,char *dest)
             strupr(dest);               // to upper case
             break;
         case mTYman_std:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (tyfunc(s->ty()) && !variadic(s->Stype))
 #else
             if (!(config.flags4 & CFG4oldstdmangle) &&
@@ -2078,7 +2068,7 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 
 void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    printf("reftocodseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,offset,val);
+    printf("reftocodseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,(unsigned long)offset,(unsigned long)val);
     assert(seg > 0);
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2290,7 +2280,7 @@ long elf_align(targ_size_t size, long foffset)
             offset = (foffset + 31) & ~31;
             break;
         default:
-            dbg_printf("size was %lu\n",size);
+            dbg_printf("size was %lu\n",(unsigned long)size);
             assert(0);
             break;
     }

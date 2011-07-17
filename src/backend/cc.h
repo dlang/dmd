@@ -82,7 +82,7 @@ enum WM
         WM_badnumber    = 24,
         WM_ccast        = 25,
         WM_obsolete     = 26,
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         WM_skip_attribute   = 27, // skip GNUC attribute specification
         WM_warning_message  = 28, // preprocessor warning message
         WM_bad_vastart      = 29, // args for builtin va_start bad
@@ -98,40 +98,9 @@ enum LANG
         LANGjapanese,
 };
 
-#if __I86__
-
 #include        "cdef.h"        // host and target compiler definition
 
 #define INITIALIZED_STATIC_DEF  static
-
-#else
-#include        "TGcc.h"
-#include        "str4.h"
-
-#if MULTI_FILE
-/* Make statics that require re-initialization available */
-#define INITIALIZED_STATIC_DEF
-#define INITIALIZED_STATIC_REF  extern
-#else
-#define INITIALIZED_STATIC_DEF  STATIC
-#define INITIALIZED_STATIC_REF  error
-#endif
-
-#ifndef PASCAL
-#define PASCAL pascal
-#endif
-
-#define TOOLKIT_H
-
-/* Segments     */
-#define CODE    1       /* code segment                 */
-#define DATA    2       /* initialized data             */
-#define CDATA   3       /* constant data                */
-#define UDATA   4       /* uninitialized data           */
-#ifndef UNKNOWN
-#define UNKNOWN -1      /* unknown segment              */
-#endif
-#endif
 
 #if MEMMODELS == 1
 #define LARGEDATA 0     /* don't want 48 bit pointers */
@@ -146,7 +115,7 @@ enum LANG
 #include        "msgs2.h"
 #endif
 #include        "ty.h"
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #include        "../tk/mem.h"
 #else
 #include        "mem.h"
@@ -251,10 +220,10 @@ typedef struct Srcpos
     #define srcpos_sfile(p)     (**(p).Sfilptr)
     #define srcpos_name(p)      (srcpos_sfile(p).SFname)
 #endif
-#if MARS
-    char *Sfilename;
-    #define srcpos_name(p)      ((p).SFname)
 #endif
+#if MARS
+    const char *Sfilename;
+    #define srcpos_name(p)      ((p).SFname)
 #endif
 #if M_UNIX
     short Sfilnum;              // file number
@@ -262,6 +231,8 @@ typedef struct Srcpos
 #if SOURCE_OFFSETS
     unsigned long Sfiloff;      // byte offset
 #endif
+
+    void print(const char *func);
 } Srcpos;
 
 #ifndef TOKEN_H
@@ -344,11 +315,6 @@ typedef struct Pstate
                                 // functions to parse
     Classsym *STstag;           // returned by struct_searchmember() and with_search()
     SYMIDX STmarksi;            // to determine if temporaries are created
-#if !TX86
-    int STnest;                 // nesting of ext_def()
-    symlist_t STclasslist;      // list of classes that have inline functions
-                                // to parse
-#endif
     char STnoparse;             // add to classlist instead of parsing
     char STdeferparse;          // defer member func parse
     enum SC STgclass;           // default function storage class
@@ -369,11 +335,6 @@ typedef struct Pstate
 #endif
     block *STbtry;              // current try block
     block *STgotolist;          // threaded goto scoping list
-#if MPW_OBJ && TARGET_68K
-    short STpush_value;
-    short STpop_value;
-    char  STdo_push;
-#endif
 #if !TX86
     char STdo_pop;
     char STprogressShown;       // true if func_body() has already shown progress info
@@ -537,22 +498,16 @@ typedef struct block
         #define BFLehcode     0x10      // set when we need to load exception code
         #define BFLunwind     0x1000    // do local_unwind following block
 #endif
-#if TARGET_POWERPC
-        #define BFLstructret  0x10      /* Set if a struct return is changed to
-                                           block type BCret.  This is done to avoid
-                                           error messages */
-#endif
         #define BFLnomerg      0x20     // do not merge with other blocks
-#if TX86
+#if !TX86
+        #define BFLlooprt      0x40     // set if looprotate() changes it's Bnext
+#endif
         #define BFLprolog      0x80     // generate function prolog
         #define BFLepilog      0x100    // generate function epilog
         #define BFLrefparam    0x200    // referenced parameter
         #define BFLreflocal    0x400    // referenced local
         #define BFLoutsideprolog 0x800  // outside function prolog/epilog
         #define BFLlabel        0x2000  // block preceded by label
-#else
-        #define BFLlooprt      0x40     // set if looprotate() changes it's Bnext
-#endif
         #define BFLvolatile     0x4000  // block is volatile
     code        *Bcode;         // code generated for this block
 
@@ -745,7 +700,7 @@ typedef struct FUNC_S
         #define Fnteh           0x08    // uses NT Structured EH
         #define Fdoinline       0x40    // do inline walk
         #define Foverridden     0x80    // ignore for overriding purposes
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         #define Fnowrite        0x100   // SCinline should never output definition
 #else
         #define Fjmonitor       0x100   // Jupiter synchronized function
@@ -800,7 +755,7 @@ typedef struct FUNC_S
                                 // of SCftexpspec explicit specializations
     Funcsym *Fsurrogatesym;     // Fsurrogate: surrogate cast function
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     char *Fredirect;            // redirect function name to this name in object
 #endif
     TARGET_structFUNC_S
@@ -1160,10 +1115,6 @@ typedef struct STRUCT
 #define list_setsymbol(l,s)     list_ptr(l) = (s)
 #define list_Classsym(l)        ((Classsym *) list_ptr(l))
 
-#if TARGET_POWERPC
-#pragma SC align 4
-#endif
-
 struct Symbol
 {
 #ifdef DEBUG
@@ -1325,7 +1276,7 @@ struct Symbol
         #define SFLmutable      0x100000        // SCmember or SCfield is mutable
         #define SFLdyninit      0x200000        // symbol has dynamic initializer
         #define SFLtmp          0x400000        // symbol is a generated temporary
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         #define SFLthunk        0x40000 // symbol is temporary for thunk
 #endif
 
@@ -1367,9 +1318,6 @@ struct Symbol
     vec_t       Slvreg;         // when symbol is in register
     targ_size_t Ssize;          // tyfunc: size of function
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
-#if TARGET_MAC
-#define Smemoff Soffset
-#endif
 
     // CPP || OPTIMIZER
     SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
@@ -1544,7 +1492,7 @@ enum FL
         FLallocatmp,    // temp for built-in alloca()
         FLstack,        // offset from ESP rather than EBP
         FLdsymbol,      // it's a Dsymbol
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         // Change this, update debug.c too
         FLgot,          // global offset table entry outside this object file
         FLgotoff,       // global offset table entry inside this object file
@@ -1626,38 +1574,6 @@ struct EEcontext
 };
 
 extern EEcontext eecontext;
-#endif
-
-#if !TX86
-////////// Filenames
-
-typedef struct Filename
-{
-    char **arr;                         // array of filenames
-    unsigned dim;                       // dimension of array
-    unsigned idx;                       // # used in array
-} Filename;
-
-//
-// NOTE: In order to save the full settings of all of the options,
-// the following will need to be saved:
-//
-// config
-// PCrel_option
-// tysize[TYldouble]
-// war_to_msg_enable[]  - Array of warnings that are enabled/disabled 0 = enabled, 1 = disabled
-
-struct SAVED_OPTIONS
-{
-        struct Config config;
-#if TARGET_68K
-        short PCrel_option;
-#endif
-        mftype mfoptim;
-        signed char tysizeTYldouble;
-        unsigned char war_to_msg_enable[40];    // Assumes that the max warning number is 40
-        struct SAVED_OPTIONS *psoNext;
-};
 #endif
 
 #include "rtlsym.h"

@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2010 by Digital Mars
+ * Copyright (c) 1999-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -21,6 +21,7 @@
 
 // This is for when the reg field of modregrm specifies which instruction it is
 #define NUM_MASK        0x7
+#define NUM_MASKR       0x8             // for REX extended registers
 #define _0      (0x0 | _modrm)          // insure that some _modrm bit is set
 #define _1      0x1                     // with _0
 #define _2      0x2
@@ -47,6 +48,7 @@
 #define _16_bit 0x20
 #define _32_bit 0x40
 #define _64_bit 0x10000
+#define _i64_bit 0x20000        // opcode is invalid in 64bit mode
 #define _I386   0x80            // opcode is only for 386 and later
 #define _16_bit_addr    0x100
 #define _32_bit_addr    0x200
@@ -67,6 +69,7 @@
 #define _modall         0xb000  // Instruction modifies all register values
 #define _modsiax        0xc000  // Instruction modifies AX and SI
 #define _modsinot1      0xd000  // Instruction modifies SI and not first param
+#define _modcxr11       0xe000  // Instruction modifies CX and R11
 
 /////////////////////////////////////////////////
 // Operand flags - usOp1, usOp2, usOp3
@@ -94,6 +97,7 @@ typedef unsigned opflag_t;
 #define _imm8   CONSTRUCT_FLAGS(_8, _imm, _normal, 0 )
 #define _imm16  CONSTRUCT_FLAGS(_16, _imm, _normal, 0)
 #define _imm32  CONSTRUCT_FLAGS(_32, _imm, _normal, 0)
+#define _imm64  CONSTRUCT_FLAGS(_64, _imm, _normal, 0)
 #define _rel8   CONSTRUCT_FLAGS(_8, _rel, _normal, 0)
 #define _rel16  CONSTRUCT_FLAGS(_16, _rel, _normal, 0)
 #define _rel32  CONSTRUCT_FLAGS(_32, _rel, _normal, 0)
@@ -176,7 +180,7 @@ typedef unsigned opflag_t;
 enum ASM_OPERAND_TYPE {
     _reg,           // _r8, _r16, _r32
     _m,             // _m8, _m16, _m32, _m48
-    _imm,           // _imm8, _imm16, _imm32
+    _imm,           // _imm8, _imm16, _imm32, _imm64
     _rel,           // _rel8, _rel16, _rel32
     _mnoi,          // _m1616, _m1632
     _p,             // _p1616, _p1632

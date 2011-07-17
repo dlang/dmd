@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -132,6 +132,12 @@ void builddags()
                       list_next(b->Bpred) != NULL))
                     || b->BC == BCasm
                     || b->BC == BC_finally
+#if SCPP
+                    || b->BC == BCcatch
+#endif
+#if MARS
+                    || b->BC == BCjcatch
+#endif
                    )
                         vec_clear(aevec);
                 if (b->Belem)           /* if there is an expression    */
@@ -250,6 +256,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
                 break;
             case OPctor:
             case OPdtor:
+            case OPdctor:
                 break;
             case OPasm:
                 vec_clear(ae);          // kill everything
@@ -287,8 +294,7 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
         }
 
         if (OTdef(op))
-        {       int e1op;
-
+        {
                 assert(n->Eexp == 0);   // should not be an AE
                 /* remove all AEs that could be affected by this def    */
                 if (Eunambig(n))        // if unambiguous definition
@@ -517,13 +523,6 @@ L1:     e = *pe;
             else if (op == OPushtlng && !I32 && e->Ecount)
                 e = delcse(pe);
 #endif
-#if TARGET_68K
-            // Remove size conversions of float vars
-            else if (OTconv(op) && (e->E1->Eoper == OPvar) &&
-                flt_881mixtype[convidx(op)] && !config.inline68881 && e->Ecount)
-                e = delcse(pe);
-
-#endif
         }
         else if (OTbinary(op))
         {
@@ -540,18 +539,6 @@ L1:     e = *pe;
         }
         else /* leaf node */
         {
-#if TARGET_68K
-                if ((op == OPconst || op == OPvar) &&
-                    tyfloating(e->Ety) && !config.inline68881 && e->Ecount)
-                        e = delcse(pe); /* don't force vars to SANE frame or cse consts*/
-#endif
-#if TARGET_POWERPC
-                if ((op == OPconst) && !(tyfloating(e->Ety)) &&
-                        ((e->EV.Vlong < 32767) && (e->EV.Vlong > -32768)) && e->Ecount && (e->Ecount < 3))
-                {
-                        e = delcse(pe);
-                }
-#endif
                 return;
         }
         pe = &(e->E1);
@@ -638,7 +625,7 @@ void boolopt()
 
 STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
 {   vec_t aer,aerval;
-    unsigned i,op,e1op;
+    unsigned i,op;
     unsigned i1,i2;
     elem *t;
 

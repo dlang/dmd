@@ -129,7 +129,7 @@ void codgen()
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
     functy = tybasic(funcsym_p->ty());
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (0 && config.flags3 & CFG3pic)
     {
         ALLREGS = ALLREGS_INIT_PIC;
@@ -234,7 +234,8 @@ tryagain:
 
     if (config.flags4 & CFG4optimized)
     {
-        if (nretblocks == 0)                    // if no return blocks in function
+        if (nretblocks == 0 &&                  // if no return blocks in function
+            !(funcsym_p->ty() & mTYnaked))      // naked functions may have hidden veys of returning
             funcsym_p->Sflags |= SFLexit;       // mark function as never returning
 
         assert(dfo);
@@ -403,6 +404,14 @@ tryagain:
     debugw && printf("code jump optimization complete\n");
 #endif
 
+#if MARS
+    if (usednteh & NTEH_try)
+    {
+        // Do this before code is emitted because we patch some instructions
+        nteh_filltables();
+    }
+#endif
+
     // Compute starting offset for switch tables
 #if ELFOBJ || MACHOBJ
     swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
@@ -519,8 +528,6 @@ tryagain:
                 retoffset = b->Boffset + b->Bsize - funcoffset;
                 break;
         }
-        code_free(b->Bcode);
-        b->Bcode = NULL;
     }
     if (flag && configv.addlinenumbers && !(funcsym_p->ty() & mTYnaked))
         /* put line number at end of function on the
@@ -532,6 +539,7 @@ tryagain:
 #if MARS
     if (usednteh & NTEH_try)
     {
+        // Do this before code is emitted because we patch some instructions
         nteh_gentables();
     }
     if (usednteh & EHtry)
@@ -560,6 +568,12 @@ tryagain:
         ;
     }
 #endif
+    for (b = startblock; b; b = b->Bnext)
+    {
+        code_free(b->Bcode);
+        b->Bcode = NULL;
+    }
+
     }
 
     // Mask of regs saved
@@ -593,7 +607,9 @@ void stackoffsets(int flags)
     targ_size_t Amax,sz;
     unsigned alignsize;
     int offi;
+#if AUTONEST
     targ_size_t offstack[20];
+#endif
     vec_t tbl = NULL;
 
 
@@ -1011,7 +1027,7 @@ STATIC void blcodgen(block *bl)
 #endif
                 if (config.flags2 & CFG2seh)
                     c = cat(c,nteh_unwind(0,toindex));
-#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS)
+#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
                 else if (toindex + 1 <= fromindex)
                 {
                     //c = cat(c, linux_unwind(0, toindex));
@@ -1103,7 +1119,7 @@ STATIC void blcodgen(block *bl)
             assert(!getregs(allregs));
             assert(!e);
             assert(!bl->Bcode);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (config.flags3 & CFG3pic)
             {
                 int nalign = 0;
@@ -1389,7 +1405,7 @@ STATIC void cgcod_eh()
             if ((c->Iop & 0xFF) == ESCAPE)
             {
                 c1 = NULL;
-                switch (c->Iop & 0xFF00)
+                switch (c->Iop & 0xFFFF00)
                 {
                     case ESCctor:
 //printf("ESCctor\n");
@@ -1580,7 +1596,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mST0;
 
         case TYcfloat:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
 #endif
@@ -1652,7 +1668,7 @@ unsigned findreg(regm_t regm
   printf("findreg(x%x, line=%d, file='%s')\n",regmsave,line,file);
   fflush(stdout);
 #endif
-*(char*)0=0;
+//*(char*)0=0;
   assert(0);
   return 0;
 }
@@ -1813,7 +1829,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         unsigned size;
 
 #if 0
-      if (pass == PASSfinal)
+        if (pass == PASSfinal)
         {   dbg_printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym ",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
                 regm_str(msavereg),regm_str(*pretregs));
@@ -1842,7 +1858,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         count = 0;
 L1:
         //printf("L1: allregs = x%x, *pretregs = x%x\n", allregs, *pretregs);
-        assert(++count < 10);           /* fail instead of hanging if blocked */
+        assert(++count < 20);           /* fail instead of hanging if blocked */
         s = retregs & mES;
         assert(retregs);
         msreg = lsreg = (unsigned)-1;           /* no value assigned yet        */
@@ -1930,6 +1946,7 @@ L3:
                 lsreg = findreglsw(r);
                 if (msreg == -1)
                 {   retregs &= mMSW;
+                    assert(retregs);
                     goto L3;
                 }
             }
@@ -2542,7 +2559,7 @@ reload:                                 /* reload result from memory    */
         case OPrelconst:
             c = cdrelconst(e,pretregs);
             break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case OPgot:
             c = cdgot(e,pretregs);
             break;
@@ -2622,7 +2639,6 @@ elem_print(e);
 code *codelem(elem *e,regm_t *pretregs,bool constflag)
 { code *c;
   Symbol *s;
-  tym_t tym;
   unsigned op;
 
 #ifdef DEBUG

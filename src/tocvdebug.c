@@ -1,5 +1,5 @@
 
-// Copyright (c) 2004-2009 by Digital Mars
+// Copyright (c) 2004-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -155,7 +155,8 @@ unsigned cv4_Denum(EnumDeclaration *e)
             {
                 value = sf->value->toInteger();
                 unsigned fnamelen1 = fnamelen;
-                fnamelen += 4 + cv4_numericbytes(value) + cv_stringbytes(sf->toPrettyChars());
+                // store only member's simple name
+                fnamelen += 4 + cv4_numericbytes(value) + cv_stringbytes(sf->toChars());
 
                 /* Optlink dies on longer ones, so just truncate
                  */
@@ -201,7 +202,8 @@ unsigned cv4_Denum(EnumDeclaration *e)
             TOWORD(dt->data + j + 2,attribute);
             cv4_storenumeric(dt->data + j + 4,value);
             j += 4 + cv4_numericbytes(value);
-            j += cv_namestring(dt->data + j, sf->toPrettyChars());
+            // store only member's simple name
+            j += cv_namestring(dt->data + j, sf->toChars());
 
             // If enum is not a member of a class, output enum members as constants
 //          if (!isclassmember(s))
@@ -459,7 +461,7 @@ void ClassDeclaration::toDebug()
 //    if (st->Sopeq && !(st->Sopeq->Sfunc->Fflags & Fnodebug))
 //      property |= 0x20;               // class has overloaded assignment
 
-    id = toPrettyChars();
+    id = isCPPinterface() ? ident->toChars() : toPrettyChars();
     numidx = isUnionDeclaration() ? 8 : 12;
     len = numidx + cv4_numericbytes(size);
     d = debtyp_alloc(len + cv_stringbytes(id));

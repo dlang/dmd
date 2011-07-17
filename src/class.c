@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -32,6 +32,7 @@
 ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
+ClassDeclaration *ClassDeclaration::exception;
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : AggregateDeclaration(loc, id)
@@ -186,6 +187,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         {   if (throwable)
                 throwable->error("%s", msg);
             throwable = this;
+        }
+
+        if (id == Id::Exception)
+        {   if (exception)
+                exception->error("%s", msg);
+            exception = this;
         }
 
         //if (id == Id::ClassInfo)
@@ -691,7 +698,8 @@ void ClassDeclaration::semantic(Scope *sc)
     if (!ctor && baseClass && baseClass->ctor)
     {
         //printf("Creating default this(){} for class %s\n", toChars());
-        CtorDeclaration *ctor = new CtorDeclaration(loc, 0, NULL, 0, 0);
+                Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
+        CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
         ctor->fbody = new CompoundStatement(0, new Statements());
         members->push(ctor);
         ctor->addMember(sc, this, 1);
@@ -750,6 +758,12 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 #endif
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
+
+    if (deferred)
+    {
+        deferred->semantic2(sc);
+        deferred->semantic3(sc);
+    }
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -831,15 +845,17 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         *poffset = 0;
     while (cd)
     {
-        if (this == cd->baseClass)
-            return 1;
-
         /* cd->baseClass might not be set if cd is forward referenced.
          */
         if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
         {
-            cd->error("base class is forward referenced by %s", toChars());
+            cd->semantic(NULL);
+            if (!cd->baseClass)
+                cd->error("base class is forward referenced by %s", toChars());
         }
+
+        if (this == cd->baseClass)
+            return 1;
 
         cd = cd->baseClass;
     }
@@ -868,14 +884,14 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    if (scope)
+    if (scope && !symtab)
     {   Scope *sc = scope;
         sc->mustsemantic++;
         semantic(sc);
         sc->mustsemantic--;
     }
 
-    if (!members || !symtab || scope)
+    if (!members || !symtab)
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;

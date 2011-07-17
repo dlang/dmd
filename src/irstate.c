@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -32,6 +32,7 @@ IRState::IRState(IRState *irs, Statement *s)
         sthis = irs->sthis;
         blx = irs->blx;
         deferToObj = irs->deferToObj;
+        varsInScope = irs->varsInScope;
     }
     else
     {
@@ -41,6 +42,7 @@ IRState::IRState(IRState *irs, Statement *s)
         sthis = NULL;
         blx = NULL;
         deferToObj = NULL;
+        varsInScope = NULL;
     }
 }
 
@@ -64,6 +66,7 @@ IRState::IRState(IRState *irs, Dsymbol *s)
         sthis = irs->sthis;
         blx = irs->blx;
         deferToObj = irs->deferToObj;
+        varsInScope = irs->varsInScope;
     }
     else
     {
@@ -73,6 +76,7 @@ IRState::IRState(IRState *irs, Dsymbol *s)
         sthis = NULL;
         blx = NULL;
         deferToObj = NULL;
+        varsInScope = NULL;
     }
 }
 
@@ -94,6 +98,7 @@ IRState::IRState(Module *m, Dsymbol *s)
     blx = NULL;
     deferToObj = NULL;
     startaddress = NULL;
+    varsInScope = NULL;
 }
 
 block *IRState::getBreakBlock(Identifier *ident)

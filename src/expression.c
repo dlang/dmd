@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -43,6 +43,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "attrib.h"
 #include "hdrgen.h"
 #include "parse.h"
+#include "doc.h"
 
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
@@ -176,7 +177,7 @@ FuncDeclaration *hasThis(Scope *sc)
                 break;
         }
 
-        fd = fd->parent->isFuncDeclaration();
+        fd = parent->isFuncDeclaration();
     }
 
     if (!fd->isThis())
@@ -205,9 +206,12 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 
         if (t->ty == Tfunction || e->op == TOKoverloadset)
         {
-#if 0
-            if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty)
+#if 1
+            if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
+                global.params.enforcePropertySyntax)
+            {
                 error(e->loc, "not a property %s\n", e->toChars());
+            }
 #endif
             e = new CallExp(e->loc, e);
             e = e->semantic(sc);
@@ -387,6 +391,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
                 condexp.type = NULL;
                 condexp.e1 = e0;
                 condexp.e2 = e;
+                condexp.loc = e->loc;
                 condexp.semantic(sc);
                 exps->data[j0] = (void *)condexp.e1;
                 e = condexp.e2;
@@ -460,11 +465,46 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
     }
 }
 
+/************************************************
+ * If we want the value of this expression, but do not want to call
+ * the destructor on it.
+ */
+
+void valueNoDtor(Expression *e)
+{
+    if (e->op == TOKcall)
+    {
+        /* The struct value returned from the function is transferred
+         * so do not call the destructor on it.
+         * Recognize:
+         *       ((S _ctmp = S.init), _ctmp).this(...)
+         * and make sure the destructor is not called on _ctmp
+         * BUG: if e is a CommaExp, we should go down the right side.
+         */
+        CallExp *ce = (CallExp *)e;
+        if (ce->e1->op == TOKdotvar)
+        {   DotVarExp *dve = (DotVarExp *)ce->e1;
+            if (dve->var->isCtorDeclaration())
+            {   // It's a constructor call
+                if (dve->e1->op == TOKcomma)
+                {   CommaExp *comma = (CommaExp *)dve->e1;
+                    if (comma->e2->op == TOKvar)
+                    {   VarExp *ve = (VarExp *)comma->e2;
+                        VarDeclaration *ctmp = ve->var->isVarDeclaration();
+                        if (ctmp)
+                            ctmp->noscope = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
 /*********************************************
  * Call copy constructor for struct value argument.
  */
 #if DMDV2
-Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
+Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 {
     Type *tb = e->type->toBasetype();
     assert(tb->ty == Tstruct);
@@ -477,9 +517,10 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
          * This is not the most efficent, ideally tmp would be constructed
          * directly onto the stack.
          */
-        Identifier *idtmp = Lexer::uniqueId("__tmp");
+        Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
         VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
         tmp->storage_class |= STCctfe;
+        tmp->noscope = noscope;
         Expression *ae = new DeclarationExp(loc, tmp);
         e = new CommaExp(loc, ae, new VarExp(loc, tmp));
         e = e->semantic(sc);
@@ -579,7 +620,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         Identifier *id = Lexer::uniqueId("__arrayArg");
                         Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
                         t = t->semantic(loc, sc);
-                        VarDeclaration *v = new VarDeclaration(loc, t, id, new VoidInitializer(loc));
+                        VarDeclaration *v = new VarDeclaration(loc, t, id, fd->isSafe() ? NULL : new VoidInitializer(loc));
                         v->storage_class |= STCctfe;
                         v->semantic(sc);
                         v->parent = sc->parent;
@@ -680,9 +721,24 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
             {
-                arg = callCpCtor(loc, sc, arg);
+                if (arg->op == TOKcall)
+                {
+                    /* The struct value returned from the function is transferred
+                     * to the function, so the callee should not call the destructor
+                     * on it.
+                     */
+                    valueNoDtor(arg);
+                }
+                else
+                {   /* Not transferring it, so call the copy constructor
+                     */
+                    arg = callCpCtor(loc, sc, arg, 1);
+                }
             }
 #endif
+
+            //printf("arg: %s\n", arg->toChars());
+            //printf("type: %s\n", arg->type->toChars());
 
             // Convert lazy argument to a delegate
             if (p->storageClass & STClazy)
@@ -743,7 +799,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
             }
 
+            // Do not allow types that need destructors
+            if (arg->type->needsDestruction())
+                arg->error("cannot pass types that need destruction as variadic arguments");
+
             // Convert static arrays to dynamic arrays
+            // BUG: I don't think this is right for D2
             tb = arg->type->toBasetype();
             if (tb->ty == Tsarray)
             {   TypeSArray *ts = (TypeSArray *)tb;
@@ -756,7 +817,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct)
             {
-                arg = callCpCtor(loc, sc, arg);
+                arg = callCpCtor(loc, sc, arg, 1);
             }
 #endif
 
@@ -1163,6 +1224,11 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 }
 
 #if DMDV2
+/*********************************************
+ * Calling function f.
+ * Check the purity, i.e. if we're in a pure function
+ * we can only call other pure functions.
+ */
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
 #if 1
@@ -1198,11 +1264,14 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         }
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
-        if (outerfunc->isPure() && !sc->intypeof &&
+        if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
+            !sc->intypeof &&
+            !(sc->flags & SCOPEdebug) &&
             !(f->isPure() || (calledparent == outerfunc)))
         {
-            error("pure function '%s' cannot call impure function '%s'",
-            outerfunc->toChars(), f->toChars());
+            if (outerfunc->setImpure())
+                error("pure function '%s' cannot call impure function '%s'",
+                    outerfunc->toChars(), f->toChars());
         }
     }
 #else
@@ -1212,12 +1281,136 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 #endif
 }
 
+/*******************************************
+ * Accessing variable v.
+ * Check for purity and safety violations.
+ * If ethis is not NULL, then ethis is the 'this' pointer as in ethis.v
+ */
+
+void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
+{
+    /* Look for purity and safety violations when accessing variable v
+     * from current function.
+     */
+    if (sc->func &&
+        !sc->intypeof &&             // allow violations inside typeof(expression)
+        !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
+        v->ident != Id::ctfe &&      // magic variable never violates pure and safe
+        !v->isImmutable() &&         // always safe and pure to access immutables...
+        !(v->isConst() && v->isDataseg() && !v->type->hasPointers()) && // const global value types are immutable
+        !(v->storage_class & STCmanifest) // ...or manifest constants
+       )
+    {
+        if (v->isDataseg())
+        {
+            /* Accessing global mutable state.
+             * Therefore, this function and all its immediately enclosing
+             * functions must be pure.
+             */
+            bool msg = FALSE;
+            for (Dsymbol *s = sc->func; s; s = s->toParent2())
+            {
+                FuncDeclaration *ff = s->isFuncDeclaration();
+                if (!ff)
+                    break;
+                if (ff->setImpure() && !msg)
+                {   error("pure function '%s' cannot access mutable static data '%s'",
+                        sc->func->toChars(), v->toChars());
+                    msg = TRUE;                     // only need the innermost message
+                }
+            }
+        }
+        else
+        {
+            if (ethis)
+            {
+                Type *t1 = ethis->type->toBasetype();
+
+                if (t1->isImmutable() ||
+                    (t1->ty == Tpointer && t1->nextOf()->isImmutable()))
+                {
+                    goto L1;
+                }
+                if (ethis->op == TOKvar)
+                {   VarExp *ve = (VarExp *)ethis;
+
+                    v = ve->var->isVarDeclaration();
+                    if (v)
+                        checkPurity(sc, v, NULL);
+                    return;
+                }
+                if (ethis->op == TOKdotvar)
+                {   DotVarExp *ve = (DotVarExp *)ethis;
+
+                    v = ve->var->isVarDeclaration();
+                    if (v)
+                        checkPurity(sc, v, ve->e1);
+                    return;
+                }
+            }
+
+            /* Given:
+             * void f()
+             * { int fx;
+             *   pure void g()
+             *   {  int gx;
+             *      void h()
+             *      {  int hx;
+             *         void i() { }
+             *      }
+             *   }
+             * }
+             * i() can modify hx and gx but not fx
+             */
+
+            /* Back up until we find the parent function of v,
+             * requiring each function in between to be impure.
+             */
+            Dsymbol *vparent = v->toParent2();
+            Dsymbol *s = sc->func, *snext = s->toParent2();
+            // Make sure we're really finding parent *functions*, not parent
+            // class.
+            if (vparent->isFuncDeclaration() || snext != vparent)
+            {
+                for (; s; s = s->toParent2())
+                {
+                    if (s == vparent)
+                        break;
+                    FuncDeclaration *ff = s->isFuncDeclaration();
+                    if (!ff)
+                        break;
+                    if (ff->setImpure())
+                    {   error("pure nested function '%s' cannot access mutable data '%s'",
+                            ff->toChars(), v->toChars());
+                        break;
+                    }
+                }
+            }
+        }
+
+
+        /* Do not allow safe functions to access __gshared data
+         */
+        if (v->storage_class & STCgshared)
+        {
+            if (sc->func->setUnsafe())
+                error("safe function '%s' cannot access __gshared data '%s'",
+                    sc->func->toChars(), v->toChars());
+        }
+
+    L1: ;
+    }
+}
+
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
-    if (sc->func && sc->func->isSafe() && !sc->intypeof &&
+    if (sc->func && !sc->intypeof &&
         !f->isSafe() && !f->isTrusted())
-        error("safe function '%s' cannot call system function '%s'",
-            sc->func->toChars(), f->toChars());
+    {
+        if (sc->func->setUnsafe())
+            error("safe function '%s' cannot call system function '%s'",
+                sc->func->toChars(), f->toChars());
+    }
 }
 #endif
 
@@ -1412,6 +1605,55 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
     return a;
 }
 
+/***************************************************
+ * Recognize expressions of the form:
+ *      ((T v = init), v)
+ * where v is a temp.
+ * This is used in optimizing out unnecessary temporary generation.
+ * Returns initializer expression of v if so, NULL if not.
+ */
+
+Expression *Expression::isTemp()
+{
+    //printf("isTemp() %s\n", toChars());
+    if (op == TOKcomma)
+    {   CommaExp *ec = (CommaExp *)this;
+        if (ec->e1->op == TOKdeclaration &&
+            ec->e2->op == TOKvar)
+        {   DeclarationExp *de = (DeclarationExp *)ec->e1;
+            VarExp *ve = (VarExp *)ec->e2;
+            if (ve->var == de->declaration && ve->var->storage_class & STCctfe)
+            {   VarDeclaration *v = ve->var->isVarDeclaration();
+                if (v && v->init)
+                {
+                    ExpInitializer *ei = v->init->isExpInitializer();
+                    if (ei)
+                    {   Expression *e = ei->exp;
+                        if (e->op == TOKconstruct)
+                        {   ConstructExp *ce = (ConstructExp *)e;
+                            if (ce->e1->op == TOKvar && ((VarExp *)ce->e1)->var == ve->var)
+                                e = ce->e2;
+                        }
+                        return e;
+                    }
+                }
+            }
+        }
+    }
+    return NULL;
+}
+
+/************************************************
+ * Destructors are attached to VarDeclarations.
+ * Hence, if expression returns a temp that needs a destructor,
+ * make sure and create a VarDeclaration for that temp.
+ */
+
+Expression *Expression::addDtorHook(Scope *sc)
+{
+    return this;
+}
+
 /******************************** IntegerExp **************************/
 
 IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
@@ -1467,7 +1709,6 @@ dinteger_t IntegerExp::toInteger()
     {
         switch (t->ty)
         {
-            case Tbit:
             case Tbool:         value = (value != 0);           break;
             case Tint8:         value = (d_int8)  value;        break;
             case Tchar:
@@ -1611,13 +1852,18 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                      break;
                 }
             case Tchar:
+            {
+                unsigned o = buf->offset;
                 if (v == '\'')
                     buf->writestring("'\\''");
                 else if (isprint(v) && v != '\\')
                     buf->printf("'%c'", (int)v);
                 else
                     buf->printf("'\\x%02x'", (int)v);
+                if (hgs->ddoc)
+                    escapeDdocString(buf, o);
                 break;
+            }
 
             case Tint8:
                 buf->writestring("cast(byte)");
@@ -1654,7 +1900,6 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 buf->printf("%juLU", v);
                 break;
 
-            case Tbit:
             case Tbool:
                 buf->writestring((char *)(v ? "true" : "false"));
                 break;
@@ -1801,13 +2046,7 @@ complex_t RealExp::toComplex()
 
 int RealEquals(real_t x1, real_t x2)
 {
-#if 1
     return (Port::isNan(x1) && Port::isNan(x2)) ||
-#elif __APPLE__
-    return (__inline_isnan(x1) && __inline_isnan(x2)) ||
-#else
-    return (isnan(x1) && isnan(x2)) ||
-#endif
         /* In some cases, the REALPAD bytes get garbage in them,
          * so be sure and ignore them.
          */
@@ -1912,13 +2151,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
      * 0X1.9P+2                 => 19P2
      */
 
-#if 1
     if (Port::isNan(value))
-#elif __APPLE__
-    if (__inline_isnan(value))
-#else
-    if (isnan(value))
-#endif
         buf->writestring("NAN");        // no -NAN bugs
     else
     {
@@ -2343,6 +2576,11 @@ Lagain:
 
         if (!f->originalType && f->scope)       // semantic not yet run
             f->semantic(f->scope);
+
+        // if inferring return type, sematic3 needs to be run
+        if (f->inferRetType && f->scope && f->type && !f->type->nextOf())
+            f->semantic3(f->scope);
+
         if (f->isUnitTestDeclaration())
         {
             error("cannot call unittest function %s", toChars());
@@ -2997,6 +3235,7 @@ unsigned StringExp::charAt(size_t i)
 void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('"');
+    unsigned o = buf->offset;
     for (size_t i = 0; i < len; i++)
     {   unsigned c = charAt(i);
 
@@ -3021,6 +3260,8 @@ void StringExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 break;
         }
     }
+    if (hgs->ddoc)
+        escapeDdocString(buf, o);
     buf->writeByte('"');
     if (postfix)
         buf->writeByte(postfix);
@@ -3120,6 +3361,12 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     type = t0->arrayOf();
     //type = new TypeSArray(t0, new IntegerExp(elements->dim));
     type = type->semantic(loc, sc);
+
+    /* Disallow array literals of type void being used.
+     */
+    if (elements->dim > 0 && t0->ty == Tvoid)
+        error("%s of type %s has no value", toChars(), type->toChars());
+
     return this;
 }
 
@@ -3145,7 +3392,10 @@ int ArrayLiteralExp::isBool(int result)
 #if DMDV2
 int ArrayLiteralExp::canThrow(bool mustNotThrow)
 {
-    return 1;   // because it can fail allocating memory
+    /* Memory allocation failures throw non-recoverable exceptions, which
+     * we don't need to count as 'throwing'.
+     */
+    return arrayExpressionCanThrow(elements, mustNotThrow);
 }
 #endif
 
@@ -3240,7 +3490,11 @@ int AssocArrayLiteralExp::isBool(int result)
 #if DMDV2
 int AssocArrayLiteralExp::canThrow(bool mustNotThrow)
 {
-    return 1;
+    /* Memory allocation failures throw non-recoverable exceptions, which
+     * we don't need to count as 'throwing'.
+     */
+    return (arrayExpressionCanThrow(keys,   mustNotThrow) ||
+            arrayExpressionCanThrow(values, mustNotThrow));
 }
 #endif
 
@@ -3359,17 +3613,21 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         else
         {
             if (v->init)
-            {   e = v->init->toExpression();
-                if (!e)
-                {   error("cannot make expression out of initializer for %s", v->toChars());
-                    return new ErrorExp();
-                }
-                else if (v->scope)
-                {   // Do deferred semantic analysis
-                    Initializer *i2 = v->init->syntaxCopy();
-                    i2 = i2->semantic(v->scope, v->type);
-                    e = i2->toExpression();
-                    v->scope = NULL;
+            {   if (v->init->isVoidInitializer())
+                    e = NULL;
+                else
+                {   e = v->init->toExpression();
+                    if (!e)
+                    {   error("cannot make expression out of initializer for %s", v->toChars());
+                        return new ErrorExp();
+                    }
+                    else if (v->scope)
+                    {   // Do deferred semantic analysis
+                        Initializer *i2 = v->init->syntaxCopy();
+                        i2 = i2->semantic(v->scope, v->type, WANTinterpret);
+                        e = i2->toExpression();
+                        v->scope = NULL;
+                    }
                 }
             }
             else
@@ -3380,6 +3638,22 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     }
 
     type = stype ? stype : sd->type;
+
+    /* If struct requires a destructor, rewrite as:
+     *    (S tmp = S()),tmp
+     * so that the destructor can be hung on tmp.
+     */
+    if (sd->dtor)
+    {
+        Identifier *idtmp = Lexer::uniqueId("__sl");
+        VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(0, this));
+        tmp->storage_class |= STCctfe;
+        Expression *ae = new DeclarationExp(loc, tmp);
+        Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+        e = e->semantic(sc);
+        return e;
+    }
+
     return this;
 }
 
@@ -3407,7 +3681,7 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
             /* If type is a static array, and e is an initializer for that array,
              * then the field initializer should be an array literal of e.
              */
-            if (e->type != type && type->ty == Tsarray)
+            if (e->type->castMod(0) != type->castMod(0) && type->ty == Tsarray)
             {   TypeSArray *tsa = (TypeSArray *)type;
                 uinteger_t length = tsa->dim->toInteger();
                 Expressions *z = new Expressions;
@@ -3622,6 +3896,8 @@ Lagain:
             }
             //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         }
+        if (global.errors)
+            return new ErrorExp();
     }
     else
     {
@@ -4027,7 +4303,22 @@ int NewExp::checkSideEffect(int flag)
 #if DMDV2
 int NewExp::canThrow(bool mustNotThrow)
 {
-    return 0;           // regard storage allocation failures as not recoverable
+    if (arrayExpressionCanThrow(newargs, mustNotThrow) ||
+        arrayExpressionCanThrow(arguments, mustNotThrow))
+        return 1;
+    if (member)
+    {
+        // See if constructor call can throw
+        Type *t = member->type->toBasetype();
+        if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
+        {
+            if (mustNotThrow)
+                error("constructor %s is not nothrow", member->toChars());
+            return 1;
+        }
+    }
+    // regard storage allocation failures as not recoverable
+    return 0;
 }
 #endif
 
@@ -4101,6 +4392,7 @@ int NewAnonClassExp::checkSideEffect(int flag)
 #if DMDV2
 int NewAnonClassExp::canThrow(bool mustNotThrow)
 {
+    assert(0);          // should have been lowered by semantic()
     return 1;
 }
 #endif
@@ -4253,94 +4545,9 @@ Expression *VarExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
-#if 0
-        if ((v->isConst() || v->isImmutable()) &&
-            type->toBasetype()->ty != Tsarray && v->init)
-        {
-            ExpInitializer *ei = v->init->isExpInitializer();
-            if (ei)
-            {
-                //ei->exp->implicitCastTo(sc, type)->print();
-                return ei->exp->implicitCastTo(sc, type);
-            }
-        }
-#endif
         v->checkNestedReference(sc, loc);
 #if DMDV2
-#if 1
-        if (sc->func && !sc->intypeof)
-        {
-            /* Given:
-             * void f()
-             * { int fx;
-             *   pure void g()
-             *   {  int gx;
-             *      void h()
-             *      {  int hx;
-             *         void i() { }
-             *      }
-             *   }
-             * }
-             * i() can modify hx and gx but not fx
-             */
-
-            /* Determine if sc->func is pure or if any function that
-             * encloses it is also pure.
-             */
-            bool hasPureParent = false;
-            for (FuncDeclaration *outerfunc = sc->func; outerfunc;)
-            {
-                if (outerfunc->isPure())
-                {
-                    hasPureParent = true;
-                    break;
-                }
-                Dsymbol *parent = outerfunc->toParent2();
-                if (!parent)
-                    break;
-                outerfunc = parent->isFuncDeclaration();
-            }
-
-            /* Magic variable __ctfe never violates pure or safe
-             */
-            if (v->ident != Id::ctfe)
-            {
-                /* If ANY of its enclosing functions are pure,
-                 * it cannot do anything impure.
-                 * If it is pure, it cannot access any mutable variables other
-                 * than those inside itself
-                 */
-                if (hasPureParent && v->isDataseg() &&
-                    !v->isImmutable())
-                {
-                    error("pure function '%s' cannot access mutable static data '%s'",
-                        sc->func->toChars(), v->toChars());
-                }
-                else if (sc->func->isPure() &&
-                    sc->parent->pastMixin() != v->parent->pastMixin() &&
-                    !v->isImmutable() &&
-                    !(v->storage_class & STCmanifest))
-                {
-                    error("pure nested function '%s' cannot access mutable data '%s'",
-                        sc->func->toChars(), v->toChars());
-                    if (v->isEnumDeclaration())
-                        error("enum");
-                }
-            }
-
-            /* Do not allow safe functions to access __gshared data
-             */
-            if (sc->func->isSafe() && v->storage_class & STCgshared)
-                error("safe function '%s' cannot access __gshared data '%s'",
-                    sc->func->toChars(), v->toChars());
-        }
-#else
-        if (sc->func && sc->func->isPure() && !sc->intypeof)
-        {
-            if (v->isDataseg() && !v->isImmutable())
-                error("pure function '%s' cannot access mutable static data '%s'", sc->func->toChars(), v->toChars());
-        }
-#endif
+        checkPurity(sc, v, NULL);
 #endif
     }
 #if 0
@@ -4475,7 +4682,8 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
         if (o->dyncast() == DYNCAST_EXPRESSION)
         {
             Expression *e = (Expression *)o;
-            e = e->syntaxCopy();
+            if (e->op == TOKdsymbol)
+                e = e->syntaxCopy();
             exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_DSYMBOL)
@@ -4769,14 +4977,87 @@ int DeclarationExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int DeclarationExp::canThrow(bool mustNotThrow)
+/**************************************
+ * Does symbol, when initialized, throw?
+ * Mirrors logic in Dsymbol_toElem().
+ */
+
+int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
 {
-    VarDeclaration *v = declaration->isVarDeclaration();
-    if (v && v->init)
-    {   ExpInitializer *ie = v->init->isExpInitializer();
-        return ie && ie->exp->canThrow(mustNotThrow);
+    AttribDeclaration *ad;
+    VarDeclaration *vd;
+    TemplateMixin *tm;
+    TupleDeclaration *td;
+
+    //printf("Dsymbol_toElem() %s\n", s->toChars());
+    ad = s->isAttribDeclaration();
+    if (ad)
+    {
+        Array *decl = ad->include(NULL, NULL);
+        if (decl && decl->dim)
+        {
+            for (size_t i = 0; i < decl->dim; i++)
+            {
+                s = (Dsymbol *)decl->data[i];
+                if (Dsymbol_canThrow(s, mustNotThrow))
+                    return 1;
+            }
+        }
+    }
+    else if ((vd = s->isVarDeclaration()) != NULL)
+    {
+        s = s->toAlias();
+        if (s != vd)
+            return Dsymbol_canThrow(s, mustNotThrow);
+        if (vd->storage_class & STCmanifest)
+            ;
+        else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
+            ;
+        else
+        {
+            if (vd->init)
+            {   ExpInitializer *ie = vd->init->isExpInitializer();
+                if (ie && ie->exp->canThrow(mustNotThrow))
+                    return 1;
+            }
+            if (vd->edtor && !vd->noscope)
+                return vd->edtor->canThrow(mustNotThrow);
+        }
+    }
+    else if ((tm = s->isTemplateMixin()) != NULL)
+    {
+        //printf("%s\n", tm->toChars());
+        if (tm->members)
+        {
+            for (size_t i = 0; i < tm->members->dim; i++)
+            {
+                Dsymbol *sm = (Dsymbol *)tm->members->data[i];
+                if (Dsymbol_canThrow(sm, mustNotThrow))
+                    return 1;
+            }
+        }
+    }
+    else if ((td = s->isTupleDeclaration()) != NULL)
+    {
+        for (size_t i = 0; i < td->objects->dim; i++)
+        {   Object *o = (Object *)td->objects->data[i];
+            if (o->dyncast() == DYNCAST_EXPRESSION)
+            {   Expression *eo = (Expression *)o;
+                if (eo->op == TOKdsymbol)
+                {   DsymbolExp *se = (DsymbolExp *)eo;
+                    if (Dsymbol_canThrow(se->s, mustNotThrow))
+                        return 1;
+                }
+            }
+        }
     }
     return 0;
+}
+
+
+int DeclarationExp::canThrow(bool mustNotThrow)
+{
+    return Dsymbol_canThrow(declaration, mustNotThrow);
 }
 #endif
 
@@ -4975,8 +5256,8 @@ Expression *IsExp::semantic(Scope *sc)
      */
 
     //printf("IsExp::semantic(%s)\n", toChars());
-    if (id && !(sc->flags & SCOPEstaticif))
-    {   error("can only declare type aliases within static if conditionals");
+    if (id && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert)))
+    {   error("can only declare type aliases within static if conditionals or static asserts");
         return new ErrorExp();
     }
 
@@ -5617,6 +5898,8 @@ Expression *CompileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
     if (!e1->type->isString())
     {
         error("argument to mixin must be a string type, not %s\n", e1->type->toChars());
@@ -5664,7 +5947,7 @@ Expression *FileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->optimize(WANTvalue);
+    e1 = e1->optimize(WANTvalue | WANTinterpret);
     if (e1->op != TOKstring)
     {   error("file name argument must be a string, not (%s)", e1->toChars());
         goto Lerror;
@@ -5881,7 +6164,8 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     }
     else
     {
-        e1 = resolveProperties(sc, e1);
+        if (e1->op != TOKtype)
+            e1 = resolveProperties(sc, e1);
         eleft = NULL;
         eright = e1;
     }
@@ -6190,6 +6474,7 @@ Expression *DotVarExp::semantic(Scope *sc)
         }
 
         e1 = e1->semantic(sc);
+        e1 = e1->addDtorHook(sc);
         type = var->type;
         if (!type && global.errors)
         {   // var is goofed up, just return 0
@@ -6197,9 +6482,9 @@ Expression *DotVarExp::semantic(Scope *sc)
         }
         assert(type);
 
+        Type *t1 = e1->type;
         if (!var->isFuncDeclaration())  // for functions, do checks after overload resolution
         {
-            Type *t1 = e1->type;
             if (t1->ty == Tpointer)
                 t1 = t1->nextOf();
 
@@ -6212,11 +6497,27 @@ Expression *DotVarExp::semantic(Scope *sc)
                 accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
+            if (v)
+                checkPurity(sc, v, e1);
             Expression *e = expandVar(WANTvalue, v);
             if (e)
                 return e;
         }
+        Dsymbol *s;
+        if (sc->func && !sc->intypeof && t1->hasPointers() &&
+            (s = t1->toDsymbol(sc)) != NULL)
+        {
+            AggregateDeclaration *ad = s->isAggregateDeclaration();
+            if (ad && ad->hasUnions)
+            {
+                if (sc->func->setUnsafe())
+                {   error("union %s containing pointers are not allowed in @safe functions", t1->toChars());
+                    goto Lerr;
+                }
+            }
+        }
     }
+
     //printf("-DotVarExp::semantic('%s')\n", toChars());
     return this;
 
@@ -6359,6 +6660,8 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
     Expression *e = new DotIdExp(loc, e1, ti->name);
 L1:
     e = e->semantic(sc);
+    if (e->op == TOKerror)
+        return e;
     if (e->op == TOKdottd)
     {
         if (global.errors)
@@ -6776,7 +7079,8 @@ Lagain:
     }
 
     if (e1->op == TOKcomma)
-    {
+    {   /* Rewrite (a,b)(args) as (a,(b(args)))
+         */
         CommaExp *ce = (CommaExp *)e1;
 
         e1 = ce->e2;
@@ -7134,13 +7438,15 @@ Lagain:
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
-            if (sc->func && sc->func->isPure() && !tf->purity)
+            if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
             {
-                error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
+                if (sc->func->setImpure())
+                    error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
             }
-            if (sc->func && sc->func->isSafe() && tf->trust <= TRUSTsystem)
+            if (sc->func && tf->trust <= TRUSTsystem)
             {
-                error("safe function '%s' cannot call system delegate '%s'", sc->func->toChars(), e1->toChars());
+                if (sc->func->setUnsafe())
+                    error("safe function '%s' cannot call system delegate '%s'", sc->func->toChars(), e1->toChars());
             }
             goto Lcheckargs;
         }
@@ -7148,13 +7454,15 @@ Lagain:
         {
             Expression *e = new PtrExp(loc, e1);
             t1 = ((TypePointer *)t1)->next;
-            if (sc->func && sc->func->isPure() && !((TypeFunction *)t1)->purity)
+            if (sc->func && !((TypeFunction *)t1)->purity && !(sc->flags & SCOPEdebug))
             {
-                error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
+                if (sc->func->setImpure())
+                    error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
             }
-            if (sc->func && sc->func->isSafe() && !((TypeFunction *)t1)->trust <= TRUSTsystem)
+            if (sc->func && !((TypeFunction *)t1)->trust <= TRUSTsystem)
             {
-                error("safe function '%s' cannot call system function pointer '%s'", sc->func->toChars(), e1->toChars());
+                if (sc->func->setUnsafe())
+                    error("safe function '%s' cannot call system function pointer '%s'", sc->func->toChars(), e1->toChars());
             }
             e->type = t1;
             e1 = e;
@@ -7252,31 +7560,43 @@ Lcheckargs:
 int CallExp::checkSideEffect(int flag)
 {
 #if DMDV2
-    if (flag != 2)
-        return 1;
+    int result = 1;
 
-    if (e1->checkSideEffect(2))
-        return 1;
+    /* Calling a function or delegate that is pure nothrow
+     * has no side effects.
+     */
+    if (e1->type)
+    {
+        Type *t = e1->type->toBasetype();
+        if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
+                                   ((TypeFunction *)t)->isnothrow)
+            ||
+            (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
+                                   ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+           )
+        {
+            result = 0;
+            //if (flag == 0)
+                //warning("pure nothrow function %s has no effect", e1->toChars());
+        }
+        else
+            result = 1;
+    }
+
+    result |= e1->checkSideEffect(1);
 
     /* If any of the arguments have side effects, this expression does
      */
     for (size_t i = 0; i < arguments->dim; i++)
     {   Expression *e = (Expression *)arguments->data[i];
 
-        if (e->checkSideEffect(2))
-            return 1;
+        result |= e->checkSideEffect(1);
     }
 
-    /* If calling a function or delegate that is typed as pure,
-     * then this expression has no side effects.
-     */
-    Type *t = e1->type->toBasetype();
-    if (t->ty == Tfunction && ((TypeFunction *)t)->purity)
-        return 0;
-    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity)
-        return 0;
-#endif
+    return result;
+#else
     return 1;
+#endif
 }
 
 #if DMDV2
@@ -7288,12 +7608,8 @@ int CallExp::canThrow(bool mustNotThrow)
 
     /* If any of the arguments can throw, then this expression can throw
      */
-    for (size_t i = 0; i < arguments->dim; i++)
-    {   Expression *e = (Expression *)arguments->data[i];
-
-        if (e && e->canThrow(mustNotThrow))
-            return 1;
-    }
+    if (arrayExpressionCanThrow(arguments, mustNotThrow))
+        return 1;
 
     if (global.errors && !e1->type)
         return 0;                       // error recovery
@@ -7332,6 +7648,51 @@ Expression *CallExp::toLvalue(Scope *sc, Expression *e)
     return Expression::toLvalue(sc, e);
 }
 
+Expression *CallExp::addDtorHook(Scope *sc)
+{
+    /* Only need to add dtor hook if it's a type that needs destruction.
+     * Use same logic as VarDeclaration::callScopeDtor()
+     */
+
+    if (e1->type && e1->type->ty == Tfunction)
+    {
+        TypeFunction *tf = (TypeFunction *)e1->type;
+        if (tf->isref)
+            return this;
+    }
+
+    Type *tv = type->toBasetype();
+    while (tv->ty == Tsarray)
+    {   TypeSArray *ta = (TypeSArray *)tv;
+        tv = tv->nextOf()->toBasetype();
+    }
+    if (tv->ty == Tstruct)
+    {   TypeStruct *ts = (TypeStruct *)tv;
+        StructDeclaration *sd = ts->sym;
+        if (sd->dtor)
+        {   /* Type needs destruction, so declare a tmp
+             * which the back end will recognize and call dtor on
+             */
+            if (e1->op == TOKdotvar)
+            {
+                DotVarExp* dve = (DotVarExp*)e1;
+                if (dve->e1->isTemp() != NULL)
+                    goto Lnone;                 // already got a tmp
+            }
+
+            Identifier *idtmp = Lexer::uniqueId("__tmpfordtor");
+            VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
+            tmp->storage_class |= STCctfe;
+            Expression *ae = new DeclarationExp(loc, tmp);
+            Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+            e = e->semantic(sc);
+            return e;
+        }
+    }
+Lnone:
+    return this;
+}
+
 void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (e1->op == TOKtype)
@@ -7364,7 +7725,11 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
         UnaExp::semantic(sc);
+        if (e1->type == Type::terror)
+            return new ErrorExp();
         e1 = e1->toLvalue(sc, NULL);
+        if (e1->op == TOKerror)
+            return e1;
         if (!e1->type)
         {
             error("cannot take address of %s", e1->toChars());
@@ -7405,9 +7770,23 @@ Expression *AddrExp::semantic(Scope *sc)
             VarExp *ve = (VarExp *)e1;
 
             VarDeclaration *v = ve->var->isVarDeclaration();
-            if (v && !v->canTakeAddressOf())
-            {   error("cannot take address of %s", e1->toChars());
-                return new ErrorExp();
+            if (v)
+            {
+                if (!v->canTakeAddressOf())
+                {   error("cannot take address of %s", e1->toChars());
+                    return new ErrorExp();
+                }
+
+                if (sc->func && !sc->intypeof && !v->isDataseg())
+                {
+                    if (sc->func->setUnsafe())
+                    {
+                        error("cannot take address of %s %s in @safe function %s",
+                            v->isParameter() ? "parameter" : "local",
+                            v->toChars(),
+                            sc->func->toChars());
+                    }
+                }
             }
 
             FuncDeclaration *f = ve->var->isFuncDeclaration();
@@ -7680,6 +8059,8 @@ Expression *DeleteExp::semantic(Scope *sc)
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->toLvalue(sc, NULL);
+    if (e1->op == TOKerror)
+        return e1;
     type = Type::tvoid;
 
     tb = e1->type->toBasetype();
@@ -7866,8 +8247,7 @@ Expression *CastExp::semantic(Scope *sc)
         Type *t1b = e1->type->toBasetype();
         Type *tob = to->toBasetype();
         if (tob->ty == Tstruct &&
-            !tob->equals(t1b) &&
-            ((TypeStruct *)tob)->sym->search(0, Id::call, 0)
+            !tob->equals(t1b)
            )
         {
             /* Look to replace:
@@ -7878,10 +8258,10 @@ Expression *CastExp::semantic(Scope *sc)
 
             // Rewrite as to.call(e1)
             e = new TypeExp(loc, to);
-            e = new DotIdExp(loc, e, Id::call);
             e = new CallExp(loc, e, e1);
-            e = e->semantic(sc);
-            return e;
+            e = e->trySemantic(sc);
+            if (e)
+                return e;
         }
 
         // Struct casts are possible only when the sizes match
@@ -7906,52 +8286,68 @@ Expression *CastExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-#if 1
-    if (sc->func && sc->func->isSafe() && !sc->intypeof)
-#else
-    if (global.params.safe && !sc->module->safe && !sc->intypeof)
-#endif
+    // Check for unsafe casts
+    if (sc->func && !sc->intypeof)
     {   // Disallow unsafe casts
         Type *tob = to->toBasetype();
         Type *t1b = e1->type->toBasetype();
+
+        // Implicit conversions are always safe
+        if (t1b->implicitConvTo(tob))
+            goto Lsafe;
+
         if (!t1b->isMutable() && tob->isMutable())
-        {   // Cast not mutable to mutable
-          Lunsafe:
-            error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
-            return new ErrorExp();
-        }
-        else if (t1b->isShared() && !tob->isShared())
+            goto Lunsafe;
+
+        if (t1b->isShared() && !tob->isShared())
             // Cast away shared
             goto Lunsafe;
-        else if (tob->ty == Tpointer)
-        {   if (t1b->ty != Tpointer)
-                goto Lunsafe;
-            Type *tobn = tob->nextOf()->toBasetype();
-            Type *t1bn = t1b->nextOf()->toBasetype();
 
-            if (!t1bn->isMutable() && tobn->isMutable())
-                // Cast away pointer to not mutable
-                goto Lunsafe;
+        if (!tob->hasPointers())
+            goto Lsafe;
 
-            if (t1bn->isShared() && !tobn->isShared())
-                // Cast away pointer to shared
-                goto Lunsafe;
+        if (tob->ty == Tclass && t1b->ty == Tclass)
+        {
+            ClassDeclaration *cdfrom = t1b->isClassHandle();
+            ClassDeclaration *cdto   = tob->isClassHandle();
 
-            if (t1bn->isWild() && !tobn->isConst() && !tobn->isWild())
-                // Cast wild to anything but const | wild
+            int offset;
+            if (!cdfrom->isBaseOf(cdto, &offset))
                 goto Lunsafe;
 
-            if (tobn->isTypeBasic() && tobn->size() < t1bn->size())
-                // Allow things like casting a long* to an int*
-                ;
-            else if (tobn->ty != Tvoid)
-                // Cast to a pointer other than void*
+            if (cdfrom->isCPPinterface() ||
+                cdto->isCPPinterface())
                 goto Lunsafe;
+
+            goto Lsafe;
         }
 
-        // BUG: Check for casting array types, such as void[] to int*[]
+        if (tob->ty == Tarray && t1b->ty == Tarray)
+        {
+            Type* tobn = tob->nextOf()->toBasetype();
+            Type* t1bn = t1b->nextOf()->toBasetype();
+            if (!tobn->hasPointers() && MODimplicitConv(t1bn->mod, tobn->mod))
+                goto Lsafe;
+        }
+        if (tob->ty == Tpointer && t1b->ty == Tpointer)
+        {
+            Type* tobn = tob->nextOf()->toBasetype();
+            Type* t1bn = t1b->nextOf()->toBasetype();
+            if (!tobn->hasPointers() &&
+                tobn->ty != Tfunction && t1bn->ty != Tfunction &&
+                tobn->size() <= t1bn->size() &&
+                MODimplicitConv(t1bn->mod, tobn->mod))
+                goto Lsafe;
+        }
+
+    Lunsafe:
+        if (sc->func->setUnsafe())
+        {   error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
+            return new ErrorExp();
+        }
     }
 
+Lsafe:
     e = e1->castTo(sc, to);
     return e;
 }
@@ -8249,6 +8645,13 @@ void SliceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte(']');
 }
 
+int SliceExp::canThrow(bool mustNotThrow)
+{
+    return UnaExp::canThrow(mustNotThrow)
+        || (lwr != NULL && lwr->canThrow(mustNotThrow))
+        || (upr != NULL && upr->canThrow(mustNotThrow));
+}
+
 /********************** ArrayLength **************************************/
 
 ArrayLengthExp::ArrayLengthExp(Loc loc, Expression *e1)
@@ -8472,6 +8875,7 @@ Expression *CommaExp::semantic(Scope *sc)
 {
     if (!type)
     {   BinExp::semanticp(sc);
+        e1 = e1->addDtorHook(sc);
         type = e2->type;
     }
     return this;
@@ -8535,6 +8939,12 @@ int CommaExp::checkSideEffect(int flag)
         // Don't check e1 until we cast(void) the a,b code generation
         return e2->checkSideEffect(flag);
     }
+}
+
+Expression *CommaExp::addDtorHook(Scope *sc)
+{
+    e2 = e2->addDtorHook(sc);
+    return this;
 }
 
 /************************** IndexExp **********************************/
@@ -8708,7 +9118,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     if (e1->op == TOKstring)
         error("string literals are immutable");
-    if (type && !type->head()->isMutable())
+    if (type && (!type->head()->isMutable() || !type->head()->isAssignable()))
         error("%s isn't mutable", e->toChars());
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
@@ -8775,7 +9185,7 @@ Expression *PostExp::semantic(Scope *sc)
             /* Rewrite as:
              * auto tmp = e1; ++e1; tmp
              */
-            Identifier *id = Lexer::uniqueId("__tmp");
+            Identifier *id = Lexer::uniqueId("__pitmp");
             ExpInitializer *ei = new ExpInitializer(loc, e1);
             VarDeclaration *tmp = new VarDeclaration(loc, e1->type, id, ei);
             Expression *ea = new DeclarationExp(loc, tmp);
@@ -8904,6 +9314,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
+#if 0 // Turned off to allow rewriting (a[i]=value) to (a.opIndex(i)=value)
             else
             {
                 // Rewrite (a[i] = value) to (a.opIndex(i, value))
@@ -8920,6 +9331,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     return e;
                 }
             }
+#endif
         }
     }
     /* Look for operator overloading of a[i..j]=value.
@@ -9016,10 +9428,25 @@ Expression *AssignExp::semantic(Scope *sc)
     Type *t1 = e1->type->toBasetype();
 
     if (t1->ty == Tfunction)
-    {   // Rewrite f=value to f(value)
-        Expression *e = new CallExp(loc, e1, e2);
-        e = e->semantic(sc);
-        return e;
+    {   /* We have f=value.
+         * Could mean:
+         *      f() = value
+         * or:
+         *      f(value)
+         */
+        TypeFunction *tf = (TypeFunction *)t1;
+        if (tf->isref)
+        {
+            // Rewrite e1 = e2 to e1() = e2
+            e1 = resolveProperties(sc, e1);
+        }
+        else
+        {
+            // Rewrite f=value to f(value)
+            Expression *e = new CallExp(loc, e1, e2);
+            e = e->semantic(sc);
+            return e;
+        }
     }
 
     /* If it is an assignment from a 'foreign' type,
@@ -9042,6 +9469,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 VarDeclaration *v = new VarDeclaration(loc, aaValueType,
                     id, new VoidInitializer(NULL));
                 v->storage_class |= STCctfe;
+                v->semantic(sc);
+                v->parent = sc->parent;
 
                 Expression *de = new DeclarationExp(loc, v);
                 VarExp *ve = new VarExp(loc, v);
@@ -9061,16 +9490,28 @@ Expression *AssignExp::semantic(Scope *sc)
                 sd->cpctor)
             {   /* We have a copy constructor for this
                  */
+                // Scan past commma's
+                Expression *ec = NULL;
+                while (e2->op == TOKcomma)
+                {   CommaExp *ecomma = (CommaExp *)e2;
+                    e2 = ecomma->e2;
+                    if (ec)
+                        ec = new CommaExp(ecomma->loc, ec, ecomma->e1);
+                    else
+                        ec = ecomma->e1;
+                }
                 if (e2->op == TOKquestion)
                 {   /* Write as:
                      *  a ? e1 = b : e1 = c;
                      */
-                    CondExp *ec = (CondExp *)e2;
-                    AssignExp *ea1 = new AssignExp(ec->e1->loc, e1, ec->e1);
+                    CondExp *econd = (CondExp *)e2;
+                    AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
                     ea1->op = op;
-                    AssignExp *ea2 = new AssignExp(ec->e1->loc, e1, ec->e2);
+                    AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
                     ea2->op = op;
-                    Expression *e = new CondExp(loc, ec->econd, ea1, ea2);
+                    Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
+                    if (ec)
+                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
                 else if (e2->op == TOKvar ||
@@ -9083,7 +9524,16 @@ Expression *AssignExp::semantic(Scope *sc)
                      */
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
+                    if (ec)
+                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
+                }
+                else if (e2->op == TOKcall)
+                {
+                    /* The struct value returned from the function is transferred
+                     * so should not call the destructor on it.
+                     */
+                    valueNoDtor(e2);
                 }
             }
         }
@@ -9130,7 +9580,7 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (e1->op == TOKslice)
     {
         Type *tn = e1->type->nextOf();
-        if (tn && !tn->head()->isMutable() && op != TOKconstruct)
+        if (op == TOKassign && tn && (!tn->head()->isMutable() || !tn->head()->isAssignable()))
         {   error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }
@@ -9166,7 +9616,8 @@ Expression *AssignExp::semantic(Scope *sc)
         }
         //error("cannot assign to static array %s", e1->toChars());
     }
-    else if (e1->op == TOKslice)
+    else if (e1->op == TOKslice && t2->toBasetype()->ty == Tarray &&
+        t2->toBasetype()->nextOf()->implicitConvTo(t1->nextOf()))
     {
         e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
@@ -9266,7 +9717,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
         e1->checkNoBool();
         if (tb1->ty == Tpointer && tb2->isintegral())
             e = scaleFactor(sc);
-        else if (tb1->ty == Tbit || tb1->ty == Tbool)
+        else if (tb1->ty == Tbool)
         {
 #if 0
             // Need to rethink this
@@ -9435,6 +9886,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
     else if (tb1->ty == Tarray &&
         (tb1next->ty == Tchar || tb1next->ty == Twchar) &&
+        e2->type->ty != tb1next->ty &&
         e2->implicitConvTo(Type::tdchar)
        )
     {   // Append dchar to char[] or wchar[]
@@ -10307,6 +10759,35 @@ Expression *PowExp::semantic(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
+        // Replace x ^^ 0 or x^^0.0 by (x, 1)
+        if ((e2->op == TOKint64 && e2->toInteger() == 0) ||
+                (e2->op == TOKfloat64 && e2->toReal() == 0.0))
+        {
+            if (e1->op == TOKint64)
+                e = new IntegerExp(loc, 1, e1->type);
+            else
+                e = new RealExp(loc, 1.0, e1->type);
+
+            typeCombine(sc);
+            e = new CommaExp(loc, e1, e);
+            e = e->semantic(sc);
+            return e;
+        }
+        // Replace x ^^ 1 or x^^1.0 by (x)
+        if ((e2->op == TOKint64 && e2->toInteger() == 1) ||
+                (e2->op == TOKfloat64 && e2->toReal() == 1.0))
+        {
+            typeCombine(sc);
+            return e1;
+        }
+        // Replace x ^^ -1.0 by (1.0 / x)
+        if ((e2->op == TOKfloat64 && e2->toReal() == -1.0))
+        {
+            typeCombine(sc);
+            e = new DivExp(loc, new RealExp(loc, 1.0, e2->type), e1);
+            e = e->semantic(sc);
+            return e;
+        }
         // All other negative integral powers are illegal
         if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)
         {
@@ -10328,7 +10809,7 @@ Expression *PowExp::semantic(Scope *sc)
             typeCombine(sc);
             // Replace x^^2 with (tmp = x, tmp*tmp)
             // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
-            Identifier *idtmp = Lexer::uniqueId("__tmp");
+            Identifier *idtmp = Lexer::uniqueId("__powtmp");
             VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(0, e1));
             tmp->storage_class = STCctfe;
             Expression *ve = new VarExp(loc, tmp);
@@ -10600,13 +11081,21 @@ Expression *OrOrExp::semantic(Scope *sc)
     e2 = resolveProperties(sc, e2);
     e2 = e2->checkToPointer();
 
-    type = Type::tboolean;
     if (e2->type->ty == Tvoid)
         type = Type::tvoid;
+    else
+    {
+        e2 = e2->checkToBoolean(sc);
+        type = Type::tboolean;
+    }
     if (e2->op == TOKtype || e2->op == TOKimport)
     {   error("%s is not an expression", e2->toChars());
         return new ErrorExp();
     }
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     return this;
 }
 
@@ -10667,13 +11156,21 @@ Expression *AndAndExp::semantic(Scope *sc)
     e2 = resolveProperties(sc, e2);
     e2 = e2->checkToPointer();
 
-    type = Type::tboolean;
     if (e2->type->ty == Tvoid)
         type = Type::tvoid;
+    else
+    {
+        e2 = e2->checkToBoolean(sc);
+        type = Type::tboolean;
+    }
     if (e2->op == TOKtype || e2->op == TOKimport)
     {   error("%s is not an expression", e2->toChars());
         return new ErrorExp();
     }
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     return this;
 }
 

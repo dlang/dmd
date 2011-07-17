@@ -32,8 +32,8 @@ LFLAGS=
 
 LINKN=$(SCROOT)\bin\link /de
 
-CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp -D_DH
-MFLAGS=-I$C;$(TK) -DMARS -cpp $(DEBUG) -e -wx -D_DH
+CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp
+MFLAGS=-I$C;$(TK) -DMARS -cpp $(DEBUG) -e -wx
 
 # Makerules:
 .c.obj:
@@ -77,7 +77,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj aliasthis.obj \
+	interpret.obj traits.obj aliasthis.obj intrange.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
@@ -91,7 +91,8 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	blockopt.obj cgobj.obj cg.obj cgcv.obj type.obj dt.obj \
 	debug.obj code.obj cg87.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
-	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj
+	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
+	ti_pvoid.obj
 
 # from ROOT
 
@@ -109,12 +110,12 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	eh.c toctype.c class.c mangle.c bit.c tocsym.c func.c inline.c \
 	access.c complex_t.h unialpha.c irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
-	identifier.h parse.h scope.h enum.h import.h \
+	identifier.h parse.h scope.h enum.h import.h intrange.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
-	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
+	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c intrange.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c
 
 # From C++ compiler
@@ -135,7 +136,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\cpp.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
-	$C\md5.h $C\md5.c \
+	$C\md5.h $C\md5.c $C\ti_pvoid.c \
 	$C\backend.txt
 
 # From TK
@@ -154,7 +155,7 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c
 
-MAKEFILES=win32.mak linux.mak osx.mak freebsd.mak solaris.mak
+MAKEFILES=win32.mak posix.mak
 
 #########################################
 
@@ -354,6 +355,9 @@ rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
 ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_achar
 
+ti_pvoid.obj : $C\tinfo.h $C\ti_pvoid.c
+	$(CC) -c $(MFLAGS) -I. $C\ti_pvoid
+
 toctype.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h toctype.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) toctype
 
@@ -465,7 +469,8 @@ import.obj : $(TOTALH) dsymbol.h import.h import.c
 inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
-interpret.obj : $(TOTALH) interpret.c
+interpret.obj : $(TOTALH) interpret.c declaration.h expression.h
+intrange.obj : $(TOTALH) intrange.h intrange.c
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libomf.obj : $(TOTALH) lib.h libomf.c

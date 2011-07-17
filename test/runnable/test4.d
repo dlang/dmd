@@ -322,6 +322,8 @@ void test8()
  {
   case WSAENOTCONN:
    break;
+  default:
+   assert(0);
  }
 }
 
@@ -477,7 +479,7 @@ void test14()
 
 /* ================================ */
 
-
+/+
 int foo15(int i)
 {
     switch (i)
@@ -503,6 +505,7 @@ void test15()
     }
     assert(i == 1);
 }
++/
 
 /* ================================ */
 
@@ -1359,9 +1362,6 @@ void test53()
 }
 
 /* ================================ */
-version(Windows) // not yet implemented elsewhere
-    version = TdplExceptionChaining;
-
 void test54()
 {
 	int status=0;
@@ -1386,14 +1386,8 @@ void test54()
 	catch(Exception e)
 	{
 		printf("catch %.*s\n", e.msg.length, e.msg.ptr);
-        version(TdplExceptionChaining)
-        {
-            assert(e.msg == "first");
-            assert(e.next.msg == "second");
-        }
-        else
-            assert(e.msg == "second");
-		assert(status==3);
+                assert(e.msg == "first");
+                assert(e.next.msg == "second");
 	}
 	printf("success54\n");
 }
@@ -1563,7 +1557,7 @@ int main()
     test12();
     test13();
     test14();
-    test15();
+    //test15();
     test16();
     test17();
     test18();

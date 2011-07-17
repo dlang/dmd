@@ -603,6 +603,7 @@ int bar29(int i)
 	case 7:
 	    i = 3;
 	    break;
+	default: assert(0);
     }
     return i;
 }
@@ -675,6 +676,7 @@ int bar32(int i)
     {
 	case 7:
 	    i = 4;
+	    goto case;
 	case 5:
 	    i = 2;
 	    break;
@@ -1781,7 +1783,7 @@ string foo90(string a, string b)
 void test90()
 {
     static const string xxx = foo90("A", "xxx");
-    printf("%.*s\n", xxx);
+    printf("%.*s\n", xxx.length, xxx.ptr);
     assert(xxx == "A");
 }
 

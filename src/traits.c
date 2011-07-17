@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -163,7 +163,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 #if DMDV2
     else if (ident == Id::isStaticFunction)
     {
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis())
+        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
     }
     else if (ident == Id::isRef)
     {
@@ -195,6 +195,21 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         StringExp *se = new StringExp(loc, s->ident->toChars());
         return se->semantic(sc);
+    }
+    else if (ident == Id::parent)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = (Object *)args->data[0];
+        Dsymbol *s = getDsymbol(o);
+        if (s)
+            s = s->toParent();
+        if (!s)
+        {
+            error("argument %s has no parent", o->toChars());
+            goto Lfalse;
+        }
+        return (new DsymbolExp(loc, s))->semantic(sc);
     }
 
 #endif

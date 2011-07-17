@@ -1,5 +1,5 @@
 // Copyright (C) 1987-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -29,7 +29,7 @@ static code *code_list;
 
 __declspec(naked) code *code_calloc()
 {
-    if (sizeof(code) != 0x24)
+    if (sizeof(code) != 0x28)
         util_assert("code",__LINE__);
     __asm
     {
@@ -58,6 +58,8 @@ L29:
 
         mov     28[EAX],ECX
         mov     32[EAX],ECX
+
+        mov     36[EAX],ECX
         ret
     }
 }

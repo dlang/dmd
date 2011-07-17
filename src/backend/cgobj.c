@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -17,6 +17,7 @@
 #include        <stdlib.h>
 #include        <malloc.h>
 #include        <ctype.h>
+#include        <direct.h>
 
 #include        "filespec.h"
 
@@ -26,6 +27,8 @@
 #include        "code.h"
 #include        "type.h"
 #include        "outbuf.h"
+//#include        "oper.h"
+//#include        "scope.h"
 
 #include        "md5.h"
 
@@ -244,7 +247,7 @@ typedef struct Farseg
 struct Linnum
 {
 #if MARS
-        char *filename;         // source file name
+        const char *filename;   // source file name
 #else
         Sfile *filptr;          // file pointer
 #endif
@@ -392,6 +395,19 @@ void objrecord(unsigned rectyp,const char *record,unsigned reclen)
  *      # of bytes stored
  */
 
+extern void error(const char *filename, unsigned linnum, const char *format, ...);
+extern void fatal();
+
+void too_many_symbols()
+{
+#if SCPP
+    err_fatal(EM_too_many_symbols, 0x7FFF);
+#else // MARS
+    error(NULL, 0, "more than %d symbols in object file", 0x7FFF);
+    fatal();
+#endif
+}
+
 #if !DEBUG && TX86 && __INTSIZE == 4 && !defined(_MSC_VER)
 __declspec(naked) int __pascal insidx(char *p,unsigned index)
 {
@@ -421,7 +437,7 @@ __declspec(naked) int __pascal insidx(char *p,unsigned index)
         ret     8
     }
     L2:
-        assert(0);
+        too_many_symbols();
 }
 #else
 __inline int insidx(char *p,unsigned index)
@@ -434,11 +450,15 @@ __inline int insidx(char *p,unsigned index)
     {   *p = index;
         return 1;
     }
-    else
-    {   assert(index <= 0x7FFF);
+    else if (index <= 0x7FFF)
+    {
         *(p + 1) = index;
         *p = (index >> 8) | 0x80;
         return 2;
+    }
+    else
+    {   too_many_symbols();
+        return 0;
     }
 }
 #endif
@@ -757,7 +777,7 @@ void obj_term()
         }
         //mem_free(obj.farseg);
 
-#ifdef DEBUG
+#if 0
         printf("Max # of fixups = %d\n",obj.fixup_count);
 #endif
 
@@ -781,19 +801,12 @@ void objlinnum(Srcpos srcpos,targ_size_t offset)
     unsigned linnum = srcpos.Slinnum;
 
 #if 0
-#if MARS
-    printf("objlinnum(cseg=%d, filename=%s linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilename ? srcpos.Sfilename : "null",linnum,offset);
-#else
-    printf("objlinnum(cseg=%d, filptr=%p linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilptr ? *srcpos.Sfilptr : 0,linnum,offset);
-    if (srcpos.Sfilptr)
-    {
-        Sfile *sf = *srcpos.Sfilptr;
-        printf("filename = %s\n", sf ? sf->SFname : "null");
-    }
+#if MARS || SCPP
+    printf("objlinnum(cseg=%d, offset=0x%lx) ", cseg, offset);
 #endif
+    srcpos.print("");
 #endif
+
     char linos2 = config.exe == EX_OS2 && cseg >= 0;
 
 #if MARS
@@ -991,7 +1004,7 @@ STATIC void linnum_term()
     Sfile *lastfilptr = NULL;
 #endif
 #if MARS
-    char *lastfilename = NULL;
+    const char *lastfilename = NULL;
 #endif
     int csegsave = cseg;
 
@@ -1013,7 +1026,7 @@ STATIC void linnum_term()
         }
 #endif
 #if MARS
-        char *filename = ln->filename;
+        const char *filename = ln->filename;
         if (filename != lastfilename)
         {
             if (filename)
@@ -1247,12 +1260,26 @@ void obj_alias(const char *n1,const char *n2)
  */
 
 void obj_theadr(const char *modname)
-{   char *theadr;
-    int i;
-
+{
     //printf("obj_theadr(%s)\n", modname);
-    theadr = (char *)alloca(ONS_OHD + strlen(modname));
-    i = obj_namestring(theadr,modname);
+
+    // Convert to absolute file name, so debugger can find it anywhere
+    char absname[260];
+    if (config.fulltypes &&
+        modname[0] != '\\' && modname[0] != '/' && !(modname[0] && modname[1] == ':'))
+    {
+        if (getcwd(absname, sizeof(absname)))
+        {
+            int len = strlen(absname);
+            if(absname[len - 1] != '\\' && absname[len - 1] != '/')
+                absname[len++] = '\\';
+            strcpy(absname + len, modname);
+            modname = absname;
+        }
+    }
+
+    char *theadr = (char *)alloca(ONS_OHD + strlen(modname));
+    int i = obj_namestring(theadr,modname);
     objrecord(THEADR,theadr,i);                 // module name record
 }
 
@@ -1388,8 +1415,8 @@ STATIC void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
     unsigned reclen;
     char sd[1+4+2+2+2+1];
 
-//    printf("objsegdef(attr=x%x, size=x%x, segnamidx=x%x, classnamidx=x%x)\n",
-//      attr,size,segnamidx,classnamidx);
+    //printf("objsegdef(attr=x%x, size=x%x, segnamidx=x%x, classnamidx=x%x)\n",
+      //attr,size,segnamidx,classnamidx);
     sd[0] = attr;
     if (attr & 1 || config.flags & CFGeasyomf)
     {   TOLONG(sd + 1,size);            // store segment size
@@ -1436,6 +1463,7 @@ STATIC void objsegdef(int attr,targ_size_t size,int segnamidx,int classnamidx)
             else
                 synerr(EM_seg_gt_64k,size);     // segment exceeds 64Kb
         }
+//printf("attr = %x\n", attr);
 #endif
     }
 #ifdef DEBUG

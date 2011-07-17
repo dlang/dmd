@@ -66,7 +66,8 @@ int Dsymbol::equals(Object *o)
     if (this == o)
         return TRUE;
     s = (Dsymbol *)(o);
-    if (s && ident->equals(s->ident))
+    // Overload sets don't have an ident
+    if (s && ident && s->ident && ident->equals(s->ident))
         return TRUE;
     return FALSE;
 }
@@ -199,10 +200,13 @@ char *Dsymbol::locToChars()
     OutBuffer buf;
     char *p;
 
-    Module *m = getModule();
+    if (!loc.filename)  // avoid bug 5861.
+    {
+        Module *m = getModule();
 
-    if (m && m->srcfile)
-        loc.filename = m->srcfile->toChars();
+        if (m && m->srcfile)
+            loc.filename = m->srcfile->toChars();
+    }
     return loc.toChars();
 }
 
@@ -547,6 +551,7 @@ void Dsymbol::error(const char *format, ...)
 
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
+//halt();
     }
     global.errors++;
 
@@ -575,6 +580,7 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
+//halt();
     }
 
     global.errors++;
@@ -1168,39 +1174,24 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
          * multiple times, it gets set only once.
          */
         if (!*pvar)             // if not already initialized
-        {   /* Create variable v and set it to the value of $,
-             * which will be a constant.
+        {   /* Create variable v and set it to the value of $
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
-
-            if (ce->op == TOKvar)
-            {   // if ce is const, get its initializer
-                ce = fromConstInitializer(WANTvalue | WANTinterpret, ce);
-            }
-
-            if (ce->op == TOKstring)
-            {   /* It is for a string literal, so the
-                 * length will be a const.
-                 */
-                Expression *e = new IntegerExp(0, ((StringExp *)ce)->len, Type::tsize_t);
-                v->init = new ExpInitializer(0, e);
-                v->storage_class |= STCstatic | STCconst;
-            }
-            else if (ce->op == TOKarrayliteral)
-            {   /* It is for an array literal, so the
-                 * length will be a const.
-                 */
-                Expression *e = new IntegerExp(0, ((ArrayLiteralExp *)ce)->elements->dim, Type::tsize_t);
-                v->init = new ExpInitializer(0, e);
-                v->storage_class |= STCstatic | STCconst;
-            }
-            else if (ce->op == TOKtuple)
+            if (ce->op == TOKtuple)
             {   /* It is for an expression tuple, so the
                  * length will be a const.
                  */
                 Expression *e = new IntegerExp(0, ((TupleExp *)ce)->exps->dim, Type::tsize_t);
                 v->init = new ExpInitializer(0, e);
                 v->storage_class |= STCstatic | STCconst;
+            }
+            else
+            {   /* For arrays, $ will either be a compile-time constant
+                 * (in which case its value in set during constant-folding),
+                 * or a variable (in which case an expression is created in
+                 * toir.c).
+                 */
+                v->init = new VoidInitializer(0);
             }
             *pvar = v;
         }

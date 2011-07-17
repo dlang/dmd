@@ -82,6 +82,31 @@ d /= 8;
 break;
 }
 }
+enum Label 
+{
+A,
+B,
+C,
+}
+;
+void fswitch(Label l)
+{
+final switch (l)
+{
+case A:
+{
+break;
+}
+case B:
+{
+break;
+}
+case C:
+{
+break;
+}
+}
+}
 loop:
 while (x)
 {

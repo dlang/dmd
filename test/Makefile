@@ -62,7 +62,11 @@ else
 endif
 export OS
 
-SHELL=/bin/bash
+ifeq (freebsd,$(OS))
+    SHELL=/usr/local/bin/bash
+else
+    SHELL=/bin/bash
+endif
 QUIET=@
 export RESULTS_DIR=test_results
 export MODEL=32
@@ -84,6 +88,22 @@ export DSEP=/
 export SEP=/
 endif
 
+ifeq ($(OS),freebsd)
+DISABLED_TESTS += a20
+DISABLED_TESTS += cov2
+# coverage issues, see bug 5619
+
+DISABLED_TESTS += builtin
+# precision related bug: Error: static assert  (0x1.f9f8d9aea10fb28ep-2L == 0x1.f9f8d9aea10fdf1cp-2L) is false
+
+DISABLED_TESTS += dhry
+# runnable/dhry.d(488): Error: undefined identifier dtime
+
+# 64 bit test failures
+DISABLED_TESTS += test17
+DISABLED_SH_TESTS += test39
+endif
+
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.html) $(wildcard runnable/*.sh)
 runnable_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(runnable_tests)))
 
@@ -96,6 +116,9 @@ fail_compilation_test_results=$(addsuffix .out,$(addprefix $(RESULTS_DIR)/,$(fai
 all: run_tests
 
 $(addsuffix .d.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_TESTS))): $(RESULTS_DIR)/.created
+	$(QUIET) echo " ... $@ - disabled"
+
+$(addsuffix .sh.out,$(addprefix $(RESULTS_DIR)/runnable/,$(DISABLED_SH_TESTS))): $(RESULTS_DIR)/.created
 	$(QUIET) echo " ... $@ - disabled"
 
 $(RESULTS_DIR)/runnable/%.d.out: runnable/%.d $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test $(DMD)

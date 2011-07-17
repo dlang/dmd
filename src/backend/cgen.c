@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -32,7 +32,7 @@ inline void ccheck(code *cs)
 {
 //    if (cs->Iop == LEA && (cs->Irm & 0x3F) == 0x34 && cs->Isib == 7) *(char*)0=0;
 //    if (cs->Iop == 0x31) *(char*)0=0;
-//    if (cs->Iop == 0x8A && cs->Irm == 0xF2) *(char*)0=0;
+//    if (cs->Iop == 0x8A && cs->Irm == 0xF6) *(char*)0=0;
 }
 
 /*****************************
@@ -173,8 +173,8 @@ code *gen(code *c,code *cs)
     //printf("ce = %p %02x\n", ce, ce->Iop);
     ccheck(ce);
     if (config.flags4 & CFG4optimized &&
-        ce->IFL2 == FLconst &&
         (ce->Iop == 0x81 || ce->Iop == 0x80) &&
+        ce->IFL2 == FLconst &&
         reghasvalue((ce->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? ce->IEV2.Vsize_t : ce->IEV2.Vlong,&reg) &&
         !(ce->Iflags & CFopsize && I16)
        )
@@ -328,7 +328,7 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
     cs.Iop = op & 0xFF;
     cs.Iflags = 0;
     cs.Irex = 0;
-    if (op != JMP)                      /* if not already long branch   */
+    if (op != JMP && op != 0xE8)        // if not already long branch
           cs.Iflags = CFjmp16;          /* assume long branch for op = 0x7x */
     cs.IFL2 = fltarg;                   /* FLblock (or FLcode)          */
     cs.IEV2.Vblock = targ;              /* target block (or code)       */
@@ -463,11 +463,7 @@ code *genlinnum(code *c,Srcpos srcpos)
 {   code cs;
 
 #if 0
-#if MARS
-    printf("genlinnum(Sfilename = %p, Slinnum = %u)\n", srcpos.Sfilename, srcpos.Slinnum);
-#else
-    printf("genlinnum(Sfilptr = %p, Slinnum = %u)\n", srcpos.Sfilptr, srcpos.Slinnum);
-#endif
+    srcpos.print("genlinnum");
 #endif
     cs.Iop = ESCAPE | ESClinnum;
     cs.Iflags = 0;
@@ -574,8 +570,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
     targ_size_t regv = regcon.immed.value[reg];
 
     if (flags & 1)      // 8 bits
-    {   unsigned msk;
-
+    {
         value &= 0xFF;
         regm &= BYTEREGS;
 
@@ -607,7 +602,8 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
                         code_orrex(c, REX);
                     goto L2;
                 }
-                if (r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
+                if (!(I64 && reg >= 4) &&
+                    r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
                 {   c = genregs(c,0x8A,reg,r | 4);      // MOV regL,rH
                     goto L2;
                 }

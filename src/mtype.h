@@ -54,7 +54,6 @@ enum ENUMTY
 {
     Tarray,             // slice array, aka T[]
     Tsarray,            // static array, aka T[dimension]
-    Tnarray,            // resizable array, aka T[new]
     Taarray,            // associative array, aka T[type]
     Tpointer,
     Treference,
@@ -88,7 +87,6 @@ enum ENUMTY
 
     Tcomplex64,
     Tcomplex80,
-    Tbit,
     Tbool,
     Tchar,
     Twchar,
@@ -170,7 +168,6 @@ struct Type : Object
     #define tcomplex64  basic[Tcomplex64]
     #define tcomplex80  basic[Tcomplex80]
 
-    #define tbit        basic[Tbit]
     #define tbool       basic[Tbool]
     #define tchar       basic[Tchar]
     #define twchar      basic[Twchar]
@@ -321,6 +318,7 @@ struct Type : Object
     virtual TypeTuple *toArgTypes();
     virtual Type *nextOf();
     uinteger_t sizemask();
+    virtual int needsDestruction();
 
     static void error(Loc loc, const char *format, ...);
     static void warning(Loc loc, const char *format, ...);
@@ -387,7 +385,6 @@ struct TypeBasic : Type
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     int isintegral();
-    int isbit();
     int isfloating();
     int isreal();
     int isimaginary();
@@ -437,6 +434,7 @@ struct TypeSArray : TypeArray
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Expression *toExpression();
     int hasPointers();
+    int needsDestruction();
     TypeTuple *toArgTypes();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -601,11 +599,13 @@ struct TypeFunction : TypeNext
     void purityLevel();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+    void toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void attributesToCBuffer(OutBuffer *buf, int mod);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident();
+    bool hasLazyParameters();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -616,6 +616,8 @@ struct TypeFunction : TypeNext
     enum RET retStyle();
 
     unsigned totym();
+
+    Expression *defaultInit(Loc loc);
 };
 
 struct TypeDelegate : TypeNext
@@ -733,6 +735,7 @@ struct TypeStruct : Type
     int isZeroInit(Loc loc);
     int isAssignable();
     int checkBoolean();
+    int needsDestruction();
     dt_t **toDt(dt_t **pdt);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -772,6 +775,7 @@ struct TypeEnum : Type
     int isunsigned();
     int checkBoolean();
     int isAssignable();
+    int needsDestruction();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     Type *toBasetype();
@@ -803,7 +807,6 @@ struct TypeTypedef : Type
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *getProperty(Loc loc, Identifier *ident);
-    int isbit();
     int isintegral();
     int isfloating();
     int isreal();
@@ -813,6 +816,7 @@ struct TypeTypedef : Type
     int isunsigned();
     int checkBoolean();
     int isAssignable();
+    int needsDestruction();
     Type *toBasetype();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
@@ -909,12 +913,6 @@ struct TypeSlice : TypeNext
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
-};
-
-struct TypeNewArray : TypeNext
-{
-    TypeNewArray(Type *next);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
 };
 

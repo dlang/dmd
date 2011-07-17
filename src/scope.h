@@ -88,6 +88,8 @@ struct Scope
 #define SCOPEctor       1       // constructor type
 #define SCOPEstaticif   2       // inside static if
 #define SCOPEfree       4       // is on free list
+#define SCOPEstaticassert 8     // inside static assert
+#define SCOPEdebug      0x10    // inside debug conditional
 
     AnonymousAggregateDeclaration *anonAgg;     // for temporary analysis
 

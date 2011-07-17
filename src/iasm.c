@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2010 by Digital Mars
+ * Copyright (c) 1999-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/iasm.c
@@ -54,8 +54,6 @@
 #include        "iasm.h"
 #include        "cpp.h"
 
-#undef _DH
-
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
 #undef I16
@@ -98,6 +96,7 @@ enum ASMERRMSGS
     EM_label_expected,
     EM_uplevel,
     EM_type_as_operand,
+    EM_invalid_64bit_opcode,
 };
 
 const char *asmerrmsgs[] =
@@ -126,7 +125,8 @@ const char *asmerrmsgs[] =
     "character is truncated",
     "label expected",
     "uplevel nested reference to variable %s",
-    "cannot use type %s as an operand"
+    "cannot use type %s as an operand",
+    "opcode %s is unavailable in 64bit mode"
 };
 
 // Additional tokens for the inline assembler
@@ -442,7 +442,7 @@ typedef struct opnd
         unsigned uchMultiplier; // register multiplier; valid values are 0,1,2,4,8
         opflag_t usFlags;
         Dsymbol *s;
-        long disp;
+        targ_llong disp;
         long double real;
         Type *ptype;
         ASM_JUMPTYPE ajt;
@@ -466,7 +466,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd);
 code *asm_genloc(Loc loc, code *c);
 int asm_getnum();
 
-STATIC void asmerr(char *, ...);
+STATIC void asmerr(const char *, ...);
 STATIC void asmerr(int, ...);
 #pragma SC noreturn(asmerr)
 
@@ -557,6 +557,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
         opflag_t opflags2 = 0;
         opflag_t opflags3 = 0;
         char    bFake = FALSE;
+        char    bInvalid64bit = FALSE;
 
         unsigned char   bMatch1, bMatch2, bMatch3, bRetry = FALSE;
 
@@ -589,7 +590,7 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
             asmstate.ucItype != ITfloat)
         {
 PARAM_ERROR:
-                asmerr(EM_nops_expected, usActual, asm_opstr(pop), usNumops);
+                asmerr(EM_nops_expected, usNumops, asm_opstr(pop), usActual);
         }
         if (usActual < usNumops)
             *pusNumops = usActual;
@@ -604,7 +605,11 @@ RETRY:
         switch (usActual)
         {
             case 0:
-                ptbRet = pop->ptb ;
+                if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
+                    asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));  // illegal opcode in 64bit mode
+
+                ptbRet = pop->ptb;
+
                 goto RETURN_IT;
 
             case 1:
@@ -623,6 +628,14 @@ RETRY:
                               )
                                 // Don't match PUSH imm16 in 32 bit code
                                 continue;
+
+                            // Check if match is invalid in 64bit mode
+                            if (I64 && (table1->usFlags & _i64_bit))
+                            {
+                                bInvalid64bit = TRUE;
+                                continue;
+                            }
+
                             break;
                         }
                         if ((asmstate.ucItype == ITimmed) &&
@@ -695,7 +708,10 @@ TYPE_SIZE_ERROR:
                         }
                         if (bRetry)
                         {
-                            asmerr(EM_bad_op, asm_opstr(pop));  // illegal type/size of operands
+                            if(bInvalid64bit)
+                                asmerr("operand for '%s' invalid in 64bit mode", asm_opstr(pop));
+                            else
+                                asmerr(EM_bad_op, asm_opstr(pop));  // illegal type/size of operands
                         }
                         bRetry = TRUE;
                         goto RETRY;
@@ -714,6 +730,9 @@ TYPE_SIZE_ERROR:
                 {
                         //printf("table1   = "); asm_output_flags(table2->usOp1); printf(" ");
                         //printf("table2   = "); asm_output_flags(table2->usOp2); printf("\n");
+                        if (I64 && (table2->usFlags & _i64_bit))
+                            asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));
+
                         bMatch1 = asm_match_flags(opflags1, table2->usOp1);
                         bMatch2 = asm_match_flags(opflags2, table2->usOp2);
                         //printf("match1 = %d, match2 = %d\n",bMatch1,bMatch2);
@@ -1014,7 +1033,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
                                     us = CONSTRUCT_FLAGS(_8, _rel, _flbl,0);
                                 else
                                 if (popnd->disp >= SHRT_MIN &&
-                                    popnd->disp <= SHRT_MAX)
+                                    popnd->disp <= SHRT_MAX && !I64)
                                     us = CONSTRUCT_FLAGS(_16, _rel, _flbl,0);
                                 else
                                     us = CONSTRUCT_FLAGS(_32, _rel, _flbl,0);
@@ -1122,11 +1141,13 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
             us = CONSTRUCT_FLAGS(sz, _imm, _normal, 0);
 
         else if (popnd->disp >= CHAR_MIN && popnd->disp <= UCHAR_MAX)
-            us = CONSTRUCT_FLAGS(_8 | _16 | _32, _imm, _normal, 0);
+            us = CONSTRUCT_FLAGS(  _8 | _16 | _32 | _64, _imm, _normal, 0);
         else if (popnd->disp >= SHRT_MIN && popnd->disp <= USHRT_MAX)
-            us = CONSTRUCT_FLAGS(_16 | _32, _imm, _normal, 0);
+            us = CONSTRUCT_FLAGS( _16 | _32 | _64, _imm, _normal, 0);
+        else if (popnd->disp >= INT_MIN && popnd->disp <= UINT_MAX)
+            us = CONSTRUCT_FLAGS( _32 | _64, _imm, _normal, 0);
         else
-            us = CONSTRUCT_FLAGS(_32, _imm, _normal, 0);
+            us = CONSTRUCT_FLAGS( _64, _imm, _normal, 0);
         return us;
 }
 
@@ -1385,10 +1406,8 @@ L386_WARNING2:
         unsigned usOpcode = ptb.pptb0->usOpcode;
 
         pc->Iop = usOpcode;
-        if ((usOpcode & 0xFFFFFF00) == 0x660F3A00 ||    // SSE4
-            (usOpcode & 0xFFFFFF00) == 0x660F3800)      // SSE4
+        if ((usOpcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
         {
-            pc->Iop = 0x66000F00 | ((usOpcode >> 8) & 0xFF) | ((usOpcode & 0xFF) << 16);
             goto L3;
         }
         switch (usOpcode & 0xFF0000)
@@ -1541,6 +1560,7 @@ L1:
                         case _8:
                         case _16:
                         case _32:
+                        case _64:
                             if (popndTmp->s == asmstate.psLocalsize)
                             {
                                 pc->IFL2 = FLlocalsize;
@@ -1564,7 +1584,7 @@ L1:
                             }
                             else
                             {
-                                pc->IEVint2 = popndTmp->disp;
+                                pc->IEVllong2 = popndTmp->disp;
                                 pc->IFL2 = FLconst;
                             }
                             break;
@@ -2001,7 +2021,7 @@ ILLEGAL_ADDRESS_ERROR:
 
             size_t index = o2->disp;
             if (index >= tup->objects->dim)
-                error(asmstate.loc, "tuple index %u exceeds %u", index, tup->objects->dim);
+                error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
                 Object *o = (Object *)tup->objects->data[index];
@@ -2361,6 +2381,8 @@ STATIC void asm_make_modrm_byte(
     if (aopty == _reg || amod == _rspecial) {
             mrmb.modregrm.mod = 0x3;
             mrmb.modregrm.rm |= popnd->base->val;
+            if (popnd->base->val & NUM_MASKR)
+                pc->Irex |= REX_B;
     }
     else if (amod == _addr16 || (amod == _flbl && I16))
     {   unsigned rm;
@@ -2487,14 +2509,17 @@ STATIC void asm_make_modrm_byte(
             else
             {
                 sib.sib.base = popnd->pregDisp1->val;
+                if (popnd->pregDisp1->val & NUM_MASKR)
+                    pc->Irex |= REX_B;
                 //
                 // This is to handle the special case
-                // of using the EBP register and no
+                // of using the EBP (or R13) register and no
                 // displacement.  You must put in an
                 // 8 byte displacement in order to
                 // get the correct opcodes.
                 //
-                if (popnd->pregDisp1->val == _EBP &&
+                if ((popnd->pregDisp1->val == _EBP ||
+                     popnd->pregDisp1->val == _R13) &&
                     (!popnd->disp && !s))
                 {
 #ifdef DEBUG
@@ -2508,6 +2533,9 @@ STATIC void asm_make_modrm_byte(
                 }
 
                 sib.sib.index = popnd->pregDisp2->val;
+                if (popnd->pregDisp2->val & NUM_MASKR)
+                    pc->Irex |= REX_X;
+
             }
             switch (popnd->uchMultiplier)
             {
@@ -2578,6 +2606,8 @@ STATIC void asm_make_modrm_byte(
          ASM_GET_amod(popnd2->usFlags) == _rspecial))
     {
             mrmb.modregrm.reg =  popnd2->base->val;
+            if (popnd2->base->val & NUM_MASKR)
+                pc->Irex |= REX_R;
     }
 #ifdef DEBUG
     puchOpcode[ (*pusIdx)++ ] = mrmb.uchOpcode;
@@ -2690,6 +2720,9 @@ STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
     case _modsinot1:
         usRet |= mSI;
         popnd1 = NULL;
+        break;
+    case _modcxr11:
+        usRet |= (mCX | mR11);
         break;
     }
     if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg)
@@ -4050,6 +4083,7 @@ STATIC OPND *asm_primary_exp()
             case TOKthis:
                 strcpy(tok.TKid,cpp_name_this);
 #endif
+            case TOKthis:
             case TOKidentifier:
             case_ident:
                 o1 = opnd_calloc();
@@ -4208,6 +4242,13 @@ STATIC OPND *asm_primary_exp()
                 asm_token();
                 break;
 
+            case TOKint64v:
+            case TOKuns64v:
+                o1 = opnd_calloc();
+                o1->disp = asmtok->int64value;
+                asm_token();
+                break;
+
             case TOKfloat32v:
                 o1 = opnd_calloc();
                 o1->real = asmtok->float80value;
@@ -4351,8 +4392,11 @@ Statement *AsmStatement::semantic(Scope *sc)
     //printf("AsmStatement::semantic()\n");
 
 #if DMDV2
-    if (sc->func && sc->func->isSafe())
-        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    if (sc->func)
+    {
+        if (sc->func->setUnsafe())
+            error("inline assembler not allowed in @safe function %s", sc->func->toChars());
+    }
 #endif
 
     OP *o;
@@ -4366,7 +4410,6 @@ Statement *AsmStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);
-    fd->inlineAsm = 1;
 
     if (!tokens)
         return NULL;

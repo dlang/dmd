@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 dir=${RESULTS_DIR}/runnable
 dmddir=${RESULTS_DIR}${SEP}runnable

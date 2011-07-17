@@ -379,9 +379,6 @@ dt_t *ArrayInitializer::toDtBit()
         {
             if (dim > tadim)
             {
-#ifdef DEBUG
-                printf("2: ");
-#endif
                 error(loc, "too many initializers, %d, for array[%d]", dim, tadim);
             }
             else
@@ -419,6 +416,7 @@ dt_t *ArrayInitializer::toDtBit()
 
 dt_t *ExpInitializer::toDt()
 {
+    //printf("ExpInitializer::toDt() %s\n", exp->toChars());
     dt_t *dt = NULL;
 
     exp = exp->optimize(WANTvalue);

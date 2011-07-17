@@ -14,7 +14,7 @@ int main()
     catch (AssertError e)
     {
     }
-    
+
     try
     {
         func!(void)();

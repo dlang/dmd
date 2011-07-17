@@ -323,8 +323,6 @@ code *cdeq(elem *e,regm_t *pretregs)
   int i;
   code *cl,*cr,*c,cs;
   elem *e11;
-  bool widen;                   /* TRUE means byte widen                */
-  int nwords;                   /* # of words to transfer               */
   bool regvar;                  /* TRUE means evaluate into register variable */
   regm_t varregm;
   unsigned varreg;
@@ -493,8 +491,8 @@ code *cdeq(elem *e,regm_t *pretregs)
                         cl = movregconst(cl,cs.Irm & 7,p[1],0);
                     }
                 }
-                else if (I64 && sz == 8 && *p != *(unsigned *)p)
-                {
+                else if (I64 && sz == 8 && *p >= 0x80000000)
+                {   // Use 64 bit MOV, as the 32 bit one gets sign extended
                     // MOV reg,imm64
                     // MOV EA,reg
                     regm_t rregm = allregs & ~idxregm(&cs);
@@ -553,9 +551,14 @@ code *cdeq(elem *e,regm_t *pretregs)
             goto Lp;
         }
         retregs = allregs;              /* pick a reg, any reg          */
+        if (sz == 2 * REGSIZE)
+            retregs &= ~mBP;            // BP cannot be used for register pair
   }
   if (retregs == mPSW)
-        retregs = allregs;
+  {     retregs = allregs;
+        if (sz == 2 * REGSIZE)
+            retregs &= ~mBP;            // BP cannot be used for register pair
+  }
   cs.Iop = 0x89;
   if (sz == 1)                  // must have byte regs
   {     cs.Iop = 0x88;
@@ -765,7 +768,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   byte = (sz == 1);                     // 1 for byte operation, else 0
   if (tyfloating(tyml))
   {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
       if (op == OPnegass)
             c = cdnegass87(e,pretregs);
         else
@@ -1216,7 +1219,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
 
 
   if (tyfloating(tyml))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return opass87(e,pretregs);
 #else
         return opassdbl(e,pretregs,op);
@@ -1282,7 +1285,6 @@ code *cdmulass(elem *e,regm_t *pretregs)
         else // /= or %=
         {   targ_size_t e2factor;
             int pow2;
-            targ_ulong m;
 
             assert(!byte);                      // should never happen
             assert(I16 || sz != SHORTSIZE);
@@ -1457,7 +1459,6 @@ code *cdshass(elem *e,regm_t *pretregs)
   assert(tysize(e2->Ety) <= REGSIZE);
 
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-    unsigned grex = rex << 16;          // 64 bit operands
 
   // if our lvalue is a cse, make sure we evaluate for result in register
   if (e1->Ecount && !(*pretregs & (ALLREGS | mBP)) && !isregvar(e1,&retregs,&reg))
@@ -1709,7 +1710,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   if (tyfloating(tym))                  /* if floating operation        */
   {
         retregs = mPSW;
@@ -1797,7 +1798,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
              genjmp(c,JA,FLcode,(block *)c3);   // JA C3
              gen1(c,0x48 + DX);                 // DEC EDX
              genjmp(c,JMPS,FLcode,(block *)c1); // JMP C1
-             c = cat4(c,c3,c1,CNIL);
+             c = cat4(c,c3,c1,getregs(mDX));
              retregs = mPSW;
         }
         goto L3;
@@ -1848,13 +1849,17 @@ code *cdcmp(elem *e,regm_t *pretregs)
             reg = findregmsw(retregs);
             rreg = findregmsw(rretregs);
             c = genregs(CNIL,0x3B ^ reverse,reg,rreg);  /* CMP reg,rreg */
-            if (!I16 && sz == 6)
+            if (I32 && sz == 6)
                 c->Iflags |= CFopsize;          /* seg is only 16 bits  */
+            else if (I64)
+                code_orrex(c, REX_W);
             genjmp(c,JNE,FLcode,(block *) ce);          /* JNE nop      */
 
             reg = findreglsw(retregs);
             rreg = findreglsw(rretregs);
             genregs(c,0x3B ^ reverse,reg,rreg);         /* CMP reg,rreg */
+            if (I64)
+                code_orrex(c, REX_W);
         }
         break;
       case OPrelconst:
@@ -1924,13 +1929,13 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     // What does the Windows platform do?
                     //  lower INT_MIN by 1?   See test exe9.c
                     // BUG: fix later
-                    genc2(c,0x81,grex | modregrmx(3,3,reg & 7),0);  // SBB reg,0
+                    genc2(c,0x81,grex | modregrmx(3,3,reg),0);  // SBB reg,0
 #endif
                     goto oplt;
                 case OPlt:
                 oplt:
                     if (!I16)
-                        c = genc2(c,0xC1,grex | modregrmx(3,5,reg & 7),sz * 8 - 1); // SHR reg,31
+                        c = genc2(c,0xC1,grex | modregrmx(3,5,reg),sz * 8 - 1); // SHR reg,31
                     else
                     {   /* 8088-286 do not have a barrel shifter, so use this
                            faster sequence
@@ -2402,8 +2407,8 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
 }
 
 /*****************************
- * Do conversions. DEPENDS on OPd_s32 and CLIBdbllng being
- * in SEQUENCE.
+ * Do conversions.
+ * Depends on OPd_s32 and CLIBdbllng being in sequence.
  */
 
 code *cdcnvt(elem *e, regm_t *pretregs)
@@ -2456,6 +2461,26 @@ code *cdcnvt(elem *e, regm_t *pretregs)
 
             case OPf_d:
             case OPd_f:
+                if (I64 && *pretregs & XMMREGS)
+                {
+                    c1 = codelem(e->E1,pretregs,FALSE);
+                    unsigned reg = findreg(*pretregs) - XMM0;
+                    if (e->Eoper == OPf_d)
+                    {   /*  0F 14 C0   UNPCKLPS     XMM0,XMM0
+                         *  0F 5A C0   CVTPS2PD     XMM0,XMM0
+                         */
+                        c1 = gen2(c1, 0x0F14, modregrm(3,reg,reg));
+                        c1 = gen2(c1, 0x0F5A, modregrm(3,reg,reg));
+                    }
+                    else // OPd_f
+                    {   /*  66 0F 14 C0   UPPCKLPD     XMM0,XMM0
+                         *  66 0F 5A C0   CVTPD2PS     XMM0,XMM0
+                         */
+                        c1 = gen2(c1, 0x660F14, modregrm(3,reg,reg));
+                        c1 = gen2(c1, 0x660F5A, modregrm(3,reg,reg));
+                    }
+                    return c1;
+                }
                 /* if won't do us much good to transfer back and        */
                 /* forth between 8088 registers and 8087 registers      */
                 if (OTcall(e->E1->Eoper) && !(*pretregs & allregs))
@@ -2486,14 +2511,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     c1 = codelem(e->E1, &retregs, FALSE);
                     unsigned reg = findreg(retregs);
                     c1 = genfltreg(c1, 0x89, reg, 0);
-                    if (I64)
-                    {
-                        code_orrex(c1, REX_W);
-                    }
-                    else
-                    {   regwithvalue(c1,ALLREGS,0,&reg,0);
-                        genfltreg(c1, 0x89, reg, REGSIZE);
-                    }
+                    regwithvalue(c1,ALLREGS,0,&reg,0);
+                    genfltreg(c1, 0x89, reg, 4);
 
                     cat(c1, push87());
                     genfltreg(c1,0xDF,5,0);     // FILD m64int
@@ -2509,7 +2528,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             case OPd_s64:
                 return cnvt87(e,pretregs);
             case OPd_u32:               // use subroutine, not 8087
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 retregs = mST0;
 #else
                 retregs = DOUBLEREGS;
@@ -2672,9 +2691,9 @@ code *cdshtlng(elem *e,regm_t *pretregs)
     {
     L2:
         retregs = *pretregs;
-        *pretregs &= ~mPSW;             /* flags are already set        */
         if (op == OPs32_64)
-            retregs = mAX;
+            retregs = mAX | (*pretregs & mPSW);
+        *pretregs &= ~mPSW;             /* flags are already set        */
         c1 = codelem(e1,&retregs,FALSE);
         c2 = getregs(retregs);
         if (op == OPu16_32 && c1)
@@ -2759,7 +2778,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
  */
 
 code *cdbyteint(elem *e,regm_t *pretregs)
-{   code *c,*ce,*c0,*c1,*c2,*c3,*c4;
+{   code *c,*c0,*c1,*c2,*c3,*c4;
     regm_t retregs;
     unsigned reg;
     char op;
@@ -3152,7 +3171,6 @@ code *cdbt(elem *e, regm_t *pretregs)
     unsigned reg;
     unsigned char word;
     tym_t ty1;
-    targ_int i;
     int op;
     int mode;
 
@@ -3305,7 +3323,6 @@ code *cdpair(elem *e, regm_t *pretregs)
     regm_t retregs;
     regm_t regs1;
     regm_t regs2;
-    unsigned reg;
     code *cg;
     code *c1;
     code *c2;

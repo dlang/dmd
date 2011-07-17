@@ -439,6 +439,7 @@ class myclass20
 	{
 	    case XX!(cast(uint)type20.a,cast(uint)type20.b)():
 		break;
+	    default: assert(0);
 	}
     }
 }
@@ -1158,6 +1159,7 @@ void test57()
 
 /************************************************/
 
+/+
 //import std.hiddenfunc;
 
 class B58
@@ -1191,6 +1193,7 @@ void test58()
 {
     writeln(foo58(new D58));
 }
++/
 
 /************************************************/
 
@@ -1343,7 +1346,7 @@ void main()
     test55();
     test56();
     test57();
-    test58();
+//    test58();
     test59();
     test60();
     test61();

@@ -422,6 +422,76 @@ void test4()
     if (a && b) {}
 }
 
+/***************************************************/
+// 5284
+
+void bug5284_1()
+{
+    class C { int v; }
+
+              C [] mda;
+    immutable(C)[] ida;
+    static assert(!__traits(compiles, (mda[] = ida[])));
+
+              C [1] msa;
+    immutable(C)[1] isa;
+    static assert(!__traits(compiles, (msa[] = isa[])));
+
+              C  m;
+    immutable(C) i;
+    static assert(!__traits(compiles, m = i));
+}
+void bug5284_2a()
+{
+    struct S { int v; }
+
+              S [] mda;
+    immutable(S)[] ida;
+    mda[] = ida[];
+
+              S [1] msa;
+    immutable(S)[1] isa;
+    msa[] = isa[];
+
+              S  m = S();
+    immutable(S) i = immutable(S)();
+    m = i;
+}
+void bug5284_2b()
+{
+    struct S { int v; int[] arr; }
+
+              S [] mda;
+    immutable(S)[] ida;
+    static assert(!__traits(compiles, (mda[] = ida[])));
+
+              S [1] msa;
+    immutable(S)[1] isa;
+    static assert(!__traits(compiles, (msa[] = isa[])));
+
+              S  m;
+    immutable(S) i;
+    static assert(!__traits(compiles, m = i));
+}
+void bug5284_3()
+{
+              int [] ma;
+    immutable(int)[] ia;
+    ma[] = ia[];
+
+    int m;
+    immutable(int) i;
+    m = i;
+}
+
+void test5()
+{
+    bug5284_1();
+    bug5284_2a();
+    bug5284_2b();
+    bug5284_3();
+}
+
 /************************************************************************/
 
 int main()
@@ -430,6 +500,7 @@ int main()
     test2();
     test3();
     test4();
+    test5();
 
     printf("Success\n");
     return 0;

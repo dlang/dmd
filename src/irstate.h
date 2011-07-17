@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -37,6 +37,7 @@ struct IRState
     Array *deferToObj;          // array of Dsymbol's to run toObjFile(int multiobj) on later
     elem *ehidden;              // transmit hidden pointer to CallExp::toElem()
     Symbol *startaddress;
+    Array *varsInScope;         // variables that are in scope that will need destruction later
 
     block *breakBlock;
     block *contBlock;

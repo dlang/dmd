@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -33,13 +33,16 @@ static char *type_print(Type *type)
 
 void dumpExpressions(int i, Expressions *exps)
 {
-    for (size_t j = 0; j < exps->dim; j++)
-    {   Expression *e = (Expression *)exps->data[j];
-        indent(i);
-        printf("(\n");
-        e->dump(i + 2);
-        indent(i);
-        printf(")\n");
+    if (exps)
+    {
+        for (size_t j = 0; j < exps->dim; j++)
+        {   Expression *e = (Expression *)exps->data[j];
+            indent(i);
+            printf("(\n");
+            e->dump(i + 2);
+            indent(i);
+            printf(")\n");
+        }
     }
 }
 
@@ -134,7 +137,12 @@ void DelegateExp::dump(int i)
 void BinExp::dump(int i)
 {
     indent(i);
-    printf("%p %s type=%s e1=%p e2=%p\n", this, Token::toChars(op), type_print(type), e1, e2);
+    const char *sop = Token::toChars(op);
+    if (op == TOKblit)
+        sop = "blit";
+    else if (op == TOKconstruct)
+        sop = "construct";
+    printf("%p %s type=%s e1=%p e2=%p\n", this, sop, type_print(type), e1, e2);
     if (e1)
         e1->dump(i + 2);
     if (e2)

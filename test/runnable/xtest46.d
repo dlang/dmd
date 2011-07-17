@@ -1458,6 +1458,19 @@ void test79()
 
 /***************************************************/
 
+void test6317()
+{
+    int b = 12345;
+    struct nested { int a; int fun() { return b; } }
+    static assert(!__traits(compiles, { nested x = { 3, null }; }));
+    nested g = { 7 };
+    auto h = nested(7);
+    assert(g.fun() == 12345);
+    assert(h.fun() == 12345);
+}
+
+/***************************************************/
+
 void test80()
 {
     auto array = new int[10];
@@ -1731,7 +1744,7 @@ struct Foo93
 
 void test93()
 {
-    const Foo93 bar;
+    const Foo93 bar = Foo93();
     enum bla = bar.foo();
     assert(bla == 2);
 }
@@ -1773,12 +1786,29 @@ struct S95
 
 @disable void foo95() { }
 
+struct T95A
+{
+    @disable this(this);
+}
+
+struct S95A
+{
+    T95A t;
+}
+
+@disable void foo95A() { }
+
 void test95()
 {
     S95 s;
     S95 t;
     static assert(!__traits(compiles, t = s));
     static assert(!__traits(compiles, foo95()));
+
+    S95A u;
+    S95A v;
+    static assert(!__traits(compiles, v = u));
+    static assert(!__traits(compiles, foo95A()));
 }
 
 /***************************************************/
@@ -2314,7 +2344,7 @@ static assert( is (food5195 == good5195));
 
 struct Foo129
 {
-    void add(T)(T value) pure nothrow
+    void add(T)(T value) nothrow
     {
         this.value += value;
     }
@@ -2344,7 +2374,7 @@ void test129()
     writeln(foo.value);
     assert(foo.value == 13);
 
-    void delegate (int) pure nothrow dg = &foo.add!(int);    
+    void delegate (int) nothrow dg = &foo.add!(int);    
     dg(7);
     assert(foo.value == 20);
 }
@@ -2540,6 +2570,713 @@ void test135()
 }
 
 /***************************************************/
+// 5545
+
+bool enforce136(bool value, lazy const(char)[] msg = null) {
+    if(!value) {
+        return false;
+    }
+
+    return value;
+}
+
+struct Perm {
+    byte[3] perm;
+    ubyte i;
+
+    this(byte[] input) {
+        foreach(elem; input) {
+            enforce136(i < 3);
+            perm[i++] = elem;
+            std.stdio.stderr.writeln(i);  // Never gets incremented.  Stays at 0.
+        }
+    }
+}
+
+void test136() {
+    byte[] stuff = [0, 1, 2];
+    auto perm2 = Perm(stuff);
+    writeln(perm2.perm);  // Prints [2, 0, 0]
+    assert(perm2.perm[] == [0, 1, 2]);
+}
+
+/***************************************************/
+// 4097
+
+void foo4097() { }
+alias typeof(&foo4097) T4097;
+static assert(is(T4097 X : X*) && is(X == function));
+
+static assert(!is(X));
+
+/***************************************************/
+// 5798
+
+void assign9(ref int lhs) pure {
+    lhs = 9;
+}
+
+void assign8(ref int rhs) pure {
+    rhs = 8;
+}
+
+int test137(){
+    int a=1,b=2;
+    assign8(b),assign9(a);
+    assert(a == 9);
+    assert(b == 8);   // <-- fail
+
+    assign9(b),assign8(a);
+    assert(a == 8);
+    assert(b == 9);   // <-- fail
+
+    return 0;
+}
+
+/***************************************************/
+
+struct Size138
+{
+    union
+    {
+        struct
+        {
+            int width;
+            int height;
+        }
+       
+        long size;
+    }
+}
+
+enum Size138 foo138 = {2 ,5};
+    
+Size138 bar138 = foo138;
+
+void test138()
+{
+    assert(bar138.width == 2);
+    assert(bar138.height == 5);
+}
+
+/***************************************************/
+
+// 5939, 5940
+
+template map(fun...)
+{
+    auto map(double[] r)
+    {
+        struct Result
+        {
+            this(double[] input)
+            {
+            }
+        }
+
+        return Result(r);
+    }
+}
+
+
+void test139()
+{
+    double[] x;
+    alias typeof(map!"a"(x)) T;
+    T a = void;
+    auto b = map!"a"(x);
+    auto c = [map!"a"(x)];
+    T[3] d;
+}
+
+
+/***************************************************/
+// 5966
+
+string[] foo5966(string[] a)
+{
+    a[0] = a[0][0..$];
+    return a;
+}
+
+enum var5966 = foo5966([""]);
+
+/***************************************************/
+// 5975
+
+int foo5975(wstring replace)
+{
+  wstring value = "";
+  value ~= replace;
+  return 1;
+}
+
+enum X5975 = foo5975("X"w);
+
+/***************************************************/
+// 5965
+
+template mapx(fun...) if (fun.length >= 1)
+{
+    int mapx(Range)(Range r)
+    {
+        return 1;
+    }
+}
+
+void test140()
+{
+   int foo(int i) { return i; }
+
+   int[] arr;
+   auto x = mapx!( function(int a){return foo(a);} )(arr);
+}
+
+/***************************************************/
+
+void bug5976()
+{
+    int[] barr;
+    int * k;
+    foreach (ref b; barr)
+    {
+        scope(failure)
+            k = &b;
+        k = &b;
+    }
+} 
+
+/***************************************************/
+// 5771
+
+struct S141
+{
+    this(A)(auto ref A a){}
+}
+
+void test141()
+{
+    S141 s = S141(10);
+}
+
+/***************************************************/
+// 3688
+
+struct S142
+{
+    int v;
+    this(int n) { v = n; }
+    const bool opCast(T:bool)() { return true; }
+}
+
+void test142()
+{
+    if (int a = 1)
+        assert(a == 1);
+    else assert(0);
+
+    if (const int a = 2)
+        assert(a == 2);
+    else assert(0);
+
+    if (immutable int a = 3)
+        assert(a == 3);
+    else assert(0);
+
+    if (auto s = S142(10))
+        assert(s.v == 10);
+    else assert(0);
+
+    if (auto s = const(S142)(20))
+        assert(s.v == 20);
+    else assert(0);
+
+    if (auto s = immutable(S142)(30))
+        assert(s.v == 30);
+    else assert(0);
+}
+
+/***************************************************/
+// 6072
+
+static assert({
+    if (int x = 5) {}
+    return true;
+}());
+
+/***************************************************/
+// 5959
+
+int n;
+
+void test143()
+{
+    ref int f(){ return n; }            // NG
+    f() = 1;
+    assert(n == 1);
+
+    nothrow ref int f1(){ return n; }    // OK
+    f1() = 2;
+    assert(n == 2);
+
+    auto ref int f2(){ return n; }       // OK
+    f2() = 3;
+    assert(n == 3);
+}
+
+/***************************************************/
+// 6119
+
+void startsWith(alias pred) ()   if (is(typeof(pred('c', 'd')) : bool))
+{
+}
+
+void startsWith(alias pred) ()   if (is(typeof(pred('c', "abc")) : bool))
+{
+}
+
+void test144()
+{
+    startsWith!((a, b) { return a == b; })();
+} 
+
+/***************************************************/
+
+void test145()
+{
+    import std.c.stdio;
+    printf("hello world 145\n");
+}
+
+void test146()
+{
+    test1();
+    static import std.c.stdio;
+    std.c.stdio.printf("hello world 146\n");
+}
+
+/***************************************************/
+// 5856
+
+struct X147
+{
+    void f()       { writeln("X.f mutable"); }
+    void f() const { writeln("X.f const"); }
+
+    void g()()       { writeln("X.g mutable"); }
+    void g()() const { writeln("X.g const"); }
+
+    void opOpAssign(string op)(int n)       { writeln("X+= mutable"); }
+    void opOpAssign(string op)(int n) const { writeln("X+= const"); }
+}
+
+void test147()
+{
+    X147 xm;
+    xm.f();     // prints "X.f mutable"
+    xm.g();     // prints "X.g mutable"
+    xm += 10;   // should print "X+= mutable" (1)
+
+    const(X147) xc;
+    xc.f();     // prints "X.f const"
+    xc.g();     // prints "X.g const"
+    xc += 10;   // should print "X+= const" (2)
+}
+
+
+/***************************************************/
+// 5897
+
+struct A148{ int n; }
+struct B148{
+    int n, m;
+    this(A148 a){ n = a.n, m = a.n*2; }
+}
+
+struct C148{
+    int n, m;
+    static C148 opCall(A148 a)
+    {
+        C148 b;
+        b.n = a.n, b.m = a.n*2;
+        return b;
+    }
+}
+
+void test148()
+{
+    auto a = A148(10);
+    auto b = cast(B148)a;
+    assert(b.n == 10 && b.m == 20);
+    auto c = cast(C148)a;
+    assert(c.n == 10 && c.m == 20);
+}
+
+/***************************************************/
+// 4969
+
+class MyException : Exception
+{
+    this()
+    {
+        super("An exception!");
+    }
+}
+
+void throwAway()
+{
+    throw new MyException;
+}
+
+void cantthrow() nothrow
+{
+    try
+        throwAway();
+    catch(MyException me)
+        assert(0);
+    catch(Exception e)
+        assert(0);
+}
+
+/***************************************************/
+// 5659 
+ 
+void test149() 
+{ 
+    import std.traits; 
+ 
+    char a; 
+    immutable(char) b; 
+ 
+    static assert(is(typeof(true ? a : b) == const(char))); 
+    static assert(is(typeof([a, b][0]) == const(char))); 
+ 
+    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char))); 
+} 
+ 
+
+/***************************************************/
+// 1373
+
+void func1373a(){}
+
+static assert(typeof(func1373a).stringof == "void()");
+static assert(typeof(func1373a).mangleof == "FZv");
+static assert(!__traits(compiles, typeof(func1373a).alignof));
+static assert(!__traits(compiles, typeof(func1373a).init));
+static assert(!__traits(compiles, typeof(func1373a).offsetof));
+
+void func1373b(int n){}
+
+static assert(typeof(func1373b).stringof == "void(int n)");
+static assert(typeof(func1373b).mangleof == "FiZv");
+static assert(!__traits(compiles, typeof(func1373b).alignof));
+static assert(!__traits(compiles, typeof(func1373b).init));
+static assert(!__traits(compiles, typeof(func1373b).offsetof));
+
+/***************************************************/
+
+void bar150(T)(T n) {  }
+
+@safe void test150()
+{
+    bar150(1);
+}
+
+/***************************************************/
+
+void bar151(T)(T n) {  }
+
+nothrow void test151()
+{
+    bar151(1);
+}
+
+/***************************************************/
+
+@property int coo() { return 1; }
+@property auto doo(int i) { return i; }
+
+@property int eoo() { return 1; }
+@property auto ref hoo(int i) { return i; }
+
+// 3359
+
+int goo(int i) pure { return i; }
+auto ioo(int i) pure { return i; }
+auto ref boo(int i) pure nothrow { return i; }
+
+class A152 {
+    auto hoo(int i) pure  { return i; }
+    const boo(int i) const { return i; }
+    auto coo(int i) const { return i; }
+    auto doo(int i) immutable { return i; }
+    auto eoo(int i) shared { return i; }
+} 
+
+// 4706
+
+struct Foo152(T) {
+    @property auto ref front() {
+        return T.init;
+    }
+
+    @property void front(T num) {}
+}
+
+void test152() {
+    Foo152!int foo;
+    auto a = foo.front;
+    foo.front = 2;
+}
+
+
+/***************************************************/
+// 3799
+
+void test153()
+{
+    void bar()
+    {
+    }
+
+    static assert(!__traits(isStaticFunction, bar));
+}
+
+/***************************************************/
+// 3632
+
+
+void test154() {
+    float f;
+    assert(f is float.init);
+    double d;
+    assert(d is double.init);
+    real r;
+    assert(r is real.init);
+
+    assert(float.nan is float.nan);
+    assert(double.nan is double.nan);
+    assert(real.nan is real.nan);
+}
+
+/***************************************************/
+// 3147
+
+
+void test155()
+{
+    byte b = 1;
+    short s;
+    int i;
+    long l;
+
+    s = b + b;
+    b = s % b;
+    s = s >> b;
+    b = 1;
+    b = i % b;
+    b = b >> i;
+}
+
+/***************************************************/
+// 2521
+
+immutable int val = 23;
+const int val2 = 23;
+
+ref immutable(int) func2521_() {
+    return val;
+}
+ref immutable(int) func2521_2() {
+    return *&val;
+}
+ref immutable(int) func2521_3() {
+    return func2521_;
+}
+ref const(int) func2521_4() {
+    return val2;
+}
+ref const(int) func2521_5() {
+    return val;
+}
+auto ref func2521_6() {
+    return val;
+}
+ref func2521_7() {
+    return val;
+}
+
+/***************************************************/
+// 5962
+
+struct S156
+{
+          auto g()(){ return 1; }
+    const auto g()(){ return 2; }
+}
+
+void test156()
+{
+    auto ms = S156();
+    assert(ms.g() == 1);
+    auto cs = const(S156)();
+    assert(cs.g() == 2);
+}
+
+/***************************************************/
+// 4258
+
+struct Vec4258 {
+    Vec4258 opOpAssign(string Op)(auto ref Vec4258 other) if (Op == "+") {
+        return this;
+    }
+    Vec4258 opBinary(string Op:"+")(Vec4258 other) {
+        Vec4258 result;
+        return result += other;
+    }
+}
+void test4258() {
+    Vec4258 v;
+    v += Vec4258() + Vec4258(); // line 12
+}
+
+// regression fix test
+
+struct Foo4258 {
+    // binary ++/--
+    int opPostInc()() if (false) { return 0; }
+
+    // binary 1st
+    int opAdd(R)(R rhs) if (false) { return 0; }
+    int opAdd_r(R)(R rhs) if (false) { return 0; }
+
+    // compare
+    int opCmp(R)(R rhs) if (false) { return 0; }
+
+    // binary-op assign
+    int opAddAssign(R)(R rhs) if (false) { return 0; }
+}
+struct Bar4258 {
+    // binary commutive 1
+    int opAdd_r(R)(R rhs) if (false) { return 0; }
+
+    // binary-op assign
+    int opOpAssign(string op, R)(R rhs) if (false) { return 0; }
+}
+struct Baz4258 {
+    // binary commutive 2
+    int opAdd(R)(R rhs) if (false) { return 0; }
+}
+static assert(!is(typeof(Foo4258.init++)));
+static assert(!is(typeof(Foo4258.init + 1)));
+static assert(!is(typeof(1 + Foo4258.init)));
+static assert(!is(typeof(Foo4258.init < Foo4258.init)));
+static assert(!is(typeof(Foo4258.init += 1)));
+static assert(!is(typeof(Bar4258.init + 1)));
+static assert(!is(typeof(Bar4258.init += 1)));
+static assert(!is(typeof(1 + Baz4258.init)));
+
+/***************************************************/
+
+void test4963()
+{
+    struct Value {
+        byte a;
+    };
+    Value single()
+    {
+        return Value();
+    }
+
+    Value[] list;
+    auto x = single() ~ list;
+}
+
+/***************************************************/
+
+/***************************************************/ 
+
+pure int test4031() 
+{ 
+    static const int x = 8; 
+    return x; 
+} 
+ 
+/***************************************************/
+
+struct S6230 {
+    int p;
+    int q() const pure {
+        return p;
+    }
+    void r() pure {
+        p = 231;
+    }
+}
+class C6230 {
+    int p;
+    int q() const pure {
+        return p;
+    }
+    void r() pure {
+        p = 552;
+    }
+}
+int q6230(ref const S6230 s) pure {    // <-- Currently OK
+    return s.p;
+}
+int q6230(ref const C6230 c) pure {    // <-- Currently OK
+    return c.p;
+}
+void r6230(ref S6230 s) pure {
+    s.p = 244;
+}
+void r6230(ref C6230 c) pure {
+    c.p = 156;
+}
+bool test6230pure() pure {
+    auto s = S6230(4);
+    assert(s.p == 4);
+    assert(q6230(s) == 4);
+    assert(s.q == 4);
+
+    auto c = new C6230;
+    c.p = 6;
+    assert(q6230(c) == 6);
+    assert(c.q == 6);
+
+    r6230(s);
+    assert(s.p == 244);
+    s.r();
+    assert(s.p == 231);
+
+    r6230(c);
+    assert(c.p == 156);
+    c.r();
+    assert(c.p == 552);
+
+    return true;
+}
+void test6230() {
+    assert(test6230pure());
+}
+
+/***************************************************/
+
+void test6264()
+{
+    struct S { auto opSlice() { return this; } }
+    int[] a;
+    S s;
+    static assert(!is(typeof(a[] = s[])));
+    int*[] b;
+    static assert(!is(typeof(b[] = [new immutable(int)])));
+    char[] c = new char[](5);
+    c[] = "hello";
+}
+
+/***************************************************/
 
 int main()
 {
@@ -2678,6 +3415,33 @@ int main()
     test133();
     test134();
     test135();
+    test136();
+    test137();
+    test138();
+    test139();
+    test140();
+    test141();
+    test6317();
+    test142();
+    test143();
+    test144();
+    test145();
+    test146();
+    test147();
+    test148();
+    test149();
+    test150();
+    test151();
+    test152();
+    test153();
+    test154();
+    test155();
+    test156();
+    test4258();
+    test4963();
+    test4031();
+    test6230();
+    test6264();
 
     printf("Success\n");
     return 0;

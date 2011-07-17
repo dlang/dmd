@@ -260,7 +260,6 @@ unsigned buildModregrm(int mod, int reg, int rm)
         m = modregrm(mod, reg, rm);
     else
     {
-        unsigned rex = 0;
         if ((rm & 7) == SP && mod != 3)
             m = (modregrm(0,4,SP) << 8) | modregrm(mod,reg & 7,4);
         else
@@ -372,8 +371,8 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
     code *cs1 = *csave;
     code *cs2 = *crestore;
 
-    //printf("gensaverestore2(%x)\n", regm);
-    regm &= mBP | mES | ALLREGS;
+    //printf("gensaverestore2(%s)\n", regm_str(regm));
+    regm &= mBP | mES | ALLREGS | XMMREGS;
     for (int i = 0; regm; i++)
     {
         if (regm & 1)
@@ -382,6 +381,11 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
             {
                 cs1 = gen1(cs1, 0x06);                  // PUSH ES
                 cs2 = cat(gen1(CNIL, 0x07),cs2);        // POP  ES
+            }
+            else if (i >= XMM0)
+            {   unsigned idx;
+                cs1 = regsave.save(cs1, i, &idx);
+                cs2 = regsave.restore(cs2, i, idx);
             }
             else
             {
@@ -680,9 +684,13 @@ L1:
         getlvalue_msw(cs);
   else
         cs->IEVoffset1 += offset;
-  if (I64 && reg >= 4 && sz == 1)               // if byte register
-        // Can only address those 8 bit registers if a REX byte is present
-        cs->Irex |= REX;
+  if (I64)
+  {     if (reg >= 4 && sz == 1)               // if byte register
+            // Can only address those 8 bit registers if a REX byte is present
+            cs->Irex |= REX;
+        if ((op & 0xFFFFFFF8) == 0xD8)
+            cs->Irex &= ~REX_W;                 // not needed for x87 ops
+  }
   code_newreg(cs, reg);                         // OR in reg field
   if (!I16)
   {
@@ -971,7 +979,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         )
                 {
                     regm_t scratchm;
-                    int ss2;
 
 #if 0 && TARGET_LINUX
                     assert(f != FLgot && f != FLgotoff);
@@ -1041,9 +1048,9 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         pcs->Irm = modregrm(t,0,4);
                         pcs->Isib = modregrm(ssindex_array[ssi].ss2,r & 7,rbase & 7);
                         if (r & 8)
-                            code_orrex(pcs, REX_X);
+                            pcs->Irex |= REX_X;
                         if (rbase & 8)
-                            code_orrex(pcs, REX_B);
+                            pcs->Irex |= REX_B;
                     }
                     freenode(e11->E2);
                     freenode(e11);
@@ -1345,7 +1352,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     case FLextern:
         if (s->Sident[0] == '_' && memcmp(s->Sident + 1,"tls_array",10) == 0)
         {
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             // Rewrite as GS:[0000], or FS:[0000] for 64 bit
             if (I64)
             {
@@ -1374,7 +1381,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     case FLdata:
     case FLudata:
     case FLcsdata:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
     case FLtlsdata:
@@ -1408,7 +1415,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         {
             pcs->Iflags |= CFcs | CFoff;
         }
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (I64 && config.flags3 & CFG3pic &&
             (fl == FLtlsdata || s->ty() & mTYthread))
         {
@@ -1994,8 +2001,20 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
                         code_orrex(ce,REX_W);
                 }
             }
+            else if (forregs & XMMREGS)
+            {
+                reg = findreg(retregs & (mBP | ALLREGS));
+                // MOV floatreg,reg
+                ce = genfltreg(ce,0x89,reg,0);
+                if (sz == 8)
+                    code_orrex(ce,REX_W);
+                // MOVSS/MOVSD XMMreg,floatreg
+                ce = genfltreg(ce,0xF20F10,rreg - XMM0,0);
+            }
             else
             {
+                assert(!(retregs & XMMREGS));
+                assert(!(forregs & XMMREGS));
                 reg = findreg(retregs & (mBP | ALLREGS));
                 ce = genmovreg(ce,rreg,reg);    /* MOV rreg,reg         */
             }
@@ -2026,12 +2045,12 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 {
     //printf("callclib(e = %p, clib = %d, *pretregs = %s, keepmask = %s\n", e, clib, regm_str(*pretregs), regm_str(keepmask));
     //elem_print(e);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
   static symbol lib[] =
   {
 /* Convert destroyed regs into saved regs       */
 #define Z(desregs)      (~(desregs) & (mBP| mES | ALLREGS))
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define N(name) "_" name
 #else
 #define N(name) name
@@ -2252,7 +2271,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _INTDBL@     intdbl
     {mAX,mAX,0,INFfloat,1,1},                           // _DBLUNS@     dbluns
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _UNSDBL@     unsdbl
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {mDX|mAX,mAX,0,INF32|INFfloat,0,1},                 // _DBLULNG@    dblulng
 #else
     {mDX|mAX,mAX,0,INFfloat,1,1},                       // _DBLULNG@    dblulng
@@ -2265,7 +2284,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLLLNG@
     {DOUBLEREGS_16,DOUBLEREGS_32,0,INFfloat,1,1},       // _LLNGDBL@
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,2,2},             // _DBLULLNG@
 #else
     {DOUBLEREGS_16,mDX|mAX,0,INFfloat,1,1},             // _DBLULLNG@
@@ -2327,6 +2346,12 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             lib[CLIBllngdbl].Sregsaved = Z(DOUBLEREGS_32);
             lib[CLIBdblullng].Sregsaved = Z(DOUBLEREGS_32);
             lib[CLIBullngdbl].Sregsaved = Z(DOUBLEREGS_32);
+
+            if (I64)
+            {
+                info[CLIBullngdbl].retregs32 = mAX;
+                info[CLIBdblullng].retregs32 = mAX;
+            }
         }
         clib_inited++;
   }
@@ -2603,7 +2628,6 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
 
             unsigned stackalign = REGSIZE;
-            tym_t tyf = tybasic(e->E1->Ety);
 
             // Figure out which parameters go in registers
             // Compute numpara, the total bytes pushed on the stack
@@ -2630,7 +2654,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 }
                 if (xmmcnt <= XMM7)
                 {
-                    if (tyfloating(ty) && tysize(ty) <= 8)
+                    if (tyfloating(ty) && tysize(ty) <= 8 && !tycomplex(ty))
                     {
                         parameters[i].reg = xmmcnt;
                         xmmcnt++;
@@ -3587,8 +3611,7 @@ code *params(elem *e,unsigned stackalign)
         targ_ullong *pl = (targ_ullong *)pi;
         i /= regsize;
         do
-        {   code *cp;
-
+        {
             if (i)                      /* be careful not to go negative */
                 i--;
             targ_size_t value = (regsize == 4) ? pi[i] : ps[i];

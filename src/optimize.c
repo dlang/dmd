@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -57,11 +57,11 @@ Expression *expandVar(int result, VarDeclaration *v)
             //error("ICE");
             return e;
         }
-
         Type *tb = v->type->toBasetype();
         if (result & WANTinterpret ||
             v->storage_class & STCmanifest ||
-            (tb->ty != Tsarray && tb->ty != Tstruct)
+            v->type->toBasetype()->isscalar() ||
+            ((result & WANTexpand) && (tb->ty != Tsarray && tb->ty != Tstruct))
            )
         {
             if (v->init)
@@ -73,13 +73,31 @@ Expression *expandVar(int result, VarDeclaration *v)
                 }
                 Expression *ei = v->init->toExpression();
                 if (!ei)
+                {   if (v->storage_class & STCmanifest)
+                        v->error("enum cannot be initialized with %s", v->init->toChars());
                     goto L1;
+                }
                 if (ei->op == TOKconstruct || ei->op == TOKblit)
                 {   AssignExp *ae = (AssignExp *)ei;
                     ei = ae->e2;
-                    if (ei->isConst() != 1 && ei->op != TOKstring)
+                    if (result & WANTinterpret)
+                    {
+                        v->inuse++;
+                        ei = ei->optimize(result);
+                        v->inuse--;
+                    }
+                    else if (ei->isConst() != 1 && ei->op != TOKstring)
                         goto L1;
-                    if (ei->type != v->type)
+
+                    if (ei->type == v->type)
+                    {   // const variable initialized with const expression
+                    }
+                    else if (ei->implicitConvTo(v->type) >= MATCHconst)
+                    {   // const var initialized with non-const expression
+                        ei = ei->implicitCastTo(0, v->type);
+                        ei = ei->semantic(0);
+                    }
+                    else
                         goto L1;
                 }
                 if (v->scope)
@@ -154,7 +172,17 @@ Expression *fromConstInitializer(int result, Expression *e1)
             e->loc = e1->loc;
         }
         else
+        {
             e = e1;
+            /* If we needed to interpret, generate an error.
+             * Don't give an error if it's a template parameter
+             */
+            if (v && (result & WANTinterpret) &&
+                !(v->storage_class & STCtemplateparameter))
+            {
+                e1->error("variable %s cannot be read at compile time", v->toChars());
+            }
+        }
     }
     return e;
 }
@@ -189,7 +217,7 @@ Expression *ArrayLiteralExp::optimize(int result)
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *e = (Expression *)elements->data[i];
 
-            e = e->optimize(WANTvalue | (result & WANTinterpret));
+            e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
             elements->data[i] = (void *)e;
         }
     }
@@ -202,11 +230,11 @@ Expression *AssocArrayLiteralExp::optimize(int result)
     for (size_t i = 0; i < keys->dim; i++)
     {   Expression *e = (Expression *)keys->data[i];
 
-        e = e->optimize(WANTvalue | (result & WANTinterpret));
+        e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
         keys->data[i] = (void *)e;
 
         e = (Expression *)values->data[i];
-        e = e->optimize(WANTvalue | (result & WANTinterpret));
+        e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
         values->data[i] = (void *)e;
     }
     return this;
@@ -220,7 +248,7 @@ Expression *StructLiteralExp::optimize(int result)
         {   Expression *e = (Expression *)elements->data[i];
             if (!e)
                 continue;
-            e = e->optimize(WANTvalue | (result & WANTinterpret));
+            e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
             elements->data[i] = (void *)e;
         }
     }
@@ -455,6 +483,10 @@ Expression *NewExp::optimize(int result)
             e = e->optimize(WANTvalue);
             arguments->data[i] = (void *)e;
         }
+    }
+    if (result & WANTinterpret)
+    {
+        error("cannot evaluate %s at compile time", toChars());
     }
     return this;
 }
@@ -843,7 +875,7 @@ Expression *ArrayLengthExp::optimize(int result)
 {   Expression *e;
 
     //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, toChars());
-    e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
+    e1 = e1->optimize(WANTvalue | WANTexpand | (result & WANTinterpret));
     e = this;
     if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
     {
@@ -886,11 +918,36 @@ Expression *IdentityExp::optimize(int result)
     return e;
 }
 
+/* It is possible for constant folding to change an array expression of
+ * unknown length, into one where the length is known.
+ * If the expression 'arr' is a literal, set lengthVar to be its length.
+ */
+void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
+{
+    if (!lengthVar)
+        return;
+    if (lengthVar->init && !lengthVar->init->isVoidInitializer())
+        return; // we have previously calculated the length
+    size_t len;
+    if (arr->op == TOKstring)
+        len = ((StringExp *)arr)->len;
+    else if (arr->op == TOKarrayliteral)
+        len = ((ArrayLiteralExp *)arr)->elements->dim;
+    else
+        return; // we don't know the length yet
+
+    Expression *dollar = new IntegerExp(0, len, Type::tsize_t);
+    lengthVar->init = new ExpInitializer(0, dollar);
+    lengthVar->storage_class |= STCstatic | STCconst;
+}
+
+
 Expression *IndexExp::optimize(int result)
 {   Expression *e;
 
     //printf("IndexExp::optimize(result = %d) %s\n", result, toChars());
-    Expression *e1 = this->e1->optimize(WANTvalue | (result & WANTinterpret));
+    Expression *e1 = this->e1->optimize(
+        WANTvalue | (result & (WANTinterpret| WANTexpand)));
     e1 = fromConstInitializer(result, e1);
     if (this->e1->op == TOKvar)
     {   VarExp *ve = (VarExp *)this->e1;
@@ -902,6 +959,8 @@ Expression *IndexExp::optimize(int result)
             this->e1 = e1;
         }
     }
+    // We might know $ now
+    setLengthVarIfKnown(lengthVar, e1);
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
     e = Index(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
@@ -909,12 +968,13 @@ Expression *IndexExp::optimize(int result)
     return e;
 }
 
+
 Expression *SliceExp::optimize(int result)
 {   Expression *e;
 
     //printf("SliceExp::optimize(result = %d) %s\n", result, toChars());
     e = this;
-    e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
+    e1 = e1->optimize(WANTvalue | (result & (WANTinterpret|WANTexpand)));
     if (!lwr)
     {   if (e1->op == TOKstring)
         {   // Convert slice of string literal into dynamic array
@@ -925,6 +985,8 @@ Expression *SliceExp::optimize(int result)
         return e;
     }
     e1 = fromConstInitializer(result, e1);
+    // We might know $ now
+    setLengthVarIfKnown(lengthVar, e1);
     lwr = lwr->optimize(WANTvalue | (result & WANTinterpret));
     upr = upr->optimize(WANTvalue | (result & WANTinterpret));
     e = Slice(type, e1, lwr, upr);

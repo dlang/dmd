@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -190,10 +190,8 @@ struct TypedefDeclaration : Declaration
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Type *hbasetype;
-#endif
 
     void toDocBuffer(OutBuffer *buf);
 
@@ -224,10 +222,8 @@ struct AliasDeclaration : Declaration
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Dsymbol *haliassym;
-#endif
 
     void toDocBuffer(OutBuffer *buf);
 
@@ -252,12 +248,23 @@ struct VarDeclaration : Declaration
                                 // 2: on stack, run destructor anyway
     int canassign;              // it can be assigned to
     Dsymbol *aliassym;          // if redone as alias to another symbol
-    Expression *value;          // when interpreting, this is the value
-                                // (NULL if value not determinable)
+
+    // When interpreting, these hold the value (NULL if value not determinable)
+    // The various functions are used only to detect compiler CTFE bugs
+    Expression *literalvalue;
+    Expression *getValue() { return literalvalue; }
+    void setValueNull();
+    void setValueWithoutChecking(Expression *newval);
+    void createRefValue(Expression *newval); // struct or array literal
+    void setRefValue(Expression *newval);
+    void setStackValue(Expression *newval);
+    void createStackValue(Expression *newval);
+
 #if DMDV2
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
                                 // if the destructor should be run. Used to prevent
                                 // dtor calls on postblitted vars
+    Expression *edtor;          // if !=NULL, does the destruction of the variable
 #endif
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
@@ -266,10 +273,8 @@ struct VarDeclaration : Declaration
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Initializer *hinit;
-#endif
     AggregateDeclaration *isThis();
     int needThis();
     int isImportedSymbol();
@@ -537,10 +542,10 @@ struct FuncDeclaration : Declaration
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex;                      // for member functions, index into vtbl[]
     int naked;                          // !=0 if naked
-    int inlineAsm;                      // !=0 if has inline assembler
     ILS inlineStatus;
     int inlineNest;                     // !=0 if nested inline
     int cantInterpret;                  // !=0 if cannot interpret function
+    int isArrayOp;                      // !=0 if array operation
     enum PASS semanticRun;
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
@@ -571,6 +576,11 @@ struct FuncDeclaration : Declaration
     Dsymbols closureVars;               // local variables in this function
                                         // which are referenced by nested
                                         // functions
+
+    unsigned flags;
+    #define FUNCFLAGpurityInprocess 1   // working on determining purity
+    #define FUNCFLAGsafetyInprocess 2   // working on determining safety
+    #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
 #else
     int nestedFrameRef;                 // !=0 if nested variables referenced
 #endif
@@ -610,8 +620,10 @@ struct FuncDeclaration : Declaration
     int isCodeseg();
     int isOverloadable();
     enum PURE isPure();
+    bool setImpure();
     int isSafe();
     int isTrusted();
+    bool setUnsafe();
     virtual int isNested();
     int needThis();
     virtual int isVirtual();
@@ -677,10 +689,8 @@ struct FuncLiteralDeclaration : FuncDeclaration
 };
 
 struct CtorDeclaration : FuncDeclaration
-{   Parameters *arguments;
-    int varargs;
-
-    CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs, StorageClass stc);
+{
+    CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -847,9 +857,7 @@ struct DeleteDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-#ifdef _DH
     DeleteDeclaration *isDeleteDeclaration() { return this; }
-#endif
 };
 
 #endif /* DMD_DECLARATION_H */

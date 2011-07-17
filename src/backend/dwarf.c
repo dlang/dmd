@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -22,7 +22,7 @@
 #include        <malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #include        <signal.h>
 #include        <unistd.h>
 #include        <errno.h>
@@ -68,12 +68,14 @@ static char __file__[] = __FILE__;      // for tassert.h
 #define MAP_SEG2SYMIDX(seg) (assert(0))
 #endif
 
+#define OFFSET_FAC REGSIZE
+
 int dwarf_getsegment(const char *name, int align)
 {
 #if ELFOBJ
     return elf_getsegment(name, NULL, SHT_PROGDEF, 0, align * 4);
 #elif MACHOBJ
-    return mach_getsegment(name, "__DWARF", align * 2, S_REGULAR);
+    return mach_getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
 #else
     assert(0);
     return 0;
@@ -102,6 +104,23 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 #endif
 }
 
+void dwarf_addreladdr(int seg, targ_size_t offset, int targseg, targ_size_t val)
+{
+  if (I64)
+    dwarf_addrel64(seg, offset, targseg, val);
+  else
+    dwarf_addrel(seg, offset, targseg, val);
+}
+
+void append_addr(Outbuffer *buf, targ_size_t addr)
+{
+  if (I64)
+    buf->write64(addr);
+  else
+    buf->write32(addr);
+}
+
+
 /************************  DWARF DEBUG OUTPUT ********************************/
 
 // Dwarf Symbolic Debugging Information
@@ -120,21 +139,60 @@ struct CFA_state
     CFA_reg regstates[17];      // register states
 };
 
-static CFA_state CFA_state_init =       // initial CFA state as defined by CIE
-{   0,          // location
-    SP,         // register
-    4,          // offset
-    {   { 0 },  // 0: EAX
-        { 0 },  // 1: ECX
-        { 0 },  // 2: EDX
-        { 0 },  // 3: EBX
-        { 0 },  // 4: ESP
-        { 0 },  // 5: EBP
-        { 0 },  // 6: ESI
-        { 0 },  // 7: EDI
-        { -4 }, // 8: EIP
+int dwarf_regno(int reg)
+{
+    assert(reg <= R15);
+    if (I16 || I32)
+        return reg;
+    else
+    {
+        static const int to_amd64_reg_map[8] =
+        { 0 /*AX*/, 2 /*CX*/, 3 /*DX*/, 1 /*BX*/,
+          7 /*SP*/, 6 /*BP*/, 4 /*SI*/, 5 /*DI*/ };
+        return reg < 8 ? to_amd64_reg_map[reg] : reg;
+    }
+}
+
+static CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
+{   0,                // location
+    dwarf_regno(SP),  // register
+    4,                // offset
+    {   { 0 },        // 0: EAX
+        { 0 },        // 1: ECX
+        { 0 },        // 2: EDX
+        { 0 },        // 3: EBX
+        { 0 },        // 4: ESP
+        { 0 },        // 5: EBP
+        { 0 },        // 6: ESI
+        { 0 },        // 7: EDI
+        { -4 },       // 8: EIP
     }
 };
+
+static CFA_state CFA_state_init_64 =       // initial CFA state as defined by CIE
+{   0,                // location
+    dwarf_regno(SP),  // register
+    8,                // offset
+    {   { 0 },        // 0: RAX
+        { 0 },        // 1: RBX
+        { 0 },        // 2: RCX
+        { 0 },        // 3: RDX
+        { 0 },        // 4: RSI
+        { 0 },        // 5: RDI
+        { 0 },        // 6: RBP
+        { 0 },        // 7: RSP
+        { 0 },        // 8: R8
+        { 0 },        // 9: R9
+        { 0 },        // 10: R10
+        { 0 },        // 11: R11
+        { 0 },        // 12: R12
+        { 0 },        // 13: R13
+        { 0 },        // 14: R14
+        { 0 },        // 15: R15
+        { -8 },       // 16: RIP
+    }
+};
+
 static CFA_state CFA_state_current;     // current CFA state
 static Outbuffer cfa_buf;               // CFA instructions
 
@@ -161,57 +219,59 @@ void dwarf_CFA_set_loc(size_t location)
 
 void dwarf_CFA_set_reg_offset(int reg, int offset)
 {
-    if (reg != CFA_state_current.reg)
+    int dw_reg = dwarf_regno(reg);
+    if (dw_reg != CFA_state_current.reg)
     {
         if (offset == CFA_state_current.offset)
         {
             cfa_buf.writeByte(DW_CFA_def_cfa_register);
-            cfa_buf.writeuLEB128(reg);
+            cfa_buf.writeuLEB128(dw_reg);
         }
         else if (offset < 0)
         {
             cfa_buf.writeByte(DW_CFA_def_cfa_sf);
-            cfa_buf.writeuLEB128(reg);
-            cfa_buf.writesLEB128(offset / -4);
+            cfa_buf.writeuLEB128(dw_reg);
+            cfa_buf.writesLEB128(offset / -OFFSET_FAC);
         }
         else
         {
             cfa_buf.writeByte(DW_CFA_def_cfa);
-            cfa_buf.writeuLEB128(reg);
+            cfa_buf.writeuLEB128(dw_reg);
             cfa_buf.writeuLEB128(offset);
         }
     }
     else if (offset < 0)
     {
         cfa_buf.writeByte(DW_CFA_def_cfa_offset_sf);
-        cfa_buf.writesLEB128(offset / -4);
+        cfa_buf.writesLEB128(offset / -OFFSET_FAC);
     }
     else
     {
         cfa_buf.writeByte(DW_CFA_def_cfa_offset);
         cfa_buf.writeuLEB128(offset);
     }
-    CFA_state_current.reg = reg;
+    CFA_state_current.reg = dw_reg;
     CFA_state_current.offset = offset;
 }
 
 void dwarf_CFA_offset(int reg, int offset)
 {
-    if (CFA_state_current.regstates[reg].offset != offset)
+    int dw_reg = dwarf_regno(reg);
+    if (CFA_state_current.regstates[dw_reg].offset != offset)
     {
         if (offset <= 0)
         {
-            cfa_buf.writeByte(DW_CFA_offset + reg);
-            cfa_buf.writeuLEB128(offset / -4);
+            cfa_buf.writeByte(DW_CFA_offset + dw_reg);
+            cfa_buf.writeuLEB128(offset / -OFFSET_FAC);
         }
         else
         {
             cfa_buf.writeByte(DW_CFA_offset_extended_sf);
-            cfa_buf.writeuLEB128(reg);
-            cfa_buf.writesLEB128(offset / -4);
+            cfa_buf.writeuLEB128(dw_reg);
+            cfa_buf.writesLEB128(offset / -OFFSET_FAC);
         }
     }
-    CFA_state_current.regstates[reg].offset = offset;
+    CFA_state_current.regstates[dw_reg].offset = offset;
 }
 
 void dwarf_CFA_args_size(size_t sz)
@@ -260,10 +320,79 @@ static int hasModname;    // 1 if has DW_TAG_module
 // .debug_info
 static IDXSEC infoseg;
 static Outbuffer *infobuf;
+static AArray *infoFileName_table;
 
 static AArray *type_table;
 static AArray *functype_table;  // not sure why this cannot be combined with type_table
 static Outbuffer *functypebuf;
+
+// typeinfo declarations for hash of char*
+
+struct Abuf
+{
+    const unsigned char *buf;
+    size_t length;
+};
+
+struct TypeInfo_Abuf : TypeInfo
+{
+    const char* toString();
+    hash_t getHash(void *p);
+    int equals(void *p1, void *p2);
+    int compare(void *p1, void *p2);
+    size_t tsize();
+    void swap(void *p1, void *p2);
+};
+
+TypeInfo_Abuf ti_abuf;
+
+const char* TypeInfo_Abuf::toString()
+{
+    return "Abuf";
+}
+
+hash_t TypeInfo_Abuf::getHash(void *p)
+{
+    Abuf a = *(Abuf *)p;
+
+    hash_t hash = 0;
+    for (size_t i = 0; i < a.length; i++)
+        hash = hash * 11 + a.buf[i];
+
+    return hash;
+}
+
+int TypeInfo_Abuf::equals(void *p1, void *p2)
+{
+    Abuf a1 = *(Abuf*)p1;
+    Abuf a2 = *(Abuf*)p2;
+
+    return a1.length == a2.length &&
+        memcmp(a1.buf, a2.buf, a1.length) == 0;
+}
+
+int TypeInfo_Abuf::compare(void *p1, void *p2)
+{
+    Abuf a1 = *(Abuf*)p1;
+    Abuf a2 = *(Abuf*)p2;
+
+    if (a1.length == a2.length)
+        return memcmp(a1.buf, a2.buf, a1.length);
+    else if (a1.length < a2.length)
+        return -1;
+    else
+        return 1;
+}
+
+size_t TypeInfo_Abuf::tsize()
+{
+    return sizeof(Abuf);
+}
+
+void TypeInfo_Abuf::swap(void *p1, void *p2)
+{
+    assert(0);
+}
 
 #pragma pack(1)
 struct DebugInfoHeader
@@ -286,6 +415,7 @@ static DebugInfoHeader debuginfo;
 // .debug_line
 static IDXSEC lineseg;
 static Outbuffer *linebuf;
+static size_t linebuf_filetab_end;
 
 #pragma pack(1)
 struct DebugLineHeader
@@ -317,6 +447,27 @@ static DebugLineHeader debugline;
 
 unsigned typidx_tab[TYMAX];
 
+#if MACHOBJ
+const char* debug_frame = "__debug_frame";
+const char* debug_str = "__debug_str";
+const char* debug_ranges = "__debug_ranges";
+const char* debug_loc = "__debug_loc";
+const char* debug_line = "__debug_line";
+const char* debug_abbrev = "__debug_abbrev";
+const char* debug_info = "__debug_info";
+const char* debug_pubnames = "__debug_pubnames";
+const char* debug_aranges = "__debug_aranges";
+#elif ELFOBJ
+const char* debug_frame = ".debug_frame";
+const char* debug_str = ".debug_str";
+const char* debug_ranges = ".debug_ranges";
+const char* debug_loc = ".debug_loc";
+const char* debug_line = ".debug_line";
+const char* debug_abbrev = ".debug_abbrev";
+const char* debug_info = ".debug_info";
+const char* debug_pubnames = ".debug_pubnames";
+const char* debug_aranges = ".debug_aranges";
+#endif
 
 void dwarf_initfile(const char *filename)
 {
@@ -330,7 +481,7 @@ void dwarf_initfile(const char *filename)
         unsigned char code_alignment_factor;
         unsigned char data_alignment_factor;
         unsigned char return_address_register;
-        unsigned char opcodes[11];
+        unsigned char opcodes[7];
     };
     #pragma pack()
     static DebugFrameHeader debugFrameHeader =
@@ -343,21 +494,21 @@ void dwarf_initfile(const char *filename)
         8,              // return address register
       {
         DW_CFA_def_cfa, 4,4,    // r4,4 [r7,8]
-        DW_CFA_offset   +8,1,   // r8,1 [r10,1]
+        DW_CFA_offset   +8,1,   // r8,1 [r16,1]
         DW_CFA_nop,
         DW_CFA_nop,
       }
     };
     if (I64)
-    {   debugFrameHeader.length = 20;
-        debugFrameHeader.data_alignment_factor = -8;
+    {   debugFrameHeader.data_alignment_factor = 0x78;          // (-8)
         debugFrameHeader.return_address_register = 16;
         debugFrameHeader.opcodes[1] = 7;                        // RSP
         debugFrameHeader.opcodes[2] = 8;
         debugFrameHeader.opcodes[3] = DW_CFA_offset + 16;       // RIP
     }
+    assert(debugFrameHeader.data_alignment_factor == 0x80 - OFFSET_FAC);
 
-    int seg = dwarf_getsegment(".debug_frame", 1);
+    int seg = dwarf_getsegment(debug_frame, 1);
     debug_frame_secidx = SegData[seg]->SDshtidx;
     Outbuffer *debug_frame_buf = SegData[seg]->SDbuf;
     debug_frame_buf->reserve(1000);
@@ -366,28 +517,33 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    seg = dwarf_getsegment(".debug_str", 0);
+    seg = dwarf_getsegment(debug_str, 0);
     debug_str_secidx = SegData[seg]->SDshtidx;
     debug_str_buf = SegData[seg]->SDbuf;
     debug_str_buf->reserve(1000);
 
     /* ======================================== */
 
-    debug_ranges_seg = dwarf_getsegment(".debug_ranges", 0);
+    debug_ranges_seg = dwarf_getsegment(debug_ranges, 0);
     debug_ranges_secidx = SegData[debug_ranges_seg]->SDshtidx;
     debug_ranges_buf = SegData[debug_ranges_seg]->SDbuf;
     debug_ranges_buf->reserve(1000);
 
     /* ======================================== */
 
-    debug_loc_seg = dwarf_getsegment(".debug_loc", 0);
+    debug_loc_seg = dwarf_getsegment(debug_loc, 0);
     debug_loc_secidx = SegData[debug_loc_seg]->SDshtidx;
     debug_loc_buf = SegData[debug_loc_seg]->SDbuf;
     debug_loc_buf->reserve(1000);
 
     /* ======================================== */
 
-    lineseg = dwarf_getsegment(".debug_line", 0);
+    if (infoFileName_table)
+    {   delete infoFileName_table;
+        infoFileName_table = NULL;
+    }
+
+    lineseg = dwarf_getsegment(debug_line, 0);
     linebuf = SegData[lineseg]->SDbuf;
 
     debugline = debugline_init;
@@ -402,7 +558,7 @@ void dwarf_initfile(const char *filename)
         linebuf->writeString((char *)list_ptr(pl));
         linebuf->writeByte(0);
     }
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     for (pl = pathsyslist; pl; pl = list_next(pl))
     {
         linebuf->writeString((char *)list_ptr(pl));
@@ -421,7 +577,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    abbrevseg = dwarf_getsegment(".debug_abbrev", 0);
+    abbrevseg = dwarf_getsegment(debug_abbrev, 0);
     abbrevbuf = SegData[abbrevseg]->SDbuf;
     abbrevcode = 1;
 
@@ -451,7 +607,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    infoseg = dwarf_getsegment(".debug_info", 0);
+    infoseg = dwarf_getsegment(debug_info, 0);
     infobuf = SegData[infoseg]->SDbuf;
 
     debuginfo = debuginfo_init;
@@ -459,7 +615,10 @@ void dwarf_initfile(const char *filename)
         debuginfo.address_size = 8;
 
     infobuf->write(&debuginfo, sizeof(debuginfo));
+#if !MACHOBJ
+    // Contrary to the DWARF spec, OS X complains if the offset is included
     dwarf_addrel(infoseg,6,abbrevseg);
+#endif
 
     infobuf->writeuLEB128(1);                   // abbreviation code
 #if MARS
@@ -506,14 +665,8 @@ void dwarf_initfile(const char *filename)
     infobuf->writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
     free(cwd);
 
-    if (I64)
-    {   infobuf->write64(0);                    // DW_AT_low_pc
-        infobuf->write64(0);                    // DW_AT_entry_pc
-    }
-    else
-    {   infobuf->write32(0);                    // DW_AT_low_pc
-        infobuf->write32(0);                    // DW_AT_entry_pc
-    }
+    append_addr(infobuf, 0);               // DW_AT_low_pc
+    append_addr(infobuf, 0);               // DW_AT_entry_pc
 
     dwarf_addrel(infoseg,infobuf->size(),debug_ranges_seg);
     infobuf->write32(0);                        // DW_AT_ranges
@@ -525,7 +678,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    seg = dwarf_getsegment(".debug_pubnames", 0);
+    seg = dwarf_getsegment(debug_pubnames, 0);
     debug_pubnames_secidx = SegData[seg]->SDshtidx;
     debug_pubnames_buf = SegData[seg]->SDbuf;
     debug_pubnames_buf->reserve(1000);
@@ -538,7 +691,7 @@ void dwarf_initfile(const char *filename)
 
     /* ======================================== */
 
-    debug_aranges_seg = dwarf_getsegment(".debug_aranges", 0);
+    debug_aranges_seg = dwarf_getsegment(debug_aranges, 0);
     debug_aranges_secidx = SegData[debug_aranges_seg]->SDshtidx;
     debug_aranges_buf = SegData[debug_aranges_seg]->SDbuf;
     debug_aranges_buf->reserve(1000);
@@ -550,6 +703,37 @@ void dwarf_initfile(const char *filename)
     debug_aranges_buf->writeByte(I64 ? 8 : 4);  // address_size
     debug_aranges_buf->writeByte(0);            // segment_size
     debug_aranges_buf->write32(0);              // pad to 16
+}
+
+
+/*************************************
+ * Add a file to the .debug_line header
+ */
+int dwarf_line_addfile(const char* filename)
+{
+    if (!infoFileName_table) {
+        infoFileName_table = new AArray(&ti_abuf, sizeof(unsigned));
+        linebuf_filetab_end = linebuf->size();
+    }
+
+    Abuf abuf;
+    abuf.buf = (const unsigned char*)filename;
+    abuf.length = strlen(filename)-1;
+
+    unsigned *pidx = (unsigned *)infoFileName_table->get(&abuf);
+    if (!*pidx)                 // if no idx assigned yet
+    {
+        *pidx = infoFileName_table->length(); // assign newly computed idx
+
+        size_t before = linebuf->size();
+        linebuf->writeString(filename);
+        linebuf->writeByte(0);      // directory table index
+        linebuf->writeByte(0);      // mtime
+        linebuf->writeByte(0);      // length
+        linebuf_filetab_end += linebuf->size() - before;
+    }
+
+    return *pidx;
 }
 
 void dwarf_initmodule(const char *filename, const char *modname)
@@ -573,6 +757,8 @@ void dwarf_initmodule(const char *filename, const char *modname)
     }
     else
         hasModname = 0;
+
+    dwarf_line_addfile(filename);
 }
 
 void dwarf_termmodule()
@@ -594,13 +780,14 @@ void dwarf_termfile()
     // Put out line number info
 
     // file_names
-    unsigned filenumber = 0;
+    unsigned last_filenumber = 0;
+    const char* last_filename = NULL;
     for (unsigned seg = 1; seg <= seg_count; seg++)
     {
         for (unsigned i = 0; i < SegData[seg]->SDlinnum_count; i++)
         {
             linnum_data *ld = &SegData[seg]->SDlinnum_data[i];
-            char *filename;
+            const char *filename;
 #if MARS
             filename = ld->filename;
 #else
@@ -610,41 +797,21 @@ void dwarf_termfile()
             else
                 filename = ::filename;
 #endif
-            /* Look to see if filename has already been output
-             */
-            for (unsigned s = 1; s < seg; s++)
+            if (last_filename == filename)
             {
-                for (unsigned j = 0; j < SegData[s]->SDlinnum_count; j++)
-                {
-                    char *f2;
-                    linnum_data *ld2 = &SegData[s]->SDlinnum_data[j];
-
-#if MARS
-                    f2 = ld2->filename;
-#else
-                    Sfile *sf = ld2->filptr;
-                    if (sf)
-                        f2 = sf->SFname;
-                    else
-                        f2 = ::filename;
-#endif
-                    if (filename == f2)
-                    {   ld->filenumber = ld2->filenumber;
-                        goto L1;
-                    }
-                }
+                ld->filenumber = last_filenumber;
             }
+            else
+            {
+                ld->filenumber = dwarf_line_addfile(filename);
 
-            linebuf->writeString(filename);
-            ld->filenumber = ++filenumber;
-
-            linebuf->writeByte(0);      // index
-            linebuf->writeByte(0);      // mtime
-            linebuf->writeByte(0);      // length
-        L1:
-            ;
+                last_filenumber = ld->filenumber;
+                last_filename = filename;
+            }
         }
     }
+    // assert we haven't emitted anything but file table entries
+    assert(linebuf->size() == linebuf_filetab_end);
     linebuf->writeByte(0);              // end of file_names
 
     debugline.prologue_length = linebuf->size() - 10;
@@ -668,29 +835,16 @@ void dwarf_termfile()
 
             // Set address to start of segment with DW_LNE_set_address
             linebuf->writeByte(0);
-            if (I64)
-            {
-                linebuf->writeByte(9);
-                linebuf->writeByte(2);
-                dwarf_addrel64(lineseg,linebuf->size(),seg,0);
-                linebuf->write64(0);
-            }
-            else
-            {
-                linebuf->writeByte(5);
-                linebuf->writeByte(2);
-                dwarf_addrel(lineseg,linebuf->size(),seg);
-                linebuf->write32(0);
-            }
+            linebuf->writeByte(NPTRSIZE + 1);
+            linebuf->writeByte(DW_LNE_set_address);
+
+            dwarf_addreladdr(lineseg,linebuf->size(),seg,0);
+            append_addr(linebuf, 0);
 
             // Dwarf2 6.2.2 State machine registers
             unsigned address = 0;       // instruction address
             unsigned file = ld->filenumber;
             unsigned line = 1;          // line numbers beginning with 1
-            unsigned column = 0;        // column number, leftmost column is 1
-            int is_stmt = debugline.default_is_stmt;    // TRUE if beginning of a statement
-            int basic_block = FALSE;  // TRUE if start of basic block
-            int end_sequence = FALSE; // TRUE if address is after end of sequence
 
             linebuf->writeByte(DW_LNS_set_file);
             linebuf->writeuLEB128(file);
@@ -736,10 +890,17 @@ void dwarf_termfile()
                     linebuf->writeByte(DW_LNS_copy);
             }
 
+            // Write DW_LNS_advance_pc to cover the function prologue
+            linebuf->writeByte(DW_LNS_advance_pc);
+            linebuf->writeByte(sd->SDbuf->size() - address);
+
             // Write DW_LNE_end_sequence
             linebuf->writeByte(0);
             linebuf->writeByte(1);
             linebuf->writeByte(1);
+
+            // reset linnum_data
+            ld->linoff_count = 0;
         }
     }
 
@@ -769,14 +930,8 @@ void dwarf_termfile()
     /* ================================================= */
 
     // Terminate by address/length fields containing 0
-    if (I64)
-    {   debug_aranges_buf->write64(0);
-        debug_aranges_buf->write64(0);
-    }
-    else
-    {   debug_aranges_buf->write32(0);
-        debug_aranges_buf->write32(0);
-    }
+    append_addr(debug_aranges_buf, 0);
+    append_addr(debug_aranges_buf, 0);
 
     // Plug final sizes into header
     *(unsigned *)debug_aranges_buf->buf = debug_aranges_buf->size() - 4;
@@ -784,8 +939,8 @@ void dwarf_termfile()
     /* ================================================= */
 
     // Terminate by beg address/end address fields containing 0
-    debug_ranges_buf->write32(0);
-    debug_ranges_buf->write32(0);
+    append_addr(debug_ranges_buf, 0);
+    append_addr(debug_ranges_buf, 0);
 
     /* ================================================= */
 
@@ -807,7 +962,13 @@ void dwarf_termfile()
  */
 void dwarf_func_start(Symbol *sfunc)
 {
-    CFA_state_current = CFA_state_init;
+    if (I16 || I32)
+        CFA_state_current = CFA_state_init_32;
+    else if (I64)
+        CFA_state_current = CFA_state_init_64;
+    else
+        assert(0);
+    assert(CFA_state_current.offset == OFFSET_FAC);
     cfa_buf.reset();
 }
 
@@ -853,7 +1014,7 @@ void dwarf_func_term(Symbol *sfunc)
         //debugFrameFDE.initial_location = sfunc->Soffset;
 
         IDXSEC dfseg;
-        dfseg = dwarf_getsegment(".debug_frame", 1);
+        dfseg = dwarf_getsegment(debug_frame, 1);
         debug_frame_secidx = SegData[dfseg]->SDshtidx;
         debug_frame_buf = SegData[dfseg]->SDbuf;
         debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
@@ -893,7 +1054,7 @@ void dwarf_func_term(Symbol *sfunc)
         //debugFrameFDE.initial_location = sfunc->Soffset;
 
         IDXSEC dfseg;
-        dfseg = dwarf_getsegment(".debug_frame", 1);
+        dfseg = dwarf_getsegment(debug_frame, 1);
         debug_frame_secidx = SegData[dfseg]->SDshtidx;
         debug_frame_buf = SegData[dfseg]->SDbuf;
         debug_frame_buf_offset = debug_frame_buf->p - debug_frame_buf->buf;
@@ -907,6 +1068,13 @@ void dwarf_func_term(Symbol *sfunc)
 
     IDXSEC seg = sfunc->Sseg;
     seg_data *sd = SegData[seg];
+
+#if MARS
+    const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
+    int filenum = dwarf_line_addfile(filename);
+#else
+    int filenum = 1;
+#endif
 
         unsigned ret_type = dwarf_typidx(sfunc->Stype->Tnext);
         if (tybasic(sfunc->Stype->Tnext->Tty) == TYvoid)
@@ -999,7 +1167,7 @@ void dwarf_func_term(Symbol *sfunc)
 #endif
         infobuf->writeString(name);             // DW_AT_name
         infobuf->writeString(sfunc->Sident);    // DW_AT_MIPS_linkage_name
-        infobuf->writeByte(1);                  // DW_AT_decl_file
+        infobuf->writeByte(filenum);            // DW_AT_decl_file
         infobuf->writeWord(sfunc->Sfunc->Fstartline.Slinnum);   // DW_AT_decl_line
         if (ret_type)
             infobuf->write32(ret_type);         // DW_AT_type
@@ -1007,29 +1175,14 @@ void dwarf_func_term(Symbol *sfunc)
         if (sfunc->Sclass == SCglobal)
             infobuf->writeByte(1);              // DW_AT_external
 
-        if (I64)
-        {
-            dwarf_addrel64(infoseg,infobuf->size(),seg,funcoffset);
-            infobuf->write64(0);               // DW_AT_low_pc
+        dwarf_addreladdr(infoseg,infobuf->size(),seg, 0);
+        append_addr(infobuf,funcoffset); // DW_AT_low_pc
 
-            dwarf_addrel64(infoseg,infobuf->size(),seg,funcoffset + sfunc->Ssize);
-            infobuf->write64(0);               // DW_AT_high_pc
+        dwarf_addreladdr(infoseg,infobuf->size(),seg, 0);
+        append_addr(infobuf,funcoffset + sfunc->Ssize); // DW_AT_high_pc
 
-            dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg,debug_loc_buf->size());
-            infobuf->write32(0);               // DW_AT_frame_base
-        }
-        else
-        {
-            dwarf_addrel(infoseg,infobuf->size(),seg);
-            infobuf->write32(funcoffset);                       // DW_AT_low_pc
-
-            dwarf_addrel(infoseg,infobuf->size(),seg);
-            infobuf->write32(funcoffset + sfunc->Ssize);        // DW_AT_high_pc
-
-            dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg);
-            infobuf->write32(debug_loc_buf->size());            // DW_AT_frame_base
-        }
-
+        dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
+        infobuf->write32(debug_loc_buf->size()); // DW_AT_frame_base
 
         if (haveparameters)
         {
@@ -1067,13 +1220,13 @@ void dwarf_func_term(Symbol *sfunc)
                             infobuf->writeByte(DW_OP_fbreg);
                             if (sa->Sclass == SCregpar ||
                                 sa->Sclass == SCparameter)
-                                infobuf->writesLEB128(Poff + sa->Soffset);
-                            else if (sa->Sclass == SCfastpar)
-                                infobuf->writesLEB128(Aoff + BPoff + sa->Soffset);
-                            else if (sa->Sclass == SCbprel)
                                 infobuf->writesLEB128(sa->Soffset);
+                            else if (sa->Sclass == SCfastpar)
+                                infobuf->writesLEB128(Aoff + BPoff - Poff + sa->Soffset);
+                            else if (sa->Sclass == SCbprel)
+                                infobuf->writesLEB128(-Poff + sa->Soffset);
                             else
-                                infobuf->writesLEB128(Aoff + BPoff + sa->Soffset);
+                                infobuf->writesLEB128(Aoff + BPoff - Poff + sa->Soffset);
                         }
                         infobuf->buf[soffset] = infobuf->size() - soffset - 1;
                         break;
@@ -1094,31 +1247,15 @@ void dwarf_func_term(Symbol *sfunc)
 
         /* ============= debug_aranges =========================== */
 
-        if (I64)
-        {
-            if (sd->SDaranges_offset)
-                // Extend existing entry size
-                *(unsigned long long *)(debug_aranges_buf->buf + sd->SDaranges_offset + 8) = funcoffset + sfunc->Ssize;
-            else
-            {   // Add entry
-                sd->SDaranges_offset = debug_aranges_buf->size();
-                dwarf_addrel(debug_aranges_seg,sd->SDaranges_offset,seg,0);
-                debug_aranges_buf->write64(0);      // address of start of .text segment
-                debug_aranges_buf->write64(funcoffset + sfunc->Ssize);      // size of .text segment
-            }
-        }
+        if (sd->SDaranges_offset)
+            // Extend existing entry size
+            *(unsigned long long *)(debug_aranges_buf->buf + sd->SDaranges_offset + NPTRSIZE) = funcoffset + sfunc->Ssize;
         else
-        {
-            if (sd->SDaranges_offset)
-                // Extend existing entry size
-                *(unsigned *)(debug_aranges_buf->buf + sd->SDaranges_offset + 4) = funcoffset + sfunc->Ssize;
-            else
-            {   // Add entry
-                sd->SDaranges_offset = debug_aranges_buf->size();
-                dwarf_addrel(debug_aranges_seg,sd->SDaranges_offset,seg);
-                debug_aranges_buf->write32(0);      // address of start of .text segment
-                debug_aranges_buf->write32(funcoffset + sfunc->Ssize);      // size of .text segment
-            }
+        {   // Add entry
+            sd->SDaranges_offset = debug_aranges_buf->size();
+            dwarf_addreladdr(debug_aranges_seg,sd->SDaranges_offset,seg,0);
+            append_addr(debug_aranges_buf, 0);                         // address of start of .text segment
+            append_addr(debug_aranges_buf, funcoffset + sfunc->Ssize); // size of .text segment
         }
 
         /* ============= debug_ranges =========================== */
@@ -1126,63 +1263,54 @@ void dwarf_func_term(Symbol *sfunc)
         /* Each function gets written into its own segment,
          * indicate this by adding to the debug_ranges
          */
-        targ_size_t offset = debug_ranges_buf->size();
-        debug_ranges_buf->write32(funcoffset);                  // start of function
-        dwarf_addrel(debug_ranges_seg, offset, seg);
-        debug_ranges_buf->write32(funcoffset + sfunc->Ssize);   // end of function
-        dwarf_addrel(debug_ranges_seg, offset + 4, seg);
+        dwarf_addreladdr(debug_ranges_seg, debug_ranges_buf->size(), seg, 0);
+        append_addr(debug_ranges_buf, funcoffset); // start of function
+
+        dwarf_addreladdr(debug_ranges_seg, debug_ranges_buf->size(), seg, 0);
+        append_addr(debug_ranges_buf, funcoffset + sfunc->Ssize); // end of function
+
 
         /* ============= debug_loc =========================== */
 
-        if (I64)
-        {
-            // set the entry for this function in .debug_loc segment
-            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-            debug_loc_buf->write64(funcoffset + 0);
-            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-            debug_loc_buf->write64(funcoffset + 1);
-            debug_loc_buf->write32(0x08770002);         // DW_OP_breg7: 8
+        assert(Poff >= 2 * REGSIZE);
+        assert(Poff < 63); // avoid sLEB128 encoding
+        unsigned short op_size = 0x0002;
+        unsigned short loc_op;
 
-            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-            debug_loc_buf->write64(funcoffset + 1);
-            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-            debug_loc_buf->write64(funcoffset + 3);
-            debug_loc_buf->write32(0x10770002);         // DW_OP_breg7: 16
+        // set the entry for this function in .debug_loc segment
+        // after call
+        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+        append_addr(debug_loc_buf, funcoffset + 0);
 
-            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-            debug_loc_buf->write64(funcoffset + 3);
-            dwarf_addrel64(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-            debug_loc_buf->write64(funcoffset + sfunc->Ssize);
-            debug_loc_buf->write32(0x10760002);         // DW_OP_breg6: 16
+        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+        append_addr(debug_loc_buf, funcoffset + 1);
 
-            debug_loc_buf->write64(0);              // 2 words of 0 end it
-            debug_loc_buf->write64(0);
-        }
-        else
-        {
-            // set the entry for this function in .debug_loc segment
-            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-            debug_loc_buf->write32(funcoffset + 0);
-            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-            debug_loc_buf->write32(funcoffset + 1);
-            debug_loc_buf->write32(0x04740002);
+        loc_op = ((Poff - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
+        debug_loc_buf->write32(loc_op << 16 | op_size);
 
-            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-            debug_loc_buf->write32(funcoffset + 1);
-            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-            debug_loc_buf->write32(funcoffset + 3);
-            debug_loc_buf->write32(0x08740002);
+        // after push EBP
+        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+        append_addr(debug_loc_buf, funcoffset + 1);
 
-            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-            debug_loc_buf->write32(funcoffset + 3);
-            dwarf_addrel(debug_loc_seg, debug_loc_buf->size(), seg);
-            debug_loc_buf->write32(funcoffset + sfunc->Ssize);
-            //debug_loc_buf->write32(0x08750002);
-            debug_loc_buf->write32(0x00750002);
+        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+        append_addr(debug_loc_buf, funcoffset + 3);
 
-            debug_loc_buf->write32(0);              // 2 words of 0 end it
-            debug_loc_buf->write32(0);
-        }
+        loc_op = ((Poff) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
+        debug_loc_buf->write32(loc_op << 16 | op_size);
+
+        // after mov EBP, ESP
+        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+        append_addr(debug_loc_buf, funcoffset + 3);
+
+        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
+        append_addr(debug_loc_buf, funcoffset + sfunc->Ssize);
+
+        loc_op = ((Poff) << 8) | (DW_OP_breg0 + dwarf_regno(BP));
+        debug_loc_buf->write32(loc_op << 16 | op_size);
+
+
+        append_addr(debug_loc_buf, 0); // 2 zero addresses to end loc_list
+        append_addr(debug_loc_buf, 0);
 }
 
 
@@ -1305,7 +1433,7 @@ int TypeInfo_Atype::equals(void *p1, void *p2)
     size_t len = a1.end - a1.start;
 
     return len == a2.end - a2.start &&
-        memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len) == 0;
+        memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len) == 0;
 }
 
 int TypeInfo_Atype::compare(void *p1, void *p2)
@@ -1314,7 +1442,7 @@ int TypeInfo_Atype::compare(void *p1, void *p2)
     Atype a2 = *(Atype*)p2;
     size_t len = a1.end - a1.start;
     if (len == a2.end - a2.start)
-        return memcmp(a1.buf->buf + a1.start, a1.buf->buf + a2.start, len);
+        return memcmp(a1.buf->buf + a1.start, a2.buf->buf + a2.start, len);
     else if (len < a2.end - a2.start)
         return -1;
     else
@@ -1472,7 +1600,6 @@ unsigned dwarf_typidx(type *t)
     if (idx)
         return idx;
 
-    const char *name;
     unsigned char ate;
     ate = tyuns(t->Tty) ? DW_ATE_unsigned : DW_ATE_signed;
     switch (tybasic(t->Tty))

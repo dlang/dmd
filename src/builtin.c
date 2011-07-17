@@ -44,7 +44,7 @@ enum BUILTIN FuncDeclaration::isBuiltin()
     static const char FeZe [] = "FNaNbNfeZe";      // @safe pure nothrow real function(real)
     static const char FeZe2[] = "FNaNbNeeZe";      // @trusted pure nothrow real function(real)
 
-    //printf("FuncDeclaration::isBuiltin() %s\n", toChars());
+    //printf("FuncDeclaration::isBuiltin() %s, %d\n", toChars(), builtin);
     if (builtin == BUILTINunknown)
     {
         builtin = BUILTINnot;
@@ -52,7 +52,7 @@ enum BUILTIN FuncDeclaration::isBuiltin()
         {
             // If it's in the std.math package
             if (parent->ident == Id::math &&
-                parent->parent && parent->parent->ident == Id::std &&
+                parent->parent && (parent->parent->ident == Id::std || parent->parent->ident == Id::core) &&
                 !parent->parent->parent)
             {
                 //printf("deco = %s\n", type->deco);

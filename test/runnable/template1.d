@@ -803,7 +803,7 @@ import std.string;
 
 template Foo31(alias X)
 {
-	alias X.toString y;
+	alias X.toStringz y;
 }
 
 void test31()

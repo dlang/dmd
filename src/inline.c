@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -128,6 +128,11 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
     return exp ? exp->inlineCost(ics) : 0;
 }
 
+int ImportStatement::inlineCost(InlineCostState *ics)
+{
+    return 0;
+}
+
 /* -------------------------- */
 
 int arrayInlineCost(InlineCostState *ics, Array *arguments)
@@ -239,6 +244,9 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
         if (!ics->hdrscan && vd->isDataseg())
             return COST_MAX;
         cost += 1;
+
+        if (vd->edtor)                  // if destructor required
+            return COST_MAX;            // needs work to make this work
 
         // Scan initializer (vd->init)
         if (vd->init)
@@ -440,6 +448,11 @@ Expression *ReturnStatement::doInline(InlineDoState *ids)
 {
     //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
     return exp ? exp->doInline(ids) : 0;
+}
+
+Expression *ImportStatement::doInline(InlineDoState *ids)
+{
+    return NULL;
 }
 
 /* --------------------------------------------------------------- */
@@ -662,7 +675,7 @@ Expression *IndexExp::doInline(InlineDoState *ids)
         ids->from.push(vd);
         ids->to.push(vto);
 
-        if (vd->init)
+        if (vd->init && !vd->init->isVoidInitializer())
         {
             ie = vd->init->isExpInitializer();
             assert(ie);
@@ -699,7 +712,7 @@ Expression *SliceExp::doInline(InlineDoState *ids)
         ids->from.push(vd);
         ids->to.push(vto);
 
-        if (vd->init)
+        if (vd->init && !vd->init->isVoidInitializer())
         {
             ie = vd->init->isExpInitializer();
             assert(ie);
@@ -1309,12 +1322,6 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
         if (tf->next && tf->next->ty != Tvoid &&
             !(hasReturnExp & 1) &&
             !hdrscan)
-            goto Lno;
-    }
-    else
-    {   CtorDeclaration *ctor = isCtorDeclaration();
-
-        if (ctor && ctor->varargs == 1)
             goto Lno;
     }
 

@@ -85,6 +85,16 @@ static assert( (-1) ^^ -5 == -1);
 static assert( (-1) ^^ -4 == 1);
 static assert( (-1) ^^ 0 == 1);
 
+// n ^^ 0 is always 1
+static assert( (-5) ^^ 0 == 1);
+
+// n ^^ 1 is always n
+static assert( 6.0 ^^ 1 == 6.0);
+
+// n ^^ -1.0 gets transformed into 1.0 / n, even if n is negative
+static assert( (-4) ^^ -1.0 == 1.0 / -4);
+static assert( 9 ^^ -1.0 == 1.0 / 9);
+
 // Other integers raised to negative powers create an error
 static assert( !is(typeof(2 ^^ -5)));
 static assert( !is(typeof((-2) ^^ -4)));

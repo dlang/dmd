@@ -1,5 +1,5 @@
 // Copyright (C) 1987-1995 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -66,6 +66,7 @@ struct Dconst
 static Dconst oldd;
 
 #define NDPP    0       // print out debugging info
+#define NOSAHF  I64     // can't use SAHF instruction
 
 code *loadComplex(elem *e);
 code *opmod_complex87(elem *e,regm_t *pretregs);
@@ -540,6 +541,9 @@ code * genf2(code *c,unsigned op,unsigned rm)
 
 STATIC code * cg87_87topsw(code *c)
 {
+        /* Note that SAHF is not available on some early I64 processors
+         * and will cause a seg fault
+         */
         c = cat(c,getregs(mAX));
         if (config.target_cpu >= TARGET_80286)
             c = genf2(c,0xDF,0xE0);             // FSTSW AX
@@ -563,7 +567,18 @@ STATIC code * cg87_87topsw(code *c)
 
 STATIC code * genftst(code *c,elem *e,int pop)
 {
-    if (config.flags4 & CFG4fastfloat)  // if fast floating point
+    if (NOSAHF)
+    {
+        c = cat(c,push87());
+        c = gen2(c,0xD9,0xEE);          // FLDZ
+        gen2(c,0xDF,0xE9);              // FUCOMIP ST1
+        pop87();
+        if (pop)
+        {   c = genf2(c,0xDD,modregrm(3,3,0));  // FPOP
+            pop87();
+        }
+    }
+    else if (config.flags4 & CFG4fastfloat)  // if fast floating point
     {
         c = genf2(c,0xD9,0xE4);         // FTST
         c = cg87_87topsw(c);            // put 8087 flags in CPU flags
@@ -623,7 +638,7 @@ __body
     static double dval[7] =
         {0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2};
     static long double ldval[7] =
-#if __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #define M_PIl           0x1.921fb54442d1846ap+1L        // 3.14159 fldpi
 #define M_LOG2T_L       0x1.a934f0979a3715fcp+1L        // 3.32193 fldl2t
 #define M_LOG2El        0x1.71547652b82fe178p+0L        // 1.4427 fldl2e
@@ -835,16 +850,21 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
             }
         }
         else
-        {
-            if (!I16)
-            {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);
-                genfltreg(c2,0x8B,findreglsw(*pretregs),0);
-            }
-            else
+        {   assert(sz == DOUBLESIZE);
+            if (I16)
             {   c2 = genfltreg(c2,0x8B,AX,6);
                 genfltreg(c2,0x8B,BX,4);
                 genfltreg(c2,0x8B,CX,2);
                 genfltreg(c2,0x8B,DX,0);
+            }
+            else if (I32)
+            {   c2 = genfltreg(c2,0x8B,reg,REGSIZE);
+                genfltreg(c2,0x8B,findreglsw(*pretregs),0);
+            }
+            else // I64
+            {
+                c2 = genfltreg(c2,0x8B,reg,0);
+                code_orrex(c2, REX_W);
             }
         }
     }
@@ -1036,9 +1056,30 @@ code *orth87(elem *e,regm_t *pretregs)
             {
                 if (cnst(e2) && !boolres(e2))
                 {
-                    c1 = genf2(c1,0xD9,0xE4);           // FTST
-                    c1 = cg87_87topsw(c1);
+                    if (NOSAHF)
+                    {
+                        c1 = cat(c1,push87());
+                        c1 = gen2(c1,0xD9,0xEE);            // FLDZ
+                        gen2(c1,0xDF,0xF1);                 // FCOMIP ST1
+                        pop87();
+                    }
+                    else
+                    {   c1 = genf2(c1,0xD9,0xE4);           // FTST
+                        c1 = cg87_87topsw(c1);
+                    }
                     c2 = genf2(NULL,0xDD,modregrm(3,3,0));      // FPOP
+                    pop87();
+                }
+                else if (NOSAHF)
+                {
+                    note87(e1,0,0);
+                    c2 = load87(e2,0,&retregs,e1,-1);
+                    c2 = cat(c2,makesure87(e1,0,1,0));
+                    resregm = 0;
+                    //c2 = genf2(c2,0xD9,0xC8 + 1);       // FXCH ST1
+                    c2 = gen2(c2,0xDF,0xF1);            // FCOMIP ST1
+                    pop87();
+                    genf2(c2,0xDD,modregrm(3,3,0));     // FPOP
                     pop87();
                 }
                 else
@@ -1062,8 +1103,16 @@ code *orth87(elem *e,regm_t *pretregs)
                     c2 = load87(e2,0,&retregs,e1,-1);
                     c2 = cat(c2,makesure87(e1,0,1,0));
                     resregm = 0;
-                    if (config.target_cpu >= TARGET_80386)
-                    {   c3 = gen2(CNIL,0xDA,0xE9);      // FUCOMPP
+                    if (NOSAHF)
+                    {
+                        c3 = gen2(CNIL,0xDF,0xE9);              // FUCOMIP ST1
+                        pop87();
+                        genf2(c3,0xDD,modregrm(3,3,0));         // FPOP
+                        pop87();
+                    }
+                    else if (config.target_cpu >= TARGET_80386)
+                    {
+                        c3 = gen2(CNIL,0xDA,0xE9);      // FUCOMPP
                         c3 = cg87_87topsw(c3);
                         pop87();
                         pop87();
@@ -1545,7 +1594,6 @@ code *loadComplex(elem *e)
 
 code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
 {
-        elem *e1;
         code *ccomma,*c,*c2,*cpush;
         code cs;
         regm_t retregs;
@@ -1596,6 +1644,8 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                     else
                     {
                         c = getlvalue(&cs,e,0);
+                        if (I64)
+                            cs.Irex &= ~REX_W;                  // don't use for x87 ops
                         c = cat(c,makesure87(eleft,eoffset,0,0));
                         cs.Iop = ESC(mf,0);
                         cs.Irm |= modregrm(0,op,0);
@@ -1739,8 +1789,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
                 break;
 
             case OPu16_d:
-            {   regm_t mswregs;
-
+            {
                 /* This opcode should never be generated        */
                 /* (probably shouldn't be for 16 bit code too)  */
                 assert(!I32);
@@ -1955,6 +2004,8 @@ code *eq87(elem *e,regm_t *pretregs)
             cs.Iflags &= ~CFopsize;
         else if (ADDFWAIT())
             cs.Iflags |= CFwait;
+        else if (I64)
+            cs.Irex &= ~REX_W;
         c2 = gen(c2, &cs);
 #if LNGDBLSIZE == 12
         if (tysize[TYldouble] == 12)
@@ -2135,7 +2186,6 @@ code *cnvteq87(elem *e,regm_t *pretregs)
         code cs;
         unsigned op1;
         unsigned op2;
-        tym_t ty1;
 
         assert(e->Eoper == OPeq);
         assert(!*pretregs);
@@ -2320,7 +2370,6 @@ code *opass87(elem *e,regm_t *pretregs)
 code *opmod_complex87(elem *e,regm_t *pretregs)
 {
     regm_t retregs;
-    regm_t idxregs;
     code *cl,*cr,*c;
     code cs;
     tym_t ty1;
@@ -2712,7 +2761,6 @@ code *cdnegass87(elem *e,regm_t *pretregs)
 {   regm_t retregs;
     tym_t tyml;
     unsigned op;
-    targ_long val;
     code *cl,*cr,*c,cs;
     elem *e1;
     int sz;
@@ -3020,9 +3068,8 @@ code *cdrndtol(elem *e,regm_t *pretregs)
 {
         regm_t retregs;
         code *c1,*c2;
-        unsigned mf,reg;
+        unsigned reg;
         tym_t tym;
-        int clib;
         unsigned sz;
         unsigned char op1,op2;
 
@@ -3334,7 +3381,6 @@ __body
 
 code *fixresult_complex87(elem *e,regm_t retregs,regm_t *pretregs)
 {
-    regm_t regm;
     tym_t tym;
     code *c1,*c2;
     unsigned sz;
@@ -3488,7 +3534,6 @@ __body
     unsigned sz;
     unsigned char ldop;
     regm_t retregs;
-    symbol *s;
     int i;
 
     //printf("cload87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));

@@ -526,6 +526,7 @@ void foo28(ClassInfo ci)
 		break;
 	case 1:	assert(ci.name == "test15.B28");
 		break;
+	default: assert(0);
     }
 }
 
@@ -1228,14 +1229,14 @@ void test60()
 
 class StdString
 {
-     alias std.string.toString toString;
+     alias std.string.format toString;
 }
 
 void test61()
 {
     int i = 123;
     StdString g = new StdString();
-    string s = g.toString(i);
+    string s = g.toString("%s", i);
     printf("%.*s\n", s.length, s.ptr);
     assert(s == "123");
 }

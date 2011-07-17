@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -19,7 +19,7 @@
 #include        <process.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #include        <sys/types.h>
 #include        <sys/wait.h>
 #include        <unistd.h>
@@ -116,8 +116,21 @@ int runLINK()
 
     cmdbuf.writeByte(',');
     if (global.params.mapfile)
-        cmdbuf.writestring(global.params.mapfile);
-    else if (global.params.run)
+        writeFilename(&cmdbuf, global.params.mapfile);
+    else if (global.params.map)
+    {
+        FileName *fn = FileName::forceExt(global.params.exefile, "map");
+
+        char *path = FileName::path(global.params.exefile);
+        char *p;
+        if (path[0] == '\0')
+            p = FileName::combine(global.params.objdir, fn->toChars());
+        else
+            p = fn->toChars();
+
+        writeFilename(&cmdbuf, p);
+    }
+    else
         cmdbuf.writestring("nul");
     cmdbuf.writeByte(',');
 
@@ -198,7 +211,7 @@ int runLINK()
         delete lnkfilename;
     }
     return status;
-#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     pid_t childpid;
     int i;
     int status;
@@ -276,14 +289,16 @@ int runLINK()
 #endif
         if (!global.params.mapfile)
         {
-            size_t elen = strlen(global.params.exefile);
-            size_t extlen = strlen(global.map_ext);
-            char *m = (char *)mem.malloc(elen + 1 + extlen + 1);
-            memcpy(m, global.params.exefile, elen);
-            m[elen] = '.';
-            memcpy(m + elen + 1, global.map_ext, extlen);
-            m[elen + 1 + extlen] = 0;
-            global.params.mapfile = m;
+            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+
+            char *path = FileName::path(global.params.exefile);
+            char *p;
+            if (path[0] == '\0')
+                p = FileName::combine(global.params.objdir, fn->toChars());
+            else
+                p = fn->toChars();
+
+            global.params.mapfile = p;
         }
         argv.push((void *)"-Xlinker");
         argv.push(global.params.mapfile);
@@ -486,7 +501,7 @@ int executearg0(char *cmd, char *args)
     //printf("spawning '%s'\n",file);
 #if _WIN32
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     char *full;
     int cmdl = strlen(cmd);
 
@@ -549,7 +564,7 @@ int runProgram()
     else
         ex = global.params.exefile;
     return spawnv(0,ex,(char **)argv.data);
-#elif linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     pid_t childpid;
     int status;
 

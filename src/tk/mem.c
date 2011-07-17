@@ -226,12 +226,46 @@ void * __cdecl operator new(size_t size)
     return p;
 }
 
+#if __GNUC__
+void * operator new[](size_t size)
+#else
+void * __cdecl operator new[](size_t size)
+#endif
+{   void *p;
+
+    while (1)
+    {
+        if (size == 0)
+            size++;
+#if MEM_DEBUG
+        assert(mem_inited);
+        p = mem_malloc_debug(size,__mem_file,__mem_line);
+#else
+        p = mem_malloc((unsigned)size);
+#endif
+        if (p != NULL || _new_handler == NULL)
+            break;
+        (*_new_handler)();
+    }
+    return p;
+}
+
 /***********************
  * Replacement for the standard C++ library operator delete().
  */
 
 #undef delete
 void __cdecl operator delete(void *p)
+{
+#if MEM_DEBUG
+        assert(mem_inited);
+        mem_free_debug(p,__mem_file,__mem_line);
+#else
+        mem_free(p);
+#endif
+}
+
+void __cdecl operator delete[](void *p)
 {
 #if MEM_DEBUG
         assert(mem_inited);
@@ -296,7 +330,7 @@ static struct mem_debug
         11111,
         0,
         BEFOREVAL,
-#if !(linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4)
+#if !(linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4)
         AFTERVAL
 #endif
 };
@@ -804,7 +838,7 @@ void mem_init()
                 mem_numalloc = 0;
                 mem_maxalloc = 0;
                 mem_alloclist.Mnext = NULL;
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
                 *(long *) &(mem_alloclist.data[0]) = AFTERVAL;
 #endif
 #endif

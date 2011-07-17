@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -23,6 +23,8 @@
 #include        "global.h"
 #include        "type.h"
 #include        "parser.h"
+#include        "aa.h"
+#include        "tinfo.h"
 #if SCPP
 #include        "cpp.h"
 #include        "exh.h"
@@ -65,7 +67,7 @@ static int AAoff;               // offset of alloca temporary
  */
 
 struct fixlist
-{   symbol      *Lsymbol;       // symbol we don't know about
+{   //symbol      *Lsymbol;       // symbol we don't know about
     int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
     int         Lflags;         // CFxxxx
     targ_size_t Loffset;        // addr of reference to symbol
@@ -75,10 +77,12 @@ struct fixlist
 #endif
     fixlist *Lnext;             // next in threaded list
 
-    static fixlist *start;
+    static AArray *start;
+    static int nodel;           // don't delete from within searchfixlist
 };
 
-fixlist *fixlist::start = NULL;
+AArray *fixlist::start = NULL;
+int fixlist::nodel = 0;
 
 /*************
  * Size in bytes of each instruction.
@@ -221,6 +225,8 @@ int cod3_EA(code *c)
     unsigned op1 = c->Iop & 0xFF;
     if (op1 == ESCAPE)
         ins = 0;
+    else if ((c->Iop & 0xFFFD00) == 0x0F3800)
+        ins = inssize2[(c->Iop >> 8) & 0xFF];
     else if ((c->Iop & 0xFF00) == 0x0F00)
         ins = inssize2[op1];
     else
@@ -286,7 +292,7 @@ void cod3_set64()
     DOUBLEREGS = DOUBLEREGS_64;
     STACKALIGN = 16;
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
     BYTEREGS = ALLREGS;
 #endif
@@ -540,14 +546,14 @@ void doswitch(block *b)
             genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
         }
         ce = getregs(mCX|mDI);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic)
         {   // Add in GOT
             code *cx;
             code *cgot;
 
             ce = cat(ce, getregs(mDX));
-            cx = genc2(NULL,0xE8,0,0);  //     CALL L1
+            cx = genc2(NULL,CALL,0,0);  //     CALL L1
             gen1(cx, 0x58 + DI);        // L1: POP EDI
 
                                         //     ADD EDI,_GLOBAL_OFFSET_TABLE_+3
@@ -620,7 +626,7 @@ void doswitch(block *b)
         mod = (disp > 127) ? 2 : 1;     /* 1 or 2 byte displacement     */
         if (config.flags & CFGromable)
                 gen1(ce,SEGCS);         /* table is in code segment     */
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (config.flags3 & CFG3pic)
         {                               // ADD EDX,(ncases-1)*2[EDI]
             ct = genc1(CNIL,0x03,modregrm(mod,DX,7),FLconst,disp);
@@ -829,12 +835,38 @@ int jmpopcode(elem *e)
   {     i = 0;
         if (config.inline8087)
         {   i = 1;
+
+#if 1
+#define NOSAHF I64
+            if (rel_exception(op) || config.flags4 & CFG4fastfloat)
+            {
+                if (zero)
+                {
+                    if (NOSAHF)
+                        op = swaprel(op);
+                }
+                else if (NOSAHF)
+                    op = swaprel(op);
+                else if (cmporder87(e->E2))
+                    op = swaprel(op);
+                else
+                    ;
+            }
+            else
+            {
+                if (zero && config.target_cpu < TARGET_80386)
+                    ;
+                else
+                    op = swaprel(op);
+            }
+#else
             if (zero && !rel_exception(op) && config.target_cpu >= TARGET_80386)
                 op = swaprel(op);
             else if (!zero &&
                 (cmporder87(e->E2) || !(rel_exception(op) || config.flags4 & CFG4fastfloat)))
                 /* compare is reversed */
                 op = swaprel(op);
+#endif
         }
         jp = jfops[0][op - OPle];
         goto L1;
@@ -991,7 +1023,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
         used &= ~(keepmsk | idxregs);           // regs destroyed by this exercise
         c = cat(c,getregs(used));
                                                 // CALL __ptrchk
-        gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,rtlsym[RTLSYM_PTRCHK]);
+        gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,rtlsym[RTLSYM_PTRCHK]);
     }
 
     *pc = cat(c,cs2);
@@ -1094,11 +1126,11 @@ code *cdgot(elem *e, regm_t *pretregs)
         retregs = allregs;
     c = allocreg(&retregs, &reg, TYnptr);
 
-    c = genc(c,0xE8,0,0,0,FLgot,0);     //     CALL L1
+    c = genc(c,CALL,0,0,0,FLgot,0);     //     CALL L1
     gen1(c, 0x58 + reg);                // L1: POP reg
 
     return cat(c,fixresult(e,retregs,pretregs));
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     regm_t retregs;
     unsigned reg;
     code *c;
@@ -1109,7 +1141,7 @@ code *cdgot(elem *e, regm_t *pretregs)
         retregs = allregs;
     c = allocreg(&retregs, &reg, TYnptr);
 
-    c = genc2(c,0xE8,0,0);      //     CALL L1
+    c = genc2(c,CALL,0,0);      //     CALL L1
     gen1(c, 0x58 + reg);        // L1: POP reg
 
                                 //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
@@ -1131,7 +1163,7 @@ code *cdgot(elem *e, regm_t *pretregs)
 #endif
 }
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 /*****************************
  * Returns:
  *      # of bytes stored
@@ -1482,7 +1514,7 @@ Lagain:
                     c = movregconst(c,AX,xlocalsize,FALSE); // MOV AX,localsize
                     makeitextern(rtlsym[RTLSYM_CHKSTK]);
                                                             // CALL _chkstk
-                    gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,rtlsym[RTLSYM_CHKSTK]);
+                    gencs(c,(LARGECODE) ? 0x9A : CALL,0,FLfunc,rtlsym[RTLSYM_CHKSTK]);
                     useregs((ALLREGS | mBP | mES) & ~rtlsym[RTLSYM_CHKSTK]->Sregsaved);
                 }
                 else
@@ -1610,7 +1642,7 @@ Lagain:
 
         symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_PRO_F : RTLSYM_TRACE_PRO_N];
         makeitextern(s);
-        c = gencs(c,I16 ? 0x9A : 0xE8,0,FLfunc,s);      // CALL _trace
+        c = gencs(c,I16 ? 0x9A : CALL,0,FLfunc,s);      // CALL _trace
         if (!I16)
             code_orflag(c,CFoff | CFselfrel);
         /* Embedding the function name inline after the call works, but it
@@ -2059,7 +2091,7 @@ void epilog(block *b)
     {
         symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_EPI_F : RTLSYM_TRACE_EPI_N];
         makeitextern(s);
-        c = gencs(c,I16 ? 0x9A : 0xE8,0,FLfunc,s);      // CALLF _trace
+        c = gencs(c,I16 ? 0x9A : CALL,0,FLfunc,s);      // CALLF _trace
         if (!I16)
             code_orflag(c,CFoff | CFselfrel);
         useregs((ALLREGS | mBP | mES) & ~s->Sregsaved);
@@ -2217,7 +2249,7 @@ Lopt:
         }
 #if 0   // These optimizations don't work if the called function
         // cleans off the stack.
-        else if (c->Iop == 0xC3 && cr->Iop == 0xE8)     // CALL near
+        else if (c->Iop == 0xC3 && cr->Iop == CALL)     // CALL near
         {   cr->Iop = 0xE9;                             // JMP near
             c->Iop = NOP;
         }
@@ -2247,11 +2279,11 @@ targ_size_t cod3_spoff()
 
 code *cod3_load_got()
 {
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     code *c;
     code *cgot;
 
-    c = genc2(NULL,0xE8,0,0);   //     CALL L1
+    c = genc2(NULL,CALL,0,0);   //     CALL L1
     gen1(c, 0x58 + BX);         // L1: POP EBX
 
                                 //     ADD EBX,_GLOBAL_OFFSET_TABLE_+3
@@ -2435,7 +2467,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     sthunk->Soffset = thunkoffset;
     sthunk->Ssize = Coffset - thunkoffset; /* size of thunk */
     sthunk->Sseg = cseg;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     objpubdef(cseg,sthunk,sthunk->Soffset);
 #endif
     searchfixlist(sthunk);              /* resolve forward refs */
@@ -2609,7 +2641,7 @@ int branch(block *bl,int flag)
                         config.target_cpu >= TARGET_80386 &&
                         disp == (I16 ? 3 : 5) &&
                         cn &&
-                        cn->Iop == 0xE8 &&
+                        cn->Iop == CALL &&
                         cn->IFL2 == FLfunc &&
                         cn->IEVsym2->Sflags & SFLexit &&
                         !(cn->Iflags & (CFtarg | CFtarg2))
@@ -2742,7 +2774,9 @@ void assignaddrc(code *c)
         if (code_next(c) && code_next(code_next(c)) == c)
             assert(0);
 #endif
-        if ((c->Iop & 0xFF00) == 0x0F00)
+        if ((c->Iop & 0xFFFD00) == 0x0F3800)
+            ins = inssize2[(c->Iop >> 8) & 0xFF];
+        else if ((c->Iop & 0xFF00) == 0x0F00)
             ins = inssize2[c->Iop & 0xFF];
         else if ((c->Iop & 0xFF) == ESCAPE)
         {
@@ -3121,7 +3155,9 @@ void pinholeopt(code *c,block *b)
   {
     L1:
         op = c->Iop;
-        if ((op & 0xFF00) == 0x0F00)
+        if ((op & 0xFFFD00) == 0x0F3800)
+            ins = inssize2[(op >> 8) & 0xFF];
+        else if ((op & 0xFF00) == 0x0F00)
             ins = inssize2[op & 0xFF];
         else
             ins = inssize[op & 0xFF];
@@ -3648,16 +3684,17 @@ STATIC void pinholeopt_unittest()
 void jmpaddr(code *c)
 { code *ci,*cn,*ctarg,*cstart;
   targ_size_t ad;
-  unsigned char op;
+  unsigned op;
 
   //printf("jmpaddr()\n");
   cstart = c;                           /* remember start of code       */
   while (c)
   {
         op = c->Iop;
-        if (inssize[op & 0xFF] & T &&   // if second operand
+        if (op <= 0xEB &&
+            inssize[op] & T &&   // if second operand
             c->IFL2 == FLcode &&
-            ((op & ~0x0F) == 0x70 || op == JMP || op == JMPS || op == JCXZ))
+            ((op & ~0x0F) == 0x70 || op == JMP || op == JMPS || op == JCXZ || op == CALL))
         {       ci = code_next(c);
                 ctarg = c->IEV2.Vcode;  /* target code                  */
                 ad = 0;                 /* IP displacement              */
@@ -3668,7 +3705,7 @@ void jmpaddr(code *c)
                 }
                 if (!ci)
                     goto Lbackjmp;      // couldn't find it
-                if (!I16 || op == JMP || op == JMPS || op == JCXZ)
+                if (!I16 || op == JMP || op == JMPS || op == JCXZ || op == CALL)
                         c->IEVpointer2 = ad;
                 else                    /* else conditional             */
                 {       if (!(c->Iflags & CFjmp16))     /* if branch    */
@@ -3745,17 +3782,27 @@ unsigned calccodsize(code *c)
 #endif
     iflags = c->Iflags;
     op = c->Iop;
-    if ((op & 0xFF00) == 0x0F00)
+    if ((op & 0xFF00) == 0x0F00 || (op & 0xFFFD00) == 0x0F3800)
         op = 0x0F;
     else
         op &= 0xFF;
     switch (op)
     {
         case 0x0F:
-            ins = inssize2[c->Iop & 0xFF];
-            size = ins & 7;
-            if (c->Iop & 0xFF0000)
-                size++;
+            if ((c->Iop & 0xFFFD00) == 0x0F3800)
+            {   // 3 byte op ( 0F38-- or 0F3A-- )
+                ins = inssize2[(c->Iop >> 8) & 0xFF];
+                size = ins & 7;
+                if (c->Iop & 0xFF000000)
+                  size++;
+            }
+            else
+            {   // 2 byte op ( 0F-- )
+                ins = inssize2[c->Iop & 0xFF];
+                size = ins & 7;
+                if (c->Iop & 0xFF0000)
+                  size++;
+            }
             break;
 
         case NOP:
@@ -3941,7 +3988,11 @@ int code_match(code *c1,code *c2)
         goto nomatch;
 
     ins = inssize[cs1.Iop & 0xFF];
-    if ((cs1.Iop & 0xFF00) == 0x0F00)
+    if ((cs1.Iop & 0xFFFD00) == 0x0F3800)
+    {
+        ins = inssize2[(cs1.Iop >> 8) & 0xFF];
+    }
+    else if ((cs1.Iop & 0xFF00) == 0x0F00)
     {
         ins = inssize2[cs1.Iop & 0xFF];
     }
@@ -4049,7 +4100,7 @@ unsigned codout(code *c)
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
         {   case ESCAPE:
-                switch (op & 0xFF00)
+                switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
                         objlinnum(c->IEV2.Vsrcpos,OFFSET());
@@ -4160,27 +4211,41 @@ unsigned codout(code *c)
                     c->Iop = op ^= 1;           // toggle condition
                     c->IFL2 = FLconst;
                     c->IEVpointer2 = I16 ? 3 : 5; // skip over JMP block
+                    c->Iflags &= ~CFjmp16;
                 }
             }
         }
 
         if (op > 0xFF)
         {
-            if ((op & 0xFF00) == 0x0F00)
+            if ((op & 0xFFFD00) == 0x0F3800)
+                ins = inssize2[(op >> 8) & 0xFF];
+            else if ((op & 0xFF00) == 0x0F00)
                 ins = inssize2[op & 0xFF];
+
             if (op & 0xFF000000)
             {
-                if (c->Irex)
-                    GEN(c->Irex | REX);
-                GEN(op >> 24);
+                unsigned char op1 = op >> 24;
+                if (op1 == 0xF2 || op1 == 0xF3 || op1 == 0x66)
+                {
+                    GEN(op1);
+                    if (c->Irex)
+                        GEN(c->Irex | REX);
+                }
+                else
+                {
+                    if (c->Irex)
+                        GEN(c->Irex | REX);
+                    GEN(op1);
+                }
+                GEN((op >> 16) & 0xFF);
                 GEN((op >> 8) & 0xFF);
                 GEN(op & 0xFF);
-                GEN((op >> 16) & 0xFF);         // yes, this is out of order. For 0x660F3A41 & 40
             }
             else if (op & 0xFF0000)
             {
                 unsigned char op1 = op >> 16;
-                if (op1 == 0xF2 || op1 == 0xF3)
+                if (op1 == 0xF2 || op1 == 0xF3 || op1 == 0x66)
                 {
                     GEN(op1);
                     if (c->Irex)
@@ -4319,12 +4384,14 @@ unsigned codout(code *c)
                             else
                                 goto case_default;
 
-                        case 0xE8:              // CALL rel
-                        case 0xE9:              // JMP  rel
+                        case CALL:              // CALL rel
+                        case JMP:               // JMP  rel
                             flags |= CFselfrel;
                             goto case_default;
 
                         default:
+                            if ((op|0xF) == 0x0F8F) // Jcc rel16 rel32
+                                flags |= CFselfrel;
                             if (I64 && (op & ~7) == 0xB8 && c->Irex & REX_W)
                                 goto do64;
                         case_default:
@@ -4382,8 +4449,8 @@ unsigned codout(code *c)
                             else
                                 goto case_default16;
 
-                        case 0xE8:
-                        case 0xE9:
+                        case CALL:
+                        case JMP:
                             flags |= CFselfrel;
                         default:
                         case_default16:
@@ -4465,7 +4532,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             // un-named external with is the start of .rodata or .data
         case FLextern:                      /* external data symbol         */
         case FLtlsdata:
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case FLgot:
         case FLgotoff:
 #endif
@@ -4558,7 +4625,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         // un-named external with is the start of .rodata or .data
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
 #endif
@@ -4719,7 +4786,8 @@ STATIC void do8bit(enum FL fl,union evc *uev)
   }
   GEN(c);
 }
-
+
+
 /****************************
  * Add to the fix list.
  */
@@ -4732,7 +4800,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         //printf("addtofixlist(%p '%s')\n",s,s->Sident);
         assert(flags);
         ln = (fixlist *) mem_calloc(sizeof(fixlist));
-        ln->Lsymbol = s;
+        //ln->Lsymbol = s;
         ln->Loffset = soffset;
         ln->Lseg = seg;
         ln->Lflags = flags;
@@ -4740,8 +4808,13 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
 #if TARGET_OSX
         ln->Lfuncsym = funcsym_p;
 #endif
-        ln->Lnext = fixlist::start;
-        fixlist::start = ln;
+
+        if (!fixlist::start)
+            fixlist::start = new AArray(&ti_pvoid, sizeof(fixlist *));
+        fixlist **pv = (fixlist **)fixlist::start->get(&s);
+        ln->Lnext = *pv;
+        *pv = ln;
+
 #if TARGET_FLAT
         numbytes = tysize[TYnptr];
         if (I64 && !(flags & CFoffset64))
@@ -4770,19 +4843,22 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
  */
 
 void searchfixlist(symbol *s)
-{ register fixlist **lp,*p;
-
-  //dbg_printf("searchfixlist(%s)\n",s->Sident);
-  for (lp = &fixlist::start; (p = *lp) != NULL;)
-  {
-        if (s == p->Lsymbol)
-        {       //dbg_printf("Found reference at x%lx\n",p->Loffset);
+{
+    //printf("searchfixlist(%s)\n",s->Sident);
+    if (fixlist::start)
+    {
+        fixlist **lp = (fixlist **)fixlist::start->in(&s);
+        if (lp)
+        {   fixlist *p;
+            while ((p = *lp) != NULL)
+            {
+                //dbg_printf("Found reference at x%lx\n",p->Loffset);
 
                 // Determine if it is a self-relative fixup we can
                 // resolve directly.
                 if (s->Sseg == p->Lseg &&
                     (s->Sclass == SCstatic ||
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                      (!(config.flags3 & CFG3pic) && s->Sclass == SCglobal)) &&
 #else
                         s->Sclass == SCglobal) &&
@@ -4807,10 +4883,11 @@ void searchfixlist(symbol *s)
                 }
                 *lp = p->Lnext;
                 mem_free(p);            /* remove from list             */
+            }
+            if (!fixlist::nodel)
+                fixlist::start->del(&s);
         }
-        else
-                lp = &(p->Lnext);
-  }
+    }
 }
 
 /****************************
@@ -4818,12 +4895,17 @@ void searchfixlist(symbol *s)
  * to external symbols.
  */
 
-void outfixlist()
+STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 {
-  //printf("outfixlist()\n");
-  for (fixlist *ln = fixlist::start; ln; ln = fixlist::start)
-  {
-        symbol *s = ln->Lsymbol;
+    //printf("outfixlist_dg(pkey = %p, pvalue = %p)\n", pkey, pvalue);
+    symbol *s = *(symbol **)pkey;
+
+    fixlist **plnext = (fixlist **)pvalue;
+
+    while (*plnext)
+    {
+        fixlist *ln = *plnext;
+
         symbol_debug(s);
         //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
 
@@ -4876,14 +4958,29 @@ void outfixlist()
 #else
             reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
 #endif
-            fixlist::start = ln->Lnext;
+            *plnext = ln->Lnext;
 #if TERMCODE
             mem_free(ln);
 #endif
         }
-  }
+    }
+    return 0;
 }
 
+void outfixlist()
+{
+    //printf("outfixlist()\n");
+    if (fixlist::start)
+    {
+        fixlist::nodel++;
+        fixlist::start->apply(NULL, &outfixlist_dg);
+        fixlist::nodel--;
+#if TERMCODE
+        delete fixlist::start;
+        fixlist::start = NULL;
+#endif
+    }
+}
 
 /**********************************
  */
@@ -4899,7 +4996,9 @@ void code_hydrate(code **pc)
     while (*pc)
     {
         c = (code *) ph_hydrate(pc);
-        if ((c->Iop & 0xFF00) == 0x0F00)
+        if ((c->Iop & 0xFFFD00) == 0x0F3800)
+            ins = inssize2[(c->Iop >> 8) & 0xFF];
+        else if ((c->Iop & 0xFF00) == 0x0F00)
             ins = inssize2[c->Iop & 0xFF];
         else
             ins = inssize[c->Iop & 0xFF];
@@ -4977,10 +5076,12 @@ void code_hydrate(code **pc)
             case FLblockoff:
                 (void) ph_hydrate(&c->IEV1.Vblock);
                 break;
+#if SCPP
             case FLctor:
             case FLdtor:
                 el_hydrate(&c->IEV1.Vtor);
                 break;
+#endif
             case FLasm:
                 (void) ph_hydrate(&c->IEV1.as.bytes);
                 break;
@@ -5063,7 +5164,9 @@ void code_dehydrate(code **pc)
     {
         ph_dehydrate(pc);
 
-        if ((c->Iop & 0xFF00) == 0x0F00)
+        if ((c->Iop & 0xFFFD00) == 0x0F3800)
+            ins = inssize2[(c->Iop >> 8) & 0xFF];
+        else if ((c->Iop & 0xFF00) == 0x0F00)
             ins = inssize2[c->Iop & 0xFF];
         else
             ins = inssize[c->Iop & 0xFF];
@@ -5235,7 +5338,9 @@ void code::print()
     }
 
     unsigned op = c->Iop;
-    if ((c->Iop & 0xFF00) == 0x0F00)
+    if ((c->Iop & 0xFFFD00) == 0x0F3800)
+        ins = inssize2[(op >> 8) & 0xFF];
+    else if ((c->Iop & 0xFF00) == 0x0F00)
         ins = inssize2[op & 0xFF];
     else
         ins = inssize[op & 0xFF];

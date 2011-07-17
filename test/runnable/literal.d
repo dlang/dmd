@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 
 import std.stdio;
 import std.c.stdlib;
@@ -30,7 +31,7 @@ int dotype(uint x) { return T_uint; }
 int dotype(long x) { return T_long; }
 int dotype(ulong x) { return T_ulong; }
 
-int main()
+void test1()
 {
     /*
      * 0x7FFF             077777                  32767
@@ -209,7 +210,21 @@ int main()
     assert(dotype(9223372036854775807uL) == T_ulong);
     assert(dotype(9223372036854775808uL) == T_ulong);
     assert(dotype(18446744073709551615uL) == T_ulong);
+}
+
+void test2()
+{
+    ulong[] a = [ 2_463_534_242UL ];
+
+    foreach(e; a)
+        assert(e == 2_463_534_242UL);
+}
+
+int main()
+{
+    test1();
+    test2();
 
     printf("Success\n");
-    return EXIT_SUCCESS;
+    return 0;
 }

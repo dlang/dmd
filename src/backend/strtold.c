@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -16,11 +16,11 @@
 #include        <float.h>
 #include        <string.h>
 #include        <math.h>
-#include        <fenv.h>
 #if _WIN32
+#include        <fenv.h>
 #include        <fltpnt.h>
 #endif
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #include        <errno.h>
 #endif
 
@@ -30,7 +30,7 @@ extern char * __cdecl __locale_decpoint;
 void __pascal __set_errno (int an_errno);
 #endif
 
-#if _WIN32 || linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if _WIN32 || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 
 #if 0
 /* This is for compilers that don't support hex float literals,
@@ -146,11 +146,11 @@ long double strtold(const char *p,char **endp)
         const char *pinit = p;
         static char infinity[] = "infinity";
         static char nans[] = "nans";
-        fenv_t flagp;
         unsigned int old_cw;
         unsigned int old_status;
 
 #if _WIN32
+        fenv_t flagp;
         fegetenv(&flagp);  /* Store all exceptions, and current status word */
         if (_8087)
         {
@@ -537,7 +537,7 @@ long double strtold(const char *p,char **endp)
     L1:
         if (endp)
         {
-            *endp = (void *) p;
+            *endp = (char *) p;
         }
     L3:
 #if _WIN32

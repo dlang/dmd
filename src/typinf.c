@@ -460,6 +460,12 @@ void TypeInfoFunctionDeclaration::toDt(dt_t **pdt)
 
     tc->next->getTypeInfo(NULL);
     dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for function return value
+
+    const char *name = tinfo->deco;
+    assert(name);
+    size_t namelen = strlen(name);
+    dtsize_t(pdt, namelen);
+    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 }
 
 void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
@@ -474,6 +480,12 @@ void TypeInfoDelegateDeclaration::toDt(dt_t **pdt)
 
     tc->next->nextOf()->getTypeInfo(NULL);
     dtxoff(pdt, tc->next->nextOf()->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for delegate return value
+
+    const char *name = tinfo->deco;
+    assert(name);
+    size_t namelen = strlen(name);
+    dtsize_t(pdt, namelen);
+    dtabytes(pdt, TYnptr, 0, namelen + 1, name);
 }
 
 void TypeInfoStructDeclaration::toDt(dt_t **pdt)
@@ -630,7 +642,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     // xpostblit
     FuncDeclaration *spostblit = sd->postblit;
-    if (spostblit)
+    if (spostblit && !(spostblit->storage_class & STCdisable))
         dtxoff(pdt, spostblit->toSymbol(), 0, TYnptr);
     else
         dtsize_t(pdt, 0);                        // xpostblit

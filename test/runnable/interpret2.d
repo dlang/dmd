@@ -50,11 +50,104 @@ void test1()
     assert(z1 == 8194);
 }
 
+/***** Bug 2850 *********************************/
+
+/* These tests are not passing, and shouldn't pass. A non-first field in a union
+being initialized cannot be converted to an expression, at least not until there are
+improvements to StructLiterals.
+ */
+
+version (none)
+{
+struct Bug2850{
+ union
+ {
+     int c;
+     double d;
+ }
+ int b;
+ int a;
+}
+
+static assert(is(typeof(
+ () { enum Bug2850 w = {b:47, 714, d:4 }; return w;}
+)));
+static assert(is(typeof(
+ () { enum Bug2850 w = {b:47, d:4 }; return w;}
+)));
+// union not initialized
+static assert(!is(typeof(
+ () { enum Bug2850 w = {b:47, 4 }; return w;}
+)));
+// initializers for two fields in same union
+static assert(!is(typeof(
+() { enum Bug2850 w = {b:47, 4, c:5, 9}; return w;}
+)));
+
+enum Bug2850 test2850 = {b:47, 714, d:23.1e-17};
+
+struct Horrid2850 {
+    union {
+        int a;
+        int b;
+        struct {
+            int c;
+            int d;
+        }
+    }
+    int f;
+    double q;
+}
+
+enum Horrid2850 horrid2850 = {c:5,6};
+Horrid2850 m2850 = {47, f:6};
+Horrid2850 z2850 = {q:5, c:4, d:5};
+
+static assert(!is(typeof(
+() {
+    enum Horrid2850 w = {c:47, d:5, a:7}; return w;
+    }
+)));
+
+void test2(){
+    assert(test2850.a == 714);
+    assert(test2850.b == 47);
+    assert(test2850.d == 23.1e-17);
+    assert(test2850.c != 0);
+}
+}
+
+/***** Bug 3779 *********************************/
+
+static const bug3779 = ["123"][0][$-1];
+
+/***** Bug 1880 *********************************/
+
+
+enum Property1880 {First=1,Second=2}
+
+struct CompileTimeCheck1880(Property1880 Prop)
+{
+    alias Prop prop;
+}
+Property1880 junkprop1880;
+static assert(!is(CompileTimeCheck1880!(junkprop1880)));
+
+/***** Bug 5678 *********************************/
+
+struct Bug5678 {
+    this(int) {}
+}
+static assert(!is(typeof(
+() { enum Bug5678* f = new Bug5678(0); return f; }
+)));
+
 /************************************************/
 
 int main()
 {
     test1();
+//    test2();
 
     writeln("Success");
     return 0;
