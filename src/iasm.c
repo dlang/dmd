@@ -305,7 +305,7 @@ static REG regtab[] =
 "MM5",  5,      _mm,
 "MM6",  6,      _mm,
 "MM7",  7,      _mm,
-"XMM0", 0,      _xmm,
+"XMM0", 0,      _xmm | _xmm0,
 "XMM1", 1,      _xmm,
 "XMM2", 2,      _xmm,
 "XMM3", 3,      _xmm,
@@ -1733,7 +1733,11 @@ printf("usOpcode = %x\n", usOpcode);
 
         case 3:
                 if (aoptyTable2 == _m || aoptyTable2 == _rm ||
-                    usOpcode == 0x0FC5) // PEXTRW
+                    usOpcode == 0x0FC5     ||    // pextrw  _r32,  _mm,    _imm8
+                    usOpcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
+                    usOpcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
+                    usOpcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
+                   )
                 {
                     asm_make_modrm_byte(
 #ifdef DEBUG
@@ -2800,11 +2804,12 @@ STATIC unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
     }
 
     // _xmm_m32, _xmm_m64, _xmm_m128 match with XMM register or memory
-    if (usTable == _xmm_m32 ||
+    if (usTable == _xmm_m16 ||
+        usTable == _xmm_m32 ||
         usTable == _xmm_m64 ||
         usTable == _xmm_m128)
     {
-        if (usOp == _xmm)
+        if (usOp == _xmm || usOp == (_xmm|_xmm0))
             goto Lmatch;
         if (aoptyOp == _m && (bSizematch || uSizemaskOp == _anysize))
             goto Lmatch;

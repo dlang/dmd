@@ -120,6 +120,7 @@ typedef unsigned opflag_t;
 #define _mmm64  CONSTRUCT_FLAGS( _64, _m, 0, _f64)
 #define _mmm128 CONSTRUCT_FLAGS( 0, _m, 0, _f128)
 
+#define _xmm_m16 CONSTRUCT_FLAGS( _16, _m, _rspecial, 0)
 #define _xmm_m32 CONSTRUCT_FLAGS( _32, _m, _rspecial, 0)
 #define _xmm_m64 CONSTRUCT_FLAGS( _anysize, _m, _rspecial, 0)
 #define _xmm_m128 CONSTRUCT_FLAGS( _anysize, _m, _rspecial, 0)
@@ -228,6 +229,7 @@ enum ASM_MODIFIERS {
 #define _trn    CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x04 ) // TRn register (3-7)
 #define _mm     CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x08 ) // MMn register (0-7)
 #define _xmm    CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x10 ) // XMMn register (0-7)
+#define _xmm0   CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x20 ) // XMM0 register
 
 //
 // Default register values
