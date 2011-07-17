@@ -1295,6 +1295,7 @@ void ReturnStatement::toIR(IRState *irs)
             assert(e);
         }
 
+        elem_setLoc(e, loc);
         block_appendexp(blx->curblock, e);
         block_next(blx, BCretexp, NULL);
     }
