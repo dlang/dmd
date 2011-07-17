@@ -474,6 +474,11 @@ void type_init()
         tssize = tsuns;
     }
 
+    // Type of trace function
+    tstrace = type_fake(I16 ? TYffunc : TYnfunc);
+    tstrace->Tmangle = mTYman_c;
+    tstrace->Tcount++;
+
 #if TX86
     chartype = (config.flags3 & CFG3ju) ? tsuchar : tschar;
 
@@ -481,11 +486,6 @@ void type_init()
     tsclib =    type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
     tsclib->Tmangle = mTYman_c;
     tsclib->Tcount++;
-
-    // Type of trace function
-    tstrace =   type_fake(I16 ? TYffunc : TYnfunc);
-    tstrace->Tmangle = mTYman_c;
-    tstrace->Tcount++;
 
     tspvoid = type_allocn(pointertype,tsvoid);
     tspvoid->Tmangle = mTYman_c;
@@ -553,9 +553,7 @@ void type_term()
     type_free(tspvoid);
     type_free(tspcvoid);
     type_free(tsjlib);
-#if TX86
     type_free(tstrace);
-#endif
 
     while (type_list)
     {   tn = type_list->Tnext;

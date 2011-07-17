@@ -188,9 +188,7 @@ extern typep_t tsclib;
 extern typep_t tsdlib;
 extern typep_t tspvoid,tspcvoid;
 extern typep_t tsptrdiff, tssize;
-#if TX86
 extern typep_t tstrace;
-#endif
 
 #define tserr           tsint   /* error type           */
 
