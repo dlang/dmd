@@ -445,19 +445,15 @@ void type_init()
     tsullong  = type_allocbasic(TYullong);
     tsfloat   = type_allocbasic(TYfloat);
     tsdouble  = type_allocbasic(TYdouble);
-    tsifloat   = type_allocbasic(TYifloat);
-    tsidouble  = type_allocbasic(TYidouble);
-    tscfloat   = type_allocbasic(TYcfloat);
-    tscdouble  = type_allocbasic(TYcdouble);
-#if TX86
     tsreal64  = type_allocbasic(TYdouble_alias);
     tsldouble  = type_allocbasic(TYldouble);
+    tsifloat   = type_allocbasic(TYifloat);
+    tsidouble  = type_allocbasic(TYidouble);
     tsildouble  = type_allocbasic(TYildouble);
+    tscfloat   = type_allocbasic(TYcfloat);
+    tscdouble  = type_allocbasic(TYcdouble);
     tscldouble  = type_allocbasic(TYcldouble);
-#else
-    tsldouble = type_allocbasic(TYldouble);
-    chartype = tschar;                          /* default is signed chars */
-#endif
+
     if (I64)
     {
         TYptrdiff = TYllong;
@@ -515,6 +511,8 @@ void type_init()
         }
     }
 #else
+    chartype = tschar;                          /* default is signed chars */
+
     type_list = NULL;
     tsclib = type_fake( TYffunc );
     tsclib->Tmangle = mTYman_c;
