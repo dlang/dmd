@@ -4100,6 +4100,9 @@ unsigned codout(code *c)
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
         {   case ESCAPE:
+                /* Check for SSE4 opcode pmaxuw xmm1,xmm2/m128 */
+                if(op == 0x660F383E) break;
+
                 switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
