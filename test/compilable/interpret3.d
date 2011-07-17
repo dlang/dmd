@@ -1914,3 +1914,15 @@ int bug4448b()
 }
 
 static assert(bug4448b()==3);
+
+/**************************************************
+    6331 - evaluate SliceExp on if condition
+**************************************************/
+
+bool bug6331(string s)
+{
+    if (s[0..1])
+        return true;
+    return false;
+}
+static assert(bug6331("str"));
