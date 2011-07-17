@@ -456,7 +456,6 @@ void type_init()
     tscldouble  = type_allocbasic(TYcldouble);
 #else
     tsldouble = type_allocbasic(TYldouble);
-    tscomp = type_allocbasic(TYcomp);
     chartype = tschar;                          /* default is signed chars */
 #endif
     if (I64)
