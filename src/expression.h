@@ -1041,6 +1041,7 @@ struct SliceExp : UnaExp
     void checkEscapeRef();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
+    int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

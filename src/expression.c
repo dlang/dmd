@@ -7678,6 +7678,11 @@ Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
+int SliceExp::isBool(int result)
+{
+    return e1->isBool(result);
+}
+
 void SliceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     expToCBuffer(buf, hgs, e1, precedence[op]);
