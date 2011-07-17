@@ -1462,9 +1462,9 @@ enum FL
         FLMAX
 };
 
-#if TX86
 ////////// Srcfiles
 
+#if !MARS
 // Collect information about a source file.
 typedef struct Sfile
 {
@@ -1511,6 +1511,7 @@ typedef struct Srcfiles
 
 #define sfile(fi)               (*srcfiles.pfiles[fi])
 #define srcfiles_name(fi)       (sfile(fi).SFname)
+#endif
 
 /**************************************************
  * This is to support compiling expressions within the context of a function.
@@ -1531,7 +1532,6 @@ struct EEcontext
 };
 
 extern EEcontext eecontext;
-#endif
 
 #include "rtlsym.h"
 
