@@ -1735,7 +1735,7 @@ printf("usOpcode = %x\n", usOpcode);
                     usOpcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
                     usOpcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
                     usOpcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
-	           )
+                   )
                 {
                     asm_make_modrm_byte(
 #ifdef DEBUG

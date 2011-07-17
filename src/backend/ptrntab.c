@@ -3182,8 +3182,8 @@ getsec
         X("inc",        1,              (P) aptb1INC ) \
         X("ins",        2,              (P) aptb2INS ) \
         X("insb",       0,              aptb0INSB ) \
-        X("insertps",   3,              (P) aptb3INSERTPS ) \
         X("insd",       0,              aptb0INSD ) \
+        X("insertps",   3,              (P) aptb3INSERTPS ) \
         X("insw",       0,              aptb0INSW ) \
         X("int",        ITimmed | 1,    (P) aptb1INT ) \
         X("into",       0,              aptb0INTO ) \
