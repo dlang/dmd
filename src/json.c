@@ -43,15 +43,17 @@ const char Pline[] = "line";
 const char Ptype[] = "type";
 const char Pcomment[] = "comment";
 const char Pmembers[] = "members";
+const char Pprotection[] = "protection";
+const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
 
 void JsonRemoveComma(OutBuffer *buf);
 
-void json_generate(Array *modules)
+void json_generate(Modules *modules)
 {   OutBuffer buf;
 
     buf.writestring("[\n");
     for (int i = 0; i < modules->dim; i++)
-    {   Module *m = (Module *)modules->data[i];
+    {   Module *m = modules->tdata()[i];
         if (global.params.verbose)
             printf("json gen %s\n", m->toChars());
         m->toJsonBuffer(&buf);
@@ -64,7 +66,7 @@ void json_generate(Array *modules)
     char *arg = global.params.xfilename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = (char *)global.params.objfiles->data[0];
+        char *n = global.params.objfiles->tdata()[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.json_ext);
@@ -193,7 +195,7 @@ void Module::toJsonBuffer(OutBuffer *buf)
 
     size_t offset = buf->offset;
     for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = members->tdata()[i];
         if (offset != buf->offset)
         {   buf->writestring(",\n");
             offset = buf->offset;
@@ -211,13 +213,13 @@ void AttribDeclaration::toJsonBuffer(OutBuffer *buf)
 {
     //printf("AttribDeclaration::toJsonBuffer()\n");
 
-    Array *d = include(NULL, NULL);
+    Dsymbols *d = include(NULL, NULL);
 
     if (d)
     {
         size_t offset = buf->offset;
         for (unsigned i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (Dsymbol *)d->data[i];
+        {   Dsymbol *s = d->tdata()[i];
             //printf("AttribDeclaration::toJsonBuffer %s\n", s->toChars());
             if (offset != buf->offset)
             {   buf->writestring(",\n");
@@ -259,6 +261,10 @@ void Declaration::toJsonBuffer(OutBuffer *buf)
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
+
+    if (prot())
+        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+
     if (type)
         JsonProperty(buf, Ptype, type->toChars());
 
@@ -285,8 +291,13 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
+
+    if (prot())
+        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
+
     if (loc.linnum)
         JsonProperty(buf, Pline, loc.linnum);
 
@@ -321,7 +332,7 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
         buf->writestring(" : [\n");
         size_t offset = buf->offset;
         for (int i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (Dsymbol *)members->data[i];
+        {   Dsymbol *s = members->tdata()[i];
             if (offset != buf->offset)
             {   buf->writestring(",\n");
                 offset = buf->offset;
@@ -344,6 +355,10 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
+
+    if (prot())
+        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
 
@@ -354,7 +369,7 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
     buf->writestring(" : [\n");
     size_t offset = buf->offset;
     for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = members->tdata()[i];
         if (offset != buf->offset)
         {   buf->writestring(",\n");
             offset = buf->offset;
@@ -376,7 +391,7 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
         {
             for (int i = 0; i < members->dim; i++)
             {
-                Dsymbol *s = (Dsymbol *)members->data[i];
+                Dsymbol *s = members->tdata()[i];
                 s->toJsonBuffer(buf);
                 buf->writestring(",\n");
             }
@@ -389,6 +404,10 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
+
+    if (prot())
+        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
 
@@ -404,7 +423,7 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
         buf->writestring(" : [\n");
         size_t offset = buf->offset;
         for (int i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (Dsymbol *)members->data[i];
+        {   Dsymbol *s = members->tdata()[i];
             if (offset != buf->offset)
             {   buf->writestring(",\n");
                 offset = buf->offset;
@@ -426,6 +445,9 @@ void EnumMember::toJsonBuffer(OutBuffer *buf)
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
+
+    if (prot())
+        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
 
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);

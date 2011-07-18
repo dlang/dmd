@@ -60,7 +60,12 @@ longlong randomx();
  */
 
 struct OutBuffer;
-struct Array;
+
+// Can't include arraytypes.h here, need to declare these directly.
+template <typename TYPE> struct ArrayBase;
+typedef ArrayBase<struct File> Files;
+typedef ArrayBase<char> Strings;
+
 
 struct Object
 {
@@ -141,14 +146,14 @@ struct FileName : String
     static const char *replaceName(const char *path, const char *name);
 
     static char *combine(const char *path, const char *name);
-    static Array *splitPath(const char *path);
+    static Strings *splitPath(const char *path);
     static FileName *defaultExt(const char *name, const char *ext);
     static FileName *forceExt(const char *name, const char *ext);
     int equalsExt(const char *ext);
 
     void CopyTo(FileName *to);
-    static char *searchPath(Array *path, const char *name, int cwd);
-    static char *safeSearchPath(Array *path, const char *name);
+    static char *searchPath(Strings *path, const char *name, int cwd);
+    static char *safeSearchPath(Strings *path, const char *name);
     static int exists(const char *name);
     static void ensurePathExists(const char *path);
     static char *canonicalName(const char *name);
@@ -233,8 +238,8 @@ struct File : Object
      * matching File's.
      */
 
-    static Array *match(char *);
-    static Array *match(FileName *);
+    static Files *match(char *);
+    static Files *match(FileName *);
 
     // Compare file times.
     // Return   <0      this < f
@@ -267,7 +272,7 @@ struct OutBuffer : Object
 
     OutBuffer();
     ~OutBuffer();
-    void *extractData();
+    char *extractData();
     void mark();
 
     void reserve(unsigned nbytes);
@@ -338,6 +343,40 @@ struct Array : Object
     void *tos();
     void sort();
     Array *copy();
+};
+
+template <typename TYPE>
+struct ArrayBase : Array
+{
+    TYPE **tdata()
+    {
+        return (TYPE **)data;
+    }
+
+    void insert(unsigned index, TYPE *v)
+    {
+        Array::insert(index, (void *)v);
+    }
+
+    void insert(unsigned index, ArrayBase *a)
+    {
+        Array::insert(index, (Array *)a);
+    }
+
+    void append(ArrayBase *a)
+    {
+        Array::append((Array *)a);
+    }
+
+    void push(TYPE *a)
+    {
+        Array::push((void *)a);
+    }
+
+    ArrayBase *copy()
+    {
+        return (ArrayBase *)Array::copy();
+    }
 };
 
 struct Bits : Object

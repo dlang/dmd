@@ -53,12 +53,12 @@ void clearStringTab();
 elem *eictor;
 symbol *ictorlocalgot;
 elem *ector;
-Array ectorgates;
+StaticDtorDeclarations ectorgates;
 elem *edtor;
 elem *etest;
 
 elem *esharedctor;
-Array esharedctorgates;
+SharedStaticDtorDeclarations esharedctorgates;
 elem *eshareddtor;
 
 int dtorcount;
@@ -70,7 +70,7 @@ char *lastmname;
  * Append s to list of object files to generate later.
  */
 
-Array obj_symbols_towrite;
+Dsymbols obj_symbols_towrite;
 
 void obj_append(Dsymbol *s)
 {
@@ -80,7 +80,7 @@ void obj_append(Dsymbol *s)
 void obj_write_deferred(Library *library)
 {
     for (int i = 0; i < obj_symbols_towrite.dim; i++)
-    {   Dsymbol *s = (Dsymbol *)obj_symbols_towrite.data[i];
+    {   Dsymbol *s = obj_symbols_towrite.tdata()[i];
         Module *m = s->getModule();
 
         char *mname;
@@ -227,7 +227,7 @@ void Module::genobjfile(int multiobj)
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = (Module *)aimports.data[0];
+        Module *m = aimports.tdata()[0];
         assert(m);
         if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
         {
@@ -275,7 +275,7 @@ void Module::genobjfile(int multiobj)
 
     for (int i = 0; i < members->dim; i++)
     {
-        Dsymbol *member = (Dsymbol *)members->data[i];
+        Dsymbol *member = members->tdata()[i];
         member->toObjFile(multiobj);
     }
 
@@ -361,7 +361,7 @@ void Module::genobjfile(int multiobj)
             cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
 
             for (int i = 0; i < ectorgates.dim; i++)
-            {   StaticDtorDeclaration *f = (StaticDtorDeclaration *)ectorgates.data[i];
+            {   StaticDtorDeclaration *f = ectorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
                 elem *e = el_var(s);
@@ -402,7 +402,7 @@ void Module::genobjfile(int multiobj)
             cstate.CSpsymtab = &ssharedctor->Sfunc->Flocsym;
 
             for (int i = 0; i < esharedctorgates.dim; i++)
-            {   SharedStaticDtorDeclaration *f = (SharedStaticDtorDeclaration *)esharedctorgates.data[i];
+            {   SharedStaticDtorDeclaration *f = esharedctorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
                 elem *e = el_var(s);
@@ -676,7 +676,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     IRState irs(m, func);
-    Array deferToObj;                   // write these to OBJ file later
+    Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
 
     TypeFunction *tf;
@@ -743,7 +743,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
     {
         for (i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+        {   VarDeclaration *v = parameters->tdata()[i];
             if (v->csym)
             {
                 error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
@@ -1029,7 +1029,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     for (i = 0; i < irs.deferToObj->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)irs.deferToObj->data[i];
+        Dsymbol *s = irs.deferToObj->tdata()[i];
         s->toObjFile(0);
     }
 

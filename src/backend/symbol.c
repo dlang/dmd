@@ -31,10 +31,6 @@
 #include        "oper.h"                /* for OPMAX            */
 #include        "token.h"
 
-#if TARGET_MAC
-#include        "TG.h"
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -835,10 +831,6 @@ void symbol_free(symbol *s)
                 list_free(&f->Fsymtree,(list_free_fp)symbol_free);
                 func_free(f);
             }
-#if TARGET_MAC
-            if (s->Sdirect && s->Sflags&SFLdirect && !(s->Sflags&SFLsmdir))
-                MEM_PH_FREE(s->Sdirect);
-#endif
             switch (s->Sclass)
             {
 #if SCPP
@@ -947,7 +939,7 @@ void symbol_free(symbol *s)
                 case SCfastpar:
                 case SCregister:
                 case SCtmp:
-                T80x86(case SCauto:)
+                case SCauto:
                     vec_free(s->Srange);
                     /* FALL-THROUGH */
 #if 0
@@ -1020,7 +1012,7 @@ SYMIDX symbol_add(symbol *s)
     assert(sitop <= cstate.CSpsymtab->symmax);
     if (sitop == cstate.CSpsymtab->symmax)
     {
-#if defined(DEBUG) && !HOST_MPW
+#ifdef DEBUG
 #define SYMINC  1                       /* flush out reallocation bugs  */
 #else
 #define SYMINC  99
@@ -1091,7 +1083,6 @@ symbol * symbol_copy(symbol *s)
     memcpy(scopy,s,sizeof(symbol) - sizeof(s->Sident));
     scopy->Sl = scopy->Sr = scopy->Snext = NULL;
     scopy->Ssymnum = -1;
-    T68000(scopy->Sidnum = 0;)
     if (scopy->Sdt)
         dtsymsize(scopy);
     if (scopy->Sflags & (SFLvalue | SFLdtorexp))
@@ -1222,7 +1213,6 @@ symbol *symbol_hydrate(symbol **ps)
 #if SOURCE_4SYMS
         s->Ssrcpos.Sfilnum += File_Hydrate_Num; /* file number relative header build */
 #endif
-        T68000(file_progress();)
         if (pstate.SThflag != FLAG_INPLACE && s->Sfl != FLreg)
             s->Sxtrnnum = 0;            // not written to .OBJ file yet
         type_hydrate(&s->Stype);
@@ -1272,18 +1262,7 @@ symbol *symbol_hydrate(symbol **ps)
                 list_hydrate(&f->Ffwdrefinstances,(list_free_fp)symbol_hydrate);
                 list_hydrate(&f->Fexcspec,(list_free_fp)type_hydrate);
             }
-#if TARGET_MAC
-            if (s->Sdirect && s->Sflags&SFLdirect && !(s->Sflags&SFLsmdir))
-                ph_hydrate(&s->Sdirect);
-#endif
         }
-#if (TARGET_MAC)
-        if(s->Sflags & SFLpasmeth)
-            {
-            symbol_hydrate(&s->Smethod);
-            //dbg_printf("SFLpasmeth symbol %s\n",s->Sident);
-            }
-#endif
         if (CPP)
             symbol_hydrate(&s->Sscope);
         switch (s->Sclass)
@@ -1436,7 +1415,6 @@ void symbol_dehydrate(symbol **ps)
         if (xsym_gen && ph_in_head(s))
             return;
 #endif
-        T68000(file_progress();)
         symbol_debug(s);
         t = s->Stype;
         if (isdehydrated(t))
@@ -1498,18 +1476,7 @@ void symbol_dehydrate(symbol **ps)
             list_dehydrate(&f->Ffwdrefinstances,(list_free_fp)symbol_dehydrate);
             list_dehydrate(&f->Fexcspec,(list_free_fp)type_dehydrate);
             }
-#if TARGET_MAC
-            if (s->Sdirect && s->Sflags&SFLdirect && !(s->Sflags&SFLsmdir))
-                ph_dehydrate(&s->Sdirect);
-#endif
         }
-#if (TARGET_MAC)
-        if(s->Sflags & SFLpasmeth)
-            {
-            symbol_dehydrate(&s->Smethod);
-            //dbg_printf("SFLpasmeth %s\n",s->Sident);
-            }
-#endif
         if (CPP)
             ph_dehydrate(&s->Sscope);
         switch (s->Sclass)
@@ -1720,18 +1687,7 @@ void symbol_symdefs_hydrate(symbol **ps,symbol **parent,int flag)
 
             p = s->Sident;
             c = *p;
-            if (CPP)
-            {
-#if HOST_MPW
-            if (c == '_' &&  (strcmp(p,"__pasmeth") == 0))
-                continue;               // predefined struct, can't define twice
-#endif
-#if TARGET_MAC
-            if (c == '_' &&  ((strcmp(p,"__pasmeth") == 0)
-                || (strcmp(p, cpp_name_pasnew) == 0)))
-                continue;               // predefined names, can't define twice
-#endif
-            }
+
             // Put symbol s into symbol table
 
 #if MMFIO
@@ -1824,10 +1780,6 @@ void symbol_symdefs_hydrate(symbol **ps,symbol **parent,int flag)
  * Put symbol table s into parent symbol table.
  */
 
-#if TARGET_MAC
-extern char cpp_name_pasnew[];
-#endif
-
 void symboltable_hydrate(symbol *s,symbol **parent)
 {
     while (s)
@@ -1841,16 +1793,6 @@ void symboltable_hydrate(symbol *s,symbol **parent)
         p = s->Sident;
 
         //dbg_printf("symboltable_hydrate('%s')\n",p);
-
-#if HOST_MPW
-        if(p[0] == '_' &&  (strcmp(p,"__pasmeth") == 0))
-            goto L1;            /* predefined struct, can't define twice */
-#endif
-#if (TARGET_MAC)
-        if (p[0] == '_' &&  ((strcmp(p,"__pasmeth") == 0)
-            || (strcmp(p, cpp_name_pasnew) == 0)))
-            goto L1;            /* predefined names, can't define twice */
-#endif
 
         /* Put symbol s into symbol table       */
         {   symbol **ps;
@@ -2212,10 +2154,6 @@ STATIC symbol * create_tree(int i, int lo, int hi)
 
 #if METRICS
 void symbol_table_metrics(void);
-#if TARGET_MAC
-pascal unsigned long TickCount(void)
-    = 0xA975;
-#endif
 #endif
 
 void symboltable_balance(symbol **ps)
@@ -2226,8 +2164,7 @@ void symboltable_balance(symbol **ps)
 
     dbg_printf("symbol table before balance:\n");
     symbol_table_metrics();
-    T68000(ticks = TickCount();)
-    T80x86(ticks = clock();)
+    ticks = clock();
 #endif
     balancesave = balance;              // so we can nest
     balance.nsyms = 0;
@@ -2240,12 +2177,8 @@ void symboltable_balance(symbol **ps)
         goto Lret;
 #endif
 
-#if TARGET_MAC
-    balance.array = (symbol **) MEM_PARF_MALLOC(balance.nsyms * sizeof(symbol *));
-#else
     // Use malloc instead of mem because of pagesize limits
     balance.array = (symbol **) malloc(balance.nsyms * sizeof(symbol *));
-#endif
     if (!balance.array)
         goto Lret;                      // no error, just don't balance
 
@@ -2254,14 +2187,9 @@ void symboltable_balance(symbol **ps)
 
     *ps = create_tree(balance.nsyms / 2, 0, balance.nsyms - 1);
 
-    T68000(release_temp_memory();)
-    T80x86(free(balance.array);)
+    free(balance.array);
 #if METRICS
-#if TARGET_MAC
-    dbg_printf("time to balance: %.2f\n", (TickCount() - ticks) / 60.0);
-#else
     dbg_printf("time to balance: %ld\n", clock() - ticks);
-#endif
     dbg_printf("symbol table after balance:\n");
     symbol_table_metrics();
 #endif
@@ -2378,8 +2306,5 @@ void symbol_gendebuginfo()
 
 #endif
 
-#if TARGET_MAC
-#include "TGsymbol.c"
-#endif
-
 #endif /* !SPP */
+

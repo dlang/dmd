@@ -119,6 +119,9 @@ struct DoubleRep
         bool, "sign", 1);
 }
 
+struct Bug2355(string x) {}
+static assert(is(Bug2355!"a" U : Bug2355!V, string V));
+
 int main()
 {
     return 0;

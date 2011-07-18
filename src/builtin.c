@@ -111,7 +111,7 @@ Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments)
     else
     {
         assert(arguments->dim);
-        Expression *arg0 = (Expression *)arguments->data[0];
+        Expression *arg0 = arguments->tdata()[0];
         if (arg0->op == TOKfloat64)
         {
             real_t value = arg0->toReal();
@@ -137,7 +137,7 @@ void print_expressions_to_stdmsg(Expressions *args, Scope *sc)
 {
     for (size_t i = 0; i < args->dim; i++)
     {
-        Expression *e = (Expression *)args->data[i];
+        Expression *e = args->tdata()[i];
         
         if (sc)
         {

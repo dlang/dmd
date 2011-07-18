@@ -22,7 +22,7 @@ struct DebugCondition;
 enum TOK;
 struct HdrGenState;
 
-int findCondition(Array *ids, Identifier *ident);
+int findCondition(Strings *ids, Identifier *ident);
 
 struct Condition
 {

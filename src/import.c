@@ -25,7 +25,7 @@
 
 /********************************* Import ****************************/
 
-Import::Import(Loc loc, Array *packages, Identifier *id, Identifier *aliasId,
+Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
         int isstatic)
     : Dsymbol(id)
 {
@@ -42,7 +42,7 @@ Import::Import(Loc loc, Array *packages, Identifier *id, Identifier *aliasId,
         this->ident = aliasId;
     // Kludge to change Import identifier to first package
     else if (packages && packages->dim)
-        this->ident = (Identifier *)packages->data[0];
+        this->ident = packages->tdata()[0];
 }
 
 void Import::addAlias(Identifier *name, Identifier *alias)
@@ -73,7 +73,7 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 
     for (size_t i = 0; i < names.dim; i++)
     {
-        si->addAlias((Identifier *)names.data[i], (Identifier *)aliases.data[i]);
+        si->addAlias(names.tdata()[i], aliases.tdata()[i]);
     }
 
     return si;
@@ -198,11 +198,11 @@ void Import::semantic(Scope *sc)
 
         sc = sc->push(mod);
         for (size_t i = 0; i < aliasdecls.dim; i++)
-        {   Dsymbol *s = (Dsymbol *)aliasdecls.data[i];
+        {   Dsymbol *s = aliasdecls.tdata()[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (!mod->search(loc, (Identifier *)names.data[i], 0))
-                error("%s not found", ((Identifier *)names.data[i])->toChars());
+            if (!mod->search(loc, names.tdata()[i], 0))
+                error("%s not found", (names.tdata()[i])->toChars());
 
             s->semantic(sc);
         }
@@ -240,7 +240,7 @@ void Import::semantic(Scope *sc)
         {
             for (size_t i = 0; i < packages->dim; i++)
             {
-                Identifier *pid = (Identifier *)packages->data[i];
+                Identifier *pid = packages->tdata()[i];
                 ob->printf("%s.", pid->toChars());
             }
         }
@@ -260,8 +260,8 @@ void Import::semantic(Scope *sc)
             else
                 ob->writebyte(',');
 
-            Identifier *name = (Identifier *)names.data[i];
-            Identifier *alias = (Identifier *)aliases.data[i];
+            Identifier *name = names.tdata()[i];
+            Identifier *alias = aliases.tdata()[i];
 
             if (!alias)
             {
@@ -317,8 +317,8 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
      */
     for (size_t i = 0; i < names.dim; i++)
     {
-        Identifier *name = (Identifier *)names.data[i];
-        Identifier *alias = (Identifier *)aliases.data[i];
+        Identifier *name = names.tdata()[i];
+        Identifier *alias = aliases.tdata()[i];
 
         if (!alias)
             alias = name;
@@ -367,7 +367,7 @@ void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (packages && packages->dim)
     {
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (Identifier *)packages->data[i];
+        {   Identifier *pid = packages->tdata()[i];
 
             buf->printf("%s.", pid->toChars());
         }
