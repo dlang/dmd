@@ -315,7 +315,6 @@ struct OutBuffer : Object
 struct Array : Object
 {
     unsigned dim;
-  protected:
     void **data;
 
   private:
@@ -337,15 +336,12 @@ struct Array : Object
     void *pop();
     void shift(void *ptr);
     void insert(unsigned index, void *ptr);
-  protected:
     void insert(unsigned index, Array *a);
     void append(Array *a);
-  public:
     void remove(unsigned i);
     void zero();
     void *tos();
     void sort();
-  protected:
     Array *copy();
 };
 
