@@ -4676,6 +4676,95 @@ L1:     pop     RAX;
     }
 }
 
+/****************************************************/
+
+/* ======================= SSE4.2 ======================= */
+
+void test59()
+{
+    ubyte* p;
+    byte   m8;
+    short m16;
+    int   m32;
+    M64   m64;
+    M128 m128;
+    static ubyte data[] =
+    [
+0xF2,       0x0F, 0x38, 0xF0, 0xC1,           // crc32   EAX,  CL
+0x66, 0xF2, 0x0F, 0x38, 0xF1, 0xC1,           // crc32   EAX,  CX
+0xF2,       0x0F, 0x38, 0xF1, 0xC1,           // crc32   EAX, ECX
+0xF2, 0x48, 0x0F, 0x38, 0xF0, 0xC1,           // crc32   RAX,  CL
+0xF2, 0x48, 0x0F, 0x38, 0xF1, 0xC1,           // crc32   RAX, RCX
+0xF2,       0x0F, 0x38, 0xF0, 0x55, 0xB8,     // crc32   EDX, byte ptr [RBP-0x48]
+0x66, 0xF2, 0x0F, 0x38, 0xF1, 0x55, 0xBA,     // crc32   EDX, word ptr [RBP-0x46]
+0xF2,       0x0F, 0x38, 0xF1, 0x55, 0xBC,     // crc32   EDX,dword ptr [RBP-0x44]
+0xF2, 0x48, 0x0F, 0x38, 0xF0, 0x55, 0xB8,     // crc32   RDX, byte ptr [RBP-0x48]
+0xF2, 0x48, 0x0F, 0x38, 0xF1, 0x55, 0xC0,     // crc32   RDX,qword ptr [RBP-0x40]
+0x66,       0x0F, 0x3A, 0x61, 0xCA,        2, // pcmpestri XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x61, 0x5D, 0xD0,  2, // pcmpestri XMM3,xmmword ptr [RBP-0x30], 2
+0x66,       0x0F, 0x3A, 0x60, 0xCA,        2, // pcmpestrm XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x60, 0x5D, 0xD0,  2, // pcmpestrm XMM3,xmmword ptr [RBP-0x30], 2
+0x66,       0x0F, 0x3A, 0x63, 0xCA,        2, // pcmpistri XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x63, 0x5D, 0xD0,  2, // pcmpistri XMM3,xmmword ptr [RBP-0x30], 2
+0x66,       0x0F, 0x3A, 0x62, 0xCA,        2, // pcmpistrm XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x62, 0x5D, 0xD0,  2, // pcmpistrm XMM3,xmmword ptr [RBP-0x30], 2
+0x66,       0x0F, 0x38, 0x37, 0xCA,           // pcmpgtq   XMM1,XMM2
+0x66,       0x0F, 0x38, 0x37, 0x5D, 0xD0,     // pcmpgtq   XMM3,xmmword ptr [RBP-0x30]
+0x66, 0xF3, 0x0F, 0xB8, 0xC1,                 // popcnt   AX, CX
+0xF3,       0x0F, 0xB8, 0xC1,                 // popcnt  EAX, ECX
+0xF3, 0x48, 0x0F, 0xB8, 0xC1,                 // popcnt  RAX, RCX
+0x66, 0xF3, 0x0F, 0xB8, 0x55, 0xBA,           // popcnt   DX, word ptr [RBP-0x46]
+0xF3,       0x0F, 0xB8, 0x55, 0xBC,           // popcnt  EDX,dword ptr [RBP-0x44]
+0xF3, 0x48, 0x0F, 0xB8, 0x55, 0xC0            // popcnt  RDX,qword ptr [RBP-0x40]
+    ];
+
+    asm
+    {
+        call  L1;
+
+        crc32    EAX,  CL;
+        crc32    EAX,  CX;
+        crc32    EAX, ECX;
+        crc32    RAX,  CL;
+        crc32    RAX, RCX;
+        crc32    EDX,  m8;
+        crc32    EDX, m16;
+        crc32    EDX, m32;
+        crc32    RDX,  m8;
+        crc32    RDX, m64;
+
+        pcmpestri  XMM1, XMM2, 2;
+        pcmpestri  XMM3, m128, 2;
+
+        pcmpestrm  XMM1, XMM2, 2;
+        pcmpestrm  XMM3, m128, 2;
+
+        pcmpistri  XMM1, XMM2, 2;
+        pcmpistri  XMM3, m128, 2;
+
+        pcmpistrm  XMM1, XMM2, 2;
+        pcmpistrm  XMM3, m128, 2;
+
+        pcmpgtq  XMM1, XMM2;
+        pcmpgtq  XMM3, m128;
+
+        popcnt  AX,  CX;
+        popcnt EAX, ECX;
+        popcnt RAX, RCX;
+        popcnt  DX, m16;
+        popcnt EDX, m32;
+        popcnt RDX, m64;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
 
 /****************************************************/
 
@@ -4740,6 +4829,7 @@ int main()
     test56();
     test57();
     test58();
+    test59();
 
     printf("Success\n");
     return 0;
