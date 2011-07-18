@@ -284,12 +284,11 @@ STATIC void ecom(elem **pe)
     case OPinfo:
         ecom(&e->E2);
         return;
-#if !TX86
     case OPcomma:
+    case OPremquo:
         ecom(&e->E1);
         ecom(&e->E2);
         break;
-#endif
     case OPvptrfptr:
     case OPcvptrfptr:
         ecom(&e->E1);
@@ -318,7 +317,6 @@ STATIC void ecom(elem **pe)
         if (!EBIN(e)) WROP(e->Eoper);
 #endif
         assert(EBIN(e));
-    case OPcomma:
     case OPadd:
     case OPmin:
     case OPmul:
@@ -329,7 +327,6 @@ STATIC void ecom(elem **pe)
     case OPeqeq:
     case OPne:
     case OPscale:
-    case OPremquo:
     case OPyl2x:
     case OPyl2xp1:
         ecom(&e->E1);
