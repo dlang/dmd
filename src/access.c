@@ -85,7 +85,7 @@ enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
         }
 
         for (i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+        {   BaseClass *b = baseclasses->tdata()[i];
 
             access = b->base->getAccess(smember);
             switch (access)
@@ -154,7 +154,7 @@ static int accessCheckX(
             if (cdthis)
             {
                 for (int i = 0; i < cdthis->baseclasses->dim; i++)
-                {   BaseClass *b = (BaseClass *)cdthis->baseclasses->data[i];
+                {   BaseClass *b = cdthis->baseclasses->tdata()[i];
                     enum PROT access;
 
                     access = b->base->getAccess(smember);
@@ -175,7 +175,7 @@ static int accessCheckX(
             if (cdthis)
             {
                 for (int i = 0; i < cdthis->baseclasses->dim; i++)
-                {   BaseClass *b = (BaseClass *)cdthis->baseclasses->data[i];
+                {   BaseClass *b = cdthis->baseclasses->tdata()[i];
 
                     if (accessCheckX(smember, sfunc, b->base, cdscope))
                         return 1;

@@ -2028,7 +2028,7 @@ ILLEGAL_ADDRESS_ERROR:
                 error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
-                Object *o = (Object *)tup->objects->data[index];
+                Object *o = tup->objects->tdata()[index];
                 if (o->dyncast() == DYNCAST_DSYMBOL)
                 {   o1->s = (Dsymbol *)o;
                     return o1;

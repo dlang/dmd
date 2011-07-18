@@ -141,7 +141,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
 #if LOG
                     printf("\tPATH='%s'\n", p);
 #endif
-                    Array *paths = FileName::splitPath(p);
+                    Strings *paths = FileName::splitPath(p);
                     filename = FileName::searchPath(paths, argv0, 0);
                     if (!filename)
                         goto Letc;              // argv0 not found on path

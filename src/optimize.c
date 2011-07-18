@@ -202,10 +202,10 @@ Expression *VarExp::optimize(int result)
 Expression *TupleExp::optimize(int result)
 {
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (Expression *)exps->data[i];
+    {   Expression *e = exps->tdata()[i];
 
         e = e->optimize(WANTvalue | (result & WANTinterpret));
-        exps->data[i] = (void *)e;
+        exps->tdata()[i] = e;
     }
     return this;
 }
@@ -215,10 +215,10 @@ Expression *ArrayLiteralExp::optimize(int result)
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (Expression *)elements->data[i];
+        {   Expression *e = elements->tdata()[i];
 
             e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
-            elements->data[i] = (void *)e;
+            elements->tdata()[i] = e;
         }
     }
     return this;
@@ -228,14 +228,14 @@ Expression *AssocArrayLiteralExp::optimize(int result)
 {
     assert(keys->dim == values->dim);
     for (size_t i = 0; i < keys->dim; i++)
-    {   Expression *e = (Expression *)keys->data[i];
+    {   Expression *e = keys->tdata()[i];
 
         e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
-        keys->data[i] = (void *)e;
+        keys->tdata()[i] = e;
 
-        e = (Expression *)values->data[i];
+        e = values->tdata()[i];
         e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
-        values->data[i] = (void *)e;
+        values->tdata()[i] = e;
     }
     return this;
 }
@@ -245,11 +245,11 @@ Expression *StructLiteralExp::optimize(int result)
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (Expression *)elements->data[i];
+        {   Expression *e = elements->tdata()[i];
             if (!e)
                 continue;
             e = e->optimize(WANTvalue | (result & (WANTinterpret | WANTexpand)));
-            elements->data[i] = (void *)e;
+            elements->tdata()[i] = e;
         }
     }
     return this;
@@ -468,20 +468,20 @@ Expression *NewExp::optimize(int result)
     if (newargs)
     {
         for (size_t i = 0; i < newargs->dim; i++)
-        {   Expression *e = (Expression *)newargs->data[i];
+        {   Expression *e = newargs->tdata()[i];
 
             e = e->optimize(WANTvalue);
-            newargs->data[i] = (void *)e;
+            newargs->tdata()[i] = e;
         }
     }
 
     if (arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (Expression *)arguments->data[i];
+        {   Expression *e = arguments->tdata()[i];
 
             e = e->optimize(WANTvalue);
-            arguments->data[i] = (void *)e;
+            arguments->tdata()[i] = e;
         }
     }
     if (result & WANTinterpret)
@@ -500,10 +500,10 @@ Expression *CallExp::optimize(int result)
     if (arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (Expression *)arguments->data[i];
+        {   Expression *e = arguments->tdata()[i];
 
             e = e->optimize(WANTvalue);
-            arguments->data[i] = (void *)e;
+            arguments->tdata()[i] = e;
         }
     }
 

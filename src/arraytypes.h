@@ -18,34 +18,60 @@
 
 #include "root.h"
 
-struct Expression;
-struct Statement;
-struct BaseClass;
-struct TemplateParameter;
-struct FuncDeclaration;
-struct Identifier;
-struct Initializer;
+typedef Array<struct TemplateParameter> TemplateParameters;
 
-struct TemplateParameters : Array { };
+typedef Array<struct Expression> Expressions;
 
-struct Expressions : Array { };
+typedef Array<struct Statement> Statements;
 
-struct Statements : Array { };
+typedef Array<struct BaseClass> BaseClasses;
 
-struct BaseClasses : Array { };
+typedef Array<struct ClassDeclaration> ClassDeclarations;
 
-struct ClassDeclarations : Array { };
+typedef Array<struct Dsymbol> Dsymbols;
 
-struct Dsymbols : Array { };
+typedef Array<struct Object> Objects;
 
-struct Objects : Array { };
+typedef Array<struct FuncDeclaration> FuncDeclarations;
 
-struct FuncDeclarations : Array { };
+typedef Array<struct Parameter> Parameters;
 
-struct Parameters : Array { };
+typedef Array<struct Identifier> Identifiers;
 
-struct Identifiers : Array { };
+typedef Array<struct Initializer> Initializers;
 
-struct Initializers : Array { };
+typedef Array<struct VarDeclaration> VarDeclarations;
+
+typedef Array<struct Type> Types;
+
+typedef Array<struct ScopeDsymbol> ScopeDsymbols;
+
+typedef Array<struct Catch> Catches;
+
+typedef Array<struct StaticDtorDeclaration> StaticDtorDeclarations;
+
+typedef Array<struct SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
+
+typedef Array<struct AliasDeclaration> AliasDeclarations;
+
+typedef Array<struct Module> Modules;
+
+typedef Array<struct File> Files;
+
+typedef Array<struct CaseStatement> CaseStatements;
+
+typedef Array<struct CompoundStatement> CompoundStatements;
+
+typedef Array<struct GotoCaseStatement> GotoCaseStatements;
+
+typedef Array<struct TemplateInstance> TemplateInstances;
+
+typedef Array<char> Strings;
+
+typedef Array<void> Voids;
+
+typedef Array<struct block> Blocks;
+
+typedef Array<struct Symbol> Symbols;
 
 #endif

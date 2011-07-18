@@ -71,7 +71,7 @@ void EnumDeclaration::semantic0(Scope *sc)
         return;
     for (int i = 0; i < members->dim; i++)
     {
-        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        EnumMember *em = (members->tdata()[i])->isEnumMember();
         if (em && (em->type || em->value))
             return;
     }
@@ -165,7 +165,7 @@ void EnumDeclaration::semantic(Scope *sc)
     Expression *elast = NULL;
     for (int i = 0; i < members->dim; i++)
     {
-        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        EnumMember *em = (members->tdata()[i])->isEnumMember();
         Expression *e;
 
         if (!em)
@@ -329,7 +329,7 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
     for (i = 0; i < members->dim; i++)
     {
-        EnumMember *em = ((Dsymbol *)members->data[i])->isEnumMember();
+        EnumMember *em = (members->tdata()[i])->isEnumMember();
         if (!em)
             continue;
         //buf->writestring("    ");
