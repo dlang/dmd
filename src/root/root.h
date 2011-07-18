@@ -60,7 +60,12 @@ longlong randomx();
  */
 
 struct OutBuffer;
-struct Array;
+
+// Can't include arraytypes.h here, need to declare these directly.
+template <typename TYPE> struct Array;
+typedef Array<struct File> Files;
+typedef Array<char> Strings;
+
 
 struct Object
 {
@@ -141,14 +146,14 @@ struct FileName : String
     static const char *replaceName(const char *path, const char *name);
 
     static char *combine(const char *path, const char *name);
-    static Array *splitPath(const char *path);
+    static Strings *splitPath(const char *path);
     static FileName *defaultExt(const char *name, const char *ext);
     static FileName *forceExt(const char *name, const char *ext);
     int equalsExt(const char *ext);
 
     void CopyTo(FileName *to);
-    static char *searchPath(Array *path, const char *name, int cwd);
-    static char *safeSearchPath(Array *path, const char *name);
+    static char *searchPath(Strings *path, const char *name, int cwd);
+    static char *safeSearchPath(Strings *path, const char *name);
     static int exists(const char *name);
     static void ensurePathExists(const char *path);
     static char *canonicalName(const char *name);
@@ -233,8 +238,8 @@ struct File : Object
      * matching File's.
      */
 
-    static Array *match(char *);
-    static Array *match(FileName *);
+    static Files *match(char *);
+    static Files *match(FileName *);
 
     // Compare file times.
     // Return   <0      this < f
@@ -267,7 +272,7 @@ struct OutBuffer : Object
 
     OutBuffer();
     ~OutBuffer();
-    void *extractData();
+    char *extractData();
     void mark();
 
     void reserve(unsigned nbytes);
@@ -307,9 +312,10 @@ struct OutBuffer : Object
     char *extractString();
 };
 
-struct Array : Object
+struct ArrayBase : Object
 {
     unsigned dim;
+  protected:
     void **data;
 
   private:
@@ -318,9 +324,9 @@ struct Array : Object
     void *smallarray[SMALLARRAYCAP];    // inline storage for small arrays
 
   public:
-    Array();
-    ~Array();
-    //Array(const Array&);
+    ArrayBase();
+    ~ArrayBase();
+    //ArrayBase(const ArrayBase&);
     void mark();
     char *toChars();
 
@@ -331,13 +337,50 @@ struct Array : Object
     void *pop();
     void shift(void *ptr);
     void insert(unsigned index, void *ptr);
-    void insert(unsigned index, Array *a);
-    void append(Array *a);
+  protected:
+    void insert(unsigned index, ArrayBase *a);
+    void append(ArrayBase *a);
+  public:
     void remove(unsigned i);
     void zero();
     void *tos();
     void sort();
-    Array *copy();
+  protected:
+    ArrayBase *copy();
+};
+
+template <typename TYPE>
+struct Array : ArrayBase
+{
+    TYPE **tdata()
+    {
+        return (TYPE **)data;
+    }
+    
+    void insert(unsigned index, TYPE *v)
+    {
+        ArrayBase::insert(index, (void *)v);
+    }
+    
+    void insert(unsigned index, Array *a)
+    {
+        ArrayBase::insert(index, (ArrayBase *)a);
+    }
+    
+    void append(Array *a)
+    {
+        ArrayBase::append((ArrayBase *)a);
+    }
+    
+    void push(TYPE *a)
+    {
+        ArrayBase::push((void *)a);
+    }
+    
+    Array *copy()
+    {
+        return (Array *)ArrayBase::copy();
+    }
 };
 
 struct Bits : Object

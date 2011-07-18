@@ -53,10 +53,10 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
         a = new Initializers();
         a->setDim(ai->dim);
         for (int i = 0; i < a->dim; i++)
-        {   Initializer *e = (Initializer *)ai->data[i];
+        {   Initializer *e = ai->tdata()[i];
 
             e = e->syntaxCopy();
-            a->data[i] = e;
+            a->tdata()[i] = e;
         }
     }
     return a;
@@ -125,11 +125,11 @@ Initializer *StructInitializer::syntaxCopy()
     ai->value.setDim(value.dim);
     for (int i = 0; i < field.dim; i++)
     {
-        ai->field.data[i] = field.data[i];
+        ai->field.tdata()[i] = field.tdata()[i];
 
-        Initializer *init = (Initializer *)value.data[i];
+        Initializer *init = value.tdata()[i];
         init = init->syntaxCopy();
-        ai->value.data[i] = init;
+        ai->value.tdata()[i] = init;
     }
     return ai;
 }
@@ -161,8 +161,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
         if (((StructDeclaration *)ad)->isnested) nfields--;
         for (size_t i = 0; i < field.dim; i++)
         {
-            Identifier *id = (Identifier *)field.data[i];
-            Initializer *val = (Initializer *)value.data[i];
+            Identifier *id = field.tdata()[i];
+            Initializer *val = value.tdata()[i];
             Dsymbol *s;
             VarDeclaration *v;
 
@@ -177,7 +177,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
                 }
                 else
                 {
-                    s = (Dsymbol *)ad->fields.data[fieldi];
+                    s = ad->fields.tdata()[fieldi];
                 }
             }
             else
@@ -201,15 +201,15 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
                         errors = 1;
                         break;
                     }
-                    if (s == (Dsymbol *)ad->fields.data[fieldi])
+                    if (s == ad->fields.tdata()[fieldi])
                         break;
                 }
             }
             if (s && (v = s->isVarDeclaration()) != NULL)
             {
                 val = val->semantic(sc, v->type, needInterpret);
-                value.data[i] = (void *)val;
-                vars.data[i] = (void *)v;
+                value.tdata()[i] = val;
+                vars.tdata()[i] = v;
             }
             else
             {   error(loc, "%s is not a field of %s", id ? id->toChars() : s->toChars(), ad->toChars());
@@ -267,12 +267,12 @@ Expression *StructInitializer::toExpression()
     elements->setDim(nfields);
     for (int i = 0; i < elements->dim; i++)
     {
-        elements->data[i] = NULL;
+        elements->tdata()[i] = NULL;
     }
     unsigned fieldi = 0;
     for (int i = 0; i < value.dim; i++)
     {
-        Identifier *id = (Identifier *)field.data[i];
+        Identifier *id = field.tdata()[i];
         if (id)
         {
             Dsymbol * s = ad->search(loc, id, 0);
@@ -290,7 +290,7 @@ Expression *StructInitializer::toExpression()
                     s->error("is not a per-instance initializable field");
                     goto Lno;
                 }
-                if (s == (Dsymbol *)ad->fields.data[fieldi])
+                if (s == ad->fields.tdata()[fieldi])
                     break;
             }
         }
@@ -298,18 +298,18 @@ Expression *StructInitializer::toExpression()
         {   error(loc, "too many initializers for '%s'", ad->toChars());
             goto Lno;
         }
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value.tdata()[i];
         if (!iz)
             goto Lno;
         Expression *ex = iz->toExpression();
         if (!ex)
             goto Lno;
-        if (elements->data[fieldi])
+        if (elements->tdata()[fieldi])
         {   error(loc, "duplicate initializer for field '%s'",
-                ((Dsymbol *)ad->fields.data[fieldi])->toChars());
+                ad->fields.tdata()[fieldi]->toChars());
             goto Lno;
         }
-        elements->data[fieldi] = ex;
+        elements->tdata()[fieldi] = ex;
         ++fieldi;
     }
     // Now, fill in any missing elements with default initializers.
@@ -317,20 +317,20 @@ Expression *StructInitializer::toExpression()
     offset = 0;
     for (int i = 0; i < elements->dim; )
     {
-        VarDeclaration * vd = ((Dsymbol *)ad->fields.data[i])->isVarDeclaration();
+        VarDeclaration * vd = ad->fields.tdata()[i]->isVarDeclaration();
 
         //printf("test2 [%d] : %s %d %d\n", i, vd->toChars(), (int)offset, (int)vd->offset);
         if (vd->offset < offset)
         {
             // Only the first field of a union can have an initializer
-            if (elements->data[i])
+            if (elements->tdata()[i])
                 goto Lno;
         }
         else
         {
-            if (!elements->data[i])
+            if (!elements->tdata()[i])
                 // Default initialize
-                elements->data[i] = vd->type->defaultInit();
+                elements->tdata()[i] = vd->type->defaultInit();
         }
         offset = vd->offset + vd->type->size();
         i++;
@@ -338,15 +338,15 @@ Expression *StructInitializer::toExpression()
         int unionSize = ad->numFieldsInUnion(i);
         if (unionSize == 1)
         {   // Not a union -- default initialize if missing
-            if (!elements->data[i])
-                elements->data[i] = vd->type->defaultInit();
+            if (!elements->tdata()[i])
+                elements->tdata()[i] = vd->type->defaultInit();
         }
         else
         {   // anonymous union -- check for errors
             int found = -1; // index of the first field with an initializer
             for (int j = i; j < i + unionSize; ++j)
             {
-                if (!elements->data[j])
+                if (!elements->tdata()[j])
                     continue;
                 if (found >= 0)
                 {
@@ -387,13 +387,13 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         if (i > 0)
             buf->writebyte(',');
-        Identifier *id = (Identifier *)field.data[i];
+        Identifier *id = field.tdata()[i];
         if (id)
         {
             buf->writestring(id->toChars());
             buf->writebyte(':');
         }
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value.tdata()[i];
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
@@ -420,14 +420,14 @@ Initializer *ArrayInitializer::syntaxCopy()
     ai->index.setDim(index.dim);
     ai->value.setDim(value.dim);
     for (int i = 0; i < ai->value.dim; i++)
-    {   Expression *e = (Expression *)index.data[i];
+    {   Expression *e = index.tdata()[i];
         if (e)
             e = e->syntaxCopy();
-        ai->index.data[i] = e;
+        ai->index.tdata()[i] = e;
 
-        Initializer *init = (Initializer *)value.data[i];
+        Initializer *init = value.tdata()[i];
         init = init->syntaxCopy();
-        ai->value.data[i] = init;
+        ai->value.tdata()[i] = init;
     }
     return ai;
 }
@@ -466,17 +466,17 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, int needInterpret)
     length = 0;
     for (i = 0; i < index.dim; i++)
     {
-        Expression *idx = (Expression *)index.data[i];
+        Expression *idx = index.tdata()[i];
         if (idx)
         {   idx = idx->semantic(sc);
             idx = idx->optimize(WANTvalue | WANTinterpret);
-            index.data[i] = (void *)idx;
+            index.tdata()[i] = idx;
             length = idx->toInteger();
         }
 
-        Initializer *val = (Initializer *)value.data[i];
+        Initializer *val = value.tdata()[i];
         val = val->semantic(sc, t->nextOf(), needInterpret);
-        value.data[i] = (void *)val;
+        value.tdata()[i] = val;
         length++;
         if (length == 0)
         {   error(loc, "array dimension overflow");
@@ -545,8 +545,8 @@ Expression *ArrayInitializer::toExpression()
         edim = value.dim;
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
-            if (index.data[i])
-                j = ((Expression *)index.data[i])->toInteger();
+            if (index.tdata()[i])
+                j = index.tdata()[i]->toInteger();
             if (j >= edim)
                 edim = j + 1;
         }
@@ -557,10 +557,10 @@ Expression *ArrayInitializer::toExpression()
     elements->zero();
     for (size_t i = 0, j = 0; i < value.dim; i++, j++)
     {
-        if (index.data[i])
-            j = ((Expression *)index.data[i])->toInteger();
+        if (index.tdata()[i])
+            j = (index.tdata()[i])->toInteger();
         assert(j < edim);
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value.tdata()[i];
         if (!iz)
             goto Lno;
         Expression *ex = iz->toExpression();
@@ -568,7 +568,7 @@ Expression *ArrayInitializer::toExpression()
         {
             goto Lno;
         }
-        elements->data[j] = ex;
+        elements->tdata()[j] = ex;
     }
 
     /* Fill in any missing elements with the default initializer
@@ -577,13 +577,13 @@ Expression *ArrayInitializer::toExpression()
     Expression *init = NULL;
     for (size_t i = 0; i < edim; i++)
     {
-        if (!elements->data[i])
+        if (!elements->tdata()[i])
         {
             if (!type)
                 goto Lno;
             if (!init)
                 init = ((TypeNext *)t)->next->defaultInit();
-            elements->data[i] = init;
+            elements->tdata()[i] = init;
         }
     }
 
@@ -614,18 +614,18 @@ Expression *ArrayInitializer::toAssocArrayLiteral()
 
     for (size_t i = 0; i < value.dim; i++)
     {
-        e = (Expression *)index.data[i];
+        e = index.tdata()[i];
         if (!e)
             goto Lno;
-        keys->data[i] = (void *)e;
+        keys->tdata()[i] = e;
 
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value.tdata()[i];
         if (!iz)
             goto Lno;
         e = iz->toExpression();
         if (!e)
             goto Lno;
-        values->data[i] = (void *)e;
+        values->tdata()[i] = e;
     }
     e = new AssocArrayLiteralExp(loc, keys, values);
     return e;
@@ -641,7 +641,7 @@ int ArrayInitializer::isAssociativeArray()
 {
     for (size_t i = 0; i < value.dim; i++)
     {
-        if (index.data[i])
+        if (index.tdata()[i])
             return 1;
     }
     return 0;
@@ -703,13 +703,13 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         if (i > 0)
             buf->writebyte(',');
-        Expression *ex = (Expression *)index.data[i];
+        Expression *ex = index.tdata()[i];
         if (ex)
         {
             ex->toCBuffer(buf, hgs);
             buf->writebyte(':');
         }
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value.tdata()[i];
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
@@ -775,9 +775,9 @@ bool arrayHasNonConstPointers(Expressions *elems)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
-        if (!(Expression *)elems->data[i])
+        if (!elems->tdata()[i])
             continue;
-        if (hasNonConstPointers((Expression *)elems->data[i]))
+        if (hasNonConstPointers(elems->tdata()[i]))
             return true;
     }
     return false;

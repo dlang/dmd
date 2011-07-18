@@ -3283,7 +3283,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             {   error(loc, "tuple index %ju exceeds length %u", d, td->objects->dim);
                 goto Ldefault;
             }
-            Object *o = (Object *)td->objects->data[(size_t)d];
+            Object *o = td->objects->tdata()[(size_t)d];
             if (o->dyncast() == DYNCAST_DSYMBOL)
             {
                 *ps = (Dsymbol *)o;
@@ -3303,7 +3303,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
              */
             Objects *objects = new Objects;
             objects->setDim(1);
-            objects->data[0] = o;
+            objects->tdata()[0] = o;
 
             TupleDeclaration *tds = new TupleDeclaration(loc, td->ident, objects);
             *ps = tds;
@@ -3337,7 +3337,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         {   error(loc, "tuple index %ju exceeds %u", d, sd->objects->dim);
             return Type::terror;
         }
-        Object *o = (Object *)sd->objects->data[(size_t)d];
+        Object *o = sd->objects->tdata()[(size_t)d];
         if (o->dyncast() != DYNCAST_TYPE)
         {   error(loc, "%s is not a type", toChars());
             return Type::terror;
@@ -3414,7 +3414,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             {   error(loc, "tuple index %ju exceeds %u", d, tt->arguments->dim);
                 goto Lerror;
             }
-            Parameter *arg = (Parameter *)tt->arguments->data[(size_t)d];
+            Parameter *arg = tt->arguments->tdata()[(size_t)d];
             return arg->type;
         }
         case Tstruct:
@@ -3600,7 +3600,7 @@ Expression *TypeSArray::defaultInitLiteral(Loc loc)
     Expressions *elements = new Expressions();
     elements->setDim(d);
     for (size_t i = 0; i < d; i++)
-        elements->data[i] = elementinit;
+        elements->tdata()[i] = elementinit;
     ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
     ae->type = this;
     return ae;
@@ -4709,7 +4709,7 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     {   buf->writeByte('(');
         for (int i = 0; i < td->origParameters->dim; i++)
         {
-            TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
+            TemplateParameter *tp = td->origParameters->tdata()[i];
             if (i)
                 buf->writestring(", ");
             tp->toCBuffer(buf, hgs);
@@ -4806,10 +4806,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (parameters)
     {   tf->parameters = (Parameters *)parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
-        {   Parameter *arg = (Parameter *)parameters->data[i];
+        {   Parameter *arg = parameters->tdata()[i];
             Parameter *cpy = (Parameter *)mem.malloc(sizeof(Parameter));
             memcpy(cpy, arg, sizeof(Parameter));
-            tf->parameters->data[i] = (void *)cpy;
+            tf->parameters->tdata()[i] = cpy;
         }
     }
 
@@ -4933,7 +4933,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 {
                     size_t tdim = tt->arguments->dim;
                     for (size_t j = 0; j < tdim; j++)
-                    {   Parameter *narg = (Parameter *)tt->arguments->data[j];
+                    {   Parameter *narg = tt->arguments->tdata()[j];
                         narg->storageClass |= fparam->storageClass;
                     }
                     fparam->storageClass = 0;
@@ -4953,7 +4953,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (fparam->storageClass & STCauto)
             {
                 if (fargs && i < fargs->dim)
-                {   Expression *farg = (Expression *)fargs->data[i];
+                {   Expression *farg = fargs->tdata()[i];
                     if (farg->isLvalue())
                         ;                               // ref parameter
                     else
@@ -5126,7 +5126,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                 goto L1;
             goto Nomatch;               // not enough arguments
         }
-        arg = (Expression *)args->data[u];
+        arg = args->tdata()[u];
         assert(arg);
         //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
 
@@ -5203,7 +5203,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                     {   TypeArray *ta = (TypeArray *)tb;
                         for (; u < nargs; u++)
                         {
-                            arg = (Expression *)args->data[u];
+                            arg = args->tdata()[u];
                             assert(arg);
 #if 1
                             /* If lazy array of delegates,
@@ -5478,7 +5478,7 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
     idents.setDim(t->idents.dim);
     for (int i = 0; i < idents.dim; i++)
     {
-        Identifier *id = (Identifier *)t->idents.data[i];
+        Identifier *id = t->idents.tdata()[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
         {
             TemplateInstance *ti = (TemplateInstance *)id;
@@ -5486,7 +5486,7 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
             ti = (TemplateInstance *)ti->syntaxCopy(NULL);
             id = (Identifier *)ti;
         }
-        idents.data[i] = id;
+        idents.tdata()[i] = id;
     }
 }
 
@@ -5501,7 +5501,7 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
     int i;
 
     for (i = 0; i < idents.dim; i++)
-    {   Identifier *id = (Identifier *)idents.data[i];
+    {   Identifier *id = idents.tdata()[i];
 
         buf->writeByte('.');
 
@@ -5555,7 +5555,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         for (int i = 0; i < idents.dim; i++)
         {
-            Identifier *id = (Identifier *)idents.data[i];
+            Identifier *id = idents.tdata()[i];
             Dsymbol *sm = s->searchX(loc, sc, id);
             //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
             //printf("\tgetType = '%s'\n", s->getType()->toChars());
@@ -5578,7 +5578,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     e = new DsymbolExp(loc, s, 0);
                     do
                     {
-                        id = (Identifier *)idents.data[i];
+                        id = idents.tdata()[i];
                         e = new DotIdExp(loc, e, id);
                     } while (++i < idents.dim);
                     e = e->semantic(sc);
@@ -5604,7 +5604,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 L3:
                     for (; i < idents.dim; i++)
                     {
-                        id = (Identifier *)idents.data[i];
+                        id = idents.tdata()[i];
                         //printf("e: '%s', id: '%s', type = %p\n", e->toChars(), id->toChars(), e->type);
                         if (id == Id::offsetof || !e->type)
                         {   e = new DotIdExp(e->loc, e, id);
@@ -5799,7 +5799,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     {
         for (int i = 0; i < idents.dim; i++)
         {
-            Identifier *id = (Identifier *)idents.data[i];
+            Identifier *id = idents.tdata()[i];
             s = s->searchX(loc, sc, id);
             if (!s)                 // failed to find a symbol
             {   //printf("\tdidn't find a symbol\n");
@@ -5859,7 +5859,7 @@ Expression *TypeIdentifier::toExpression()
     Expression *e = new IdentifierExp(loc, ident);
     for (int i = 0; i < idents.dim; i++)
     {
-        Identifier *id = (Identifier *)idents.data[i];
+        Identifier *id = idents.tdata()[i];
         e = new DotIdExp(loc, e, id);
     }
 
@@ -6127,7 +6127,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
         {
             if (!s)
                 break;
-            Identifier *id = (Identifier *)idents.data[i];
+            Identifier *id = idents.tdata()[i];
             s = s->searchX(loc, sc, id);
         }
 
@@ -6207,7 +6207,7 @@ Type *TypeReturn::semantic(Loc loc, Scope *sc)
         {
             if (!s)
                 break;
-            Identifier *id = (Identifier *)idents.data[i];
+            Identifier *id = idents.tdata()[i];
             s = s->searchX(loc, sc, id);
         }
         if (s)
@@ -6876,7 +6876,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        {   VarDeclaration *v = sym->fields.tdata()[i];
             Expression *fe = new DotVarExp(e->loc, e, v);
             exps->push(fe);
         }
@@ -7088,7 +7088,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     structelems->setDim(sym->fields.dim);
     for (size_t j = 0; j < structelems->dim; j++)
     {
-        VarDeclaration *vd = (VarDeclaration *)(sym->fields.data[j]);
+        VarDeclaration *vd = sym->fields.tdata()[j];
         Expression *e;
         if (vd->init)
         {   if (vd->init->isVoidInitializer())
@@ -7098,7 +7098,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         }
         else
             e = vd->type->defaultInitLiteral();
-        structelems->data[j] = e;
+        structelems->tdata()[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
     // Why doesn't the StructLiteralExp constructor do this, when
@@ -7132,7 +7132,7 @@ int TypeStruct::isAssignable()
      * then one cannot assign this struct.
      */
     for (size_t i = 0; i < sym->fields.dim; i++)
-    {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+    {   VarDeclaration *v = sym->fields.tdata()[i];
         //printf("%s [%d] v = (%s) %s, v->offset = %d, v->parent = %s", sym->toChars(), i, v->kind(), v->toChars(), v->offset, v->parent->kind());
         if (i == 0)
             ;
@@ -7166,7 +7166,7 @@ int TypeStruct::hasPointers()
     sym->size(0);               // give error for forward references
     for (size_t i = 0; i < s->fields.dim; i++)
     {
-        Dsymbol *sm = (Dsymbol *)s->fields.data[i];
+        Dsymbol *sm = s->fields.tdata()[i];
         Declaration *d = sm->isDeclaration();
         if (d->storage_class & STCref || d->hasPointers())
             return TRUE;
@@ -7232,7 +7232,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                  * allow the conversion.
                  */
                 for (int i = 0; i < sym->fields.dim; i++)
-                {   Dsymbol *s = (Dsymbol *)sym->fields.data[i];
+                {   Dsymbol *s = sym->fields.tdata()[i];
                     VarDeclaration *v = s->isVarDeclaration();
                     assert(v && v->storage_class & STCfield);
 
@@ -7361,7 +7361,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        {   VarDeclaration *v = sym->fields.tdata()[i];
             // Don't include hidden 'this' pointer
             if (v->isThisDeclaration())
                 continue;
@@ -7723,7 +7723,7 @@ TypeTuple::TypeTuple(Parameters *arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
         {
-            Parameter *arg = (Parameter *)arguments->data[i];
+            Parameter *arg = arguments->tdata()[i];
             assert(arg && arg->type);
         }
     }
@@ -7743,11 +7743,11 @@ TypeTuple::TypeTuple(Expressions *exps)
     {
         arguments->setDim(exps->dim);
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (Expression *)exps->data[i];
+        {   Expression *e = exps->tdata()[i];
             if (e->type->ty == Ttuple)
                 e->error("cannot form tuple of tuples");
             Parameter *arg = new Parameter(STCundefined, e->type, NULL, NULL);
-            arguments->data[i] = (void *)arg;
+            arguments->tdata()[i] = arg;
         }
     }
     this->arguments = arguments;
@@ -7814,8 +7814,8 @@ int TypeTuple::equals(Object *o)
         if (arguments->dim == tt->arguments->dim)
         {
             for (size_t i = 0; i < tt->arguments->dim; i++)
-            {   Parameter *arg1 = (Parameter *)arguments->data[i];
-                Parameter *arg2 = (Parameter *)tt->arguments->data[i];
+            {   Parameter *arg1 = arguments->tdata()[i];
+                Parameter *arg2 = tt->arguments->tdata()[i];
 
                 if (!arg1->type->equals(arg2->type))
                     return 0;
@@ -7832,7 +7832,7 @@ Type *TypeTuple::reliesOnTident()
     {
         for (size_t i = 0; i < arguments->dim; i++)
         {
-            Parameter *arg = (Parameter *)arguments->data[i];
+            Parameter *arg = arguments->tdata()[i];
             Type *t = arg->type->reliesOnTident();
             if (t)
                 return t;
@@ -7851,9 +7851,9 @@ Type *TypeTuple::makeConst()
     t->arguments = new Parameters();
     t->arguments->setDim(arguments->dim);
     for (size_t i = 0; i < arguments->dim; i++)
-    {   Parameter *arg = (Parameter *)arguments->data[i];
+    {   Parameter *arg = arguments->tdata()[i];
         Parameter *narg = new Parameter(arg->storageClass, arg->type->constOf(), arg->ident, arg->defaultArg);
-        t->arguments->data[i] = (Parameter *)narg;
+        t->arguments->tdata()[i] = (Parameter *)narg;
     }
     return t;
 }
@@ -7941,7 +7941,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     Parameters *args = new Parameters;
     args->reserve(i2 - i1);
     for (size_t i = i1; i < i2; i++)
-    {   Parameter *arg = (Parameter *)tt->arguments->data[i];
+    {   Parameter *arg = tt->arguments->tdata()[i];
         args->push(arg);
     }
 
@@ -7997,7 +7997,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             objects->setDim(i2 - i1);
             for (size_t i = 0; i < objects->dim; i++)
             {
-                objects->data[i] = td->objects->data[(size_t)i1 + i];
+                objects->tdata()[i] = td->objects->tdata()[(size_t)i1 + i];
             }
 
             TupleDeclaration *tds = new TupleDeclaration(loc, td->ident, objects);
@@ -8052,10 +8052,10 @@ Parameters *Parameter::arraySyntaxCopy(Parameters *args)
         a = new Parameters();
         a->setDim(args->dim);
         for (size_t i = 0; i < a->dim; i++)
-        {   Parameter *arg = (Parameter *)args->data[i];
+        {   Parameter *arg = args->tdata()[i];
 
             arg = arg->syntaxCopy();
-            a->data[i] = (void *)arg;
+            a->tdata()[i] = arg;
         }
     }
     return a;
@@ -8077,7 +8077,7 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
         for (int i = 0; i < args->dim; i++)
         {   if (i)
                 buf->writeByte(',');
-            Parameter *arg = (Parameter *)args->data[i];
+            Parameter *arg = args->tdata()[i];
             argbuf.reset();
             arg->type->toCBuffer2(&argbuf, &hgs, 0);
             buf->write(&argbuf);
@@ -8105,7 +8105,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
         {
             if (i)
                 buf->writestring(", ");
-            Parameter *arg = (Parameter *)arguments->data[i];
+            Parameter *arg = arguments->tdata()[i];
 
             if (arg->storageClass & STCauto)
                 buf->writestring("auto ");
@@ -8266,7 +8266,7 @@ size_t Parameter::dim(Parameters *args)
     if (args)
     {
         for (size_t i = 0; i < args->dim; i++)
-        {   Parameter *arg = (Parameter *)args->data[i];
+        {   Parameter *arg = args->tdata()[i];
             Type *t = arg->type->toBasetype();
 
             if (t->ty == Ttuple)
@@ -8295,7 +8295,7 @@ Parameter *Parameter::getNth(Parameters *args, size_t nth, size_t *pn)
 
     size_t n = 0;
     for (size_t i = 0; i < args->dim; i++)
-    {   Parameter *arg = (Parameter *)args->data[i];
+    {   Parameter *arg = args->tdata()[i];
         Type *t = arg->type->toBasetype();
 
         if (t->ty == Ttuple)

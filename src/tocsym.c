@@ -761,7 +761,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         int i;
 
         // Dumb linear symbol table - should use associative array!
-        static Array *sarray = NULL;
+        static Symbols *sarray = NULL;
 
         //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
 #if 0
@@ -781,11 +781,11 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         sprintf(id, "_aa%s", func);
 #endif
         if (!sarray)
-            sarray = new Array();
+            sarray = new Symbols();
 
         // See if symbol is already in sarray
         for (i = 0; i < sarray->dim; i++)
-        {   s = (Symbol *)sarray->data[i];
+        {   s = sarray->tdata()[i];
             if (strcmp(id, s->Sident) == 0)
                 return s;                       // use existing Symbol
         }

@@ -16,9 +16,9 @@
 #pragma once
 #endif /* __DMC__ */
 
-struct Array;
+#include "arraytypes.h"
 
-void json_generate(Array *);
+void json_generate(Modules *);
 
 #endif /* DMD_JSON_H */
 

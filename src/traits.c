@@ -88,7 +88,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
 #define ISTYPE(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Type *t = getType((Object *)args->data[i]); \
+        {   Type *t = getType(args->tdata()[i]); \
             if (!t)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -100,7 +100,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
 #define ISDSYMBOL(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Dsymbol *s = getDsymbol((Object *)args->data[i]);   \
+        {   Dsymbol *s = getDsymbol(args->tdata()[i]);   \
             if (!s)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -186,7 +186,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         if (!s || !s->ident)
         {
@@ -200,7 +200,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         if (s)
             s = s->toParent();
@@ -220,8 +220,8 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 2)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
-        Expression *e = isExpression((Object *)args->data[1]);
+        Object *o = args->tdata()[0];
+        Expression *e = isExpression(args->tdata()[1]);
         if (!e)
         {   error("expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
@@ -312,7 +312,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         ClassDeclaration *cd;
         if (!s || (cd = s->isClassDeclaration()) == NULL)
@@ -326,7 +326,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         ScopeDsymbol *sd;
         if (!s)
@@ -354,7 +354,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                     /* Skip if already present in exps[]
                      */
                     for (size_t j = 0; j < exps->dim; j++)
-                    {   StringExp *se2 = (StringExp *)exps->data[j];
+                    {   StringExp *se2 = (StringExp *)exps->tdata()[j];
                         if (strcmp(str, (char *)se2->string) == 0)
                             goto Lnext;
                     }
@@ -393,7 +393,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
 
         for (size_t i = 0; i < dim; i++)
-        {   Object *o = (Object *)args->data[i];
+        {   Object *o = args->tdata()[i];
             Expression *e;
 
             unsigned errors = global.errors;
@@ -433,8 +433,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (dim != 2)
             goto Ldimerror;
         TemplateInstance::semanticTiargs(loc, sc, args, 0);
-        Object *o1 = (Object *)args->data[0];
-        Object *o2 = (Object *)args->data[1];
+        Object *o1 = args->tdata()[0];
+        Object *o2 = args->tdata()[1];
         Dsymbol *s1 = getDsymbol(o1);
         Dsymbol *s2 = getDsymbol(o2);
 

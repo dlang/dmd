@@ -46,20 +46,20 @@
 
 /********************************* Array ****************************/
 
-Array::Array()
+ArrayBase::ArrayBase()
 {
     data = SMALLARRAYCAP ? &smallarray[0] : NULL;
     dim = 0;
     allocdim = SMALLARRAYCAP;
 }
 
-Array::~Array()
+ArrayBase::~ArrayBase()
 {
     if (data != &smallarray[0])
         mem.free(data);
 }
 
-void Array::mark()
+void ArrayBase::mark()
 {   unsigned u;
 
     mem.mark(data);
@@ -67,9 +67,9 @@ void Array::mark()
         mem.mark(data[u]);      // BUG: what if arrays of Object's?
 }
 
-void Array::reserve(unsigned nentries)
+void ArrayBase::reserve(unsigned nentries)
 {
-    //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", dim, allocdim, nentries);
+    //printf("ArrayBase::reserve: dim = %d, allocdim = %d, nentries = %d\n", dim, allocdim, nentries);
     if (allocdim - dim < nentries)
     {
         if (allocdim == 0)
@@ -96,7 +96,7 @@ void Array::reserve(unsigned nentries)
     }
 }
 
-void Array::setDim(unsigned newdim)
+void ArrayBase::setDim(unsigned newdim)
 {
     if (dim < newdim)
     {
@@ -105,7 +105,7 @@ void Array::setDim(unsigned newdim)
     dim = newdim;
 }
 
-void Array::fixDim()
+void ArrayBase::fixDim()
 {
     if (dim != allocdim)
     {
@@ -123,18 +123,18 @@ void Array::fixDim()
     }
 }
 
-void Array::push(void *ptr)
+void ArrayBase::push(void *ptr)
 {
     reserve(1);
     data[dim++] = ptr;
 }
 
-void *Array::pop()
+void *ArrayBase::pop()
 {
     return data[--dim];
 }
 
-void Array::shift(void *ptr)
+void ArrayBase::shift(void *ptr)
 {
     reserve(1);
     memmove(data + 1, data, dim * sizeof(*data));
@@ -142,7 +142,7 @@ void Array::shift(void *ptr)
     dim++;
 }
 
-void Array::insert(unsigned index, void *ptr)
+void ArrayBase::insert(unsigned index, void *ptr)
 {
     reserve(1);
     memmove(data + index + 1, data + index, (dim - index) * sizeof(*data));
@@ -151,7 +151,7 @@ void Array::insert(unsigned index, void *ptr)
 }
 
 
-void Array::insert(unsigned index, Array *a)
+void ArrayBase::insert(unsigned index, ArrayBase *a)
 {
     if (a)
     {   unsigned d;
@@ -170,19 +170,19 @@ void Array::insert(unsigned index, Array *a)
  * Append array a to this array.
  */
 
-void Array::append(Array *a)
+void ArrayBase::append(ArrayBase *a)
 {
     insert(dim, a);
 }
 
-void Array::remove(unsigned i)
+void ArrayBase::remove(unsigned i)
 {
     if (dim - i - 1)
         memmove(data + i, data + i + 1, (dim - i - 1) * sizeof(data[0]));
     dim--;
 }
 
-char *Array::toChars()
+char *ArrayBase::toChars()
 {
     unsigned len;
     unsigned u;
@@ -214,12 +214,12 @@ char *Array::toChars()
     return str;
 }
 
-void Array::zero()
+void ArrayBase::zero()
 {
     memset(data,0,dim * sizeof(data[0]));
 }
 
-void *Array::tos()
+void *ArrayBase::tos()
 {
     return dim ? data[dim - 1] : NULL;
 }
@@ -236,7 +236,7 @@ int
     return ox->compare(oy);
 }
 
-void Array::sort()
+void ArrayBase::sort()
 {
     if (dim)
     {
@@ -244,9 +244,9 @@ void Array::sort()
     }
 }
 
-Array *Array::copy()
+ArrayBase *ArrayBase::copy()
 {
-    Array *a = new Array();
+    ArrayBase *a = new ArrayBase();
 
     a->setDim(dim);
     memcpy(a->data, data, dim * sizeof(void *));

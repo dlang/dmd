@@ -428,7 +428,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
     {
         m = MATCHconst;
         for (int i = 0; i < elements->dim; i++)
-        {   Expression *e = (Expression *)elements->data[i];
+        {   Expression *e = elements->tdata()[i];
             Type *te = e->type;
             te = te->castMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
@@ -537,7 +537,7 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
         }
 
         for (int i = 0; i < elements->dim; i++)
-        {   Expression *e = (Expression *)elements->data[i];
+        {   Expression *e = elements->tdata()[i];
             MATCH m = (MATCH)e->implicitConvTo(tb->nextOf());
             if (m < result)
                 result = m;                     // remember worst match
@@ -558,13 +558,13 @@ MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
     if (tb->ty == Taarray && typeb->ty == Taarray)
     {
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *e = (Expression *)keys->data[i];
+        {   Expression *e = keys->tdata()[i];
             MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->index);
             if (m < result)
                 result = m;                     // remember worst match
             if (result == MATCHnomatch)
                 break;                          // no need to check for worse
-            e = (Expression *)values->data[i];
+            e = values->tdata()[i];
             m = (MATCH)e->implicitConvTo(tb->nextOf());
             if (m < result)
                 result = m;                     // remember worst match
@@ -599,7 +599,7 @@ MATCH AddrExp::implicitConvTo(Type *t)
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
             for (int i = 0; i < eo->vars->a.dim; i++)
-            {   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+            {   Dsymbol *s = eo->vars->a.tdata()[i];
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
@@ -1185,7 +1185,7 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
             for (int i = 0; i < eo->vars->a.dim; i++)
-            {   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+            {   Dsymbol *s = eo->vars->a.tdata()[i];
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
@@ -1239,9 +1239,9 @@ Expression *TupleExp::castTo(Scope *sc, Type *t)
 {   TupleExp *e = (TupleExp *)copy();
     e->exps = (Expressions *)exps->copy();
     for (size_t i = 0; i < e->exps->dim; i++)
-    {   Expression *ex = (Expression *)e->exps->data[i];
+    {   Expression *ex = e->exps->tdata()[i];
         ex = ex->castTo(sc, t);
-        e->exps->data[i] = (void *)ex;
+        e->exps->tdata()[i] = ex;
     }
     return e;
 }
@@ -1272,9 +1272,9 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
         e = (ArrayLiteralExp *)copy();
         e->elements = (Expressions *)elements->copy();
         for (int i = 0; i < elements->dim; i++)
-        {   Expression *ex = (Expression *)elements->data[i];
+        {   Expression *ex = elements->tdata()[i];
             ex = ex->castTo(sc, tb->nextOf());
-            e->elements->data[i] = (void *)ex;
+            e->elements->tdata()[i] = ex;
         }
         e->type = t;
         return e;
@@ -1306,13 +1306,13 @@ Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
         e->values = (Expressions *)values->copy();
         assert(keys->dim == values->dim);
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *ex = (Expression *)values->data[i];
+        {   Expression *ex = values->tdata()[i];
             ex = ex->castTo(sc, tb->nextOf());
-            e->values->data[i] = (void *)ex;
+            e->values->tdata()[i] = ex;
 
-            ex = (Expression *)keys->data[i];
+            ex = keys->tdata()[i];
             ex = ex->castTo(sc, ((TypeAArray *)tb)->index);
-            e->keys->data[i] = (void *)ex;
+            e->keys->tdata()[i] = ex;
         }
         e->type = t;
         return e;
@@ -1537,7 +1537,7 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
     while (e->op == TOKarrayliteral && e->type->ty == Tarray
         && (((ArrayLiteralExp *)e)->elements->dim == 1))
     {
-        e = (Expression *)((ArrayLiteralExp *)e)->elements->data[0];
+        e = ((ArrayLiteralExp *)e)->elements->tdata()[0];
         if (other->ty == Tsarray || other->ty == Tarray)
             other = other->nextOf();
         else
