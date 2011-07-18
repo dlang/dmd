@@ -272,7 +272,7 @@ void WRFL(enum FL fl)
          "auto  ","para  ","extrn ","tmp   ",
          "code  ","block ","udata ","cs    ","swit  ",
          "fltrg ","offst ","datsg ",
-         "ctor  ","dtor  ",
+         "ctor  ","dtor  ","regsav",
 #if TX86
          "ndp   ","farda ","local ","csdat ","tlsdat",
          "bprel ","frameh","asm   ","blocko","alloca",
