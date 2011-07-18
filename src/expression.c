@@ -5255,7 +5255,7 @@ Expression *FileExp::semantic(Scope *sc)
      * http://cwe.mitre.org/data/definitions/22.html
      */
 
-    name = FileName::safeSearchPath(global.filePath, name);
+    name = FileName::safeSearchPath((Strings *)global.filePath, name);
     if (!name)
     {   error("file %s cannot be found or not in a path specified with -J", se->toChars());
         goto Lerror;
