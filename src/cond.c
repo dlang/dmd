@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -20,10 +20,8 @@
 #include "module.h"
 #include "template.h"
 #include "lexer.h"
-#ifdef _DH
 #include "mtype.h"
 #include "scope.h"
-#endif
 
 int findCondition(Array *ids, Identifier *ident)
 {
@@ -135,6 +133,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
          * redefinition breaks makefiles and older builds.
          */
         "Posix",
+        "D_NET",
 #endif
         "OSX", "FreeBSD",
         "OpenBSD",
@@ -326,7 +325,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
             Objects dedtypes;
             dedtypes.setDim(1);
 
-            m = targ->deduceType(NULL, tspec, &parameters, &dedtypes);
+            m = targ->deduceType(sc, tspec, &parameters, &dedtypes);
             if (m == MATCHnomatch ||
                 (m != MATCHexact && tok == TOKequal))
                 inc = 2;

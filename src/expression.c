@@ -4782,7 +4782,6 @@ Expression *IsExp::semantic(Scope *sc)
          * If TRUE, declare id as an alias for the specialized type.
          */
 
-        MATCH m;
         TemplateTypeParameter tp(loc, id, NULL, NULL);
 
         TemplateParameters parameters;
@@ -4790,10 +4789,10 @@ Expression *IsExp::semantic(Scope *sc)
         parameters.data[0] = (void *)&tp;
 
         Objects dedtypes;
-        dedtypes.setDim(1);
-        dedtypes.data[0] = NULL;
+        dedtypes.setDim(parameters.dim);
+        dedtypes.zero();
 
-        m = targ->deduceType(NULL, tspec, &parameters, &dedtypes);
+        MATCH m = targ->deduceType(sc, tspec, &parameters, &dedtypes);
         if (m == MATCHnomatch ||
             (m != MATCHexact && tok == TOKequal))
         {
@@ -4847,8 +4846,8 @@ Expression *IsExp::semantic(Scope *sc)
          * is(targ : tspec)
          */
         tspec = tspec->semantic(loc, sc);
-        //printf("targ  = %s\n", targ->toChars());
-        //printf("tspec = %s\n", tspec->toChars());
+        //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
+        //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
         if (tok == TOKcolon)
         {   if (targ->implicitConvTo(tspec))
                 goto Lyes;
