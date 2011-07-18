@@ -342,7 +342,7 @@ static struct mem_debug
 #define mem_ptrtodl(p)  ((struct mem_debug *) ((char *)p - offsetof(struct mem_debug,data[0])))
 
 /* Convert from a mem_debug struct to a mem_ptr.        */
-#define mem_dltoptr(dl) ( &((dl)->tdata()[0]))
+#define mem_dltoptr(dl) ((void *) &((dl)->data[0]))
 
 /*****************************
  * Set new value of file,line
@@ -439,9 +439,9 @@ void *mem_calloc_debug(unsigned n, const char *fil, int lin)
     dl->Mnbytes = n;
     dl->Mbeforeval = BEFOREVAL;
 #if SUN || SUN386 /* bus error if we store a long at an odd address */
-    memcpy(&(dl->tdata()[n]),&afterval,sizeof(AFTERVAL));
+    memcpy(&(dl->data[n]),&afterval,sizeof(AFTERVAL));
 #else
-    * &(dl->tdata()[n]) = AFTERVAL;
+    *(long *) &(dl->data[n]) = AFTERVAL;
 #endif
 
     /* Add dl to start of allocation list       */
@@ -476,9 +476,9 @@ void mem_free_debug(void *ptr, const char *fil, int lin)
                 goto err2;
         }
 #if SUN || SUN386 /* Bus error if we read a long from an odd address    */
-        if (memcmp(&dl->tdata()[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0)
+        if (memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0)
 #else
-        if (* &dl->tdata()[dl->Mnbytes] != AFTERVAL)
+        if (*(long *) &dl->data[dl->Mnbytes] != AFTERVAL)
 #endif
         {
                 PRINT "Pointer x%lx overrun\n",(long)ptr);
@@ -563,9 +563,9 @@ static void mem_checkdl(struct mem_debug *dl)
             goto err2;
     }
 #if SUN || SUN386 /* Bus error if we read a long from an odd address    */
-    if (memcmp(&dl->tdata()[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0)
+    if (memcmp(&dl->data[dl->Mnbytes],&afterval,sizeof(AFTERVAL)) != 0)
 #else
-    if (* &dl->tdata()[dl->Mnbytes] != AFTERVAL)
+    if (*(long *) &dl->data[dl->Mnbytes] != AFTERVAL)
 #endif
     {
             PRINT "Pointer x%lx overrun\n",(long)p);
@@ -600,7 +600,7 @@ void mem_checkptr(void *p)
 
     for (dl = mem_alloclist.Mnext; dl != NULL; dl = dl->Mnext)
     {
-        if (p >=  &(dl->tdata()[0]) &&
+        if (p >= (void *) &(dl->data[0]) &&
             p < (void *)((char *)dl + sizeof(struct mem_debug)-1 + dl->Mnbytes))
             goto L1;
     }

@@ -42,7 +42,7 @@
 
 extern Symbol *static_sym();
 
-typedef Array<dt_t> Dts;
+typedef ArrayBase<dt_t> Dts;
 
 /* ================================================================ */
 

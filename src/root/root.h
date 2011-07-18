@@ -62,9 +62,9 @@ longlong randomx();
 struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
-template <typename TYPE> struct Array;
-typedef Array<struct File> Files;
-typedef Array<char> Strings;
+template <typename TYPE> struct ArrayBase;
+typedef ArrayBase<struct File> Files;
+typedef ArrayBase<char> Strings;
 
 
 struct Object
@@ -312,7 +312,7 @@ struct OutBuffer : Object
     char *extractString();
 };
 
-struct ArrayBase : Object
+struct Array : Object
 {
     unsigned dim;
   protected:
@@ -324,9 +324,9 @@ struct ArrayBase : Object
     void *smallarray[SMALLARRAYCAP];    // inline storage for small arrays
 
   public:
-    ArrayBase();
-    ~ArrayBase();
-    //ArrayBase(const ArrayBase&);
+    Array();
+    ~Array();
+    //Array(const Array&);
     void mark();
     char *toChars();
 
@@ -338,48 +338,48 @@ struct ArrayBase : Object
     void shift(void *ptr);
     void insert(unsigned index, void *ptr);
   protected:
-    void insert(unsigned index, ArrayBase *a);
-    void append(ArrayBase *a);
+    void insert(unsigned index, Array *a);
+    void append(Array *a);
   public:
     void remove(unsigned i);
     void zero();
     void *tos();
     void sort();
   protected:
-    ArrayBase *copy();
+    Array *copy();
 };
 
 template <typename TYPE>
-struct Array : ArrayBase
+struct ArrayBase : Array
 {
     TYPE **tdata()
     {
         return (TYPE **)data;
     }
-    
+
     void insert(unsigned index, TYPE *v)
     {
-        ArrayBase::insert(index, (void *)v);
+        Array::insert(index, (void *)v);
     }
-    
-    void insert(unsigned index, Array *a)
+
+    void insert(unsigned index, ArrayBase *a)
     {
-        ArrayBase::insert(index, (ArrayBase *)a);
+        Array::insert(index, (Array *)a);
     }
-    
-    void append(Array *a)
+
+    void append(ArrayBase *a)
     {
-        ArrayBase::append((ArrayBase *)a);
+        Array::append((Array *)a);
     }
-    
+
     void push(TYPE *a)
     {
-        ArrayBase::push((void *)a);
+        Array::push((void *)a);
     }
-    
-    Array *copy()
+
+    ArrayBase *copy()
     {
-        return (Array *)ArrayBase::copy();
+        return (ArrayBase *)Array::copy();
     }
 };
 

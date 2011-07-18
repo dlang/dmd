@@ -18,60 +18,60 @@
 
 #include "root.h"
 
-typedef Array<struct TemplateParameter> TemplateParameters;
+typedef ArrayBase<struct TemplateParameter> TemplateParameters;
 
-typedef Array<struct Expression> Expressions;
+typedef ArrayBase<struct Expression> Expressions;
 
-typedef Array<struct Statement> Statements;
+typedef ArrayBase<struct Statement> Statements;
 
-typedef Array<struct BaseClass> BaseClasses;
+typedef ArrayBase<struct BaseClass> BaseClasses;
 
-typedef Array<struct ClassDeclaration> ClassDeclarations;
+typedef ArrayBase<struct ClassDeclaration> ClassDeclarations;
 
-typedef Array<struct Dsymbol> Dsymbols;
+typedef ArrayBase<struct Dsymbol> Dsymbols;
 
-typedef Array<struct Object> Objects;
+typedef ArrayBase<struct Object> Objects;
 
-typedef Array<struct FuncDeclaration> FuncDeclarations;
+typedef ArrayBase<struct FuncDeclaration> FuncDeclarations;
 
-typedef Array<struct Parameter> Parameters;
+typedef ArrayBase<struct Parameter> Parameters;
 
-typedef Array<struct Identifier> Identifiers;
+typedef ArrayBase<struct Identifier> Identifiers;
 
-typedef Array<struct Initializer> Initializers;
+typedef ArrayBase<struct Initializer> Initializers;
 
-typedef Array<struct VarDeclaration> VarDeclarations;
+typedef ArrayBase<struct VarDeclaration> VarDeclarations;
 
-typedef Array<struct Type> Types;
+typedef ArrayBase<struct Type> Types;
 
-typedef Array<struct ScopeDsymbol> ScopeDsymbols;
+typedef ArrayBase<struct ScopeDsymbol> ScopeDsymbols;
 
-typedef Array<struct Catch> Catches;
+typedef ArrayBase<struct Catch> Catches;
 
-typedef Array<struct StaticDtorDeclaration> StaticDtorDeclarations;
+typedef ArrayBase<struct StaticDtorDeclaration> StaticDtorDeclarations;
 
-typedef Array<struct SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
+typedef ArrayBase<struct SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
 
-typedef Array<struct AliasDeclaration> AliasDeclarations;
+typedef ArrayBase<struct AliasDeclaration> AliasDeclarations;
 
-typedef Array<struct Module> Modules;
+typedef ArrayBase<struct Module> Modules;
 
-typedef Array<struct File> Files;
+typedef ArrayBase<struct File> Files;
 
-typedef Array<struct CaseStatement> CaseStatements;
+typedef ArrayBase<struct CaseStatement> CaseStatements;
 
-typedef Array<struct CompoundStatement> CompoundStatements;
+typedef ArrayBase<struct CompoundStatement> CompoundStatements;
 
-typedef Array<struct GotoCaseStatement> GotoCaseStatements;
+typedef ArrayBase<struct GotoCaseStatement> GotoCaseStatements;
 
-typedef Array<struct TemplateInstance> TemplateInstances;
+typedef ArrayBase<struct TemplateInstance> TemplateInstances;
 
-typedef Array<char> Strings;
+//typedef ArrayBase<char> Strings;
 
-typedef Array<void> Voids;
+typedef ArrayBase<void> Voids;
 
-typedef Array<struct block> Blocks;
+typedef ArrayBase<struct block> Blocks;
 
-typedef Array<struct Symbol> Symbols;
+typedef ArrayBase<struct Symbol> Symbols;
 
 #endif

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -45,8 +45,6 @@
 #include "root.h"
 #include "dchar.h"
 #include "rmem.h"
-
-#include "../arraytypes.h"
 
 #if 0 //__SC__ //def DEBUG
 extern "C" void __cdecl _assert(void *e, void *f, unsigned line)
