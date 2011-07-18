@@ -2870,6 +2870,47 @@ pcmpgtq
 popcnt
  */
 
+PTRNTAB2 aptb2CRC32[] = /* CRC32 */ {
+        { 0xF20F38F0, _r        , _r32, _rm8  },
+        { 0xF20F38F0, _r|_64_bit, _r64, _rm8  },
+        { 0xF20F38F1, _r|_16_bit, _r32, _rm16 },
+        { 0xF20F38F1, _r|_32_bit, _r32, _rm32 },
+        { 0xF20F38F1, _r|_64_bit, _r64, _rm64 },
+        { ASM_END }
+};
+
+PTRNTAB3 aptb3PCMPESTRI [] = /* PCMPESTRI */ {
+        { 0x660F3A61, _r|_modcx  , _xmm, _xmm_m128, _imm8 },
+        { ASM_END }
+};
+
+PTRNTAB3 aptb3PCMPESTRM [] = /* PCMPESTRM */ {
+        { 0x660F3A60, _r|_modxmm0, _xmm, _xmm_m128, _imm8 },
+        { ASM_END }
+};
+
+PTRNTAB3 aptb3PCMPISTRI [] = /* PCMPISTRI */ {
+        { 0x660F3A63, _r|_modcx  , _xmm, _xmm_m128, _imm8 },
+        { ASM_END }
+};
+
+PTRNTAB3 aptb3PCMPISTRM [] = /* PCMPISTRM */ {
+        { 0x660F3A62, _r|_modxmm0, _xmm, _xmm_m128, _imm8 },
+        { ASM_END }
+};
+
+PTRNTAB2 aptb2PCMPGTQ [] = /* PCMPGTQ */ {
+        { 0x660F3837, _r, _xmm, _xmm_m128 },
+        { ASM_END }
+};
+
+PTRNTAB2 aptb2POPCNT [] = /* POPCNT */ {
+        { 0xF30FB8, _r|_16_bit, _r16, _rm16 },
+        { 0xF30FB8, _r|_32_bit, _r32, _rm32 },
+        { 0xF30FB8, _r|_64_bit, _r64, _rm64 },
+        { ASM_END }
+};
+
 /* ======================= VMS ======================= */
 
 /*
@@ -3023,6 +3064,7 @@ getsec
         X("comiss",     2,              (P) aptb2COMISS ) \
         X("cpuid",      0,              aptb0CPUID ) \
         X("cqo",        0,              aptb0CQO ) \
+        X("crc32",      2,              (P) aptb2CRC32 ) \
         X("cvtdq2pd",   2,              (P) aptb2CVTDQ2PD ) \
         X("cvtdq2ps",   2,              (P) aptb2CVTDQ2PS ) \
         X("cvtpd2dq",   2,              (P) aptb2CVTPD2DQ ) \
@@ -3350,9 +3392,14 @@ getsec
         X("pcmpeqd",    2,              (P) aptb2PCMPEQD ) \
         X("pcmpeqq",    2,              (P) aptb2PCMPEQQ ) \
         X("pcmpeqw",    2,              (P) aptb2PCMPEQW ) \
+        X("pcmpestri",  3,              (P) aptb3PCMPESTRI ) \
+        X("pcmpestrm",  3,              (P) aptb3PCMPESTRM ) \
         X("pcmpgtb",    2,              (P) aptb2PCMPGTB ) \
         X("pcmpgtd",    2,              (P) aptb2PCMPGTD ) \
+        X("pcmpgtq",    2,              (P) aptb2PCMPGTQ ) \
         X("pcmpgtw",    2,              (P) aptb2PCMPGTW ) \
+        X("pcmpistri",  3,              (P) aptb3PCMPISTRI ) \
+        X("pcmpistrm",  3,              (P) aptb3PCMPISTRM ) \
         X("pextrb",     3,              (P) aptb3PEXTRB ) \
         X("pextrd",     3,              (P) aptb3PEXTRD ) \
         X("pextrq",     3,              (P) aptb3PEXTRQ ) \
@@ -3425,6 +3472,7 @@ getsec
         X("pop",        1,              (P) aptb1POP ) \
         X("popa",       0,              aptb0POPA ) \
         X("popad",      0,              aptb0POPAD ) \
+        X("popcnt",     2,              (P) aptb2POPCNT ) \
         X("popf",       0,              aptb0POPF ) \
         X("popfd",      0,              aptb0POPFD ) \
         X("popfq",      0,              aptb0POPFQ ) \
