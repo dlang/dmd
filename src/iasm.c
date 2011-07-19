@@ -2730,6 +2730,9 @@ STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
     case _modcxr11:
         usRet |= (mCX | mR11);
         break;
+    case _modxmm0:
+        usRet |= mXMM0;
+        break;
     }
     if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg)
     {
