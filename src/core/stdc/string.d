@@ -45,3 +45,4 @@ pure char*  strstr(in char* s1, in char* s2);
 char*  strtok(char* s1, in char* s2);
 char*  strerror(int errnum);
 pure size_t strlen(in char* s);
+char*  strdup(in char *s);
