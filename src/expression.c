@@ -9003,7 +9003,7 @@ Expression *IndexExp::semantic(Scope *sc)
         goto Lerr;
     }
     if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
-        e2 = (Expression *)((TupleExp *)e2)->exps->data[0];
+        e2 = ((TupleExp *)e2)->exps->tdata()[0];
     e2 = resolveProperties(sc, e2);
     if (e2->type == Type::terror)
         goto Lerr;
