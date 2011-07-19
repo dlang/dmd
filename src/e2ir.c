@@ -44,6 +44,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+typedef ArrayBase<elem> Elems;
 
 elem *addressElem(elem *e, Type *t);
 elem *array_toPtr(Type *t, elem *e);
@@ -75,7 +76,7 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Array *arguments,
+        Expressions *arguments,
 #if DMD_OBJC
         elem *esel = NULL       // selector for Objective-C methods (when not provided by fd)
 #endif
@@ -141,7 +142,7 @@ elem *callfunc(Loc loc,
         int j = (tf->linkage == LINKd && tf->varargs == 1);
 
         for (i = 0; i < arguments->dim ; i++)
-        {   Expression *arg = (Expression *)arguments->data[i];
+        {   Expression *arg = arguments->tdata()[i];
             elem *ea;
 
             //printf("\targ[%d]: %s\n", i, arg->toChars());
@@ -1220,12 +1221,12 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     ad = s->isAttribDeclaration();
     if (ad)
     {
-        Array *decl = ad->include(NULL, NULL);
+        Dsymbols *decl = ad->include(NULL, NULL);
         if (decl && decl->dim)
         {
             for (size_t i = 0; i < decl->dim; i++)
             {
-                s = (Dsymbol *)decl->data[i];
+                s = decl->tdata()[i];
                 e = el_combine(e, Dsymbol_toElem(s, irs));
             }
         }
@@ -1261,7 +1262,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
 
                 // Put vd on list of things needing destruction
                 if (!irs->varsInScope)
-                    irs->varsInScope = new Array();
+                    irs->varsInScope = new VarDeclarations();
                 irs->varsInScope->push(vd);
             }
         }
@@ -1286,7 +1287,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
         {
             for (size_t i = 0; i < tm->members->dim; i++)
             {
-                Dsymbol *sm = (Dsymbol *)tm->members->data[i];
+                Dsymbol *sm = tm->members->tdata()[i];
                 e = el_combine(e, Dsymbol_toElem(sm, irs));
             }
         }
@@ -1294,7 +1295,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     else if ((td = s->isTupleDeclaration()) != NULL)
     {
         for (size_t i = 0; i < td->objects->dim; i++)
-        {   Object *o = (Object *)td->objects->data[i];
+        {   Object *o = td->objects->tdata()[i];
             if (o->dyncast() == DYNCAST_EXPRESSION)
             {   Expression *eo = (Expression *)o;
                 if (eo->op == TOKdsymbol)
@@ -1944,7 +1945,7 @@ elem *NewExp::toElem(IRState *irs)
         assert(arguments && arguments->dim >= 1);
         if (arguments->dim == 1)
         {   // Single dimension array allocations
-            Expression *arg = (Expression *)arguments->data[0]; // gives array length
+            Expression *arg = arguments->tdata()[0]; // gives array length
             e = arg->toElem(irs);
             d_uns64 elemsize = tda->next->size();
 
@@ -1958,7 +1959,7 @@ elem *NewExp::toElem(IRState *irs)
             e = el_long(TYsize_t, arguments->dim);
             for (size_t i = 0; i < arguments->dim; i++)
             {
-                Expression *arg = (Expression *)arguments->data[i];     // gives array length
+                Expression *arg = arguments->tdata()[i];     // gives array length
                 e = el_param(arg->toElem(irs), e);
                 assert(t->ty == Tarray);
                 t = t->nextOf();
@@ -3656,32 +3657,6 @@ elem *DotTypeExp::toElem(IRState *irs)
     return e;
 }
 
-// check ce is nrvo_var.__dtor()
-int isNrvoDtorCall(CallExp *ce)
-{
-    if (ce->e1->op == TOKdotvar)
-    {   DotVarExp *dve = (DotVarExp *)ce->e1;
-        if (dve->e1->op == TOKvar)
-        {   Declaration *var = ((VarExp *)dve->e1)->var;
-            FuncDeclaration *fd = var->toParent2()->isFuncDeclaration();
-            if (fd && fd->nrvo_can && fd->nrvo_var)
-            {   if (var == fd->nrvo_var)
-                {   // NRVO var exists
-                    Type *tret = fd->type->nextOf()->toBasetype();
-                    if (tret->ty == Tstruct)
-                    {   Declaration *dtor = ((TypeStruct *)tret)->sym->dtor;
-                        if (dtor && dve->var == dtor)
-                        {   // dtor call of nevo_var
-                            return 1;
-                        }
-                    }
-                }
-            }
-        }
-    }
-    return 0;
-}
-
 elem *CallExp::toElem(IRState *irs)
 {
     //printf("CallExp::toElem('%s')\n", toChars());
@@ -3698,9 +3673,6 @@ elem *CallExp::toElem(IRState *irs)
 
     directcall = 0;
     fd = NULL;
-
-    if (isNrvoDtorCall(this))
-        return IntegerExp(0).toElem(irs);
 
 #if DMD_OBJC
     elem *esel = NULL;
@@ -3745,7 +3717,7 @@ elem *CallExp::toElem(IRState *irs)
         if (fd && fd->ident == Id::alloca &&
             !fd->fbody && fd->linkage == LINKc &&
             arguments && arguments->dim == 1)
-        {   Expression *arg = (Expression *)arguments->data[0];
+        {   Expression *arg = arguments->tdata()[0];
             arg = arg->optimize(WANTvalue);
             if (arg->isConst() && arg->type->isintegral())
             {   dinteger_t sz = arg->toInteger();
@@ -4898,7 +4870,7 @@ elem *TupleExp::toElem(IRState *irs)
 
     //printf("TupleExp::toElem() %s\n", toChars());
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *el = (Expression *)exps->data[i];
+    {   Expression *el = exps->tdata()[i];
         elem *ep = el->toElem(irs);
 
         e = el_combine(e, ep);
@@ -4907,11 +4879,11 @@ elem *TupleExp::toElem(IRState *irs)
 }
 
 #if DMDV2
-elem *tree_insert(Expressions *args, int low, int high)
+elem *tree_insert(Elems *args, int low, int high)
 {
     assert(low < high);
     if (low + 1 == high)
-        return (elem *)args->data[low];
+        return args->tdata()[low];
     int mid = (low + high) >> 1;
     return el_param(tree_insert(args, low, mid),
                     tree_insert(args, mid, high));
@@ -4933,7 +4905,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
              * Avoids the whole variadic arg mess.
              */
             dim = elements->dim;
-            Expressions args;
+            Elems args;
             args.setDim(dim);           // +1 for number of args parameter
             e = el_long(TYsize_t, dim);
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
@@ -4945,7 +4917,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
             targ_size_t sz = tb->nextOf()->size();      // element size
             ::type *te = tb->nextOf()->toCtype();       // element type
             for (size_t i = 0; i < dim; i++)
-            {   Expression *el = (Expression *)elements->data[i];
+            {   Expression *el = elements->tdata()[i];
 
                 /* Generate: *(stmp + i * sz) = element[i]
                  */
@@ -4966,20 +4938,20 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
                     eeq->Ejty = eeq->Ety = TYstruct;
                     eeq->ET = te;
                 }
-                args.data[i] = (void *)eeq;
+                args.tdata()[i] = eeq;
             }
-            e = el_combine(e, el_combines(args.data, dim));
+            e = el_combine(e, el_combines((void **)args.tdata(), dim));
             e = el_combine(e, el_var(stmp));
         }
         else
         {
-            Expressions args;
+            Elems args;
             dim = elements->dim;
             args.setDim(dim + 1);           // +1 for number of args parameter
             e = el_long(TYsize_t, dim);
-            args.data[dim] = (void *)e;
+            args.tdata()[dim] = e;
             for (size_t i = 0; i < dim; i++)
-            {   Expression *el = (Expression *)elements->data[i];
+            {   Expression *el = elements->tdata()[i];
                 elem *ep = el->toElem(irs);
 
                 if (tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray)
@@ -4987,14 +4959,14 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
                     ep = el_una(OPstrpar, TYstruct, ep);
                     ep->ET = el->type->toCtype();
                 }
-                args.data[dim - (i + 1)] = (void *)ep;
+                args.tdata()[dim - (i + 1)] = ep;
             }
 
             /* Because the number of parameters can get very large, produce
              * a balanced binary tree so we don't blow up the stack in
              * the subsequent tree walking code.
              */
-            e = el_params(args.data, dim + 1);
+            e = el_params((void **)args.tdata(), dim + 1);
 
             e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
 
@@ -5039,13 +5011,13 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, Type *t
     symbol *stmp = symbol_genauto(tsarray->toCtype());
     targ_size_t szelem = telem->size();
 
-    Array elems;
+    Elems elems;
     elems.setDim(dim);
 
     ::type *te = telem->toCtype();      // stmp[] element type
 
     for (size_t i = 0; i < dim; i++)
-    {   Expression *el = (Expression *)exps->data[i];
+    {   Expression *el = exps->tdata()[i];
 
         /* Generate: *(&stmp + i * szelem) = element[i]
          */
@@ -5066,11 +5038,11 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, Type *t
             eeq->Ejty = eeq->Ety = TYstruct;
             eeq->ET = te;
         }
-        elems.data[i] = (void *)eeq;
+        elems.tdata()[i] = eeq;
     }
 
     *psym = stmp;
-    return el_combines(elems.data, dim);
+    return el_combines((void **)elems.tdata(), dim);
 }
 
 elem *AssocArrayLiteralExp::toElem(IRState *irs)
@@ -5108,7 +5080,7 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
     {    // call _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
         e = el_long(TYsize_t, dim);
         for (size_t i = 0; i < dim; i++)
-        {   Expression *el = (Expression *)keys->data[i];
+        {   Expression *el = keys->tdata()[i];
 
             for (int j = 0; j < 2; j++)
             {
@@ -5122,7 +5094,7 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
                 //printf("[%d] %s\n", i, el->toChars());
                 //elem_print(ep);
                 e = el_param(ep, e);
-                el = (Expression *)values->data[i];
+                el = values->tdata()[i];
             }
         }
 
@@ -5222,7 +5194,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
         size_t offset = 0;
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+            Dsymbol *s = sd->fields.tdata()[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
 
@@ -5239,11 +5211,11 @@ elem *StructLiteralExp::toElem(IRState *irs)
         dim = elements->dim;
         assert(dim <= sd->fields.dim);
         for (size_t i = 0; i < dim; i++)
-        {   Expression *el = (Expression *)elements->data[i];
+        {   Expression *el = elements->tdata()[i];
             if (!el)
                 continue;
 
-            Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+            Dsymbol *s = sd->fields.tdata()[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
             assert(!v->isThisDeclaration());
@@ -5333,7 +5305,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     if (sd->isnested)
     {   // Initialize the hidden 'this' pointer
         assert(sd->fields.dim);
-        Dsymbol *s = (Dsymbol *)sd->fields.data[sd->fields.dim - 1];
+        Dsymbol *s = sd->fields.tdata()[sd->fields.dim - 1];
         ThisDeclaration *v = s->isThisDeclaration();
         assert(v);
 
@@ -5378,11 +5350,11 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
     elem *edtors = NULL;
     for (size_t i = starti; i != endi; ++i)
     {
-        VarDeclaration *vd = (VarDeclaration *)irs->varsInScope->data[i];
+        VarDeclaration *vd = irs->varsInScope->tdata()[i];
         if (vd)
         {
             //printf("appending dtor\n");
-            irs->varsInScope->data[i] = NULL;
+            irs->varsInScope->tdata()[i] = NULL;
             elem *ed = vd->edtor->toElem(irs);
             ed = el_ddtor(ed, vd);
             edtors = el_combine(ed, edtors);    // execute in reverse order

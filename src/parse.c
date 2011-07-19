@@ -105,14 +105,14 @@ Dsymbols *Parser::parseModule()
         }
         else
         {
-            Array *a = NULL;
+            Identifiers *a = NULL;
             Identifier *id;
 
             id = token.ident;
             while (nextToken() == TOKdot)
             {
                 if (!a)
-                    a = new Array();
+                    a = new Identifiers();
                 a->push(id);
                 nextToken();
                 if (token.value != TOKidentifier)
@@ -930,8 +930,8 @@ Condition *Parser::parseVersionCondition()
 Condition *Parser::parseStaticIfCondition()
 {   Expression *exp;
     Condition *condition;
-    Array *aif;
-    Array *aelse;
+    Dsymbols *aif;
+    Dsymbols *aelse;
     Loc loc = this->loc;
 
     nextToken();
@@ -1892,7 +1892,7 @@ Dsymbol *Parser::parseMixin()
     Identifier *id;
     Type *tqual;
     Objects *tiargs;
-    Array *idents;
+    Identifiers *idents;
 
     //printf("parseMixin()\n");
     nextToken();
@@ -1918,7 +1918,7 @@ Dsymbol *Parser::parseMixin()
         nextToken();
     }
 
-    idents = new Array();
+    idents = new Identifiers();
     while (1)
     {
         tiargs = NULL;
@@ -2019,7 +2019,7 @@ Objects *Parser::parseTemplateArgumentList2()
                          */
                         TemplateParameters *tpl = NULL;
                         for (int i = 0; i < tf->parameters->dim; i++)
-                        {   Parameter *param = (Parameter *)tf->parameters->data[i];
+                        {   Parameter *param = tf->parameters->tdata()[i];
                             if (param->ident == NULL &&
                                 param->type &&
                                 param->type->ty == Tident &&
@@ -2126,7 +2126,7 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
 {   Import *s;
     Identifier *id;
     Identifier *aliasid = NULL;
-    Array *a;
+    Identifiers *a;
     Loc loc;
 
     //printf("Parser::parseImport()\n");
@@ -2151,7 +2151,7 @@ Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
         while (token.value == TOKdot)
         {
             if (!a)
-                a = new Array();
+                a = new Identifiers();
             a->push(id);
             nextToken();
             if (token.value != TOKidentifier)
@@ -3166,7 +3166,7 @@ L1:
 #if 0 // Dumped feature
         case TOKthrow:
             if (!f->fthrows)
-                f->fthrows = new Array();
+                f->fthrows = new Types();
             nextToken();
             check(TOKlparen);
             while (1)
@@ -3618,7 +3618,7 @@ Statement *Parser::parseStatement(int flags)
 #endif
 //      case TOKtypeof:
         Ldeclaration:
-        {   Array *a;
+        {   Dsymbols *a;
 
             a = parseDeclarations(STCundefined, NULL);
             if (a->dim > 1)
@@ -3627,7 +3627,7 @@ Statement *Parser::parseStatement(int flags)
                 as->reserve(a->dim);
                 for (int i = 0; i < a->dim; i++)
                 {
-                    Dsymbol *d = (Dsymbol *)a->data[i];
+                    Dsymbol *d = a->tdata()[i];
                     s = new ExpStatement(loc, d);
                     as->push(s);
                 }
@@ -3635,7 +3635,7 @@ Statement *Parser::parseStatement(int flags)
             }
             else if (a->dim == 1)
             {
-                Dsymbol *d = (Dsymbol *)a->data[0];
+                Dsymbol *d = a->tdata()[0];
                 s = new ExpStatement(loc, d);
             }
             else
@@ -3845,7 +3845,7 @@ Statement *Parser::parseStatement(int flags)
             Expression *aggr = parseExpression();
             if (token.value == TOKslice && arguments->dim == 1)
             {
-                Parameter *a = (Parameter *)arguments->data[0];
+                Parameter *a = arguments->tdata()[0];
                 delete arguments;
                 nextToken();
                 Expression *upr = parseExpression();
@@ -4028,7 +4028,7 @@ Statement *Parser::parseStatement(int flags)
         case TOKcase:
         {   Expression *exp;
             Statements *statements;
-            Array cases;        // array of Expression's
+            Expressions cases;        // array of Expression's
             Expression *last = NULL;
 
             while (1)
@@ -4077,7 +4077,7 @@ Statement *Parser::parseStatement(int flags)
                 // Keep cases in order by building the case statements backwards
                 for (int i = cases.dim; i; i--)
                 {
-                    exp = (Expression *)cases.data[i - 1];
+                    exp = cases.tdata()[i - 1];
                     s = new CaseStatement(loc, exp, s);
                 }
             }
@@ -4215,7 +4215,7 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKtry:
         {   Statement *body;
-            Array *catches = NULL;
+            Catches *catches = NULL;
             Statement *finalbody = NULL;
 
             nextToken();
@@ -4244,7 +4244,7 @@ Statement *Parser::parseStatement(int flags)
                 handler = parseStatement(0);
                 c = new Catch(loc, t, id, handler);
                 if (!catches)
-                    catches = new Array();
+                    catches = new Catches();
                 catches->push(c);
             }
 

@@ -73,7 +73,7 @@ void Module::genmoduleinfo()
 
     //printf("members->dim = %d\n", members->dim);
     for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (Dsymbol *)members->data[i];
+    {   Dsymbol *member = members->tdata()[i];
 
         //printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
@@ -82,7 +82,7 @@ void Module::genmoduleinfo()
     // importedModules[]
     int aimports_dim = aimports.dim;
     for (int i = 0; i < aimports.dim; i++)
-    {   Module *m = (Module *)aimports.data[i];
+    {   Module *m = aimports.tdata()[i];
         if (!m->needmoduleinfo)
             aimports_dim--;
     }
@@ -146,7 +146,7 @@ void Module::genmoduleinfo()
     {
         dtsize_t(&dt, aimports_dim);
         for (int i = 0; i < aimports.dim; i++)
-        {   Module *m = (Module *)aimports.data[i];
+        {   Module *m = aimports.tdata()[i];
 
             if (m->needmoduleinfo)
             {   Symbol *s = m->toSymbol();
@@ -167,7 +167,7 @@ void Module::genmoduleinfo()
         dtsize_t(&dt, aclasses.dim);
         for (int i = 0; i < aclasses.dim; i++)
         {
-            ClassDeclaration *cd = (ClassDeclaration *)aclasses.data[i];
+            ClassDeclaration *cd = aclasses.tdata()[i];
             dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
         }
     }
@@ -220,7 +220,7 @@ void Module::genmoduleinfo()
 
     //printf("members->dim = %d\n", members->dim);
     for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (Dsymbol *)members->data[i];
+    {   Dsymbol *member = members->tdata()[i];
 
         //printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
@@ -229,7 +229,7 @@ void Module::genmoduleinfo()
     // importedModules[]
     int aimports_dim = aimports.dim;
     for (int i = 0; i < aimports.dim; i++)
-    {   Module *m = (Module *)aimports.data[i];
+    {   Module *m = aimports.tdata()[i];
         if (!m->needModuleInfo())
             aimports_dim--;
     }
@@ -298,7 +298,7 @@ void Module::genmoduleinfo()
     //////////////////////////////////////////////
 
     for (int i = 0; i < aimports.dim; i++)
-    {   Module *m = (Module *)aimports.data[i];
+    {   Module *m = aimports.tdata()[i];
 
         if (m->needModuleInfo())
         {   Symbol *s = m->toSymbol();
@@ -316,7 +316,7 @@ void Module::genmoduleinfo()
 
     for (int i = 0; i < aclasses.dim; i++)
     {
-        ClassDeclaration *cd = (ClassDeclaration *)aclasses.data[i];
+        ClassDeclaration *cd = aclasses.data()[i];
         dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
     }
 #endif
@@ -326,7 +326,7 @@ void Module::genmoduleinfo()
     ClassDeclarations objccls;
     ClassDeclarations objccat;
     for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (Dsymbol *)members->data[i];
+    {   Dsymbol *member = members->tdata()[i];
         member->addObjcSymbols(&objccls, &objccat);
     }
     // only emit objc module info for modules with Objective-C symbols
@@ -393,7 +393,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     {
         Dsymbol *member;
 
-        member = (Dsymbol *)members->data[i];
+        member = members->tdata()[i];
         member->toObjFile(0);
     }
 
@@ -408,7 +408,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
         case 1:
             // One destructor, just use it directly
-            sdtor = ((DtorDeclaration *)dtors.data[0])->toSymbol();
+            sdtor = dtors.tdata()[0]->toSymbol();
             break;
 
         default:
@@ -429,7 +429,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             // Call each of the destructors in dtors[]
             // in reverse order
             for (i = 0; i < dtors.dim; i++)
-            {   DtorDeclaration *d = (DtorDeclaration *)dtors.data[i];
+            {   DtorDeclaration *d = dtors.tdata()[i];
                 Symbol *s = d->toSymbol();
                 elem *e = el_bin(OPcall, TYvoid, el_var(s), el_var(sthis));
                 edtor = el_combine(e, edtor);
@@ -596,7 +596,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         {
             for (size_t i = 0; i < cd->members->dim; i++)
             {
-                Dsymbol *sm = (Dsymbol *)cd->members->data[i];
+                Dsymbol *sm = cd->members->tdata()[i];
                 //printf("sm = %s %s\n", sm->kind(), sm->toChars());
                 if (sm->hasPointers())
                     goto L2;
@@ -636,12 +636,12 @@ void ClassDeclaration::toObjFile(int multiobj)
 
     //////////////////////////////////////////////
 
-    // Put out vtblInterfaces->data[]. Must immediately follow csym, because
+    // Put out vtblInterfaces->tdata()[]. Must immediately follow csym, because
     // of the fixup (*)
 
     offset += vtblInterfaces->dim * (4 * PTRSIZE);
     for (i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+    {   BaseClass *b = vtblInterfaces->tdata()[i];
         ClassDeclaration *id = b->base;
 
         /* The layout is:
@@ -667,11 +667,11 @@ void ClassDeclaration::toObjFile(int multiobj)
         offset += id->vtbl.dim * PTRSIZE;
     }
 
-    // Put out the vtblInterfaces->data[].vtbl[]
+    // Put out the vtblInterfaces->tdata()[].vtbl[]
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces->dim, toChars());
     for (i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+    {   BaseClass *b = vtblInterfaces->tdata()[i];
         ClassDeclaration *id = b->base;
 
         //printf("    interface[%d] is '%s'\n", i, id->toChars());
@@ -690,7 +690,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         {
             assert(j < b->vtbl.dim);
 #if 0
-            Object *o = (Object *)b->vtbl.data[j];
+            Object *o = b->vtbl.tdata()[j];
             if (o)
             {
                 printf("o = %p\n", o);
@@ -699,7 +699,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                 printf("s->kind() = '%s'\n", s->kind());
             }
 #endif
-            FuncDeclaration *fd = (FuncDeclaration *)b->vtbl.data[j];
+            FuncDeclaration *fd = b->vtbl.tdata()[j];
             if (fd)
                 dtxoff(&dt, fd->toThunkSymbol(b->offset), 0, TYnptr);
             else
@@ -712,12 +712,12 @@ void ClassDeclaration::toObjFile(int multiobj)
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
     ClassDeclaration *cd;
-    Array bvtbl;
+    FuncDeclarations bvtbl;
 
     for (cd = this->baseClass; cd; cd = cd->baseClass)
     {
         for (int k = 0; k < cd->vtblInterfaces->dim; k++)
-        {   BaseClass *bs = (BaseClass *)cd->vtblInterfaces->data[k];
+        {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
 
             if (bs->fillVtbl(this, &bvtbl, 0))
             {
@@ -740,7 +740,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                     FuncDeclaration *fd;
 
                     assert(j < bvtbl.dim);
-                    fd = (FuncDeclaration *)bvtbl.data[j];
+                    fd = bvtbl.tdata()[j];
                     if (fd)
                         dtxoff(&dt, fd->toThunkSymbol(bs->offset), 0, TYnptr);
                     else
@@ -755,13 +755,13 @@ void ClassDeclaration::toObjFile(int multiobj)
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
     for (i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+    {   BaseClass *b = vtblInterfaces->tdata()[i];
         ClassDeclaration *cd;
 
         for (cd = this->baseClass; cd; cd = cd->baseClass)
         {
             for (int k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = (BaseClass *)cd->vtblInterfaces->data[k];
+            {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
 
                 if (b->base == bs->base)
                 {
@@ -782,7 +782,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                     for (; j < id->vtbl.dim; j++)
                     {
                         assert(j < b->vtbl.dim);
-                        FuncDeclaration *fd = (FuncDeclaration *)b->vtbl.data[j];
+                        FuncDeclaration *fd = b->vtbl.tdata()[j];
                         if (fd)
                             dtxoff(&dt, fd->toThunkSymbol(bs->offset), 0, TYnptr);
                         else
@@ -817,7 +817,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     }
     for (; i < vtbl.dim; i++)
     {
-        FuncDeclaration *fd = ((Dsymbol *)vtbl.data[i])->isFuncDeclaration();
+        FuncDeclaration *fd = vtbl.tdata()[i]->isFuncDeclaration();
 
         //printf("\tvtbl[%d] = %p\n", i, fd);
         if (fd && (fd->fbody || !isAbstract()))
@@ -840,7 +840,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                 for (int j = 1; j < vtbl.dim; j++)
                 {   if (j == i)
                         continue;
-                    FuncDeclaration *fd2 = ((Dsymbol *)vtbl.data[j])->isFuncDeclaration();
+                    FuncDeclaration *fd2 = vtbl.tdata()[j]->isFuncDeclaration();
                     if (!fd2->ident->equals(fd->ident))
                         continue;
                     if (fd->leastAsSpecialized(fd2) || fd2->leastAsSpecialized(fd))
@@ -894,7 +894,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
     for (i = 0; i < vtblInterfaces->dim; i++)
     {
-        BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+        BaseClass *b = vtblInterfaces->tdata()[i];
 
         if (b == bc)
             return csymoffset;
@@ -906,12 +906,12 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
     ClassDeclaration *cd;
-    Array bvtbl;
+    FuncDeclarations bvtbl;
 
     for (cd = this->baseClass; cd; cd = cd->baseClass)
     {
         for (int k = 0; k < cd->vtblInterfaces->dim; k++)
-        {   BaseClass *bs = (BaseClass *)cd->vtblInterfaces->data[k];
+        {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
 
             if (bs->fillVtbl(this, NULL, 0))
             {
@@ -926,14 +926,14 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 #endif
 #if INTERFACE_VIRTUAL
     for (i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+    {   BaseClass *b = vtblInterfaces->tdata()[i];
         ClassDeclaration *cd;
 
         for (cd = this->baseClass; cd; cd = cd->baseClass)
         {
             //printf("\tbase class %s\n", cd->toChars());
             for (int k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = (BaseClass *)cd->vtblInterfaces->data[k];
+            {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
 
                 if (bc == bs)
                 {   //printf("\tcsymoffset = x%x\n", csymoffset);
@@ -970,7 +970,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
     // Put out the members
     for (i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (Dsymbol *)members->data[i];
+    {   Dsymbol *member = members->tdata()[i];
 
         member->toObjFile(0);
     }
@@ -1033,7 +1033,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtsize_t(&dt, 0);
     dtsize_t(&dt, 0);
 
-    // vtblInterfaces->data[]
+    // vtblInterfaces->tdata()[]
     unsigned offset;
     dtsize_t(&dt, vtblInterfaces->dim);
     if (vtblInterfaces->dim)
@@ -1086,12 +1086,12 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
     //////////////////////////////////////////////
 
-    // Put out vtblInterfaces->data[]. Must immediately follow csym, because
+    // Put out vtblInterfaces->tdata()[]. Must immediately follow csym, because
     // of the fixup (*)
 
     offset += vtblInterfaces->dim * (4 * PTRSIZE);
     for (i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+    {   BaseClass *b = vtblInterfaces->tdata()[i];
         ClassDeclaration *id = b->base;
 
         // ClassInfo
@@ -1191,7 +1191,7 @@ void StructDeclaration::toObjFile(int multiobj)
         {
             Dsymbol *member;
 
-            member = (Dsymbol *)members->data[i];
+            member = members->tdata()[i];
             member->toObjFile(0);
         }
     }

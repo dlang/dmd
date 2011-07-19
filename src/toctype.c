@@ -404,7 +404,7 @@ type *TypeStruct::toCtype()
          */
         if (global.params.symdebug)
             for (int i = 0; i < sym->fields.dim; i++)
-            {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+            {   VarDeclaration *v = sym->fields.tdata()[i];
 
                 Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
                 s2->Smemoff = v->offset;
@@ -531,7 +531,7 @@ type *TypeClass::toCtype()
      */
     if (global.params.symdebug)
         for (int i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        {   VarDeclaration *v = sym->fields.tdata()[i];
 
             Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
             s2->Smemoff = v->offset;

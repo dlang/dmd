@@ -72,7 +72,7 @@ struct StructInitializer : Initializer
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
 
-    Array vars;         // parallel array of VarDeclaration *'s
+    VarDeclarations vars;       // parallel array of VarDeclaration *'s
     AggregateDeclaration *ad;   // which aggregate this is for
 
     StructInitializer(Loc loc);

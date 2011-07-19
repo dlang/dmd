@@ -36,7 +36,7 @@ void dumpExpressions(int i, Expressions *exps)
     if (exps)
     {
         for (size_t j = 0; j < exps->dim; j++)
-        {   Expression *e = (Expression *)exps->data[j];
+        {   Expression *e = exps->tdata()[j];
             indent(i);
             printf("(\n");
             e->dump(i + 2);

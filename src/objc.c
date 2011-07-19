@@ -292,10 +292,10 @@ Symbol *ObjcSymbols::getSymbolMap(ClassDeclarations *cls, ClassDeclarations *cat
     dtdword(&dt, classcount + (catcount << 16)); // class count / category count (expects little-endian)
     
     for (size_t i = 0; i < cls->dim; ++i)
-        dtxoff(&dt, ((ClassDeclaration *)cls->data[i])->sobjccls, 0, TYnptr); // reference to class
+        dtxoff(&dt, cls->tdata()[i]->sobjccls, 0, TYnptr); // reference to class
         
     for (size_t i = 0; i < catcount; ++i)
-        dtxoff(&dt, ((ClassDeclaration *)cat->data[i])->sobjccls, 0, TYnptr); // reference to category
+        dtxoff(&dt, cat->tdata()[i]->sobjccls, 0, TYnptr); // reference to category
 
     ssymmap = symbol_name("L_OBJC_SYMBOLS", SCstatic, type_allocn(TYarray, tschar));
     ssymmap->Sdt = dt;
@@ -511,7 +511,7 @@ Symbol *ObjcSymbols::getMethVarType(FuncDeclaration *func)
     }
     types[0] = func; // return type first
     if (param_dim)
-        memcpy(types+1, func->parameters->data, param_dim * sizeof(Dsymbol **));
+        memcpy(types+1, func->parameters->tdata(), param_dim * sizeof(Dsymbol **));
     
     return getMethVarType(types, 1 + param_dim);
 }
@@ -968,7 +968,7 @@ Symbol *ObjcClassDeclaration::getIVarList()
     dtdword(&dt, ivarcount); // method count
     for (size_t i = 0; i < ivarcount; ++i)
     {
-        VarDeclaration *ivar = ((Dsymbol *)cdecl->fields.data[i])->isVarDeclaration();
+        VarDeclaration *ivar = cdecl->fields.tdata()[i]->isVarDeclaration();
         assert(ivar);
         assert((ivar->storage_class & STCstatic) == 0);
         
@@ -986,7 +986,7 @@ Symbol *ObjcClassDeclaration::getIVarList()
 
 Symbol *ObjcClassDeclaration::getMethodList()
 {
-    Array *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->metaclass->objcMethodList;
+    Dsymbols *methods = !ismeta ? &cdecl->objcMethodList : &cdecl->metaclass->objcMethodList;
     int methods_count = methods->dim;
 
     int overridealloc = ismeta && cdecl->objchaspreinit;
@@ -1001,7 +1001,7 @@ Symbol *ObjcClassDeclaration::getMethodList()
     dtdword(&dt, methods_count); // method count
     for (size_t i = 0; i < methods->dim; ++i)
     {
-        FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
+        FuncDeclaration *func = methods->tdata()[i]->isFuncDeclaration();
         if (func && func->fbody)
         {
             assert(func->objcSelector);
@@ -1102,7 +1102,7 @@ void ObjcProtocolDeclaration::toDt(dt_t **pdt)
 
 Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
 {
-    Array *methods = !wantsClassMethods ? &idecl->objcMethodList : &idecl->metaclass->objcMethodList;
+    Dsymbols *methods = !wantsClassMethods ? &idecl->objcMethodList : &idecl->metaclass->objcMethodList;
     if (!methods->dim) // no member, no method list.
         return NULL;
 
@@ -1110,7 +1110,7 @@ Symbol *ObjcProtocolDeclaration::getMethodList(int wantsClassMethods)
     dtdword(&dt, methods->dim); // method count
     for (size_t i = 0; i < methods->dim; ++i)
     {
-        FuncDeclaration *func = ((Dsymbol *)methods->data[i])->isFuncDeclaration();
+        FuncDeclaration *func = methods->tdata()[i]->isFuncDeclaration();
         assert(func);
         assert(func->objcSelector);
         dtxoff(&dt, func->objcSelector->toNameSymbol(), 0, TYnptr); // method name
