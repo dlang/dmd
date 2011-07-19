@@ -23,9 +23,7 @@ struct LabelDsymbol;
 struct Initializer;
 struct Module;
 struct Condition;
-#ifdef _DH
 struct HdrGenState;
-#endif
 
 /**************************************************************/
 

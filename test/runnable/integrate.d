@@ -7,7 +7,7 @@
 //
 // contributed by Sebastien Loisel
 
-import std.math, std.stdio, std.string;
+import std.math, std.stdio, std.string, std.conv;
 
 extern(C) double round(double x);
 
@@ -159,7 +159,7 @@ char[] pr(fl x) { char[] s = new char[100]; int len = sprintf(s.ptr,"%.2e",x.a);
 
 int main(string[] args)
 {
-  int N = args.length > 1 ? atoi(args[1]) : 50;
+  int N = args.length > 1 ? to!int(args[1]) : 50;
 
   integrate_functions(F(0.02),N);
   return 0;

@@ -129,7 +129,7 @@ void codgen()
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
     functy = tybasic(funcsym_p->ty());
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (0 && config.flags3 & CFG3pic)
     {
         ALLREGS = ALLREGS_INIT_PIC;
@@ -404,6 +404,14 @@ tryagain:
     debugw && printf("code jump optimization complete\n");
 #endif
 
+#if MARS
+    if (usednteh & NTEH_try)
+    {
+        // Do this before code is emitted because we patch some instructions
+        nteh_filltables();
+    }
+#endif
+
     // Compute starting offset for switch tables
 #if ELFOBJ || MACHOBJ
     swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
@@ -520,8 +528,6 @@ tryagain:
                 retoffset = b->Boffset + b->Bsize - funcoffset;
                 break;
         }
-        code_free(b->Bcode);
-        b->Bcode = NULL;
     }
     if (flag && configv.addlinenumbers && !(funcsym_p->ty() & mTYnaked))
         /* put line number at end of function on the
@@ -533,6 +539,7 @@ tryagain:
 #if MARS
     if (usednteh & NTEH_try)
     {
+        // Do this before code is emitted because we patch some instructions
         nteh_gentables();
     }
     if (usednteh & EHtry)
@@ -561,6 +568,12 @@ tryagain:
         ;
     }
 #endif
+    for (b = startblock; b; b = b->Bnext)
+    {
+        code_free(b->Bcode);
+        b->Bcode = NULL;
+    }
+
     }
 
     // Mask of regs saved
@@ -594,7 +607,9 @@ void stackoffsets(int flags)
     targ_size_t Amax,sz;
     unsigned alignsize;
     int offi;
+#if AUTONEST
     targ_size_t offstack[20];
+#endif
     vec_t tbl = NULL;
 
 
@@ -1012,7 +1027,7 @@ STATIC void blcodgen(block *bl)
 #endif
                 if (config.flags2 & CFG2seh)
                     c = cat(c,nteh_unwind(0,toindex));
-#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS)
+#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
                 else if (toindex + 1 <= fromindex)
                 {
                     //c = cat(c, linux_unwind(0, toindex));
@@ -1104,7 +1119,7 @@ STATIC void blcodgen(block *bl)
             assert(!getregs(allregs));
             assert(!e);
             assert(!bl->Bcode);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (config.flags3 & CFG3pic)
             {
                 int nalign = 0;
@@ -1390,7 +1405,7 @@ STATIC void cgcod_eh()
             if ((c->Iop & 0xFF) == ESCAPE)
             {
                 c1 = NULL;
-                switch (c->Iop & 0xFF00)
+                switch (c->Iop & 0xFFFF00)
                 {
                     case ESCctor:
 //printf("ESCctor\n");
@@ -1581,7 +1596,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return mST0;
 
         case TYcfloat:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (I32 && tybasic(tyf) == TYnfunc)
                 return mDX | mAX;
 #endif
@@ -2544,7 +2559,7 @@ reload:                                 /* reload result from memory    */
         case OPrelconst:
             c = cdrelconst(e,pretregs);
             break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case OPgot:
             c = cdgot(e,pretregs);
             break;
@@ -2624,7 +2639,6 @@ elem_print(e);
 code *codelem(elem *e,regm_t *pretregs,bool constflag)
 { code *c;
   Symbol *s;
-  tym_t tym;
   unsigned op;
 
 #ifdef DEBUG

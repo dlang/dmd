@@ -262,8 +262,6 @@ void Outbuffer::setsize(unsigned size)
 
 void Outbuffer::writesLEB128(int value)
 {
-    int negative = (value < 0);
-
     while (1)
     {
         unsigned char b = value & 0x7F;

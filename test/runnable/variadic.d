@@ -565,6 +565,7 @@ void test28()
 	    case 0:	assert(is(T == int));	 break;
 	    case 1:	assert(is(T == long));	 break;
 	    case 2:	assert(is(T == double)); break;
+	    default:	assert(0);
 	}
     }
 }
@@ -1389,6 +1390,17 @@ void test63()
 
 /***************************************/
 
+template Tuple1411(T ...) { alias T Tuple1411; }
+
+void test1411()
+{
+    int delegate(ref Tuple1411!(int, char[], real)) dg; // (*)
+    int f(ref int a, ref char[] b, ref real c) { return 77; }
+    dg = &f;
+}
+
+/***************************************/
+
 int main()
 {
     test1();
@@ -1454,6 +1466,7 @@ int main()
     test61();
     test62();
     test63();
+    test1411();
 
     printf("Success\n");
     return 0;

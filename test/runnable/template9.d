@@ -1,5 +1,7 @@
 // PERMUTE_ARGS:
 
+module breaker;
+
 import std.c.stdio;
 
 /**********************************/
@@ -149,6 +151,57 @@ void test7()
 }
 
 /**********************************/
+// 5946
+
+template TTest8()
+{
+    int call(){ return this.g(); }
+}
+class CTest8
+{
+    int f() { mixin TTest8!(); return call(); }
+    int g() { return 10; }
+}
+void test8()
+{
+    assert((new CTest8()).f() == 10);
+}
+
+/**********************************/
+// 693
+
+template TTest9(alias sym)
+{
+    int call(){ return sym.g(); }
+}
+class CTest9
+{
+    int f1() { mixin TTest9!(this); return call(); }
+    int f2() { mixin TTest9!this; return call(); }
+    int g() { return 10; }
+}
+void test9()
+{
+    assert((new CTest9()).f1() == 10);
+    assert((new CTest9()).f2() == 10);
+}
+
+/**********************************/
+// 5015
+
+import breaker;
+
+static if (is(ElemType!(int))){}
+
+template ElemType(T) {
+  alias _ElemType!(T).type ElemType;
+}
+
+template _ElemType(T) {
+    alias r type;
+}
+
+/**********************************/
 
 int main()
 {
@@ -159,6 +212,8 @@ int main()
     test5();
     test6();
     test7();
+    test8();
+    test9();
 
     printf("Success\n");
     return 0;

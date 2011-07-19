@@ -24,10 +24,6 @@
 #include        "go.h"
 #include        "type.h"
 
-#if TARGET_MAC
-#include        "TG.h"
-#endif
-
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 

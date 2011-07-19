@@ -193,10 +193,8 @@ struct TypedefDeclaration : Declaration
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Type *hbasetype;
-#endif
 
     void toDocBuffer(OutBuffer *buf);
 
@@ -227,10 +225,8 @@ struct AliasDeclaration : Declaration
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Dsymbol *haliassym;
-#endif
 
     void toDocBuffer(OutBuffer *buf);
 
@@ -280,10 +276,8 @@ struct VarDeclaration : Declaration
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-#ifdef _DH
     Type *htype;
     Initializer *hinit;
-#endif
     AggregateDeclaration *isThis();
     int needThis();
     int isImportedSymbol();
@@ -564,7 +558,6 @@ struct FuncDeclaration : Declaration
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex;                      // for member functions, index into vtbl[]
     int naked;                          // !=0 if naked
-    int inlineAsm;                      // !=0 if has inline assembler
     ILS inlineStatus;
     int inlineNest;                     // !=0 if nested inline
     int cantInterpret;                  // !=0 if cannot interpret function
@@ -599,6 +592,11 @@ struct FuncDeclaration : Declaration
     Dsymbols closureVars;               // local variables in this function
                                         // which are referenced by nested
                                         // functions
+
+    unsigned flags;
+    #define FUNCFLAGpurityInprocess 1   // working on determining purity
+    #define FUNCFLAGsafetyInprocess 2   // working on determining safety
+    #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
 #else
     int nestedFrameRef;                 // !=0 if nested variables referenced
 #endif
@@ -638,8 +636,10 @@ struct FuncDeclaration : Declaration
     int isCodeseg();
     int isOverloadable();
     enum PURE isPure();
+    bool setImpure();
     int isSafe();
     int isTrusted();
+    bool setUnsafe();
     virtual int isNested();
     int needThis();
     virtual int isVirtual();
@@ -709,10 +709,8 @@ struct FuncLiteralDeclaration : FuncDeclaration
 };
 
 struct CtorDeclaration : FuncDeclaration
-{   Parameters *arguments;
-    int varargs;
-
-    CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs, StorageClass stc);
+{
+    CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -879,9 +877,7 @@ struct DeleteDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-#ifdef _DH
     DeleteDeclaration *isDeleteDeclaration() { return this; }
-#endif
 };
 
 #endif /* DMD_DECLARATION_H */

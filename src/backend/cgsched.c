@@ -1795,7 +1795,7 @@ STATIC code * cnext(code *c)
 //                      if 2, then adjust ci1 as well as ci2
 
 STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
-{   code *c;
+{
     code *c1;
     code *c2;
     unsigned r1,w1,a1;
@@ -2329,7 +2329,7 @@ int Schedule::insert(Cinfo *ci)
 
         clocks = conflict(cit,ci,1);
         if (clocks)
-        {   int k,j;
+        {   int j;
 
             ic = i;                     // where the conflict occurred
             clocks &= 0xFF;             // convert to delay count
@@ -2561,7 +2561,6 @@ int Schedule::stage(code *c)
     list_t l;
     list_t ln;
     int agi;
-    int op;
 
     //printf("stage: "); c->print();
     if (cinfomax == TBLMAX)             // if out of space
@@ -2838,7 +2837,7 @@ code *peephole(code *cstart,regm_t scratch)
     //  OP ?,r2
     // to improve pairing
     code *c;
-    code *c1,*c2,*c3;
+    code *c1;
     unsigned r1,r2;
     unsigned mod,reg,rm;
 

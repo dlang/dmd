@@ -320,9 +320,6 @@ void freesymtab(Symbol **stab, SYMIDX n1, SYMIDX n2);
 Symbol * symbol_copy(Symbol *s);
 Symbol * symbol_searchlist(symlist_t sl, const char *vident);
 
-#if TARGET_MAC
-#include "CGproto.h"
-#else
 
 // cg87.c
 void cg87_reset();
@@ -394,9 +391,6 @@ void objfile_term();
 /* cod3.c */
 void cod3_thunk(Symbol *sthunk,Symbol *sfunc,unsigned p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2);
-
-#endif /* !TARGET_68000 */
-
 
 /* out.c */
 void outfilename(char *name,int linnum);
@@ -555,7 +549,7 @@ void dwarf_CFA_offset(int reg, int offset);
 void dwarf_CFA_args_size(size_t sz);
 #endif
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 void elfobj_gotref(symbol *s);
 symbol *elfobj_getGOTsym();
 void elfobj_refGOTsym();
@@ -566,9 +560,5 @@ void  lnx_funcdecl(symbol *,enum SC,enum_SC,int);
 int  lnx_attributes(int hinttype,const void *hint, type **ptyp, tym_t *ptym,int *pattrtype);
 #endif
 
-
-#if TARGET_MAC
-#include "TGglobal.h"
-#endif
-
 #endif /* GLOBAL_H */
+

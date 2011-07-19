@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -96,6 +96,16 @@ void out_config_init()
         config.exe = EX_FREEBSD64;
     else
         config.exe = EX_FREEBSD;
+    config.flags |= CFGnoebp;
+    config.flags |= CFGalwaysframe;
+    if (params->pic)
+        config.flags3 |= CFG3pic;
+#endif
+#if TARGET_OPENBSD
+    if (params->isX86_64)
+        config.exe = EX_OPENBSD64;
+    else
+        config.exe = EX_OPENBSD;
     config.flags |= CFGnoebp;
     config.flags |= CFGalwaysframe;
     if (params->pic)
@@ -260,7 +270,7 @@ void util_set64()
             tyalignsize[TYfptr + i] = 8;
             tyalignsize[TYvptr + i] = 8;
             tyalignsize[TYfref + i] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             tyalignsize[TYldouble + i] = 16;
             tyalignsize[TYildouble + i] = 16;
             tyalignsize[TYcldouble + i] = 16;

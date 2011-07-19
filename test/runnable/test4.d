@@ -322,6 +322,8 @@ void test8()
  {
   case WSAENOTCONN:
    break;
+  default:
+   assert(0);
  }
 }
 
@@ -477,7 +479,7 @@ void test14()
 
 /* ================================ */
 
-
+/+
 int foo15(int i)
 {
     switch (i)
@@ -503,6 +505,7 @@ void test15()
     }
     assert(i == 1);
 }
++/
 
 /* ================================ */
 
@@ -1554,7 +1557,7 @@ int main()
     test12();
     test13();
     test14();
-    test15();
+    //test15();
     test16();
     test17();
     test18();

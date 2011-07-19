@@ -48,7 +48,6 @@
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
-#include "doc.h"
 
 FuncDeclaration *hasThis(Scope *sc);
 
@@ -73,7 +72,7 @@ int PTRSIZE = 4;
 int REALSIZE = 16;
 int REALPAD = 6;
 int REALALIGNSIZE = 16;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 int REALSIZE = 12;
 int REALPAD = 2;
 int REALALIGNSIZE = 4;
@@ -177,7 +176,6 @@ void Type::init()
         sizeTy[i] = sizeof(TypeBasic);
     sizeTy[Tsarray] = sizeof(TypeSArray);
     sizeTy[Tarray] = sizeof(TypeDArray);
-    //sizeTy[Tnarray] = sizeof(TypeNArray);
     sizeTy[Taarray] = sizeof(TypeAArray);
     sizeTy[Tpointer] = sizeof(TypePointer);
     sizeTy[Treference] = sizeof(TypeReference);
@@ -199,7 +197,6 @@ void Type::init()
 
     mangleChar[Tarray] = 'A';
     mangleChar[Tsarray] = 'G';
-    mangleChar[Tnarray] = '@';
     mangleChar[Taarray] = 'H';
     mangleChar[Tpointer] = 'P';
     mangleChar[Treference] = 'R';
@@ -241,7 +238,6 @@ void Type::init()
     mangleChar[Tdchar] = 'w';
 
     // '@' shouldn't appear anywhere in the deco'd names
-    mangleChar[Tbit] = '@';
     mangleChar[Tinstance] = '@';
     mangleChar[Terror] = '@';
     mangleChar[Ttypeof] = '@';
@@ -292,7 +288,7 @@ void Type::init()
 #if TARGET_OSX
         REALSIZE = 16;
         REALPAD = 6;
-#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         REALSIZE = 12;
         REALPAD = 2;
 #else
@@ -1209,6 +1205,8 @@ Type *Type::toHeadMutable()
 
 Type *Type::pointerTo()
 {
+    if (ty == Terror)
+        return this;
     if (!pto)
     {   Type *t;
 
@@ -1220,6 +1218,8 @@ Type *Type::pointerTo()
 
 Type *Type::referenceTo()
 {
+    if (ty == Terror)
+        return this;
     if (!rto)
     {   Type *t;
 
@@ -1231,6 +1231,8 @@ Type *Type::referenceTo()
 
 Type *Type::arrayOf()
 {
+    if (ty == Terror)
+        return this;
     if (!arrayof)
     {   Type *t;
 
@@ -1713,6 +1715,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     {
         if (ty == Tvoid)
             error(loc, "void does not have an initializer");
+        if (ty == Tfunction)
+            error(loc, "function does not have an initializer");
         e = defaultInitLiteral(loc);
     }
     else if (ident == Id::mangleof)
@@ -1877,7 +1881,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
         {   /* Rewrite e.ident as:
              *  e.opDot().ident
              */
-            e = build_overload(e->loc, sc, e, NULL, fd->ident);
+            e = build_overload(e->loc, sc, e, NULL, fd);
             e = new DotIdExp(e->loc, e, ident);
             return e->semantic(sc);
         }
@@ -2536,7 +2540,7 @@ unsigned TypeBasic::alignsize()
             sz = REALALIGNSIZE;
             break;
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Tint64:
         case Tuns64:
             sz = global.params.isX86_64 ? 8 : 4;
@@ -3398,6 +3402,9 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         dim = dim->optimize(WANTvalue);
         dinteger_t d2 = dim->toInteger();
 
+        if (dim->op == TOKerror)
+            goto Lerror;
+
         if (d1 != d2)
             goto Loverflow;
 
@@ -3860,87 +3867,6 @@ int TypeDArray::hasPointers()
 }
 
 
-/***************************** TypeNewArray *****************************/
-
-#if 0
-
-TypeNewArray::TypeNewArray(Type *telement)
-        : TypeArray(Tnewarray, telement)
-{
-    sym = NULL;
-}
-
-Type *TypeNewArray::syntaxCopy()
-{
-    Type *t = next->syntaxCopy();
-    if (t == next)
-        t = this;
-    else
-    {   t = new TypeNewArray(t);
-        t->mod = mod;
-    }
-    return t;
-}
-
-d_uns64 TypeNewArray::size(Loc loc)
-{
-    //printf("TypeNewArray::size()\n");
-    return PTRSIZE;
-}
-
-unsigned TypeNewArray::alignsize()
-{
-    return PTRSIZE;
-}
-
-Type *TypeNewArray::semantic(Loc loc, Scope *sc)
-{   Type *tn = next;
-
-    tn = next->semantic(loc,sc);
-    Type *tbn = tn->toBasetype();
-    switch (tbn->ty)
-    {
-        case Tfunction:
-        case Tnone:
-        case Ttuple:
-            error(loc, "can't have array of %s", tbn->toChars());
-            tn = next = tint32;
-            break;
-        case Tstruct:
-        {   TypeStruct *ts = (TypeStruct *)tbn;
-            if (0 && ts->sym->isnested)
-                error(loc, "cannot have array of inner structs %s", ts->toChars());
-            break;
-        }
-    }
-    if (tn->isscope())
-        error(loc, "cannot have array of scope %s", tn->toChars());
-
-    next = tn;
-    transitive();
-    return merge();
-}
-
-void TypeNewArray::toDecoBuffer(OutBuffer *buf, int flag)
-{
-    Type::toDecoBuffer(buf, flag);
-    buf->writeByte('e');
-    if (next)
-        next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
-}
-
-void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writestring("[new]");
-}
-
-#endif
-
 /***************************** TypeAArray *****************************/
 
 TypeAArray::TypeAArray(Type *t, Type *index)
@@ -4023,7 +3949,6 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
 
     switch (index->toBasetype()->ty)
     {
-        case Tbool:
         case Tfunction:
         case Tvoid:
         case Tnone:
@@ -4742,6 +4667,11 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 
 void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
+    toCBufferWithAttributes(buf, ident, hgs, this, NULL);
+}
+
+void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
+{
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     const char *p = NULL;
 
@@ -4753,22 +4683,22 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     /* Use 'storage class' style for attributes
      */
-    if (mod)
+    if (attrs->mod)
     {
-        MODtoBuffer(buf, mod);
+        MODtoBuffer(buf, attrs->mod);
         buf->writeByte(' ');
     }
 
-    if (purity)
+    if (attrs->purity)
         buf->writestring("pure ");
-    if (isnothrow)
+    if (attrs->isnothrow)
         buf->writestring("nothrow ");
-    if (isproperty)
+    if (attrs->isproperty)
         buf->writestring("@property ");
-    if (isref)
+    if (attrs->isref)
         buf->writestring("ref ");
 
-    switch (trust)
+    switch (attrs->trust)
     {
         case TRUSTsystem:
             buf->writestring("@system ");
@@ -4785,9 +4715,11 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 
     if (next && (!ident || ident->toHChars2() == ident->toChars()))
         next->toCBuffer2(buf, hgs, 0);
+    else if (hgs->ddoc && !next)
+        buf->writestring("auto");
     if (hgs->ddoc != 1)
     {
-        switch (linkage)
+        switch (attrs->linkage)
         {
             case LINKd:         p = NULL;       break;
             case LINKc:         p = "C ";       break;
@@ -4805,6 +4737,17 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
     if (ident)
     {   buf->writeByte(' ');
         buf->writestring(ident->toHChars2());
+    }
+    if (td)
+    {   buf->writeByte('(');
+        for (int i = 0; i < td->origParameters->dim; i++)
+        {
+            TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
+            if (i)
+                buf->writestring(", ");
+            tp->toCBuffer(buf, hgs);
+        }
+        buf->writeByte(')');
     }
     Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
     inuse--;
@@ -5025,8 +4968,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     size_t tdim = tt->arguments->dim;
                     for (size_t j = 0; j < tdim; j++)
                     {   Parameter *narg = (Parameter *)tt->arguments->data[j];
-                        narg->storageClass = fparam->storageClass;
+                        narg->storageClass |= fparam->storageClass;
                     }
+                    fparam->storageClass = 0;
                 }
 
                 /* Reset number of parameters, and back up one to do this fparam again,
@@ -5363,6 +5307,20 @@ Type *TypeFunction::reliesOnTident()
     return next ? next->reliesOnTident() : NULL;
 }
 
+/********************************************
+ * Return TRUE if there are lazy parameters.
+ */
+bool TypeFunction::hasLazyParameters()
+{
+    size_t dim = Parameter::dim(parameters);
+    for (size_t i = 0; i < dim; i++)
+    {   Parameter *fparam = Parameter::getNth(parameters, i);
+        if (fparam->storageClass & STClazy)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 /***************************
  * Examine function signature for parameter p and see if
  * p can 'escape' the scope of the function.
@@ -5396,6 +5354,12 @@ bool TypeFunction::parameterEscapes(Parameter *p)
     /* Assume it escapes in the absence of better information.
      */
     return TRUE;
+}
+
+Expression *TypeFunction::defaultInit(Loc loc)
+{
+    error(loc, "function does not have a default initializer");
+    return new ErrorExp();
 }
 
 /***************************** TypeDelegate *****************************/
@@ -5461,7 +5425,7 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
     //printf("to  : %s\n", to->toChars());
     if (this == to)
         return MATCHexact;
-#if 0 // not allowing covariant conversions because it interferes with overriding
+#if 1 // not allowing covariant conversions because it interferes with overriding
     if (to->ty == Tdelegate && this->nextOf()->covariant(to->nextOf()) == 1)
         return MATCHconvert;
 #endif
@@ -6021,9 +5985,6 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
 
     if (!t)
     {
-#ifdef DEBUG
-        printf("2: ");
-#endif
         error(loc, "%s is used as a type", toChars());
         t = terror;
     }
@@ -7198,15 +7159,37 @@ int TypeStruct::needsDestruction()
 
 int TypeStruct::isAssignable()
 {
+    int assignable = TRUE;
+    unsigned offset;
+
     /* If any of the fields are const or invariant,
      * then one cannot assign this struct.
      */
     for (size_t i = 0; i < sym->fields.dim; i++)
     {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
-        if (v->isConst() || v->isImmutable())
-            return FALSE;
+        //printf("%s [%d] v = (%s) %s, v->offset = %d, v->parent = %s", sym->toChars(), i, v->kind(), v->toChars(), v->offset, v->parent->kind());
+        if (i == 0)
+            ;
+        else if (v->offset == offset)
+        {
+            /* If any fields of anonymous union are assignable,
+             * then regard union as assignable.
+             * This is to support unsafe things like Rebindable templates.
+             */
+            if (assignable)
+                continue;
+        }
+        else
+        {
+            if (!assignable)
+                return FALSE;
+        }
+        assignable = v->type->isMutable() && v->type->isAssignable();
+        offset = v->offset;
+        //printf(" -> assignable = %d\n", assignable);
     }
-    return TRUE;
+
+    return assignable;
 }
 
 int TypeStruct::hasPointers()
@@ -8093,27 +8076,6 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     buf->printf("%s]", upr->toChars());
 }
 
-/***************************** TypeNewArray *****************************/
-
-/* T[new]
- */
-
-TypeNewArray::TypeNewArray(Type *next)
-    : TypeNext(Tnarray, next)
-{
-    //printf("TypeNewArray\n");
-}
-
-void TypeNewArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
-{
-    if (mod != this->mod)
-    {   toCBuffer3(buf, hgs, mod);
-        return;
-    }
-    next->toCBuffer2(buf, hgs, this->mod);
-    buf->writestring("[new]");
-}
-
 /***************************** Parameter *****************************/
 
 Parameter::Parameter(StorageClass storageClass, Type *type, Identifier *ident, Expression *defaultArg)
@@ -8228,12 +8190,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             if (arg->defaultArg)
             {
                 argbuf.writestring(" = ");
-                unsigned o = argbuf.offset;
                 arg->defaultArg->toCBuffer(&argbuf, hgs);
-                if (hgs->ddoc)
-                {
-                    escapeDdocString(&argbuf, o);
-                }
             }
             buf->write(&argbuf);
         }

@@ -101,9 +101,7 @@ struct Match
 /***************************
  * Macros.
  */
-#if TARGET_POWERPC
-#pragma ZTC align 4
-#elif !TX86
+#if !TX86
 #pragma ZTC align 1
 #endif
 
@@ -156,7 +154,7 @@ struct MACRO
 #define FQtop           8       // top level file, already open
 #define FQqual          0x10    // filename is already qualified
 #endif
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #define FQnext          0x20    // search starts after directory
 #endif                          // of last included file
 
@@ -184,9 +182,6 @@ struct BLKLST
 #endif
 #if PRAGMA_ONCE
 #       define BLponce   0x10   /* pragma - only include this file once */
-#endif
-#if TARGET_MAC
-#       define BFpdef    0x20   /* pre-compilation definition block     */
 #endif
     char        BLtyp;          /* type of block (BLxxxx)               */
 #       define BLstr    2       /* string                               */
@@ -297,7 +292,7 @@ CEXTERN UHINT egchar(void);
 void insblk(unsigned char *text,int typ,list_t aargs,int nargs,macro_t *m);
 void insblk2(unsigned char *text,int typ);
 
-#if TARGET_MAC || __GNUC__
+#if __GNUC__
 unsigned getreallinnum();
 CEXTERN void getcharnum(void);
 #endif
@@ -430,13 +425,6 @@ symbol *using_member_declaration(Classsym *stag);
 void scope_push_nspace(Nspacesym *sn);
 void nspace_checkEnclosing(symbol *s);
 int nspace_isSame(symbol *s1, symbol *s2);
-
-#if TARGET_MAC
-/* TGnwc.c */
-void ext_init(void);
-void ext_term(void);
-void nwc_chkmain(symbol *,enum SC);
-#endif
 
 /* nwc.c */
 void thunk_hydrate(struct Thunk **);
@@ -638,10 +626,6 @@ int template_match_expanded_type(type *ptyTemplate, param_t *ptpl, param_t *ptal
         type *ptyFormal );
 int template_classname(char *vident, Classsym *stag);
 void template_free_ptal(param_t *ptal);
-#if TARGET_MAC
-bool template_match_expanded_type(type *ptyTemplate, param_t *ptal, type *ptyActual,
-        type *ptyFormal );
-#endif
 int template_function_leastAsSpecialized(symbol *f1, symbol *f2, param_t *ptal);
 #if SCPP
 Match template_matchtype(type *tp,type *te,elem *ee,param_t *ptpl, param_t *ptal, int flags);
@@ -698,7 +682,7 @@ char *el_tostring(Outbuffer *, elem *e);
 
 extern list_t pathlist;                 // include paths
 extern list_t headers;                  // pre-include files
-#if linux || __APPLE__ || __FreeBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 extern list_t pathsyslist;              // include path for .h file overrides
 #endif
 

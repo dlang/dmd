@@ -107,6 +107,7 @@ void test5()
 	    case 1: assert(s == "abc[ab]cabab"); break;
 	    case 2: assert(s == "abcabc[ab]ab"); break;
 	    case 3: assert(s == "abcabcab[ab]"); break;
+	    default: assert(0);
 	}
 	i++;
     }

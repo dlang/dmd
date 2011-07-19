@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2010 by Digital Mars
+// Copyright (c) 2000-2011 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -173,7 +173,7 @@ void IfStatement::toIR(IRState *irs)
     }
     else
 #endif
-        e = condition->toElem(&mystate);
+        e = condition->toElemDtor(&mystate);
     block_appendexp(blx->curblock, e);
     block *bcond = blx->curblock;
     block_next(blx, BCiftrue, NULL);
@@ -277,7 +277,7 @@ void DoStatement::toIR(IRState *irs)
 
     block_next(blx, BCgoto, mystate.contBlock);
     incUsage(irs, condition->loc);
-    block_appendexp(mystate.contBlock, condition->toElem(&mystate));
+    block_appendexp(mystate.contBlock, condition->toElemDtor(&mystate));
     block_next(blx, BCiftrue, mystate.breakBlock);
 
 }
@@ -303,7 +303,7 @@ void ForStatement::toIR(IRState *irs)
     if (condition)
     {
         incUsage(irs, condition->loc);
-        block_appendexp(bcond, condition->toElem(&mystate));
+        block_appendexp(bcond, condition->toElemDtor(&mystate));
         block_next(blx,BCiftrue,NULL);
         list_append(&bcond->Bsucc, blx->curblock);
         list_append(&bcond->Bsucc, mystate.breakBlock);
@@ -325,7 +325,7 @@ void ForStatement::toIR(IRState *irs)
     if (increment)
     {
         incUsage(irs, increment->loc);
-        block_appendexp(mystate.contBlock, increment->toElem(&mystate));
+        block_appendexp(mystate.contBlock, increment->toElemDtor(&mystate));
     }
 
     /* The 'break' block follows the for statement.
@@ -339,6 +339,7 @@ void ForStatement::toIR(IRState *irs)
 
 void ForeachStatement::toIR(IRState *irs)
 {
+    printf("ForeachStatement::toIR() %s\n", toChars());
     assert(0);  // done by "lowering" in the front end
 #if 0
     Type *tab;
@@ -932,7 +933,7 @@ void SwitchStatement::toIR(IRState *irs)
         numcases = cases->dim;
 
     incUsage(irs, loc);
-    elem *econd = condition->toElem(&mystate);
+    elem *econd = condition->toElemDtor(&mystate);
 #if DMDV2
     if (hasVars)
     {   /* Generate a sequence of if-then-else blocks for the cases.
@@ -947,7 +948,7 @@ void SwitchStatement::toIR(IRState *irs)
         for (int i = 0; i < numcases; i++)
         {   CaseStatement *cs = (CaseStatement *)cases->data[i];
 
-            elem *ecase = cs->exp->toElem(&mystate);
+            elem *ecase = cs->exp->toElemDtor(&mystate);
             elem *e = el_bin(OPeqeq, TYbool, el_copytree(econd), ecase);
             block *b = blx->curblock;
             block_appendexp(b, e);
@@ -1218,12 +1219,12 @@ void ReturnStatement::toIR(IRState *irs)
                 se->sym = irs->shidden;
                 se->soffset = 0;
                 se->fillHoles = 1;
-                e = exp->toElem(irs);
+                e = exp->toElemDtor(irs);
                 memcpy(se, save, sizeof(StructLiteralExp));
 
             }
             else
-                e = exp->toElem(irs);
+                e = exp->toElemDtor(irs);
             assert(e);
 
             if (exp->op == TOKstructliteral ||
@@ -1289,12 +1290,12 @@ void ReturnStatement::toIR(IRState *irs)
         else if (tf->isref)
         {   // Reference return, so convert to a pointer
             Expression *ae = exp->addressOf(NULL);
-            e = ae->toElem(irs);
+            e = ae->toElemDtor(irs);
         }
 #endif
         else
         {
-            e = exp->toElem(irs);
+            e = exp->toElemDtor(irs);
             assert(e);
         }
 
@@ -1422,7 +1423,7 @@ void WithStatement::toIR(IRState *irs)
         // Perform initialization of with handle
         ie = wthis->init->isExpInitializer();
         assert(ie);
-        ei = ie->exp->toElem(irs);
+        ei = ie->exp->toElemDtor(irs);
         e = el_var(sp);
         e = el_bin(OPeq,e->Ety, e, ei);
         elem_setLoc(e, loc);
@@ -1445,7 +1446,7 @@ void ThrowStatement::toIR(IRState *irs)
     Blockx *blx = irs->blx;
 
     incUsage(irs, loc);
-    elem *e = exp->toElem(irs);
+    elem *e = exp->toElemDtor(irs);
     
 #if DMD_OBJC
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
@@ -1703,6 +1704,15 @@ void AsmStatement::toIR(IRState *irs)
         blx->funcsym->Stype->Tty |= mTYnaked;
     }
 }
+
+/****************************************
+ */
+
+void ImportStatement::toIR(IRState *irs)
+{
+}
+
+
 
 
 #if DMD_OBJC

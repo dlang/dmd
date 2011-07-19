@@ -603,6 +603,7 @@ int bar29(int i)
 	case 7:
 	    i = 3;
 	    break;
+	default: assert(0);
     }
     return i;
 }
@@ -675,6 +676,7 @@ int bar32(int i)
     {
 	case 7:
 	    i = 4;
+	    goto case;
 	case 5:
 	    i = 2;
 	    break;

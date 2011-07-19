@@ -110,7 +110,7 @@ struct Declaration;
 #define RMload  (1 << 30)
 #define RMstore (1 << 31)
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // To support positional independent code,
     // must be able to remove BX from available registers
 extern regm_t ALLREGS;
@@ -196,6 +196,7 @@ extern regm_t BYTEREGS;
 #define SEGFS   0x64
 #define SEGGS   0x65
 
+#define CALL    0xE8
 #define JMP     0xE9    /* Intra-Segment Direct */
 #define JMPS    0xEB    /* JMP SHORT            */
 #define JCXZ    0xE3
@@ -241,6 +242,8 @@ extern regm_t BYTEREGS;
     #define ESCmark2    (8 << 8)       // mark eh stack
     #define ESCrelease2 (9 << 8)       // release eh stack
     #define ESCframeptr (10 << 8)      // replace with load of frame pointer
+    #define ESCdctor    (11 << 8)      // D object is constructed
+    #define ESCddtor    (12 << 8)      // D object is destructed
 
 #define ASM     0x36    // string of asm bytes, actually an SS: opcode
 
@@ -332,6 +335,7 @@ union evc
     targ_int    Vint;           // also used for tmp numbers (FLtmp)
     targ_uns    Vuns;
     targ_long   Vlong;
+    targ_llong  Vllong;
     targ_size_t Vsize_t;
     struct
     {   targ_size_t Vpointer;
@@ -442,6 +446,7 @@ struct code
       #define IEVoffset2  IEV2.sp.Voffset
       #define IEVlsym2    IEV2.lab.Vsym
       #define IEVint2     IEV2.Vint
+      #define IEVllong2   IEV2.Vllong
     void print();               // pretty-printer
 
     code() { Irex = 0; Isib = 0; }      // constructor
@@ -691,7 +696,7 @@ void WRcodlst (code *c );
 cd_t cdcomma;
 cd_t cdloglog;
 cd_t cdshift;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 cd_t cdindpic;
 #endif
 cd_t cdind;
@@ -832,6 +837,7 @@ regm_t iasm_regs( block *bp );
 code *nteh_prolog(void);
 code *nteh_epilog(void);
 void nteh_usevars(void);
+void nteh_filltables(void);
 void nteh_gentables(void);
 code *nteh_setsp(int op);
 code *nteh_filter(block *b);

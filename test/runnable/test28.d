@@ -196,26 +196,26 @@ void test10()
 struct Foo11
 {
     static
-	void func(T)(T a) { assert(a == 1); }
+	int func(T)(T a) { assert(a == 1); return 0; }
 }
 
 void test11()
 {
-	Foo11.init.func(1);
-	Foo11.init.func!(int)(1);
-	Foo11.func(1);
-	Foo11.func!(int)(1);
+	auto a = Foo11.init.func(1);
+	a = Foo11.init.func!(int)(1);
+	a = Foo11.func(1);
+	a = Foo11.func!(int)(1);
 }
 
 /*******************************************/
 
 void test12()
 {
-    class Exception { }
+    class ExceptioN { }
 
     class ExceptioX { }
 
-    static assert(Exception.mangleof[0 ..$-1] == ExceptioX.mangleof[0 .. $-1]);
+    static assert(ExceptioN.mangleof[0 ..$-1] == ExceptioX.mangleof[0 .. $-1]);
 }
 
 /*******************************************/
@@ -974,12 +974,9 @@ void test47()
 void test48()
 {
     Object o = new Object();
-    auto s = typeof(o).classinfo.name;
-    printf("%.*s\n", s.length, s.ptr);
-    s = (typeof(o)).classinfo.name;
-    printf("%.*s\n", s.length, s.ptr);
-    s = (Object).classinfo.name;
-    printf("%.*s\n", s.length, s.ptr);
+    printf("%.*s\n", typeof(o).classinfo.name.length, typeof(o).classinfo.name.ptr);
+    printf("%.*s\n", (typeof(o)).classinfo.name.length, (typeof(o)).classinfo.name.ptr);
+    printf("%.*s\n", (Object).classinfo.name.length, (Object).classinfo.name.ptr);
 }
 
 /*******************************************/
@@ -1306,7 +1303,7 @@ T dot65(T, uint dim)(Vector65!(T,dim) a, Vector65!(T,dim) b)
 void test65()
 {
   Vector65!(double,3u) a,b;
-  dot65(a,b);
+  auto t = dot65(a,b);
 }
 
 
