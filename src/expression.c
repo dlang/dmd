@@ -25,6 +25,7 @@ extern "C" char * __cdecl __locale_decpoint;
 
 #include "rmem.h"
 #include "port.h"
+#include "root.h"
 
 #include "mtype.h"
 #include "init.h"
@@ -253,10 +254,10 @@ Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc)
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = exps->tdata()[i];
+        {   Expression *e = (*exps)[i];
             if (e)
             {   e = e->semantic(sc);
-                exps->tdata()[i] = e;
+                (*exps)[i] = e;
             }
         }
     }
@@ -274,7 +275,7 @@ int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = exps->tdata()[i];
+        {   Expression *e = (*exps)[i];
             if (e && e->canThrow(mustNotThrow))
                 return 1;
         }
@@ -293,7 +294,7 @@ void expandTuples(Expressions *exps)
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *arg = exps->tdata()[i];
+        {   Expression *arg = (*exps)[i];
             if (!arg)
                 continue;
 
@@ -322,7 +323,7 @@ void expandTuples(Expressions *exps)
                 exps->insert(i, te->exps);      // replace with tuple contents
                 if (i == exps->dim)
                     return;             // empty tuple, no more arguments
-                arg = exps->tdata()[i];
+                arg = (*exps)[i];
             }
         }
     }
@@ -335,7 +336,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
      */
     Type *t0 = NULL;
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = exps->tdata()[i];
+    {   Expression *e = (*exps)[i];
 
         if (!e->type)
         {   error("%s has no value", e->toChars());
@@ -347,7 +348,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             t0 = e->type;
         else
             e = e->implicitCastTo(sc, t0);
-        exps->tdata()[i] = e;
+        (*exps)[i] = e;
     }
 
     if (!t0)
@@ -374,7 +375,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
     Expression *e0;
     int j0;
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = exps->tdata()[i];
+    {   Expression *e = (*exps)[i];
 
         e = resolveProperties(sc, e);
         if (!e->type)
@@ -393,7 +394,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
                 condexp.e2 = e;
                 condexp.loc = e->loc;
                 condexp.semantic(sc);
-                exps->tdata()[j0] = condexp.e1;
+                (*exps)[j0] = condexp.e1;
                 e = condexp.e2;
                 j0 = i;
                 e0 = e;
@@ -405,15 +406,15 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             e0 = e;
             t0 = e->type;
         }
-        exps->tdata()[i] = e;
+        (*exps)[i] = e;
     }
 
     if (t0)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = exps->tdata()[i];
+        {   Expression *e = (*exps)[i];
             e = e->implicitCastTo(sc, t0);
-            exps->tdata()[i] = e;
+            (*exps)[i] = e;
         }
     }
     else
@@ -437,7 +438,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         expandTuples(exps);
 
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *arg = exps->tdata()[i];
+        {   Expression *arg = (*exps)[i];
 
             if (!arg->type)
             {
@@ -450,7 +451,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
             }
 
             arg = resolveProperties(sc, arg);
-            exps->tdata()[i] =  arg;
+            (*exps)[i] =  arg;
 
             //arg->rvalue();
 #if 0
@@ -458,7 +459,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
             {
                 arg = new AddrExp(arg->loc, arg);
                 arg = arg->semantic(sc);
-                exps->tdata()[i] =  arg;
+                (*exps)[i] =  arg;
             }
 #endif
         }
@@ -1595,7 +1596,7 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
         a = new Expressions();
         a->setDim(exps->dim);
         for (int i = 0; i < a->dim; i++)
-        {   Expression *e = exps->tdata()[i];
+        {   Expression *e = (*exps)[i];
 
             if (e)
                 e = e->syntaxCopy();
@@ -4716,8 +4717,8 @@ int TupleExp::equals(Object *o)
         if (exps->dim != te->exps->dim)
             return 0;
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e1 = exps->tdata()[i];
-            Expression *e2 = te->exps->tdata()[i];
+        {   Expression *e1 = (*exps)[i];
+            Expression *e2 = (*te->exps)[i];
 
             if (!e1->equals(e2))
                 return 0;
@@ -4742,20 +4743,20 @@ Expression *TupleExp::semantic(Scope *sc)
 
     // Run semantic() on each argument
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = exps->tdata()[i];
+    {   Expression *e = (*exps)[i];
 
         e = e->semantic(sc);
         if (!e->type)
         {   error("%s has no value", e->toChars());
             e = new ErrorExp();
         }
-        exps->tdata()[i] = e;
+        (*exps)[i] = e;
     }
 
     expandTuples(exps);
     if (0 && exps->dim == 1)
     {
-        return exps->tdata()[0];
+        return (*exps)[0];
     }
     type = new TypeTuple(exps);
     type = type->semantic(loc, sc);
@@ -4774,7 +4775,7 @@ int TupleExp::checkSideEffect(int flag)
 {   int f = 0;
 
     for (int i = 0; i < exps->dim; i++)
-    {   Expression *e = exps->tdata()[i];
+    {   Expression *e = (*exps)[i];
 
         f |= e->checkSideEffect(2);
     }
@@ -4793,7 +4794,7 @@ int TupleExp::canThrow(bool mustNotThrow)
 void TupleExp::checkEscape()
 {
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = exps->tdata()[i];
+    {   Expression *e = (*exps)[i];
         e->checkEscape();
     }
 }
@@ -6177,10 +6178,10 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         Expressions *exps = new Expressions();
         exps->setDim(te->exps->dim);
         for (int i = 0; i < exps->dim; i++)
-        {   Expression *e = te->exps->tdata()[i];
+        {   Expression *e = (*te->exps)[i];
             e = e->semantic(sc);
             e = new DotIdExp(e->loc, e, Id::offsetof);
-            exps->tdata()[i] = e;
+            (*exps)[i] = e;
         }
         e = new TupleExp(loc, exps);
         e = e->semantic(sc);
@@ -8552,8 +8553,8 @@ Expression *SliceExp::semantic(Scope *sc)
             {   Expressions *exps = new Expressions;
                 exps->setDim(j2 - j1);
                 for (size_t i = 0; i < j2 - j1; i++)
-                {   Expression *e = te->exps->tdata()[j1 + i];
-                    exps->tdata()[i] = e;
+                {   Expression *e = (*te->exps)[j1 + i];
+                    (*exps)[i] = e;
                 }
                 e = new TupleExp(loc, exps);
             }
@@ -9001,6 +9002,8 @@ Expression *IndexExp::semantic(Scope *sc)
         error("%s has no value", e2->toChars());
         goto Lerr;
     }
+    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
+        e2 = (Expression *)((TupleExp *)e2)->exps->data[0];
     e2 = resolveProperties(sc, e2);
     if (e2->type == Type::terror)
         goto Lerr;
@@ -9076,7 +9079,7 @@ Expression *IndexExp::semantic(Scope *sc)
             {
 
                 if (e1->op == TOKtuple)
-                    e = te->exps->tdata()[(size_t)index];
+                    e = (*te->exps)[(size_t)index];
                 else
                     e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
             }
@@ -9411,9 +9414,9 @@ Expression *AssignExp::semantic(Scope *sc)
             exps->setDim(dim);
 
             for (int i = 0; i < dim; i++)
-            {   Expression *ex1 = tup1->exps->tdata()[i];
-                Expression *ex2 = tup2->exps->tdata()[i];
-                exps->tdata()[i] =  new AssignExp(loc, ex1, ex2);
+            {   Expression *ex1 = (*tup1->exps)[i];
+                Expression *ex2 = (*tup2->exps)[i];
+                (*exps)[i] =  new AssignExp(loc, ex1, ex2);
             }
             Expression *e = new TupleExp(loc, exps);
             e = e->semantic(sc);
