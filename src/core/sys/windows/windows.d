@@ -3293,4 +3293,7 @@ LPVOID TlsGetValue(DWORD);
 BOOL TlsSetValue(DWORD, LPVOID);
 BOOL TlsFree(DWORD);
 
+// shellapi.h
+HINSTANCE ShellExecuteA(HWND hwnd, LPCSTR lpOperation, LPCSTR lpFile, LPCSTR lpParameters, LPCSTR lpDirectory, INT nShowCmd);
+HINSTANCE ShellExecuteW(HWND hwnd, LPCWSTR lpOperation, LPCWSTR lpFile, LPCWSTR lpParameters, LPCWSTR lpDirectory, INT nShowCmd);
 }
