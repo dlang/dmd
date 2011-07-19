@@ -809,7 +809,7 @@ void test32()
   {
     S32 s = bar32();
   }
-  assert(S32.x == 0x211);
+  assert(S32.x == 0x101);
 }
 
 /**********************************/
@@ -1016,7 +1016,7 @@ void test38()
   {
     auto s1 = foo38;
     assert(S38.count == 1);
-    assert(S38.postblit == 1);
+    assert(S38.postblit == 0);
   }
   assert(S38.count == 0);
   S38.postblit = 0;
@@ -1312,7 +1312,7 @@ void test52()
     printf("a: %p, b: %p\n", &a, &b);
   }
     printf("s = '%.*s'\n", s52.length, s52.ptr);
-    assert(s52 == "caabbb");
+    assert(s52 == "cabb");
 }
 
 /**********************************/
@@ -1647,6 +1647,32 @@ struct bar5574b
 }
 
 /**********************************/
+// 5777
+
+int sdtor58 = 0;
+S58* ps58;
+
+struct S58
+{
+	@disable this(this);
+	~this(){ ++sdtor58; }
+}
+
+S58 makeS58()
+{
+	S58 s;
+	ps58 = &s;
+	return s;
+}
+
+void test58()
+{
+	auto s1 = makeS58();
+	assert(ps58 == &s1);
+	assert(sdtor58 == 0);
+}
+
+/**********************************/
 
 int main()
 {
@@ -1707,6 +1733,7 @@ int main()
     test55();
     test56();
     test57();
+    test58();
 
     printf("Success\n");
     return 0;

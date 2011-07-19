@@ -61,7 +61,7 @@ void arrayExpressionScanForNestedRef(Scope *sc, Expressions *a)
     if (a)
     {
         for (int i = 0; i < a->dim; i++)
-        {   Expression *e = (Expression *)a->data[i];
+        {   Expression *e = a->tdata()[i];
 
             if (e)
             {

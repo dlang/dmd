@@ -4104,24 +4104,545 @@ void bar56()
 
 /* ======================= SSSE3 ======================= */
 
-/*
-palignr
-phaddd
-phaddw
-phaddsw
-phsubd
-phsubw
-phsubsw
-pmaddubsw
-pmulhrsw
-pshufb
-pabsb
-pabsd
-pabsw
-psignb
-psignd
-psignw
-*/
+void test57()
+{
+    ubyte* p;
+    M64  m64;
+    M128 m128;
+    static ubyte data[] =
+    [
+        0x0F, 0x3A, 0x0F, 0xCA,       0x03,    // palignr   MM1,  MM2, 3
+  0x66, 0x0F, 0x3A, 0x0F, 0xCA,       0x03,    // palignr  XMM1, XMM2, 3
+        0x0F, 0x3A, 0x0F, 0x5D, 0xD8, 0x03,    // palignr   MM3, -0x28[EBP], 3
+  0x66, 0x0F, 0x3A, 0x0F, 0x5D, 0xE0, 0x03,    // palignr  XMM3, -0x20[EBP], 3
+        0x0F, 0x38, 0x02, 0xCA,                // phaddd    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x02, 0xCA,                // phaddd   XMM1, XMM2
+        0x0F, 0x38, 0x02, 0x5D, 0xD8,          // phaddd    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x02, 0x5D, 0xE0,          // phaddd   XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x01, 0xCA,                // phaddw    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x01, 0xCA,                // phaddw   XMM1, XMM2
+        0x0F, 0x38, 0x01, 0x5D, 0xD8,          // phaddw    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x01, 0x5D, 0xE0,          // phaddw   XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x03, 0xCA,                // phaddsw   MM1,  MM2
+  0x66, 0x0F, 0x38, 0x03, 0xCA,                // phaddsw  XMM1, XMM2
+        0x0F, 0x38, 0x03, 0x5D, 0xD8,          // phaddsw   MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x03, 0x5D, 0xE0,          // phaddsw  XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x06, 0xCA,                // phsubd    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x06, 0xCA,                // phsubd   XMM1, XMM2
+        0x0F, 0x38, 0x06, 0x5D, 0xD8,          // phsubd    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x06, 0x5D, 0xE0,          // phsubd   XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x05, 0xCA,                // phsubw    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x05, 0xCA,                // phsubw   XMM1, XMM2
+        0x0F, 0x38, 0x05, 0x5D, 0xD8,          // phsubw    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x05, 0x5D, 0xE0,          // phsubw   XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x07, 0xCA,                // phsubsw   MM1,  MM2
+  0x66, 0x0F, 0x38, 0x07, 0xCA,                // phsubsw  XMM1, XMM2
+        0x0F, 0x38, 0x07, 0x5D, 0xD8,          // phsubsw   MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x07, 0x5D, 0xE0,          // phsubsw  XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x04, 0xCA,                // pmaddubsw  MM1,  MM2
+  0x66, 0x0F, 0x38, 0x04, 0xCA,                // pmaddubsw XMM1, XMM2
+        0x0F, 0x38, 0x04, 0x5D, 0xD8,          // pmaddubsw  MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x04, 0x5D, 0xE0,          // pmaddubsw XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x0B, 0xCA,                // pmulhrsw  MM1,  MM2
+  0x66, 0x0F, 0x38, 0x0B, 0xCA,                // pmulhrsw XMM1, XMM2
+        0x0F, 0x38, 0x0B, 0x5D, 0xD8,          // pmulhrsw  MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x0B, 0x5D, 0xE0,          // pmulhrsw XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x00, 0xCA,                // pshufb    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x00, 0xCA,                // pshufb   XMM1, XMM2
+        0x0F, 0x38, 0x00, 0x5D, 0xD8,          // pshufb    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x00, 0x5D, 0xE0,          // pshufb   XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x1C, 0xCA,                // pabsb     MM1,  MM2
+  0x66, 0x0F, 0x38, 0x1C, 0xCA,                // pabsb    XMM1, XMM2
+        0x0F, 0x38, 0x1C, 0x5D, 0xD8,          // pabsb     MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x1C, 0x5D, 0xE0,          // pabsb    XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x1E, 0xCA,                // pabsd     MM1,  MM2
+  0x66, 0x0F, 0x38, 0x1E, 0xCA,                // pabsd    XMM1, XMM2
+        0x0F, 0x38, 0x1E, 0x5D, 0xD8,          // pabsd     MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x1E, 0x5D, 0xE0,          // pabsd    XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x1D, 0xCA,                // pabsw     MM1,  MM2
+  0x66, 0x0F, 0x38, 0x1D, 0xCA,                // pabsw    XMM1, XMM2
+        0x0F, 0x38, 0x1D, 0x5D, 0xD8,          // pabsw     MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x1D, 0x5D, 0xE0,          // pabsw    XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x08, 0xCA,                // psignb    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x08, 0xCA,                // psignb   XMM1, XMM2
+        0x0F, 0x38, 0x08, 0x5D, 0xD8,          // psignb    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x08, 0x5D, 0xE0,          // psignb   XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x0A, 0xCA,                // psignd    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x0A, 0xCA,                // psignd   XMM1, XMM2
+        0x0F, 0x38, 0x0A, 0x5D, 0xD8,          // psignd    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x0A, 0x5D, 0xE0,          // psignd   XMM3, -0x20[EBP]
+        0x0F, 0x38, 0x09, 0xCA,                // psignw    MM1,  MM2
+  0x66, 0x0F, 0x38, 0x09, 0xCA,                // psignw   XMM1, XMM2
+        0x0F, 0x38, 0x09, 0x5D, 0xD8,          // psignw    MM3, -0x28[EBP]
+  0x66, 0x0F, 0x38, 0x09, 0x5D, 0xE0,          // psignw   XMM3, -0x20[EBP]
+    ];
+
+    asm
+    {
+        call  L1;
+
+        palignr     MM1,  MM2, 3;
+        palignr    XMM1, XMM2, 3;
+        palignr     MM3, m64 , 3;
+        palignr    XMM3, m128, 3;
+
+        phaddd      MM1,  MM2;
+        phaddd     XMM1, XMM2;
+        phaddd      MM3,  m64;
+        phaddd     XMM3, m128;
+
+        phaddw      MM1,  MM2;
+        phaddw     XMM1, XMM2;
+        phaddw      MM3,  m64;
+        phaddw     XMM3, m128;
+
+        phaddsw     MM1,  MM2;
+        phaddsw    XMM1, XMM2;
+        phaddsw     MM3,  m64;
+        phaddsw    XMM3, m128;
+
+        phsubd      MM1,  MM2;
+        phsubd     XMM1, XMM2;
+        phsubd      MM3,  m64;
+        phsubd     XMM3, m128;
+
+        phsubw      MM1,  MM2;
+        phsubw     XMM1, XMM2;
+        phsubw      MM3,  m64;
+        phsubw     XMM3, m128;
+
+        phsubsw     MM1,  MM2;
+        phsubsw    XMM1, XMM2;
+        phsubsw     MM3,  m64;
+        phsubsw    XMM3, m128;
+
+        pmaddubsw   MM1,  MM2;
+        pmaddubsw  XMM1, XMM2;
+        pmaddubsw   MM3,  m64;
+        pmaddubsw  XMM3, m128;
+
+        pmulhrsw    MM1,  MM2;
+        pmulhrsw   XMM1, XMM2;
+        pmulhrsw    MM3,  m64;
+        pmulhrsw   XMM3, m128;
+
+        pshufb      MM1,  MM2;
+        pshufb     XMM1, XMM2;
+        pshufb      MM3,  m64;
+        pshufb     XMM3, m128;
+
+        pabsb       MM1,  MM2;
+        pabsb      XMM1, XMM2;
+        pabsb       MM3,  m64;
+        pabsb      XMM3, m128;
+
+        pabsd       MM1,  MM2;
+        pabsd      XMM1, XMM2;
+        pabsd       MM3,  m64;
+        pabsd      XMM3, m128;
+
+        pabsw       MM1,  MM2;
+        pabsw      XMM1, XMM2;
+        pabsw       MM3,  m64;
+        pabsw      XMM3, m128;
+
+        psignb      MM1,  MM2;
+        psignb     XMM1, XMM2;
+        psignb      MM3,  m64;
+        psignb     XMM3, m128;
+
+        psignd      MM1,  MM2;
+        psignd     XMM1, XMM2;
+        psignd      MM3,  m64;
+        psignd     XMM3, m128;
+
+        psignw      MM1,  MM2;
+        psignw     XMM1, XMM2;
+        psignw      MM3,  m64;
+        psignw     XMM3, m128;
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
+/* ======================= SSE4.1 ======================= */
+
+void test58()
+{
+    ubyte* p;
+    byte   m8;
+    short m16;
+    int   m32;
+    M64   m64;
+    M128 m128;
+    static ubyte data[] =
+    [
+  0x66,       0x0F, 0x3A, 0x0D, 0xCA,        3,// blendpd  XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x0D, 0x5D, 0xE0,  3,// blendpd  XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x3A, 0x0C, 0xCA,        3,// blendps  XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x0C, 0x5D, 0xE0,  3,// blendps  XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x38, 0x15, 0xCA,          // blendvpd XMM1,XMM2,XMM0
+  0x66,       0x0F, 0x38, 0x15, 0x5D, 0xE0,    // blendvpd XMM3,XMMWORD PTR [RBP-0x20],XMM0
+  0x66,       0x0F, 0x38, 0x14, 0xCA,          // blendvps XMM1,XMM2,XMM0
+  0x66,       0x0F, 0x38, 0x14, 0x5D, 0xE0,    // blendvps XMM3,XMMWORD PTR [RBP-0x20],XMM0
+  0x66,       0x0F, 0x3A, 0x41, 0xCA,        3,// dppd     XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x41, 0x5D, 0xE0,  3,// dppd     XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x3A, 0x40, 0xCA,        3,// dpps     XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x40, 0x5D, 0xE0,  3,// dpps     XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x3A, 0x17, 0xD2,        3,// extractps EDX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x17, 0x55, 0xC8,  3,// extractps DWORD PTR [RBP-0x38],XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x21, 0xCA,        3,// insertps XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x21, 0x5D, 0xC8,  3,// insertps XMM3,DWORD PTR [RBP-0x38],0x3
+  0x66,       0x0F, 0x38, 0x2A, 0x4D, 0xE0,    // movntdqa XMM1,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x3A, 0x42, 0xCA,        3,// mpsadbw  XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x42, 0x5D, 0xE0,  3,// mpsadbw  XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x38, 0x2B, 0xCA,          // packusdw XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x2B, 0x5D, 0xE0,    // packusdw XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x10, 0xCA,          // pblendvb XMM1,XMM2,XMM0
+  0x66,       0x0F, 0x38, 0x10, 0x5D, 0xE0,    // pblendvb XMM3,XMMWORD PTR [RBP-0x20],XMM0
+  0x66,       0x0F, 0x3A, 0x0E, 0xCA,        3,// pblendw  XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x0E, 0x5D, 0xE0,  3,// pblendw  XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x38, 0x29, 0xCA,          // pcmpeqq  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x29, 0x5D, 0xE0,    // pcmpeqq  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x3A, 0x14, 0xD0,        3,// pextrb EAX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x14, 0xD3,        3,// pextrb EBX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x14, 0xD1,        3,// pextrb ECX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x14, 0xD2,        3,// pextrb EDX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x14, 0x5D, 0xC4,  3,// pextrb BYTE PTR [RBP-0x3C],XMM3,0x3
+  0x66,       0x0F, 0x3A, 0x16, 0xD0,        3,// pextrd EAX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x16, 0xD3,        3,// pextrd EBX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x16, 0xD1,        3,// pextrd ECX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x16, 0xD2,        3,// pextrd EDX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x16, 0x5D, 0xC8,  3,// pextrd DWORD PTR [RBP-0x38],XMM3,0x3
+  0x66,       0x0F, 0xC5, 0xC2,              3,// pextrw EAX,XMM2,0x3
+  0x66,       0x0F, 0xC5, 0xDA,              3,// pextrw EBX,XMM2,0x3
+  0x66,       0x0F, 0xC5, 0xCA,              3,// pextrw ECX,XMM2,0x3
+  0x66,       0x0F, 0xC5, 0xD2,              3,// pextrw EDX,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x15, 0x5D, 0xC6,  3,// pextrw WORD PTR [RBP-0x3A],XMM3,0x3
+  0x66,       0x0F, 0x38, 0x41, 0xCA,          // phminposuw XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x41, 0x5D, 0xE0,    // phminposuw XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x3A, 0x20, 0xC8,        3,// pinsrb  XMM1,EAX,0x3
+  0x66,       0x0F, 0x3A, 0x20, 0xCB,        3,// pinsrb  XMM1,EBX,0x3
+  0x66,       0x0F, 0x3A, 0x20, 0xC9,        3,// pinsrb  XMM1,ECX,0x3
+  0x66,       0x0F, 0x3A, 0x20, 0xCA,        3,// pinsrb  XMM1,EDX,0x3
+  0x66,       0x0F, 0x3A, 0x20, 0x5D, 0xC4,  3,// pinsrb  XMM3,BYTE PTR [RBP-0x3C],0x3
+  0x66,       0x0F, 0x3A, 0x22, 0xC8,        3,// pinsrd  XMM1,EAX,0x3
+  0x66,       0x0F, 0x3A, 0x22, 0xCB,        3,// pinsrd  XMM1,EBX,0x3
+  0x66,       0x0F, 0x3A, 0x22, 0xC9,        3,// pinsrd  XMM1,ECX,0x3
+  0x66,       0x0F, 0x3A, 0x22, 0xCA,        3,// pinsrd  XMM1,EDX,0x3
+  0x66,       0x0F, 0x3A, 0x22, 0x5D, 0xC8,  3,// pinsrd  XMM3,DWORD PTR [RBP-0x38],0x3
+  0x66,       0x0F, 0x38, 0x3C, 0xCA,          // pmaxsb  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x3C, 0x5D, 0xE0,    // pmaxsb  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x3D, 0xCA,          // pmaxsd  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x3D, 0x5D, 0xE0,    // pmaxsd  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x3F, 0xCA,          // pmaxud  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x3F, 0x5D, 0xE0,    // pmaxud  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x3E, 0xCA,          // pmaxuw  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x3E, 0x5D, 0xE0,    // pmaxuw  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x38, 0xCA,          // pminsb  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x38, 0x5D, 0xE0,    // pminsb  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x39, 0xCA,          // pminsd  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x39, 0x5D, 0xE0,    // pminsd  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x3B, 0xCA,          // pminud  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x3B, 0x5D, 0xE0,    // pminud  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x3A, 0xCA,          // pminuw  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x3A, 0x5D, 0xE0,    // pminuw  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x20, 0xCA,          // pmovsxbw XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x20, 0x5D, 0xD0,    // pmovsxbw XMM3,QWORD PTR [RBP-0x30]
+  0x66,       0x0F, 0x38, 0x21, 0xCA,          // pmovsxbd XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x21, 0x5D, 0xC8,    // pmovsxbd XMM3,DWORD PTR [RBP-0x38]
+  0x66,       0x0F, 0x38, 0x22, 0xCA,          // pmovsxbq XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x22, 0x5D, 0xC6,    // pmovsxbq XMM3,WORD PTR [RBP-0x3A]
+  0x66,       0x0F, 0x38, 0x23, 0xCA,          // pmovsxwd XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x23, 0x5D, 0xD0,    // pmovsxwd XMM3,QWORD PTR [RBP-0x30]
+  0x66,       0x0F, 0x38, 0x24, 0xCA,          // pmovsxwq XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x24, 0x5D, 0xC8,    // pmovsxwq XMM3,DWORD PTR [RBP-0x38]
+  0x66,       0x0F, 0x38, 0x25, 0xCA,          // pmovsxdq XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x25, 0x5D, 0xD0,    // pmovsxdq XMM3,QWORD PTR [RBP-0x30]
+  0x66,       0x0F, 0x38, 0x30, 0xCA,          // pmovzxbw XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x30, 0x5D, 0xD0,    // pmovzxbw XMM3,QWORD PTR [RBP-0x30]
+  0x66,       0x0F, 0x38, 0x31, 0xCA,          // pmovzxbd XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x31, 0x5D, 0xC8,    // pmovzxbd XMM3,DWORD PTR [RBP-0x38]
+  0x66,       0x0F, 0x38, 0x32, 0xCA,          // pmovzxbq XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x32, 0x5D, 0xC6,    // pmovzxbq XMM3,WORD PTR [RBP-0x3A]
+  0x66,       0x0F, 0x38, 0x33, 0xCA,          // pmovzxwd XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x33, 0x5D, 0xD0,    // pmovzxwd XMM3,QWORD PTR [RBP-0x30]
+  0x66,       0x0F, 0x38, 0x34, 0xCA,          // pmovzxwq XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x34, 0x5D, 0xC8,    // pmovzxwq XMM3,DWORD PTR [RBP-0x38]
+  0x66,       0x0F, 0x38, 0x35, 0xCA,          // pmovzxdq XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x35, 0x5D, 0xD0,    // pmovzxdq XMM3,QWORD PTR [RBP-0x30]
+  0x66,       0x0F, 0x38, 0x28, 0xCA,          // pmuldq  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x28, 0x5D, 0xE0,    // pmuldq  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x40, 0xCA,          // pmulld  XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x40, 0x5D, 0xE0,    // pmulld  XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x38, 0x17, 0xCA,          // ptest   XMM1,XMM2
+  0x66,       0x0F, 0x38, 0x17, 0x5D, 0xE0,    // ptest   XMM3,XMMWORD PTR [RBP-0x20]
+  0x66,       0x0F, 0x3A, 0x09, 0xCA,        3,// roundpd XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x09, 0x5D, 0xE0,  3,// roundpd XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x3A, 0x08, 0xCA,        3,// roundps XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x08, 0x5D, 0xE0,  3,// roundps XMM3,XMMWORD PTR [RBP-0x20],0x3
+  0x66,       0x0F, 0x3A, 0x0B, 0xCA,        3,// roundsd XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x0B, 0x5D, 0xD0,  3,// roundsd XMM3,QWORD PTR [RBP-0x30],0x3
+  0x66,       0x0F, 0x3A, 0x0A, 0xCA,        3,// roundss XMM1,XMM2,0x3
+  0x66,       0x0F, 0x3A, 0x0A, 0x4D, 0xC8,  3,// roundss xmm1,dword ptr [rbp-0x38],0x3
+    ];
+
+    asm
+    {
+        call  L1;
+
+        blendpd      XMM1, XMM2, 3;
+        blendpd      XMM3, m128, 3;
+
+        blendps      XMM1, XMM2, 3;
+        blendps      XMM3, m128, 3;
+
+        blendvpd     XMM1, XMM2, XMM0;
+        blendvpd     XMM3, m128, XMM0;
+
+        blendvps     XMM1, XMM2, XMM0;
+        blendvps     XMM3, m128, XMM0;
+
+        dppd         XMM1, XMM2, 3;
+        dppd         XMM3, m128, 3;
+
+        dpps         XMM1, XMM2, 3;
+        dpps         XMM3, m128, 3;
+
+        extractps     EDX, XMM2, 3;
+        extractps     m32, XMM2, 3;
+
+        insertps     XMM1, XMM2, 3;
+        insertps     XMM3,  m32, 3;
+
+        movntdqa     XMM1, m128;
+
+        mpsadbw      XMM1, XMM2, 3;
+        mpsadbw      XMM3, m128, 3;
+
+        packusdw     XMM1, XMM2;
+        packusdw     XMM3, m128;
+
+        pblendvb     XMM1, XMM2, XMM0;
+        pblendvb     XMM3, m128, XMM0;
+
+        pblendw      XMM1, XMM2, 3;
+        pblendw      XMM3, m128, 3;
+
+        pcmpeqq      XMM1, XMM2;
+        pcmpeqq      XMM3, m128;
+
+        pextrb        EAX, XMM2, 3;
+        pextrb        EBX, XMM2, 3;
+        pextrb        ECX, XMM2, 3;
+        pextrb        EDX, XMM2, 3;
+        pextrb         m8, XMM3, 3;
+
+        pextrd        EAX, XMM2, 3;
+        pextrd        EBX, XMM2, 3;
+        pextrd        ECX, XMM2, 3;
+        pextrd        EDX, XMM2, 3;
+        pextrd        m32, XMM3, 3;
+
+        pextrw        EAX, XMM2, 3;
+        pextrw        EBX, XMM2, 3;
+        pextrw        ECX, XMM2, 3;
+        pextrw        EDX, XMM2, 3;
+        pextrw        m16, XMM3, 3;
+
+        phminposuw   XMM1, XMM2;
+        phminposuw   XMM3, m128;
+
+        pinsrb       XMM1,  EAX, 3;
+        pinsrb       XMM1,  EBX, 3;
+        pinsrb       XMM1,  ECX, 3;
+        pinsrb       XMM1,  EDX, 3;
+        pinsrb       XMM3,   m8, 3;
+
+        pinsrd       XMM1,  EAX, 3;
+        pinsrd       XMM1,  EBX, 3;
+        pinsrd       XMM1,  ECX, 3;
+        pinsrd       XMM1,  EDX, 3;
+        pinsrd       XMM3,  m32, 3;
+
+        pmaxsb       XMM1, XMM2;
+        pmaxsb       XMM3, m128;
+
+        pmaxsd       XMM1, XMM2;
+        pmaxsd       XMM3, m128;
+
+        pmaxud       XMM1, XMM2;
+        pmaxud       XMM3, m128;
+
+        pmaxuw       XMM1, XMM2;
+        pmaxuw       XMM3, m128;
+
+        pminsb       XMM1, XMM2;
+        pminsb       XMM3, m128;
+
+        pminsd       XMM1, XMM2;
+        pminsd       XMM3, m128;
+
+        pminud       XMM1, XMM2;
+        pminud       XMM3, m128;
+
+        pminuw       XMM1, XMM2;
+        pminuw       XMM3, m128;
+
+        pmovsxbw     XMM1, XMM2;
+        pmovsxbw     XMM3,  m64;
+
+        pmovsxbd     XMM1, XMM2;
+        pmovsxbd     XMM3,  m32;
+
+        pmovsxbq     XMM1, XMM2;
+        pmovsxbq     XMM3,  m16;
+
+        pmovsxwd     XMM1, XMM2;
+        pmovsxwd     XMM3,  m64;
+
+        pmovsxwq     XMM1, XMM2;
+        pmovsxwq     XMM3,  m32;
+
+        pmovsxdq     XMM1, XMM2;
+        pmovsxdq     XMM3,  m64;
+
+        pmovzxbw     XMM1, XMM2;
+        pmovzxbw     XMM3,  m64;
+
+        pmovzxbd     XMM1, XMM2;
+        pmovzxbd     XMM3,  m32;
+
+        pmovzxbq     XMM1, XMM2;
+        pmovzxbq     XMM3,  m16;
+
+        pmovzxwd     XMM1, XMM2;
+        pmovzxwd     XMM3,  m64;
+
+        pmovzxwq     XMM1, XMM2;
+        pmovzxwq     XMM3,  m32;
+
+        pmovzxdq     XMM1, XMM2;
+        pmovzxdq     XMM3,  m64;
+
+        pmuldq       XMM1, XMM2;
+        pmuldq       XMM3, m128;
+
+        pmulld       XMM1, XMM2;
+        pmulld       XMM3, m128;
+
+        ptest        XMM1, XMM2;
+        ptest        XMM3, m128;
+
+        roundpd      XMM1, XMM2, 3;
+        roundpd      XMM3, m128, 3;
+
+        roundps      XMM1, XMM2, 3;
+        roundps      XMM3, m128, 3;
+
+        roundsd      XMM1, XMM2, 3;
+        roundsd      XMM3,  m64, 3;
+
+        roundss      XMM1, XMM2, 3;
+        roundss      XMM1,  m32, 3;
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
+/****************************************************/
+
+/* ======================= SSE4.2 ======================= */
+
+void test59()
+{
+    ubyte* p;
+    byte   m8;
+    short m16;
+    int   m32;
+    M64   m64;
+    M128 m128;
+    static ubyte data[] =
+    [
+0xF2,       0x0F, 0x38, 0xF0, 0xC1,           // crc32   EAX,  CL
+0x66, 0xF2, 0x0F, 0x38, 0xF1, 0xC1,           // crc32   EAX,  CX
+0xF2,       0x0F, 0x38, 0xF1, 0xC1,           // crc32   EAX, ECX
+0xF2,       0x0F, 0x38, 0xF0, 0x55, 0xC4,     // crc32   EDX, byte ptr [RBP-0x3C]
+0x66, 0xF2, 0x0F, 0x38, 0xF1, 0x55, 0xC6,     // crc32   EDX, word ptr [RBP-0x3A]
+0xF2,       0x0F, 0x38, 0xF1, 0x55, 0xC8,     // crc32   EDX,dword ptr [RBP-0x38]
+0x66,       0x0F, 0x3A, 0x61, 0xCA,        2, // pcmpestri XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x61, 0x5D, 0xE0,  2, // pcmpestri XMM3,xmmword ptr [RBP-0x20], 2
+0x66,       0x0F, 0x3A, 0x60, 0xCA,        2, // pcmpestrm XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x60, 0x5D, 0xE0,  2, // pcmpestrm XMM3,xmmword ptr [RBP-0x20], 2
+0x66,       0x0F, 0x3A, 0x63, 0xCA,        2, // pcmpistri XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x63, 0x5D, 0xE0,  2, // pcmpistri XMM3,xmmword ptr [RBP-0x20], 2
+0x66,       0x0F, 0x3A, 0x62, 0xCA,        2, // pcmpistrm XMM1,XMM2, 2
+0x66,       0x0F, 0x3A, 0x62, 0x5D, 0xE0,  2, // pcmpistrm XMM3,xmmword ptr [RBP-0x20], 2
+0x66,       0x0F, 0x38, 0x37, 0xCA,           // pcmpgtq   XMM1,XMM2
+0x66,       0x0F, 0x38, 0x37, 0x5D, 0xE0,     // pcmpgtq   XMM3,xmmword ptr [RBP-0x20]
+0x66, 0xF3, 0x0F, 0xB8, 0xC1,                 // popcnt   AX, CX
+0xF3,       0x0F, 0xB8, 0xC1,                 // popcnt  EAX, ECX
+0x66, 0xF3, 0x0F, 0xB8, 0x55, 0xC6,           // popcnt   DX, word ptr [RBP-0x3A]
+0xF3,       0x0F, 0xB8, 0x55, 0xC8,           // popcnt  EDX,dword ptr [RBP-0x38]
+    ];
+
+    asm
+    {
+        call  L1;
+
+        crc32    EAX,  CL;
+        crc32    EAX,  CX;
+        crc32    EAX, ECX;
+        crc32    EDX,  m8;
+        crc32    EDX, m16;
+        crc32    EDX, m32;
+
+        pcmpestri  XMM1, XMM2, 2;
+        pcmpestri  XMM3, m128, 2;
+
+        pcmpestrm  XMM1, XMM2, 2;
+        pcmpestrm  XMM3, m128, 2;
+
+        pcmpistri  XMM1, XMM2, 2;
+        pcmpistri  XMM3, m128, 2;
+
+        pcmpistrm  XMM1, XMM2, 2;
+        pcmpistrm  XMM3, m128, 2;
+
+        pcmpgtq  XMM1, XMM2;
+        pcmpgtq  XMM3, m128;
+
+        popcnt  AX,  CX;
+        popcnt EAX, ECX;
+        popcnt  DX, m16;
+        popcnt EDX, m32;
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
 
 /****************************************************/
 
@@ -4189,6 +4710,9 @@ int main()
     test54();
     test55();
     test56();
+    test57();
+    test58();
+    test59();
   }
     printf("Success\n");
     return 0;

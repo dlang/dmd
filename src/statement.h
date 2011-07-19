@@ -157,6 +157,18 @@ struct ExpStatement : Statement
     ExpStatement *isExpStatement() { return this; }
 };
 
+struct DtorExpStatement : ExpStatement
+{
+    /* Wraps an expression that is the destruction of 'var'
+     */
+
+    VarDeclaration *var;
+
+    DtorExpStatement(Loc loc, Expression *exp, VarDeclaration *v);
+    Statement *syntaxCopy();
+    void toIR(IRState *irs);
+};
+
 struct CompileStatement : Statement
 {
     Expression *exp;
@@ -328,8 +340,8 @@ struct ForeachStatement : Statement
 
     FuncDeclaration *func;      // function we're lexically in
 
-    Array *cases;        // put breaks, continues, gotos and returns here
-    Array *gotos;        // forward referenced goto's go here
+    Statements *cases;          // put breaks, continues, gotos and returns here
+    CompoundStatements *gotos;  // forward referenced goto's go here
 
     ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
@@ -455,8 +467,8 @@ struct SwitchStatement : Statement
 
     DefaultStatement *sdefault;
     TryFinallyStatement *tf;
-    Array gotoCases;            // array of unresolved GotoCaseStatement's
-    Array *cases;               // array of CaseStatement's
+    GotoCaseStatements gotoCases;  // array of unresolved GotoCaseStatement's
+    CaseStatements *cases;         // array of CaseStatement's
     int hasNoDefault;           // !=0 if no default statement
     int hasVars;                // !=0 if has variable case values
 
@@ -666,9 +678,9 @@ struct WithStatement : Statement
 struct TryCatchStatement : Statement
 {
     Statement *body;
-    Array *catches;
+    Catches *catches;
 
-    TryCatchStatement(Loc loc, Statement *body, Array *catches);
+    TryCatchStatement(Loc loc, Statement *body, Catches *catches);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
@@ -800,7 +812,7 @@ struct LabelStatement : Statement
     TryFinallyStatement *tf;
     block *lblock;              // back end
 
-    Array *fwdrefs;             // forward references to this LabelStatement
+    Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();
