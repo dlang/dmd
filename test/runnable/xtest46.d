@@ -1458,6 +1458,19 @@ void test79()
 
 /***************************************************/
 
+void test6317()
+{
+    int b = 12345;
+    struct nested { int a; int fun() { return b; } }
+    static assert(!__traits(compiles, { nested x = { 3, null }; }));
+    nested g = { 7 };
+    auto h = nested(7);
+    assert(g.fun() == 12345);
+    assert(h.fun() == 12345);
+}
+
+/***************************************************/
+
 void test80()
 {
     auto array = new int[10];
@@ -3264,6 +3277,27 @@ void test6264()
 }
 
 /***************************************************/
+// 5046 
+ 
+void test5046() 
+{ 
+    auto va = S5046!("", int)(); 
+    auto vb = makeS5046!("", int)(); 
+} 
+ 
+struct S5046(alias p, T) 
+{ 
+    T s; 
+    T fun() { return s; }   // (10) 
+} 
+ 
+S5046!(p, T) makeS5046(alias p, T)() 
+{ 
+    return typeof(return)(); 
+} 
+ 
+/***************************************************/ 
+
 
 int main()
 {
@@ -3408,6 +3442,7 @@ int main()
     test139();
     test140();
     test141();
+    test6317();
     test142();
     test143();
     test144();
@@ -3428,6 +3463,7 @@ int main()
     test4031();
     test6230();
     test6264();
+    test5046();
 
     printf("Success\n");
     return 0;

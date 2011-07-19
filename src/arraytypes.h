@@ -18,34 +18,60 @@
 
 #include "root.h"
 
-struct Expression;
-struct Statement;
-struct BaseClass;
-struct TemplateParameter;
-struct FuncDeclaration;
-struct Identifier;
-struct Initializer;
+typedef ArrayBase<struct TemplateParameter> TemplateParameters;
 
-struct TemplateParameters : Array { };
+typedef ArrayBase<struct Expression> Expressions;
 
-struct Expressions : Array { };
+typedef ArrayBase<struct Statement> Statements;
 
-struct Statements : Array { };
+typedef ArrayBase<struct BaseClass> BaseClasses;
 
-struct BaseClasses : Array { };
+typedef ArrayBase<struct ClassDeclaration> ClassDeclarations;
 
-struct ClassDeclarations : Array { };
+typedef ArrayBase<struct Dsymbol> Dsymbols;
 
-struct Dsymbols : Array { };
+typedef ArrayBase<struct Object> Objects;
 
-struct Objects : Array { };
+typedef ArrayBase<struct FuncDeclaration> FuncDeclarations;
 
-struct FuncDeclarations : Array { };
+typedef ArrayBase<struct Parameter> Parameters;
 
-struct Parameters : Array { };
+typedef ArrayBase<struct Identifier> Identifiers;
 
-struct Identifiers : Array { };
+typedef ArrayBase<struct Initializer> Initializers;
 
-struct Initializers : Array { };
+typedef ArrayBase<struct VarDeclaration> VarDeclarations;
+
+typedef ArrayBase<struct Type> Types;
+
+typedef ArrayBase<struct ScopeDsymbol> ScopeDsymbols;
+
+typedef ArrayBase<struct Catch> Catches;
+
+typedef ArrayBase<struct StaticDtorDeclaration> StaticDtorDeclarations;
+
+typedef ArrayBase<struct SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
+
+typedef ArrayBase<struct AliasDeclaration> AliasDeclarations;
+
+typedef ArrayBase<struct Module> Modules;
+
+typedef ArrayBase<struct File> Files;
+
+typedef ArrayBase<struct CaseStatement> CaseStatements;
+
+typedef ArrayBase<struct CompoundStatement> CompoundStatements;
+
+typedef ArrayBase<struct GotoCaseStatement> GotoCaseStatements;
+
+typedef ArrayBase<struct TemplateInstance> TemplateInstances;
+
+//typedef ArrayBase<char> Strings;
+
+typedef ArrayBase<void> Voids;
+
+typedef ArrayBase<struct block> Blocks;
+
+typedef ArrayBase<struct Symbol> Symbols;
 
 #endif

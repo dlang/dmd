@@ -23,11 +23,16 @@ struct ObjSymbol
     ObjModule *om;
 };
 
+#include "arraytypes.h"
+
+typedef ArrayBase<ObjModule> ObjModules;
+typedef ArrayBase<ObjSymbol> ObjSymbols;
+
 struct Library
 {
     File *libfile;
-    Array objmodules;   // ObjModule[]
-    Array objsymbols;   // ObjSymbol[]
+    ObjModules objmodules;   // ObjModule[]
+    ObjSymbols objsymbols;   // ObjSymbol[]
 
     StringTable tab;
 

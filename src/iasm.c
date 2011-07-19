@@ -303,7 +303,7 @@ static REG regtab[] =
 "MM5",  5,      _mm,
 "MM6",  6,      _mm,
 "MM7",  7,      _mm,
-"XMM0", 0,      _xmm,
+"XMM0", 0,      _xmm | _xmm0,
 "XMM1", 1,      _xmm,
 "XMM2", 2,      _xmm,
 "XMM3", 3,      _xmm,
@@ -1406,10 +1406,8 @@ L386_WARNING2:
         unsigned usOpcode = ptb.pptb0->usOpcode;
 
         pc->Iop = usOpcode;
-        if ((usOpcode & 0xFFFFFF00) == 0x660F3A00 ||    // SSE4
-            (usOpcode & 0xFFFFFF00) == 0x660F3800)      // SSE4
+        if ((usOpcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
         {
-            pc->Iop = 0x66000F00 | ((usOpcode >> 8) & 0xFF) | ((usOpcode & 0xFF) << 16);
             goto L3;
         }
         switch (usOpcode & 0xFF0000)
@@ -1733,7 +1731,11 @@ printf("usOpcode = %x\n", usOpcode);
 
         case 3:
                 if (aoptyTable2 == _m || aoptyTable2 == _rm ||
-                    usOpcode == 0x0FC5) // PEXTRW
+                    usOpcode == 0x0FC5     ||    // pextrw  _r32,  _mm,    _imm8
+                    usOpcode == 0x660FC5   ||    // pextrw  _r32, _xmm,    _imm8
+                    usOpcode == 0x660F3A20 ||    // pinsrb  _xmm, _r32/m8, _imm8
+                    usOpcode == 0x660F3A22       // pinsrd  _xmm, _rm32,   _imm8
+                   )
                 {
                     asm_make_modrm_byte(
 #ifdef DEBUG
@@ -2026,7 +2028,7 @@ ILLEGAL_ADDRESS_ERROR:
                 error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
-                Object *o = (Object *)tup->objects->data[index];
+                Object *o = tup->objects->tdata()[index];
                 if (o->dyncast() == DYNCAST_DSYMBOL)
                 {   o1->s = (Dsymbol *)o;
                     return o1;
@@ -2726,6 +2728,9 @@ STATIC regm_t asm_modify_regs(PTRNTAB ptb, OPND *popnd1, OPND *popnd2)
     case _modcxr11:
         usRet |= (mCX | mR11);
         break;
+    case _modxmm0:
+        usRet |= mXMM0;
+        break;
     }
     if (popnd1 && ASM_GET_aopty(popnd1->usFlags) == _reg)
     {
@@ -2800,11 +2805,12 @@ STATIC unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
     }
 
     // _xmm_m32, _xmm_m64, _xmm_m128 match with XMM register or memory
-    if (usTable == _xmm_m32 ||
+    if (usTable == _xmm_m16 ||
+        usTable == _xmm_m32 ||
         usTable == _xmm_m64 ||
         usTable == _xmm_m128)
     {
-        if (usOp == _xmm)
+        if (usOp == _xmm || usOp == (_xmm|_xmm0))
             goto Lmatch;
         if (aoptyOp == _m && (bSizematch || uSizemaskOp == _anysize))
             goto Lmatch;

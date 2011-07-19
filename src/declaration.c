@@ -185,7 +185,7 @@ Type *TupleDeclaration::getType()
         /* It's only a type tuple if all the Object's are types
          */
         for (size_t i = 0; i < objects->dim; i++)
-        {   Object *o = (Object *)objects->data[i];
+        {   Object *o = objects->tdata()[i];
 
             if (o->dyncast() != DYNCAST_TYPE)
             {
@@ -196,12 +196,13 @@ Type *TupleDeclaration::getType()
 
         /* We know it's a type tuple, so build the TypeTuple
          */
+        Types *types = (Types *)objects;
         Parameters *args = new Parameters();
         args->setDim(objects->dim);
         OutBuffer buf;
         int hasdeco = 1;
-        for (size_t i = 0; i < objects->dim; i++)
-        {   Type *t = (Type *)objects->data[i];
+        for (size_t i = 0; i < types->dim; i++)
+        {   Type *t = types->tdata()[i];
 
             //printf("type = %s\n", t->toChars());
 #if 0
@@ -212,7 +213,7 @@ Type *TupleDeclaration::getType()
 #else
             Parameter *arg = new Parameter(0, t, NULL, NULL);
 #endif
-            args->data[i] = (void *)arg;
+            args->tdata()[i] = arg;
             if (!t->deco)
                 hasdeco = 0;
         }
@@ -229,7 +230,7 @@ int TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());
     for (size_t i = 0; i < objects->dim; i++)
-    {   Object *o = (Object *)objects->data[i];
+    {   Object *o = objects->tdata()[i];
         if (o->dyncast() == DYNCAST_EXPRESSION)
         {   Expression *e = (Expression *)o;
             if (e->op == TOKdsymbol)
@@ -871,7 +872,7 @@ void VarDeclaration::semantic(Scope *sc)
 
             Expression *einit = ie;
             if (ie && ie->op == TOKtuple)
-            {   einit = (Expression *)((TupleExp *)ie)->exps->data[i];
+            {   einit = ((TupleExp *)ie)->exps->tdata()[i];
             }
             Initializer *ti = init;
             if (einit)
@@ -889,7 +890,7 @@ void VarDeclaration::semantic(Scope *sc)
             }
 
             Expression *e = new DsymbolExp(loc, v);
-            exps->data[i] = e;
+            exps->tdata()[i] = e;
         }
         TupleDeclaration *v2 = new TupleDeclaration(loc, ident, exps);
         v2->isexp = 1;
@@ -1516,7 +1517,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                 fdthis->getLevel(loc, fdv);
 
             for (int i = 0; i < nestedrefs.dim; i++)
-            {   FuncDeclaration *f = (FuncDeclaration *)nestedrefs.data[i];
+            {   FuncDeclaration *f = nestedrefs.tdata()[i];
                 if (f == fdthis)
                     goto L1;
             }
@@ -1525,7 +1526,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
 
 
             for (int i = 0; i < fdv->closureVars.dim; i++)
-            {   Dsymbol *s = (Dsymbol *)fdv->closureVars.data[i];
+            {   Dsymbol *s = fdv->closureVars.tdata()[i];
                 if (s == this)
                     goto L2;
             }

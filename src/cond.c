@@ -23,13 +23,13 @@
 #include "mtype.h"
 #include "scope.h"
 
-int findCondition(Array *ids, Identifier *ident)
+int findCondition(Strings *ids, Identifier *ident)
 {
     if (ids)
     {
         for (int i = 0; i < ids->dim; i++)
         {
-            const char *id = (const char *)ids->data[i];
+            const char *id = ids->tdata()[i];
 
             if (strcmp(id, ident->toChars()) == 0)
                 return TRUE;
@@ -72,8 +72,8 @@ void DebugCondition::setGlobalLevel(unsigned level)
 void DebugCondition::addGlobalIdent(const char *ident)
 {
     if (!global.params.debugids)
-        global.params.debugids = new Array();
-    global.params.debugids->push((void *)ident);
+        global.params.debugids = new Strings();
+    global.params.debugids->push((char *)ident);
 }
 
 
@@ -96,7 +96,7 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
                 inc = 1;
             else
             {   if (!mod->debugidsNot)
-                    mod->debugidsNot = new Array();
+                    mod->debugidsNot = new Strings();
                 mod->debugidsNot->push(ident->toChars());
             }
         }
@@ -167,8 +167,8 @@ void VersionCondition::addGlobalIdent(const char *ident)
 void VersionCondition::addPredefinedGlobalIdent(const char *ident)
 {
     if (!global.params.versionids)
-        global.params.versionids = new Array();
-    global.params.versionids->push((void *)ident);
+        global.params.versionids = new Strings();
+    global.params.versionids->push((char *)ident);
 }
 
 
@@ -193,7 +193,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
             else
             {
                 if (!mod->versionidsNot)
-                    mod->versionidsNot = new Array();
+                    mod->versionidsNot = new Strings();
                 mod->versionidsNot->push(ident->toChars());
             }
         }
@@ -321,19 +321,19 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 
             TemplateParameters parameters;
             parameters.setDim(1);
-            parameters.data[0] = (void *)&tp;
+            parameters.tdata()[0] = &tp;
 
             Objects dedtypes;
             dedtypes.setDim(1);
 
-            m = targ->deduceType(NULL, tspec, &parameters, &dedtypes);
+            m = targ->deduceType(sc, tspec, &parameters, &dedtypes);
             if (m == MATCHnomatch ||
                 (m != MATCHexact && tok == TOKequal))
                 inc = 2;
             else
             {
                 inc = 1;
-                Type *tded = (Type *)dedtypes.data[0];
+                Type *tded = (Type *)dedtypes.tdata()[0];
                 if (!tded)
                     tded = targ;
                 Dsymbol *s = new AliasDeclaration(loc, id, tded);

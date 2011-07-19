@@ -65,9 +65,11 @@ struct MacroSection : Section
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
+typedef ArrayBase<Section> Sections;
+
 struct DocComment
 {
-    Array sections;             // Section*[]
+    Sections sections;             // Section*[]
 
     Section *summary;
     Section *copyright;
@@ -225,7 +227,7 @@ void Module::gendocfile()
         // Override with the ddoc macro files from the command line
         for (int i = 0; i < global.params.ddocfiles->dim; i++)
         {
-            FileName f((char *)global.params.ddocfiles->data[i], 0);
+            FileName f(global.params.ddocfiles->tdata()[i], 0);
             File file(&f);
             file.readv();
             // BUG: convert file contents to UTF-8 before use
@@ -528,7 +530,7 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         sc = sc->push(this);
         for (int i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = members->tdata()[i];
             //printf("\ts = '%s'\n", s->toChars());
             s->emitComment(sc);
         }
@@ -700,7 +702,7 @@ void EnumDeclaration::emitComment(Scope *sc)
         {
             for (int i = 0; i < members->dim; i++)
             {
-                Dsymbol *s = (Dsymbol *)members->data[i];
+                Dsymbol *s = members->tdata()[i];
                 s->emitComment(sc);
             }
             return;
@@ -958,7 +960,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
         }
         int any = 0;
         for (int i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
+        {   BaseClass *bc = baseclasses->tdata()[i];
 
             if (bc->protection == PROTprivate)
                 continue;
@@ -1026,7 +1028,7 @@ DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
     dc->parseSections(comment);
 
     for (int i = 0; i < dc->sections.dim; i++)
-    {   Section *s = (Section *)dc->sections.data[i];
+    {   Section *s = dc->sections.tdata()[i];
 
         if (icmp("copyright", s->name, s->namelen) == 0)
         {
@@ -1171,7 +1173,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
     {
         buf->writestring("$(DDOC_SECTIONS \n");
         for (int i = 0; i < sections.dim; i++)
-        {   Section *sec = (Section *)sections.data[i];
+        {   Section *sec = sections.tdata()[i];
 
             if (sec->nooutput)
                 continue;
@@ -1748,7 +1750,7 @@ Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
         if (tf->parameters)
         {
             for (size_t k = 0; k < tf->parameters->dim; k++)
-            {   Parameter *arg = (Parameter *)tf->parameters->data[k];
+            {   Parameter *arg = tf->parameters->tdata()[k];
 
                 if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
                 {
