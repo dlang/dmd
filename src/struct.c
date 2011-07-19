@@ -473,6 +473,65 @@ void StructDeclaration::semantic(Scope *sc)
 #endif
     }
 
+    if (sizeok == 2)
+    {   // semantic() failed because of forward references.
+        // Unwind what we did, and defer it for later
+        fields.setDim(0);
+        structsize = 0;
+        alignsize = 0;
+        structalign = 0;
+
+        scope = scx ? scx : new Scope(*sc);
+        scope->setNoFree();
+        scope->module->addDeferredSemantic(this);
+
+        Module::dprogress = dprogress_save;
+        //printf("\tdeferring %s\n", toChars());
+        return;
+    }
+
+    // 0 sized struct's are set to 1 byte
+    if (structsize == 0)
+    {
+        structsize = 1;
+        alignsize = 1;
+    }
+
+    // Round struct size up to next alignsize boundary.
+    // This will ensure that arrays of structs will get their internals
+    // aligned properly.
+    structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+
+    sizeok = 1;
+    Module::dprogress++;
+
+    //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
+    // Determine if struct is all zeros or not
+    zeroInit = 1;
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        Dsymbol *s = fields.tdata()[i];
+        VarDeclaration *vd = s->isVarDeclaration();
+        if (vd && !vd->isDataseg())
+        {
+            if (vd->init)
+            {
+                // Should examine init to see if it is really all 0's
+                zeroInit = 0;
+                break;
+            }
+            else
+            {
+                if (!vd->type->isZeroInit(loc))
+                {
+                    zeroInit = 0;
+                    break;
+                }
+            }
+        }
+    }
+
 #if DMDV1
     /* This doesn't work for DMDV2 because (ref S) and (S) parameter
      * lists will overload the same.
@@ -577,65 +636,6 @@ void StructDeclaration::semantic(Scope *sc)
 #endif
 
     sc2->pop();
-
-    if (sizeok == 2)
-    {   // semantic() failed because of forward references.
-        // Unwind what we did, and defer it for later
-        fields.setDim(0);
-        structsize = 0;
-        alignsize = 0;
-        structalign = 0;
-
-        scope = scx ? scx : new Scope(*sc);
-        scope->setNoFree();
-        scope->module->addDeferredSemantic(this);
-
-        Module::dprogress = dprogress_save;
-        //printf("\tdeferring %s\n", toChars());
-        return;
-    }
-
-    // 0 sized struct's are set to 1 byte
-    if (structsize == 0)
-    {
-        structsize = 1;
-        alignsize = 1;
-    }
-
-    // Round struct size up to next alignsize boundary.
-    // This will ensure that arrays of structs will get their internals
-    // aligned properly.
-    structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
-
-    sizeok = 1;
-    Module::dprogress++;
-
-    //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
-
-    // Determine if struct is all zeros or not
-    zeroInit = 1;
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        Dsymbol *s = fields.tdata()[i];
-        VarDeclaration *vd = s->isVarDeclaration();
-        if (vd && !vd->isDataseg())
-        {
-            if (vd->init)
-            {
-                // Should examine init to see if it is really all 0's
-                zeroInit = 0;
-                break;
-            }
-            else
-            {
-                if (!vd->type->isZeroInit(loc))
-                {
-                    zeroInit = 0;
-                    break;
-                }
-            }
-        }
-    }
 
     /* Look for special member functions.
      */
