@@ -441,10 +441,11 @@ void clear(T)(T obj) if (is(T == class))
 
 void clear(T)(ref T obj) if (is(T == struct))
 {
-    static if (is(typeof(obj.__dtor())))
-    {
-        obj.__dtor();
-    }
+    //static if (is(typeof(obj.__dtor())))
+    //{
+    //    obj.__dtor();
+    //}
+    typeid(T).destroy(&obj);
     auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
     auto init = cast(ubyte[])typeid(T).init();
     if(init.ptr is null) // null ptr means initialize to 0s
