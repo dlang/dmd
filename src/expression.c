@@ -4425,9 +4425,16 @@ int NewExp::checkSideEffect(int flag)
 #if DMDV2
 int NewExp::canThrow(bool mustNotThrow)
 {
+#if DMD_OBJC
+    int result = arrayExpressionCanThrow(newargs, mustNotThrow) |
+        arrayExpressionCanThrow(arguments, mustNotThrow);
+    if (result == BEthrowany)
+        return result;
+#else
     if (arrayExpressionCanThrow(newargs, mustNotThrow) ||
         arrayExpressionCanThrow(arguments, mustNotThrow))
         return 1;
+#endif
     if (member)
     {
         // See if constructor call can throw
@@ -4436,11 +4443,24 @@ int NewExp::canThrow(bool mustNotThrow)
         {
             if (mustNotThrow)
                 error("constructor %s is not nothrow", member->toChars());
+#if DMD_OBJC
+            if (((TypeFunction *)t)->linkage == LINKobjc)
+                result |= BEthrowobjc;
+            else
+                result |= BEthrow;
+            if (result == BEthrowany)
+                return result;
+#else
             return 1;
+#endif
         }
     }
     // regard storage allocation failures as not recoverable
+#if DMD_OBJC
+    return result;
+#else
     return 0;
+#endif
 }
 #endif
 
@@ -4515,7 +4535,11 @@ int NewAnonClassExp::checkSideEffect(int flag)
 int NewAnonClassExp::canThrow(bool mustNotThrow)
 {
     assert(0);          // should have been lowered by semantic()
+#if DMD_OBJC
+    return BEthrowany;
+#else
     return 1;
+#endif
 }
 #endif
 
@@ -7926,7 +7950,7 @@ int CallExp::canThrow(bool mustNotThrow)
 #if DMD_OBJC
     result |= arrayExpressionCanThrow(arguments, mustNotThrow);
     if (result == BEthrowany)
-        return 1;
+        return result;
 #else
     if (arrayExpressionCanThrow(arguments, mustNotThrow))
         return 1;
@@ -8989,9 +9013,15 @@ void SliceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 int SliceExp::canThrow(bool mustNotThrow)
 {
+#if DMD_OBJC
+    return UnaExp::canThrow(mustNotThrow)
+        | (lwr != NULL ? lwr->canThrow(mustNotThrow) : 0)
+        | (upr != NULL ? upr->canThrow(mustNotThrow) : 0);
+#else
     return UnaExp::canThrow(mustNotThrow)
         || (lwr != NULL && lwr->canThrow(mustNotThrow))
         || (upr != NULL && upr->canThrow(mustNotThrow));
+#endif
 }
 
 /********************** ArrayLength **************************************/
