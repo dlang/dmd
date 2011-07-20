@@ -3178,6 +3178,16 @@ static assert(!is(typeof(Bar4258.init += 1)));
 static assert(!is(typeof(1 + Baz4258.init)));
 
 /***************************************************/
+// 1471
+
+void test1471()
+{
+	int n;
+	string bar = "BOOM"[n..$-1];
+	assert(bar == "BOO");
+}
+
+/***************************************************/
 
 void test4963()
 {
@@ -3464,6 +3474,7 @@ int main()
     test6230();
     test6264();
     test5046();
+    test1471();
 
     printf("Success\n");
     return 0;
