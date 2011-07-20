@@ -1,6 +1,6 @@
 
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -13,6 +13,9 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#ifdef DEBUG
+#include <assert.h>
+#endif
 
 #if __DMC__
 #pragma once
@@ -353,12 +356,20 @@ struct ArrayBase : Array
         return (TYPE **)data;
     }
 
-    void insert(unsigned index, TYPE *v)
+    TYPE*& operator[] (size_t index)
+    {
+#ifdef DEBUG
+        assert(index < dim);
+#endif
+        return ((TYPE **)data)[index];
+    }
+
+    void insert(size_t index, TYPE *v)
     {
         Array::insert(index, (void *)v);
     }
 
-    void insert(unsigned index, ArrayBase *a)
+    void insert(size_t index, ArrayBase *a)
     {
         Array::insert(index, (Array *)a);
     }

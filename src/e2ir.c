@@ -4166,7 +4166,7 @@ elem *SliceExp::toElem(IRState *irs)
             }
             else if (t1->ty == Tarray)
             {
-                if (lengthVar)
+                if (lengthVar && !(lengthVar->storage_class & STCconst))
                     elength = el_var(lengthVar->toSymbol());
                 else
                 {
