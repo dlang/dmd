@@ -1874,6 +1874,16 @@ int ptrSlice()
 static assert(ptrSlice()==2);
 
 /**************************************************
+    6344 - create empty slice from null pointer
+**************************************************/
+
+static assert({
+    char* c = null;
+    auto m = c[0..0];
+    return true;
+}());
+
+/**************************************************
     4448 - labelled break + continue
 **************************************************/
 
