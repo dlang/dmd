@@ -1936,3 +1936,15 @@ bool bug6331(string s)
     return false;
 }
 static assert(bug6331("str"));
+
+/**************************************************
+    6283 - assign to AA with slice as index
+**************************************************/
+
+static assert( {
+    immutable qq = "qq";
+    string q = qq;
+    int[string] pieces = ["a":1];
+    pieces[q] = 0;
+    return true;
+}() );
