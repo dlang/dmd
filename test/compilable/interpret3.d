@@ -1946,5 +1946,8 @@ static assert( {
     string q = qq;
     int[string] pieces = ["a":1];
     pieces[q] = 0;
+    string w = "ab";
+    int z = pieces[w[0..1]];
+    assert(z == 1);
     return true;
 }() );
