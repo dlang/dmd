@@ -145,7 +145,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
     fnamelen = 2;
-    if (e->members)
+    if (!property)
     {
         for (i = 0; i < e->members->dim; i++)
         {   EnumMember *sf = (e->members->tdata()[i])->isEnumMember();
@@ -173,7 +173,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     TOWORD(d->data + 2,nfields);
 
     // If forward reference, then field list is 0
-    if (!e->members)
+    if (property)
     {
         TOWORD(d->data + 6,0);
         return typidx;
