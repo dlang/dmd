@@ -3486,11 +3486,8 @@ int main()
     test6230();
     test6264();
     test5046();
-<<<<<<< HEAD
     test1471();
-=======
     test6335();
->>>>>>> 31a93dd66322e00d1faac1aec02029c015be38a8
 
     printf("Success\n");
     return 0;
