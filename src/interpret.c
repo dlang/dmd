@@ -3357,6 +3357,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (index == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
 
+        if (index->op == TOKslice)  // only happens with AA assignment
+            index = resolveSlice(index);
+
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
         AssocArrayLiteralExp *existingAA = NULL;
