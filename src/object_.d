@@ -637,7 +637,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return (char[int]).alignof;
     }
 
-    version (X86_64) @property override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {   arg1 = typeid(void*);
         return 0;
     }
