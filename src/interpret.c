@@ -4260,8 +4260,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         {
             if (iupr == ilwr)
             {
-                IntegerExp * zero = new IntegerExp(loc, 0, Type::tsize_t);
-                e = new SliceExp(loc, agg, zero, zero);
+                e = new NullExp(loc);
                 e->type = type;
                 return e;
             }
