@@ -102,7 +102,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
             if (fd &&
                 ((fd->isCtorDeclaration() && storage_class & STCfield) ||
                  (fd->isStaticCtorDeclaration() && !(storage_class & STCfield))) &&
-                fd->toParent() == toParent()
+                fd->toParent2() == toParent()
                )
             {
                 VarDeclaration *v = isVarDeclaration();

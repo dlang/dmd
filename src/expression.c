@@ -6567,7 +6567,7 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
                 if (fd &&
                     ((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
                      (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
-                    fd->toParent() == var->toParent() &&
+                    fd->toParent2() == var->toParent() &&
                     e1->op == TOKthis
                    )
                 {
