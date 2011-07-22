@@ -272,10 +272,10 @@ void WRFL(enum FL fl)
          "auto  ","para  ","extrn ","tmp   ",
          "code  ","block ","udata ","cs    ","swit  ",
          "fltrg ","offst ","datsg ",
-         "ctor  ","dtor  ",
+         "ctor  ","dtor  ","regsav","asm   ",
 #if TX86
          "ndp   ","farda ","local ","csdat ","tlsdat",
-         "bprel ","frameh","asm   ","blocko","alloca",
+         "bprel ","frameh","blocko","alloca",
          "stack ","dsym  ",
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
          "got   ","gotoff",
