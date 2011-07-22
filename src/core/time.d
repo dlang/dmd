@@ -743,7 +743,7 @@ assert(dur!"weeks"(12).weeks == 12);
 assert(dur!"days"(13).weeks == 1);
 --------------------
       +/
-    @property auto weeks() const pure nothrow { return get!"weeks"(); }
+    @property long weeks() const pure nothrow { return get!"weeks"(); }
 
     unittest
     {
@@ -770,7 +770,7 @@ assert(dur!"days"(13).days == 6);
 assert(dur!"hours"(49).days == 2);
 --------------------
       +/
-    @property auto days() const pure nothrow { return get!"days"(); }
+    @property long days() const pure nothrow { return get!"days"(); }
 
     unittest
     {
@@ -798,7 +798,7 @@ assert(dur!"hours"(49).hours == 1);
 assert(dur!"minutes"(121).hours == 2);
 --------------------
       +/
-    @property auto hours() const pure nothrow { return get!"hours"(); }
+    @property long hours() const pure nothrow { return get!"hours"(); }
 
     unittest
     {
@@ -826,7 +826,7 @@ assert(dur!"minutes"(127).minutes == 7);
 assert(dur!"seconds"(121).minutes == 2);
 --------------------
       +/
-    @property auto minutes() const pure nothrow { return get!"minutes"(); }
+    @property long minutes() const pure nothrow { return get!"minutes"(); }
 
     unittest
     {
@@ -854,7 +854,7 @@ assert(dur!"seconds"(127).seconds == 7);
 assert(dur!"msecs"(1217).seconds == 1);
 --------------------
       +/
-    @property auto seconds() const pure nothrow { return get!"seconds"(); }
+    @property long seconds() const pure nothrow { return get!"seconds"(); }
 
     unittest
     {
@@ -1371,7 +1371,7 @@ struct TickDuration
     /++
         Alias for converting TickDuration to seconds.
       +/
-    @property auto seconds() const pure nothrow { return to!("seconds", long)(); }
+    @property long seconds() const pure nothrow { return to!("seconds", long)(); }
 
     unittest
     {
@@ -1394,7 +1394,7 @@ struct TickDuration
     /++
         Alias for converting TickDuration to milliseconds.
       +/
-    @property auto msecs() const pure nothrow { return to!("msecs", long)(); }
+    @property long msecs() const pure nothrow { return to!("msecs", long)(); }
 
 
     /++
@@ -1402,19 +1402,19 @@ struct TickDuration
       +/
 
 
-    @property auto usecs() const pure nothrow { return to!("usecs", long)(); }
+    @property long usecs() const pure nothrow { return to!("usecs", long)(); }
 
 
     /++
         Alias for converting TickDuration to hecto-nanoseconds (100 ns).
       +/
-    @property auto hnsecs() const pure nothrow { return to!("hnsecs", long)(); }
+    @property long hnsecs() const pure nothrow { return to!("hnsecs", long)(); }
 
 
     /++
         Alias for converting TickDuration to nanoseconds.
       +/
-    @property auto nsecs() const pure nothrow { return to!("nsecs", long)(); }
+    @property long nsecs() const pure nothrow { return to!("nsecs", long)(); }
 
 
     /++
