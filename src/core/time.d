@@ -743,7 +743,7 @@ assert(dur!"weeks"(12).weeks == 12);
 assert(dur!"days"(13).weeks == 1);
 --------------------
       +/
-    @property alias get!"weeks" weeks;
+    @property auto weeks() const pure nothrow { return get!"weeks"(); }
 
     unittest
     {
@@ -770,7 +770,7 @@ assert(dur!"days"(13).days == 6);
 assert(dur!"hours"(49).days == 2);
 --------------------
       +/
-    @property alias get!"days" days;
+    @property auto days() const pure nothrow { return get!"days"(); }
 
     unittest
     {
@@ -798,7 +798,7 @@ assert(dur!"hours"(49).hours == 1);
 assert(dur!"minutes"(121).hours == 2);
 --------------------
       +/
-    @property alias get!"hours" hours;
+    @property auto hours() const pure nothrow { return get!"hours"(); }
 
     unittest
     {
@@ -826,7 +826,7 @@ assert(dur!"minutes"(127).minutes == 7);
 assert(dur!"seconds"(121).minutes == 2);
 --------------------
       +/
-    @property alias get!"minutes" minutes;
+    @property auto minutes() const pure nothrow { return get!"minutes"(); }
 
     unittest
     {
@@ -854,7 +854,7 @@ assert(dur!"seconds"(127).seconds == 7);
 assert(dur!"msecs"(1217).seconds == 1);
 --------------------
       +/
-    @property alias get!"seconds" seconds;
+    @property auto seconds() const pure nothrow { return get!"seconds"(); }
 
     unittest
     {
@@ -945,7 +945,7 @@ assert(dur!"nsecs"(2007).total!"hnsecs"() == 20);
 assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 --------------------
       +/
-    long total(string units)() const pure nothrow
+    @property long total(string units)() const pure nothrow
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -965,24 +965,24 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
     unittest
     {
         //Verify Examples.
-        assert(dur!"weeks"(12).total!"weeks"() == 12);
-        assert(dur!"weeks"(12).total!"days"() == 84);
+        assert(dur!"weeks"(12).total!"weeks" == 12);
+        assert(dur!"weeks"(12).total!"days" == 84);
 
-        assert(dur!"days"(13).total!"weeks"() == 1);
-        assert(dur!"days"(13).total!"days"() == 13);
+        assert(dur!"days"(13).total!"weeks" == 1);
+        assert(dur!"days"(13).total!"days" == 13);
 
-        assert(dur!"hours"(49).total!"days"() == 2);
-        assert(dur!"hours"(49).total!"hours"() == 49);
+        assert(dur!"hours"(49).total!"days" == 2);
+        assert(dur!"hours"(49).total!"hours" == 49);
 
-        assert(dur!"nsecs"(2007).total!"hnsecs"() == 20);
-        assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
+        assert(dur!"nsecs"(2007).total!"hnsecs" == 20);
+        assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
 
         const dur = Duration(12);
         const cdur = Duration(12);
         immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.total!"days"()));
-        static assert(__traits(compiles, cdur.total!"days"()));
-        static assert(__traits(compiles, idur.total!"days"()));
+        dur.total!"days"; // just check that it compiles
+        cdur.total!"days"; // just check that it compiles
+        idur.total!"days"; // just check that it compiles
     }
 
 
@@ -1371,7 +1371,7 @@ struct TickDuration
     /++
         Alias for converting TickDuration to seconds.
       +/
-    @property alias to!("seconds", long) seconds;
+    @property auto seconds() const pure nothrow { return to!("seconds", long)(); }
 
     unittest
     {
@@ -1394,7 +1394,7 @@ struct TickDuration
     /++
         Alias for converting TickDuration to milliseconds.
       +/
-    @property alias to!("msecs", long) msecs;
+    @property auto msecs() const pure nothrow { return to!("msecs", long)(); }
 
 
     /++
@@ -1402,19 +1402,19 @@ struct TickDuration
       +/
 
 
-    @property alias to!("usecs", long) usecs;
+    @property auto usecs() const pure nothrow { return to!("usecs", long)(); }
 
 
     /++
         Alias for converting TickDuration to hecto-nanoseconds (100 ns).
       +/
-    @property alias to!("hnsecs", long) hnsecs;
+    @property auto hnsecs() const pure nothrow { return to!("hnsecs", long)(); }
 
 
     /++
         Alias for converting TickDuration to nanoseconds.
       +/
-    @property alias to!("nsecs", long) nsecs;
+    @property auto nsecs() const pure nothrow { return to!("nsecs", long)(); }
 
 
     /++
@@ -1628,8 +1628,8 @@ struct TickDuration
     {
         auto a = TickDuration.currSystemTick;
         auto b = TickDuration.currSystemTick;
-        assert((a + b).to!("seconds", real) > 0);
-        assert((a - b).to!("seconds", real) <= 0);
+        assert((a + b).to!("seconds", real)() > 0);
+        assert((a - b).to!("seconds", real)() <= 0);
     }
 
 
