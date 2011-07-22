@@ -1967,3 +1967,21 @@ static assert({
     auto n = *(4 in a);
     return n;
 }() == "1");
+
+/**************************************************
+    6337 - member function call on struct literal
+**************************************************/
+
+struct Bug6337
+{
+    int k;
+    void six() {
+        k = 6;
+    }
+    int ctfe()
+    {
+        six();
+        return k;
+    }
+}
+static assert( Bug6337().ctfe() == 6);
