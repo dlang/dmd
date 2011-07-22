@@ -64,8 +64,11 @@ enum OPER
         OPmemcmp,
         OPmemset,
         OPsetjmp,               // setjmp()
+#endif
+
         OPremquo,               // / and % in one operation
 
+#if TX86
         OPbsf,                  // bit scan forward
         OPbsr,                  // bit scan reverse
         OPbt,                   // bit test
