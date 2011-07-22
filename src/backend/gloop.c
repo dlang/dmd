@@ -675,21 +675,6 @@ STATIC int looprotate(loop *l)
         assert(0);
 
     L1:
-#if !TX86
-        if (config.flags3 & CFG3eh)
-        {
-            if (!(b->Bflags & BFLlooprt))
-            {
-                b->Boldnext = b->Bnext;
-                b->Bflags |= BFLlooprt;
-            }
-            if (!(head->Bflags & BFLlooprt))
-            {
-                head->Boldnext = head->Bnext;
-                head->Bflags |= BFLlooprt;
-            }
-        }
-#endif
         b->Bnext = head->Bnext;
         head->Bnext = tail->Bnext;
         tail->Bnext = head;

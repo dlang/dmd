@@ -304,13 +304,6 @@ One and only one of these macros must be set by the makefile:
 #define NEWSTATICDTOR           1       // support new style static destructors
 
 // For Shared Code Base
-#define TARGET_structBLOCK
-#define TARGET_structFUNC_S
-#define TARGET_structSTRUCT
-#define TARGET_structPARAM
-#define TARGET_structBLKLST
-#define TARGET_structELEM
-#define TARGET_structSYMBOL
 #define TARGET_INLINEFUNC_NAMES
 #define PASCAL pascal
 #define HINT int

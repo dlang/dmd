@@ -479,6 +479,7 @@ int go_flag(char *cp);
 void optfunc(void);
 
 /* filename.c */
+#if !MARS
 extern Srcfiles srcfiles;
 Sfile **filename_indirect(Sfile *sf);
 Sfile *filename_search( const char *name );
@@ -492,6 +493,7 @@ void filename_free( void );
 int filename_cmp(const char *f1,const char *f2);
 void srcpos_hydrate(Srcpos *);
 void srcpos_dehydrate(Srcpos *);
+#endif
 
 // Mark functions that never return
 #if __SC__ >= 0x324 && TX86
