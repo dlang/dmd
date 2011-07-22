@@ -103,15 +103,17 @@ enum TYM
     TYcent              = 0x3C, // 128 bit signed integer
     TYucent             = 0x3D, // 128 bit unsigned integer
 
-    TYMAX               = 0x3E,
-
 #if MARS
 #define TYaarray        TYnptr
 #define TYdelegate      (I64 ? TYcent : TYllong)
 #define TYdarray        (I64 ? TYucent : TYullong)
 #endif
+#endif
+
+    TYMAX               = 0x3E,
 };
 
+#if TX86
 // These change depending on memory model
 extern int TYptrdiff, TYsize, TYsize_t;
 

@@ -205,7 +205,6 @@ struct BLKLST
     short       BLcurcnt;       /* BLfile, current count from offset    */
     short       BLlincnt;       /* BLfile, start of cur line from offset*/
 #endif
-    TARGET_structBLKLST
 
     void print();
 };
