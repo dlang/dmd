@@ -3383,11 +3383,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          * slices of array literals, and AA literals.
          */
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice || aggregate->op == TOKcall)
+            aggregate->op == TOKslice || aggregate->op == TOKcall ||
+            aggregate->op == TOKstar)
         {
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
             if (aggregate == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
+            // The array could be an index of an AA. Resolve it if so.
+            if (aggregate->op == TOKindex)
+            {
+                IndexExp *ie = (IndexExp *)aggregate;
+                aggregate = Index(ie->type, ie->e1, ie->e2);
+            }
         }
         if (aggregate->op == TOKvar)
         {
@@ -3547,11 +3554,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          */
 
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice || aggregate->op == TOKcall)
+            aggregate->op == TOKslice ||
+            aggregate->op == TOKstar  || aggregate->op == TOKcall)
         {
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
             if (aggregate == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
+            // The array could be an index of an AA. Resolve it if so.
+            if (aggregate->op == TOKindex)
+            {
+                IndexExp *ie = (IndexExp *)aggregate;
+                aggregate = Index(ie->type, ie->e1, ie->e2);
+            }
         }
         if (aggregate->op == TOKvar)
         {
@@ -3910,15 +3924,18 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     {   // Member function call
         if (pthis->op == TOKthis)
             pthis = istate ? istate->localThis : NULL;
-        else if (pthis->op == TOKcomma)
-            pthis = pthis->interpret(istate);
-        if (pthis == EXP_CANT_INTERPRET)
-            return NULL;
-            // Evaluate 'this'
-        if (pthis->op != TOKvar)
-            pthis = pthis->interpret(istate, ctfeNeedLvalue);
-        if (pthis == EXP_CANT_INTERPRET)
-            return NULL;
+        else
+        {
+            if (pthis->op == TOKcomma)
+                pthis = pthis->interpret(istate);
+            if (pthis == EXP_CANT_INTERPRET)
+                return NULL;
+                // Evaluate 'this'
+            if (pthis->op != TOKvar)
+                pthis = pthis->interpret(istate, ctfeNeedLvalue);
+            if (pthis == EXP_CANT_INTERPRET)
+                return NULL;
+        }
 
         if (!fd->fbody)
         {
@@ -4619,8 +4636,6 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         e = e1->interpret(istate, ctfeNeedLvalue);
         if (e == EXP_CANT_INTERPRET)
             return e;
-        if (e->op == TOKaddress)
-            e = ((AddrExp*)e)->e1;
         if (goal != ctfeNeedLvalue)
         {
             if (e->op == TOKindex && e->type->ty == Tpointer)
@@ -4641,6 +4656,8 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                     }
                     return Index(type, ie->e1, ie->e2);
                 }
+                if (ie->e1->op == TOKassocarrayliteral)
+                    return Index(type, ie->e1, ie->e2);
             }
             if (e->op == TOKstructliteral)
                 return e;
@@ -4653,13 +4670,13 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             }
             if (e == EXP_CANT_INTERPRET)
                 return e;
-            e->type = type;
         }
         if (e->op == TOKnull)
         {
             error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
+        e->type = type;
     }
 
 #if LOG
