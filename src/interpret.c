@@ -3357,6 +3357,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (index == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
 
+        if (index->op == TOKslice)  // only happens with AA assignment
+            index = resolveSlice(index);
+
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
         AssocArrayLiteralExp *existingAA = NULL;
@@ -4197,6 +4200,8 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (e1->op == TOKassocarrayliteral)
     {
+        if (e2->op == TOKslice)
+            e2 = resolveSlice(e2);
         e = findKeyInAA((AssocArrayLiteralExp *)e1, e2);
         if (!e)
         {
@@ -4260,8 +4265,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         {
             if (iupr == ilwr)
             {
-                IntegerExp * zero = new IntegerExp(loc, 0, Type::tsize_t);
-                e = new SliceExp(loc, agg, zero, zero);
+                e = new NullExp(loc);
                 e->type = type;
                 return e;
             }
@@ -4392,6 +4396,8 @@ Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
         error(" %s cannot be interpreted at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
+    if (e1->op == TOKslice)
+        e1 = resolveSlice(e1);
     e = findKeyInAA((AssocArrayLiteralExp *)e2, e1);
     if (e == EXP_CANT_INTERPRET)
         return e;

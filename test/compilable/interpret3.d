@@ -1874,6 +1874,16 @@ int ptrSlice()
 static assert(ptrSlice()==2);
 
 /**************************************************
+    6344 - create empty slice from null pointer
+**************************************************/
+
+static assert({
+    char* c = null;
+    auto m = c[0..0];
+    return true;
+}());
+
+/**************************************************
     4448 - labelled break + continue
 **************************************************/
 
@@ -1926,3 +1936,18 @@ bool bug6331(string s)
     return false;
 }
 static assert(bug6331("str"));
+
+/**************************************************
+    6283 - assign to AA with slice as index
+**************************************************/
+
+static assert( {
+    immutable qq = "qq";
+    string q = qq;
+    int[string] pieces = ["a":1];
+    pieces[q] = 0;
+    string w = "ab";
+    int z = pieces[w[0..1]];
+    assert(z == 1);
+    return true;
+}() );
