@@ -1436,6 +1436,7 @@ enum FL
         FLctor,         // constructed object
         FLdtor,         // destructed object
         FLregsave,      // ref to saved register on stack, int contains offset
+        FLasm,          // (code) an ASM code
 #if TX86
         FLndp,          // saved 8087 register
         FLfardata,      // ref to far data segment
@@ -1444,7 +1445,6 @@ enum FL
         FLtlsdata,      // thread local storage
         FLbprel,        // ref to variable at fixed offset from frame pointer
         FLframehandler, // ref to C++ frame handler for NT EH
-        FLasm,          // (code) an ASM code
         FLblockoff,     // address of block
         FLallocatmp,    // temp for built-in alloca()
         FLstack,        // offset from ESP rather than EBP
