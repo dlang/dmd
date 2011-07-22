@@ -47,5 +47,6 @@ struct Parameters : Array { };
 struct Identifiers : Array { };
 
 struct Initializers : Array { };
+typedef ArrayBase<struct VarDeclaration> VarDeclarations;
 
 #endif
