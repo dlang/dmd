@@ -3924,15 +3924,18 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     {   // Member function call
         if (pthis->op == TOKthis)
             pthis = istate ? istate->localThis : NULL;
-        else if (pthis->op == TOKcomma)
-            pthis = pthis->interpret(istate);
-        if (pthis == EXP_CANT_INTERPRET)
-            return NULL;
-            // Evaluate 'this'
-        if (pthis->op != TOKvar)
-            pthis = pthis->interpret(istate, ctfeNeedLvalue);
-        if (pthis == EXP_CANT_INTERPRET)
-            return NULL;
+        else
+        {
+            if (pthis->op == TOKcomma)
+                pthis = pthis->interpret(istate);
+            if (pthis == EXP_CANT_INTERPRET)
+                return NULL;
+                // Evaluate 'this'
+            if (pthis->op != TOKvar)
+                pthis = pthis->interpret(istate, ctfeNeedLvalue);
+            if (pthis == EXP_CANT_INTERPRET)
+                return NULL;
+        }
 
         if (!fd->fbody)
         {
