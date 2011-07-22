@@ -1951,3 +1951,19 @@ static assert( {
     assert(z == 1);
     return true;
 }() );
+
+/**************************************************
+    6282 - dereference 'in' of an AA
+**************************************************/
+
+static assert({
+    int [] w = new int[4];
+    w[2] = 6;
+    auto c = [5: w];
+    auto kk  = (*(5 in c))[2];
+    (*(5 in c))[2] = 8;
+    (*(5 in c))[1..$-2] = 4;
+    auto a = [4:"1"];
+    auto n = *(4 in a);
+    return n;
+}() == "1");
