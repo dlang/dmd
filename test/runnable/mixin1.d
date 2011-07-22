@@ -973,6 +973,76 @@ void test41()
 }
 
 /*******************************************/
+// 2245
+
+template TCALL2245a(ARGS...)
+{
+    int makecall(ARGS args)
+    {
+        return args.length;
+    }
+}
+
+template TCALL2245b(int n)
+{
+    int makecall2(ARGS...)(ARGS args) if (ARGS.length == n)
+    {
+        return args.length;
+    }
+}
+
+class C2245
+{
+    mixin TCALL2245a!();
+    mixin TCALL2245a!(int);
+    mixin TCALL2245a!(int,int);
+
+    mixin TCALL2245b!(0);
+    mixin TCALL2245b!(1);
+    mixin TCALL2245b!(2);
+}
+
+struct S2245
+{
+    mixin TCALL2245a!();
+    mixin TCALL2245a!(int);
+    mixin TCALL2245a!(int,int);
+
+    mixin TCALL2245b!(0);
+    mixin TCALL2245b!(1);
+    mixin TCALL2245b!(2);
+}
+
+void test2245()
+{
+    auto c = new C2245;
+    assert(c.makecall() == 0);
+    assert(c.makecall(0) == 1);
+    assert(c.makecall(0,1) == 2);
+
+    assert(c.makecall2() == 0);
+    assert(c.makecall2(0) == 1);
+    assert(c.makecall2(0,1) == 2);
+
+    assert(c.makecall2!()() == 0);
+    assert(c.makecall2!(int)(0) == 1);
+    assert(c.makecall2!(int, int)(0,1) == 2);
+
+    auto s = S2245();
+    assert(s.makecall() == 0);
+    assert(s.makecall(0) == 1);
+    assert(s.makecall(0,1) == 2);
+
+    assert(s.makecall2() == 0);
+    assert(s.makecall2(0) == 1);
+    assert(s.makecall2(0,1) == 2);
+
+    assert(s.makecall2!()() == 0);
+    assert(s.makecall2!(int)(0) == 1);
+    assert(s.makecall2!(int, int)(0,1) == 2);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1017,6 +1087,7 @@ int main()
     test39();
     test40();
     test41();
+    test2245();
 
     printf("Success\n");
     return 0;
