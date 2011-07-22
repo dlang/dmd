@@ -74,7 +74,6 @@ struct TYPE
 #define mTYTFF          0xFF0000
 #endif
 
-#define TARGET_strucTYPE
     mangle_t Tmangle;           // name mangling
 // Return name mangling of type
 #define type_mangle(t)  ((t)->Tmangle)
@@ -102,7 +101,6 @@ struct TYPE
 #if 0
     unsigned short Tstabidx;    // Index into stab types
 #endif
-    TARGET_strucTYPE
 #if SOURCE_4TYPES
     Srcpos Tsrcpos;             /* position of type definition */
 #endif
@@ -190,9 +188,7 @@ extern typep_t tsclib;
 extern typep_t tsdlib;
 extern typep_t tspvoid,tspcvoid;
 extern typep_t tsptrdiff, tssize;
-#if TX86
 extern typep_t tstrace;
-#endif
 
 #define tserr           tsint   /* error type           */
 

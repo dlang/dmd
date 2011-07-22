@@ -424,8 +424,7 @@ STATIC type * __near type_allocbasic(tym_t ty)
 }
 
 void type_init()
-{   int i;
-
+{
     tsbool    = type_allocbasic(TYbool);
     tswchar_t = type_allocbasic(TYwchar_t);
     tsdchar   = type_allocbasic(TYdchar);
@@ -445,20 +444,15 @@ void type_init()
     tsullong  = type_allocbasic(TYullong);
     tsfloat   = type_allocbasic(TYfloat);
     tsdouble  = type_allocbasic(TYdouble);
-    tsifloat   = type_allocbasic(TYifloat);
-    tsidouble  = type_allocbasic(TYidouble);
-    tscfloat   = type_allocbasic(TYcfloat);
-    tscdouble  = type_allocbasic(TYcdouble);
-#if TX86
     tsreal64  = type_allocbasic(TYdouble_alias);
     tsldouble  = type_allocbasic(TYldouble);
+    tsifloat   = type_allocbasic(TYifloat);
+    tsidouble  = type_allocbasic(TYidouble);
     tsildouble  = type_allocbasic(TYildouble);
+    tscfloat   = type_allocbasic(TYcfloat);
+    tscdouble  = type_allocbasic(TYcdouble);
     tscldouble  = type_allocbasic(TYcldouble);
-#else
-    tsldouble = type_allocbasic(TYldouble);
-    tscomp = type_allocbasic(TYcomp);
-    chartype = tschar;                          /* default is signed chars */
-#endif
+
     if (I64)
     {
         TYptrdiff = TYllong;
@@ -474,6 +468,11 @@ void type_init()
         tssize = tsuns;
     }
 
+    // Type of trace function
+    tstrace = type_fake(I16 ? TYffunc : TYnfunc);
+    tstrace->Tmangle = mTYman_c;
+    tstrace->Tcount++;
+
 #if TX86
     chartype = (config.flags3 & CFG3ju) ? tsuchar : tschar;
 
@@ -481,11 +480,6 @@ void type_init()
     tsclib =    type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
     tsclib->Tmangle = mTYman_c;
     tsclib->Tcount++;
-
-    // Type of trace function
-    tstrace =   type_fake(I16 ? TYffunc : TYnfunc);
-    tstrace->Tmangle = mTYman_c;
-    tstrace->Tcount++;
 
     tspvoid = type_allocn(pointertype,tsvoid);
     tspvoid->Tmangle = mTYman_c;
@@ -508,7 +502,7 @@ void type_init()
     // Type of logical expression
     tslogical = (config.flags4 & CFG4bool) ? tsbool : tsint;
 
-    for (i = 0; i < TYMAX; i++)
+    for (int i = 0; i < TYMAX; i++)
     {
         if (tstypes[i])
         {   tsptr2types[i] = type_allocn(pointertype,tstypes[i]);
@@ -516,6 +510,8 @@ void type_init()
         }
     }
 #else
+    chartype = tschar;                          /* default is signed chars */
+
     type_list = NULL;
     tsclib = type_fake( TYffunc );
     tsclib->Tmangle = mTYman_c;
@@ -553,9 +549,7 @@ void type_term()
     type_free(tspvoid);
     type_free(tspcvoid);
     type_free(tsjlib);
-#if TX86
     type_free(tstrace);
-#endif
 
     while (type_list)
     {   tn = type_list->Tnext;

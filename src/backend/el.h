@@ -115,7 +115,6 @@ struct elem
     }_EU;
 
     struct TYPE *ET;            // pointer to type of elem if TYstruct | TYarray
-    TARGET_structELEM           // target specific additions
     Srcpos Esrcpos;             // source file position
 };
 
