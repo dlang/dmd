@@ -31,7 +31,7 @@ struct InterState
 {
     InterState *caller;         // calling function's InterState
     FuncDeclaration *fd;        // function being interpreted
-    Dsymbols vars;              // variables used in this function
+    VarDeclarations vars;              // variables used in this function
     Statement *start;           // if !=NULL, start execution at this statement
     Statement *gotoTarget;      /* target of EXP_GOTO_INTERPRET result; also
                                  * target of labelled EXP_BREAK_INTERPRET or
@@ -271,9 +271,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 /* Don't restore the value of v2 upon function return
                  */
                 for (size_t i = 0; i < (istate ? istate->vars.dim : 0); i++)
-                {   VarDeclaration *vx = (VarDeclaration *)istate->vars.data[i];
+                {   VarDeclaration *vx = istate->vars.tdata()[i];
                     if (vx == v2)
-                    {   istate->vars.data[i] = NULL;
+                    {   istate->vars.tdata()[i] = NULL;
                         break;
                     }
                 }
@@ -295,9 +295,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         if (!thisvar) // it's a reference. Find which variable it refers to.
             thisvar = findParentVar(thisarg->interpret(istate), istate->localThis);
         for (size_t i = 0; i < istate->vars.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
+        {   VarDeclaration *v = istate->vars.tdata()[i];
             if (v == thisvar)
-            {   istate->vars.data[i] = NULL;
+            {   istate->vars.tdata()[i] = NULL;
                 break;
             }
         }
@@ -311,7 +311,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         //printf("saving local variables...\n");
         valueSaves.setDim(istate->vars.dim);
         for (size_t i = 0; i < istate->vars.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
+        {   VarDeclaration *v = istate->vars.tdata()[i];
             if (v && v->parent == this)
             {
                 //printf("\tsaving [%d] %s = %s\n", i, v->toChars(), v->getValue() ? v->getValue()->toChars() : "");
@@ -367,7 +367,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
          */
         //printf("restoring local variables...\n");
         for (size_t i = 0; i < istate->vars.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)istate->vars.data[i];
+        {   VarDeclaration *v = istate->vars.tdata()[i];
             if (v && v->parent == this)
             {   v->setValueWithoutChecking((Expression *)valueSaves.data[i]);
                 //printf("\trestoring [%d] %s = %s\n", i, v->toChars(), v->getValue() ? v->getValue()->toChars() : "");
@@ -2443,7 +2443,7 @@ void addVarToInterstate(InterState *istate, VarDeclaration *v)
                 //printf("\tadding %s to istate\n", v->toChars());
                 break;
             }
-            if (v == (VarDeclaration *)istate->vars.data[i])
+            if (v == istate->vars.tdata()[i])
                 break;
         }
     }
@@ -3382,11 +3382,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          * slices of array literals, and AA literals.
          */
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice || aggregate->op == TOKcall)
+            aggregate->op == TOKslice || aggregate->op == TOKcall ||
+            aggregate->op == TOKstar)
         {
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
             if (aggregate == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
+            // The array could be an index of an AA. Resolve it if so.
+            if (aggregate->op == TOKindex)
+            {
+                IndexExp *ie = (IndexExp *)aggregate;
+                aggregate = Index(ie->type, ie->e1, ie->e2);
+            }
         }
         if (aggregate->op == TOKvar)
         {
@@ -3546,11 +3553,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          */
 
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice || aggregate->op == TOKcall)
+            aggregate->op == TOKslice ||
+            aggregate->op == TOKstar  || aggregate->op == TOKcall)
         {
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
             if (aggregate == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
+            // The array could be an index of an AA. Resolve it if so.
+            if (aggregate->op == TOKindex)
+            {
+                IndexExp *ie = (IndexExp *)aggregate;
+                aggregate = Index(ie->type, ie->e1, ie->e2);
+            }
         }
         if (aggregate->op == TOKvar)
         {
@@ -3909,15 +3923,18 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     {   // Member function call
         if (pthis->op == TOKthis)
             pthis = istate ? istate->localThis : NULL;
-        else if (pthis->op == TOKcomma)
-            pthis = pthis->interpret(istate);
-        if (pthis == EXP_CANT_INTERPRET)
-            return NULL;
-            // Evaluate 'this'
-        if (pthis->op != TOKvar)
-            pthis = pthis->interpret(istate, ctfeNeedLvalue);
-        if (pthis == EXP_CANT_INTERPRET)
-            return NULL;
+        else
+        {
+            if (pthis->op == TOKcomma)
+                pthis = pthis->interpret(istate);
+            if (pthis == EXP_CANT_INTERPRET)
+                return NULL;
+                // Evaluate 'this'
+            if (pthis->op != TOKvar)
+                pthis = pthis->interpret(istate, ctfeNeedLvalue);
+            if (pthis == EXP_CANT_INTERPRET)
+                return NULL;
+        }
 
         if (!fd->fbody)
         {
@@ -4616,8 +4633,6 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         e = e1->interpret(istate, ctfeNeedLvalue);
         if (e == EXP_CANT_INTERPRET)
             return e;
-        if (e->op == TOKaddress)
-            e = ((AddrExp*)e)->e1;
         if (goal != ctfeNeedLvalue)
         {
             if (e->op == TOKindex && e->type->ty == Tpointer)
@@ -4638,6 +4653,8 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                     }
                     return Index(type, ie->e1, ie->e2);
                 }
+                if (ie->e1->op == TOKassocarrayliteral)
+                    return Index(type, ie->e1, ie->e2);
             }
             if (e->op == TOKstructliteral)
                 return e;
@@ -4650,13 +4667,13 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             }
             if (e == EXP_CANT_INTERPRET)
                 return e;
-            e->type = type;
         }
         if (e->op == TOKnull)
         {
             error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
+        e->type = type;
     }
 
 #if LOG
