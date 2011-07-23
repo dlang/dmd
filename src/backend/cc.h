@@ -708,9 +708,7 @@ typedef struct FUNC_S
     };
     Funcsym *Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
-#if TX86
     symlist_t Fthunks;          // list of thunks off of this function
-#endif
     param_t *Farglist;          // SCfunctempl: the template-parameter-list
     param_t *Fptal;             // Finstance: this is the template-argument-list
                                 // SCftexpspec: for explicit specialization, this
