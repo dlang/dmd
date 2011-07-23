@@ -218,6 +218,15 @@ void test2779()
 
     auto t3 = tup(10, "str");
     tfunc2779(t3);
+
+    alias Tup!(Tup!(int, double), Tup!(string, int[])) Tup41;
+    alias Tup!(int, double, string, int[]) Tup42;
+    auto t41 = Tup41(tup(10, 3.14), tup("str", [1,2]));
+    auto t42 = Tup42(t41);
+    assert(t42[0] == 10);
+    assert(t42[1] == 3.14);
+    assert(t42[2] == "str");
+    assert(t42[3] == [1,2]);
 }
 
 /**********************************************/
