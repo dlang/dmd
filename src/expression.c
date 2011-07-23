@@ -9490,7 +9490,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 Type * aaValueType = ((TypeAArray *)((IndexExp*)e1)->e1->type->toBasetype())->next;
                 Identifier *id = Lexer::uniqueId("__aatmp");
                 VarDeclaration *v = new VarDeclaration(loc, aaValueType,
-                    id, new VoidInitializer(NULL));
+                    id, new VoidInitializer(0));
                 v->storage_class |= STCctfe;
                 v->semantic(sc);
                 v->parent = sc->parent;
