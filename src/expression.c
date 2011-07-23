@@ -3701,7 +3701,9 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     expandTuples(elements);
     size_t offset = 0;
     for (size_t i = 0; i < elements->dim; i++)
-    {   e = elements->tdata()[i];
+    {
+Lagain:
+        e = elements->tdata()[i];
         if (!e)
             continue;
 
@@ -3721,11 +3723,16 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         {   error("overlapping initialization for %s", v->toChars());
             return new ErrorExp();
         }
-        offset = v->offset + v->type->size();
 
         Type *telem = v->type;
         if (stype)
             telem = telem->addMod(stype->mod);
+        if (!e->implicitConvTo(telem) &&
+            (e->type->ty == Tclass || e->type->ty == Tstruct))
+        {
+            if (expandAliasThisTuples(elements, i) != -1)
+                goto Lagain;
+        }
         while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
         {   /* Static array initialization, as in:
              *  T[3][5] = e;
@@ -3743,6 +3750,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
         e = e->implicitCastTo(sc, telem);
 
+        offset = v->offset + v->type->size();
         elements->tdata()[i] = e;
     }
 
