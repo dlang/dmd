@@ -259,7 +259,7 @@ typedef struct Pstate
     char STinexcept;            // if !=0 then in exception handler
     block *STbfilter;           // current exception filter
 #endif
-#if TX86
+#if !MARS
     int STinitseg;              // segment for static constructor function pointer
 #endif
     Funcsym *STfuncsym_p;       // if inside a function, then this is the
