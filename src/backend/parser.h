@@ -26,7 +26,7 @@
 #include        "type.h"
 #endif
 
-#if TX86
+#if !MARS
 extern linkage_t linkage;       /* current linkage that is in effect    */
 extern int linkage_spec;        /* !=0 if active linkage specification  */
 
@@ -40,9 +40,6 @@ extern tym_t functypetab[LINK_MAXDIM][MEMMODELS];
 
 extern mangle_t funcmangletab[LINK_MAXDIM];
 extern mangle_t varmangletab[LINK_MAXDIM];
-
-#else
-#include        "TGparser.h"
 #endif
 
 #ifndef EL_H

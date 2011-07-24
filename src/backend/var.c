@@ -41,7 +41,6 @@ char PARSER;                    // indicate we're in the parser
 char OPTIMIZER;                 // indicate we're in the optimizer
 int structalign;                /* alignment for members of structures  */
 char dbcs;                      // current double byte character set
-linkage_t linkage;
 
 int TYptrdiff = TYint;
 int TYsize = TYuint;
@@ -51,6 +50,8 @@ int TYsize_t = TYuint;
 char debuga,debugb,debugc,debugd,debuge,debugf,debugr,debugs,debugt,debugu,debugw,debugx,debugy;
 #endif
 
+#if !MARS
+linkage_t linkage;
 int linkage_spec = 0;           /* using the default                    */
 
 /* Function types       */
@@ -106,6 +107,7 @@ mangle_t varmangletab[LINK_MAXDIM] =
 #endif
     mTYman_pas,mTYman_for,mTYman_sys,mTYman_std,mTYman_d
 };
+#endif
 
 targ_size_t     dsout = 0;      /* # of bytes actually output to data   */
                                 /* segment, used to pad for alignment   */
