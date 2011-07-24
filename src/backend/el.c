@@ -112,11 +112,7 @@ void el_term()
         {   elem *e;
 
             e = nextfree->E1;
-#if TX86
             mem_ffree(nextfree);
-#else
-            MEM_PH_FREE(nextfree);
-#endif
             nextfree = e;
         }
 #else
@@ -183,11 +179,7 @@ elem *el_calloc()
         nextfree = e->E1;
     }
     else
-#if TX86
         e = (elem *) mem_fmalloc(sizeof(elem));
-#else
-        e = (elem *) MEM_PH_MALLOC(sizeof(elem));
-#endif
 #ifdef STATS
     eprm_cnt++;
 #endif
@@ -246,10 +238,7 @@ L1:
             break;
         case OPstring:
         case OPasm:
-#if TX86
-                // never free; it's alloc'd from temp mem in most (all?) cases
-            MEM_PH_FREE(e->EV.ss.Vstring);
-#endif
+            mem_free(e->EV.ss.Vstring);
             break;
         default:
             debug_assert(op < OPMAX);
@@ -557,27 +546,10 @@ elem * el_copytree(elem *e)
                 e->EV.sm.ethis = NULL;
                 break;
 #endif
-#if TX86
             case OPasm:
                 d->EV.ss.Vstring = (char *) mem_malloc(d->EV.ss.Vstrlen);
                 memcpy(d->EV.ss.Vstring,e->EV.ss.Vstring,e->EV.ss.Vstrlen);
                 break;
-#else
-            case OPasm:
-                if (e->Eflags&EFsmasm)
-                {
-                    d->Eflags |= EFsmasm;
-                    d->EV.mac.Vasmdat[0] = e->EV.mac.Vasmdat[0];
-                    d->EV.mac.Vasmdat[1] = e->EV.mac.Vasmdat[1];
-                }
-                else
-                {
-                    debug_assert(PARSER);
-                    d->EV.ss.Vstring = (char *)MEM_PH_MALLOC(d->EV.ss.Vstrlen);
-                    memcpy(d->EV.ss.Vstring,e->EV.ss.Vstring,e->EV.ss.Vstrlen);
-                }
-                break;
-#endif
         }
     }
     return d;
@@ -1946,7 +1918,6 @@ elem *el_convstring(elem *e)
     // Replace string with a symbol that refers to that string
     // in the DATA segment
 
-#if TX86
     if (eecontext.EEcompile)
         s = symboldata(Doffset,e->Ety);
     else
@@ -1959,20 +1930,6 @@ elem *el_convstring(elem *e)
     stable[stable_si].len = len;
     stable[stable_si].sym = s;
     stable_si = (stable_si + 1) & (arraysize(stable) - 1);
-#else
-    s = symboldata(Doffset,e->Ety);
-    s->Sfl = FLdatseg;              // string in data segment
-    s->Sidnum = obj_module(DATA,SClocstat,0);
-    obj_bytes(DATA,0,len,p);
-
-    // Remember the string for possible reuse later
-    //dbg_printf("Adding %d, '%s'\n",stable_si,p);
-    MEM_PH_FREE(stable[stable_si].p);
-    stable[stable_si].p   = p;
-    stable[stable_si].len = len;
-    stable[stable_si].sym = s;
-    stable_si = (stable_si + 1) & (arraysize(stable) - 1);
-#endif
 
 L1:
     // Refer e to the symbol generated

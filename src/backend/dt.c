@@ -45,11 +45,7 @@ dt_t *dt_calloc(char dtx)
         *dt = dtzero;
     }
     else
-#if TX86
         dt = (dt_t *) mem_fcalloc(sizeof(dt_t));
-#else
-        dt = (dt_t *) MEM_PH_MALLOC(sizeof(dt_t));
-#endif
     dt->dt = dtx;
     return dt;
 }
@@ -87,11 +83,7 @@ void dt_term()
 
     while (dt_freelist)
     {   dtn = dt_freelist->DTnext;
-#if TX86
         mem_ffree(dt_freelist);
-#else
-        MEM_PH_FREE(dt_freelist);
-#endif
         dt_freelist = dtn;
     }
 #endif
