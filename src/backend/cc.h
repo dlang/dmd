@@ -1132,10 +1132,8 @@ struct Symbol
              #define Sbit _SU._SB.Sbit_
             char Swidth_;       // SCfield: width in bits of bit field
              #define Swidth _SU._SB.Swidth_
-#if TX86
             targ_size_t Smemoff_; // SCmember,SCfield: offset from start of struct
              #define Smemoff _SU._SB.Smemoff_
-#endif
         }_SB;
 
         elem *Svalue_;          /* SFLvalue: value of const
