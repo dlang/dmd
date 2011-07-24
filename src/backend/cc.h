@@ -1089,9 +1089,7 @@ struct Symbol
 #endif
 
     Symbol *Sl,*Sr;             // left, right child
-#if TX86
     Symbol *Snext;              // next in threaded list
-#endif
     dt_t *Sdt;                  // variables: initializer
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
