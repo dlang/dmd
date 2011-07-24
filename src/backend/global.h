@@ -187,14 +187,14 @@ int synerr(unsigned,...);
 void preerr(unsigned,...);
 
 #if __clang__
-void err_exit(void) __attribute__((analyser_noreturn));
+void err_exit(void) __attribute__((analyzer_noreturn));
 #else
 void err_exit(void);
 #pragma ZTC noreturn(err_exit)
 #endif
 
 #if __clang__
-void err_nomem(void) __attribute__((analyser_noreturn));
+void err_nomem(void) __attribute__((analyzer_noreturn));
 #else
 void err_nomem(void);
 #pragma noreturn(err_nomem)
@@ -210,7 +210,7 @@ void err_warning_enable(unsigned warnum, int on);
 CEXTERN void lexerr(unsigned,...);
 
 #if __clang__
-CEXTERN void err_fatal(unsigned,...) __attribute__((analyser_noreturn));
+CEXTERN void err_fatal(unsigned,...) __attribute__((analyzer_noreturn));
 #else
 CEXTERN void err_fatal(unsigned,...);
 #pragma noreturn(err_fatal)

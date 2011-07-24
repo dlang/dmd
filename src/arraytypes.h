@@ -28,7 +28,7 @@ struct Initializer;
 
 struct TemplateParameters : Array { };
 
-struct Expressions : Array { };
+typedef ArrayBase<struct Expression> Expressions;
 
 struct Statements : Array { };
 
