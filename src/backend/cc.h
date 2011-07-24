@@ -1165,7 +1165,7 @@ struct Symbol
              #define Spath _SU._SA.Spath_
         }_SA;
 #endif
-#if TX86
+#if !MARS
         Symbol *Simport_;       // SCextern: if dllimport Symbol, this is the
         #define Simport _SU.Simport_
                                 // Symbol it was imported from
