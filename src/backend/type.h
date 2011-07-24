@@ -137,9 +137,8 @@ typedef struct TYPETEMP
 // CPP
 #define TFdependent     4       // template dependent type
 
-#if !TX86
+#if DEHYDRATE
 #define TFhydrated      0x20    // type data already hydrated
-#define TFbasicrev      0x80    // if basic reserved type
 #endif
 
 /* Return !=0 if function type has a variable number of arguments       */

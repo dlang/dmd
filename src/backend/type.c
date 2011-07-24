@@ -1025,14 +1025,6 @@ void type_hydrate(type **pt)
     {
         t = (type *) ph_hydrate(pt);
         type_debug(t);
-#if !TX86
-        if (t->Tflags & TFhydrated)
-            return;
-#if SOURCE_4TYPES
-        t->Tsrcpos.Sfilnum += File_Hydrate_Num; /* file number relative header build */
-#endif
-        t->Tflags |= TFhydrated;
-#endif
         switch (tybasic(t->Tty))
         {
             case TYstruct:
