@@ -156,7 +156,7 @@ int level = 0;                  /* declaration level                    */
                                 /* 3+: compound statement decls         */
 
 param_t *paramlst = NULL;       /* function parameter list              */
-tym_t pointertype;              /* default data pointer type            */
+tym_t pointertype = TYnptr;     /* default data pointer type            */
 
 /************************
  * Bit masks
