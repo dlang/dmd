@@ -649,9 +649,7 @@ typedef struct FUNC_S
 #       define Ffixed    0x40000        // ctor has had cpp_fixconstructor() run on it,
                                         // dtor has had cpp_fixdestructor()
 #       define Fintro    0x80000        // function doesn't hide a previous virtual function
-#if !TX86
-#       define Fstcstd   0x100000       // static constructor or static destructor
-#endif
+//#     define unused    0x100000       // unused bit
 #       define Fkeeplink 0x200000       // don't change linkage to default
 #       define Fnodebug  0x400000       // do not generate debug info for this function
 #       define Fgen      0x800000       // compiler generated function
