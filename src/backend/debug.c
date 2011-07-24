@@ -90,7 +90,7 @@ void WRTYxx(tym_t t)
         dbg_printf("mTYconst|");
     if (t & mTYvolatile)
         dbg_printf("mTYvolatile|");
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if !MARS && (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4)
     if (t & mTYtransu)
         dbg_printf("mTYtransu|");
 #endif

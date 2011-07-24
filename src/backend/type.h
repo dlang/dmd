@@ -48,7 +48,7 @@ struct TYPE
     tym_t       Tty;            /* mask (TYxxx)                         */
     unsigned short Tflags;      // TFxxxxx
 
-#if TX86
+#if !MARS
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define mTYnoret        0x010000        // function has no return
 #define mTYtransu       0x010000        // transparent union
@@ -68,11 +68,11 @@ struct TYPE
 #else
 #define mTYTFF          0xFF0000
 #endif
+#endif
 
     mangle_t Tmangle;           // name mangling
 // Return name mangling of type
 #define type_mangle(t)  ((t)->Tmangle)
-#endif
 
     unsigned Tcount;            // # pointing to this type
     struct TYPE *Tnext;         // next in list
