@@ -1280,9 +1280,7 @@ struct Symbol
     SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
                                 // SCauto,SCparameter,SCtmp,SCregpar,SCregister
     // CODGEN
-#if TX86
     int Sseg;                   // segment index
-#endif
     int Sweight;                // usage count, the higher the number,
                                 // the more worthwhile it is to put in
                                 // a register
