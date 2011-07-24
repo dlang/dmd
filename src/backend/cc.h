@@ -1114,7 +1114,7 @@ struct Symbol
         }_SL;
         #define Senumlist Senum->SEenumlist
 
-#if TX86
+#if !MARS
         struct                  // SClinkage
         {
             long Slinkage_;     // tym linkage bits
