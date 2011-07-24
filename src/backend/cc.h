@@ -205,12 +205,10 @@ extern Config config;
 typedef struct Srcpos
 {
     unsigned Slinnum;           // 0 means no info available
-#if TX86
 #if SPP || SCPP
     struct Sfile **Sfilptr;     // file
     #define srcpos_sfile(p)     (**(p).Sfilptr)
     #define srcpos_name(p)      (srcpos_sfile(p).SFname)
-#endif
 #endif
 #if MARS
     const char *Sfilename;
