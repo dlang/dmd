@@ -19,7 +19,6 @@
 
 #include <limits.h>
 
-#if TX86
 typedef unsigned char mangle_t;
 
 #define mTYman_c        1       // C mangling
@@ -29,10 +28,6 @@ typedef unsigned char mangle_t;
 #define mTYman_sys      5       // _syscall mangling
 #define mTYman_std      6       // _stdcall mangling
 #define mTYman_d        7       // D mangling
-
-#else
-#include "TGtype.h"
-#endif
 
 /*********************************
  * Data type.

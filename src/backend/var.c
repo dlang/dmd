@@ -86,7 +86,6 @@ tym_t functypetab[LINK_MAXDIM][MEMMODELS] =
 /* LINK_MAXDIM = C,C++,Pascal,FORTRAN,syscall,stdcall */
 mangle_t funcmangletab[LINK_MAXDIM] =
 {
-#if TX86
     mTYman_c,
     mTYman_cpp,
     mTYman_pas,
@@ -94,7 +93,6 @@ mangle_t funcmangletab[LINK_MAXDIM] =
     mTYman_sys,
     mTYman_std,
     mTYman_d,
-#endif
 };
 
 /* Name mangling for global variables   */
