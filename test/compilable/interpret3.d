@@ -1985,3 +1985,30 @@ struct Bug6337
     }
 }
 static assert( Bug6337().ctfe() == 6);
+
+/**************************************************
+    6375
+**************************************************/
+
+struct D6375 {
+    int[] arr;
+}
+A6375 a6375(int[] array) {
+    return A6375(array);
+}
+struct A6375 {
+    D6375* _data;
+    this(int[] arr) {
+        _data = new D6375;
+        _data.arr = arr;
+    }
+    int[] data() {
+        return _data.arr;
+    }
+}
+static assert({
+    int[] a = [ 1, 2 ];
+    auto app2 = a6375(a);
+    auto data = app2.data();
+    return true;
+}());
