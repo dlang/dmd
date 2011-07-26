@@ -3864,7 +3864,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 if (dim)
                 {   tiargs->reserve(dim);
                     for (size_t i = 0; i < dim; i++)
-                        tiargs->insert(j + i, te->exps->data[i]);
+                        tiargs->insert(j + i, (*te->exps)[i]);
                 }
                 j--;
             }

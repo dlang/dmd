@@ -32,22 +32,22 @@ typedef ArrayBase<struct Expression> Expressions;
 
 typedef ArrayBase<struct Statement> Statements;
 
+typedef ArrayBase<struct BaseClass> BaseClasses;
 
-struct BaseClasses : Array { };
+typedef ArrayBase<struct ClassDeclaration> ClassDeclarations;
 
-struct ClassDeclarations : Array { };
+typedef ArrayBase<struct Dsymbol> Dsymbols;
 
-struct Dsymbols : Array { };
+typedef ArrayBase<struct Object> Objects;
 
-struct Objects : Array { };
+typedef ArrayBase<struct FuncDeclaration> FuncDeclarations;
 
-struct FuncDeclarations : Array { };
+typedef ArrayBase<struct Parameter> Parameters;
 
-struct Parameters : Array { };
+typedef ArrayBase<struct Identifier> Identifiers;
 
-struct Identifiers : Array { };
+typedef ArrayBase<struct Initializer> Initializers;
 
-struct Initializers : Array { };
 typedef ArrayBase<struct VarDeclaration> VarDeclarations;
 
 #endif
