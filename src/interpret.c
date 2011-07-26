@@ -2718,6 +2718,7 @@ Expression *copyLiteral(Expression *e)
     {
         e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
         assert(0);
+        return e;
     }
 }
 
@@ -3382,7 +3383,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         uinteger_t destarraylen = 0; // not for AAs
 
         // Set the $ variable, and find the array literal to modify
-        if (ie->e1->type->toBasetype()->ty != Taarray)
+        if (ie->e1->type->toBasetype()->ty != Taarray && ie->e1->type->toBasetype()->ty != Tpointer)
         {
             Expression *oldval = ie->e1->interpret(istate);
             if (oldval->op == TOKnull)
@@ -3417,11 +3418,28 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         StringExp *existingSE = NULL;
         AssocArrayLiteralExp *existingAA = NULL;
 
+        Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
+
         // Set the index to modify (for non-AAs), and check that it is in range
         int indexToModify = 0;
         if (ie->e1->type->toBasetype()->ty != Taarray)
         {
             indexToModify = index->toInteger();
+            if (ie->e1->type->toBasetype()->ty == Tpointer)
+            {
+                dinteger_t ofs;
+                aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+                if (aggregate == EXP_CANT_INTERPRET)
+                    return EXP_CANT_INTERPRET;
+                if (aggregate->op == TOKnull)
+                {
+                    error("cannot index through null pointer %s", ie->e1->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
+                aggregate = getAggregateFromPointer(aggregate, &ofs);
+                indexToModify += ofs;
+                destarraylen = resolveArrayLength(aggregate);
+            }
             if (indexToModify >= destarraylen)
             {
                 error("array index %d is out of bounds [0..%d]", indexToModify,
@@ -3429,8 +3447,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return EXP_CANT_INTERPRET;
             }
         }
-
-        Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
 
         /* The only possible indexable LValue aggregates are array literals,
          * slices of array literals, and AA literals.
@@ -4216,7 +4232,36 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("IndexExp::interpret() %s\n", toChars());
 #endif
+    if (this->e1->type->toBasetype()->ty == Tpointer)
+    {
+        // Indexing a pointer. Note that there is no $ in this case.
+        e1 = this->e1->interpret(istate);
+        if (e1 == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
 
+        e2 = this->e2->interpret(istate);
+        if (e2 == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+        dinteger_t indx = e2->toInteger();
+        Expression *e;
+        dinteger_t ofs;
+        Expression *agg = getAggregateFromPointer(e1, &ofs);
+        if (agg->op == TOKnull)
+        {
+            error("cannot index null pointer %s", this->e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
+        dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
+        Type *pointee = ((TypePointer *)agg->type)->next;
+        if ((indx + ofs) < 0 || (indx+ofs) > len)
+        {
+            error("pointer index [%jd] exceeds allocated memory block [0..%jd]",
+                indx+ofs, len);
+            return EXP_CANT_INTERPRET;
+        }
+        return Index(type, agg, new IntegerExp(loc, indx+ofs, Type::tsize_t));
+    }
     e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
         return EXP_CANT_INTERPRET;
