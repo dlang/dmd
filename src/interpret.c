@@ -3089,6 +3089,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     newval = copyLiteral(newval);
                 if (newval->op == TOKslice)
                     newval = resolveSlice(newval);
+                // It becomes a reference assignment
+                wantRef = true;
             }
             if (oldval->op == TOKslice)
                 oldval = resolveSlice(oldval);
@@ -3240,7 +3242,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     //      Deal with reference assignment
     // (We already have 'newval' for arraylength operations)
     // ---------------------------------------
-    if (wantRef && this->e1->op != TOKarraylength)
+    if (wantRef && !fp && this->e1->op != TOKarraylength)
     {
         newval = this->e2->interpret(istate, ctfeNeedLvalue);
         if (newval == EXP_CANT_INTERPRET)
