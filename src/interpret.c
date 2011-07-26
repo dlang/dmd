@@ -489,6 +489,12 @@ Expression *UnrolledLoopStatement::interpret(InterState *istate)
     return e;
 }
 
+// For CTFE only. Returns true if 'e' is TRUE or a non-null pointer.
+int isTrueBool(Expression *e)
+{
+    return e->isBool(TRUE) || (e->type->ty == Tpointer && e->op != TOKnull);
+}
+
 Expression *IfStatement::interpret(InterState *istate)
 {
 #if LOG
@@ -512,7 +518,7 @@ Expression *IfStatement::interpret(InterState *istate)
     //if (e == EXP_CANT_INTERPRET) printf("cannot interpret\n");
     if (e != EXP_CANT_INTERPRET)
     {
-        if (e->isBool(TRUE))
+        if (isTrueBool(e))
             e = ifbody ? ifbody->interpret(istate) : NULL;
         else if (e->isBool(FALSE))
             e = elsebody ? elsebody->interpret(istate) : NULL;
@@ -789,7 +795,7 @@ Expression *DoStatement::interpret(InterState *istate)
         {   e = EXP_CANT_INTERPRET;
             break;
         }
-        if (e->isBool(TRUE))
+        if (isTrueBool(e))
         {
         }
         else if (e->isBool(FALSE))
@@ -857,7 +863,7 @@ Expression *ForStatement::interpret(InterState *istate)
         {   e = EXP_CANT_INTERPRET;
             break;
         }
-        if (e->isBool(TRUE))
+        if (isTrueBool(e))
         {
         Lhead:
             e = body ? body->interpret(istate) : NULL;
@@ -3808,14 +3814,14 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (e->isBool(FALSE))
             e = new IntegerExp(e1->loc, 0, type);
-        else if (e->isBool(TRUE))
+        else if (isTrueBool(e))
         {
             e = e2->interpret(istate);
             if (e != EXP_CANT_INTERPRET)
             {
                 if (e->isBool(FALSE))
                     e = new IntegerExp(e1->loc, 0, type);
-                else if (e->isBool(TRUE))
+                else if (isTrueBool(e))
                     e = new IntegerExp(e1->loc, 1, type);
                 else
                     e = EXP_CANT_INTERPRET;
@@ -3835,7 +3841,7 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e = e1->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
     {
-        if (e->isBool(TRUE))
+        if (isTrueBool(e))
             e = new IntegerExp(e1->loc, 1, type);
         else if (e->isBool(FALSE))
         {
@@ -3844,7 +3850,7 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
             {
                 if (e->isBool(FALSE))
                     e = new IntegerExp(e1->loc, 0, type);
-                else if (e->isBool(TRUE))
+                else if (isTrueBool(e))
                     e = new IntegerExp(e1->loc, 1, type);
                 else
                     e = EXP_CANT_INTERPRET;
@@ -4113,7 +4119,7 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
         e = econd->interpret(istate);
     if (e != EXP_CANT_INTERPRET)
     {
-        if (e->isBool(TRUE))
+        if (isTrueBool(e))
             e = e1->interpret(istate, goal);
         else if (e->isBool(FALSE))
             e = e2->interpret(istate, goal);
@@ -4591,7 +4597,7 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
         e1 = this->e1->interpret(istate);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
-    if ((this->e1->op == TOKaddress && e1->op != TOKnull) || e1->isBool(TRUE))
+    if (isTrueBool(e1))
     {
     }
     else if (e1->isBool(FALSE))
