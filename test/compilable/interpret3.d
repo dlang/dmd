@@ -1926,6 +1926,19 @@ int bug4448b()
 static assert(bug4448b()==3);
 
 /**************************************************
+    6281 - [CTFE] A null pointer '!is null' returns 'true'
+**************************************************/
+
+static assert(!{
+    auto p = null;
+    return p !is null;
+}());
+static assert(!{
+    auto p = null;
+    return p != null;
+}());
+
+/**************************************************
     6331 - evaluate SliceExp on if condition
 **************************************************/
 
