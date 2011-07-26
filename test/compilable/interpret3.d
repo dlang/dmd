@@ -2012,3 +2012,13 @@ static assert({
     auto data = app2.data();
     return true;
 }());
+
+/**************************************************
+    6280 Converting pointers to bool
+**************************************************/
+
+static assert({
+    if ((0 in [0:0])) {}
+    if ((0 in [0:0]) && (0 in [0:0])) {}
+    return true;
+}());
