@@ -2051,3 +2051,15 @@ static assert({
     foo.i ~= 2;
     return true;
 }());
+
+/**************************************************
+    6374   ptr[n] = x, x = ptr[n]
+**************************************************/
+
+static assert({
+    int[] arr = [1];
+    arr.ptr[0] = 2;
+    auto k = arr.ptr[0];
+    assert(k==2);
+    return arr[0];
+}() == 2);
