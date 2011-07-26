@@ -1954,6 +1954,21 @@ static assert(bug6331("str"));
     6283 - assign to AA with slice as index
 **************************************************/
 
+static assert({
+    immutable p = "pp";
+    int[string] pieces = [p: 0];
+    pieces["qq"] = 1;
+    return true;
+}());
+
+static assert({
+    immutable renames = [0: "pp"];
+    int[string] pieces;
+    pieces[true ? renames[0] : "qq"] = 1;
+    pieces["anything"] = 1;
+    return true;
+}());
+
 static assert( {
     immutable qq = "qq";
     string q = qq;
@@ -1998,3 +2013,66 @@ struct Bug6337
     }
 }
 static assert( Bug6337().ctfe() == 6);
+
+/**************************************************
+    6375
+**************************************************/
+
+struct D6375 {
+    int[] arr;
+}
+A6375 a6375(int[] array) {
+    return A6375(array);
+}
+struct A6375 {
+    D6375* _data;
+    this(int[] arr) {
+        _data = new D6375;
+        _data.arr = arr;
+    }
+    int[] data() {
+        return _data.arr;
+    }
+}
+static assert({
+    int[] a = [ 1, 2 ];
+    auto app2 = a6375(a);
+    auto data = app2.data();
+    return true;
+}());
+
+/**************************************************
+    6280 Converting pointers to bool
+**************************************************/
+
+static assert({
+    if ((0 in [0:0])) {}
+    if ((0 in [0:0]) && (0 in [0:0])) {}
+    return true;
+}());
+
+/**************************************************
+    6276 ~=
+**************************************************/
+
+struct Bug6276{
+    int[] i;
+}
+static assert({
+    Bug6276 foo;
+    foo.i ~= 1;
+    foo.i ~= 2;
+    return true;
+}());
+
+/**************************************************
+    6374   ptr[n] = x, x = ptr[n]
+**************************************************/
+
+static assert({
+    int[] arr = [1];
+    arr.ptr[0] = 2;
+    auto k = arr.ptr[0];
+    assert(k==2);
+    return arr[0];
+}() == 2);
