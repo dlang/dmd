@@ -9511,6 +9511,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
     /* Rewrite tuple assignment as a tuple of assignments.
      */
+Ltupleassign:
     if (e1->op == TOKtuple && e2->op == TOKtuple)
     {   TupleExp *tup1 = (TupleExp *)e1;
         TupleExp *tup2 = (TupleExp *)e2;
@@ -9532,6 +9533,51 @@ Expression *AssignExp::semantic(Scope *sc)
             Expression *e = new TupleExp(loc, exps);
             e = e->semantic(sc);
             return e;
+        }
+    }
+
+    if (e1->op == TOKtuple)
+    {
+        if (TupleDeclaration *td = isAliasThisTuple(e2))
+        {
+            assert(e1->type->ty == Ttuple);
+            TypeTuple *tt = (TypeTuple *)e1->type;
+
+            Identifier *id = Lexer::uniqueId("__tup");
+            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, new ExpInitializer(e2->loc, e2));
+            v->storage_class = STCctfe | STCref | STCforeach;
+            Expression *ve = new VarExp(e2->loc, v);
+            ve->type = e2->type;
+
+            Expressions *iexps = new Expressions();
+            iexps->push(ve);
+
+            for (size_t u = 0; u < iexps->dim ; u++)
+            {
+            Lexpand:
+                Expression *e = iexps->tdata()[u];
+
+                Parameter *arg = Parameter::getNth(tt->arguments, u);
+                //printf("[%d] iexps->dim = %d, ", u, iexps->dim);
+                //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
+                //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+
+                if (!e->type->implicitConvTo(arg->type))
+                {
+                    // expand initializer to tuple
+                    if (expandAliasThisTuples(iexps, u) != -1)
+                        goto Lexpand;
+
+                    goto Lnomatch;
+                }
+            }
+            iexps->tdata()[0] = new CommaExp(loc, new DeclarationExp(e2->loc, v), iexps->tdata()[0]);
+            e2 = new TupleExp(e2->loc, iexps);
+            e2 = e2->semantic(sc);
+            goto Ltupleassign;
+
+        Lnomatch:
+            ;
         }
     }
 
