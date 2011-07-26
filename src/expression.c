@@ -11313,7 +11313,7 @@ Expression *CmpExp::semantic(Scope *sc)
             error("recursive opCmp expansion");
             e = new ErrorExp();
         }
-        else
+        else if (e->op == TOKcall)
         {   e = new CmpExp(op, loc, e, new IntegerExp(loc, 0, Type::tint32));
             e = e->semantic(sc);
         }
@@ -11453,7 +11453,7 @@ Expression *EqualExp::semantic(Scope *sc)
         e = op_overload(sc);
         if (e)
         {
-            if (op == TOKnotequal)
+            if (e->op == TOKcall && op == TOKnotequal)
             {
                 e = new NotExp(e->loc, e);
                 e = e->semantic(sc);

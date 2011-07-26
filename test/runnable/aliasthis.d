@@ -132,6 +132,22 @@ void test4773()
 }
 
 /**********************************************/
+// 5188
+
+void test5188()
+{
+    struct S
+    {
+        int v = 10;
+        alias v this;
+    }
+
+    S s;
+    assert(s <= 20);
+    assert(s != 14);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -141,6 +157,7 @@ int main()
     test4();
     test5();
     test4773();
+    test5188();
 
     printf("Success\n");
     return 0;
