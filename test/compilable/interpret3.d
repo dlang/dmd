@@ -1941,6 +1941,21 @@ static assert(bug6331("str"));
     6283 - assign to AA with slice as index
 **************************************************/
 
+static assert({
+    immutable p = "pp";
+    int[string] pieces = [p: 0];
+    pieces["qq"] = 1;
+    return true;
+}());
+
+static assert({
+    immutable renames = [0: "pp"];
+    int[string] pieces;
+    pieces[true ? renames[0] : "qq"] = 1;
+    pieces["anything"] = 1;
+    return true;
+}());
+
 static assert( {
     immutable qq = "qq";
     string q = qq;
