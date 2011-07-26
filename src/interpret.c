@@ -577,6 +577,17 @@ uinteger_t resolveArrayLength(Expression *e)
     return 0;
 }
 
+// As Equal, but resolves slices before comparing
+Expression *ctfeEqual(enum TOK op, Type *type, Expression *e1, Expression *e2)
+{
+    if (e1->op == TOKslice)
+        e1 = resolveSlice(e1);
+    if (e2->op == TOKslice)
+        e2 = resolveSlice(e2);
+    return Equal(op, type, e1, e2);
+}
+
+
 void scrubArray(Expressions *elems);
 
 /* All results destined for use outside of CTFE need to have their CTFE-specific
@@ -1163,7 +1174,7 @@ Expression *SwitchStatement::interpret(InterState *istate)
         for (size_t i = 0; i < cases->dim; i++)
         {
             CaseStatement *cs = cases->tdata()[i];
-            e = Equal(TOKequal, Type::tint32, econdition, cs->exp);
+            e = ctfeEqual(TOKequal, Type::tint32, econdition, cs->exp);
             if (e == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             if (e->isBool(TRUE))
@@ -1905,10 +1916,11 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
      */
     for (size_t i = 1; i < keysx->dim; i++)
     {   Expression *ekey = keysx->tdata()[i - 1];
-
+        if (ekey->op == TOKslice)
+            ekey = resolveSlice(ekey);
         for (size_t j = i; j < keysx->dim; j++)
         {   Expression *ekey2 = keysx->tdata()[j];
-            Expression *ex = Equal(TOKequal, Type::tbool, ekey, ekey2);
+            Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, ekey2);
             if (ex == EXP_CANT_INTERPRET)
                 goto Lerr;
             if (ex->isBool(TRUE))       // if a match
@@ -2484,7 +2496,7 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae, Expressi
     for (size_t j = valuesx->dim; j; )
     {   j--;
         Expression *ekey = aae->keys->tdata()[j];
-        Expression *ex = Equal(TOKequal, Type::tbool, ekey, index);
+        Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, index);
         if (ex == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
         if (ex->isBool(TRUE))
@@ -2681,7 +2693,7 @@ Expression *copyLiteral(Expression *e)
         return r;
     }
     else if (e->type->ty == Tpointer && e->type->nextOf()->ty != Tfunction)
-    {     // For pointers, we only do a shallow copy.
+    {   // For pointers, we only do a shallow copy.
         Expression *r;
         if (e->op == TOKaddress)
             r = new AddrExp(e->loc, copyLiteral(((AddrExp *)e)->e1));
@@ -2695,8 +2707,18 @@ Expression *copyLiteral(Expression *e)
         r->type = e->type;
         return r;
     }
+    else if (e->op == TOKslice)
+    {   // Array slices only do a shallow copy
+        Expression *r = new SliceExp(e->loc, ((SliceExp *)e)->e1,
+         ((SliceExp *)e)->lwr,  ((SliceExp *)e)->upr);
+        r->type = e->type;
+        return r;
+    }
     else
+    {
+        e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
         assert(0);
+    }
 }
 
 /* Deal with type painting.
@@ -4169,7 +4191,7 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
     {
         i--;
         Expression *ekey = ae->keys->tdata()[i];
-        Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
+        Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, e2);
         if (ex == EXP_CANT_INTERPRET)
         {
             error("cannot evaluate %s==%s at compile time",
