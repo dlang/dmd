@@ -493,7 +493,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
                         for (int j = i + 1; j < statements->dim; j++)
                         {
-                            a->push(statements->data[j]);
+                            a->push((*statements)[j]);
                         }
                         body = new CompoundStatement(0, a);
                         body = new ScopeStatement(0, body);
@@ -534,7 +534,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
                         for (int j = i + 1; j < statements->dim; j++)
                         {
-                            a->push(statements->data[j]);
+                            a->push((*statements)[j]);
                         }
                         body = new CompoundStatement(0, a);
                         s = new TryFinallyStatement(0, body, sfinally);
@@ -550,7 +550,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
     }
     if (statements->dim == 1)
     {
-        return (Statement *)statements->data[0];
+        return (*statements)[0];
     }
     return this;
 }
@@ -565,7 +565,7 @@ ReturnStatement *CompoundStatement::isReturnStatement()
     ReturnStatement *rs = NULL;
 
     for (int i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s = (*statements)[i];
         if (s)
         {
             rs = s->isReturnStatement();

@@ -30,7 +30,8 @@ struct TemplateParameters : Array { };
 
 typedef ArrayBase<struct Expression> Expressions;
 
-struct Statements : Array { };
+typedef ArrayBase<struct Statement> Statements;
+
 
 struct BaseClasses : Array { };
 
