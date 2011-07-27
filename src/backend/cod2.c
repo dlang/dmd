@@ -1939,7 +1939,7 @@ Lret:
 
 
 /*********************
- * Generate code for shift left or shift right (OPshl,OPshr,OPashr).
+ * Generate code for shift left or shift right (OPshl,OPshr,OPashr,OProl,OPror).
  */
 
 code *cdshift(elem *e,regm_t *pretregs)
@@ -1988,6 +1988,12 @@ code *cdshift(elem *e,regm_t *pretregs)
         case OPashr:
             s1 = 7;                     // SAR
             s2 = 3;                     // RCR
+            break;
+        case OProl:
+            s1 = 0;                     // ROL
+            break;
+        case OPror:
+            s1 = 1;                     // ROR
             break;
         default:
             assert(0);
