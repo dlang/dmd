@@ -2063,3 +2063,22 @@ static assert({
     assert(k==2);
     return arr[0];
 }() == 2);
+
+/**************************************************
+    6306  recursion and local variables
+**************************************************/
+
+void recurse6306() {
+    bug6306(false);
+}
+
+bool bug6306(bool b) {
+    int x = 0;
+    if (b)
+        recurse6306();
+    assert(x == 0);
+    x = 1;
+    return true;
+}
+
+static assert( bug6306(true) );
