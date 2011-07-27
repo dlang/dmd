@@ -45,7 +45,6 @@ private
     version( OSX )
     {
         import core.sys.posix.pthread;
-        extern(C) void* pthread_get_stackaddr_np(pthread_t thread);
     }
     extern (C) void gc_addRange( void* p, size_t sz );
     extern (C) void gc_removeRange( void* p );
