@@ -1477,6 +1477,7 @@ Expression *Expression::checkToBoolean(Scope *sc)
         {
             Expression *e = new DotIdExp(loc, this, ad->aliasthis->ident);
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->checkToBoolean(sc);
             return e;
         }

@@ -114,6 +114,24 @@ void test5()
 }
 
 /**********************************************/
+// 4773
+
+void test4773()
+{
+    struct Rebindable
+    {
+        Object obj;
+        @property const(Object) get(){ return obj; }
+        alias get this;
+    }
+
+    Rebindable r;
+    if (r) assert(0);
+    r.obj = new Object;
+    if (!r) assert(0);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -122,6 +140,7 @@ int main()
     test3();
     test4();
     test5();
+    test4773();
 
     printf("Success\n");
     return 0;
