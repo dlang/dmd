@@ -1,5 +1,5 @@
 // Copyright (C) 1989-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -21,6 +21,18 @@
 #undef assert
 #define assert(e)       ((e) || (local_assert(__LINE__), 0))
 
+#if __clang__
+
+void util_assert ( char * , int ) __attribute__((analyzer_noreturn));
+
+static void local_assert(int line)
+{
+    util_assert(__file__,line);
+    __buildtin_unreachable();
+}
+
+#else
+
 void util_assert ( char * , int );
 #pragma noreturn(util_assert)
 
@@ -30,5 +42,8 @@ static void local_assert(int line)
 }
 
 #pragma noreturn(local_assert)
+
+#endif
+
 
 #endif /* TASSERT_H */
