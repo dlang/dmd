@@ -41,7 +41,7 @@ int _binary[] =
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
          OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
          OPcheckcast,OPpair,OPrpair,
-         OPbt,OPbtc,OPbtr,OPbts,
+         OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,
          OPscale,OPremquo,OPyl2x,OPyl2xp1,
         };
 int _unary[] =
@@ -80,7 +80,8 @@ int _wid[] =
         };
 int _eop0e[] =
         {OPadd,OPmin,OPxor,OPor,OPshl,OPshr,OPashr,OPpostinc,OPpostdec,OPaddass,
-         OPminass,OPshrass,OPashrass,OPshlass,OPxorass,OPorass
+         OPminass,OPshrass,OPashrass,OPshlass,OPxorass,OPorass,
+         OPror,OProl,
         };
 int _eop00[] = {OPmul,OPand,OPmulass,OPandass};
 int _eop1e[] = {OPmul,OPdiv,OPmulass,OPdivass};
@@ -133,6 +134,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPbsf,OPbsr,OPbt,OPbswap,OPb_8,
                 OPgot,OPremquo,
                 OPnullptr,
+                OProl,OPror,
                 /*OPcomma,OPbit,OPoror,OPandand,OPcond,OPcolon,OPcolon2*/};
 int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
@@ -155,6 +157,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
                 OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,
+                OProl,OPror,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass};
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
@@ -198,6 +201,8 @@ int cost(unsigned op)
             case OPmul: c += 3; break;
             case OPdiv:
             case OPmod: c += 4; break;
+            case OProl:
+            case OPror:
             case OPshl:
             case OPashr:
             case OPshr: c += 2; break;
@@ -457,6 +462,8 @@ void dotab()
         case OPor:      X("|",          elbitwise,cdorth);
         case OPoror:    X("||",         eloror, cdloglog);
         case OPandand:  X("&&",         elandand,cdloglog);
+        case OProl:     X("<<|",        elshl,  cdshift);
+        case OPror:     X(">>|",        elshl,  cdshift);
         case OPshl:     X("<<",         elshl,  cdshift);
         case OPshr:     X(">>>",        elshr,  cdshift);
         case OPashr:    X(">>",         elshr,  cdshift);

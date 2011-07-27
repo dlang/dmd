@@ -76,6 +76,8 @@ enum OPER
         OPbtr,                  // bit test and reset
         OPbts,                  // bit test and set
         OPbswap,                // swap bytes
+        OProl,                  // rotate left
+        OPror,                  // rotate right
 #endif
 
         OPstreq,                /* structure assignment         */

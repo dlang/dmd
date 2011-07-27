@@ -1962,6 +1962,34 @@ elem * evalu8(elem *e)
                      ((i1 <<  8) & 0x00FF0000) |
                      ((i1 << 24) & 0xFF000000);
         break;
+    case OProl:
+    case OPror:
+        unsigned n = i2;
+        if (op == OPror)
+            n = -n;
+        switch (tysize(tym))
+        {
+            case 1:
+                n &= 7;
+                e->EV.Vuchar = (unsigned char)((i1 << n) | ((i1 & 0xFF) >> (8 - n)));
+                break;
+            case 2:
+                n &= 0xF;
+                e->EV.Vushort = (targ_ushort)((i1 << n) | ((i1 & 0xFFFF) >> (16 - n)));
+                break;
+            case 4:
+                n &= 0x1F;
+                e->EV.Vulong = (targ_ulong)((i1 << n) | ((i1 & 0xFFFFFFFF) >> (32 - n)));
+                break;
+            case 8:
+                n &= 0x3F;
+                e->EV.Vullong = (targ_ullong)((l1 << n) | ((l1 & 0xFFFFFFFFFFFFFFFFLL) >> (64 - n)));
+                break;
+            //case 16:
+            default:
+                assert(0);
+        }
+        break;
     case OPind:
 #if 0 && MARS
         /* The problem with this is that although the only reaching definition

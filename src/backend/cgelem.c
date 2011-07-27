@@ -3554,7 +3554,7 @@ STATIC elem * elbyteint(elem *e)
 }
 
 /************************
- * Handle <<
+ * Handle <<, OProl and OPror
  */
 
 STATIC elem *elshl(elem *e)

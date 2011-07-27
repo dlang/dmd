@@ -1123,6 +1123,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPshl:     case OPshr:     case OPeqeq:    case OPne:
         case OPlt:      case OPle:      case OPgt:      case OPge:
         case OPashr:
+        case OPror:     case OProl:
 
         case OPunord:   case OPlg:      case OPleg:     case OPule:
         case OPul:      case OPuge:     case OPug:      case OPue:
