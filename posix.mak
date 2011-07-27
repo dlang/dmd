@@ -518,7 +518,7 @@ $(OBJDIR)/errno_c.o : src/core/stdc/errno.c
 
 $(OBJDIR)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(OBJDIR)
-	$(CC) -c $(CFLAGS) $< -o$@
+	$(CC) -Wa,-noexecstack -c $(CFLAGS) $< -o$@
 
 ################### Library generation #########################
 
