@@ -2126,20 +2126,34 @@ code *cdshift(elem *e,regm_t *pretregs)
                             cg = cat(cg, getregs(mCX));
                         }
 
-                        if (oper == OPshl)
-                        {       /* MOV regH,regL        XOR regL,regL   */
+                        assert(sz == 2);
+                        switch (oper)
+                        {
+                            case OPshl:
+                                /* MOV regH,regL        XOR regL,regL   */
                                 assert(resreg < 4 && !rex);
                                 c = genregs(CNIL,0x8A,resreg+4,resreg);
                                 genregs(c,0x32,resreg,resreg);
-                        }
-                        else            // OPshr/OPashr
-                        {
-                            /* MOV regL,regH    */
-                            c = genregs(CNIL,0x8A,resreg,resreg+4);
-                            if (oper == OPashr)
-                                gen1(c,0x98);           /* CBW          */
-                            else
-                                genregs(c,0x32,resreg+4,resreg+4); /* CLR regH */
+                                break;
+
+                            case OPshr:
+                            case OPashr:
+                                /* MOV regL,regH    */
+                                c = genregs(CNIL,0x8A,resreg,resreg+4);
+                                if (oper == OPashr)
+                                    gen1(c,0x98);           /* CBW          */
+                                else
+                                    genregs(c,0x32,resreg+4,resreg+4); /* CLR regH */
+                                break;
+
+                            case OPror:
+                            case OProl:
+                                // XCHG regL,regH
+                                c = genregs(CNIL,0x86,resreg+4,resreg);
+                                break;
+
+                            default:
+                                assert(0);
                         }
                         if (forccs)
                                 gentstreg(c,resreg);
@@ -2212,6 +2226,9 @@ code *cdshift(elem *e,regm_t *pretregs)
             cr = scodelem(e2,&rretregs,retregs,FALSE); /* get rvalue */
             cg = getregs(retregs);      /* trash these regs             */
             c = gen2(CNIL,0xD3 ^ byte,grex | modregrmx(3,s1,resreg)); /* Sxx resreg,CX */
+
+            if (!I16 && sz == 2 && (oper == OProl || oper == OPror))
+                c->Iflags |= CFopsize;
 
             // Note that a shift by CL does not set the flags if
             // CL == 0. If e2 is a constant, we know it isn't 0
