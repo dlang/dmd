@@ -23,7 +23,6 @@
 #include        "global.h"
 #include        "type.h"
 #include        "parser.h"
-#include        "cpp.h"
 #include        "exh.h"
 #include        "list.h"
 

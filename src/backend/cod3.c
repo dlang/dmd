@@ -26,7 +26,6 @@
 #include        "aa.h"
 #include        "tinfo.h"
 #if SCPP
-#include        "cpp.h"
 #include        "exh.h"
 #endif
 

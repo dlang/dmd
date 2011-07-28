@@ -26,7 +26,6 @@
 #if SCPP
 #include        "scope.h"
 #include        "parser.h"
-#include        "cpp.h"
 #endif
 #include        "exh.h"
 
