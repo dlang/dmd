@@ -1437,7 +1437,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
 code *cdshass(elem *e,regm_t *pretregs)
 { elem *e1,*e2;
   code *cr,*cl,*cg,*c,cs,*ce;
-  tym_t tym,tyml,uns;
+  tym_t tym,tyml;
   regm_t retregs;
   unsigned shiftcnt,op1,op2,reg,v,oper,byte,conste2;
   unsigned loopcnt;
@@ -1449,7 +1449,6 @@ code *cdshass(elem *e,regm_t *pretregs)
   tyml = tybasic(e1->Ety);              /* type of lvalue               */
   sz = tysize[tyml];
   byte = tybyte(e->Ety) != 0;           /* 1 for byte operations        */
-  uns = tyuns(tyml);
   tym = tybasic(e->Ety);                /* type of result               */
   oper = e->Eoper;
   assert(tysize(e2->Ety) <= REGSIZE);
@@ -1463,7 +1462,7 @@ code *cdshass(elem *e,regm_t *pretregs)
 #if SCPP
   // Do this until the rest of the compiler does OPshr/OPashr correctly
   if (oper == OPshrass)
-        oper = (uns) ? OPshrass : OPashrass;
+        oper = tyuns(tyml) ? OPshrass : OPashrass;
 #endif
 
   // Select opcodes. op2 is used for msw for long shifts.
