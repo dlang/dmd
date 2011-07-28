@@ -4474,7 +4474,6 @@ int main()
     test232();
     test233();
     bug6184();
-    test235();
     test236();
 
     writefln("Success");
