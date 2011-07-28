@@ -1677,7 +1677,6 @@ code *cdcmp(elem *e,regm_t *pretregs)
   bool eqorne;
   unsigned reverse;
   unsigned sz;
-  targ_size_t offset2;
   int fl;
   int flag;
 
@@ -1883,14 +1882,13 @@ code *cdcmp(elem *e,regm_t *pretregs)
         }
         cs.IFL2 = fl;
         cs.IEVsym2 = e2->EV.sp.Vsym;
-        offset2 = e2->EV.sp.Voffset;
         if (sz > REGSIZE)
         {   cs.Iflags |= CFseg;
             cs.IEVoffset2 = 0;
         }
         else
         {   cs.Iflags |= CFoff;
-            cs.IEVoffset2 = offset2;
+            cs.IEVoffset2 = e2->EV.sp.Voffset;
         }
         goto L4;
 
@@ -2045,11 +2043,13 @@ code *cdcmp(elem *e,regm_t *pretregs)
                         genjmp(c,JNE,FLcode,(block *) ce); /* JNE nop   */
                         if (e2->Eoper == OPconst)
                             cs.IEV2.Vint = e2->EV.Vllong;
-                        else
+                        else if (e2->Eoper == OPrelconst)
                         {   /* Turn off CFseg, on CFoff */
                             cs.Iflags ^= CFseg | CFoff;
-                            cs.IEVoffset2 = offset2;
+                            cs.IEVoffset2 = e2->EV.sp.Voffset;
                         }
+                        else
+                            assert(0);
                         getlvalue_lsw(&cs);
                     }
                     freenode(e2);
@@ -2128,11 +2128,13 @@ code *cdcmp(elem *e,regm_t *pretregs)
             cs.Irm = modregrm(3,7,reg);
             if (e2->Eoper == OPconst)
                 cs.IEV2.Vint = e2->EV.Vlong;
-            else
+            else if (e2->Eoper == OPrelconst)
             {   /* Turn off CFseg, on CFoff     */
                 cs.Iflags ^= CFseg | CFoff;
-                cs.IEVoffset2 = offset2;
+                cs.IEVoffset2 = e2->EV.sp.Voffset;
             }
+            else
+                assert(0);
         }
         else
                 assert(0);
