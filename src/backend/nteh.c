@@ -25,7 +25,6 @@
 #include        "dt.h"
 #if SCPP
 #include        "scope.h"
-#include        "parser.h"
 #endif
 #include        "exh.h"
 

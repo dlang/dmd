@@ -18,7 +18,6 @@
 #include        <time.h>
 
 #include        "cc.h"
-#include        "parser.h"
 #include        "global.h"
 #include        "type.h"
 #include        "dt.h"
@@ -31,6 +30,7 @@
 #include        "token.h"
 
 #if SCPP
+#include        "parser.h"
 #include        "cpp.h"
 #endif
 

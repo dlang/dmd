@@ -35,11 +35,11 @@
 #include        "cc.h"
 #include        "oper.h"                /* OPxxxx definitions           */
 #include        "global.h"
-#include        "parser.h"
 #include        "el.h"
 #include        "type.h"
 
 #if SCPP
+#include        "parser.h"
 #include        "cpp.h"
 #endif
 

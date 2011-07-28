@@ -21,13 +21,13 @@
 #include        "oper.h"
 #include        "global.h"
 #include        "type.h"
-#include        "parser.h"
 #include        "filespec.h"
 #include        "code.h"
 #include        "cgcv.h"
 #include        "go.h"
 #include        "dt.h"
 #if SCPP
+#include        "parser.h"
 #include        "cpp.h"
 #include        "el.h"
 #endif
@@ -1184,6 +1184,7 @@ STATIC void writefunc2(symbol *sfunc)
         blockopt(0);                    /* optimize                     */
     }
 
+#if SCPP
     if (CPP)
     {
         // Look for any blocks that return nothing.
@@ -1209,6 +1210,7 @@ STATIC void writefunc2(symbol *sfunc)
                 func_noreturnvalue();
         }
     }
+#endif
     assert(funcsym_p == sfunc);
     if (eecontext.EEcompile != 1)
     {
