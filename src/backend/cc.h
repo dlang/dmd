@@ -727,13 +727,8 @@ typedef struct FUNC_S
 #endif
 } func_t;
 
-#if TX86
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))
 #define func_free(f)    mem_ffree(f)
-#else
-#define func_calloc()   ((func_t *) MEM_PH_CALLOC(sizeof(func_t)))
-#define func_free(f)    MEM_PH_FREE(f)
-#endif
 
 /**************************
  * Item in list for member initializer.
@@ -1064,13 +1059,8 @@ typedef struct STRUCT
                                 // identical to Sarglist).
 } struct_t;
 
-#if TX86
 #define struct_calloc() ((struct_t *) mem_fcalloc(sizeof(struct_t)))
 #define struct_free(st) ((void)(st))
-#else
-#define struct_calloc() ((struct_t *) MEM_PH_CALLOC(sizeof(struct_t)))
-#define struct_free(st) MEM_PH_FREE(st)
-#endif
 
 /**********************************
  * Symbol Table
