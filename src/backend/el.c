@@ -2306,8 +2306,11 @@ L1:
         }
         tym = tybasic(tym);
         tym2 = tybasic(tym2);
-        if (tyequiv[tym] != tyequiv[tym2])
+        if (tyequiv[tym] != tyequiv[tym2] &&
+            !((gmatch2 & 8) && touns(tym) == touns(tym2))
+           )
             goto nomatch;
+        gmatch2 &= ~8;
     }
 
   if (OTunary(op))
@@ -2601,6 +2604,19 @@ int el_match4(elem *n1,elem *n2)
 {   int result;
 
     gmatch2 = 2|4;
+    result = el_match(n1,n2);
+    gmatch2 = 0;
+    return result;
+}
+
+/*********************************
+ * Kludge on el_match(). Same, but regard signed/unsigned as equivalent.
+ */
+
+int el_match5(elem *n1,elem *n2)
+{   int result;
+
+    gmatch2 = 8;
     result = el_match(n1,n2);
     gmatch2 = 0;
     return result;

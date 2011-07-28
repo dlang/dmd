@@ -4235,6 +4235,21 @@ int test6229()
 
 /***************************************************/
 
+void test236()
+{
+    uint a;
+    int shift;
+    a = 7;
+    shift = 1;
+    int r;
+    r = (a >> shift) | (a << (int.sizeof * 8 - shift));
+    assert(r == 0x8000_0003);
+    r = (a << shift) | (a >> (int.sizeof * 8 - shift));
+    assert(a == 7);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4459,6 +4474,8 @@ int main()
     test232();
     test233();
     bug6184();
+    test235();
+    test236();
 
     writefln("Success");
     return 0;

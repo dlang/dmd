@@ -459,7 +459,7 @@ void dotab()
         case OPhstring: X("hstring",    elhstring,cderr);
         case OPnullcheck: X("nullcheck", elnullcheck,cdnullcheck);
 
-        case OPor:      X("|",          elbitwise,cdorth);
+        case OPor:      X("|",          elor,   cdorth);
         case OPoror:    X("||",         eloror, cdloglog);
         case OPandand:  X("&&",         elandand,cdloglog);
         case OProl:     X("<<|",        elshl,  cdshift);

@@ -1115,7 +1115,7 @@ L1:
   }
   return e;
 }
-
+
 /*****************************
  * Attempt to 'shrink' bitwise expressions.
  * Good for & | ^.
@@ -1347,6 +1347,50 @@ Lopt:
 #endif
     return optelem(e,TRUE);
 }
+
+
+/*************************************
+ * Replace shift|shift with rotate.
+ */
+
+STATIC elem *elor(elem *e)
+{
+    /* ROL:     (a << shift) | (a >> (sizeof(a) * 8 - shift))
+     * ROR:     (a >> shift) | (a << (sizeof(a) * 8 - shift))
+     */
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    unsigned sz = tysize(e->Ety);
+    if (sz <= intsize)
+    {
+        if (e1->Eoper == OPshl && e2->Eoper == OPshr &&
+            tyuns(e2->E1->Ety) && e2->E2->Eoper == OPmin &&
+            e2->E2->E1->Eoper == OPconst &&
+            el_tolong(e2->E2->E1) == sz * 8 &&
+            el_match5(e1->E1, e2->E1) &&
+            el_match5(e1->E2, e2->E2->E2) &&
+            !el_sideeffect(e)
+           )
+        {
+            e1->Eoper = OProl;
+            return el_selecte1(e);
+        }
+        if (e1->Eoper == OPshr && e2->Eoper == OPshl &&
+            tyuns(e1->E1->Ety) && e2->E2->Eoper == OPmin &&
+            e2->E2->E1->Eoper == OPconst &&
+            el_tolong(e2->E2->E1) == sz * 8 &&
+            el_match5(e1->E1, e2->E1) &&
+            el_match5(e1->E2, e2->E2->E2) &&
+            !el_sideeffect(e)
+           )
+        {
+            e1->Eoper = OPror;
+            return el_selecte1(e);
+        }
+    }
+    return elbitwise(e);
+}
+
 
 /**************************
  * Optimize nots.

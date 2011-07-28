@@ -179,6 +179,7 @@ int el_match(elem_p ,elem_p);
 int el_match2(elem_p ,elem_p);
 int el_match3(elem_p ,elem_p);
 int el_match4(elem_p ,elem_p);
+int el_match5(elem_p ,elem_p);
 
 int el_appears(elem *e,symbol *s);
 Symbol *el_basesym(elem *e);

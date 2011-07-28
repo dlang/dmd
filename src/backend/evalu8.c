@@ -1964,7 +1964,7 @@ elem * evalu8(elem *e)
         break;
     case OProl:
     case OPror:
-        unsigned n = i2;
+    {   unsigned n = i2;
         if (op == OPror)
             n = -n;
         switch (tysize(tym))
@@ -1990,6 +1990,7 @@ elem * evalu8(elem *e)
                 assert(0);
         }
         break;
+    }
     case OPind:
 #if 0 && MARS
         /* The problem with this is that although the only reaching definition
