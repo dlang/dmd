@@ -2277,7 +2277,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
   static const unsigned char jopmsw[4] = {JL, JG, JL, JG };
   static const unsigned char joplsw[4] = {JBE, JA, JB, JAE };
 
-  cl = cr = CNIL;
+  cr = CNIL;
   e1 = e->E1;
   e2 = e->E2;
   op = e->Eoper;
