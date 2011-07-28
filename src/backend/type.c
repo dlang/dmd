@@ -242,11 +242,7 @@ type *type_alloc(tym_t ty)
         type_list = t->Tnext;
     }
     else
-#if TX86
         t = (type *) mem_fmalloc(sizeof(type));
-#else
-        t = (type *) MEM_PH_MALLOC(sizeof(type));
-#endif
     tzero.Tty = ty;
     *t = tzero;
 #if SRCPOS_4TYPES
@@ -271,12 +267,7 @@ type *type_alloc(tym_t ty)
 type *type_alloc_template(symbol *s)
 {   type *t;
 
-#if TX86
     t = (type *) mem_fcalloc(sizeof(typetemp_t));
-#else
-    t = (type *) MEM_PH_MALLOC(sizeof(typetemp_t));
-    memset(t, 0, sizeof(typetemp_t));
-#endif
     t->Tty = TYtemplate;
     if (s->Stemplate->TMprimary)
         s = s->Stemplate->TMprimary;
@@ -553,21 +544,13 @@ void type_term()
 
     while (type_list)
     {   tn = type_list->Tnext;
-#if TX86
         mem_ffree(type_list);
-#else
-        MEM_PH_FREE(type_list);
-#endif
         type_list = tn;
     }
 
     while (param_list)
     {   pn = param_list->Pnext;
-#if TX86
         mem_ffree(param_list);
-#else
-        MEM_PH_FREE(param_list);
-#endif
         param_list = pn;
     }
 
@@ -1151,11 +1134,7 @@ param_t *param_calloc()
     }
     else
     {
-#if TX86
         p = (param_t *) mem_fmalloc(sizeof(param_t));
-#else
-        p = (param_t *) MEM_PH_MALLOC(sizeof(param_t));
-#endif
     }
     *p = pzero;
 #ifdef DEBUG
@@ -1208,11 +1187,7 @@ void param_free(param_t **pparamlst)
     {   param_debug(p);
         pn = p->Pnext;
         type_free(p->Ptype);
-#if TX86
         mem_free(p->Pident);
-#else
-        MEM_PH_FREE(p->Pident);
-#endif
         el_free(p->Pelem);
         type_free(p->Pdeftype);
         if (p->Pptpl)

@@ -433,7 +433,7 @@ elem *array_toDarray(Type *t, elem *e)
                     elem *es = el_calloc();
                     es->Eoper = OPstring;
 
-                    // Match MEM_PH_FREE for OPstring in ztc\el.c
+                    // freed in el_free
                     es->EV.ss.Vstring = (char *)mem_malloc(len);
                     memcpy(es->EV.ss.Vstring, &e->EV, len);
 
@@ -1166,13 +1166,9 @@ elem *StringExp::toElem(IRState *irs)
     {
         e = el_calloc();
         e->Eoper = OPstring;
-#if 1
-        // Match MEM_PH_FREE for OPstring in ztc\el.c
+        // freed in el_free
         e->EV.ss.Vstring = (char *)mem_malloc((len + 1) * sz);
         memcpy(e->EV.ss.Vstring, string, (len + 1) * sz);
-#else
-        e->EV.ss.Vstring = (char *)string;
-#endif
         e->EV.ss.Vstrlen = (len + 1) * sz;
         e->Ety = TYnptr;
     }

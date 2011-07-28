@@ -222,11 +222,7 @@ symbol * symbol_calloc(const char *id)
 
     len = strlen(id);
     //printf("sizeof(symbol)=%d, sizeof(s->Sident)=%d, len=%d\n",sizeof(symbol),sizeof(s->Sident),len);
-#if TX86
     s = (symbol *) mem_fmalloc(sizeof(symbol) - sizeof(s->Sident) + len + 1 + 5);
-#else
-    s = (symbol *) MEM_PH_MALLOC(sizeof(symbol) - sizeof(s->Sident) + len + 1);
-#endif
     memset(s,0,sizeof(symbol) - sizeof(s->Sident));
 #if SCPP
     s->Ssequence = pstate.STsequence;
@@ -965,11 +961,7 @@ void symbol_free(symbol *s)
 #ifdef DEBUG
             s->id = 0;
 #endif
-#if TX86
             mem_ffree(s);
-#else
-            MEM_PH_FREE(s);
-#endif
         }
         s = sr;
     }
