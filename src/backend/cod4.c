@@ -1014,6 +1014,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
                 }
                 c = gen(c,&cs);
         }
+        else
+            assert(0);
         freenode(e->E2);        /* don't need it anymore        */
   }
   else if (isregvar(e1,&varregm,&varreg) &&
