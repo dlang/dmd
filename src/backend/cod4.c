@@ -1493,6 +1493,7 @@ code *cdshass(elem *e,regm_t *pretregs)
   loopcnt = 1;
   conste2 = FALSE;
   cr = CNIL;
+  shiftcnt = 0;                         // avoid "use before initialized" warnings
   if (cnst(e2))
   {
         conste2 = TRUE;                 /* e2 is a constant             */
