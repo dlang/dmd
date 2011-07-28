@@ -1196,23 +1196,19 @@ code *cdaddass(elem *e,regm_t *pretregs)
  */
 
 code *cdmulass(elem *e,regm_t *pretregs)
-{ elem *e1,*e2;
-  code *cr,*cl,*cg,*c,cs;
-  tym_t tym,tyml;
-  regm_t retregs;
-  char uns;
-  unsigned op,resreg,reg,opr,lib,byte;
-  unsigned sz;
+{
+    code *cr,*cl,*cg,*c,cs;
+    regm_t retregs;
+    unsigned resreg,reg,opr,lib,byte;
 
-  //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
-  e1 = e->E1;
-  e2 = e->E2;
-  op = e->Eoper;                        /* OPxxxx                       */
+    //printf("cdmulass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
+    elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    unsigned op = e->Eoper;                     // OPxxxx
 
-  tyml = tybasic(e1->Ety);              /* type of lvalue               */
-  uns = tyuns(tyml) || tyuns(e2->Ety);
-  tym = tybasic(e->Ety);                /* type of result               */
-  sz = tysize[tyml];
+    tym_t tyml = tybasic(e1->Ety);              // type of lvalue
+    char uns = tyuns(tyml) || tyuns(e2->Ety);
+    unsigned sz = tysize[tyml];
 
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
