@@ -2082,3 +2082,24 @@ bool bug6306(bool b) {
 }
 
 static assert( bug6306(true) );
+
+/**************************************************
+    6386  ICE on unsafe pointer cast
+**************************************************/
+
+static assert(!is(typeof(compiles!({
+    int x = 123;
+    int* p = &x;
+    float z;
+    float* q = cast(float*)p;
+    return true;
+}()
+))));
+
+static assert({
+    int [] x = [123, 456];
+    int* p = &x[0];
+    auto m = cast(const(int) *)p;
+    auto q = p;
+    return *q;
+}());
