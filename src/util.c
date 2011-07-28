@@ -25,7 +25,6 @@
 #if SCPP || MARS
 #include        "el.h"
 #endif
-#include        "parser.h"
 
 #if _WIN32 && __DMC__
 //#include      "scdll.h"

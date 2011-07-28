@@ -19,7 +19,6 @@
 #include        "cc.h"
 #include        "oper.h"
 #include        "global.h"
-#include        "parser.h"
 #include        "el.h"
 #include        "type.h"
 #include        "dt.h"

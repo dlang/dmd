@@ -27,11 +27,14 @@
 #include        "oper.h"
 #include        "type.h"
 
-#include        "parser.h"
 #include        "code.h"
 
 #include        "global.h"
 #include        "go.h"
+
+#if SCPP
+#include        "parser.h"
+#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"

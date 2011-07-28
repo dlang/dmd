@@ -121,7 +121,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 # From C++ compiler
 
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
-	$C\global.h $C\parser.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
+	$C\global.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h $C\html.h \
 	$C\bcomplex.c $C\blockopt.c $C\cg.c $C\cg87.c \
 	$C\cgcod.c $C\cgcs.c $C\cgcv.c $C\cgelem.c $C\cgen.c $C\cgobj.c \
@@ -133,7 +133,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\bcomplex.h \
 	$C\cdeflnx.h $C\outbuf.h $C\token.h $C\tassert.h \
-	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\cpp.h $C\exh.h $C\go.h \
+	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c \
@@ -168,7 +168,7 @@ $(TARGET).exe : $(OBJS) win32.mak
 CCH=
 #TOTALH=$(CCH) total.sym
 TOTALH=$(CCH) id.h
-CH= $C\cc.h $C\global.h $C\parser.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h
+CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h
 
 ##################### GENERATED SOURCE #####################
 

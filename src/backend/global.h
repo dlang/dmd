@@ -83,6 +83,11 @@ CEXTERN block *block_last;
 CEXTERN int errcnt;
 CEXTERN regm_t fregsaved;
 
+#if SCPP
+CEXTERN targ_size_t dsout;              /* # of bytes actually output to data */
+#endif
+CEXTERN tym_t pointertype;              /* default data pointer type */
+
 // cg.c
 extern symbol *localgot;
 extern symbol *tls_get_addr_sym;
@@ -106,6 +111,7 @@ void eecontext_parse();
         /* doesn't belong here, but func to OPxxx is in exp2 */
 void exp2_setstrthis(elem *e,Symbol *s,targ_size_t offset,type *t);
 symbol *exp2_qualified_lookup(Classsym *sclass, int flags, int *pflags);
+elem *exp2_copytotemp(elem *e);
 
 /* util.c */
 void util_progress();
