@@ -52,7 +52,6 @@
 #include        "oper.h"
 #include        "code.h"
 #include        "iasm.h"
-#include        "cpp.h"
 
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
