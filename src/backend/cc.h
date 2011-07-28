@@ -205,12 +205,10 @@ extern Config config;
 typedef struct Srcpos
 {
     unsigned Slinnum;           // 0 means no info available
-#if TX86
 #if SPP || SCPP
     struct Sfile **Sfilptr;     // file
     #define srcpos_sfile(p)     (**(p).Sfilptr)
     #define srcpos_name(p)      (srcpos_sfile(p).SFname)
-#endif
 #endif
 #if MARS
     const char *Sfilename;
@@ -259,7 +257,7 @@ typedef struct Pstate
     char STinexcept;            // if !=0 then in exception handler
     block *STbfilter;           // current exception filter
 #endif
-#if TX86
+#if !MARS
     int STinitseg;              // segment for static constructor function pointer
 #endif
     Funcsym *STfuncsym_p;       // if inside a function, then this is the
@@ -649,9 +647,7 @@ typedef struct FUNC_S
 #       define Ffixed    0x40000        // ctor has had cpp_fixconstructor() run on it,
                                         // dtor has had cpp_fixdestructor()
 #       define Fintro    0x80000        // function doesn't hide a previous virtual function
-#if !TX86
-#       define Fstcstd   0x100000       // static constructor or static destructor
-#endif
+//#     define unused    0x100000       // unused bit
 #       define Fkeeplink 0x200000       // don't change linkage to default
 #       define Fnodebug  0x400000       // do not generate debug info for this function
 #       define Fgen      0x800000       // compiler generated function
@@ -708,9 +704,7 @@ typedef struct FUNC_S
     };
     Funcsym *Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
-#if TX86
     symlist_t Fthunks;          // list of thunks off of this function
-#endif
     param_t *Farglist;          // SCfunctempl: the template-parameter-list
     param_t *Fptal;             // Finstance: this is the template-argument-list
                                 // SCftexpspec: for explicit specialization, this
@@ -1083,9 +1077,7 @@ struct Symbol
 #endif
 
     Symbol *Sl,*Sr;             // left, right child
-#if TX86
     Symbol *Snext;              // next in threaded list
-#endif
     dt_t *Sdt;                  // variables: initializer
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
@@ -1110,7 +1102,7 @@ struct Symbol
         }_SL;
         #define Senumlist Senum->SEenumlist
 
-#if TX86
+#if !MARS
         struct                  // SClinkage
         {
             long Slinkage_;     // tym linkage bits
@@ -1128,10 +1120,8 @@ struct Symbol
              #define Sbit _SU._SB.Sbit_
             char Swidth_;       // SCfield: width in bits of bit field
              #define Swidth _SU._SB.Swidth_
-#if TX86
             targ_size_t Smemoff_; // SCmember,SCfield: offset from start of struct
              #define Smemoff _SU._SB.Smemoff_
-#endif
         }_SB;
 
         elem *Svalue_;          /* SFLvalue: value of const
@@ -1163,7 +1153,7 @@ struct Symbol
              #define Spath _SU._SA.Spath_
         }_SA;
 #endif
-#if TX86
+#if !MARS
         Symbol *Simport_;       // SCextern: if dllimport Symbol, this is the
         #define Simport _SU.Simport_
                                 // Symbol it was imported from
@@ -1278,9 +1268,7 @@ struct Symbol
     SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
                                 // SCauto,SCparameter,SCtmp,SCregpar,SCregister
     // CODGEN
-#if TX86
     int Sseg;                   // segment index
-#endif
     int Sweight;                // usage count, the higher the number,
                                 // the more worthwhile it is to put in
                                 // a register
