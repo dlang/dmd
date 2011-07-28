@@ -48,8 +48,6 @@ typedef ArrayBase<elem> Elems;
 
 elem *addressElem(elem *e, Type *t);
 elem *array_toPtr(Type *t, elem *e);
-elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result);
-elem *bit_read(elem *eb, elem *ei, int result);
 elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \

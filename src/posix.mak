@@ -62,7 +62,7 @@ CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
 
 DMD_OBJS = \
-	access.o array.o attrib.o bcomplex.o bit.o blockopt.o \
+	access.o array.o attrib.o bcomplex.o blockopt.o \
 	cast.o code.o cg.o cg87.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o cgsched.o class.o cod1.o cod2.o cod3.o cod4.o cod5.o \
 	constfold.o irstate.o dchar.o cond.o debug.o \
@@ -93,7 +93,7 @@ SRC = win32.mak posix.mak \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
-	attrib.c opover.c class.c mangle.c bit.c tocsym.c func.c inline.c \
+	attrib.c opover.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
 	s2ir.c todt.c e2ir.c util.c identifier.h parse.h intrange.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
@@ -205,9 +205,6 @@ attrib.o: attrib.c
 
 bcomplex.o: $C/bcomplex.c
 	$(CC) -c $(MFLAGS) $<
-
-bit.o: bit.c expression.h
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 blockopt.o: $C/blockopt.c
 	$(CC) -c $(MFLAGS) $<
@@ -582,7 +579,6 @@ gcov:
 	gcov aliasthis.c
 	gcov arrayop.c
 	gcov attrib.c
-	gcov bit.c
 	gcov builtin.c
 	gcov cast.c
 	gcov class.c

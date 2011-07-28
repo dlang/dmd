@@ -37,8 +37,6 @@
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
-elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result);
-elem *bit_read(elem *eb, elem *ei, int result);
 elem *callfunc(Loc loc,
         IRState *irs,
         int directcall,         // 1: don't do virtual call
