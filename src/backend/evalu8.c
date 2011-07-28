@@ -603,6 +603,14 @@ elem * evalu8(elem *e)
                 return e;
             tym2 = tybasic(typemask(e2));
         }
+        else
+        {
+            tym2 = 0;
+            e2 = NULL;
+            i2 = 0;             // not used, but static analyzer complains
+            l2 = 0;             // "
+            d2 = 0;             // "
+        }
         i1 = l1 = el_tolong(e1);
         d1 = el_toldouble(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
