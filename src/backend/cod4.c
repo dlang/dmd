@@ -1527,8 +1527,11 @@ code *cdshass(elem *e,regm_t *pretregs)
         {
           NEWREG(cs.Irm,op1);           /* make sure op1 is first       */
           if (sz <= REGSIZE)
-          {   cs.IFL2 = FLconst;
-              cs.IEV2.Vint = shiftcnt;
+          {
+              if (conste2)
+              {   cs.IFL2 = FLconst;
+                  cs.IEV2.Vint = shiftcnt;
+              }
               c = gen(c,&cs);           /* SHIFT EA,[CL|1]              */
               if (*pretregs & mPSW && !loopcnt && conste2)
                 code_orflag(c,CFpsw);
