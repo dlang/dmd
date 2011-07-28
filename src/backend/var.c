@@ -16,7 +16,6 @@
 #include        <time.h>
 
 #include        "cc.h"
-#include        "parser.h"
 #include        "global.h"
 #include        "oper.h"
 #include        "type.h"

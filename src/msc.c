@@ -16,7 +16,6 @@
 
 #include        "cc.h"
 #include        "global.h"
-#include        "parser.h"
 #include        "oper.h"
 #include        "code.h"
 #include        "type.h"
@@ -25,6 +24,8 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
+
+extern void ph_init();
 
 extern Global global;
 extern int REALSIZE;

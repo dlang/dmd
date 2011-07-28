@@ -35,11 +35,13 @@
 #include        "cc.h"
 #include        "oper.h"                /* OPxxxx definitions           */
 #include        "global.h"
-#include        "parser.h"
 #include        "el.h"
 #include        "type.h"
-#include        "cpp.h"
 
+#if SCPP
+#include        "parser.h"
+#include        "cpp.h"
+#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
