@@ -2703,7 +2703,7 @@ Expression *copyLiteral(Expression *e)
     {   // For pointers, we only do a shallow copy.
         Expression *r;
         if (e->op == TOKaddress)
-            r = new AddrExp(e->loc, copyLiteral(((AddrExp *)e)->e1));
+            r = new AddrExp(e->loc, ((AddrExp *)e)->e1);
         else if (e->op == TOKindex)
             r = new IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
         else if (e->op == TOKdotvar)
@@ -4597,6 +4597,16 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         {
             return e1;
         }
+        if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type != e1->type)
+        {   // type painting operation
+            IndexExp *ie = (IndexExp *)e1;
+            e = new IndexExp(e1->loc, ie->e1, ie->e2);
+            e->type = type;
+            return e;
+        }
+        error("pointer cast from %s to %s is not supported at compile time",
+                e1->type->toChars(), to->toChars());
+        return EXP_CANT_INTERPRET;
     }
     if (to->ty == Tarray && e1->op == TOKslice)
     {
