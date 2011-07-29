@@ -2103,3 +2103,43 @@ static assert({
     auto q = p;
     return *q;
 }());
+
+/**************************************************
+    6250  deref pointers to array
+**************************************************/
+
+int []* simple6250(int []* x) { return x; }
+
+void swap6250(int[]* lhs, int[]* rhs)
+{
+    int[] kk = *lhs;
+    assert(simple6250(lhs) == lhs);
+    lhs = simple6250(lhs);
+    assert(kk[0] == 18);
+    assert((*lhs)[0] == 18);
+    assert((*rhs)[0] == 19);
+    *lhs = *rhs;
+    assert((*lhs)[0] == 19);
+    *rhs = kk;
+    assert(*rhs == kk);
+    assert(kk[0] == 18);
+    assert((*rhs)[0] == 18);
+}
+
+int ctfeSort6250()
+{
+     int[][2] x;
+     int[3] a = [17, 18, 19];
+     x[0] = a[1..2];
+     x[1] = a[2..$];
+     assert(x[0][0] == 18);
+     assert(x[0][1] == 19);
+     swap6250(&x[0], &x[1]);
+     assert(x[0][0] == 19);
+     assert(x[1][0] == 18);
+     a[1] = 57;
+     assert(x[0][0] == 19);
+     return x[1][0];
+}
+
+static assert(ctfeSort6250()==57);
