@@ -66,8 +66,9 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
 
 
 // Used for debugging only
-void showCtfeExpr(Expression *e)
+void showCtfeExpr(Expression *e, int level = 0)
 {
+    for (int i = level; i>0; --i) printf(" ");
     Expressions *elements = NULL;
     // We need the struct definition to detect block assignment
     StructDeclaration *sd = NULL;
@@ -87,14 +88,21 @@ void showCtfeExpr(Expression *e)
     }
     else if (e->op == TOKstring)
     {
-        printf(" STRING %s %p\n", e->toChars(), ((StringExp *)e)->string);
+        printf("STRING %s %p\n", e->toChars(), ((StringExp *)e)->string);
     }
     else if (e->op == TOKslice)
     {
-        printf(" SLICE %p: %s\n", e, e->toChars());
-        showCtfeExpr(((SliceExp *)e)->e1);
+        printf("SLICE %p: %s\n", e, e->toChars());
+        showCtfeExpr(((SliceExp *)e)->e1, level + 1);
     }
-    else printf(" VALUE %p: %s\n", e, e->toChars());
+    else if (e->op == TOKvar)
+    {
+        printf("VAR %p %s\n", e, e->toChars());
+        VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+        if (v && v->getValue())
+            showCtfeExpr(v->getValue(), level + 1);
+    }
+    else printf("VALUE %p: %s\n", e, e->toChars());
 
     if (elements)
     {
@@ -107,16 +115,18 @@ void showCtfeExpr(Expression *e)
                 assert(v);
                 // If it is a void assignment, use the default initializer
                 if (!z) {
+                    for (int i = level; i>0; --i) printf(" ");
                     printf(" field:void\n");
                     continue;
                 }
                 if ((v->type->ty != z->type->ty) && v->type->ty == Tsarray)
                 {
+                    for (int i = level; --i;) printf(" ");
                     printf(" field: block initalized static array\n");
                     continue;
                 }
             }
-            showCtfeExpr(z);
+            showCtfeExpr(z, level + 1);
         }
     }
 }
@@ -1645,9 +1655,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 error(loc, "variable %s is used before initialization", v->toChars());
             else if (e == EXP_CANT_INTERPRET)
                 return e;
-            else if ((goal == ctfeNeedLvalue) || e->op == TOKaddress
+            else if ((goal == ctfeNeedLvalue)
                     || e->op == TOKstring || e->op == TOKstructliteral || e->op == TOKarrayliteral
-                    || e->op == TOKassocarrayliteral || e->op == TOKslice)
+                    || e->op == TOKassocarrayliteral || e->op == TOKslice
+                    || e->type->toBasetype()->ty == Tpointer)
                 return e; // it's already an Lvalue
             else
                 e = e->interpret(istate, goal);
@@ -1830,6 +1841,8 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         {   Expression *e = elements->tdata()[i];
             Expression *ex;
 
+            if (e->op == TOKindex)  // segfault bug 6250
+                assert( ((IndexExp*)e)->e1 != this);
             ex = e->interpret(istate);
             if (ex == EXP_CANT_INTERPRET)
                 goto Lerror;
@@ -2972,6 +2985,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
         (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray ||
          e1->type->toBasetype()->ty == Tclass)
+         //  e = *x is never a reference, because *x is always a value
+         && this->e2->op != TOKstar
         )
     {
 #if DMDV2
@@ -5025,6 +5040,8 @@ bool isStackValueValid(Expression *newval)
         }
         if (newval->op == TOKvar)
             return true;
+        if (newval->type->nextOf()->ty == Tarray && newval->op == TOKslice)
+            return true;
         newval->error("CTFE internal error: illegal pointer value %s\n", newval->toChars());
         return false;
     }
@@ -5073,6 +5090,7 @@ bool isStackValueValid(Expression *newval)
     newval->error("CTFE internal error: illegal stack value %s\n", newval->toChars());
     return false;
 }
+
 bool isRefValueValid(Expression *newval)
 {
     assert(newval);
