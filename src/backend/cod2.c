@@ -1945,7 +1945,7 @@ Lret:
 code *cdshift(elem *e,regm_t *pretregs)
 { unsigned resreg,shiftcnt,byte;
   unsigned s1,s2,oper;
-  tym_t tyml,uns;
+  tym_t tyml;
   int sz;
   regm_t retregs,rretregs;
   code *cg,*cl,*cr;
@@ -1965,7 +1965,6 @@ code *cdshift(elem *e,regm_t *pretregs)
   tyml = tybasic(e1->Ety);
   sz = tysize[tyml];
   assert(!tyfloating(tyml));
-  uns = tyuns(tyml);
   oper = e->Eoper;
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;
@@ -1973,7 +1972,7 @@ code *cdshift(elem *e,regm_t *pretregs)
 #if SCPP
   // Do this until the rest of the compiler does OPshr/OPashr correctly
   if (oper == OPshr)
-        oper = (uns) ? OPshr : OPashr;
+        oper = (tyuns(tyml)) ? OPshr : OPashr;
 #endif
 
   switch (oper)
