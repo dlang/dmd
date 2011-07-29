@@ -4163,16 +4163,13 @@ code *cdabs( elem *e, regm_t *pretregs)
   c1 = codelem(e->E1,&retregs,FALSE);
   cg = getregs(retregs);                /* retregs will be destroyed    */
   if (sz <= REGSIZE)
-  {     unsigned reg;
-        code *c2;
-
+  {
         /*      cwd
                 xor     AX,DX
                 sub     AX,DX
          */
 
         cg = cat(cg,getregs(mDX));
-        reg = findreg(retregs);
         if (!I16 && sz == SHORTSIZE)
             cg = gen1(cg,0x98);                         // CWDE
         cg = gen1(cg,0x99);                             // CWD
