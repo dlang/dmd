@@ -3288,6 +3288,8 @@ code *cdmemset(elem *e,regm_t *pretregs)
         value |= value << 16;
         value |= value << 32;
     }
+    else
+        value = 0xDEADBEEF;     // stop annoying false positives that value is not inited
 
     if (e2->E1->Eoper == OPconst)
     {
