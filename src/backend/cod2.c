@@ -3268,7 +3268,6 @@ code *cdmemset(elem *e,regm_t *pretregs)
     regm_t retregs3;
     unsigned reg,vreg;
     tym_t ty1;
-    elem *e2,*e1;
     int segreg;
     unsigned remainder;
     targ_uns numbytes,numwords;
@@ -3277,8 +3276,7 @@ code *cdmemset(elem *e,regm_t *pretregs)
     unsigned m;
 
     //printf("cdmemset(*pretregs = %s)\n", regm_str(*pretregs));
-    e1 = e->E1;
-    e2 = e->E2;
+    elem *e2 = e->E2;
     assert(e2->Eoper == OPparam);
 
     unsigned char rex = I64 ? REX_W : 0;
