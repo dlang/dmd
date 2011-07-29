@@ -4218,7 +4218,7 @@ code *cdabs( elem *e, regm_t *pretregs)
  */
 
 code *cdpost(elem *e,regm_t *pretregs)
-{ code cs,*c1,*c2,*c3,*c4,*c5,*c6;
+{ code cs,*c1,*c2,*c3,*c5,*c6;
   unsigned reg,op,byte;
   tym_t tyml;
   regm_t retregs,possregs,idxregs;
@@ -4232,7 +4232,7 @@ code *cdpost(elem *e,regm_t *pretregs)
   op = e->Eoper;                                /* OPxxxx               */
   if (retregs == 0)                             /* if nothing to return */
         return cdaddass(e,pretregs);
-  c4 = c5 = CNIL;
+  c5 = CNIL;
   tyml = tybasic(e->E1->Ety);
   sz = tysize[tyml];
   e2 = e->E2;
@@ -4291,6 +4291,7 @@ code *cdpost(elem *e,regm_t *pretregs)
         c3 = scodelem(e2,&retregs,idxregs,FALSE);
         cgstate.stackclean--;
 
+        code *c4;
         if (tyml == TYdouble || tyml == TYdouble_alias)
         {
             retregs = DOUBLEREGS;
@@ -4368,7 +4369,7 @@ code *cdpost(elem *e,regm_t *pretregs)
         rm = reg;
         if (I16)
             rm = regtorm[reg];
-        c4 = genc1(NULL,0x8D,(rex << 16) | buildModregrm(2,reg,rm),FLconst,n); // LEA reg,n[reg]
+        code *c4 = genc1(NULL,0x8D,(rex << 16) | buildModregrm(2,reg,rm),FLconst,n); // LEA reg,n[reg]
         return cat4(c1,c2,c3,c4);
   }
   else if (sz <= REGSIZE || tyfv(tyml))
