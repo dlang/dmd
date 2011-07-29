@@ -2065,13 +2065,12 @@ code *cdshift(elem *e,regm_t *pretregs)
                     !(*pretregs & mPSW) &&
                     config.flags4 & CFG4speed
                    )
-                {   Symbol *s1 = e1->EV.sp.Vsym;
+                {
                     unsigned reg;
                     regm_t regm;
-                    code cs;
 
                     if (isregvar(e1,&regm,&reg) && !(regm & retregs))
-                    {
+                    {   code cs;
                         cl = allocreg(&retregs,&resreg,e->Ety);
                         buildEA(&cs,-1,reg,1 << shiftcnt,0);
                         cs.Iop = 0x8D;
