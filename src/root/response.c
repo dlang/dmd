@@ -1,5 +1,5 @@
 // Copyright (C) 1990-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #if _WIN32
 #include <tchar.h>
@@ -66,7 +67,7 @@ struct Narg
 static int addargp(struct Narg *n, char *p)
 {
     /* The 2 is to always allow room for a NULL argp at the end   */
-    if (n->argc + 2 >= n->argvmax)
+    if (n->argc + 2 > n->argvmax)
     {
         n->argvmax = n->argc + 2;
         n->argv = (char **) realloc(n->argv,n->argvmax * sizeof(char *));
@@ -257,7 +258,15 @@ int response_expand(int *pargc, char ***pargv)
         else if (addargp(&n,(*pargv)[i]))
             goto noexpand;
     }
-    n.argv[n.argc] = NULL;
+    if (n.argvmax == 0)
+    {
+        n.argvmax = 1;
+        n.argv = (char **) calloc(n.argvmax, sizeof(char *));
+        if (!n.argv)
+            return 1;
+    }
+    else
+        n.argv[n.argc] = NULL;
     if (recurse)
     {
         /* Recursively expand @filename   */
