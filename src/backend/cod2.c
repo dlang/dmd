@@ -1850,7 +1850,6 @@ code *cdloglog(elem *e,regm_t *pretregs)
   code *c1;
   con_t regconsave;
   unsigned stackpushsave;
-  int jcond;
   elem *e2;
   unsigned sz = tysize(e->Ety);
 
@@ -1863,11 +1862,10 @@ code *cdloglog(elem *e,regm_t *pretregs)
   cgstate.stackclean++;
   cnop1 = gennop(CNIL);
   cnop3 = gennop(CNIL);
-  jcond = 0;
   e2 = e->E2;
   cl = (e->Eoper == OPoror)
-        ? logexp(e->E1,jcond | 1,FLcode,cnop1)
-        : logexp(e->E1,jcond,FLcode,cnop3);
+        ? logexp(e->E1,1,FLcode,cnop1)
+        : logexp(e->E1,0,FLcode,cnop3);
   regconsave = regcon;
   stackpushsave = stackpush;
   if (*pretregs == 0)                   /* if don't want result         */
