@@ -1524,7 +1524,6 @@ code *cdcom(elem *e,regm_t *pretregs)
   tym = tybasic(e->Ety);
   sz = tysize[tym];
   unsigned rex = (I64 && sz == 8) ? REX_W : 0;
-  unsigned grex = rex << 16;
   possregs = (sz == 1) ? BYTEREGS : allregs;
   retregs = *pretregs & possregs;
   if (retregs == 0)
