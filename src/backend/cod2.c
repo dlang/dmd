@@ -2093,7 +2093,9 @@ code *cdshift(elem *e,regm_t *pretregs)
                         sreg = findreglsw(retregs);
                     }
                     else
-                        resreg = findreg(retregs);
+                    {   resreg = findreg(retregs);
+                        sreg = ~0;              // an invalid value
+                    }
                     if (config.target_cpu >= TARGET_80286 &&
                         sz <= REGSIZE)
                     {
