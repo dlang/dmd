@@ -1943,7 +1943,7 @@ Lret:
  */
 
 code *cdshift(elem *e,regm_t *pretregs)
-{ unsigned resreg,shiftcnt,sreg,byte;
+{ unsigned resreg,shiftcnt,byte;
   unsigned s1,s2,oper;
   tym_t tyml,uns;
   int sz;
@@ -1999,6 +1999,7 @@ code *cdshift(elem *e,regm_t *pretregs)
             assert(0);
   }
 
+  unsigned sreg = ~0;                   // guard against using value without assigning to sreg
   c = cg = cr = CNIL;                   /* initialize                   */
   e2 = e->E2;
   forccs = *pretregs & mPSW;            /* if return result in CCs      */
