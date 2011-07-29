@@ -1075,7 +1075,7 @@ int File::read()
     //printf("File::read('%s')\n",name);
     fd = open(name, O_RDONLY);
     if (fd == -1)
-    {   result = errno;
+    {
         //printf("\topen error, errno = %d\n",errno);
         goto err1;
     }
