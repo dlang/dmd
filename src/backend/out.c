@@ -104,7 +104,6 @@ void outdata(symbol *s)
     targ_size_t offset;
     int flags;
     tym_t ty;
-    int tls;
 
     symbol_debug(s);
 #ifdef DEBUG
@@ -118,6 +117,9 @@ void outdata(symbol *s)
 
     dtstart = s->Sdt;
     s->Sdt = NULL;                      // it will be free'd
+#if OMFOBJ
+    int tls = 0;
+#endif
 #if SCPP && TARGET_WINDOS
     if (eecontext.EEcompile)
     {   s->Sfl = (s->ty() & mTYfar) ? FLfardata : FLextern;
@@ -126,7 +128,6 @@ void outdata(symbol *s)
     }
 #endif
     datasize = 0;
-    tls = 0;
     ty = s->ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
         obj_export(s,0);        // export data definition
@@ -198,7 +199,9 @@ void outdata(symbol *s)
                             break;
 #endif
                         case mTYcs:
+#if OMFOBJ
                             seg = cseg;
+#endif
                             Coffset = align(datasize,Coffset);
                             s->Soffset = Coffset;
                             Coffset += datasize;
@@ -216,15 +219,15 @@ void outdata(symbol *s)
                             s->Soffset = TDoffset;
                             TDoffset += datasize;
                             pseg->SDoffset = TDoffset;
-#endif
                             seg = pseg->SDseg;
-                            s->Sfl = FLtlsdata;
                             tls = 1;
+#endif
+                            s->Sfl = FLtlsdata;
                             break;
                         }
                         default:
 #if ELFOBJ || MACHOBJ
-                            seg = elf_data_start(s,datasize,UDATA);
+                            elf_data_start(s,datasize,UDATA);
                             obj_lidata(s->Sseg,s->Soffset,datasize);
 #else
                             seg = UDATA;
@@ -308,7 +311,9 @@ void outdata(symbol *s)
                 break;
             case mTYthread:
                 s->Sfl = FLtlsdata;
+#if OMFOBJ
                 tls = 1;
+#endif
                 break;
 
             default:
@@ -342,10 +347,10 @@ void outdata(symbol *s)
             targ_size_t TDoffset = pseg->SDoffset;
             TDoffset = align(datasize,TDoffset);
             s->Soffset = TDoffset;
+            tls = 1;
 #endif
             seg = pseg->SDseg;
             s->Sfl = FLtlsdata;
-            tls = 1;
             break;
         }
         case mTYnear:
@@ -452,7 +457,7 @@ void outdata(symbol *s)
     }
 #if ELFOBJ || MACHOBJ
     Offset(seg) = offset;
-#else
+#elif OMFOBJ
     if (seg == DATA)
         Doffset = offset;
     else if (seg == cseg)
@@ -461,6 +466,8 @@ void outdata(symbol *s)
     {
         obj_tlsseg()->SDoffset = offset;
     }
+#else
+#error "obj format?"
 #endif
 #if SCPP
     out_extdef(s);
@@ -914,8 +921,10 @@ STATIC void writefunc2(symbol *sfunc)
     unsigned nsymbols;
     SYMIDX si;
     int anyasm;
+#if OMFOBJ
     int csegsave;
     targ_size_t coffsetsave;
+#endif
     func_t *f = sfunc->Sfunc;
     tym_t tyf;
 
@@ -1206,8 +1215,10 @@ STATIC void writefunc2(symbol *sfunc)
 #if TX86
         if (symbol_iscomdat(sfunc))
         {
+#if OMFOBJ
             csegsave = cseg;
             coffsetsave = Coffset;
+#endif
             obj_comdat(sfunc);
         }
         else
