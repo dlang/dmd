@@ -2457,6 +2457,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
   if (OTunary(op))
   {     ivfamelems(biv,&n->E1);
         n1 = n->E1;
+        n2 = NULL;
   }
   else if (OTbinary(op))
   {     ivfamelems(biv,&n->E1);
@@ -3316,7 +3317,6 @@ STATIC void elimopeqs(register loop *l)
 {
     Iv *biv;
     unsigned i;
-    tym_t ty;
     elem **pref;
     symbol *X;
     int refcount;
@@ -3333,7 +3333,6 @@ STATIC void elimopeqs(register loop *l)
 
         X = biv->IVbasic;
         assert(symbol_isintab(X));
-        ty = X->ty();
         pref = onlyref(X,l,*biv->IVincr,&refcount);
 
         // if only ref of X is of the form (X) or (X relop e) or (e relop X)
