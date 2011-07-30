@@ -2380,12 +2380,11 @@ STATIC elem * elcall(elem *e)
  */
 
 STATIC void elstructwalk(elem *e,tym_t tym)
-{   int sz;
+{
     tym_t ety;
 
-    sz = tysize(tym);
     while ((ety = tybasic(e->Ety)) == TYstruct ||
-           ety == TYarray /*|| sz != tysize[ety]*/)
+           ety == TYarray)
     {   elem_debug(e);
         e->Ety = (e->Ety & ~mTYbasic) | tym;
         switch (e->Eoper)
@@ -2523,10 +2522,11 @@ STATIC elem * eleq(elem *e)
     unsigned t,w,b;
     unsigned sz;
     elem *l,*l2,*r,*r2,*e1,*eres;
-    int wantres;
     tym_t tyl;
 
-    wantres = expgoal;
+#if SCPP
+    int wantres = expgoal;
+#endif
     e1 = e->E1;
 
     if (e1->Eoper == OPcomma || OTassign(e1->Eoper))
@@ -2661,7 +2661,6 @@ STATIC elem * eleq(elem *e)
         if (op2 == OPneg && el_match(e1,e2->E1) && !el_sideeffect(e1))
         {   int offset;
 
-            tyl = tybasic(e1->Ety);
         Ldef:
             // Replace (i = -i) with (negass i)
             e->Eoper = OPnegass;
@@ -2846,15 +2845,14 @@ STATIC elem * elopass(elem *e)
     tym_t t;
     tym_t tyl;
     elem *l,*r,*e1,*l2,*l3,*op2,*eres;
-    int wantres;
 
-    wantres = expgoal;
     e1 = e->E1;
     if (OTconv(e1->Eoper))
     {   e = fixconvop(e);
         return optelem(e,TRUE);
     }
-#if !(MARS)   // no bit fields to worry about
+#if SCPP   // have bit fields to worry about?
+    int wantres = expgoal;
     if (e1->Eoper == OPbit)
     {
         op = opeqtoop(e->Eoper);
@@ -3022,7 +3020,6 @@ STATIC elem * elpost(elem *e)
 
     w = (e1->E2->EV.Vuns >> 8) & 0xFF;  /* width in bits of field       */
     m = ((targ_llong)1 << w) - 1;       /* mask w bits wide             */
-    b = e1->E2->EV.Vuns & 0xFF;         /* bits to shift                */
 
     ty = e->Ety;
     e->Eoper = (e->Eoper == OPpostinc) ? OPaddass : ((r = -r), OPminass);
