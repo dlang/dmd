@@ -2076,3 +2076,102 @@ static assert({
     assert(k==2);
     return arr[0];
 }() == 2);
+
+/**************************************************
+    6306  recursion and local variables
+**************************************************/
+
+void recurse6306() {
+    bug6306(false);
+}
+
+bool bug6306(bool b) {
+    int x = 0;
+    if (b)
+        recurse6306();
+    assert(x == 0);
+    x = 1;
+    return true;
+}
+
+static assert( bug6306(true) );
+
+/**************************************************
+    6386  ICE on unsafe pointer cast
+**************************************************/
+
+static assert(!is(typeof(compiles!({
+    int x = 123;
+    int* p = &x;
+    float z;
+    float* q = cast(float*)p;
+    return true;
+}()
+))));
+
+static assert({
+    int [] x = [123, 456];
+    int* p = &x[0];
+    auto m = cast(const(int) *)p;
+    auto q = p;
+    return *q;
+}());
+
+/**************************************************
+    6250  deref pointers to array
+**************************************************/
+
+int []* simple6250(int []* x) { return x; }
+
+void swap6250(int[]* lhs, int[]* rhs)
+{
+    int[] kk = *lhs;
+    assert(simple6250(lhs) == lhs);
+    lhs = simple6250(lhs);
+    assert(kk[0] == 18);
+    assert((*lhs)[0] == 18);
+    assert((*rhs)[0] == 19);
+    *lhs = *rhs;
+    assert((*lhs)[0] == 19);
+    *rhs = kk;
+    assert(*rhs == kk);
+    assert(kk[0] == 18);
+    assert((*rhs)[0] == 18);
+}
+
+int ctfeSort6250()
+{
+     int[][2] x;
+     int[3] a = [17, 18, 19];
+     x[0] = a[1..2];
+     x[1] = a[2..$];
+     assert(x[0][0] == 18);
+     assert(x[0][1] == 19);
+     swap6250(&x[0], &x[1]);
+     assert(x[0][0] == 19);
+     assert(x[1][0] == 18);
+     a[1] = 57;
+     assert(x[0][0] == 19);
+     return x[1][0];
+}
+
+static assert(ctfeSort6250()==57);
+
+/**************************************************
+    6399 (*p).length = n
+**************************************************/
+
+struct A6399{
+    int[] arr;
+    int subLen()
+    {
+        arr = [1,2,3,4,5];
+        arr.length -= 1;
+        return arr.length;
+    }
+}
+
+static assert({
+    A6399 a;
+    return a.subLen();
+}() == 4);
