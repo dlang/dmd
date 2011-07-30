@@ -2391,6 +2391,7 @@ Type *Parser::parseBasicType()
  *      t [expression .. expression]
  *      t function
  *      t delegate
+ *      t ref
  */
 
 Type *Parser::parseBasicType2(Type *t)
@@ -2402,6 +2403,14 @@ Type *Parser::parseBasicType2(Type *t)
         {
             case TOKmul:
                 t = new TypePointer(t);
+                nextToken();
+                continue;
+            
+            case TOKref:
+                // handle explicit reference marker for class:
+                //      Object ref
+                //      const(Object)ref
+                t = new TypeRefSuffix(t);
                 nextToken();
                 continue;
 
@@ -4493,6 +4502,10 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
         {
             case TOKmul:
             //case TOKand:
+                t = peek(t);
+                continue;
+                
+            case TOKref:
                 t = peek(t);
                 continue;
 

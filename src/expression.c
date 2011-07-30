@@ -1165,7 +1165,7 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 
     // See if this expression is a modifiable lvalue (i.e. not const)
 #if DMDV2
-    if (type && (!type->isMutable() || !type->isAssignable()))
+    if (type && (!type->head()->isMutable() || !type->isAssignable()))
         error("%s is not mutable", e->toChars());
 #endif
     return toLvalue(sc, e);
@@ -6550,9 +6550,9 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 
     Type *t1 = e1->type->toBasetype();
 
-    if (!t1->isMutable() ||
-        (t1->ty == Tpointer && !t1->nextOf()->isMutable()) ||
-        !var->type->isMutable() ||
+    if (!t1->head()->isMutable() ||
+        (t1->ty == Tpointer && !t1->nextOf()->head()->isMutable()) ||
+        !var->type->head()->isMutable() ||
         !var->type->isAssignable() ||
         var->storage_class & STCmanifest
        )
@@ -9142,7 +9142,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     if (e1->op == TOKstring)
         error("string literals are immutable");
-    if (type && (!type->isMutable() || !type->isAssignable()))
+    if (type && (!type->head()->isMutable() || !type->head()->isAssignable()))
         error("%s isn't mutable", e->toChars());
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
@@ -9604,7 +9604,7 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (e1->op == TOKslice)
     {
         Type *tn = e1->type->nextOf();
-        if (op == TOKassign && tn && (!tn->isMutable() || !tn->isAssignable()))
+        if (op == TOKassign && tn && (!tn->head()->isMutable() || !tn->head()->isAssignable()))
         {   error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }

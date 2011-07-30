@@ -91,7 +91,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     if (sc->incontract && isResult())
         error(loc, "cannot modify result '%s' in contract", toChars());
 
-    if (isCtorinit() && !t->isMutable())
+    if (isCtorinit() && !t->head()->isMutable())
     {   // It's only modifiable if inside the right constructor
         Dsymbol *s = sc->func;
         while (1)
@@ -905,16 +905,17 @@ Lagain:
 
     /* Adjust storage class to reflect type
      */
-    if (type->isConst())
+    Type *thead = type->head();
+    if (thead->isConst())
     {   storage_class |= STCconst;
-        if (type->isShared())
+        if (thead->isShared())
             storage_class |= STCshared;
     }
-    else if (type->isImmutable())
+    else if (thead->isImmutable())
         storage_class |= STCimmutable;
-    else if (type->isShared())
+    else if (thead->isShared())
         storage_class |= STCshared;
-    else if (type->isWild())
+    else if (thead->isWild())
         storage_class |= STCwild;
 
     if (isSynchronized())

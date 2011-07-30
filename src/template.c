@@ -2614,6 +2614,22 @@ void deduceBaseClassParameters(BaseClass *b,
 MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
 {
     //printf("TypeClass::deduceType(this = %s)\n", toChars());
+    
+    /* If we have an explicit 'ref' suffix, we need to check 
+     * that our head modifiers are compatible with those of that 
+     * suffix. In the abscence of an explicit 'ref' suffix, we let 
+     * normal type deduction choose what the ref's mod should 
+     * be and thus don't have to check anything.
+     */
+    if (tparam->ty == Trefsuffix)
+    {
+        TypeRefSuffix *refsuffix = (TypeRefSuffix *)tparam;
+        if (head()->mod != refsuffix->mod && !MODimplicitConv(head()->mod, refsuffix->mod))
+            return MATCHnomatch;
+    
+        // now skip ref suffix
+        tparam = refsuffix->next;
+    }
 
     /* If this class is a template class, and we're matching
      * it against a template instance, convert the class type
@@ -2704,6 +2720,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
         //printf("\t%d\n", (MATCH) implicitConvTo(tp));
         return implicitConvTo(tp);
     }
+    
     return Type::deduceType(sc, tparam, parameters, dedtypes);
 }
 

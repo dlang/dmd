@@ -57,6 +57,7 @@ enum ENUMTY
     Taarray,            // associative array, aka T[type]
     Tpointer,
     Treference,
+    Trefsuffix,         // explicit ref suffix, aka Object ref
     Tfunction,
     Tident,
     Tclass,
@@ -119,6 +120,11 @@ struct Type : Object
         #define MODwild      8  // type is wild
         #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
     char *deco;
+    
+    /* Head type which holds reference modifiers for class type.
+     * Points to 'this' for other types.
+     */
+    Type *thead;
 
     /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
      * They should not be referenced by anybody but mtype.c.
@@ -218,6 +224,7 @@ struct Type : Object
     virtual Type *syntaxCopy();
     int equals(Object *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
+    Type *head() { return thead ? thead : this; }
     int covariant(Type *t);
     char *toChars();
     static char needThisPrefix();
@@ -277,6 +284,7 @@ struct Type : Object
     virtual Type *makeInvariant();
     virtual Type *makeShared();
     virtual Type *makeSharedConst();
+    virtual Type *makeUnShared();
     virtual Type *makeWild();
     virtual Type *makeSharedWild();
     virtual Type *makeMutable();
@@ -534,6 +542,15 @@ struct TypeReference : TypeNext
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
+};
+
+struct TypeRefSuffix : TypeNext
+{
+    TypeRefSuffix(Type *t);
+    Type *syntaxCopy();
+    Type *semantic(Loc loc, Scope *sc);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
 };
 
 enum RET
@@ -826,10 +843,19 @@ struct TypeClass : Type
     ClassDeclaration *sym;
 
     TypeClass(ClassDeclaration *sym);
+    TypeClass(TypeClass* tc, unsigned char headmod);
     d_uns64 size(Loc loc);
     char *toChars();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    Type *makeConst();
+    Type *makeInvariant();
+    Type *makeShared();
+    Type *makeSharedConst();
+    Type *makeUnShared();
+    Type *makeWild();
+    Type *makeSharedWild();
+    Type *makeMutable();
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);

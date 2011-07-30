@@ -239,7 +239,11 @@ void TypeInfoConstDeclaration::toDt(dt_t **pdt)
     //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
     dtxoff(pdt, Type::typeinfoconst->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Const
     dtsize_t(pdt, 0);                        // monitor
-    Type *tm = tinfo->mutableOf();
+    Type *tm;
+    if (tinfo->ty == Tclass)
+        tm = ((TypeClass *)tinfo)->sym->type;
+    else
+        tm = tinfo->mutableOf();
     tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
@@ -250,7 +254,11 @@ void TypeInfoInvariantDeclaration::toDt(dt_t **pdt)
     //printf("TypeInfoInvariantDeclaration::toDt() %s\n", toChars());
     dtxoff(pdt, Type::typeinfoinvariant->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Invariant
     dtsize_t(pdt, 0);                        // monitor
-    Type *tm = tinfo->mutableOf();
+    Type *tm;
+    if (tinfo->ty == Tclass)
+        tm = ((TypeClass *)tinfo)->sym->type;
+    else
+        tm = tinfo->mutableOf();
     tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
@@ -261,7 +269,13 @@ void TypeInfoSharedDeclaration::toDt(dt_t **pdt)
     //printf("TypeInfoSharedDeclaration::toDt() %s\n", toChars());
     dtxoff(pdt, Type::typeinfoshared->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Shared
     dtsize_t(pdt, 0);                        // monitor
-    Type *tm = tinfo->unSharedOf();
+    Type *tm;
+    if (tinfo->ty == Tclass)
+    {   tm = ((TypeClass *)tinfo)->sym->type;
+        tm = tm->addMod(tinfo->mod & ~MODshared); // propagate other modifiers
+    }
+    else
+        tm = tinfo->unSharedOf();
     tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
@@ -272,7 +286,11 @@ void TypeInfoWildDeclaration::toDt(dt_t **pdt)
     //printf("TypeInfoWildDeclaration::toDt() %s\n", toChars());
     dtxoff(pdt, Type::typeinfowild->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Wild
     dtsize_t(pdt, 0);                        // monitor
-    Type *tm = tinfo->mutableOf();
+    Type *tm;
+    if (tinfo->ty == Tclass)
+        tm = ((TypeClass *)tinfo)->sym->type;
+    else
+        tm = tinfo->mutableOf();
     tm = tm->merge();
     tm->getTypeInfo(NULL);
     dtxoff(pdt, tm->vtinfo->toSymbol(), 0, TYnptr);
