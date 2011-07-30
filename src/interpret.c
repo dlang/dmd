@@ -1511,7 +1511,10 @@ Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("AddrExp::interpret() %s\n", toChars());
 #endif
-    Expression *e = e1->interpret(istate, ctfeNeedLvalue);
+    // For reference types, we need to return an lvalue ref.
+    TY tb = e1->type->toBasetype()->ty;
+    bool needRef = (tb == Tarray || tb == Taarray || tb == Tclass);
+    Expression *e = e1->interpret(istate, needRef ? ctfeNeedLvalueRef : ctfeNeedLvalue);
     if (e == EXP_CANT_INTERPRET)
         return e;
     // Return a simplified address expression
@@ -3199,6 +3202,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 // We have changed it into a reference assignment
                 // Note that returnValue is still the new length.
                 wantRef = true;
+                if (e1->op == TOKstar)
+                {   // arr.length+=n becomes (t=&arr, *(t).length=*(t).length+n);
+                    e1 = e1->interpret(istate, ctfeNeedLvalue);
+                    if (e1 == EXP_CANT_INTERPRET)
+                        return EXP_CANT_INTERPRET;
+                }
             }
             else
             {
@@ -4801,6 +4810,8 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             if (e == EXP_CANT_INTERPRET)
                 return e;
         }
+        else if (e->op == TOKaddress)
+            e = ((AddrExp*)e)->e1;  // *(&x) ==> x
         if (e->op == TOKnull)
         {
             error("dereference of null pointer '%s'", e1->toChars());
