@@ -2143,3 +2143,22 @@ int ctfeSort6250()
 }
 
 static assert(ctfeSort6250()==57);
+
+/**************************************************
+    6399 (*p).length = n
+**************************************************/
+
+struct A6399{
+    int[] arr;
+    int subLen()
+    {
+        arr = [1,2,3,4,5];
+        arr.length -= 1;
+        return arr.length;
+    }
+}
+
+static assert({
+    A6399 a;
+    return a.subLen();
+}() == 4);
