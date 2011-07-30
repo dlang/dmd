@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -992,7 +992,9 @@ SYMIDX symbol_add(symbol *s)
     //printf("symbol_add('%s')\n", s->Sident);
 #ifdef DEBUG
     if (!s || !s->Sident[0])
-        dbg_printf("bad symbol\n");
+    {   dbg_printf("bad symbol\n");
+        assert(0);
+    }
 #endif
     symbol_debug(s);
     if (pstate.STinsizeof)

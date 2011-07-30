@@ -343,7 +343,6 @@ void doswitch(block *b)
     targ_llong vmax,vmin,val;
     targ_llong *p;
     list_t bl;
-    int flags;
     elem *e;
 
     tym_t tys;
@@ -393,7 +392,6 @@ void doswitch(block *b)
     }
     p -= ncases;
     //dbg_printf("vmax = x%lx, vmin = x%lx, vmax-vmin = x%lx\n",vmax,vmin,vmax - vmin);
-    flags = (config.flags & CFGromable) ? CFcs : 0; // table is in code seg
 
     if (I64)
     {   // For now, just generate basic if-then sequence to get us running
@@ -519,6 +517,7 @@ void doswitch(block *b)
         {   rm = getaddrmode(retregs) | modregrm(0,4,0);
             ce = genc1(CNIL,0xFF,rm,FLswitch,0);        /* JMP [CS:]disp[idxreg] */
         }
+        int flags = (config.flags & CFGromable) ? CFcs : 0; // table is in code seg
         ce->Iflags |= flags;                    // segment override
         ce->IEV1.Vswitch = b;
         b->Btablesize = (int) (vmax - vmin + 1) * tysize[TYnptr];
@@ -609,6 +608,7 @@ void doswitch(block *b)
             genjmp(ce,JNE,FLcode,(block *) cloop);      /* JNE loop     */
                                                 /* CMP DX,[CS:]disp[DI] */
             ct = genc1(CNIL,0x39,modregrm(mod,DX,5),FLconst,disp);
+            int flags = (config.flags & CFGromable) ? CFcs : 0; // table is in code seg
             ct->Iflags |= flags;                // possible seg override
             ce = cat3(ce,ct,cloop);
             disp += ncases * intsize;           /* skip over msw table  */
@@ -633,6 +633,7 @@ void doswitch(block *b)
 #endif
         {                               // JMP (ncases-1)*2[DI]
             ct = genc1(CNIL,0xFF,modregrm(mod,4,(I32 ? 7 : 5)),FLconst,disp);
+            int flags = (config.flags & CFGromable) ? CFcs : 0; // table is in code seg
             ct->Iflags |= flags;
         }
         ce = cat(ce,ct);
@@ -953,7 +954,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
     }
 
     // registers destroyed by the function call
-    used = (mBP | ALLREGS | mES) & ~fregsaved;
+    //used = (mBP | ALLREGS | mES) & ~fregsaved;
     used = 0;                           // much less code generated this way
 
     cs2 = CNIL;
@@ -2358,7 +2359,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
                 FLconst,d);                     // ADD p[ESP],d
             c->Isib = modregrm(0,4,SP);
         }
-        if (I64)
+        if (I64 && c)
             c->Irex |= REX_W;
     }
     else

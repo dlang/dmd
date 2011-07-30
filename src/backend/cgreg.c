@@ -400,13 +400,11 @@ int cgreg_gotoepilog(block *b,Symbol *s)
 {
     list_t bl;
     int bi;
-    int si;
     int gotoepilog;
     int inoutp;
     int inout;
 
     bi = b->Bdfoidx;
-    si = s->Ssymnum;
 
     if (vec_testbit(bi,s->Slvreg))
         inout = 1;

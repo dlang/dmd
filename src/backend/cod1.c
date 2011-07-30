@@ -3468,12 +3468,12 @@ code *params(elem *e,unsigned stackalign)
         }
         break;
     case OPrelconst:
+#if !TARGET_FLAT
         /* Determine if we can just push the segment register           */
         /* Test size of type rather than TYfptr because of (long)(&v)   */
         s = e->EV.sp.Vsym;
         //if (sytab[s->Sclass] & SCSS && !I32)  // if variable is on stack
         //    needframe = TRUE;                 // then we need stack frame
-#if !TARGET_FLAT
         if (tysize[tym] == tysize[TYfptr] &&
             (fl = s->Sfl) != FLfardata &&
             /* not a function that CS might not be the segment of       */
@@ -3955,7 +3955,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 ce = movregconst(CNIL,sreg,lsw,0);
                 reg = findregmsw(forregs);
                 /* Decide if we need to set flags when we load msw      */
-                if (flags && (msw && msw|lsw || !msw && !(msw|lsw)))
+                if (flags && (msw && msw|lsw || !(msw|lsw)))
                 {   mswflags = mPSW;
                     flags = 0;
                 }
