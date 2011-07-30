@@ -34,7 +34,11 @@ STATIC int need_prolog(block *b);
  */
 
 void cod5_prol_epi()
-{   tym_t tym;
+{
+#if 1
+    cod5_noprol();
+#else
+    tym_t tym;
     tym_t tyf;
     block *b;
     block *bp;
@@ -44,7 +48,6 @@ void cod5_prol_epi()
     tyf = funcsym_p->ty();
     tym = tybasic(tyf);
 
-goto L1;
     if (!(config.flags4 & CFG4optimized) ||
         anyiasm ||
         usedalloca ||
@@ -61,7 +64,6 @@ goto L1;
     {   // First block gets the prolog, all return blocks
         // get the epilog.
         //printf("not even a candidate\n");
-    L1:
         cod5_noprol();
         return;
     }
@@ -135,6 +137,7 @@ goto L1;
     {   bp->Bflags |= BFLprolog;
         //printf("=============== prolog opt\n");
     }
+#endif
 }
 
 /**********************************************
