@@ -84,8 +84,8 @@ struct TemplateDeclaration : ScopeDsymbol
     void toJsonBuffer(OutBuffer *buf);
 //    void toDocBuffer(OutBuffer *buf);
 
-    MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, int flag);
-    MATCH leastAsSpecialized(TemplateDeclaration *td2);
+    MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
+    MATCH leastAsSpecialized(TemplateDeclaration *td2, Expressions *fargs);
 
     MATCH deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, Objects *dedargs);
     FuncDeclaration *deduceFunctionTemplate(Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *fargs, int flags = 0);
@@ -96,7 +96,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateTupleParameter *isVariadic();
     int isOverloadable();
 
-    void makeParamNamesVisibleInConstraint(Scope *paramscope);
+    void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
 };
 
 struct TemplateParameter
@@ -324,7 +324,7 @@ struct TemplateInstance : ScopeDsymbol
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     void semanticTiargs(Scope *sc);
     TemplateDeclaration *findTemplateDeclaration(Scope *sc);
-    TemplateDeclaration *findBestMatch(Scope *sc);
+    TemplateDeclaration *findBestMatch(Scope *sc, Expressions *fargs);
     void declareParameters(Scope *sc);
     int hasNestedArgs(Objects *tiargs);
     Identifier *genIdent(Objects *args);
