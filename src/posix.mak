@@ -1,3 +1,27 @@
+ifeq (,$(TARGET))
+    OS:=$(shell uname)
+    ifeq (Darwin,$(OS))
+        TARGET=OSX
+    else
+        ifeq (Linux,$(OS))
+            TARGET=LINUX
+        else
+            ifeq (FreeBSD,$(OS))
+                TARGET=FREEBSD
+            else
+                ifeq (OpenBSD,$(OS))
+                    TARGET=OPENBSD
+                else
+                    ifeq (Solaris,$(OS))
+                        TARGET=SOLARIS
+                    else
+                        $(error Unrecognized or unsupported OS for uname: $(OS))
+                    endif
+                endif
+            endif
+        endif
+    endif
+endif
 
 C=backend
 TK=tk
@@ -5,7 +29,20 @@ ROOT=root
 
 MODEL=32
 
-CC=g++ -m$(MODEL)
+ifeq (OSX,$(TARGET))
+    ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
+    ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
+    SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
+    SDK=/Developer/SDKs/MacOSX10.5.sdk
+    #SDK=/Developer/SDKs/MacOSX10.6.sdk
+
+    TARGET_CFLAGS=-isysroot ${SDK}
+    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
+else
+    LDFLAGS=-lm -lstdc++ -lpthread
+endif
+
+CC=g++ -m$(MODEL) $(TARGET_CFLAGS)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -14,15 +51,14 @@ CC=g++ -m$(MODEL)
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
-#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 $(COV)
+#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_FREEBSD=1 -D_DH
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_FREEBSD=1 -D_DH
+CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -D_DH
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_$(TARGET)=1 -D_DH
 
 CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
-TOTALH=
 
 DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o blockopt.o \
@@ -42,10 +78,15 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o \
-	libelf.o elfobj.o
+	imphint.o argtypes.o ti_pvoid.o
 
-SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
+ifeq (OSX,$(TARGET))
+    DMD_OBJS += libmach.o machobj.o
+else
+    DMD_OBJS += libelf.o elfobj.o
+endif
+
+SRC = win32.mak posix.mak \
 	mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c \
 	identifier.c mtype.c expression.c optimize.c template.h \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
@@ -95,7 +136,7 @@ SRC = win32.mak linux.mak osx.mak freebsd.mak solaris.mak openbsd.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	gcc -m$(MODEL) -lstdc++ -lpthread $(COV) $(DMD_OBJS) -o dmd
+	$(ENVP) gcc -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -106,7 +147,7 @@ clean:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(CC) $(MFLAGS) $< -o optabgen
+	$(ENVP) $(CC) $(MFLAGS) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -118,7 +159,7 @@ idgen_output = id.h id.c
 $(idgen_output) : idgen
 
 idgen : idgen.c
-	$(CC) idgen.c -o idgen
+	$(ENVP) $(CC) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
@@ -127,15 +168,15 @@ impcnvtab_output = impcnvtab.c
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
-	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	$(ENVP) $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
 #########
 
 $(DMD_OBJS) : $(idgen_output) $(optabgen_output) $(impcnvgen_output)
 
-aa.o: $C/aa.h $C/tinfo.h $C/aa.c
-	$(CC) -c $(MFLAGS) -I. $C/aa.c
+aa.o: $C/aa.c $C/aa.h $C/tinfo.h
+	$(CC) -c $(MFLAGS) -I. $<
 
 aav.o: $(ROOT)/aav.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
@@ -165,16 +206,16 @@ bcomplex.o: $C/bcomplex.c
 	$(CC) -c $(MFLAGS) $<
 
 blockopt.o: $C/blockopt.c
-	$(CC) -c $(MFLAGS) $C/blockopt.c
+	$(CC) -c $(MFLAGS) $<
 
 builtin.o: builtin.c
 	$(CC) -c $(CFLAGS) $<
 
 cast.o: cast.c
-	$(CC) -c $(CFLAGS) $< 
+	$(CC) -c $(CFLAGS) $<
 
-cg.o: fltables.c $C/cg.c
-	$(CC) -c $(MFLAGS) -I. $C/cg.c
+cg.o: $C/cg.c fltables.c
+	$(CC) -c $(MFLAGS) -I. $<
 
 cg87.o: $C/cg87.c
 	$(CC) -c $(MFLAGS) $<
@@ -188,11 +229,11 @@ cgcs.o: $C/cgcs.c
 cgcv.o: $C/cgcv.c
 	$(CC) -c $(MFLAGS) $<
 
-cgelem.o: $C/rtlsym.h $C/cgelem.c
-	$(CC) -c $(MFLAGS) -I. $C/cgelem.c
+cgelem.o: $C/cgelem.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) -I. $<
 
-cgen.o: $C/rtlsym.h $C/cgen.c
-	$(CC) -c $(MFLAGS) $C/cgen.c
+cgen.o: $C/cgen.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 cgobj.o: $C/cgobj.c
 	$(CC) -c $(MFLAGS) $<
@@ -200,8 +241,8 @@ cgobj.o: $C/cgobj.c
 cgreg.o: $C/cgreg.c
 	$(CC) -c $(MFLAGS) $<
 
-cgsched.o: $C/rtlsym.h $C/cgsched.c
-	$(CC) -c $(MFLAGS) $C/cgsched.c
+cgsched.o: $C/cgsched.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 class.o: class.c
 	$(CC) -c $(CFLAGS) $<
@@ -209,14 +250,14 @@ class.o: class.c
 clone.o: clone.c
 	$(CC) -c $(CFLAGS) $<
 
-cod1.o: $C/rtlsym.h $C/cod1.c
-	$(CC) -c $(MFLAGS) $C/cod1.c
+cod1.o: $C/cod1.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
-cod2.o: $C/rtlsym.h $C/cod2.c
-	$(CC) -c $(MFLAGS) $C/cod2.c
+cod2.o: $C/cod2.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
-cod3.o: $C/rtlsym.h $C/cod3.c
-	$(CC) -c $(MFLAGS) $C/cod3.c
+cod3.o: $C/cod3.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 cod4.o: $C/cod4.c
 	$(CC) -c $(MFLAGS) $<
@@ -230,11 +271,11 @@ code.o: $C/code.c
 constfold.o: constfold.c
 	$(CC) -c $(CFLAGS) $<
 
-irstate.o: irstate.h irstate.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) irstate.c
+irstate.o: irstate.c irstate.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-csymbol.o : $C/symbol.c
-	$(CC) -c $(MFLAGS) $C/symbol.c -o csymbol.o
+csymbol.o: $C/symbol.c
+	$(CC) -c $(MFLAGS) $< -o $@
 
 dchar.o: $(ROOT)/dchar.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
@@ -260,26 +301,26 @@ doc.o: doc.c
 dsymbol.o: dsymbol.c
 	$(CC) -c $(CFLAGS) $<
 
-dt.o: $C/dt.h $C/dt.c
-	$(CC) -c $(MFLAGS) $C/dt.c
+dt.o: $C/dt.c $C/dt.h
+	$(CC) -c $(MFLAGS) $<
 
 dump.o: dump.c
 	$(CC) -c $(CFLAGS) $<
 
-dwarf.o: $C/dwarf.h $C/dwarf.c
-	$(CC) -c $(MFLAGS) -I. $C/dwarf.c
+dwarf.o: $C/dwarf.c $C/dwarf.h
+	$(CC) -c $(MFLAGS) -I. $<
 
-e2ir.o: $C/rtlsym.h expression.h toir.h e2ir.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) e2ir.c
+e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 ee.o: $C/ee.c
 	$(CC) -c $(MFLAGS) $<
 
-eh.o : $C/cc.h $C/code.h $C/type.h $C/dt.h eh.c
-	$(CC) -c $(MFLAGS) eh.c
+eh.o: eh.c $C/cc.h $C/code.h $C/type.h $C/dt.h
+	$(CC) -c $(MFLAGS) $<
 
-el.o: $C/rtlsym.h $C/el.h $C/el.c
-	$(CC) -c $(MFLAGS) $C/el.c
+el.o: $C/el.c $C/rtlsym.h $C/el.h
+	$(CC) -c $(MFLAGS) $<
 
 elfobj.o: $C/elfobj.c
 	$(CC) -c $(MFLAGS) $<
@@ -293,7 +334,7 @@ enum.o: enum.c
 evalu8.o: $C/evalu8.c
 	$(CC) -c $(MFLAGS) $<
 
-expression.o: expression.c
+expression.o: expression.c expression.h
 	$(CC) -c $(CFLAGS) $<
 
 func.o: func.c
@@ -308,17 +349,17 @@ gflow.o: $C/gflow.c
 #globals.o: globals.c
 #	$(CC) -c $(CFLAGS) $<
 
-glocal.o: $C/rtlsym.h $C/glocal.c
-	$(CC) -c $(MFLAGS) $C/glocal.c
+glocal.o: $C/glocal.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 gloop.o: $C/gloop.c
 	$(CC) -c $(MFLAGS) $<
 
-glue.o: $(CH) $(TOTALH) $C/rtlsym.h mars.h module.h glue.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) glue.c
+glue.o: glue.c $(CH) $C/rtlsym.h mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-gnuc.o: $(ROOT)/gnuc.h $(ROOT)/gnuc.c
-	$(CC) -c $(GFLAGS) $(ROOT)/gnuc.c
+gnuc.o: $(ROOT)/gnuc.c $(ROOT)/gnuc.h
+	$(CC) -c $(GFLAGS) $<
 
 go.o: $C/go.c
 	$(CC) -c $(MFLAGS) $<
@@ -329,20 +370,20 @@ gother.o: $C/gother.c
 hdrgen.o: hdrgen.c
 	$(CC) -c $(CFLAGS) $<
 
-html.o: $(CH) $(TOTALH) $C/html.h $C/html.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) $C/html.c
+html.o: $C/html.c $(CH) $C/html.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-iasm.o : $(CH) $(TOTALH) $C/iasm.h iasm.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) iasm.c
+iasm.o: iasm.c $(CH) $C/iasm.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-id.o : id.h id.c
-	$(CC) -c $(CFLAGS) id.c
+id.o: id.c id.h
+	$(CC) -c $(CFLAGS) $<
 
 identifier.o: identifier.c
 	$(CC) -c $(CFLAGS) $<
 
-impcnvtab.o: mtype.h impcnvtab.c
-	$(CC) -c $(CFLAGS) -I$(ROOT) impcnvtab.c
+impcnvtab.o: impcnvtab.c mtype.h
+	$(CC) -c $(CFLAGS) -I$(ROOT) $<
 
 imphint.o: imphint.c
 	$(CC) -c $(CFLAGS) $<
@@ -381,7 +422,7 @@ lstring.o: $(ROOT)/lstring.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 machobj.o: $C/machobj.c
-	$(CC) -c $(MFLAGS) $<
+	$(CC) -c $(MFLAGS) -I. $<
 
 macro.o: macro.c
 	$(CC) -c $(CFLAGS) $<
@@ -396,19 +437,19 @@ mars.o: mars.c
 	$(CC) -c $(CFLAGS) $<
 
 rmem.o: $(ROOT)/rmem.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $(ROOT)/rmem.c
-	
-module.o: $(TOTALH) $C/html.h module.c
-	$(CC) -c $(CFLAGS) -I$C module.c
+	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-msc.o: $(CH) mars.h msc.c
-	$(CC) -c $(MFLAGS) msc.c
+module.o: module.c $C/html.h
+	$(CC) -c $(CFLAGS) -I$C $<
+
+msc.o: msc.c $(CH) mars.h
+	$(CC) -c $(MFLAGS) $<
 
 mtype.o: mtype.c
 	$(CC) -c $(CFLAGS) $<
 
-nteh.o: $C/rtlsym.h $C/nteh.c
-	$(CC) -c $(MFLAGS) $C/nteh.c
+nteh.o: $C/nteh.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
 opover.o: opover.c
 	$(CC) -c $(CFLAGS) $<
@@ -422,8 +463,8 @@ os.o: $C/os.c
 out.o: $C/out.c
 	$(CC) -c $(MFLAGS) $<
 
-outbuf.o : $C/outbuf.h $C/outbuf.c
-	$(CC) -c $(MFLAGS) $C/outbuf.c
+outbuf.o: $C/outbuf.c $C/outbuf.h
+	$(CC) -c $(MFLAGS) $<
 
 parse.o: parse.c
 	$(CC) -c $(CFLAGS) $<
@@ -434,8 +475,8 @@ ph.o: ph.c
 port.o: $(ROOT)/port.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-ptrntab.o: $C/iasm.h $C/ptrntab.c
-	$(CC) -c $(MFLAGS) $C/ptrntab.c
+ptrntab.o: $C/ptrntab.c $C/iasm.h
+	$(CC) -c $(MFLAGS) $<
 
 response.o: $(ROOT)/response.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
@@ -443,11 +484,11 @@ response.o: $(ROOT)/response.c
 root.o: $(ROOT)/root.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-rtlsym.o: $C/rtlsym.h $C/rtlsym.c
-	$(CC) -c $(MFLAGS) $C/rtlsym.c
+rtlsym.o: $C/rtlsym.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
 
-s2ir.o : $C/rtlsym.h statement.h s2ir.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) s2ir.c
+s2ir.o: s2ir.c $C/rtlsym.h statement.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 scope.o: scope.c
 	$(CC) -c $(CFLAGS) $<
@@ -458,14 +499,14 @@ speller.o: $(ROOT)/speller.c
 statement.o: statement.c
 	$(CC) -c $(CFLAGS) $<
 
-staticassert.o: staticassert.h staticassert.c
-	$(CC) -c $(CFLAGS) staticassert.c
+staticassert.o: staticassert.c staticassert.h
+	$(CC) -c $(CFLAGS) $<
 
 stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc -m$(MODEL) -c $C/strtold.c
+	gcc -m$(MODEL) -c $<
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
@@ -473,47 +514,47 @@ struct.o: struct.c
 template.o: template.c
 	$(CC) -c $(CFLAGS) $<
 
-ti_achar.o: $C/tinfo.h $C/ti_achar.c
-	$(CC) -c $(MFLAGS) -I. $C/ti_achar.c
+ti_achar.o: $C/ti_achar.c $C/tinfo.h
+	$(CC) -c $(MFLAGS) -I. $<
 
-ti_pvoid.o: $C/tinfo.h $C/ti_pvoid.c
-	$(CC) -c $(MFLAGS) -I. $C/ti_pvoid.c
+ti_pvoid.o: $C/ti_pvoid.c $C/tinfo.h
+	$(CC) -c $(MFLAGS) -I. $<
 
 tk.o: tk.c
-	$(CC) -c $(MFLAGS) tk.c
+	$(CC) -c $(MFLAGS) $<
 
-tocsym.o: $(CH) $(TOTALH) mars.h module.h tocsym.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) tocsym.c
+tocsym.o: tocsym.c $(CH) mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toctype.o: $(CH) $(TOTALH) $C/rtlsym.h mars.h module.h toctype.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toctype.c
+toctype.o: toctype.c $(CH) $C/rtlsym.h mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-todt.o : mtype.h expression.h $C/dt.h todt.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) todt.c
+todt.o: todt.c mtype.h expression.h $C/dt.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toelfdebug.o: $(CH) $(TOTALH) mars.h toelfdebug.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toelfdebug.c
+toelfdebug.o: toelfdebug.c $(CH) mars.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toir.o: $C/rtlsym.h expression.h toir.h toir.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) toir.c
+toir.o: toir.c $C/rtlsym.h expression.h toir.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toobj.o: $(CH) $(TOTALH) mars.h module.h toobj.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) toobj.c
+toobj.o: toobj.c $(CH) mars.h module.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-traits.o: $(TOTALH) traits.c
+traits.o: traits.c
 	$(CC) -c $(CFLAGS) $<
 
 type.o: $C/type.c
-	$(CC) -c $(MFLAGS) $C/type.c
+	$(CC) -c $(MFLAGS) $<
 
-typinf.o: $(CH) $(TOTALH) mars.h module.h mtype.h typinf.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) typinf.c
+typinf.o: typinf.c $(CH) mars.h module.h mtype.h
+	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 util.o: util.c
 	$(CC) -c $(MFLAGS) $<
 
-utf.o: utf.h utf.c
-	$(CC) -c $(CFLAGS) utf.c
+utf.o: utf.c utf.h
+	$(CC) -c $(CFLAGS) $<
 
 unialpha.o: unialpha.c
 	$(CC) -c $(CFLAGS) $<
@@ -522,7 +563,7 @@ unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
 var.o: $C/var.c optab.c
-	$(CC) -c $(MFLAGS) -I. $C/var.c
+	$(CC) -c $(MFLAGS) -I. $<
 
 version.o: version.c
 	$(CC) -c $(CFLAGS) $<
@@ -563,7 +604,11 @@ gcov:
 	gcov irstate.c
 	gcov json.c
 	gcov lexer.c
+ifeq (OSX,$(TARGET))
+	gcov libmach.c
+else
 	gcov libelf.c
+endif
 	gcov link.c
 	gcov macro.c
 	gcov mangle.c
