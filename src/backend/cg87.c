@@ -935,7 +935,7 @@ code *orth87(elem *e,regm_t *pretregs)
     int e2oper;
     int eoper;
     unsigned sz2;
-    int clib;
+    int clib = CLIBMAX;         // initialize to invalid value
     int reverse = 0;
 
     //printf("orth87(+e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
