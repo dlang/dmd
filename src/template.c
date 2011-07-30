@@ -589,7 +589,7 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
  * Declare all the function parameters as variables
  * and add them to the scope
  */
-void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope)
+void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs)
 {
     /* We do this ONLY if there is only one function in the template.
      */
@@ -619,6 +619,17 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope)
                 v->storage_class |= STCvariadic;
 
             v->storage_class |= fparam->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+            if (fparam->storageClass & STCauto)
+            {
+                if (fargs && i < fargs->dim)
+                {   Expression *farg = fargs->tdata()[i];
+                    if (farg->isLvalue())
+                        ;                               // ref parameter
+                    else
+                        v->storage_class &= ~STCref;    // value parameter
+                }
+            }
+            
             v->semantic(paramscope);
             if (!paramscope->insert(v))
                 error("parameter %s.%s is already defined", toChars(), v->toChars());
@@ -641,7 +652,7 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope)
  */
 
 MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
-        Objects *dedtypes, int flag)
+        Objects *dedtypes, Expressions *fargs, int flag)
 {   MATCH m;
     int dedtypes_dim = dedtypes->dim;
 
@@ -739,7 +750,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     if (m && constraint && !(flag & 1))
     {   /* Check to see if constraint is satisfied.
          */
-        makeParamNamesVisibleInConstraint(paramscope);
+        makeParamNamesVisibleInConstraint(paramscope, fargs);
         Expression *e = constraint->syntaxCopy();
         Scope *sc = paramscope->push();
         sc->flags |= SCOPEstaticif;
@@ -808,7 +819,7 @@ Lret:
  *      0       td2 is more specialized than this
  */
 
-MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
+MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressions *fargs)
 {
     /* This works by taking the template parameters to this template
      * declaration and feeding them to td2 as if it were a template
@@ -846,7 +857,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2)
     dedtypes.setDim(td2->parameters->dim);
 
     // Attempt a type deduction
-    MATCH m = td2->matchWithInstance(&ti, &dedtypes, 1);
+    MATCH m = td2->matchWithInstance(&ti, &dedtypes, fargs, 1);
     if (m)
     {
         /* A non-variadic template is more specialized than a
@@ -1334,7 +1345,7 @@ Lmatch:
     if (constraint)
     {   /* Check to see if constraint is satisfied.
          */
-        makeParamNamesVisibleInConstraint(paramscope);
+        makeParamNamesVisibleInConstraint(paramscope, fargs);
         Expression *e = constraint->syntaxCopy();
         paramscope->flags |= SCOPEstaticif;
 
@@ -1573,8 +1584,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 
         {
         // Disambiguate by picking the most specialized TemplateDeclaration
-        MATCH c1 = td->leastAsSpecialized(td_best);
-        MATCH c2 = td_best->leastAsSpecialized(td);
+        MATCH c1 = td->leastAsSpecialized(td_best, fargs);
+        MATCH c2 = td_best->leastAsSpecialized(td, fargs);
         //printf("c1 = %d, c2 = %d\n", c1, c2);
 
         if (c1 > c2)
@@ -3797,7 +3808,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         assert((size_t)tempdecl->scope > 0x10000);
         // Deduce tdtypes
         tdtypes.setDim(tempdecl->parameters->dim);
-        if (!tempdecl->matchWithInstance(this, &tdtypes, 2))
+        if (!tempdecl->matchWithInstance(this, &tdtypes, fargs, 2))
         {
             error("incompatible arguments for template instantiation");
             inst = this;
@@ -3818,7 +3829,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
         tempdecl = findTemplateDeclaration(sc);
         if (tempdecl)
-            tempdecl = findBestMatch(sc);
+            tempdecl = findBestMatch(sc, fargs);
         if (!tempdecl || global.errors)
         {   inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
@@ -4446,7 +4457,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
     return tempdecl;
 }
 
-TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc)
+TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 {
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
@@ -4493,7 +4504,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc)
         dedtypes.setDim(td->parameters->dim);
         dedtypes.zero();
         assert(td->semanticRun);
-        m = td->matchWithInstance(this, &dedtypes, 0);
+        m = td->matchWithInstance(this, &dedtypes, fargs, 0);
         //printf("matchWithInstance = %d\n", m);
         if (!m)                 // no match at all
             continue;
@@ -4505,8 +4516,8 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc)
 
         {
         // Disambiguate by picking the most specialized TemplateDeclaration
-        MATCH c1 = td->leastAsSpecialized(td_best);
-        MATCH c2 = td_best->leastAsSpecialized(td);
+        MATCH c1 = td->leastAsSpecialized(td_best, fargs);
+        MATCH c2 = td_best->leastAsSpecialized(td, fargs);
         //printf("c1 = %d, c2 = %d\n", c1, c2);
 
         if (c1 > c2)
@@ -5263,7 +5274,7 @@ void TemplateMixin::semantic(Scope *sc)
     if (errors)
         return;
 
-    tempdecl = findBestMatch(sc);
+    tempdecl = findBestMatch(sc, NULL);
     if (!tempdecl)
     {   inst = this;
         return;         // error recovery

@@ -202,6 +202,26 @@ template _ElemType(T) {
 }
 
 /**********************************/
+// 6404
+
+// receive only rvalue
+void rvalue(T)(auto ref T x) if (!__traits(isRef, x)) {}
+
+// receive only lvalue
+void lvalue(T)(auto ref T x) if ( __traits(isRef, x)) {}
+
+void test6404()
+{
+    int n;
+
+    static assert(!__traits(compiles, rvalue(n)));
+    static assert( __traits(compiles, rvalue(0)));
+
+    static assert( __traits(compiles, lvalue(n)));
+    static assert(!__traits(compiles, lvalue(0)));
+}
+
+/**********************************/
 
 int main()
 {
@@ -214,6 +234,7 @@ int main()
     test7();
     test8();
     test9();
+    test6404();
 
     printf("Success\n");
     return 0;
