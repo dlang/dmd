@@ -1275,7 +1275,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     dt_t **pdte = &ehtab_entry->Sdt;
     pdte = dtxoff(pdte,sfunc,0,TYnptr);
     pdte = dtxoff(pdte,ehsym,0,TYnptr);
-    pdte = dtnbytes(pdte,4,(char *)&sfunc->Ssize);
+    dtnbytes(pdte,4,(char *)&sfunc->Ssize);
     outdata(ehtab_entry);
 }
 
@@ -2044,7 +2044,6 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 #endif
     if (SegData[seg]->isCode() && SegData[targetdatum]->isCode())
     {
-        *(char *)0=0;
         assert(0);
     }
     mach_addrel(seg, offset, NULL, targetdatum, RELaddr);
