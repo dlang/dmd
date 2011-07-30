@@ -747,9 +747,9 @@ elem * el_bint(unsigned op,type *t,elem *e1,elem *e2)
 elem * el_bin(unsigned op,tym_t ty,elem *e1,elem *e2)
 {   elem *e;
 
-#ifdef DEBUG
+#if 0
     if (!(op < OPMAX && OTbinary(op) && e1 && e2))
-        *(char *)0 = 0;
+        *(char *)0=0;
 #endif
     assert(op < OPMAX && OTbinary(op) && e1 && e2);
     assert(MARS || !PARSER);
@@ -2727,7 +2727,6 @@ L1:
 #else
 #ifdef DEBUG
             elem_print(e);
-            *(char*)0=0;
 #endif
             assert(0);
 #endif
@@ -2810,6 +2809,9 @@ targ_ldouble el_toldouble(elem *e)
         case TYildouble:
             result = e->EV.Vldouble;
             break;
+        default:
+            result = 0;
+            break;
     }
 #else
     switch (tysize[tybasic(typemask(e))])
@@ -2828,6 +2830,9 @@ targ_ldouble el_toldouble(elem *e)
             result = e->EV.Vldouble;
         break;
 #endif
+        default:
+            result = 0;
+            break;
     }
 #endif
     return result;

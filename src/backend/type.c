@@ -298,7 +298,6 @@ type *type_fake(tym_t ty)
 {   type *t;
 
 #if MARS
-if (ty == TYstruct) *(char*)0=0;
     assert(ty != TYstruct);
 #endif
     t = type_alloc(ty);
