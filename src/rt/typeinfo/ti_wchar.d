@@ -34,7 +34,7 @@ class TypeInfo_u : TypeInfo
         return *cast(wchar *)p1 - *cast(wchar *)p2;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return wchar.sizeof;
     }
@@ -48,7 +48,7 @@ class TypeInfo_u : TypeInfo
         *cast(wchar *)p2 = t;
     }
 
-    override void[] init()
+    override void[] init() nothrow pure
     {   static immutable wchar c;
 
         return (cast(wchar *)&c)[0 .. 1];

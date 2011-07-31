@@ -57,7 +57,7 @@ class TypeInfo_c : TypeInfo
         return _compare(*cast(creal *)p1, *cast(creal *)p2);
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return creal.sizeof;
     }
@@ -71,13 +71,13 @@ class TypeInfo_c : TypeInfo
         *cast(creal *)p2 = t;
     }
 
-    override void[] init()
+    override void[] init() nothrow pure
     {   static immutable creal r;
 
         return (cast(creal *)&r)[0 .. 1];
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return creal.alignof;
     }

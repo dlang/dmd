@@ -57,7 +57,7 @@ class TypeInfo_r : TypeInfo
         return _compare(*cast(cdouble *)p1, *cast(cdouble *)p2);
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return cdouble.sizeof;
     }
@@ -71,13 +71,13 @@ class TypeInfo_r : TypeInfo
         *cast(cdouble *)p2 = t;
     }
 
-    override void[] init()
+    override void[] init() nothrow pure
     {   static immutable cdouble r;
 
         return (cast(cdouble *)&r)[0 .. 1];
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return cdouble.alignof;
     }

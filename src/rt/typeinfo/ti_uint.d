@@ -38,7 +38,7 @@ class TypeInfo_k : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return uint.sizeof;
     }
