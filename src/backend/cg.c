@@ -43,6 +43,8 @@ targ_size_t localsize,          /* amt subtracted from SP for local vars */
 // Global register settings, initialized in cod3_set[16|32|64]
 int     BPRM       = 0;         // R/M value for [BP] or [EBP]
 regm_t  fregsaved  = 0;         // mask of registers saved across function calls
+regm_t  ALLREGS    = 0;
+regm_t  BYTEREGS   = 0;
 regm_t  FLOATREGS  = 0;
 regm_t  FLOATREGS2 = 0;
 regm_t  DOUBLEREGS = 0;
