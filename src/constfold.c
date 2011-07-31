@@ -533,6 +533,21 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
             e2 = new IntegerExp(loc, 1, e2->type);
             n2 = 1;
         }
+        if (n2 == -1 && !type->isunsigned())
+        {    // Check for int.min % -1
+            if (n1 == 0xFFFFFFFF80000000UL && type->toBasetype()->ty != Tint64)
+            {
+                e2->error("integer overflow: int.min % -1");
+                e2 = new IntegerExp(loc, 1, e2->type);
+                n2 = 1;
+            }
+            else if (n1 == 0x8000000000000000LL) // long.min % -1
+            {
+                e2->error("integer overflow: long.min % -1");
+                e2 = new IntegerExp(loc, 1, e2->type);
+                n2 = 1;
+            }
+        }
         if (e1->type->isunsigned() || e2->type->isunsigned())
             n = ((d_uns64) n1) % ((d_uns64) n2);
         else
