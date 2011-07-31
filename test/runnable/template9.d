@@ -41,7 +41,7 @@ class Foo3
 {
     T bar(T,U)(U u)
     {
-	return cast(T)u;
+        return cast(T)u;
     }
 }
 
@@ -50,7 +50,7 @@ void test3()
   Foo3 foo = new Foo3;
   int i = foo.bar!(int)(1.0);
   assert(i == 1);
-} 
+}
 
 
 /**********************************/
@@ -95,7 +95,7 @@ void test5()
 {
     foo5(1.0,33);
     bar5!(double,int)(33);
-    bar5!(float)(33); 
+    bar5!(float)(33);
 }
 
 /**********************************/
@@ -105,11 +105,11 @@ int foo6(T...)(auto ref T x)
 
     foreach (i, v; x)
     {
-	if (v == 10)
-	    assert(__traits(isRef, x[i]));
-	else
-	    assert(!__traits(isRef, x[i]));
-	result += v;
+        if (v == 10)
+            assert(__traits(isRef, x[i]));
+        else
+            assert(!__traits(isRef, x[i]));
+        result += v;
     }
     return result;
 }
@@ -206,9 +206,11 @@ template _ElemType(T) {
 
 // receive only rvalue
 void rvalue(T)(auto ref T x) if (!__traits(isRef, x)) {}
+void rvalueVargs(T...)(auto ref T x) if (!__traits(isRef, x[0])) {}
 
 // receive only lvalue
 void lvalue(T)(auto ref T x) if ( __traits(isRef, x)) {}
+void lvalueVargs(T...)(auto ref T x) if ( __traits(isRef, x[0])) {}
 
 void test6404()
 {
@@ -219,6 +221,12 @@ void test6404()
 
     static assert( __traits(compiles, lvalue(n)));
     static assert(!__traits(compiles, lvalue(0)));
+
+    static assert(!__traits(compiles, rvalueVargs(n)));
+    static assert( __traits(compiles, rvalueVargs(0)));
+
+    static assert( __traits(compiles, lvalueVargs(n)));
+    static assert(!__traits(compiles, lvalueVargs(0)));
 }
 
 /**********************************/
