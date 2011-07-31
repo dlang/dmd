@@ -812,7 +812,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     // Determine register assignments
     if (pi)
     {
-        if (global.params.isX86_64)
+        if (global.params.is64bit)
         {
             // Order of assignment of pointer or integer parameters
             static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };

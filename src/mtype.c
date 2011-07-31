@@ -264,7 +264,7 @@ void Type::init()
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->invariantOf()->arrayOf();
 
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
     {
         PTRSIZE = 8;
         if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
@@ -2512,12 +2512,12 @@ unsigned TypeBasic::alignsize()
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Tint64:
         case Tuns64:
-            sz = global.params.isX86_64 ? 8 : 4;
+            sz = global.params.is64bit ? 8 : 4;
             break;
 
         case Tfloat64:
         case Timaginary64:
-            sz = global.params.isX86_64 ? 8 : 4;
+            sz = global.params.is64bit ? 8 : 4;
             break;
 
         case Tcomplex32:
@@ -2525,7 +2525,7 @@ unsigned TypeBasic::alignsize()
             break;
 
         case Tcomplex64:
-            sz = global.params.isX86_64 ? 8 : 4;
+            sz = global.params.is64bit ? 8 : 4;
             break;
 #endif
 
@@ -5378,7 +5378,7 @@ unsigned TypeDelegate::alignsize()
 {
 #if DMDV1
     // See Bugzilla 942 for discussion
-    if (!global.params.isX86_64)
+    if (!global.params.is64bit)
         return PTRSIZE * 2;
 #endif
     return PTRSIZE;

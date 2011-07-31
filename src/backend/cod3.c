@@ -119,7 +119,7 @@ static unsigned char inssize[256] =
         M|A|2,M|A|2,M|A|2,M|A|2,        M|2,M|2,M|2,M|R|2,      /* 88 */
         1,1,1,1,                1,1,1,1,                /* 90 */
         1,1,T|5,1,              1,1,1,1,                /* 98 */
-#if 0 /* cod3_set386() patches this */
+#if 0 /* cod3_set32() patches this */
         T|5,T|5,T|5,T|5,        1,1,1,1,                /* A0 */
 #else
         T|3,T|3,T|3,T|3,        1,1,1,1,                /* A0 */
@@ -234,40 +234,22 @@ int cod3_EA(code *c)
  * Fix global variables for 386.
  */
 
-void cod3_set386()
+void cod3_set32()
 {
-//    if (I32)
-    {   unsigned i;
+    inssize[0xA0] = T|5;
+    inssize[0xA1] = T|5;
+    inssize[0xA2] = T|5;
+    inssize[0xA3] = T|5;
+    BPRM = 5;                       /* [EBP] addressing mode        */
+    fregsaved = mBP | mBX | mSI | mDI;      // saved across function calls
+    FLOATREGS = FLOATREGS_32;
+    FLOATREGS2 = FLOATREGS2_32;
+    DOUBLEREGS = DOUBLEREGS_32;
+    if (config.flags3 & CFG3eseqds)
+        fregsaved |= mES;
 
-        inssize[0xA0] = T|5;
-        inssize[0xA1] = T|5;
-        inssize[0xA2] = T|5;
-        inssize[0xA3] = T|5;
-        BPRM = 5;                       /* [EBP] addressing mode        */
-        fregsaved = mBP | mBX | mSI | mDI;      // saved across function calls
-        FLOATREGS = FLOATREGS_32;
-        FLOATREGS2 = FLOATREGS2_32;
-        DOUBLEREGS = DOUBLEREGS_32;
-        if (config.flags3 & CFG3eseqds)
-            fregsaved |= mES;
-
-        for (i = 0x80; i < 0x90; i++)
-            inssize2[i] = W|T|6;
-    }
-#if 0
-    else
-    {
-        inssize[0xA0] = T|3;
-        inssize[0xA1] = T|3;
-        inssize[0xA2] = T|3;
-        inssize[0xA3] = T|3;
-        BPRM = 6;                       /* [EBP] addressing mode        */
-        fregsaved = mSI | mDI;          /* saved across function calls  */
-        FLOATREGS = FLOATREGS_16;
-        FLOATREGS2 = FLOATREGS2_16;
-        DOUBLEREGS = DOUBLEREGS_16;
-    }
-#endif
+    for (unsigned i = 0x80; i < 0x90; i++)
+        inssize2[i] = W|T|6;
 }
 
 /********************************
