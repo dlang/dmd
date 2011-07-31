@@ -1,6 +1,5 @@
 /**
- * The exception module defines all system-level exceptions and provides a
- * mechanism to alter system-level error handling.
+ * String manipulation and comparison utilities.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
