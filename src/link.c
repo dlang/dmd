@@ -276,7 +276,7 @@ int runLINK()
     if (global.params.symdebug)
         argv.push((char *)"-g");
 
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
         argv.push((char *)"-m64");
     else
         argv.push((char *)"-m32");

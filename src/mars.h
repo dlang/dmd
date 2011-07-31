@@ -142,7 +142,7 @@ struct Param
     char optimize;      // run optimizer
     char map;           // generate linker .map file
     char cpu;           // target CPU
-    char isX86_64;      // generate X86_64 bit code
+    char is64bit;       // generate 64 bit code
     char isLinux;       // generate code for linux
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows

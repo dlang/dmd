@@ -366,7 +366,7 @@ int main(int argc, char *argv[])
     global.params.ddocfiles = new Strings();
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
-    global.params.isX86_64 = (sizeof(size_t) == 8);
+    global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
     global.params.defaultlibname = "phobos";
@@ -469,9 +469,9 @@ int main(int argc, char *argv[])
                 global.params.trace = 1;
             }
             else if (strcmp(p + 1, "m32") == 0)
-                global.params.isX86_64 = 0;
+                global.params.is64bit = 0;
             else if (strcmp(p + 1, "m64") == 0)
-                global.params.isX86_64 = 1;
+                global.params.is64bit = 1;
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = 1;
             else if (strcmp(p + 1, "v") == 0)
@@ -875,7 +875,7 @@ int main(int argc, char *argv[])
             //fatal();
         }
     }
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
     {
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition::addPredefinedGlobalIdent("X86_64");

@@ -633,7 +633,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     // uint m_align;
     dtsize_t(pdt, tc->alignsize());
 
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
     {
         TypeTuple *tup = tc->toArgTypes();
         assert(tup->arguments->dim <= 2);

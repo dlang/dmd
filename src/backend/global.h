@@ -115,7 +115,7 @@ void util_exit(int) __attribute__((analyzer_noreturn));
 void util_exit(int);
 #pragma ZTC noreturn(util_exit)
 #endif
-void util_set386(void);
+void util_set32(void);
 void util_set64(void);
 int ispow2(targ_ullong);
 #if TX86
