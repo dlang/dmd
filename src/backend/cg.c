@@ -40,16 +40,12 @@ targ_size_t localsize,          /* amt subtracted from SP for local vars */
         Toff,                   /* base for temporaries                 */
         Poff,Aoff;              // comsubexps, params, regs, autos
 
-/* The following are initialized for the 8088. cod3_set32() or cod3_set64()
- * will change them as appropriate.
- */
-int     BPRM = 6;               /* R/M value for [BP] or [EBP]          */
-regm_t  fregsaved = mBP | mSI | mDI;    // mask of registers saved across
-                                        // function calls
-                                        // (add in mBX for I32)
-regm_t  FLOATREGS = FLOATREGS_16;
-regm_t  FLOATREGS2 = FLOATREGS2_16;
-regm_t  DOUBLEREGS = DOUBLEREGS_16;
+// Global register settings, initialized in cod3_set[16|32|64]
+int     BPRM       = 0;         // R/M value for [BP] or [EBP]
+regm_t  fregsaved  = 0;         // mask of registers saved across function calls
+regm_t  FLOATREGS  = 0;
+regm_t  FLOATREGS2 = 0;
+regm_t  DOUBLEREGS = 0;
 
 symbol *localgot;               // reference to GOT for this function
 symbol *tls_get_addr_sym;       // function __tls_get_addr

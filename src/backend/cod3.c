@@ -235,6 +235,23 @@ int cod3_EA(code *c)
 }
 
 /********************************
+ * Setup global variables for 16 bit x86
+ */
+
+void cod3_set16()
+{
+    // R/M value for [BP] or [EBP]
+    BPRM = 6;
+
+    // mask of registers saved across function calls
+    fregsaved = mBP | mSI | mDI;
+
+    FLOATREGS = FLOATREGS_16;
+    FLOATREGS2 = FLOATREGS2_16;
+    DOUBLEREGS = DOUBLEREGS_16;
+}
+
+/********************************
  * Fix global variables for 386.
  */
 

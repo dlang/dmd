@@ -163,6 +163,10 @@ void out_config_init()
         //config.flags &= ~CFGalwaysframe;
     }
 
+    // overwritten in set_32 or 64, mostly here as a note to fix up
+    // dmc since the global variables are no longer initialized.
+    cod3_set16();
+
     if (params->is64bit)
     {
         util_set64();
