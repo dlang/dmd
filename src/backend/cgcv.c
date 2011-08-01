@@ -33,6 +33,7 @@
 #include        "cv4.h"
 #include        "global.h"
 #if SCPP
+#include        "parser.h"
 #include        "cpp.h"
 #endif
 
