@@ -949,12 +949,19 @@ Lagain:
 
             if (storage_class & (STCconst | STCimmutable) && init)
             {
-                if (!type->toBasetype()->isTypeBasic())
+                if (!tb->isTypeBasic())
                     storage_class |= STCstatic;
             }
             else
-#endif
+            {
                 aad->addField(sc, this);
+                if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->noDefaultCtor ||
+                    tb->ty == Tclass  && ((TypeClass  *)tb)->sym->noDefaultCtor)
+                    aad->noDefaultCtor = TRUE;
+            }
+#else
+                aad->addField(sc, this);
+#endif
         }
 
         InterfaceDeclaration *id = parent->isInterfaceDeclaration();
@@ -998,6 +1005,13 @@ Lagain:
         type->hasWild())
     {
         error("only fields, parameters or stack based variables can be inout");
+    }
+
+    if (!(storage_class & (STCfield | STCctfe)) && tb->ty == Tstruct &&
+        ((TypeStruct *)tb)->sym->noDefaultCtor)
+    {
+        if (!init)
+            error("initializer required for type %s", type->toChars());
     }
 #endif
 

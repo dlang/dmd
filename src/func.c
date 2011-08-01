@@ -3089,8 +3089,17 @@ void CtorDeclaration::semantic(Scope *sc)
 
     // See if it's the default constructor
     if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0)
-    {   if (ad->isStructDeclaration())
-            error("default constructor not allowed for structs");
+    {
+        StructDeclaration *sd = ad->isStructDeclaration();
+        if (sd)
+        {
+            if (fbody || !(storage_class & STCdisable))
+            {   error("default constructor for structs only allowed with @disable and no body");
+                storage_class |= STCdisable;
+                fbody = NULL;
+            }
+            sd->noDefaultCtor = TRUE;
+        }
         else
             ad->defaultCtor = this;
     }

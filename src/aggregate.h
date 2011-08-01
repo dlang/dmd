@@ -67,6 +67,7 @@ struct AggregateDeclaration : ScopeDsymbol
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
     CtorDeclaration *defaultCtor;       // default constructor
     Dsymbol *aliasthis;                 // forward unresolved lookups to aliasthis
+    bool noDefaultCtor;         // no default construction
 #endif
 
     FuncDeclarations dtors;     // Array of destructors

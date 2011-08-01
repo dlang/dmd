@@ -4036,8 +4036,7 @@ Lagain:
     }
 
     if (tb->ty == Tclass)
-    {   TypeFunction *tf;
-
+    {
         TypeClass *tc = (TypeClass *)(tb);
         ClassDeclaration *cd = tc->sym->isClassDeclaration();
         if (cd->isInterfaceDeclaration())
@@ -4053,6 +4052,10 @@ Lagain:
             }
             goto Lerr;
         }
+
+        if (cd->noDefaultCtor && (!arguments || !arguments->dim))
+            error("default construction is disabled for type %s", cd->toChars());
+
         checkDeprecated(sc, cd);
         if (cd->isNested())
         {   /* We need a 'this' pointer for the nested class.
@@ -4164,7 +4167,7 @@ Lagain:
 
             cd->accessCheck(loc, sc, member);
 
-            tf = (TypeFunction *)f->type;
+            TypeFunction *tf = (TypeFunction *)f->type;
 
             if (!arguments)
                 arguments = new Expressions();
@@ -4192,7 +4195,7 @@ Lagain:
             allocator = f->isNewDeclaration();
             assert(allocator);
 
-            tf = (TypeFunction *)f->type;
+            TypeFunction *tf = (TypeFunction *)f->type;
             functionParameters(loc, sc, tf, newargs, f);
         }
         else
@@ -4208,6 +4211,9 @@ Lagain:
         TypeStruct *ts = (TypeStruct *)tb;
         StructDeclaration *sd = ts->sym;
         TypeFunction *tf;
+
+        if (sd->noDefaultCtor && (!arguments || !arguments->dim))
+            error("default construction is disabled for type %s", sd->toChars());
 
         FuncDeclaration *f = NULL;
         if (sd->ctor)
