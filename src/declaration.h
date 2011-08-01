@@ -505,6 +505,7 @@ enum BUILTIN
     BUILTINtan,                 // std.math.tan
     BUILTINsqrt,                // std.math.sqrt
     BUILTINfabs,                // std.math.fabs
+    BUILTINwriteln,             // std.stdio.writeln
 };
 
 Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
@@ -512,6 +513,14 @@ Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
 #else
 enum BUILTIN { };
 #endif
+
+enum BuiltinPurpose
+{
+    BuiltinPurposeCTFE = 1,
+    BuiltinPurposeCTFEOrOptimize = 3,
+};
+
+void print_expressions_to_stdmsg(Expressions *args, Scope *sc);
 
 struct FuncDeclaration : Declaration
 {
@@ -613,7 +622,7 @@ struct FuncDeclaration : Declaration
     int isMain();
     int isWinMain();
     int isDllMain();
-    enum BUILTIN isBuiltin();
+    enum BUILTIN isBuiltin(enum BuiltinPurpose purpose = BuiltinPurposeCTFEOrOptimize);
     int isExport();
     int isImportedSymbol();
     int isAbstract();

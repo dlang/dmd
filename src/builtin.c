@@ -39,7 +39,7 @@ extern "C"
  * Determine if function is a builtin one that we can
  * evaluate at compile time.
  */
-enum BUILTIN FuncDeclaration::isBuiltin()
+enum BUILTIN FuncDeclaration::isBuiltin(enum BuiltinPurpose purpose)
 {
     static const char FeZe [] = "FNaNbNfeZe";      // @safe pure nothrow real function(real)
     static const char FeZe2[] = "FNaNbNeeZe";      // @trusted pure nothrow real function(real)
@@ -79,6 +79,16 @@ enum BUILTIN FuncDeclaration::isBuiltin()
                 }
             }
         }
+
+        // std.stdio.writeln
+        else if (purpose == BuiltinPurposeCTFE &&
+                 ident == Id::writeln && parent && parent->parent &&
+                 parent->parent->isModule() && parent->parent->ident == Id::stdio &&
+                 parent->parent->parent && parent->parent->parent->ident == Id::std &&
+                 !parent->parent->parent->parent)
+        {
+            builtin = BUILTINwriteln;
+        }
     }
     return builtin;
 }
@@ -88,40 +98,61 @@ enum BUILTIN FuncDeclaration::isBuiltin()
  * Evaluate builtin function.
  * Return result; NULL if cannot evaluate it.
  */
-
 Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments)
 {
-    assert(arguments && arguments->dim);
-    Expression *arg0 = arguments->tdata()[0];
+    assert(arguments);
     Expression *e = NULL;
-    switch (builtin)
+
+    if (builtin == BUILTINwriteln)
     {
-        case BUILTINsin:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(0, sinl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINcos:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(0, cosl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINtan:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(0, tanl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINsqrt:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(0, sqrtl(arg0->toReal()), arg0->type);
-            break;
-
-        case BUILTINfabs:
-            if (arg0->op == TOKfloat64)
-                e = new RealExp(0, fabsl(arg0->toReal()), arg0->type);
-            break;
+        print_expressions_to_stdmsg(arguments, NULL);
+        e = EXP_VOID_INTERPRET;
+    }
+    else
+    {
+        assert(arguments->dim);
+        Expression *arg0 = arguments->tdata()[0];
+        if (arg0->op == TOKfloat64)
+        {
+            real_t value = arg0->toReal();
+            switch (builtin)
+            {
+                case BUILTINsin:  value = sinl(value); break;
+                case BUILTINcos:  value = cosl(value); break;
+                case BUILTINtan:  value = tanl(value); break;
+                case BUILTINsqrt: value = sqrtl(value); break;
+                case BUILTINfabs: value = fabsl(value); break;
+                default:
+                    assert(0);
+            }
+            e = new RealExp(0, value, arg0->type);
+        }
     }
     return e;
 }
 
 #endif
+
+void print_expressions_to_stdmsg(Expressions *args, Scope *sc)
+{
+    for (size_t i = 0; i < args->dim; i++)
+    {
+        Expression *e = args->tdata()[i];
+        
+        if (sc)
+        {
+            e = e->semantic(sc);
+            e = e->optimize(WANTvalue | WANTinterpret);
+        }
+        if (e->op == TOKstring)
+        {
+            StringExp *se = (StringExp *)e;
+            fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
+        }
+        else
+            fprintf(stdmsg, "%s", e->toChars());
+    }
+    fprintf(stdmsg, "\n");
+}
+
+
