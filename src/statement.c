@@ -1463,7 +1463,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 TY keyty = arg->type->ty;
                 if (keyty != Tint32 && keyty != Tuns32)
                 {
-                    if (global.params.isX86_64)
+                    if (global.params.is64bit)
                     {
                         if (keyty != Tint64 && keyty != Tuns64)
                             error("foreach: key type must be int or uint, long or ulong, not %s", arg->type->toChars());
@@ -1664,7 +1664,7 @@ Lagain:
             {
                 if (key->type->ty != Tint32 && key->type->ty != Tuns32)
                 {
-                    if (global.params.isX86_64)
+                    if (global.params.is64bit)
                     {
                         if (key->type->ty != Tint64 && key->type->ty != Tuns64)
                             error("foreach: key type must be int or uint, long or ulong, not %s", key->type->toChars());
@@ -3982,7 +3982,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
          *  try { body } finally { _d_criticalexit(critsec.ptr); }
          */
         Identifier *id = Lexer::uniqueId("__critsec");
-        Type *t = new TypeSArray(Type::tint8, new IntegerExp(PTRSIZE + (global.params.isX86_64 ? os_critsecsize64() : os_critsecsize32())));
+        Type *t = new TypeSArray(Type::tint8, new IntegerExp(PTRSIZE + (global.params.is64bit ? os_critsecsize64() : os_critsecsize32())));
         VarDeclaration *tmp = new VarDeclaration(loc, t, id, NULL);
         tmp->storage_class |= STCgshared | STCstatic;
 

@@ -60,8 +60,8 @@
 #undef I32
 #undef I64
 #define I16 0
-#define I32 (global.params.isX86_64 == 0)
-#define I64 (global.params.isX86_64 == 1)
+#define I32 (global.params.is64bit == 0)
+#define I64 (global.params.is64bit == 1)
 
 //#define EXTRA_DEBUG 1
 
@@ -4448,7 +4448,7 @@ Statement *AsmStatement::semantic(Scope *sc)
         asmstate.psDollar = new LabelDsymbol(Id::__dollar);
         //asmstate.psLocalsize = new VarDeclaration(0, Type::tint32, Id::__LOCAL_SIZE, NULL);
         asmstate.psLocalsize = new Dsymbol(Id::__LOCAL_SIZE);
-        cod3_set386();
+        cod3_set32();
     }
 
     asmstate.loc = loc;
