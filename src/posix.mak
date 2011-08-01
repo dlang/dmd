@@ -320,7 +320,7 @@ ee.o: $C/ee.c
 eh.o: eh.c $C/cc.h $C/code.h $C/type.h $C/dt.h
 	$(CC) -c $(MFLAGS) $<
 
-el.o: $C/el.c $C/rtlsym.h $C/el.h $C/el.c
+el.o: $C/el.c $C/rtlsym.h $C/el.h
 	$(CC) -c $(MFLAGS) $<
 
 elfobj.o: $C/elfobj.c
@@ -336,7 +336,7 @@ evalu8.o: $C/evalu8.c
 	$(CC) -c $(MFLAGS) $<
 
 expression.o: expression.c expression.h
-	$(CC) -c $(CFLAGS) expression.c
+	$(CC) -c $(CFLAGS) $<
 
 func.o: func.c
 	$(CC) -c $(CFLAGS) $<
@@ -350,7 +350,7 @@ gflow.o: $C/gflow.c
 #globals.o: globals.c
 #	$(CC) -c $(CFLAGS) $<
 
-glocal.o: $C/glocal.c $C/rtlsym.h 
+glocal.o: $C/glocal.c $C/rtlsym.h
 	$(CC) -c $(MFLAGS) $<
 
 gloop.o: $C/gloop.c

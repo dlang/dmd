@@ -1,8 +1,12 @@
 #_ win32.mak
-# Copyright (C) 1999-2010 by Digital Mars, http://www.digitalmars.com
+# Copyright (C) 1999-2011 by Digital Mars, http://www.digitalmars.com
 # Written by Walter Bright
 # All Rights Reserved
 # Build dmd with Digital Mars C++ compiler
+#   http://www.digitalmars.com/ctg/sc.html
+# This makefile is designed to be used with Digital Mars make.exe
+#   http://www.digitalmars.com/ctg/make.html
+# which should be in \dm\bin or in \dmd\windows\bin 
 
 D=
 DMDSVN=\svnproj\dmd\trunk\src
