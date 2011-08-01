@@ -18,7 +18,6 @@
 #include        <time.h>
 
 #include        "cc.h"
-#include        "parser.h"
 #include        "global.h"
 #include        "type.h"
 #include        "dt.h"
@@ -27,9 +26,13 @@
 #endif
 
 #include        "el.h"
-#include        "cpp.h"
 #include        "oper.h"                /* for OPMAX            */
 #include        "token.h"
+
+#if SCPP
+#include        "parser.h"
+#include        "cpp.h"
+#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"

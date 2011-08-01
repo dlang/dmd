@@ -26,11 +26,13 @@
 #include        "type.h"
 #include        "oper.h"
 #include        "el.h"
-#include        "parser.h"
-#include        "cpp.h"
 #include        "exh.h"
 #if TX86
 #include        "cgcv.h"
+#endif
+
+#if SCPP
+#include        "parser.h"
 #endif
 
 #include        "iasm.h"

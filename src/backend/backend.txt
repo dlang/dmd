@@ -27,7 +27,6 @@ cod4.c          code gen
 cod5.c          code gen
 code.c          memory management for code instructions
 code.h          define registers, register masks, and the CPU instruction linked list
-cpp.h           C++ semantic routines
 cppman.c        C++ name mangling
 cv4.h           CodeView symbolic debug info declarations
 debug.c         pretty printing for debug builds
@@ -66,7 +65,6 @@ os.c            some operating system specific support
 out.c           write data definitions to object file
 outbuf.c        resizeable buffer
 outbuf.h        API for resizeable buffer
-parser.h        for C/C++ parser
 ptrntab.c       instruction tables for inline assembler
 rtlsym.c        initialize for compiler 'helper' runtime functions
 rtlsym.h        compiler 'helper' runtime functions

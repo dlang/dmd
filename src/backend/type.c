@@ -20,7 +20,10 @@
 #include "global.h"
 #include "type.h"
 #include "el.h"
+
+#if SCPP
 #include "parser.h"
+#endif
 
 #undef MEM_PH_MALLOC
 #define MEM_PH_MALLOC mem_fmalloc
@@ -1393,6 +1396,19 @@ void param_dehydrate(param_t **pp)
 }
 #endif
 
+#if MARS
+
+int typematch(type *t1, type *t2, int relax);
+
+// Return TRUE if type lists match.
+static int paramlstmatch(param_t *p1,param_t *p2)
+{
+        return p1 == p2 ||
+            p1 && p2 && typematch(p1->Ptype,p2->Ptype,0) &&
+            paramlstmatch(p1->Pnext,p2->Pnext)
+            ;
+}
+
 /*************************************************
  * A cheap version of exp2.typematch() and exp2.paramlstmatch(),
  * so that we can get cpp_mangle() to work for MARS.
@@ -1401,8 +1417,6 @@ void param_dehydrate(param_t **pp)
  * Returns:
  *      !=0 if types match.
  */
-
-#if MARS
 
 int typematch(type *t1,type *t2,int relax)
 { tym_t t1ty, t2ty;
@@ -1436,16 +1450,6 @@ int typematch(type *t1,type *t2,int relax)
              ((t1->Tflags & TFfixed) == (t2->Tflags & TFfixed) &&
                  paramlstmatch(t1->Tparamtypes,t2->Tparamtypes) ))
          ;
-}
-
-// Return TRUE if type lists match.
-
-int paramlstmatch(param_t *p1,param_t *p2)
-{
-        return p1 == p2 ||
-            p1 && p2 && typematch(p1->Ptype,p2->Ptype,0) &&
-            paramlstmatch(p1->Pnext,p2->Pnext)
-            ;
 }
 
 #endif

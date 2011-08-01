@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1984-1993 by Symantec
- * Copyright (c) 1999-2009 by Digital Mars
+ * Copyright (c) 1999-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -25,7 +25,6 @@
 #if SCPP || MARS
 #include        "el.h"
 #endif
-#include        "parser.h"
 
 #if _WIN32 && __DMC__
 //#include      "scdll.h"
@@ -34,6 +33,12 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
+
+void *ph_malloc(size_t nbytes);
+void *ph_calloc(size_t nbytes);
+void ph_free(void *p);
+void *ph_realloc(void *p , size_t nbytes);
+
 
 void util_exit(int exitcode);
 

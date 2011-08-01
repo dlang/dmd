@@ -27,10 +27,10 @@
 #include        "el.h"
 #include        "type.h"
 #include        "global.h"
-#include        "parser.h"
 #include        "go.h"
 #include        "code.h"
 #if SCPP
+#include        "parser.h"
 #include        "iasm.h"
 #endif
 

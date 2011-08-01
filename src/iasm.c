@@ -45,14 +45,12 @@
 #define SCOPE_H 1               // avoid conflicts with D's Scope
 #include        "cc.h"
 #include        "token.h"
-#include        "parser.h"
 #include        "global.h"
 #include        "el.h"
 #include        "type.h"
 #include        "oper.h"
 #include        "code.h"
 #include        "iasm.h"
-#include        "cpp.h"
 
 #undef _DH
 
