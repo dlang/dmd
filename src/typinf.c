@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -471,7 +471,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     unsigned offset = Type::typeinfostruct->structsize;
 
     // If using obsolete 32 bit object.d
-    if (!global.params.isX86_64 && !Type::typeinfostruct->search(NULL, Id::m_align, 0))
+    if (!global.params.is64bit && !Type::typeinfostruct->search(NULL, Id::m_align, 0))
         offset += 4;                         // include space for m_align
 
     dtxoff(pdt, Type::typeinfostruct->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Struct
@@ -631,12 +631,12 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     // xpostblit
     FuncDeclaration *spostblit = sd->postblit;
-    if (spostblit)
+    if (spostblit && !(spostblit->storage_class & STCdisable))
         dtxoff(pdt, spostblit->toSymbol(), 0, TYnptr);
     else
         dtsize_t(pdt, 0);                        // xpostblit
 #endif
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
     {
         TypeTuple *tup = tc->toArgTypes();
         assert(tup->arguments->dim <= 2);
@@ -644,7 +644,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         {
             if (i < tup->arguments->dim)
             {
-                Type *targ = ((Parameter *)tup->arguments->data[i])->type;
+                Type *targ = (tup->arguments->tdata()[i])->type;
                 targ = targ->merge();
                 targ->getTypeInfo(NULL);
                 dtxoff(pdt, targ->vtinfo->toSymbol(), 0, TYnptr);       // m_argi

@@ -77,7 +77,7 @@ TypeTuple *TypeBasic::toArgTypes()
             break;
 
         case Tcomplex32:
-            if (global.params.isX86_64)
+            if (global.params.is64bit)
                 t1 = Type::tfloat64;            // weird, eh?
             else
             {

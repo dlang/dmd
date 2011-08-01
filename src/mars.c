@@ -308,7 +308,7 @@ Usage:\n\
 int main(int argc, char *argv[])
 {
     int i;
-    Array files;
+    Strings files;
     Array libmodules;
     char *p;
     Module *m;
@@ -353,13 +353,13 @@ int main(int argc, char *argv[])
     global.params.Dversion = 2;
     global.params.quiet = 1;
 
-    global.params.linkswitches = new Array();
-    global.params.libfiles = new Array();
-    global.params.objfiles = new Array();
-    global.params.ddocfiles = new Array();
+    global.params.linkswitches = new Strings();
+    global.params.libfiles = new Strings();
+    global.params.objfiles = new Strings();
+    global.params.ddocfiles = new Strings();
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
-    global.params.isX86_64 = (sizeof(size_t) == 8);
+    global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
     global.params.defaultlibname = "phobos";
@@ -462,9 +462,9 @@ int main(int argc, char *argv[])
                 global.params.trace = 1;
             }
             else if (strcmp(p + 1, "m32") == 0)
-                global.params.isX86_64 = 0;
+                global.params.is64bit = 0;
             else if (strcmp(p + 1, "m64") == 0)
-                global.params.isX86_64 = 1;
+                global.params.is64bit = 1;
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = 1;
             else if (strcmp(p + 1, "v") == 0)
@@ -605,13 +605,13 @@ int main(int argc, char *argv[])
             else if (p[1] == 'I')
             {
                 if (!global.params.imppath)
-                    global.params.imppath = new Array();
+                    global.params.imppath = new Strings();
                 global.params.imppath->push(p + 2);
             }
             else if (p[1] == 'J')
             {
                 if (!global.params.fileImppath)
-                    global.params.fileImppath = new Array();
+                    global.params.fileImppath = new Strings();
                 global.params.fileImppath->push(p + 2);
             }
             else if (memcmp(p + 1, "debug", 5) == 0 && p[6] != 'l')
@@ -864,7 +864,7 @@ int main(int argc, char *argv[])
             //fatal();
         }
     }
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
     {
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition::addPredefinedGlobalIdent("X86_64");
@@ -914,13 +914,13 @@ int main(int argc, char *argv[])
     {
         for (i = 0; i < global.params.imppath->dim; i++)
         {
-            char *path = (char *)global.params.imppath->data[i];
-            Array *a = FileName::splitPath(path);
+            char *path = (*global.params.imppath)[i];
+            Strings *a = FileName::splitPath(path);
 
             if (a)
             {
                 if (!global.path)
-                    global.path = new Array();
+                    global.path = new Strings();
                 global.path->append(a);
             }
         }
@@ -931,13 +931,13 @@ int main(int argc, char *argv[])
     {
         for (i = 0; i < global.params.fileImppath->dim; i++)
         {
-            char *path = (char *)global.params.fileImppath->data[i];
-            Array *a = FileName::splitPath(path);
+            char *path = (*global.params.fileImppath)[i];
+            Strings *a = FileName::splitPath(path);
 
             if (a)
             {
                 if (!global.filePath)
-                    global.filePath = new Array();
+                    global.filePath = new Strings();
                 global.filePath->append(a);
             }
         }
@@ -970,47 +970,47 @@ int main(int argc, char *argv[])
              */
             if (FileName::equals(ext, global.obj_ext))
             {
-                global.params.objfiles->push(files.data[i]);
-                libmodules.push(files.data[i]);
+                global.params.objfiles->push(files[i]);
+                libmodules.push(files[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.lib_ext))
             {
-                global.params.libfiles->push(files.data[i]);
-                libmodules.push(files.data[i]);
+                global.params.libfiles->push(files[i]);
+                libmodules.push(files[i]);
                 continue;
             }
 
             if (strcmp(ext, global.ddoc_ext) == 0)
             {
-                global.params.ddocfiles->push(files.data[i]);
+                global.params.ddocfiles->push(files[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.json_ext))
             {
                 global.params.doXGeneration = 1;
-                global.params.xfilename = (char *)files.data[i];
+                global.params.xfilename = files[i];
                 continue;
             }
 
             if (FileName::equals(ext, global.map_ext))
             {
-                global.params.mapfile = (char *)files.data[i];
+                global.params.mapfile = files[i];
                 continue;
             }
 
 #if TARGET_WINDOS
             if (FileName::equals(ext, "res"))
             {
-                global.params.resfile = (char *)files.data[i];
+                global.params.resfile = files[i];
                 continue;
             }
 
             if (FileName::equals(ext, "def"))
             {
-                global.params.deffile = (char *)files.data[i];
+                global.params.deffile = files[i];
                 continue;
             }
 

@@ -78,8 +78,8 @@ int runLINK()
     int status;
     OutBuffer cmdbuf;
 
-    global.params.libfiles->push((void *) "user32");
-    global.params.libfiles->push((void *) "kernel32");
+    global.params.libfiles->push("user32");
+    global.params.libfiles->push("kernel32");
 
     for (i = 0; i < global.params.objfiles->dim; i++)
     {
@@ -274,7 +274,7 @@ int runLINK()
     if (global.params.symdebug)
         argv.push((void *)"-g");
 
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
         argv.push((void *)"-m64");
     else
         argv.push((void *)"-m32");

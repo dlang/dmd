@@ -801,7 +801,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 #else
             Type *t;
 
-            if (global.params.isX86_64)
+            if (global.params.is64bit)
             {   // Declare save area for varargs registers
                 Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
                 t = t->semantic(loc, sc);
@@ -1256,8 +1256,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 v_argptr->init = new VoidInitializer(loc);
 #else
                 Type *t = argptr->type;
-                VarDeclaration *p;
-                if (global.params.isX86_64)
+                if (global.params.is64bit)
                 {   // Initialize _argptr to point to v_argsave
                     Expression *e1 = new VarExp(0, argptr);
                     Expression *e = new SymOffExp(0, v_argsave, 6*8 + 8*16);
@@ -1268,6 +1267,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
                 else
                 {   // Initialize _argptr to point past non-variadic arg
+                    VarDeclaration *p;
                     unsigned offset = 0;
 
                     Expression *e1 = new VarExp(0, argptr);
