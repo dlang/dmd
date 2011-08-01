@@ -528,7 +528,7 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
         }
         if (n2 == -1 && !type->isunsigned())
         {    // Check for int.min % -1
-            if (n1 == 0xFFFFFFFF80000000UL && type->toBasetype()->ty != Tint64)
+            if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
             {
                 e2->error("integer overflow: int.min % -1");
                 e2 = new IntegerExp(loc, 1, e2->type);
