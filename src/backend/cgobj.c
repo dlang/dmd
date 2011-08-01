@@ -27,8 +27,7 @@
 #include        "code.h"
 #include        "type.h"
 #include        "outbuf.h"
-//#include        "oper.h"
-//#include        "scope.h"
+#include        "scope.h"
 
 #include        "md5.h"
 

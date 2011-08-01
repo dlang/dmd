@@ -22,16 +22,20 @@
 #include        "oper.h"
 #include        "global.h"
 #include        "type.h"
-#include        "parser.h"
 #include        "aa.h"
 #include        "tinfo.h"
 #if SCPP
-#include        "cpp.h"
 #include        "exh.h"
+#endif
+
+#if HYDRATE
+#include        "parser.h"
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
+
+extern dt_t **dtnzeros(dt_t **pdtend,targ_size_t size);
 
 extern targ_size_t retsize;
 STATIC void pinholeopt_unittest();
