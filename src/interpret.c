@@ -4984,9 +4984,9 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
 {
     Expression *e = NULL;
+    int nargs = arguments ? arguments->dim : 0;
 #if DMDV2
-    if (pthis && isAssocArray(pthis->type) &&
-        (!arguments || arguments->dim == 0))
+    if (pthis && isAssocArray(pthis->type) && nargs==0)
     {
         if (fd->ident == Id::length)
             e = interpret_length(istate, pthis);
@@ -4994,6 +4994,8 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
             e = interpret_keys(istate, pthis, fd);
         else if (fd->ident == Id::values)
             e = interpret_values(istate, pthis, fd);
+        else if (fd->ident == Id::rehash)
+            e = pthis;  // rehash is a no-op
     }
     if (!pthis)
     {
@@ -5024,6 +5026,11 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
             e = interpret_aaKeys(istate, arguments);
         else if (fd->ident == Id::aaValues)
             e = interpret_aaValues(istate, arguments);
+        else if (fd->ident == Id::aaRehash && nargs == 2)
+        {   // rehash is a no-op
+            Expression *earg = (Expression *)(arguments->data[0]);
+            return earg->interpret(istate, ctfeNeedLvalue);
+        }
     }
 #endif
     if (!e)
