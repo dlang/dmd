@@ -163,23 +163,6 @@ void out_config_init()
         //config.flags &= ~CFGalwaysframe;
     }
 
-    // overwritten in set_32 or 64, mostly here as a note to fix up
-    // dmc since the global variables are no longer initialized.
-    cod3_set16();
-
-    if (params->is64bit)
-    {
-        util_set64();
-        cod3_set64();
-    }
-    else
-    {
-        util_set32();
-        cod3_set32();
-    }
-
-    rtlsym_init();
-
 #ifdef DEBUG
     debugb = params->debugb;
     debugc = params->debugc;
@@ -404,7 +387,19 @@ void backend_init()
     block_init();
     type_init();
 
-    fregsaved = I64 ? mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES : mES | mBP | mBX | mSI | mDI;
+    if (global.params.is64bit)
+    {
+        util_set64();
+        cod3_set64();
+    }
+    else
+    {
+        util_set32();
+        cod3_set32();
+    }
+
+    // must be after util_set* due to depending on having correct type size data.
+    rtlsym_init();
 }
 
 void backend_term()
