@@ -2175,3 +2175,23 @@ static assert({
     A6399 a;
     return a.subLen();
 }() == 4);
+
+/**************************************************
+    6418 member named 'length'
+**************************************************/
+
+struct Bug6418 {
+    size_t length() { return 189; }
+}
+static assert(Bug6418.init.length == 189);
+
+/**************************************************
+    4021 rehash
+**************************************************/
+
+bool bug4021() {
+    int[int] aa = [1: 1];
+    aa.rehash;
+    return true;
+}
+static assert(bug4021());
