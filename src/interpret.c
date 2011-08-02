@@ -4007,12 +4007,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             if (pthis->op == TOKcomma)
                 pthis = pthis->interpret(istate);
             if (pthis == EXP_CANT_INTERPRET)
-                return NULL;
+                return EXP_CANT_INTERPRET;
                 // Evaluate 'this'
             if (pthis->op != TOKvar)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
             if (pthis == EXP_CANT_INTERPRET)
-                return NULL;
+                return EXP_CANT_INTERPRET;
         }
     }
     // Check for built-in functions
@@ -4960,6 +4960,22 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 
 #endif
 
+#if DMDV2
+// Return true if t is an AA, or AssociativeArray!(key, value)
+bool isAssocArray(Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Taarray)
+        return true;
+    if (t->ty != Tstruct)
+        return false;
+    StructDeclaration *sym = ((TypeStruct *)t)->sym;
+    if (sym->ident == Id::AssociativeArray)
+        return true;
+    return false;
+}
+#endif
+
 /* If this is a built-in function, set 'result' to the interpreted result,
  * and return true.
  * Otherwise, return false
@@ -4969,7 +4985,7 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
 {
     Expression *e = NULL;
 #if DMDV2
-    if (pthis &&
+    if (pthis && isAssocArray(pthis->type) &&
         (!arguments || arguments->dim == 0))
     {
         if (fd->ident == Id::length)
