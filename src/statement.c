@@ -1864,7 +1864,7 @@ Lagain:
                 }
             }
 
-            if (tab->ty == Taarray)
+            if (taa)
             {
                 // Check types
                 Parameter *arg = arguments->tdata()[0];
