@@ -44,7 +44,7 @@ private
     }
     version( OSX )
     {
-        import core.sys.posix.pthread;
+        import core.sys.osx.pthread;
     }
     extern (C) void gc_addRange( void* p, size_t sz );
     extern (C) void gc_removeRange( void* p );
