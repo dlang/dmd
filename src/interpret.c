@@ -48,14 +48,6 @@ InterState::InterState()
     memset(this, 0, sizeof(InterState));
 }
 
-Expression *interpret_aaLen(InterState *istate, Expressions *arguments);
-Expression *interpret_aaKeys(InterState *istate, Expressions *arguments);
-Expression *interpret_aaValues(InterState *istate, Expressions *arguments);
-
-Expression *interpret_length(InterState *istate, Expression *earg);
-Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd);
-Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
-
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
@@ -63,6 +55,8 @@ void addVarToInterstate(InterState *istate, VarDeclaration *v);
 bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
+bool evaluateIfBuiltin(Expression **result, InterState *istate,
+    FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
 
 // Used for debugging only
@@ -131,7 +125,6 @@ void showCtfeExpr(Expression *e, int level = 0)
     }
 }
 
-
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -150,28 +143,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #endif
     if (global.errors)
         return NULL;
-#if DMDV2
-    if (thisarg &&
-        (!arguments || arguments->dim == 0))
-    {
-        if (ident == Id::length)
-            return interpret_length(istate, thisarg);
-        else if (ident == Id::keys)
-            return interpret_keys(istate, thisarg, this);
-        else if (ident == Id::values)
-            return interpret_values(istate, thisarg, this);
-    }
-#endif
 
     if (cantInterpret || semanticRun == PASSsemantic3)
         return NULL;
-
-    if (!fbody)
-    {   cantInterpret = 1;
-        error("cannot be interpreted at compile time,"
-            " because it has no available source code");
-        return NULL;
-    }
 
     if (semanticRun < PASSsemantic3 && scope)
     {
@@ -3933,7 +3907,6 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
-
 Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
@@ -4020,7 +3993,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         error("cannot evaluate %s at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
-    if (pthis && fd)
+    if (!fd)
+    {
+        error("cannot evaluate %s at compile time", toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    if (pthis)
     {   // Member function call
         if (pthis->op == TOKthis)
             pthis = istate ? istate->localThis : NULL;
@@ -4036,88 +4014,39 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             if (pthis == EXP_CANT_INTERPRET)
                 return NULL;
         }
+    }
+    // Check for built-in functions
+    Expression *eresult;
+    if (evaluateIfBuiltin(&eresult, istate, fd, arguments, pthis))
+        return eresult;
 
-        if (!fd->fbody)
+    // Inline .dup. Special case because it needs the return type.
+    if (!pthis && fd->ident == Id::adDup && arguments && arguments->dim == 2)
+    {
+        e = arguments->tdata()[1];
+        e = e->interpret(istate);
+        if (e != EXP_CANT_INTERPRET)
         {
-            error("%s cannot be interpreted at compile time,"
-                " because it has no available source code", fd->toChars());
-            return EXP_CANT_INTERPRET;
+            if (e->op == TOKslice)
+                e= resolveSlice(e);
+            e = expType(type, e);
+            e = copyLiteral(e);
         }
-        Expression *eresult = fd->interpret(istate, arguments, pthis);
-        if (eresult)
-            e = eresult;
-        else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
-            e = EXP_VOID_INTERPRET;
-        else
-            error("cannot evaluate %s at compile time", toChars());
         return e;
     }
-    else if (fd)
-    {    // function call
-#if DMDV2
-        enum BUILTIN b = fd->isBuiltin();
-        if (b)
-        {   Expressions args;
-            args.setDim(arguments->dim);
-            for (size_t i = 0; i < args.dim; i++)
-            {
-                Expression *earg = arguments->tdata()[i];
-                earg = earg->interpret(istate);
-                if (earg == EXP_CANT_INTERPRET)
-                    return earg;
-                args.tdata()[i] = earg;
-            }
-            e = eval_builtin(b, &args);
-            if (!e)
-                e = EXP_CANT_INTERPRET;
-        }
-        else
-#endif
-
-#if DMDV1
-        if (fd->ident == Id::aaLen)
-            return interpret_aaLen(istate, arguments);
-        else if (fd->ident == Id::aaKeys)
-            return interpret_aaKeys(istate, arguments);
-        else if (fd->ident == Id::aaValues)
-            return interpret_aaValues(istate, arguments);
-#endif
-
-        // Inline .dup
-        if (fd->ident == Id::adDup && arguments && arguments->dim == 2)
-        {
-            e = arguments->tdata()[1];
-            e = e->interpret(istate);
-            if (e != EXP_CANT_INTERPRET)
-            {
-                if (e->op == TOKslice)
-                    e= resolveSlice(e);
-                e = expType(type, e);
-                e = copyLiteral(e);
-            }
-        }
-        else
-        {
-            if (!fd->fbody)
-            {
-                error("%s cannot be interpreted at compile time,"
-                    " because it has no available source code", fd->toChars());
-                return EXP_CANT_INTERPRET;
-            }
-            Expression *eresult = fd->interpret(istate, arguments);
-            if (eresult)
-                e = eresult;
-            else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
-                e = EXP_VOID_INTERPRET;
-            else
-                error("cannot evaluate %s at compile time", toChars());
-        }
-    }
-    else
+    if (!fd->fbody)
     {
-        error("cannot evaluate %s at compile time", toChars());
+        error("%s cannot be interpreted at compile time,"
+            " because it has no available source code", fd->toChars());
         return EXP_CANT_INTERPRET;
     }
+    eresult = fd->interpret(istate, arguments, pthis);
+    if (eresult)
+        e = eresult;
+    else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
+        e = EXP_VOID_INTERPRET;
+    else
+        error("cannot evaluate %s at compile time", toChars());
     return e;
 }
 
@@ -5030,6 +4959,64 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 }
 
 #endif
+
+/* If this is a built-in function, set 'result' to the interpreted result,
+ * and return true.
+ * Otherwise, return false
+ */
+bool evaluateIfBuiltin(Expression **result, InterState *istate,
+    FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
+{
+    Expression *e = NULL;
+#if DMDV2
+    if (pthis &&
+        (!arguments || arguments->dim == 0))
+    {
+        if (fd->ident == Id::length)
+            e = interpret_length(istate, pthis);
+        else if (fd->ident == Id::keys)
+            e = interpret_keys(istate, pthis, fd);
+        else if (fd->ident == Id::values)
+            e = interpret_values(istate, pthis, fd);
+    }
+    if (!pthis)
+    {
+        enum BUILTIN b = fd->isBuiltin();
+        if (b)
+        {   Expressions args;
+            args.setDim(arguments->dim);
+            for (size_t i = 0; i < args.dim; i++)
+            {
+                Expression *earg = arguments->tdata()[i];
+                earg = earg->interpret(istate);
+                if (earg == EXP_CANT_INTERPRET)
+                    return earg;
+                args.tdata()[i] = earg;
+            }
+            e = eval_builtin(b, &args);
+            if (!e)
+                e = EXP_CANT_INTERPRET;
+        }
+    }
+#endif
+#if DMDV1
+    if (!pthis)
+    {
+        if (fd->ident == Id::aaLen)
+            e = interpret_aaLen(istate, arguments);
+        else if (fd->ident == Id::aaKeys)
+            e = interpret_aaKeys(istate, arguments);
+        else if (fd->ident == Id::aaValues)
+            e = interpret_aaValues(istate, arguments);
+    }
+#endif
+    if (!e)
+        return false;
+    *result = e;
+    return true;
+}
+
+/*************************** CTFE Sanity Checks ***************************/
 
 /* Setter functions for CTFE variable values.
  * These functions exist to check for compiler CTFE bugs.
