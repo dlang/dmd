@@ -1758,7 +1758,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 }
             }
 
-            if (tab->ty == Taarray)
+            if (taa)
             {
                 // Check types
                 Parameter *arg = (Parameter *)arguments->data[0];
