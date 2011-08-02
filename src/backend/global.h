@@ -331,6 +331,7 @@ void symbol_keep(Symbol *s);
 #endif
 void symbol_print(Symbol *s);
 void symbol_term(void);
+char *symbol_ident(symbol *s);
 Symbol *symbol_calloc(const char *id);
 Symbol *symbol_name(const char *name, int sclass, type *t);
 Symbol *symbol_generate(int sclass, type *t);

@@ -19,13 +19,11 @@
 #include        <time.h>
 
 #include        "cc.h"
-#include        "parser.h"
 #include        "token.h"
 #include        "global.h"
 #include        "oper.h"
 #include        "el.h"
 #include        "type.h"
-#include        "cpp.h"
 #include        "filespec.h"
 
 #if NEWMANGLE
@@ -129,8 +127,13 @@ STATIC void cpp_string ( char *s, size_t len );
 /****************************
  */
 
-struct OPTABLE oparray[] =
+struct OPTABLE
 {
+    unsigned char tokn;
+    unsigned char oper;
+    char __near *string;
+    char *pretty;
+} oparray[] = {
     {   TKnew, OPnew,           cpp_name_new,   "new" },
     {   TKdelete, OPdelete,     cpp_name_delete,"del" },
     {   TKadd, OPadd,           "?H",           "+" },
