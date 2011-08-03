@@ -27,7 +27,6 @@
 #include        "code.h"
 #include        "type.h"
 #include        "outbuf.h"
-#include        "scope.h"
 
 #include        "md5.h"
 

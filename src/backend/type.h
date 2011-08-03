@@ -226,5 +226,6 @@ void param_free(param_t **);
 symbol *param_search(const char *name, param_t **pp);
 void param_hydrate(param_t **);
 void param_dehydrate(param_t **);
+int typematch(type *t1, type *t2, int relax);
 
 #endif
