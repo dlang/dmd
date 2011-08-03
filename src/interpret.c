@@ -2698,7 +2698,11 @@ Expression *copyLiteral(Expression *e)
             r = new IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
         else if (e->op == TOKdotvar)
             r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1,
-                ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
+                ((DotVarExp *)e)->var
+#if DMDV2
+                , ((DotVarExp *)e)->hasOverloads
+#endif
+                );
         else
             assert(0);
         r->type = e->type;
