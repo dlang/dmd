@@ -218,7 +218,12 @@ void WReqn(elem *e)
                 if (e->EV.sp.Vsym->Ssymnum != -1)
                     dbg_printf("(%d)",e->EV.sp.Vsym->Ssymnum);
                 if (e->Eoffset != 0)
+                {
+                    if (sizeof(e->Eoffset) == 8)
+                        dbg_printf(".x%llx", e->Eoffset);
+                    else
                         dbg_printf(".%ld",(long)e->Eoffset);
+                }
                 break;
             case OPasm:
             case OPstring:

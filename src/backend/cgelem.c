@@ -771,6 +771,9 @@ STATIC elem * eladd(elem *e)
   int sz;
 
   //printf("eladd(%p)\n",e);
+  targ_size_t ptrmask = ~(targ_size_t)0;
+  if (NPTRSIZE <= 4)
+        ptrmask = 0xFFFFFFFF;
 L1:
   e1 = e->E1;
   e2 = e->E2;
@@ -785,6 +788,7 @@ L1:
            )
         {
                 e1->EV.sp.Voffset += e2->EV.Vpointer;
+                e1->EV.sp.Voffset &= ptrmask;
                 e = el_selecte1(e);
                 goto ret;
         }
@@ -800,6 +804,7 @@ L1:
            )
         {
                 e2->EV.sp.Voffset += e1->EV.Vpointer;
+                e2->EV.sp.Voffset &= ptrmask;
                 e = el_selecte2(e);
                 goto ret;
         }
@@ -812,7 +817,8 @@ L1:
   if (e2->Eoper == OPconst && e1->Eoper == OPadd &&
         (e1->E2->Eoper == OPrelconst || e1->E2->Eoper == OPstring))
   {
-        e1->E2->EV.sp.Voffset += e2->EV.Vuns;
+        e1->E2->EV.sp.Voffset += e2->EV.Vpointer;
+        e1->E2->EV.sp.Voffset &= ptrmask;
         e = el_selecte1(e);
         goto L1;
   }
@@ -820,7 +826,8 @@ L1:
   else if ((e2->Eoper == OPrelconst || e2->Eoper == OPstring) &&
            e1->Eoper == OPadd && cnst(e1->E2))
   {
-        e2->EV.sp.Voffset += e1->E2->EV.Vuns;
+        e2->EV.sp.Voffset += e1->E2->EV.Vpointer;
+        e2->EV.sp.Voffset &= ptrmask;
         e->E1 = el_selecte1(e1);
         goto L1;                        /* try and find some more       */
   }
