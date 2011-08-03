@@ -1479,6 +1479,10 @@ elem * evalu8(elem *e)
             case 4:
                 e->EV.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
                 break;
+            case 8:
+                e->EV.Vcent.lsw = quo;
+                e->EV.Vcent.msw = rem;
+                break;
             default:
                 assert(0);
                 break;
