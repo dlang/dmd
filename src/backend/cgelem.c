@@ -784,7 +784,7 @@ L1:
             || e1->Eoper == OPstring
            )
         {
-                e1->EV.sp.Voffset += e2->EV.Vuns;
+                e1->EV.sp.Voffset += e2->EV.Vpointer;
                 e = el_selecte1(e);
                 goto ret;
         }
@@ -799,7 +799,7 @@ L1:
             || e2->Eoper == OPstring
            )
         {
-                e2->EV.sp.Voffset += e1->EV.Vuns;
+                e2->EV.sp.Voffset += e1->EV.Vpointer;
                 e = el_selecte2(e);
                 goto ret;
         }
