@@ -882,7 +882,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         {   /* parameters[] has all the tuples removed, as the back end
              * doesn't know about tuples
              */
-            parameters = new Dsymbols();
+            parameters = new VarDeclarations();
             parameters->reserve(nparams);
             for (size_t i = 0; i < nparams; i++)
             {

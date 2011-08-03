@@ -48,14 +48,6 @@ InterState::InterState()
     memset(this, 0, sizeof(InterState));
 }
 
-Expression *interpret_aaLen(InterState *istate, Expressions *arguments);
-Expression *interpret_aaKeys(InterState *istate, Expressions *arguments);
-Expression *interpret_aaValues(InterState *istate, Expressions *arguments);
-
-Expression *interpret_length(InterState *istate, Expression *earg);
-Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd);
-Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclaration *fd);
-
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
@@ -63,6 +55,8 @@ void addVarToInterstate(InterState *istate, VarDeclaration *v);
 bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
+bool evaluateIfBuiltin(Expression **result, InterState *istate,
+    FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
 
 // Used for debugging only
@@ -131,7 +125,6 @@ void showCtfeExpr(Expression *e, int level = 0)
     }
 }
 
-
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
@@ -150,28 +143,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #endif
     if (global.errors)
         return NULL;
-#if DMDV2
-    if (thisarg &&
-        (!arguments || arguments->dim == 0))
-    {
-        if (ident == Id::length)
-            return interpret_length(istate, thisarg);
-        else if (ident == Id::keys)
-            return interpret_keys(istate, thisarg, this);
-        else if (ident == Id::values)
-            return interpret_values(istate, thisarg, this);
-    }
-#endif
 
     if (cantInterpret || semanticRun == PASSsemantic3)
         return NULL;
-
-    if (!fbody)
-    {   cantInterpret = 1;
-        error("cannot be interpreted at compile time,"
-            " because it has no available source code");
-        return NULL;
-    }
 
     if (semanticRun < PASSsemantic3 && scope)
     {
@@ -3937,7 +3911,6 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
-
 Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
@@ -4024,7 +3997,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         error("cannot evaluate %s at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
-    if (pthis && fd)
+    if (!fd)
+    {
+        error("cannot evaluate %s at compile time", toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    if (pthis)
     {   // Member function call
         if (pthis->op == TOKthis)
             pthis = istate ? istate->localThis : NULL;
@@ -4033,95 +4011,46 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             if (pthis->op == TOKcomma)
                 pthis = pthis->interpret(istate);
             if (pthis == EXP_CANT_INTERPRET)
-                return NULL;
+                return EXP_CANT_INTERPRET;
                 // Evaluate 'this'
             if (pthis->op != TOKvar)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
             if (pthis == EXP_CANT_INTERPRET)
-                return NULL;
+                return EXP_CANT_INTERPRET;
         }
+    }
+    // Check for built-in functions
+    Expression *eresult;
+    if (evaluateIfBuiltin(&eresult, istate, fd, arguments, pthis))
+        return eresult;
 
-        if (!fd->fbody)
+    // Inline .dup. Special case because it needs the return type.
+    if (!pthis && fd->ident == Id::adDup && arguments && arguments->dim == 2)
+    {
+        e = arguments->tdata()[1];
+        e = e->interpret(istate);
+        if (e != EXP_CANT_INTERPRET)
         {
-            error("%s cannot be interpreted at compile time,"
-                " because it has no available source code", fd->toChars());
-            return EXP_CANT_INTERPRET;
+            if (e->op == TOKslice)
+                e= resolveSlice(e);
+            e = expType(type, e);
+            e = copyLiteral(e);
         }
-        Expression *eresult = fd->interpret(istate, arguments, pthis);
-        if (eresult)
-            e = eresult;
-        else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
-            e = EXP_VOID_INTERPRET;
-        else
-            error("cannot evaluate %s at compile time", toChars());
         return e;
     }
-    else if (fd)
-    {    // function call
-#if DMDV2
-        enum BUILTIN b = fd->isBuiltin();
-        if (b)
-        {   Expressions args;
-            args.setDim(arguments->dim);
-            for (size_t i = 0; i < args.dim; i++)
-            {
-                Expression *earg = arguments->tdata()[i];
-                earg = earg->interpret(istate);
-                if (earg == EXP_CANT_INTERPRET)
-                    return earg;
-                args.tdata()[i] = earg;
-            }
-            e = eval_builtin(b, &args);
-            if (!e)
-                e = EXP_CANT_INTERPRET;
-        }
-        else
-#endif
-
-#if DMDV1
-        if (fd->ident == Id::aaLen)
-            return interpret_aaLen(istate, arguments);
-        else if (fd->ident == Id::aaKeys)
-            return interpret_aaKeys(istate, arguments);
-        else if (fd->ident == Id::aaValues)
-            return interpret_aaValues(istate, arguments);
-#endif
-
-        // Inline .dup
-        if (fd->ident == Id::adDup && arguments && arguments->dim == 2)
-        {
-            e = arguments->tdata()[1];
-            e = e->interpret(istate);
-            if (e != EXP_CANT_INTERPRET)
-            {
-                if (e->op == TOKslice)
-                    e= resolveSlice(e);
-                e = expType(type, e);
-                e = copyLiteral(e);
-            }
-        }
-        else
-        {
-            if (!fd->fbody)
-            {
-                error("%s cannot be interpreted at compile time,"
-                    " because it has no available source code", fd->toChars());
-                return EXP_CANT_INTERPRET;
-            }
-            Expression *eresult = fd->interpret(istate, arguments);
-            if (eresult)
-                e = eresult;
-            else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
-                e = EXP_VOID_INTERPRET;
-            else
-                error("cannot evaluate %s at compile time", toChars());
-        }
-    }
-    else
+    if (!fd->fbody)
     {
-        error("cannot evaluate %s at compile time", toChars());
+        error("%s cannot be interpreted at compile time,"
+            " because it has no available source code", fd->toChars());
         return EXP_CANT_INTERPRET;
     }
+    eresult = fd->interpret(istate, arguments, pthis);
+    if (eresult)
+        e = eresult;
+    else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
+        e = EXP_VOID_INTERPRET;
+    else
+        error("cannot evaluate %s at compile time", toChars());
     return e;
 }
 
@@ -5034,6 +4963,185 @@ Expression *interpret_values(InterState *istate, Expression *earg, FuncDeclarati
 }
 
 #endif
+
+#if DMDV2
+// Return true if t is an AA, or AssociativeArray!(key, value)
+bool isAssocArray(Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Taarray)
+        return true;
+    if (t->ty != Tstruct)
+        return false;
+    StructDeclaration *sym = ((TypeStruct *)t)->sym;
+    if (sym->ident == Id::AssociativeArray)
+        return true;
+    return false;
+}
+#endif
+
+/* Decoding UTF strings for foreach loops. Duplicates the functionality of
+ * the twelve _aApplyXXn functions in aApply.d in the runtime.
+ */
+Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *deleg, bool rvs)
+{
+#if LOG
+    printf("foreachApplyUtf(%s, %s)\n", str->toChars(), deleg->toChars());
+#endif
+    FuncDeclaration *fd;
+    Expression *pthis = NULL;
+    if (deleg->op == TOKdelegate)
+    {
+        fd = ((DelegateExp *)deleg)->func;
+        pthis = ((DelegateExp *)deleg)->e1;
+    }
+    else if (deleg->op == TOKfunction)
+        fd = ((FuncExp*)deleg)->fd;
+
+    assert(fd && fd->fbody);
+    assert(fd->parameters);
+    int numParams = fd->parameters->dim;
+    assert(numParams == 1 || numParams==2);
+    Type *charType = fd->parameters->tdata()[numParams-1]->type;
+    Type *indexType = numParams == 2 ? fd->parameters->tdata()[0]->type
+                                     : Type::tsize_t;
+    uinteger_t len = resolveArrayLength(str);
+    if (len == 0)
+        return new IntegerExp(deleg->loc, 0, indexType);
+
+    if (str->op == TOKslice)
+        str = resolveSlice(str);
+
+    StringExp *se = NULL;
+    ArrayLiteralExp *ale = NULL;
+    if (str->op == TOKstring)
+        se = (StringExp *) str;
+    else if (str->op == TOKarrayliteral)
+        ale = (ArrayLiteralExp *)str;
+    else
+    {   error("CTFE internal error: cannot foreach %s", str->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    Expressions args;
+    args.setDim(numParams);
+
+    Expression *eresult;
+    for (uinteger_t j = 0; j < len; ++j)
+    {
+        uinteger_t i = rvs ? len - 1 -j : j;
+        Expression *val = NULL;
+        if (se)
+        {
+            unsigned rawvalue = se->charAt(i);
+            val = new IntegerExp(str->loc, rawvalue, charType);
+        }
+        else // array literal
+        {   val = ale->elements->tdata()[i];
+            val = copyLiteral(val);
+            val->type = charType;
+        }
+
+        if (numParams == 2)
+            args.tdata()[0] = new IntegerExp(deleg->loc, i, indexType);
+        args.tdata()[numParams - 1] = val;
+
+        eresult = fd->interpret(istate, &args, pthis);
+        if (eresult == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+
+        assert(eresult->op == TOKint64);
+        if (((IntegerExp *)eresult)->value != 0)
+            return eresult;
+    }
+    return eresult;
+}
+
+/* If this is a built-in function, set 'result' to the interpreted result,
+ * and return true.
+ * Otherwise, return false
+ */
+bool evaluateIfBuiltin(Expression **result, InterState *istate,
+    FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
+{
+    Expression *e = NULL;
+    int nargs = arguments ? arguments->dim : 0;
+#if DMDV2
+    if (pthis && isAssocArray(pthis->type) && nargs==0)
+    {
+        if (fd->ident == Id::length)
+            e = interpret_length(istate, pthis);
+        else if (fd->ident == Id::keys)
+            e = interpret_keys(istate, pthis, fd);
+        else if (fd->ident == Id::values)
+            e = interpret_values(istate, pthis, fd);
+        else if (fd->ident == Id::rehash)
+            e = pthis;  // rehash is a no-op
+    }
+    if (!pthis)
+    {
+        enum BUILTIN b = fd->isBuiltin();
+        if (b)
+        {   Expressions args;
+            args.setDim(arguments->dim);
+            for (size_t i = 0; i < args.dim; i++)
+            {
+                Expression *earg = arguments->tdata()[i];
+                earg = earg->interpret(istate);
+                if (earg == EXP_CANT_INTERPRET)
+                    return earg;
+                args.tdata()[i] = earg;
+            }
+            e = eval_builtin(b, &args);
+            if (!e)
+                e = EXP_CANT_INTERPRET;
+        }
+    }
+#endif
+#if DMDV1
+    if (!pthis)
+    {
+        if (fd->ident == Id::aaLen)
+            e = interpret_aaLen(istate, arguments);
+        else if (fd->ident == Id::aaKeys)
+            e = interpret_aaKeys(istate, arguments);
+        else if (fd->ident == Id::aaValues)
+            e = interpret_aaValues(istate, arguments);
+        else if (fd->ident == Id::aaRehash && nargs == 2)
+        {   // rehash is a no-op
+            Expression *earg = (Expression *)(arguments->data[0]);
+            return earg->interpret(istate, ctfeNeedLvalue);
+        }
+    }
+#endif
+    if (!pthis)
+    {
+        size_t idlen = strlen(fd->ident->string);
+        if (nargs == 2 && (idlen == 10 || idlen == 11)
+            && !strncmp(fd->ident->string, "_aApply", 7))
+        {   // Functions from aApply.d and aApplyR.d in the runtime
+            bool rvs = (idlen == 11);   // true if foreach_reverse
+            char c = fd->ident->string[idlen-3]; // char width: 'c', 'w', or 'd'
+            char s = fd->ident->string[idlen-2]; // string width: 'c', 'w', or 'd'
+            char n = fd->ident->string[idlen-1]; // numParams: 1 or 2.
+            // There are 12 combinations
+            if ( (n == '1' || n == '2') &&
+                 (c == 'c' || c == 'w' || c == 'd') &&
+                 (s == 'c' || s == 'w' || s == 'd') && c != s)
+            {   Expression *str = arguments->tdata()[0];
+                str = str->interpret(istate);
+                if (str == EXP_CANT_INTERPRET)
+                    return EXP_CANT_INTERPRET;
+                return foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
+            }
+        }
+    }
+    if (!e)
+        return false;
+    *result = e;
+    return true;
+}
+
+/*************************** CTFE Sanity Checks ***************************/
 
 /* Setter functions for CTFE variable values.
  * These functions exist to check for compiler CTFE bugs.
