@@ -1887,7 +1887,7 @@ STATIC elem * eldiv(elem *e)
         {   int sz = tysize(tym);
 
             // See if we can replace with OPremquo
-            if (sz == REGSIZE && !I64)  // need cent and ucent working for I64 to work
+            if (sz == REGSIZE /*&& !I64*/)  // need cent and ucent working for I64 to work
             {
                 // Don't do it if there are special code sequences in the
                 // code generator (see cdmul())
@@ -1900,15 +1900,15 @@ STATIC elem * eldiv(elem *e)
                     ;
                 else
                 {
-                    assert(sz == 2 || sz == 4);
+                    assert(sz == 2 || sz == 4 || sz == 8);
                     int op = OPmsw;
                     if (e->Eoper == OPdiv)
                     {
-                        op = (sz == 2) ? OP32_16 : OP64_32;
+                        op = (sz == 2) ? OP32_16 : (sz == 4) ? OP64_32 : OP128_64;
                     }
                     e->Eoper = OPremquo;
                     e = el_una(op, tym, e);
-                    e->E1->Ety = (sz == 2) ? TYlong : TYllong;
+                    e->E1->Ety = (sz == 2) ? TYlong : (sz == 4) ? TYllong : TYcent;
                 }
             }
         }
