@@ -654,7 +654,7 @@ code *cdeq(elem *e,regm_t *pretregs)
             for (; TRUE; sz -= REGSIZE)
             {
                 // Do not generate mov from register onto itself
-                if (regvar && reg == (cs.Irm & 7))
+                if (regvar && reg == ((cs.Irm & 7) | (cs.Irex & REX_B ? 8 : 0)))
                     break;
                 if (sz == 2)            // if 16 bit operand
                     cs.Iflags |= CFopsize;
