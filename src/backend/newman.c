@@ -128,12 +128,15 @@ STATIC void cpp_string ( char *s, size_t len );
  */
 
 struct OPTABLE
+#if MARS
 {
     unsigned char tokn;
     unsigned char oper;
     char __near *string;
     char *pretty;
-} oparray[] = {
+}
+#endif
+ oparray[] = {
     {   TKnew, OPnew,           cpp_name_new,   "new" },
     {   TKdelete, OPdelete,     cpp_name_delete,"del" },
     {   TKadd, OPadd,           "?H",           "+" },
