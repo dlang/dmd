@@ -2175,3 +2175,63 @@ static assert({
     A6399 a;
     return a.subLen();
 }() == 4);
+
+/**************************************************
+    6418 member named 'length'
+**************************************************/
+
+struct Bug6418 {
+    size_t length() { return 189; }
+}
+static assert(Bug6418.init.length == 189);
+
+/**************************************************
+    4021 rehash
+**************************************************/
+
+bool bug4021() {
+    int[int] aa = [1: 1];
+    aa.rehash;
+    return true;
+}
+static assert(bug4021());
+
+/**************************************************
+    3512 foreach(dchar; string)
+**************************************************/
+
+bool test3512()
+{
+    string s = "ohai";
+    int q = 0;
+    foreach (wchar c; s) {
+        if (q==2) assert(c=='a');
+        ++q;
+    }
+    assert(q==4);
+    foreach (dchar c; s) { ++q; if (c=='h') break; } // _aApplycd1
+    assert(q == 6);
+    foreach (int i, wchar c; s) {}   // _aApplycw2
+    foreach (int i, dchar c; s) {} // _aApplycd2
+
+    wstring w = "xxx";
+    foreach (char c; w) {} // _aApplywc1
+    foreach (dchar c; w) {} // _aApplywd1
+    foreach (int i, char c; w) {} // _aApplywc2
+    foreach (int i, dchar c; w) {} // _aApplywd2
+
+    dstring d = "yyy";
+    foreach (char c; d) {} // _aApplydc1
+    foreach (wchar c; d) {} // _aApplydw1
+    foreach (int i, char c; d) {} // _aApplydc2
+    foreach (int i, wchar c; d) {} // _aApplydw2
+
+    dchar[] dr = "squop"d.dup;
+    foreach(int n, char c; dr) { if (n==2) break; assert(c!='o'); }
+    foreach_reverse (char c; dr) {} // _aApplyRdc1
+    foreach_reverse (wchar c; dr) {} // _aApplyRdw1
+    foreach_reverse (int n, char c; dr) { if (n==4) break; assert(c!='o');} // _aApplyRdc2
+    foreach_reverse (int i, wchar c; dr) {} // _aApplyRdw2
+    return true;
+}
+static assert(test3512());
