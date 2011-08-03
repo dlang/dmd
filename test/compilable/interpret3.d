@@ -2226,10 +2226,12 @@ bool test3512()
     foreach (int i, char c; d) {} // _aApplydc2
     foreach (int i, wchar c; d) {} // _aApplydw2
 
-    dchar[] qq = "squop"d.dup;
-    dchar[] dr = qq;
-    dr[2] = 'w';
-    foreach(int n, char c; dr) {}
+    dchar[] dr = "squop"d.dup;
+    foreach(int n, char c; dr) { if (n==2) break; assert(c!='o'); }
+    foreach_reverse (char c; dr) {} // _aApplyRdc1
+    foreach_reverse (wchar c; dr) {} // _aApplyRdw1
+    foreach_reverse (int n, char c; dr) { if (n==4) break; assert(c!='o');} // _aApplyRdc2
+    foreach_reverse (int i, wchar c; dr) {} // _aApplyRdw2
     return true;
 }
 static assert(test3512());
