@@ -2195,3 +2195,41 @@ bool bug4021() {
     return true;
 }
 static assert(bug4021());
+
+/**************************************************
+    3512 foreach(dchar; string)
+**************************************************/
+
+bool test3512()
+{
+    string s = "ohai";
+    int q = 0;
+    foreach (wchar c; s) {
+        if (q==2) assert(c=='a');
+        ++q;
+    }
+    assert(q==4);
+    foreach (dchar c; s) { ++q; if (c=='h') break; } // _aApplycd1
+    assert(q == 6);
+    foreach (int i, wchar c; s) {}   // _aApplycw2
+    foreach (int i, dchar c; s) {} // _aApplycd2
+
+    wstring w = "xxx";
+    foreach (char c; w) {} // _aApplywc1
+    foreach (dchar c; w) {} // _aApplywd1
+    foreach (int i, char c; w) {} // _aApplywc2
+    foreach (int i, dchar c; w) {} // _aApplywd2
+
+    dstring d = "yyy";
+    foreach (char c; d) {} // _aApplydc1
+    foreach (wchar c; d) {} // _aApplydw1
+    foreach (int i, char c; d) {} // _aApplydc2
+    foreach (int i, wchar c; d) {} // _aApplydw2
+
+    dchar[] qq = "squop"d.dup;
+    dchar[] dr = qq;
+    dr[2] = 'w';
+    foreach(int n, char c; dr) {}
+    return true;
+}
+static assert(test3512());
