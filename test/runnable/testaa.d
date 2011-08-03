@@ -806,6 +806,24 @@ void test35() {
 }
 
 /************************************************/
+// 6433
+
+void test36() {
+    int[int] aa;
+    static assert(aa.sizeof != 0);
+    static assert(aa.alignof != 0);
+    static assert(is(typeof(aa.init) == int[int]));
+    static assert(aa.mangleof == "Hii");
+    static assert(typeof(aa).stringof == "int[int]");
+    static struct AA { int[int] aa; }
+    static assert(AA.aa.offsetof == 0);
+
+    aa = aa.init;
+    aa[0] = 1;
+    assert(aa.length == 1 && aa[0] == 1);
+}
+
+/************************************************/
 
 int main()
 {
@@ -844,6 +862,7 @@ printf("before test 32\n");   test32();
 
     test34();
     test35();
+    test36();
 
     printf("Success\n");
     return 0;
