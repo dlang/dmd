@@ -4979,7 +4979,7 @@ bool isAssocArray(Type *t)
 /* Decoding UTF strings for foreach loops. Duplicates the functionality of
  * the twelve _aApplyXXn functions in aApply.d in the runtime.
  */
-Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *deleg)
+Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *deleg, bool rvs)
 {
 #if LOG
     printf("foreachApplyUtf(%s, %s)\n", str->toChars(), deleg->toChars());
@@ -5022,8 +5022,9 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     args.setDim(numParams);
 
     Expression *eresult;
-    for (uinteger_t i = 0; i < len; ++i)
+    for (uinteger_t j = 0; j < len; ++j)
     {
+        uinteger_t i = rvs ? len - 1 -j : j;
         Expression *val = NULL;
         if (se)
         {
@@ -5110,11 +5111,14 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
 #endif
     if (!pthis)
     {
-        if (nargs == 2 && strlen(fd->ident->string) == 10 && !strncmp(fd->ident->string, "_aApply", 7))
-        {   // Functions from aApply.d in the runtime
-            char c = fd->ident->string[7]; // char width: 'c', 'w', or 'd'
-            char s = fd->ident->string[8]; // string width: 'c', 'w', or 'd'
-            char n = fd->ident->string[9]; // numParams: 1 or 2.
+        size_t idlen = strlen(fd->ident->string);
+        if (nargs == 2 && (idlen == 10 || idlen == 11)
+            && !strncmp(fd->ident->string, "_aApply", 7))
+        {   // Functions from aApply.d and aApplyR.d in the runtime
+            bool rvs = (idlen == 11);   // true if foreach_reverse
+            char c = fd->ident->string[idlen-3]; // char width: 'c', 'w', or 'd'
+            char s = fd->ident->string[idlen-2]; // string width: 'c', 'w', or 'd'
+            char n = fd->ident->string[idlen-1]; // numParams: 1 or 2.
             // There are 12 combinations
             if ( (n == '1' || n == '2') &&
                  (c == 'c' || c == 'w' || c == 'd') &&
@@ -5123,7 +5127,7 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
                 str = str->interpret(istate);
                 if (str == EXP_CANT_INTERPRET)
                     return EXP_CANT_INTERPRET;
-                return foreachApplyUtf(istate, str, arguments->tdata()[1]);
+                return foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
             }
         }
     }
