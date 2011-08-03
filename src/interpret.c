@@ -4089,6 +4089,8 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             // initializer is a void function (the variable is modified
             // through a reference parameter instead).
             newval = newval->interpret(istate);
+            if (newval == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
             if (newval != EXP_VOID_INTERPRET)
             {
                 // v isn't necessarily null.
