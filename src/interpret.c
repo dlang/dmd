@@ -4976,6 +4976,81 @@ bool isAssocArray(Type *t)
 }
 #endif
 
+/* Decoding UTF strings for foreach loops. Duplicates the functionality of
+ * the twelve _aApplyXXn functions in aApply.d in the runtime.
+ */
+Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *deleg)
+{
+#if LOG
+    printf("foreachApplyUtf(%s, %s)\n", str->toChars(), deleg->toChars());
+#endif
+    FuncDeclaration *fd;
+    Expression *pthis = NULL;
+    if (deleg->op == TOKdelegate)
+    {
+        fd = ((DelegateExp *)deleg)->func;
+        pthis = ((DelegateExp *)deleg)->e1;
+    }
+    else if (deleg->op == TOKfunction)
+        fd = ((FuncExp*)deleg)->fd;
+
+    assert(fd && fd->fbody);
+    assert(fd->parameters);
+    int numParams = fd->parameters->dim;
+    assert(numParams == 1 || numParams==2);
+    Type *charType = fd->parameters->tdata()[numParams-1]->type;
+    Type *indexType = numParams == 2 ? fd->parameters->tdata()[0]->type
+                                     : Type::tsize_t;
+    uinteger_t len = resolveArrayLength(str);
+    if (len == 0)
+        return new IntegerExp(deleg->loc, 0, indexType);
+
+    if (str->op == TOKslice)
+        str = resolveSlice(str);
+
+    StringExp *se = NULL;
+    ArrayLiteralExp *ale = NULL;
+    if (str->op == TOKstring)
+        se = (StringExp *) str;
+    else if (str->op == TOKarrayliteral)
+        ale = (ArrayLiteralExp *)str;
+    else
+    {   error("CTFE internal error: cannot foreach %s", str->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    Expressions args;
+    args.setDim(numParams);
+
+    Expression *eresult;
+    for (uinteger_t i = 0; i < len; ++i)
+    {
+        Expression *val = NULL;
+        if (se)
+        {
+            unsigned rawvalue = se->charAt(i);
+            val = new IntegerExp(str->loc, rawvalue, charType);
+        }
+        else // array literal
+        {   val = ale->elements->tdata()[i];
+            val = copyLiteral(val);
+            val->type = charType;
+        }
+
+        if (numParams == 2)
+            args.tdata()[0] = new IntegerExp(deleg->loc, i, indexType);
+        args.tdata()[numParams - 1] = val;
+
+        eresult = fd->interpret(istate, &args, pthis);
+        if (eresult == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+
+        assert(eresult->op == TOKint64);
+        if (((IntegerExp *)eresult)->value != 0)
+            return eresult;
+    }
+    return eresult;
+}
+
 /* If this is a built-in function, set 'result' to the interpreted result,
  * and return true.
  * Otherwise, return false
@@ -5033,6 +5108,25 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
         }
     }
 #endif
+    if (!pthis)
+    {
+        if (nargs == 2 && strlen(fd->ident->string) == 10 && !strncmp(fd->ident->string, "_aApply", 7))
+        {   // Functions from aApply.d in the runtime
+            char c = fd->ident->string[7]; // char width: 'c', 'w', or 'd'
+            char s = fd->ident->string[8]; // string width: 'c', 'w', or 'd'
+            char n = fd->ident->string[9]; // numParams: 1 or 2.
+            // There are 12 combinations
+            if ( (n == '1' || n == '2') &&
+                 (c == 'c' || c == 'w' || c == 'd') &&
+                 (s == 'c' || s == 'w' || s == 'd') && c != s)
+            {   Expression *str = arguments->tdata()[0];
+                str = str->interpret(istate);
+                if (str == EXP_CANT_INTERPRET)
+                    return EXP_CANT_INTERPRET;
+                return foreachApplyUtf(istate, str, arguments->tdata()[1]);
+            }
+        }
+    }
     if (!e)
         return false;
     *result = e;
