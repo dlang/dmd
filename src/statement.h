@@ -331,7 +331,7 @@ struct ForeachStatement : Statement
 
     FuncDeclaration *func;      // function we're lexically in
 
-    Array *cases;        // put breaks, continues, gotos and returns here
+    Statements *cases;          // put breaks, continues, gotos and returns here
     Array *gotos;        // forward referenced goto's go here
 
     ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
@@ -456,7 +456,7 @@ struct SwitchStatement : Statement
     DefaultStatement *sdefault;
 
     Array gotoCases;            // array of unresolved GotoCaseStatement's
-    Array *cases;               // array of CaseStatement's
+    CaseStatements *cases;      // array of CaseStatement's
     int hasNoDefault;           // !=0 if no default statement
 
     SwitchStatement(Loc loc, Expression *c, Statement *b);

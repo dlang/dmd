@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -45,7 +45,7 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned alignsize;         // size of struct for alignment purposes
     unsigned structalign;       // struct member alignment in effect
     int hasUnions;              // set if aggregate has overlapping fields
-    Array fields;               // VarDeclaration fields
+    VarDeclarations fields;     // VarDeclaration fields
     unsigned sizeok;            // set when structsize contains valid data
                                 // 0: no size
                                 // 1: size is correct

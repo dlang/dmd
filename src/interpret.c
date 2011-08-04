@@ -23,6 +23,7 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "id.h"
+#include "utf.h"
 
 #define LOG     0
 #define LOGASSIGN 0
@@ -104,7 +105,7 @@ void showCtfeExpr(Expression *e, int level = 0)
         {   Expression *z = elements->tdata()[i];
             if (sd)
             {
-                Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+                Dsymbol *s = sd->fields.tdata()[i];
                 VarDeclaration *v = s->isVarDeclaration();
                 assert(v);
                 // If it is a void assignment, use the default initializer
@@ -237,7 +238,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         for (size_t i = 0; i < dim; i++)
         {   Expression *earg = eargs.tdata()[i];
             Parameter *arg = Parameter::getNth(tf->parameters, i);
-            VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+            VarDeclaration *v = parameters->tdata()[i];
             vsave.tdata()[i] = v->getValue();
 #if LOG
             printf("arg[%d] = %s\n", i, earg->toChars());
@@ -341,7 +342,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
      */
     for (size_t i = 0; i < dim; i++)
     {
-        VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+        VarDeclaration *v = parameters->tdata()[i];
         v->setValueWithoutChecking(vsave.tdata()[i]);
     }
     /* Clear __result. (Bug 6049).
@@ -1164,7 +1165,7 @@ Expression *SwitchStatement::interpret(InterState *istate)
     {
         for (size_t i = 0; i < cases->dim; i++)
         {
-            CaseStatement *cs = (CaseStatement *)cases->data[i];
+            CaseStatement *cs = cases->tdata()[i];
             e = ctfeEqual(TOKequal, Type::tint32, econdition, cs->exp);
             if (e == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
@@ -2652,7 +2653,7 @@ Expression *copyLiteral(Expression *e)
             Expression *m = oldelems->tdata()[i];
             // We need the struct definition to detect block assignment
             StructDeclaration *sd = se->sd;
-            Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+            Dsymbol *s = sd->fields.tdata()[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
             // If it is a void assignment, use the default initializer
@@ -4089,6 +4090,8 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             // initializer is a void function (the variable is modified
             // through a reference parameter instead).
             newval = newval->interpret(istate);
+            if (newval == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
             if (newval != EXP_VOID_INTERPRET)
             {
                 // v isn't necessarily null.
@@ -5026,32 +5029,200 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     args.setDim(numParams);
 
     Expression *eresult;
-    for (uinteger_t j = 0; j < len; ++j)
+
+    // Buffers for encoding; also used for decoding array literals
+    unsigned char utf8buf[4];
+    unsigned short utf16buf[2];
+
+    size_t start = rvs ? len : 0;
+    size_t end = rvs ? 0: len;
+    for (size_t indx = start; indx != end;)
     {
-        uinteger_t i = rvs ? len - 1 -j : j;
-        Expression *val = NULL;
-        if (se)
-        {
-            unsigned rawvalue = se->charAt(i);
-            val = new IntegerExp(str->loc, rawvalue, charType);
-        }
-        else // array literal
-        {   val = ale->elements->tdata()[i];
-            val = copyLiteral(val);
-            val->type = charType;
-        }
+        // Step 1: Decode the next dchar from the string.
 
-        if (numParams == 2)
-            args.tdata()[0] = new IntegerExp(deleg->loc, i, indexType);
-        args.tdata()[numParams - 1] = val;
+        const char *errmsg = NULL; // Used for reporting decoding errors
+        dchar_t rawvalue;   // Holds the decoded dchar
 
-        eresult = fd->interpret(istate, &args, pthis);
-        if (eresult == EXP_CANT_INTERPRET)
+        if (ale)
+        {   // If it is an array literal, copy the code points into the buffer
+            int buflen = 1; // #code points in the buffer
+            size_t n = 1;   // #code points in this char
+            int sz = ale->type->nextOf()->size();
+
+            switch(sz)
+            {
+            case 1:
+                if (rvs)
+                {   // find the start of the string
+                    --indx;
+                    buflen = 1;
+                    while (indx > 0 && buflen < 4)
+                    {   Expression * r = ale->elements->tdata()[indx];
+                        assert(r->op == TOKint64);
+                        unsigned char x = ((IntegerExp *)r)->value;
+                        if ( (x & 0xC0) != 0x80)
+                            break;
+                        ++buflen;
+                    }
+                }
+                else
+                    buflen = (indx + 4 > len) ? len - indx : 4;
+                for (int i=0; i < buflen; ++i)
+                {
+                    Expression * r = ale->elements->tdata()[indx + i];
+                    assert(r->op == TOKint64);
+                    utf8buf[i] = ((IntegerExp *)r)->value;
+                }
+                n = 0;
+                errmsg = utf_decodeChar(&utf8buf[0], buflen, &n, &rawvalue);
+                break;
+            case 2:
+                if (rvs)
+                {   // find the start of the string
+                    --indx;
+                    buflen = 1;
+                    Expression * r = ale->elements->tdata()[indx];
+                    assert(r->op == TOKint64);
+                    unsigned short x = ((IntegerExp *)r)->value;
+                    if (indx > 0 && x >= 0xDC00 && x <= 0xDFFF)
+                    {
+                        --indx;
+                        ++buflen;
+                    }
+                }
+                else
+                    buflen = (indx + 2 > len) ? len - indx : 2;
+                for (int i=0; i < buflen; ++i)
+                {
+                    Expression * r = ale->elements->tdata()[indx + i];
+                    assert(r->op == TOKint64);
+                    utf16buf[i] = ((IntegerExp *)r)->value;
+                }
+                n = 0;
+                errmsg = utf_decodeWchar(&utf16buf[0], buflen, &n, &rawvalue);
+                break;
+            case 4:
+                {
+                    if (rvs)
+                        --indx;
+
+                    Expression * r = ale->elements->tdata()[indx];
+                    assert(r->op == TOKint64);
+                    rawvalue = ((IntegerExp *)r)->value;
+                    n = 1;
+                }
+                break;
+            default:
+                assert(0);
+            }
+            if (!rvs)
+                indx += n;
+        }
+        else
+        {   // String literals
+            size_t saveindx; // used for reverse iteration
+
+            switch (se->sz)
+            {
+            case 1:
+                if (rvs)
+                {   // find the start of the string
+                    unsigned char *s = (unsigned char *)se->string;
+                    --indx;
+                    while (indx > 0 && ((s[indx]&0xC0)==0x80))
+                        --indx;
+                    saveindx = indx;
+                }
+                errmsg = utf_decodeChar((unsigned char *)se->string, se->len, &indx, &rawvalue);
+                if (rvs)
+                    indx = saveindx;
+                break;
+            case 2:
+                if (rvs)
+                {   // find the start
+                    unsigned short *s = (unsigned short *)se->string;
+                    --indx;
+                    if (s[indx] >= 0xDC00 && s[indx]<= 0xDFFF)
+                        --indx;
+                    saveindx = indx;
+                }
+                errmsg = utf_decodeWchar((unsigned short *)se->string, se->len, &indx, &rawvalue);
+                if (rvs)
+                    indx = saveindx;
+                break;
+            case 4:
+                if (rvs)
+                    --indx;
+                rawvalue = ((unsigned *)(se->string))[indx];
+                if (!rvs)
+                    ++indx;
+                break;
+            default:
+                assert(0);
+            }
+        }
+        if (errmsg)
+        {   deleg->error("%s", errmsg);
             return EXP_CANT_INTERPRET;
+        }
 
-        assert(eresult->op == TOKint64);
-        if (((IntegerExp *)eresult)->value != 0)
-            return eresult;
+        // Step 2: encode the dchar in the target encoding
+
+        int charlen = 1; // How many codepoints are involved?
+        switch(charType->size())
+        {
+            case 1:
+                charlen = utf_codeLengthChar(rawvalue);
+                utf_encodeChar(&utf8buf[0], rawvalue);
+                break;
+            case 2:
+                charlen = utf_codeLengthWchar(rawvalue);
+                utf_encodeWchar(&utf16buf[0], rawvalue);
+                break;
+            case 4:
+                break;
+            default:
+                assert(0);
+        }
+
+
+        // Step 3: call the delegate once for each code point
+
+        // The index only needs to be set once
+        if (numParams == 2)
+            args.tdata()[0] = new IntegerExp(deleg->loc, indx, indexType);
+
+        Expression *val = NULL;
+
+        for (int k= 0; k < charlen; ++k)
+        {
+            dchar_t codepoint;
+            switch(charType->size())
+            {
+                case 1:
+                    codepoint = utf8buf[k];
+                    break;
+                case 2:
+                    codepoint = utf16buf[k];
+                    break;
+                case 4:
+                    codepoint = rawvalue;
+                    break;
+                default:
+                    assert(0);
+            }
+            val = new IntegerExp(str->loc, codepoint, charType);
+
+            args.tdata()[numParams - 1] = val;
+
+            eresult = fd->interpret(istate, &args, pthis);
+            if (eresult == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+
+            assert(eresult->op == TOKint64);
+            if (((IntegerExp *)eresult)->value != 0)
+                return eresult;
+        }
     }
     return eresult;
 }
@@ -5130,8 +5301,12 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
             {   Expression *str = arguments->tdata()[0];
                 str = str->interpret(istate);
                 if (str == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
-                return foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
+                {
+                    *result = EXP_CANT_INTERPRET;
+                    return true;
+                }
+                *result = foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
+                return true;
             }
         }
     }

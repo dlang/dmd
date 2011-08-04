@@ -1738,7 +1738,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 args->push(a);
             }
             Type *t = new TypeFunction(args, Type::tint32, 0, LINKd);
-            cases = new Array();
+            cases = new Statements();
             gotos = new Array();
             FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, 0, t, TOKdelegate, this);
             fld->fbody = body;
@@ -2651,7 +2651,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     sc->sbreak = this;
     sc->sw = this;
 
-    cases = new Array();
+    cases = new CaseStatements();
     sc->noctor++;       // BUG: should use Scope::mergeCallSuper() for each case instead
     body = body->semantic(sc);
     sc->noctor--;
