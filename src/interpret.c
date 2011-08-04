@@ -5200,10 +5200,10 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
             switch(charType->size())
             {
                 case 1:
-                    codepoint = utf8buf[rvs? charlen - 1 - k : k];
+                    codepoint = utf8buf[k];
                     break;
                 case 2:
-                    codepoint = utf16buf[rvs? charlen - 1 - k : k];
+                    codepoint = utf16buf[k];
                     break;
                 case 4:
                     codepoint = rawvalue;
