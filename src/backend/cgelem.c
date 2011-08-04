@@ -1645,8 +1645,7 @@ STATIC elem * elcond(elem *e)
 
             // Try to detect absolute value expression
             // (a < 0) -a : a
-            // (a >= 0) a : -a
-            if (e1->Eoper == OPlt &&
+            if ((e1->Eoper == OPlt || e1->Eoper == OPle) &&
                 e1->E2->Eoper == OPconst &&
                 !boolres(e1->E2) &&
                 !tyuns(e1->E1->Ety) &&
@@ -1661,13 +1660,30 @@ STATIC elem * elcond(elem *e)
                 el_free(e);
                 e = el_una(OPabs,ty,ec2);
             }
+            // (a >= 0) a : -a
+            else if ((e1->Eoper == OPge || e1->Eoper == OPgt) &&
+                e1->E2->Eoper == OPconst &&
+                !boolres(e1->E2) &&
+                !tyuns(e1->E1->Ety) &&
+                !tyuns(e1->E2->Ety) &&
+                ec2->Eoper == OPneg &&
+                !el_sideeffect(ec1) &&
+                el_match(e->E1->E1,ec1) &&
+                el_match(ec2->E1,ec1) &&
+                tysize(ty) >= intsize
+               )
+            {   e->E2->E1 = NULL;
+                el_free(e);
+                e = el_una(OPabs,ty,ec1);
+            }
             break;
             }
         }
     }
     return e;
 }
-
+
+
 /****************************
  * Comma operator.
  *        ,      e

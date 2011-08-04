@@ -4157,6 +4157,8 @@ code *cdabs( elem *e, regm_t *pretregs)
   assert(byte == 0);
   byte = 0;
   possregs = (sz <= REGSIZE) ? mAX : allregs;
+  if (!I16 && sz == REGSIZE)
+        possregs = allregs;
   retregs = *pretregs & possregs;
   if (retregs == 0)
         retregs = possregs;
@@ -4164,18 +4166,39 @@ code *cdabs( elem *e, regm_t *pretregs)
   cg = getregs(retregs);                /* retregs will be destroyed    */
   if (sz <= REGSIZE)
   {
-        /*      cwd
-                xor     AX,DX
-                sub     AX,DX
+        /*      CWD
+                XOR     AX,DX
+                SUB     AX,DX
+           or:
+                MOV     r,reg
+                SAR     r,63
+                XOR     reg,r
+                SUB     reg,r
          */
+        unsigned reg;
+        unsigned r;
 
-        cg = cat(cg,getregs(mDX));
-        if (!I16 && sz == SHORTSIZE)
-            cg = gen1(cg,0x98);                         // CWDE
-        cg = gen1(cg,0x99);                             // CWD
-        code_orrex(cg, rex);
-        gen2(cg,0x33 ^ byte,(rex << 16) | modregrm(3,AX,DX));         // XOR EAX,EDX
-        c = gen2(CNIL,0x2B ^ byte,(rex << 16) | modregrm(3,AX,DX));   // SUB EAX,EDX
+        if (!I16 && sz == REGSIZE)
+        {   regm_t scratch = allregs & ~retregs;
+            reg = findreg(retregs);
+            cg = allocreg(&scratch,&r,TYint);
+            cg = cat(cg,getregs(retregs));
+            cg = genmovreg(cg,r,reg);                                   // MOV r,reg
+            cg = genc2(cg,0xC1,modregrmx(3,7,r),REGSIZE * 8 - 1);       // SAR r,31/63
+            code_orrex(cg, rex);
+        }
+        else
+        {
+            reg = AX;
+            r = DX;
+            cg = cat(cg,getregs(mDX));
+            if (!I16 && sz == SHORTSIZE)
+                cg = gen1(cg,0x98);                         // CWDE
+            cg = gen1(cg,0x99);                             // CWD
+            code_orrex(cg, rex);
+        }
+        gen2(cg,0x33 ^ byte,(rex << 16) | modregrm(3,reg,r));         // XOR reg,r
+        c = gen2(CNIL,0x2B ^ byte,(rex << 16) | modregrm(3,reg,r));   // SUB reg,r
         if (!I16 && sz == SHORTSIZE && *pretregs & mPSW)
             c->Iflags |= CFopsize | CFpsw;
         if (*pretregs & mPSW)
