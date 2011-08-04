@@ -5098,11 +5098,14 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                 errmsg = utf_decodeWchar(&utf16buf[0], buflen, &n, &rawvalue);
                 break;
             case 4:
-                if (rvs)
-                    --indx;
-                Expression * r = ale->elements->tdata()[indx];
-                assert(r->op == TOKint64);
-                rawvalue = ((IntegerExp *)r)->value;
+                {
+                    if (rvs)
+                        --indx;
+
+                    Expression * r = ale->elements->tdata()[indx];
+                    assert(r->op == TOKint64);
+                    rawvalue = ((IntegerExp *)r)->value;
+                }
                 break;
             default:
                 assert(0);
@@ -5293,8 +5296,12 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
             {   Expression *str = arguments->tdata()[0];
                 str = str->interpret(istate);
                 if (str == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
-                return foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
+                {
+                    *result = EXP_CANT_INTERPRET;
+                    return true;
+                }
+                *result = foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
+                return true;
             }
         }
     }
