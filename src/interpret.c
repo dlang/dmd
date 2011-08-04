@@ -5073,6 +5073,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                     assert(r->op == TOKint64);
                     utf8buf[i] = ((IntegerExp *)r)->value;
                 }
+                n = 0;
                 errmsg = utf_decodeChar(&utf8buf[0], buflen, &n, &rawvalue);
                 break;
             case 2:
@@ -5089,12 +5090,15 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                         ++buflen;
                     }
                 }
+                else
+                    buflen = (indx + 2 > len) ? len - indx : 2;
                 for (int i=0; i < buflen; ++i)
                 {
                     Expression * r = ale->elements->tdata()[indx + i];
                     assert(r->op == TOKint64);
                     utf16buf[i] = ((IntegerExp *)r)->value;
                 }
+                n = 0;
                 errmsg = utf_decodeWchar(&utf16buf[0], buflen, &n, &rawvalue);
                 break;
             case 4:
@@ -5105,6 +5109,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                     Expression * r = ale->elements->tdata()[indx];
                     assert(r->op == TOKint64);
                     rawvalue = ((IntegerExp *)r)->value;
+                    n = 1;
                 }
                 break;
             default:
