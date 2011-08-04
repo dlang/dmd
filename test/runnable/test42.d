@@ -4249,6 +4249,58 @@ void test236()
 }
 
 /***************************************************/
+// 4460
+
+void test237()
+{
+    foreach (s, i; [ "a":1, "b":2 ])
+    {
+        writeln(s, i);
+    }
+}
+
+
+/***************************************************/
+
+void foo238(long a, long b)
+{
+  while (1)		// prevent inlining
+  {
+    long x = a / b;
+    long y = a % b;
+    assert(x == 3);
+    assert(y == 1);
+    break;
+  }
+}
+
+void test238()
+{
+    long a, b;
+    a = 10;
+    b = 3;
+    long x = a / b;
+    long y = a % b;	// evaluate at compile time
+    assert(x == 3);
+    assert(y == 1);
+
+    foo238(a, b);
+}
+
+/***************************************************/
+// 5239
+
+struct S239 { int x; }
+
+int test239()
+{
+   S239[4] w = void;
+   w[$-2].x = 217;
+   return w[2].x;
+}
+
+
+/***************************************************/
 
 int main()
 {
@@ -4475,6 +4527,9 @@ int main()
     test233();
     bug6184();
     test236();
+    test237();
+    test238();
+    test239();
 
     writefln("Success");
     return 0;
