@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -inline
+﻿// PERMUTE_ARGS: -inline
 
 struct ArrayRet{
    int x;
@@ -2202,7 +2202,7 @@ static assert(bug4021());
 
 bool test3512()
 {
-    string s = "ohai";
+    string s = "öhai";
     int q = 0;
     foreach (wchar c; s) {
         if (q==2) assert(c=='a');
@@ -2214,15 +2214,21 @@ bool test3512()
     foreach (int i, wchar c; s) {}   // _aApplycw2
     foreach (int i, dchar c; s) {} // _aApplycd2
 
-    wstring w = "xxx";
-    foreach (char c; w) {} // _aApplywc1
-    foreach (dchar c; w) {} // _aApplywd1
+    wstring w = "xüm";
+    foreach (char c; w) {++q; } // _aApplywc1
+    assert(q == 10);
+    foreach (dchar c; w) { ++q; } // _aApplywd1
+    assert(q == 13);
     foreach (int i, char c; w) {} // _aApplywc2
     foreach (int i, dchar c; w) {} // _aApplywd2
 
-    dstring d = "yyy";
-    foreach (char c; d) {} // _aApplydc1
-    foreach (wchar c; d) {} // _aApplydw1
+    dstring d = "yäq";
+    q = 0;
+    foreach (char c; d) { ++q; } // _aApplydc1
+    assert(q == 4);
+    q = 0;
+    foreach (wchar c; d) { ++q; } // _aApplydw1
+    assert(q == 3);
     foreach (int i, char c; d) {} // _aApplydc2
     foreach (int i, wchar c; d) {} // _aApplydw2
 
@@ -2232,6 +2238,14 @@ bool test3512()
     foreach_reverse (wchar c; dr) {} // _aApplyRdw1
     foreach_reverse (int n, char c; dr) { if (n==4) break; assert(c!='o');} // _aApplyRdc2
     foreach_reverse (int i, wchar c; dr) {} // _aApplyRdw2
+    q = 0;
+    wstring w2 = ['x', 'ü', 'm']; // foreach over array literals
+    foreach_reverse (int n, char c; w2)
+    {
+        ++q;
+        if (c == 'm') assert(n == 2 && q==1);
+        if (c == 'x') assert(n == 0 && q==4);
+    }
     return true;
 }
 static assert(test3512());
