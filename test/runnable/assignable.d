@@ -211,6 +211,19 @@ void test5()
 
 /***************************************************/
 
+void test6286()
+{
+    const(int)[4] src = [1, 2, 3, 4];
+    int[4] dst;
+    dst = src;
+    dst[] = src[];
+    dst = 4;
+    int[4][4] x;
+    x = dst;
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -218,6 +231,7 @@ int main()
     test3();
     test4();
     test5();
+    test6286();
 
     printf("Success\n");
     return 0;
