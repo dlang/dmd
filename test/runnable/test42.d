@@ -4234,6 +4234,30 @@ int test6229()
 }
 
 /***************************************************/
+// XMMBug
+
+class XMMPainter
+{
+  float call()
+  {
+    return sumFloats(0.0f, 0.0f);
+  }
+
+  static float sumFloats(float a, float b)
+  {
+    return a + b;
+  }
+}
+
+void test6270()
+{
+  auto painter = new XMMPainter;
+  assert(XMMPainter.sumFloats(20, painter.call()) == 20.0f);
+  auto dg = () { return XMMPainter.sumFloats(0.0f, 0.0f); };
+  assert(XMMPainter.sumFloats(20, dg()) == 20.0f);
+}
+
+/***************************************************/
 
 void test236()
 {
@@ -4530,6 +4554,8 @@ int main()
     test237();
     test238();
     test239();
+    test6229();
+    test6270();
 
     writefln("Success");
     return 0;
