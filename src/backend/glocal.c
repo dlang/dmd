@@ -348,10 +348,18 @@ Loop:
 #if TX86
         case OPmemset:
             local_exp(e->E2,1);
-            if (e->E1->Eoper != OPvar)
+            if (e->E1->Eoper == OPvar)
+            {
                 /* Don't want to rearrange (p = get(); p memset 0;)
                  * as elemxxx() will rearrange it back.
                  */
+                s = e->E1->EV.sp.Vsym;
+                if (s->Sflags & SFLunambig)
+                    local_symref(s);
+                else
+                    local_ambigref();           // ambiguous reference
+            }
+            else
                 local_exp(e->E1,1);
             local_ambigdef();
             break;
