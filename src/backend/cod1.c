@@ -2968,7 +2968,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             ce = scodelem(e11,&retregs,keepmsk,TRUE);
             cgstate.stackclean--;
             /* Kill registers destroyed by an arbitrary function call */
-            ce = cat(ce,getregs((mBP | ALLREGS | mES) & ~fregsaved));
+            ce = cat(ce,getregs((mBP | ALLREGS | mES | XMMREGS) & ~fregsaved));
             if (e11ty == TYfptr)
             {   unsigned lsreg;
              LF1:
@@ -3001,7 +3001,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
                                                 // CALL [function]
             cs.Iflags = 0;
             cgstate.stackclean++;
-            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,(ALLREGS|mES|mBP) & ~fregsaved);
+            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,(mBP|ALLREGS|mES|XMMREGS) & ~fregsaved);
             cgstate.stackclean--;
             freenode(e11);
         }
