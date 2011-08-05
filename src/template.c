@@ -3533,6 +3533,7 @@ void TemplateInstance::semantic(Scope *sc)
     // will get called on the instance members
 #if 1
     int dosemantic3 = 0;
+    if (!sc->parameterSpecialization)
     {   Array *a;
 
         Scope *scx = sc;
@@ -3564,7 +3565,9 @@ void TemplateInstance::semantic(Scope *sc)
             //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
             a = m->members;
             if (m->semanticRun >= 3)
+            {
                 dosemantic3 = 1;
+            }
         }
         for (int i = 0; 1; i++)
         {
