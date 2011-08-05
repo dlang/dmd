@@ -3214,6 +3214,17 @@ pure int test4031()
 } 
  
 /***************************************************/
+// 6228
+
+
+void test6228()
+{
+    const(int)* ptr;
+    const(int)  temp;
+    auto x = (*ptr) ^^ temp;
+}
+
+/***************************************************/
 
 struct S6230 {
     int p;
@@ -3566,6 +3577,7 @@ int main()
     test5046();
     test1471();
     test6335();
+    test6228();
 
     printf("Success\n");
     return 0;
