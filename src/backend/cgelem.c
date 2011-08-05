@@ -2058,10 +2058,8 @@ L1:
 }
 
 STATIC elem * elandand(elem *e)
-{   elem *e1,*e2;
-    tym_t t;
-
-    e1 = e->E1;
+{
+    elem *e1 = e->E1;
     if (OTboolnop(e1->Eoper))
     {
         e->E1 = e1->E1;
@@ -2069,7 +2067,7 @@ STATIC elem * elandand(elem *e)
         el_free(e1);
         return elandand(e);
     }
-    e2 = e->E2;
+    elem *e2 = e->E2;
     if (OTboolnop(e2->Eoper))
     {
         e->E2 = e2->E1;
@@ -2079,19 +2077,46 @@ STATIC elem * elandand(elem *e)
     }
     if (OPTIMIZER)
     {
+        /* Recognize: (a >= c1 && a < c2)
+         */
+        if ((e1->Eoper == OPge || e1->Eoper == OPgt) &&
+            (e2->Eoper == OPlt || e2->Eoper == OPle) &&
+            e1->E2->Eoper == OPconst && e2->E2->Eoper == OPconst &&
+            !el_sideeffect(e1->E1) && el_match(e1->E1, e2->E1) &&
+            tyintegral(e1->E1->Ety) &&
+            tybasic(e1->E2->Ety) == tybasic(e2->E2->Ety) &&
+            tysize(e1->E1->Ety) == NPTRSIZE)
+        {
+            /* Replace with: ((a - c1) < (c2 - c1))
+             */
+            targ_llong c1 = el_tolong(e1->E2);
+            if (e1->Eoper == OPgt)
+                ++c1;
+            targ_llong c2 = el_tolong(e2->E2);
+            if (0 <= c1 && c1 <= c2)
+            {
+                e1->Eoper = OPmin;
+                e1->Ety = e1->E1->Ety;
+                e1->E2->EV.Vllong = c1;
+                e->E2 = el_long(touns(e2->E2->Ety), c2 - c1);
+                e->Eoper = e2->Eoper;
+                el_free(e2);
+                return optelem(e, TRUE);
+            }
+        }
+
         // Look for (!(e >>> c) && ...)
         if (e1->Eoper == OPnot && e1->E1->Eoper == OPshr &&
             e1->E1->E2->Eoper == OPconst)
         {
             // Replace (e >>> c) with (e & x)
-            unsigned shift;
             elem *e11 = e1->E1;
 
-            shift = el_tolong(e11->E2);
+            targ_ullong shift = el_tolong(e11->E2);
             if (shift < intsize * 8)
             {   targ_ullong m;
 
-                m = ~0LL << shift;
+                m = ~0LL << (int)shift;
                 e11->Eoper = OPand;
                 e11->E2->EV.Vullong = m;
                 e11->E2->Ety = e11->Ety;
@@ -2100,7 +2125,7 @@ STATIC elem * elandand(elem *e)
         }
 
         if (e1->Eoper == OPbool)
-        {   t = e1->E1->Ety;
+        {   tym_t t = e1->E1->Ety;
             e1 = e->E1 = el_selecte1(e1);
             e1->Ety = t;
         }
@@ -2119,9 +2144,8 @@ STATIC elem * elandand(elem *e)
         }
     }
 
-  t = e->Ety;
-  if (e2->Eoper == OPconst || e2->Eoper == OPrelconst || e2->Eoper == OPstring)
-  {     if (boolres(e2))        /* e1 && (x,1)  =>  e1 ? ((x,1),1) : 0  */
+    if (e2->Eoper == OPconst || e2->Eoper == OPrelconst || e2->Eoper == OPstring)
+    {   if (boolres(e2))        /* e1 && (x,1)  =>  e1 ? ((x,1),1) : 0  */
         {
             if (e2 == e->E2)    /* if no x, replace e with (bool e1)    */
             {   el_free(e2);
@@ -2136,19 +2160,19 @@ STATIC elem * elandand(elem *e)
                 goto L3;
             }
         }
-  }
+    }
 
   if (e1->Eoper == OPconst || e1->Eoper == OPrelconst || e1->Eoper == OPstring)
   {
         e->Eoper = OPcomma;
         if (boolres(e1))                /* (x,1) && e2  =>  (x,1),bool e2 */
         {
-            e->E2 = el_una(OPbool,t,e->E2);
+            e->E2 = el_una(OPbool,e->Ety,e->E2);
         }
         else                            /* (x,0) && e2  =>  (x,0),0     */
         {
             el_free(e->E2);
-            e->E2 = el_int(t,0);
+            e->E2 = el_int(e->Ety,0);
         }
     }
     else
