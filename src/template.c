@@ -3933,6 +3933,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // will get called on the instance members
 #if 1
     int dosemantic3 = 0;
+    if (!sc->parameterSpecialization)
     {   Dsymbols *a;
 
         Scope *scx = sc;

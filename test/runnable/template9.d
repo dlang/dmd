@@ -222,6 +222,42 @@ void test6404()
 }
 
 /**********************************/
+// 2246
+
+class A2246(T,d){
+    T p;
+}
+
+class B2246(int rk){
+    int[rk] p;
+}
+
+class C2246(T,int rk){
+    T[rk] p;
+}
+
+template f2246(T:A2246!(U,d),U,d){
+    void f2246(){ }
+}
+
+template f2246(T:B2246!(rank),int rank){
+    void f2246(){ }
+}
+
+template f2246(T:C2246!(U,rank),U,int rank){
+    void f2246(){ }
+}
+
+void test2246(){
+    A2246!(int,long) a;
+    B2246!(2) b;
+    C2246!(int,2) c;
+    f2246!(A2246!(int,long))();
+    f2246!(B2246!(2))();
+    f2246!(C2246!(int,2))();
+}
+
+/**********************************/
 
 int main()
 {
@@ -235,6 +271,7 @@ int main()
     test8();
     test9();
     test6404();
+    test2246();
 
     printf("Success\n");
     return 0;
