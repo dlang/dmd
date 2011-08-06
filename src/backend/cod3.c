@@ -235,6 +235,26 @@ int cod3_EA(code *c)
 }
 
 /********************************
+ * Setup global variables for 16 bit x86
+ */
+
+void cod3_set16()
+{
+    // R/M value for [BP] or [EBP]
+    BPRM = 6;
+
+    // mask of registers saved across function calls
+    fregsaved = mBP | mSI | mDI;
+
+    ALLREGS = (mAX|mBX|mCX|mDX|mSI|mDI);
+    BYTEREGS = (mAX|mBX|mCX|mDX);
+
+    FLOATREGS = FLOATREGS_16;
+    FLOATREGS2 = FLOATREGS2_16;
+    DOUBLEREGS = DOUBLEREGS_16;
+}
+
+/********************************
  * Fix global variables for 386.
  */
 
@@ -254,7 +274,18 @@ void cod3_set32()
 
     for (unsigned i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
+
+    ALLREGS = (mAX|mBX|mCX|mDX|mSI|mDI);
+    BYTEREGS = (mAX|mBX|mCX|mDX);
 }
+
+// Saved for the moment, but the code that used it was dead
+//#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+//// To support positional independent code,
+//// must be able to remove BX from available registers
+//#define ALLREGS_INIT_PIC        (mAX|mCX|mDX|mSI|mDI)
+//#define BYTEREGS_INIT_PIC       (mAX|mCX|mDX)
+//#endif
 
 /********************************
  * Fix global variables for I64.
@@ -274,10 +305,8 @@ void cod3_set64()
     DOUBLEREGS = DOUBLEREGS_64;
     STACKALIGN = 16;
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
     BYTEREGS = ALLREGS;
-#endif
 
     for (unsigned i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
