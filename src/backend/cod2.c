@@ -270,7 +270,7 @@ code *cdorth(elem *e,regm_t *pretregs)
             (!I16 && (isscaledindex(e1) || isscaledindex(e2))) ||
             (!I16 && e1oper == OPvar && e1->EV.sp.Vsym->Sfl == FLreg && (e2oper == OPconst || (e2oper == OPvar && e2->EV.sp.Vsym->Sfl == FLreg))) ||
             (e2oper == OPconst && e1oper == OPeq && e1->E1->Eoper == OPvar) ||
-            (!I16 && e2oper == OPrelconst && !e1->Ecount &&
+            (!I16 && (e2oper == OPrelconst || e2oper == OPconst) && !e1->Ecount &&
              (e1oper == OPmul || e1oper == OPshl) &&
              e1->E2->Eoper == OPconst &&
              ssindex(e1oper,e1->E2->EV.Vuns)

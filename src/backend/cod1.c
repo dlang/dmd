@@ -929,11 +929,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          *      MOV     idxreg,e
          *      EA =    [ES:] &v+idxreg
          */
-
+        f = FLconst;
         if (e1isadd &&
-            e12->Eoper == OPrelconst &&
+            ((e12->Eoper == OPrelconst && (f = el_fl(e12)) != FLfardata) || (e12->Eoper == OPconst && !I16 && !e1->Ecount)) &&
             !(I64 && config.flags3 & CFG3pic) &&
-            (f = el_fl(e12)) != FLfardata &&
             e1->Ecount == e1->Ecomsub &&
             (!e1->Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
             tysize(e11->Ety) == REGSIZE
@@ -1111,7 +1110,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             else
                 assert(f != FLreg);
             pcs->IFL1 = f;
-            pcs->IEVsym1 = e12->EV.sp.Vsym;
+            if (f != FLconst)
+                pcs->IEVsym1 = e12->EV.sp.Vsym;
             pcs->IEVoffset1 = e12->EV.sp.Voffset; /* += ??? */
 
             /* If e1 is a CSE, we must generate an addressing mode      */
