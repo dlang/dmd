@@ -163,6 +163,19 @@ void out_config_init()
         //config.flags &= ~CFGalwaysframe;
     }
 
+    if (params->is64bit)
+    {
+        util_set64();
+        cod3_set64();
+    }
+    else
+    {
+        util_set32();
+        cod3_set32();
+    }
+
+    rtlsym_init();
+
 #ifdef DEBUG
     debugb = params->debugb;
     debugc = params->debugc;
@@ -387,19 +400,7 @@ void backend_init()
     block_init();
     type_init();
 
-    if (global.params.is64bit)
-    {
-        util_set64();
-        cod3_set64();
-    }
-    else
-    {
-        util_set32();
-        cod3_set32();
-    }
-
-    // must be after util_set* due to depending on having correct type size data.
-    rtlsym_init();
+    fregsaved = I64 ? mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES : mES | mBP | mBX | mSI | mDI;
 }
 
 void backend_term()
