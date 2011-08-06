@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -428,7 +428,7 @@ void dotab()
         case OPremquo:  X("/%",         elremquo, cdmul);
         case OPdiv:     X("/",          eldiv,  cdmul);
         case OPmod:     X("%",          elmod,  cdmul);
-        case OPxor:     X("^",          elbitwise,cdorth);
+        case OPxor:     X("^",          elxor,  cdorth);
         case OPvptrfptr: X("vptrfptr",  elvptrfptr,cdcnvt);
         case OPcvptrfptr: X("cvptrfptr", elvptrfptr,cdcnvt);
         case OPstring:  X("string",     elstring,cderr);
@@ -805,7 +805,7 @@ void dotytab()
 "wchar_t",      TYwchar_t,      TYwchar_t, TYint,       SHORTSIZE, 0x85,0x71,
 "unsigned short",TYushort,      TYushort,  TYint,       SHORTSIZE, 0x85,0x21,
 
-// These values are adjusted for 32 bit ints in cv_init() and util_set386()
+// These values are adjusted for 32 bit ints in cv_init() and util_set32()
 "enum",         TYenum,         TYuint,    TYint,       -1,        0x81,0x72,
 "int",          TYint,          TYuint,    TYint,       2,         0x81,0x72,
 "unsigned",     TYuint,         TYuint,    TYint,       2,         0x85,0x73,
@@ -1014,7 +1014,7 @@ void dotytab()
         _tyequiv[i] = i;
     _tyequiv[TYchar] = TYschar;         /* chars are signed by default  */
 
-    // These values are adjusted in util_set386() for 32 bit ints
+    // These values are adjusted in util_set32() for 32 bit ints
     _tyequiv[TYint] = TYshort;
     _tyequiv[TYuint] = TYushort;
 
