@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -428,7 +428,7 @@ void dotab()
         case OPremquo:  X("/%",         elremquo, cdmul);
         case OPdiv:     X("/",          eldiv,  cdmul);
         case OPmod:     X("%",          elmod,  cdmul);
-        case OPxor:     X("^",          elbitwise,cdorth);
+        case OPxor:     X("^",          elxor,  cdorth);
         case OPvptrfptr: X("vptrfptr",  elvptrfptr,cdcnvt);
         case OPcvptrfptr: X("cvptrfptr", elvptrfptr,cdcnvt);
         case OPstring:  X("string",     elstring,cderr);

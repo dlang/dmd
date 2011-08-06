@@ -1398,6 +1398,36 @@ STATIC elem *elor(elem *e)
     return elbitwise(e);
 }
 
+/*************************************
+ */
+
+STATIC elem *elxor(elem *e)
+{
+    if (OPTIMIZER)
+    {
+        elem *e1 = e->E1;
+        elem *e2 = e->E2;
+
+        /* Recognize:
+         *    (a & c) ^ (b & c)  =>  (a ^ b) & c
+         */
+        if (e1->Eoper == OPand && e2->Eoper == OPand &&
+            el_match5(e1->E2, e2->E2) &&
+            (e2->E2->Eoper == OPconst || (!el_sideeffect(e2->E1) && !el_sideeffect(e2->E2))))
+        {
+            el_free(e1->E2);
+            e1->E2 = e2->E1;
+            e1->Eoper = OPxor;
+            e->Eoper = OPand;
+            e->E2 = e2->E2;
+            e2->E1 = NULL;
+            e2->E2 = NULL;
+            el_free(e2);
+            return optelem(e, TRUE);
+        }
+    }
+    return elbitwise(e);
+}
 
 /**************************
  * Optimize nots.
