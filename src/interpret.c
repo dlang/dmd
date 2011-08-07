@@ -5251,7 +5251,8 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
     if (!pthis)
     {
         enum BUILTIN b = fd->isBuiltin();
-        if (b)
+        bool isCTFEWriteln = fd->ident == Id::ctfeWriteln;
+        if (b || isCTFEWriteln)
         {   Expressions args;
             args.setDim(arguments->dim);
             for (size_t i = 0; i < args.dim; i++)
@@ -5262,9 +5263,17 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
                     return earg;
                 args.tdata()[i] = earg;
             }
-            e = eval_builtin(b, &args);
-            if (!e)
-                e = EXP_CANT_INTERPRET;
+            if (isCTFEWriteln)
+            {
+                printExpressionsToStdmsg(&args, NULL);
+                e = EXP_VOID_INTERPRET;
+            }
+            else
+            {
+                e = eval_builtin(b, &args);
+                if (!e)
+                    e = EXP_CANT_INTERPRET;
+            }
         }
     }
 #endif

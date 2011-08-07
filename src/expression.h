@@ -75,6 +75,8 @@ int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 void valueNoDtor(Expression *e);
 
+void printExpressionsToStdmsg(Expressions *args, Scope *sc);
+
 /* Interpreter: what form of return value expression is required?
  */
 enum CtfeGoal
