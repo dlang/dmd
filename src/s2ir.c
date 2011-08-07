@@ -1319,8 +1319,6 @@ void ExpStatement::toIR(IRState *irs)
 
 void DtorExpStatement::toIR(IRState *irs)
 {
-    Blockx *blx = irs->blx;
-
     //printf("DtorExpStatement::toIR(), exp = %s\n", exp ? exp->toChars() : "");
 
     FuncDeclaration *fd = irs->getFunc();
