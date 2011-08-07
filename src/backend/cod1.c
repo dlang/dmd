@@ -931,7 +931,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          */
         f = FLconst;
         if (e1isadd &&
-            ((e12->Eoper == OPrelconst && (f = el_fl(e12)) != FLfardata) || (e12->Eoper == OPconst && !I16 && !e1->Ecount)) &&
+            ((e12->Eoper == OPrelconst && (f = el_fl(e12)) != FLfardata) ||
+             (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
             !(I64 && config.flags3 & CFG3pic) &&
             e1->Ecount == e1->Ecomsub &&
             (!e1->Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
