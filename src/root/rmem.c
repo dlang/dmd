@@ -79,9 +79,12 @@ void *Mem::realloc(void *p, size_t size)
     }
     else
     {
-        p = ::realloc(p, size);
+        void *psave = p;
+        p = ::realloc(psave, size);
         if (!p)
+        {   free(psave);
             error();
+        }
     }
     return p;
 }
