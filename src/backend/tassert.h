@@ -33,15 +33,20 @@ static void local_assert(int line)
 
 #else
 
+#if _MSC_VER
+__declspec(noreturn)
+#endif
 void util_assert ( char * , int );
-#pragma noreturn(util_assert)
 
 static void local_assert(int line)
 {
     util_assert(__file__,line);
 }
 
+#if __DMC__
+#pragma noreturn(util_assert)
 #pragma noreturn(local_assert)
+#endif
 
 #endif
 
