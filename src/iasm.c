@@ -1176,27 +1176,21 @@ STATIC code *asm_emit(Loc loc,
         unsigned  uSizemaskTmp;
         REG     *pregSegment;
         code    *pcPrefix = NULL;
-        unsigned            uSizemask1 =0, uSizemask2 =0, uSizemask3 =0;
         //ASM_OPERAND_TYPE    aopty1 = _reg , aopty2 = 0, aopty3 = 0;
-        ASM_MODIFIERS       amod1 = _normal, amod2 = _normal, amod3 = _normal;
-        unsigned            uRegmask1 = 0, uRegmask2 =0, uRegmask3 =0;
+        ASM_MODIFIERS       amod1 = _normal, amod2 = _normal;
         unsigned            uSizemaskTable1 =0, uSizemaskTable2 =0,
                             uSizemaskTable3 =0;
         ASM_OPERAND_TYPE    aoptyTable1 = _reg, aoptyTable2 = _reg, aoptyTable3 = _reg;
         ASM_MODIFIERS       amodTable1 = _normal,
-                            amodTable2 = _normal,
-                            amodTable3 = _normal;
-        unsigned            uRegmaskTable1 = 0, uRegmaskTable2 =0,
-                            uRegmaskTable3 =0;
+                            amodTable2 = _normal;
+        unsigned            uRegmaskTable1 = 0, uRegmaskTable2 =0;
 
         pc = code_calloc();
         pc->Iflags |= CFpsw;            // assume we want to keep the flags
         if (popnd1)
         {
-            uSizemask1 = ASM_GET_uSizemask(popnd1->usFlags);
             //aopty1 = ASM_GET_aopty(popnd1->usFlags);
             amod1 = ASM_GET_amod(popnd1->usFlags);
-            uRegmask1 = ASM_GET_uRegmask(popnd1->usFlags);
 
             uSizemaskTable1 = ASM_GET_uSizemask(ptb.pptb1->usOp1);
             aoptyTable1 = ASM_GET_aopty(ptb.pptb1->usOp1);
@@ -1213,10 +1207,8 @@ STATIC code *asm_emit(Loc loc,
             asm_output_flags(ptb.pptb2->usOp2);
             printf("\n");
 #endif
-            uSizemask2 = ASM_GET_uSizemask(popnd2->usFlags);
             //aopty2 = ASM_GET_aopty(popnd2->usFlags);
             amod2 = ASM_GET_amod(popnd2->usFlags);
-            uRegmask2 = ASM_GET_uRegmask(popnd2->usFlags);
 
             uSizemaskTable2 = ASM_GET_uSizemask(ptb.pptb2->usOp2);
             aoptyTable2 = ASM_GET_aopty(ptb.pptb2->usOp2);
@@ -1225,15 +1217,10 @@ STATIC code *asm_emit(Loc loc,
         }
         if (popnd3)
         {
-            uSizemask3 = ASM_GET_uSizemask(popnd3->usFlags);
             //aopty3 = ASM_GET_aopty(popnd3->usFlags);
-            amod3 = ASM_GET_amod(popnd3->usFlags);
-            uRegmask3 = ASM_GET_uRegmask(popnd3->usFlags);
 
             uSizemaskTable3 = ASM_GET_uSizemask(ptb.pptb3->usOp3);
             aoptyTable3 = ASM_GET_aopty(ptb.pptb3->usOp3);
-            amodTable3 = ASM_GET_amod(ptb.pptb3->usOp3);
-            uRegmaskTable3 = ASM_GET_uRegmask(ptb.pptb3->usOp3);
         }
 
         asmstate.statement->regs |= asm_modify_regs(ptb, popnd1, popnd2);
@@ -1405,7 +1392,9 @@ L386_WARNING2:
 
         pc->Iop = usOpcode;
         if ((usOpcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
-        {
+        {   emit(0xFF);
+            emit(0xFD);
+            emit(0x00);
             goto L3;
         }
         switch (usOpcode & 0xFF0000)
@@ -2241,7 +2230,6 @@ STATIC void asm_make_modrm_byte(
     SIB_BYTE    sib = { 0 };
     char                bSib = FALSE;
     char                bDisp = FALSE;
-    char                b32bit = FALSE;
     unsigned char       *puc;
     char                bModset = FALSE;
     Dsymbol             *s;
@@ -2249,7 +2237,6 @@ STATIC void asm_make_modrm_byte(
     unsigned        uSizemask =0;
     ASM_OPERAND_TYPE    aopty;
     ASM_MODIFIERS           amod;
-    unsigned          uRegmask;
     unsigned char           bOffsetsym = FALSE;
 
 #if 0
@@ -2266,7 +2253,6 @@ STATIC void asm_make_modrm_byte(
     uSizemask = ASM_GET_uSizemask(popnd->usFlags);
     aopty = ASM_GET_aopty(popnd->usFlags);
     amod = ASM_GET_amod(popnd->usFlags);
-    uRegmask = ASM_GET_uRegmask(popnd->usFlags);
     s = popnd->s;
     if (s)
     {
@@ -2551,8 +2537,6 @@ STATIC void asm_make_modrm_byte(
                     asmerr(EM_bad_addr_mode);           // illegal addressing mode
                     break;
             }
-            if (bDisp && sib.sib.base == 0x5)
-                b32bit = TRUE;
         }
         else
         {   unsigned rm;
@@ -2580,6 +2564,7 @@ STATIC void asm_make_modrm_byte(
 
                 default:
                     asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                    rm = 0;                     // no uninitialized data
                     break;
             }
             mrmb.modregrm.rm = rm;
@@ -3472,6 +3457,7 @@ int asm_getnum()
 
         default:
             asmerr(EM_num);
+            v = 0;              // no uninitialized values
             break;
     }
     asm_token();
@@ -4073,10 +4059,8 @@ STATIC OPND *asm_primary_exp()
         Dsymbol *scopesym;
 
         enum TOK tkOld;
-        int global;
         REG *regp;
 
-        global = 0;
         switch (tok_value)
         {
             case TOKdollar:
@@ -4397,12 +4381,10 @@ Statement *AsmStatement::semantic(Scope *sc)
 {
     //printf("AsmStatement::semantic()\n");
 
+    assert(sc->func);
 #if DMDV2
-    if (sc->func)
-    {
-        if (sc->func->setUnsafe())
-            error("inline assembler not allowed in @safe function %s", sc->func->toChars());
-    }
+    if (sc->func->setUnsafe())
+        error("inline assembler not allowed in @safe function %s", sc->func->toChars());
 #endif
 
     OP *o;
@@ -4580,7 +4562,6 @@ AFTER_EMIT:
     opnd_free(o1);
     opnd_free(o2);
     opnd_free(o3);
-    o1 = o2 = o3 = NULL;
 
     if (tok_value != TOKeof)
         asmerr(EM_eol);                 // end of line expected
