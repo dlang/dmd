@@ -70,9 +70,15 @@ static int addargp(struct Narg *n, char *p)
     if (n->argc + 2 > n->argvmax)
     {
         n->argvmax = n->argc + 2;
-        n->argv = (char **) realloc(n->argv,n->argvmax * sizeof(char *));
-        if (!n->argv)
+        char **ap = n->argv;
+        ap = (char **) realloc(ap,n->argvmax * sizeof(char *));
+        if (!ap)
+        {   if (n->argv)
+                free(n->argv);
+            memset(n, 0, sizeof(*n));
             return 1;
+        }
+        n->argv = ap;
     }
     n->argv[n->argc++] = p;
     return 0;
@@ -130,7 +136,7 @@ int response_expand(int *pargc, char ***pargv)
                 bufend = &buffer[len];
                 /* Read file into buffer   */
 #if _WIN32
-                fd = open(cp,O_RDONLY|O_BINARY);
+                fd = _open(cp,O_RDONLY|O_BINARY);
 #else
                 fd = open(cp,O_RDONLY);
 #endif

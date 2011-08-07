@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -29,6 +29,7 @@ Macros defined by the compiler, not the code:
         __DMC__         Digital Mars compiler
         _MSC_VER        Microsoft compiler
         __GNUC__        Gnu compiler
+        __clang__       Clang compiler
 
     Host operating system:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s,
@@ -101,8 +102,12 @@ void unittests();
  */
 
 #if _WIN32
+#ifndef TARGET_WINDOS
 #define TARGET_WINDOS 1         // Windows dmd generates Windows targets
-#define OMFOBJ 1
+#endif
+#ifndef OMFOBJ
+#define OMFOBJ TARGET_WINDOS
+#endif
 #endif
 
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
