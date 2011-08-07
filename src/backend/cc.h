@@ -1298,7 +1298,10 @@ struct Symbol
 
     int needThis();     // !=0 if symbol needs a 'this' pointer
 };
+
+#if __DMC__
 #pragma SC align
+#endif
 
 // Class, struct or union
 
