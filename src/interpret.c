@@ -6270,7 +6270,8 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     if (!pthis)
     {
         enum BUILTIN b = fd->isBuiltin();
-        if (b)
+        bool isCTFEWriteln = fd->ident == Id::ctfeWriteln;
+        if (b || isCTFEWriteln)
         {   Expressions args;
             args.setDim(nargs);
             for (size_t i = 0; i < args.dim; i++)
@@ -6281,9 +6282,17 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                     return earg;
                 args.tdata()[i] = earg;
             }
-            e = eval_builtin(loc, b, &args);
-            if (!e)
-                e = EXP_CANT_INTERPRET;
+            if (isCTFEWriteln)
+            {
+                printExpressionsToStdmsg(loc, &args, NULL);
+                e = EXP_VOID_INTERPRET;
+            }
+            else
+            {
+                e = eval_builtin(loc, b, &args);
+                if (!e)
+                    e = EXP_CANT_INTERPRET;
+            }
         }
     }
     /* Horrid hack to retrieve the builtin AA functions after they've been
