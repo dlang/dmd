@@ -77,7 +77,6 @@ elem *callfunc(Loc loc,
     elem *e;
     elem *ethis = NULL;
     elem *eside = NULL;
-    int i;
     tym_t ty;
     tym_t tyret;
     enum RET retmethod;
@@ -122,7 +121,7 @@ elem *callfunc(Loc loc,
         // j=1 if _arguments[] is first argument
         int j = (tf->linkage == LINKd && tf->varargs == 1);
 
-        for (i = 0; i < arguments->dim ; i++)
+        for (size_t i = 0; i < arguments->dim ; i++)
         {   Expression *arg = (Expression *)arguments->data[i];
             elem *ea;
 
@@ -160,13 +159,13 @@ elem *callfunc(Loc loc,
     {
         if (!ehidden)
         {   // Don't have one, so create one
-            type *t;
+            type *tc;
 
             if (tf->next->toBasetype()->ty == Tstruct)
-                t = tf->next->toCtype();
+                tc = tf->next->toCtype();
             else
-                t = type_fake(tf->next->totym());
-            Symbol *stmp = symbol_genauto(t);
+                tc = type_fake(tf->next->totym());
+            Symbol *stmp = symbol_genauto(tc);
             ehidden = el_ptr(stmp);
         }
         if ((global.params.isLinux ||
@@ -193,7 +192,6 @@ elem *callfunc(Loc loc,
 
     if (fd && fd->isMember2())
     {
-        InterfaceDeclaration *intd;
         Symbol *sfunc;
         AggregateDeclaration *ad;
 
@@ -322,29 +320,29 @@ elem *addressElem(elem *e, Type *t)
     if ((*pe)->Eoper != OPvar && (*pe)->Eoper != OPind)
     {   Symbol *stmp;
         elem *eeq;
-        elem *e = *pe;
+        elem *e2 = *pe;
         type *tx;
 
-        // Convert to ((tmp=e),tmp)
+        // Convert to ((tmp=e2),tmp)
         TY ty;
         if (t && ((ty = t->toBasetype()->ty) == Tstruct || ty == Tsarray))
             tx = t->toCtype();
         else
-            tx = type_fake(e->Ety);
+            tx = type_fake(e2->Ety);
         stmp = symbol_genauto(tx);
-        eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
-        if (tybasic(e->Ety) == TYstruct)
+        eeq = el_bin(OPeq,e2->Ety,el_var(stmp),e2);
+        if (tybasic(e2->Ety) == TYstruct)
         {
             eeq->Eoper = OPstreq;
-            eeq->ET = e->ET;
+            eeq->ET = e2->ET;
         }
-        else if (tybasic(e->Ety) == TYarray)
+        else if (tybasic(e2->Ety) == TYarray)
         {
             eeq->Eoper = OPstreq;
             eeq->Ejty = eeq->Ety = TYstruct;
-            eeq->ET = t->toCtype();
+            eeq->ET = t ? t->toCtype() : tx;
         }
-        *pe = el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
+        *pe = el_bin(OPcomma,e2->Ety,eeq,el_var(stmp));
     }
     e = el_una(OPaddr,TYnptr,e);
     return e;
@@ -512,7 +510,7 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
     //printf("sarray_toDarray()\n");
     //elem_print(e);
 
-    unsigned dim = ((TypeSArray *)tfrom)->dim->toInteger();
+    dinteger_t dim = ((TypeSArray *)tfrom)->dim->toInteger();
 
     if (tto)
     {
@@ -521,12 +519,10 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
 
         if ((dim * fsize) % tsize != 0)
         {
-          Lerr:
             error(loc, "cannot cast %s to %s since sizes don't line up", tfrom->toChars(), tto->toChars());
         }
         dim = (dim * fsize) / tsize;
     }
-  L1:
     elem *elen = el_long(TYsize_t, dim);
     e = el_una(OPaddr, TYnptr, e);
     e = el_pair(TYdarray, elen, e);
@@ -546,7 +542,7 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
 elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
 {   int r;
     elem *e;
-    int sz = tb->size();
+    unsigned sz = tb->size();
 
     switch (tb->ty)
     {
@@ -1385,8 +1381,6 @@ elem *NewExp::toElem(IRState *irs)
 #if DMDV2
     else if (t->ty == Tpointer && t->nextOf()->toBasetype()->ty == Tstruct)
     {
-        Symbol *csym;
-
         t = newtype->toBasetype();
         assert(t->ty == Tstruct);
         TypeStruct *tclass = (TypeStruct *)(t);
@@ -2399,15 +2393,13 @@ elem *AssignExp::toElem(IRState *irs)
         if (ismemset)
         {   // Do a memset for array[]=v
             //printf("Lpair %s\n", toChars());
-            SliceExp *are = (SliceExp *)e1;
             elem *evalue;
             elem *enbytes;
             elem *elength;
             elem *einit;
-            dinteger_t value;
             Type *ta = are->e1->type->toBasetype();
             Type *tb = ta->nextOf()->toBasetype();
-            int sz = tb->size();
+            unsigned sz = tb->size();
             tym_t tym = type->totym();
 
             elem *n1 = are->e1->toElem(irs);
@@ -2516,9 +2508,7 @@ elem *AssignExp::toElem(IRState *irs)
             else
                 elength = el_copytree(enbytes);
             e = setArray(n1, enbytes, tb, evalue);
-        Lpair:
             e = el_pair(TYdarray, elength, e);
-        Lret2:
             e = el_combine(einit, e);
             //elem_print(e);
             goto Lret;
@@ -2637,15 +2627,7 @@ elem *AssignExp::toElem(IRState *irs)
 
     if (e1->op == TOKindex)
     {
-        elem *eb;
-        elem *ei;
-        elem *ev;
-        TY ty;
-        Type *ta;
-
         ae = (IndexExp *)(e1);
-        ta = ae->e1->type->toBasetype();
-        ty = ta->ty;
     }
 
 #if 1
@@ -3324,24 +3306,19 @@ elem *CallExp::toElem(IRState *irs)
 }
 
 elem *AddrExp::toElem(IRState *irs)
-{   elem *e;
-    elem **pe;
-
+{
     //printf("AddrExp::toElem('%s')\n", toChars());
-
-    e = e1->toElem(irs);
+    elem *e = e1->toElem(irs);
     e = addressElem(e, e1->type);
-L2:
     e->Ety = type->totym();
     el_setLoc(e,loc);
     return e;
 }
 
 elem *PtrExp::toElem(IRState *irs)
-{   elem *e;
-
+{
     //printf("PtrExp::toElem() %s\n", toChars());
-    e = e1->toElem(irs);
+    elem *e = e1->toElem(irs);
     e = el_una(OPind,type->totym(),e);
     if (tybasic(e->Ety) == TYstruct)
     {
@@ -3352,9 +3329,8 @@ elem *PtrExp::toElem(IRState *irs)
 }
 
 elem *BoolExp::toElem(IRState *irs)
-{   elem *e1;
-
-    e1 = this->e1->toElem(irs);
+{
+    elem *e1 = this->e1->toElem(irs);
     return el_una(OPbool,type->totym(),e1);
 }
 
@@ -4118,7 +4094,7 @@ elem *SliceExp::toElem(IRState *irs)
     {
         elem *einit = resolveLengthVar(lengthVar, &e, t1);
 
-        int sz = t1->nextOf()->size();
+        unsigned sz = t1->nextOf()->size();
 
         elem *elwr = lwr->toElem(irs);
         elem *eupr = upr->toElem(irs);
@@ -4221,7 +4197,7 @@ elem *IndexExp::toElem(IRState *irs)
         //      *aaGetX(aa, keyti, valuesize, &key);
 
         TypeAArray *taa = (TypeAArray *)t1;
-        int vsize = taa->next->size();
+        unsigned vsize = taa->next->size();
         Symbol *s;
 
         // n2 becomes the index, also known as the key

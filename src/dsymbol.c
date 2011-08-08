@@ -111,7 +111,7 @@ int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
 
     if (members)
     {
-        for (int i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *sx = (Dsymbol *)members->data[i];
 
             int x = sx->oneMember(ps);
@@ -197,7 +197,6 @@ const char *Dsymbol::toPrettyChars()
 char *Dsymbol::locToChars()
 {
     OutBuffer buf;
-    char *p;
 
     if (!loc.filename)  // avoid bug 5861.
     {
@@ -655,7 +654,7 @@ Array *Dsymbol::arraySyntaxCopy(Array *a)
     if (a)
     {
         b = a->copy();
-        for (int i = 0; i < b->dim; i++)
+        for (size_t i = 0; i < b->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)b->data[i];
 
@@ -754,7 +753,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     else if (imports)
     {
         // Look in imported modules
-        for (int i = 0; i < imports->dim; i++)
+        for (size_t i = 0; i < imports->dim; i++)
         {   ScopeDsymbol *ss = (ScopeDsymbol *)imports->data[i];
             Dsymbol *s2;
 
@@ -821,10 +820,8 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
             imports = new Array();
         else
         {
-            for (int i = 0; i < imports->dim; i++)
-            {   ScopeDsymbol *ss;
-
-                ss = (ScopeDsymbol *) imports->data[i];
+            for (size_t i = 0; i < imports->dim; i++)
+            {   ScopeDsymbol *ss = (ScopeDsymbol *) imports->data[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])

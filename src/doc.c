@@ -65,9 +65,11 @@ struct MacroSection : Section
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
+typedef ArrayBase<Section> Sections;
+
 struct DocComment
 {
-    Array sections;             // Section*[]
+    Sections sections;             // Section*[]
 
     Section *summary;
     Section *copyright;
@@ -223,7 +225,7 @@ void Module::gendocfile()
             global.params.ddocfiles->shift(p);
 
         // Override with the ddoc macro files from the command line
-        for (int i = 0; i < global.params.ddocfiles->dim; i++)
+        for (size_t i = 0; i < global.params.ddocfiles->dim; i++)
         {
             FileName f((char *)global.params.ddocfiles->data[i], 0);
             File file(&f);
@@ -250,12 +252,14 @@ void Module::gendocfile()
         Macro::define(&macrotable, (unsigned char *)"TITLE", 5, (unsigned char *)p, strlen(p));
     }
 
-    time_t t;
-    time(&t);
-    char *p = ctime(&t);
-    p = mem.strdup(p);
-    Macro::define(&macrotable, (unsigned char *)"DATETIME", 8, (unsigned char *)p, strlen(p));
-    Macro::define(&macrotable, (unsigned char *)"YEAR", 4, (unsigned char *)p + 20, 4);
+    // Set time macros
+    {   time_t t;
+        time(&t);
+        char *p = ctime(&t);
+        p = mem.strdup(p);
+        Macro::define(&macrotable, (unsigned char *)"DATETIME", 8, (unsigned char *)p, strlen(p));
+        Macro::define(&macrotable, (unsigned char *)"YEAR", 4, (unsigned char *)p + 20, 4);
+    }
 
     char *docfilename = docfile->toChars();
     Macro::define(&macrotable, (unsigned char *)"DOCFILENAME", 11, (unsigned char *)docfilename, strlen(docfilename));
@@ -526,7 +530,7 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         buf->writestring(m);
         unsigned offset2 = buf->offset;         // to see if we write anything
         sc = sc->push(this);
-        for (int i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)members->data[i];
             //printf("\ts = '%s'\n", s->toChars());
@@ -698,7 +702,7 @@ void EnumDeclaration::emitComment(Scope *sc)
 //    if (!comment)
     {   if (isAnonymous() && members)
         {
-            for (int i = 0; i < members->dim; i++)
+            for (size_t i = 0; i < members->dim; i++)
             {
                 Dsymbol *s = (Dsymbol *)members->data[i];
                 s->emitComment(sc);
@@ -957,7 +961,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
             buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
         }
         int any = 0;
-        for (int i = 0; i < baseclasses->dim; i++)
+        for (size_t i = 0; i < baseclasses->dim; i++)
         {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
 
             if (bc->protection == PROTprivate)
@@ -1013,8 +1017,7 @@ DocComment::DocComment()
 }
 
 DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
-{   unsigned idlen;
-
+{
     //printf("parse(%s): '%s'\n", s->toChars(), comment);
     if (sc->lastdc && isDitto(comment))
         return NULL;
@@ -1025,16 +1028,16 @@ DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
 
     dc->parseSections(comment);
 
-    for (int i = 0; i < dc->sections.dim; i++)
-    {   Section *s = (Section *)dc->sections.data[i];
+    for (size_t i = 0; i < dc->sections.dim; i++)
+    {   Section *sec = dc->sections[i];
 
-        if (icmp("copyright", s->name, s->namelen) == 0)
+        if (icmp("copyright", sec->name, sec->namelen) == 0)
         {
-            dc->copyright = s;
+            dc->copyright = sec;
         }
-        if (icmp("macros", s->name, s->namelen) == 0)
+        if (icmp("macros", sec->name, sec->namelen) == 0)
         {
-            dc->macros = s;
+            dc->macros = sec;
         }
     }
 
@@ -1170,8 +1173,8 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
     if (sections.dim)
     {
         buf->writestring("$(DDOC_SECTIONS \n");
-        for (int i = 0; i < sections.dim; i++)
-        {   Section *sec = (Section *)sections.data[i];
+        for (size_t i = 0; i < sections.dim; i++)
+        {   Section *sec = sections[i];
 
             if (sec->nooutput)
                 continue;
@@ -1748,7 +1751,7 @@ Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
         if (tf->parameters)
         {
             for (size_t k = 0; k < tf->parameters->dim; k++)
-            {   Parameter *arg = (Parameter *)tf->parameters->data[k];
+            {   Parameter *arg = (*tf->parameters)[k];
 
                 if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
                 {
@@ -2007,7 +2010,6 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                 break;
         }
     }
-  Ldone:
     if (inCode)
         s->error("unmatched --- in DDoc comment");
     ;

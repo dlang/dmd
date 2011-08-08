@@ -915,9 +915,11 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             }
             se->string = buffer.extractData();
             se->len = newlen;
-            d_uns64 szx = tb->nextOf()->size();
-            assert(szx <= 255);
-            se->sz = (unsigned char)szx;
+            {
+                d_uns64 szx = tb->nextOf()->size();
+                assert(szx <= 255);
+                se->sz = (unsigned char)szx;
+            }
             break;
 
         default:
