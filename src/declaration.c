@@ -815,8 +815,8 @@ void VarDeclaration::semantic(Scope *sc)
             Dsymbol *s = type->toDsymbol(sc);
             if (s)
             {
-                AggregateDeclaration *ad = s->isAggregateDeclaration();
-                if (ad && ad->hasUnions)
+                AggregateDeclaration *ad2 = s->isAggregateDeclaration();
+                if (ad2 && ad2->hasUnions)
                 {
                     if (sc->func->setUnsafe())
                         error("unions containing pointers are not allowed in @safe functions");
@@ -898,7 +898,6 @@ void VarDeclaration::semantic(Scope *sc)
         return;
     }
 
-Lagain:
     /* Storage class can modify the type
      */
     type = type->addStorageClass(storage_class);
@@ -985,10 +984,10 @@ Lagain:
             }
 
             // If it's a member template
-            AggregateDeclaration *ad = ti->tempdecl->isMember();
-            if (ad && storage_class != STCundefined)
+            AggregateDeclaration *ad2 = ti->tempdecl->isMember();
+            if (ad2 && storage_class != STCundefined)
             {
-                error("cannot use template to add field to aggregate '%s'", ad->toChars());
+                error("cannot use template to add field to aggregate '%s'", ad2->toChars());
             }
         }
     }
@@ -1145,7 +1144,7 @@ Lagain:
                     ei->exp = ei->exp->semantic(sc);
                     if (!ei->exp->implicitConvTo(type))
                     {
-                        int dim = ((TypeSArray *)t)->dim->toInteger();
+                        dinteger_t dim = ((TypeSArray *)t)->dim->toInteger();
                         // If multidimensional static array, treat as one large array
                         while (1)
                         {
@@ -1307,15 +1306,15 @@ Lagain:
                      * because the postblit doesn't get run on the initialization of w.
                      */
 
-                    Type *tb = e->type->toBasetype();
-                    if (tb->ty == Tstruct)
-                    {   StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+                    Type *tb2 = e->type->toBasetype();
+                    if (tb2->ty == Tstruct)
+                    {   StructDeclaration *sd = ((TypeStruct *)tb2)->sym;
                         Type *typeb = type->toBasetype();
                         /* Look to see if initializer involves a copy constructor
                          * (which implies a postblit)
                          */
                         if (sd->cpctor &&               // there is a copy constructor
-                            typeb->equals(tb))          // rvalue is the same struct
+                            typeb->equals(tb2))          // rvalue is the same struct
                         {
                             // The only allowable initializer is a (non-copy) constructor
                             if (e->op == TOKcall)
@@ -1530,7 +1529,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
             if (loc.filename)
                 fdthis->getLevel(loc, fdv);
 
-            for (int i = 0; i < nestedrefs.dim; i++)
+            for (size_t i = 0; i < nestedrefs.dim; i++)
             {   FuncDeclaration *f = nestedrefs.tdata()[i];
                 if (f == fdthis)
                     goto L1;
@@ -1539,7 +1538,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
           L1: ;
 
 
-            for (int i = 0; i < fdv->closureVars.dim; i++)
+            for (size_t i = 0; i < fdv->closureVars.dim; i++)
             {   Dsymbol *s = fdv->closureVars.tdata()[i];
                 if (s == this)
                     goto L2;

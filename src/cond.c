@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -27,7 +27,7 @@ int findCondition(Strings *ids, Identifier *ident)
 {
     if (ids)
     {
-        for (int i = 0; i < ids->dim; i++)
+        for (size_t i = 0; i < ids->dim; i++)
         {
             const char *id = ids->tdata()[i];
 

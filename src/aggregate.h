@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -219,7 +219,7 @@ struct ClassDeclaration : AggregateDeclaration
     BaseClasses *baseclasses;           // Array of BaseClass's; first is super,
                                         // rest are Interface's
 
-    int interfaces_dim;
+    size_t interfaces_dim;
     BaseClass **interfaces;             // interfaces[interfaces_dim] for this class
                                         // (does not include baseClass)
 

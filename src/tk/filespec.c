@@ -104,7 +104,7 @@ char * filespecrootpath(char *filespec)
         return filespec;
 #if MSDOS || __OS2__ || __NT__ || _WIN32
     /* if already absolute (with \ or drive:) ... */
-    if (*filespec == DIRCHAR || (isalpha(*filespec) && *(filespec+1) == ':'))
+    if (*filespec == DIRCHAR || (isalpha((unsigned char)*filespec) && *(filespec+1) == ':'))
         return filespec;        /*      ... return input string */
 #else
     if (*filespec == DIRCHAR)   /* already absolute ... */

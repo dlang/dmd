@@ -427,8 +427,8 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
         ((TypeStruct *)type)->sym == ((TypeStruct *)t)->sym)
     {
         m = MATCHconst;
-        for (int i = 0; i < elements->dim; i++)
-        {   Expression *e = elements->tdata()[i];
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *e = (*elements)[i];
             Type *te = e->type;
             te = te->castMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
@@ -442,8 +442,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
 #endif
 
 MATCH StringExp::implicitConvTo(Type *t)
-{   MATCH m;
-
+{
 #if 0
     printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
         toChars(), committed, type->toChars(), t->toChars());
@@ -536,8 +535,8 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
                 result = MATCHnomatch;
         }
 
-        for (int i = 0; i < elements->dim; i++)
-        {   Expression *e = elements->tdata()[i];
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *e = (*elements)[i];
             MATCH m = (MATCH)e->implicitConvTo(tb->nextOf());
             if (m < result)
                 result = m;                     // remember worst match
@@ -598,8 +597,8 @@ MATCH AddrExp::implicitConvTo(Type *t)
             (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
-            for (int i = 0; i < eo->vars->a.dim; i++)
-            {   Dsymbol *s = eo->vars->a.tdata()[i];
+            for (size_t i = 0; i < eo->vars->a.dim; i++)
+            {   Dsymbol *s = eo->vars->a[i];
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
@@ -684,7 +683,6 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     if (result == MATCHnomatch)
     {
         // Look for pointers to functions where the functions are overloaded.
-        FuncDeclaration *f;
 
         t = t->toBasetype();
         if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
@@ -814,9 +812,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                      *   cast(to)e1.aliasthis
                      */
                     Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
-                    Expression *e = new CastExp(loc, e1, tb);
-                    e = e->semantic(sc);
-                    return e;
+                    Expression *e2 = new CastExp(loc, e1, tb);
+                    e2 = e2->semantic(sc);
+                    return e2;
                 }
             }
             else if (typeb->ty == Tclass)
@@ -835,9 +833,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                      *   cast(to)e1.aliasthis
                      */
                     Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
-                    Expression *e = new CastExp(loc, e1, tb);
-                    e = e->semantic(sc);
-                    return e;
+                    Expression *e2 = new CastExp(loc, e1, tb);
+                    e2 = e2->semantic(sc);
+                    return e2;
                 }
              L1: ;
             }
@@ -984,7 +982,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (committed && tb->ty == Tsarray && typeb->ty == Tarray)
     {
         se = (StringExp *)copy();
-        se->sz = tb->nextOf()->size();
+        d_uns64 szx = tb->nextOf()->size();
+        assert(szx <= 255);
+        se->sz = (unsigned char)szx;
         se->len = (len * sz) / se->sz;
         se->committed = 1;
         se->type = t;
@@ -1119,7 +1119,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             }
             se->string = buffer.extractData();
             se->len = newlen;
-            se->sz = tb->nextOf()->size();
+            d_uns64 szx = tb->nextOf()->size();
+            assert(szx <= 255);
+            se->sz = (unsigned char)szx;
             break;
 
         default:
@@ -1134,9 +1136,9 @@ L2:
     // See if need to truncate or extend the literal
     if (tb->ty == Tsarray)
     {
-        int dim2 = ((TypeSArray *)tb)->dim->toInteger();
+        dinteger_t dim2 = ((TypeSArray *)tb)->dim->toInteger();
 
-        //printf("dim from = %d, to = %d\n", se->len, dim2);
+        //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
 
         // Changing dimensions
         if (dim2 != se->len)
@@ -1184,8 +1186,8 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
             (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
-            for (int i = 0; i < eo->vars->a.dim; i++)
-            {   Dsymbol *s = eo->vars->a.tdata()[i];
+            for (size_t i = 0; i < eo->vars->a.dim; i++)
+            {   Dsymbol *s = eo->vars->a[i];
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
@@ -1271,10 +1273,10 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 
         e = (ArrayLiteralExp *)copy();
         e->elements = (Expressions *)elements->copy();
-        for (int i = 0; i < elements->dim; i++)
-        {   Expression *ex = elements->tdata()[i];
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *ex = (*elements)[i];
             ex = ex->castTo(sc, tb->nextOf());
-            e->elements->tdata()[i] = ex;
+            (*e->elements)[i] = ex;
         }
         e->type = t;
         return e;
@@ -1317,7 +1319,6 @@ Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
         e->type = t;
         return e;
     }
-L1:
     return e->Expression::castTo(sc, t);
 }
 
