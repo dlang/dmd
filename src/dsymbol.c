@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -112,8 +112,8 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps)
 
     if (members)
     {
-        for (int i = 0; i < members->dim; i++)
-        {   Dsymbol *sx = members->tdata()[i];
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *sx = (*members)[i];
 
             int x = sx->oneMember(ps);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
@@ -198,7 +198,6 @@ const char *Dsymbol::toPrettyChars()
 char *Dsymbol::locToChars()
 {
     OutBuffer buf;
-    char *p;
 
     if (!loc.filename)  // avoid bug 5861.
     {
@@ -671,12 +670,12 @@ Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
     if (a)
     {
         b = (Dsymbols *)a->copy();
-        for (int i = 0; i < b->dim; i++)
+        for (size_t i = 0; i < b->dim; i++)
         {
-            Dsymbol *s = b->tdata()[i];
+            Dsymbol *s = (*b)[i];
 
             s = s->syntaxCopy(NULL);
-            b->tdata()[i] = s;
+            (*b)[i] = s;
         }
     }
     return b;
@@ -773,8 +772,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         OverloadSet *a = NULL;
 
         // Look in imported modules
-        for (int i = 0; i < imports->dim; i++)
-        {   ScopeDsymbol *ss = imports->tdata()[i];
+        for (size_t i = 0; i < imports->dim; i++)
+        {   ScopeDsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
             // If private import, don't search it
@@ -821,12 +820,12 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                                 a = new OverloadSet();
                             /* Don't add to a[] if s2 is alias of previous sym
                              */
-                            for (int j = 0; j < a->a.dim; j++)
-                            {   Dsymbol *s3 = a->a.tdata()[j];
+                            for (size_t j = 0; j < a->a.dim; j++)
+                            {   Dsymbol *s3 = a->a[j];
                                 if (s2->toAlias() == s3->toAlias())
                                 {
                                     if (s3->isDeprecated())
-                                        a->a.tdata()[j] = s2;
+                                        a->a[j] = s2;
                                     goto Lcontinue;
                                 }
                             }
@@ -875,10 +874,8 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
             imports = new ScopeDsymbols();
         else
         {
-            for (int i = 0; i < imports->dim; i++)
-            {   ScopeDsymbol *ss;
-
-                ss = imports->tdata()[i];
+            for (size_t i = 0; i < imports->dim; i++)
+            {   ScopeDsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])
@@ -973,7 +970,7 @@ size_t ScopeDsymbol::dim(Dsymbols *members)
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = members->tdata()[i];
+        {   Dsymbol *s = (*members)[i];
             AttribDeclaration *a = s->isAttribDeclaration();
 
             if (a)
@@ -1004,7 +1001,7 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 
     size_t n = 0;
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
+    {   Dsymbol *s = (*members)[i];
         AttribDeclaration *a = s->isAttribDeclaration();
 
         if (a)
