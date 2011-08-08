@@ -27,7 +27,7 @@ int findCondition(Array *ids, Identifier *ident)
 {
     if (ids)
     {
-        for (int i = 0; i < ids->dim; i++)
+        for (size_t i = 0; i < ids->dim; i++)
         {
             const char *id = (const char *)ids->data[i];
 
@@ -72,8 +72,8 @@ void DebugCondition::setGlobalLevel(unsigned level)
 void DebugCondition::addGlobalIdent(const char *ident)
 {
     if (!global.params.debugids)
-        global.params.debugids = new Array();
-    global.params.debugids->push((void *)ident);
+        global.params.debugids = new Strings();
+    global.params.debugids->push((char *)ident);
 }
 
 
@@ -167,8 +167,8 @@ void VersionCondition::addGlobalIdent(const char *ident)
 void VersionCondition::addPredefinedGlobalIdent(const char *ident)
 {
     if (!global.params.versionids)
-        global.params.versionids = new Array();
-    global.params.versionids->push((void *)ident);
+        global.params.versionids = new Strings();
+    global.params.versionids->push((char *)ident);
 }
 
 

@@ -937,10 +937,10 @@ void VarDeclaration::semantic(Scope *sc)
             }
 
             // If it's a member template
-            AggregateDeclaration *ad = ti->tempdecl->isMember();
-            if (ad && storage_class != STCundefined)
+            AggregateDeclaration *ad2 = ti->tempdecl->isMember();
+            if (ad2 && storage_class != STCundefined)
             {
-                error("cannot use template to add field to aggregate '%s'", ad->toChars());
+                error("cannot use template to add field to aggregate '%s'", ad2->toChars());
             }
         }
     }
@@ -1068,7 +1068,7 @@ void VarDeclaration::semantic(Scope *sc)
                     ei->exp = ei->exp->semantic(sc);
                     if (!ei->exp->implicitConvTo(type))
                     {
-                        int dim = ((TypeSArray *)t)->dim->toInteger();
+                        dinteger_t dim = ((TypeSArray *)t)->dim->toInteger();
                         // If multidimensional static array, treat as one large array
                         while (1)
                         {

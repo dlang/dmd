@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -610,7 +610,7 @@ void ProtDeclaration::importAll(Scope *sc)
        newsc->explicitProtection = 1;
     }
 
-    for (int i = 0; i < decl->dim; i++)
+    for (size_t i = 0; i < decl->dim; i++)
     {
        Dsymbol *s = (Dsymbol *)decl->data[i];
        s->importAll(newsc);
@@ -1118,7 +1118,7 @@ void PragmaDeclaration::toObjFile(int multiobj)
          * so instead append the library name to the list to be passed
          * to the linker.
          */
-        global.params.libfiles->push((void *) name);
+        global.params.libfiles->push(name);
 #else
         error("pragma lib not supported");
 #endif

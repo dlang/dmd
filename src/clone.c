@@ -39,7 +39,7 @@ Expression *StructDeclaration::cloneMembers()
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         Type *tv = v->type->toBasetype();
-        size_t dim = 1;
+        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -49,10 +49,10 @@ Expression *StructDeclaration::cloneMembers()
         {   TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->opclone)
-            {   Expression *ex;
+            {
 
                 // this.v
-                ex = new ThisExp(0);
+                Expression *ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, v, 0);
 
                 if (dim == 1)
@@ -96,7 +96,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         Type *tv = v->type->toBasetype();
-        size_t dim = 1;
+        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();

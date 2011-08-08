@@ -58,7 +58,7 @@ extern int strlen();
 int mem_inited = 0;             /* != 0 if initialized                  */
 
 static int mem_behavior = MEM_ABORTMSG;
-static int (*fp)(void) = NULL;  /* out-of-memory handler                */
+static int (*oom_fp)(void) = NULL;  /* out-of-memory handler                */
 static int mem_count;           /* # of allocs that haven't been free'd */
 static int mem_scount;          /* # of sallocs that haven't been free'd */
 
@@ -81,7 +81,7 @@ void mem_setexception(enum MEM_E flag,...)
 
     mem_behavior = flag;
     va_start(ap,flag);
-    fp = (mem_behavior == MEM_CALLFP) ? va_arg(ap,fp_t) : 0;
+    oom_fp = (mem_behavior == MEM_CALLFP) ? va_arg(ap,fp_t) : 0;
     va_end(ap);
 #if MEM_DEBUG
     assert(0 <= flag && flag <= MEM_RETRY);
@@ -118,8 +118,8 @@ int mem_exception()
                 exit(EXIT_FAILURE);
                 /* NOTREACHED */
             case MEM_CALLFP:
-                assert(fp);
-                behavior = (*fp)();
+                assert(oom_fp);
+                behavior = (*oom_fp)();
                 break;
             case MEM_RETNULL:
                 return 0;
@@ -832,7 +832,7 @@ void mem_init()
         if (mem_inited == 0)
         {       mem_count = 0;
                 mem_scount = 0;
-                fp = NULL;
+                oom_fp = NULL;
                 mem_behavior = MEM_ABORTMSG;
 #if MEM_DEBUG
                 mem_numalloc = 0;

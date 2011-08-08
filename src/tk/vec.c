@@ -490,7 +490,6 @@ void vec_orass(vec_t v1,vec_t v2)
     }
     else
         assert(!v2);
-Lret: ;
 }
 
 /********************************
@@ -644,13 +643,12 @@ void vec_println(vec_t v)
 }
 
 void vec_print(vec_t v)
-{ register unsigned i;
-
+{
 #ifdef DEBUG
   printf(" Vec %p, numbits %d dim %d",v,vec_numbits(v),vec_dim(v));
   if (v)
   {     fputc('\t',stdout);
-        for (i = 0; i < vec_numbits(v); i++)
+        for (unsigned i = 0; i < vec_numbits(v); i++)
                 fputc((vec_testbit(i,v)) ? '1' : '0',stdout);
   }
 #endif

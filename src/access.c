@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -76,18 +76,15 @@ enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
     }
     else
     {
-        enum PROT access;
-        int i;
-
         if (smember->isDeclaration()->isStatic())
         {
             access_ret = smember->prot();
         }
 
-        for (i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+        for (size_t i = 0; i < baseclasses->dim; i++)
+        {   BaseClass *b = (*baseclasses)[i];
 
-            access = b->base->getAccess(smember);
+            enum PROT access = b->base->getAccess(smember);
             switch (access)
             {
                 case PROTnone:
@@ -153,11 +150,9 @@ static int accessCheckX(
             ClassDeclaration *cdthis = dthis->isClassDeclaration();
             if (cdthis)
             {
-                for (int i = 0; i < cdthis->baseclasses->dim; i++)
-                {   BaseClass *b = (BaseClass *)cdthis->baseclasses->data[i];
-                    enum PROT access;
-
-                    access = b->base->getAccess(smember);
+                for (size_t i = 0; i < cdthis->baseclasses->dim; i++)
+                {   BaseClass *b = (*cdthis->baseclasses)[i];
+                    enum PROT access = b->base->getAccess(smember);
                     if (access >= PROTprotected ||
                         accessCheckX(smember, sfunc, b->base, cdscope)
                        )
@@ -174,8 +169,8 @@ static int accessCheckX(
             ClassDeclaration *cdthis = dthis->isClassDeclaration();
             if (cdthis)
             {
-                for (int i = 0; i < cdthis->baseclasses->dim; i++)
-                {   BaseClass *b = (BaseClass *)cdthis->baseclasses->data[i];
+                for (size_t i = 0; i < cdthis->baseclasses->dim; i++)
+                {   BaseClass *b = (*cdthis->baseclasses)[i];
 
                     if (accessCheckX(smember, sfunc, b->base, cdscope))
                         return 1;
@@ -219,12 +214,12 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     //assert(smember->parent->isBaseOf(this, NULL));
 
     if (smemberparent == this)
-    {   enum PROT access = smember->prot();
+    {   enum PROT access2 = smember->prot();
 
-        result = access >= PROTpublic ||
+        result = access2 >= PROTpublic ||
                 hasPrivateAccess(f) ||
                 isFriendOf(cdscope) ||
-                (access == PROTpackage && hasPackageAccess(sc, this));
+                (access2 == PROTpackage && hasPackageAccess(sc, this));
 #if LOG
         printf("result1 = %d\n", result);
 #endif
