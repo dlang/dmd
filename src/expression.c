@@ -168,15 +168,16 @@ FuncDeclaration *hasThis(Scope *sc)
             break;
 
         Dsymbol *parent = fd->parent;
-        while (parent)
+        while (1)
         {
+            if (!parent)
+                goto Lno;
             TemplateInstance *ti = parent->isTemplateInstance();
             if (ti)
                 parent = ti->parent;
             else
                 break;
         }
-
         fd = parent->isFuncDeclaration();
     }
 
@@ -1263,7 +1264,7 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
     {
         a = new Expressions();
         a->setDim(exps->dim);
-        for (int i = 0; i < a->dim; i++)
+        for (size_t i = 0; i < a->dim; i++)
         {   Expression *e = (Expression *)exps->data[i];
 
             if (e)
@@ -2075,7 +2076,6 @@ Lagain:
     VarDeclaration *v;
     FuncDeclaration *f;
     FuncLiteralDeclaration *fld;
-    Declaration *d;
     ClassDeclaration *cd;
     ClassDeclaration *thiscd = NULL;
     Import *imp;
@@ -2262,10 +2262,8 @@ Lagain:
         return e;
     }
 
-Lerr:
     error("%s '%s' is not a variable", s->kind(), s->toChars());
-    type = Type::terror;
-    return this;
+    return new ErrorExp();
 }
 
 char *DsymbolExp::toChars()
@@ -2895,13 +2893,13 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
         return this;
 
     // Run semantic() on each element
-    for (int i = 0; i < elements->dim; i++)
+    for (size_t i = 0; i < elements->dim; i++)
     {   e = (Expression *)elements->data[i];
         e = e->semantic(sc);
         elements->data[i] = (void *)e;
     }
     expandTuples(elements);
-    for (int i = 0; i < elements->dim; i++)
+    for (size_t i = 0; i < elements->dim; i++)
     {   e = (Expression *)elements->data[i];
 
         if (!e->type)
@@ -3007,8 +3005,7 @@ Expression *AssocArrayLiteralExp::syntaxCopy()
 }
 
 Expression *AssocArrayLiteralExp::semantic(Scope *sc)
-{   Expression *e;
-
+{
 #if LOGSEMANTIC
     printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
@@ -3514,7 +3511,7 @@ Expression *NewExp::syntaxCopy()
 
 
 Expression *NewExp::semantic(Scope *sc)
-{   int i;
+{
     Type *tb;
     ClassDeclaration *cdthis = NULL;
 
@@ -3566,7 +3563,7 @@ Lagain:
             error("cannot create instance of interface %s", cd->toChars());
         else if (cd->isAbstract())
         {   error("cannot create instance of abstract class %s", cd->toChars());
-            for (int i = 0; i < cd->vtbl.dim; i++)
+            for (size_t i = 0; i < cd->vtbl.dim; i++)
             {   FuncDeclaration *fd = ((Dsymbol *)cd->vtbl.data[i])->isFuncDeclaration();
                 if (fd && fd->isAbstract())
                     error("function %s is abstract", fd->toChars());
@@ -3782,8 +3779,7 @@ int NewExp::canThrow()
 #endif
 
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   int i;
-
+{
     if (thisexp)
     {   expToCBuffer(buf, hgs, thisexp, PREC_primary);
         buf->writeByte('.');
@@ -3856,8 +3852,7 @@ int NewAnonClassExp::canThrow()
 #endif
 
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   int i;
-
+{
     if (thisexp)
     {   expToCBuffer(buf, hgs, thisexp, PREC_primary);
         buf->writeByte('.');
@@ -3974,8 +3969,7 @@ int VarExp::equals(Object *o)
 }
 
 Expression *VarExp::semantic(Scope *sc)
-{   FuncLiteralDeclaration *fd;
-
+{
 #if LOGSEMANTIC
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
@@ -4216,8 +4210,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
 }
 
 int TupleExp::equals(Object *o)
-{   TupleExp *ne;
-
+{
     if (this == o)
         return 1;
     if (((Expression *)o)->op == TOKtuple)
@@ -4283,7 +4276,7 @@ void TupleExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 int TupleExp::checkSideEffect(int flag)
 {   int f = 0;
 
-    for (int i = 0; i < exps->dim; i++)
+    for (size_t i = 0; i < exps->dim; i++)
     {   Expression *e = (Expression *)exps->data[i];
 
         f |= e->checkSideEffect(2);
@@ -4568,7 +4561,7 @@ void TraitsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(ident->toChars());
     if (args)
     {
-        for (int i = 0; i < args->dim; i++)
+        for (size_t i = 0; i < args->dim; i++)
         {
             buf->writeByte(',');
             Object *oarg = (Object *)args->data[i];
@@ -4827,7 +4820,7 @@ Expression *IsExp::semantic(Scope *sc)
 
             /* Declare trailing parameters
              */
-            for (int i = 1; i < parameters->dim; i++)
+            for (size_t i = 1; i < parameters->dim; i++)
             {   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
                 Declaration *s = NULL;
 
@@ -4912,7 +4905,7 @@ void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 #if DMDV2
     if (parameters)
     {   // First parameter is already output, so start with second
-        for (int i = 1; i < parameters->dim; i++)
+        for (size_t i = 1; i < parameters->dim; i++)
         {
             buf->writeByte(',');
             TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
@@ -5291,12 +5284,10 @@ Expression *FileExp::semantic(Scope *sc)
             se = new StringExp(loc, f.buffer, f.len);
         }
     }
-  Lret:
     return se->semantic(sc);
 
   Lerror:
-    se = new StringExp(loc, (char *)"");
-    goto Lret;
+    return new ErrorExp();
 }
 
 void FileExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5476,7 +5467,7 @@ Expression *DotIdExp::semantic(Scope *sc)
         TupleExp *te = (TupleExp *)e1;
         Expressions *exps = new Expressions();
         exps->setDim(te->exps->dim);
-        for (int i = 0; i < exps->dim; i++)
+        for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e = (Expression *)te->exps->data[i];
             e = e->semantic(sc);
             e = new DotIdExp(e->loc, e, Id::offsetof);
@@ -6254,7 +6245,6 @@ Expression *CallExp::semantic(Scope *sc)
 {
     TypeFunction *tf;
     FuncDeclaration *f;
-    int i;
     Type *t1;
     int istemp;
     Objects *targsi = NULL;     // initial list of template arguments
@@ -7347,8 +7337,6 @@ Expression *CastExp::syntaxCopy()
 
 Expression *CastExp::semantic(Scope *sc)
 {   Expression *e;
-    BinExp *b;
-    UnaExp *u;
 
 #if LOGSEMANTIC
     printf("CastExp::semantic('%s')\n", toChars());
@@ -7954,8 +7942,6 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *IndexExp::semantic(Scope *sc)
 {   Expression *e;
-    BinExp *b;
-    UnaExp *u;
     Type *t1;
     ScopeDsymbol *sym;
 
@@ -8311,7 +8297,7 @@ Expression *AssignExp::semantic(Scope *sc)
         {   Expressions *exps = new Expressions;
             exps->setDim(dim);
 
-            for (int i = 0; i < dim; i++)
+            for (size_t i = 0; i < dim; i++)
             {   Expression *ex1 = (Expression *)tup1->exps->data[i];
                 Expression *ex2 = (Expression *)tup2->exps->data[i];
                 exps->data[i] = (void *) new AssignExp(loc, ex1, ex2);
