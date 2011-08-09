@@ -66,9 +66,9 @@ Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocCo
     //nextToken();              // start up the scanner
 }
 
-Array *Parser::parseModule()
+Dsymbols *Parser::parseModule()
 {
-    Array *decldefs;
+    Dsymbols *decldefs;
 
     // ModuleDeclation leads off
     if (token.value == TOKmodule)
@@ -101,14 +101,14 @@ Array *Parser::parseModule()
         }
         else
         {
-            Array *a = NULL;
+            Identifiers *a = NULL;
             Identifier *id;
 
             id = token.ident;
             while (nextToken() == TOKdot)
             {
                 if (!a)
-                    a = new Array();
+                    a = new Identifiers();
                 a->push(id);
                 nextToken();
                 if (token.value != TOKidentifier)
@@ -136,21 +136,21 @@ Lerr:
     while (token.value != TOKsemicolon && token.value != TOKeof)
         nextToken();
     nextToken();
-    return new Array();
+    return new Dsymbols();
 }
 
-Array *Parser::parseDeclDefs(int once)
+Dsymbols *Parser::parseDeclDefs(int once)
 {   Dsymbol *s;
-    Array *decldefs;
-    Array *a;
-    Array *aelse;
+    Dsymbols *decldefs;
+    Dsymbols *a;
+    Dsymbols *aelse;
     enum PROT prot;
     StorageClass stc;
     Condition *condition;
     unsigned char *comment;
 
     //printf("Parser::parseDeclDefs()\n");
-    decldefs = new Array();
+    decldefs = new Dsymbols();
     do
     {
         comment = token.blockComment;
@@ -527,9 +527,9 @@ void Parser::composeStorageClass(StorageClass stc)
  * Parse declarations after an align, protection, or extern decl.
  */
 
-Array *Parser::parseBlock()
+Dsymbols *Parser::parseBlock()
 {
-    Array *a = NULL;
+    Dsymbols *a = NULL;
 
     //printf("parseBlock()\n");
     switch (token.value)
@@ -1102,7 +1102,7 @@ EnumDeclaration *Parser::parseEnum()
     else if (token.value == TOKlcurly)
     {
         //printf("enum definition\n");
-        e->members = new Array();
+        e->members = new Dsymbols();
         nextToken();
         unsigned char *comment = token.blockComment;
         while (token.value != TOKrcurly)
@@ -1229,7 +1229,7 @@ Dsymbol *Parser::parseAggregate()
     {
         //printf("aggregate definition\n");
         nextToken();
-        Array *decl = parseDeclDefs(0);
+        Dsymbols *decl = parseDeclDefs(0);
         if (token.value != TOKrcurly)
             error("} expected following member declarations in aggregate");
         nextToken();
@@ -1251,7 +1251,7 @@ Dsymbol *Parser::parseAggregate()
     if (tpl)
     {   // Wrap a template around the aggregate declaration
 
-        Array *decldefs = new Array();
+        Dsymbols *decldefs = new Dsymbols();
         decldefs->push(a);
         TemplateDeclaration *tempdecl =
                 new TemplateDeclaration(loc, id, tpl, constraint, decldefs);
@@ -1330,7 +1330,7 @@ TemplateDeclaration *Parser::parseTemplateDeclaration()
     TemplateDeclaration *tempdecl;
     Identifier *id;
     TemplateParameters *tpl;
-    Array *decldefs;
+    Dsymbols *decldefs;
     Loc loc = this->loc;
 
     nextToken();
@@ -1527,7 +1527,7 @@ Dsymbol *Parser::parseMixin()
     Identifier *id;
     Type *tqual;
     Objects *tiargs;
-    Array *idents;
+    Identifiers *idents;
 
     //printf("parseMixin()\n");
     nextToken();
@@ -1558,7 +1558,7 @@ Dsymbol *Parser::parseMixin()
         nextToken();
     }
 
-    idents = new Array();
+    idents = new Identifiers();
     while (1)
     {
         tiargs = NULL;
@@ -2135,7 +2135,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
  * Return array of Declaration *'s.
  */
 
-Array *Parser::parseDeclarations()
+Dsymbols *Parser::parseDeclarations()
 {
     StorageClass storage_class;
     StorageClass stc;
@@ -2143,7 +2143,7 @@ Array *Parser::parseDeclarations()
     Type *t;
     Type *tfirst;
     Identifier *ident;
-    Array *a;
+    Dsymbols *a;
     enum TOK tok = TOKreserved;
     unsigned char *comment = token.blockComment;
     enum LINK link = linkage;
@@ -2205,7 +2205,7 @@ Array *Parser::parseDeclarations()
         break;
     }
 
-    a = new Array();
+    a = new Dsymbols();
 
     /* Look for auto initializers:
      *  storage_class identifier = initializer;
@@ -2292,7 +2292,7 @@ Array *Parser::parseDeclarations()
                 a->push(v);
             else
             {
-                Array *ax = new Array();
+                Dsymbols *ax = new Dsymbols();
                 ax->push(v);
                 Dsymbol *s = new LinkDeclaration(link, ax);
                 a->push(s);
@@ -2326,14 +2326,14 @@ Array *Parser::parseDeclarations()
             }
             else
             {
-                Array *ax = new Array();
+                Dsymbols *ax = new Dsymbols();
                 ax->push(f);
                 s = new LinkDeclaration(link, ax);
             }
             if (tpl)                    // it's a function template
             {
                 // Wrap a template around the aggregate declaration
-                Array *decldefs = new Array();
+                Dsymbols *decldefs = new Dsymbols();
                 decldefs->push(s);
                 TemplateDeclaration *tempdecl =
                     new TemplateDeclaration(loc, s->ident, tpl, NULL, decldefs);
@@ -2357,7 +2357,7 @@ Array *Parser::parseDeclarations()
                 a->push(v);
             else
             {
-                Array *ax = new Array();
+                Dsymbols *ax = new Dsymbols();
                 ax->push(v);
                 Dsymbol *s = new LinkDeclaration(link, ax);
                 a->push(s);
@@ -5383,7 +5383,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
         else
         {
             nextToken();
-            Array *decl = parseDeclDefs(0);
+            Dsymbols *decl = parseDeclDefs(0);
             if (token.value != TOKrcurly)
                 error("class member expected");
             nextToken();

@@ -66,10 +66,10 @@ struct Parser : Lexer
 
     Parser(Module *module, unsigned char *base, unsigned length, int doDocComment);
 
-    Array *parseModule();
-    Array *parseDeclDefs(int once);
+    Dsymbols *parseModule();
+    Dsymbols *parseDeclDefs(int once);
     Array *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
-    Array *parseBlock();
+    Dsymbols *parseBlock();
     void composeStorageClass(StorageClass stc);
     Expression *parseConstraint();
     TemplateDeclaration *parseTemplateDeclaration();
@@ -102,7 +102,7 @@ struct Parser : Lexer
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL);
-    Array *parseDeclarations();
+    Dsymbols *parseDeclarations();
     void parseContracts(FuncDeclaration *f);
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();

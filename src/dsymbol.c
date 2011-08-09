@@ -104,7 +104,7 @@ int Dsymbol::oneMember(Dsymbol **ps)
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
 
-int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
+int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps)
 {
     //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);
     Dsymbol *s = NULL;
@@ -647,10 +647,10 @@ enum PROT Dsymbol::prot()
  */
 
 
-Array *Dsymbol::arraySyntaxCopy(Array *a)
+Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
 {
 
-    Array *b = NULL;
+    Dsymbols *b = NULL;
     if (a)
     {
         b = a->copy();
@@ -817,7 +817,7 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
     if (s != this)
     {
         if (!imports)
-            imports = new Array();
+            imports = new ScopeDsymbols();
         else
         {
             for (size_t i = 0; i < imports->dim; i++)
