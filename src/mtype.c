@@ -8126,7 +8126,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
         }
         if (varargs)
         {
-            if (i && varargs == 1)
+            if (arguments->dim && varargs == 1)
                 buf->writeByte(',');
             buf->writestring("...");
         }
