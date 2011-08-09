@@ -52,7 +52,7 @@ struct TemplateDeclaration : ScopeDsymbol
 
     TemplateParameters *origParameters; // originals for Ddoc
     Expression *constraint;
-    Array instances;                    // array of TemplateInstance's
+    TemplateInstances instances;        // array of TemplateInstance's
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list

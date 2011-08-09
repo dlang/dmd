@@ -52,6 +52,7 @@ typedef ArrayBase<struct VarDeclaration> VarDeclarations;
 
 typedef ArrayBase<struct ScopeDsymbol> ScopeDsymbols;
 typedef ArrayBase<struct CaseStatement> CaseStatements;
+typedef ArrayBase<struct TemplateInstance> TemplateInstances;
 
 typedef ArrayBase<struct Symbol> Symbols;
 
