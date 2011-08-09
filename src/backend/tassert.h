@@ -28,7 +28,7 @@ void util_assert ( char * , int ) __attribute__((analyzer_noreturn));
 static void local_assert(int line)
 {
     util_assert(__file__,line);
-    __buildtin_unreachable();
+    __builtin_unreachable();
 }
 
 #else
