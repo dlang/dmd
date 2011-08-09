@@ -79,7 +79,7 @@ void obj_append(Dsymbol *s)
 
 void obj_write_deferred(Library *library)
 {
-    for (int i = 0; i < obj_symbols_towrite.dim; i++)
+    for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
     {   Dsymbol *s = obj_symbols_towrite.tdata()[i];
         Module *m = s->getModule();
 
@@ -273,7 +273,7 @@ void Module::genobjfile(int multiobj)
         covb = (unsigned *)calloc((numlines + 32) / 32, sizeof(*covb));
     }
 
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *member = members->tdata()[i];
         member->toObjFile(multiobj);
@@ -360,7 +360,7 @@ void Module::genobjfile(int multiobj)
 #if DMDV2
             cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
 
-            for (int i = 0; i < ectorgates.dim; i++)
+            for (size_t i = 0; i < ectorgates.dim; i++)
             {   StaticDtorDeclaration *f = ectorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
@@ -401,7 +401,7 @@ void Module::genobjfile(int multiobj)
             ssharedctor = toSymbolX("__modsharedctor", SCglobal, t, moddeco);
             cstate.CSpsymtab = &ssharedctor->Sfunc->Flocsym;
 
-            for (int i = 0; i < esharedctorgates.dim; i++)
+            for (size_t i = 0; i < esharedctorgates.dim; i++)
             {   SharedStaticDtorDeclaration *f = esharedctorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
@@ -536,12 +536,9 @@ void Module::genobjfile(int multiobj)
 
 void FuncDeclaration::toObjFile(int multiobj)
 {
-    Symbol *senter;
-    Symbol *sexit;
     FuncDeclaration *func = this;
     ClassDeclaration *cd = func->parent->isClassDeclaration();
     int reverse;
-    int i;
     int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
@@ -742,7 +739,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
     if (parameters)
     {
-        for (i = 0; i < parameters->dim; i++)
+        for (size_t i = 0; i < parameters->dim; i++)
         {   VarDeclaration *v = parameters->tdata()[i];
             if (v->csym)
             {
@@ -751,12 +748,12 @@ void FuncDeclaration::toObjFile(int multiobj)
             }
             params[pi + i] = v->toSymbol();
         }
-        pi += i;
+        pi += parameters->dim;
     }
 
     if (reverse)
     {   // Reverse params[] entries
-        for (i = 0; i < pi/2; i++)
+        for (size_t i = 0; i < pi/2; i++)
         {
             Symbol *sptmp = params[i];
             params[i] = params[pi - 1 - i];
@@ -801,7 +798,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         params[1] = sp;
     }
 
-    for (i = 0; i < pi; i++)
+    for (size_t i = 0; i < pi; i++)
     {   Symbol *sp = params[i];
         sp->Sclass = SCparameter;
         sp->Sflags &= ~SFLspill;
@@ -819,7 +816,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             int r = 0;
             int xmmcnt = XMM0;
 
-            for (int i = 0; i < pi; i++)
+            for (size_t i = 0; i < pi; i++)
             {   Symbol *sp = params[i];
                 tym_t ty = tybasic(sp->Stype->Tty);
                 // BUG: doesn't work for structs
@@ -1027,7 +1024,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (isExport())
         obj_export(s, Poffset);
 
-    for (i = 0; i < irs.deferToObj->dim; i++)
+    for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
         Dsymbol *s = irs.deferToObj->tdata()[i];
         s->toObjFile(0);

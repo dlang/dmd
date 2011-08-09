@@ -692,7 +692,6 @@ StorageClass Parser::parsePostfix()
 Dsymbols *Parser::parseBlock()
 {
     Dsymbols *a = NULL;
-    Dsymbol *s;
 
     //printf("parseBlock()\n");
     switch (token.value)
@@ -911,8 +910,6 @@ Condition *Parser::parseVersionCondition()
 Condition *Parser::parseStaticIfCondition()
 {   Expression *exp;
     Condition *condition;
-    Dsymbols *aif;
-    Dsymbols *aelse;
     Loc loc = this->loc;
 
     nextToken();
@@ -1214,7 +1211,7 @@ Parameters *Parser::parseParameters(int *pvarargs)
 
     check(TOKlparen);
     while (1)
-    {   Type *tb;
+    {
         Identifier *ai = NULL;
         Type *at;
         Parameter *a;
@@ -1343,7 +1340,7 @@ Parameters *Parser::parseParameters(int *pvarargs)
                         nextToken();
                         break;
                     }
-                L3:
+                            L3:
                     a = new Parameter(storageClass, at, ai, ae);
                     arguments->push(a);
                     if (token.value == TOKcomma)
@@ -1987,7 +1984,7 @@ Objects *Parser::parseTemplateArgumentList2()
                          * a deduced type.
                          */
                         TemplateParameters *tpl = NULL;
-                        for (int i = 0; i < tf->parameters->dim; i++)
+                        for (size_t i = 0; i < tf->parameters->dim; i++)
                         {   Parameter *param = tf->parameters->tdata()[i];
                             if (param->ident == NULL &&
                                 param->type &&
@@ -3505,7 +3502,7 @@ Statement *Parser::parseStatement(int flags)
             {
                 Statements *as = new Statements();
                 as->reserve(a->dim);
-                for (int i = 0; i < a->dim; i++)
+                for (size_t i = 0; i < a->dim; i++)
                 {
                     Dsymbol *d = a->tdata()[i];
                     s = new ExpStatement(loc, d);
@@ -3955,7 +3952,7 @@ Statement *Parser::parseStatement(int flags)
 #endif
             {
                 // Keep cases in order by building the case statements backwards
-                for (int i = cases.dim; i; i--)
+                for (size_t i = cases.dim; i; i--)
                 {
                     exp = cases.tdata()[i - 1];
                     s = new CaseStatement(loc, exp, s);
@@ -4359,8 +4356,6 @@ int Parser::isBasicType(Token **pt)
 {
     // This code parallels parseBasicType()
     Token *t = *pt;
-    Token *t2;
-    int parens;
     int haveId = 0;
 
     switch (t->value)
@@ -4728,7 +4723,6 @@ int Parser::isParameters(Token **pt)
                     break;
                 }
             }
-            L3:
                 if (t->value == TOKcomma)
                 {
                     continue;
@@ -5175,7 +5169,6 @@ Expression *Parser::parsePrimaryExp()
 
         case BASIC_TYPES_X(t):
             nextToken();
-        L1:
             check(TOKdot, t->toChars());
             if (token.value != TOKidentifier)
             {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
@@ -6353,7 +6346,7 @@ enum PREC precedence[TOKMAX];
 
 void initPrecedence()
 {
-    for (int i = 0; i < TOKMAX; i++)
+    for (size_t i = 0; i < TOKMAX; i++)
         precedence[i] = PREC_zero;
 
     precedence[TOKtype] = PREC_expr;

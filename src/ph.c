@@ -1,7 +1,7 @@
 
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -138,9 +138,7 @@ void ph_free(void *p)
 }
 
 void * __cdecl ph_realloc(void *p,size_t nbytes)
-{   void *newp;
-    unsigned i;
-
+{
     //dbg_printf("ph_realloc(%p,%d)\n",p,nbytes);
     if (!p)
         return ph_malloc(nbytes);
@@ -148,7 +146,7 @@ void * __cdecl ph_realloc(void *p,size_t nbytes)
     {   ph_free(p);
         return NULL;
     }
-    newp = ph_malloc(nbytes);
+    void *newp = ph_malloc(nbytes);
     if (newp)
     {   unsigned oldsize = ((unsigned *)p)[-1];
         memcpy(newp,p,oldsize);

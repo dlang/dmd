@@ -167,12 +167,10 @@ char Type::needThisPrefix()
 }
 
 void Type::init()
-{   int i;
-    int j;
-
+{
     Lexer::initKeywords();
 
-    for (i = 0; i < TMAX; i++)
+    for (size_t i = 0; i < TMAX; i++)
         sizeTy[i] = sizeof(TypeBasic);
     sizeTy[Tsarray] = sizeof(TypeSArray);
     sizeTy[Tarray] = sizeof(TypeDArray);
@@ -239,7 +237,7 @@ void Type::init()
     mangleChar[Tslice] = '@';
     mangleChar[Treturn] = '@';
 
-    for (i = 0; i < TMAX; i++)
+    for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
             fprintf(stdmsg, "ty = %d\n", i);
         assert(mangleChar[i]);
@@ -254,7 +252,7 @@ void Type::init()
           Tbool,
           Tascii, Twchar, Tdchar };
 
-    for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
+    for (size_t i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
     {   Type *t = new TypeBasic(basetab[i]);
         t = t->merge();
         basic[basetab[i]] = t;
@@ -2764,7 +2762,6 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
         }
     }
 
-Ldefault:
     return Type::getProperty(loc, ident);
 
 Livalue:
@@ -4707,7 +4704,7 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     }
     if (td)
     {   buf->writeByte('(');
-        for (int i = 0; i < td->origParameters->dim; i++)
+        for (size_t i = 0; i < td->origParameters->dim; i++)
         {
             TemplateParameter *tp = td->origParameters->tdata()[i];
             if (i)
@@ -5476,7 +5473,7 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 {
     //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t->toChars(), toChars());
     idents.setDim(t->idents.dim);
-    for (int i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {
         Identifier *id = t->idents.tdata()[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
@@ -5498,9 +5495,7 @@ void TypeQualified::addIdent(Identifier *ident)
 
 void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 {
-    int i;
-
-    for (i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {   Identifier *id = idents.tdata()[i];
 
         buf->writeByte('.');
@@ -5534,9 +5529,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         Expression **pe, Type **pt, Dsymbol **ps)
 {
     VarDeclaration *v;
-    FuncDeclaration *fd;
     EnumMember *em;
-    TupleDeclaration *td;
     Expression *e;
 
 #if 0
@@ -5553,7 +5546,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         s->checkDeprecated(loc, sc);            // check for deprecated aliases
         s = s->toAlias();
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-        for (int i = 0; i < idents.dim; i++)
+        for (size_t i = 0; i < idents.dim; i++)
         {
             Identifier *id = idents.tdata()[i];
             Dsymbol *sm = s->searchX(loc, sc, id);
@@ -5797,7 +5790,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     Dsymbol *s = sc->search(loc, ident, &scopesym);
     if (s)
     {
-        for (int i = 0; i < idents.dim; i++)
+        for (size_t i = 0; i < idents.dim; i++)
         {
             Identifier *id = idents.tdata()[i];
             s = s->searchX(loc, sc, id);
@@ -5857,7 +5850,7 @@ Type *TypeIdentifier::reliesOnTident()
 Expression *TypeIdentifier::toExpression()
 {
     Expression *e = new IdentifierExp(loc, ident);
-    for (int i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {
         Identifier *id = idents.tdata()[i];
         e = new DotIdExp(loc, e, id);
@@ -6029,7 +6022,7 @@ void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Type *TypeTypeof::semantic(Loc loc, Scope *sc)
-{   Expression *e;
+{
     Type *t;
 
     //printf("TypeTypeof::semantic() %s\n", toChars());
@@ -6849,8 +6842,7 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
-{   unsigned offset;
-
+{
     VarDeclaration *v;
     Dsymbol *s;
     DotVarExp *de;
@@ -7221,7 +7213,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
             {   /* Check all the fields. If they can all be converted,
                  * allow the conversion.
                  */
-                for (int i = 0; i < sym->fields.dim; i++)
+                for (size_t i = 0; i < sym->fields.dim; i++)
                 {   Dsymbol *s = sym->fields.tdata()[i];
                     VarDeclaration *v = s->isVarDeclaration();
                     assert(v && v->storage_class & STCfield);
@@ -7320,9 +7312,7 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
-{   unsigned offset;
-
-    Expression *b;
+{
     VarDeclaration *v;
     Dsymbol *s;
 
@@ -8065,7 +8055,7 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
     {   OutBuffer argbuf;
         HdrGenState hgs;
 
-        for (int i = 0; i < args->dim; i++)
+        for (size_t i = 0; i < args->dim; i++)
         {   if (i)
                 buf->writeByte(',');
             Parameter *arg = args->tdata()[i];
@@ -8089,10 +8079,10 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 {
     buf->writeByte('(');
     if (arguments)
-    {   int i;
+    {
         OutBuffer argbuf;
 
-        for (i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {
             if (i)
                 buf->writestring(", ");

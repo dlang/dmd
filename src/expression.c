@@ -47,7 +47,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "doc.h"
 
 
-Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
+Expression *createTypeInfoArray(Scope *sc, Expression *args[], unsigned dim);
 Expression *expandVar(int result, VarDeclaration *v);
 
 #define LOGSEMANTIC     0
@@ -1364,7 +1364,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
             for (Dsymbol *s = sc->func; s; s = s->toParent2())
             {
                 if (s == vparent)
-	                break;
+                        break;
                 FuncDeclaration *ff = s->isFuncDeclaration();
                 if (!ff)
                     break;

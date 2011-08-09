@@ -181,7 +181,7 @@ struct BaseClass
     FuncDeclarations vtbl;              // for interfaces: Array of FuncDeclaration's
                                         // making up the vtbl[]
 
-    int baseInterfaces_dim;
+    size_t baseInterfaces_dim;
     BaseClass *baseInterfaces;          // if BaseClass is an interface, these
                                         // are a copy of the InterfaceDeclaration::interfaces
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -519,8 +519,6 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     FuncDeclaration *fd;
     FuncDeclaration *fdx;
-    TypeFunction *tf;
-    Type *ta;
     Dsymbol *s;
 
     static TypeFunction *tftohash;
@@ -637,7 +635,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     {
         TypeTuple *tup = tc->toArgTypes();
         assert(tup->arguments->dim <= 2);
-        for (int i = 0; i < 2; i++)
+        for (size_t i = 0; i < 2; i++)
         {
             if (i < tup->arguments->dim)
             {
@@ -826,7 +824,7 @@ int TypeClass::builtinTypeInfo()
  * Used to supply hidden _arguments[] value for variadic D functions.
  */
 
-Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
+Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
 {
 #if 1
     /* Get the corresponding TypeInfo_Tuple and

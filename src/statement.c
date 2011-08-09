@@ -530,14 +530,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
                          *      catch (Object __o)
                          *      { sexception; throw __o; }
                          */
-                        Statement *body;
                         Statements *a = new Statements();
-
-                        for (int j = i + 1; j < statements->dim; j++)
+                        for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push(statements->tdata()[j]);
                         }
-                        body = new CompoundStatement(0, a);
+                        Statement *body = new CompoundStatement(0, a);
                         body = new ScopeStatement(0, body);
 
                         Identifier *id = Lexer::uniqueId("__o");
@@ -571,14 +569,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
                          * As:
                          *      s; try { s1; s2; } finally { sfinally; }
                          */
-                        Statement *body;
                         Statements *a = new Statements();
-
-                        for (int j = i + 1; j < statements->dim; j++)
+                        for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push(statements->tdata()[j]);
                         }
-                        body = new CompoundStatement(0, a);
+                        Statement *body = new CompoundStatement(0, a);
                         s = new TryFinallyStatement(0, body, sfinally);
                         s = s->semantic(sc);
                         statements->setDim(i + 1);
@@ -606,7 +602,7 @@ ReturnStatement *CompoundStatement::isReturnStatement()
 {
     ReturnStatement *rs = NULL;
 
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s)
         {
@@ -636,7 +632,7 @@ Statement *CompoundStatement::last()
 
 void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s)
             s->toCBuffer(buf, hgs);
@@ -645,7 +641,7 @@ void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 int CompoundStatement::usesEH()
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s && s->usesEH())
             return TRUE;
@@ -702,7 +698,7 @@ int CompoundStatement::comeFrom()
 {   int comefrom = FALSE;
 
     //printf("CompoundStatement::comeFrom()\n");
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
 
         if (!s)
@@ -715,7 +711,7 @@ int CompoundStatement::comeFrom()
 
 int CompoundStatement::isEmpty()
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s && !s->isEmpty())
             return FALSE;
@@ -749,7 +745,7 @@ Statement *CompoundDeclarationStatement::syntaxCopy()
 void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     int nwritten = 0;
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         ExpStatement *ds;
         if (s &&
@@ -1614,8 +1610,8 @@ Lagain:
 
             if (!key)
             {
-                Identifier *id = Lexer::uniqueId("__key");
-                key = new VarDeclaration(loc, Type::tsize_t, id, NULL);
+                Identifier *idkey = Lexer::uniqueId("__key");
+                key = new VarDeclaration(loc, Type::tsize_t, idkey, NULL);
             }
             if (op == TOKforeach_reverse)
                 key->init = new ExpInitializer(loc, tmp_length);
@@ -2001,7 +1997,7 @@ Lagain:
                 a->push(s);
 
                 // cases 2...
-                for (int i = 0; i < cases->dim; i++)
+                for (size_t i = 0; i < cases->dim; i++)
                 {
                     s = cases->tdata()[i];
                     s = new CaseStatement(0, new IntegerExp(i + 2), s);
@@ -2083,7 +2079,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
     buf->writestring(" (");
-    for (int i = 0; i < arguments->dim; i++)
+    for (size_t i = 0; i < arguments->dim; i++)
     {
         Parameter *a = arguments->tdata()[i];
         if (i)
@@ -2138,7 +2134,6 @@ Statement *ForeachRangeStatement::syntaxCopy()
 Statement *ForeachRangeStatement::semantic(Scope *sc)
 {
     //printf("ForeachRangeStatement::semantic() %p\n", this);
-    ScopeDsymbol *sym;
     Statement *s = this;
 
     lwr = lwr->semantic(sc);
@@ -2839,7 +2834,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     sc->noctor--;
 
     // Resolve any goto case's with exp
-    for (int i = 0; i < gotoCases.dim; i++)
+    for (size_t i = 0; i < gotoCases.dim; i++)
     {
         GotoCaseStatement *gcs = gotoCases.tdata()[i];
 
@@ -2853,7 +2848,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         {
             if (!scx->sw)
                 continue;
-            for (int j = 0; j < scx->sw->cases->dim; j++)
+            for (size_t j = 0; j < scx->sw->cases->dim; j++)
             {
                 CaseStatement *cs = scx->sw->cases->tdata()[j];
 
@@ -3036,7 +3031,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         }
 
     L1:
-        for (int i = 0; i < sw->cases->dim; i++)
+        for (size_t i = 0; i < sw->cases->dim; i++)
         {
             CaseStatement *cs = sw->cases->tdata()[i];
 
@@ -3050,7 +3045,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         sw->cases->push(this);
 
         // Resolve any goto case's with no exp to this case statement
-        for (int i = 0; i < sw->gotoCases.dim; i++)
+        for (size_t i = 0; i < sw->gotoCases.dim; i++)
         {
             GotoCaseStatement *gcs = sw->gotoCases.tdata()[i];
 
@@ -4170,7 +4165,7 @@ Statement *TryCatchStatement::syntaxCopy()
 {
     Catches *a = new Catches();
     a->setDim(catches->dim);
-    for (int i = 0; i < a->dim; i++)
+    for (size_t i = 0; i < a->dim; i++)
     {   Catch *c;
 
         c = catches->tdata()[i];
@@ -4595,7 +4590,7 @@ Statements *VolatileStatement::flatten(Scope *sc)
 
     a = statement ? statement->flatten(sc) : NULL;
     if (a)
-    {   for (int i = 0; i < a->dim; i++)
+    {   for (size_t i = 0; i < a->dim; i++)
         {   Statement *s = a->tdata()[i];
 
             s = new VolatileStatement(loc, s);
@@ -4915,7 +4910,7 @@ Statement *ImportStatement::syntaxCopy()
 {
     Dsymbols *m = new Dsymbols();
     m->setDim(imports->dim);
-    for (int i = 0; i < imports->dim; i++)
+    for (size_t i = 0; i < imports->dim; i++)
     {   Dsymbol *s = imports->tdata()[i];
         m->tdata()[i] = s->syntaxCopy(NULL);
     }
@@ -4924,7 +4919,7 @@ Statement *ImportStatement::syntaxCopy()
 
 Statement *ImportStatement::semantic(Scope *sc)
 {
-    for (int i = 0; i < imports->dim; i++)
+    for (size_t i = 0; i < imports->dim; i++)
     {   Dsymbol *s = imports->tdata()[i];
         s->semantic(sc);
         sc->insert(s);
@@ -4944,7 +4939,7 @@ int ImportStatement::isEmpty()
 
 void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    for (int i = 0; i < imports->dim; i++)
+    for (size_t i = 0; i < imports->dim; i++)
     {   Dsymbol *s = imports->tdata()[i];
         s->toCBuffer(buf, hgs);
     }

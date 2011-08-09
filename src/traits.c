@@ -82,9 +82,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         TemplateInstance::semanticTiargs(loc, sc, args, 1);
     }
     size_t dim = args ? args->dim : 0;
-    Object *o;
     Declaration *d;
-    FuncDeclaration *f;
 
 #define ISTYPE(cond) \
         for (size_t i = 0; i < dim; i++)        \
@@ -150,19 +148,23 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
     else if (ident == Id::isAbstractFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isAbstract())
     }
     else if (ident == Id::isVirtualFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
     }
     else if (ident == Id::isFinalFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
     }
 #if DMDV2
     else if (ident == Id::isStaticFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
     }
     else if (ident == Id::isRef)
@@ -341,8 +343,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         Expressions *exps = new Expressions;
         while (1)
-        {   size_t dim = ScopeDsymbol::dim(sd->members);
-            for (size_t i = 0; i < dim; i++)
+        {   size_t sddim = ScopeDsymbol::dim(sd->members);
+            for (size_t i = 0; i < sddim; i++)
             {
                 Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
@@ -481,10 +483,6 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
 
     return NULL;
-
-Lnottype:
-    error("%s is not a type", o->toChars());
-    goto Lfalse;
 
 Ldimerror:
     error("wrong number of arguments %d", dim);

@@ -52,7 +52,7 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
     {
         a = new Initializers();
         a->setDim(ai->dim);
-        for (int i = 0; i < a->dim; i++)
+        for (size_t i = 0; i < a->dim; i++)
         {   Initializer *e = ai->tdata()[i];
 
             e = e->syntaxCopy();
@@ -123,7 +123,7 @@ Initializer *StructInitializer::syntaxCopy()
     assert(field.dim == value.dim);
     ai->field.setDim(field.dim);
     ai->value.setDim(value.dim);
-    for (int i = 0; i < field.dim; i++)
+    for (size_t i = 0; i < field.dim; i++)
     {
         ai->field.tdata()[i] = field.tdata()[i];
 
@@ -157,7 +157,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
         if (ad->ctor)
             error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
                 ad->kind(), ad->toChars(), ad->toChars());
-        int nfields = ad->fields.dim;
+        size_t nfields = ad->fields.dim;
         if (((StructDeclaration *)ad)->isnested) nfields--;
         for (size_t i = 0; i < field.dim; i++)
         {
@@ -262,15 +262,18 @@ Expression *StructInitializer::toExpression()
     if (!sd)
         return NULL;
     Expressions *elements = new Expressions();
-    int nfields = ad->fields.dim;
-    if (sd->isnested) nfields--;
+    size_t nfields = ad->fields.dim;
+#if DMDV2
+    if (sd->isnested)
+       nfields--;
+#endif
     elements->setDim(nfields);
-    for (int i = 0; i < elements->dim; i++)
+    for (size_t i = 0; i < elements->dim; i++)
     {
         elements->tdata()[i] = NULL;
     }
     unsigned fieldi = 0;
-    for (int i = 0; i < value.dim; i++)
+    for (size_t i = 0; i < value.dim; i++)
     {
         Identifier *id = field.tdata()[i];
         if (id)
@@ -315,7 +318,7 @@ Expression *StructInitializer::toExpression()
     // Now, fill in any missing elements with default initializers.
     // We also need to validate any anonymous unions
     offset = 0;
-    for (int i = 0; i < elements->dim; )
+    for (size_t i = 0; i < elements->dim; )
     {
         VarDeclaration * vd = ad->fields.tdata()[i]->isVarDeclaration();
 
@@ -383,7 +386,7 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("StructInitializer::toCBuffer()\n");
     buf->writebyte('{');
-    for (int i = 0; i < field.dim; i++)
+    for (size_t i = 0; i < field.dim; i++)
     {
         if (i > 0)
             buf->writebyte(',');
@@ -419,7 +422,7 @@ Initializer *ArrayInitializer::syntaxCopy()
     assert(index.dim == value.dim);
     ai->index.setDim(index.dim);
     ai->value.setDim(value.dim);
-    for (int i = 0; i < ai->value.dim; i++)
+    for (size_t i = 0; i < ai->value.dim; i++)
     {   Expression *e = index.tdata()[i];
         if (e)
             e = e->syntaxCopy();
@@ -512,7 +515,6 @@ Lerr:
 
 Expression *ArrayInitializer::toExpression()
 {   Expressions *elements;
-    Expression *e;
 
     //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
     //static int i; if (++i == 2) halt();
@@ -533,8 +535,8 @@ Expression *ArrayInitializer::toExpression()
 
            case Tpointer:
            case Tarray:
-                edim = dim;
-                break;
+               edim = dim;
+               break;
 
            default:
                assert(0);
@@ -699,7 +701,7 @@ Laa:
 void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writebyte('[');
-    for (int i = 0; i < index.dim; i++)
+    for (size_t i = 0; i < index.dim; i++)
     {
         if (i > 0)
             buf->writebyte(',');

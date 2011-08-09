@@ -140,7 +140,7 @@ int arrayInlineCost(InlineCostState *ics, Expressions *arguments)
 
     if (arguments)
     {
-        for (int i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {   Expression *e = arguments->tdata()[i];
 
             if (e)
@@ -469,7 +469,7 @@ Expressions *arrayExpressiondoInline(Expressions *a, InlineDoState *ids)
         newa = new Expressions();
         newa->setDim(a->dim);
 
-        for (int i = 0; i < a->dim; i++)
+        for (size_t i = 0; i < a->dim; i++)
         {   Expression *e = a->tdata()[i];
 
             if (e)
@@ -488,10 +488,8 @@ Expression *Expression::doInline(InlineDoState *ids)
 
 Expression *SymOffExp::doInline(InlineDoState *ids)
 {
-    int i;
-
     //printf("SymOffExp::doInline(%s)\n", toChars());
-    for (i = 0; i < ids->from.dim; i++)
+    for (size_t i = 0; i < ids->from.dim; i++)
     {
         if (var == ids->from.tdata()[i])
         {
@@ -506,10 +504,8 @@ Expression *SymOffExp::doInline(InlineDoState *ids)
 
 Expression *VarExp::doInline(InlineDoState *ids)
 {
-    int i;
-
     //printf("VarExp::doInline(%s)\n", toChars());
-    for (i = 0; i < ids->from.dim; i++)
+    for (size_t i = 0; i < ids->from.dim; i++)
     {
         if (var == ids->from.tdata()[i])
         {
@@ -917,7 +913,7 @@ Statement *SwitchStatement::inlineScan(InlineScanState *iss)
         sdefault = (DefaultStatement *)sdefault->inlineScan(iss);
     if (cases)
     {
-        for (int i = 0; i < cases->dim; i++)
+        for (size_t i = 0; i < cases->dim; i++)
         {   CaseStatement *s;
 
             s =  cases->tdata()[i];
@@ -983,7 +979,7 @@ Statement *TryCatchStatement::inlineScan(InlineScanState *iss)
         body = body->inlineScan(iss);
     if (catches)
     {
-        for (int i = 0; i < catches->dim; i++)
+        for (size_t i = 0; i < catches->dim; i++)
         {   Catch *c = catches->tdata()[i];
 
             if (c->handler)
@@ -1033,7 +1029,7 @@ void arrayInlineScan(InlineScanState *iss, Expressions *arguments)
 {
     if (arguments)
     {
-        for (int i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {   Expression *e = arguments->tdata()[i];
 
             if (e)
@@ -1354,7 +1350,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 #if 0
     if (parameters)
     {
-        for (int i = 0; i < parameters->dim; i++)
+        for (size_t i = 0; i < parameters->dim; i++)
         {
             VarDeclaration *v = parameters->tdata()[i];
             if (
@@ -1381,7 +1377,6 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     if (!hdrscan)    // Don't scan recursively for header content scan
         inlineScan();
 
-Lyes:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
         inlineStatus = ILSyes;
 #if CANINLINE_LOG
@@ -1472,7 +1467,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, E
     {
         assert(parameters->dim == arguments->dim);
 
-        for (int i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {
             VarDeclaration *vfrom = parameters->tdata()[i];
             VarDeclaration *vto;
