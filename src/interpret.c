@@ -110,13 +110,13 @@ void showCtfeExpr(Expression *e, int level = 0)
                 assert(v);
                 // If it is a void assignment, use the default initializer
                 if (!z) {
-                    for (int i = level; i>0; --i) printf(" ");
+                    for (int j = level; j>0; --j) printf(" ");
                     printf(" field:void\n");
                     continue;
                 }
                 if ((v->type->ty != z->type->ty) && v->type->ty == Tsarray)
                 {
-                    for (int i = level; --i;) printf(" ");
+                    for (int j = level; --j;) printf(" ");
                     printf(" field: block initalized static array\n");
                     continue;
                 }
@@ -255,10 +255,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 v->setValueWithoutChecking(earg);
                 /* Don't restore the value of v2 upon function return
                  */
-                for (size_t i = 0; i < (istate ? istate->vars.dim : 0); i++)
-                {   VarDeclaration *vx = istate->vars.tdata()[i];
+                for (size_t j = 0; j < (istate ? istate->vars.dim : 0); j++)
+                {   VarDeclaration *vx = istate->vars.tdata()[j];
                     if (vx == v2)
-                    {   istate->vars.tdata()[i] = NULL;
+                    {   istate->vars.tdata()[j] = NULL;
                         break;
                     }
                 }
@@ -1407,7 +1407,7 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
      * may crash), it hardly seems worth the massive performance hit.
      */
 #if DMDV2
-    if (!((TypeNext *)type)->next->mod & (MODconst | MODimmutable))
+    if (!(((TypeNext *)type)->next->mod & (MODconst | MODimmutable)))
     {   // It seems this happens only when there has been an explicit cast
         error("cannot cast a read-only string literal to mutable in CTFE");
         return EXP_CANT_INTERPRET;
@@ -2034,7 +2034,7 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
 {
     unsigned char *s;
     s = (unsigned char *)mem.calloc(dim + 1, sz);
-    for (int elemi=0; elemi<dim; ++elemi)
+    for (size_t elemi=0; elemi<dim; ++elemi)
     {
         switch (sz)
         {
@@ -2059,9 +2059,16 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         Expression *lenExpr = ((arguments->tdata()[0]))->interpret(istate);
         if (lenExpr == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
+        size_t len = (size_t)(lenExpr->toInteger());
+        Type *elemType = ((TypeArray *)newtype)->next;
+        if (elemType->ty == Tchar || elemType->ty == Twchar
+            || elemType->ty == Tdchar)
+            return createBlockDuplicatedStringLiteral(newtype,
+                (unsigned)(elemType->defaultInitLiteral()->toInteger()),
+                len, elemType->size());
         return createBlockDuplicatedArrayLiteral(newtype,
-            ((TypeArray *)newtype)->next->defaultInitLiteral(),
-            lenExpr->toInteger());
+            elemType->defaultInitLiteral(),
+            len);
     }
     if (newtype->toBasetype()->ty == Tstruct)
     {
@@ -2666,7 +2673,7 @@ Expression *copyLiteral(Expression *e)
                 // Block assignment from inside struct literals
                 TypeSArray *tsa = (TypeSArray *)v->type;
                 uinteger_t length = tsa->dim->toInteger();
-                m = createBlockDuplicatedArrayLiteral(v->type, m, length);
+                m = createBlockDuplicatedArrayLiteral(v->type, m, (size_t)length);
             }
             else if (v->type->ty != Tarray) // NOTE: do not copy array references
                 m = copyLiteral(m);
@@ -2801,7 +2808,7 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
     unsigned char *s = (unsigned char *)existingSE->string;
     for (size_t j = 0; j < newae->elements->dim; j++)
     {
-        unsigned value = newae->elements->tdata()[j]->toInteger();
+        unsigned value = (unsigned)(newae->elements->tdata()[j]->toInteger());
         switch (existingSE->sz)
         {
             case 1: s[j+firstIndex] = value; break;
@@ -3431,7 +3438,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
 
         // Set the index to modify (for non-AAs), and check that it is in range
-        int indexToModify = 0;
+        dinteger_t indexToModify = 0;
         if (ie->e1->type->toBasetype()->ty != Taarray)
         {
             indexToModify = index->toInteger();
@@ -3471,8 +3478,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             // The array could be an index of an AA. Resolve it if so.
             if (aggregate->op == TOKindex)
             {
-                IndexExp *ie = (IndexExp *)aggregate;
-                aggregate = Index(ie->type, ie->e1, ie->e2);
+                IndexExp *ix = (IndexExp *)aggregate;
+                aggregate = Index(ix->type, ix->e1, ix->e2);
             }
         }
         if (aggregate->op == TOKvar)
@@ -3486,11 +3493,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 {   // Assign to empty associative array
                     Expressions *valuesx = new Expressions();
                     Expressions *keysx = new Expressions();
-                    Expression *index = ie->e2->interpret(istate);
-                    if (index == EXP_CANT_INTERPRET)
+                    Expression *indx = ie->e2->interpret(istate);
+                    if (indx == EXP_CANT_INTERPRET)
                         return EXP_CANT_INTERPRET;
                     valuesx->push(newval);
-                    keysx->push(index);
+                    keysx->push(indx);
                     Expression *aae2 = new AssocArrayLiteralExp(loc, keysx, valuesx);
                     aae2->type = v->type;
                     newval = aae2;
@@ -3609,9 +3616,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
 
-        int dim = dollar;
-        int upperbound = upper ? upper->toInteger() : dim;
-        int lowerbound = lower ? lower->toInteger() : 0;
+        size_t dim = dollar;
+        size_t upperbound = upper ? upper->toInteger() : dim;
+        size_t lowerbound = lower ? lower->toInteger() : 0;
 
         if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
         {
@@ -3623,7 +3630,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             return newval;
 
         Expression *aggregate = resolveReferences(((SliceExp *)e1)->e1, istate->localThis);
-        int firstIndex = lowerbound;
+        dinteger_t firstIndex = lowerbound;
 
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
@@ -4210,7 +4217,6 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         if (e2 == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
         dinteger_t indx = e2->toInteger();
-        Expression *e;
         dinteger_t ofs;
         Expression *agg = getAggregateFromPointer(e1, &ofs);
         if (agg->op == TOKnull)
@@ -4687,7 +4693,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             {
                 if (ex->op == TOKstructliteral)
                 {   StructLiteralExp *se = (StructLiteralExp *)ex;
-                    unsigned offset = ae->e2->toInteger();
+                    dinteger_t offset = ae->e2->toInteger();
                     e = se->getField(type, offset);
                     if (!e)
                         e = EXP_CANT_INTERPRET;
@@ -4991,7 +4997,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 #if LOG
     printf("foreachApplyUtf(%s, %s)\n", str->toChars(), deleg->toChars());
 #endif
-    FuncDeclaration *fd;
+    FuncDeclaration *fd = NULL;
     Expression *pthis = NULL;
     if (deleg->op == TOKdelegate)
     {
@@ -5047,7 +5053,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
         {   // If it is an array literal, copy the code points into the buffer
             int buflen = 1; // #code points in the buffer
             size_t n = 1;   // #code points in this char
-            int sz = ale->type->nextOf()->size();
+            size_t sz = ale->type->nextOf()->size();
 
             switch(sz)
             {
@@ -5059,7 +5065,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                     while (indx > 0 && buflen < 4)
                     {   Expression * r = ale->elements->tdata()[indx];
                         assert(r->op == TOKint64);
-                        unsigned char x = ((IntegerExp *)r)->value;
+                        unsigned char x = (unsigned char)(((IntegerExp *)r)->value);
                         if ( (x & 0xC0) != 0x80)
                             break;
                         ++buflen;
@@ -5071,7 +5077,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                 {
                     Expression * r = ale->elements->tdata()[indx + i];
                     assert(r->op == TOKint64);
-                    utf8buf[i] = ((IntegerExp *)r)->value;
+                    utf8buf[i] = (unsigned char)(((IntegerExp *)r)->value);
                 }
                 n = 0;
                 errmsg = utf_decodeChar(&utf8buf[0], buflen, &n, &rawvalue);
@@ -5083,7 +5089,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                     buflen = 1;
                     Expression * r = ale->elements->tdata()[indx];
                     assert(r->op == TOKint64);
-                    unsigned short x = ((IntegerExp *)r)->value;
+                    unsigned short x = (unsigned short)(((IntegerExp *)r)->value);
                     if (indx > 0 && x >= 0xDC00 && x <= 0xDFFF)
                     {
                         --indx;
@@ -5096,7 +5102,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                 {
                     Expression * r = ale->elements->tdata()[indx + i];
                     assert(r->op == TOKint64);
-                    utf16buf[i] = ((IntegerExp *)r)->value;
+                    utf16buf[i] = (unsigned short)(((IntegerExp *)r)->value);
                 }
                 n = 0;
                 errmsg = utf_decodeWchar(&utf16buf[0], buflen, &n, &rawvalue);
@@ -5253,13 +5259,16 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
         enum BUILTIN b = fd->isBuiltin();
         if (b)
         {   Expressions args;
-            args.setDim(arguments->dim);
+            args.setDim(nargs);
             for (size_t i = 0; i < args.dim; i++)
             {
                 Expression *earg = arguments->tdata()[i];
                 earg = earg->interpret(istate);
                 if (earg == EXP_CANT_INTERPRET)
-                    return earg;
+                {
+                    *result = EXP_CANT_INTERPRET;
+                    return true;
+                }
                 args.tdata()[i] = earg;
             }
             e = eval_builtin(b, &args);
