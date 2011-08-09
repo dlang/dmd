@@ -76,13 +76,12 @@ void AggregateDeclaration::semantic2(Scope *sc)
 }
 
 void AggregateDeclaration::semantic3(Scope *sc)
-{   int i;
-
+{
     //printf("AggregateDeclaration::semantic3(%s)\n", toChars());
     if (members)
     {
         sc = sc->push(this);
-        for (i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)members->data[i];
             s->semantic3(sc);
@@ -92,12 +91,11 @@ void AggregateDeclaration::semantic3(Scope *sc)
 }
 
 void AggregateDeclaration::inlineScan()
-{   int i;
-
+{
     //printf("AggregateDeclaration::inlineScan(%s)\n", toChars());
     if (members)
     {
-        for (i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)members->data[i];
             //printf("inline scan aggregate symbol '%s'\n", s->toChars());
@@ -144,7 +142,7 @@ void AggregateDeclaration::alignmember(
     if (salign > 1)
     {
         assert(size != 3);
-        int sa = size;
+        unsigned sa = size;
         if (sa == 0 || salign < sa)
             sa = salign;
         *poffset = (*poffset + sa - 1) & ~(sa - 1);
@@ -260,7 +258,7 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
         firstFieldInUnion(firstIndex) == firstIndex)
         return 1;
     int count = 1;
-    for (int i = firstIndex+1; i < fields.dim; ++i)
+    for (size_t i = firstIndex+1; i < fields.dim; ++i)
     {
         VarDeclaration * v = (VarDeclaration *)fields.data[i];
         // If offsets are different, they are not in the same union
@@ -270,7 +268,6 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
     }
     return count;
 }
-
 
 /********************************* StructDeclaration ****************************/
 
@@ -355,7 +352,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (sizeok == 0)            // if not already done the addMember step
     {
-        for (int i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)members->data[i];
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
@@ -372,12 +369,12 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
 
-    int members_dim = members->dim;
+    size_t members_dim = members->dim;
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
      */
-    for (int i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members_dim; i++)
     {   Dsymbol *s = (Dsymbol *)members->data[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
@@ -389,7 +386,7 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    for (int i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
         s->semantic(sc2);
@@ -401,6 +398,10 @@ void StructDeclaration::semantic(Scope *sc)
 #endif
     }
 
+#if DMDV1
+    /* This doesn't work for DMDV2 because (ref S) and (S) parameter
+     * lists will overload the same.
+     */
     /* The TypeInfo_Struct is expecting an opEquals and opCmp with
      * a parameter that is a pointer to the struct. But if there
      * isn't one, but is an opEquals or opCmp with a value, write
@@ -458,6 +459,7 @@ void StructDeclaration::semantic(Scope *sc)
 
         id = Id::cmp;
     }
+#endif
 #if DMDV2
     /* Try to find the opEquals function. Build it if necessary.
      */
@@ -537,7 +539,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     // Determine if struct is all zeros or not
     zeroInit = 1;
-    for (int i = 0; i < fields.dim; i++)
+    for (size_t i = 0; i < fields.dim; i++)
     {
         Dsymbol *s = (Dsymbol *)fields.data[i];
         VarDeclaration *vd = s->isVarDeclaration();
@@ -593,8 +595,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 }
 
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{   int i;
-
+{
     buf->printf("%s ", kind());
     if (!isAnonymous())
         buf->writestring(toChars());
@@ -607,7 +608,7 @@ void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
     buf->writeByte('{');
     buf->writenl();
-    for (i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
 

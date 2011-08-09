@@ -52,7 +52,7 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
     {
         a = new Initializers();
         a->setDim(ai->dim);
-        for (int i = 0; i < a->dim; i++)
+        for (size_t i = 0; i < a->dim; i++)
         {   Initializer *e = (Initializer *)ai->data[i];
 
             e = e->syntaxCopy();
@@ -123,7 +123,7 @@ Initializer *StructInitializer::syntaxCopy()
     assert(field.dim == value.dim);
     ai->field.setDim(field.dim);
     ai->value.setDim(value.dim);
-    for (int i = 0; i < field.dim; i++)
+    for (size_t i = 0; i < field.dim; i++)
     {
         ai->field.data[i] = field.data[i];
 
@@ -154,7 +154,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
 
         TypeStruct *ts = (TypeStruct *)t;
         ad = ts->sym;
-        int nfields = ad->fields.dim;
+        size_t nfields = ad->fields.dim;
 #if DMDV2
         if (((StructDeclaration *)ad)->isnested)
             nfields--;          // don't count pointer to outer
@@ -244,7 +244,6 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
     return this;
 }
 
-
 /***************************************
  * This works by transforming a struct initializer into
  * a struct literal. In the future, the two should be the
@@ -262,18 +261,18 @@ Expression *StructInitializer::toExpression()
     if (!sd)
         return NULL;
     Expressions *elements = new Expressions();
-    int nfields = ad->fields.dim;
+    size_t nfields = ad->fields.dim;
 #if DMDV2
     if (sd->isnested)
        nfields--;
 #endif
     elements->setDim(nfields);
-    for (int i = 0; i < elements->dim; i++)
+    for (size_t i = 0; i < elements->dim; i++)
     {
         elements->data[i] = NULL;
     }
     unsigned fieldi = 0;
-    for (int i = 0; i < value.dim; i++)
+    for (size_t i = 0; i < value.dim; i++)
     {
         Identifier *id = (Identifier *)field.data[i];
         if (id)
@@ -317,7 +316,7 @@ Expression *StructInitializer::toExpression()
     }
     // Now, fill in any missing elements with default initializers.
     // We also need to validate any anonymous unions
-    for (int i = 0; i < elements->dim; )
+    for (size_t i = 0; i < elements->dim; )
     {
         VarDeclaration * vd = ((Dsymbol *)ad->fields.data[i])->isVarDeclaration();
         int unionSize = ad->numFieldsInUnion(i);
@@ -367,7 +366,7 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("StructInitializer::toCBuffer()\n");
     buf->writebyte('{');
-    for (int i = 0; i < field.dim; i++)
+    for (size_t i = 0; i < field.dim; i++)
     {
         if (i > 0)
             buf->writebyte(',');
@@ -403,7 +402,7 @@ Initializer *ArrayInitializer::syntaxCopy()
     assert(index.dim == value.dim);
     ai->index.setDim(index.dim);
     ai->value.setDim(value.dim);
-    for (int i = 0; i < ai->value.dim; i++)
+    for (size_t i = 0; i < ai->value.dim; i++)
     {   Expression *e = (Expression *)index.data[i];
         if (e)
             e = e->syntaxCopy();
@@ -495,7 +494,6 @@ Lerr:
 
 Expression *ArrayInitializer::toExpression()
 {   Expressions *elements;
-    Expression *e;
 
     //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
     //static int i; if (++i == 2) halt();
@@ -661,7 +659,7 @@ Laa:
 void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writebyte('[');
-    for (int i = 0; i < index.dim; i++)
+    for (size_t i = 0; i < index.dim; i++)
     {
         if (i > 0)
             buf->writebyte(',');

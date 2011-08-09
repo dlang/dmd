@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,11 +12,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <assert.h>
-#if _MSC_VER
-#include <complex>
-#else
-#include <complex.h>
-#endif
 #include <math.h>
 
 #include "rmem.h"
@@ -46,29 +41,31 @@
 
 /************************************************
  * Delegate to be passed to overloadApply() that looks
- * for virtual functions.
+ * for functions matching a trait.
  */
 
-struct Pvirtuals
+struct Ptrait
 {
     Expression *e1;
-    Expressions *exps;
+    Expressions *exps;          // collected results
+    Identifier *ident;          // which trait we're looking for
 };
 
-static int fpvirtuals(void *param, FuncDeclaration *f)
-{   Pvirtuals *p = (Pvirtuals *)param;
+static int fptraits(void *param, FuncDeclaration *f)
+{   Ptrait *p = (Ptrait *)param;
 
-    if (f->isVirtual())
-    {   Expression *e;
+    if (p->ident == Id::getVirtualFunctions && !f->isVirtual())
+        return 0;
 
-        if (p->e1->op == TOKdotvar)
-        {   DotVarExp *dve = (DotVarExp *)p->e1;
-            e = new DotVarExp(0, dve->e1, f);
-        }
-        else
-            e = new DsymbolExp(0, f);
-        p->exps->push(e);
+    Expression *e;
+
+    if (p->e1->op == TOKdotvar)
+    {   DotVarExp *dve = (DotVarExp *)p->e1;
+        e = new DotVarExp(0, dve->e1, f);
     }
+    else
+        e = new DsymbolExp(0, f);
+    p->exps->push(e);
     return 0;
 }
 
@@ -79,15 +76,17 @@ Expression *TraitsExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("TraitsExp::semantic() %s\n", toChars());
 #endif
-    if (ident != Id::compiles && ident != Id::isSame)
+    if (ident != Id::compiles && ident != Id::isSame &&
+        ident != Id::identifier)
+    {
         TemplateInstance::semanticTiargs(loc, sc, args, 1);
+    }
     size_t dim = args ? args->dim : 0;
-    Object *o;
-    FuncDeclaration *f;
+    Declaration *d;
 
 #define ISTYPE(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Type *t = getType((Object *)args->data[i]); \
+        {   Type *t = getType(args->tdata()[i]); \
             if (!t)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -99,7 +98,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
 #define ISDSYMBOL(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Dsymbol *s = getDsymbol((Object *)args->data[i]);   \
+        {   Dsymbol *s = getDsymbol(args->tdata()[i]);   \
             if (!s)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -149,24 +148,82 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
     else if (ident == Id::isAbstractFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isAbstract())
     }
     else if (ident == Id::isVirtualFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
     }
     else if (ident == Id::isFinalFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
     }
+#if DMDV2
+    else if (ident == Id::isStaticFunction)
+    {
+        FuncDeclaration *f;
+        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
+    }
+    else if (ident == Id::isRef)
+    {
+        ISDSYMBOL((d = s->isDeclaration()) != NULL && d->isRef())
+    }
+    else if (ident == Id::isOut)
+    {
+        ISDSYMBOL((d = s->isDeclaration()) != NULL && d->isOut())
+    }
+    else if (ident == Id::isLazy)
+    {
+        ISDSYMBOL((d = s->isDeclaration()) != NULL && d->storage_class & STClazy)
+    }
+    else if (ident == Id::identifier)
+    {   // Get identifier for symbol as a string literal
+
+        // Specify 0 for the flags argument to semanticTiargs() so that
+        // a symbol should not be folded to a constant.
+        TemplateInstance::semanticTiargs(loc, sc, args, 0);
+
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = args->tdata()[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s || !s->ident)
+        {
+            error("argument %s has no identifier", o->toChars());
+            goto Lfalse;
+        }
+        StringExp *se = new StringExp(loc, s->ident->toChars());
+        return se->semantic(sc);
+    }
+    else if (ident == Id::parent)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = args->tdata()[0];
+        Dsymbol *s = getDsymbol(o);
+        if (s)
+            s = s->toParent();
+        if (!s)
+        {
+            error("argument %s has no parent", o->toChars());
+            goto Lfalse;
+        }
+        return (new DsymbolExp(loc, s))->semantic(sc);
+    }
+
+#endif
     else if (ident == Id::hasMember ||
              ident == Id::getMember ||
+             ident == Id::getOverloads ||
              ident == Id::getVirtualFunctions)
     {
         if (dim != 2)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
-        Expression *e = isExpression((Object *)args->data[1]);
+        Object *o = args->tdata()[0];
+        Expression *e = isExpression(args->tdata()[1]);
         if (!e)
         {   error("expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
@@ -203,13 +260,10 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (ident == Id::hasMember)
         {   /* Take any errors as meaning it wasn't found
              */
-            unsigned errors = global.errors;
-            global.gag++;
-            e = e->semantic(sc);
-            global.gag--;
-            if (errors != global.errors)
-            {   if (global.gag == 0)
-                    global.errors = errors;
+            e = e->trySemantic(sc);
+            if (!e)
+            {   if (global.gag)
+                    global.errors++;
                 goto Lfalse;
             }
             else
@@ -220,7 +274,8 @@ Expression *TraitsExp::semantic(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
-        else if (ident == Id::getVirtualFunctions)
+        else if (ident == Id::getVirtualFunctions ||
+                 ident == Id::getOverloads)
         {
             unsigned errors = global.errors;
             Expression *ex = e;
@@ -228,7 +283,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             if (errors < global.errors)
                 error("%s cannot be resolved", ex->toChars());
 
-            /* Create tuple of virtual function overloads of e
+            /* Create tuple of functions of e
              */
             //e->dump(0);
             Expressions *exps = new Expressions();
@@ -243,10 +298,11 @@ Expression *TraitsExp::semantic(Scope *sc)
             }
             else
                 f = NULL;
-            Pvirtuals p;
+            Ptrait p;
             p.exps = exps;
             p.e1 = e;
-            overloadApply(f, fpvirtuals, &p);
+            p.ident = ident;
+            overloadApply(f, fptraits, &p);
 
             TupleExp *tup = new TupleExp(loc, exps);
             return tup->semantic(sc);
@@ -258,7 +314,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         ClassDeclaration *cd;
         if (!s || (cd = s->isClassDeclaration()) == NULL)
@@ -272,7 +328,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         ScopeDsymbol *sd;
         if (!s)
@@ -287,8 +343,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         Expressions *exps = new Expressions;
         while (1)
-        {   size_t dim = ScopeDsymbol::dim(sd->members);
-            for (size_t i = 0; i < dim; i++)
+        {   size_t sddim = ScopeDsymbol::dim(sd->members);
+            for (size_t i = 0; i < sddim; i++)
             {
                 Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
@@ -300,7 +356,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                     /* Skip if already present in exps[]
                      */
                     for (size_t j = 0; j < exps->dim; j++)
-                    {   StringExp *se2 = (StringExp *)exps->data[j];
+                    {   StringExp *se2 = (StringExp *)exps->tdata()[j];
                         if (strcmp(str, (char *)se2->string) == 0)
                             goto Lnext;
                     }
@@ -317,7 +373,16 @@ Expression *TraitsExp::semantic(Scope *sc)
             else
                 break;
         }
+#if DMDV1
         Expression *e = new ArrayLiteralExp(loc, exps);
+#endif
+#if DMDV2
+        /* Making this a tuple is more flexible, as it can be statically unrolled.
+         * To make an array literal, enclose __traits in [ ]:
+         *   [ __traits(allMembers, ...) ]
+         */
+        Expression *e = new TupleExp(loc, exps);
+#endif
         e = e->semantic(sc);
         return e;
     }
@@ -330,26 +395,29 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
 
         for (size_t i = 0; i < dim; i++)
-        {   Object *o = (Object *)args->data[i];
-            Type *t;
+        {   Object *o = args->tdata()[i];
             Expression *e;
-            Dsymbol *s;
 
             unsigned errors = global.errors;
             global.gag++;
 
-            t = isType(o);
+            Type *t = isType(o);
             if (t)
-            {   t->resolve(loc, sc, &e, &t, &s);
+            {   Dsymbol *s;
+                t->resolve(loc, sc, &e, &t, &s);
                 if (t)
                     t->semantic(loc, sc);
                 else if (e)
-                    e->semantic(sc);
+                {   e = e->semantic(sc);
+                    e = e->optimize(WANTvalue);
+                }
             }
             else
             {   e = isExpression(o);
                 if (e)
-                    e->semantic(sc);
+                {   e = e->semantic(sc);
+                    e = e->optimize(WANTvalue);
+                }
             }
 
             global.gag--;
@@ -367,11 +435,12 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (dim != 2)
             goto Ldimerror;
         TemplateInstance::semanticTiargs(loc, sc, args, 0);
-        Object *o1 = (Object *)args->data[0];
-        Object *o2 = (Object *)args->data[1];
+        Object *o1 = args->tdata()[0];
+        Object *o2 = args->tdata()[1];
         Dsymbol *s1 = getDsymbol(o1);
         Dsymbol *s2 = getDsymbol(o2);
 
+        //printf("isSame: %s, %s\n", o1->toChars(), o2->toChars());
 #if 0
         printf("o1: %p\n", o1);
         printf("o2: %p\n", o2);
@@ -390,8 +459,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (!s1 && !s2)
         {   Expression *ea1 = isExpression(o1);
             Expression *ea2 = isExpression(o2);
-            if (ea1 && ea2 && ea1->equals(ea2))
-                goto Ltrue;
+            if (ea1 && ea2)
+            {
+                if (ea1->equals(ea2))
+                    goto Ltrue;
+            }
         }
 
         if (!s1 || !s2)
@@ -411,10 +483,6 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
 
     return NULL;
-
-Lnottype:
-    error("%s is not a type", o->toChars());
-    goto Lfalse;
 
 Ldimerror:
     error("wrong number of arguments %d", dim);

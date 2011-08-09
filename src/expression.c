@@ -46,7 +46,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "doc.h"
 
 
-Expression *createTypeInfoArray(Scope *sc, Expression *args[], int dim);
+Expression *createTypeInfoArray(Scope *sc, Expression *args[], unsigned dim);
 Expression *expandVar(int result, VarDeclaration *v);
 
 #define LOGSEMANTIC     0

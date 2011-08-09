@@ -160,9 +160,7 @@ char Type::needThisPrefix()
 }
 
 void Type::init()
-{   int i;
-    int j;
-
+{
     Lexer::initKeywords();
 
     mangleChar[Tarray] = 'A';
@@ -213,7 +211,7 @@ void Type::init()
     mangleChar[Tslice] = '@';
     mangleChar[Treturn] = '@';
 
-    for (i = 0; i < TMAX; i++)
+    for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
             fprintf(stdmsg, "ty = %d\n", i);
         assert(mangleChar[i]);
@@ -228,7 +226,7 @@ void Type::init()
           Tbool,
           Tascii, Twchar, Tdchar };
 
-    for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
+    for (size_t i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
         basic[basetab[i]] = new TypeBasic(basetab[i]);
     basic[Terror] = new TypeError();
 
@@ -1351,7 +1349,7 @@ Lfvalue:
         cvalue.re = fvalue;
         cvalue.im = fvalue;
 #endif
-        //for (int i = 0; i < 20; i++)
+        //for (size_t i = 0; i < 20; i++)
         //    printf("%02x ", ((unsigned char *)&cvalue)[i]);
         //printf("\n");
         e = new ComplexExp(loc, cvalue, this);
@@ -2851,7 +2849,7 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     }
     if (td)
     {   buf->writeByte('(');
-        for (int i = 0; i < td->origParameters->dim; i++)
+        for (size_t i = 0; i < td->origParameters->dim; i++)
         {
             TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
             if (i)
@@ -3285,7 +3283,7 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 {
     //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t->toChars(), toChars());
     idents.setDim(t->idents.dim);
-    for (int i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {
         Identifier *id = (Identifier *)t->idents.data[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
@@ -3307,9 +3305,7 @@ void TypeQualified::addIdent(Identifier *ident)
 
 void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 {
-    int i;
-
-    for (i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {   Identifier *id = (Identifier *)idents.data[i];
 
         buf->writeByte('.');
@@ -3343,7 +3339,6 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         Expression **pe, Type **pt, Dsymbol **ps)
 {
     Identifier *id = NULL;
-    int i;
     VarDeclaration *v;
     EnumMember *em;
     TupleDeclaration *td;
@@ -3364,7 +3359,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         s->checkDeprecated(loc, sc);            // check for deprecated aliases
         s = s->toAlias();
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-        for (i = 0; i < idents.dim; i++)
+        for (size_t i = 0; i < idents.dim; i++)
         {   Dsymbol *sm;
 
             id = (Identifier *)idents.data[i];
@@ -3619,7 +3614,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     Dsymbol *s = sc->search(loc, ident, &scopesym);
     if (s)
     {
-        for (int i = 0; i < idents.dim; i++)
+        for (size_t i = 0; i < idents.dim; i++)
         {
             Identifier *id = (Identifier *)idents.data[i];
             s = s->searchX(loc, sc, id);
@@ -3677,7 +3672,7 @@ Type *TypeIdentifier::reliesOnTident()
 Expression *TypeIdentifier::toExpression()
 {
     Expression *e = new IdentifierExp(loc, ident);
-    for (int i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {
         Identifier *id = (Identifier *)idents.data[i];
         e = new DotIdExp(loc, e, id);
@@ -4511,8 +4506,7 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
-{   unsigned offset;
-
+{
     Expression *b;
     VarDeclaration *v;
     Dsymbol *s;
@@ -4837,9 +4831,7 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
-{   unsigned offset;
-
-    Expression *b;
+{
     VarDeclaration *v;
     Dsymbol *s;
     DotVarExp *de;
@@ -5526,23 +5518,20 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
 
     buf->writeByte('(');
     if (args)
-    {   int i;
-        OutBuffer argbuf;
+    {   OutBuffer argbuf;
         HdrGenState hgs;
 
-        for (i = 0; i < args->dim; i++)
-        {   Parameter *arg;
-
-            if (i)
+        for (size_t i = 0; i < args->dim; i++)
+        {   if (i)
                 buf->writeByte(',');
-            arg = (Parameter *)args->data[i];
+            Parameter *arg = (Parameter *)args->data[i];
             argbuf.reset();
             arg->type->toCBuffer2(&argbuf, &hgs, 0);
             buf->write(&argbuf);
         }
         if (varargs)
         {
-            if (i && varargs == 1)
+            if (args->dim && varargs == 1)
                 buf->writeByte(',');
             buf->writestring("...");
         }
@@ -5556,15 +5545,14 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 {
     buf->writeByte('(');
     if (arguments)
-    {   int i;
+    {
         OutBuffer argbuf;
 
-        for (i = 0; i < arguments->dim; i++)
-        {   Parameter *arg;
-
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
             if (i)
                 buf->writestring(", ");
-            arg = (Parameter *)arguments->data[i];
+            Parameter *arg = (Parameter *)arguments->data[i];
             if (arg->storageClass & STCout)
                 buf->writestring("out ");
             else if (arg->storageClass & STCref)
@@ -5583,7 +5571,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
         }
         if (varargs)
         {
-            if (i && varargs == 1)
+            if (arguments->dim && varargs == 1)
                 buf->writeByte(',');
             buf->writestring("...");
         }

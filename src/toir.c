@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -483,7 +483,7 @@ int intrinsic_op(char *name)
 #ifdef DEBUG
     assert(sizeof(namearray) == sizeof(namearray64));
     assert(sizeof(namearray) / sizeof(char *) == sizeof(ioptab));
-    for (int i = 0; i < sizeof(namearray) / sizeof(char *) - 1; i++)
+    for (size_t i = 0; i < sizeof(namearray) / sizeof(char *) - 1; i++)
     {
         if (strcmp(namearray[i], namearray[i + 1]) >= 0)
         {
@@ -492,7 +492,7 @@ int intrinsic_op(char *name)
         }
     }
     assert(sizeof(namearray64) / sizeof(char *) == sizeof(ioptab));
-    for (int i = 0; i < sizeof(namearray64) / sizeof(char *) - 1; i++)
+    for (size_t i = 0; i < sizeof(namearray64) / sizeof(char *) - 1; i++)
     {
         if (strcmp(namearray64[i], namearray64[i + 1]) >= 0)
         {
@@ -608,7 +608,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
         irs->sclosure = sclosure;
 
         unsigned offset = PTRSIZE;      // leave room for previous sthis
-        for (int i = 0; i < closureVars.dim; i++)
+        for (size_t i = 0; i < closureVars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
             assert(v->isVarDeclaration());
 
@@ -688,7 +688,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
         e = el_combine(e, ex);
 
         // Copy function parameters into closure
-        for (int i = 0; i < closureVars.dim; i++)
+        for (size_t i = 0; i < closureVars.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)closureVars.data[i];
 
             if (!v->isParameter())

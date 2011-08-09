@@ -530,7 +530,6 @@ void Parser::composeStorageClass(StorageClass stc)
 Array *Parser::parseBlock()
 {
     Array *a = NULL;
-    Dsymbol *s;
 
     //printf("parseBlock()\n");
     switch (token.value)
@@ -749,8 +748,6 @@ Condition *Parser::parseVersionCondition()
 Condition *Parser::parseStaticIfCondition()
 {   Expression *exp;
     Condition *condition;
-    Array *aif;
-    Array *aelse;
     Loc loc = this->loc;
 
     nextToken();
@@ -2906,7 +2903,7 @@ Statement *Parser::parseStatement(int flags)
             {
                 Statements *as = new Statements();
                 as->reserve(a->dim);
-                for (int i = 0; i < a->dim; i++)
+                for (size_t i = 0; i < a->dim; i++)
                 {
                     Dsymbol *d = (Dsymbol *)a->data[i];
                     s = new ExpStatement(loc, d);
@@ -3318,7 +3315,7 @@ Statement *Parser::parseStatement(int flags)
             s = new ScopeStatement(loc, s);
 
             // Keep cases in order by building the case statements backwards
-            for (int i = cases.dim; i; i--)
+            for (size_t i = cases.dim; i; i--)
             {
                 exp = (Expression *)cases.data[i - 1];
                 s = new CaseStatement(loc, exp, s);
@@ -3709,8 +3706,6 @@ int Parser::isBasicType(Token **pt)
 {
     // This code parallels parseBasicType()
     Token *t = *pt;
-    Token *t2;
-    int parens;
 
     switch (t->value)
     {
@@ -4360,7 +4355,6 @@ Expression *Parser::parsePrimaryExp()
 
         case BASIC_TYPES_X(t):
             nextToken();
-        L1:
             check(TOKdot, t->toChars());
             if (token.value != TOKidentifier)
             {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
@@ -5475,7 +5469,7 @@ enum PREC precedence[TOKMAX];
 
 void initPrecedence()
 {
-    for (int i = 0; i < TOKMAX; i++)
+    for (size_t i = 0; i < TOKMAX; i++)
         precedence[i] = PREC_zero;
 
     precedence[TOKtype] = PREC_expr;

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -314,14 +314,12 @@ type *TypeDelegate::toCtype()
 
 
 type *TypeStruct::toCtype()
-{   type *t;
-    Symbol *s;
-
+{
     if (ctype)
         return ctype;
 
     //printf("TypeStruct::toCtype() '%s'\n", sym->toChars());
-    s = symbol_calloc(sym->toPrettyChars());
+    Symbol *s = symbol_calloc(sym->toPrettyChars());
     s->Sclass = SCstruct;
     s->Sstruct = struct_calloc();
     s->Sstruct->Sflags |= 0;
@@ -332,7 +330,7 @@ type *TypeStruct::toCtype()
     if (sym->isUnionDeclaration())
         s->Sstruct->Sflags |= STRunion;
 
-    t = type_alloc(TYstruct);
+    type *t = type_alloc(TYstruct);
     t->Ttag = (Classsym *)s;            // structure tag name
     t->Tcount++;
     s->Stype = t;
@@ -387,7 +385,7 @@ type *TypeClass::toCtype()
     s->Sstruct->Sstructsize = sym->structsize;
 
     t = type_alloc(TYstruct);
-    t->Ttag = (Classsym *)s;                // structure tag name
+    t->Ttag = (Classsym *)s;            // structure tag name
     t->Tcount++;
     s->Stype = t;
     slist_add(s);
@@ -401,7 +399,7 @@ type *TypeClass::toCtype()
      * (after setting ctype to avoid infinite recursion)
      */
     if (global.params.symdebug)
-        for (int i = 0; i < sym->fields.dim; i++)
+        for (size_t i = 0; i < sym->fields.dim; i++)
         {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
 
             Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());

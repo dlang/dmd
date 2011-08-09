@@ -37,11 +37,9 @@ extern int os_critsecsize64();
 Statement::Statement(Loc loc)
     : loc(loc)
 {
-#ifdef _DH
     // If this is an in{} contract scope statement (skip for determining
     //  inlineStatus of a function body for header content)
     incontract = 0;
-#endif
 }
 
 Statement *Statement::syntaxCopy()
@@ -491,7 +489,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Statement *body;
                         Statements *a = new Statements();
 
-                        for (int j = i + 1; j < statements->dim; j++)
+                        for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push((*statements)[j]);
                         }
@@ -532,7 +530,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Statement *body;
                         Statements *a = new Statements();
 
-                        for (int j = i + 1; j < statements->dim; j++)
+                        for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push((*statements)[j]);
                         }
@@ -564,7 +562,7 @@ ReturnStatement *CompoundStatement::isReturnStatement()
 {
     ReturnStatement *rs = NULL;
 
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (*statements)[i];
         if (s)
         {
@@ -578,7 +576,7 @@ ReturnStatement *CompoundStatement::isReturnStatement()
 
 void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *) statements->data[i];
         if (s)
             s->toCBuffer(buf, hgs);
@@ -587,7 +585,7 @@ void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 int CompoundStatement::usesEH()
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *) statements->data[i];
         if (s && s->usesEH())
             return TRUE;
@@ -624,7 +622,7 @@ int CompoundStatement::comeFrom()
 {   int comefrom = FALSE;
 
     //printf("CompoundStatement::comeFrom()\n");
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *)statements->data[i];
 
         if (!s)
@@ -637,7 +635,7 @@ int CompoundStatement::comeFrom()
 
 int CompoundStatement::isEmpty()
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *) statements->data[i];
         if (s && !s->isEmpty())
             return FALSE;
@@ -671,7 +669,7 @@ Statement *CompoundDeclarationStatement::syntaxCopy()
 void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     int nwritten = 0;
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (Statement *) statements->data[i];
         ExpStatement *ds;
         if (s &&
@@ -1530,8 +1528,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
             if (!key)
             {
-                Identifier *id = Lexer::uniqueId("__key");
-                key = new VarDeclaration(loc, Type::tsize_t, id, NULL);
+                Identifier *idkey = Lexer::uniqueId("__key");
+                key = new VarDeclaration(loc, Type::tsize_t, idkey, NULL);
             }
             if (op == TOKforeach_reverse)
                 key->init = new ExpInitializer(loc, tmp_length);
@@ -1882,7 +1880,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 a->push(s);
 
                 // cases 2...
-                for (int i = 0; i < cases->dim; i++)
+                for (size_t i = 0; i < cases->dim; i++)
                 {
                     s = (Statement *)cases->data[i];
                     s = new CaseStatement(0, new IntegerExp(i + 2), s);
@@ -1949,7 +1947,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
     buf->writestring(" (");
-    for (int i = 0; i < arguments->dim; i++)
+    for (size_t i = 0; i < arguments->dim; i++)
     {
         Parameter *a = (Parameter *)arguments->data[i];
         if (i)
@@ -2004,7 +2002,6 @@ Statement *ForeachRangeStatement::syntaxCopy()
 Statement *ForeachRangeStatement::semantic(Scope *sc)
 {
     //printf("ForeachRangeStatement::semantic() %p\n", this);
-    ScopeDsymbol *sym;
     Statement *s = this;
 
     lwr = lwr->semantic(sc);
@@ -2657,7 +2654,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     sc->noctor--;
 
     // Resolve any goto case's with exp
-    for (int i = 0; i < gotoCases.dim; i++)
+    for (size_t i = 0; i < gotoCases.dim; i++)
     {
         GotoCaseStatement *gcs = (GotoCaseStatement *)gotoCases.data[i];
 
@@ -2671,7 +2668,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         {
             if (!scx->sw)
                 continue;
-            for (int j = 0; j < scx->sw->cases->dim; j++)
+            for (size_t j = 0; j < scx->sw->cases->dim; j++)
             {
                 CaseStatement *cs = (CaseStatement *)scx->sw->cases->data[j];
 
@@ -2831,7 +2828,7 @@ Statement *CaseStatement::semantic(Scope *sc)
             exp = new IntegerExp(0);
         }
 
-        for (int i = 0; i < sw->cases->dim; i++)
+        for (size_t i = 0; i < sw->cases->dim; i++)
         {
             CaseStatement *cs = (CaseStatement *)sw->cases->data[i];
 
@@ -3881,7 +3878,7 @@ Statement *TryCatchStatement::syntaxCopy()
 {
     Array *a = new Array();
     a->setDim(catches->dim);
-    for (int i = 0; i < a->dim; i++)
+    for (size_t i = 0; i < a->dim; i++)
     {   Catch *c;
 
         c = (Catch *)catches->data[i];
@@ -4280,7 +4277,7 @@ Statements *VolatileStatement::flatten(Scope *sc)
 
     a = statement ? statement->flatten(sc) : NULL;
     if (a)
-    {   for (int i = 0; i < a->dim; i++)
+    {   for (size_t i = 0; i < a->dim; i++)
         {   Statement *s = (Statement *)a->data[i];
 
             s = new VolatileStatement(loc, s);

@@ -467,8 +467,15 @@ code *asm_genloc(Loc loc, code *c);
 int asm_getnum();
 
 STATIC void asmerr(const char *, ...);
+
+#if __clang__
+STATIC void asmerr(int, ...) __attribute__((analyzer_noreturn));
+#else
 STATIC void asmerr(int, ...);
+#if __DMC__
 #pragma SC noreturn(asmerr)
+#endif
+#endif
 
 STATIC OPND *asm_equal_exp();
 STATIC OPND *asm_inc_or_exp();
@@ -2129,7 +2136,7 @@ ILLEGAL_ADDRESS_ERROR:
  */
 
 STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
-{   Type *ptype;
+{
     VarDeclaration *v;
     EnumMember *em;
 
@@ -2232,7 +2239,9 @@ STATIC void asm_make_modrm_byte(
     SIB_BYTE    sib = { 0 };
     char                bSib = FALSE;
     char                bDisp = FALSE;
+#ifdef DEBUG
     unsigned char       *puc;
+#endif
     char                bModset = FALSE;
     Dsymbol             *s;
 
@@ -3202,7 +3211,6 @@ STATIC unsigned asm_type_size(Type * ptype)
 STATIC code *asm_da_parse(OP *pop)
 {
     code *clst = NULL;
-    elem *e;
 
     while (1)
     {   code *c;
@@ -3699,7 +3707,6 @@ STATIC OPND *asm_rel_exp()
 STATIC OPND *asm_shift_exp()
 {
     OPND *o1,*o2;
-    int op;
     enum TOK tk;
 
     o1 = asm_add_exp();
@@ -3844,7 +3851,6 @@ STATIC OPND *asm_mul_exp()
 STATIC OPND *asm_br_exp()
 {
     OPND *o1,*o2;
-    Declaration *s;
 
     //printf("asm_br_exp()\n");
     o1 = asm_una_exp();
@@ -3884,9 +3890,7 @@ STATIC OPND *asm_br_exp()
 STATIC OPND *asm_una_exp()
 {
         OPND *o1;
-        int op;
         Type *ptype;
-        Type *ptypeSpec;
         ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
         char bPtr = 0;
 
@@ -4034,7 +4038,6 @@ TYPE_REF:
                     bPtr = 1;
                     asm_token();
                     asm_chktok((enum TOK) ASMTKptr, EM_ptr_exp);
-CAST_REF:
                     o1 = asm_cond_exp();
                     if (!o1)
                         o1 = opnd_calloc();
@@ -4056,11 +4059,9 @@ STATIC OPND *asm_primary_exp()
 {
         OPND *o1 = NULL;
         OPND *o2 = NULL;
-        Type *ptype;
         Dsymbol *s;
         Dsymbol *scopesym;
 
-        enum TOK tkOld;
         REG *regp;
 
         switch (tok_value)
@@ -4077,7 +4078,6 @@ STATIC OPND *asm_primary_exp()
 #endif
             case TOKthis:
             case TOKidentifier:
-            case_ident:
                 o1 = opnd_calloc();
                 regp = asm_reg_lookup(asmtok->ident->toChars());
                 if (regp != NULL)
@@ -4394,9 +4394,7 @@ Statement *AsmStatement::semantic(Scope *sc)
     PTRNTAB ptb;
     unsigned usNumops;
     unsigned char uchPrefix = 0;
-    unsigned char bAsmseen;
     char *pszLabel = NULL;
-    code *c;
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);

@@ -51,4 +51,6 @@ typedef ArrayBase<struct Initializer> Initializers;
 typedef ArrayBase<struct VarDeclaration> VarDeclarations;
 typedef ArrayBase<struct CaseStatement> CaseStatements;
 
+typedef ArrayBase<struct Symbol> Symbols;
+
 #endif

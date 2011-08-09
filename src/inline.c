@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -135,7 +135,7 @@ int arrayInlineCost(InlineCostState *ics, Array *arguments)
 
     if (arguments)
     {
-        for (int i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {   Expression *e = (Expression *)arguments->data[i];
 
             if (e)
@@ -455,7 +455,7 @@ Expressions *arrayExpressiondoInline(Expressions *a, InlineDoState *ids)
         newa = new Expressions();
         newa->setDim(a->dim);
 
-        for (int i = 0; i < a->dim; i++)
+        for (size_t i = 0; i < a->dim; i++)
         {   Expression *e = (Expression *)a->data[i];
 
             if (e)
@@ -474,10 +474,8 @@ Expression *Expression::doInline(InlineDoState *ids)
 
 Expression *SymOffExp::doInline(InlineDoState *ids)
 {
-    int i;
-
     //printf("SymOffExp::doInline(%s)\n", toChars());
-    for (i = 0; i < ids->from.dim; i++)
+    for (size_t i = 0; i < ids->from.dim; i++)
     {
         if (var == (Declaration *)ids->from.data[i])
         {
@@ -492,10 +490,8 @@ Expression *SymOffExp::doInline(InlineDoState *ids)
 
 Expression *VarExp::doInline(InlineDoState *ids)
 {
-    int i;
-
     //printf("VarExp::doInline(%s)\n", toChars());
-    for (i = 0; i < ids->from.dim; i++)
+    for (size_t i = 0; i < ids->from.dim; i++)
     {
         if (var == (Declaration *)ids->from.data[i])
         {
@@ -903,7 +899,7 @@ Statement *SwitchStatement::inlineScan(InlineScanState *iss)
         sdefault = (DefaultStatement *)sdefault->inlineScan(iss);
     if (cases)
     {
-        for (int i = 0; i < cases->dim; i++)
+        for (size_t i = 0; i < cases->dim; i++)
         {   Statement *s;
 
             s = (Statement *) cases->data[i];
@@ -969,7 +965,7 @@ Statement *TryCatchStatement::inlineScan(InlineScanState *iss)
         body = body->inlineScan(iss);
     if (catches)
     {
-        for (int i = 0; i < catches->dim; i++)
+        for (size_t i = 0; i < catches->dim; i++)
         {   Catch *c = (Catch *)catches->data[i];
 
             if (c->handler)
@@ -1019,7 +1015,7 @@ void arrayInlineScan(InlineScanState *iss, Array *arguments)
 {
     if (arguments)
     {
-        for (int i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {   Expression *e = (Expression *)arguments->data[i];
 
             if (e)
@@ -1346,7 +1342,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
      */
     if (parameters)
     {
-        for (int i = 0; i < parameters->dim; i++)
+        for (size_t i = 0; i < parameters->dim; i++)
         {
             VarDeclaration *v = (VarDeclaration *)parameters->data[i];
             if (/*v->isOut() || v->isRef() ||*/ v->type->toBasetype()->ty == Tsarray)
@@ -1369,7 +1365,6 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     if (!hdrscan)    // Don't scan recursively for header content scan
         inlineScan();
 
-Lyes:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
         inlineStatus = ILSyes;
 #if CANINLINE_LOG
@@ -1460,7 +1455,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
     {
         assert(parameters->dim == arguments->dim);
 
-        for (int i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {
             VarDeclaration *vfrom = (VarDeclaration *)parameters->data[i];
             VarDeclaration *vto;
@@ -1504,6 +1499,7 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
 //eb->type->print();
 //eb->print();
 //eb->dump(0);
+
     e = Expression::combine(e, eb);
 
     /* There's a problem if what the function returns is used subsequently as an

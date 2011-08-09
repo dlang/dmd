@@ -854,7 +854,7 @@ void LabelStatement::toIR(IRState *irs)
          */
         if (fwdrefs)
         {
-            for (int i = 0; i < fwdrefs->dim; i++)
+            for (size_t i = 0; i < fwdrefs->dim; i++)
             {   block *b = (block *)fwdrefs->data[i];
 
                 if (b->Btry != lblock->Btry)
@@ -1466,7 +1466,7 @@ void TryCatchStatement::toIR(IRState *irs)
     block_next(blx,BCgoto,NULL);
 
     assert(catches);
-    for (int i = 0 ; i < catches->dim; i++)
+    for (size_t i = 0 ; i < catches->dim; i++)
     {
         Catch *cs = (Catch *)(catches->data[i]);
         if (cs->var)

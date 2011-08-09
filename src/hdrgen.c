@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // Initial header generation implementation by Dave Fladebo
 // http://www.digitalmars.com
@@ -9,8 +9,6 @@
 // See the included readme.txt for details.
 
 // Routines to emit header files
-
-#ifdef _DH
 
 #define PRETTY_PRINT
 #define TEST_EMIT_ALL  0        // For Testing
@@ -85,7 +83,7 @@ void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
     }
 
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (Dsymbol *)members->data[i];
 
         s->toHBuffer(buf, hgs);
@@ -100,5 +98,3 @@ void Dsymbol::toHBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 
 /*************************************/
-
-#endif // #ifdef _DH
