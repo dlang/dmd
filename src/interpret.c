@@ -2060,8 +2060,14 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         if (lenExpr == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
         size_t len = (size_t)(lenExpr->toInteger());
+        Type *elemType = ((TypeArray *)newtype)->next;
+        if (elemType->ty == Tchar || elemType->ty == Twchar
+            || elemType->ty == Tdchar)
+            return createBlockDuplicatedStringLiteral(newtype,
+                (unsigned)(elemType->defaultInitLiteral()->toInteger()),
+                len, elemType->size());
         return createBlockDuplicatedArrayLiteral(newtype,
-            ((TypeArray *)newtype)->next->defaultInitLiteral(),
+            elemType->defaultInitLiteral(),
             len);
     }
     if (newtype->toBasetype()->ty == Tstruct)
