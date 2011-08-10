@@ -96,7 +96,7 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
                 inc = 1;
             else
             {   if (!mod->debugidsNot)
-                    mod->debugidsNot = new Array();
+                    mod->debugidsNot = new Strings();
                 mod->debugidsNot->push(ident->toChars());
             }
         }
@@ -193,7 +193,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
             else
             {
                 if (!mod->versionidsNot)
-                    mod->versionidsNot = new Array();
+                    mod->versionidsNot = new Strings();
                 mod->versionidsNot->push(ident->toChars());
             }
         }

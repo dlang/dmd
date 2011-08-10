@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -38,7 +38,7 @@ struct Package : ScopeDsymbol
     Package(Identifier *ident);
     const char *kind();
 
-    static DsymbolTable *resolve(Array *packages, Dsymbol **pparent, Package **ppkg);
+    static DsymbolTable *resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg);
 
     Package *isPackage() { return this; }
 
@@ -49,8 +49,8 @@ struct Module : Package
 {
     static Module *rootModule;
     static DsymbolTable *modules;       // symbol table of all modules
-    static Array amodules;              // array of all modules
-    static Array deferred;      // deferred Dsymbol's needing semantic() run on them
+    static Modules amodules;            // array of all modules
+    static Dsymbols deferred;   // deferred Dsymbol's needing semantic() run on them
     static unsigned dprogress;  // progress resolving the deferred list
     static void init();
 
@@ -90,19 +90,19 @@ struct Module : Package
                                 // i.e. a module that will be taken all the
                                 // way to an object file
 
-    Array *decldefs;            // top level declarations for this Module
+    Dsymbols *decldefs;         // top level declarations for this Module
 
-    Array aimports;             // all imported modules
+    Modules aimports;             // all imported modules
 
     ModuleInfoDeclaration *vmoduleinfo;
 
     unsigned debuglevel;        // debug level
-    Array *debugids;            // debug identifiers
-    Array *debugidsNot;         // forward referenced debug identifiers
+    Strings *debugids;      // debug identifiers
+    Strings *debugidsNot;       // forward referenced debug identifiers
 
     unsigned versionlevel;      // version level
-    Array *versionids;          // version identifiers
-    Array *versionidsNot;       // forward referenced version identifiers
+    Strings *versionids;    // version identifiers
+    Strings *versionidsNot;     // forward referenced version identifiers
 
     Macro *macrotable;          // document comment macros
     Escape *escapetable;        // document comment escapes
@@ -111,7 +111,7 @@ struct Module : Package
     Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     ~Module();
 
-    static Module *load(Loc loc, Array *packages, Identifier *ident);
+    static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJsonBuffer(OutBuffer *buf);
@@ -129,9 +129,7 @@ struct Module : Package
     void semantic3();   // pass 3 semantic analysis
     void inlineScan();  // scan for functions to inline
     void setHdrfile();  // set hdrfile member
-#ifdef _DH
     void genhdrfile();  // generate D import file
-#endif
     void genobjfile(int multiobj);
     void gensymfile();
     void gendocfile();
@@ -181,10 +179,10 @@ struct Module : Package
 struct ModuleDeclaration
 {
     Identifier *id;
-    Array *packages;            // array of Identifier's representing packages
+    Identifiers *packages;            // array of Identifier's representing packages
     bool safe;
 
-    ModuleDeclaration(Array *packages, Identifier *id);
+    ModuleDeclaration(Identifiers *packages, Identifier *id);
 
     char *toChars();
 };

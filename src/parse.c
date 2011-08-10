@@ -1651,7 +1651,7 @@ Import *Parser::parseImport(Array *decldefs, int isstatic)
 {   Import *s;
     Identifier *id;
     Identifier *aliasid = NULL;
-    Array *a;
+    Identifiers *a;
     Loc loc;
 
     //printf("Parser::parseImport()\n");
@@ -1676,7 +1676,7 @@ Import *Parser::parseImport(Array *decldefs, int isstatic)
         while (token.value == TOKdot)
         {
             if (!a)
-                a = new Array();
+                a = new Identifiers();
             a->push(id);
             nextToken();
             if (token.value != TOKidentifier)

@@ -51,6 +51,7 @@ typedef ArrayBase<struct Initializer> Initializers;
 typedef ArrayBase<struct VarDeclaration> VarDeclarations;
 
 typedef ArrayBase<struct ScopeDsymbol> ScopeDsymbols;
+typedef ArrayBase<struct Module> Modules;
 typedef ArrayBase<struct CaseStatement> CaseStatements;
 typedef ArrayBase<struct TemplateInstance> TemplateInstances;
 

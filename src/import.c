@@ -25,7 +25,7 @@
 
 /********************************* Import ****************************/
 
-Import::Import(Loc loc, Array *packages, Identifier *id, Identifier *aliasId,
+Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
         int isstatic)
     : Dsymbol(id)
 {
