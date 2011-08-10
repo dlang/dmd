@@ -667,7 +667,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     IRState irs(m, func);
-    Array deferToObj;                   // write these to OBJ file later
+    Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
 
     TypeFunction *tf;
@@ -742,7 +742,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             }
             params[pi + i] = v->toSymbol();
         }
-        pi += i;
+        pi += parameters->dim;
     }
 
     if (reverse)

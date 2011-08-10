@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -20,8 +20,8 @@ struct Identifier;
 struct Symbol;
 struct FuncDeclaration;
 struct Blockx;
-struct Array;
 struct elem;
+#include "arraytypes.h"
 
 struct IRState
 {
@@ -33,7 +33,7 @@ struct IRState
     Symbol *shidden;            // hidden parameter to function
     Symbol *sthis;              // 'this' parameter to function (member and nested)
     Blockx *blx;
-    Array *deferToObj;          // array of Dsymbol's to run toObjFile() on later
+    Dsymbols *deferToObj;       // array of Dsymbol's to run toObjFile(int multiobj) on later
     elem *ehidden;              // transmit hidden pointer to CallExp::toElem()
 
     block *breakBlock;
