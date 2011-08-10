@@ -3969,6 +3969,11 @@ StructDeclaration *TypeAArray::getImpl()
 
         // Create AssociativeArray!(index, next)
 #if 1
+        if (! Type::associativearray)
+        {
+            error(0, "AssociativeArray not found. object.d may be incorrectly installed or corrupt.");
+            fatal();
+        }
         TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
 #else
         //Expression *e = new IdentifierExp(loc, Id::object);
