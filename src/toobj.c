@@ -544,7 +544,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
     ClassDeclaration *cd;
-    Array bvtbl;
+    FuncDeclarations bvtbl;
 
     for (cd = this->baseClass; cd; cd = cd->baseClass)
     {

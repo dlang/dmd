@@ -211,7 +211,7 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     cd->storage_class |= storage_class;
 
     cd->baseclasses->setDim(this->baseclasses->dim);
-    for (int i = 0; i < cd->baseclasses->dim; i++)
+    for (size_t i = 0; i < cd->baseclasses->dim; i++)
     {
         BaseClass *b = (BaseClass *)this->baseclasses->data[i];
         BaseClass *b2 = new BaseClass(b->type->syntaxCopy(), b->protection);
@@ -223,9 +223,7 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 void ClassDeclaration::semantic(Scope *sc)
-{   int i;
-    unsigned offset;
-
+{
     //printf("ClassDeclaration::semantic(%s), type = %p, sizeok = %d, this = %p\n", toChars(), type, sizeok, this);
     //printf("\tparent = %p, '%s'\n", sc->parent, sc->parent ? sc->parent->toChars() : "");
     //printf("sc->stc = %x\n", sc->stc);
@@ -276,7 +274,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     // Expand any tuples in baseclasses[]
-    for (i = 0; i < baseclasses->dim; )
+    for (size_t i = 0; i < baseclasses->dim; )
     {   BaseClass *b = (BaseClass *)baseclasses->data[i];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
@@ -366,7 +364,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     // Treat the remaining entries in baseclasses as interfaces
     // Check for errors, handle forward references
-    for (i = (baseClass ? 1 : 0); i < baseclasses->dim; )
+    for (size_t i = (baseClass ? 1 : 0); i < baseclasses->dim; )
     {   TypeClass *tc;
         BaseClass *b;
         Type *tb;
@@ -488,7 +486,7 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         interfaceSemantic(sc);
 
-        for (i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)members->data[i];
             s->addMember(sc, this, 1);
@@ -534,9 +532,9 @@ void ClassDeclaration::semantic(Scope *sc)
                     if (ad)
                         t = ad->handle;
                     else if (fd)
-                    {   AggregateDeclaration *ad = fd->isMember2();
-                        if (ad)
-                            t = ad->handle;
+                    {   AggregateDeclaration *ad2 = fd->isMember2();
+                        if (ad2)
+                            t = ad2->handle;
                         else
                         {
                             t = new TypePointer(Type::tvoid);
@@ -592,13 +590,13 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     structsize = sc->offset;
     Scope scsave = *sc;
-    int members_dim = members->dim;
+    size_t members_dim = members->dim;
     sizeok = 0;
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
      */
-    for (i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members_dim; i++)
     {   Dsymbol *s = (Dsymbol *)members->data[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
@@ -610,7 +608,7 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 
-    for (i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members_dim; i++)
     {   Dsymbol *s = (Dsymbol *)members->data[i];
         s->semantic(sc);
     }
@@ -686,7 +684,7 @@ void ClassDeclaration::semantic(Scope *sc)
 #endif
 
     // Allocate instance of each new interface
-    for (i = 0; i < vtblInterfaces->dim; i++)
+    for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
         BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
         unsigned thissize = PTRSIZE;
@@ -735,7 +733,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (baseclasses->dim)
             buf->writestring(" : ");
     }
-    for (int i = 0; i < baseclasses->dim; i++)
+    for (size_t i = 0; i < baseclasses->dim; i++)
     {
         BaseClass *b = (BaseClass *)baseclasses->data[i];
 
@@ -749,7 +747,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
         buf->writeByte('{');
         buf->writenl();
-        for (int i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (Dsymbol *)members->data[i];
 
@@ -785,7 +783,7 @@ int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
     if (!cd)
         return 0;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
-    for (int i = 0; i < cd->baseclasses->dim; i++)
+    for (size_t i = 0; i < cd->baseclasses->dim; i++)
     {   BaseClass *b = (BaseClass *)cd->baseclasses->data[i];
 
         if (b->base == this || isBaseOf2(b->base))
@@ -831,7 +829,7 @@ int ClassDeclaration::isBaseInfoComplete()
 {
     if (!baseClass)
         return ident == Id::Object;
-    for (int i = 0; i < baseclasses->dim; i++)
+    for (size_t i = 0; i < baseclasses->dim; i++)
     {   BaseClass *b = (BaseClass *)baseclasses->data[i];
         if (!b->base || !b->base->isBaseInfoComplete())
             return 0;
@@ -863,9 +861,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     {
         // Search bases classes in depth-first, left to right order
 
-        int i;
-
-        for (i = 0; i < baseclasses->dim; i++)
+        for (size_t i = 0; i < baseclasses->dim; i++)
         {
             BaseClass *b = (BaseClass *)baseclasses->data[i];
 
@@ -1001,7 +997,7 @@ int ClassDeclaration::isAbstract()
 {
     if (isabstract)
         return TRUE;
-    for (int i = 1; i < vtbl.dim; i++)
+    for (size_t i = 1; i < vtbl.dim; i++)
     {
         FuncDeclaration *fd = ((Dsymbol *)vtbl.data[i])->isFuncDeclaration();
 
@@ -1078,8 +1074,7 @@ Dsymbol *InterfaceDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 void InterfaceDeclaration::semantic(Scope *sc)
-{   int i;
-
+{
     //printf("InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
     if (inuse)
         return;
@@ -1116,7 +1111,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     // Expand any tuples in baseclasses[]
-    for (i = 0; i < baseclasses->dim; )
+    for (size_t i = 0; i < baseclasses->dim; )
     {   BaseClass *b = (BaseClass *)baseclasses->data[0];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
@@ -1137,7 +1132,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     }
 
     // Check for errors, handle forward references
-    for (i = 0; i < baseclasses->dim; )
+    for (size_t i = 0; i < baseclasses->dim; )
     {   TypeClass *tc;
         BaseClass *b;
         Type *tb;
@@ -1200,11 +1195,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
         vtbl.push(this);                // leave room at vtbl[0] for classinfo
 
     // Cat together the vtbl[]'s from base interfaces
-    for (i = 0; i < interfaces_dim; i++)
+    for (size_t i = 0; i < interfaces_dim; i++)
     {   BaseClass *b = interfaces[i];
 
         // Skip if b has already appeared
-        for (int k = 0; k < i; k++)
+        for (size_t k = 0; k < i; k++)
         {
             if (b == interfaces[k])
                 goto Lcontinue;
@@ -1212,12 +1207,12 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         // Copy vtbl[] from base class
         if (b->base->vtblOffset())
-        {   int d = b->base->vtbl.dim;
+        {   size_t d = b->base->vtbl.dim;
             if (d > 1)
             {
                 vtbl.reserve(d - 1);
-                for (int j = 1; j < d; j++)
-                    vtbl.push(b->base->vtbl.data[j]);
+                for (size_t j = 1; j < d; j++)
+                    vtbl.push((Dsymbol *)b->base->vtbl.data[j]);
             }
         }
         else
@@ -1229,7 +1224,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         ;
     }
 
-    for (i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
         s->addMember(sc, this, 1);
@@ -1243,7 +1238,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
     inuse++;
-    for (i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (Dsymbol *)members->data[i];
         s->semantic(sc);
@@ -1338,7 +1333,7 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 int InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
-    for (int i = 0; i < baseclasses->dim; i++)
+    for (size_t i = 0; i < baseclasses->dim; i++)
     {   BaseClass *b = (BaseClass *)baseclasses->data[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
             return 0;
@@ -1411,10 +1406,9 @@ BaseClass::BaseClass(Type *type, enum PROT protection)
  *      by base classes)
  */
 
-int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
+int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance)
 {
     ClassDeclaration *id = base;
-    int j;
     int result = 0;
 
     //printf("BaseClass::fillVtbl(this='%s', cd='%s')\n", base->toChars(), cd->toChars());
@@ -1422,7 +1416,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance)
         vtbl->setDim(base->vtbl.dim);
 
     // first entry is ClassInfo reference
-    for (j = base->vtblOffset(); j < base->vtbl.dim; j++)
+    for (size_t j = base->vtblOffset(); j < base->vtbl.dim; j++)
     {
         FuncDeclaration *ifd = ((Dsymbol *)base->vtbl.data[j])->isFuncDeclaration();
         FuncDeclaration *fd;

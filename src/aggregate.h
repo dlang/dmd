@@ -126,6 +126,7 @@ struct StructDeclaration : AggregateDeclaration
 #if DMDV2
     int hasIdentityAssign;      // !=0 if has identity opAssign
     FuncDeclaration *cpctor;    // generated copy-constructor, if any
+    FuncDeclaration *eq;        // bool opEquals(ref const T), if any
 
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
@@ -174,7 +175,7 @@ struct BaseClass
 
     ClassDeclaration *base;
     int offset;                         // 'this' pointer offset
-    Array vtbl;                         // for interfaces: Array of FuncDeclaration's
+    FuncDeclarations vtbl;              // for interfaces: Array of FuncDeclaration's
                                         // making up the vtbl[]
 
     size_t baseInterfaces_dim;
@@ -184,7 +185,7 @@ struct BaseClass
     BaseClass();
     BaseClass(Type *type, enum PROT protection);
 
-    int fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance);
+    int fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
     void copyBaseInterfaces(BaseClasses *);
 };
 
@@ -207,8 +208,8 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;
-    Array vtbl;                         // Array of FuncDeclaration's making up the vtbl[]
-    Array vtblFinal;                    // More FuncDeclaration's that aren't in vtbl[]
+    Dsymbols vtbl;                      // Array of FuncDeclaration's making up the vtbl[]
+    Dsymbols vtblFinal;                 // More FuncDeclaration's that aren't in vtbl[]
 
     BaseClasses *baseclasses;           // Array of BaseClass's; first is super,
                                         // rest are Interface's
