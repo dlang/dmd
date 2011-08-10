@@ -1788,6 +1788,15 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     return e;
 }
 
+/******************************************
+ */
+
+void ObjectNotFound(Identifier *id)
+{
+    Type::error(0, "%s not found. object.d may be incorrectly installed or corrupt.", id->toChars());
+    fatal();
+}
+
 
 /********************************* ClassInfoDeclaration ****************************/
 
@@ -1857,8 +1866,7 @@ TypeInfoConstDeclaration::TypeInfoConstDeclaration(Type *tinfo)
 {
     if (!Type::typeinfoconst)
     {
-        Type::error(0, "TypeInfo_Const not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Const);
     }
     type = Type::typeinfoconst->type;
 }
@@ -1872,8 +1880,7 @@ TypeInfoInvariantDeclaration::TypeInfoInvariantDeclaration(Type *tinfo)
 {
     if (!Type::typeinfoinvariant)
     {
-        Type::error(0, "TypeInfo_Invariant not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Invariant);
     }
     type = Type::typeinfoinvariant->type;
 }
@@ -1887,8 +1894,7 @@ TypeInfoSharedDeclaration::TypeInfoSharedDeclaration(Type *tinfo)
 {
     if (!Type::typeinfoshared)
     {
-        Type::error(0, "TypeInfo_Shared not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Shared);
     }
     type = Type::typeinfoshared->type;
 }
@@ -1902,8 +1908,7 @@ TypeInfoWildDeclaration::TypeInfoWildDeclaration(Type *tinfo)
 {
     if (!Type::typeinfowild)
     {
-        Type::error(0, "TypeInfo_Wild not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Wild);
     }
     type = Type::typeinfowild->type;
 }
@@ -1916,8 +1921,7 @@ TypeInfoStructDeclaration::TypeInfoStructDeclaration(Type *tinfo)
 {
     if (!Type::typeinfostruct)
     {
-        Type::error(0, "TypeInfo_Struct not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Struct);
     }
     type = Type::typeinfostruct->type;
 }
@@ -1929,8 +1933,7 @@ TypeInfoClassDeclaration::TypeInfoClassDeclaration(Type *tinfo)
 {
     if (!Type::typeinfoclass)
     {
-        Type::error(0, "TypeInfo_Class not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Class);
     }
     type = Type::typeinfoclass->type;
 }
@@ -1942,8 +1945,7 @@ TypeInfoInterfaceDeclaration::TypeInfoInterfaceDeclaration(Type *tinfo)
 {
     if (!Type::typeinfointerface)
     {
-        Type::error(0, "TypeInfo_Interface not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Interface);
     }
     type = Type::typeinfointerface->type;
 }
@@ -1955,8 +1957,7 @@ TypeInfoTypedefDeclaration::TypeInfoTypedefDeclaration(Type *tinfo)
 {
     if (!Type::typeinfotypedef)
     {
-        Type::error(0, "TypeInfo_Typedef not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Typedef);
     }
     type = Type::typeinfotypedef->type;
 }
@@ -1968,8 +1969,7 @@ TypeInfoPointerDeclaration::TypeInfoPointerDeclaration(Type *tinfo)
 {
     if (!Type::typeinfopointer)
     {
-        Type::error(0, "TypeInfo_Pointer not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Pointer);
     }
     type = Type::typeinfopointer->type;
 }
@@ -1981,8 +1981,7 @@ TypeInfoArrayDeclaration::TypeInfoArrayDeclaration(Type *tinfo)
 {
     if (!Type::typeinfoarray)
     {
-        Type::error(0, "TypeInfo_Array not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Array);
     }
     type = Type::typeinfoarray->type;
 }
@@ -1994,8 +1993,7 @@ TypeInfoStaticArrayDeclaration::TypeInfoStaticArrayDeclaration(Type *tinfo)
 {
     if (!Type::typeinfostaticarray)
     {
-        Type::error(0, "TypeInfo_StaticArray not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_StaticArray);
     }
     type = Type::typeinfostaticarray->type;
 }
@@ -2007,8 +2005,7 @@ TypeInfoAssociativeArrayDeclaration::TypeInfoAssociativeArrayDeclaration(Type *t
 {
     if (!Type::typeinfoassociativearray)
     {
-        Type::error(0, "TypeInfo_AssociativeArray not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_AssociativeArray);
     }
     type = Type::typeinfoassociativearray->type;
 }
@@ -2020,8 +2017,7 @@ TypeInfoEnumDeclaration::TypeInfoEnumDeclaration(Type *tinfo)
 {
     if (!Type::typeinfoenum)
     {
-        Type::error(0, "TypeInfo_Enum not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Enum);
     }
     type = Type::typeinfoenum->type;
 }
@@ -2033,8 +2029,7 @@ TypeInfoFunctionDeclaration::TypeInfoFunctionDeclaration(Type *tinfo)
 {
     if (!Type::typeinfofunction)
     {
-        Type::error(0, "TypeInfo_Function not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Function);
     }
     type = Type::typeinfofunction->type;
 }
@@ -2046,8 +2041,7 @@ TypeInfoDelegateDeclaration::TypeInfoDelegateDeclaration(Type *tinfo)
 {
     if (!Type::typeinfodelegate)
     {
-        Type::error(0, "TypeInfo_Delegate not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Delegate);
     }
     type = Type::typeinfodelegate->type;
 }
@@ -2059,8 +2053,7 @@ TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
 {
     if (!Type::typeinfotypelist)
     {
-        Type::error(0, "TypeInfo_Tuple not found. object.d may be incorrectly installed or corrupt.");
-        fatal();
+        ObjectNotFound(Id::TypeInfo_Tuple);
     }
     type = Type::typeinfotypelist->type;
 }

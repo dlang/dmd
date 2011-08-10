@@ -50,6 +50,7 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
+void ObjectNotFound(Identifier *id);
 
 
 #define LOGDOTEXP       0       // log ::dotExp()
@@ -3971,8 +3972,7 @@ StructDeclaration *TypeAArray::getImpl()
 #if 1
         if (! Type::associativearray)
         {
-            error(0, "AssociativeArray not found. object.d may be incorrectly installed or corrupt.");
-            fatal();
+            ObjectNotFound(Id::AssociativeArray);
         }
         TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
 #else
