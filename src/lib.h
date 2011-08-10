@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -23,11 +23,16 @@ struct ObjSymbol
     ObjModule *om;
 };
 
+#include "arraytypes.h"
+
+typedef ArrayBase<ObjModule> ObjModules;
+typedef ArrayBase<ObjSymbol> ObjSymbols;
+
 struct Library
 {
     File *libfile;
-    Array objmodules;   // ObjModule[]
-    Array objsymbols;   // ObjSymbol[]
+    ObjModules objmodules;   // ObjModule[]
+    ObjSymbols objsymbols;   // ObjSymbol[]
 
     StringTable tab;
 
