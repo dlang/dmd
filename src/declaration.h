@@ -518,7 +518,7 @@ enum BUILTIN { };
 
 struct FuncDeclaration : Declaration
 {
-    Array *fthrows;                     // Array of Type's of exceptions (not used)
+    Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statement *frequire;
     Statement *fensure;
     Statement *fbody;
