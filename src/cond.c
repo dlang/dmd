@@ -22,14 +22,15 @@
 #include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
+#include "arraytypes.h"
 
-int findCondition(Array *ids, Identifier *ident)
+int findCondition(Strings *ids, Identifier *ident)
 {
     if (ids)
     {
         for (size_t i = 0; i < ids->dim; i++)
         {
-            const char *id = (const char *)ids->data[i];
+            const char *id = (*ids)[i];
 
             if (strcmp(id, ident->toChars()) == 0)
                 return TRUE;
@@ -320,7 +321,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 
             TemplateParameters parameters;
             parameters.setDim(1);
-            parameters.data[0] = (void *)&tp;
+            parameters[0] = &tp;
 
             Objects dedtypes;
             dedtypes.setDim(1);
@@ -332,7 +333,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
             else
             {
                 inc = 1;
-                Type *tded = (Type *)dedtypes.data[0];
+                Type *tded = (Type *)dedtypes[0];
                 if (!tded)
                     tded = targ;
                 Dsymbol *s = new AliasDeclaration(loc, id, tded);

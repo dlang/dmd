@@ -26,7 +26,7 @@ struct FuncDeclaration;
 struct Identifier;
 struct Initializer;
 
-struct TemplateParameters : Array { };
+typedef ArrayBase<struct TemplateParameter> TemplateParameters;
 
 typedef ArrayBase<struct Expression> Expressions;
 
