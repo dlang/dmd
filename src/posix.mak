@@ -1,5 +1,7 @@
+# NOTE: need to validate solaris behavior
 ifeq (,$(TARGET))
     OS:=$(shell uname)
+    OSVER:=$(shell uname -r)
     ifeq (Darwin,$(OS))
         TARGET=OSX
     else
@@ -32,12 +34,15 @@ MODEL=32
 ifeq (OSX,$(TARGET))
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
     ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
-    SDK=/Developer/SDKs/MacOSX10.5.sdk
+    #SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
+    #SDK=/Developer/SDKs/MacOSX10.5.sdk
     #SDK=/Developer/SDKs/MacOSX10.6.sdk
-
+    SDK:=$(if $(filter 11.*, $(OSVER)), /Developer/SDKs/MacOSX10.5.sdk, /Developer/SDKs/MacOSX10.6.sdk)
     TARGET_CFLAGS=-isysroot ${SDK}
-    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
+    #-syslibroot is only passed to libtool, not ld.
+    #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
+    #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
+    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
 else
     LDFLAGS=-lm -lstdc++ -lpthread
 endif
