@@ -942,7 +942,7 @@ int main(int argc, char *argv[])
     }
 
     // Create Modules
-    Array modules;
+    Modules modules;
     modules.reserve(files.dim);
     int firstmodule = 1;
     for (size_t i = 0; i < files.dim; i++)
