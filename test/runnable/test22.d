@@ -596,7 +596,8 @@ void test27()
     string s = (int*function(int ...)[]).mangleof;
     printf("%.*s\n", s.length, s.ptr);
     assert((int*function(int ...)[]).mangleof == "APFiXPi");
-    assert(x.mangleof == "i");
+    assert(typeof(x).mangleof == "i");
+    assert(x.mangleof == "_D6test226test27FZv1xi");
 }
 
 /*************************************/

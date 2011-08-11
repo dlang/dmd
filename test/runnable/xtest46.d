@@ -3406,6 +3406,27 @@ void test6293() {
 }
 
 /***************************************************/
+// 2774
+
+int foo2774(int n){ return 0; }
+static assert(foo2774.mangleof == "_D7xtest467foo2774FiZi");
+
+class C2774
+{
+    int foo2774(){ return 0; }
+}
+static assert(C2774.foo2774.mangleof == "_D7xtest465C27747foo2774MFZi");
+
+template TFoo2774(T){}
+static assert(TFoo2774!int.mangleof == "7xtest4615__T8TFoo2774TiZ");
+
+void test2774()
+{
+    int foo2774(int n){ return 0; }
+    static assert(foo2774.mangleof == "_D7xtest468test2774FZv7foo2774MFiZi");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3578,6 +3599,7 @@ int main()
     test1471();
     test6335();
     test6228();
+    test2774();
 
     printf("Success\n");
     return 0;
