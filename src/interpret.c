@@ -3618,7 +3618,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
         size_t dim = dollar;
         size_t upperbound = upper ? upper->toInteger() : dim;
-        size_t lowerbound = lower ? lower->toInteger() : 0;
+        int lowerbound = lower ? lower->toInteger() : 0;
 
         if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
         {
