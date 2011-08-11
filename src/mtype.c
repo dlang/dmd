@@ -3338,7 +3338,6 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps)
 {
-    Identifier *id = NULL;
     VarDeclaration *v;
     EnumMember *em;
     TupleDeclaration *td;
@@ -3360,10 +3359,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         s = s->toAlias();
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         for (size_t i = 0; i < idents.dim; i++)
-        {   Dsymbol *sm;
-
-            id = (Identifier *)idents.data[i];
-            sm = s->searchX(loc, sc, id);
+        {
+            Identifier *id = idents[i];
+            Dsymbol *sm = s->searchX(loc, sc, id);
             //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
             //printf("getType = '%s'\n", s->getType()->toChars());
             if (!sm)
@@ -3381,12 +3379,12 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         goto Lerror;
                     goto L3;
                 }
-                else if (v && id == Id::stringof)
+                else if (v && (id == Id::stringof || id == Id::offsetof))
                 {
                     e = new DsymbolExp(loc, s);
                     do
                     {
-                        id = (Identifier *)idents.data[i];
+                        id = idents.tdata()[i];
                         e = new DotIdExp(loc, e, id);
                     } while (++i < idents.dim);
                     e = e->semantic(sc);
@@ -3412,7 +3410,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 L3:
                     for (; i < idents.dim; i++)
                     {
-                        id = (Identifier *)idents.data[i];
+                        id = idents.tdata()[i];
                         //printf("e: '%s', id: '%s', type = %p\n", e->toChars(), id->toChars(), e->type);
                         e = e->type->dotExp(sc, e, id);
                     }
