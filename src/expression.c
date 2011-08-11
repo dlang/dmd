@@ -5447,6 +5447,22 @@ Expression *DotIdExp::semantic(Scope *sc)
 
     UnaExp::semantic(sc);
 
+    if (ident == Id::mangleof)
+    {   // symbol.mangleof
+        Dsymbol *ds;
+        switch (e1->op)
+        {
+            case TOKimport: ds = ((ScopeExp *)e1)->sds;     goto L1;
+            case TOKvar:    ds = ((VarExp *)e1)->var;       goto L1;
+            case TOKdotvar: ds = ((DotVarExp *)e1)->var;    goto L1;
+        L1:
+                char* s = ds->mangle();
+                e = new StringExp(loc, s, strlen(s), 'c');
+                e = e->semantic(sc);
+                return e;
+        }
+    }
+
     if (e1->op == TOKdotexp)
     {
         DotExp *de = (DotExp *)e1;
