@@ -5571,7 +5571,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         goto Lerror;
                     goto L3;
                 }
-                else if (v && id == Id::stringof)
+                else if (v && (id == Id::stringof || id == Id::offsetof))
                 {
                     e = new DsymbolExp(loc, s, 0);
                     do

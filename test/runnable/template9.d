@@ -258,6 +258,18 @@ void test2246(){
 }
 
 /**********************************/
+// 1684
+
+template Test1684( uint memberOffset ){}
+
+class MyClass1684 {
+    int flags2;
+    mixin Test1684!(cast(uint)flags2.offsetof) t1; // compiles ok
+    mixin Test1684!(cast(int)flags2.offsetof)  t2; // compiles ok
+    mixin Test1684!(flags2.offsetof)           t3; // Error: no property 'offsetof' for type 'int'
+}
+
+/**********************************/
 
 int main()
 {
