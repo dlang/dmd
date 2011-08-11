@@ -512,7 +512,7 @@ struct TypeDelegate : Type
 struct TypeQualified : Type
 {
     Loc loc;
-    Array idents;       // array of Identifier's representing ident.ident.ident etc.
+    Identifiers idents;       // array of Identifier's representing ident.ident.ident etc.
 
     TypeQualified(TY ty, Loc loc);
     void syntaxCopyHelper(TypeQualified *t);
