@@ -2600,10 +2600,7 @@ version(unittest) unittest
 
 void clear(T)(ref T obj) if (is(T == struct))
 {
-    static if (is(typeof(obj.__dtor())))
-    {
-        obj.__dtor();
-    }
+    typeid(T).destroy( &obj );
     auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
     auto init = cast(ubyte[])typeid(T).init();
     if(init.ptr is null) // null ptr means initialize to 0s
@@ -2622,20 +2619,32 @@ version(unittest) unittest
        assert(a.s == "A");
    }
    {
-       static bool destroyed = false;
+       static int destroyed = 0;
+       struct C
+       {
+           string s = "C";
+           ~this()
+           {
+               destroyed ++;
+           }
+       }
+       
        struct B
        {
+           C c;
            string s = "B";
            ~this()
            {
-               destroyed = true;
+               destroyed ++;
            }
        }
        B a;
        a.s = "asd";
+       a.c.s = "jkl";
        clear(a);
-       assert(destroyed);
+       assert(destroyed == 2);
        assert(a.s == "B");
+       assert(a.c.s == "C" );
    }
 }
 
