@@ -544,9 +544,8 @@ struct REGSAVE
     code *save(code *c, int reg, unsigned *pidx);
     code *restore(code *c, int reg, unsigned idx);
 };
-
-extern REGSAVE regsave;
 }
+extern REGSAVE regsave;
 
 /*******************************
  * As we generate code, collect information about
