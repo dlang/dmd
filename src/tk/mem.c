@@ -755,10 +755,17 @@ void *mem_fmalloc(unsigned numbytes)
 {   void *p;
 
     //printf("fmalloc(%d)\n",numbytes);
+#ifdef __llvm__
+    // LLVM-GCC and Clang assume some types, notably elem (see DMD issue 6215),
+    // to be 16-byte aligned. Because we do not have any type information
+    // available here, we have to 16 byte-align everything.
+    numbytes = (numbytes + 0xF) & ~0xF;
+#else
     if (sizeof(size_t) == 2)
         numbytes = (numbytes + 1) & ~1;         /* word align   */
     else
         numbytes = (numbytes + 3) & ~3;         /* dword align  */
+#endif
 
     /* This ugly flow-of-control is so that the most common case
        drops straight through.
