@@ -311,17 +311,6 @@ void testilogb()
 
 /*************************************************/
 
-const real SQRT_PIx = 1.77245385090551602729816748334114518279754945612238L;
-
-void testtgamma()
-{
-    //writefln("%a\n%a", tgamma(0.5L), SQRT_PIx);
-version (Win32)	// off by last bit on linux
-    assert(tgamma(0.5L) == SQRT_PIx);
-}
-
-/*************************************************/
-
 enum ZX80 = sqrt(7.0f);
 enum ZX81 = sqrt(7.0);
 enum ZX82 = sqrt(7.0L);
@@ -443,7 +432,6 @@ int main()
     testlogb();
     testcbrt();
     testilogb();
-    testtgamma();
     testsqrt();
 
     test1();
