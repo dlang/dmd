@@ -755,7 +755,7 @@ void *mem_fmalloc(unsigned numbytes)
 {   void *p;
 
     //printf("fmalloc(%d)\n",numbytes);
-#ifdef __llvm__
+#if defined(__llvm__) && (defined(__GNUC__) || defined(__clang__))
     // LLVM-GCC and Clang assume some types, notably elem (see DMD issue 6215),
     // to be 16-byte aligned. Because we do not have any type information
     // available here, we have to 16 byte-align everything.
