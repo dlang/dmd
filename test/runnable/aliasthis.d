@@ -103,6 +103,7 @@ void test4()
 
 /**********************************************/
 
+<<<<<<< HEAD
 void test5()
 {
     static struct Double1 {
@@ -145,6 +146,29 @@ void test5188()
     S s;
     assert(s <= 20);
     assert(s != 14);
+=======
+struct Foo {
+  void opIndexAssign(int x, size_t i) {
+    val = x;
+  }
+  void opSliceAssign(int x, size_t a, size_t b) {
+    val = x;
+  }
+  int val;
+}
+
+struct Bar {
+   Foo foo;
+   alias foo this;
+}
+
+void test5() {
+   Bar b;
+   b[0] = 1;
+   assert(b.val == 1);
+   b[0 .. 1] = 2;
+   assert(b.val == 2);
+>>>>>>> 4223ede01a8485e2af28fa60a054085425f988c5
 }
 
 /**********************************************/
