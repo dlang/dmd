@@ -2694,6 +2694,14 @@ enum PURE FuncDeclaration::isPure()
     return purity;
 }
 
+enum PURE FuncDeclaration::isPureBypassingInference()
+{
+    if (flags & FUNCFLAGpurityInprocess)
+        return PUREfwdref;
+    else
+        return isPure();
+}
+
 /**************************************
  * The function is doing something impure,
  * so mark it as impure.
