@@ -233,7 +233,11 @@ int runLINK()
 
     const char *cc = getenv("CC");
     if (!cc)
+#if HAS_POSIX_SPAWN
         cc = "/usr/bin/gcc";
+#else
+        cc = "gcc";
+#endif
     argv.push((char *)cc);
     argv.insert(1, global.params.objfiles);
 
