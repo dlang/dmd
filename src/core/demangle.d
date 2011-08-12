@@ -800,13 +800,13 @@ private struct Demangle
                 debug(info) printf( "tok (%c)\n", tok() );
                 switch( tok() )
                 {
-                case 'X': // ArgClose (variadic T t,...) style)
-                    next();
-                    put( ", ..." );
-                    return;
-                case 'Y': // ArgClose (variadic T t...) style)
+                case 'X': // ArgClose (variadic T t...) style)
                     next();
                     put( "..." );
+                    return;
+                case 'Y': // ArgClose (variadic T t,...) style)
+                    next();
+                    put( ", ..." );
                     return;
                 case 'Z': // ArgClose (not variadic)
                     next();

@@ -1,3 +1,9 @@
+$(VERSION 055, mmm dd, 2011, =================================================,
+
+    $(RUNTIMEBUGSFIXED
+$(LI $(BUGZILLA 5967): Mangling of ArgClose for variadic function is swapped)
+    )
+)
 $(VERSION 054, mmm dd, 2011, =================================================,
 
     $(WHATSNEW
