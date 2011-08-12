@@ -25,6 +25,17 @@
 #include        <unistd.h>
 #endif
 
+#if linux || __APPLE__
+    #define HAS_POSIX_SPAWN 1
+    #include        <spawn.h>
+    #if __APPLE__
+        #include <crt_externs.h>
+        #define environ (*(_NSGetEnviron()))
+    #endif
+#else
+    #define HAS_POSIX_SPAWN 0
+#endif
+
 #include        "root.h"
 
 #include        "mars.h"
@@ -222,7 +233,7 @@ int runLINK()
 
     const char *cc = getenv("CC");
     if (!cc)
-        cc = "gcc";
+        cc = "/usr/bin/gcc";
     argv.push((char *)cc);
     argv.insert(1, global.params.objfiles);
 
@@ -377,6 +388,14 @@ int runLINK()
     }
 
     argv.push(NULL);
+#if HAS_POSIX_SPAWN
+    int spawn_err = posix_spawn(&childpid, argv.tdata()[0], NULL, NULL, argv.tdata(), environ);
+    if (spawn_err != 0)
+    {
+        perror(argv.tdata()[0]);
+        return -1;
+    }
+#else
     childpid = fork();
     if (childpid == 0)
     {
@@ -384,6 +403,12 @@ int runLINK()
         perror(argv.tdata()[0]);           // failed to execute
         return -1;
     }
+    else if (childpid == -1)
+    {
+        perror("Unable to fork");
+        return -1;
+    }
+#endif
 
     waitpid(childpid, &status, 0);
 
