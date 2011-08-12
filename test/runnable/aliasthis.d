@@ -145,7 +145,10 @@ void test5188()
     S s;
     assert(s <= 20);
     assert(s != 14);
-=======
+}
+
+/***********************************************/
+
 struct Foo {
   void opIndexAssign(int x, size_t i) {
     val = x;
@@ -161,7 +164,7 @@ struct Bar {
    alias foo this;
 }
 
-void test5() {
+void test6() {
    Bar b;
    b[0] = 1;
    assert(b.val == 1);
@@ -180,6 +183,7 @@ int main()
     test5();
     test4773();
     test5188();
+    test6();
 
     printf("Success\n");
     return 0;
