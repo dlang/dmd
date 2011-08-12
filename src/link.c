@@ -86,7 +86,7 @@ int runLINK()
     {
         if (i)
             cmdbuf.writeByte('+');
-        p = (char *)global.params.objfiles->data[i];
+        p = global.params.objfiles->tdata()[i];
         char *basename = FileName::removeExt(FileName::name(p));
         char *ext = FileName::ext(p);
         if (ext && !strchr(basename, '.'))
@@ -103,7 +103,7 @@ int runLINK()
     {   /* Generate exe file name from first obj name.
          * No need to add it to cmdbuf because the linker will default to it.
          */
-        char *n = (char *)global.params.objfiles->data[0];
+        char *n = global.params.objfiles->tdata()[0];
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, "exe");
         global.params.exefile = fn->toChars();
@@ -139,7 +139,7 @@ int runLINK()
     {
         if (i)
             cmdbuf.writeByte('+');
-        writeFilename(&cmdbuf, (char *) global.params.libfiles->data[i]);
+        writeFilename(&cmdbuf, global.params.libfiles->tdata()[i]);
     }
 
     if (global.params.deffile)
@@ -182,7 +182,7 @@ int runLINK()
     cmdbuf.writestring("/noi");
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {
-        cmdbuf.writestring((char *) global.params.linkswitches->data[i]);
+        cmdbuf.writestring(global.params.linkswitches->tdata()[i]);
     }
     cmdbuf.writeByte(';');
 
@@ -218,24 +218,24 @@ int runLINK()
     int status;
 
     // Build argv[]
-    Array argv;
+    Strings argv;
 
     const char *cc = getenv("CC");
     if (!cc)
         cc = "gcc";
-    argv.push((void *)cc);
+    argv.push((char *)cc);
     argv.insert(1, global.params.objfiles);
 
 #if __APPLE__
     // If we are on Mac OS X and linking a dynamic library,
     // add the "-dynamiclib" flag
     if (global.params.dll)
-        argv.push((void *) "-dynamiclib");
+        argv.push((char *) "-dynamiclib");
 #endif
 
     // None of that a.out stuff. Use explicit exe file name, or
     // generate one from name of first source file.
-    argv.push((void *)"-o");
+    argv.push((char *)"-o");
     if (global.params.exefile)
     {
         if (global.params.dll)
@@ -244,7 +244,7 @@ int runLINK()
     }
     else
     {   // Generate exe file name from first obj name
-        char *n = (char *)global.params.objfiles->data[0];
+        char *n = global.params.objfiles->tdata()[0];
         char *e;
         char *ex;
 
@@ -273,20 +273,20 @@ int runLINK()
     }
 
     if (global.params.symdebug)
-        argv.push((void *)"-g");
+        argv.push((char *)"-g");
 
     if (global.params.is64bit)
-        argv.push((void *)"-m64");
+        argv.push((char *)"-m64");
     else
-        argv.push((void *)"-m32");
+        argv.push((char *)"-m32");
 
     if (global.params.map || global.params.mapfile)
     {
-        argv.push((void *)"-Xlinker");
+        argv.push((char *)"-Xlinker");
 #if __APPLE__
-        argv.push((void *)"-map");
+        argv.push((char *)"-map");
 #else
-        argv.push((void *)"-Map");
+        argv.push((char *)"-Map");
 #endif
         if (!global.params.mapfile)
         {
@@ -301,7 +301,7 @@ int runLINK()
 
             global.params.mapfile = p;
         }
-        argv.push((void *)"-Xlinker");
+        argv.push((char *)"-Xlinker");
         argv.push(global.params.mapfile);
     }
 
@@ -317,16 +317,16 @@ int runLINK()
          * BUG: disabled because it causes exception handling to fail
          * because EH sections are "unreferenced" and elided
          */
-        argv.push((void *)"-Xlinker");
-        argv.push((void *)"--gc-sections");
+        argv.push((char *)"-Xlinker");
+        argv.push((char *)"--gc-sections");
     }
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
-    {   char *p = (char *)global.params.linkswitches->data[i];
+    {   char *p = global.params.linkswitches->tdata()[i];
         if (!p || !p[0] || !(p[0] == '-' && p[1] == 'l'))
             // Don't need -Xlinker if switch starts with -l
-            argv.push((void *)"-Xlinker");
-        argv.push((void *) p);
+            argv.push((char *)"-Xlinker");
+        argv.push(p);
     }
 
     /* Add each library, prefixing it with "-l".
@@ -338,17 +338,17 @@ int runLINK()
      *  4. standard libraries.
      */
     for (size_t i = 0; i < global.params.libfiles->dim; i++)
-    {   char *p = (char *)global.params.libfiles->data[i];
+    {   char *p = global.params.libfiles->tdata()[i];
         size_t plen = strlen(p);
         if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
-            argv.push((void *)p);
+            argv.push(p);
         else
         {
             char *s = (char *)mem.malloc(plen + 3);
             s[0] = '-';
             s[1] = 'l';
             memcpy(s + 2, p, plen + 1);
-            argv.push((void *)s);
+            argv.push(s);
         }
     }
 
@@ -361,17 +361,17 @@ int runLINK()
     char *buf = (char *)malloc(2 + strlen(libname) + 1);
     strcpy(buf, "-l");
     strcpy(buf + 2, libname);
-    argv.push((void *)buf);             // turns into /usr/lib/libphobos2.a
+    argv.push(buf);             // turns into /usr/lib/libphobos2.a
 
 //    argv.push((void *)"-ldruntime");
-    argv.push((void *)"-lpthread");
-    argv.push((void *)"-lm");
+    argv.push((char *)"-lpthread");
+    argv.push((char *)"-lm");
 
     if (!global.params.quiet || global.params.verbose)
     {
         // Print it
         for (size_t i = 0; i < argv.dim; i++)
-            printf("%s ", (char *)argv.data[i]);
+            printf("%s ", argv.tdata()[i]);
         printf("\n");
         fflush(stdout);
     }
@@ -380,8 +380,8 @@ int runLINK()
     childpid = fork();
     if (childpid == 0)
     {
-        execvp((char *)argv.data[0], (char **)argv.data);
-        perror((char *)argv.data[0]);           // failed to execute
+        execvp(argv.tdata()[0], argv.tdata());
+        perror(argv.tdata()[0]);           // failed to execute
         return -1;
     }
 
@@ -539,9 +539,9 @@ int runProgram()
     }
 
     // Build argv[]
-    Array argv;
+    Strings argv;
 
-    argv.push((void *)global.params.exefile);
+    argv.push(global.params.exefile);
     for (size_t i = 0; i < global.params.runargs_length; i++)
     {   char *a = global.params.runargs[i];
 
@@ -553,7 +553,7 @@ int runProgram()
             a = b;
         }
 #endif
-        argv.push((void *)a);
+        argv.push(a);
     }
     argv.push(NULL);
 
@@ -563,7 +563,7 @@ int runProgram()
         ex = FileName::combine(".", ex);
     else
         ex = global.params.exefile;
-    return spawnv(0,ex,(char **)argv.data);
+    return spawnv(0,ex,argv.tdata());
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     pid_t childpid;
     int status;
@@ -571,12 +571,12 @@ int runProgram()
     childpid = fork();
     if (childpid == 0)
     {
-        const char *fn = (const char *)argv.data[0];
+        char *fn = argv.tdata()[0];
         if (!FileName::absolute(fn))
         {   // Make it "./fn"
             fn = FileName::combine(".", fn);
         }
-        execv(fn, (char **)argv.data);
+        execv(fn, argv.tdata());
         perror(fn);             // failed to execute
         return -1;
     }
