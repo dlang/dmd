@@ -233,7 +233,7 @@ int runLINK()
 
     const char *cc = getenv("CC");
     if (!cc)
-        cc = "/usr/bin/gcc";
+        cc = "gcc";
     argv.push((char *)cc);
     argv.insert(1, global.params.objfiles);
 
@@ -389,7 +389,7 @@ int runLINK()
 
     argv.push(NULL);
 #if HAS_POSIX_SPAWN
-    int spawn_err = posix_spawn(&childpid, argv.tdata()[0], NULL, NULL, argv.tdata(), environ);
+    int spawn_err = posix_spawnp(&childpid, argv.tdata()[0], NULL, NULL, argv.tdata(), environ);
     if (spawn_err != 0)
     {
         perror(argv.tdata()[0]);
