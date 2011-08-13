@@ -7334,9 +7334,8 @@ Lagain:
                     sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
                 }
 
-                accessCheck(loc, sc, NULL, cd->baseClass->ctor->isDeclaration());
-
                 f = resolveFuncCall(sc, loc, cd->baseClass->ctor, NULL, NULL, arguments, 0);
+                accessCheck(loc, sc, NULL, f);
                 checkDeprecated(sc, f);
 #if DMDV2
                 checkPurity(sc, f);
