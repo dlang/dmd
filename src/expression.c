@@ -1506,11 +1506,12 @@ Expression *Expression::checkToPointer()
 Expression *Expression::addressOf(Scope *sc)
 {
     Expression *e;
+    Type *t = type;
 
     //printf("Expression::addressOf()\n");
     e = toLvalue(sc, NULL);
     e = new AddrExp(loc, e);
-    e->type = type->pointerTo();
+    e->type = t->pointerTo();
     return e;
 }
 
@@ -11691,10 +11692,7 @@ Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
     e = new PtrExp(loc, this, type);
 
     e1 = e1->addressOf(sc);
-    //e1 = e1->toLvalue(sc, NULL);
-
     e2 = e2->addressOf(sc);
-    //e2 = e2->toLvalue(sc, NULL);
 
     typeCombine(sc);
 
