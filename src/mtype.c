@@ -4099,11 +4099,18 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     else
 #endif
+    if (ident != Id::__sizeof &&
+        ident != Id::__xalignof &&
+        ident != Id::init &&
+        ident != Id::mangleof &&
+        ident != Id::stringof &&
+        ident != Id::offsetof)
     {
         e->type = getImpl()->type;
         e = e->type->dotExp(sc, e, ident);
-        //e = Type::dotExp(sc, e, ident);
     }
+    else
+        e = Type::dotExp(sc, e, ident);
     return e;
 }
 
