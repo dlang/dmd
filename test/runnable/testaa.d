@@ -813,7 +813,7 @@ void test36() {
     static assert(aa.sizeof != 0);
     static assert(aa.alignof != 0);
     static assert(is(typeof(aa.init) == int[int]));
-    static assert(aa.mangleof == "Hii");
+    static assert(aa.mangleof == "_D6testaa6test36FZv2aaHii");
     static assert(typeof(aa).stringof == "int[int]");
     static struct AA { int[int] aa; }
     static assert(AA.aa.offsetof == 0);
