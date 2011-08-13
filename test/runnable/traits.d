@@ -594,6 +594,18 @@ void test23()
 
 /********************************************************/
 
+template Foo2234(){ int x; }
+
+struct S2234a{ mixin Foo2234; }
+struct S2234b{ mixin Foo2234; mixin Foo2234; }
+struct S2234c{ alias Foo2234!() foo; }
+
+static assert([__traits(allMembers, S2234a)] == ["x"]);
+static assert([__traits(allMembers, S2234b)] == ["x"]);
+static assert([__traits(allMembers, S2234c)] == ["foo"]);
+
+/********************************************************/
+
 int main()
 {
     test1();

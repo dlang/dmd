@@ -347,6 +347,8 @@ Expression *TraitsExp::semantic(Scope *sc)
             for (size_t i = 0; i < sddim; i++)
             {
                 Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
+                if (!sm)
+                    break;
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
