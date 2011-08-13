@@ -3472,6 +3472,19 @@ void test2774()
 }
 
 /***************************************************/
+// 6220
+
+void test6220() {
+    struct Foobar { real x; real y; real z;};
+    switch("x") {
+        foreach(i,member; __traits(allMembers, Foobar)) {
+            case member : break;
+        }
+    default : break;
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3647,6 +3660,7 @@ int main()
     test6335();
     test6228();
     test2774();
+    test6220();
 
     printf("Success\n");
     return 0;
