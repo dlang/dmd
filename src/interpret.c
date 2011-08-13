@@ -2252,7 +2252,7 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
             return EXP_CANT_INTERPRET;
         return pointerArithmetic(loc, op, type, e1, e2);
     }
-    if (this->e2->type->ty == Tpointer && this->e1->type->ty == TOKint64 && op==TOKadd)
+    if (this->e2->type->ty == Tpointer && this->e1->type->isintegral() && op==TOKadd)
     {
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
         e1 = this->e1->interpret(istate);
