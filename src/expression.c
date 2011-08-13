@@ -6635,6 +6635,7 @@ Lagain:
                 }
 
                 f = f->overloadResolve(loc, NULL, arguments);
+                accessCheck(loc, sc, NULL, f);
                 checkDeprecated(sc, f);
 #if DMDV2
                 checkPurity(sc, f);
