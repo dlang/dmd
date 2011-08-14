@@ -15,7 +15,7 @@
     Copyright: Copyright 2010 - 2011
     License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:   Jonathan M Davis and Kato Shoichi
-    Source:    $(PHOBOSSRC std/_datetime.d)
+    Source:    $(DRUNTIMESRC core/_time.d)
  +/
 module core.time;
 
