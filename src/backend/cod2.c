@@ -4700,7 +4700,9 @@ code *cddctor(elem *e,regm_t *pretregs)
      */
     usednteh |= EHcleanup;
     if (config.exe == EX_NT)
-        usednteh |= NTEHcleanup;
+    {   usednteh |= NTEHcleanup | NTEH_try;
+        nteh_usevars();
+    }
     assert(*pretregs == 0);
     code cs;
     cs.Iop = ESCAPE | ESCdctor;
@@ -4736,7 +4738,9 @@ code *cdddtor(elem *e,regm_t *pretregs)
     */
     usednteh |= EHcleanup;
     if (config.exe == EX_NT)
-        usednteh |= NTEHcleanup;
+    {   usednteh |= NTEHcleanup | NTEH_try;
+        nteh_usevars();
+    }
 
     code cs;
     cs.Iop = ESCAPE | ESCddtor;

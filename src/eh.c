@@ -228,7 +228,7 @@ void except_fillInEHTable(symbol *s)
         int stackbuf[STACKINC];
         int *stack = stackbuf;
         int stackmax = STACKINC;
-        stack[0] = b->Bscope_index;
+        stack[0] = b->Btry ? b->Btry->Bscope_index : -1;
         int stacki = 1;
 
         unsigned boffset = b->Boffset;
@@ -258,7 +258,7 @@ void except_fillInEHTable(symbol *s)
                             foffset = eoffset;
                             code *cf = code_next(c2);
                             if (config.flags2 & CFG2seh)
-                            {   cf->IEV2.Vsize_t = scopeindex;
+                            {   cf->IEV2.Vsize_t = stack[stacki - 1];
                                 foffset += calccodsize(cf);
                                 cf = code_next(cf);
                             }

@@ -5120,6 +5120,10 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 
     if (edtors)
     {
+#if TARGET_WINDOS
+        Blockx *blx = irs->blx;
+        nteh_declarvars(blx);
+#endif
         /* Append edtors to er, while preserving the value of er
          */
         if (tybasic(er->Ety) == TYvoid)

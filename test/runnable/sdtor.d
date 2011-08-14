@@ -1673,6 +1673,39 @@ void test58()
 }
 
 /**********************************/
+// 6308
+
+struct C59
+{
+    void oops()
+    {
+        throw new Throwable("Oops!");
+    }
+
+    ~this()
+    {
+    }
+}
+
+void foo59()
+{
+    C59().oops();
+//    auto c = C(); c.oops();
+}
+
+
+void test59()
+{
+    int i = 0;
+    try
+	foo59();
+    catch (Throwable)
+    {   i = 1;
+    }
+    assert(i == 1);
+}
+
+/**********************************/
 
 int main()
 {
@@ -1734,6 +1767,7 @@ int main()
     test56();
     test57();
     test58();
+    test59();
 
     printf("Success\n");
     return 0;
