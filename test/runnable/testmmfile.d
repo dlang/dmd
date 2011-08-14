@@ -22,7 +22,7 @@ int main()
 	assert(p[2] == 'c');
     }
 
-    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.Read, 0, null);
+    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.read, 0, null);
 	string p;
 
 	assert(mmf[0] == 'a');
@@ -36,7 +36,7 @@ int main()
 
     remove(name);
 
-    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.ReadWriteNew, 4, null);
+    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.readWriteNew, 4, null);
 	char[] p;
 
 	p = cast(char[])mmf[];
@@ -51,7 +51,7 @@ int main()
 	assert(p[] == "1235");
     }
 
-    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.ReadWriteNew, 4, null);
+    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.readWriteNew, 4, null);
 	char[] p;
 
 	p = cast(char[])mmf[];
@@ -67,7 +67,7 @@ int main()
 	assert(p[] == "5675");
     }
 
-    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.ReadWrite, 4, null);
+    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.readWrite, 4, null);
 	char[] p;
 
 	p = cast(char[])mmf[];
@@ -84,7 +84,7 @@ int main()
 
     remove(name);
 
-    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.ReadWrite, 4, null);
+    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.readWrite, 4, null);
 	char[] p;
 
 	p = cast(char[])mmf[];
@@ -98,7 +98,7 @@ int main()
 	assert(p[] == "ab5d");
     }
 
-    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.ReadCopyOnWrite, 4, null);
+    {	scope MmFile mmf = new MmFile(name, MmFile.Mode.readCopyOnWrite, 4, null);
 	char[] p;
 
 	p = cast(char[])mmf[];
