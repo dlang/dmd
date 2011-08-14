@@ -2,6 +2,7 @@ $(VERSION 055, mmm dd, 2011, =================================================,
 
     $(RUNTIMEBUGSFIXED
 $(LI $(BUGZILLA 5967): Mangling of ArgClose for variadic function is swapped)
+$(LI $(BUGZILLA 6493): Source code for the doc of core.time points to std.datetime.)
     )
 )
 $(VERSION 054, mmm dd, 2011, =================================================,
