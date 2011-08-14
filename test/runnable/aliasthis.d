@@ -173,6 +173,23 @@ void test6() {
 }
 
 /**********************************************/
+// 2787
+
+struct Base2787
+{
+    int x;
+    void foo() { auto _ = x; }
+}
+
+struct Derived2787
+{
+    Base2787 _base;
+    alias _base this;
+    int y;
+    void bar() { auto _ = x; }
+}
+
+/**********************************************/
 
 int main()
 {
