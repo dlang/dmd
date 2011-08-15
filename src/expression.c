@@ -3894,6 +3894,14 @@ void ScopeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         sds->toCBuffer(buf, hgs);
     }
+    else if (hgs != NULL && hgs->ddoc)
+    {   // fixes bug 6491
+        Module *module = sds->isModule();
+        if (module)
+            buf->writestring(module->md->toChars());
+        else
+            buf->writestring(sds->toChars());
+    }
     else
     {
         buf->writestring(sds->kind());
