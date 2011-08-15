@@ -59,14 +59,14 @@ void test1()
 
 void test2()
 {
-    auto (n, m) = [1,2];
-    assert(n == 1);
-    assert(m == 2);
+    //auto (n, m) = [1,2];
+    //assert(n == 1);
+    //assert(m == 2);
 
-    int[2] sa = [1,2];
-    auto (x, y) = sa;
-    assert(x == 1);
-    assert(y == 2);
+    //int[2] sa = [1,2];
+    //auto (x, y) = sa;
+    //assert(x == 1);
+    //assert(y == 2);
 }
 
 /**********************************************/
@@ -130,8 +130,8 @@ void test5()
     (auto a2) = t[0..1];
     assert(a2 == 10);
 
-    auto (x1) = [10];
-    assert(x1 == 10);
+    //auto (x1) = [10];
+    //assert(x1 == 10);
 
     (auto x2) = tup(10);
     assert(x2 == 10);

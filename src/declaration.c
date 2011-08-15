@@ -1010,46 +1010,6 @@ void VarDeclaration::semantic(Scope *sc)
                     iexps->insert(pos, te->exps);
                     goto Lexpand1;
                 }
-                else if (e->op == TOKarrayliteral)
-                {
-                    ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-                    if (iexps->dim - 1 + ae->elements->dim > nelems)
-                        goto Lnomatch;
-
-                    iexps->remove(pos);
-                    iexps->insert(pos, ae->elements);
-                    goto Lexpand1;
-                }
-                else if (e->type->ty == Tsarray)
-                {
-                    TypeSArray *tsa = (TypeSArray *)e->type;
-                    uinteger_t length = tsa->dim->toInteger();
-                    if (iexps->dim - 1 + length > nelems)
-                        goto Lnomatch;
-
-                    Identifier *id = Lexer::uniqueId("__sarr");
-                    ExpInitializer *ei = new ExpInitializer(e->loc, e);
-                    VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
-                    v->storage_class = STCctfe | STCref | STCforeach;
-                    Expression *ve = new VarExp(loc, v);
-                    ve->type = e->type;
-
-                    exps = new Expressions();
-                    exps->setDim(length);
-                    for (size_t u = 0; u < length; u++)
-                    {
-                        Expression *e = new IndexExp(loc, ve, new IntegerExp(u));
-                        e->type = tsa->nextOf();
-                        exps->tdata()[u] = e;
-                    }
-                    Expression *e0 = exps->tdata()[0];
-                    exps->tdata()[0] = new CommaExp(loc, new DeclarationExp(loc, v), e0);
-                    exps->tdata()[0]->type = e0->type;
-
-                    iexps->remove(pos);
-                    iexps->insert(pos, exps);
-                    goto Lexpand1;
-                }
                 else if (isAliasThisTuple(e))
                 {
                     Identifier *id = Lexer::uniqueId("__tup");
