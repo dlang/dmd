@@ -1,8 +1,8 @@
 // PERMUTE_ARGS:
 
-import std.c.stdio;
-import std.string;
-import std.utf;
+import std.c.stdio : printf;
+import std.string : splitLines;
+import std.utf : toUTF16, toUTF32;
 
 /***********************************************/
 
@@ -106,7 +106,7 @@ void MDCHAR()
         tmp = tmp ~ s;
     }
 
-    foreach(s; splitlines(cast(string)tmp)) {
+    foreach(s; splitLines(cast(string)tmp)) {
         int lstart;
         foreach(int idx, char c; s) {
             if(c == '\n') {
