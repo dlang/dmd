@@ -167,6 +167,7 @@ void nteh_gentables()
 void nteh_declarvars(Blockx *bx)
 {   symbol *s;
 
+    //printf("nteh_declarvars()\n");
 #if MARS
     if (!(bx->funcsym->Sfunc->Fflags3 & Fnteh)) // if haven't already done it
     {   bx->funcsym->Sfunc->Fflags3 |= Fnteh;
