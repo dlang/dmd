@@ -7681,13 +7681,6 @@ Expression *CallExp::addDtorHook(Scope *sc)
         {   /* Type needs destruction, so declare a tmp
              * which the back end will recognize and call dtor on
              */
-            if (e1->op == TOKdotvar)
-            {
-                DotVarExp* dve = (DotVarExp*)e1;
-                if (dve->e1->isTemp() != NULL)
-                    goto Lnone;                 // already got a tmp
-            }
-
             Identifier *idtmp = Lexer::uniqueId("__tmpfordtor");
             VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(loc, this));
             tmp->storage_class |= STCctfe;
