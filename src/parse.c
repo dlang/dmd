@@ -233,6 +233,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKunion:
             case TOKclass:
             case TOKinterface:
+            case TOKlparen:
             Ldeclaration:
                 a = parseDeclarations(STCundefined, NULL);
                 decldefs->append(a);
@@ -424,8 +425,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     case TOKimmutable:
                     case TOKwild:
                         // If followed by a (, it is not a storage class
-                        if (peek(&token)->value == TOKlparen)
-                            break;
+                        Token *tk;
+                        if ((tk = peek(&token))->value == TOKlparen)
+                            if (skipParens(tk, &tk) && peek(tk)->value != TOKassign)
+                                break;
                         if (token.value == TOKconst)
                             stc = STCconst;
                         else if (token.value == TOKshared)
@@ -478,9 +481,23 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     continue;
                 }
 
-                /* Look for return type inference for template functions.
+                /* Look for multiple var initializers:
+                 *      storage_class ( identifier, ... ) = initializer;
                  */
                 Token *tk;
+                if (storageClass &&
+                    token.value == TOKlparen &&
+                    peekNext() != TOKrparen &&
+                    (tk = &token, skipParens(tk, &tk)) &&
+                    peek(tk)->value == TOKassign)
+                {
+                    a = parseMultiVarDeclaration(storageClass, comment);
+                    decldefs->append(a);
+                    continue;
+                }
+
+                /* Look for return type inference for template functions.
+                 */
                 if (token.value == TOKidentifier &&
                     (tk = peek(&token))->value == TOKlparen &&
                     skipParens(tk, &tk) &&
@@ -2833,6 +2850,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
     Loc loc = this->loc;
     Expressions *udas = NULL;
 
+    Token *tk;
+
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
         comment = token.blockComment;
@@ -2925,6 +2944,10 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
             tok = token.value;
             nextToken();
             break;
+        case TOKlparen:
+            if (peek(&token)->value != TOKrparen)
+                return parseMultiVarDeclaration(storage_class, comment);
+            break;
         default: break;
     }
 
@@ -2934,29 +2957,33 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
         switch (token.value)
         {
             case TOKconst:
-                if (peek(&token)->value == TOKlparen)
-                    break;              // const as type constructor
+                if ((tk = peek(&token))->value == TOKlparen)
+                    if (skipParens(tk, &tk) && peek(tk)->value != TOKassign)
+                        break;          // const as type constructor
                 stc = STCconst;         // const as storage class
                 goto L1;
 
             case TOKinvariant:
             case TOKimmutable:
-                if (peek(&token)->value == TOKlparen)
-                    break;
+                if ((tk = peek(&token))->value == TOKlparen)
+                    if (skipParens(tk, &tk) && peek(tk)->value != TOKassign)
+                        break;
                 if (token.value == TOKinvariant)
                     deprecation("use of 'invariant' rather than 'immutable' is deprecated");
                 stc = STCimmutable;
                 goto L1;
 
             case TOKshared:
-                if (peek(&token)->value == TOKlparen)
-                    break;
+                if ((tk = peek(&token))->value == TOKlparen)
+                    if (skipParens(tk, &tk) && peek(tk)->value != TOKassign)
+                        break;
                 stc = STCshared;
                 goto L1;
 
             case TOKwild:
-                if (peek(&token)->value == TOKlparen)
-                    break;
+                if ((tk = peek(&token))->value == TOKlparen)
+                    if (skipParens(tk, &tk) && peek(tk)->value != TOKassign)
+                        break;
                 stc = STCwild;
                 goto L1;
 
@@ -3078,10 +3105,26 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
         return parseAutoDeclarations(storage_class, comment);
     }
 
+    /* Look for multiple var declaration:
+     *  storage_class ( identifier, ... ) = initializer;
+     */
+    if (storage_class &&
+        token.value == TOKlparen &&
+        peekNext() != TOKrparen &&
+        (tk = &token, skipParens(tk, &tk)) &&
+        (peek(tk)->value == TOKassign))
+    {
+        if (udas)
+        {
+            // Need to improve this
+            error("user defined attributes not allowed for auto declarations");
+        }
+        return parseMultiVarDeclaration(storage_class, comment);
+    }
+
     /* Look for return type inference for template functions.
      */
     {
-    Token *tk;
     if (storage_class &&
         token.value == TOKidentifier &&
         (tk = peek(&token))->value == TOKlparen &&
@@ -3315,6 +3358,160 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char
         break;
     }
     return a;
+}
+#endif
+
+#if DMDV2
+Dsymbols *makeMultiVarDeclaration(Loc loc, Parameters *params, Initializer *init, int inStatements)
+{
+#if 0
+    for (size_t i = 0; i < params->dim; i++)
+    {
+        Parameter *prm = params->tdata()[i];
+        printf("prms[%d] = %s %s, stc = %llx\n", i,
+            (prm->type ? prm->type->toChars() : "(null)"),
+            prm->ident->toChars(),
+            prm->storageClass);
+    }
+    printf("init = %s\n", init->toChars());
+#endif
+
+    Dsymbols *a = new Dsymbols();
+
+    for (size_t i = 0; i < params->dim; i++)
+    {
+        Parameter *prm = params->tdata()[i];
+        if (!prm->type)
+            prm->type = Type::tnone;
+    }
+
+    Expression *ve;
+    if (inStatements)
+    {
+        TypeTuple *tt = new TypeTuple(params);
+        Identifier *id = Lexer::uniqueId("__tup");
+        VarDeclaration *v = new VarDeclaration(loc, tt, id, init);
+        a->push(v);
+
+        ve = new IdentifierExp(loc, id);
+    }
+    else
+        ve = init->toExpression();
+    assert(ve);
+
+    for (size_t i = 0; i < params->dim; i++)
+    {
+        Expressions *exps = new Expressions();
+        exps->push(new IntegerExp(i));
+        ExpInitializer *ei = new ExpInitializer(loc, new ArrayExp(loc, ve, exps));
+
+        Parameter *prm = params->tdata()[i];
+        VarDeclaration *v = new VarDeclaration(loc, NULL, prm->ident, ei);
+        v->storage_class |= prm->storageClass;
+        if (inStatements)
+            v->storage_class |= STCref | STCforeach;
+        a->push(v);
+    }
+
+    return a;
+}
+
+Dsymbols *Parser::parseMultiVarDeclaration(StorageClass storageClass, unsigned char *comment)
+{
+    //printf("parseMultiVarDeclaration, stc = %x\n", storageClass);
+
+    Parameters *prms = new Parameters();
+    Loc loc = this->loc;
+
+    // ( StorageClass TupleTypeList ) = Initializer ;
+    // StorageClasses ( TupleTypeList ) = Initializer ;
+    check(TOKlparen);
+    while (1)
+    {
+        if (token.value == TOKrparen)
+            break;
+
+        Identifier *ai = NULL;
+        Type *at;
+
+        StorageClass storage_class = storageClass;
+        StorageClass stc;
+        while (1)
+        {
+            switch (token.value)
+            {
+                case TOKconst:
+                    if (peek(&token)->value == TOKlparen)
+                        break;              // const as type constructor
+                    stc = STCconst;         // const as storage class
+                    goto L1;
+
+                case TOKinvariant:
+                case TOKimmutable:
+                    if (peek(&token)->value == TOKlparen)
+                        break;
+                    stc = STCimmutable;
+                    goto L1;
+
+                case TOKshared:
+                    if (peek(&token)->value == TOKlparen)
+                        break;
+                    stc = STCshared;
+                    goto L1;
+
+                case TOKwild:
+                    if (peek(&token)->value == TOKlparen)
+                        break;
+                    stc = STCwild;
+                    goto L1;
+
+            //  case TOKstatic:     stc = STCstatic;         goto L1;
+                case TOKauto:       stc = STCauto;           goto L1;
+                case TOKscope:      stc = STCscope;          goto L1;
+
+                L1:
+                    if (storage_class & stc)
+                        error("redundant storage class '%s'", token.toChars());
+                    storage_class = storage_class | stc;
+                    composeStorageClass(storage_class);
+                    nextToken();
+                    continue;
+
+                default:
+                    break;
+            }
+            break;
+        }
+
+        if (token.value == TOKidentifier)
+        {
+            Token *t = peek(&token);
+            if (t->value == TOKcomma || t->value == TOKrparen)
+            {   ai = token.ident;
+                at = NULL;              // infer argument type
+                nextToken();
+                goto Larg;
+            }
+        }
+        at = parseType(&ai);
+        if (!ai)
+            error("no identifier for declarator %s", at->toChars());
+      Larg:
+        Parameter *a = new Parameter(storage_class, at, ai, NULL);
+        prms->push(a);
+        if (token.value == TOKcomma)
+            nextToken();
+    }
+    check(TOKrparen);
+    check(TOKassign);
+
+    Initializer *init = parseInitializer();
+
+    if (token.value != TOKsemicolon)
+        error("semicolon expected following tuple declaration, not '%s'", token.toChars());
+    nextToken();
+
+    return makeMultiVarDeclaration(loc, prms, init, inStatements);
 }
 #endif
 
@@ -3725,6 +3922,30 @@ Statement *Parser::parseStatement(int flags)
                 goto Lexp;
             break;
 
+        case TOKlparen:
+        {
+            Token *t = &token;
+            switch (peek(&token)->value)
+            {
+                case TOKrparen:
+                    break;
+
+                case TOKconst:
+                case TOKinvariant:
+                case TOKimmutable:
+                case TOKshared:
+                case TOKwild:
+
+            //  case TOKstatic:
+                case TOKauto:
+                case TOKscope:
+                    goto Ldeclaration;
+
+                default:
+                    if (isParameters(&t, 2) && t->value == TOKassign)
+                        goto Ldeclaration;
+            }
+        }
         case TOKassert:
         case TOKthis:
         case TOKsuper:
@@ -3745,7 +3966,6 @@ Statement *Parser::parseStatement(int flags)
         case TOKtrue:
         case TOKfalse:
         case TOKstring:
-        case TOKlparen:
         case TOKcast:
         case TOKmul:
         case TOKmin:
