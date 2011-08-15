@@ -124,7 +124,7 @@ struct Parser : Lexer
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, enum TOK endtok);
-    int isParameters(Token **pt);
+    int isParameters(Token **pt, int needId = 1);
     int isExpression(Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);
