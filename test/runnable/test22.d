@@ -1,7 +1,7 @@
 // REQUIRED_ARGS: -d
 
 import core.stdc.math: isnan;
-import std.random: rand;
+import std.random: rndGen;
 import std.math: poly;
 import std.c.stdarg;
 
@@ -15,6 +15,13 @@ extern(C)
     }
     else
         int snprintf(char*, size_t, const char*, ...);
+}
+
+auto rand()
+{
+    auto value = rndGen().front;
+    rndGen.popFront();
+    return value;
 }
 
 /*************************************/
