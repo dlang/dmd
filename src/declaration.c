@@ -994,7 +994,9 @@ void VarDeclaration::semantic(Scope *sc)
                 {
                 if (iexps->dim > nelems)
                     goto Lnomatch;
-                if (e->type->implicitConvTo(arg->type))
+                if (arg->type->ty != Tnone && e->type->implicitConvTo(arg->type))
+                    continue;
+                if (arg->type->ty == Tnone && iexps->dim == nelems)
                     continue;
                 }
 
@@ -1006,6 +1008,46 @@ void VarDeclaration::semantic(Scope *sc)
 
                     iexps->remove(pos);
                     iexps->insert(pos, te->exps);
+                    goto Lexpand1;
+                }
+                else if (e->op == TOKarrayliteral)
+                {
+                    ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+                    if (iexps->dim - 1 + ae->elements->dim > nelems)
+                        goto Lnomatch;
+
+                    iexps->remove(pos);
+                    iexps->insert(pos, ae->elements);
+                    goto Lexpand1;
+                }
+                else if (e->type->ty == Tsarray)
+                {
+                    TypeSArray *tsa = (TypeSArray *)e->type;
+                    uinteger_t length = tsa->dim->toInteger();
+                    if (iexps->dim - 1 + length > nelems)
+                        goto Lnomatch;
+
+                    Identifier *id = Lexer::uniqueId("__sarr");
+                    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+                    VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
+                    v->storage_class = STCctfe | STCref | STCforeach;
+                    Expression *ve = new VarExp(loc, v);
+                    ve->type = e->type;
+
+                    exps = new Expressions();
+                    exps->setDim(length);
+                    for (size_t u = 0; u < length; u++)
+                    {
+                        Expression *e = new IndexExp(loc, ve, new IntegerExp(u));
+                        e->type = tsa->nextOf();
+                        exps->tdata()[u] = e;
+                    }
+                    Expression *e0 = exps->tdata()[0];
+                    exps->tdata()[0] = new CommaExp(loc, new DeclarationExp(loc, v), e0);
+                    exps->tdata()[0]->type = e0->type;
+
+                    iexps->remove(pos);
+                    iexps->insert(pos, exps);
                     goto Lexpand1;
                 }
                 else if (isAliasThisTuple(e))
@@ -1034,7 +1076,9 @@ void VarDeclaration::semantic(Scope *sc)
                         size_t iexps_dim = iexps->dim - 1 + exps->dim;
                         if (iexps_dim > nelems)
                             goto Lnomatch;
-                        if (ee->type->implicitConvTo(arg->type))
+                        if (arg->type->ty != Tnone && ee->type->implicitConvTo(arg->type))
+                            continue;
+                        if (arg->type->ty == Tnone && iexps_dim == nelems)
                             continue;
 
                         if (expandAliasThisTuples(exps, u) != -1)
@@ -1056,6 +1100,13 @@ void VarDeclaration::semantic(Scope *sc)
             if (iexps->dim < nelems)
                 goto Lnomatch;
 
+            for (size_t i = 0; i < iexps->dim; i++)
+            {
+                Parameter *arg = Parameter::getNth(tt->arguments, i);
+                if (arg->type->ty != Tnone && !iexps->tdata()[i]->type->implicitConvTo(arg->type))
+                    goto Lnomatch;
+            }
+
             ie = new TupleExp(init->loc, iexps);
         }
 Lnomatch:
@@ -1071,6 +1122,7 @@ Lnomatch:
 
         for (size_t i = 0; i < nelems; i++)
         {   Parameter *arg = Parameter::getNth(tt->arguments, i);
+            Type *argtype = arg->type->ty == Tnone ? NULL : arg->type;
 
             OutBuffer buf;
             buf.printf("_%s_field_%llu", ident->toChars(), (ulonglong)i);
@@ -1087,7 +1139,7 @@ Lnomatch:
             {   ti = new ExpInitializer(einit->loc, einit);
             }
 
-            VarDeclaration *v = new VarDeclaration(loc, arg->type, id, ti);
+            VarDeclaration *v = new VarDeclaration(loc, argtype, id, ti);
             if (arg->storageClass & STCparameter)
                 v->storage_class |= arg->storageClass;
             //printf("declaring field %s of type %s\n", v->toChars(), v->type->toChars());
