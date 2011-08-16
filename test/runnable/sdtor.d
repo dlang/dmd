@@ -1706,6 +1706,46 @@ void test59()
 }
 
 /**********************************/
+// 6499
+
+struct S6499
+{
+    string m = "<not set>";
+
+    this(string s)
+    {
+        printf("Constructor - %.*s\n", m = s);
+        if (m == "foo") ++sdtor, assert(sdtor == 1);
+        if (m == "bar") ++sdtor, assert(sdtor == 2);
+    }
+    this(this)
+    {
+        printf("Postblit    - %.*s\n", m);
+        assert(0);
+    }
+    ~this()
+    {
+        printf("Destructor  - %.*s\n", m);
+        if (m == "bar") assert(sdtor == 2), --sdtor;
+        if (m == "foo") assert(sdtor == 1), --sdtor;
+    }
+    S6499 bar()
+    {
+        return S6499("bar");
+    }
+}
+
+void test6499()
+{
+    S6499 foo() { return S6499("foo"); }
+
+    sdtor = 0;
+    scope(exit) assert(sdtor == 0);
+
+    foo().bar();
+}
+
+/**********************************/
 
 int main()
 {
@@ -1768,6 +1808,7 @@ int main()
     test57();
     test58();
     test59();
+    test6499();
 
     printf("Success\n");
     return 0;
