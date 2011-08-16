@@ -173,6 +173,27 @@ void test6() {
 }
 
 /**********************************************/
+// 6434
+
+struct Variant6434{}
+
+struct A6434
+{
+   Variant6434 i;
+   alias i this;
+
+   void opDispatch(string name)()
+   {
+   }
+}
+
+void test6434()
+{
+   A6434 a;
+   a.weird; // no property 'weird' for type 'VariantN!(maxSize)'
+}
+
+/**************************************/
 
 int main()
 {
@@ -184,6 +205,7 @@ int main()
     test4773();
     test5188();
     test6();
+    test6434();
 
     printf("Success\n");
     return 0;

@@ -1851,17 +1851,6 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
         ident != Id::stringof &&
         ident != Id::offsetof)
     {
-        /* See if we should forward to the alias this.
-         */
-        if (sym->aliasthis)
-        {   /* Rewrite e.ident as:
-             *  e.aliasthis.ident
-             */
-            e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
-            e = new DotIdExp(e->loc, e, ident);
-            return e->semantic(sc);
-        }
-
         /* Look for overloaded opDot() to see if we should forward request
          * to it.
          */
@@ -1897,6 +1886,17 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             ((DotTemplateInstanceExp *)e)->ti->tempdecl = td;
             return e;
             //return e->semantic(sc);
+        }
+
+        /* See if we should forward to the alias this.
+         */
+        if (sym->aliasthis)
+        {   /* Rewrite e.ident as:
+             *  e.aliasthis.ident
+             */
+            e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
+            e = new DotIdExp(e->loc, e, ident);
+            return e->semantic(sc);
         }
     }
 
