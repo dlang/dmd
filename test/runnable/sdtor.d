@@ -1714,18 +1714,19 @@ struct S6499
 
     this(string s)
     {
-        printf("Constructor - %.*s\n", m = s);
+	m = s;
+        printf("Constructor - %.*s\n", m.length, m.ptr);
         if (m == "foo") ++sdtor, assert(sdtor == 1);
         if (m == "bar") ++sdtor, assert(sdtor == 2);
     }
     this(this)
     {
-        printf("Postblit    - %.*s\n", m);
+        printf("Postblit    - %.*s\n", m.length, m.ptr);
         assert(0);
     }
     ~this()
     {
-        printf("Destructor  - %.*s\n", m);
+        printf("Destructor  - %.*s\n", m.length, m.ptr);
         if (m == "bar") assert(sdtor == 2), --sdtor;
         if (m == "foo") assert(sdtor == 1), --sdtor;
     }
