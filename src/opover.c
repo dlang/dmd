@@ -474,6 +474,11 @@ Expression *BinExp::op_overload(Scope *sc)
 
     Objects *targsi = NULL;
 #if DMDV2
+    if (op == TOKplusplus || op == TOKminusminus)
+    {   // Bug4099 fix
+        if (ad1 && search_function(ad1, Id::opUnary))
+            return NULL;
+    }
     if (!s && !s_r && op != TOKequal && op != TOKnotequal && op != TOKassign &&
         op != TOKplusplus && op != TOKminusminus)
     {
