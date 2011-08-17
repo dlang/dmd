@@ -1104,7 +1104,7 @@ int main(int argc, char *argv[])
 #endif
 
     // Parse files
-    int anydocfiles = 0;
+    bool anydocfiles = false;
     for (size_t i = 0; i < modules.dim; i++)
     {
         m = modules.tdata()[i];
@@ -1124,7 +1124,7 @@ int main(int argc, char *argv[])
         m->parse();
         if (m->isDocFile)
         {
-            anydocfiles = 1;
+            anydocfiles = true;
             m->gendocfile();
 
             // Remove m from list of modules
