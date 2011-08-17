@@ -4326,6 +4326,19 @@ int test239()
 
 /***************************************************/
 
+void enforce6506b(bool condition, void delegate() m) {
+    assert(!condition);
+}
+void toImpl6506b(int value) {
+    void f(){}
+    enforce6506b(value >= 0, &f);
+}
+void test6506() {
+    toImpl6506b(-112345);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4556,6 +4569,7 @@ int main()
     test239();
     test6229();
     test6270();
+    test6506();
 
     writefln("Success");
     return 0;
