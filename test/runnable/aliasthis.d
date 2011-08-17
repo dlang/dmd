@@ -233,6 +233,51 @@ void test6508()
 }
 
 /**********************************************/
+// 2779
+
+void func2779a(int n, string s)
+{
+    assert(n == 10);
+    assert(s == "str");
+}
+
+int func2779b1(int n, string s){ return 1; }
+
+int func2779b2(int n, string s){ return 1; }
+int func2779b2(Tup!(int, string) t){ return 2; }
+
+int func2779b3(string s, int n){ return 1; }
+
+void tfunc2779(A, B)(A a, B b)
+{
+    assert(a == 10);
+    assert(b == "str");
+}
+
+void test2779()
+{
+    auto t1 = Tup!(int, string)(10, "str");
+    func2779a(t1);   // t -> t.field
+
+    auto t2 = Tup!(int, string)(10, "str");
+    assert(func2779b1(t2) == 1);
+    assert(func2779b2(t2) == 2);
+    static assert(!__traits(compiles, func2779b3(t2)));
+
+    auto t3 = tup(10, "str");
+    tfunc2779(t3);
+
+    alias Tup!(Tup!(int, double), Tup!(string, int[])) Tup41;
+    alias Tup!(int, double, string, int[]) Tup42;
+    auto t41 = Tup41(tup(10, 3.14), tup("str", [1,2]));
+    auto t42 = Tup42(t41);
+    assert(t42[0] == 10);
+    assert(t42[1] == 3.14);
+    assert(t42[2] == "str");
+    assert(t42[3] == [1,2]);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -247,6 +292,7 @@ int main()
     test2777a();
     test2777b();
     test6508();
+    test2779();
 
     printf("Success\n");
     return 0;

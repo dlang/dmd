@@ -1527,8 +1527,13 @@ int TemplateDeclaration::isOverloadable()
  *      flags           1: do not issue error message on no match, just return NULL
  */
 
-FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
-        Objects *targsi, Expression *ethis, Expressions *fargs, int flags)
+struct MatchT
+{
+    TemplateDeclaration *td_best;
+};
+
+FuncDeclaration *overloadResolveY(MatchT* m, TemplateDeclaration *tstart, Scope *sc, Loc loc,
+        Objects *targsi, Expression *ethis, Expressions *fargs)
 {
     MATCH m_best = MATCHnomatch;
     TemplateDeclaration *td_ambig = NULL;
@@ -1555,16 +1560,16 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     printf("stc = %llx\n", scope->stc);
 #endif
 
-    for (TemplateDeclaration *td = this; td; td = td->overnext)
+    for (TemplateDeclaration *td = tstart; td; td = td->overnext)
     {
         if (!td->semanticRun)
         {
-            error("forward reference to template %s", td->toChars());
+            tstart->error("forward reference to template %s", td->toChars());
             goto Lerror;
         }
         if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
         {
-            error("is not a function template");
+            tstart->error("is not a function template");
             goto Lerror;
         }
 
@@ -1614,14 +1619,12 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     }
     if (!td_best)
     {
-        if (!(flags & 1))
-            error(loc, "does not match any function template declaration");
         goto Lerror;
     }
     if (td_ambig)
     {
-        error(loc, "%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
-                toChars(),
+        tstart->error(loc, "%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
+                tstart->toChars(),
                 td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
                 td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
@@ -1638,10 +1641,39 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     return fd;
 
   Lerror:
+    m->td_best = td_best;
+    return NULL;
+}
+
+FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
+        Objects *targsi, Expression *ethis, Expressions *fargs, int flags)
+{
+    MatchT m;
+    FuncDeclaration *fd;
+
+    fd = overloadResolveY(&m, this, sc, loc, targsi, ethis, fargs);
+    if (!fd)
+    {
+        // tuple expansion matching
+        while (expandAliasThisTuples(fargs) != -1)
+        {
+            fd = overloadResolveY(&m, this, sc, loc, targsi, ethis, fargs);
+            if (fd)
+                break;
+        }
+        if (!fd)
+            goto Lerror;
+    }
+    return fd;
+
+  Lerror:
 #if DMDV2
     if (!(flags & 1))
 #endif
     {
+        if (!m.td_best)
+            error(loc, "does not match any function template declaration");
+
         HdrGenState hgs;
 
         OutBuffer bufa;
