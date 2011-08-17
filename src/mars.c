@@ -1093,19 +1093,20 @@ int main(int argc, char *argv[])
 #endif
 
     // Parse files
-    int anydocfiles = 0;
-    for (size_t i = 0; i < modules.dim; i++)
+    bool anydocfiles = false;
+    size_t filecount = modules.dim;
+    for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
-        m = (Module *)modules.data[i];
+        m = modules.tdata()[modi];
         if (global.params.verbose)
             printf("parse     %s\n", m->toChars());
         if (!Module::rootModule)
             Module::rootModule = m;
         m->importedFrom = m;
-        if (!global.params.oneobj || i == 0 || m->isDocFile)
+        if (!global.params.oneobj || modi == 0 || m->isDocFile)
             m->deleteObjFile();
 #if ASYNCREAD
-        if (aw->read(i))
+        if (aw->read(filei))
         {
             error("cannot read file %s", m->srcfile->name->toChars());
         }
@@ -1113,12 +1114,12 @@ int main(int argc, char *argv[])
         m->parse();
         if (m->isDocFile)
         {
-            anydocfiles = 1;
+            anydocfiles = true;
             m->gendocfile();
 
             // Remove m from list of modules
-            modules.remove(i);
-            i--;
+            modules.remove(modi);
+            modi--;
 
             // Remove m's object file from list of object files
             for (size_t j = 0; j < global.params.objfiles->dim; j++)
