@@ -43,9 +43,9 @@ private
         import core.demangle;
         import core.stdc.stdlib : free;
         import core.stdc.string : strlen, memchr;
-        extern (C) int    backtrace(void**, size_t);
+        extern (C) int    backtrace(void**, int);
         extern (C) char** backtrace_symbols(void**, int);
-        extern (C) void   backtrace_symbols_fd(void**,int,int);
+        extern (C) void   backtrace_symbols_fd(void**, int, int);
         import core.sys.posix.signal; // segv handler
     }
     else version( OSX )
@@ -53,9 +53,9 @@ private
         import core.demangle;
         import core.stdc.stdlib : free;
         import core.stdc.string : strlen;
-        extern (C) int    backtrace(void**, size_t);
+        extern (C) int    backtrace(void**, int);
         extern (C) char** backtrace_symbols(void**, int);
-        extern (C) void   backtrace_symbols_fd(void**,int,int);
+        extern (C) void   backtrace_symbols_fd(void**, int, int);
         import core.sys.posix.signal; // segv handler
     }
     else version( Windows )
