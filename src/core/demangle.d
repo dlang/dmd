@@ -42,12 +42,12 @@ private struct Demangle
     //       faster than assembling the result piecemeal.
 
 
-    enum AddType { yes, no }
+    enum AddType { no, yes }
 
 
     this( const(char)[] buf_, char[] dst_ = null )
     {
-        this( buf_, AddType.no, dst_ );
+        this( buf_, AddType.yes, dst_ );
     }
 
 
@@ -66,7 +66,7 @@ private struct Demangle
     char[]          dst     = null;
     size_t          pos     = 0;
     size_t          len     = 0;
-    AddType         addType = AddType.no;
+    AddType         addType = AddType.yes;
 
 
     static class ParseException : Exception
@@ -630,7 +630,7 @@ private struct Demangle
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
 
-        enum IsDelegate { yes, no }
+        enum IsDelegate { no, yes }
 
         auto beg = len;
 
@@ -930,6 +930,7 @@ private struct Demangle
         case 'T': // TypeTypedef (T LName)
             next();
             parseQualifiedName();
+            pad( name );
             return dst[beg .. len];
         case 'D': // TypeDelegate (D TypeFunction)
             next();
@@ -942,6 +943,7 @@ private struct Demangle
         case 'v': // TypeVoid (v)
             next();
             put( "void" );
+            pad( name );
             return dst[beg .. len];
         case 'g': // TypeByte (g)
             next();
@@ -1373,7 +1375,7 @@ private struct Demangle
             debug(info) printf( "name (%.*s)\n", cast(int) name.length, name.ptr );
             if( 'M' == tok() )
                 next(); // has 'this' pointer
-            if( addType )
+            if( AddType.yes == addType )
                 parseType( name );
             if( pos >= buf.length )
                 return;
