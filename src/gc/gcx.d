@@ -80,6 +80,7 @@ private
         NO_SCAN     = 0b0000_0010,
         NO_MOVE     = 0b0000_0100,
         APPENDABLE  = 0b0000_1000,
+        NO_INTERIOR = 0b0001_0000,
         ALL_BITS    = 0b1111_1111
     }
 }
@@ -94,7 +95,7 @@ private
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
 
-    extern (C) void rt_finalize( void* p, bool det = true );
+    extern (C) void rt_finalize(void* p, bool det = true);
 
     version (MULTI_THREADED)
     {
@@ -103,8 +104,8 @@ private
         extern (C) void thread_resumeAll();
         extern (C) void thread_processGCMarks();
 
-        alias void delegate( void*, void* ) scanFn;
-        extern (C) void thread_scanAll( scanFn fn, void* curStackTop = null );
+        alias void delegate(void*, void*) scanFn;
+        extern (C) void thread_scanAll(scanFn fn, void* curStackTop = null);
     }
 
     extern (C) void onOutOfMemoryError();
@@ -454,6 +455,9 @@ class GC
         assert(gcx);
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
 
+        if (gcx.running)
+            onOutOfMemoryError();
+
         size += SENTINEL_EXTRA;
         bin = gcx.findBin(size);
         Pool *pool;
@@ -502,7 +506,7 @@ class GC
             // Return next item from free list
             gcx.bucket[bin] = (cast(List*)p).next;
             pool = (cast(List*)p).pool;
-            if( !(bits & BlkAttr.NO_SCAN) )
+            if (!(bits & BlkAttr.NO_SCAN))
                 memset(p + size, 0, binsize[bin] - size);
             //debug(PRINTF) printf("\tmalloc => %p\n", p);
             debug (MEMSTOMP) memset(p, 0xF0, size);
@@ -582,6 +586,9 @@ class GC
     //
     private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null)
     {
+        if (gcx.running)
+            onOutOfMemoryError();
+
         if (!size)
         {   if (p)
             {   freeNoSync(p);
@@ -756,10 +763,13 @@ class GC
     private size_t extendNoSync(void* p, size_t minsize, size_t maxsize)
     in
     {
-        assert( minsize <= maxsize );
+        assert(minsize <= maxsize);
     }
     body
     {
+        if (gcx.running)
+            onOutOfMemoryError();
+
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
         version (SENTINEL)
         {
@@ -848,6 +858,9 @@ class GC
         assert(size != 0);
         assert(gcx);
 
+        if (gcx.running)
+            onOutOfMemoryError();
+
         return gcx.reserve(size);
     }
 
@@ -880,6 +893,9 @@ class GC
     {
         debug(PRINTF) printf("Freeing %p\n", cast(size_t) p);
         assert (p);
+
+        if (gcx.running)
+            onOutOfMemoryError();
 
         Pool*  pool;
         size_t pagenum;
@@ -1186,7 +1202,7 @@ class GC
     /**
      *
      */
-    int delegate(int delegate(ref void*)) rootIter()
+    @property int delegate(int delegate(ref void*)) rootIter()
     {
         if (!thread_needLock())
         {
@@ -1246,7 +1262,7 @@ class GC
     /**
      *
      */
-    int delegate(int delegate(ref Range)) rangeIter()
+    @property int delegate(int delegate(ref Range)) rangeIter()
     {
         if (!thread_needLock())
         {
@@ -1486,6 +1502,7 @@ struct Gcx
     uint anychanges;
     void *stackBottom;
     uint inited;
+    uint running;
     int disabled;       // turn off collections if >0
 
     byte *minAddr;      // min(baseAddr)
@@ -1655,7 +1672,7 @@ struct Gcx
     int rootIter(int delegate(ref void*) dg)
     {
         int result = 0;
-        for( size_t i = 0; i < nroots; ++i )
+        for (size_t i = 0; i < nroots; ++i)
         {
             result = dg(roots[i]);
             if (result)
@@ -1724,7 +1741,7 @@ struct Gcx
     int rangeIter(int delegate(ref Range) dg)
     {
         int result = 0;
-        for( size_t i = 0; i < nranges; ++i )
+        for (size_t i = 0; i < nranges; ++i)
         {
             result = dg(ranges[i]);
             if (result)
@@ -2274,18 +2291,28 @@ struct Gcx
                     size_t biti = void;
                     size_t pn = offset / PAGESIZE;
                     Bins   bin = cast(Bins)pool.pagetable[pn];
+                    
+                    // For the NO_INTERIOR attribute.  This tracks whether
+                    // the pointer is an interior pointer or points to the
+                    // base address of a block.
+                    bool pointsToBase = false;
 
                     //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
 
                     // Adjust bit to be at start of allocated memory block
                     if (bin < B_PAGE)
                     {
-                        biti = (offset & notbinsize[bin]) >> pool.shiftBy;
+                        // We don't care abou setting pointsToBase correctly
+                        // because it's ignored for small object pools anyhow.
+                        auto base = offset & notbinsize[bin];
+                        biti = base >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
                     }
                     else if (bin == B_PAGE)
                     {
-                        biti = (offset & notbinsize[bin]) >> pool.shiftBy;
+                        auto base = offset & notbinsize[bin];
+                        pointsToBase = offset == base;
+                        biti = base >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                         pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
@@ -2302,13 +2329,18 @@ struct Gcx
                         // Don't mark bits in B_FREE or B_UNCOMMITTED pages
                         continue;
                     }
+                    
+                    if(pool.isLargeObject && !pointsToBase && pool.nointerior.test(biti))
+                    {
+                        continue;
+                    }
 
                     //debug(PRINTF) printf("\t\tmark(x%x) = %d\n", biti, pool.mark.test(biti));
                     if (!pool.mark.testSet(biti))
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %p\n", p);
                         if (!pool.noscan.test(biti))
-                        {
+                        {                            
                             pool.scan.set(biti);
                             changes = 1;
                             pool.newChanges = true;
@@ -2336,7 +2368,7 @@ struct Gcx
             __builtin_unwind_init();
             sp = & sp;
         }
-        else version( D_InlineAsm_X86 )
+        else version (D_InlineAsm_X86)
         {
             asm
             {
@@ -2344,7 +2376,7 @@ struct Gcx
                 mov sp[EBP],ESP     ;
             }
         }
-        else version ( D_InlineAsm_X86_64 )
+        else version (D_InlineAsm_X86_64)
         {
             asm
             {
@@ -2363,33 +2395,33 @@ struct Gcx
                 push R13  ;
                 push R14  ;
                 push R15  ;
-                push EAX ;   // 16 byte align the stack
+                push RAX ;   // 16 byte align the stack
                 mov sp[RBP],RSP     ;
             }
         }
         else
         {
-            static assert( false, "Architecture not supported." );
+            static assert(false, "Architecture not supported.");
         }
 
         result = fullcollect(sp);
 
-        version( GNU )
+        version (GNU)
         {
             // registers will be popped automatically
         }
-        else version( D_InlineAsm_X86 )
+        else version (D_InlineAsm_X86)
         {
             asm
             {
                 popad;
             }
         }
-        else version ( D_InlineAsm_X86_64 )
+        else version (D_InlineAsm_X86_64)
         {
             asm
             {
-                pop EAX ;   // 16 byte align the stack
+                pop RAX ;   // 16 byte align the stack
                 pop R15  ;
                 pop R14  ;
                 pop R13  ;
@@ -2409,7 +2441,7 @@ struct Gcx
         }
         else
         {
-            static assert( false, "Architecture not supported." );
+            static assert(false, "Architecture not supported.");
         }
         return result;
     }
@@ -2431,6 +2463,10 @@ struct Gcx
 
         debug(COLLECT_PRINTF) printf("Gcx.fullcollect()\n");
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
+
+        if (running)
+            onOutOfMemoryError();
+        running = 1;
 
         thread_suspendAll();
 
@@ -2479,7 +2515,7 @@ struct Gcx
             {
                 debug(COLLECT_PRINTF) printf("scanning multithreaded stack.\n");
                 // Scan stacks and registers for each paused thread
-                thread_scanAll( &mark, stackTop );
+                thread_scanAll(&mark, stackTop);
             }
         }
         else
@@ -2779,6 +2815,8 @@ struct Gcx
         debug(COLLECT_PRINTF) printf("\trecovered pages = %d\n", recoveredpages);
         debug(COLLECT_PRINTF) printf("\tfree'd %u bytes, %u pages from %u pools\n", freed, freedpages, npools);
 
+        running = 0; // only clear on success
+
         return freedpages + recoveredpages;
     }
 
@@ -2816,7 +2854,7 @@ struct Gcx
     uint getBits(Pool* pool, size_t biti)
     in
     {
-        assert( pool );
+        assert(pool);
     }
     body
     {
@@ -2827,6 +2865,8 @@ struct Gcx
             bits |= BlkAttr.FINALIZE;
         if (pool.noscan.test(biti))
             bits |= BlkAttr.NO_SCAN;
+        if (pool.isLargeObject && pool.nointerior.test(biti))
+            bits |= BlkAttr.NO_INTERIOR;
 //        if (pool.nomove.nbits &&
 //            pool.nomove.test(biti))
 //            bits |= BlkAttr.NO_MOVE;
@@ -2842,7 +2882,7 @@ struct Gcx
     void setBits(Pool* pool, size_t biti, uint mask)
     in
     {
-        assert( pool );
+        assert(pool);
     }
     body
     {
@@ -2866,6 +2906,11 @@ struct Gcx
         {
             pool.appendable.set(biti);
         }
+        
+        if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+        {
+            pool.nointerior.set(biti);
+        }
     }
 
 
@@ -2875,7 +2920,7 @@ struct Gcx
     void clrBits(Pool* pool, size_t biti, uint mask)
     in
     {
-        assert( pool );
+        assert(pool);
     }
     body
     {
@@ -2887,6 +2932,8 @@ struct Gcx
 //            pool.nomove.clear(biti);
         if (mask & BlkAttr.APPENDABLE)
             pool.appendable.clear(biti);
+        if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+            pool.nointerior.clear(biti);
     }
 
 
@@ -3028,6 +3075,8 @@ struct Pool
     GCBits finals;      // entries that need finalizer run on them
     GCBits noscan;      // entries that should not be scanned
     GCBits appendable;  // entries that are appendable
+    GCBits nointerior;  // interior pointers should be ignored.
+                        // Only implemented for large object pools.
 
     size_t npages;
     size_t freepages;     // The number of pages not in use.
@@ -3079,8 +3128,16 @@ struct Pool
         scan.alloc(nbits);
 
         // pagetable already keeps track of what's free for the large object
+        // pool.  nointerior is only worth the overhead for the large object
         // pool.
-        if(!isLargeObject) freebits.alloc(nbits);
+        if(isLargeObject) 
+        {
+            nointerior.alloc(nbits);
+        }
+        else
+        {
+            freebits.alloc(nbits);
+        }
 
         noscan.alloc(nbits);
         appendable.alloc(nbits);
@@ -3135,14 +3192,21 @@ struct Pool
 
         mark.Dtor();
         scan.Dtor();
-        if(!isLargeObject) freebits.Dtor();
+        if(isLargeObject)
+        {
+            nointerior.Dtor();
+        }
+        else
+        {
+            freebits.Dtor();
+        }
         finals.Dtor();
         noscan.Dtor();
         appendable.Dtor();
     }
 
 
-    void Invariant() { }
+    void Invariant() {}
 
 
     invariant()
@@ -3153,6 +3217,7 @@ struct Pool
         //finals.Invariant();
         //noscan.Invariant();
         //appendable.Invariant();
+        //nointerior.Invariant();
 
         if (baseAddr)
         {
@@ -3163,20 +3228,22 @@ struct Pool
         }
 
         for (size_t i = 0; i < npages; i++)
-        {   Bins bin = cast(Bins)pagetable[i];
-
+        {
+            Bins bin = cast(Bins)pagetable[i];
             assert(bin < B_MAX);
         }
     }
 
     // The divisor used for determining bit indices.
-    size_t divisor()
+    @property private size_t divisor()
     {
+        // NOTE: Since this is called by initialize it must be private or
+        //       invariant() will be called and fail.
         return isLargeObject ? PAGESIZE : 16;
     }
 
     // Bit shift for fast division by divisor.
-    uint shiftBy()
+    @property uint shiftBy()
     {
         return isLargeObject ? 12 : 4;
     }
