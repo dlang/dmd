@@ -377,6 +377,7 @@ else version( OSX )
         SO_ERROR        = 0x1007,
         SO_KEEPALIVE    = 0x0008,
         SO_LINGER       = 0x1080,
+        SO_NOSIGPIPE    = 0x1022, // non-standard
         SO_OOBINLINE    = 0x0100,
         SO_RCVBUF       = 0x1002,
         SO_RCVLOWAT     = 0x1004,
@@ -548,6 +549,7 @@ else version( FreeBSD )
         SO_ERROR        = 0x1007,
         SO_KEEPALIVE    = 0x0008,
         SO_LINGER       = 0x0080,
+        SO_NOSIGPIPE    = 0x0800, // non-standard
         SO_OOBINLINE    = 0x0100,
         SO_RCVBUF       = 0x1002,
         SO_RCVLOWAT     = 0x1004,

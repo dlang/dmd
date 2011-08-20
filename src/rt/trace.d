@@ -633,6 +633,7 @@ static char* trace_readline(FILE* fp)
                 {   trace_free(buf);
                     return null;
                 }
+                goto L1;
             case '\n':
                 goto L1;
             default:
@@ -703,6 +704,7 @@ static void trace_merge()
                             psp = &sfanin;
                         continue;       // regard unrecognized line as separator
                     }
+                    goto case;
                 case '?':
                 case '_':
                 case '$':

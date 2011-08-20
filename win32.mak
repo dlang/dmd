@@ -26,7 +26,6 @@ MANIFEST= \
 	win32.mak \
 	\
 	import\object.di \
-	import\std\intrinsic.di \
 	\
 	src\object_.d \
 	\
@@ -34,12 +33,11 @@ MANIFEST= \
 	src\core\bitop.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
-	src\core\dll_helper.d \
 	src\core\exception.d \
+	src\core\math.d \
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\thread.d \
-	src\core\thread_helper.d \
 	src\core\threadasm.S \
 	src\core\time.d \
 	src\core\vararg.d \
@@ -89,6 +87,7 @@ MANIFEST= \
 	src\core\sys\posix\fcntl.d \
 	src\core\sys\posix\inttypes.d \
 	src\core\sys\posix\net\if_.d \
+	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\poll.d \
 	src\core\sys\posix\pthread.d \
 	src\core\sys\posix\pwd.d \
@@ -120,6 +119,10 @@ MANIFEST= \
 	src\core\sys\posix\sys\uio.d \
 	src\core\sys\posix\sys\wait.d \
 	\
+	src\core\sys\windows\dbghelp.d \
+	src\core\sys\windows\dll.d \
+	src\core\sys\windows\stacktrace.d \
+	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\gc\gc.d \
@@ -160,6 +163,7 @@ MANIFEST= \
 	src\rt\invariant_.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
+	src\rt\mars.h \
 	src\rt\memory.d \
 	src\rt\memory_osx.c \
 	src\rt\memset.d \
@@ -222,12 +226,11 @@ SRCS= \
 	src\core\bitop.d \
 	src\core\cpuid.d \
 	src\core\demangle.d \
-	src\core\dll_helper.d \
 	src\core\exception.d \
+	src\core\math.d \
 	src\core\memory.d \
 	src\core\runtime.d \
 	src\core\thread.d \
-	src\core\thread_helper.d \
 	src\core\time.d \
 	src\core\vararg.d \
 	\
@@ -245,6 +248,10 @@ SRCS= \
 	src\core\stdc\time.d \
 	src\core\stdc\wchar_.d \
 	\
+	src\core\sys\windows\dbghelp.d \
+	src\core\sys\windows\dll.d \
+	src\core\sys\windows\stacktrace.d \
+	src\core\sys\windows\threadaux.d \
 	src\core\sys\windows\windows.d \
 	\
 	src\core\sync\barrier.d \
@@ -346,6 +353,7 @@ DOCS=\
 	$(DOCDIR)\core_cpuid.html \
 	$(DOCDIR)\core_demangle.html \
 	$(DOCDIR)\core_exception.html \
+	$(DOCDIR)\core_math.html \
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
 	$(DOCDIR)\core_thread.html \
@@ -365,12 +373,11 @@ IMPORTS=\
 	$(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
 	$(IMPDIR)\core\demangle.di \
-	$(IMPDIR)\core\dll_helper.di \
 	$(IMPDIR)\core\exception.di \
+	$(IMPDIR)\core\math.di \
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\thread.di \
-	$(IMPDIR)\core\thread_helper.di \
 	$(IMPDIR)\core\time.di \
 	$(IMPDIR)\core\vararg.di \
 	\
@@ -415,6 +422,7 @@ IMPORTS=\
 	$(IMPDIR)\core\sys\posix\dlfcn.di \
 	$(IMPDIR)\core\sys\posix\fcntl.di \
 	$(IMPDIR)\core\sys\posix\inttypes.di \
+	$(IMPDIR)\core\sys\posix\netdb.di \
 	$(IMPDIR)\core\sys\posix\poll.di \
 	$(IMPDIR)\core\sys\posix\pthread.di \
 	$(IMPDIR)\core\sys\posix\pwd.di \
@@ -446,6 +454,10 @@ IMPORTS=\
 	$(IMPDIR)\core\sys\posix\sys\uio.di \
 	$(IMPDIR)\core\sys\posix\sys\wait.di \
 	\
+	$(IMPDIR)\core\sys\windows\dbghelp.di \
+	$(IMPDIR)\core\sys\windows\dll.di \
+	$(IMPDIR)\core\sys\windows\stacktrace.di \
+	$(IMPDIR)\core\sys\windows\threadaux.di \
 	$(IMPDIR)\core\sys\windows\windows.di
 
 ######################## Doc .html file generation ##############################
@@ -470,6 +482,9 @@ $(DOCDIR)\core_demangle.html : src\core\demangle.d
 $(DOCDIR)\core_exception.html : src\core\exception.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
+$(DOCDIR)\core_math.html : src\core\math.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+
 $(DOCDIR)\core_memory.html : src\core\memory.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
@@ -478,7 +493,7 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 
 $(DOCDIR)\core_thread.html : src\core\thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
-	
+
 $(DOCDIR)\core_time.html : src\core\time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
@@ -521,11 +536,11 @@ $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
 
 $(IMPDIR)\core\demangle.di : src\core\demangle.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
-$(IMPDIR)\core\dll_helper.di : src\core\dll_helper.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\exception.di : src\core\exception.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\math.di : src\core\math.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\memory.di : src\core\memory.d
@@ -537,9 +552,6 @@ $(IMPDIR)\core\runtime.di : src\core\runtime.d
 $(IMPDIR)\core\thread.di : src\core\thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\thread_helper.di : src\core\thread_helper.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
 $(IMPDIR)\core\time.di : src\core\time.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
@@ -660,6 +672,9 @@ $(IMPDIR)\core\sys\posix\fcntl.di : src\core\sys\posix\fcntl.d
 $(IMPDIR)\core\sys\posix\inttypes.di : src\core\sys\posix\inttypes.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
+$(IMPDIR)\core\sys\posix\netdb.di : src\core\sys\posix\netdb.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
 $(IMPDIR)\core\sys\posix\net\if_.di : src\core\sys\posix\net\if_.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
@@ -739,6 +754,18 @@ $(IMPDIR)\core\sys\posix\unistd.di : src\core\sys\posix\unistd.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\posix\utime.di : src\core\sys\posix\utime.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sys\windows\dbghelp.di : src\core\sys\windows\dbghelp.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	
+$(IMPDIR)\core\sys\windows\dll.di : src\core\sys\windows\dll.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sys\windows\stacktrace.di : src\core\sys\windows\stacktrace.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	
+$(IMPDIR)\core\sys\windows\threadaux.di : src\core\sys\windows\threadaux.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\windows\windows.di : src\core\sys\windows\windows.d

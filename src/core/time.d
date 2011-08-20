@@ -12,15 +12,10 @@
     are a few functions that also allow "nsecs", but very little actually
     has precision greater than hnsecs.
 
-    Copyright: Copyright Jonathan M Davis 2010 - 2010.
-    License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+    Copyright: Copyright 2010 - 2011
+    License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:   Jonathan M Davis and Kato Shoichi
- +/
-
-/+         Copyright Jonathan M Davis 2010 - 2010.
-   Distributed under the Boost Software License, Version 1.0.
-      (See accompanying file LICENSE_1_0.txt or copy at
-            http://www.boost.org/LICENSE_1_0.txt)
+    Source:    $(DRUNTIMESRC core/_time.d)
  +/
 module core.time;
 
@@ -40,7 +35,6 @@ import core.sys.posix.sys.time;
 
 //This probably should be moved somewhere else in druntime which
 //is OSX-specific.
-//It's also totally untested, since I don't a have a Mac.
 version(OSX)
 {
 
@@ -71,37 +65,45 @@ ulong mach_absolute_time();
     (e.g. 22 days or 700 seconds).
 
     It is used when representing a duration of time - such as how long to
-    sleep with Thread.sleep().
+    sleep with $(CXREF Thread, sleep).
 
     In std.datetime, it is also used as the result of various arithmetic
     operations on time points.
 
-    Use the $(D dur!()) function to create Durations.
+    Use the $(D dur) function to create Durations.
 
     You cannot create a duration of months or years because the variable number
     of days in a month or a year makes it so that you cannot convert between
     months or years and smaller units without a specific date. Any type or
-    function which handles months or years has other functions for handling those
-    rather than using durations. For instance, $(D std.datetime.Date) has
-    $(D addYears()) and $(D addMonths()) for adding years and months, rather than
+    function which handles months or years has other functions for handling
+    those rather than using durations. For instance, $(XREF datetime, Date) has
+    $(D addYears) and $(D addMonths) for adding years and months, rather than
     creating a duration of years or months and adding that to a
-    $(D std.datetime.Date). If you're dealing with weeks or smaller, however,
+    $(XREF datetime, Date). If you're dealing with weeks or smaller, however,
     durations are what you use.
 
     Examples:
 --------------------
 assert(dur!"days"(12) == Duration(10_368_000_000_000L));
 assert(dur!"hnsecs"(27) == Duration(27));
-assert(std.datetime.Date(2010, 9, 7) + dur!"days"(5) == std.datetime.Date(2010, 9, 12));
+assert(std.datetime.Date(2010, 9, 7) + dur!"days"(5) ==
+       std.datetime.Date(2010, 9, 12));
+
+assert(dur!"days"(-12) == Duration(-10_368_000_000_000L));
+assert(dur!"hnsecs"(-27) == Duration(-27));
+assert(std.datetime.Date(2010, 9, 7) - std.datetime.Date(2010, 10, 3) ==
+       dur!"days"(-26));
 --------------------
  +/
 struct Duration
 {
+    //Verify Examples.
     unittest
     {
-        //Verify Examples.
         assert(dur!"days"(12) == Duration(10_368_000_000_000L));
         assert(dur!"hnsecs"(27) == Duration(27));
+        assert(dur!"days"(-12) == Duration(-10_368_000_000_000L));
+        assert(dur!"hnsecs"(-27) == Duration(-27));
     }
 
 public:
@@ -166,20 +168,15 @@ public:
 
         Params:
             duration = The duration to add to or subtract from this duration.
-
-        Note:
-            TUnqual is just a local copy of std.traits' Unqual, since core does
-            not have access to std.traits, and naming it Unqual as well would
-            result in a name clash, so it's TUnqual.
       +/
     Duration opBinary(string op, D)(in D rhs) const pure nothrow
         if((op == "+" || op == "-") &&
-           (is(TUnqual!D == Duration) ||
-           is(TUnqual!D == TickDuration)))
+           (is(_Unqual!D == Duration) ||
+           is(_Unqual!D == TickDuration)))
     {
-        static if(is(TUnqual!D == Duration))
+        static if(is(_Unqual!D == Duration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs._hnsecs"));
-        else if(is(TUnqual!D == TickDuration))
+        else if(is(_Unqual!D == TickDuration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs.hnsecs"));
     }
 
@@ -294,20 +291,15 @@ public:
 
         Params:
             rhs = The duration to add to or subtract from this DateTime.
-
-        Note:
-            TUnqual is just a local copy of std.traits' Unqual, since core does
-            not have access to std.traits, and naming it Unqual as well would
-            result in a name clash, so it's TUnqual.
       +/
     /+ref+/ Duration opOpAssign(string op, D)(in D rhs) pure nothrow
         if((op == "+" || op == "-") &&
-           (is(TUnqual!D == Duration) ||
-            is(TUnqual!D == TickDuration)))
+           (is(_Unqual!D == Duration) ||
+            is(_Unqual!D == TickDuration)))
     {
-        static if(is(TUnqual!D == Duration))
+        static if(is(_Unqual!D == Duration))
             mixin("_hnsecs " ~ op ~ "= rhs._hnsecs;");
-        else if(is(TUnqual!D == TickDuration))
+        else if(is(_Unqual!D == TickDuration))
             mixin("_hnsecs " ~ op ~ "= rhs.hnsecs;");
 
         return this;
@@ -537,8 +529,8 @@ public:
 
     unittest
     {
-        tAssertExThrown!TimeException((){Duration(5) / 0;}());
-        tAssertExThrown!TimeException((){Duration(-5) / 0;}());
+        _assertThrown!TimeException((){Duration(5) / 0;}());
+        _assertThrown!TimeException((){Duration(-5) / 0;}());
 
         assert(Duration(5) / 7 == Duration(0));
         assert(Duration(7) / 5 == Duration(1));
@@ -587,8 +579,8 @@ public:
 
     unittest
     {
-        tAssertExThrown!TimeException((){Duration(5) /= 0;}());
-        tAssertExThrown!TimeException((){Duration(-5) /= 0;}());
+        _assertThrown!TimeException((){Duration(5) /= 0;}());
+        _assertThrown!TimeException((){Duration(-5) /= 0;}());
 
         static void testDur(Duration dur, long value, in Duration expected, size_t line = __LINE__)
         {
@@ -749,7 +741,7 @@ assert(dur!"weeks"(12).weeks == 12);
 assert(dur!"days"(13).weeks == 1);
 --------------------
       +/
-    @property alias get!"weeks" weeks;
+    @property long weeks() const pure nothrow { return get!"weeks"(); }
 
     unittest
     {
@@ -776,7 +768,7 @@ assert(dur!"days"(13).days == 6);
 assert(dur!"hours"(49).days == 2);
 --------------------
       +/
-    @property alias get!"days" days;
+    @property long days() const pure nothrow { return get!"days"(); }
 
     unittest
     {
@@ -804,7 +796,7 @@ assert(dur!"hours"(49).hours == 1);
 assert(dur!"minutes"(121).hours == 2);
 --------------------
       +/
-    @property alias get!"hours" hours;
+    @property long hours() const pure nothrow { return get!"hours"(); }
 
     unittest
     {
@@ -832,7 +824,7 @@ assert(dur!"minutes"(127).minutes == 7);
 assert(dur!"seconds"(121).minutes == 2);
 --------------------
       +/
-    @property alias get!"minutes" minutes;
+    @property long minutes() const pure nothrow { return get!"minutes"(); }
 
     unittest
     {
@@ -860,7 +852,7 @@ assert(dur!"seconds"(127).seconds == 7);
 assert(dur!"msecs"(1217).seconds == 1);
 --------------------
       +/
-    @property alias get!"seconds" seconds;
+    @property long seconds() const pure nothrow { return get!"seconds"(); }
 
     unittest
     {
@@ -888,46 +880,51 @@ assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
 assert(dur!"usecs"(43).fracSec == FracSec.from!"usecs"(43));
 assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
 assert(dur!"nsecs"(62_127).fracSec == FracSec.from!"nsecs"(62_100));
+
+assert(dur!"msecs"(-1000).fracSec == FracSec.from!"msecs"(-0));
+assert(dur!"msecs"(-1217).fracSec == FracSec.from!"msecs"(-217));
+assert(dur!"usecs"(-43).fracSec == FracSec.from!"usecs"(-43));
+assert(dur!"hnsecs"(-50_007).fracSec == FracSec.from!"hnsecs"(-50_007));
+assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
 --------------------
      +/
     @property FracSec fracSec() const pure nothrow
     {
         try
         {
-            long hnsecs = _hnsecs;
-            auto days = splitUnitsFromHNSecs!"days"(hnsecs) + 1;
+            immutable hnsecs = removeUnitsFromHNSecs!("seconds")(_hnsecs);
 
-            if(hnsecs < 0)
-            {
-                hnsecs += convert!("hours", "hnsecs")(24);
-                --days;
-            }
-
-            hnsecs = removeUnitsFromHNSecs!"hours"(hnsecs);
-            hnsecs = removeUnitsFromHNSecs!"minutes"(hnsecs);
-            hnsecs = removeUnitsFromHNSecs!"seconds"(hnsecs);
-
-            return FracSec.from!"hnsecs"(cast(int)hnsecs);
+            return FracSec.from!"hnsecs"(hnsecs);
         }
         catch(Exception e)
             assert(0, "FracSec.from!\"hnsecs\"() threw.");
     }
 
+    //Verify Examples.
     unittest
     {
-        //Verify Examples.
         assert(dur!"msecs"(1000).fracSec == FracSec.from!"msecs"(0));
         assert(dur!"msecs"(1217).fracSec == FracSec.from!"msecs"(217));
         assert(dur!"usecs"(43).fracSec == FracSec.from!"usecs"(43));
         assert(dur!"hnsecs"(50_007).fracSec == FracSec.from!"hnsecs"(50_007));
         assert(dur!"nsecs"(62_127).fracSec == FracSec.from!"nsecs"(62_100));
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.fracSec));
-        static assert(__traits(compiles, cdur.fracSec));
-        static assert(__traits(compiles, idur.fracSec));
+        assert(dur!"msecs"(-1000).fracSec == FracSec.from!"msecs"(-0));
+        assert(dur!"msecs"(-1217).fracSec == FracSec.from!"msecs"(-217));
+        assert(dur!"usecs"(-43).fracSec == FracSec.from!"usecs"(-43));
+        assert(dur!"hnsecs"(-50_007).fracSec == FracSec.from!"hnsecs"(-50_007));
+        assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
+    }
+
+    unittest
+    {
+        auto mdur = dur!"hnsecs"(12);
+        const cdur = dur!"hnsecs"(12);
+        immutable idur = dur!"hnsecs"(12);
+
+        assert(mdur.fracSec == FracSec.from!"hnsecs"(12));
+        assert(cdur.fracSec == FracSec.from!"hnsecs"(12));
+        assert(idur.fracSec == FracSec.from!"hnsecs"(12));
     }
 
 
@@ -951,7 +948,7 @@ assert(dur!"nsecs"(2007).total!"hnsecs"() == 20);
 assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 --------------------
       +/
-    long total(string units)() const pure nothrow
+    @property long total(string units)() const pure nothrow
         if(units == "weeks" ||
            units == "days" ||
            units == "hours" ||
@@ -971,24 +968,24 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
     unittest
     {
         //Verify Examples.
-        assert(dur!"weeks"(12).total!"weeks"() == 12);
-        assert(dur!"weeks"(12).total!"days"() == 84);
+        assert(dur!"weeks"(12).total!"weeks" == 12);
+        assert(dur!"weeks"(12).total!"days" == 84);
 
-        assert(dur!"days"(13).total!"weeks"() == 1);
-        assert(dur!"days"(13).total!"days"() == 13);
+        assert(dur!"days"(13).total!"weeks" == 1);
+        assert(dur!"days"(13).total!"days" == 13);
 
-        assert(dur!"hours"(49).total!"days"() == 2);
-        assert(dur!"hours"(49).total!"hours"() == 49);
+        assert(dur!"hours"(49).total!"days" == 2);
+        assert(dur!"hours"(49).total!"hours" == 49);
 
-        assert(dur!"nsecs"(2007).total!"hnsecs"() == 20);
-        assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
+        assert(dur!"nsecs"(2007).total!"hnsecs" == 20);
+        assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
 
         const dur = Duration(12);
         const cdur = Duration(12);
         immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.total!"days"()));
-        static assert(__traits(compiles, cdur.total!"days"()));
-        static assert(__traits(compiles, idur.total!"days"()));
+        dur.total!"days"; // just check that it compiles
+        cdur.total!"days"; // just check that it compiles
+        idur.total!"days"; // just check that it compiles
     }
 
 
@@ -1377,7 +1374,7 @@ struct TickDuration
     /++
         Alias for converting TickDuration to seconds.
       +/
-    @property alias to!("seconds", long) seconds;
+    @property long seconds() const pure nothrow { return to!("seconds", long)(); }
 
     unittest
     {
@@ -1400,7 +1397,7 @@ struct TickDuration
     /++
         Alias for converting TickDuration to milliseconds.
       +/
-    @property alias to!("msecs", long) msecs;
+    @property long msecs() const pure nothrow { return to!("msecs", long)(); }
 
 
     /++
@@ -1408,19 +1405,19 @@ struct TickDuration
       +/
 
 
-    @property alias to!("usecs", long) usecs;
+    @property long usecs() const pure nothrow { return to!("usecs", long)(); }
 
 
     /++
         Alias for converting TickDuration to hecto-nanoseconds (100 ns).
       +/
-    @property alias to!("hnsecs", long) hnsecs;
+    @property long hnsecs() const pure nothrow { return to!("hnsecs", long)(); }
 
 
     /++
         Alias for converting TickDuration to nanoseconds.
       +/
-    @property alias to!("nsecs", long) nsecs;
+    @property long nsecs() const pure nothrow { return to!("nsecs", long)(); }
 
 
     /++
@@ -1534,11 +1531,9 @@ struct TickDuration
     //test from!"nsecs"().
     unittest
     {
-        //Skipping tests on Windows until properly robust tests
-        //can be devised and tested on a Windows box.
-        //The differences in ticksPerSec on Windows makes testing
-        //exact values a bit precarious.
-        version(Posix)
+        //Skipping tests everywhere except for Linux until properly robust tests
+        //can be devised.
+        version(linux)
         {
             auto t = TickDuration.from!"nsecs"(1_000_000_000);
             assert(t.nsecs == 1_000_000_000);
@@ -1636,8 +1631,8 @@ struct TickDuration
     {
         auto a = TickDuration.currSystemTick;
         auto b = TickDuration.currSystemTick;
-        assert((a + b).to!("seconds", real) > 0);
-        assert((a - b).to!("seconds", real) <= 0);
+        assert((a + b).to!("seconds", real)() > 0);
+        assert((a - b).to!("seconds", real)() <= 0);
     }
 
 
@@ -2160,34 +2155,38 @@ unittest
     Represents fractional seconds.
 
     This is the portion of the time which is smaller than a second and cannot
-    hold values which would equal or exceed a second.
+    hold values which would greater than or equal to a second (or less than or
+    equal to a negative second).
 
     It holds hnsecs internally, but you can create it using either milliseconds,
-    microseconds, or hnsecs. What it does is allow for a simple way to set or adjust
-    the fractional seconds portion of a Duration or a std.datetime.SysTime without
-    having to worry about whether you're dealing with milliseconds, microseconds,
-    or hnsecs.
+    microseconds, or hnsecs. What it does is allow for a simple way to set or
+    adjust the fractional seconds portion of a $(D Duration) or a
+    $(XREF datetime, SysTime) without having to worry about whether you're
+    dealing with milliseconds, microseconds, or hnsecs.
 
-    FracSec's functions which take time unit strings do accept "nsecs", but the
-    because the resolution for Duration and std.datetime.SysTime is hnsecs, you
-    don't actually get precision higher than hnsecs. "nsecs" is accepted merely
-    for convenience. Any values given as nsecs will be converted to hnsecs using
-    convert!() (which uses truncation when converting to smaller units).
+    $(D FracSec)'s functions which take time unit strings do accept
+    $(D "nsecs"), but the because the resolution for $(D Duration) and
+    $(XREF datetime, SysTime) is hnsecs, you don't actually get precision higher
+    than hnsecs. $(D "nsecs") is accepted merely for convenience. Any values
+    given as nsecs will be converted to hnsecs using $(D convert) (which uses
+    truncation when converting to smaller units).
   +/
 struct FracSec
 {
 public:
 
     /++
-        Create a FracSec from the given units ("msecs", "usecs", or "hnsecs").
+        Create a $(D FracSec) from the given units ($(D "msecs"), $(D "usecs"),
+        or $(D "hnsecs")).
 
         Params:
             units = The units to create a FracSec from.
             value = The number of the given units passed the second.
 
         Throws:
-            TimeException if the given value is less than 0 or would result in a
-            FracSec greater than or equal to 1 second.
+            $(D TimeException) if the given value would result in a $(D FracSec)
+            greater than or equal to $(D 1) second or less than or equal to
+            $(D -1) seconds.
       +/
     static FracSec from(string units)(long value) pure
         if(units == "msecs" ||
@@ -2200,38 +2199,64 @@ public:
 
     unittest
     {
-        tAssertExThrown!TimeException(from!"msecs"(-1));
-        tAssertExThrown!TimeException(from!"msecs"(1000));
-
         assert(FracSec.from!"msecs"(0) == FracSec(0));
-        assert(FracSec.from!"msecs"(1) == FracSec(10_000));
-        assert(FracSec.from!"msecs"(999) == FracSec(9_990_000));
-
-        tAssertExThrown!TimeException(from!"usecs"(-1));
-        tAssertExThrown!TimeException(from!"usecs"(1_000_000));
-
         assert(FracSec.from!"usecs"(0) == FracSec(0));
-        assert(FracSec.from!"usecs"(1) == FracSec(10));
-        assert(FracSec.from!"usecs"(999) == FracSec(9990));
-        assert(FracSec.from!"usecs"(999_999) == FracSec(9999_990));
-
-        tAssertExThrown!TimeException(from!"hnsecs"(-1));
-        tAssertExThrown!TimeException(from!"hnsecs"(10_000_000));
-
         assert(FracSec.from!"hnsecs"(0) == FracSec(0));
-        assert(FracSec.from!"hnsecs"(1) == FracSec(1));
-        assert(FracSec.from!"hnsecs"(999) == FracSec(999));
-        assert(FracSec.from!"hnsecs"(999_999) == FracSec(999_999));
-        assert(FracSec.from!"hnsecs"(9_999_999) == FracSec(9_999_999));
 
-        assert(FracSec.from!"nsecs"(0) == FracSec(0));
-        assert(FracSec.from!"nsecs"(1) == FracSec(0));
-        assert(FracSec.from!"nsecs"(10) == FracSec(0));
-        assert(FracSec.from!"nsecs"(99) == FracSec(0));
-        assert(FracSec.from!"nsecs"(100) == FracSec(1));
-        assert(FracSec.from!"nsecs"(99_999) == FracSec(999));
-        assert(FracSec.from!"nsecs"(99_999_999) == FracSec(999_999));
-        assert(FracSec.from!"nsecs"(999_999_999) == FracSec(9_999_999));
+        foreach(sign; [1, -1])
+        {
+            _assertThrown!TimeException(from!"msecs"(1000 * sign));
+
+            assert(FracSec.from!"msecs"(1 * sign) == FracSec(10_000 * sign));
+            assert(FracSec.from!"msecs"(999 * sign) == FracSec(9_990_000 * sign));
+
+            _assertThrown!TimeException(from!"usecs"(1_000_000 * sign));
+
+            assert(FracSec.from!"usecs"(1 * sign) == FracSec(10 * sign));
+            assert(FracSec.from!"usecs"(999 * sign) == FracSec(9990 * sign));
+            assert(FracSec.from!"usecs"(999_999 * sign) == FracSec(9999_990 * sign));
+
+            _assertThrown!TimeException(from!"hnsecs"(10_000_000 * sign));
+
+            assert(FracSec.from!"hnsecs"(1 * sign) == FracSec(1 * sign));
+            assert(FracSec.from!"hnsecs"(999 * sign) == FracSec(999 * sign));
+            assert(FracSec.from!"hnsecs"(999_999 * sign) == FracSec(999_999 * sign));
+            assert(FracSec.from!"hnsecs"(9_999_999 * sign) == FracSec(9_999_999 * sign));
+
+            assert(FracSec.from!"nsecs"(1 * sign) == FracSec(0));
+            assert(FracSec.from!"nsecs"(10 * sign) == FracSec(0));
+            assert(FracSec.from!"nsecs"(99 * sign) == FracSec(0));
+            assert(FracSec.from!"nsecs"(100 * sign) == FracSec(1 * sign));
+            assert(FracSec.from!"nsecs"(99_999 * sign) == FracSec(999 * sign));
+            assert(FracSec.from!"nsecs"(99_999_999 * sign) == FracSec(999_999 * sign));
+            assert(FracSec.from!"nsecs"(999_999_999 * sign) == FracSec(9_999_999 * sign));
+        }
+    }
+
+
+    /++
+        Returns the negation of this FracSec.
+      +/
+    FracSec opUnary(string op)() const nothrow
+        if(op == "-")
+    {
+        try
+            return FracSec(-_hnsecs);
+        catch(Exception e)
+            assert(0, "FracSec's constructor threw.");
+    }
+
+    unittest
+    {
+        foreach(val; [-7, -5, 0, 5, 7])
+        {
+            auto fs = FracSec(val);
+            const cfs = FracSec(val);
+            immutable ifs = FracSec(val);
+            assert(-fs == FracSec(-val));
+            assert(-cfs == FracSec(-val));
+            assert(-ifs == FracSec(-val));
+        }
     }
 
 
@@ -2246,17 +2271,21 @@ public:
     unittest
     {
         assert(FracSec(0).msecs == 0);
-        assert(FracSec(1).msecs == 0);
-        assert(FracSec(999).msecs == 0);
-        assert(FracSec(999_999).msecs == 99);
-        assert(FracSec(9_999_999).msecs == 999);
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.msecs));
-        static assert(__traits(compiles, cfs.msecs));
-        static assert(__traits(compiles, ifs.msecs));
+        foreach(sign; [1, -1])
+        {
+            assert(FracSec(1 * sign).msecs == 0);
+            assert(FracSec(999 * sign).msecs == 0);
+            assert(FracSec(999_999 * sign).msecs == 99 * sign);
+            assert(FracSec(9_999_999 * sign).msecs == 999 * sign);
+        }
+
+        auto fs = FracSec(1234567);
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
+        assert(fs.msecs == 123);
+        assert(cfs.msecs == 123);
+        assert(ifs.msecs == 123);
     }
 
 
@@ -2282,24 +2311,25 @@ public:
         static void testFS(int ms, in FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
-
             fs.msecs = ms;
 
             if(fs != expected)
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-1));
-        tAssertExThrown!TimeException(testFS(1000));
+        _assertThrown!TimeException(testFS(-1000));
+        _assertThrown!TimeException(testFS(1000));
 
         testFS(0, FracSec(0));
-        testFS(1, FracSec(10_000));
-        testFS(999, FracSec(9_990_000));
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.msecs = 54));
+        foreach(sign; [1, -1])
+        {
+            testFS(1 * sign, FracSec(10_000 * sign));
+            testFS(999 * sign, FracSec(9_990_000 * sign));
+        }
+
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
         static assert(!__traits(compiles, cfs.msecs = 54));
         static assert(!__traits(compiles, ifs.msecs = 54));
     }
@@ -2316,17 +2346,21 @@ public:
     unittest
     {
         assert(FracSec(0).usecs == 0);
-        assert(FracSec(1).usecs == 0);
-        assert(FracSec(999).usecs == 99);
-        assert(FracSec(999_999).usecs == 99_999);
-        assert(FracSec(9_999_999).usecs == 999_999);
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.usecs));
-        static assert(__traits(compiles, cfs.usecs));
-        static assert(__traits(compiles, ifs.usecs));
+        foreach(sign; [1, -1])
+        {
+            assert(FracSec(1 * sign).usecs == 0);
+            assert(FracSec(999 * sign).usecs == 99 * sign);
+            assert(FracSec(999_999 * sign).usecs == 99_999 * sign);
+            assert(FracSec(9_999_999 * sign).usecs == 999_999 * sign);
+        }
+
+        auto fs = FracSec(1234567);
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
+        assert(fs.usecs == 123456);
+        assert(cfs.usecs == 123456);
+        assert(ifs.usecs == 123456);
     }
 
 
@@ -2352,25 +2386,26 @@ public:
         static void testFS(int ms, in FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
-
             fs.usecs = ms;
 
             if(fs != expected)
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-1));
-        tAssertExThrown!TimeException(testFS(1_000_000));
+        _assertThrown!TimeException(testFS(-1_000_000));
+        _assertThrown!TimeException(testFS(1_000_000));
 
         testFS(0, FracSec(0));
-        testFS(1, FracSec(10));
-        testFS(999, FracSec(9990));
-        testFS(999_999, FracSec(9_999_990));
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.usecs = 54));
+        foreach(sign; [1, -1])
+        {
+            testFS(1 * sign, FracSec(10 * sign));
+            testFS(999 * sign, FracSec(9990 * sign));
+            testFS(999_999 * sign, FracSec(9_999_990 * sign));
+        }
+
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
         static assert(!__traits(compiles, cfs.usecs = 54));
         static assert(!__traits(compiles, ifs.usecs = 54));
     }
@@ -2387,17 +2422,21 @@ public:
     unittest
     {
         assert(FracSec(0).hnsecs == 0);
-        assert(FracSec(1).hnsecs == 1);
-        assert(FracSec(999).hnsecs == 999);
-        assert(FracSec(999_999).hnsecs == 999_999);
-        assert(FracSec(9_999_999).hnsecs == 9_999_999);
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.hnsecs));
-        static assert(__traits(compiles, cfs.hnsecs));
-        static assert(__traits(compiles, ifs.hnsecs));
+        foreach(sign; [1, -1])
+        {
+            assert(FracSec(1 * sign).hnsecs == 1 * sign);
+            assert(FracSec(999 * sign).hnsecs == 999 * sign);
+            assert(FracSec(999_999 * sign).hnsecs == 999_999 * sign);
+            assert(FracSec(9_999_999 * sign).hnsecs == 9_999_999 * sign);
+        }
+
+        auto fs = FracSec(1234567);
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
+        assert(fs.hnsecs == 1234567);
+        assert(cfs.hnsecs == 1234567);
+        assert(ifs.hnsecs == 1234567);
     }
 
 
@@ -2421,26 +2460,27 @@ public:
         static void testFS(int hnsecs, in FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
-
             fs.hnsecs = hnsecs;
 
             if(fs != expected)
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-1));
-        tAssertExThrown!TimeException(testFS(10_000_000));
+        _assertThrown!TimeException(testFS(-10_000_000));
+        _assertThrown!TimeException(testFS(10_000_000));
 
         testFS(0, FracSec(0));
-        testFS(1, FracSec(1));
-        testFS(999, FracSec(999));
-        testFS(999_999, FracSec(999_999));
-        testFS(9_999_999, FracSec(9_999_999));
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.hnsecs = 54));
+        foreach(sign; [1, -1])
+        {
+            testFS(1 * sign, FracSec(1 * sign));
+            testFS(999 * sign, FracSec(999 * sign));
+            testFS(999_999 * sign, FracSec(999_999 * sign));
+            testFS(9_999_999 * sign, FracSec(9_999_999 * sign));
+        }
+
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
         static assert(!__traits(compiles, cfs.hnsecs = 54));
         static assert(!__traits(compiles, ifs.hnsecs = 54));
     }
@@ -2460,17 +2500,21 @@ public:
     unittest
     {
         assert(FracSec(0).nsecs == 0);
-        assert(FracSec(1).nsecs == 100);
-        assert(FracSec(999).nsecs == 99_900);
-        assert(FracSec(999_999).nsecs == 99_999_900);
-        assert(FracSec(9_999_999).nsecs == 999_999_900);
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.nsecs));
-        static assert(__traits(compiles, cfs.nsecs));
-        static assert(__traits(compiles, ifs.nsecs));
+        foreach(sign; [1, -1])
+        {
+            assert(FracSec(1 * sign).nsecs == 100 * sign);
+            assert(FracSec(999 * sign).nsecs == 99_900 * sign);
+            assert(FracSec(999_999 * sign).nsecs == 99_999_900 * sign);
+            assert(FracSec(9_999_999 * sign).nsecs == 999_999_900 * sign);
+        }
+
+        auto fs = FracSec(1234567);
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
+        assert(fs.nsecs == 123456700);
+        assert(cfs.nsecs == 123456700);
+        assert(ifs.nsecs == 123456700);
     }
 
 
@@ -2503,28 +2547,29 @@ public:
         static void testFS(long nsecs, in FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
-
             fs.nsecs = nsecs;
 
             if(fs != expected)
                 throw new AssertError("", __FILE__, line);
         }
 
-        tAssertExThrown!TimeException(testFS(-1));
-        tAssertExThrown!TimeException(testFS(1_000_000_000));
+        _assertThrown!TimeException(testFS(-1_000_000_000));
+        _assertThrown!TimeException(testFS(1_000_000_000));
 
         testFS(0, FracSec(0));
-        testFS(1, FracSec(0));
-        testFS(10, FracSec(0));
-        testFS(100, FracSec(1));
-        testFS(999, FracSec(9));
-        testFS(999_999, FracSec(9999));
-        testFS(9_999_999, FracSec(99_999));
 
-        auto fs = FracSec(12);
-        const cfs = FracSec(12);
-        immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.nsecs = 54));
+        foreach(sign; [1, -1])
+        {
+            testFS(1 * sign, FracSec(0));
+            testFS(10 * sign, FracSec(0));
+            testFS(100 * sign, FracSec(1 * sign));
+            testFS(999 * sign, FracSec(9 * sign));
+            testFS(999_999 * sign, FracSec(9999 * sign));
+            testFS(9_999_999 * sign, FracSec(99_999 * sign));
+        }
+
+        const cfs = FracSec(1234567);
+        immutable ifs = FracSec(1234567);
         static assert(!__traits(compiles, cfs.nsecs = 54));
         static assert(!__traits(compiles, ifs.nsecs = 54));
     }
@@ -2558,9 +2603,9 @@ public:
         auto fs = FracSec(12);
         const cfs = FracSec(12);
         immutable ifs = FracSec(12);
-        static assert(__traits(compiles, fs.toString()));
-        static assert(__traits(compiles, cfs.toString()));
-        static assert(__traits(compiles, ifs.toString()));
+        assert(fs.toString == "12 hnsecs");
+        assert(cfs.toString == "12 hnsecs");
+        assert(ifs.toString == "12 hnsecs");
     }
 
 
@@ -2664,7 +2709,9 @@ private:
       +/
     static bool _valid(int hnsecs) pure
     {
-        return hnsecs >= 0 && hnsecs < convert!("seconds", "hnsecs")(1);
+        enum second = convert!("seconds", "hnsecs")(1);
+
+        return hnsecs > -second && hnsecs < second;
     }
 
 
@@ -3039,38 +3086,38 @@ string numToString(long value) pure nothrow
 /+
   Copied from std.traits for Duration's template constraints. Because of
   bug #2775 makes it impossible to make templates actually private, it
-  was renamed to TUnqual to avoid name clashes. version(D_Ddoc) sections
+  was renamed to _Unqual to avoid name clashes. version(D_Ddoc) sections
   are used on any functions which use it in their template constraints,
-  so TUnqual is at least hidden name-wise.
+  so _Unqual is at least hidden name-wise.
  +/
-template TUnqual(T)
+template _Unqual(T)
 {
     version (none) // Error: recursive alias declaration @@@BUG1308@@@
     {
-             static if (is(T U ==     const U)) alias TUnqual!U TUnqual;
-        else static if (is(T U == immutable U)) alias TUnqual!U TUnqual;
-        else static if (is(T U ==    shared U)) alias TUnqual!U TUnqual;
-        else                                    alias        T TUnqual;
+             static if (is(T U ==     const U)) alias _Unqual!U _Unqual;
+        else static if (is(T U == immutable U)) alias _Unqual!U _Unqual;
+        else static if (is(T U ==    shared U)) alias _Unqual!U _Unqual;
+        else                                    alias        T _Unqual;
     }
     else // workaround
     {
-             static if (is(T U == shared(const U))) alias U TUnqual;
-        else static if (is(T U ==        const U )) alias U TUnqual;
-        else static if (is(T U ==    immutable U )) alias U TUnqual;
-        else static if (is(T U ==       shared U )) alias U TUnqual;
-        else                                        alias T TUnqual;
+             static if (is(T U == shared(const U))) alias U _Unqual;
+        else static if (is(T U ==        const U )) alias U _Unqual;
+        else static if (is(T U ==    immutable U )) alias U _Unqual;
+        else static if (is(T U ==       shared U )) alias U _Unqual;
+        else                                        alias T _Unqual;
     }
 }
 
 unittest
 {
-    static assert(is(TUnqual!(int) == int));
-    static assert(is(TUnqual!(const int) == int));
-    static assert(is(TUnqual!(immutable int) == int));
-    static assert(is(TUnqual!(shared int) == int));
-    static assert(is(TUnqual!(shared(const int)) == int));
+    static assert(is(_Unqual!(int) == int));
+    static assert(is(_Unqual!(const int) == int));
+    static assert(is(_Unqual!(immutable int) == int));
+    static assert(is(_Unqual!(shared int) == int));
+    static assert(is(_Unqual!(shared(const int)) == int));
     alias immutable(int[]) ImmIntArr;
-    static assert(is(TUnqual!(ImmIntArr) == immutable(int)[]));
+    static assert(is(_Unqual!(ImmIntArr) == immutable(int)[]));
 }
 
 
@@ -3093,11 +3140,11 @@ version(unittest)
 
     Examples:
 --------------------
-tAssertExThrown!Exception(myfunc(param1, param2));
+_assertThrown!Exception(myfunc(param1, param2));
 --------------------
   +/
-void tAssertExThrown(E : Throwable = Exception, T)
-                    (lazy T funcToCall, string msg = null, string file = __FILE__, size_t line = __LINE__)
+void _assertThrown(E : Throwable = Exception, T)
+                  (lazy T funcToCall, string msg = null, string file = __FILE__, size_t line = __LINE__)
 {
     bool thrown = false;
 
@@ -3127,22 +3174,22 @@ unittest
     }
 
     try
-        tAssertExThrown!Exception(throwEx(new Exception("It's an Exception")));
+        _assertThrown!Exception(throwEx(new Exception("It's an Exception")));
     catch(AssertError)
         assert(0);
 
     try
-        tAssertExThrown!Exception(throwEx(new Exception("It's an Exception")), "It's a message");
+        _assertThrown!Exception(throwEx(new Exception("It's an Exception")), "It's a message");
     catch(AssertError)
         assert(0);
 
     try
-        tAssertExThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)));
+        _assertThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)));
     catch(AssertError)
         assert(0);
 
     try
-        tAssertExThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)), "It's a message");
+        _assertThrown!AssertError(throwEx(new AssertError("It's an AssertError", __FILE__, __LINE__)), "It's a message");
     catch(AssertError)
         assert(0);
 
@@ -3150,7 +3197,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!Exception(nothrowEx());
+            _assertThrown!Exception(nothrowEx());
         catch(AssertError)
             thrown = true;
 
@@ -3160,7 +3207,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!Exception(nothrowEx(), "It's a message");
+            _assertThrown!Exception(nothrowEx(), "It's a message");
         catch(AssertError)
             thrown = true;
 
@@ -3170,7 +3217,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!AssertError(nothrowEx());
+            _assertThrown!AssertError(nothrowEx());
         catch(AssertError)
             thrown = true;
 
@@ -3180,7 +3227,7 @@ unittest
     {
         bool thrown = false;
         try
-            tAssertExThrown!AssertError(nothrowEx(), "It's a message");
+            _assertThrown!AssertError(nothrowEx(), "It's a message");
         catch(AssertError)
             thrown = true;
 

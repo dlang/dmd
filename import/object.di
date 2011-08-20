@@ -12,6 +12,11 @@
  */
 module object;
 
+private
+{
+    extern(C) void rt_finalize(void *ptr, bool det=true);
+}
+
 alias typeof(int.sizeof)                    size_t;
 alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
 alias ptrdiff_t                             sizediff_t;
@@ -63,16 +68,16 @@ class TypeInfo
     hash_t   getHash(in void* p);
     equals_t equals(in void* p1, in void* p2);
     int      compare(in void* p1, in void* p2);
-    size_t   tsize();
+    @property size_t   tsize();
     void     swap(void* p1, void* p2);
-    TypeInfo next();
-    void[]   init();
-    uint     flags();
+    @property TypeInfo next();
+    void[]   init(); // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
+    @property uint     flags();
     // 1:    // has possible pointers into GC memory
     OffsetTypeInfo[] offTi();
     void destroy(void* p);
     void postblit(void* p);
-    size_t talign();
+    @property size_t talign();
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2);
 }
 
@@ -207,16 +212,16 @@ class TypeInfo_Inout : TypeInfo_Const
 
 abstract class MemberInfo
 {
-    string name();
+    @property string name();
 }
 
 class MemberInfo_field : MemberInfo
 {
     this(string name, TypeInfo ti, size_t offset);
 
-    override string name();
-    TypeInfo typeInfo();
-    size_t offset();
+    @property override string name();
+    @property TypeInfo typeInfo();
+    @property size_t offset();
 }
 
 class MemberInfo_function : MemberInfo
@@ -230,10 +235,10 @@ class MemberInfo_function : MemberInfo
 
     this(string name, TypeInfo ti, void* fp, uint flags);
 
-    override string name();
-    TypeInfo typeInfo();
+    @property override string name();
+    @property TypeInfo typeInfo();
     void* fp();
-    uint flags();
+    @property uint flags();
 }
 
 struct ModuleInfo
@@ -431,37 +436,14 @@ unittest
 
 void clear(T)(T obj) if (is(T == class))
 {
-    if (!obj) return;
-    auto ci = obj.classinfo;
-    auto defaultCtor =
-        cast(void function(Object)) ci.defaultConstructor;
-    version(none) // enforce isn't available in druntime
-        _enforce(defaultCtor || (ci.flags & 8) == 0);
-    immutable size = ci.init.length;
-
-    auto ci2 = ci;
-    do
-    {
-        auto dtor = cast(void function(Object))ci2.destructor;
-        if (dtor)
-            dtor(obj);
-        ci2 = ci2.base;
-    } while (ci2)
-
-        auto buf = (cast(void*) obj)[0 .. size];
-    buf[] = ci.init;
-    if (defaultCtor)
-        defaultCtor(obj);
+    rt_finalize(cast(void*)obj);
 }
 
 void clear(T)(ref T obj) if (is(T == struct))
 {
-    static if (is(typeof(obj.__dtor())))
-    {
-        obj.__dtor();
-    }
+    typeid(T).destroy(&obj);
     auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
-    auto init = cast(ubyte[])typeid(T).init();
+    auto init = cast(ubyte[])typeid(T).init;
     if(init.ptr is null) // null ptr means initialize to 0s
         buf[] = 0;
     else

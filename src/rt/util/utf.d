@@ -28,7 +28,7 @@
 module rt.util.utf;
 
 
-extern (C) void onUnicodeError( string msg, size_t idx );
+extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ );
 
 /*******************************
  * Test if c is a valid UTF-32 character.

@@ -563,6 +563,22 @@ int pthread_mutexattr_getprotocol(in pthread_mutexattr_t*, int*); (TPI|TPP)
 int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int); (TPP)
 int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int); (TPI|TPP)
 */
+version( OSX )
+{
+    enum
+    {
+        PTHREAD_PRIO_NONE,
+        PTHREAD_PRIO_INHERIT,
+        PTHREAD_PRIO_PROTECT
+    }
+
+    int pthread_mutex_getprioceiling(in pthread_mutex_t*, int*);
+    int pthread_mutex_setprioceiling(pthread_mutex_t*, int, int*);
+    int pthread_mutexattr_getprioceiling(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_getprotocol(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_setprioceiling(pthread_mutexattr_t*, int);
+    int pthread_mutexattr_setprotocol(pthread_mutexattr_t*, int);
+}
 
 //
 // Scheduling (TPS)
@@ -688,6 +704,7 @@ int pthread_mutexattr_setpshared(pthread_mutexattr_t*, int);
 int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
 int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 */
+
 version( FreeBSD )
 {
     int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
@@ -697,4 +714,12 @@ version( FreeBSD )
     int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
     int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
 }
-
+else version( OSX )
+{
+    int pthread_condattr_getpshared(in pthread_condattr_t*, int*);
+    int pthread_condattr_setpshared(pthread_condattr_t*, int);
+    int pthread_mutexattr_getpshared(in pthread_mutexattr_t*, int*);
+    int pthread_mutexattr_setpshared(pthread_mutexattr_t*, int);
+    int pthread_rwlockattr_getpshared(in pthread_rwlockattr_t*, int*);
+    int pthread_rwlockattr_setpshared(pthread_rwlockattr_t*, int);
+}

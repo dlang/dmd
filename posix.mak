@@ -27,8 +27,8 @@ IMPDIR=import
 
 MODEL=32
 
-DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport 
-UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport 
+DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport
+UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport
 
 CFLAGS=-m$(MODEL) -O
 
@@ -47,7 +47,6 @@ MANIFEST= \
 	win32.mak \
 	\
 	import/object.di \
-	import/std/intrinsic.di \
 	\
 	src/object_.d \
 	\
@@ -55,12 +54,11 @@ MANIFEST= \
 	src/core/bitop.d \
 	src/core/cpuid.d \
 	src/core/demangle.d \
-	src/core/dll_helper.d \
 	src/core/exception.d \
+	src/core/math.d \
 	src/core/memory.d \
 	src/core/runtime.d \
 	src/core/thread.d \
-	src/core/thread_helper.d \
 	src/core/threadasm.S \
 	src/core/time.d \
 	src/core/vararg.d \
@@ -110,6 +108,7 @@ MANIFEST= \
 	src/core/sys/posix/fcntl.d \
 	src/core/sys/posix/inttypes.d \
 	src/core/sys/posix/net/if_.d \
+	src/core/sys/posix/netdb.d \
 	src/core/sys/posix/poll.d \
 	src/core/sys/posix/pthread.d \
 	src/core/sys/posix/pwd.d \
@@ -141,6 +140,10 @@ MANIFEST= \
 	src/core/sys/posix/sys/uio.d \
 	src/core/sys/posix/sys/wait.d \
 	\
+	src/core/sys/windows/dbghelp.d \
+	src/core/sys/windows/dll.d \
+	src/core/sys/windows/stacktrace.d \
+	src/core/sys/windows/threadaux.d \
 	src/core/sys/windows/windows.d \
 	\
 	src/gc/gc.d \
@@ -180,6 +183,7 @@ MANIFEST= \
 	src/rt/invariant_.d \
 	src/rt/lifetime.d \
 	src/rt/llmath.d \
+	src/rt/mars.h \
 	src/rt/memory.d \
 	src/rt/memory_osx.c \
 	src/rt/memset.d \
@@ -234,6 +238,8 @@ MANIFEST= \
 	src/rt/util/string.d \
 	src/rt/util/utf.d
 
+GC_MODULES = gc/gc gc/gcalloc gc/gcbits gc/gcstats gc/gcx
+
 SRC_D_MODULES = \
 	object_ \
 	\
@@ -242,6 +248,7 @@ SRC_D_MODULES = \
 	core/cpuid \
 	core/demangle \
 	core/exception \
+	core/math \
 	core/memory \
 	core/runtime \
 	core/thread \
@@ -266,6 +273,7 @@ SRC_D_MODULES = \
 	core/sys/posix/sys/socket \
 	core/sys/posix/sys/stat \
 	core/sys/posix/sys/wait \
+	core/sys/posix/netdb \
 	core/sys/posix/netinet/in_ \
 	\
 	core/sync/barrier \
@@ -276,11 +284,7 @@ SRC_D_MODULES = \
 	core/sync/rwmutex \
 	core/sync/semaphore \
 	\
-	gc/gc \
-	gc/gcalloc \
-	gc/gcbits \
-	gc/gcstats \
-	gc/gcx \
+	$(GC_MODULES) \
 	\
 	rt/aaA \
 	rt/aApply \
@@ -370,6 +374,7 @@ DOCS=\
 	$(DOCDIR)/core_cpuid.html \
 	$(DOCDIR)/core_demangle.html \
 	$(DOCDIR)/core_exception.html \
+	$(DOCDIR)/core_math.html \
 	$(DOCDIR)/core_memory.html \
 	$(DOCDIR)/core_runtime.html \
 	$(DOCDIR)/core_thread.html \
@@ -389,13 +394,12 @@ IMPORTS=\
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
 	$(IMPDIR)/core/demangle.di \
-	$(IMPDIR)/core/dll_helper.di \
 	$(IMPDIR)/core/exception.di \
+	$(IMPDIR)/core/math.di \
 	$(IMPDIR)/core/memory.di \
 	$(IMPDIR)/core/runtime.di \
 	$(IMPDIR)/core/thread.di \
 	$(IMPDIR)/core/time.di \
-	$(IMPDIR)/core/thread_helper.di \
 	$(IMPDIR)/core/vararg.di \
 	\
 	$(IMPDIR)/core/stdc/complex.di \
@@ -439,6 +443,7 @@ IMPORTS=\
 	$(IMPDIR)/core/sys/posix/dlfcn.di \
 	$(IMPDIR)/core/sys/posix/fcntl.di \
 	$(IMPDIR)/core/sys/posix/inttypes.di \
+	$(IMPDIR)/core/sys/posix/netdb.di \
 	$(IMPDIR)/core/sys/posix/poll.di \
 	$(IMPDIR)/core/sys/posix/pthread.di \
 	$(IMPDIR)/core/sys/posix/pwd.di \
@@ -470,6 +475,10 @@ IMPORTS=\
 	$(IMPDIR)/core/sys/posix/sys/uio.di \
 	$(IMPDIR)/core/sys/posix/sys/wait.di \
 	\
+	$(IMPDIR)/core/sys/windows/dbghelp.di \
+	$(IMPDIR)/core/sys/windows/dll.di \
+	$(IMPDIR)/core/sys/windows/stacktrace.di \
+	$(IMPDIR)/core/sys/windows/threadaux.di \
 	$(IMPDIR)/core/sys/windows/windows.di
 
 SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
@@ -479,20 +488,23 @@ SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
 doc: $(DOCS)
 
 $(DOCDIR)/object.html : src/object_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
-	
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
 import: $(IMPORTS)
-	
+
+$(IMPDIR)/core/sys/windows/%.di : src/core/sys/windows/%.d
+	$(DMD) -m32 -c -d -o- -Isrc -Iimport -Hf$@ $<
+
 $(IMPDIR)/core/%.di : src/core/%.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $<
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
 
 ################### C/ASM Targets ############################
 
@@ -517,7 +529,7 @@ unittest : $(addprefix $(OBJDIR)/,$(SRC_D_MODULES)) $(DRUNTIME) $(OBJDIR)/emptym
 	@echo done
 
 ifeq ($(OS),freebsd)
-DISABLED_TESTS = core/time
+DISABLED_TESTS =
 else
 DISABLED_TESTS =
 endif

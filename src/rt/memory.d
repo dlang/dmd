@@ -42,6 +42,10 @@ private
             extern (C) extern __gshared void* __libc_stack_end;
         }
     }
+    version( OSX )
+    {
+        import core.sys.osx.pthread;
+    }
     extern (C) void gc_addRange( void* p, size_t sz );
     extern (C) void gc_removeRange( void* p );
 }
@@ -100,7 +104,7 @@ extern (C) void* rt_stackBottom()
     }
     else version( OSX )
     {
-        return cast(void*) 0xc0000000;
+        return pthread_get_stackaddr_np(pthread_self());
     }
     else version( FreeBSD )
     {
@@ -202,8 +206,19 @@ private
         {
             extern __gshared
             {
-                int etext;
-                int _end;
+                size_t etext;
+                size_t _end;
+            }
+        }
+        version (X86_64)
+        {
+            extern (C)
+            {
+                extern __gshared
+                {
+                    size_t _deh_end;
+                    size_t __progname;
+                }
             }
         }
     }
@@ -237,7 +252,15 @@ void initStaticDataGC()
     }
     else version( FreeBSD )
     {
-        gc_addRange( &etext, cast(size_t) &_end - cast(size_t) &etext );
+        version (X86_64)
+        {
+            gc_addRange( &etext, cast(size_t) &_deh_end - cast(size_t) &etext );
+            gc_addRange( &__progname, cast(size_t) &_end - cast(size_t) &__progname );
+        }
+        else
+        {
+            gc_addRange( &etext, cast(size_t) &_end - cast(size_t) &etext );
+        }
     }
     else version( Solaris )
     {

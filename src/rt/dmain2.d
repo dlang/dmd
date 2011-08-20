@@ -41,23 +41,6 @@ version (Windows)
 
 version (all)
 {
-    Throwable _d_unhandled = null;
-
-    // TODO: Make this accept Throwable instead.
-    extern (C) void _d_setUnhandled(Object* o)
-    {
-        auto t = cast(Throwable) o;
-
-        if (t !is null)
-        {
-            if (cast(byte*) t is t.classinfo.init.ptr)
-                return;
-            if (t !is _d_unhandled)
-                t.next = _d_unhandled;
-        }
-        _d_unhandled = t;
-    }
-
     extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null);
 
     extern (C) void _d_createTrace(Object *o)
@@ -412,6 +395,74 @@ extern (C) int main(int argc, char** argv)
 
     void tryExec(scope void delegate() dg)
     {
+        void printLocLine(Throwable t)
+        {
+            if (t.file)
+            {
+               console(t.classinfo.name)("@")(t.file)("(")(t.line)(")");
+            }
+            else
+            {
+                console(t.classinfo.name);
+            }
+            console("\n");
+        }
+
+        void printMsgLine(Throwable t)
+        {
+            if (t.file)
+            {
+               console(t.classinfo.name)("@")(t.file)("(")(t.line)(")");
+            }
+            else
+            {
+                console(t.classinfo.name);
+            }
+            if (t.msg)
+            {
+                console(": ")(t.msg);
+            }
+            console("\n");
+        }
+
+        void printInfoBlock(Throwable t)
+        {
+            if (t.info)
+            {
+                console("----------------\n");
+                foreach (i; t.info)
+                    console(i)("\n");
+                console("----------------\n");
+            }
+        }
+
+        void print(Throwable t)
+        {
+            Throwable firstWithBypass = null;
+
+            for (; t; t = t.next)
+            {
+                printMsgLine(t);
+                printInfoBlock(t);
+                auto e = cast(Error) t;
+                if (e && e.bypassedException)
+                {
+                    console("Bypasses ");
+                    printLocLine(e.bypassedException);
+                    if (firstWithBypass is null)
+                        firstWithBypass = t;
+                }
+            }
+            if (firstWithBypass is null)
+                return;
+            console("=== Bypassed ===\n");
+            for (t = firstWithBypass; t; t = t.next)
+            {
+                auto e = cast(Error) t;
+                if (e && e.bypassedException)
+                    print(e.bypassedException);
+            }
+        }
 
         if (trapExceptions)
         {
@@ -419,33 +470,9 @@ extern (C) int main(int argc, char** argv)
             {
                 dg();
             }
-            catch (Throwable e)
+            catch (Throwable t)
             {
-                /+
-                while (e)
-                {
-                    if (e.file)
-                    {
-                        // fprintf(stderr, "%.*s(%u): %.*s\n", e.file, e.line, e.msg);
-                        console (e.classinfo.name)("@")(e.file)("(")(e.line)("): ")(e.msg)("\n");
-                    }
-                    else
-                    {
-                        // fprintf(stderr, "%.*s\n", e.toString());
-                        console (e.toString)("\n");
-                    }
-                    if (e.info)
-                    {
-                        console ("----------------\n");
-                        foreach (t; e.info)
-                            console (t)("\n");
-                    }
-                    if (e.next)
-                        console ("\n");
-                    e = e.next;
-                }
-                +/
-                console (e.toString)("\n");
+                print(t);
                 result = EXIT_FAILURE;
             }
         }

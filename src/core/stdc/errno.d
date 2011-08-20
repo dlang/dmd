@@ -17,8 +17,8 @@ module core.stdc.errno;
 extern (C) int getErrno();      // for internal use
 extern (C) int setErrno(int);   // for internal use
 
-alias getErrno errno;
-alias setErrno errno;
+@property int errno() { return getErrno(); }
+@property int errno(int n) { return setErrno(n); }
 
 extern (C):
 nothrow:

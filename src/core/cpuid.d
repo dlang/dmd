@@ -24,14 +24,14 @@
  * $(LI "Application note 106: Software Customization for the 6x86 Family",
  *    Cyrix Corporation, Rev 1.5 (1998)
  * )
- * $(LI $(LINK http://ftp.intron.ac/pub/document/cpu/cpuid.htm))
+ * $(LI $(LINK www.datasheetcatalog.org/datasheet/nationalsemiconductor/GX1.pdf))
  * $(LI "Geode(TM) GX1 Processor Series Low Power Integrated X86 Solution",
  *   National Semiconductor, (2002)
  * )
  * $(LI "The VIA Isaiah Architecture", G. Glenn Henry, Centaur Technology, Inc (2008).
  * )
  * $(LI $(LINK http://www.sandpile.org/ia32/cpuid.htm))
- * $(LI $(LINK http://grafi.ii.pw.edu.pl/gbm/x86/cpuid.html))
+ * $(LI $(LINK www.akkadia.org/drepper/cpumemory.pdf))
  * $(LI "What every programmer should know about memory",
  *    Ulrich Depper, Red Hat, Inc., (2007).
  * )
@@ -81,6 +81,14 @@ module core.cpuid;
 // AMD K10    --   + isX86_64()
 // Cyrix 6x86 -- preferPentium1()
 //    6x86MX  --   + mmx()
+version(D_InlineAsm_X86)
+{
+    version = InlineAsm_X86_Any;
+}
+else version(D_InlineAsm_X86_64)
+{
+    version = InlineAsm_X86_Any;
+}
 
 public:
 
@@ -113,6 +121,7 @@ public:
     /// The data caches. If there are fewer than 5 physical caches levels,
     /// the remaining levels are set to uint.max (== entire memory space)
     __gshared CacheInfo[5] datacache;
+    @property {
     /// Does it have an x87 FPU on-chip?
     bool x87onChip()    {return (features&FPU_BIT)!=0;}
     /// Is MMX supported?
@@ -155,7 +164,7 @@ public:
             return false;
         return (features & SYSENTERSYSEXIT_BIT)!=0;
     }
-
+    
 
     /// Is 3DNow prefetch supported?
     bool has3dnowPrefetch()
@@ -205,6 +214,7 @@ public:
     bool preferPentium4() { return probablyIntel && family == 0xF; }
     /// Does this CPU perform better on Pentium I code than Pentium Pro code?
     bool preferPentium1() { return family < 6 || (family==6 && model < 0xF && !probablyIntel); }
+    }
 
 __gshared:
     // All these values are set only once, and never subsequently modified.
@@ -226,7 +236,7 @@ private:
     uint maxCores = 1;
     uint maxThreads = 1;
     // Note that this may indicate multi-core rather than hyperthreading.
-    bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
+    @property bool hyperThreadingBit()    { return (features&HTT_BIT)!=0;}
 
     // feature flags CPUID1_EDX
     enum : uint
@@ -302,7 +312,7 @@ version(X86_64) {
     }
 
 
-version(D_InlineAsm_X86) {
+version(InlineAsm_X86_Any) {
 // Note that this code will also work for Itanium in x86 mode.
 
 __gshared uint max_cpuid, max_extended_cpuid;
@@ -499,6 +509,7 @@ void getAMDcacheinfo()
 void getCpuInfo0B()
 {
     int level=0;
+    int threadsPerCore;
     uint a, b, c, d;
     do {
         asm {
@@ -513,8 +524,12 @@ void getCpuInfo0B()
         if (b!=0) {
            // I'm not sure about this. The docs state that there
            // are 2 hyperthreads per core if HT is factory enabled.
-            if (level==0) maxThreads = b & 0xFFFF;
-            else if (level==1) maxCores = b & 0xFFFF;
+            if (level==0)
+                threadsPerCore = b & 0xFFFF;
+            else if (level==1) {
+                maxThreads = b & 0xFFFF;
+                maxCores = maxThreads / threadsPerCore;
+            }
 
         }
         ++level;
@@ -526,14 +541,31 @@ void cpuidX86()
 {
     char * venptr = vendorID.ptr;
     uint a, b, c, d, a2;
+    version(D_InlineAsm_X86)
+    {
+        asm {
+            mov EAX, 0;
+            cpuid;
+            mov a, EAX;
+            mov EAX, venptr;
+            mov [EAX], EBX;
+            mov [EAX + 4], EDX;
+            mov [EAX + 8], ECX;
+        }
+    }
+    else version(D_InlineAsm_X86_64)
+    {
+        asm {
+            mov EAX, 0;
+            cpuid;
+            mov a, EAX;
+            mov RAX, venptr;
+            mov [RAX], EBX;
+            mov [RAX + 4], EDX;
+            mov [RAX + 8], ECX;
+        }
+    }
     asm {
-        mov EAX, 0;
-        cpuid;
-        mov a, EAX;
-        mov EAX, venptr;
-        mov [EAX], EBX;
-        mov [EAX + 4], EDX;
-        mov [EAX + 8], ECX;
         mov EAX, 0x8000_0000;
         cpuid;
         mov a2, EAX;
@@ -598,34 +630,63 @@ void cpuidX86()
 
     if (max_extended_cpuid >= 0x8000_0004) {
         char *procptr = processorNameBuffer.ptr;
-        asm {
-            push ESI;
-            mov ESI, procptr;
-            mov EAX, 0x8000_0002;
-            cpuid;
-            mov [ESI], EAX;
-            mov [ESI+4], EBX;
-            mov [ESI+8], ECX;
-            mov [ESI+12], EDX;
-            mov EAX, 0x8000_0003;
-            cpuid;
-            mov [ESI+16], EAX;
-            mov [ESI+20], EBX;
-            mov [ESI+24], ECX;
-            mov [ESI+28], EDX;
-            mov EAX, 0x8000_0004;
-            cpuid;
-            mov [ESI+32], EAX;
-            mov [ESI+36], EBX;
-            mov [ESI+40], ECX;
-            mov [ESI+44], EDX;
-            pop ESI;
+        version(D_InlineAsm_X86)
+        {
+            asm {
+                push ESI;
+                mov ESI, procptr;
+                mov EAX, 0x8000_0002;
+                cpuid;
+                mov [ESI], EAX;
+                mov [ESI+4], EBX;
+                mov [ESI+8], ECX;
+                mov [ESI+12], EDX;
+                mov EAX, 0x8000_0003;
+                cpuid;
+                mov [ESI+16], EAX;
+                mov [ESI+20], EBX;
+                mov [ESI+24], ECX;
+                mov [ESI+28], EDX;
+                mov EAX, 0x8000_0004;
+                cpuid;
+                mov [ESI+32], EAX;
+                mov [ESI+36], EBX;
+                mov [ESI+40], ECX;
+                mov [ESI+44], EDX;
+                pop ESI;
+            }
+        }
+        else version(D_InlineAsm_X86_64)
+        {
+            asm {
+                push RSI;
+                mov RSI, procptr;
+                mov EAX, 0x8000_0002;
+                cpuid;
+                mov [RSI], EAX;
+                mov [RSI+4], EBX;
+                mov [RSI+8], ECX;
+                mov [RSI+12], EDX;
+                mov EAX, 0x8000_0003;
+                cpuid;
+                mov [RSI+16], EAX;
+                mov [RSI+20], EBX;
+                mov [RSI+24], ECX;
+                mov [RSI+28], EDX;
+                mov EAX, 0x8000_0004;
+                cpuid;
+                mov [RSI+32], EAX;
+                mov [RSI+36], EBX;
+                mov [RSI+40], ECX;
+                mov [RSI+44], EDX;
+                pop RSI;
+            }
         }
         // Intel P4 and PM pad at front with spaces.
         // Other CPUs pad at end with nulls.
         int start = 0, end = 0;
         while (processorNameBuffer[start] == ' ') { ++start; }
-        while (processorNameBuffer[$-end-1] == 0) { ++end; }
+        while (processorNameBuffer[processorNameBuffer.length-end-1] == 0) { ++end; }
         processorName = cast(string)(processorNameBuffer[start..$-end]);
     } else {
         processorName = "Unknown CPU";
@@ -698,19 +759,24 @@ void cpuidX86()
 // BUG(WONTFIX): Returns false for Cyrix 6x86 and 6x86L. They will be treated as 486 machines.
 bool hasCPUID()
 {
-    uint flags;
-    asm {
-        pushfd;
-        pop EAX;
-        mov flags, EAX;
-        xor EAX, 0x0020_0000;
-        push EAX;
-        popfd;
-        pushfd;
-        pop EAX;
-        xor flags, EAX;
+    version(D_InlineAsm_X86_64)
+        return true;
+    else
+    {
+        uint flags;
+        asm {
+            pushfd;
+            pop EAX;
+            mov flags, EAX;
+            xor EAX, 0x0020_0000;
+            push EAX;
+            popfd;
+            pushfd;
+            pop EAX;
+            xor flags, EAX;
+        }
+        return (flags & 0x0020_0000) !=0;
     }
-    return (flags & 0x0020_0000) !=0;
 }
 
 } else { // inline asm X86
