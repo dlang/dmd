@@ -3234,16 +3234,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
 
     // This happens inside compiler-generated foreach statements.
-    if (op==TOKconstruct && this->e1->op==TOKvar && this->e2->op != TOKthis
-        && this->e2->op != TOKcomma
+    if (op==TOKconstruct && this->e1->op==TOKvar &&
+        this->e2->op == TOKindex
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
         VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
-        v->setValueNull();
-        v->createStackValue(e2);
 #if (LOGASSIGN)
         printf("FOREACH ASSIGN %s=%s\n", v->toChars(), e2->toChars());
 #endif
+        v->setValueNull();
+        v->createStackValue(e2);
         return e2;
     }
 
