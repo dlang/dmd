@@ -6859,7 +6859,6 @@ Expression *CallExp::syntaxCopy()
 Expression *CallExp::semantic(Scope *sc)
 {
     TypeFunction *tf;
-    FuncDeclaration *f;
     Type *t1;
     int istemp;
     Objects *targsi = NULL;     // initial list of template arguments

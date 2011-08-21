@@ -3521,6 +3521,13 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
+            if (fd->isPureBypassingInference() == PUREstrong &&
+                !exp->type->implicitConvTo(tret) &&
+                exp->type->invariantOf()->implicitConvTo(tret))
+            {
+                exp = exp->castTo(sc, exp->type->invariantOf());
+            }
+
             exp = exp->implicitCastTo(sc, tret);
             if (!((TypeFunction *)fd->type)->isref)
                 exp = exp->optimize(WANTvalue);

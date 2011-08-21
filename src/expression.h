@@ -935,6 +935,7 @@ struct DotTypeExp : UnaExp
 struct CallExp : UnaExp
 {
     Expressions *arguments;     // function arguments
+    FuncDeclaration *f;         // symbol to call
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);
@@ -954,6 +955,7 @@ struct CallExp : UnaExp
     Expression *toLvalue(Scope *sc, Expression *e);
     int canThrow(bool mustNotThrow);
     Expression *addDtorHook(Scope *sc);
+    MATCH implicitConvTo(Type *t);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
