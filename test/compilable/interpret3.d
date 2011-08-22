@@ -1654,6 +1654,28 @@ static assert({
 }() == 6);
 
 /**************************************************
+  6517 ptr++, ptr--
+**************************************************/
+
+int bug6517() {
+    int[] arr = [1, 2, 3];
+    auto startp = arr.ptr;
+    auto endp = arr.ptr + arr.length;
+
+    for(; startp < endp; startp++) {}
+    startp = arr.ptr;
+    assert(startp++ == arr.ptr);
+    assert(startp != arr.ptr);
+    assert(startp-- != arr.ptr);
+    assert(startp == arr.ptr);
+
+    return 84;
+}
+
+static assert(bug6517() == 84);
+
+
+/**************************************************
   Out-of-bounds pointer assignment and deference
 **************************************************/
 
