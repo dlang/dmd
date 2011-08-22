@@ -2227,12 +2227,15 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     Expression *val = agg1;
     TypeArray *tar = (TypeArray *)val->type;
     dinteger_t indx = ofs1;
-    if (op == TOKadd || op == TOKaddass)
+    if (op == TOKadd || op == TOKaddass || op == TOKplusplus)
         indx = indx + ofs2/sz;
-    else if (op == TOKmin || op == TOKminass)
+    else if (op == TOKmin || op == TOKminass || op == TOKminusminus)
         indx -= ofs2/sz;
     else
+    {
         error(loc, "CTFE Internal compiler error: bad pointer operation");
+        return EXP_CANT_INTERPRET;
+    }
     if (val->op != TOKarrayliteral && val->op != TOKstring)
     {
         error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
@@ -3142,7 +3145,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (oldval->op == TOKslice)
                 oldval = resolveSlice(oldval);
             if (this->e1->type->ty == Tpointer && this->e2->type->isintegral()
-                && (op==TOKaddass || op == TOKminass))
+                && (op==TOKaddass || op == TOKminass ||
+                    op == TOKplusplus || op == TOKminusminus))
             {
                 oldval = this->e1->interpret(istate, ctfeNeedLvalue);
                 newval = this->e2->interpret(istate);
