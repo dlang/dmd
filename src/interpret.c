@@ -1442,6 +1442,22 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *val = getVarExp(loc, istate, var, goal);
     if (val->type->ty == Tarray || val->type->ty == Tsarray)
     {
+        // Check for unsupported type painting operations
+        Type *elemtype = ((TypeArray *)(val->type))->next;
+        if (
+#if DMDV2
+        elemtype->castMod(0) != pointee->castMod(0)
+#else
+        elemtype != pointee
+#endif
+        && !(elemtype->isintegral() && pointee->isintegral()
+            && elemtype->size() == pointee->size()))
+        {
+            error("reinterpreting cast from %s to %s is not supported in CTFE",
+                val->type->toChars(), type->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+
         TypeArray *tar = (TypeArray *)val->type;
         dinteger_t sz = pointee->size();
         dinteger_t indx = offset/sz;
@@ -1463,7 +1479,13 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
             return ie;
         }
     }
-    else if (offset == 0 && pointee == var->type)
+    else if (offset == 0 &&
+#if DMDV2
+        pointee->castMod(0) == var->type->castMod(0)
+#else
+        pointee == var->type
+#endif
+        )
     {
         if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
         {
@@ -1477,7 +1499,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
         return e;
     }
 
-    error("Cannot interpret %s at compile time", toChars());
+    error("Cannot convert &%s to %s at compile time", var->type->toChars(), type->toChars());
     return EXP_CANT_INTERPRET;
 }
 
@@ -2242,6 +2264,8 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
         return pointerDifference(loc, type, e1, e2);
     }
     if (this->e1->type->ty == Tpointer && this->e2->type->isintegral())
@@ -2256,6 +2280,8 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
     {
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
         e1 = this->e1->interpret(istate);
+        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
         return pointerArithmetic(loc, op, type, e2, e1);
     }
     if (this->e1->type->ty == Tpointer || this->e2->type->ty == Tpointer)
@@ -2374,6 +2400,8 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
         e = comparePointers(loc, op, type, e1, e2);
         if (e == EXP_CANT_INTERPRET)
         {
@@ -3049,6 +3077,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         e1 = e1->interpret(istate, ctfeNeedLvalue);
         if (e1 == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
+        if (!(e1->op == TOKvar || e1->op == TOKdotvar || e1->op == TOKindex
+            || e1->op == TOKslice))
+        {
+            error("cannot dereference invalid pointer %s",
+                this->e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
     }
 
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
@@ -3064,7 +3099,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         // return a value OR a pointer
         assert(e1);
         assert(e1->type);
-        if ((e1->type->ty == Tpointer && e1->type->nextOf()->ty != Tfunction) && (e2->op == TOKsymoff || e2->op==TOKaddress || e2->op==TOKvar)) // && (e1->op==TOKaddress)) //TOKsymoff || e1->op==TOKdotvar))
+        if ((e1->type->ty == Tpointer && e1->type->nextOf()->ty != Tfunction) && (e2->op == TOKsymoff || e2->op==TOKaddress || e2->op==TOKvar))
             newval = this->e2->interpret(istate, ctfeNeedLvalue);
         else
             newval = this->e2->interpret(istate);
@@ -3451,6 +3486,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 if (aggregate->op == TOKnull)
                 {
                     error("cannot index through null pointer %s", ie->e1->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
+                if (aggregate->op == TOKint64)
+                {
+                    error("cannot index through invalid pointer %s of value %s",
+                        ie->e1->toChars(), aggregate->toChars());
                     return EXP_CANT_INTERPRET;
                 }
                 aggregate = getAggregateFromPointer(aggregate, &ofs);
@@ -4333,6 +4374,12 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         e1 = this->e1->interpret(istate);
         if (e1 == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
+        if (e1->op == TOKint64)
+        {
+            error("cannot slice invalid pointer %s of value %s",
+                this->e1->toChars(), e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
 
         /* Evaluate lower and upper bounds of slice
          */
@@ -4543,6 +4590,26 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         goto Lcant;
     if (to->ty == Tpointer && e1->op != TOKnull)
     {   // Deal with casts from char[] to char *
+        if (e1->type->ty == Tarray || e1->type->ty == Tsarray)
+        {
+            // Check for unsupported type painting operations
+            Type *elemtype = ((TypeArray *)(e1->type))->next;
+            Type *pointee = ((TypePointer *)type)->next;
+            if (
+#if DMDV2
+                e1->type->nextOf()->castMod(0) != to->nextOf()->castMod(0)
+#else
+                e1->type->nextOf() != to->nextOf()
+#endif
+                && !(elemtype->isintegral() && pointee->isintegral()
+                    && elemtype->size() == pointee->size()))
+            {
+                error("reinterpreting cast from %s to %s is not supported in CTFE",
+                    e1->type->toChars(), type->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+        }
+
         if (e1->op == TOKslice)
         {
             if ( ((SliceExp *)e1)->e1->op == TOKnull)
@@ -4569,6 +4636,10 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
             e = new IndexExp(e1->loc, ie->e1, ie->e2);
             e->type = type;
             return e;
+        }
+        if (e1->op == TOKint64)
+        {   // Happens with Windows HANDLEs, for example.
+            return paintTypeOntoLiteral(to, e1);
         }
         error("pointer cast from %s to %s is not supported at compile time",
                 e1->type->toChars(), to->toChars());
@@ -4717,6 +4788,12 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         e = e1->interpret(istate, ctfeNeedLvalue);
         if (e == EXP_CANT_INTERPRET)
             return e;
+        if (!(e->op == TOKvar || e->op == TOKdotvar || e->op == TOKindex
+            || e->op == TOKslice || e->op == TOKaddress))
+        {
+            error("dereference of invalid pointer '%s'", e->toChars());
+            return EXP_CANT_INTERPRET;
+        }
         if (goal != ctfeNeedLvalue)
         {
             if (e->op == TOKindex && e->type->ty == Tpointer)
@@ -5349,6 +5426,8 @@ bool isStackValueValid(Expression *newval)
             return true;
         if (newval->type->nextOf()->ty == Tarray && newval->op == TOKslice)
             return true;
+        if (newval->op == TOKint64)
+            return true; // Result of a cast, but cannot be dereferenced
         newval->error("CTFE internal error: illegal pointer value %s\n", newval->toChars());
         return false;
     }
