@@ -4437,8 +4437,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
             return e1;
-        Expression *e = e1->castTo(NULL, type);
-        return e->interpret(istate);
+        return paintTypeOntoLiteral(type, e1);
     }
 
     /* Set the $ variable
