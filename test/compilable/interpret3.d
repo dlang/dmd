@@ -2140,6 +2140,64 @@ static assert({
 }());
 
 /**************************************************
+    6420  ICE on dereference of invalid pointer
+**************************************************/
+
+static assert({
+    // Should compile, but pointer can't be dereferenced
+    int x = 123;
+    int* p = cast(int *)x;
+    auto q = cast(char*)x;
+    auto r = cast(char*)323;
+    // Valid const-changing cast
+    const float *m = cast(immutable float *)[1.2f,2.4f,3f];
+    return true;
+}()
+);
+
+static assert(!is(typeof(compiles!({
+    int x = 123;
+    int* p = cast(int *)x;
+    int a = *p;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    int* p = cast(int *)123;
+    int a = *p;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    auto k = cast(int*)45;
+    *k = 1;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    *cast(float*)"a" = 4.0;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    float f = 2.8;
+    long *p = &f;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    long *p = cast(long *)[1.2f,2.4f,3f];
+    return true;
+}()
+))));
+
+
+/**************************************************
     6250  deref pointers to array
 **************************************************/
 
