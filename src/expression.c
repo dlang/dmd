@@ -330,6 +330,77 @@ void expandTuples(Expressions *exps)
     }
 }
 
+/****************************************
+ * Expand alias this tuples.
+ */
+
+TupleDeclaration *isAliasThisTuple(Expression *e)
+{
+    if (e->type)
+    {
+        Type *t = e->type->toBasetype();
+        AggregateDeclaration *ad;
+        if (t->ty == Tstruct)
+        {
+            ad = ((TypeStruct *)t)->sym;
+            goto L1;
+        }
+        else if (t->ty == Tclass)
+        {
+            ad = ((TypeClass *)t)->sym;
+          L1:
+            Dsymbol *s = ad->aliasthis;
+            if (s && s->isVarDeclaration())
+            {
+                TupleDeclaration *td = s->isVarDeclaration()->toAlias()->isTupleDeclaration();
+                if (td && td->isexp)
+                    return td;
+            }
+        }
+    }
+    return NULL;
+}
+
+int expandAliasThisTuples(Expressions *exps, int starti)
+{
+    if (!exps || exps->dim == 0)
+        return -1;
+
+    for (size_t u = starti; u < exps->dim; u++)
+    {
+        Expression *exp = exps->tdata()[u];
+        TupleDeclaration *td = isAliasThisTuple(exp);
+        if (td)
+        {
+            exps->remove(u);
+            for (size_t i = 0; i<td->objects->dim; ++i)
+            {
+                Expression *e = isExpression(td->objects->tdata()[i]);
+                assert(e);
+                assert(e->op == TOKdsymbol);
+                DsymbolExp *se = (DsymbolExp *)e;
+                Declaration *d = se->s->isDeclaration();
+                assert(d);
+                e = new DotVarExp(exp->loc, exp, d);
+                assert(d->type);
+                e->type = d->type;
+                exps->insert(u + i, e);
+            }
+    #if 0
+            printf("expansion ->\n");
+            for (size_t i = 0; i<exps->dim; ++i)
+            {
+                Expression *e = exps->tdata()[i];
+                printf("\texps[%d] e = %s %s\n", i, Token::tochars[e->op], e->toChars());
+            }
+    #endif
+            return u;
+        }
+    }
+
+    return -1;
+}
+
 Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt)
 {
 #if DMDV1

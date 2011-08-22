@@ -1396,6 +1396,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (func->fes)
         func = func->fes->func;
 
+Lretry:
     aggr = aggr->semantic(sc);
     aggr = resolveProperties(sc, aggr);
     aggr = aggr->optimize(WANTvalue);
@@ -1414,6 +1415,25 @@ Statement *ForeachStatement::semantic(Scope *sc)
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
         error("cannot uniquely infer foreach argument types");
         return this;
+    }
+
+    Expression *prelude = NULL;
+    if (aggr->op == TOKcomma)
+    {
+        Expression **pe = &aggr;
+        while (((CommaExp *)(*pe))->e2->op == TOKcomma)
+            pe = &((CommaExp *)(*pe))->e2;
+        if (pe == &aggr)
+        {
+            prelude = ((CommaExp *)(*pe))->e1;
+            aggr = ((CommaExp *)(*pe))->e2;
+        }
+        else
+        {
+            prelude = aggr;
+            aggr = ((CommaExp *)(*pe))->e2;
+            *pe = ((CommaExp *)(*pe))->e1;
+        }
     }
 
     Type *tab = aggr->type->toBasetype();
@@ -1510,6 +1530,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
 
         s = new UnrolledLoopStatement(loc, statements);
+        if (prelude)
+            s = new CompoundStatement(loc,
+                    new ExpStatement(prelude->loc, prelude), s);
         s = s->semantic(sc);
         return s;
     }
@@ -1644,8 +1667,11 @@ Lagain:
 
             body = new CompoundStatement(loc, ds, body);
 
-            ForStatement *fs = new ForStatement(loc, forinit, cond, increment, body);
-            s = fs->semantic(sc);
+            s = new ForStatement(loc, forinit, cond, increment, body);
+            if (prelude)
+                s = new CompoundStatement(loc,
+                        new ExpStatement(prelude->loc, prelude), s);
+            s = s->semantic(sc);
             break;
         }
 #else
@@ -1708,9 +1734,6 @@ Lagain:
 #if DMDV2
             /* Prefer using opApply, if it exists
              */
-            if (dim != 1)       // only one argument allowed with ranges
-                goto Lapply;
-
             sapply = search_function((AggregateDeclaration *)tab->toDsymbol(sc), idapply);
             if (sapply)
                 goto Lapply;
@@ -1739,7 +1762,24 @@ Lagain:
             }
             Dsymbol *shead = search_function(ad, idhead);
             if (!shead)
+            {
+                if (ad->aliasthis)
+                {
+                    Identifier *id = Lexer::uniqueId("__tup");
+                    ExpInitializer *ei = new ExpInitializer(aggr->loc, aggr);
+                    VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
+                    vd->storage_class |= STCctfe | STCref | STCforeach;
+
+                    aggr = new CommaExp(aggr->loc,
+                        new DeclarationExp(loc, vd),
+                        new DotIdExp(aggr->loc,
+                            new VarExp(loc, vd),
+                            ad->aliasthis->ident));
+
+                    goto Lretry;
+                }
                 goto Lapply;
+            }
 
             /* Generate a temporary __r and initialize it with the aggregate.
              */
@@ -2008,8 +2048,11 @@ Lagain:
 
                 s = new CompoundStatement(loc, a);
                 s = new SwitchStatement(loc, e, s, FALSE);
-                s = s->semantic(sc);
             }
+            if (prelude)
+                s = new CompoundStatement(loc,
+                        new ExpStatement(prelude->loc, prelude), s);
+            s = s->semantic(sc);
             break;
         }
         case Terror:
