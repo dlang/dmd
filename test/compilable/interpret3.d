@@ -2329,3 +2329,30 @@ bool test3512()
     return true;
 }
 static assert(test3512());
+
+/**************************************************
+    6510 ICE only with -inline
+**************************************************/
+
+struct Stack6510 {
+    struct Proxy {
+        void shrink() {}
+    }
+    Proxy stack;
+    void pop() {
+        stack.shrink();
+    }
+}
+
+int bug6510() {
+    static int used() {
+        Stack6510 junk;
+        junk.pop();
+        return 3;
+    }
+    return used();
+}
+
+void test6510() {
+    static assert(bug6510()==3);
+}
