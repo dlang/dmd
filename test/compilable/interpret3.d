@@ -2356,3 +2356,15 @@ int bug6510() {
 void test6510() {
     static assert(bug6510()==3);
 }
+
+/**************************************************
+    6511   arr[] shouldn't make a copy
+**************************************************/
+
+T bug6511(T)() {
+    T[1] a = [1];
+    a[] += a[];
+    return a[0];
+}
+static assert(bug6511!ulong() == 2);
+static assert(bug6511!long() == 2);
