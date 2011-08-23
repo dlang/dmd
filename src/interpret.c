@@ -2071,27 +2071,51 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
     return se;
 }
 
+// Create an array literal of type 'newtype' with dimensions given by
+// 'arguments'[argnum..$]
+Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
+    Expressions *arguments, int argnum)
+{
+    Expression *lenExpr = ((arguments->tdata()[argnum]))->interpret(istate);
+    if (lenExpr == EXP_CANT_INTERPRET)
+        return EXP_CANT_INTERPRET;
+    size_t len = (size_t)(lenExpr->toInteger());
+    Type *elemType = ((TypeArray *)newtype)->next;
+    if (elemType->ty == Tarray)
+    {
+        assert(argnum < arguments->dim - 1);
+        Expression *elem = recursivelyCreateArrayLiteral(elemType, istate,
+            arguments, argnum + 1);
+        if (elem == EXP_CANT_INTERPRET)
+            return elem;
+
+        Expressions *elements = new Expressions();
+        elements->setDim(len);
+        for (size_t i = 0; i < len; i++)
+             elements->tdata()[i] = copyLiteral(elem);
+        ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+        ae->type = newtype;
+        return ae;
+    }
+    assert(argnum == arguments->dim - 1);
+    if (elemType->ty == Tchar || elemType->ty == Twchar
+        || elemType->ty == Tdchar)
+        return createBlockDuplicatedStringLiteral(newtype,
+            (unsigned)(elemType->defaultInitLiteral()->toInteger()),
+            len, elemType->size());
+    return createBlockDuplicatedArrayLiteral(newtype,
+        elemType->defaultInitLiteral(),
+        len);
+}
+
 Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("NewExp::interpret() %s\n", toChars());
 #endif
-    if (newtype->ty == Tarray && arguments && arguments->dim == 1)
-    {
-        Expression *lenExpr = ((arguments->tdata()[0]))->interpret(istate);
-        if (lenExpr == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
-        size_t len = (size_t)(lenExpr->toInteger());
-        Type *elemType = ((TypeArray *)newtype)->next;
-        if (elemType->ty == Tchar || elemType->ty == Twchar
-            || elemType->ty == Tdchar)
-            return createBlockDuplicatedStringLiteral(newtype,
-                (unsigned)(elemType->defaultInitLiteral()->toInteger()),
-                len, elemType->size());
-        return createBlockDuplicatedArrayLiteral(newtype,
-            elemType->defaultInitLiteral(),
-            len);
-    }
+    if (newtype->ty == Tarray && arguments)
+        return recursivelyCreateArrayLiteral(newtype, istate, arguments, 0);
+
     if (newtype->toBasetype()->ty == Tstruct)
     {
         Expression *se = newtype->defaultInitLiteral();
