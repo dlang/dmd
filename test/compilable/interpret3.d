@@ -2368,3 +2368,24 @@ T bug6511(T)() {
 }
 static assert(bug6511!ulong() == 2);
 static assert(bug6511!long() == 2);
+
+/**************************************************
+    6512   new T[][]
+**************************************************/
+
+bool bug6512(int m) {
+    auto x = new int[2][][](m, 5);
+    assert(x.length == m);
+    assert(x[0].length == 5);
+    assert(x[0][0].length == 2);
+    foreach( i; 0.. m)
+        foreach( j; 0..5)
+            foreach(k; 0..2)
+                x[i][j][k] = k + j*10 + i*100;
+    foreach( i; 0.. m)
+        foreach( j; 0..5)
+            foreach(k; 0..2)
+                assert( x[i][j][k] == k + j*10 + i*100);
+    return true;
+}
+static assert(bug6512(3));
