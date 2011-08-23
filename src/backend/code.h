@@ -244,6 +244,7 @@ extern regm_t BYTEREGS;
     #define ESCframeptr (10 << 8)      // replace with load of frame pointer
     #define ESCdctor    (11 << 8)      // D object is constructed
     #define ESCddtor    (12 << 8)      // D object is destructed
+    #define ESCadjfpu   (13 << 8)      // adjust fpustackused by IEV2.Vint
 
 #define ASM     0x36    // string of asm bytes, actually an SS: opcode
 
@@ -876,6 +877,7 @@ code *genlinnum(code *,Srcpos);
 void cgen_linnum(code **pc,Srcpos srcpos);
 void cgen_prelinnum(code **pc,Srcpos srcpos);
 code *genadjesp(code *c, int offset);
+code *genadjfpu(code *c, int offset);
 code *gennop(code *);
 code *genshift(code *);
 code *movregconst (code *c , unsigned reg , targ_size_t value , regm_t flags );

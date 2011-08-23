@@ -513,6 +513,26 @@ code *genadjesp(code *c, int offset)
 }
 
 /********************************
+ * Generate 'instruction' which tells the scheduler that the fpu stack has
+ * changed.
+ */
+
+code *genadjfpu(code *c, int offset)
+{   code cs;
+
+    if (!I16 && offset)
+    {
+        cs.Iop = ESCAPE | ESCadjfpu;
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IEV2.Vint = offset;
+        return gen(c,&cs);
+    }
+    else
+        return c;
+}
+
+/********************************
  * Generate 'nop'
  */
 

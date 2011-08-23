@@ -3081,6 +3081,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 
     if (retregs & mST0)
     {
+        c = genadjfpu(c, 1);
         if (*pretregs)                  // if we want the result
         {   //assert(stackused == 0);
             push87();                   // one item on 8087 stack
@@ -3092,6 +3093,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     }
     else if (retregs & mST01)
     {
+        c = genadjfpu(c, 2);
         if (*pretregs)                  // if we want the result
         {   assert(stackused == 0);
             push87();

@@ -4338,6 +4338,21 @@ void test6506() {
 }
 
 /***************************************************/
+// 6505
+
+double foo240() {
+    return 1.0;
+}
+
+void test240() {
+    double a = foo240();
+    double b = foo240();
+    double x = a*a + a*a + a*a + a*a + a*a + a*a + a*a +
+               a*b + a*b;
+    assert(x > 0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4570,6 +4585,7 @@ int main()
     test6229();
     test6270();
     test6506();
+    test240();
 
     writefln("Success");
     return 0;
