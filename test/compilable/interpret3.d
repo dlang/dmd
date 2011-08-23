@@ -1654,6 +1654,28 @@ static assert({
 }() == 6);
 
 /**************************************************
+  6517 ptr++, ptr--
+**************************************************/
+
+int bug6517() {
+    int[] arr = [1, 2, 3];
+    auto startp = arr.ptr;
+    auto endp = arr.ptr + arr.length;
+
+    for(; startp < endp; startp++) {}
+    startp = arr.ptr;
+    assert(startp++ == arr.ptr);
+    assert(startp != arr.ptr);
+    assert(startp-- != arr.ptr);
+    assert(startp == arr.ptr);
+
+    return 84;
+}
+
+static assert(bug6517() == 84);
+
+
+/**************************************************
   Out-of-bounds pointer assignment and deference
 **************************************************/
 
@@ -2118,6 +2140,64 @@ static assert({
 }());
 
 /**************************************************
+    6420  ICE on dereference of invalid pointer
+**************************************************/
+
+static assert({
+    // Should compile, but pointer can't be dereferenced
+    int x = 123;
+    int* p = cast(int *)x;
+    auto q = cast(char*)x;
+    auto r = cast(char*)323;
+    // Valid const-changing cast
+    const float *m = cast(immutable float *)[1.2f,2.4f,3f];
+    return true;
+}()
+);
+
+static assert(!is(typeof(compiles!({
+    int x = 123;
+    int* p = cast(int *)x;
+    int a = *p;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    int* p = cast(int *)123;
+    int a = *p;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    auto k = cast(int*)45;
+    *k = 1;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    *cast(float*)"a" = 4.0;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    float f = 2.8;
+    long *p = &f;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    long *p = cast(long *)[1.2f,2.4f,3f];
+    return true;
+}()
+))));
+
+
+/**************************************************
     6250  deref pointers to array
 **************************************************/
 
@@ -2249,3 +2329,42 @@ bool test3512()
     return true;
 }
 static assert(test3512());
+
+/**************************************************
+    6510 ICE only with -inline
+**************************************************/
+
+struct Stack6510 {
+    struct Proxy {
+        void shrink() {}
+    }
+    Proxy stack;
+    void pop() {
+        stack.shrink();
+    }
+}
+
+int bug6510() {
+    static int used() {
+        Stack6510 junk;
+        junk.pop();
+        return 3;
+    }
+    return used();
+}
+
+void test6510() {
+    static assert(bug6510()==3);
+}
+
+/**************************************************
+    6511   arr[] shouldn't make a copy
+**************************************************/
+
+T bug6511(T)() {
+    T[1] a = [1];
+    a[] += a[];
+    return a[0];
+}
+static assert(bug6511!ulong() == 2);
+static assert(bug6511!long() == 2);
