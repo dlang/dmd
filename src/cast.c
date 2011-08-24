@@ -1788,14 +1788,71 @@ Lagain:
                 else
                     goto Lincompatible;
             }
+            else if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
+            {
+                e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);
+                e1 = e1->semantic(sc);
+                e1 = resolveProperties(sc, e1);
+                t1 = e1->type;
+                continue;
+            }
+            else if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
+            {
+                e2 = new DotIdExp(e2->loc, e2, ((TypeStruct *)t2)->sym->aliasthis->ident);
+                e2 = e2->semantic(sc);
+                e2 = resolveProperties(sc, e2);
+                t2 = e2->type;
+                continue;
+            }
             else
                 goto Lincompatible;
         }
     }
     else if (t1->ty == Tstruct && t2->ty == Tstruct)
     {
-        if (((TypeStruct *)t1)->sym != ((TypeStruct *)t2)->sym)
-            goto Lincompatible;
+        TypeStruct *ts1 = (TypeStruct *)t1;
+        TypeStruct *ts2 = (TypeStruct *)t2;
+        if (ts1->sym != ts2->sym)
+        {
+            if (!ts1->sym->aliasthis && !ts2->sym->aliasthis)
+                goto Lincompatible;
+
+            int i1 = 0;
+            int i2 = 0;
+
+            Expression *e1b = NULL;
+            Expression *e2b = NULL;
+            if (ts2->sym->aliasthis)
+            {
+                e2b = new DotIdExp(e2->loc, e2, ts2->sym->aliasthis->ident);
+                e2b = e2b->semantic(sc);
+                e2b = resolveProperties(sc, e2b);
+                i1 = e2b->implicitConvTo(t1);
+            }
+            if (ts1->sym->aliasthis)
+            {
+                e1b = new DotIdExp(e1->loc, e1, ts1->sym->aliasthis->ident);
+                e1b = e1b->semantic(sc);
+                e1b = resolveProperties(sc, e1b);
+                i2 = e1b->implicitConvTo(t2);
+            }
+            assert(!(i1 && i2));
+
+            if (i1)
+                goto Lt1;
+            else if (i2)
+                goto Lt2;
+
+            if (e1b)
+            {   e1 = e1b;
+                t1 = e1b->type->toBasetype();
+            }
+            if (e2b)
+            {   e2 = e2b;
+                t2 = e2b->type->toBasetype();
+            }
+            goto Lagain;
+        }
     }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {
