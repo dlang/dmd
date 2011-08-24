@@ -2152,6 +2152,15 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
         size_t nfargs = Parameter::dim(this->parameters);
         size_t nfparams = Parameter::dim(tp->parameters);
 
+        // bug 2579 fix: Apply function parameter storage classes to parameter types
+        for (size_t i = 0; i < nfparams; i++)
+        {
+            Parameter *fparam = Parameter::getNth(tp->parameters, i);
+            fparam->type = fparam->type->addStorageClass(fparam->storageClass);
+        }
+        //printf("\t-> this   = %d, ", ty); print();
+        //printf("\t-> tparam = %d, ", tparam->ty); tparam->print();
+
         /* See if tuple match
          */
         if (nfparams > 0 && nfargs >= nfparams - 1)
