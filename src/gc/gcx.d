@@ -80,6 +80,7 @@ private
         NO_SCAN     = 0b0000_0010,
         NO_MOVE     = 0b0000_0100,
         APPENDABLE  = 0b0000_1000,
+        NO_INTERIOR = 0b0001_0000,
         ALL_BITS    = 0b1111_1111
     }
 }
@@ -2290,18 +2291,28 @@ struct Gcx
                     size_t biti = void;
                     size_t pn = offset / PAGESIZE;
                     Bins   bin = cast(Bins)pool.pagetable[pn];
+                    
+                    // For the NO_INTERIOR attribute.  This tracks whether
+                    // the pointer is an interior pointer or points to the
+                    // base address of a block.
+                    bool pointsToBase = false;
 
                     //debug(PRINTF) printf("\t\tfound pool %p, base=%p, pn = %zd, bin = %d, biti = x%x\n", pool, pool.baseAddr, pn, bin, biti);
 
                     // Adjust bit to be at start of allocated memory block
                     if (bin < B_PAGE)
                     {
-                        biti = (offset & notbinsize[bin]) >> pool.shiftBy;
+                        // We don't care abou setting pointsToBase correctly
+                        // because it's ignored for small object pools anyhow.
+                        auto base = offset & notbinsize[bin];
+                        biti = base >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
                     }
                     else if (bin == B_PAGE)
                     {
-                        biti = (offset & notbinsize[bin]) >> pool.shiftBy;
+                        auto base = offset & notbinsize[bin];
+                        pointsToBase = offset == base;
+                        biti = base >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                         pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
@@ -2318,13 +2329,18 @@ struct Gcx
                         // Don't mark bits in B_FREE or B_UNCOMMITTED pages
                         continue;
                     }
+                    
+                    if(pool.isLargeObject && !pointsToBase && pool.nointerior.test(biti))
+                    {
+                        continue;
+                    }
 
                     //debug(PRINTF) printf("\t\tmark(x%x) = %d\n", biti, pool.mark.test(biti));
                     if (!pool.mark.testSet(biti))
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %p\n", p);
                         if (!pool.noscan.test(biti))
-                        {
+                        {                            
                             pool.scan.set(biti);
                             changes = 1;
                             pool.newChanges = true;
@@ -2849,6 +2865,8 @@ struct Gcx
             bits |= BlkAttr.FINALIZE;
         if (pool.noscan.test(biti))
             bits |= BlkAttr.NO_SCAN;
+        if (pool.isLargeObject && pool.nointerior.test(biti))
+            bits |= BlkAttr.NO_INTERIOR;
 //        if (pool.nomove.nbits &&
 //            pool.nomove.test(biti))
 //            bits |= BlkAttr.NO_MOVE;
@@ -2888,6 +2906,11 @@ struct Gcx
         {
             pool.appendable.set(biti);
         }
+        
+        if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+        {
+            pool.nointerior.set(biti);
+        }
     }
 
 
@@ -2909,6 +2932,8 @@ struct Gcx
 //            pool.nomove.clear(biti);
         if (mask & BlkAttr.APPENDABLE)
             pool.appendable.clear(biti);
+        if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+            pool.nointerior.clear(biti);
     }
 
 
@@ -3050,6 +3075,8 @@ struct Pool
     GCBits finals;      // entries that need finalizer run on them
     GCBits noscan;      // entries that should not be scanned
     GCBits appendable;  // entries that are appendable
+    GCBits nointerior;  // interior pointers should be ignored.
+                        // Only implemented for large object pools.
 
     size_t npages;
     size_t freepages;     // The number of pages not in use.
@@ -3101,8 +3128,16 @@ struct Pool
         scan.alloc(nbits);
 
         // pagetable already keeps track of what's free for the large object
+        // pool.  nointerior is only worth the overhead for the large object
         // pool.
-        if(!isLargeObject) freebits.alloc(nbits);
+        if(isLargeObject) 
+        {
+            nointerior.alloc(nbits);
+        }
+        else
+        {
+            freebits.alloc(nbits);
+        }
 
         noscan.alloc(nbits);
         appendable.alloc(nbits);
@@ -3157,7 +3192,14 @@ struct Pool
 
         mark.Dtor();
         scan.Dtor();
-        if(!isLargeObject) freebits.Dtor();
+        if(isLargeObject)
+        {
+            nointerior.Dtor();
+        }
+        else
+        {
+            freebits.Dtor();
+        }
         finals.Dtor();
         noscan.Dtor();
         appendable.Dtor();
@@ -3175,6 +3217,7 @@ struct Pool
         //finals.Invariant();
         //noscan.Invariant();
         //appendable.Invariant();
+        //nointerior.Invariant();
 
         if (baseAddr)
         {

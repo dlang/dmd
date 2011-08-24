@@ -121,7 +121,16 @@ struct GC
         FINALIZE    = 0b0000_0001, /// Finalize the data in this block on collect.
         NO_SCAN     = 0b0000_0010, /// Do not scan through this block on collect.
         NO_MOVE     = 0b0000_0100,  /// Do not move this memory block on collect.
-        APPENDABLE  = 0b0000_1000  /// This block contains the info to allow appending.
+        APPENDABLE  = 0b0000_1000, /// This block contains the info to allow appending.
+        
+        /**
+        This block is guaranteed to have a pointer to its base while it's
+        alive.  Interior pointers can be safely ignored.  This attribute
+        is useful for eliminating false pointers in very large data structures
+        and is only implemented for data structures at least a page in size.
+        */
+        NO_INTERIOR = 0b0001_0000  
+                                   
     }
 
 
