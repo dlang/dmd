@@ -9760,6 +9760,9 @@ Expression *AssignExp::semantic(Scope *sc)
          e2->op == TOKmul || e2->op == TOKdiv ||
          e2->op == TOKmod || e2->op == TOKxor ||
          e2->op == TOKand || e2->op == TOKor  ||
+#if DMDV2
+         e2->op == TOKpow ||
+#endif
          e2->op == TOKtilde || e2->op == TOKneg))
     {
         type = e1->type;
@@ -10352,8 +10355,30 @@ Expression *PowAssignExp::semantic(Scope *sc)
     if (e)
         return e;
 
-    e1 = e1->modifiableLvalue(sc, e1);
     assert(e1->type && e2->type);
+    if (e1->op == TOKslice)
+    {   // T[] ^^= ...
+        e = typeCombine(sc);
+        if (e->op == TOKerror)
+            return e;
+
+        // Check element types are arithmetic
+        Type *tb1 = e1->type->nextOf()->toBasetype();
+        Type *tb2 = e2->type->toBasetype();
+        if (tb2->ty == Tarray || tb2->ty == Tsarray)
+            tb2 = tb2->nextOf()->toBasetype();
+
+        if ( (tb1->isintegral() || tb1->isfloating()) &&
+             (tb2->isintegral() || tb2->isfloating()))
+        {
+            type = e1->type;
+            return arrayOp(sc);
+        }
+    }
+    else
+    {
+        e1 = e1->modifiableLvalue(sc, e1);
+    }
 
     if ( (e1->type->isintegral() || e1->type->isfloating()) &&
          (e2->type->isintegral() || e2->type->isfloating()))
@@ -10857,6 +10882,22 @@ Expression *PowExp::semantic(Scope *sc)
         return e;
 
     assert(e1->type && e2->type);
+    if (e1->op == TOKslice)
+    {
+        // Check element types are arithmetic
+        Type *tb1 = e1->type->nextOf()->toBasetype();
+        Type *tb2 = e2->type->toBasetype();
+        if (tb2->ty == Tarray || tb2->ty == Tsarray)
+            tb2 = tb2->nextOf()->toBasetype();
+
+        if ( (tb1->isintegral() || tb1->isfloating()) &&
+             (tb2->isintegral() || tb2->isfloating()))
+        {
+            type = e1->type;
+            return this;
+        }
+    }
+
     if ( (e1->type->isintegral() || e1->type->isfloating()) &&
          (e2->type->isintegral() || e2->type->isfloating()))
     {
