@@ -642,11 +642,16 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 {
     //printf("functionParameters()\n");
     assert(arguments);
+    assert(fd || tf->next);
     size_t nargs = arguments ? arguments->dim : 0;
     size_t nparams = Parameter::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
         error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
+
+    // If inferring return type, and semantic3() needs to be run if not already run
+    if (!tf->next && fd->inferRetType)
+        fd->semantic3(fd->scope);
 
     unsigned n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
@@ -716,7 +721,9 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         Identifier *id = Lexer::uniqueId("__arrayArg");
                         Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
                         t = t->semantic(loc, sc);
-                        VarDeclaration *v = new VarDeclaration(loc, t, id, fd->isSafe() ? NULL : new VoidInitializer(loc));
+                        bool isSafe = fd ? fd->isSafe() : tf->trust == TRUSTsafe;
+                        VarDeclaration *v = new VarDeclaration(loc, t, id,
+                            isSafe ? NULL : new VoidInitializer(loc));
                         v->storage_class |= STCctfe;
                         v->semantic(sc);
                         v->parent = sc->parent;
@@ -944,10 +951,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->dim - nparams);
         arguments->insert(0, e);
     }
-
-    // If inferring return type, and semantic3() needs to be run if not already run
-    if (!tf->next && fd->inferRetType)
-        fd->semantic3(fd->scope);
 
     Type *tret = tf->next;
     if (wildmatch)
