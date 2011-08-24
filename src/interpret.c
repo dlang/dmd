@@ -2068,6 +2068,8 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
     }
     StringExp *se = new StringExp(0, s, dim);
     se->type = type;
+    se->sz = sz;
+    se->committed = true;
     return se;
 }
 
