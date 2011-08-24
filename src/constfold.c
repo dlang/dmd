@@ -629,13 +629,13 @@ Expression *Ushr(Type *type, Expression *e1, Expression *e2)
     {
         case Tint8:
         case Tuns8:
-                assert(0);              // no way to trigger this
+                // Possible only with >>>=. >>> always gets promoted to int.
                 value = (value & 0xFF) >> count;
                 break;
 
         case Tint16:
         case Tuns16:
-                assert(0);              // no way to trigger this
+                // Possible only with >>>=. >>> always gets promoted to int.
                 value = (value & 0xFFFF) >> count;
                 break;
 
@@ -1142,7 +1142,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         assert(sd);
         Expressions *elements = new Expressions;
         for (size_t i = 0; i < sd->fields.dim; i++)
-        {   Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+        {   Dsymbol *s = sd->fields.tdata()[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
 
@@ -1221,7 +1221,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         }
         else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-            e = (Expression *)ale->elements->data[i];
+            e = ale->elements->tdata()[i];
             e->type = type;
             if (e->checkSideEffect(2))
                 e = EXP_CANT_INTERPRET;
@@ -1237,7 +1237,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             {   e1->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
             }
             else
-            {   e = (Expression *)ale->elements->data[i];
+            {   e = ale->elements->tdata()[i];
                 e->type = type;
                 if (e->checkSideEffect(2))
                     e = EXP_CANT_INTERPRET;
@@ -1252,12 +1252,12 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         for (size_t i = ae->keys->dim; i;)
         {
             i--;
-            Expression *ekey = (Expression *)ae->keys->data[i];
+            Expression *ekey = ae->keys->tdata()[i];
             Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
             if (ex == EXP_CANT_INTERPRET)
                 return ex;
             if (ex->isBool(TRUE))
-            {   e = (Expression *)ae->values->data[i];
+            {   e = ae->values->tdata()[i];
                 e->type = type;
                 if (e->checkSideEffect(2))
                     e = EXP_CANT_INTERPRET;
@@ -1320,9 +1320,9 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
         {
             Expressions *elements = new Expressions();
             elements->setDim(iupr - ilwr);
-            memcpy(elements->data,
-                   es1->elements->data + ilwr,
-                   (iupr - ilwr) * sizeof(es1->elements->data[0]));
+            memcpy(elements->tdata(),
+                   es1->elements->tdata() + ilwr,
+                   (iupr - ilwr) * sizeof(es1->elements->tdata()[0]));
             e = new ArrayLiteralExp(e1->loc, elements);
             e->type = type;
         }
@@ -1438,7 +1438,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         void *s = mem.malloc((len + 1) * sz);
         memcpy((char *)s + sz * es2->elements->dim, es1->string, es1->len * sz);
         for (size_t i = 0; i < es2->elements->dim; i++)
-        {   Expression *es2e = (Expression *)es2->elements->data[i];
+        {   Expression *es2e = es2->elements->tdata()[i];
             if (es2e->op != TOKint64)
                 return EXP_CANT_INTERPRET;
             dinteger_t v = es2e->toInteger();
@@ -1466,7 +1466,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         void *s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         for (size_t i = 0; i < es2->elements->dim; i++)
-        {   Expression *es2e = (Expression *)es2->elements->data[i];
+        {   Expression *es2e = es2->elements->tdata()[i];
             if (es2e->op != TOKint64)
                 return EXP_CANT_INTERPRET;
             dinteger_t v = es2e->toInteger();
