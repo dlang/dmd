@@ -1878,6 +1878,28 @@ void test6177()
 
 
 /**********************************/
+// 6636
+
+struct S6636
+{
+    ~this()
+    {
+        ++sdtor;
+    }
+}
+
+void func6636(S6636[3] sa) {}
+
+void test6636()
+{
+    sdtor = 0;
+
+    S6636[3] sa;
+    func6636(sa);
+    assert(sdtor == 3);
+}
+
+/**********************************/
 // 7353
 
 struct S7353
@@ -1984,6 +2006,7 @@ int main()
     test60();
     test4316();
     test6177();
+    test6636();
     test7353();
 
     printf("Success\n");
