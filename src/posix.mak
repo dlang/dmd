@@ -141,7 +141,7 @@ SRC = win32.mak posix.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(ENVP) gcc -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
+	$(ENVP) g++ -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
