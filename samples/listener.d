@@ -6,28 +6,23 @@
         This code has no warranties and is provided 'as-is'.
  */
 
-import std.conv;
-import std.socket;
+import std.conv, std.socket, std.stdio;
 
 int main(char[][] args)
 {
     ushort port;
 
     if (args.length >= 2)
-    {
-        port = std.conv.toUshort(args[1]);
-    }
+        port = to!ushort(args[1]);
     else
-    {
         port = 4444;
-    }
 
     Socket listener = new TcpSocket;
     assert(listener.isAlive);
     listener.blocking = false;
     listener.bind(new InternetAddress(port));
     listener.listen(10);
-    printf("Listening on port %d.\n", cast(int) port);
+    writefln("Listening on port %d.", port);
 
     const int MAX_CONNECTIONS = 60;
     SocketSet sset = new SocketSet(MAX_CONNECTIONS + 1);     // Room for listener.
@@ -59,7 +54,7 @@ next:
 
                 if (Socket.ERROR == read)
                 {
-                    printf("Connection error.\n");
+                    writeln("Connection error.");
                     goto sock_down;
                 }
                 else if (0 == read)
@@ -67,10 +62,11 @@ next:
                     try
                     {
                         // if the connection closed due to an error, remoteAddress() could fail
-                        printf("Connection from %.*s closed.\n", reads[i].remoteAddress().toString());
+                        writefln("Connection from %s closed.", reads[i].remoteAddress().toString());
                     }
-                    catch
+                    catch (SocketException)
                     {
+                        writeln("Connection closed.");
                     }
 
 sock_down:
@@ -82,13 +78,13 @@ sock_down:
 
                     reads = reads[0 .. reads.length - 1];
 
-                    printf("\tTotal connections: %d\n", reads.length);
+                    writefln("\tTotal connections: %d", reads.length);
 
                     goto next;                     // -i- is still the next index
                 }
                 else
                 {
-                    printf("Received %d bytes from %.*s: \"%.*s\"\n", read, reads[i].remoteAddress().toString(), buf[0 .. read]);
+                    writefln("Received %d bytes from %s: \"%s\"", read, reads[i].remoteAddress().toString(), buf[0 .. read]);
                 }
             }
         }
@@ -101,17 +97,17 @@ sock_down:
                 if (reads.length < MAX_CONNECTIONS)
                 {
                     sn = listener.accept();
-                    printf("Connection from %.*s established.\n", sn.remoteAddress().toString());
+                    writefln("Connection from %s established.", sn.remoteAddress().toString());
                     assert(sn.isAlive);
                     assert(listener.isAlive);
 
                     reads ~= sn;
-                    printf("\tTotal connections: %d\n", reads.length);
+                    writefln("\tTotal connections: %d", reads.length);
                 }
                 else
                 {
                     sn = listener.accept();
-                    printf("Rejected connection from %.*s; too many connections.\n", sn.remoteAddress().toString());
+                    writefln("Rejected connection from %s; too many connections.", sn.remoteAddress().toString());
                     assert(sn.isAlive);
 
                     sn.close();
@@ -121,7 +117,7 @@ sock_down:
             }
             catch (Exception e)
             {
-                printf("Error accepting: %.*s\n", e.toString());
+                writefln("Error accepting: %s", e.toString());
 
                 if (sn)
                     sn.close();

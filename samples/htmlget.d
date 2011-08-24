@@ -8,36 +8,37 @@
 
 // debug = HTMLGET;
 
-import std.string, std.conv, std.stream;
+import std.string, std.conv, std.stream, std.stdio;
 import std.socket, std.socketstream;
-import core.stdc.stdio;
 
-int main(char[][] args)
+int main(string[] args)
 {
     if (args.length < 2)
     {
-        printf("Usage:\n   htmlget <web-page>\n");
+        writeln("Usage:");
+        writeln("   htmlget <web-page>");
         return 0;
     }
 
-    char[] url = args[1];
+    string url = args[1];
     int i;
 
-    i = std.string.find(url, "://");
+    i = indexOf(url, "://");
 
     if (i != -1)
     {
         if (icmp(url[0 .. i], "http"))
             throw new Exception("http:// expected");
+        url = url[i + 3 .. $];
     }
 
-    i = std.string.find(url, '#');
+    i = indexOf(url, '#');
 
     if (i != -1)    // Remove anchor ref.
         url = url[0 .. i];
 
-    i = std.string.find(url, '/');
-    char[] domain;
+    i = indexOf(url, '/');
+    string domain;
 
     if (i == -1)
     {
@@ -50,8 +51,8 @@ int main(char[][] args)
         url    = url[i .. url.length];
     }
 
-    uint port;
-    i = std.string.find(domain, ':');
+    ushort port;
+    i = indexOf(domain, ':');
 
     if (i == -1)
     {
@@ -59,65 +60,51 @@ int main(char[][] args)
     }
     else
     {
-        port   = std.conv.toUshort(domain[i + 1 .. domain.length]);
+        port   = to!ushort(domain[i + 1 .. domain.length]);
         domain = domain[0 .. i];
     }
 
     debug (HTMLGET)
-        printf("Connecting to " ~ domain ~ " on port " ~ std.string.toString(port) ~ "...\n");
+        writefln("Connecting to %s on port %d...", domain, port);
 
-    auto Socket sock = new TcpSocket(new InternetAddress(domain, port));
-    Stream ss        = new SocketStream(sock);
+    Socket sock = new TcpSocket(new InternetAddress(domain, port));
+    scope(exit) sock.close();
+    Stream ss   = new SocketStream(sock);
 
     debug (HTMLGET)
-        printf("Connected!\nRequesting URL \"" ~ url ~ "\"...\n");
+        writefln("Connected! Requesting URL \"%s\"...", url);
 
     if (port != 80)
-        domain = domain ~ ":" ~ std.string.toString(port);
+        domain = domain ~ ":" ~ to!string(port);
 
-    ss.writeString("GET " ~ url ~ " HTTP/1.1\r\n"
+    ss.writeString("GET " ~ url ~ " HTTP/1.0\r\n"
                    "Host: " ~ domain ~ "\r\n"
                    "\r\n");
 
     // Skip HTTP header.
-    char[] line;
-
-    for (;;)
+    while (true)
     {
-        line = ss.readLine();
+        auto line = ss.readLine();
 
         if (!line.length)
             break;
 
-        const char[] CONTENT_TYPE_NAME = "Content-Type: ";
+        enum CONTENT_TYPE_NAME = "Content-Type: ";
 
         if (line.length > CONTENT_TYPE_NAME.length &&
             !icmp(CONTENT_TYPE_NAME, line[0 .. CONTENT_TYPE_NAME.length]))
         {
-            char[] type;
-            type = line[CONTENT_TYPE_NAME.length .. line.length];
+            auto type = line[CONTENT_TYPE_NAME.length .. line.length];
 
             if (type.length <= 5 || icmp("text/", type[0 .. 5]))
                 throw new Exception("URL is not text");
         }
     }
 
-print_lines:
-
     while (!ss.eof())
     {
-        line = ss.readLine();
-        printf("%.*s\n", line);
-
-        // if(std.string.ifind(line, "</html>") != -1)
-        //      break;
-        size_t iw;
-
-        for (iw = 0; iw != line.length; iw++)
-        {
-            if (!icmp("</html>", line[iw .. line.length]))
-                break print_lines;
-        }
+        auto line = ss.readLine();
+        writeln(line);
     }
 
     return 0;
