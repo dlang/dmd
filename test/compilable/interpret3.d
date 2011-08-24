@@ -2406,3 +2406,14 @@ bool bug6512(int m) {
     return true;
 }
 static assert(bug6512(3));
+
+/**************************************************
+    6516   ICE(constfold.c)
+**************************************************/
+
+dstring bug6516()
+{
+    return cast(dstring) new dchar[](0);
+}
+
+static assert(bug6516() == ""d);
