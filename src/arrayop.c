@@ -434,6 +434,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -467,6 +470,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -549,6 +555,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -585,6 +594,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
