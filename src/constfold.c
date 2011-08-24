@@ -622,13 +622,13 @@ Expression *Ushr(Type *type, Expression *e1, Expression *e2)
     {
         case Tint8:
         case Tuns8:
-                assert(0);              // no way to trigger this
+                // Possible only with >>>=. >>> always gets promoted to int.
                 value = (value & 0xFF) >> count;
                 break;
 
         case Tint16:
         case Tuns16:
-                assert(0);              // no way to trigger this
+                // Possible only with >>>=. >>> always gets promoted to int.
                 value = (value & 0xFFFF) >> count;
                 break;
 
