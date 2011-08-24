@@ -283,6 +283,55 @@ void test2781()
 }
 
 /**********************************************/
+// 6546
+
+void test6546()
+{
+    class C {}
+    class D : C {}
+
+    struct S { C c; alias c this; } // S : C
+    struct T { S s; alias s this; } // T : S
+    struct U { T t; alias t this; } // U : T
+
+    C c;
+    D d;
+    S s;
+    T t;
+    U u;
+
+    assert(c is c);  // OK
+    assert(c is d);  // OK
+    assert(c is s);  // OK
+    assert(c is t);  // OK
+    assert(c is u);  // OK
+
+    assert(d is c);  // OK
+    assert(d is d);  // OK
+    assert(d is s);  // doesn't work
+    assert(d is t);  // doesn't work
+    assert(d is u);  // doesn't work
+
+    assert(s is c);  // OK
+    assert(s is d);  // doesn't work
+    assert(s is s);  // OK
+    assert(s is t);  // doesn't work
+    assert(s is u);  // doesn't work
+
+    assert(t is c);  // OK
+    assert(t is d);  // doesn't work
+    assert(t is s);  // doesn't work
+    assert(t is t);  // OK
+    assert(t is u);  // doesn't work
+
+    assert(u is c);  // OK
+    assert(u is d);  // doesn't work
+    assert(u is s);  // doesn't work
+    assert(u is t);  // doesn't work
+    assert(u is u);  // OK
+}
+
+/**********************************************/
 
 int main()
 {
@@ -295,6 +344,7 @@ int main()
     test5188();
     test6();
     test2781();
+    test6546();
 
     printf("Success\n");
     return 0;
