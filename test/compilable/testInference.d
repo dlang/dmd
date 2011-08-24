@@ -59,5 +59,25 @@ void fECPb() {
     static assert( is(typeof(&g!()) == void delegate()));
 }
 
+// 5936
+
+auto bug5936c(R)(R i) @safe pure nothrow {
+    return true;
+}
+static assert( bug5936c(0) );
+
+// 6351
+
+void bug6351(alias dg)()
+{
+    dg();
+}
+
+void test6351()
+{
+    void delegate(int[] a...) deleg6351 = (int[] a...){};
+    alias bug6351!(deleg6351) baz6531;
+}
+
 // Add more tests regarding inferences later.
 
