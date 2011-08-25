@@ -1875,6 +1875,24 @@ void test99()
 
 /***************************************************/
 
+void test5081()
+{
+    static pure immutable(int[]) x()
+    {
+        return new int[](10);
+    }
+
+    static pure int[] y()
+    {
+        return new int[](10);
+    }
+
+    immutable a = x();
+    immutable b = y();
+}
+
+/***************************************************/
+
 void test100()
 {
    string s;
@@ -3617,6 +3635,7 @@ int main()
     test116();
     test117();
     test118();
+    test5081();
 
     test120();
 

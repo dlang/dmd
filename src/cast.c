@@ -576,6 +576,26 @@ MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
         return Expression::implicitConvTo(t);
 }
 
+MATCH CallExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("CalLExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+        toChars(), type->toChars(), t->toChars());
+#endif
+
+    MATCH m = Expression::implicitConvTo(t);
+    if (m)
+        return m;
+
+    /* Allow the result of strongly pure functions to
+     * convert to immutable
+     */
+    if (f && f->isPure() == PUREstrong)
+        return type->invariantOf()->implicitConvTo(t);
+
+    return MATCHnomatch;
+}
+
 MATCH AddrExp::implicitConvTo(Type *t)
 {
 #if 0
