@@ -6894,6 +6894,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expressions *exps)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     this->arguments = exps;
+    this->f = NULL;
 }
 
 CallExp::CallExp(Loc loc, Expression *e)
