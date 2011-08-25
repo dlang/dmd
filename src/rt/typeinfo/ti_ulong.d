@@ -40,7 +40,7 @@ class TypeInfo_m : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return ulong.sizeof;
     }
@@ -54,7 +54,7 @@ class TypeInfo_m : TypeInfo
         *cast(ulong *)p2 = t;
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return ulong.alignof;
     }

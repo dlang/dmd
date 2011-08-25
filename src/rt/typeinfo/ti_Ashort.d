@@ -57,22 +57,22 @@ class TypeInfo_As : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (short[]).sizeof;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(short);
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return (short[]).alignof;
     }
@@ -112,7 +112,7 @@ class TypeInfo_At : TypeInfo_As
         return 0;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(ushort);
     }
@@ -124,7 +124,7 @@ class TypeInfo_Au : TypeInfo_At
 {
     override string toString() { return "wchar[]"; }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(wchar);
     }

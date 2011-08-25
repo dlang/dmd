@@ -57,22 +57,22 @@ class TypeInfo_Ai : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (int[]).sizeof;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(int);
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return (int[]).alignof;
     }
@@ -123,7 +123,7 @@ class TypeInfo_Ak : TypeInfo_Ai
         return 0;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(uint);
     }
@@ -135,7 +135,7 @@ class TypeInfo_Aw : TypeInfo_Ak
 {
     override string toString() { return "dchar[]"; }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(dchar);
     }

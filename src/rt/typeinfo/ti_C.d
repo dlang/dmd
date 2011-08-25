@@ -52,12 +52,12 @@ class TypeInfo_C : TypeInfo
         return c;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return Object.sizeof;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }

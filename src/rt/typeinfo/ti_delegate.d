@@ -31,7 +31,7 @@ class TypeInfo_D : TypeInfo
         return *cast(dg *)p1 == *cast(dg *)p2;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return dg.sizeof;
     }
@@ -45,7 +45,7 @@ class TypeInfo_D : TypeInfo
         *cast(dg *)p2 = t;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }

@@ -64,22 +64,22 @@ class TypeInfo_Ac : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (creal[]).sizeof;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(creal);
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return (real[]).alignof;
     }

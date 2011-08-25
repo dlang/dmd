@@ -58,22 +58,22 @@ class TypeInfo_Ag : TypeInfo
         return 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (byte[]).sizeof;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(byte);
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return (byte[]).alignof;
     }
@@ -101,7 +101,7 @@ class TypeInfo_Ah : TypeInfo_Ag
         return dstrcmp(s1, s2);
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(ubyte);
     }
@@ -113,7 +113,7 @@ class TypeInfo_Av : TypeInfo_Ah
 {
     override string toString() { return "void[]"; }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(void);
     }
@@ -125,7 +125,7 @@ class TypeInfo_Ab : TypeInfo_Ah
 {
     override string toString() { return "bool[]"; }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(bool);
     }
@@ -186,7 +186,7 @@ else
         return hash;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(char);
     }
@@ -198,7 +198,7 @@ class TypeInfo_Aya : TypeInfo_Aa
 {
     override string toString() { return "immutable(char)[]"; }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(immutable(char));
     }
