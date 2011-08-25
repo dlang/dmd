@@ -907,13 +907,13 @@ void VarDeclaration::semantic(Scope *sc)
                     ve->type = e->type;
 
                     exps->setDim(1);
-                    exps->tdata()[0] = ve;
+                    (*exps)[0] = ve;
                     expandAliasThisTuples(exps, 0);
 
                     for (size_t u = 0; u < exps->dim ; u++)
                     {
                     Lexpand2:
-                        Expression *ee = exps->tdata()[u];
+                        Expression *ee = (*exps)[u];
                         Parameter *arg = Parameter::getNth(tt->arguments, pos + u);
                         arg->type = arg->type->semantic(loc, sc);
                         //printf("[%d+%d] exps->dim = %d, ", pos, u, exps->dim);
@@ -930,11 +930,11 @@ void VarDeclaration::semantic(Scope *sc)
                             goto Lexpand2;
                     }
 
-                    if (exps->tdata()[0] != ve)
+                    if ((*exps)[0] != ve)
                     {
-                        Expression *e0 = exps->tdata()[0];
-                        exps->tdata()[0] = new CommaExp(loc, new DeclarationExp(loc, v), e0);
-                        exps->tdata()[0]->type = e0->type;
+                        Expression *e0 = (*exps)[0];
+                        (*exps)[0] = new CommaExp(loc, new DeclarationExp(loc, v), e0);
+                        (*exps)[0]->type = e0->type;
 
                         iexps->remove(pos);
                         iexps->insert(pos, exps);
@@ -952,9 +952,9 @@ Lnomatch:
         if (ie && ie->op == TOKtuple)
         {   size_t tedim = ((TupleExp *)ie)->exps->dim;
             if (tedim != nelems)
-            {   ::error(loc, "mismatch initializer mapping");
+            {   ::error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
                 for (size_t u = tedim; u < nelems; u++) // fill dummy expression
-                    ((TupleExp *)ie)->exps->push(new IntegerExp(0));
+                    ((TupleExp *)ie)->exps->push(new ErrorExp());
             }
         }
 
