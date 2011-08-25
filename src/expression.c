@@ -2459,6 +2459,20 @@ Expression *IdentifierExp::semantic(Scope *sc)
         return e->semantic(sc);
     }
 #if DMDV2
+    if (hasThis(sc))
+    {
+        AggregateDeclaration *ad = sc->getStructClassScope();
+        if (ad->aliasthis)
+        {
+            Expression *e;
+            e = new IdentifierExp(loc, Id::This);
+            e = new DotIdExp(loc, e, ad->aliasthis->ident);
+            e = new DotIdExp(loc, e, ident);
+            e = e->trySemantic(sc);
+            if (e)
+                return e;
+        }
+    }
     if (ident == Id::ctfe)
     {  // Create the magic __ctfe bool variable
        VarDeclaration *vd = new VarDeclaration(loc, Type::tbool, Id::ctfe, NULL);

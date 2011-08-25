@@ -185,6 +185,7 @@ void test6() {
 }
 
 /**********************************************/
+<<<<<<< HEAD
 // 2781
 
 struct Tuple2781a(T...) {
@@ -366,6 +367,23 @@ void test2777b()
     auto f2 = t[1..3];
     assert(f2[0] == 3.14);
     assert(f2[1] == "str");
+}
+
+/****************************************/
+// 2787
+
+struct Base2787
+{
+    int x;
+    void foo() { auto _ = x; }
+}
+
+struct Derived2787
+{
+    Base2787 _base;
+    alias _base this;
+    int y;
+    void bar() { auto _ = x; }
 }
 
 /**********************************************/
