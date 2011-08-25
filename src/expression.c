@@ -8512,6 +8512,7 @@ Expression *SliceExp::semantic(Scope *sc)
     if (type)
         return this;
 
+Lagain:
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
 
@@ -8557,6 +8558,11 @@ Expression *SliceExp::semantic(Scope *sc)
             }
             e = e->semantic(sc);
             return e;
+        }
+        if (ad->aliasthis)
+        {
+            e1 = new DotIdExp(e1->loc, e1, ad->aliasthis->ident);
+            goto Lagain;
         }
         goto Lerror;
     }
@@ -8859,23 +8865,6 @@ Expression *ArrayExp::semantic(Scope *sc)
         e = new IndexExp(loc, e1, arguments->tdata()[0]);
         return e->semantic(sc);
     }
-
-    // Run semantic() on each argument
-    for (size_t i = 0; i < arguments->dim; i++)
-    {   e = arguments->tdata()[i];
-
-        e = e->semantic(sc);
-        if (!e->type)
-        {   error("%s has no value", e->toChars());
-            goto Lerr;
-        }
-        else if (e->type == Type::terror)
-            goto Lerr;
-        arguments->tdata()[i] = e;
-    }
-
-    expandTuples(arguments);
-    assert(arguments && arguments->dim);
 
     e = op_overload(sc);
     if (!e)

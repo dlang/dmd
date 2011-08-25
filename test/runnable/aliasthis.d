@@ -185,6 +185,7 @@ void test6() {
 }
 
 /**********************************************/
+<<<<<<< HEAD
 // 2781
 
 struct Tuple2781a(T...) {
@@ -332,6 +333,43 @@ void test6546()
 }
 
 /**********************************************/
+// 2777
+
+struct ArrayWrapper(T) {
+    T[] array;
+    alias array this;
+}
+
+// alias array this
+void test2777a()
+{
+    ArrayWrapper!(uint) foo;
+    foo.length = 5;  // Works
+    foo[0] = 1;      // Works
+    auto e0 = foo[0];  // Works
+    auto e4 = foo[$ - 1];  // Error:  undefined identifier __dollar
+    auto s01 = foo[0..2];  // Error:  ArrayWrapper!(uint) cannot be sliced with[]
+}
+
+// alias tuple this
+void test2777b()
+{
+    auto t = tup(10, 3.14, "str", [1,2]);
+
+    assert(t[$ - 1] == [1,2]);
+
+    auto f1 = t[];
+    assert(f1[0] == 10);
+    assert(f1[1] == 3.14);
+    assert(f1[2] == "str");
+    assert(f1[3] == [1,2]);
+
+    auto f2 = t[1..3];
+    assert(f2[0] == 3.14);
+    assert(f2[1] == "str");
+}
+
+/**********************************************/
 
 int main()
 {
@@ -345,6 +383,8 @@ int main()
     test6();
     test2781();
     test6546();
+    test2777a();
+    test2777b();
 
     printf("Success\n");
     return 0;
