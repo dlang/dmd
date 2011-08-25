@@ -385,6 +385,17 @@ struct Derived2787
     void bar() { auto _ = x; }
 }
 
+/***********************************/
+// 6508
+
+void test6508()
+{
+    int x, y;
+    Seq!(x, y) = tup(10, 20);
+    assert(x == 10);
+    assert(y == 20);
+}
+
 /**********************************************/
 
 int main()
@@ -401,6 +412,7 @@ int main()
     test6546();
     test2777a();
     test2777b();
+    test6508();
 
     printf("Success\n");
     return 0;
