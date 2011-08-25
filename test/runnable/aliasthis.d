@@ -396,6 +396,84 @@ void test6508()
     assert(y == 20);
 }
 
+/***********************************/
+// 6369
+
+void test6369a()
+{
+    alias Seq!(int, string) Field;
+
+    auto t1 = Tup!(int, string)(10, "str");
+    Field field1 = t1;           // NG -> OK
+    assert(field1[0] == 10);
+    assert(field1[1] == "str");
+
+    auto t2 = Tup!(int, string)(10, "str");
+    Field field2 = t2.field;     // NG -> OK
+    assert(field2[0] == 10);
+    assert(field2[1] == "str");
+
+    auto t3 = Tup!(int, string)(10, "str");
+    Field field3;
+    field3 = t3.field;
+    assert(field3[0] == 10);
+    assert(field3[1] == "str");
+}
+
+void test6369b()
+{
+    auto t = Tup!(Tup!(int, double), string)(tup(10, 3.14), "str");
+
+    Seq!(int, double, string) fs1 = t;
+    assert(fs1[0] == 10);
+    assert(fs1[1] == 3.14);
+    assert(fs1[2] == "str");
+
+    Seq!(Tup!(int, double), string) fs2 = t;
+    assert(fs2[0][0] == 10);
+    assert(fs2[0][1] == 3.14);
+    assert(fs2[0] == tup(10, 3.14));
+    assert(fs2[1] == "str");
+
+    Tup!(Tup!(int, double), string) fs3 = t;
+    assert(fs3[0][0] == 10);
+    assert(fs3[0][1] == 3.14);
+    assert(fs3[0] == tup(10, 3.14));
+    assert(fs3[1] == "str");
+}
+
+void test6369c()
+{
+    auto t = Tup!(Tup!(int, double), Tup!(string, int[]))(tup(10, 3.14), tup("str", [1,2]));
+
+    Seq!(int, double, string, int[]) fs1 = t;
+    assert(fs1[0] == 10);
+    assert(fs1[1] == 3.14);
+    assert(fs1[2] == "str");
+    assert(fs1[3] == [1,2]);
+
+    Seq!(int, double, Tup!(string, int[])) fs2 = t;
+    assert(fs2[0] == 10);
+    assert(fs2[1] == 3.14);
+    assert(fs2[2] == tup("str", [1,2]));
+
+    Seq!(Tup!(int, double), string, int[]) fs3 = t;
+    assert(fs3[0] == tup(10, 3.14));
+    assert(fs3[0][0] == 10);
+    assert(fs3[0][1] == 3.14);
+    assert(fs3[1] == "str");
+    assert(fs3[2] == [1,2]);
+}
+
+void test6369d()
+{
+    int eval = 0;
+    Seq!(int, string) t = tup((++eval, 10), "str");
+    assert(eval == 1);
+    assert(t[0] == 10);
+    assert(t[1] == "str");
+}
+
 /**********************************************/
 
 int main()
@@ -413,6 +491,10 @@ int main()
     test2777a();
     test2777b();
     test6508();
+    test6369a();
+    test6369b();
+    test6369c();
+    test6369d();
 
     printf("Success\n");
     return 0;

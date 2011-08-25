@@ -860,6 +860,103 @@ void VarDeclaration::semantic(Scope *sc)
         Objects *exps = new Objects();
         exps->setDim(nelems);
         Expression *ie = init ? init->toExpression() : NULL;
+        if (ie) ie = ie->semantic(sc);
+
+        if (nelems > 0 && ie)
+        {
+            Expressions *iexps = new Expressions();
+            iexps->push(ie);
+
+            Expressions *exps = new Expressions();
+
+            for (size_t pos = 0; pos < iexps->dim; pos++)
+            {
+            Lexpand1:
+                Expression *e = iexps->tdata()[pos];
+                Parameter *arg = Parameter::getNth(tt->arguments, pos);
+                arg->type = arg->type->semantic(loc, sc);
+                //printf("[%d] iexps->dim = %d, ", pos, iexps->dim);
+                //printf("e = (%s %s, %s), ", Token::tochars[e->op], e->toChars(), e->type->toChars());
+                //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+
+                if (e != ie)
+                {
+                if (iexps->dim > nelems)
+                    goto Lnomatch;
+                if (e->type->implicitConvTo(arg->type))
+                    continue;
+                }
+
+                if (e->op == TOKtuple)
+                {
+                    TupleExp *te = (TupleExp *)e;
+                    if (iexps->dim - 1 + te->exps->dim > nelems)
+                        goto Lnomatch;
+
+                    iexps->remove(pos);
+                    iexps->insert(pos, te->exps);
+                    goto Lexpand1;
+                }
+                else if (isAliasThisTuple(e))
+                {
+                    Identifier *id = Lexer::uniqueId("__tup");
+                    ExpInitializer *ei = new ExpInitializer(e->loc, e);
+                    VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
+                    v->storage_class = STCctfe | STCref | STCforeach;
+                    VarExp *ve = new VarExp(loc, v);
+                    ve->type = e->type;
+
+                    exps->setDim(1);
+                    exps->tdata()[0] = ve;
+                    expandAliasThisTuples(exps, 0);
+
+                    for (size_t u = 0; u < exps->dim ; u++)
+                    {
+                    Lexpand2:
+                        Expression *ee = exps->tdata()[u];
+                        Parameter *arg = Parameter::getNth(tt->arguments, pos + u);
+                        arg->type = arg->type->semantic(loc, sc);
+                        //printf("[%d+%d] exps->dim = %d, ", pos, u, exps->dim);
+                        //printf("ee = (%s %s, %s), ", Token::tochars[ee->op], ee->toChars(), ee->type->toChars());
+                        //printf("arg = (%s, %s)\n", arg->toChars(), arg->type->toChars());
+
+                        size_t iexps_dim = iexps->dim - 1 + exps->dim;
+                        if (iexps_dim > nelems)
+                            goto Lnomatch;
+                        if (ee->type->implicitConvTo(arg->type))
+                            continue;
+
+                        if (expandAliasThisTuples(exps, u) != -1)
+                            goto Lexpand2;
+                    }
+
+                    if (exps->tdata()[0] != ve)
+                    {
+                        Expression *e0 = exps->tdata()[0];
+                        exps->tdata()[0] = new CommaExp(loc, new DeclarationExp(loc, v), e0);
+                        exps->tdata()[0]->type = e0->type;
+
+                        iexps->remove(pos);
+                        iexps->insert(pos, exps);
+                        goto Lexpand1;
+                    }
+                }
+            }
+            if (iexps->dim < nelems)
+                goto Lnomatch;
+
+            ie = new TupleExp(init->loc, iexps);
+        }
+Lnomatch:
+
+        if (ie && ie->op == TOKtuple)
+        {   size_t tedim = ((TupleExp *)ie)->exps->dim;
+            if (tedim != nelems)
+            {   ::error(loc, "mismatch initializer mapping");
+                for (size_t u = tedim; u < nelems; u++) // fill dummy expression
+                    ((TupleExp *)ie)->exps->push(new IntegerExp(0));
+            }
+        }
 
         for (size_t i = 0; i < nelems; i++)
         {   Parameter *arg = Parameter::getNth(tt->arguments, i);
