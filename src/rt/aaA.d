@@ -25,12 +25,24 @@ private
         NO_SCAN     = 0b0000_0010,
         NO_MOVE     = 0b0000_0100,
         APPENDABLE  = 0b0000_1000,
+        NO_INTERIOR = 0b0001_0000,
         ALL_BITS    = 0b1111_1111
     }
 
     extern (C) void* gc_malloc( size_t sz, uint ba = 0 );
     extern (C) void* gc_calloc( size_t sz, uint ba = 0 );
     extern (C) void  gc_free( void* p );
+    
+    // Convenience function to make sure the NO_INTERIOR gets set on the
+    // aaA arrays.
+    aaA*[] newaaA(size_t len) 
+    {
+        auto ptr = cast(aaA**) gc_malloc(
+            len * (aaA*).sizeof, BlkAttr.NO_INTERIOR);
+        auto ret = ptr[0..len];
+        ret[] = null;
+        return ret;
+    }
 }
 
 // Auto-rehash and pre-allocate - Dave Fladebo
@@ -473,7 +485,7 @@ body
                     break;
             }
             len = prime_list[i];
-            newb.b = new aaA*[len];
+            newb.b = newaaA(len);
 
             foreach (e; aa.b)
             {
@@ -666,7 +678,7 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
                 break;
         }
         auto len = prime_list[i];
-        result.b = new aaA*[len];
+        result.b = newaaA(len);
 
         size_t keystacksize   = (keysize   + int.sizeof - 1) & ~(int.sizeof - 1);
         size_t valuestacksize = (valuesize + int.sizeof - 1) & ~(int.sizeof - 1);
@@ -742,7 +754,7 @@ BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] val
                 break;
         }
         auto len = prime_list[i];
-        result.b = new aaA*[len];
+        result.b = newaaA(len);
 
         size_t keytsize = aligntsize(keysize);
 
