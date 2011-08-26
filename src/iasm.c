@@ -4427,9 +4427,7 @@ Statement *AsmStatement::semantic(Scope *sc)
         asmstate.bInit = TRUE;
         init_optab();
         asmstate.psDollar = new LabelDsymbol(Id::__dollar);
-        //asmstate.psLocalsize = new VarDeclaration(0, Type::tint32, Id::__LOCAL_SIZE, NULL);
         asmstate.psLocalsize = new Dsymbol(Id::__LOCAL_SIZE);
-        cod3_set32();
     }
 
     asmstate.loc = loc;
