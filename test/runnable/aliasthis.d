@@ -496,6 +496,81 @@ void test6434()
 }
 
 /**************************************/
+// 6366
+
+void test6366()
+{
+    struct Zip
+    {
+        string str;
+        size_t i;
+        this(string s)
+        {
+            str = s;
+        }
+        @property const bool empty()
+        {
+            return i == str.length;
+        }
+        @property Tup!(size_t, char) front()
+        {
+            return typeof(return)(i, str[i]);
+        }
+        void popFront()
+        {
+            ++i;
+        }
+    }
+
+    foreach (i, c; Zip("hello"))
+    {
+        switch (i)
+        {
+            case 0: assert(c == 'h');   break;
+            case 1: assert(c == 'e');   break;
+            case 2: assert(c == 'l');   break;
+            case 3: assert(c == 'l');   break;
+            case 4: assert(c == 'o');   break;
+            default:assert(0);
+        }
+    }
+
+    auto range(F...)(F field)
+    {
+        static struct Range {
+            F field;
+            bool empty = false;
+            Tup!F front() { return typeof(return)(field); }
+            void popFront(){ empty = true; }
+        }
+        return Range(field);
+    }
+
+    foreach (i, t; range(10, tup("str", [1,2]))){
+        static assert(is(typeof(i) == int));
+        static assert(is(typeof(t) == Tup!(string, int[])));
+        assert(i == 10);
+        assert(t == tup("str", [1,2]));
+    }
+    auto r1 = range(10, "str", [1,2]);
+    auto r2 = range(tup(10, "str"), [1,2]);
+    auto r3 = range(10, tup("str", [1,2]));
+    auto r4 = range(tup(10, "str", [1,2]));
+    alias Seq!(r1, r2, r3, r4) ranges;
+    foreach (n, _; ranges)
+    {
+        foreach (i, s, a; ranges[n]){
+            static assert(is(typeof(i) == int));
+            static assert(is(typeof(s) == string));
+            static assert(is(typeof(a) == int[]));
+            assert(i == 10);
+            assert(s == "str");
+            assert(a == [1,2]);
+        }
+    }
+}
+
+/**********************************************/
 
 int main()
 {
@@ -517,6 +592,7 @@ int main()
     test6369c();
     test6369d();
     test6434();
+    test6366();
 
     printf("Success\n");
     return 0;
