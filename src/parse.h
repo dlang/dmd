@@ -66,6 +66,7 @@ struct Parser : Lexer
     enum LINK linkage;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
+    int inStatements;           // inside runnable code
     Loc lookingForElse;         // location of lonely if looking for an else
 
     Parser(Module *module, unsigned char *base, size_t length, int doDocComment);
