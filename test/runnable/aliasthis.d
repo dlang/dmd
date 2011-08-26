@@ -500,18 +500,33 @@ struct Variant6434{}
 
 struct A6434
 {
-   Variant6434 i;
-   alias i this;
+    Variant6434 i;
+    alias i this;
 
-   void opDispatch(string name)()
-   {
-   }
+    void opDispatch(string name)()
+    {
+    }
+}
+
+struct B6434
+{
+    C6434 c;
+    alias c this;
+    int opDispatch(string s)() if (s == "dsfunc") { return 2; }
+}
+struct C6434
+{
+    int opDispatch(string s)() { return 1; }
 }
 
 void test6434()
 {
-   A6434 a;
-   a.weird; // no property 'weird' for type 'VariantN!(maxSize)'
+    A6434 a;
+    a.weird; // no property 'weird' for type 'VariantN!(maxSize)'
+
+    B6434 b;
+    assert(b.dsfunc() == 2);
+    static assert(!__traits(compiles, b.notfoundanywhere() == 1));
 }
 
 /**************************************/
