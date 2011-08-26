@@ -771,23 +771,28 @@ void valueNoDtor(Expression *e)
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 {
     Type *tb = e->type->toBasetype();
-    assert(tb->ty == Tstruct);
-    StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-    if (sd->cpctor)
+    Type *tv = tb;
+    while (tv->ty == Tsarray)
+        tv = tv->nextOf()->toBasetype();
+    if (tv->ty == Tstruct)
     {
-        /* Create a variable tmp, and replace the argument e with:
-         *      (tmp = e),tmp
-         * and let AssignExp() handle the construction.
-         * This is not the most efficent, ideally tmp would be constructed
-         * directly onto the stack.
-         */
-        Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
-        VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
-        tmp->storage_class |= STCctfe;
-        tmp->noscope = noscope;
-        Expression *ae = new DeclarationExp(loc, tmp);
-        e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-        e = e->semantic(sc);
+        StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+        if (sd->cpctor)
+        {
+            /* Create a variable tmp, and replace the argument e with:
+             *      (tmp = e),tmp
+             * and let AssignExp() handle the construction.
+             * This is not the most efficent, ideally tmp would be constructed
+             * directly onto the stack.
+             */
+            Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
+            VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
+            tmp->storage_class |= STCctfe;
+            tmp->noscope = noscope;
+            Expression *ae = new DeclarationExp(loc, tmp);
+            e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+            e = e->semantic(sc);
+        }
     }
     return e;
 }
@@ -1077,15 +1082,18 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
             Type *tb = arg->type->toBasetype();
-#if !SARRAYVALUE
-            // Convert static arrays to pointers
             if (tb->ty == Tsarray)
             {
+#if !SARRAYVALUE
+                // Convert static arrays to pointers
                 arg = arg->checkToPointer();
-            }
+#else
+                // call copy constructor of each element
+                arg = callCpCtor(loc, sc, arg, 1);
 #endif
+            }
 #if DMDV2
-            if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
+            else if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
             {
                 if (arg->op == TOKcall)
                 {

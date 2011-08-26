@@ -1900,6 +1900,25 @@ void test6636()
 }
 
 /**********************************/
+// 6637
+
+struct S6637
+{
+    static int spblit;
+
+    this(this){ ++spblit; }
+}
+
+void test6637()
+{
+    void func(S6637[3] sa){}
+
+    S6637[3] sa;
+    func(sa);
+    assert(S6637.spblit == 3);
+}
+
+/**********************************/
 // 7353
 
 struct S7353
@@ -2007,6 +2026,7 @@ int main()
     test4316();
     test6177();
     test6636();
+    test6637();
     test7353();
 
     printf("Success\n");
