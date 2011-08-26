@@ -1805,7 +1805,7 @@ Lagain:
              */
             e = new VarExp(loc, r);
             Expression *einit = new DotIdExp(loc, e, idhead);
-            Statement *makeargs;
+            Statement *makeargs, *forbody;
             if (dim == 1)
             {
                 Parameter *arg = arguments->tdata()[0];
@@ -1867,15 +1867,15 @@ Lagain:
 
             }
 
-            Statement *body = new CompoundStatement(loc,
+            forbody = new CompoundStatement(loc,
                 makeargs, this->body);
 
-            s = new ForStatement(loc, init, condition, increment, body);
+            s = new ForStatement(loc, init, condition, increment, forbody);
 #if 0
             printf("init: %s\n", init->toChars());
             printf("condition: %s\n", condition->toChars());
             printf("increment: %s\n", increment->toChars());
-            printf("body: %s\n", body->toChars());
+            printf("body: %s\n", forbody->toChars());
 #endif
             s = s->semantic(sc);
             break;
