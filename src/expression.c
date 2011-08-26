@@ -10361,16 +10361,6 @@ Ltupleassign:
                 sd->cpctor)
             {   /* We have a copy constructor for this
                  */
-                // Scan past commma's
-                Expression *ec = NULL;
-                while (e2->op == TOKcomma)
-                {   CommaExp *ecomma = (CommaExp *)e2;
-                    e2 = ecomma->e2;
-                    if (ec)
-                        ec = new CommaExp(ecomma->loc, ec, ecomma->e1);
-                    else
-                        ec = ecomma->e1;
-                }
                 if (e2->op == TOKquestion)
                 {   /* Write as:
                      *  a ? e1 = b : e1 = c;
@@ -10381,8 +10371,6 @@ Ltupleassign:
                     AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
                     ea2->op = op;
                     Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
-                    if (ec)
-                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
                 else if (e2->op == TOKvar ||
@@ -10398,8 +10386,6 @@ Ltupleassign:
 
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
-                    if (ec)
-                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
                 else if (e2->op == TOKcall)
