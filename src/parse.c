@@ -141,7 +141,7 @@ Lerr:
     return new Dsymbols();
 }
 
-Dsymbols *Parser::parseDeclDefs(int once)
+Dsymbols *Parser::parseDeclDefs(int once, Loc *containsElse)
 {   Dsymbol *s;
     Dsymbols *decldefs;
     Dsymbols *a;
@@ -151,6 +151,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
     StorageClass storageClass;
     Condition *condition;
     unsigned char *comment;
+    
+    Loc innerContainsElse;
+    if (containsElse)
+        *containsElse = 0;
 
     //printf("Parser::parseDeclDefs()\n");
     decldefs = new Dsymbols();
@@ -297,12 +301,18 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     s = parseStaticAssert();
                 else if (token.value == TOKif)
                 {   condition = parseStaticIfCondition();
-                    a = parseBlock();
+                    Loc innerContainsElse;
+                    a = parseBlock(&innerContainsElse);
                     aelse = NULL;
                     if (token.value == TOKelse)
-                    {   nextToken();
-                        aelse = parseBlock();
+                    {
+                        if (containsElse)
+                            *containsElse = this->loc;
+                        nextToken();
+                        aelse = parseBlock(NULL);
                     }
+                    else
+                        checkDanglingElse(innerContainsElse);                        
                     s = new StaticIfDeclaration(condition, a, aelse);
                     break;
                 }
@@ -441,7 +451,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     decldefs->append(a);
                     continue;
                 }
-                a = parseBlock();
+                a = parseBlock(containsElse);
                 s = new StorageClassDeclaration(storageClass, a);
                 break;
 
@@ -453,7 +463,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             {
                 enum LINK linksave = linkage;
                 linkage = parseLinkage();
-                a = parseBlock();
+                a = parseBlock(containsElse);
                 s = new LinkDeclaration(linkage, a);
                 linkage = linksave;
                 break;
@@ -476,7 +486,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         error("redundant protection attribute");
                         break;
                 }
-                a = parseBlock();
+                a = parseBlock(containsElse);
                 s = new ProtDeclaration(prot, a);
                 break;
 
@@ -500,7 +510,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 else
                     n = global.structalign;             // default
 
-                a = parseBlock();
+                a = parseBlock(containsElse);
                 s = new AlignDeclaration(n, a);
                 break;
             }
@@ -525,7 +535,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 if (token.value == TOKsemicolon)
                     a = NULL;
                 else
-                    a = parseBlock();
+                    a = parseBlock(containsElse);
                 s = new PragmaDeclaration(loc, ident, args, a);
                 break;
             }
@@ -576,12 +586,17 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 goto Lcondition;
 
             Lcondition:
-                a = parseBlock();
+                a = parseBlock(&innerContainsElse);
                 aelse = NULL;
                 if (token.value == TOKelse)
-                {   nextToken();
-                    aelse = parseBlock();
+                {
+                    if (containsElse)
+                        *containsElse = this->loc;
+                    nextToken();
+                    aelse = parseBlock(NULL);
                 }
+                else
+                    checkDanglingElse(innerContainsElse);
                 s = new ConditionalDeclaration(condition, a, aelse);
                 break;
 
@@ -693,7 +708,7 @@ StorageClass Parser::parsePostfix()
  * Parse declarations after an align, protection, or extern decl.
  */
 
-Dsymbols *Parser::parseBlock()
+Dsymbols *Parser::parseBlock(Loc *containsElse)
 {
     Dsymbols *a = NULL;
 
@@ -711,7 +726,9 @@ Dsymbols *Parser::parseBlock()
 
         case TOKlcurly:
             nextToken();
-            a = parseDeclDefs(0);
+            if (containsElse)
+                *containsElse = 0;
+            a = parseDeclDefs(0, NULL);
             if (token.value != TOKrcurly)
             {   /* { */
                 error("matching '}' expected, not %s", token.toChars());
@@ -725,12 +742,12 @@ Dsymbols *Parser::parseBlock()
 #if 0
             a = NULL;
 #else
-            a = parseDeclDefs(0);       // grab declarations up to closing curly bracket
+            a = parseDeclDefs(0, containsElse);        // grab declarations up to closing curly bracket
 #endif
             break;
 
         default:
-            a = parseDeclDefs(1);
+            a = parseDeclDefs(1, containsElse);
             break;
     }
     return a;
@@ -3343,11 +3360,22 @@ Expression *Parser::parseDefaultInitExp()
 #endif
 
 /*****************************************
+ * A possible dangling else is encountered. Check if we need to throw an error.
+ */
+void Parser::checkDanglingElse(Loc containsElse)
+{
+#if DMDV2
+    if (containsElse.linnum && !global.params.useDeprecated)
+        error(containsElse, "ambiguous 'else' detected, add { } to avoid dangling-else problem");
+#endif
+}
+
+/*****************************************
  * Input:
  *      flags   PSxxxx
  */
 
-Statement *Parser::parseStatement(int flags)
+Statement *Parser::parseStatement(int flags, Loc *containsElse)
 {   Statement *s;
     Token *t;
     Condition *condition;
@@ -3357,9 +3385,12 @@ Statement *Parser::parseStatement(int flags)
     Loc loc = this->loc;
 
     //printf("parseStatement()\n");
-
     if (flags & PScurly && token.value != TOKlcurly)
         error("statement expected to be { }, not %s", token.toChars());
+
+    Loc innerContainsElse;
+    if (containsElse)
+        *containsElse = 0;
 
     switch (token.value)
     {
@@ -3374,7 +3405,7 @@ Statement *Parser::parseStatement(int flags)
                 Identifier *ident = token.ident;
                 nextToken();
                 nextToken();
-                s = parseStatement(PSsemi);
+                s = parseStatement(PSsemi, containsElse);
                 s = new LabelStatement(loc, ident, s);
                 break;
             }
@@ -3610,7 +3641,7 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen);
             condition = parseExpression();
             check(TOKrparen);
-            body = parseStatement(PSscope);
+            body = parseStatement(PSscope, containsElse);
             s = new WhileStatement(loc, condition, body);
             break;
         }
@@ -3670,7 +3701,7 @@ Statement *Parser::parseStatement(int flags)
             {   increment = parseExpression();
                 check(TOKrparen);
             }
-            body = parseStatement(PSscope);
+            body = parseStatement(PSscope, containsElse);
             s = new ForStatement(loc, init, condition, increment, body);
             if (init)
                 s = new ScopeStatement(loc, s);
@@ -3733,13 +3764,13 @@ Statement *Parser::parseStatement(int flags)
                 nextToken();
                 Expression *upr = parseExpression();
                 check(TOKrparen);
-                Statement *body = parseStatement(0);
+                Statement *body = parseStatement(0, containsElse);
                 s = new ForeachRangeStatement(loc, op, a, aggr, upr, body);
             }
             else
             {
                 check(TOKrparen);
-                Statement *body = parseStatement(0);
+                Statement *body = parseStatement(0, containsElse);
                 s = new ForeachStatement(loc, op, arguments, aggr, body);
             }
             break;
@@ -3802,14 +3833,19 @@ Statement *Parser::parseStatement(int flags)
 
             condition = parseExpression();
             check(TOKrparen);
-            ifbody = parseStatement(PSscope);
+            ifbody = parseStatement(PSscope, &innerContainsElse);
             if (token.value == TOKelse)
             {
+                if (containsElse)
+                    *containsElse = this->loc;
                 nextToken();
                 elsebody = parseStatement(PSscope);
             }
             else
+            {
+                checkDanglingElse(innerContainsElse);
                 elsebody = NULL;
+            }
             if (condition && ifbody)
                 s = new IfStatement(loc, arg, condition, ifbody, elsebody);
             else
@@ -3840,7 +3876,7 @@ Statement *Parser::parseStatement(int flags)
                     error("valid scope identifiers are exit, failure, or success, not %s", id->toChars());
                 nextToken();
                 check(TOKrparen);
-                Statement *st = parseStatement(PScurlyscope);
+                Statement *st = parseStatement(PScurlyscope, containsElse);
                 s = new OnScopeStatement(loc, t, st);
                 break;
             }
@@ -3856,13 +3892,17 @@ Statement *Parser::parseStatement(int flags)
             goto Lcondition;
 
         Lcondition:
-            ifbody = parseStatement(0 /*PSsemi*/);
+            ifbody = parseStatement(0 /*| PSsemi*/, &innerContainsElse);
             elsebody = NULL;
             if (token.value == TOKelse)
             {
+                if (containsElse)
+                    *containsElse = this->loc;
                 nextToken();
                 elsebody = parseStatement(0 /*PSsemi*/);
             }
+            else
+                checkDanglingElse(innerContainsElse);
             s = new ConditionalStatement(loc, condition, ifbody, elsebody);
             break;
 
@@ -3888,7 +3928,7 @@ Statement *Parser::parseStatement(int flags)
                 body = NULL;
             }
             else
-                body = parseStatement(PSsemi);
+                body = parseStatement(PSsemi, containsElse);
             s = new PragmaStatement(loc, ident, args, body);
             break;
         }
@@ -3903,7 +3943,7 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen);
             Expression *condition = parseExpression();
             check(TOKrparen);
-            Statement *body = parseStatement(PSscope);
+            Statement *body = parseStatement(PSscope, containsElse);
             s = new SwitchStatement(loc, condition, body, isfinal);
             break;
         }
@@ -3944,7 +3984,7 @@ Statement *Parser::parseStatement(int flags)
                    token.value != TOKeof &&
                    token.value != TOKrcurly)
             {
-                statements->push(parseStatement(PSsemi | PScurlyscope));
+                statements->push(parseStatement(PSsemi | PScurlyscope, containsElse));
             }
             s = new CompoundStatement(loc, statements);
             s = new ScopeStatement(loc, s);
@@ -3980,7 +4020,7 @@ Statement *Parser::parseStatement(int flags)
                    token.value != TOKeof &&
                    token.value != TOKrcurly)
             {
-                statements->push(parseStatement(PSsemi | PScurlyscope));
+                statements->push(parseStatement(PSsemi | PScurlyscope, containsElse));
             }
             s = new CompoundStatement(loc, statements);
             s = new ScopeStatement(loc, s);
@@ -4078,7 +4118,7 @@ Statement *Parser::parseStatement(int flags)
             }
             else
                 exp = NULL;
-            body = parseStatement(PSscope);
+            body = parseStatement(PSscope, containsElse);
             s = new SynchronizedStatement(loc, exp, body);
             break;
         }
@@ -4091,7 +4131,7 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen);
             exp = parseExpression();
             check(TOKrparen);
-            body = parseStatement(PSscope);
+            body = parseStatement(PSscope, containsElse);
             s = new WithStatement(loc, exp, body);
             break;
         }
@@ -4124,7 +4164,7 @@ Statement *Parser::parseStatement(int flags)
                     t = parseType(&id);
                     check(TOKrparen);
                 }
-                handler = parseStatement(0);
+                handler = parseStatement(0, containsElse);
                 c = new Catch(loc, t, id, handler);
                 if (!catches)
                     catches = new Catches();
@@ -4132,8 +4172,9 @@ Statement *Parser::parseStatement(int flags)
             }
 
             if (token.value == TOKfinally)
-            {   nextToken();
-                finalbody = parseStatement(0);
+            {
+                nextToken();
+                finalbody = parseStatement(0, containsElse);
             }
 
             s = body;
@@ -4160,7 +4201,7 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKvolatile:
             nextToken();
-            s = parseStatement(PSsemi | PScurlyscope);
+            s = parseStatement(PSsemi | PScurlyscope, containsElse);
 #if DMDV2
             if (!global.params.useDeprecated)
                 error("volatile statements deprecated; used synchronized statements instead");
