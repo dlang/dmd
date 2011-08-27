@@ -58,7 +58,6 @@ enum ParseStatementFlags
     PScurlyscope = 8,   // { } starts a new scope
 };
 
-
 struct Parser : Lexer
 {
     ModuleDeclaration *md;
@@ -69,9 +68,9 @@ struct Parser : Lexer
     Parser(Module *module, unsigned char *base, unsigned length, int doDocComment);
 
     Dsymbols *parseModule();
-    Dsymbols *parseDeclDefs(int once);
+    Dsymbols *parseDeclDefs(int once, Loc *containsElse = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
-    Dsymbols *parseBlock();
+    Dsymbols *parseBlock(Loc *containsElse);
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute();
     StorageClass parsePostfix();
@@ -110,7 +109,7 @@ struct Parser : Lexer
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0);
     Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
     void parseContracts(FuncDeclaration *f);
-    Statement *parseStatement(int flags);
+    Statement *parseStatement(int flags, Loc *containsElse = NULL);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
     void check(Loc loc, enum TOK value);
@@ -125,6 +124,8 @@ struct Parser : Lexer
     int isTemplateInstance(Token *t, Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);
+
+    void checkDanglingElse(Loc containsElse);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();
