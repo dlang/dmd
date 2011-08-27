@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -w
 // 4375: Dangling else
 
 version (A)
