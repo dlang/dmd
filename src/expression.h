@@ -1267,6 +1267,9 @@ ASSIGNEXP(Mod)
 ASSIGNEXP(And)
 ASSIGNEXP(Or)
 ASSIGNEXP(Xor)
+#if DMDV2
+ASSIGNEXP(Pow)
+#endif
 #undef X
 
 #define X(a)
@@ -1278,18 +1281,6 @@ ASSIGNEXP(Cat)
 
 #undef X
 #undef ASSIGNEXP
-
-// Only a reduced subset of operations for now.
-struct PowAssignExp : BinAssignExp
-{
-    PowAssignExp(Loc loc, Expression *e1, Expression *e2);
-    Expression *semantic(Scope *sc);
-    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
-    Expression *buildArrayLoop(Parameters *fparams);
-
-    // For operator overloading
-    Identifier *opId();
-};
 
 struct AddExp : BinExp
 {
@@ -1397,12 +1388,16 @@ struct PowExp : BinExp
 {
     PowExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result);
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
 
     // For operator overloading
     Identifier *opId();
     Identifier *opId_r();
+    
+    elem *toElem(IRState *irs);
 };
 #endif
 
@@ -1680,6 +1675,7 @@ Expression *Min(Type *type, Expression *e1, Expression *e2);
 Expression *Mul(Type *type, Expression *e1, Expression *e2);
 Expression *Div(Type *type, Expression *e1, Expression *e2);
 Expression *Mod(Type *type, Expression *e1, Expression *e2);
+Expression *Pow(Type *type, Expression *e1, Expression *e2);
 Expression *Shl(Type *type, Expression *e1, Expression *e2);
 Expression *Shr(Type *type, Expression *e1, Expression *e2);
 Expression *Ushr(Type *type, Expression *e1, Expression *e2);

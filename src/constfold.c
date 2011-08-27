@@ -550,6 +550,52 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
     return e;
 }
 
+Expression *Pow(Type *type, Expression *e1, Expression *e2)
+{   Expression *e;
+    Loc loc = e1->loc;
+
+    // Handle integer power operations.
+    if (e2->type->isintegral())
+    {
+        Expression * r = new RealExp(loc, e1->toReal(), Type::tfloat64);
+        Expression * v = new RealExp(loc, 1.0, Type::tfloat64);
+        dinteger_t n = e2->toInteger();
+        bool neg;
+
+        if (!e2->type->isunsigned() && (sinteger_t)n < 0)
+        {
+            if (e1->type->isintegral())
+                return EXP_CANT_INTERPRET;
+
+            // Don't worry about overflow, from now on n is unsigned.
+            neg = true;
+            n = -n;
+        }
+        else
+            neg = false;
+
+        while (n != 0)
+        {
+            if (n & 1)
+                v = Mul(v->type, v, r);
+            n >>= 1;
+            r = Mul(r->type, r, r);
+        }
+
+        if (neg)
+            v = Div(v->type, new RealExp(loc, 1.0, Type::tfloat64), v);
+
+        if (type->isintegral())
+            e = new IntegerExp(loc, v->toInteger(), type);
+        else
+            e = new RealExp(loc, v->toReal(), type);
+    }
+    else
+        e = EXP_CANT_INTERPRET;
+
+    return e;
+}
+
 Expression *Shl(Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;

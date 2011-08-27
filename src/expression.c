@@ -10934,6 +10934,8 @@ Expression *PowExp::semantic(Scope *sc)
         return e;
 
     assert(e1->type && e2->type);
+    typeCombine(sc);
+
     if (e1->op == TOKslice)
     {
         // Check element types are arithmetic
@@ -10957,63 +10959,13 @@ Expression *PowExp::semantic(Scope *sc)
         // TODO: backend support, especially for  e1 ^^ 2.
 
         bool wantSqrt = false;
-        e1 = e1->optimize(0);
-        e2 = e2->optimize(0);
 
-        // Replace 1 ^^ x or 1.0^^x by (x, 1)
-        if ((e1->op == TOKint64 && e1->toInteger() == 1) ||
-                (e1->op == TOKfloat64 && e1->toReal() == 1.0))
+        // First, attempt to fold the expression.
+        e = optimize(WANTvalue);
+        if (e->op != TOKpow)
         {
-            typeCombine(sc);
-            e = new CommaExp(loc, e2, e1);
             e = e->semantic(sc);
             return e;
-        }
-        // Replace -1 ^^ x by (x&1) ? -1 : 1, where x is integral
-        if (e2->type->isintegral() && e1->op == TOKint64 && (sinteger_t)e1->toInteger() == -1L)
-        {
-            typeCombine(sc);
-            Type* resultType = type;
-            e = new AndExp(loc, e2, new IntegerExp(loc, 1, e2->type));
-            e = new CondExp(loc, e, new IntegerExp(loc, -1L, resultType), new IntegerExp(loc, 1L, resultType));
-            e = e->semantic(sc);
-            return e;
-        }
-        // Replace x ^^ 0 or x^^0.0 by (x, 1)
-        if ((e2->op == TOKint64 && e2->toInteger() == 0) ||
-                (e2->op == TOKfloat64 && e2->toReal() == 0.0))
-        {
-            if (e1->type->isintegral())
-                e = new IntegerExp(loc, 1, e1->type);
-            else
-                e = new RealExp(loc, 1.0, e1->type);
-
-            typeCombine(sc);
-            e = new CommaExp(loc, e1, e);
-            e = e->semantic(sc);
-            return e;
-        }
-        // Replace x ^^ 1 or x^^1.0 by (x)
-        if ((e2->op == TOKint64 && e2->toInteger() == 1) ||
-                (e2->op == TOKfloat64 && e2->toReal() == 1.0))
-        {
-            typeCombine(sc);
-            return e1;
-        }
-        // Replace x ^^ -1.0 by (1.0 / x)
-        if ((e2->op == TOKfloat64 && e2->toReal() == -1.0))
-        {
-            typeCombine(sc);
-            e = new DivExp(loc, new RealExp(loc, 1.0, e2->type), e1);
-            e = e->semantic(sc);
-            return e;
-        }
-        // All other negative integral powers are illegal
-        if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)
-        {
-            error("cannot raise %s to a negative integer power. Did you mean (cast(real)%s)^^%s ?",
-                e1->type->toBasetype()->toChars(), e1->toChars(), e2->toChars());
-            return new ErrorExp();
         }
 
         // Determine if we're raising to an integer power.
@@ -11026,7 +10978,6 @@ Expression *PowExp::semantic(Scope *sc)
         // Deal with x^^2, x^^3 immediately, since they are of practical importance.
         if (intpow == 2 || intpow == 3)
         {
-            typeCombine(sc);
             // Replace x^^2 with (tmp = x, tmp*tmp)
             // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
             Identifier *idtmp = Lexer::uniqueId("__powtmp");
@@ -11067,27 +11018,14 @@ Expression *PowExp::semantic(Scope *sc)
         e = new DotIdExp(loc, e, Id::math);
         if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
         {   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
-            typeCombine(sc);
             e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
         }
         else
         {
             // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
-            // We don't combine the types if raising to an integer power (because
-            // integer powers are treated specially by std.math.pow).
-            if (!e2->type->isintegral())
-                typeCombine(sc);
-            // In fact, if it *could* have been an integer, make it one.
-            if (e2->op == TOKfloat64 && intpow != 0)
-                e2 = new IntegerExp(loc, intpow, Type::tint64);
             e = new CallExp(loc, new DotIdExp(loc, e, Id::_pow), e1, e2);
         }
         e = e->semantic(sc);
-        // Always constant fold integer powers of literals. This will run the interpreter
-        // on .std.math.pow
-        if ((e1->op == TOKfloat64 || e1->op == TOKint64) && (e2->op == TOKint64))
-            e = e->optimize(WANTvalue | WANTinterpret);
-
         return e;
     }
     incompatibleTypes();
