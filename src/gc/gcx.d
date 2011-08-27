@@ -3011,10 +3011,7 @@ struct Gcx
                 if (!findPool(current.data[i].parent))
                 {
                     auto j = prev.find(current.data[i].p);
-                    if (j == OPFAIL)
-                        debug(PRINTF) printf("N");
-                    else
-                        debug(PRINTF) printf(" ");;
+                    debug(PRINTF) printf(j == OPFAIL ? "N" : " ");
                     current.data[i].print();
                 }
             }
