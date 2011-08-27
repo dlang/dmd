@@ -43,7 +43,6 @@ struct Environment;
 
 Environment *benv;
 
-void out_config_init();
 void slist_add(Symbol *s);
 void slist_reset();
 void clearStringTab();
@@ -153,8 +152,6 @@ Outbuffer objbuf;
 void obj_start(char *srcfile)
 {
     //printf("obj_start()\n");
-
-    out_config_init();
 
     rtlsym_reset();
     slist_reset();
