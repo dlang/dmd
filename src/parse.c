@@ -3486,7 +3486,7 @@ Statement *Parser::parseStatement(int flags, Loc *containsElse)
             if (t->value == TOKstruct || t->value == TOKunion || t->value == TOKclass)
             {
                 nextToken();
-                Dsymbols *a = parseBlock();
+                Dsymbols *a = parseBlock(NULL);
                 Dsymbol *d = new StorageClassDeclaration(STCstatic, a);
                 s = new ExpStatement(loc, d);
                 if (flags & PSscope)
