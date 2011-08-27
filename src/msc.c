@@ -399,6 +399,8 @@ void backend_init()
     }
 
     rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
+
+    out_config_init();
 }
 
 void backend_term()
