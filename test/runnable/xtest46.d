@@ -3348,6 +3348,34 @@ void test6230() {
 
 /***************************************************/
 
+void test5432()
+{
+    int x;
+    int getnext() { return x--; }
+
+    x = 5;
+    while(auto i = getnext())
+        assert(i == x + 1);
+    assert(x == -1);
+
+    x = 5;
+    while(int i = getnext())
+        assert(i == x + 1);
+    assert(x == -1);
+
+    x = 5;
+    while(long i = getnext())
+        assert(i == x + 1);
+    assert(x == -1);
+
+    x = 0;
+    while(long i = getnext())
+        assert(0);
+    assert(x == -1);
+}
+
+/***************************************************/
+
 void test6264()
 {
     struct S { auto opSlice() { return this; } }
@@ -3664,6 +3692,7 @@ int main()
     test143();
     test144();
     test145();
+    test5432();
     test146();
     test147();
     test148();

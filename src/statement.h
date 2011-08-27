@@ -266,8 +266,10 @@ struct WhileStatement : Statement
 {
     Expression *condition;
     Statement *body;
+    Type *type;
+    Identifier *ident;
 
-    WhileStatement(Loc loc, Expression *c, Statement *b);
+    WhileStatement(Loc loc, Type *t, Identifier *i, Expression *c, Statement *b);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
