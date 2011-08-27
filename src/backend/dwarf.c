@@ -569,7 +569,7 @@ void dwarf_initfile(const char *filename)
 #if 0 && MARS
     for (int i = 0; i < global.params.imppath->dim; i++)
     {
-        linebuf->writeString((char *)global.params.imppath->data[i]);
+        linebuf->writeString(global.params.imppath->tdata()[i]);
         linebuf->writeByte(0);
     }
 #endif
@@ -892,7 +892,7 @@ void dwarf_termfile()
 
             // Write DW_LNS_advance_pc to cover the function prologue
             linebuf->writeByte(DW_LNS_advance_pc);
-            linebuf->writeByte(sd->SDbuf->size() - address);
+            linebuf->writeuLEB128((unsigned long)(sd->SDbuf->size() - address));
 
             // Write DW_LNE_end_sequence
             linebuf->writeByte(0);
