@@ -58,19 +58,21 @@ enum ParseStatementFlags
     PScurlyscope = 8,   // { } starts a new scope
 };
 
+
 struct Parser : Lexer
 {
     ModuleDeclaration *md;
     enum LINK linkage;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
+    Loc lookingForElse;         // location of lonely if looking for an else
 
     Parser(Module *module, unsigned char *base, unsigned length, int doDocComment);
 
     Dsymbols *parseModule();
-    Dsymbols *parseDeclDefs(int once, Loc *containsElse = NULL);
+    Dsymbols *parseDeclDefs(int once);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
-    Dsymbols *parseBlock(Loc *containsElse);
+    Dsymbols *parseBlock();
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute();
     StorageClass parsePostfix();
@@ -109,7 +111,7 @@ struct Parser : Lexer
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0);
     Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
     void parseContracts(FuncDeclaration *f);
-    Statement *parseStatement(int flags, Loc *containsElse = NULL);
+    Statement *parseStatement(int flags);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
     void check(Loc loc, enum TOK value);
@@ -124,8 +126,6 @@ struct Parser : Lexer
     int isTemplateInstance(Token *t, Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);
-
-    void checkDanglingElse(Loc containsElse);
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();
