@@ -1199,6 +1199,10 @@ L2:
             m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes);
             //printf("\tdeduceType m = %d\n", m);
 
+            // An array literal might be implicitly convertible to argtype
+            if (!m && farg->op == TOKarrayliteral && fparam->type->ty == Tarray)
+                m = farg->implicitConvTo(argtype);
+
             /* If no match, see if there's a conversion to a delegate
              */
             if (!m && fparam->type->toBasetype()->ty == Tdelegate)
