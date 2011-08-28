@@ -186,7 +186,14 @@ void Import::semantic(Scope *sc)
             enum PROT prot = sc->protection;
             if (!sc->explicitProtection)
                 prot = PROTprivate;
-            sc->scopesym->importScope(mod, prot);
+            for (Scope *scd = sc; scd; scd = scd->enclosing)
+            {
+                if (scd->scopesym)
+                {
+                    scd->scopesym->importScope(mod, prot);
+                    break;
+                }
+            }
         }
 
         mod->semantic();
