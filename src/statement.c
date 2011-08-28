@@ -1020,16 +1020,19 @@ void ScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** WhileStatement ***************************/
 
-WhileStatement::WhileStatement(Loc loc, Expression *c, Statement *b)
+WhileStatement::WhileStatement(Loc loc, Type *t, Identifier *i,  Expression *c, Statement *b)
     : Statement(loc)
 {
+    type = t;
+    ident = i;
     condition = c;
     body = b;
 }
 
 Statement *WhileStatement::syntaxCopy()
 {
-    WhileStatement *s = new WhileStatement(loc, condition->syntaxCopy(), body ? body->syntaxCopy() : NULL);
+    Type* t = type ? type->syntaxCopy() : NULL;
+    WhileStatement *s = new WhileStatement(loc, t, ident, condition->syntaxCopy(), body ? body->syntaxCopy() : NULL);
     return s;
 }
 
@@ -1039,7 +1042,16 @@ Statement *WhileStatement::semantic(Scope *sc)
     /* Rewrite as a for(;condition;) loop
      */
 
-    Statement *s = new ForStatement(loc, NULL, condition, NULL, body);
+    Statement *init = NULL;
+    if (ident)
+    {
+        if (!type)
+            type = condition->semantic(sc)->type;
+        Declaration *var = new VarDeclaration(loc, type, ident, NULL);
+        init = new ExpStatement(loc, new DeclarationExp(loc, var));
+        condition = new CommaExp(loc, new AssignExp(loc, new VarExp(loc, var), condition), new VarExp(loc, var));
+    }
+    Statement *s = new ForStatement(loc, init, condition, NULL, body);
     s = s->semantic(sc);
     return s;
 }

@@ -3643,14 +3643,45 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKwhile:
         {   Expression *condition;
+            Type *type = NULL;
+            Identifier *ident = NULL;
             Statement *body;
 
             nextToken();
             check(TOKlparen);
+
+            if (token.value == TOKauto)
+            {
+                nextToken();
+                if (token.value == TOKidentifier)
+                {
+                    Token *t = peek(&token);
+                    if (t->value == TOKassign)
+                    {
+                        ident = token.ident;
+                        nextToken();
+                        nextToken();
+                    }
+                    else
+                    {   error("= expected following auto identifier");
+                        goto Lerror;
+                    }
+                }
+                else
+                {   error("identifier expected following auto");
+                    goto Lerror;
+                }
+            }
+            else if (isDeclaration(&token, 2, TOKassign, NULL))
+            {
+                type = parseType(&ident);
+                check(TOKassign);
+            }
+
             condition = parseExpression();
             check(TOKrparen);
             body = parseStatement(PSscope);
-            s = new WhileStatement(loc, condition, body);
+            s = new WhileStatement(loc, type, ident, condition, body);
             break;
         }
 
