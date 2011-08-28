@@ -2,7 +2,7 @@
 
 module breaker;
 
-import std.c.stdio;
+extern (C) int printf(const(char*)fmt, ...);
 
 /**********************************/
 
@@ -41,7 +41,7 @@ class Foo3
 {
     T bar(T,U)(U u)
     {
-	return cast(T)u;
+        return cast(T)u;
     }
 }
 
@@ -50,7 +50,7 @@ void test3()
   Foo3 foo = new Foo3;
   int i = foo.bar!(int)(1.0);
   assert(i == 1);
-} 
+}
 
 
 /**********************************/
@@ -95,7 +95,7 @@ void test5()
 {
     foo5(1.0,33);
     bar5!(double,int)(33);
-    bar5!(float)(33); 
+    bar5!(float)(33);
 }
 
 /**********************************/
@@ -105,11 +105,11 @@ int foo6(T...)(auto ref T x)
 
     foreach (i, v; x)
     {
-	if (v == 10)
-	    assert(__traits(isRef, x[i]));
-	else
-	    assert(!__traits(isRef, x[i]));
-	result += v;
+        if (v == 10)
+            assert(__traits(isRef, x[i]));
+        else
+            assert(!__traits(isRef, x[i]));
+        result += v;
     }
     return result;
 }
@@ -301,6 +301,32 @@ void test2579()
 }
 
 /**********************************/
+// 6567
+
+void foo1(Object[] a){}
+void foo2()(Object[] a){}
+void foo3(T)(T[] a){}
+
+void bar1(Object[][] a){}
+void bar2()(Object[][] a){}
+void bar3(T)(T[][] a){}
+
+void test6567()
+{
+    foo1([]);   // OK
+    foo2([]);   // NG
+    foo3([]);   // OK, T == void
+
+    bar1([[]]); // OK
+    bar2([[]]); // NG
+    bar3([[]]); // OK, T == void
+
+    bar1([[], []]); // OK
+    bar2([[], []]); // NG
+    bar3([[], []]); // OK, T == void
+}
+
+/**********************************/
 
 int main()
 {
@@ -317,6 +343,7 @@ int main()
     test2246();
     bug4984();
     test2579();
+    test6567();
 
     printf("Success\n");
     return 0;
