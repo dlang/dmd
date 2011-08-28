@@ -69,7 +69,7 @@ char *lastmname;
  * Append s to list of object files to generate later.
  */
 
-Array obj_symbols_towrite;
+Dsymbols obj_symbols_towrite;
 
 void obj_append(Dsymbol *s)
 {
