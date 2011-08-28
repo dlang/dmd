@@ -827,7 +827,7 @@ void FuncDeclaration::toObjFile(int multiobj)
                         ++r;
                     }
                 }
-                if (xmmcnt < XMM7)
+                if (xmmcnt <= XMM7)
                 {
                     if (tyfloating(ty) && tysize(ty) <= 8)
                     {
