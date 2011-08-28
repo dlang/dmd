@@ -116,6 +116,8 @@ struct Declaration : Dsymbol
     enum PROT protection;
     enum LINK linkage;
     int inuse;                  // used to detect cycles
+    bool softDeprecated;
+    char *deprecatedMessage;
 
     enum Semantic sem;
 

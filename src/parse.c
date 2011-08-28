@@ -369,7 +369,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKoverride:     stc = STCoverride;     goto Lstc;
             case TOKabstract:     stc = STCabstract;     goto Lstc;
             case TOKsynchronized: stc = STCsynchronized; goto Lstc;
-            case TOKdeprecated:   stc = STCdeprecated;   goto Lstc;
+            //case TOKdeprecated:   stc = STCdeprecated;   goto Lstc;
 #if DMDV2
             case TOKnothrow:      stc = STCnothrow;      goto Lstc;
             case TOKpure:         stc = STCpure;         goto Lstc;
@@ -412,7 +412,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     case TOKoverride:     stc = STCoverride;     goto Lstc;
                     case TOKabstract:     stc = STCabstract;     goto Lstc;
                     case TOKsynchronized: stc = STCsynchronized; goto Lstc;
-                    case TOKdeprecated:   stc = STCdeprecated;   goto Lstc;
+                    //case TOKdeprecated:   stc = STCdeprecated;   goto Lstc;
                     case TOKnothrow:      stc = STCnothrow;      goto Lstc;
                     case TOKpure:         stc = STCpure;         goto Lstc;
                     case TOKref:          stc = STCref;          goto Lstc;
@@ -512,6 +512,34 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
                 a = parseBlock();
                 s = new AlignDeclaration(n, a);
+                break;
+            }
+
+            case TOKdeprecated:
+            {
+                bool soft = false;
+                Expression *message = NULL;
+
+                nextToken();
+                if (token.value == TOKlparen)
+                {
+                    nextToken();
+                    if (token.value != TOKrparen)
+                        message = parseAssignExp();
+
+                    if (token.value == TOKcomma)
+                    {
+                        nextToken();
+                        if (token.value != TOKidentifier ||
+                            token.ident != Id::soft)
+                            error("'soft' exprected, not %s", token.toChars());
+                        soft = true;
+                        nextToken();
+                    }
+                    check(TOKrparen);
+                }
+                a = parseBlock();
+                s = new DeprecatedDeclaration(a, message, soft);
                 break;
             }
 

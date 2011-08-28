@@ -40,6 +40,8 @@ struct EnumDeclaration : ScopeDsymbol
     Expression *defaultval;     // default initializer
 #endif
     int isdeprecated;
+    bool softDeprecated;
+    char *deprecatedMessage;
     int isdone;                 // 0: not done
                                 // 1: semantic() successfully completed
 

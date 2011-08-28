@@ -52,6 +52,8 @@ struct AggregateDeclaration : ScopeDsymbol
                                 // 2: cannot determine size; fwd referenced
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     int isdeprecated;           // !=0 if deprecated
+    bool softDeprecated;
+    char *deprecatedMessage;
 
 #if DMDV2
     int isnested;               // !=0 if is nested

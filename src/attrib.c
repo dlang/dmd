@@ -40,6 +40,8 @@ AttribDeclaration::AttribDeclaration(Dsymbols *decl)
         : Dsymbol()
 {
     this->decl = decl;
+    this->softDeprecated = false;
+    this->deprecatedMessage = NULL;
 }
 
 Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
@@ -123,6 +125,21 @@ void AttribDeclaration::semanticNewSc(Scope *sc,
         for (unsigned i = 0; i < decl->dim; i++)
         {   Dsymbol *s = decl->tdata()[i];
 
+            if (Declaration *d = s->isDeclaration())
+            {
+                d->deprecatedMessage = deprecatedMessage;
+                d->softDeprecated = softDeprecated;
+            }
+            else if (AttribDeclaration *d = s->isAttribDeclaration())
+            {
+                d->deprecatedMessage = deprecatedMessage;
+                d->softDeprecated = softDeprecated;
+            }
+            else if (EnumDeclaration *d = s->isEnumDeclaration())
+            {
+                d->deprecatedMessage = deprecatedMessage;
+                d->softDeprecated = softDeprecated;
+            }
             s->semantic(newsc);
         }
         if (newsc != sc)
@@ -1470,4 +1487,58 @@ void CompileDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     exp->toCBuffer(buf, hgs);
     buf->writestring(");");
     buf->writenl();
+}
+
+/********************************* DeprecatedDeclaration ****************************/
+
+DeprecatedDeclaration::DeprecatedDeclaration(Dsymbols *decl, Expression *message, bool soft)
+        : AttribDeclaration(decl)
+{
+    this->message = message;
+    this->softDeprecated = soft;
+}
+
+Dsymbol *DeprecatedDeclaration::syntaxCopy(Dsymbol *s)
+{
+    DeprecatedDeclaration *dd;
+
+    assert(!s);
+    dd = new DeprecatedDeclaration(Dsymbol::arraySyntaxCopy(decl), message ? message->syntaxCopy() : NULL, soft);
+    return dd;
+}
+
+void DeprecatedDeclaration::semantic(Scope *sc)
+{
+    //printf("\tDeprecatedDeclaration::semantic '%s'\n",toChars());
+    if (!decl || !decl->dim)
+        error("deprecated must apply to a declaration");
+
+    if (message)
+    {
+        message = message->semantic(sc);
+        message = message->optimize(WANTvalue | WANTinterpret);
+
+        if (message->op == TOKstring && ((StringExp *)message)->sz == 1)
+            deprecatedMessage = (char*)((StringExp *)message)->string;
+        else
+            error("string expected, not '%s'", message->toChars());
+    }
+
+    semanticNewSc(sc, sc->stc | STCdeprecated, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
+}
+
+
+void DeprecatedDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->printf("deprecated");
+    if (message)
+    {
+        buf->writebyte('(');
+        message->toCBuffer(buf, hgs);
+        if (soft)
+            buf->printf(", soft");
+        buf->writebyte(')');
+    }
+    buf->writebyte(' ');
+    AttribDeclaration::toCBuffer(buf, hgs);
 }
