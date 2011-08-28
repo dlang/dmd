@@ -308,10 +308,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         Loc elseloc = this->loc;
                         nextToken();
                         aelse = parseBlock();
-                        if (token.value != TOKelse && lookingForElse.linnum != 0)
-                        {
-                            warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
-                        }
+                        checkDanglingElse(elseloc);
                     }
                     s = new StaticIfDeclaration(condition, a, aelse);
                     break;
@@ -598,10 +595,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     Loc elseloc = this->loc;
                     nextToken();
                     aelse = parseBlock();
-                    if (token.value != TOKelse && lookingForElse.linnum != 0)
-                    {
-                        warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
-                    }
+                    checkDanglingElse(elseloc);
                 }
                 s = new ConditionalDeclaration(condition, a, aelse);
                 break;
@@ -3370,6 +3364,20 @@ Expression *Parser::parseDefaultInitExp()
 #endif
 
 /*****************************************
+ */
+
+void Parser::checkDanglingElse(Loc elseloc)
+{
+    if (token.value != TOKelse &&
+        token.value != TOKcatch &&
+        token.value != TOKfinally &&
+        lookingForElse.linnum != 0)
+    {
+        warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
+    }
+}
+
+/*****************************************
  * Input:
  *      flags   PSxxxx
  */
@@ -3851,11 +3859,7 @@ Statement *Parser::parseStatement(int flags)
                 Loc elseloc = this->loc;
                 nextToken();
                 elsebody = parseStatement(PSscope);
-
-                if (token.value != TOKelse && lookingForElse.linnum != 0)
-                {
-                    warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
-                }
+                checkDanglingElse(elseloc);
             }
             else
                 elsebody = NULL;
@@ -3917,10 +3921,7 @@ Statement *Parser::parseStatement(int flags)
                 Loc elseloc = this->loc;
                 nextToken();
                 elsebody = parseStatement(0 /*PSsemi*/);
-                if (token.value != TOKelse && lookingForElse.linnum != 0)
-                {
-                    warning(elseloc, "else is dangling, add { } after condition at %s", lookingForElse.toChars());
-                }
+                checkDanglingElse(elseloc);
             }
             s = new ConditionalStatement(loc, condition, ifbody, elsebody);
             break;
@@ -4186,10 +4187,7 @@ Statement *Parser::parseStatement(int flags)
                     t = parseType(&id);
                     check(TOKrparen);
                 }
-                Loc lookingForElseSave = lookingForElse;
-                lookingForElse = 0;
                 handler = parseStatement(0);
-                lookingForElse = lookingForElseSave;
                 c = new Catch(loc, t, id, handler);
                 if (!catches)
                     catches = new Catches();
