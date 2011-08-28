@@ -910,8 +910,8 @@ void test15()
 
 /**************************************/
 
-//void bug4953(T = void)(short x) {}
-//static assert(is(typeof(bug4953(3))));
+void bug4953(T = void)(short x) {}
+static assert(is(typeof(bug4953(3))));
 
 /**************************************/
 

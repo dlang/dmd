@@ -1199,6 +1199,12 @@ L2:
             m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes);
             //printf("\tdeduceType m = %d\n", m);
 
+            /* If no match, see if the argument can be matched by using
+             * implicit conversions.
+             */
+            if (!m)
+                m = farg->implicitConvTo(fparam->type);
+
             /* If no match, see if there's a conversion to a delegate
              */
             if (!m && fparam->type->toBasetype()->ty == Tdelegate)
@@ -2892,7 +2898,7 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     {
         // So that matches with specializations are better
         if (!(flags & 1))
-            m = MATCHconvert;
+            m = MATCHdeduced;
 
         /* This is so that:
          *   template Foo(T), Foo!(const int), => ta == int

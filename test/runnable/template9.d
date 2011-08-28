@@ -6,24 +6,6 @@ import std.c.stdio;
 
 /**********************************/
 
-U foo(T, U)(U i)
-{
-    return i + 1;
-}
-
-int foo(T)(int i)
-{
-    return i + 2;
-}
-
-void test1()
-{
-    auto i = foo!(int)(2L);
-//    assert(i == 4);    // now returns 3
-}
-
-/**********************************/
-
 U foo2(T, U)(U i)
 {
     return i + 1;
@@ -304,7 +286,6 @@ void test2579()
 
 int main()
 {
-    test1();
     test2();
     test3();
     test4();

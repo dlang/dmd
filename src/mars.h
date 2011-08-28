@@ -386,6 +386,7 @@ enum DYNCAST
 enum MATCH
 {
     MATCHnomatch,       // no match
+    MATCHdeduced,
     MATCHconvert,       // match with conversions
 #if DMDV2
     MATCHconst,         // match with conversion to const
