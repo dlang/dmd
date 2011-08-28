@@ -4353,6 +4353,20 @@ void test240() {
 }
 
 /***************************************************/
+// 6563
+
+int foo6563(float a, float b, float c, float d, float e, float f, float g, float h)
+{
+    assert(a == 1);
+    return 0; // return something to prevent folding
+}
+
+void test6563()
+{
+    auto res = foo6563(1, 1, 1, 1, 1, 1, 1, 1);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4586,6 +4600,7 @@ int main()
     test6270();
     test6506();
     test240();
+    test6563();
 
     writefln("Success");
     return 0;
