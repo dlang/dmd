@@ -79,7 +79,7 @@ void obj_append(Dsymbol *s)
 void obj_write_deferred(Library *library)
 {
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
-    {   Dsymbol *s = (Dsymbol *)obj_symbols_towrite.data[i];
+    {   Dsymbol *s = obj_symbols_towrite.tdata()[i];
         Module *m = s->getModule();
 
         char *mname;
@@ -224,7 +224,7 @@ void Module::genobjfile(int multiobj)
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = (Module *)aimports.data[0];
+        Module *m = aimports.tdata()[0];
         assert(m);
         if (m->sictor || m->sctor || m->sdtor)
         {
@@ -272,7 +272,7 @@ void Module::genobjfile(int multiobj)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *member = (Dsymbol *)members->data[i];
+        Dsymbol *member = members->tdata()[i];
         member->toObjFile(multiobj);
     }
 
@@ -357,7 +357,7 @@ void Module::genobjfile(int multiobj)
             cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
 
             for (size_t i = 0; i < ectorgates.dim; i++)
-            {   StaticDtorDeclaration *f = (StaticDtorDeclaration *)ectorgates.data[i];
+            {   StaticDtorDeclaration *f = ectorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
                 elem *e = el_var(s);
@@ -398,7 +398,7 @@ void Module::genobjfile(int multiobj)
             cstate.CSpsymtab = &ssharedctor->Sfunc->Flocsym;
 
             for (size_t i = 0; i < esharedctorgates.dim; i++)
-            {   SharedStaticDtorDeclaration *f = (SharedStaticDtorDeclaration *)esharedctorgates.data[i];
+            {   SharedStaticDtorDeclaration *f = esharedctorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
                 elem *e = el_var(s);
@@ -731,7 +731,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+        {   VarDeclaration *v = parameters->tdata()[i];
             if (v->csym)
             {
                 error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
@@ -821,7 +821,7 @@ void FuncDeclaration::toObjFile(int multiobj)
                         ++r;
                     }
                 }
-                if (xmmcnt < XMM7)
+                if (xmmcnt <= XMM7)
                 {
                     if (tyfloating(ty) && tysize(ty) <= 8)
                     {
@@ -1020,7 +1020,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)irs.deferToObj->data[i];
+        Dsymbol *s = irs.deferToObj->tdata()[i];
         s->toObjFile(0);
     }
 
@@ -1067,7 +1067,6 @@ unsigned Type::totym()
         case Tcomplex32: t = TYcfloat;  break;
         case Tcomplex64: t = TYcdouble; break;
         case Tcomplex80: t = TYcldouble; break;
-        //case Tbit:    t = TYuchar;    break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
