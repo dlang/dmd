@@ -3156,7 +3156,7 @@ Initializer *Parser::parseInitializer()
 
             is = new StructInitializer(loc);
             nextToken();
-            comma = 0;
+            comma = 2;
             while (1)
             {
                 switch (token.value)
@@ -3180,6 +3180,8 @@ Initializer *Parser::parseInitializer()
                         continue;
 
                     case TOKcomma:
+                        if (comma == 2)
+                            error("expression expected, not ','");
                         nextToken();
                         comma = 2;
                         continue;
@@ -3243,7 +3245,7 @@ Initializer *Parser::parseInitializer()
 
             ia = new ArrayInitializer(loc);
             nextToken();
-            comma = 0;
+            comma = 2;
             while (1)
             {
                 switch (token.value)
@@ -3280,6 +3282,8 @@ Initializer *Parser::parseInitializer()
                         continue;
 
                     case TOKcomma:
+                        if (comma == 2)
+                            error("expression expected, not ','");
                         nextToken();
                         comma = 2;
                         continue;
