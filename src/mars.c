@@ -276,7 +276,6 @@ Usage:\n\
   --help         print help\n\
   -Ipath         where to look for imports\n\
   -ignore        ignore unsupported pragmas\n\
-  -property      enforce property syntax\n\
   -inline        do function inlining\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
@@ -291,6 +290,7 @@ Usage:\n\
   -offilename    name output file to filename\n\
   -op            do not strip paths from source file\n\
   -profile       profile runtime performance of generated code\n\
+  -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
