@@ -26,7 +26,7 @@ private import rt.util.utf;
 /* 1 argument versions */
 
 // dg is D, but _aApplyRcd() is C
-extern (D) typedef int delegate(void *) dg_t;
+extern (D) alias int delegate(void *) dg_t;
 
 extern (C) int _aApplyRcd1(in char[] aa, dg_t dg)
 {   int result;
@@ -488,7 +488,7 @@ unittest
 /* 2 argument versions */
 
 // dg is D, but _aApplyRcd2() is C
-extern (D) typedef int delegate(void *, void *) dg2_t;
+extern (D) alias int delegate(void *, void *) dg2_t;
 
 extern (C) int _aApplyRcd2(in char[] aa, dg2_t dg)
 {   int result;

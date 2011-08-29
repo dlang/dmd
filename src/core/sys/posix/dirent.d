@@ -134,7 +134,7 @@ else version( FreeBSD )
         char[256] d_name;
     }
 
-    typedef void* DIR;
+    alias void* DIR;
 
     dirent* readdir(DIR*);
 }

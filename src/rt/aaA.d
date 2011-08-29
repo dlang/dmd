@@ -590,7 +590,7 @@ unittest
  */
 
 // dg is D, but _aaApply() is C
-extern (D) typedef int delegate(void *) dg_t;
+extern (D) alias int delegate(void *) dg_t;
 
 int _aaApply(AA aa, size_t keysize, dg_t dg)
 {   int result;
@@ -617,7 +617,7 @@ int _aaApply(AA aa, size_t keysize, dg_t dg)
 }
 
 // dg is D, but _aaApply2() is C
-extern (D) typedef int delegate(void *, void *) dg2_t;
+extern (D) alias int delegate(void *, void *) dg2_t;
 
 int _aaApply2(AA aa, size_t keysize, dg2_t dg)
 {   int result;
