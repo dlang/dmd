@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -115,7 +115,6 @@ struct Parser : Lexer
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
-    void checkDanglingElse(Loc elseloc);
     void check(Loc loc, enum TOK value);
     void check(enum TOK value);
     void check(enum TOK value, const char *string);
