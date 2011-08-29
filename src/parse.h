@@ -118,6 +118,7 @@ struct Parser : Lexer
     void check(enum TOK value);
     void check(enum TOK value, const char *string);
     void checkParens(enum TOK value, Expression *e);
+    void checkDanglingElse(Loc elseloc);
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, enum TOK endtok);
