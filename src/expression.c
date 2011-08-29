@@ -6624,6 +6624,46 @@ Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
+/***********************************************
+ * Mark variable v as modified if it is inside a constructor that var
+ * is a field in.
+ */
+void modifyFieldVar(Scope *sc, VarDeclaration *var, Expression *e1)
+{
+    //printf("modifyFieldVar(var = %s)\n", var->toChars());
+    Dsymbol *s = sc->func;
+    while (1)
+    {
+        FuncDeclaration *fd = NULL;
+        if (s)
+            fd = s->isFuncDeclaration();
+        if (fd &&
+            ((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
+             (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
+            fd->toParent2() == var->toParent() &&
+            (!e1 || e1->op == TOKthis)
+           )
+        {
+            var->ctorinit = 1;
+            //printf("setting ctorinit\n");
+        }
+        else
+        {
+            if (s)
+            {   s = s->toParent2();
+                continue;
+            }
+            else if (var->storage_class & STCctorinit)
+            {
+                const char *p = var->isStatic() ? "static " : "";
+                error("can only initialize %sconst member %s inside %sconstructor",
+                    p, var->toChars(), p);
+            }
+        }
+        break;
+    }
+}
+
 Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
 #if 0
@@ -6643,44 +6683,16 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
     {
         if (var->isCtorinit())
         {   // It's only modifiable if inside the right constructor
-            Dsymbol *s = sc->func;
-            while (1)
-            {
-                FuncDeclaration *fd = NULL;
-                if (s)
-                    fd = s->isFuncDeclaration();
-                if (fd &&
-                    ((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
-                     (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
-                    fd->toParent2() == var->toParent() &&
-                    e1->op == TOKthis
-                   )
-                {
-                    VarDeclaration *v = var->isVarDeclaration();
-                    assert(v);
-                    v->ctorinit = 1;
-                    //printf("setting ctorinit\n");
-                }
-                else
-                {
-                    if (s)
-                    {   s = s->toParent2();
-                        continue;
-                    }
-                    else
-                    {
-                        const char *p = var->isStatic() ? "static " : "";
-                        error("can only initialize %sconst member %s inside %sconstructor",
-                            p, var->toChars(), p);
-                    }
-                }
-                break;
-            }
+            modifyFieldVar(sc, var->isVarDeclaration(), e1);
         }
         else
         {
             error("cannot modify const/immutable/inout expression %s", toChars());
         }
+    }
+    else if (var->storage_class & STCnodefaultctor)
+    {
+        modifyFieldVar(sc, var->isVarDeclaration(), e1);
     }
     return this;
 }
@@ -9628,6 +9640,17 @@ Ltupleassign:
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
         if (op == TOKassign)
         {
+            /* See if we need to set ctorinit, i.e. track
+             * assignments to fields. An assignment to a field counts even
+             * if done through an opAssign overload.
+             */
+            if (e1->op == TOKdotvar)
+            {   DotVarExp *dve = (DotVarExp *)e1;
+                VarDeclaration *v = dve->var->isVarDeclaration();
+                if (v && v->storage_class & STCnodefaultctor)
+                    modifyFieldVar(sc, v, dve->e1);
+            }
+
             Expression *e = op_overload(sc);
             if (e && e1->op == TOKindex &&
                 ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)

@@ -82,6 +82,7 @@ enum PURE;
 #define STCctfe         0x1000000000LL  // can be used in CTFE, even if it is static
 #define STCdisable      0x2000000000LL  // for functions that are not callable
 #define STCresult       0x4000000000LL  // for result variables passed to out contracts
+#define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
 
 struct Match
 {

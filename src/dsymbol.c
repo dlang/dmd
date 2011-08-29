@@ -440,12 +440,18 @@ AggregateDeclaration *Dsymbol::isThis()
     return NULL;
 }
 
-ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
+AggregateDeclaration *Dsymbol::isAggregateMember()      // are we a member of an aggregate?
 {
     Dsymbol *parent = toParent();
-    if (parent && parent->isClassDeclaration())
-        return (ClassDeclaration *)parent;
+    if (parent && parent->isAggregateDeclaration())
+        return (AggregateDeclaration *)parent;
     return NULL;
+}
+
+ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
+{
+    AggregateDeclaration *ad = isAggregateMember();
+    return ad ? ad->isClassDeclaration() : NULL;
 }
 
 void Dsymbol::defineRef(Dsymbol *s)

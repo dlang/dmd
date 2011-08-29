@@ -111,6 +111,7 @@ struct Parser : Lexer
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0);
     Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
     void parseContracts(FuncDeclaration *f);
+    void checkDanglingElse(Loc elseloc);
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();

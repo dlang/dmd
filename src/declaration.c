@@ -83,6 +83,9 @@ enum PROT Declaration::prot()
  */
 
 #if DMDV2
+
+void modifyFieldVar(Scope *sc, VarDeclaration *var, Expression *e1);
+
 void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 {
     if (sc->incontract && isParameter())
@@ -91,40 +94,10 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     if (sc->incontract && isResult())
         error(loc, "cannot modify result '%s' in contract", toChars());
 
-    if (isCtorinit() && !t->isMutable())
+    if (isCtorinit() && !t->isMutable() ||
+        (storage_class & STCnodefaultctor))
     {   // It's only modifiable if inside the right constructor
-        Dsymbol *s = sc->func;
-        while (1)
-        {
-            FuncDeclaration *fd = NULL;
-            if (s)
-                fd = s->isFuncDeclaration();
-            if (fd &&
-                ((fd->isCtorDeclaration() && storage_class & STCfield) ||
-                 (fd->isStaticCtorDeclaration() && !(storage_class & STCfield))) &&
-                fd->toParent2() == toParent()
-               )
-            {
-                VarDeclaration *v = isVarDeclaration();
-                assert(v);
-                v->ctorinit = 1;
-                //printf("setting ctorinit\n");
-            }
-            else
-            {
-                if (s)
-                {   s = s->toParent2();
-                    continue;
-                }
-                else
-                {
-                    const char *p = isStatic() ? "static " : "";
-                    error(loc, "can only initialize %sconst %s inside %sconstructor",
-                        p, toChars(), p);
-                }
-            }
-            break;
-        }
+        modifyFieldVar(sc, isVarDeclaration(), NULL);
     }
     else
     {
@@ -714,7 +687,7 @@ void VarDeclaration::semantic(Scope *sc)
     printf("VarDeclaration::semantic('%s', parent = '%s')\n", toChars(), sc->parent->toChars());
     printf(" type = %s\n", type ? type->toChars() : "null");
     printf(" stc = x%x\n", sc->stc);
-    printf(" storage_class = x%x\n", storage_class);
+    printf(" storage_class = x%llx\n", storage_class);
     printf("linkage = %d\n", sc->linkage);
     //if (strcmp(toChars(), "mul") == 0) halt();
 #endif
@@ -1103,11 +1076,17 @@ Lnomatch:
         error("only fields, parameters or stack based variables can be inout");
     }
 
-    if (!(storage_class & (STCfield | STCctfe)) && tb->ty == Tstruct &&
+    if (!(storage_class & (STCctfe | STCref)) && tb->ty == Tstruct &&
         ((TypeStruct *)tb)->sym->noDefaultCtor)
     {
         if (!init)
-            error("initializer required for type %s", type->toChars());
+        {   if (storage_class & STCfield)
+                /* For fields, we'll check the constructor later to make sure it is initialized
+                 */
+                storage_class |= STCnodefaultctor;
+            else
+                error("initializer required for type %s", type->toChars());
+        }
     }
 #endif
 

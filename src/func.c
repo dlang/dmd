@@ -1254,14 +1254,14 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->incontract--;
 
         if (fbody)
-        {   ClassDeclaration *cd = isClassMember();
+        {   AggregateDeclaration *ad = isAggregateMember();
 
             /* If this is a class constructor
              */
-            if (isCtorDeclaration() && cd)
+            if (ad && isCtorDeclaration())
             {
-                for (int i = 0; i < cd->fields.dim; i++)
-                {   VarDeclaration *v = cd->fields.tdata()[i];
+                for (size_t i = 0; i < ad->fields.dim; i++)
+                {   VarDeclaration *v = ad->fields[i];
 
                     v->ctorinit = 0;
                 }
@@ -1290,37 +1290,51 @@ void FuncDeclaration::semantic3(Scope *sc)
                  */
 
                 Dsymbol *p = toParent();
-                ScopeDsymbol *ad = p->isScopeDsymbol();
-                if (!ad)
+                ScopeDsymbol *pd = p->isScopeDsymbol();
+                if (!pd)
                 {
                     error("static constructor can only be member of struct/class/module, not %s %s", p->kind(), p->toChars());
                 }
                 else
                 {
-                    for (int i = 0; i < ad->members->dim; i++)
-                    {   Dsymbol *s = ad->members->tdata()[i];
+                    for (size_t i = 0; i < pd->members->dim; i++)
+                    {   Dsymbol *s = pd->members->tdata()[i];
 
                         s->checkCtorConstInit();
                     }
                 }
             }
 
-            if (isCtorDeclaration() && cd)
+            if (isCtorDeclaration() && ad)
             {
                 //printf("callSuper = x%x\n", sc2->callSuper);
+
+                ClassDeclaration *cd = ad->isClassDeclaration();
 
                 // Verify that all the ctorinit fields got initialized
                 if (!(sc2->callSuper & CSXthis_ctor))
                 {
-                    for (int i = 0; i < cd->fields.dim; i++)
-                    {   VarDeclaration *v = cd->fields.tdata()[i];
+                    for (size_t i = 0; i < ad->fields.dim; i++)
+                    {   VarDeclaration *v = ad->fields[i];
 
-                        if (v->ctorinit == 0 && v->isCtorinit() && !v->type->isMutable())
-                            error("missing initializer for final field %s", v->toChars());
+                        if (v->ctorinit == 0)
+                        {
+                            /* Current bugs in the flow analysis:
+                             * 1. union members should not produce error messages even if
+                             *    not assigned to
+                             * 2. structs should recognize delegating opAssign calls as well
+                             *    as delegating calls to other constructors
+                             */
+                            if (v->isCtorinit() && !v->type->isMutable() && cd)
+                                error("missing initializer for final field %s", v->toChars());
+                            else if (v->storage_class & STCnodefaultctor)
+                                error("field %s must be initialized in constructor", v->toChars());
+                        }
                     }
                 }
 
-                if (!(sc2->callSuper & CSXany_ctor) &&
+                if (cd &&
+                    !(sc2->callSuper & CSXany_ctor) &&
                     cd->baseClass && cd->baseClass->ctor)
                 {
                     sc2->callSuper = 0;
