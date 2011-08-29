@@ -216,18 +216,15 @@ class Semaphore
             mach_timespec_t t = void;
             (cast(byte*) &t)[0 .. t.sizeof] = 0;
 
-            if( dur!("nsecs")( 0 ) == val )
+            if( val.total!("seconds")() > t.tv_sec.max )
             {
-                if( val.total!("seconds")() > t.tv_sec.max )
-                {
-                    t.tv_sec  = t.tv_sec.max;
-                    t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
-                }
-                else
-                {
-                    t.tv_sec  = cast(typeof(t.tv_sec)) val.total!("seconds")();
-                    t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
-                }
+                t.tv_sec  = t.tv_sec.max;
+                t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
+            }
+            else
+            {
+                t.tv_sec  = cast(typeof(t.tv_sec)) val.total!("seconds")();
+                t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
             }
             while( true )
             {
@@ -505,8 +502,8 @@ version( unittest )
                 }
                 Thread.yield();
             }
-            alertedOne = semReady.wait( dur!"msecs"(200) );
-            alertedTwo = semReady.wait( dur!"msecs"(200) );
+            alertedOne = semReady.wait( dur!"msecs"(100) );
+            alertedTwo = semReady.wait( dur!"msecs"(100) );
         }
 
         auto thread = new Thread( &waiter );
