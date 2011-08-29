@@ -112,7 +112,7 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps)
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *sx = (Dsymbol *)members->data[i];
+        {   Dsymbol *sx = (*members)[i];
 
             int x = sx->oneMember(ps);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
@@ -594,13 +594,13 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
                 return;
         }
 
-        for (; sc; sc = sc->enclosing)
+        for (Scope *sc2 = sc; sc2; sc2 = sc2->enclosing)
         {
-            if (sc->scopesym && sc->scopesym->isDeprecated())
+            if (sc2->scopesym && sc2->scopesym->isDeprecated())
                 return;
 
             // If inside a StorageClassDeclaration that is deprecated
-            if (sc->stc & STCdeprecated)
+            if (sc2->stc & STCdeprecated)
                 return;
         }
 
@@ -656,10 +656,10 @@ Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
         b = a->copy();
         for (size_t i = 0; i < b->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)b->data[i];
+            Dsymbol *s = (*b)[i];
 
             s = s->syntaxCopy(NULL);
-            b->data[i] = (void *)s;
+            (*b)[i] = s;
         }
     }
     return b;
@@ -754,7 +754,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     {
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
-        {   ScopeDsymbol *ss = (ScopeDsymbol *)imports->data[i];
+        {   ScopeDsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
             // If private import, don't search it
@@ -821,7 +821,7 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
         else
         {
             for (size_t i = 0; i < imports->dim; i++)
-            {   ScopeDsymbol *ss = (ScopeDsymbol *) imports->data[i];
+            {   ScopeDsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])
@@ -910,13 +910,13 @@ Dsymbol *ScopeDsymbol::symtabInsert(Dsymbol *s)
  */
 
 #if DMDV2
-size_t ScopeDsymbol::dim(Array *members)
+size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (Dsymbol *)members->data[i];
+        {   Dsymbol *s = (*members)[i];
             AttribDeclaration *a = s->isAttribDeclaration();
 
             if (a)
@@ -940,15 +940,17 @@ size_t ScopeDsymbol::dim(Array *members)
  */
 
 #if DMDV2
-Dsymbol *ScopeDsymbol::getNth(Array *members, size_t nth, size_t *pn)
+Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
     if (!members)
         return NULL;
 
     size_t n = 0;
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = (*members)[i];
         AttribDeclaration *a = s->isAttribDeclaration();
+        TemplateMixin *tm = s->isTemplateMixin();
+        TemplateInstance *ti = s->isTemplateInstance();
 
         if (a)
         {
@@ -956,6 +958,14 @@ Dsymbol *ScopeDsymbol::getNth(Array *members, size_t nth, size_t *pn)
             if (s)
                 return s;
         }
+        else if (tm)
+        {
+            s = getNth(tm->members, nth - n, &n);
+            if (s)
+                return s;
+        }
+        else if (ti)
+            ;
         else if (n == nth)
             return s;
         else
