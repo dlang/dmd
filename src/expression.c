@@ -7349,10 +7349,15 @@ Lagain:
         else
         {
             if (e1->op == TOKdotvar)
+            {
                 dve->var = f;
+                e1->type = f->type;
+            }
             else
+            {
                 e1 = new DotVarExp(loc, dte->e1, f);
-            e1->type = f->type;
+                e1 = e1->semantic(sc);
+            }
 #if 0
             printf("ue->e1 = %s\n", ue->e1->toChars());
             printf("f = %s\n", f->toChars());

@@ -1714,10 +1714,10 @@ struct S6499
 
     this(string s)
     {
-	m = s;
+        m = s;
         printf("Constructor - %.*s\n", m.length, m.ptr);
-        if (m == "foo") ++sdtor, assert(sdtor == 1);
-        if (m == "bar") ++sdtor, assert(sdtor == 2);
+        if (m == "foo") { ++sdtor; assert(sdtor == 1); }
+        if (m == "bar") { ++sdtor; assert(sdtor == 2); }
     }
     this(this)
     {
@@ -1727,23 +1727,27 @@ struct S6499
     ~this()
     {
         printf("Destructor  - %.*s\n", m.length, m.ptr);
-        if (m == "bar") assert(sdtor == 2), --sdtor;
-        if (m == "foo") assert(sdtor == 1), --sdtor;
+        if (m == "bar") { assert(sdtor == 2); --sdtor; }
+        if (m == "foo") { assert(sdtor == 1); --sdtor; }
     }
-    S6499 bar()
-    {
-        return S6499("bar");
-    }
+    S6499 bar()     { return S6499("bar"); }
+    S6499 baz()()   { return S6499("baz"); }
 }
 
 void test6499()
 {
     S6499 foo() { return S6499("foo"); }
 
-    sdtor = 0;
-    scope(exit) assert(sdtor == 0);
-
-    foo().bar();
+    {
+        sdtor = 0;
+        scope(exit) assert(sdtor == 0);
+        foo().bar();
+    }
+    {
+        sdtor = 0;
+        scope(exit) assert(sdtor == 0);
+        foo().baz();
+    }
 }
 
 /**********************************/
