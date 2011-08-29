@@ -338,6 +338,7 @@ else version( AsmX86_32 )
 
 
     HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
+    if(!isFloatingPoint!(T))
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -443,7 +444,6 @@ else version( AsmX86_32 )
             static assert( false, "Invalid template type specified." );
         }
     }
-
 
     void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
         if( __traits( compiles, mixin( "val = newval" ) ) )
@@ -749,7 +749,7 @@ else version( AsmX86_64 )
 
 
     HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
-    {
+    if(!isFloatingPoint!(T)) {
         static if( T.sizeof == byte.sizeof )
         {
             //////////////////////////////////////////////////////////////////
@@ -975,6 +975,37 @@ else version( AsmX86_64 )
     }
 }
 
+template isFloatingPoint(T)
+{
+    enum isFloatingPoint = __traits(isFloating, T);
+}
+
+// This is an ABI adapter that works on all architectures.  It type puns
+// floats and doubles to ints and longs, atomically loads them, then puns
+// them back.  This is necessary so that they get returned in floating
+// point instead of integer registers.
+HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
+if(isFloatingPoint!(T))
+{
+    static if(T.sizeof == int.sizeof)
+    {
+        static assert(is(T : float));
+        auto ptr = cast(int*) &val;
+        auto asInt = atomicLoad!(ms)(*ptr);
+        return *(cast(typeof(return)*) &asInt);
+    }
+    else static if(T.sizeof == long.sizeof)
+    {
+        static assert(is(T : double));
+        auto ptr = cast(long*) &val;
+        auto asLong = atomicLoad!(ms)(*ptr);
+        return *(cast(typeof(return)*) &asLong);
+    }
+    else
+    {
+        static assert(0, "Cannot atomically load 80-bit reals.");
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Unit Tests
@@ -985,28 +1016,29 @@ version( unittest )
 {
     void testCAS(T)( T val = T.init + 1 )
     {
-        T         base;
-        shared(T) atom;
+        T         base = cast(T) 0;
+        shared(T) atom = cast(T) 0;
 
-        assert( base != val );
-        assert( atom == base );
-        assert( cas( &atom, base, val ) );
-        assert( atom == val );
-        assert( !cas( &atom, base, base ) );
-        assert( atom == val );
+        assert( base != val, T.stringof );
+        assert( atom == base, T.stringof );
+        
+        assert( cas( &atom, base, val ), T.stringof );
+        assert( atom == val, T.stringof );
+        assert( !cas( &atom, base, base ), T.stringof );
+        assert( atom == val, T.stringof );
     }
-
 
     void testLoadStore(msync ms = msync.seq, T)( T val = T.init + 1 )
     {
-        T         base;
-        shared(T) atom;
+        T         base = cast(T) 0;
+        shared(T) atom = cast(T) 0;
 
         assert( base != val );
         assert( atom == base );
         atomicStore!(ms)( atom, val );
         base = atomicLoad!(ms)( atom );
-        assert( base == val );
+        
+        assert( base == val, T.stringof );
         assert( atom == val );
     }
 
@@ -1034,6 +1066,9 @@ version( unittest )
         testType!(uint)();
 
         testType!(shared int*)();
+        
+        testType!(float)(1.0f);
+        testType!(double)(1.0);
 
         static if( has64BitCAS )
         {
@@ -1048,5 +1083,13 @@ version( unittest )
 
         atomicOp!"-="( i, cast(size_t) 1 );
         assert( i == 0 );
+        
+        float f = 0;
+        atomicOp!"+="( f, 1 );
+        assert( f == 1 );
+        
+        double d = 0;
+        atomicOp!"+="( d, 1 );
+        assert( d == 1 );
     }
 }
