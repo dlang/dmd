@@ -597,13 +597,13 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
                 goto L1;
         }
 
-        for (; sc; sc = sc->enclosing)
+        for (Scope *sc2 = sc; sc2; sc2 = sc2->enclosing)
         {
-            if (sc->scopesym && sc->scopesym->isDeprecated())
+            if (sc2->scopesym && sc2->scopesym->isDeprecated())
                 goto L1;
 
             // If inside a StorageClassDeclaration that is deprecated
-            if (sc->stc & STCdeprecated)
+            if (sc2->stc & STCdeprecated)
                 goto L1;
         }
 
