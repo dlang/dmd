@@ -93,7 +93,7 @@ else // Win32
     alias uint * PULONG_PTR;
 }
 
-    typedef void *HANDLE;
+    alias void *HANDLE;
     alias void *PVOID;
     alias HANDLE HGLOBAL;
     alias HANDLE HLOCAL;
@@ -639,49 +639,49 @@ enum
     REG_LEGAL_OPTION = (REG_OPTION_RESERVED | REG_OPTION_NON_VOLATILE | REG_OPTION_VOLATILE | REG_OPTION_CREATE_LINK | REG_OPTION_BACKUP_RESTORE | REG_OPTION_OPEN_LINK),
 }
 
-export LONG RegDeleteKeyA(HKEY hKey, LPCSTR lpSubKey);
-export LONG RegDeleteKeyW(HKEY hKey, LPCWSTR lpSubKey);
-export LONG RegDeleteValueA(HKEY hKey, LPCSTR lpValueName);
-export LONG RegDeleteValueW(HKEY hKey, LPCWSTR lpValueName);
+export LONG RegDeleteKeyA(in HKEY hKey, LPCSTR lpSubKey);
+export LONG RegDeleteKeyW(in HKEY hKey, LPCWSTR lpSubKey);
+export LONG RegDeleteValueA(in HKEY hKey, LPCSTR lpValueName);
+export LONG RegDeleteValueW(in HKEY hKey, LPCWSTR lpValueName);
 
-export LONG  RegEnumKeyExA(HKEY hKey, DWORD dwIndex, LPSTR lpName, LPDWORD lpcbName, LPDWORD lpReserved, LPSTR lpClass, LPDWORD lpcbClass, FILETIME* lpftLastWriteTime);
-export LONG  RegEnumKeyExW(HKEY hKey, DWORD dwIndex, LPWSTR lpName, LPDWORD lpcbName, LPDWORD lpReserved, LPWSTR lpClass, LPDWORD lpcbClass, FILETIME* lpftLastWriteTime);
-export LONG RegEnumValueA(HKEY hKey, DWORD dwIndex, LPSTR lpValueName, LPDWORD lpcbValueName, LPDWORD lpReserved,
+export LONG  RegEnumKeyExA(in HKEY hKey, DWORD dwIndex, LPSTR lpName, LPDWORD lpcbName, LPDWORD lpReserved, LPSTR lpClass, LPDWORD lpcbClass, FILETIME* lpftLastWriteTime);
+export LONG  RegEnumKeyExW(in HKEY hKey, DWORD dwIndex, LPWSTR lpName, LPDWORD lpcbName, LPDWORD lpReserved, LPWSTR lpClass, LPDWORD lpcbClass, FILETIME* lpftLastWriteTime);
+export LONG RegEnumValueA(in HKEY hKey, DWORD dwIndex, LPSTR lpValueName, LPDWORD lpcbValueName, LPDWORD lpReserved,
     LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
-export LONG RegEnumValueW(HKEY hKey, DWORD dwIndex, LPWSTR lpValueName, LPDWORD lpcbValueName, LPDWORD lpReserved,
+export LONG RegEnumValueW(in HKEY hKey, DWORD dwIndex, LPWSTR lpValueName, LPDWORD lpcbValueName, LPDWORD lpReserved,
     LPDWORD lpType, LPBYTE lpData, LPDWORD lpcbData);
 
-export LONG RegCloseKey(HKEY hKey);
-export LONG RegFlushKey(HKEY hKey);
+export LONG RegCloseKey(in HKEY hKey);
+export LONG RegFlushKey(in HKEY hKey);
 
-export LONG RegOpenKeyA(HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult);
-export LONG RegOpenKeyW(HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult);
-export LONG RegOpenKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
-export LONG RegOpenKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
+export LONG RegOpenKeyA(in HKEY hKey, LPCSTR lpSubKey, PHKEY phkResult);
+export LONG RegOpenKeyW(in HKEY hKey, LPCWSTR lpSubKey, PHKEY phkResult);
+export LONG RegOpenKeyExA(in HKEY hKey, LPCSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
+export LONG RegOpenKeyExW(in HKEY hKey, LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult);
 
-export LONG RegQueryInfoKeyA(HKEY hKey, LPSTR lpClass, LPDWORD lpcbClass,
+export LONG RegQueryInfoKeyA(in HKEY hKey, LPSTR lpClass, LPDWORD lpcbClass,
     LPDWORD lpReserved, LPDWORD lpcSubKeys, LPDWORD lpcbMaxSubKeyLen, LPDWORD lpcbMaxClassLen,
     LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor,
     PFILETIME lpftLastWriteTime);
-export LONG RegQueryInfoKeyW(HKEY hKey, LPWSTR lpClass, LPDWORD lpcbClass,
+export LONG RegQueryInfoKeyW(in HKEY hKey, LPWSTR lpClass, LPDWORD lpcbClass,
     LPDWORD lpReserved, LPDWORD lpcSubKeys, LPDWORD lpcbMaxSubKeyLen, LPDWORD lpcbMaxClassLen,
     LPDWORD lpcValues, LPDWORD lpcbMaxValueNameLen, LPDWORD lpcbMaxValueLen, LPDWORD lpcbSecurityDescriptor,
     PFILETIME lpftLastWriteTime);
 
-export LONG RegQueryValueA(HKEY hKey, LPCSTR lpSubKey, LPSTR lpValue, LPLONG lpcbValue);
-export LONG RegQueryValueW(HKEY hKey, LPCWSTR lpSubKey, LPWSTR lpValue, LPLONG lpcbValue);
-export LONG RegQueryValueExA(HKEY hKey, LPCSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPVOID lpData, LPDWORD lpcbData);
-export LONG RegQueryValueExW(HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPVOID lpData, LPDWORD lpcbData);
+export LONG RegQueryValueA(in HKEY hKey, LPCSTR lpSubKey, LPSTR lpValue, LPLONG lpcbValue);
+export LONG RegQueryValueW(in HKEY hKey, LPCWSTR lpSubKey, LPWSTR lpValue, LPLONG lpcbValue);
+export LONG RegQueryValueExA(in HKEY hKey, LPCSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPVOID lpData, LPDWORD lpcbData);
+export LONG RegQueryValueExW(in HKEY hKey, LPCWSTR lpValueName, LPDWORD lpReserved, LPDWORD lpType, LPVOID lpData, LPDWORD lpcbData);
 
-export LONG RegCreateKeyExA(HKEY hKey, LPCSTR lpSubKey, DWORD Reserved, LPSTR lpClass,
+export LONG RegCreateKeyExA(in HKEY hKey, LPCSTR lpSubKey, DWORD Reserved, LPSTR lpClass,
    DWORD dwOptions, REGSAM samDesired, SECURITY_ATTRIBUTES* lpSecurityAttributes,
     PHKEY phkResult, LPDWORD lpdwDisposition);
-export LONG RegCreateKeyExW(HKEY hKey, LPCWSTR lpSubKey, DWORD Reserved, LPWSTR lpClass,
+export LONG RegCreateKeyExW(in HKEY hKey, LPCWSTR lpSubKey, DWORD Reserved, LPWSTR lpClass,
    DWORD dwOptions, REGSAM samDesired, SECURITY_ATTRIBUTES* lpSecurityAttributes,
     PHKEY phkResult, LPDWORD lpdwDisposition);
 
-export LONG RegSetValueExA(HKEY hKey, LPCSTR lpValueName, DWORD Reserved, DWORD dwType, BYTE* lpData, DWORD cbData);
-export LONG RegSetValueExW(HKEY hKey, LPCWSTR lpValueName, DWORD Reserved, DWORD dwType, BYTE* lpData, DWORD cbData);
+export LONG RegSetValueExA(in HKEY hKey, LPCSTR lpValueName, DWORD Reserved, DWORD dwType, BYTE* lpData, DWORD cbData);
+export LONG RegSetValueExW(in HKEY hKey, LPCWSTR lpValueName, DWORD Reserved, DWORD dwType, BYTE* lpData, DWORD cbData);
 
 export LONG RegOpenCurrentUser(REGSAM samDesired, PHKEY phkResult);
 

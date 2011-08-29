@@ -148,27 +148,27 @@ struct IMAGEHLP_SYMBOL64
 
 extern(System)
 {
-    typedef BOOL    function(HANDLE hProcess, DWORD64 lpBaseAddress, PVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead) ReadProcessMemoryProc64;
-    typedef PVOID   function(HANDLE hProcess, DWORD64 AddrBase) FunctionTableAccessProc64;
-    typedef DWORD64 function(HANDLE hProcess, DWORD64 Address) GetModuleBaseProc64;
-    typedef DWORD64 function(HANDLE hProcess, HANDLE hThread, ADDRESS64 *lpaddr) TranslateAddressProc64;
+    alias BOOL    function(HANDLE hProcess, DWORD64 lpBaseAddress, PVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead) ReadProcessMemoryProc64;
+    alias PVOID   function(HANDLE hProcess, DWORD64 AddrBase) FunctionTableAccessProc64;
+    alias DWORD64 function(HANDLE hProcess, DWORD64 Address) GetModuleBaseProc64;
+    alias DWORD64 function(HANDLE hProcess, HANDLE hThread, ADDRESS64 *lpaddr) TranslateAddressProc64;
 
-    typedef BOOL    function(HANDLE hProcess, PCSTR UserSearchPath, bool fInvadeProcess) SymInitializeFunc;
-    typedef BOOL    function(HANDLE hProcess) SymCleanupFunc;
-    typedef DWORD   function(DWORD SymOptions) SymSetOptionsFunc;
-    typedef DWORD   function() SymGetOptionsFunc;
-    typedef PVOID   function(HANDLE hProcess, DWORD64 AddrBase) SymFunctionTableAccess64Func;
-    typedef BOOL    function(DWORD MachineType, HANDLE hProcess, HANDLE hThread, STACKFRAME64 *StackFrame, PVOID ContextRecord,
+    alias BOOL    function(HANDLE hProcess, PCSTR UserSearchPath, bool fInvadeProcess) SymInitializeFunc;
+    alias BOOL    function(HANDLE hProcess) SymCleanupFunc;
+    alias DWORD   function(DWORD SymOptions) SymSetOptionsFunc;
+    alias DWORD   function() SymGetOptionsFunc;
+    alias PVOID   function(HANDLE hProcess, DWORD64 AddrBase) SymFunctionTableAccess64Func;
+    alias BOOL    function(DWORD MachineType, HANDLE hProcess, HANDLE hThread, STACKFRAME64 *StackFrame, PVOID ContextRecord,
                              ReadProcessMemoryProc64 ReadMemoryRoutine, FunctionTableAccessProc64 FunctoinTableAccess,
                              GetModuleBaseProc64 GetModuleBaseRoutine, TranslateAddressProc64 TranslateAddress) StackWalk64Func;
-    typedef BOOL    function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINE64 *line) SymGetLineFromAddr64Func;
-    typedef DWORD64 function(HANDLE hProcess, DWORD64 dwAddr) SymGetModuleBase64Func;
-    typedef BOOL    function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULE64 *ModuleInfo) SymGetModuleInfo64Func;
-    typedef BOOL    function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOL64 *Symbol) SymGetSymFromAddr64Func;
-    typedef DWORD   function(PCTSTR DecoratedName, PTSTR UnDecoratedName, DWORD UndecoratedLength, DWORD Flags) UnDecorateSymbolNameFunc;
-    typedef DWORD64 function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll) SymLoadModule64Func;
-    typedef BOOL    function(HANDLE HProcess, PTSTR SearchPath, DWORD SearchPathLength) SymGetSearchPathFunc;
-    typedef BOOL    function(HANDLE hProcess, DWORD64 Address) SymUnloadModule64Func;
+    alias BOOL    function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINE64 *line) SymGetLineFromAddr64Func;
+    alias DWORD64 function(HANDLE hProcess, DWORD64 dwAddr) SymGetModuleBase64Func;
+    alias BOOL    function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULE64 *ModuleInfo) SymGetModuleInfo64Func;
+    alias BOOL    function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOL64 *Symbol) SymGetSymFromAddr64Func;
+    alias DWORD   function(PCTSTR DecoratedName, PTSTR UnDecoratedName, DWORD UndecoratedLength, DWORD Flags) UnDecorateSymbolNameFunc;
+    alias DWORD64 function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll) SymLoadModule64Func;
+    alias BOOL    function(HANDLE HProcess, PTSTR SearchPath, DWORD SearchPathLength) SymGetSearchPathFunc;
+    alias BOOL    function(HANDLE hProcess, DWORD64 Address) SymUnloadModule64Func;
 }
 
 struct DbgHelp

@@ -346,10 +346,10 @@ extern (C)
     void[] _aaKeys(void* p, size_t keysize);
     void*  _aaRehash(void** pp, TypeInfo keyti);
 
-    extern (D) typedef scope int delegate(void *) _dg_t;
+    extern (D) alias scope int delegate(void *) _dg_t;
     int _aaApply(void* aa, size_t keysize, _dg_t dg);
 
-    extern (D) typedef scope int delegate(void *, void *) _dg2_t;
+    extern (D) alias scope int delegate(void *, void *) _dg2_t;
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
