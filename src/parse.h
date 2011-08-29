@@ -114,6 +114,7 @@ struct Parser : Lexer
     Statement *parseStatement(int flags);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
+    void checkDanglingElse(Loc elseloc);
     void check(Loc loc, enum TOK value);
     void check(enum TOK value);
     void check(enum TOK value, const char *string);
