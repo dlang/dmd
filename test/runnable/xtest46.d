@@ -3254,6 +3254,11 @@ void test1471()
 
 /***************************************************/
 
+deprecated @disable int bug6389a;
+static assert(!is(typeof({ int bug6389b = bug6389a; })));
+
+/***************************************************/
+
 void test4963()
 {
     struct Value {
