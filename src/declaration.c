@@ -508,6 +508,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     else
     {
+        Dsymbol *savedovernext = overnext;
         FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
         if (f)
         {
@@ -527,6 +528,14 @@ void AliasDeclaration::semantic(Scope *sc)
         {
             assert(global.errors);
             s = NULL;
+        }
+        if (errors != global.errors)
+        {
+            type = savedtype;
+            overnext = savedovernext;
+            aliassym = NULL;
+            inSemantic = 0;
+            return;
         }
     }
     //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
@@ -585,7 +594,7 @@ Dsymbol *AliasDeclaration::toAlias()
     //static int count; if (++count == 10) *(char*)0=0;
     if (inSemantic)
     {   error("recursive alias declaration");
-        aliassym = new TypedefDeclaration(loc, ident, Type::terror, NULL);
+        aliassym = new AliasDeclaration(loc, ident, Type::terror);
         type = Type::terror;
     }
     else if (!aliassym && scope)
