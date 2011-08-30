@@ -2293,6 +2293,18 @@ struct Foo126
 
 /***************************************************/
 
+void test796()
+{
+    struct S { invariant() { throw new Exception(""); } }
+    S* s;
+    try {
+        assert(s);
+    } catch (Error) {
+    }
+}
+
+/***************************************************/
+
 struct Tuple127(S...)
 {
     S expand;
@@ -3570,6 +3582,7 @@ int main()
     test47();
     test48();
     test49();
+    test796();
     test50();
     test51();
     test52();

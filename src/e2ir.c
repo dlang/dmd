@@ -1925,6 +1925,8 @@ elem *AssertExp::toElem(IRState *irs)
     if (global.params.useAssert)
     {
         e = e1->toElem(irs);
+        symbol *ts = NULL;
+        elem *einv = NULL;
 
         InvariantDeclaration *inv = (InvariantDeclaration *)(void *)1;
 
@@ -1932,10 +1934,11 @@ elem *AssertExp::toElem(IRState *irs)
         if (global.params.useInvariants && t1->ty == Tclass &&
             !((TypeClass *)t1)->sym->isInterfaceDeclaration())
         {
+            ts = symbol_genauto(t1->toCtype());
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-            e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), e);
+            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), el_var(ts));
 #else
-            e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), e);
+            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), el_var(ts));
 #endif
         }
         // If e1 is a struct object, call the struct invariant on it
@@ -1944,81 +1947,87 @@ elem *AssertExp::toElem(IRState *irs)
             t1->nextOf()->ty == Tstruct &&
             (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
         {
-            e = callfunc(loc, irs, 1, inv->type->nextOf(), e, e1->type, inv, inv->type, NULL, NULL);
+            ts = symbol_genauto(t1->toCtype());
+            einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);
         }
-        else
-        {
-            // Construct: (e1 || ModuleAssert(line))
-            Module *m = irs->blx->module;
-            char *mname = m->srcfile->toChars();
 
-            //printf("filename = '%s'\n", loc.filename);
-            //printf("module = '%s'\n", m->srcfile->toChars());
+        // Construct: (e1 || ModuleAssert(line))
+        Module *m = irs->blx->module;
+        char *mname = m->srcfile->toChars();
 
-            /* Determine if we are in a unittest
+        //printf("filename = '%s'\n", loc.filename);
+        //printf("module = '%s'\n", m->srcfile->toChars());
+
+        /* Determine if we are in a unittest
+         */
+        FuncDeclaration *fd = irs->getFunc();
+        UnitTestDeclaration *ud = fd ? fd->isUnitTestDeclaration() : NULL;
+
+        /* If the source file name has changed, probably due
+         * to a #line directive.
+         */
+        if (loc.filename && (msg || strcmp(loc.filename, mname) != 0))
+        {   elem *efilename;
+
+            /* Cache values.
              */
-            FuncDeclaration *fd = irs->getFunc();
-            UnitTestDeclaration *ud = fd ? fd->isUnitTestDeclaration() : NULL;
+            //static Symbol *assertexp_sfilename = NULL;
+            //static char *assertexp_name = NULL;
+            //static Module *assertexp_mn = NULL;
 
-            /* If the source file name has changed, probably due
-             * to a #line directive.
-             */
-            if (loc.filename && (msg || strcmp(loc.filename, mname) != 0))
-            {   elem *efilename;
+            if (!assertexp_sfilename || strcmp(loc.filename, assertexp_name) != 0 || assertexp_mn != m)
+            {
+                dt_t *dt = NULL;
+                const char *id;
+                int len;
 
-                /* Cache values.
-                 */
-                //static Symbol *assertexp_sfilename = NULL;
-                //static char *assertexp_name = NULL;
-                //static Module *assertexp_mn = NULL;
+                id = loc.filename;
+                len = strlen(id);
+                dtsize_t(&dt, len);
+                dtabytes(&dt,TYnptr, 0, len + 1, id);
 
-                if (!assertexp_sfilename || strcmp(loc.filename, assertexp_name) != 0 || assertexp_mn != m)
-                {
-                    dt_t *dt = NULL;
-                    const char *id;
-                    int len;
-
-                    id = loc.filename;
-                    len = strlen(id);
-                    dtsize_t(&dt, len);
-                    dtabytes(&dt,TYnptr, 0, len + 1, id);
-
-                    assertexp_sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
-                    assertexp_sfilename->Sdt = dt;
-                    assertexp_sfilename->Sfl = FLdata;
+                assertexp_sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
+                assertexp_sfilename->Sdt = dt;
+                assertexp_sfilename->Sfl = FLdata;
 #if ELFOBJ
-                    assertexp_sfilename->Sseg = CDATA;
+                assertexp_sfilename->Sseg = CDATA;
 #endif
 #if MACHOBJ
-                    assertexp_sfilename->Sseg = DATA;
+                assertexp_sfilename->Sseg = DATA;
 #endif
-                    outdata(assertexp_sfilename);
+                outdata(assertexp_sfilename);
 
-                    assertexp_mn = m;
-                    assertexp_name = id;
-                }
+                assertexp_mn = m;
+                assertexp_name = id;
+            }
 
-                efilename = el_var(assertexp_sfilename);
+            efilename = el_var(assertexp_sfilename);
 
-                if (msg)
-                {   elem *emsg = msg->toElem(irs);
-                    ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
-                    ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, loc.linnum), efilename, emsg, NULL));
-                }
-                else
-                {
-                    ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
-                    ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
-                }
+            if (msg)
+            {   elem *emsg = msg->toElem(irs);
+                ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
+                ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, loc.linnum), efilename, emsg, NULL));
             }
             else
             {
-                Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
-                ea = el_bin(OPcall,TYvoid,el_var(sassert),
-                    el_long(TYint, loc.linnum));
+                ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
+                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
             }
-            e = el_bin(OPoror,TYvoid,e,ea);
         }
+        else
+        {
+            Symbol *sassert = ud ? m->toModuleUnittest() : m->toModuleAssert();
+            ea = el_bin(OPcall,TYvoid,el_var(sassert),
+                el_long(TYint, loc.linnum));
+        }
+        if (einv)
+        {   // tmp = e, e || assert, e->inv
+            elem *eassign = el_bin(OPeq, e->Ety, el_var(ts), e);
+            e = el_combine(eassign, el_bin(OPoror, TYvoid, el_var(ts), ea));
+            e = el_combine(e, einv);
+        }
+        else
+            e = el_bin(OPoror,TYvoid,e,ea);
     }
     else
     {   // BUG: should replace assert(0); with a HLT instruction
