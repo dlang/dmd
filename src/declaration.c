@@ -272,14 +272,30 @@ void TypedefDeclaration::semantic(Scope *sc)
     //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
     if (sem == SemanticStart)
     {   sem = SemanticIn;
+        int errors = global.errors;
+        Type *savedbasetype = basetype;
         basetype = basetype->semantic(loc, sc);
+        if (errors != global.errors)
+        {
+            basetype = savedbasetype;
+            sem = SemanticStart;
+            return;
+        }
         sem = SemanticDone;
 #if DMDV2
         type = type->addStorageClass(storage_class);
 #endif
+        Type *savedtype = type;
         type = type->semantic(loc, sc);
         if (sc->parent->isFuncDeclaration() && init)
             semantic2(sc);
+        if (errors != global.errors)
+        {
+            basetype = savedbasetype;
+            type = savedtype;
+            sem = SemanticStart;
+            return;
+        }
         storage_class |= sc->stc & STCdeprecated;
     }
     else if (sem == SemanticIn)
@@ -295,7 +311,14 @@ void TypedefDeclaration::semantic2(Scope *sc)
     {   sem = Semantic2Done;
         if (init)
         {
+            Initializer *savedinit = init;
+            int errors = global.errors;
             init = init->semantic(sc, basetype, WANTinterpret);
+            if (errors != global.errors)
+            {
+                init = savedinit;
+                return;
+            }
 
             ExpInitializer *ie = init->isExpInitializer();
             if (ie)
