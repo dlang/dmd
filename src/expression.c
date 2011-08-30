@@ -6628,7 +6628,7 @@ Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
  * Mark variable v as modified if it is inside a constructor that var
  * is a field in.
  */
-void modifyFieldVar(Scope *sc, VarDeclaration *var, Expression *e1)
+void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
 {
     //printf("modifyFieldVar(var = %s)\n", var->toChars());
     Dsymbol *s = sc->func;
@@ -6656,7 +6656,7 @@ void modifyFieldVar(Scope *sc, VarDeclaration *var, Expression *e1)
             else if (var->storage_class & STCctorinit)
             {
                 const char *p = var->isStatic() ? "static " : "";
-                error("can only initialize %sconst member %s inside %sconstructor",
+                error(loc, "can only initialize %sconst member %s inside %sconstructor",
                     p, var->toChars(), p);
             }
         }
@@ -6683,7 +6683,7 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
     {
         if (var->isCtorinit())
         {   // It's only modifiable if inside the right constructor
-            modifyFieldVar(sc, var->isVarDeclaration(), e1);
+            modifyFieldVar(loc, sc, var->isVarDeclaration(), e1);
         }
         else
         {
@@ -6692,7 +6692,7 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
     }
     else if (var->storage_class & STCnodefaultctor)
     {
-        modifyFieldVar(sc, var->isVarDeclaration(), e1);
+        modifyFieldVar(loc, sc, var->isVarDeclaration(), e1);
     }
     return this;
 }
@@ -9653,7 +9653,7 @@ Ltupleassign:
             {   DotVarExp *dve = (DotVarExp *)e1;
                 VarDeclaration *v = dve->var->isVarDeclaration();
                 if (v && v->storage_class & STCnodefaultctor)
-                    modifyFieldVar(sc, v, dve->e1);
+                    modifyFieldVar(loc, sc, v, dve->e1);
             }
 
             Expression *e = op_overload(sc);

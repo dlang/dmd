@@ -76,6 +76,8 @@ Expression *fromConstInitializer(int result, Expression *e);
 int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 void valueNoDtor(Expression *e);
+void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
+
 
 /* Interpreter: what form of return value expression is required?
  */

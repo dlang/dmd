@@ -84,8 +84,6 @@ enum PROT Declaration::prot()
 
 #if DMDV2
 
-void modifyFieldVar(Scope *sc, VarDeclaration *var, Expression *e1);
-
 void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 {
     if (sc->incontract && isParameter())
@@ -97,7 +95,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     if (isCtorinit() && !t->isMutable() ||
         (storage_class & STCnodefaultctor))
     {   // It's only modifiable if inside the right constructor
-        modifyFieldVar(sc, isVarDeclaration(), NULL);
+        modifyFieldVar(loc, sc, isVarDeclaration(), NULL);
     }
     else
     {
