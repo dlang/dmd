@@ -655,7 +655,7 @@ TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd)
  */
 
 Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
-        Expressions *arguments, FuncDeclaration *fd)
+        Expression *ethis, Expressions *arguments, FuncDeclaration *fd)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -4307,7 +4307,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            functionParameters(loc, sc, tf, arguments, f);
+            functionParameters(loc, sc, tf, NULL, arguments, f);
 
             type = type->addMod(tf->nextOf()->mod);
         }
@@ -4332,7 +4332,7 @@ Lagain:
             assert(allocator);
 
             TypeFunction *tf = (TypeFunction *)f->type;
-            functionParameters(loc, sc, tf, newargs, f);
+            functionParameters(loc, sc, tf, NULL, newargs, f);
         }
         else
         {
@@ -4367,7 +4367,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            functionParameters(loc, sc, tf, arguments, f);
+            functionParameters(loc, sc, tf, NULL, arguments, f);
         }
         else
         {
@@ -4391,7 +4391,7 @@ Lagain:
             assert(allocator);
 
             tf = (TypeFunction *)f->type;
-            functionParameters(loc, sc, tf, newargs, f);
+            functionParameters(loc, sc, tf, NULL, newargs, f);
 #if 0
             e = new VarExp(loc, f);
             e = new CallExp(loc, e, newargs);
@@ -7397,6 +7397,7 @@ Lagain:
         if (f->needThis())
         {
             ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
+            ethis = ue->e1;
         }
 
         /* Cannot call public functions from inside invariant
@@ -7718,6 +7719,8 @@ Lagain:
 
         accessCheck(loc, sc, NULL, f);
 
+        ethis = NULL;
+
         ve->var = f;
 //      ve->hasOverloads = 0;
         ve->type = f->type;
@@ -7731,7 +7734,7 @@ Lcheckargs:
 
     if (!arguments)
         arguments = new Expressions();
-    type = functionParameters(loc, sc, tf, arguments, f);
+    type = functionParameters(loc, sc, tf, ethis, arguments, f);
 
     if (!type)
     {
