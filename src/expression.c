@@ -6656,7 +6656,7 @@ void modifyFieldVar(Scope *sc, VarDeclaration *var, Expression *e1)
             else if (var->storage_class & STCctorinit)
             {
                 const char *p = var->isStatic() ? "static " : "";
-                error("can only initialize %sconst member %s inside %sconstructor",
+                error(e1->loc, "can only initialize %sconst member %s inside %sconstructor",
                     p, var->toChars(), p);
             }
         }
