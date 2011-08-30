@@ -4903,7 +4903,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             error(loc, "functions cannot return scope %s", tf->next->toChars());
         if (tf->next->toBasetype()->ty == Tvoid)
             tf->isref = FALSE;                  // rewrite "ref void" as just "void"
-        if (tf->next->isWild())
+        if (tf->next->hasWild())
             wildreturn = TRUE;
     }
 
@@ -4945,7 +4945,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
 
-            if (t->isWild())
+            if (t->hasWild())
             {
                 wildparams = TRUE;
                 if (tf->next && !wildreturn)
@@ -5004,6 +5004,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         }
         argsc->pop();
     }
+    if (tf->isWild())
+        wildparams = TRUE;
+
     if (wildreturn && !wildparams)
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
     if (wildsubparams && wildparams)
@@ -5131,6 +5134,11 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         {
             if (MODimplicitConv(t->mod, mod))
                 match = MATCHconst;
+            else if ((mod & MODwild)
+                && MODimplicitConv(t->mod, (mod & ~MODwild) | MODconst))
+            {
+                match = MATCHconst;
+            }
             else
                 return MATCHnomatch;
         }
@@ -5199,7 +5207,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             else
                 m = arg->implicitConvTo(p->type);
             //printf("match %d\n", m);
-            if (p->type->isWild())
+            if (p->type->hasWild())
             {
                 if (m == MATCHnomatch)
                 {

@@ -968,6 +968,19 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             break;
     }
 
+    if (ethis && tf->isWild())
+    {
+        Type *tthis = ethis->type;
+        if (tthis->isWild())
+            wildmatch |= MODwild;
+        else if (tthis->isConst())
+            wildmatch |= MODconst;
+        else if (tthis->isImmutable())
+            wildmatch |= MODimmutable;
+        else
+            wildmatch |= MODmutable;
+    }
+
     // If D linkage and variadic, add _arguments[] as first argument
     if (tf->linkage == LINKd && tf->varargs == 1)
     {
