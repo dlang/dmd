@@ -443,6 +443,9 @@ void AliasDeclaration::semantic(Scope *sc)
     // type. If it is a symbol, then aliassym is set and type is NULL -
     // toAlias() will return aliasssym.
 
+    int errors = global.errors;
+    Type *savedtype = type;
+
     Dsymbol *s;
     Type *t;
     Expression *e;
@@ -489,12 +492,15 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     else if (t)
     {
-        type = t;
+        type = t->semantic(loc, sc);
         //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)
         ScopeDsymbol::multiplyDefined(0, this, overnext);
     this->inSemantic = 0;
+
+    if (errors != global.errors)
+        type = savedtype;
     return;
 
   L2:
