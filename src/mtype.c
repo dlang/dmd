@@ -213,7 +213,7 @@ void Type::init()
 
     for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
-            fprintf(stdmsg, "ty = %d\n", i);
+            fprintf(stdmsg, "ty = %zd\n", i);
         assert(mangleChar[i]);
     }
 
@@ -972,12 +972,6 @@ TypeBasic::TypeBasic(TY ty)
                         break;
 
 
-        case Tbit:      d = Token::toChars(TOKbit);
-                        c = "bit";
-                        flags |= TFLAGSintegral | TFLAGSunsigned;
-assert(0);
-                        break;
-
         case Tbool:     d = "bool";
                         c = d;
                         flags |= TFLAGSintegral | TFLAGSunsigned;
@@ -1063,7 +1057,6 @@ d_uns64 TypeBasic::size(Loc loc)
             size = 1;
             break;
 
-        case Tbit:      size = 1;               break;
         case Tbool:     size = 1;               break;
         case Tascii:    size = 1;               break;
         case Twchar:    size = 2;               break;
@@ -1139,7 +1132,6 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
             case Tuns32:        ivalue = 0xFFFFFFFFUL;  goto Livalue;
             case Tint64:        ivalue = 0x7FFFFFFFFFFFFFFFLL;  goto Livalue;
             case Tuns64:        ivalue = 0xFFFFFFFFFFFFFFFFULL; goto Livalue;
-            case Tbit:          ivalue = 1;             goto Livalue;
             case Tbool:         ivalue = 1;             goto Livalue;
             case Tchar:         ivalue = 0xFF;          goto Livalue;
             case Twchar:        ivalue = 0xFFFFUL;      goto Livalue;
@@ -1168,7 +1160,6 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
             case Tuns32:        ivalue = 0;                     goto Livalue;
             case Tint64:        ivalue = (-9223372036854775807LL-1LL);  goto Livalue;
             case Tuns64:        ivalue = 0;             goto Livalue;
-            case Tbit:          ivalue = 0;             goto Livalue;
             case Tbool:         ivalue = 0;             goto Livalue;
             case Tchar:         ivalue = 0;             goto Livalue;
             case Twchar:        ivalue = 0;             goto Livalue;
@@ -1490,7 +1481,7 @@ int TypeBasic::isZeroInit(Loc loc)
 
 int TypeBasic::isbit()
 {
-    return (ty == Tbit);
+    return 0;
 }
 
 int TypeBasic::isintegral()
@@ -1681,15 +1672,14 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         Expressions *arguments;
 
         fd = FuncDeclaration::genCfunc(tint32->arrayOf(),
-                (char*)(n->ty == Tbit ? "_adSortBit" : "_adSort"));
+                (char*)"_adSort");
         ec = new VarExp(0, fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         arguments = new Expressions();
         arguments->push(e);
-        if (next->ty != Tbit)
-            arguments->push(n->ty == Tsarray
-                        ? n->getTypeInfo(sc)    // don't convert to dynamic array
-                        : n->getInternalTypeInfo(sc));
+        arguments->push(n->ty == Tsarray
+                    ? n->getTypeInfo(sc)    // don't convert to dynamic array
+                    : n->getInternalTypeInfo(sc));
         e = new CallExp(e->loc, ec, arguments);
         e->type = next->arrayOf();
     }
@@ -1724,13 +1714,6 @@ d_uns64 TypeSArray::size(Loc loc)
     if (!dim)
         return Type::size(loc);
     sz = dim->toInteger();
-    if (next->toBasetype()->ty == Tbit)         // if array of bits
-    {
-        if (sz + 31 < sz)
-            goto Loverflow;
-        sz = ((sz + 31) & ~31) / 8;     // size in bytes, rounded up to 32 bit dwords
-    }
-    else
     {   dinteger_t n, n2;
 
         n = next->size();
@@ -2323,7 +2306,6 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
             key = key->next->arrayOf();
 #endif
             break;
-        case Tbit:
         case Tbool:
         case Tfunction:
         case Tvoid:
@@ -2607,8 +2589,6 @@ int TypePointer::hasPointers()
 TypeReference::TypeReference(Type *t)
     : Type(Treference, t)
 {
-    if (t->ty == Tbit)
-        error(0,"cannot make reference to a bit");
     // BUG: what about references to static arrays?
 }
 

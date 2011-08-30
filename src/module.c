@@ -356,8 +356,8 @@ void Module::read(Loc loc)
             {
                 for (size_t i = 0; i < global.path->dim; i++)
                 {
-                    char *p = (char *)global.path->data[i];
-                    fprintf(stdmsg, "import path[%d] = %s\n", i, p);
+                    char *p = global.path->tdata()[i];
+                    fprintf(stdmsg, "import path[%zd] = %s\n", i, p);
                 }
             }
             else
