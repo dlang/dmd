@@ -975,7 +975,7 @@ else version( AsmX86_64 )
     }
 }
 
-template isFloatingPoint(T)
+private template isFloatingPoint(T)
 {
     enum isFloatingPoint = __traits(isFloating, T);
 }
