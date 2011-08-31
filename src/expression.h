@@ -666,6 +666,7 @@ struct FuncExp : Expression
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
+    dt_t **toDt(dt_t **pdt);
 
     int inlineCost(InlineCostState *ics);
     //Expression *doInline(InlineDoState *ids);

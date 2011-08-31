@@ -779,6 +779,18 @@ dt_t **VarExp::toDt(dt_t **pdt)
     return pdt;
 }
 
+dt_t **FuncExp::toDt(dt_t **pdt)
+{
+    //printf("FuncExp::toDt() %d\n", op);
+    Symbol *s = fd->toSymbol();
+    if (fd->isNested())
+    {   error("non-constant nested delegate literal expression %s", toChars());
+        return NULL;
+    }
+    fd->toObjFile(0);
+    return dtxoff(pdt, s, 0, TYnptr);
+}
+
 /* ================================================================= */
 
 // Generate the data for the static initializer.

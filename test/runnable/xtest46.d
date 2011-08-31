@@ -3519,6 +3519,44 @@ void test5799()
 
 /***************************************************/
 
+template X157(alias x)
+{
+    alias x X157;
+}
+
+template Parent(alias foo)
+{
+    alias X157!(__traits(parent, foo)) Parent;
+}
+
+template ParameterTypeTuple(alias foo)
+{
+    static if (is(typeof(foo) P == function))
+        alias P ParameterTypeTuple;
+    else
+        static assert(0, "argument has no parameters");
+}
+
+template Mfp(alias foo)
+{
+    auto Mfp = function(Parent!foo self, ParameterTypeTuple!foo i) { return self.foo(i); };
+}
+
+class C157 {
+ int a = 3;
+ int foo(int i, int y) { return i + a + y; }
+}
+
+void test157()
+{
+    auto c = new C157();
+    auto mfp = Mfp!(C157.foo);
+    auto i = mfp(c, 1, 7);
+    assert(i == 11);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3696,6 +3734,7 @@ int main()
     test2774();
     test6220();
     test5799();
+    test157();
 
     printf("Success\n");
     return 0;
