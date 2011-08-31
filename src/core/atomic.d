@@ -338,7 +338,7 @@ else version( AsmX86_32 )
 
 
     HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
-    if(!isFloatingPoint!(T))
+    if(!__traits(isFloating, T))
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -749,7 +749,7 @@ else version( AsmX86_64 )
 
 
     HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
-    if(!isFloatingPoint!(T)) {
+    if(!__traits(isFloating, T)) {
         static if( T.sizeof == byte.sizeof )
         {
             //////////////////////////////////////////////////////////////////
@@ -975,17 +975,12 @@ else version( AsmX86_64 )
     }
 }
 
-template isFloatingPoint(T)
-{
-    enum isFloatingPoint = __traits(isFloating, T);
-}
-
 // This is an ABI adapter that works on all architectures.  It type puns
 // floats and doubles to ints and longs, atomically loads them, then puns
 // them back.  This is necessary so that they get returned in floating
 // point instead of integer registers.
 HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
-if(isFloatingPoint!(T))
+if(__traits(isFloating, T))
 {
     static if(T.sizeof == int.sizeof)
     {
