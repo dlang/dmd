@@ -175,7 +175,7 @@ class Foo15
 
     this(immutable char[] aaa)
     {
-	this.xxxx = aaa;
+        this.xxxx = aaa;
     }
 }
 
@@ -224,11 +224,11 @@ void test19()
 {
     char[] s;
     if (s == "abc")
-	s = null;
+        s = null;
     if (s < "abc")
-	s = null;
+        s = null;
     if (s is "abc")
-	s = null;
+        s = null;
 }
 
 /************************************/
@@ -299,7 +299,7 @@ void test25()
 {
     char* p;
     if (p == cast(const(char)*)"abc")
-	{}
+    {}
 }
 
 /************************************/
@@ -308,7 +308,7 @@ void test26()
 {
     struct S
     {
-	char[3] a;
+        char[3] a;
     }
 
     static S s = { "abc" };
@@ -366,8 +366,8 @@ struct S30
 
     void foo() { x = 3; }
     void bar() const
-    {	//x = 4;
-	//this.x = 5;
+    {   //x = 4;
+        //this.x = 5;
     }
 }
 
@@ -377,8 +377,8 @@ class C30
 
     void foo() { x = 3; }
     void bar() const
-    {	//x = 4;
-	//this.x = 5;
+    {   //x = 4;
+        //this.x = 5;
     }
 }
 
@@ -416,7 +416,7 @@ class Foo31
 
   const const(int)* getc()
   {
-    return &x;  
+    return &x;
   }
 }
 
@@ -485,7 +485,7 @@ void test35()
 /************************************/
 
 immutable char[10] digits    = "0123456789";  /// 0..9
-immutable char[]  octdigits = digits[0 .. 8]; //// 0..7 
+immutable char[]  octdigits = digits[0 .. 8]; //// 0..7
 
 void test36()
 {
@@ -534,7 +534,7 @@ void test39()
 struct S40
 {
     int a;
-    const int b = 3;	// shouldn't be allocated
+    const int b = 3;    // shouldn't be allocated
 }
 
 void test40()
@@ -578,12 +578,12 @@ class C42
 
     static this()
     {
-	d = 4;
+        d = 4;
     }
 
     this()
     {
-	b = 2;
+        b = 2;
     }
 }
 
@@ -935,13 +935,13 @@ struct S57
 {
     const void foo(this T)(int i)
     {
-	showf(typeid(T).toString());
-	if (i == 1)
-	    assert(is(T == const));
-	if (i == 2)
-	    assert(!is(T == const));
-	if (i == 3)
-	    assert(is(T == immutable));
+        showf(typeid(T).toString());
+        if (i == 1)
+            assert(is(T == const));
+        if (i == 2)
+            assert(!is(T == const));
+        if (i == 3)
+            assert(is(T == immutable));
     }
 }
 
@@ -964,18 +964,18 @@ class C58
 
     this()
     {
-	y = null;
-	c = null;
+        y = null;
+        c = null;
     }
 
     const void foo()
     {
-	//c = null;	// should fail
+        //c = null; // should fail
     }
 
     void bar()
     {
-	//c = null;
+        //c = null;
     }
 }
 
@@ -1266,7 +1266,7 @@ void test77()
     int[][][] intArrayArrayArray;
 
 //    const(int)[][] f1 = intArrayArray;
-    const(int[])[] f2 = intArrayArray; 
+    const(int[])[] f2 = intArrayArray;
 
 //    const(int)[][][] g1 = intArrayArrayArray;
 //    const(int[])[][] g2 = intArrayArrayArray;
@@ -1318,7 +1318,7 @@ void test80()
     static assert(!__traits(compiles, c = s));
     static assert(!__traits(compiles, c = sc));
     c = w;
-//    static assert(!__traits(compiles, c = sw));
+    static assert(!__traits(compiles, c = sw));
 
     static assert(!__traits(compiles, i = c));
     i = i;
@@ -1598,6 +1598,166 @@ void test88(immutable(int[3]) a)
 }
 
 /************************************/
+// 3748
+
+// version = error8;
+// version = error11;
+
+class C3748
+{
+    private int _x;
+    this(int x) { this._x = x; }
+    @property inout(int)* xptr() inout { return &_x; }
+    @property void x(int newval) { _x = newval; }
+}
+
+struct S3748
+{
+    int x;
+    immutable int y = 5;
+    const int z = 6;
+    C3748 c;
+
+    inout(int)* getX() inout
+    {
+        static assert(!__traits(compiles, {
+            x = 4;
+        }));
+        return &x;
+    }
+    inout(int)* getCX(C3748 otherc) inout
+    {
+        inout(C3748) c2 = c;    // typeof(c) == inout(C3748)
+        static assert(!__traits(compiles, {
+            inout(C3748) err2 = new C3748(1);
+        }));
+        static assert(!__traits(compiles, {
+            inout(C3748) err3 = otherc;
+        }));
+
+        auto v1 = getLowestXptr(c, otherc);
+        static assert(is(typeof(v1) == const(int)*));
+        auto v2 = getLowestXptr(c, c);
+        static assert(is(typeof(v2) == inout(int)*));
+
+        alias typeof(return) R;
+        static assert(!__traits(compiles, {
+            c.x = 4;
+        }));
+        static assert(!__traits(compiles, {
+            R r = otherc.xptr;
+        }));
+        static assert(!__traits(compiles, {
+            R r = &y;
+        }));
+        static assert(!__traits(compiles, {
+            R r = &z;
+        }));
+
+        return c2.xptr;
+    }
+
+    version(error8)
+        inout(int) err8;
+}
+
+inout(int)* getLowestXptr(inout(C3748) c1, inout(C3748) c2)
+{
+    inout(int)* x1 = c1.xptr;
+    inout(int)* x2 = c2.xptr;
+    if(*x1 <= *x2)
+        return x1;
+    return x2;
+}
+
+ref inout(int) getXRef(inout(C3748) c1, inout(C3748) c2)
+{
+    return *getLowestXptr(c1, c2);
+}
+
+void test3748()
+{
+    S3748 s;
+    s.c = new C3748(1);
+    const(S3748)* sp = &s;
+    auto s2 = new S3748;
+    s2.x = 3;
+    s2.c = new C3748(2);
+    auto s3 = cast(immutable(S3748)*) s2;
+
+    auto v1 = s.getX;
+    static assert(is(typeof(v1) == int*));
+    auto v2 = sp.getX;
+    static assert(is(typeof(v2) == const(int)*));
+    auto v3 = s3.getX;
+    static assert(is(typeof(v3) == immutable(int)*));
+
+    static assert(!__traits(compiles, {
+        int *err9 = sp.getX;
+    }));
+    static assert(!__traits(compiles, {
+        int *err10 = s3.getX;
+    }));
+    version(error11)
+        inout(int)* err11;
+
+    auto v4 = getLowestXptr(s.c, s3.c);
+    static assert(is(typeof(v4) == const(int)*));
+    auto v5 = getLowestXptr(s.c, s.c);
+    static assert(is(typeof(v5) == int*));
+    auto v6 = getLowestXptr(s3.c, s3.c);
+    static assert(is(typeof(v6) == immutable(int)*));
+
+    getXRef(s.c, s.c) = 3;
+}
+
+/************************************/
+// 4968
+
+void test4968()
+{
+    inout(int) f1(inout(int) i) { return i; }
+    int mi;
+    const int ci;
+    immutable int ii;
+    static assert(is(typeof(f1(mi)) == int));
+    static assert(is(typeof(f1(ci)) == const(int)));
+    static assert(is(typeof(f1(ii)) == immutable(int)));
+
+    inout(int)* f2(inout(int)* p) { return p; }
+    int* mp;
+    const(int)* cp;
+    immutable(int)* ip;
+    static assert(is(typeof(f2(mp)) == int*));
+    static assert(is(typeof(f2(cp)) == const(int)*));
+    static assert(is(typeof(f2(ip)) == immutable(int)*));
+
+    inout(int)[] f3(inout(int)[] a) { return a; }
+    int[] ma;
+    const(int)[] ca;
+    immutable(int)[] ia;
+    static assert(is(typeof(f3(ma)) == int[]));
+    static assert(is(typeof(f3(ca)) == const(int)[]));
+    static assert(is(typeof(f3(ia)) == immutable(int)[]));
+
+    inout(int)[1] f4(inout(int)[1] sa) { return sa; }
+    int[1] msa;
+    const int[1] csa;
+    immutable int[1] isa;
+    static assert(is(typeof(f4(msa)) == int[1]));
+    static assert(is(typeof(f4(csa)) == const(int)[1]));
+    static assert(is(typeof(f4(isa)) == immutable(int)[1]));
+
+    inout(int)[string] f5(inout(int)[string] aa) { return aa; }
+    int[string] maa;
+    const int[string] caa;
+    immutable int[string] iaa;
+    static assert(is(typeof(f5(maa)) == int[string]));
+    static assert(is(typeof(f5(caa)) == const(int)[string]));
+    static assert(is(typeof(f5(iaa)) == immutable(int)[string]));
+}
+
+/************************************/
 
 int main()
 {
@@ -1688,6 +1848,8 @@ int main()
     test85();
     test86();
     test87();
+    test4968();
+    test3748();
 
     printf("Success\n");
     return 0;
