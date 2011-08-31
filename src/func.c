@@ -274,6 +274,9 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isAbstract() && !isVirtual())
         error("non-virtual functions cannot be abstract");
 
+    if (isOverride() && !isVirtual())
+        error("cannot override a non-virtual function");
+
     if ((f->isConst() || f->isImmutable()) && !isThis())
         error("without 'this' cannot be const/immutable");
 
