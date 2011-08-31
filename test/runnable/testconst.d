@@ -1758,6 +1758,162 @@ void test4968()
 }
 
 /************************************/
+// 1961
+
+inout(char)[] strstr(inout(char)[] source, const(char)[] pattern)
+{
+    /*
+     * this would be an error, as const(char)[] is not implicitly castable to
+     * inout(char)[]
+     */
+    // return pattern;
+
+    for(int i = 0; i + pattern.length <= source.length; i++)
+    {
+        inout(char)[] tmp = source[i..pattern.length]; // ok
+        if (tmp == pattern)         // ok, tmp implicitly casts to const(char)[]
+            return source[i..$];    // implicitly casts back to call-site source
+    }
+    return source[$..$];            // to be consistent with strstr.
+}
+
+void test1961a()
+{
+    auto a = "hello";
+    a = strstr(a, "llo");   // cf (constancy factor) == immutable
+    static assert(!__traits(compiles, { char[] b = strstr(a, "llo"); }));
+                            // error, cannot cast immutable to mutable
+    char[] b = "hello".dup;
+    b = strstr(b, "llo");   // cf == mutable (note that "llo" doesn't play a role
+                            // because that parameter is not inout)
+    const(char)[] c = strstr(b, "llo");
+                            // cf = mutable, ok because mutable
+                            // implicitly casts to const
+    c = strstr(a, "llo");   // cf = immutable, ok immutable casts to const
+}
+
+inout(T) min(T)(inout(T) a, inout(T) b)
+{
+    return a < b ? a : b;
+}
+
+void test1961b()
+{
+    immutable(char)[] i = "hello";
+    const(char)[] c = "there";
+    char[] m = "Walter".dup;
+
+    static assert(!__traits(compiles, { i = min(i, c); }));
+                            // error, since i and c vary in constancy, the result
+                            // is const, and you cannot implicitly cast const to immutable.
+
+    c = min(i, c);          // ok, cf == const, because not homogeneous
+    c = min(m, c);          // ok, cf == const
+    c = min(m, i);          // ok, cf == const
+    i = min(i, "blah");     // ok, cf == immutable, homogeneous
+    static assert(!__traits(compiles, { m = min(m, c); }));
+                            // error, cf == const because not homogeneous.
+    static assert(!__traits(compiles, { m = min(m, "blah"); }));
+                            // error, cf == const
+    m = min(m, "blah".dup); // ok
+}
+
+inout(T) min2(int i, int j, T)(inout(T) a, inout(T) b)
+{
+    //pragma(msg, "(", i, ", ", j, ") = ", T);
+    static if (i == 0)
+    {
+        static if (j == 0) static assert(is(T == immutable(char)[]));
+        static if (j == 1) static assert(is(T == immutable(char)[]));
+        static if (j == 2) static assert(is(T == const(char)[]));
+        static if (j == 3) static assert(is(T == const(char)[]));
+        static if (j == 4) static assert(is(T == const(char)[]));
+    }
+    static if (i == 1)
+    {
+        static if (j == 0) static assert(is(T == immutable(char)[]));
+        static if (j == 1) static assert(is(T == immutable(char)[]));
+        static if (j == 2) static assert(is(T == const(char)[]));
+        static if (j == 3) static assert(is(T == const(char)[]));
+        static if (j == 4) static assert(is(T == const(char)[]));
+    }
+    static if (i == 2)
+    {
+        static if (j == 0) static assert(is(T == const(char)[]));
+        static if (j == 1) static assert(is(T == const(char)[]));
+        static if (j == 2) static assert(is(T == const(char)[]));
+        static if (j == 3) static assert(is(T == const(char)[]));
+        static if (j == 4) static assert(is(T == const(char)[]));
+    }
+    static if (i == 3)
+    {
+        static if (j == 0) static assert(is(T == const(char)[]));
+        static if (j == 1) static assert(is(T == const(char)[]));
+        static if (j == 2) static assert(is(T == const(char)[]));
+        static if (j == 3) static assert(is(T == const(char)[]));
+        static if (j == 4) static assert(is(T == const(char)[]));
+    }
+    static if (i == 4)
+    {
+        static if (j == 0) static assert(is(T == const(char)[]));
+        static if (j == 1) static assert(is(T == const(char)[]));
+        static if (j == 2) static assert(is(T == const(char)[]));
+        static if (j == 3) static assert(is(T == const(char)[]));
+        static if (j == 4) static assert(is(T == char[]));
+    }
+    return a < b ? a : b;
+}
+
+template seq(T...){ alias T seq; }
+
+void test1961c()
+{
+    immutable(char[]) iia = "hello1";
+    immutable(char)[] ima = "hello2";
+    const(char[]) cca = "there1";
+    const(char)[] cma = "there2";
+    char[] mma = "Walter".dup;
+
+    foreach (i, x; seq!(iia, ima, cca, cma, mma))
+    foreach (j, y; seq!(iia, ima, cca, cma, mma))
+    {
+        min2!(i, j)(x, y);
+        //pragma(msg, "x: ",typeof(x), ", y: ",typeof(y), " -> ", typeof(min2(x, y)), " : ", __traits(compiles, min2(x, y)));
+        /+
+        x: immutable(char[])    , y: immutable(char[]) -> immutable(char[])         : true
+        x: immutable(char[])    , y: immutable(char)[] -> const(immutable(char)[])  : true
+        x: immutable(char[])    , y: const(char[])     -> const(char[])             : true
+        x: immutable(char[])    , y: const(char)[]     -> const(char[])             : true
+        x: immutable(char[])    , y: char[]            -> const(char[])             : true
+
+        x: immutable(char)[]    , y: immutable(char[]) -> const(immutable(char)[])  : true
+        x: immutable(char)[]    , y: immutable(char)[] -> immutable(char)[]         : true
+        x: immutable(char)[]    , y: const(char[])     -> const(char[])             : true
+        x: immutable(char)[]    , y: const(char)[]     -> const(char)[]             : true
+        x: immutable(char)[]    , y: char[]            -> const(char)[]             : true
+
+        x: const(char[])        , y: immutable(char[]) -> const(char[])             : true
+        x: const(char[])        , y: immutable(char)[] -> const(char[])             : true
+        x: const(char[])        , y: const(char[])     -> const(char[])             : true
+        x: const(char[])        , y: const(char)[]     -> const(char[])             : true
+        x: const(char[])        , y: char[]            -> const(char[])             : true
+
+        x: const(char)[]        , y: immutable(char[]) -> const(char[])             : true
+        x: const(char)[]        , y: immutable(char)[] -> const(char)[]             : true
+        x: const(char)[]        , y: const(char[])     -> const(char[])             : true
+        x: const(char)[]        , y: const(char)[]     -> const(char)[]             : true
+        x: const(char)[]        , y: char[]            -> const(char)[]             : true
+
+        x: char[]               , y: immutable(char[]) -> const(char[])             : true
+        x: char[]               , y: immutable(char)[] -> const(char)[]             : true
+        x: char[]               , y: const(char[])     -> const(char[])             : true
+        x: char[]               , y: const(char)[]     -> const(char)[]             : true
+        x: char[]               , y: char[]            -> char[]                    : true
+        +/
+    }
+}
+
+/************************************/
 
 int main()
 {
@@ -1850,6 +2006,9 @@ int main()
     test87();
     test4968();
     test3748();
+    test1961a();
+    test1961b();
+    test1961c();
 
     printf("Success\n");
     return 0;
