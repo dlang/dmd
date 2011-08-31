@@ -2187,7 +2187,7 @@ Type *TypeNext::reliesOnTident()
 
 int TypeNext::hasWild()
 {
-    return mod == MODwild || next->hasWild();
+    return mod == MODwild || (next && next->hasWild());
 }
 
 
@@ -6884,6 +6884,7 @@ int TypeTypedef::hasPointers()
 
 int TypeTypedef::hasWild()
 {
+    assert(toBasetype());
     return mod & MODwild || toBasetype()->hasWild();
 }
 
