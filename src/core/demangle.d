@@ -629,222 +629,7 @@ private struct Demangle
     {
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
-
-        enum IsDelegate { no, yes }
-
         auto beg = len;
-
-        /*
-        TypeFunction:
-            CallConvention FuncAttrs Arguments ArgClose Type
-
-        CallConvention:
-            F       // D
-            U       // C
-            W       // Windows
-            V       // Pascal
-            R       // C++
-
-        FuncAttrs:
-            FuncAttr
-            FuncAttr FuncAttrs
-
-        FuncAttr:
-            empty
-            FuncAttrPure
-            FuncAttrNothrow
-            FuncAttrProperty
-            FuncAttrRef
-            FuncAttrTrusted
-            FuncAttrSafe
-
-        FuncAttrPure:
-            Na
-
-        FuncAttrNothrow:
-            Nb
-
-        FuncAttrRef:
-            Nc
-
-        FuncAttrProperty:
-            Nd
-
-        FuncAttrTrusted:
-            Ne
-
-        FuncAttrSafe:
-            Nf
-
-        Arguments:
-            Argument
-            Argument Arguments
-
-        Argument:
-            Argument2
-            M Argument2     // scope
-
-        Argument2:
-            Type
-            J Type     // out
-            K Type     // ref
-            L Type     // lazy
-
-        ArgClose
-            X     // variadic T t,...) style
-            Y     // variadic T t...) style
-            Z     // not variadic
-        */
-        void parseTypeFunction( IsDelegate isdg = IsDelegate.no )
-        {
-            debug(trace) printf( "parseTypeFunction+\n" );
-            debug(trace) scope(success) printf( "parseTypeFunction-\n" );
-
-            // CallConvention
-            switch( tok() )
-            {
-            case 'F': // D
-                next();
-                break;
-            case 'U': // C
-                next();
-                put( "extern (C) " );
-                break;
-            case 'W': // Windows
-                next();
-                put( "extern (Windows) " );
-                break;
-            case 'V': // Pascal
-                next();
-                put( "extern (Pascal) " );
-                break;
-            case 'R': // C++
-                next();
-                put( "extern (C++) " );
-                break;
-            default:
-                error();
-            }
-
-            // FuncAttrs
-            breakFuncAttrs:
-            while( 'N' == tok() )
-            {
-                next();
-                switch( tok() )
-                {
-                case 'a': // FuncAttrPure
-                    next();
-                    put( "pure " );
-                    continue;
-                case 'b': // FuncAttrNoThrow
-                    next();
-                    put( "nothrow " );
-                    continue;
-                case 'c': // FuncAttrRef
-                    next();
-                    put( "ref " );
-                    continue;
-                case 'd': // FuncAttrProperty
-                    next();
-                    put( "@property " );
-                    continue;
-                case 'e': // FuncAttrTrusted
-                    next();
-                    put( "@trusted " );
-                    continue;
-                case 'f': // FuncAttrSafe
-                    next();
-                    put( "@safe " );
-                    continue;
-                case 'g':
-                    // NOTE: The inout parameter type is represented as "Ng",
-                    //       which makes it look like a FuncAttr.  So if we
-                    //       see an "Ng" FuncAttr we know we're really in
-                    //       the parameter list.  Rewind and break.
-                    pos--;
-                    break breakFuncAttrs;
-                default:
-                    error();
-                }
-            }
-
-            beg = len;
-            put( "(" );
-            scope(success)
-            {
-                put( ")" );
-                auto t = len;
-                parseType();
-                put( " " );
-                if( name.length )
-                {
-                    if( !contains( dst[0 .. len], name ) )
-                        put( name );
-                    else if( shift( name ).ptr != name.ptr )
-                    {
-                        beg -= name.length;
-                        t -= name.length;
-                    }
-                }
-                else if( IsDelegate.yes == isdg )
-                    put( "delegate" );
-                else
-                    put( "function" );
-                shift( dst[beg .. t] );
-            }
-
-            // Arguments
-            for( size_t n = 0; true; n++ )
-            {
-                debug(info) printf( "tok (%c)\n", tok() );
-                switch( tok() )
-                {
-                case 'X': // ArgClose (variadic T t...) style)
-                    next();
-                    put( "..." );
-                    return;
-                case 'Y': // ArgClose (variadic T t,...) style)
-                    next();
-                    put( ", ..." );
-                    return;
-                case 'Z': // ArgClose (not variadic)
-                    next();
-                    return;
-                default:
-                    break;
-                }
-                if( n )
-                {
-                    put( ", " );
-                }
-                if( 'M' == tok() )
-                {
-                    next();
-                    put( "scope " );
-                }
-                switch( tok() )
-                {
-                case 'J': // out (J Type)
-                    next();
-                    put( "out " );
-                    parseType();
-                    continue;
-                case 'K': // ref (K Type)
-                    next();
-                    put( "ref " );
-                    parseType();
-                    continue;
-                case 'L': // lazy (L Type)
-                    next();
-                    put( "lazy " );
-                    parseType();
-                    continue;
-                default:
-                    parseType();
-                }
-            }
-        }
 
         switch( tok() )
         {
@@ -921,8 +706,7 @@ private struct Demangle
             pad( name );
             return dst[beg .. len];
         case 'F': case 'U': case 'W': case 'V': case 'R': // TypeFunction
-            parseTypeFunction();
-            return dst[beg .. len];
+            return parseTypeFunction( name );
         case 'I': // TypeIdent (I LName)
         case 'C': // TypeClass (C LName)
         case 'S': // TypeStruct (S LName)
@@ -934,7 +718,7 @@ private struct Demangle
             return dst[beg .. len];
         case 'D': // TypeDelegate (D TypeFunction)
             next();
-            parseTypeFunction( IsDelegate.yes );
+            parseTypeFunction( name, IsDelegate.yes );
             return dst[beg .. len];
         case 'n': // TypeNone (n)
             next();
@@ -1057,6 +841,222 @@ private struct Demangle
         default:
             error(); return null;
         }
+    }
+
+
+    /*
+    TypeFunction:
+        CallConvention FuncAttrs Arguments ArgClose Type
+
+    CallConvention:
+        F       // D
+        U       // C
+        W       // Windows
+        V       // Pascal
+        R       // C++
+
+    FuncAttrs:
+        FuncAttr
+        FuncAttr FuncAttrs
+
+    FuncAttr:
+        empty
+        FuncAttrPure
+        FuncAttrNothrow
+        FuncAttrProperty
+        FuncAttrRef
+        FuncAttrTrusted
+        FuncAttrSafe
+
+    FuncAttrPure:
+        Na
+
+    FuncAttrNothrow:
+        Nb
+
+    FuncAttrRef:
+        Nc
+
+    FuncAttrProperty:
+        Nd
+
+    FuncAttrTrusted:
+        Ne
+
+    FuncAttrSafe:
+        Nf
+
+    Arguments:
+        Argument
+        Argument Arguments
+
+    Argument:
+        Argument2
+        M Argument2     // scope
+
+    Argument2:
+        Type
+        J Type     // out
+        K Type     // ref
+        L Type     // lazy
+
+    ArgClose
+        X     // variadic T t,...) style
+        Y     // variadic T t...) style
+        Z     // not variadic
+    */
+    enum IsDelegate { no, yes }
+    char[] parseTypeFunction( char[] name = null, IsDelegate isdg = IsDelegate.no )
+    {
+        debug(trace) printf( "parseTypeFunction+\n" );
+        debug(trace) scope(success) printf( "parseTypeFunction-\n" );
+        auto beg = len;
+
+        // CallConvention
+        switch( tok() )
+        {
+        case 'F': // D
+            next();
+            break;
+        case 'U': // C
+            next();
+            put( "extern (C) " );
+            break;
+        case 'W': // Windows
+            next();
+            put( "extern (Windows) " );
+            break;
+        case 'V': // Pascal
+            next();
+            put( "extern (Pascal) " );
+            break;
+        case 'R': // C++
+            next();
+            put( "extern (C++) " );
+            break;
+        default:
+            error();
+        }
+
+        // FuncAttrs
+        breakFuncAttrs:
+        while( 'N' == tok() )
+        {
+            next();
+            switch( tok() )
+            {
+            case 'a': // FuncAttrPure
+                next();
+                put( "pure " );
+                continue;
+            case 'b': // FuncAttrNoThrow
+                next();
+                put( "nothrow " );
+                continue;
+            case 'c': // FuncAttrRef
+                next();
+                put( "ref " );
+                continue;
+            case 'd': // FuncAttrProperty
+                next();
+                put( "@property " );
+                continue;
+            case 'e': // FuncAttrTrusted
+                next();
+                put( "@trusted " );
+                continue;
+            case 'f': // FuncAttrSafe
+                next();
+                put( "@safe " );
+                continue;
+            case 'g':
+                // NOTE: The inout parameter type is represented as "Ng",
+                //       which makes it look like a FuncAttr.  So if we
+                //       see an "Ng" FuncAttr we know we're really in
+                //       the parameter list.  Rewind and break.
+                pos--;
+                break breakFuncAttrs;
+            default:
+                error();
+            }
+        }
+
+        beg = len;
+        put( "(" );
+        scope(success)
+        {
+            put( ")" );
+            auto t = len;
+            parseType();
+            put( " " );
+            if( name.length )
+            {
+                if( !contains( dst[0 .. len], name ) )
+                    put( name );
+                else if( shift( name ).ptr != name.ptr )
+                {
+                    beg -= name.length;
+                    t -= name.length;
+                }
+            }
+            else if( IsDelegate.yes == isdg )
+                put( "delegate" );
+            else
+                put( "function" );
+            shift( dst[beg .. t] );
+        }
+
+        // Arguments
+        for( size_t n = 0; true; n++ )
+        {
+            debug(info) printf( "tok (%c)\n", tok() );
+            switch( tok() )
+            {
+            case 'X': // ArgClose (variadic T t...) style)
+                next();
+                put( "..." );
+                return dst[beg .. len];
+            case 'Y': // ArgClose (variadic T t,...) style)
+                next();
+                put( ", ..." );
+                return dst[beg .. len];
+            case 'Z': // ArgClose (not variadic)
+                next();
+                return dst[beg .. len];
+            default:
+                break;
+            }
+            if( n )
+            {
+                put( ", " );
+            }
+            if( 'M' == tok() )
+            {
+                next();
+                put( "scope " );
+            }
+            switch( tok() )
+            {
+            case 'J': // out (J Type)
+                next();
+                put( "out " );
+                parseType();
+                continue;
+            case 'K': // ref (K Type)
+                next();
+                put( "ref " );
+                parseType();
+                continue;
+            case 'L': // lazy (L Type)
+                next();
+                put( "lazy " );
+                parseType();
+                continue;
+            default:
+                parseType();
+            }
+        }
+        return dst[beg .. len];
     }
 
 
