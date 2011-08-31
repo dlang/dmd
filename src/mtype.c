@@ -5273,11 +5273,11 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             {
                 if (m == MATCHnomatch)
                 {
-                    m = arg->implicitConvTo(p->type->constOf());
-                    if (m == MATCHnomatch)
-                        m = arg->implicitConvTo(p->type->sharedConstOf());
-                    if (m != MATCHnomatch)
+                    if (p->type->wildMatch(arg->type))
+                    {
                         wildmatch = TRUE;       // mod matched to wild
+                        m = MATCHconst;
+                    }
                 }
                 else
                     exactwildmatch = TRUE;      // wild matched to wild
@@ -5285,8 +5285,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                 /* If both are allowed, then there could be more than one
                  * binding of mod to wild, leaving a gaping type hole.
                  */
-                if (wildmatch && exactwildmatch)
-                    m = MATCHnomatch;
+                //if (wildmatch && exactwildmatch)
+                //    m = MATCHnomatch;
             }
         }
 
