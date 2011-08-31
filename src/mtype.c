@@ -1990,9 +1990,94 @@ int Type::hasWild()
  * Return MOD bits matching argument type (targ) to wild parameter type (this).
  */
 
+unsigned getWildModConv(Type *twild, Type *targ)
+{
+    assert(twild);
+    assert(targ);
+
+    unsigned mod = 0;
+    
+    if (twild->nextOf())
+        mod = getWildModConv(twild->nextOf(), targ->nextOf());
+
+    if (!mod)
+    {
+        if (twild->isWild())
+        {
+            if (targ->isWild())
+                mod = MODwild;
+            else if (targ->isConst())
+                mod = MODconst;
+            else if (targ->isImmutable())
+                mod = MODimmutable;
+            else if (targ->isMutable())
+                mod = MODmutable;
+            else
+                assert(0);
+        }
+    }
+
+    return mod;
+}
+
 unsigned Type::wildMatch(Type *targ)
 {
+    //printf("Type::wildMatch this = '%s', targ = '%s'\n", toChars(), targ->toChars());
+    assert(hasWild());
+
+    Type *tc = substWildTo(MODconst);
+    if (targ->implicitConvTo(tc))
+        return getWildModConv(this, targ);
+
     return 0;
+}
+
+Type *Type::substWildTo(unsigned mod)
+{
+    //printf("+Type::substWildTo this = %s, mod = x%x\n", toChars(), mod);
+    Type *t;
+
+    if (nextOf())
+    {
+        t = nextOf()->substWildTo(mod);
+        if (t == nextOf())
+            t = this;
+        else
+        {
+            if (ty == Tpointer)
+                t = t->pointerTo();
+            else if (ty == Tarray)
+                t = t->arrayOf();
+            else if (ty == Tsarray)
+                t = new TypeSArray(t, ((TypeSArray *)this)->dim->syntaxCopy());
+            else if (ty == Taarray)
+            {
+                t = new TypeAArray(t, ((TypeAArray *)this)->index->syntaxCopy());
+                t = t->merge();
+            }
+            else
+                assert(0);
+
+            t = t->addMod(this->mod);
+        }
+    }
+    else
+        t = this;
+
+    if (isWild())
+    {
+        if (mod & MODconst)
+            t = t->constOf();
+        else if (mod & MODimmutable)
+            t = t->invariantOf();
+        else if (mod & MODwild)
+            t = t->wildOf();
+        else
+            t = t->mutableOf();
+    }
+
+    //printf("-Type::substWildTo t = %s\n", t->toChars());
+    return t;
 }
 
 /********************************
@@ -2103,29 +2188,6 @@ Type *TypeNext::reliesOnTident()
 int TypeNext::hasWild()
 {
     return mod == MODwild || next->hasWild();
-}
-
-/***************************************
- * Return MOD bits matching argument type (targ) to wild parameter type (this).
- */
-
-unsigned TypeNext::wildMatch(Type *targ)
-{   unsigned mod;
-
-    Type *tb = targ->nextOf();
-    if (!tb)
-        return 0;
-    tb = tb->toBasetype();
-    if (tb->isMutable())
-        mod = MODmutable;
-    else if (tb->isConst() || tb->isWild())
-        return MODconst;
-    else if (tb->isImmutable())
-        mod = MODimmutable;
-    else
-        assert(0);
-    mod |= next->wildMatch(tb);
-    return mod;
 }
 
 

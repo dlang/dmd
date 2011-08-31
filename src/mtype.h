@@ -304,7 +304,8 @@ struct Type : Object
     virtual int builtinTypeInfo();
     virtual Type *reliesOnTident();
     virtual int hasWild();
-    virtual unsigned wildMatch(Type *targ);
+    unsigned wildMatch(Type *targ);
+    Type *substWildTo(unsigned mod);
     virtual Expression *toExpression();
     virtual int hasPointers();
     virtual TypeTuple *toArgTypes();
@@ -347,7 +348,6 @@ struct TypeNext : Type
     void checkDeprecated(Loc loc, Scope *sc);
     Type *reliesOnTident();
     int hasWild();
-    unsigned wildMatch(Type *targ);
     Type *nextOf();
     Type *makeConst();
     Type *makeInvariant();
