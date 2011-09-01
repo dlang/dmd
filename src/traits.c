@@ -229,11 +229,11 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
         }
         e = e->optimize(WANTvalue | WANTinterpret);
-        if (e->op != TOKstring)
+        StringExp *se = e->toString(sc);
+        if (!se || se->length == 0)
         {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
             goto Lfalse;
         }
-        StringExp *se = (StringExp *)e;
         se = se->toUTF8(sc);
         if (se->sz != 1)
         {   error("string must be chars");

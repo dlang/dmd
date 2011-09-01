@@ -900,11 +900,12 @@ void PragmaDeclaration::setScope(Scope *sc)
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
             args->tdata()[0] = e;
-            if (e->op != TOKstring)
+            StringExp* se = e->toString(sc);
+            if (!se)
             {
                 error("string expected, not '%s'", e->toChars());
             }
-            PragmaScope* pragma = new PragmaScope(this, sc->parent, static_cast<StringExp*>(e));
+            PragmaScope* pragma = new PragmaScope(this, sc->parent, se);
 
             assert(sc);
             pragma->setScope(sc);
@@ -932,9 +933,9 @@ void PragmaDeclaration::semantic(Scope *sc)
 
                 e = e->semantic(sc);
                 e = e->optimize(WANTvalue | WANTinterpret);
-                if (e->op == TOKstring)
+                StringExp *se = e->toString(sc);
+                if (se)
                 {
-                    StringExp *se = (StringExp *)e;
                     fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
@@ -957,11 +958,11 @@ void PragmaDeclaration::semantic(Scope *sc)
             args->tdata()[0] = e;
             if (e->op == TOKerror)
                 goto Lnodecl;
-            if (e->op != TOKstring)
+            StringExp *se = e->toString(sc);
+            if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
             {
-                StringExp *se = (StringExp *)e;
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
@@ -996,7 +997,8 @@ void PragmaDeclaration::semantic(Scope *sc)
             e = args->tdata()[1];
             e = e->semantic(sc);
             e = e->optimize(WANTvalue);
-            if (e->op == TOKstring && ((StringExp *)e)->sz == 1)
+            e = e->toString(sc);
+            if (e && ((StringExp *)e)->sz == 1)
                 s = ((StringExp *)e);
             else
                 error("second argument of GNU_asm must be a char string");
@@ -1435,12 +1437,12 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
-    if (exp->op != TOKstring)
+    StringExp *se = exp->toString(sc);
+    if (!se)
     {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
     }
     else
     {
-        StringExp *se = (StringExp *)exp;
         se = se->toUTF8(sc);
         Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
         p.loc = loc;
