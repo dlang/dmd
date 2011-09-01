@@ -118,6 +118,7 @@ MANIFEST= \
 	src\core\sys\posix\sys\time.d \
 	src\core\sys\posix\sys\types.d \
 	src\core\sys\posix\sys\uio.d \
+	src\core\sys\posix\sys\un.d \
 	src\core\sys\posix\sys\wait.d \
 	\
 	src\core\sys\windows\dbghelp.d \
@@ -453,6 +454,7 @@ IMPORTS=\
 	$(IMPDIR)\core\sys\posix\sys\time.di \
 	$(IMPDIR)\core\sys\posix\sys\types.di \
 	$(IMPDIR)\core\sys\posix\sys\uio.di \
+	$(IMPDIR)\core\sys\posix\sys\un.di \
 	$(IMPDIR)\core\sys\posix\sys\wait.di \
 	\
 	$(IMPDIR)\core\sys\windows\dbghelp.di \
@@ -737,6 +739,9 @@ $(IMPDIR)\core\sys\posix\sys\types.di : src\core\sys\posix\sys\types.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\posix\sys\uio.di : src\core\sys\posix\sys\uio.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sys\posix\sys\un.di : src\core\sys\posix\sys\un.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\posix\sys\wait.di : src\core\sys\posix\sys\wait.d
