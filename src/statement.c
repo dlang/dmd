@@ -403,11 +403,11 @@ Statements *CompileStatement::flatten(Scope *sc)
     exp = exp->optimize(WANTvalue | WANTinterpret);
     if (exp->op == TOKerror)
         return NULL;
-    if (exp->op != TOKstring)
+    StringExp *se = exp->toString(sc);
+    if (!se)
     {   error("argument to mixin must be a string, not (%s)", exp->toChars());
         return NULL;
     }
-    StringExp *se = (StringExp *)exp;
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
