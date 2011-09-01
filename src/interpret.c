@@ -5154,6 +5154,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
         const char *errmsg = NULL; // Used for reporting decoding errors
         dchar_t rawvalue;   // Holds the decoded dchar
+        size_t currentIndex = indx; // The index of the decoded character
 
         if (ale)
         {   // If it is an array literal, copy the code points into the buffer
@@ -5296,13 +5297,14 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
             default:
                 assert(0);
         }
-
+        if (rvs)
+            currentIndex = indx;
 
         // Step 3: call the delegate once for each code point
 
         // The index only needs to be set once
         if (numParams == 2)
-            args.tdata()[0] = new IntegerExp(deleg->loc, indx, indexType);
+            args.tdata()[0] = new IntegerExp(deleg->loc, currentIndex, indexType);
 
         Expression *val = NULL;
 
