@@ -34,7 +34,7 @@ class TypeInfo_t : TypeInfo
         return *cast(ushort *)p1 - *cast(ushort *)p2;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return ushort.sizeof;
     }

@@ -866,8 +866,8 @@ void _trace_pro_n()
                 add     RSP,16                  ;
                 pop     R11                     ;
                 pop     R10                     ;
-                pop     R8                      ;
                 pop     R9                      ;
+                pop     R8                      ;
                 pop     RDI                     ;
                 pop     RSI                     ;
                 pop     RDX                     ;

@@ -68,16 +68,16 @@ class TypeInfo
     hash_t   getHash(in void* p);
     equals_t equals(in void* p1, in void* p2);
     int      compare(in void* p1, in void* p2);
-    @property size_t   tsize();
+    @property size_t   tsize() nothrow pure;
     void     swap(void* p1, void* p2);
-    @property TypeInfo next();
-    void[]   init(); // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    @property uint     flags();
+    @property TypeInfo next() nothrow pure;
+    void[]   init() nothrow pure; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
+    @property uint     flags() nothrow pure;
     // 1:    // has possible pointers into GC memory
     OffsetTypeInfo[] offTi();
     void destroy(void* p);
     void postblit(void* p);
-    @property size_t talign();
+    @property size_t talign() nothrow pure;
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2);
 }
 
@@ -128,8 +128,8 @@ class TypeInfo_Delegate : TypeInfo
 
 class TypeInfo_Class : TypeInfo
 {
-    @property TypeInfo_Class info() { return this; }
-    @property TypeInfo typeinfo() { return this; }
+    @property TypeInfo_Class info() nothrow pure { return this; }
+    @property TypeInfo typeinfo() nothrow pure { return this; }
 
     byte[]      init;   // class static initializer
     string      name;   // class name
@@ -212,16 +212,16 @@ class TypeInfo_Inout : TypeInfo_Const
 
 abstract class MemberInfo
 {
-    @property string name();
+    @property string name() nothrow pure;
 }
 
 class MemberInfo_field : MemberInfo
 {
     this(string name, TypeInfo ti, size_t offset);
 
-    @property override string name();
-    @property TypeInfo typeInfo();
-    @property size_t offset();
+    @property override string name() nothrow pure;
+    @property TypeInfo typeInfo() nothrow pure;
+    @property size_t offset() nothrow pure;
 }
 
 class MemberInfo_function : MemberInfo
@@ -235,10 +235,10 @@ class MemberInfo_function : MemberInfo
 
     this(string name, TypeInfo ti, void* fp, uint flags);
 
-    @property override string name();
-    @property TypeInfo typeInfo();
-    void* fp();
-    @property uint flags();
+    @property override string name() nothrow pure;
+    @property TypeInfo typeInfo() nothrow pure;
+    @property void* fp() nothrow pure;
+    @property uint flags() nothrow pure;
 }
 
 struct ModuleInfo
@@ -273,21 +273,21 @@ struct ModuleInfo
         Old o;
     }
 
-    @property bool isNew();
-    @property uint index();
-    @property void index(uint i);
-    @property uint flags();
-    @property void flags(uint f);
-    @property void function() tlsctor();
-    @property void function() tlsdtor();
-    @property void* xgetMembers();
-    @property void function() ctor();
-    @property void function() dtor();
-    @property void function() ictor();
-    @property void function() unitTest();
-    @property ModuleInfo*[] importedModules();
-    @property TypeInfo_Class[] localClasses();
-    @property string name();
+    @property bool isNew() nothrow pure;
+    @property uint index() nothrow pure;
+    @property void index(uint i) nothrow pure;
+    @property uint flags() nothrow pure;
+    @property void flags(uint f) nothrow pure;
+    @property void function() tlsctor() nothrow pure;
+    @property void function() tlsdtor() nothrow pure;
+    @property void* xgetMembers() nothrow pure;
+    @property void function() ctor() nothrow pure;
+    @property void function() dtor() nothrow pure;
+    @property void function() ictor() nothrow pure;
+    @property void function() unitTest() nothrow pure;
+    @property ModuleInfo*[] importedModules() nothrow pure;
+    @property TypeInfo_Class[] localClasses() nothrow pure;
+    @property string name() nothrow pure;
 
     static int opApply(scope int delegate(ref ModuleInfo*) dg);
 }
@@ -346,10 +346,10 @@ extern (C)
     void[] _aaKeys(void* p, size_t keysize);
     void*  _aaRehash(void** pp, TypeInfo keyti);
 
-    extern (D) typedef scope int delegate(void *) _dg_t;
+    extern (D) alias scope int delegate(void *) _dg_t;
     int _aaApply(void* aa, size_t keysize, _dg_t dg);
 
-    extern (D) typedef scope int delegate(void *, void *) _dg2_t;
+    extern (D) alias scope int delegate(void *, void *) _dg2_t;
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);

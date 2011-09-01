@@ -24,6 +24,9 @@ extern (C):
 // Required
 //
 /*
+NOTE: The following must must be defined in core.sys.posix.arpa.inet to break
+      a circular import: in_port_t, in_addr_t, struct in_addr, INET_ADDRSTRLEN.
+
 in_port_t // from core.sys.posix.netinet.in_
 in_addr_t // from core.sys.posix.netinet.in_
 
@@ -69,8 +72,8 @@ version( linux )
 }
 else version( OSX )
 {
-    alias uint16_t in_port_t; // TODO: verify
-    alias uint32_t in_addr_t; // TODO: verify
+    alias uint16_t in_port_t;
+    alias uint32_t in_addr_t;
 
     struct in_addr
     {
@@ -116,6 +119,9 @@ else version( FreeBSD )
 // IPV6 (IP6)
 //
 /*
+NOTE: The following must must be defined in core.sys.posix.arpa.inet to break
+      a circular import: INET6_ADDRSTRLEN.
+
 INET6_ADDRSTRLEN // from core.sys.posix.netinet.in_
 */
 

@@ -57,7 +57,7 @@ class TypeInfo_q : TypeInfo
         return _compare(*cast(cfloat *)p1, *cast(cfloat *)p2);
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return cfloat.sizeof;
     }
@@ -71,13 +71,13 @@ class TypeInfo_q : TypeInfo
         *cast(cfloat *)p2 = t;
     }
 
-    override void[] init()
+    override void[] init() nothrow pure
     {   static immutable cfloat r;
 
         return (cast(cfloat *)&r)[0 .. 1];
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return cfloat.alignof;
     }

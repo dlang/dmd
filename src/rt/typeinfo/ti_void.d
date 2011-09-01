@@ -34,7 +34,7 @@ class TypeInfo_v : TypeInfo
         return *cast(byte *)p1 - *cast(byte *)p2;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return void.sizeof;
     }
@@ -48,7 +48,7 @@ class TypeInfo_v : TypeInfo
         *cast(byte *)p2 = t;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }

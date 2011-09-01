@@ -29,7 +29,7 @@ extern(Windows)
     DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWORD nSize);
     void  RtlCaptureContext(CONTEXT* ContextRecord);
 
-    typedef LONG function(void*) UnhandeledExceptionFilterFunc;
+    alias LONG function(void*) UnhandeledExceptionFilterFunc;
     void* SetUnhandledExceptionFilter(void* handler);
 }
 
@@ -44,9 +44,9 @@ enum : uint
 
 extern(System)
 {
-    typedef HANDLE function(DWORD dwFlags, DWORD th32ProcessID) CreateToolhelp32SnapshotFunc;
-    typedef BOOL   function(HANDLE hSnapshot, MODULEENTRY32 *lpme) Module32FirstFunc;
-    typedef BOOL   function(HANDLE hSnapshot, MODULEENTRY32 *lpme) Module32NextFunc;
+    alias HANDLE function(DWORD dwFlags, DWORD th32ProcessID) CreateToolhelp32SnapshotFunc;
+    alias BOOL   function(HANDLE hSnapshot, MODULEENTRY32 *lpme) Module32FirstFunc;
+    alias BOOL   function(HANDLE hSnapshot, MODULEENTRY32 *lpme) Module32NextFunc;
 }
 
 

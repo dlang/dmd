@@ -265,7 +265,7 @@ class TypeInfo
     int compare(in void* p1, in void* p2) { return 0; }
 
     /// Returns size of the type.
-    @property size_t tsize() { return 0; }
+    @property size_t tsize() nothrow pure { return 0; }
 
     /// Swaps two instances of the type.
     void swap(void* p1, void* p2)
@@ -281,15 +281,15 @@ class TypeInfo
 
     /// Get TypeInfo for 'next' type, as defined by what kind of type this is,
     /// null if none.
-    @property TypeInfo next() { return null; }
+    @property TypeInfo next() nothrow pure { return null; }
 
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
     // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    void[] init() { return null; }
+    void[] init() nothrow pure { return null; }
 
     /// Get flags for type: 1 means GC should scan for pointers
-    @property uint flags() { return 0; }
+    @property uint flags() nothrow pure { return 0; }
 
     /// Get type information on the contents of the type; null if not available
     OffsetTypeInfo[] offTi() { return null; }
@@ -300,7 +300,7 @@ class TypeInfo
 
 
     /// Return alignment of type
-    @property size_t talign() { return tsize; }
+    @property size_t talign() nothrow pure { return tsize; }
 
     /** Return internal info on arguments fitting into 8byte.
      * See X86-64 ABI 3.2.3
@@ -327,14 +327,14 @@ class TypeInfo_Typedef : TypeInfo
     override hash_t getHash(in void* p) { return base.getHash(p); }
     override equals_t equals(in void* p1, in void* p2) { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) { return base.compare(p1, p2); }
-    @property override size_t tsize() { return base.tsize; }
+    @property override size_t tsize() nothrow pure { return base.tsize; }
     override void swap(void* p1, void* p2) { return base.swap(p1, p2); }
 
-    @property override TypeInfo next() { return base.next; }
-    @property override uint flags() { return base.flags; }
-    override void[] init() { return m_init.length ? m_init : base.init(); }
+    @property override TypeInfo next() nothrow pure { return base.next; }
+    @property override uint flags() nothrow pure { return base.flags; }
+    override void[] init() nothrow pure { return m_init.length ? m_init : base.init(); }
 
-    @property override size_t talign() { return base.talign; }
+    @property override size_t talign() nothrow pure { return base.talign; }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {   return base.argTypes(arg1, arg2);
@@ -382,7 +382,7 @@ class TypeInfo_Pointer : TypeInfo
             return 0;
     }
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (void*).sizeof;
     }
@@ -394,8 +394,8 @@ class TypeInfo_Pointer : TypeInfo
         *cast(void**)p2 = tmp;
     }
 
-    @property override TypeInfo next() { return m_next; }
-    @property override uint flags() { return 1; }
+    @property override TypeInfo next() nothrow pure { return m_next; }
+    @property override uint flags() nothrow pure { return 1; }
 
     TypeInfo m_next;
 }
@@ -451,7 +451,7 @@ class TypeInfo_Array : TypeInfo
         return cast(int)a1.length - cast(int)a2.length;
     }
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (void[]).sizeof;
     }
@@ -465,14 +465,14 @@ class TypeInfo_Array : TypeInfo
 
     TypeInfo value;
 
-    @property override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return value;
     }
 
-    override uint flags() { return 1; }
+    @property override uint flags() nothrow pure { return 1; }
 
-    @property override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return (void[]).alignof;
     }
@@ -501,7 +501,7 @@ class TypeInfo_StaticArray : TypeInfo
                 this.value == c.value);
     }
 
-    @property override hash_t getHash(in void* p)
+    override hash_t getHash(in void* p)
     {
         size_t sz = value.tsize;
         hash_t hash = 0;
@@ -535,7 +535,7 @@ class TypeInfo_StaticArray : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return len * value.tsize;
     }
@@ -562,9 +562,9 @@ class TypeInfo_StaticArray : TypeInfo
             delete pbuffer;
     }
 
-    override void[] init() { return value.init(); }
-    @property override TypeInfo next() { return value; }
-    @property override uint flags() { return value.flags(); }
+    override void[] init() nothrow pure { return value.init(); }
+    @property override TypeInfo next() nothrow pure { return value; }
+    @property override uint flags() nothrow pure { return value.flags(); }
 
     override void destroy(void* p)
     {
@@ -590,7 +590,7 @@ class TypeInfo_StaticArray : TypeInfo
     TypeInfo value;
     size_t   len;
 
-    @property override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return value.talign;
     }
@@ -619,20 +619,20 @@ class TypeInfo_AssociativeArray : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (char[int]).sizeof;
     }
 
-    @property override TypeInfo next() { return value; }
-    @property override uint flags() { return 1; }
+    @property override TypeInfo next() nothrow pure { return value; }
+    @property override uint flags() nothrow pure { return 1; }
 
-    @property TypeInfo value;
-    @property TypeInfo key;
+    TypeInfo value;
+    TypeInfo key;
 
-    @property TypeInfo impl;
+    TypeInfo impl;
 
-    @property override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return (char[int]).alignof;
     }
@@ -660,7 +660,7 @@ class TypeInfo_Function : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return 0;       // no size for functions
     }
@@ -686,18 +686,18 @@ class TypeInfo_Delegate : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         alias int delegate() dg;
         return dg.sizeof;
     }
 
-    override uint flags() { return 1; }
+    @property override uint flags() nothrow pure { return 1; }
 
     TypeInfo next;
     string deco;
 
-    @property override size_t talign()
+    @property override size_t talign() nothrow pure
     {   alias int delegate() dg;
         return dg.alignof;
     }
@@ -762,20 +762,20 @@ class TypeInfo_Class : TypeInfo
         return c;
     }
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return Object.sizeof;
     }
 
-    override uint flags() { return 1; }
+    @property override uint flags() nothrow pure { return 1; }
 
-    override OffsetTypeInfo[] offTi()
+    @property override OffsetTypeInfo[] offTi() nothrow pure
     {
         return m_offTi;
     }
 
-    @property TypeInfo_Class info() { return this; }
-    @property TypeInfo typeinfo() { return this; }
+    @property TypeInfo_Class info() nothrow pure { return this; }
+    @property TypeInfo typeinfo() nothrow pure { return this; }
 
     byte[]      init;           /** class static initializer
                                  * (init.length gives size in bytes of class)
@@ -901,12 +901,12 @@ class TypeInfo_Interface : TypeInfo
         return c;
     }
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return Object.sizeof;
     }
 
-    @property override uint flags() { return 1; }
+    @property override uint flags() nothrow pure { return 1; }
 
     TypeInfo_Class info;
 }
@@ -973,16 +973,16 @@ class TypeInfo_Struct : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return init.length;
     }
 
-    override void[] init() { return m_init; }
+    override void[] init() nothrow pure { return m_init; }
 
-    @property override uint flags() { return m_flags; }
+    @property override uint flags() nothrow pure { return m_flags; }
 
-    @property override size_t talign() { return m_align; }
+    @property override size_t talign() nothrow pure { return m_align; }
 
     override void destroy(void* p)
     {
@@ -1074,7 +1074,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    @property override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         assert(0);
     }
@@ -1094,7 +1094,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    @property override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         assert(0);
     }
@@ -1132,14 +1132,14 @@ class TypeInfo_Const : TypeInfo
     override hash_t getHash(in void *p) { return base.getHash(p); }
     override equals_t equals(in void *p1, in void *p2) { return base.equals(p1, p2); }
     override int compare(in void *p1, in void *p2) { return base.compare(p1, p2); }
-    @property override size_t tsize() { return base.tsize; }
+    @property override size_t tsize() nothrow pure { return base.tsize; }
     override void swap(void *p1, void *p2) { return base.swap(p1, p2); }
 
-    @property override TypeInfo next() { return base.next; }
-    @property override uint flags() { return base.flags; }
-    override void[] init() { return base.init; }
+    @property override TypeInfo next() nothrow pure { return base.next; }
+    @property override uint flags() nothrow pure { return base.flags; }
+    override void[] init() nothrow pure { return base.init; }
 
-    @property override size_t talign() { return base.talign(); }
+    @property override size_t talign() nothrow pure { return base.talign(); }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {   return base.argTypes(arg1, arg2);
@@ -1174,7 +1174,7 @@ class TypeInfo_Inout : TypeInfo_Const
 
 abstract class MemberInfo
 {
-    string name();
+    @property string name() nothrow pure;
 }
 
 class MemberInfo_field : MemberInfo
@@ -1186,9 +1186,9 @@ class MemberInfo_field : MemberInfo
         m_offset = offset;
     }
 
-    @property override string name() { return m_name; }
-    @property TypeInfo typeInfo() { return m_typeinfo; }
-    @property size_t offset() { return m_offset; }
+    @property override string name() nothrow pure { return m_name; }
+    @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
+    @property size_t offset() nothrow pure { return m_offset; }
 
     string   m_name;
     TypeInfo m_typeinfo;
@@ -1205,10 +1205,10 @@ class MemberInfo_function : MemberInfo
         m_flags = flags;
     }
 
-    @property override string name() { return m_name; }
-    @property TypeInfo typeInfo() { return m_typeinfo; }
-    void* fp() { return m_fp; }
-    @property uint flags() { return m_flags; }
+    @property override string name() nothrow pure { return m_name; }
+    @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
+    @property void* fp() nothrow pure { return m_fp; }
+    @property uint flags() nothrow pure { return m_flags; }
 
     string   m_name;
     TypeInfo m_typeinfo;
@@ -1489,15 +1489,15 @@ struct ModuleInfo
         Old o;
     }
 
-    @property bool isNew() { return (n.flags & MInew) != 0; }
+    @property bool isNew() nothrow pure { return (n.flags & MInew) != 0; }
 
-    @property uint index() { return isNew ? n.index : o.index; }
-    @property void index(uint i) { if (isNew) n.index = i; else o.index = i; }
+    @property uint index() nothrow pure { return isNew ? n.index : o.index; }
+    @property void index(uint i) nothrow pure { if (isNew) n.index = i; else o.index = i; }
 
-    @property uint flags() { return isNew ? n.flags : o.flags; }
-    @property void flags(uint f) { if (isNew) n.flags = f; else o.flags = f; }
+    @property uint flags() nothrow pure { return isNew ? n.flags : o.flags; }
+    @property void flags(uint f) nothrow pure { if (isNew) n.flags = f; else o.flags = f; }
 
-    @property void function() tlsctor()
+    @property void function() tlsctor() nothrow pure
     {
         if (isNew)
         {
@@ -1512,7 +1512,7 @@ struct ModuleInfo
             return o.tlsctor;
     }
 
-    @property void function() tlsdtor()
+    @property void function() tlsdtor() nothrow pure
     {
         if (isNew)
         {
@@ -1529,7 +1529,7 @@ struct ModuleInfo
             return o.tlsdtor;
     }
 
-    @property void* xgetMembers()
+    @property void* xgetMembers() nothrow pure
     {
         if (isNew)
         {
@@ -1547,7 +1547,7 @@ struct ModuleInfo
         return o.xgetMembers;
     }
 
-    @property void function() ctor()
+    @property void function() ctor() nothrow pure
     {
         if (isNew)
         {
@@ -1567,7 +1567,7 @@ struct ModuleInfo
         return o.ctor;
     }
 
-    @property void function() dtor()
+    @property void function() dtor() nothrow pure
     {
         if (isNew)
         {
@@ -1589,7 +1589,7 @@ struct ModuleInfo
         return o.ctor;
     }
 
-    @property void function() ictor()
+    @property void function() ictor() nothrow pure
     {
         if (isNew)
         {
@@ -1613,7 +1613,7 @@ struct ModuleInfo
         return o.ictor;
     }
 
-    @property void function() unitTest()
+    @property void function() unitTest() nothrow pure
     {
         if (isNew)
         {
@@ -1639,7 +1639,7 @@ struct ModuleInfo
         return o.unitTest;
     }
 
-    @property ModuleInfo*[] importedModules()
+    @property ModuleInfo*[] importedModules() nothrow pure
     {
         if (isNew)
         {
@@ -1669,7 +1669,7 @@ struct ModuleInfo
         return o.importedModules;
     }
 
-    @property TypeInfo_Class[] localClasses()
+    @property TypeInfo_Class[] localClasses() nothrow pure
     {
         if (isNew)
         {
@@ -1704,7 +1704,7 @@ struct ModuleInfo
         return o.localClasses;
     }
 
-    @property string name()
+    @property string name() nothrow pure
     {
         if (isNew)
         {
@@ -1829,50 +1829,6 @@ extern (C) int _fatexit(void*);
 extern (C) void _moduleCtor()
 {
     debug(PRINTF) printf("_moduleCtor()\n");
-    version (linux)
-    {
-        int len = 0;
-        ModuleReference *mr;
-
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-            len++;
-        _moduleinfo_array = new ModuleInfo*[len];
-        len = 0;
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-        {   _moduleinfo_array[len] = mr.mod;
-            len++;
-        }
-    }
-
-    version (FreeBSD)
-    {
-        int len = 0;
-        ModuleReference *mr;
-
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-            len++;
-        _moduleinfo_array = new ModuleInfo*[len];
-        len = 0;
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-        {   _moduleinfo_array[len] = mr.mod;
-            len++;
-        }
-    }
-
-    version (Solaris)
-    {
-        int len = 0;
-        ModuleReference *mr;
-
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-            len++;
-        _moduleinfo_array = new ModuleInfo*[len];
-        len = 0;
-        for (mr = _Dmodule_ref; mr; mr = mr.next)
-        {   _moduleinfo_array[len] = mr.mod;
-            len++;
-        }
-    }
 
     version (OSX)
     {
@@ -1894,8 +1850,22 @@ extern (C) void _moduleCtor()
                 printf("\t%.*s\n", m.name);
          }
     }
+    // all other Posix variants (FreeBSD, Solaris, Linux)
+    else version (Posix)
+    {
+        int len = 0;
+        ModuleReference *mr;
 
-    version (Windows)
+        for (mr = _Dmodule_ref; mr; mr = mr.next)
+            len++;
+        _moduleinfo_array = new ModuleInfo*[len];
+        len = 0;
+        for (mr = _Dmodule_ref; mr; mr = mr.next)
+        {   _moduleinfo_array[len] = mr.mod;
+            len++;
+        }
+    }
+    else version (Windows)
     {
         // Ensure module destructors also get called on program termination
         //_fatexit(&_STD_moduleDtor);
@@ -2453,10 +2423,10 @@ extern (C)
     void[] _aaKeys(void* p, size_t keysize);
     void* _aaRehash(void** pp, TypeInfo keyti);
 
-    extern (D) typedef scope int delegate(void *) _dg_t;
+    extern (D) alias scope int delegate(void *) _dg_t;
     int _aaApply(void* aa, size_t keysize, _dg_t dg);
 
-    extern (D) typedef scope int delegate(void *, void *) _dg2_t;
+    extern (D) alias scope int delegate(void *, void *) _dg2_t;
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
@@ -2466,7 +2436,7 @@ struct AssociativeArray(Key, Value)
 {
     void* p;
 
-    size_t length() @property { return _aaLen(p); }
+    @property size_t length() { return _aaLen(p); }
 
     Value[Key] rehash() @property
     {

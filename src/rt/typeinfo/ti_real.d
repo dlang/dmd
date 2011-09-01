@@ -56,7 +56,7 @@ class TypeInfo_e : TypeInfo
         return _compare(*cast(real *)p1, *cast(real *)p2);
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return real.sizeof;
     }
@@ -70,13 +70,13 @@ class TypeInfo_e : TypeInfo
         *cast(real *)p2 = t;
     }
 
-    override void[] init()
+    override void[] init() nothrow pure
     {   static immutable real r;
 
         return (cast(real *)&r)[0 .. 1];
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return real.alignof;
     }

@@ -84,22 +84,22 @@ class TypeInfo_AC : TypeInfo
         return c < 0 ? -1 : c > 0 ? 1 : 0;
     }
 
-    override size_t tsize()
+    @property override size_t tsize() nothrow pure
     {
         return (Object[]).sizeof;
     }
 
-    override uint flags()
+    @property override uint flags() nothrow pure
     {
         return 1;
     }
 
-    override TypeInfo next()
+    @property override TypeInfo next() nothrow pure
     {
         return typeid(Object);
     }
 
-    override size_t talign()
+    @property override size_t talign() nothrow pure
     {
         return (Object[]).alignof;
     }
