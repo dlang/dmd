@@ -2295,6 +2295,7 @@ static assert(bug4021());
 
 /**************************************************
     3512 foreach(dchar; string)
+    6558 foreach(int, dchar; string)
 **************************************************/
 
 bool test3512()
@@ -2308,16 +2309,24 @@ bool test3512()
     assert(q==4);
     foreach (dchar c; s) { ++q; if (c=='h') break; } // _aApplycd1
     assert(q == 6);
-    foreach (int i, wchar c; s) {}   // _aApplycw2
-    foreach (int i, dchar c; s) {} // _aApplycd2
+    foreach (int i, wchar c; s) {
+        assert(i >= 0 && i < s.length);
+	}   // _aApplycw2
+    foreach (int i, dchar c; s) {
+        assert(i >= 0 && i < s.length);
+	} // _aApplycd2
 
     wstring w = "xüm";
     foreach (char c; w) {++q; } // _aApplywc1
     assert(q == 10);
     foreach (dchar c; w) { ++q; } // _aApplywd1
     assert(q == 13);
-    foreach (int i, char c; w) {} // _aApplywc2
-    foreach (int i, dchar c; w) {} // _aApplywd2
+    foreach (int i, char c; w) {
+        assert(i >= 0 && i < w.length);
+	} // _aApplywc2
+    foreach (int i, dchar c; w) {
+        assert(i >= 0 && i < w.length);
+	} // _aApplywd2
 
     dstring d = "yäq";
     q = 0;
@@ -2326,15 +2335,21 @@ bool test3512()
     q = 0;
     foreach (wchar c; d) { ++q; } // _aApplydw1
     assert(q == 3);
-    foreach (int i, char c; d) {} // _aApplydc2
-    foreach (int i, wchar c; d) {} // _aApplydw2
+    foreach (int i, char c; d) {
+        assert(i >= 0 && i < d.length);
+    } // _aApplydc2
+    foreach (int i, wchar c; d) {
+        assert(i >= 0 && i < d.length);
+    } // _aApplydw2
 
     dchar[] dr = "squop"d.dup;
     foreach(int n, char c; dr) { if (n==2) break; assert(c!='o'); }
     foreach_reverse (char c; dr) {} // _aApplyRdc1
     foreach_reverse (wchar c; dr) {} // _aApplyRdw1
     foreach_reverse (int n, char c; dr) { if (n==4) break; assert(c!='o');} // _aApplyRdc2
-    foreach_reverse (int i, wchar c; dr) {} // _aApplyRdw2
+    foreach_reverse (int i, wchar c; dr) {
+        assert(i >= 0 && i < dr.length);
+    } // _aApplyRdw2
     q = 0;
     wstring w2 = ['x', 'ü', 'm']; // foreach over array literals
     foreach_reverse (int n, char c; w2)
