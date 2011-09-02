@@ -1219,7 +1219,7 @@ complex_t Expression::toComplex()
 #endif
 }
 
-StringExp *Expression::toString(Scope *sc)
+StringExp *Expression::toString()
 {
     return NULL;
 }
@@ -2987,10 +2987,14 @@ int NullExp::isBool(int result)
     return result ? FALSE : TRUE;
 }
 
-StringExp *NullExp::toString(Scope *sc)
+StringExp *NullExp::toString()
 {
     if (implicitConvTo(Type::tstring))
-        return new StringExp(loc, (char*)mem.calloc(1, 1), 0);
+    {
+        StringExp *se = new StringExp(loc, (char*)mem.calloc(1, 1), 0);
+        se->type = Type::tstring;
+        return se;
+    }
     return NULL;
 }
 
@@ -3194,7 +3198,7 @@ size_t StringExp::length()
     return result;
 }
 
-StringExp *StringExp::toString(Scope *sc)
+StringExp *StringExp::toString()
 {
     return this;
 }
@@ -3483,33 +3487,30 @@ int ArrayLiteralExp::canThrow(bool mustNotThrow)
 }
 #endif
 
-StringExp *ArrayLiteralExp::toString(Scope *sc)
+StringExp *ArrayLiteralExp::toString()
 {
-    if (!elements || !elements->dim)
-    {
-        return new StringExp(loc, (char*)mem.calloc(1, 1), 0);
-    }
-
-    TY telem = type->nextOf()->ty;
+    TY telem = type->nextOf()->toBasetype()->ty;
 
     if (telem == Tchar || telem == Twchar || telem == Tdchar)
     {
-        Expression *e = castTo(sc, Type::tstring)->interpret(NULL);
-        if (e != EXP_CANT_INTERPRET)
-        {
-            OutBuffer buf;
+        OutBuffer buf;
+        if (elements)
             for (int i = 0; i < elements->dim; ++i)
             {
-                buf.writedchar(((Expression*)elements->data[i])->toInteger());
+                Expression *ch = elements->tdata()[i];
+                if (ch->op != TOKint64)
+                    return NULL;
+                buf.writedchar(ch->toInteger());
             }
-            buf.writebyte(0);
+        buf.writebyte(0);
 
-            char prefix = 'c';
-            if (telem == Twchar) prefix = 'w';
-            else if (telem == Tdchar) prefix = 'd';
+        char prefix = 'c';
+        if (telem == Twchar) prefix = 'w';
+        else if (telem == Tdchar) prefix = 'd';
 
-            return new StringExp(loc, buf.extractData(), buf.size - 1, prefix);
-        }
+        StringExp *se = new StringExp(loc, buf.extractData(), buf.size - 1, prefix);
+        se->type = type;
+        return se;
     }
     return NULL;
 }
@@ -6027,7 +6028,7 @@ Expression *CompileExp::semantic(Scope *sc)
         return new ErrorExp();
     }
     e1 = e1->optimize(WANTvalue | WANTinterpret);
-    StringExp *se = e1->toString(sc);
+    StringExp *se = e1->toString();
     if (!se)
     {   error("argument to mixin must be a string, not (%s)", e1->toChars());
         return new ErrorExp();

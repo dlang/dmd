@@ -403,7 +403,7 @@ Statements *CompileStatement::flatten(Scope *sc)
     exp = exp->optimize(WANTvalue | WANTinterpret);
     if (exp->op == TOKerror)
         return NULL;
-    StringExp *se = exp->toString(sc);
+    StringExp *se = exp->toString();
     if (!se)
     {   error("argument to mixin must be a string, not (%s)", exp->toChars());
         return NULL;
