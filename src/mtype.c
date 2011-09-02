@@ -334,7 +334,7 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
  * Determine if converting 'this' to 'to' is an identity operation,
  * a conversion to const operation, or the types aren't the same.
  * Returns:
- *      MATCHequal      'this' == 'to'
+ *      MATCHexact      'this' == 'to'
  *      MATCHconst      'to' is const
  *      MATCHnomatch    conversion to mutable or invariant
  */
@@ -861,7 +861,7 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-    if (tn && ty != Tfunction && ty != Tdelegate)
+    if (tn && ty != Tfunction && tn->ty != Tfunction)
     {   // Verify transitivity
         switch (mod)
         {
@@ -2151,7 +2151,7 @@ Type *TypeNext::makeConst()
         return cto;
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst())
     {   if (next->isShared())
@@ -2175,7 +2175,7 @@ Type *TypeNext::makeInvariant()
         return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
     {   t->next = next->invariantOf();
@@ -2195,7 +2195,7 @@ Type *TypeNext::makeShared()
         return sto;
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
@@ -2220,7 +2220,7 @@ Type *TypeNext::makeSharedConst()
         return scto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -2242,7 +2242,7 @@ Type *TypeNext::makeWild()
         return wto;
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst() && !next->isWild())
     {
@@ -2267,7 +2267,7 @@ Type *TypeNext::makeSharedWild()
         return swto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -2285,7 +2285,7 @@ Type *TypeNext::makeMutable()
 {
     //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
     TypeNext *t = (TypeNext *)Type::makeMutable();
-    if ((ty != Tfunction && ty != Tdelegate &&
+    if ((ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         next->isWild()) || ty == Tsarray)
     {
@@ -4264,14 +4264,35 @@ MATCH TypePointer::implicitConvTo(Type *to)
 
     if (equals(to))
         return MATCHexact;
-    if (to->ty == Tpointer)
+    if (next->ty == Tfunction)
+    {
+        if (to->ty == Tpointer)
+        {
+            TypePointer *tp = (TypePointer*)to;
+            if (tp->next->ty == Tfunction)
+            {
+                if (next->equals(tp->next))
+                    return MATCHconst;
+
+                if (next->covariant(tp->next) == 1)
+                    return MATCHconvert;
+            }
+            else if (tp->next->ty == Tvoid)
+            {
+                // Allow conversions to void*
+                return MATCHconvert;
+            }
+        }
+        return MATCHnomatch;
+    }
+    else if (to->ty == Tpointer)
     {   TypePointer *tp = (TypePointer *)to;
         assert(tp->next);
 
         if (!MODimplicitConv(next->mod, tp->next->mod))
             return MATCHnomatch;        // not const-compatible
 
-        /* Alloc conversion to void[]
+        /* Alloc conversion to void*
          */
         if (next->ty != Tvoid && tp->next->ty == Tvoid)
         {
@@ -4293,6 +4314,18 @@ MATCH TypePointer::implicitConvTo(Type *to)
             return MATCHconvert;
     }
     return MATCHnomatch;
+}
+
+MATCH TypePointer::constConv(Type *to)
+{
+    if (next->ty == Tfunction)
+    {
+        if (to->nextOf() && next->equals(((TypeNext*)to)->next))
+            return Type::constConv(to);
+        else
+            return MATCHnomatch;
+    }
+    return TypeNext::constConv(to);
 }
 
 int TypePointer::isscalar()

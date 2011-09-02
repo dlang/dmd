@@ -705,8 +705,8 @@ MATCH DelegateExp::implicitConvTo(Type *t)
         // Look for pointers to functions where the functions are overloaded.
 
         t = t->toBasetype();
-        if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
-            t->ty == Tdelegate && t->nextOf()->ty == Tfunction)
+        if (type->ty == Tdelegate &&
+            t->ty == Tdelegate)
         {
             if (func && func->overloadExactMatch(t->nextOf()))
                 result = MATCHexact;
@@ -1430,8 +1430,8 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
         // Look for delegates to functions where the functions are overloaded.
         FuncDeclaration *f;
 
-        if (typeb->ty == Tdelegate && typeb->nextOf()->ty == Tfunction &&
-            tb->ty == Tdelegate && tb->nextOf()->ty == Tfunction)
+        if (typeb->ty == Tdelegate &&
+            tb->ty == Tdelegate)
         {
             if (func)
             {
@@ -1669,6 +1669,41 @@ Lagain:
             t = t2;
         else if (t2n->ty == Tvoid)
             ;
+        else if (t1n->ty == Tfunction && t2n->ty == Tfunction)
+        {
+            if (t1->implicitConvTo(t2))
+                goto Lt2;
+            if (t2->implicitConvTo(t1))
+                goto Lt1;
+
+            TypeFunction *tf1 = (TypeFunction *)t1n;
+            TypeFunction *tf2 = (TypeFunction *)t2n;
+            TypeFunction *d = (TypeFunction *)tf1->syntaxCopy();
+
+            if (tf1->purity != tf2->purity)
+                d->purity = PUREimpure;
+            assert(d->purity != PUREfwdref);
+
+            d->isnothrow = (tf1->isnothrow && tf2->isnothrow);
+
+            if (tf1->trust == tf2->trust)
+                d->trust = tf1->trust;
+            else if (tf1->trust <= TRUSTsystem || tf2->trust <= TRUSTsystem)
+                d->trust = TRUSTsystem;
+            else
+                d->trust = TRUSTtrusted;
+
+            Type *tx = d->pointerTo();
+
+            if (t1->implicitConvTo(tx) && t2->implicitConvTo(tx))
+            {
+                t = tx;
+                e1 = e1->castTo(sc, t);
+                e2 = e2->castTo(sc, t);
+                goto Lret;
+            }
+            goto Lincompatible;
+        }
         else if (t1n->mod != t2n->mod)
         {
             t1 = t1n->mutableOf()->constOf()->pointerTo();
