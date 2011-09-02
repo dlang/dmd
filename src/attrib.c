@@ -904,15 +904,16 @@ void PragmaDeclaration::setScope(Scope *sc)
         }
         else
         {
-            Expression *e = (Expression *)args->data[0];
+            Expression *e = args->tdata()[0];
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
-            args->data[0] = (void *)e;
-            if (e->op != TOKstring)
+            args->tdata()[0] = e;
+            StringExp* se = e->toString();
+            if (!se)
             {
                 error("string expected, not '%s'", e->toChars());
             }
-            PragmaScope* pragma = new PragmaScope(this, sc->parent, static_cast<StringExp*>(e));
+            PragmaScope* pragma = new PragmaScope(this, sc->parent, se);
 
             assert(sc);
             pragma->setScope(sc);
@@ -936,13 +937,13 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             for (size_t i = 0; i < args->dim; i++)
             {
-                Expression *e = (Expression *)args->data[i];
+                Expression *e = args->tdata()[i];
 
                 e = e->semantic(sc);
                 e = e->optimize(WANTvalue | WANTinterpret);
-                if (e->op == TOKstring)
+                StringExp *se = e->toString();
+                if (se)
                 {
-                    StringExp *se = (StringExp *)e;
                     fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
@@ -958,18 +959,18 @@ void PragmaDeclaration::semantic(Scope *sc)
             error("string expected for library name");
         else
         {
-            Expression *e = (Expression *)args->data[0];
+            Expression *e = args->tdata()[0];
 
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
-            args->data[0] = (void *)e;
+            args->tdata()[0] = e;
             if (e->op == TOKerror)
                 goto Lnodecl;
-            if (e->op != TOKstring)
+            StringExp *se = e->toString();
+            if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
             {
-                StringExp *se = (StringExp *)e;
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
@@ -1001,10 +1002,11 @@ void PragmaDeclaration::semantic(Scope *sc)
             if (!d)
                 error("first argument of GNU_asm must be a function or variable declaration");
 
-            e = (Expression *)args->data[1];
+            e = args->tdata()[1];
             e = e->semantic(sc);
             e = e->optimize(WANTvalue);
-            if (e->op == TOKstring && ((StringExp *)e)->sz == 1)
+            e = e->toString();
+            if (e && ((StringExp *)e)->sz == 1)
                 s = ((StringExp *)e);
             else
                 error("second argument of GNU_asm must be a char string");
@@ -1448,12 +1450,12 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
-    if (exp->op != TOKstring)
+    StringExp *se = exp->toString();
+    if (!se)
     {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
     }
     else
     {
-        StringExp *se = (StringExp *)exp;
         se = se->toUTF8(sc);
         Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
         p.loc = loc;

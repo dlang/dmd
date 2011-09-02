@@ -229,11 +229,11 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
         }
         e = e->optimize(WANTvalue | WANTinterpret);
-        if (e->op != TOKstring)
+        StringExp *se = e->toString();
+        if (!se || se->length() == 0)
         {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
             goto Lfalse;
         }
-        StringExp *se = (StringExp *)e;
         se = se->toUTF8(sc);
         if (se->sz != 1)
         {   error("string must be chars");
@@ -347,6 +347,8 @@ Expression *TraitsExp::semantic(Scope *sc)
             for (size_t i = 0; i < sddim; i++)
             {
                 Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
+                if (!sm)
+                    break;
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {

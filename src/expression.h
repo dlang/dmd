@@ -44,6 +44,8 @@ struct BinExp;
 struct InterState;
 struct Symbol;          // back end symbol
 struct OverloadSet;
+struct Initializer;
+struct StringExp;
 
 enum TOK;
 
@@ -115,6 +117,7 @@ struct Expression : Object
     virtual real_t toReal();
     virtual real_t toImaginary();
     virtual complex_t toComplex();
+    virtual StringExp *toString();
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toMangleBuffer(OutBuffer *buf);
     virtual Expression *toLvalue(Scope *sc, Expression *e);
@@ -328,6 +331,7 @@ struct NullExp : Expression
     Expression *semantic(Scope *sc);
     int isBool(int result);
     int isConst();
+    StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     MATCH implicitConvTo(Type *t);
@@ -353,6 +357,8 @@ struct StringExp : Expression
     char *toChars();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    size_t length();
+    StringExp *toString();
     StringExp *toUTF8(Scope *sc);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
@@ -402,6 +408,7 @@ struct ArrayLiteralExp : Expression
     int isBool(int result);
     elem *toElem(IRState *irs);
     int checkSideEffect(int flag);
+    StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     void scanForNestedRef(Scope *sc);

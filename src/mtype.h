@@ -159,6 +159,7 @@ struct Type : Object
     #define tboolean    tbool           // result of boolean expression
     #define tindex      tsize_t         // array/ptr index
     static Type *tvoidptr;              // void*
+    static Type *tstring;               // immutable(char)[]
     #define terror      basic[Terror]   // for error recovery
 
     #define tsize_t     basic[Tsize_t]          // matches size_t alias

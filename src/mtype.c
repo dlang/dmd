@@ -104,6 +104,7 @@ ClassDeclaration *Type::typeinfodelegate;
 ClassDeclaration *Type::typeinfotypelist;
 
 Type *Type::tvoidptr;
+Type *Type::tstring;
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
 StringTable Type::stringtable;
@@ -231,6 +232,7 @@ void Type::init()
     basic[Terror] = new TypeError();
 
     tvoidptr = tvoid->pointerTo();
+    tstring = tchar->arrayOf();
 
     if (global.params.is64bit)
     {

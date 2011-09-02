@@ -1015,6 +1015,11 @@ complex_t Expression::toComplex()
 #endif
 }
 
+StringExp *Expression::toString()
+{
+    return NULL;
+}
+
 void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
@@ -2525,6 +2530,17 @@ int NullExp::isBool(int result)
     return result ? FALSE : TRUE;
 }
 
+StringExp *NullExp::toString()
+{
+    if (implicitConvTo(Type::tstring))
+    {
+        StringExp *se = new StringExp(loc, (char*)mem.calloc(1, 1), 0);
+        se->type = Type::tstring;
+        return se;
+    }
+    return NULL;
+}
+
 void NullExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("null");
@@ -2672,6 +2688,59 @@ Expression *StringExp::semantic(Scope *sc)
     return this;
 }
 
+/**********************************
+ * Return length of string.
+ */
+
+size_t StringExp::length()
+{
+    size_t result = 0;
+    dchar_t c;
+    const char *p;
+
+    switch (sz)
+    {
+        case 1:
+            for (size_t u = 0; u < len;)
+            {
+                p = utf_decodeChar((unsigned char *)string, len, &u, &c);
+                if (p)
+                {   error("%s", p);
+                    return 0;
+                }
+                else
+                    result++;
+            }
+            break;
+
+        case 2:
+            for (size_t u = 0; u < len;)
+            {
+                p = utf_decodeWchar((unsigned short *)string, len, &u, &c);
+                if (p)
+                {   error("%s", p);
+                    return 0;
+                }
+                else
+                    result++;
+            }
+            break;
+
+        case 4:
+            result = len;
+            break;
+
+        default:
+            assert(0);
+    }
+    return result;
+}
+
+StringExp *StringExp::toString()
+{
+    return this;
+}
+
 /****************************************
  * Convert string to char[].
  */
@@ -2693,6 +2762,7 @@ StringExp *StringExp::toUTF8(Scope *sc)
 
 int StringExp::compare(Object *obj)
 {
+    //printf("StringExp::compare()\n");
     // Used to sort case statement expressions so we can do an efficient lookup
     StringExp *se2 = (StringExp *)(obj);
 
@@ -2706,6 +2776,7 @@ int StringExp::compare(Object *obj)
     int len1 = len;
     int len2 = se2->len;
 
+    //printf("sz = %d, len1 = %d, len2 = %d\n", sz, len1, len2);
     if (len1 == len2)
     {
         switch (sz)
@@ -2750,6 +2821,12 @@ int StringExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
+#if DMDV2
+int StringExp::isLvalue()
+{
+    return 1;
+}
+#endif
 unsigned StringExp::charAt(size_t i)
 {   unsigned value;
 
@@ -2968,6 +3045,35 @@ int ArrayLiteralExp::canThrow()
     return 1;   // because it can fail allocating memory
 }
 #endif
+
+StringExp *ArrayLiteralExp::toString()
+{
+    TY telem = type->nextOf()->toBasetype()->ty;
+
+    if (telem == Tchar || telem == Twchar || telem == Tdchar ||
+        (telem == Tvoid && (!elements || elements->dim == 0)))
+    {
+        OutBuffer buf;
+        if (elements)
+            for (int i = 0; i < elements->dim; ++i)
+            {
+                Expression *ch = elements->tdata()[i];
+                if (ch->op != TOKint64)
+                    return NULL;
+                buf.writedchar(ch->toInteger());
+            }
+        buf.writebyte(0);
+
+        char prefix = 'c';
+        if (telem == Twchar) prefix = 'w';
+        else if (telem == Tdchar) prefix = 'd';
+
+        StringExp *se = new StringExp(loc, buf.extractData(), buf.size - 1, prefix);
+        se->type = type;
+        return se;
+    }
+    return NULL;
+}
 
 void ArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5215,11 +5321,11 @@ Expression *CompileExp::semantic(Scope *sc)
         return new ErrorExp();
     }
     e1 = e1->optimize(WANTvalue | WANTinterpret);
-    if (e1->op != TOKstring)
+    StringExp *se = e1->toString();
+    if (!se)
     {   error("argument to mixin must be a string, not (%s)", e1->toChars());
         return new ErrorExp();
     }
-    StringExp *se = (StringExp *)e1;
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
@@ -6574,11 +6680,13 @@ Lagain:
            )
         {
             error("cannot call public/export function %s from invariant", f->toChars());
+            return new ErrorExp();
         }
 
         checkDeprecated(sc, f);
 #if DMDV2
         checkPurity(sc, f);
+        checkSafety(sc, f);
 #endif
         accessCheck(loc, sc, ue->e1, f);
         if (!f->needThis())
@@ -6590,10 +6698,15 @@ Lagain:
         else
         {
             if (e1->op == TOKdotvar)
+            {
                 dve->var = f;
+                e1->type = f->type;
+            }
             else
+            {
                 e1 = new DotVarExp(loc, dte->e1, f);
-            e1->type = f->type;
+                e1 = e1->semantic(sc);
+            }
 
             // See if we need to adjust the 'this' pointer
             AggregateDeclaration *ad = f->isThis();
