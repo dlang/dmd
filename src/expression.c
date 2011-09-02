@@ -1219,6 +1219,11 @@ complex_t Expression::toComplex()
 #endif
 }
 
+StringExp *Expression::toString()
+{
+    return NULL;
+}
+
 void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
@@ -2982,6 +2987,17 @@ int NullExp::isBool(int result)
     return result ? FALSE : TRUE;
 }
 
+StringExp *NullExp::toString()
+{
+    if (implicitConvTo(Type::tstring))
+    {
+        StringExp *se = new StringExp(loc, (char*)mem.calloc(1, 1), 0);
+        se->type = Type::tstring;
+        return se;
+    }
+    return NULL;
+}
+
 void NullExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("null");
@@ -3180,6 +3196,11 @@ size_t StringExp::length()
             assert(0);
     }
     return result;
+}
+
+StringExp *StringExp::toString()
+{
+    return this;
 }
 
 /****************************************
@@ -3465,6 +3486,35 @@ int ArrayLiteralExp::canThrow(bool mustNotThrow)
     return arrayExpressionCanThrow(elements, mustNotThrow);
 }
 #endif
+
+StringExp *ArrayLiteralExp::toString()
+{
+    TY telem = type->nextOf()->toBasetype()->ty;
+
+    if (telem == Tchar || telem == Twchar || telem == Tdchar ||
+        (telem == Tvoid && (!elements || elements->dim == 0)))
+    {
+        OutBuffer buf;
+        if (elements)
+            for (int i = 0; i < elements->dim; ++i)
+            {
+                Expression *ch = elements->tdata()[i];
+                if (ch->op != TOKint64)
+                    return NULL;
+                buf.writedchar(ch->toInteger());
+            }
+        buf.writebyte(0);
+
+        char prefix = 'c';
+        if (telem == Twchar) prefix = 'w';
+        else if (telem == Tdchar) prefix = 'd';
+
+        StringExp *se = new StringExp(loc, buf.extractData(), buf.size - 1, prefix);
+        se->type = type;
+        return se;
+    }
+    return NULL;
+}
 
 void ArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5979,11 +6029,11 @@ Expression *CompileExp::semantic(Scope *sc)
         return new ErrorExp();
     }
     e1 = e1->optimize(WANTvalue | WANTinterpret);
-    if (e1->op != TOKstring)
+    StringExp *se = e1->toString();
+    if (!se)
     {   error("argument to mixin must be a string, not (%s)", e1->toChars());
         return new ErrorExp();
     }
-    StringExp *se = (StringExp *)e1;
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
