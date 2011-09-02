@@ -2729,9 +2729,9 @@ Statement *PragmaStatement::semantic(Scope *sc)
 
                 e = e->semantic(sc);
                 e = e->optimize(WANTvalue | WANTinterpret);
-                if (e->op == TOKstring)
+                StringExp *se = e->toString();
+                if (se)
                 {
-                    StringExp *se = (StringExp *)e;
                     fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
@@ -2756,11 +2756,11 @@ Statement *PragmaStatement::semantic(Scope *sc)
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
             args->tdata()[0] = e;
-            if (e->op != TOKstring)
+            StringExp *se = e->toString();
+            if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
             {
-                StringExp *se = (StringExp *)e;
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;

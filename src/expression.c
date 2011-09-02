@@ -3491,7 +3491,8 @@ StringExp *ArrayLiteralExp::toString()
 {
     TY telem = type->nextOf()->toBasetype()->ty;
 
-    if (telem == Tchar || telem == Twchar || telem == Tdchar)
+    if (telem == Tchar || telem == Twchar || telem == Tdchar ||
+        (telem == Tvoid && (!elements || elements->dim == 0)))
     {
         OutBuffer buf;
         if (elements)
