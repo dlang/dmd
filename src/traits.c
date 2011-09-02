@@ -230,7 +230,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         e = e->optimize(WANTvalue | WANTinterpret);
         StringExp *se = e->toString();
-        if (!se || se->length == 0)
+        if (!se || se->length() == 0)
         {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
             goto Lfalse;
         }
