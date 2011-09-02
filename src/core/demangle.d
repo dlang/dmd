@@ -334,7 +334,15 @@ private struct Demangle
         debug(trace) printf( "decodeNumber+\n" );
         debug(trace) scope(success) printf( "decodeNumber-\n" );
 
-        auto   num = sliceNumber();
+        return decodeNumber( sliceNumber() );
+    }
+
+
+    size_t decodeNumber( const(char)[] num )
+    {
+        debug(trace) printf( "decodeNumber+\n" );
+        debug(trace) scope(success) printf( "decodeNumber-\n" );
+
         size_t val = 0;
 
         foreach( i, e; num )
@@ -1099,6 +1107,7 @@ private struct Demangle
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
 
+        printf( "*** %c\n", tok() );
         switch( tok() )
         {
         case 'n':
@@ -1111,12 +1120,12 @@ private struct Demangle
                 error( "Number expected" );
             // fall-through intentional
         case '0': .. case '9':
-            put( sliceNumber() );
+            putIntegerValue( name, type );
             return;
         case 'N':
             next();
             put( "-" );
-            put( sliceNumber() );
+            putIntegerValue( name, type );
             return;
         case 'e':
             next();
@@ -1205,6 +1214,85 @@ private struct Demangle
             return;
         default:
             error();
+        }
+    }
+
+
+    void putIntegerValue( char[] name = null, char type = '\0' )
+    {
+        debug(trace) printf( "putIntegerValue+\n" );
+        debug(trace) scope(success) printf( "putIntegerValue-\n" );
+
+        switch( type )
+        {
+        case 'a': // char
+        case 'u': // wchar
+        case 'w': // dchar
+        {
+            auto val = sliceNumber();
+            auto num = decodeNumber( val );
+
+            switch( num )
+            {
+            case '\'':
+                put( "'\\''" );
+                return;
+            // \", \?
+            case '\\':
+                put( "'\\\\'" );
+            case '\a':
+                put( "'\\a'" );
+                return;
+            case '\b':
+                put( "'\\b'" );
+                return;
+            case '\f':
+                put( "'\\f'" );
+            case '\n':
+                put( "'\\n'" );
+                return;
+            case '\r':
+                put( "'\\r'" );
+                return;
+            case '\t':
+                put( "'\\t'" );
+                return;
+            case '\v':
+                put( "'\\v'" );
+                return;
+            default:
+                if( num < 0x20 || num == 0x7F )
+                {
+                    // TODO: Put as hex.
+                    put( val );
+                    return;
+                }
+                else
+                {
+                    // TODO: Handle wchar & dchar.
+                    put( val );
+                    return;
+                }
+            }
+        }
+        case 'b': // bool
+            put( decodeNumber() ? "true" : "false" );
+            return;
+        case 'h', 't', 'k': // ubyte, ushort, uint
+            put( sliceNumber() );
+            put( "u" );
+            return;
+        case 'l': // long
+            put( sliceNumber() );
+            put( "L" );
+            return;
+        case 'm': // ulong
+            put( sliceNumber() );
+            put( "uL" );
+            return;
+        default:
+            put( sliceNumber() );
+            return;
         }
     }
 
