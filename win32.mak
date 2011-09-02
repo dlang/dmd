@@ -73,6 +73,7 @@ MANIFEST= \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\osx\pthread.d \
 	src\core\sys\osx\mach\dyld.d \
 	src\core\sys\osx\mach\getsect.d \
 	src\core\sys\osx\mach\kern_return.d \
@@ -117,6 +118,7 @@ MANIFEST= \
 	src\core\sys\posix\sys\time.d \
 	src\core\sys\posix\sys\types.d \
 	src\core\sys\posix\sys\uio.d \
+	src\core\sys\posix\sys\un.d \
 	src\core\sys\posix\sys\wait.d \
 	\
 	src\core\sys\windows\dbghelp.d \
