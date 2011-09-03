@@ -1240,6 +1240,7 @@ private struct Demangle
             // \", \?
             case '\\':
                 put( "'\\\\'" );
+                return;
             case '\a':
                 put( "'\\a'" );
                 return;
@@ -1248,6 +1249,7 @@ private struct Demangle
                 return;
             case '\f':
                 put( "'\\f'" );
+                return;
             case '\n':
                 put( "'\\n'" );
                 return;
