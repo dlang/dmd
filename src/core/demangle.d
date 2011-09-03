@@ -1064,7 +1064,7 @@ private struct Demangle
                 parseType();
             }
         }
-        return dst[beg .. len];
+        assert(0);
     }
 
 
