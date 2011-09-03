@@ -3086,6 +3086,11 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
+
+    if (!n->isMutable())
+        if (ident == Id::sort || ident == Id::reverse)
+            error(e->loc, "can only %s a mutable array\n", ident->toChars());
+
     if (ident == Id::reverse && (n->ty == Tchar || n->ty == Twchar))
     {
         Expression *ec;
@@ -3128,6 +3133,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         int size = next->size(e->loc);
         int dup;
 
+        Expression *olde = e;
         assert(size);
         dup = (ident == Id::dup || ident == Id::idup);
         fd = FuncDeclaration::genCfunc(Type::tindex, dup ? Id::adDup : Id::adReverse);
@@ -3143,8 +3149,17 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         if (ident == Id::idup)
         {   Type *einv = next->invariantOf();
             if (next->implicitConvTo(einv) < MATCHconst)
-                error(e->loc, "cannot implicitly convert element type %s to immutable", next->toChars());
+                error(e->loc, "cannot implicitly convert element type %s to immutable in %s.idup",
+                    next->toChars(), olde->toChars());
             e->type = einv->arrayOf();
+        }
+        else if (ident == Id::dup)
+        {
+            Type *emut = next->mutableOf();
+            if (next->implicitConvTo(emut) < MATCHconst)
+                error(e->loc, "cannot implicitly convert element type %s to mutable in %s.dup",
+                    next->toChars(), olde->toChars());
+            e->type = emut->arrayOf();
         }
         else
             e->type = next->mutableOf()->arrayOf();
