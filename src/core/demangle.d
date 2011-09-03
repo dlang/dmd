@@ -1107,7 +1107,7 @@ private struct Demangle
         debug(trace) printf( "parseValue+\n" );
         debug(trace) scope(success) printf( "parseValue-\n" );
 
-        printf( "*** %c\n", tok() );
+//        printf( "*** %c\n", tok() );
         switch( tok() )
         {
         case 'n':
