@@ -587,7 +587,7 @@ class A31
 
 class B31 : A31
 {
-    void foo(scope int* p) { }
+    override void foo(scope int* p) { }
 }
 
 void test31()
@@ -2968,7 +2968,7 @@ class A2540
 class B2540 : A2540
 {
     int b;
-    super.X foo() { return 1; }
+    override super.X foo() { return 1; }
 
     alias this athis;
     alias this.b thisb;

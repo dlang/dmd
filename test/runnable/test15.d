@@ -282,11 +282,11 @@ class B14 : A14 {
 }
 
 class C14 : B14 {
-    int show( CA14 a ) { printf("C::show( CA14 )\n"); return 3; }
+    override int show( CA14 a ) { printf("C::show( CA14 )\n"); return 3; }
     alias B14.show show;
 
     alias B14.boat boat;
-    int boat( CA14 a ) { printf("C::boat( CA14 )\n"); return 3; }
+    override int boat( CA14 a ) { printf("C::boat( CA14 )\n"); return 3; }
 }
 
 class D14 : C14  {
@@ -855,7 +855,7 @@ class Abstract : Interface
 
 class Concrete : Abstract
 {
-    void foo42() { printf("Concrete.foo42(this = %p)\n", this); }
+    override void foo42() { printf("Concrete.foo42(this = %p)\n", this); }
 }
 
 class Sub : Concrete
@@ -1127,7 +1127,7 @@ class MyWriter : Writer
 {
     alias Writer.put put;
 
-    int put (bool x){ return 3; }
+    override int put (bool x){ return 3; }
 }
 
 void test55()

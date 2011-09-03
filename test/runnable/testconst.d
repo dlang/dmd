@@ -211,7 +211,7 @@ class C18
 
 class D18 : C18
 {
-    char[] foo() { return null; }
+    override char[] foo() { return null; }
 }
 
 void test18()

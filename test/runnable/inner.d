@@ -473,7 +473,7 @@ void test14()
 
     C14 c = new class C14
 	{
-	    void foo()
+	    override void foo()
 	    {
 		printf("in inner class\n");
 		assert(m == 3);
@@ -506,7 +506,7 @@ void test15()
 		assert(j == 2);
 	    }
 
-	    void foo()
+	    override void foo()
 	    {
 		printf("in inner class\n");
 		assert(m == 3);
@@ -758,7 +758,7 @@ class C24  {
     }
     I24 bar(){
         auto i = new class() I24 {
-            public void callI() {
+            override public void callI() {
                 foo();
             }
         };

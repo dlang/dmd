@@ -182,7 +182,7 @@ class A7 : D7 { int foo() { return 1; } }
 
 class B7 : A7
 {
-    int foo() { return 2; }
+    override int foo() { return 2; }
     D7 me() { return this; }
 }
 
@@ -333,7 +333,7 @@ class B12 : A12
 {
     IA12 ia;
 
-    IA12 clone()	// covariant return value
+    override IA12 clone()	// covariant return value
     out (result)
     {
 	printf("B12.clone()\n");
@@ -373,7 +373,7 @@ class I13
 
 class IA13 : I13
 {
-    int foo() { return 1; }
+    override int foo() { return 1; }
 }
 
 class A13
@@ -387,7 +387,7 @@ class B13 : A13
 {
     IA13 ia;
 
-    IA13 clone()
+    override IA13 clone()
     out (result)
     {
 	printf("B13.clone()\n");
@@ -505,7 +505,7 @@ class B16 : A16, I16
 
     this(int d) { data = d; }
 
-    B16 foo()
+    override B16 foo()
     {
 	printf("Called B.foo\n");
 	return new B16(69);

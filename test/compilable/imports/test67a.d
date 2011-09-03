@@ -11,7 +11,7 @@ class Base
 
 class Derived : Base
 {
-    SubI create() {
+    override SubI create() {
         return null;
     }
 }

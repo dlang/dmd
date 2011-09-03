@@ -111,7 +111,7 @@ class Foo6
 
 class FooX6 : Foo6
 {
-	int bar() { return y + 5; }
+	override int bar() { return y + 5; }
 }
 
 void test6()
@@ -231,7 +231,7 @@ class A12
 
 class B12: A12
 {
-    void foo() { super.foo(); }
+    override void foo() { super.foo(); }
 }
 
 void test12()

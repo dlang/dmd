@@ -287,11 +287,11 @@ void test17()
 abstract class Pen { int foo(); }
 
 class Penfold : Pen {
-    int foo() { return 1; }
+    override int foo() { return 1; }
 }
 
 class Pinky : Pen {
-    int foo() { return 2; }
+    override int foo() { return 2; }
 }
 
 class Printer {
@@ -339,7 +339,7 @@ class B19 : A19
 {
     alias A19.s s;
     static void s(int i) {}
-    void s() {}
+    override void s() {}
 }
 
 class C19

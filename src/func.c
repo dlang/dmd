@@ -482,7 +482,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
 #if DMDV2
                 if (!isOverride())
-                    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+                    error(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 #endif
 
                 if (fdv->toParent() == parent)
