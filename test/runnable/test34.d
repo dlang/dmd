@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 module test34;
 
 import std.stdio;

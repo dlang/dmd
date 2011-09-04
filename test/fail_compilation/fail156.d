@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 typedef int myint = 4;
 
 struct S

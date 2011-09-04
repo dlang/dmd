@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 // 104
 
 Foofunc f;

@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 extern(C) int printf(const char*, ...);
 extern(C) int sprintf(char*, const char*, ...);
 

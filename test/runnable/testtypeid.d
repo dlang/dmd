@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 import core.vararg;
 import std.stdio;
 
