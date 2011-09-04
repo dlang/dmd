@@ -1,0 +1,6 @@
+doc/*
+lib/*
+obj/*
+import/core/*
+druntime.json
+
