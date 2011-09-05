@@ -1679,7 +1679,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             error(loc, "cannot interpret symbol %s at compile time", v->toChars());
     }
     else
-        error(loc, "cannot interpret variable %s at compile time", v->toChars());
+        error(loc, "cannot interpret declaration %s at compile time", d->toChars());
     return e;
 }
 
