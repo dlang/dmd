@@ -557,8 +557,8 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
     // Handle integer power operations.
     if (e2->type->isintegral())
     {
-        Expression * r = new RealExp(loc, e1->toReal(), Type::tfloat64);
-        Expression * v = new RealExp(loc, 1.0, Type::tfloat64);
+        Expression * r;
+        Expression * v;
         dinteger_t n = e2->toInteger();
         bool neg;
 
@@ -574,6 +574,17 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         else
             neg = false;
 
+        if (e1->type->isfloating())
+        {
+            r = new RealExp(loc, e1->toReal(), e1->type);
+            v = new RealExp(loc, 1.0, e1->type);
+        }
+        else
+        {
+            r = new RealExp(loc, e1->toReal(), Type::tfloat64);
+            v = new RealExp(loc, 1.0, Type::tfloat64);
+        }
+
         while (n != 0)
         {
             if (n & 1)
@@ -583,12 +594,32 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         }
 
         if (neg)
-            v = Div(v->type, new RealExp(loc, 1.0, Type::tfloat64), v);
+            v = Div(v->type, new RealExp(loc, 1.0, v->type), v);
 
         if (type->isintegral())
             e = new IntegerExp(loc, v->toInteger(), type);
         else
             e = new RealExp(loc, v->toReal(), type);
+    }
+    else if (e2->type->isfloating())
+    {
+        // x ^ y for x < 0 and y not an integer is not defined
+        if (e2->toReal() < 0.0)
+        {
+            e = new RealExp(loc, Port::nan, type);
+        }
+        else if (e2->toReal() == 0.5)
+        {
+            // Special case: call sqrt directly.
+            Expressions args;
+            args.setDim(1);
+            args.tdata()[0] = e1;
+            e = eval_builtin(BUILTINsqrt, &args);
+            if (!e)
+                e = EXP_CANT_INTERPRET;
+        }
+        else
+            e = EXP_CANT_INTERPRET;
     }
     else
         e = EXP_CANT_INTERPRET;

@@ -843,17 +843,6 @@ Expression *PowExp::optimize(int result)
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
     
-    // If e2 *could* have been an integer, make it one.
-    if (e2->op == TOKfloat64 && (e2->toReal() == (sinteger_t)(e2->toReal())))
-        e2 = new IntegerExp(loc, e2->toInteger(), Type::tint64);
-
-    if (e1->isConst() == 1 && e2->isConst() == 1)
-    {
-        e = Pow(type, e1, e2);
-        if (e != EXP_CANT_INTERPRET)
-            return e;
-    }
-
     // Replace 1 ^^ x or 1.0^^x by (x, 1)
     if ((e1->op == TOKint64 && e1->toInteger() == 1) ||
         (e1->op == TOKfloat64 && e1->toReal() == 1.0))
@@ -896,8 +885,20 @@ Expression *PowExp::optimize(int result)
               e1->type->toBasetype()->toChars(), e1->toChars(), e2->toChars());
         e = new ErrorExp();
     }
-    else 
+    else
+    {
+        // If e2 *could* have been an integer, make it one.
+        if (e2->op == TOKfloat64 && (e2->toReal() == (sinteger_t)(e2->toReal())))
+            e2 = new IntegerExp(loc, e2->toInteger(), Type::tint64);
+
+        if (e1->isConst() == 1 && e2->isConst() == 1)
+        {
+            e = Pow(type, e1, e2);
+            if (e != EXP_CANT_INTERPRET)
+                return e;
+        }
         e = this;
+    }
     return e;
 }
 
