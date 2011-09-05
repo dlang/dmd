@@ -3436,6 +3436,19 @@ alias tough4302!() tougher;
 
 /***************************************************/
 
+template Bug6602A(T) {
+  Bug6602B!(T).Result result;
+}
+
+template Bug6602B(U) {
+  static assert(is(U == int));
+  alias bool Result;
+}
+
+enum bug6602Compiles = __traits(compiles, Bug6602A!short);
+
+/***************************************************/
+
 // Bugzilla 190
 
 //typedef int avocado;
