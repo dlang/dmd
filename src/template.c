@@ -3523,11 +3523,16 @@ void TemplateInstance::semantic(Scope *sc)
     //printf("parent = '%s'\n", parent->kind());
 
     // Add 'this' to the enclosing scope's members[] so the semantic routines
-    // will get called on the instance members
+    // will get called on the instance members. Store the place we added it to
+    // in target_symbol_list(_idx) so we can remove it later if we encounter
+    // an error.
 #if 1
     int dosemantic3 = 0;
+    Dsymbols *target_symbol_list = NULL;
+    int target_symbol_list_idx;
+
     if (!sc->parameterSpecialization)
-    {   Array *a;
+    {   Dsymbols *a;
 
         Scope *scx = sc;
 #if 0
@@ -3566,10 +3571,12 @@ void TemplateInstance::semantic(Scope *sc)
         {
             if (i == a->dim)
             {
+                target_symbol_list = a;
+                target_symbol_list_idx = i;
                 a->push(this);
                 break;
             }
-            if (this == (Dsymbol *)a->data[i])  // if already in Array
+            if (this == a->tdata()[i])  // if already in Array
                 break;
         }
     }
@@ -3605,7 +3612,7 @@ void TemplateInstance::semantic(Scope *sc)
     int memnum = 0;
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)members->data[i];
+        Dsymbol *s = members->tdata()[i];
 #if LOG
         printf("\t[%d] adding member '%s' %p kind %s to '%s', memnum = %d\n", i, s->toChars(), s, s->kind(), this->toChars(), memnum);
 #endif
@@ -3660,7 +3667,7 @@ void TemplateInstance::semantic(Scope *sc)
     }
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)members->data[i];
+        Dsymbol *s = members->tdata()[i];
         //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
         //printf("test: isnested = %d, sc2->parent = %s\n", isnested, sc2->parent->toChars());
 //      if (isnested)
@@ -3686,7 +3693,7 @@ void TemplateInstance::semantic(Scope *sc)
      * or semantic3() yet.
      */
     for (size_t i = 0; i < Module::deferred.dim; i++)
-    {   Dsymbol *sd = (Dsymbol *)Module::deferred.data[i];
+    {   Dsymbol *sd = Module::deferred.tdata()[i];
 
         if (sd->parent == this)
             goto Laftersemantic;
@@ -3746,14 +3753,16 @@ void TemplateInstance::semantic(Scope *sc)
         }
         errors = 1;
         if (global.gag)
-        {   // Try to reset things so we can try again later to instantiate it
-            //printf("remove %s\n", toChars());
+        {
+            // Errors are gagged, so remove the template instance from the
+            // instance/symbol lists we added it to and reset our state to
+            // finish clean and so we can try to instantiate it again later
+            // (see bugzilla 4302 and 6602).
             tempdecl->instances.remove(tempdecl_instance_idx);
-            if (!(sc->flags & SCOPEstaticif))
-            {   // Bugzilla 4302 for discussion
-                semanticRun = 0;
-                inst = NULL;
-            }
+            if (target_symbol_list)
+                target_symbol_list->remove(target_symbol_list_idx);
+            semanticRun = 0;
+            inst = NULL;
         }
     }
 
