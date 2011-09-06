@@ -1644,6 +1644,12 @@ void test87()
 
 /***************************************************/
 
+template test4284(alias v) { enum test4284 = v.length == 0; }
+static assert(test4284!(cast(string)null));
+static assert(test4284!(cast(string[])null));
+
+/***************************************************/
+
 struct S88
 {
     void opDispatch(string s, T)(T i)

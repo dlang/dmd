@@ -3725,6 +3725,8 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
             return new IntegerExp(se->loc, se->len, Type::tindex);
         }
+        if (e->op == TOKnull)
+            return new IntegerExp(e->loc, 0, Type::tindex);
         e = new ArrayLengthExp(e->loc, e);
         e->type = Type::tsize_t;
         return e;
