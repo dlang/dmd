@@ -3254,8 +3254,8 @@ void test1471()
 
 /***************************************************/
 
-deprecated @disable int bug6389a;
-static assert(!is(typeof({ int bug6389b = bug6389a; })));
+deprecated @disable int bug6389;
+static assert(!is(typeof(bug6389 = bug6389)));
 
 /***************************************************/
 
