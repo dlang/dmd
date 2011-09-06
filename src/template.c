@@ -1209,6 +1209,9 @@ Lretry:
 #endif
             Type *argtype = farg->type;
 
+            // Apply function parameter storage classes to parameter types
+            fparam->type = fparam->type->addStorageClass(fparam->storageClass);
+
 #if DMDV2
             /* Allow string literals which are type [] to match with [dim]
              */
@@ -1277,6 +1280,18 @@ Lretry:
                     }
                 }
             }
+
+            if (m && (fparam->storageClass & (STCref | STCauto)) == STCref)
+            {   if (!farg->isLvalue())
+                    goto Lnomatch;
+            }
+            if (m && (fparam->storageClass & STCout))
+            {   if (!farg->isLvalue())
+                    goto Lnomatch;
+            }
+            if (!m && (fparam->storageClass & STClazy) && fparam->type->ty == Tvoid &&
+                    farg->type->ty != Tvoid)
+                m = MATCHconvert;
 
             if (m)
             {   if (m < match)
