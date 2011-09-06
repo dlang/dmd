@@ -11,13 +11,13 @@
    contributed by Isaac Gouy 
 */
 
-import std.stdio, std.string;
+import std.stdio, std.string, std.conv;
 import core.memory;
 
 int main(string[] args)
 {
     //std.gc.setV1_0();
-    int n = args.length > 1 ? atoi(args[1]) : 1000;
+    int n = args.length > 1 ? to!int(args[1]) : 1000;
 
     HealthcareRegion healthcareSystem = HealthcareRegion.Create();
 

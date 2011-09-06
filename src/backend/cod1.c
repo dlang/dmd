@@ -260,7 +260,6 @@ unsigned buildModregrm(int mod, int reg, int rm)
         m = modregrm(mod, reg, rm);
     else
     {
-        unsigned rex = 0;
         if ((rm & 7) == SP && mod != 3)
             m = (modregrm(0,4,SP) << 8) | modregrm(mod,reg & 7,4);
         else
@@ -930,11 +929,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          *      MOV     idxreg,e
          *      EA =    [ES:] &v+idxreg
          */
-
+        f = FLconst;
         if (e1isadd &&
-            e12->Eoper == OPrelconst &&
+            ((e12->Eoper == OPrelconst && (f = el_fl(e12)) != FLfardata) ||
+             (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
             !(I64 && config.flags3 & CFG3pic) &&
-            (f = el_fl(e12)) != FLfardata &&
             e1->Ecount == e1->Ecomsub &&
             (!e1->Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
             tysize(e11->Ety) == REGSIZE
@@ -980,7 +979,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         )
                 {
                     regm_t scratchm;
-                    int ss2;
 
 #if 0 && TARGET_LINUX
                     assert(f != FLgot && f != FLgotoff);
@@ -1113,7 +1111,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             else
                 assert(f != FLreg);
             pcs->IFL1 = f;
-            pcs->IEVsym1 = e12->EV.sp.Vsym;
+            if (f != FLconst)
+                pcs->IEVsym1 = e12->EV.sp.Vsym;
             pcs->IEVoffset1 = e12->EV.sp.Voffset; /* += ??? */
 
             /* If e1 is a CSE, we must generate an addressing mode      */
@@ -2011,7 +2010,6 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
                 if (sz == 8)
                     code_orrex(ce,REX_W);
                 // MOVSS/MOVSD XMMreg,floatreg
-                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
                 ce = genfltreg(ce,0xF20F10,rreg - XMM0,0);
             }
             else
@@ -2631,7 +2629,6 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
 
             unsigned stackalign = REGSIZE;
-            tym_t tyf = tybasic(e->E1->Ety);
 
             // Figure out which parameters go in registers
             // Compute numpara, the total bytes pushed on the stack
@@ -2972,7 +2969,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             ce = scodelem(e11,&retregs,keepmsk,TRUE);
             cgstate.stackclean--;
             /* Kill registers destroyed by an arbitrary function call */
-            ce = cat(ce,getregs((mBP | ALLREGS | mES) & ~fregsaved));
+            ce = cat(ce,getregs((mBP | ALLREGS | mES | XMMREGS) & ~fregsaved));
             if (e11ty == TYfptr)
             {   unsigned lsreg;
              LF1:
@@ -3005,7 +3002,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
                                                 // CALL [function]
             cs.Iflags = 0;
             cgstate.stackclean++;
-            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,(ALLREGS|mES|mBP) & ~fregsaved);
+            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,(mBP|ALLREGS|mES|XMMREGS) & ~fregsaved);
             cgstate.stackclean--;
             freenode(e11);
         }
@@ -3084,6 +3081,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 
     if (retregs & mST0)
     {
+        c = genadjfpu(c, 1);
         if (*pretregs)                  // if we want the result
         {   //assert(stackused == 0);
             push87();                   // one item on 8087 stack
@@ -3095,6 +3093,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     }
     else if (retregs & mST01)
     {
+        c = genadjfpu(c, 2);
         if (*pretregs)                  // if we want the result
         {   assert(stackused == 0);
             push87();
@@ -3472,12 +3471,12 @@ code *params(elem *e,unsigned stackalign)
         }
         break;
     case OPrelconst:
+#if !TARGET_FLAT
         /* Determine if we can just push the segment register           */
         /* Test size of type rather than TYfptr because of (long)(&v)   */
         s = e->EV.sp.Vsym;
         //if (sytab[s->Sclass] & SCSS && !I32)  // if variable is on stack
         //    needframe = TRUE;                 // then we need stack frame
-#if !TARGET_FLAT
         if (tysize[tym] == tysize[TYfptr] &&
             (fl = s->Sfl) != FLfardata &&
             /* not a function that CS might not be the segment of       */
@@ -3615,8 +3614,7 @@ code *params(elem *e,unsigned stackalign)
         targ_ullong *pl = (targ_ullong *)pi;
         i /= regsize;
         do
-        {   code *cp;
-
+        {
             if (i)                      /* be careful not to go negative */
                 i--;
             targ_size_t value = (regsize == 4) ? pi[i] : ps[i];
@@ -3960,7 +3958,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 ce = movregconst(CNIL,sreg,lsw,0);
                 reg = findregmsw(forregs);
                 /* Decide if we need to set flags when we load msw      */
-                if (flags && (msw && msw|lsw || !msw && !(msw|lsw)))
+                if (flags && (msw && msw|lsw || !(msw|lsw)))
                 {   mswflags = mPSW;
                     flags = 0;
                 }

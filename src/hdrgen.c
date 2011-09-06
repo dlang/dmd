@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // Initial header generation implementation by Dave Fladebo
 // http://www.digitalmars.com
@@ -46,7 +46,7 @@
 #include "mtype.h"
 #include "hdrgen.h"
 
-void argsToCBuffer(OutBuffer *buf, Array *arguments, HdrGenState *hgs);
+void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 
 void Module::genhdrfile()
 {
@@ -83,8 +83,8 @@ void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
     }
 
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
 
         s->toHBuffer(buf, hgs);
     }

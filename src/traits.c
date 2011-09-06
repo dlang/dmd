@@ -82,13 +82,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         TemplateInstance::semanticTiargs(loc, sc, args, 1);
     }
     size_t dim = args ? args->dim : 0;
-    Object *o;
     Declaration *d;
-    FuncDeclaration *f;
 
 #define ISTYPE(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Type *t = getType((Object *)args->data[i]); \
+        {   Type *t = getType(args->tdata()[i]); \
             if (!t)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -100,7 +98,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
 #define ISDSYMBOL(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Dsymbol *s = getDsymbol((Object *)args->data[i]);   \
+        {   Dsymbol *s = getDsymbol(args->tdata()[i]);   \
             if (!s)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -150,19 +148,23 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
     else if (ident == Id::isAbstractFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isAbstract())
     }
     else if (ident == Id::isVirtualFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
     }
     else if (ident == Id::isFinalFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
     }
 #if DMDV2
     else if (ident == Id::isStaticFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
     }
     else if (ident == Id::isRef)
@@ -186,7 +188,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         if (!s || !s->ident)
         {
@@ -200,7 +202,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         if (s)
             s = s->toParent();
@@ -220,18 +222,18 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 2)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
-        Expression *e = isExpression((Object *)args->data[1]);
+        Object *o = args->tdata()[0];
+        Expression *e = isExpression(args->tdata()[1]);
         if (!e)
         {   error("expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
         }
         e = e->optimize(WANTvalue | WANTinterpret);
-        if (e->op != TOKstring)
+        StringExp *se = e->toString();
+        if (!se || se->length() == 0)
         {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
             goto Lfalse;
         }
-        StringExp *se = (StringExp *)e;
         se = se->toUTF8(sc);
         if (se->sz != 1)
         {   error("string must be chars");
@@ -312,7 +314,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         ClassDeclaration *cd;
         if (!s || (cd = s->isClassDeclaration()) == NULL)
@@ -326,7 +328,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = (Object *)args->data[0];
+        Object *o = args->tdata()[0];
         Dsymbol *s = getDsymbol(o);
         ScopeDsymbol *sd;
         if (!s)
@@ -341,10 +343,12 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         Expressions *exps = new Expressions;
         while (1)
-        {   size_t dim = ScopeDsymbol::dim(sd->members);
-            for (size_t i = 0; i < dim; i++)
+        {   size_t sddim = ScopeDsymbol::dim(sd->members);
+            for (size_t i = 0; i < sddim; i++)
             {
                 Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
+                if (!sm)
+                    break;
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
@@ -354,7 +358,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                     /* Skip if already present in exps[]
                      */
                     for (size_t j = 0; j < exps->dim; j++)
-                    {   StringExp *se2 = (StringExp *)exps->data[j];
+                    {   StringExp *se2 = (StringExp *)exps->tdata()[j];
                         if (strcmp(str, (char *)se2->string) == 0)
                             goto Lnext;
                     }
@@ -393,7 +397,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
 
         for (size_t i = 0; i < dim; i++)
-        {   Object *o = (Object *)args->data[i];
+        {   Object *o = args->tdata()[i];
             Expression *e;
 
             unsigned errors = global.errors;
@@ -433,8 +437,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (dim != 2)
             goto Ldimerror;
         TemplateInstance::semanticTiargs(loc, sc, args, 0);
-        Object *o1 = (Object *)args->data[0];
-        Object *o2 = (Object *)args->data[1];
+        Object *o1 = args->tdata()[0];
+        Object *o2 = args->tdata()[1];
         Dsymbol *s1 = getDsymbol(o1);
         Dsymbol *s2 = getDsymbol(o2);
 
@@ -481,10 +485,6 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
 
     return NULL;
-
-Lnottype:
-    error("%s is not a type", o->toChars());
-    goto Lfalse;
 
 Ldimerror:
     error("wrong number of arguments %d", dim);

@@ -16,7 +16,6 @@
 
 #include        "cc.h"
 #include        "global.h"
-#include        "parser.h"
 #include        "oper.h"
 #include        "code.h"
 #include        "type.h"
@@ -25,6 +24,8 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
+
+extern void ph_init();
 
 extern Global global;
 extern int REALSIZE;
@@ -52,7 +53,7 @@ void out_config_init()
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
 #if TARGET_WINDOS
-    if (params->isX86_64)
+    if (params->is64bit)
         config.exe = EX_WIN64;
     else
         config.exe = EX_NT;
@@ -72,7 +73,7 @@ void out_config_init()
     config.flags4 |= CFG4underscore;
 #endif
 #if TARGET_LINUX
-    if (params->isX86_64)
+    if (params->is64bit)
         config.exe = EX_LINUX64;
     else
         config.exe = EX_LINUX;
@@ -82,7 +83,7 @@ void out_config_init()
         config.flags3 |= CFG3pic;
 #endif
 #if TARGET_OSX
-    if (params->isX86_64)
+    if (params->is64bit)
         config.exe = EX_OSX64;
     else
         config.exe = EX_OSX;
@@ -92,7 +93,7 @@ void out_config_init()
         config.flags3 |= CFG3pic;
 #endif
 #if TARGET_FREEBSD
-    if (params->isX86_64)
+    if (params->is64bit)
         config.exe = EX_FREEBSD64;
     else
         config.exe = EX_FREEBSD;
@@ -102,7 +103,7 @@ void out_config_init()
         config.flags3 |= CFG3pic;
 #endif
 #if TARGET_OPENBSD
-    if (params->isX86_64)
+    if (params->is64bit)
         config.exe = EX_OPENBSD64;
     else
         config.exe = EX_OPENBSD;
@@ -112,7 +113,7 @@ void out_config_init()
         config.flags3 |= CFG3pic;
 #endif
 #if TARGET_SOLARIS
-    if (params->isX86_64)
+    if (params->is64bit)
         config.exe = EX_SOLARIS64;
     else
         config.exe = EX_SOLARIS;
@@ -162,19 +163,6 @@ void out_config_init()
         //config.flags &= ~CFGalwaysframe;
     }
 
-    if (params->isX86_64)
-    {
-        util_set64();
-        cod3_set64();
-    }
-    else
-    {
-        util_set386();
-        cod3_set386();
-    }
-
-    rtlsym_init();
-
 #ifdef DEBUG
     debugb = params->debugb;
     debugc = params->debugc;
@@ -187,98 +175,91 @@ void out_config_init()
 }
 
 /*******************************
- * Redo tables from 8086/286 to 386/486.
+ * Redo tables from 8086/286 to ILP32
  */
 
-void util_set386()
-{   int i;
+void util_set32()
+{
+    _tyrelax[TYenum] = TYlong;
+    _tyrelax[TYint]  = TYlong;
+    _tyrelax[TYuint] = TYlong;
 
-//    if (I32)
-    {
-        _tyrelax[TYenum] = TYlong;
-        _tyrelax[TYint]  = TYlong;
-        _tyrelax[TYuint] = TYlong;
+    tyequiv[TYint] = TYlong;
+    tyequiv[TYuint] = TYulong;
 
-        tyequiv[TYint] = TYlong;
-        tyequiv[TYuint] = TYulong;
+    for (int i = 0; i < 0x100; i += 0x40)
+    {   tysize[TYenum + i] = LONGSIZE;
+        tysize[TYint  + i] = LONGSIZE;
+        tysize[TYuint + i] = LONGSIZE;
+        tysize[TYjhandle + i] = LONGSIZE;
+        tysize[TYnptr + i] = LONGSIZE;
+        tysize[TYsptr + i] = LONGSIZE;
+        tysize[TYcptr + i] = LONGSIZE;
+        tysize[TYnref + i] = LONGSIZE;
+        tysize[TYfptr + i] = 6;
+        tysize[TYvptr + i] = 6;
+        tysize[TYfref + i] = 6;
+    }
 
-        for (i = 0; i < 0x100; i += 0x40)
-        {   tysize[TYenum + i] = LONGSIZE;
-            tysize[TYint  + i] = LONGSIZE;
-            tysize[TYuint + i] = LONGSIZE;
-            tysize[TYjhandle + i] = LONGSIZE;
-            tysize[TYnptr + i] = LONGSIZE;
-            tysize[TYsptr + i] = LONGSIZE;
-            tysize[TYcptr + i] = LONGSIZE;
-            tysize[TYnref + i] = LONGSIZE;
-            tysize[TYfptr + i] = 6;
-            tysize[TYvptr + i] = 6;
-            tysize[TYfref + i] = 6;
-        }
-
-        for (i = 0; i < 0x100; i += 0x40)
-        {   tyalignsize[TYenum + i] = LONGSIZE;
-            tyalignsize[TYint  + i] = LONGSIZE;
-            tyalignsize[TYuint + i] = LONGSIZE;
-            tyalignsize[TYnullptr + i] = LONGSIZE;
-            tyalignsize[TYnptr + i] = LONGSIZE;
-            tyalignsize[TYsptr + i] = LONGSIZE;
-            tyalignsize[TYcptr + i] = LONGSIZE;
-            tyalignsize[TYnref + i] = LONGSIZE;
-        }
+    for (int i = 0; i < 0x100; i += 0x40)
+    {   tyalignsize[TYenum + i] = LONGSIZE;
+        tyalignsize[TYint  + i] = LONGSIZE;
+        tyalignsize[TYuint + i] = LONGSIZE;
+        tyalignsize[TYnullptr + i] = LONGSIZE;
+        tyalignsize[TYnptr + i] = LONGSIZE;
+        tyalignsize[TYsptr + i] = LONGSIZE;
+        tyalignsize[TYcptr + i] = LONGSIZE;
+        tyalignsize[TYnref + i] = LONGSIZE;
     }
 }
 
 /*******************************
- * Redo tables from 8086/286 to I64.
+ * Redo tables from 8086/286 to LP64.
  */
 
 void util_set64()
-{   int i;
+{
+    _tyrelax[TYenum] = TYlong;
+    _tyrelax[TYint]  = TYlong;
+    _tyrelax[TYuint] = TYlong;
 
-    {
-        _tyrelax[TYenum] = TYlong;
-        _tyrelax[TYint]  = TYlong;
-        _tyrelax[TYuint] = TYlong;
+    tyequiv[TYint] = TYlong;
+    tyequiv[TYuint] = TYulong;
 
-        tyequiv[TYint] = TYlong;
-        tyequiv[TYuint] = TYulong;
+    for (int i = 0; i < 0x100; i += 0x40)
+    {   tysize[TYenum + i] = LONGSIZE;
+        tysize[TYint  + i] = LONGSIZE;
+        tysize[TYuint + i] = LONGSIZE;
+        tysize[TYnptr + i] = 8;
+        tysize[TYsptr + i] = 8;
+        tysize[TYcptr + i] = 8;
+        tysize[TYnref + i] = 8;
+        tysize[TYfptr + i] = 10;    // NOTE: There are codgen test that check
+        tysize[TYvptr + i] = 10;    // tysize[x] == tysize[TYfptr] so don't set
+        tysize[TYfref + i] = 10;    // tysize[TYfptr] to tysize[TYnptr]
+        tysize[TYldouble + i] = REALSIZE;
+        tysize[TYildouble + i] = REALSIZE;
+        tysize[TYcldouble + i] = 2 * REALSIZE;
 
-        for (i = 0; i < 0x100; i += 0x40)
-        {   tysize[TYenum + i] = LONGSIZE;
-            tysize[TYint  + i] = LONGSIZE;
-            tysize[TYuint + i] = LONGSIZE;
-            tysize[TYnptr + i] = 8;
-            tysize[TYsptr + i] = 8;
-            tysize[TYcptr + i] = 8;
-            tysize[TYnref + i] = 8;
-            tysize[TYfptr + i] = 10;    // NOTE: There are codgen test that check
-            tysize[TYvptr + i] = 10;    // tysize[x] == tysize[TYfptr] so don't set
-            tysize[TYfref + i] = 10;    // tysize[TYfptr] to tysize[TYnptr]
-            tysize[TYldouble + i] = REALSIZE;
-            tysize[TYildouble + i] = REALSIZE;
-            tysize[TYcldouble + i] = 2 * REALSIZE;
-
-            tyalignsize[TYenum + i] = LONGSIZE;
-            tyalignsize[TYint  + i] = LONGSIZE;
-            tyalignsize[TYuint + i] = LONGSIZE;
-            tyalignsize[TYnullptr + i] = 8;
-            tyalignsize[TYnptr + i] = 8;
-            tyalignsize[TYsptr + i] = 8;
-            tyalignsize[TYcptr + i] = 8;
-            tyalignsize[TYnref + i] = 8;
-            tyalignsize[TYfptr + i] = 8;
-            tyalignsize[TYvptr + i] = 8;
-            tyalignsize[TYfref + i] = 8;
+        tyalignsize[TYenum + i] = LONGSIZE;
+        tyalignsize[TYint  + i] = LONGSIZE;
+        tyalignsize[TYuint + i] = LONGSIZE;
+        tyalignsize[TYnullptr + i] = 8;
+        tyalignsize[TYnptr + i] = 8;
+        tyalignsize[TYsptr + i] = 8;
+        tyalignsize[TYcptr + i] = 8;
+        tyalignsize[TYnref + i] = 8;
+        tyalignsize[TYfptr + i] = 8;
+        tyalignsize[TYvptr + i] = 8;
+        tyalignsize[TYfref + i] = 8;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            tyalignsize[TYldouble + i] = 16;
-            tyalignsize[TYildouble + i] = 16;
-            tyalignsize[TYcldouble + i] = 16;
+        tyalignsize[TYldouble + i] = 16;
+        tyalignsize[TYildouble + i] = 16;
+        tyalignsize[TYcldouble + i] = 16;
 #else
-            assert(0);
+        assert(0);
 #endif
-            tytab[TYjfunc + i] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
-        }
+        tytab[TYjfunc + i] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
     }
 
     TYptrdiff = TYllong;
@@ -406,7 +387,20 @@ void backend_init()
     block_init();
     type_init();
 
-    fregsaved = I64 ? mBP | mBX | mR12 | mR13 | mR14 | mR15 | mES : mES | mBP | mBX | mSI | mDI;
+    if (global.params.is64bit)
+    {
+        util_set64();
+        cod3_set64();
+    }
+    else
+    {
+        util_set32();
+        cod3_set32();
+    }
+
+    rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
+
+    out_config_init();
 }
 
 void backend_term()

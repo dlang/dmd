@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -45,7 +45,7 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned alignsize;         // size of struct for alignment purposes
     unsigned structalign;       // struct member alignment in effect
     int hasUnions;              // set if aggregate has overlapping fields
-    Array fields;               // VarDeclaration fields
+    VarDeclarations fields;     // VarDeclaration fields
     unsigned sizeok;            // set when structsize contains valid data
                                 // 0: no size
                                 // 1: size is correct
@@ -67,6 +67,7 @@ struct AggregateDeclaration : ScopeDsymbol
     Dsymbol *ctor;                      // CtorDeclaration or TemplateDeclaration
     CtorDeclaration *defaultCtor;       // default constructor
     Dsymbol *aliasthis;                 // forward unresolved lookups to aliasthis
+    bool noDefaultCtor;         // no default construction
 #endif
 
     FuncDeclarations dtors;     // Array of destructors
@@ -177,17 +178,17 @@ struct BaseClass
 
     ClassDeclaration *base;
     int offset;                         // 'this' pointer offset
-    Array vtbl;                         // for interfaces: Array of FuncDeclaration's
+    FuncDeclarations vtbl;              // for interfaces: Array of FuncDeclaration's
                                         // making up the vtbl[]
 
-    int baseInterfaces_dim;
+    size_t baseInterfaces_dim;
     BaseClass *baseInterfaces;          // if BaseClass is an interface, these
                                         // are a copy of the InterfaceDeclaration::interfaces
 
     BaseClass();
     BaseClass(Type *type, enum PROT protection);
 
-    int fillVtbl(ClassDeclaration *cd, Array *vtbl, int newinstance);
+    int fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
     void copyBaseInterfaces(BaseClasses *);
 };
 
@@ -212,13 +213,13 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
     FuncDeclaration *staticCtor;
     FuncDeclaration *staticDtor;
-    Array vtbl;                         // Array of FuncDeclaration's making up the vtbl[]
-    Array vtblFinal;                    // More FuncDeclaration's that aren't in vtbl[]
+    Dsymbols vtbl;                      // Array of FuncDeclaration's making up the vtbl[]
+    Dsymbols vtblFinal;                 // More FuncDeclaration's that aren't in vtbl[]
 
     BaseClasses *baseclasses;           // Array of BaseClass's; first is super,
                                         // rest are Interface's
 
-    int interfaces_dim;
+    size_t interfaces_dim;
     BaseClass **interfaces;             // interfaces[interfaces_dim] for this class
                                         // (does not include baseClass)
 

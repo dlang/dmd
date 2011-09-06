@@ -409,8 +409,8 @@ Symbol *FuncDeclaration::toSymbol()
                     ClassDeclaration *cd = parent->isClassDeclaration();
                     if (cd)
                     {
-                        ::type *t = cd->type->toCtype();
-                        s->Sscope = t->Tnext->Ttag;
+                        ::type *tc = cd->type->toCtype();
+                        s->Sscope = tc->Tnext->Ttag;
                     }
                     break;
                 }
@@ -563,13 +563,10 @@ Symbol *Module::toSymbol()
 {
     if (!csym)
     {
-        Symbol *s;
-        static Classsym *scc;
-
         if (!scc)
             scc = fake_classsym(Id::ClassInfo);
 
-        s = toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
+        Symbol *s = toSymbolX("__ModuleInfo", SCextern, scc->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
         csym = s;
@@ -754,14 +751,8 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
     __body
 #endif
     {
-        int sz;
-        char *id;
-        type *t;
-        Symbol *s;
-        int i;
-
         // Dumb linear symbol table - should use associative array!
-        static Array *sarray = NULL;
+        static Symbols *sarray = NULL;
 
         //printf("aaGetSymbol(func = '%s', flags = %d, key = %p)\n", func, flags, key);
 #if 0
@@ -770,35 +761,35 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 
         sz = next->size();              // it's just data, so we only care about the size
         sz = (sz + 3) & ~3;             // reduce proliferation of library routines
-        id = (char *)alloca(3 + strlen(func) + buf.offset + sizeof(sz) * 3 + 1);
+        char *id = (char *)alloca(3 + strlen(func) + buf.offset + sizeof(sz) * 3 + 1);
         buf.writeByte(0);
         if (flags & 1)
             sprintf(id, "_aa%s%s%d", func, buf.data, sz);
         else
             sprintf(id, "_aa%s%s", func, buf.data);
 #else
-        id = (char *)alloca(3 + strlen(func) + 1);
+        char *id = (char *)alloca(3 + strlen(func) + 1);
         sprintf(id, "_aa%s", func);
 #endif
         if (!sarray)
-            sarray = new Array();
+            sarray = new Symbols();
 
         // See if symbol is already in sarray
-        for (i = 0; i < sarray->dim; i++)
-        {   s = (Symbol *)sarray->data[i];
+        for (size_t i = 0; i < sarray->dim; i++)
+        {   Symbol *s = (*sarray)[i];
             if (strcmp(id, s->Sident) == 0)
                 return s;                       // use existing Symbol
         }
 
         // Create new Symbol
 
-        s = symbol_calloc(id);
+        Symbol *s = symbol_calloc(id);
         slist_add(s);
         s->Sclass = SCextern;
         s->Ssymnum = -1;
         symbol_func(s);
 
-        t = type_alloc(TYnfunc);
+        type *t = type_alloc(TYnfunc);
         t->Tflags = TFprototype | TFfixed;
         t->Tmangle = mTYman_c;
         t->Tparamtypes = NULL;

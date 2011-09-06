@@ -41,7 +41,7 @@ public:
     extern (Windows) :
 
     // IUnknown members
-    HRESULT QueryInterface(const (IID)*riid, LPVOID *ppv)
+    override HRESULT QueryInterface(const (IID)*riid, LPVOID *ppv)
     {
         MessageBoxA(null, "CHelloClassFactory.QueryInterface()", null, MB_OK);
 
@@ -66,7 +66,7 @@ public:
     }
 
     // IClassFactory members
-    HRESULT CreateInstance(IUnknown pUnkOuter, IID*riid, LPVOID *ppvObj)
+    override HRESULT CreateInstance(IUnknown pUnkOuter, IID*riid, LPVOID *ppvObj)
     {
         CHello  pObj;
         HRESULT hr;
@@ -401,7 +401,7 @@ void unicode2ansi(char *s)
     wchar *w;
 
     for (w = cast(wchar *) s; *w; w++)
-        *s++ = *w;
+        *s++ = cast(char)*w;
 
     *s = 0;
 }

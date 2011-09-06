@@ -92,7 +92,8 @@ void test8()
 {
     auto p = &foo8;
     showf(p.mangleof);
-    assert(p.mangleof == "PFxAaxC9testconst2C8xiZv");
+    assert(typeof(p).mangleof == "PFxAaxC9testconst2C8xiZv");
+    assert(p.mangleof == "_D9testconst5test8FZv1pPFxAaxC9testconst2C8xiZv");
 }
 
 /************************************/

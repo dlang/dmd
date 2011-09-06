@@ -18,6 +18,8 @@
         __DMC__         Digital Mars compiler
         _MSC_VER        Microsoft compiler
         __GNUC__        Gnu compiler
+        __clang__       Clang compiler
+        __llvm__        Compiler using LLVM as backend (LLVM-GCC/Clang)
 
     Host operating system:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
@@ -44,14 +46,6 @@
         DOS386          32 bit DOS extended executable
         DOS16RM         Rational Systems 286 DOS extender
         _MSDOS          MSDOS
-
-Host systems no longer supported:
-
-        HOST_THINK
-        HOST_RAINBOW
-        HOST_MPW        Macintosh Programmers' Workbench
-        HOST_UNIX       Unix systems other than linux
-        HOST_MAC
 
 One and only one of these macros must be set by the makefile:
 
@@ -163,9 +157,6 @@ One and only one of these macros must be set by the makefile:
  */
 
 #define TX86            1               // target is Intel 80X86 processor
-#define TARGET_68K      0               // target is a 68K processor
-#define TARGET_POWERPC  0               // target is a PPC processor
-#define TARGET_MAC      0               // target is a macintosh
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX
@@ -315,13 +306,6 @@ One and only one of these macros must be set by the makefile:
 #define NEWSTATICDTOR           1       // support new style static destructors
 
 // For Shared Code Base
-#define TARGET_structBLOCK
-#define TARGET_structFUNC_S
-#define TARGET_structSTRUCT
-#define TARGET_structPARAM
-#define TARGET_structBLKLST
-#define TARGET_structELEM
-#define TARGET_structSYMBOL
 #define TARGET_INLINEFUNC_NAMES
 #define PASCAL pascal
 #define HINT int

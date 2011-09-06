@@ -21,25 +21,15 @@
 #include        "oper.h"
 #include        "global.h"
 #include        "type.h"
-#include        "parser.h"
 #include        "filespec.h"
 #include        "code.h"
 #include        "cgcv.h"
 #include        "go.h"
 #include        "dt.h"
 #if SCPP
+#include        "parser.h"
 #include        "cpp.h"
 #include        "el.h"
-#endif
-
-#if TARGET_MAC
-#include        "TG.h"
-#endif
-
-#if TARGET_POWERPC
-#include "cgobjxcoff.h"
-#include "xcoff.h"
-#include "cgfunc.h"
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
@@ -66,7 +56,7 @@ void out_extdef(symbol *s)
 
 #endif
 
-#if TX86 || (!HOST_THINK && (TARGET_68K))
+#if TX86
 #if SCPP
 /********************************
  * Put out code segment name record.
@@ -113,9 +103,7 @@ void outdata(symbol *s)
     int seg;
     targ_size_t offset;
     int flags;
-    char *p;
     tym_t ty;
-    int tls;
 
     symbol_debug(s);
 #ifdef DEBUG
@@ -129,6 +117,9 @@ void outdata(symbol *s)
 
     dtstart = s->Sdt;
     s->Sdt = NULL;                      // it will be free'd
+#if OMFOBJ
+    int tls = 0;
+#endif
 #if SCPP && TARGET_WINDOS
     if (eecontext.EEcompile)
     {   s->Sfl = (s->ty() & mTYfar) ? FLfardata : FLextern;
@@ -137,7 +128,6 @@ void outdata(symbol *s)
     }
 #endif
     datasize = 0;
-    tls = 0;
     ty = s->ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
         obj_export(s,0);        // export data definition
@@ -209,7 +199,9 @@ void outdata(symbol *s)
                             break;
 #endif
                         case mTYcs:
+#if OMFOBJ
                             seg = cseg;
+#endif
                             Coffset = align(datasize,Coffset);
                             s->Soffset = Coffset;
                             Coffset += datasize;
@@ -227,15 +219,15 @@ void outdata(symbol *s)
                             s->Soffset = TDoffset;
                             TDoffset += datasize;
                             pseg->SDoffset = TDoffset;
-#endif
                             seg = pseg->SDseg;
-                            s->Sfl = FLtlsdata;
                             tls = 1;
+#endif
+                            s->Sfl = FLtlsdata;
                             break;
                         }
                         default:
 #if ELFOBJ || MACHOBJ
-                            seg = elf_data_start(s,datasize,UDATA);
+                            elf_data_start(s,datasize,UDATA);
                             obj_lidata(s->Sseg,s->Soffset,datasize);
 #else
                             seg = UDATA;
@@ -319,7 +311,9 @@ void outdata(symbol *s)
                 break;
             case mTYthread:
                 s->Sfl = FLtlsdata;
+#if OMFOBJ
                 tls = 1;
+#endif
                 break;
 
             default:
@@ -353,10 +347,10 @@ void outdata(symbol *s)
             targ_size_t TDoffset = pseg->SDoffset;
             TDoffset = align(datasize,TDoffset);
             s->Soffset = TDoffset;
+            tls = 1;
 #endif
             seg = pseg->SDseg;
             s->Sfl = FLtlsdata;
-            tls = 1;
             break;
         }
         case mTYnear:
@@ -463,7 +457,7 @@ void outdata(symbol *s)
     }
 #if ELFOBJ || MACHOBJ
     Offset(seg) = offset;
-#else
+#elif OMFOBJ
     if (seg == DATA)
         Doffset = offset;
     else if (seg == cseg)
@@ -472,6 +466,8 @@ void outdata(symbol *s)
     {
         obj_tlsseg()->SDoffset = offset;
     }
+#else
+#error "obj format?"
 #endif
 #if SCPP
     out_extdef(s);
@@ -553,11 +549,11 @@ void outcommon(symbol *s,targ_size_t n)
 STATIC void outelem(elem *e)
 {
     symbol *s;
-    char *p;
-    targ_size_t sz;
-    type *t;
     tym_t tym;
     elem *e1;
+#if SCPP
+    type *t;
+#endif
 
 again:
     assert(e);
@@ -788,10 +784,10 @@ void out_regcand(symtab_t *psymtab)
 {
     block *b;
     SYMIDX si;
-    T80x86(int ifunc;)
+    int ifunc;
 
     //printf("out_regcand()\n");
-    T80x86(ifunc = (tybasic(funcsym_p->ty()) == TYifunc);)
+    ifunc = (tybasic(funcsym_p->ty()) == TYifunc);
     for (si = 0; si < psymtab->top; si++)
     {   symbol *s = psymtab->tab[si];
 
@@ -920,28 +916,23 @@ void writefunc(symbol *sfunc)
 }
 
 STATIC void writefunc2(symbol *sfunc)
-{   unsigned i,n;
+{
     block *b;
     unsigned nsymbols;
     SYMIDX si;
     int anyasm;
+#if OMFOBJ
     int csegsave;
     targ_size_t coffsetsave;
+#endif
     func_t *f = sfunc->Sfunc;
     tym_t tyf;
-#if TARGET_POWERPC
-    type *tyArr;
-#endif
 
     //printf("writefunc(%s)\n",sfunc->Sident);
     debug(debugy && dbg_printf("writefunc(%s)\n",sfunc->Sident));
 #if SCPP
     if (CPP)
     {
-#if TARGET_MAC
-    if (configv.verbose == 2)
-        dbg_printf(" %s\n",sfunc->Sident);
-#endif // TARGET_MAC
 
     // If constructor or destructor, make sure it has been fixed.
     if (f->Fflags & (Fctor | Fdtor))
@@ -952,13 +943,6 @@ STATIC void writefunc2(symbol *sfunc)
     {   Classsym *stag;
 
         stag = (Classsym *) sfunc->Sscope;
-#if TARGET_MAC
-        if (stag->Sstruct->Sflags & STRpasobj)
-        {
-            po_func_Methout(stag);
-        }
-        else
-#endif // TARGET_MAC
         {
             enum SC scvtbl;
 
@@ -1001,24 +985,6 @@ STATIC void writefunc2(symbol *sfunc)
     assert(globsym.top == 0);
     memcpy(&globsym.tab[0],&f->Flocsym.tab[0],nsymbols * sizeof(symbol *));
     globsym.top = nsymbols;
-#if TARGET_POWERPC
-    //
-    // JTM: I moved the code in cgcntrl.c to here
-    // and made SpillSym a global
-    //
-    // Is it OK to add to globsym.tab here?  When will the memory for the _TMP symbol
-    // get freed?       We may need to add an explicit free of this symbol somewhere within
-    // this function
-    // Need to chat with PLS about this
-
-    // initialize the spill area symbol, fake it to be an array
-    tyArr = type_alloc(TYarray);        /* array of                     */
-    tyArr->Tdim = 1;
-    tyArr->Tnext = tslong;
-    SpillSym = symbol_generate(SCtmp, tyArr);
-    symbol_add(SpillSym);
-    SpillSym->Sfl = FLauto; // mark it as auto since it is the last in that area
-#endif
 
     assert(startblock == NULL);
     if (f->Fflags & Finline)            // if keep function around
@@ -1078,9 +1044,6 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
 
     // TX86 computes parameter offsets in stackoffsets()
-#if TARGET_MAC
-    Poffset = 0;
-#endif
     //printf("globsym.top = %d\n", globsym.top);
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
@@ -1131,66 +1094,10 @@ STATIC void writefunc2(symbol *sfunc)
             case SCparameter:
 #endif
                 s->Sfl = FLpara;
-#if TARGET_MAC
-                {
-                unsigned Ssize;
-                unsigned short tsize;
-
-                assert(funcsym_p);
-                /* Handle case where float parameter is really passed as a double */
-                /* Watch out because SFLimplem == SFLdouble (ugh)               */
-                if (s->Sflags & SFLdouble)
-                {
-                    switch(type_size(s->Stype))
-                    {
-                        case CHARSIZE:
-                        case SHORTSIZE:
-                            Ssize = 4;
-                            break;
-                        case FLOATSIZE:
-                        case DOUBLESIZE:
-#if TARGET_POWERPC
-                                Ssize = LNGDBLSIZE;
-#else
-                            Ssize = (config.inline68881) ? LNGHDBLSIZE:LNGDBLSIZE;
-#endif
-                            break;
-                        default:
-                            assert(0);
-                    }
-                }
-                else
-                    Ssize = type_size(s->Stype);
-#ifdef DEBUG
-                if (debugx) dbg_printf("size=%d ",Ssize);
-#endif
-                Poffset = align(sizeof(targ_short),Poffset);
-                                                /* align on short stack boundary */
-                s->Sclass = SCparameter;        /* SCregpar used equivalently */
-                s->Soffset = Poffset;
-                if ( ((Ssize > LONGSIZE) || tyfloating(s->Sty)) &&
-                   typasfunc(funcsym_p->Sty) )
-                    {                           /* ptr to param was passed for pascal*/
-                    s->Sfl = FLptr2param;       /* will need to copy into temporary for pascal */
-                    s->Sflags &= ~GTregcand;    /* pascal long dbl ptrs to param float */
-                    }
-                if(Ssize == CHARSIZE)           /* 68000 stack must stay word aligned */
-                    Poffset += CHARSIZE;
-                if(tyintegral(tybasic(s->Sty)) && (Ssize > (tsize = size(s->Sty))) )
-                    {
-                    if(tsize == 1)
-                        s->Soffset += 4-CHARSIZE;
-                    else if(tsize == SHORTSIZE)
-                        s->Soffset += 4-SHORTSIZE;
-                    }
-                Poffset += ((s->Sfl == FLptr2param) && (Ssize > LONGSIZE)) ? LONGSIZE:Ssize;
-                }
-#else
                 if (tyf == TYifunc)
                 {   s->Sflags |= SFLlivexit;
                     break;
                 }
-#endif
             L3:
                 if (!(s->ty() & mTYvolatile))
                     s->Sflags |= GTregcand | SFLunambig; // assume register candidate   */
@@ -1277,6 +1184,7 @@ STATIC void writefunc2(symbol *sfunc)
         blockopt(0);                    /* optimize                     */
     }
 
+#if SCPP
     if (CPP)
     {
         // Look for any blocks that return nothing.
@@ -1302,14 +1210,17 @@ STATIC void writefunc2(symbol *sfunc)
                 func_noreturnvalue();
         }
     }
+#endif
     assert(funcsym_p == sfunc);
     if (eecontext.EEcompile != 1)
     {
 #if TX86
         if (symbol_iscomdat(sfunc))
         {
+#if OMFOBJ
             csegsave = cseg;
             coffsetsave = Coffset;
+#endif
             obj_comdat(sfunc);
         }
         else
@@ -1328,8 +1239,6 @@ STATIC void writefunc2(symbol *sfunc)
 #else
         sfunc->Sseg = cseg;             // current code seg
 #endif
-#elif TARGET_MAC
-        Coffset = 0;                    // all PC relative from start of this module
 #endif
         sfunc->Soffset = Coffset;       // offset of start of function
         searchfixlist(sfunc);           // backpatch any refs to this function
@@ -1367,14 +1276,13 @@ STATIC void writefunc2(symbol *sfunc)
         goto Ldone;
     if (sfunc->Sclass == SCglobal)
     {
-        char *id;
-
 #if OMFOBJ
         if (!(config.flags4 & CFG4allcomdat))
             objpubdef(cseg,sfunc,sfunc->Soffset);       // make a public definition
 #endif
 
 #if SCPP && _WIN32
+        char *id;
         // Determine which startup code to reference
         if (!CPP || !isclassmember(sfunc))              // if not member function
         {   static char *startup[] =
@@ -1480,11 +1388,7 @@ STATIC void writefunc2(symbol *sfunc)
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
 #endif
-#if !(TARGET_POWERPC)
             obj_funcptr(sfunc);
-#else
-                ;
-#endif
     }
 
 Ldone:
@@ -1503,10 +1407,6 @@ Ldone:
     MEM_PARF_FREE(dfo);
 #endif
     dfo = NULL;
-#if TARGET_MAC
-    release_temp_memory();              /* release temporary memory */
-    PARSER = 1;
-#endif
 }
 
 /*************************
@@ -1606,9 +1506,22 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
     return s;
 }
 
-
-#if TARGET_MAC
-#include "TGout.c"
+void Srcpos::print(const char *func)
+{
+    printf("%s(", func);
+#if MARS
+    printf("Sfilename = %s", Sfilename ? Sfilename : "null");
+#else
+    Sfile *sf = Sfilptr ? *Sfilptr : NULL;
+    printf("Sfilptr = %p (filename = %s)", sf, sf ? sf->SFname : "null");
 #endif
+    printf(", Slinnum = %u", Slinnum);
+#if SOURCE_OFFSETS
+    printf(", Sfiloff = %d", Sfiloff);
+#endif
+    printf(")\n");
+}
+
 
 #endif /* !SPP */
+

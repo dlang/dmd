@@ -171,17 +171,10 @@ enum LANG
 
 #define arraysize(array)        (sizeof(array) / sizeof(array[0]))
 
-#if TX86
-
 #define IDMAX   900 //467 //254 // identifier max (excluding terminating 0)
 #define IDOHD   (4+1+sizeof(int)*3)     // max amount of overhead to ID added by
 #define STRMAX  65000           // max length of string (determined by
                                 // max ph size)
-#else
-// USER_IDMAX is the max allowed for a user identifier
-// IDMAX in TGcc.h is the maximum mangled name allowed by the target linker
-#define USER_IDMAX 254
-#endif
 
 enum SC;
 struct Thunk;
@@ -202,9 +195,7 @@ struct elem;
 typedef struct MACRO macro_t;
 typedef struct BLKLST blklst;
 typedef list_t symlist_t;       /* list of pointers to Symbols          */
-#if TX86
 typedef struct SYMTAB_S symtab_t;
-#endif
 struct code;
 
 extern Config config;
@@ -214,7 +205,6 @@ extern Config config;
 typedef struct Srcpos
 {
     unsigned Slinnum;           // 0 means no info available
-#if TX86
 #if SPP || SCPP
     struct Sfile **Sfilptr;     // file
     #define srcpos_sfile(p)     (**(p).Sfilptr)
@@ -224,13 +214,14 @@ typedef struct Srcpos
     const char *Sfilename;
     #define srcpos_name(p)      ((p).SFname)
 #endif
-#endif
 #if M_UNIX
     short Sfilnum;              // file number
 #endif
 #if SOURCE_OFFSETS
     unsigned long Sfiloff;      // byte offset
 #endif
+
+    void print(const char *func);
 } Srcpos;
 
 #ifndef TOKEN_H
@@ -266,7 +257,7 @@ typedef struct Pstate
     char STinexcept;            // if !=0 then in exception handler
     block *STbfilter;           // current exception filter
 #endif
-#if TX86
+#if !MARS
     int STinitseg;              // segment for static constructor function pointer
 #endif
     Funcsym *STfuncsym_p;       // if inside a function, then this is the
@@ -296,28 +287,27 @@ typedef struct Pstate
 #       define PFLinclude       0x8000  // read a .h file
 #       define PFLmfc           0x10000 // something will affect MFC compatibility
 #endif
-#if TX86
+#if !MARS
     int STinparamlist;          // if != 0, then parser is in
                                 // function parameter list
     int STingargs;              // in template argument list
+    list_t STincalias;          // list of include aliases
+    list_t STsysincalias;       // list of system include aliases
+#endif
+
+#if TX86
+    // should probably be inside #if HYDRATE, but unclear for the dmc source
     char SThflag;               // FLAG_XXXX: hydration flag
 #define FLAG_INPLACE    0       // in place hydration
 #define FLAG_HX         1       // HX file hydration
 #define FLAG_SYM        2       // .SYM file hydration
-
-    list_t STincalias;          // list of include aliases
-    list_t STsysincalias;       // list of system include aliases
 #endif
+
     Classsym *STclasssym;       // if in the scope of this class
     symlist_t STclasslist;      // list of classes that have deferred inline
                                 // functions to parse
     Classsym *STstag;           // returned by struct_searchmember() and with_search()
     SYMIDX STmarksi;            // to determine if temporaries are created
-#if !TX86
-    int STnest;                 // nesting of ext_def()
-    symlist_t STclasslist;      // list of classes that have inline functions
-                                // to parse
-#endif
     char STnoparse;             // add to classlist instead of parsing
     char STdeferparse;          // defer member func parse
     enum SC STgclass;           // default function storage class
@@ -326,28 +316,8 @@ typedef struct Pstate
                                 // never does get done later)
     int STnewtypeid;            // parsing new-type-id
     int STdefaultargumentexpression;    // parsing default argument expression
-#if !TX86
-    char STone_id;              // TRUE if only one declaration is allowed, used
-                                // for declarations appearing in for statements,
-                                // while, if, etc.  that are not allowed to declare multiple
-                                // identifiers
-    char STno_scope;            // The next lcur should not create it's own scope, the
-                                // scoping work has already been done for it
-                                // by an enclosing conditional.  This is to make the
-                                // conditional expression declarations for RTTI behave as specified
-#endif
     block *STbtry;              // current try block
     block *STgotolist;          // threaded goto scoping list
-#if MPW_OBJ && TARGET_68K
-    short STpush_value;
-    short STpop_value;
-    char  STdo_push;
-#endif
-#if !TX86
-    char STdo_pop;
-    char STprogressShown;       // true if func_body() has already shown progress info
-    char STno_ambig;            // true if lookups should not report ambiguous errors
-#endif
     long STtdbtimestamp;        // timestamp of tdb file
     Symbol *STlastfunc;         // last function symbol parsed by ext_def()
 
@@ -359,7 +329,6 @@ typedef struct Pstate
 
 extern Pstate pstate;
 
-#if TX86
 /****************************
  * Global variables.
  */
@@ -377,8 +346,6 @@ typedef struct Cstate
 } Cstate;
 
 extern Cstate cstate;
-
-#endif
 
 /* Bits for sytab[] that give characteristics of storage classes        */
 #define SCEXP   1       // valid inside expressions
@@ -440,9 +407,6 @@ typedef struct block
     list_t        Bsucc;        // linked list of pointers to successors
                                 //     of this block
     list_t        Bpred;        // and the predecessor list
-#if !TX86
-    block *Boldnext;            // Saves original pointer to next block in list
-#endif
     int Bindex;                 // into created object stack
     int Bendindex;              // index at end of block
     block *Btry;                // BCtry,BC_try: enclosing try block, if any
@@ -506,22 +470,13 @@ typedef struct block
         #define BFLehcode     0x10      // set when we need to load exception code
         #define BFLunwind     0x1000    // do local_unwind following block
 #endif
-#if TARGET_POWERPC
-        #define BFLstructret  0x10      /* Set if a struct return is changed to
-                                           block type BCret.  This is done to avoid
-                                           error messages */
-#endif
         #define BFLnomerg      0x20     // do not merge with other blocks
-#if TX86
         #define BFLprolog      0x80     // generate function prolog
         #define BFLepilog      0x100    // generate function epilog
         #define BFLrefparam    0x200    // referenced parameter
         #define BFLreflocal    0x400    // referenced local
         #define BFLoutsideprolog 0x800  // outside function prolog/epilog
         #define BFLlabel        0x2000  // block preceded by label
-#else
-        #define BFLlooprt      0x40     // set if looprotate() changes it's Bnext
-#endif
         #define BFLvolatile     0x4000  // block is volatile
     code        *Bcode;         // code generated for this block
 
@@ -606,13 +561,9 @@ typedef struct block
             #define Btryoff             _BLU._UD.Btryoff
         } _UD;
     } _BLU;
-    TARGET_structBLOCK
 } block;
 
 #define list_block(l)   ((block *) list_ptr(l))
-#if !TX86
-#define block_calloc()  ((block *) MEM_PH_CALLOC(sizeof(block)))
-#endif
 
 /** Basic block control flow operators. **/
 
@@ -696,9 +647,7 @@ typedef struct FUNC_S
 #       define Ffixed    0x40000        // ctor has had cpp_fixconstructor() run on it,
                                         // dtor has had cpp_fixdestructor()
 #       define Fintro    0x80000        // function doesn't hide a previous virtual function
-#if !TX86
-#       define Fstcstd   0x100000       // static constructor or static destructor
-#endif
+//#     define unused    0x100000       // unused bit
 #       define Fkeeplink 0x200000       // don't change linkage to default
 #       define Fnodebug  0x400000       // do not generate debug info for this function
 #       define Fgen      0x800000       // compiler generated function
@@ -755,9 +704,7 @@ typedef struct FUNC_S
     };
     Funcsym *Falias;            // SCfuncalias: function Symbol referenced
                                 // by using-declaration
-#if TX86
     symlist_t Fthunks;          // list of thunks off of this function
-#endif
     param_t *Farglist;          // SCfunctempl: the template-parameter-list
     param_t *Fptal;             // Finstance: this is the template-argument-list
                                 // SCftexpspec: for explicit specialization, this
@@ -772,16 +719,10 @@ typedef struct FUNC_S
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     char *Fredirect;            // redirect function name to this name in object
 #endif
-    TARGET_structFUNC_S
 } func_t;
 
-#if TX86
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))
 #define func_free(f)    mem_ffree(f)
-#else
-#define func_calloc()   ((func_t *) MEM_PH_CALLOC(sizeof(func_t)))
-#define func_free(f)    MEM_PH_FREE(f)
-#endif
 
 /**************************
  * Item in list for member initializer.
@@ -1110,16 +1051,10 @@ typedef struct STRUCT
                                 // It is NULL for the
                                 // primary template class (since it would be
                                 // identical to Sarglist).
-    TARGET_structSTRUCT
 } struct_t;
 
-#if TX86
 #define struct_calloc() ((struct_t *) mem_fcalloc(sizeof(struct_t)))
 #define struct_free(st) ((void)(st))
-#else
-#define struct_calloc() ((struct_t *) MEM_PH_CALLOC(sizeof(struct_t)))
-#define struct_free(st) MEM_PH_FREE(st)
-#endif
 
 /**********************************
  * Symbol Table
@@ -1128,10 +1063,6 @@ typedef struct STRUCT
 #define list_symbol(l)          ((Symbol *) list_ptr(l))
 #define list_setsymbol(l,s)     list_ptr(l) = (s)
 #define list_Classsym(l)        ((Classsym *) list_ptr(l))
-
-#if TARGET_POWERPC
-#pragma SC align 4
-#endif
 
 struct Symbol
 {
@@ -1146,9 +1077,7 @@ struct Symbol
 #endif
 
     Symbol *Sl,*Sr;             // left, right child
-#if TX86
     Symbol *Snext;              // next in threaded list
-#endif
     dt_t *Sdt;                  // variables: initializer
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
@@ -1173,7 +1102,7 @@ struct Symbol
         }_SL;
         #define Senumlist Senum->SEenumlist
 
-#if TX86
+#if !MARS
         struct                  // SClinkage
         {
             long Slinkage_;     // tym linkage bits
@@ -1191,10 +1120,8 @@ struct Symbol
              #define Sbit _SU._SB.Sbit_
             char Swidth_;       // SCfield: width in bits of bit field
              #define Swidth _SU._SB.Swidth_
-#if TX86
             targ_size_t Smemoff_; // SCmember,SCfield: offset from start of struct
              #define Smemoff _SU._SB.Smemoff_
-#endif
         }_SB;
 
         elem *Svalue_;          /* SFLvalue: value of const
@@ -1226,7 +1153,7 @@ struct Symbol
              #define Spath _SU._SA.Spath_
         }_SA;
 #endif
-#if TX86
+#if !MARS
         Symbol *Simport_;       // SCextern: if dllimport Symbol, this is the
         #define Simport _SU.Simport_
                                 // Symbol it was imported from
@@ -1336,17 +1263,12 @@ struct Symbol
     vec_t       Slvreg;         // when symbol is in register
     targ_size_t Ssize;          // tyfunc: size of function
     targ_size_t Soffset;        // variables: offset of Symbol in its storage class
-#if TARGET_MAC
-#define Smemoff Soffset
-#endif
 
     // CPP || OPTIMIZER
     SYMIDX Ssymnum;             // Symbol number (index into globsym.tab[])
                                 // SCauto,SCparameter,SCtmp,SCregpar,SCregister
     // CODGEN
-#if TX86
     int Sseg;                   // segment index
-#endif
     int Sweight;                // usage count, the higher the number,
                                 // the more worthwhile it is to put in
                                 // a register
@@ -1365,25 +1287,21 @@ struct Symbol
           #define Sregm _SXR._SR.Sregm_
         }_SR;                   // SCregister,SCregpar,SCpseudo: register number
     }_SXR;
-#if TX86
     regm_t      Sregsaved;      // mask of registers not affected by this func
-#endif
 
 #if SOURCE_4SYMS
     Srcpos Ssrcpos;             // file position for definition
 #endif
-    // Target Additions
-    TARGET_structSYMBOL
-#if TX86
+
     char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
                                 // (the size is for static Symbols)
-#else
-    long Sident[];      // identifier string (dynamic array) as a str4
-#endif
 
     int needThis();     // !=0 if symbol needs a 'this' pointer
 };
+
+#if __DMC__
 #pragma SC align
+#endif
 
 // Class, struct or union
 
@@ -1459,7 +1377,6 @@ struct PARAM
 #if SOURCE_4PARAMS
     Srcpos Psrcpos;             // parameter source definition
 #endif
-    TARGET_structPARAM
 
     PARAM *createTal(PARAM *);  // create template-argument-list blank from
                                 // template-parameter-list
@@ -1500,6 +1417,7 @@ enum FL
         FLctor,         // constructed object
         FLdtor,         // destructed object
         FLregsave,      // ref to saved register on stack, int contains offset
+        FLasm,          // (code) an ASM code
 #if TX86
         FLndp,          // saved 8087 register
         FLfardata,      // ref to far data segment
@@ -1508,7 +1426,6 @@ enum FL
         FLtlsdata,      // thread local storage
         FLbprel,        // ref to variable at fixed offset from frame pointer
         FLframehandler, // ref to C++ frame handler for NT EH
-        FLasm,          // (code) an ASM code
         FLblockoff,     // address of block
         FLallocatmp,    // temp for built-in alloca()
         FLstack,        // offset from ESP rather than EBP
@@ -1520,15 +1437,13 @@ enum FL
         //FLoncedata,   // link once data
         //FLoncecode,   // link once code
 #endif
-#else
-        TARGET_enumFL
 #endif
         FLMAX
 };
 
-#if TX86
 ////////// Srcfiles
 
+#if !MARS
 // Collect information about a source file.
 typedef struct Sfile
 {
@@ -1575,6 +1490,7 @@ typedef struct Srcfiles
 
 #define sfile(fi)               (*srcfiles.pfiles[fi])
 #define srcfiles_name(fi)       (sfile(fi).SFname)
+#endif
 
 /**************************************************
  * This is to support compiling expressions within the context of a function.
@@ -1595,39 +1511,6 @@ struct EEcontext
 };
 
 extern EEcontext eecontext;
-#endif
-
-#if !TX86
-////////// Filenames
-
-typedef struct Filename
-{
-    char **arr;                         // array of filenames
-    unsigned dim;                       // dimension of array
-    unsigned idx;                       // # used in array
-} Filename;
-
-//
-// NOTE: In order to save the full settings of all of the options,
-// the following will need to be saved:
-//
-// config
-// PCrel_option
-// tysize[TYldouble]
-// war_to_msg_enable[]  - Array of warnings that are enabled/disabled 0 = enabled, 1 = disabled
-
-struct SAVED_OPTIONS
-{
-        struct Config config;
-#if TARGET_68K
-        short PCrel_option;
-#endif
-        mftype mfoptim;
-        signed char tysizeTYldouble;
-        unsigned char war_to_msg_enable[40];    // Assumes that the max warning number is 40
-        struct SAVED_OPTIONS *psoNext;
-};
-#endif
 
 #include "rtlsym.h"
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -105,15 +105,15 @@ int Dsymbol::oneMember(Dsymbol **ps)
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
 
-int Dsymbol::oneMembers(Array *members, Dsymbol **ps)
+int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps)
 {
     //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);
     Dsymbol *s = NULL;
 
     if (members)
     {
-        for (int i = 0; i < members->dim; i++)
-        {   Dsymbol *sx = (Dsymbol *)members->data[i];
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *sx = (*members)[i];
 
             int x = sx->oneMember(ps);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
@@ -198,7 +198,6 @@ const char *Dsymbol::toPrettyChars()
 char *Dsymbol::locToChars()
 {
     OutBuffer buf;
-    char *p;
 
     if (!loc.filename)  // avoid bug 5861.
     {
@@ -441,12 +440,18 @@ AggregateDeclaration *Dsymbol::isThis()
     return NULL;
 }
 
-ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
+AggregateDeclaration *Dsymbol::isAggregateMember()      // are we a member of an aggregate?
 {
     Dsymbol *parent = toParent();
-    if (parent && parent->isClassDeclaration())
-        return (ClassDeclaration *)parent;
+    if (parent && parent->isAggregateDeclaration())
+        return (AggregateDeclaration *)parent;
     return NULL;
+}
+
+ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
+{
+    AggregateDeclaration *ad = isAggregateMember();
+    return ad ? ad->isClassDeclaration() : NULL;
 }
 
 void Dsymbol::defineRef(Dsymbol *s)
@@ -598,13 +603,13 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
                 goto L1;
         }
 
-        for (; sc; sc = sc->enclosing)
+        for (Scope *sc2 = sc; sc2; sc2 = sc2->enclosing)
         {
-            if (sc->scopesym && sc->scopesym->isDeprecated())
+            if (sc2->scopesym && sc2->scopesym->isDeprecated())
                 goto L1;
 
             // If inside a StorageClassDeclaration that is deprecated
-            if (sc->stc & STCdeprecated)
+            if (sc2->stc & STCdeprecated)
                 goto L1;
         }
 
@@ -635,6 +640,10 @@ Module *Dsymbol::getModule()
     Dsymbol *s;
 
     //printf("Dsymbol::getModule()\n");
+    TemplateDeclaration *td = getFuncTemplateDecl(this);
+    if (td)
+        return td->getModule();
+
     s = this;
     while (s)
     {
@@ -667,12 +676,12 @@ Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
     if (a)
     {
         b = (Dsymbols *)a->copy();
-        for (int i = 0; i < b->dim; i++)
+        for (size_t i = 0; i < b->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)b->data[i];
+            Dsymbol *s = (*b)[i];
 
             s = s->syntaxCopy(NULL);
-            b->data[i] = (void *)s;
+            (*b)[i] = s;
         }
     }
     return b;
@@ -769,8 +778,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         OverloadSet *a = NULL;
 
         // Look in imported modules
-        for (int i = 0; i < imports->dim; i++)
-        {   ScopeDsymbol *ss = (ScopeDsymbol *)imports->data[i];
+        for (size_t i = 0; i < imports->dim; i++)
+        {   ScopeDsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
             // If private import, don't search it
@@ -817,12 +826,12 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                                 a = new OverloadSet();
                             /* Don't add to a[] if s2 is alias of previous sym
                              */
-                            for (int j = 0; j < a->a.dim; j++)
-                            {   Dsymbol *s3 = (Dsymbol *)a->a.data[j];
+                            for (size_t j = 0; j < a->a.dim; j++)
+                            {   Dsymbol *s3 = a->a[j];
                                 if (s2->toAlias() == s3->toAlias())
                                 {
                                     if (s3->isDeprecated())
-                                        a->a.data[j] = (void *)s2;
+                                        a->a[j] = s2;
                                     goto Lcontinue;
                                 }
                             }
@@ -868,13 +877,11 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
     if (s != this)
     {
         if (!imports)
-            imports = new Array();
+            imports = new ScopeDsymbols();
         else
         {
-            for (int i = 0; i < imports->dim; i++)
-            {   ScopeDsymbol *ss;
-
-                ss = (ScopeDsymbol *) imports->data[i];
+            for (size_t i = 0; i < imports->dim; i++)
+            {   ScopeDsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])
@@ -963,13 +970,13 @@ Dsymbol *ScopeDsymbol::symtabInsert(Dsymbol *s)
  */
 
 #if DMDV2
-size_t ScopeDsymbol::dim(Array *members)
+size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (Dsymbol *)members->data[i];
+        {   Dsymbol *s = (*members)[i];
             AttribDeclaration *a = s->isAttribDeclaration();
 
             if (a)
@@ -993,15 +1000,17 @@ size_t ScopeDsymbol::dim(Array *members)
  */
 
 #if DMDV2
-Dsymbol *ScopeDsymbol::getNth(Array *members, size_t nth, size_t *pn)
+Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
     if (!members)
         return NULL;
 
     size_t n = 0;
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = (*members)[i];
         AttribDeclaration *a = s->isAttribDeclaration();
+        TemplateMixin *tm = s->isTemplateMixin();
+        TemplateInstance *ti = s->isTemplateInstance();
 
         if (a)
         {
@@ -1009,6 +1018,14 @@ Dsymbol *ScopeDsymbol::getNth(Array *members, size_t nth, size_t *pn)
             if (s)
                 return s;
         }
+        else if (tm)
+        {
+            s = getNth(tm->members, nth - n, &n);
+            if (s)
+                return s;
+        }
+        else if (ti)
+            ;
         else if (n == nth)
             return s;
         else

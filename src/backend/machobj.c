@@ -784,7 +784,7 @@ void obj_term()
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
             Relocation *rend = (Relocation *)(pseg->SDrel->buf + pseg->SDrel->size());
             for (; r != rend; r++)
-            {   const char *rs = r->rtype == RELaddr ? "addr" : "rel";
+            {//   const char *rs = r->rtype == RELaddr ? "addr" : "rel";
                 symbol *s = r->targsym;
                 //printf("%d:x%04x : tseg %d tsym %p REL%s\n",
                     //seg, r->offset, r->targseg, s, rs);
@@ -1034,24 +1034,14 @@ void obj_term()
 
 void objlinnum(Srcpos srcpos, targ_size_t offset)
 {
-    unsigned linnum = srcpos.Slinnum;
-    if (linnum == 0)
+    if (srcpos.Slinnum == 0)
         return;
 
 #if 0
-#if MARS
-    printf("objlinnum(cseg=%d, filename=%s linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilename ? srcpos.Sfilename : "null",linnum,offset);
+#if MARS || SCPP
+    printf("objlinnum(cseg=%d, offset=x%lx) ", cseg, offset);
 #endif
-#if SCPP
-    printf("objlinnum(cseg=%d, filptr=%p linnum=%u, offset=x%lx)\n",
-        cseg,srcpos.Sfilptr ? *srcpos.Sfilptr : 0,linnum,offset);
-    if (srcpos.Sfilptr)
-    {
-        Sfile *sf = *srcpos.Sfilptr;
-        printf("filename = %s\n", sf ? sf->SFname : "null");
-    }
-#endif
+    srcpos.print("");
 #endif
 
 #if MARS
@@ -1059,13 +1049,10 @@ void objlinnum(Srcpos srcpos, targ_size_t offset)
         return;
 #endif
 #if SCPP
-    Sfile *sf;
-    if (srcpos.Sfilptr)
-    {   sfile_debug(&srcpos_sfile(srcpos));
-        sf = *srcpos.Sfilptr;
-    }
-    else
+    if (!srcpos.Sfilptr)
         return;
+    sfile_debug(&srcpos_sfile(srcpos));
+    Sfile *sf = *srcpos.Sfilptr;
 #endif
 
     size_t i;
@@ -1288,7 +1275,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     dt_t **pdte = &ehtab_entry->Sdt;
     pdte = dtxoff(pdte,sfunc,0,TYnptr);
     pdte = dtxoff(pdte,ehsym,0,TYnptr);
-    pdte = dtnbytes(pdte,4,(char *)&sfunc->Ssize);
+    dtnbytes(pdte,4,(char *)&sfunc->Ssize);
     outdata(ehtab_entry);
 }
 
@@ -1568,12 +1555,13 @@ seg_data *obj_tlsseg_bss()
  */
 
 void obj_alias(const char *n1,const char *n2)
-{   unsigned len;
-    char *buffer;
-
+{
     //printf("obj_alias(%s,%s)\n",n1,n2);
     assert(0);
 #if NOT_DONE
+    unsigned len;
+    char *buffer;
+
     buffer = (char *) alloca(strlen(n1) + strlen(n2) + 2 * ONS_OHD);
     len = obj_namestring(buffer,n1);
     len += obj_namestring(buffer + len,n2);
@@ -2056,7 +2044,6 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 #endif
     if (SegData[seg]->isCode() && SegData[targetdatum]->isCode())
     {
-        *(char *)0=0;
         assert(0);
     }
     mach_addrel(seg, offset, NULL, targetdatum, RELaddr);

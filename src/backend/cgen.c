@@ -463,11 +463,7 @@ code *genlinnum(code *c,Srcpos srcpos)
 {   code cs;
 
 #if 0
-#if MARS
-    printf("genlinnum(Sfilename = %p, Slinnum = %u)\n", srcpos.Sfilename, srcpos.Slinnum);
-#else
-    printf("genlinnum(Sfilptr = %p, Slinnum = %u)\n", srcpos.Sfilptr, srcpos.Slinnum);
-#endif
+    srcpos.print("genlinnum");
 #endif
     cs.Iop = ESCAPE | ESClinnum;
     cs.Iflags = 0;
@@ -507,6 +503,26 @@ code *genadjesp(code *c, int offset)
     if (!I16 && offset)
     {
         cs.Iop = ESCAPE | ESCadjesp;
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        cs.IEV2.Vint = offset;
+        return gen(c,&cs);
+    }
+    else
+        return c;
+}
+
+/********************************
+ * Generate 'instruction' which tells the scheduler that the fpu stack has
+ * changed.
+ */
+
+code *genadjfpu(code *c, int offset)
+{   code cs;
+
+    if (!I16 && offset)
+    {
+        cs.Iop = ESCAPE | ESCadjfpu;
         cs.Iflags = 0;
         cs.Irex = 0;
         cs.IEV2.Vint = offset;
@@ -574,8 +590,7 @@ code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
     targ_size_t regv = regcon.immed.value[reg];
 
     if (flags & 1)      // 8 bits
-    {   unsigned msk;
-
+    {
         value &= 0xFF;
         regm &= BYTEREGS;
 

@@ -27,15 +27,11 @@
 #include        "el.h"
 #include        "type.h"
 #include        "global.h"
-#include        "parser.h"
 #include        "go.h"
 #include        "code.h"
 #if SCPP
-#if TX86
+#include        "parser.h"
 #include        "iasm.h"
-#else
-#include        "TG.h"
-#endif
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
@@ -56,7 +52,6 @@ STATIC elem * assignparams(elem **pe,int *psi,elem **pe2);
 STATIC void emptyloops();
 int el_anyframeptr(elem *e);
 
-#if TX86
 unsigned numblks;       // number of basic blocks in current function
 block *startblock;      /* beginning block of function                  */
                         /* (can have no predecessors)                   */
@@ -66,8 +61,6 @@ unsigned dfotop;        /* # of items in dfo[]                          */
 
 block *curblock;        /* current block being read in                  */
 block *block_last;      // last block read in
-
-#endif
 
 static block * block_freelist;
 
@@ -221,7 +214,6 @@ void block_goto(block *bgoto,block *bnew)
 
 void block_ptr()
 {   block *b;
-    unsigned i;
 
 /*    dbg_printf("block_ptr()\n");*/
 
@@ -293,10 +285,7 @@ void block_visit(block *b)
  */
 
 void block_compbcount()
-{   block *b;
-    list_t bl;
-    int again;
-
+{
     block_clearvisit();
     block_visit(startblock);                    // visit all reachable blocks
     elimblks();                                 // eliminate unvisited blocks
@@ -335,11 +324,7 @@ void block_optimizer_free(block *b)
     vec_free(b->Bgen2);
     vec_free(b->Bkill2);
 
-#if TX86
     memset(&b->_BLU,0,sizeof(b->_BLU));
-#else
-    memset(&b->_BLU.BLCG,0,sizeof(b->_BLU.BLCG));
-#endif
 }
 
 /****************************
@@ -701,7 +686,7 @@ void brcombine()
             /* Replace with [(e1 && e2),e3]                             */
             bc = b->BC;
             if (bc == BCiftrue)
-            {   unsigned char bc2,bc3;
+            {   unsigned char bc2;
 
                 b2 = list_block(b->Bsucc);
                 b3 = list_block(list_next(b->Bsucc));
@@ -997,9 +982,6 @@ STATIC void bropt()
                         list_free(&b->Bsucc,FPNULL);
                         list_append(&b->Bsucc,db);
                         b->BC = BCgoto;
-#if !HOST_THINK
-                        MEM_PH_FREE(b->BS.Bswitch);
-#endif
                         b->Belem = doptelem(b->Belem,GOALnone | GOALagain);
                         cmes("CHANGE: switch (const)\n");
                         changes++;
@@ -1041,7 +1023,7 @@ STATIC void brrear()
                                 bt->Btry == list_block(bt->Bsucc)->Btry &&
 #endif
 
-                               ++iter < T68000(numblks) T80x86(10))
+                               ++iter < 10)
                         {
                                 list_ptr(bl) = list_ptr(bt->Bsucc);
                                 if (bt->Bsrcpos.Slinnum && !b->Bsrcpos.Slinnum)
@@ -1093,7 +1075,7 @@ STATIC void brrear()
  */
 
 void compdfo()
-{ register block *b;
+{
   register int i;
 
   cmes("compdfo()\n");
@@ -1324,7 +1306,6 @@ STATIC int mergeblks()
 STATIC void blident()
 {   block *bn;
     block *bnext;
-    block *btry;
 
     cmes("blident()\n");
     assert(startblock);
@@ -1681,9 +1662,6 @@ STATIC void bltailmerge()
                     if (bnew->BC == BCswitch)
                     {
                         bnew->BS.Bswitch = b->BS.Bswitch;
-#if !HOST_THINK
-                        MEM_PH_FREE(bn->BS.Bswitch);
-#endif
                         b->BS.Bswitch = NULL;
                         bn->BS.Bswitch = NULL;
                     }
@@ -1867,7 +1845,6 @@ STATIC void block_check()
 STATIC void brtailrecursion()
 {   block *b;
     block *bs;
-    list_t bl;
     elem **pe;
 
 #if SCPP
@@ -1980,7 +1957,6 @@ STATIC elem * assignparams(elem **pe,int *psi,elem **pe2)
         Symbol *sp;
         Symbol *s;
         int op;
-        unsigned numbytes;
         elem *es;
         type *t;
 

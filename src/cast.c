@@ -17,6 +17,10 @@
 #include "utf.h"
 #include "declaration.h"
 #include "aggregate.h"
+#include "scope.h"
+
+//#define DUMP .dump(__PRETTY_FUNCTION__, this)
+#define DUMP
 
 /* ==================== implicitCast ====================== */
 
@@ -158,8 +162,10 @@ MATCH Expression::implicitConvTo(Type *t)
      */
     if (type->isintegral() && t->isintegral() &&
         type->isTypeBasic() && t->isTypeBasic())
-    {   IntRange ir = getIntRange();
-        if (ir.imax <= t->sizemask())
+    {   IntRange src = this->getIntRange() DUMP;
+        IntRange targetUnsigned = IntRange::fromType(t, /*isUnsigned*/true) DUMP;
+        IntRange targetSigned = IntRange::fromType(t, /*isUnsigned*/false) DUMP;
+        if (targetUnsigned.contains(src) || targetSigned.contains(src))
             return MATCHconvert;
     }
 
@@ -421,8 +427,8 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
         ((TypeStruct *)type)->sym == ((TypeStruct *)t)->sym)
     {
         m = MATCHconst;
-        for (int i = 0; i < elements->dim; i++)
-        {   Expression *e = (Expression *)elements->data[i];
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *e = (*elements)[i];
             Type *te = e->type;
             te = te->castMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
@@ -436,8 +442,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
 #endif
 
 MATCH StringExp::implicitConvTo(Type *t)
-{   MATCH m;
-
+{
 #if 0
     printf("StringExp::implicitConvTo(this=%s, committed=%d, type=%s, t=%s)\n",
         toChars(), committed, type->toChars(), t->toChars());
@@ -530,8 +535,8 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
                 result = MATCHnomatch;
         }
 
-        for (int i = 0; i < elements->dim; i++)
-        {   Expression *e = (Expression *)elements->data[i];
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *e = (*elements)[i];
             MATCH m = (MATCH)e->implicitConvTo(tb->nextOf());
             if (m < result)
                 result = m;                     // remember worst match
@@ -552,13 +557,13 @@ MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
     if (tb->ty == Taarray && typeb->ty == Taarray)
     {
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *e = (Expression *)keys->data[i];
+        {   Expression *e = keys->tdata()[i];
             MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->index);
             if (m < result)
                 result = m;                     // remember worst match
             if (result == MATCHnomatch)
                 break;                          // no need to check for worse
-            e = (Expression *)values->data[i];
+            e = values->tdata()[i];
             m = (MATCH)e->implicitConvTo(tb->nextOf());
             if (m < result)
                 result = m;                     // remember worst match
@@ -569,6 +574,26 @@ MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
     }
     else
         return Expression::implicitConvTo(t);
+}
+
+MATCH CallExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("CalLExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+        toChars(), type->toChars(), t->toChars());
+#endif
+
+    MATCH m = Expression::implicitConvTo(t);
+    if (m)
+        return m;
+
+    /* Allow the result of strongly pure functions to
+     * convert to immutable
+     */
+    if (f && f->isPure() == PUREstrong)
+        return type->invariantOf()->implicitConvTo(t);
+
+    return MATCHnomatch;
 }
 
 MATCH AddrExp::implicitConvTo(Type *t)
@@ -592,8 +617,8 @@ MATCH AddrExp::implicitConvTo(Type *t)
             (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
-            for (int i = 0; i < eo->vars->a.dim; i++)
-            {   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+            for (size_t i = 0; i < eo->vars->a.dim; i++)
+            {   Dsymbol *s = eo->vars->a[i];
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
@@ -678,11 +703,10 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     if (result == MATCHnomatch)
     {
         // Look for pointers to functions where the functions are overloaded.
-        FuncDeclaration *f;
 
         t = t->toBasetype();
-        if (type->ty == Tdelegate && type->nextOf()->ty == Tfunction &&
-            t->ty == Tdelegate && t->nextOf()->ty == Tfunction)
+        if (type->ty == Tdelegate &&
+            t->ty == Tdelegate)
         {
             if (func && func->overloadExactMatch(t->nextOf()))
                 result = MATCHexact;
@@ -808,9 +832,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                      *   cast(to)e1.aliasthis
                      */
                     Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
-                    Expression *e = new CastExp(loc, e1, tb);
-                    e = e->semantic(sc);
-                    return e;
+                    Expression *e2 = new CastExp(loc, e1, tb);
+                    e2 = e2->semantic(sc);
+                    return e2;
                 }
             }
             else if (typeb->ty == Tclass)
@@ -829,9 +853,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                      *   cast(to)e1.aliasthis
                      */
                     Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
-                    Expression *e = new CastExp(loc, e1, tb);
-                    e = e->semantic(sc);
-                    return e;
+                    Expression *e2 = new CastExp(loc, e1, tb);
+                    e2 = e2->semantic(sc);
+                    return e2;
                 }
              L1: ;
             }
@@ -978,7 +1002,9 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (committed && tb->ty == Tsarray && typeb->ty == Tarray)
     {
         se = (StringExp *)copy();
-        se->sz = tb->nextOf()->size();
+        d_uns64 szx = tb->nextOf()->size();
+        assert(szx <= 255);
+        se->sz = (unsigned char)szx;
         se->len = (len * sz) / se->sz;
         se->committed = 1;
         se->type = t;
@@ -1113,7 +1139,12 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
             }
             se->string = buffer.extractData();
             se->len = newlen;
-            se->sz = tb->nextOf()->size();
+
+            {
+                d_uns64 szx = tb->nextOf()->size();
+                assert(szx <= 255);
+                se->sz = (unsigned char)szx;
+            }
             break;
 
         default:
@@ -1128,9 +1159,9 @@ L2:
     // See if need to truncate or extend the literal
     if (tb->ty == Tsarray)
     {
-        int dim2 = ((TypeSArray *)tb)->dim->toInteger();
+        dinteger_t dim2 = ((TypeSArray *)tb)->dim->toInteger();
 
-        //printf("dim from = %d, to = %d\n", se->len, dim2);
+        //printf("dim from = %d, to = %d\n", (int)se->len, (int)dim2);
 
         // Changing dimensions
         if (dim2 != se->len)
@@ -1178,8 +1209,8 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
             (t->ty == Tpointer || t->ty == Tdelegate) && t->nextOf()->ty == Tfunction)
         {   OverExp *eo = (OverExp *)e1;
             FuncDeclaration *f = NULL;
-            for (int i = 0; i < eo->vars->a.dim; i++)
-            {   Dsymbol *s = (Dsymbol *)eo->vars->a.data[i];
+            for (size_t i = 0; i < eo->vars->a.dim; i++)
+            {   Dsymbol *s = eo->vars->a[i];
                 FuncDeclaration *f2 = s->isFuncDeclaration();
                 assert(f2);
                 if (f2->overloadExactMatch(t->nextOf()))
@@ -1233,9 +1264,9 @@ Expression *TupleExp::castTo(Scope *sc, Type *t)
 {   TupleExp *e = (TupleExp *)copy();
     e->exps = (Expressions *)exps->copy();
     for (size_t i = 0; i < e->exps->dim; i++)
-    {   Expression *ex = (Expression *)e->exps->data[i];
+    {   Expression *ex = e->exps->tdata()[i];
         ex = ex->castTo(sc, t);
-        e->exps->data[i] = (void *)ex;
+        e->exps->tdata()[i] = ex;
     }
     return e;
 }
@@ -1265,10 +1296,10 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
 
         e = (ArrayLiteralExp *)copy();
         e->elements = (Expressions *)elements->copy();
-        for (int i = 0; i < elements->dim; i++)
-        {   Expression *ex = (Expression *)elements->data[i];
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *ex = (*elements)[i];
             ex = ex->castTo(sc, tb->nextOf());
-            e->elements->data[i] = (void *)ex;
+            (*e->elements)[i] = ex;
         }
         e->type = t;
         return e;
@@ -1300,18 +1331,17 @@ Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
         e->values = (Expressions *)values->copy();
         assert(keys->dim == values->dim);
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *ex = (Expression *)values->data[i];
+        {   Expression *ex = values->tdata()[i];
             ex = ex->castTo(sc, tb->nextOf());
-            e->values->data[i] = (void *)ex;
+            e->values->tdata()[i] = ex;
 
-            ex = (Expression *)keys->data[i];
+            ex = keys->tdata()[i];
             ex = ex->castTo(sc, ((TypeAArray *)tb)->index);
-            e->keys->data[i] = (void *)ex;
+            e->keys->tdata()[i] = ex;
         }
         e->type = t;
         return e;
     }
-L1:
     return e->Expression::castTo(sc, t);
 }
 
@@ -1400,8 +1430,8 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
         // Look for delegates to functions where the functions are overloaded.
         FuncDeclaration *f;
 
-        if (typeb->ty == Tdelegate && typeb->nextOf()->ty == Tfunction &&
-            tb->ty == Tdelegate && tb->nextOf()->ty == Tfunction)
+        if (typeb->ty == Tdelegate &&
+            tb->ty == Tdelegate)
         {
             if (func)
             {
@@ -1473,7 +1503,17 @@ Expression *CommaExp::castTo(Scope *sc, Type *t)
  */
 
 Expression *BinExp::scaleFactor(Scope *sc)
-{   d_uns64 stride;
+{
+    if (sc->func && !sc->intypeof)
+    {
+        if (sc->func->setUnsafe())
+        {
+            error("pointer arithmetic not allowed in @safe functions");
+            return new ErrorExp();
+        }
+    }
+
+    d_uns64 stride;
     Type *t1b = e1->type->toBasetype();
     Type *t2b = e2->type->toBasetype();
 
@@ -1521,7 +1561,7 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
     while (e->op == TOKarrayliteral && e->type->ty == Tarray
         && (((ArrayLiteralExp *)e)->elements->dim == 1))
     {
-        e = (Expression *)((ArrayLiteralExp *)e)->elements->data[0];
+        e = ((ArrayLiteralExp *)e)->elements->tdata()[0];
         if (other->ty == Tsarray || other->ty == Tarray)
             other = other->nextOf();
         else
@@ -1550,14 +1590,13 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
 int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
-    //dump(0);
+    //e->dump(0);
 
     Expression *e1 = *pe1;
     Expression *e2 = *pe2;
 
-    if (!(e1->type->isTypeBasic() && e1->type->ty != Tvoid &&
-          e2->type->isTypeBasic() && e2->type->ty != Tvoid &&
-          e1->type->ty == e2->type->ty))
+    if (e->op != TOKquestion ||
+        e1->type->toBasetype()->ty != e2->type->toBasetype()->ty)
     {
         e1 = e1->integralPromotions(sc);
         e2 = e2->integralPromotions(sc);
@@ -1630,6 +1669,41 @@ Lagain:
             t = t2;
         else if (t2n->ty == Tvoid)
             ;
+        else if (t1n->ty == Tfunction && t2n->ty == Tfunction)
+        {
+            if (t1->implicitConvTo(t2))
+                goto Lt2;
+            if (t2->implicitConvTo(t1))
+                goto Lt1;
+
+            TypeFunction *tf1 = (TypeFunction *)t1n;
+            TypeFunction *tf2 = (TypeFunction *)t2n;
+            TypeFunction *d = (TypeFunction *)tf1->syntaxCopy();
+
+            if (tf1->purity != tf2->purity)
+                d->purity = PUREimpure;
+            assert(d->purity != PUREfwdref);
+
+            d->isnothrow = (tf1->isnothrow && tf2->isnothrow);
+
+            if (tf1->trust == tf2->trust)
+                d->trust = tf1->trust;
+            else if (tf1->trust <= TRUSTsystem || tf2->trust <= TRUSTsystem)
+                d->trust = TRUSTsystem;
+            else
+                d->trust = TRUSTtrusted;
+
+            Type *tx = d->pointerTo();
+
+            if (t1->implicitConvTo(tx) && t2->implicitConvTo(tx))
+            {
+                t = tx;
+                e1 = e1->castTo(sc, t);
+                e2 = e2->castTo(sc, t);
+                goto Lret;
+            }
+            goto Lincompatible;
+        }
         else if (t1n->mod != t2n->mod)
         {
             t1 = t1n->mutableOf()->constOf()->pointerTo();
@@ -1769,14 +1843,71 @@ Lagain:
                 else
                     goto Lincompatible;
             }
+            else if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
+            {
+                e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);
+                e1 = e1->semantic(sc);
+                e1 = resolveProperties(sc, e1);
+                t1 = e1->type;
+                continue;
+            }
+            else if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
+            {
+                e2 = new DotIdExp(e2->loc, e2, ((TypeStruct *)t2)->sym->aliasthis->ident);
+                e2 = e2->semantic(sc);
+                e2 = resolveProperties(sc, e2);
+                t2 = e2->type;
+                continue;
+            }
             else
                 goto Lincompatible;
         }
     }
     else if (t1->ty == Tstruct && t2->ty == Tstruct)
     {
-        if (((TypeStruct *)t1)->sym != ((TypeStruct *)t2)->sym)
-            goto Lincompatible;
+        TypeStruct *ts1 = (TypeStruct *)t1;
+        TypeStruct *ts2 = (TypeStruct *)t2;
+        if (ts1->sym != ts2->sym)
+        {
+            if (!ts1->sym->aliasthis && !ts2->sym->aliasthis)
+                goto Lincompatible;
+
+            int i1 = 0;
+            int i2 = 0;
+
+            Expression *e1b = NULL;
+            Expression *e2b = NULL;
+            if (ts2->sym->aliasthis)
+            {
+                e2b = new DotIdExp(e2->loc, e2, ts2->sym->aliasthis->ident);
+                e2b = e2b->semantic(sc);
+                e2b = resolveProperties(sc, e2b);
+                i1 = e2b->implicitConvTo(t1);
+            }
+            if (ts1->sym->aliasthis)
+            {
+                e1b = new DotIdExp(e1->loc, e1, ts1->sym->aliasthis->ident);
+                e1b = e1b->semantic(sc);
+                e1b = resolveProperties(sc, e1b);
+                i2 = e1b->implicitConvTo(t2);
+            }
+            assert(!(i1 && i2));
+
+            if (i1)
+                goto Lt1;
+            else if (i2)
+                goto Lt2;
+
+            if (e1b)
+            {   e1 = e1b;
+                t1 = e1b->type->toBasetype();
+            }
+            if (e2b)
+            {   e2 = e2b;
+                t2 = e2b->type->toBasetype();
+            }
+            goto Lagain;
+        }
     }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {
@@ -1996,233 +2127,309 @@ int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
 
 uinteger_t getMask(uinteger_t v)
 {
-    uinteger_t u = 0;
-    if (v >= 0x80)
-        u = 0xFF;
-    while (u < v)
-        u = (u << 1) | 1;
-    return u;
+    // Ref: http://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v |= v >> 32;
+    return v /* | 0xff*/;
 }
-
 IntRange Expression::getIntRange()
 {
-    IntRange ir;
-    ir.imin = 0;
-    if (type->isintegral())
-        ir.imax = type->sizemask();
-    else
-        ir.imax = 0xFFFFFFFFFFFFFFFFULL; // assume the worst
-    return ir;
+    return IntRange::fromType(type) DUMP;
 }
 
 IntRange IntegerExp::getIntRange()
 {
-    IntRange ir;
-    ir.imin = value & type->sizemask();
-    ir.imax = ir.imin;
-    return ir;
+    return IntRange(value).cast(type) DUMP;
 }
 
 IntRange CastExp::getIntRange()
 {
-    IntRange ir;
-    ir = e1->getIntRange();
-    // Do sign extension
-    switch (e1->type->toBasetype()->ty)
-    {
-        case Tint8:
-            if (ir.imax & 0x80)
-                ir.imax |= 0xFFFFFFFFFFFFFF00ULL;
-            break;
-        case Tint16:
-            if (ir.imax & 0x8000)
-                ir.imax |= 0xFFFFFFFFFFFF0000ULL;
-            break;
-        case Tint32:
-            if (ir.imax & 0x80000000)
-                ir.imax |= 0xFFFFFFFF00000000ULL;
-            break;
-    }
-    if (type->isintegral())
-    {
-        ir.imin &= type->sizemask();
-        ir.imax &= type->sizemask();
-    }
-//printf("CastExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-    return ir;
+    return e1->getIntRange().cast(type) DUMP;
+}
+
+IntRange AddExp::getIntRange()
+{
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+    return IntRange(ir1.imin + ir2.imin, ir1.imax + ir2.imax).cast(type) DUMP;
+}
+
+IntRange MinExp::getIntRange()
+{
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+    return IntRange(ir1.imin - ir2.imax, ir1.imax - ir2.imin).cast(type) DUMP;
 }
 
 IntRange DivExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    if (!(e1->type->isunsigned() || ir1.imax < 0x8000000000000000ULL) &&
-        !(e2->type->isunsigned() || ir2.imax < 0x8000000000000000ULL))
-    {
-        return Expression::getIntRange();
-    }
+    // Should we ignore the possibility of div-by-0???
+    if (ir2.containsZero())
+        return Expression::getIntRange() DUMP;
 
-    if (ir2.imax == 0 || ir2.imin == 0)
-        return Expression::getIntRange();
-
-    ir.imin = ir1.imin / ir2.imax;
-    ir.imax = ir1.imax / ir2.imin;
-
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
-
-//printf("DivExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    // [a,b] / [c,d] = [min (a/c, a/d, b/c, b/d), max (a/c, a/d, b/c, b/d)]
+    SignExtendedNumber bdy[4] = {
+        ir1.imin / ir2.imin,
+        ir1.imin / ir2.imax,
+        ir1.imax / ir2.imin,
+        ir1.imax / ir2.imax
+    };
+    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
 }
+
+IntRange MulExp::getIntRange()
+{
+    IntRange ir1 = e1->getIntRange();
+    IntRange ir2 = e2->getIntRange();
+
+    // [a,b] * [c,d] = [min (ac, ad, bc, bd), max (ac, ad, bc, bd)]
+    SignExtendedNumber bdy[4] = {
+        ir1.imin * ir2.imin,
+        ir1.imin * ir2.imax,
+        ir1.imax * ir2.imin,
+        ir1.imax * ir2.imax
+    };
+    return IntRange::fromNumbers4(bdy).cast(type) DUMP;
+}
+
+IntRange ModExp::getIntRange()
+{
+    IntRange irNum = e1->getIntRange();
+    IntRange irDen = e2->getIntRange().absNeg();
+
+    /*
+    due to the rules of D (C)'s % operator, we need to consider the cases
+    separately in different range of signs.
+
+        case 1. [500, 1700] % [7, 23] (numerator is always positive)
+            = [0, 22]
+        case 2. [-500, 1700] % [7, 23] (numerator can be negative)
+            = [-22, 22]
+        case 3. [-1700, -500] % [7, 23] (numerator is always negative)
+            = [-22, 0]
+
+    the number 22 is the maximum absolute value in the denomator's range. We
+    don't care about divide by zero.
+    */
+
+    // Modding on 0 is invalid anyway.
+    if (!irDen.imin.negative)
+        return Expression::getIntRange() DUMP;
+
+    ++ irDen.imin;
+    irDen.imax = -irDen.imin;
+
+    if (!irNum.imin.negative)
+        irNum.imin.value = 0;
+    else if (irNum.imin < irDen.imin)
+        irNum.imin = irDen.imin;
+
+    if (irNum.imax.negative)
+    {
+        irNum.imax.negative = false;
+        irNum.imax.value = 0;
+    }
+    else if (irNum.imax > irDen.imax)
+        irNum.imax = irDen.imax;
+
+    return irNum.cast(type) DUMP;
+}
+
+// The algorithms for &, |, ^ are not yet the best! Sometimes they will produce
+//  not the tightest bound. See
+//      https://github.com/D-Programming-Language/dmd/pull/116
+//  for detail.
+static IntRange unsignedBitwiseAnd(const IntRange& a, const IntRange& b)
+{
+    // the DiffMasks stores the mask of bits which are variable in the range.
+    uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
+    uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+    // Since '&' computes the digitwise-minimum, the we could set all varying
+    //  digits to 0 to get a lower bound, and set all varying digits to 1 to get
+    //  an upper bound.
+    IntRange result;
+    result.imin.value = (a.imin.value & ~aDiffMask) & (b.imin.value & ~bDiffMask);
+    result.imax.value = (a.imax.value | aDiffMask) & (b.imax.value | bDiffMask);
+    // Sometimes the upper bound is overestimated. The upper bound will never
+    //  exceed the input.
+    if (result.imax.value > a.imax.value)
+        result.imax.value = a.imax.value;
+    if (result.imax.value > b.imax.value)
+        result.imax.value = b.imax.value;
+    result.imin.negative = result.imax.negative = a.imin.negative && b.imin.negative;
+    return result;
+}
+static IntRange unsignedBitwiseOr(const IntRange& a, const IntRange& b)
+{
+    // the DiffMasks stores the mask of bits which are variable in the range.
+    uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
+    uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+    // The imax algorithm by Adam D. Ruppe.
+    // http://www.digitalmars.com/pnews/read.php?server=news.digitalmars.com&group=digitalmars.D&artnum=108796
+    IntRange result;
+    result.imin.value = (a.imin.value & ~aDiffMask) | (b.imin.value & ~bDiffMask);
+    result.imax.value = a.imax.value | b.imax.value | getMask(a.imax.value & b.imax.value);
+    // Sometimes the lower bound is underestimated. The lower bound will never
+    //  less than the input.
+    if (result.imin.value < a.imin.value)
+        result.imin.value = a.imin.value;
+    if (result.imin.value < b.imin.value)
+        result.imin.value = b.imin.value;
+    result.imin.negative = result.imax.negative = a.imin.negative || b.imin.negative;
+    return result;
+}
+static IntRange unsignedBitwiseXor(const IntRange& a, const IntRange& b)
+{
+    // the DiffMasks stores the mask of bits which are variable in the range.
+    uinteger_t aDiffMask = getMask(a.imin.value ^ a.imax.value);
+    uinteger_t bDiffMask = getMask(b.imin.value ^ b.imax.value);
+    IntRange result;
+    result.imin.value = (a.imin.value ^ b.imin.value) & ~(aDiffMask | bDiffMask);
+    result.imax.value = (a.imax.value ^ b.imax.value) | (aDiffMask | bDiffMask);
+    result.imin.negative = result.imax.negative = a.imin.negative != b.imin.negative;
+    return result;
+}
+
 
 IntRange AndExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin;
-    if (ir2.imin < ir.imin)
-        ir.imin = ir2.imin;
+    IntRange ir1neg, ir1pos, ir2neg, ir2pos;
+    bool has1neg, has1pos, has2neg, has2pos;
 
-    ir.imax = ir1.imax;
-    if (ir2.imax > ir.imax)
-        ir.imax = ir2.imax;
+    ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
+    ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
 
-    uinteger_t u;
-
-    u = getMask(ir1.imax);
-    ir.imin &= u;
-    ir.imax &= u;
-
-    u = getMask(ir2.imax);
-    ir.imin &= u;
-    ir.imax &= u;
-
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
-
-//printf("AndExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    IntRange result;
+    bool hasResult = false;
+    if (has1pos && has2pos)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2pos), /*ref*/hasResult);
+    if (has1pos && has2neg)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1pos, ir2neg), /*ref*/hasResult);
+    if (has1neg && has2pos)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2pos), /*ref*/hasResult);
+    if (has1neg && has2neg)
+        result.unionOrAssign(unsignedBitwiseAnd(ir1neg, ir2neg), /*ref*/hasResult);
+    assert(hasResult);
+    return result.cast(type) DUMP;
 }
-
-/*
- * Adam D. Ruppe's algo for bitwise OR:
- * http://www.digitalmars.com/d/archives/digitalmars/D/value_range_propagation_for_logical_OR_108765.html#N108793
- */
 
 IntRange OrExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin;
-    if (ir2.imin < ir.imin)
-        ir.imin = ir2.imin;
+    IntRange ir1neg, ir1pos, ir2neg, ir2pos;
+    bool has1neg, has1pos, has2neg, has2pos;
 
-    ir.imax = ir1.imax;
-    if (ir2.imax > ir.imax)
-        ir.imax = ir2.imax;
+    ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
+    ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    IntRange result;
+    bool hasResult = false;
+    if (has1pos && has2pos)
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2pos), /*ref*/hasResult);
+    if (has1pos && has2neg)
+        result.unionOrAssign(unsignedBitwiseOr(ir1pos, ir2neg), /*ref*/hasResult);
+    if (has1neg && has2pos)
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2pos), /*ref*/hasResult);
+    if (has1neg && has2neg)
+        result.unionOrAssign(unsignedBitwiseOr(ir1neg, ir2neg), /*ref*/hasResult);
 
-//printf("OrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    assert(hasResult);
+    return result.cast(type) DUMP;
 }
 
 IntRange XorExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin;
-    if (ir2.imin < ir.imin)
-        ir.imin = ir2.imin;
+    IntRange ir1neg, ir1pos, ir2neg, ir2pos;
+    bool has1neg, has1pos, has2neg, has2pos;
 
-    ir.imax = ir1.imax;
-    if (ir2.imax > ir.imax)
-        ir.imax = ir2.imax;
+    ir1.splitBySign(ir1neg, has1neg, ir1pos, has1pos);
+    ir2.splitBySign(ir2neg, has2neg, ir2pos, has2pos);
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    IntRange result;
+    bool hasResult = false;
+    if (has1pos && has2pos)
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2pos), /*ref*/hasResult);
+    if (has1pos && has2neg)
+        result.unionOrAssign(unsignedBitwiseXor(ir1pos, ir2neg), /*ref*/hasResult);
+    if (has1neg && has2pos)
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2pos), /*ref*/hasResult);
+    if (has1neg && has2neg)
+        result.unionOrAssign(unsignedBitwiseXor(ir1neg, ir2neg), /*ref*/hasResult);
 
-//printf("XorExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    assert(hasResult);
+    return result.cast(type) DUMP;
 }
 
 IntRange ShlExp::getIntRange()
 {
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = getMask(ir1.imin) << ir2.imin;
-    ir.imax = getMask(ir1.imax) << ir2.imax;
+    if (ir2.imin.negative)
+        ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    SignExtendedNumber lower = ir1.imin << (ir1.imin.negative ? ir2.imax : ir2.imin);
+    SignExtendedNumber upper = ir1.imax << (ir1.imax.negative ? ir2.imin : ir2.imax);
 
-//printf("ShlExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    return IntRange(lower, upper).cast(type) DUMP;
 }
 
 IntRange ShrExp::getIntRange()
 {
-    if (!e1->type->isunsigned())
-        return Expression::getIntRange();
-
-    IntRange ir;
     IntRange ir1 = e1->getIntRange();
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin >> ir2.imax;
-    ir.imax = ir1.imax >> ir2.imin;
+    if (ir2.imin.negative)
+        ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    SignExtendedNumber lower = ir1.imin >> (ir1.imin.negative ? ir2.imin : ir2.imax);
+    SignExtendedNumber upper = ir1.imax >> (ir1.imax.negative ? ir2.imax : ir2.imin);
 
-//printf("ShrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
+    return IntRange(lower, upper).cast(type) DUMP;
 }
 
 IntRange UshrExp::getIntRange()
 {
-    IntRange ir;
-    IntRange ir1 = e1->getIntRange();
+    IntRange ir1 = e1->getIntRange().castUnsigned(e1->type);
     IntRange ir2 = e2->getIntRange();
 
-    ir.imin = ir1.imin >> ir2.imax;
-    ir.imax = ir1.imax >> ir2.imin;
+    if (ir2.imin.negative)
+        ir2 = IntRange(SignExtendedNumber(0), SignExtendedNumber(64));
 
-    ir.imin &= type->sizemask();
-    ir.imax &= type->sizemask();
+    return IntRange(ir1.imin >> ir2.imax, ir1.imax >> ir2.imin).cast(type) DUMP;
 
-//printf("UshrExp: imin = x%llx, imax = x%llx\n", ir.imin, ir.imax);
-//e1->dump(0);
-
-    return ir;
 }
 
 IntRange CommaExp::getIntRange()
 {
-    return e2->getIntRange();
+    return e2->getIntRange() DUMP;
 }
 
+IntRange ComExp::getIntRange()
+{
+    IntRange ir = e1->getIntRange();
+    return IntRange(SignExtendedNumber(~ir.imax.value, !ir.imax.negative),
+                    SignExtendedNumber(~ir.imin.value, !ir.imin.negative)).cast(type) DUMP;
+}
+
+IntRange NegExp::getIntRange()
+{
+    IntRange ir = e1->getIntRange();
+    return IntRange(-ir.imax, -ir.imin).cast(type) DUMP;
+}
 

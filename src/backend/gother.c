@@ -23,6 +23,10 @@
 #include        "list.h"
 #include        "type.h"
 
+#if SCPP
+#include        "parser.h"
+#endif
+
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -197,7 +201,7 @@ STATIC void rd_compute()
  */
 
 STATIC void conpropwalk(elem *n,vec_t IN)
-{       register unsigned op,i;
+{       register unsigned op;
         Elemdata *pdata;
         vec_t L,R;
         elem *t;
@@ -271,8 +275,7 @@ STATIC void conpropwalk(elem *n,vec_t IN)
 
         // Collect data for subsequent optimizations
         if (OTbinary(op) && n->E1->Eoper == OPvar && n->E2->Eoper == OPconst)
-        {   Symbol *v = n->E1->EV.sp.Vsym;
-
+        {
             switch (op)
             {
                 case OPlt:
@@ -451,7 +454,6 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 {
     elem *foundelem = NULL;
     int unambig;
-    register unsigned i;
     symbol *sv;
     tym_t nty;
     unsigned nsize;
@@ -521,11 +523,6 @@ STATIC elem * chkprop(elem *n,list_t rdlist)
 
         if (d->E2->Eoper == OPconst || d->E2->Eoper == OPrelconst)
         {
-#if TARGET_68K
-        if (d->E2->Eoper == OPrelconst)
-            if(tyfunc(d->E2->Esym->ty()))
-                goto noprop;            /* ruins relocation information */
-#endif
             if (foundelem)              /* already found one            */
             {                           /* then they must be the same   */
                 if (!el_match(foundelem,d->E2))
@@ -763,7 +760,6 @@ STATIC void intranges()
 
         // Check that all paths from rdinc to rdinc must pass through rdrel
         {   int i;
-            block *b;
 
             // ib:      block of increment
             // rb:      block of relational
@@ -1152,7 +1148,7 @@ void rmdeadass()
                 vec_orass(POSS,DEAD);   /* POSS |= DEAD                 */
                 foreach (j,asstop,POSS) /* for each possible dead asg.  */
                 {       symbol *v;      /* v = target of assignment     */
-                        register elem *n,*t,*nv;
+                        register elem *n,*nv;
 
                         n = assnod[j];
                         nv = Elvalue(n);

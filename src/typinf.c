@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -519,8 +519,6 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     FuncDeclaration *fd;
     FuncDeclaration *fdx;
-    TypeFunction *tf;
-    Type *ta;
     Dsymbol *s;
 
     static TypeFunction *tftohash;
@@ -633,15 +631,15 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     // uint m_align;
     dtsize_t(pdt, tc->alignsize());
 
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
     {
         TypeTuple *tup = tc->toArgTypes();
         assert(tup->arguments->dim <= 2);
-        for (int i = 0; i < 2; i++)
+        for (size_t i = 0; i < 2; i++)
         {
             if (i < tup->arguments->dim)
             {
-                Type *targ = ((Parameter *)tup->arguments->data[i])->type;
+                Type *targ = (tup->arguments->tdata()[i])->type;
                 targ = targ->merge();
                 targ->getTypeInfo(NULL);
                 dtxoff(pdt, targ->vtinfo->toSymbol(), 0, TYnptr);       // m_argi
@@ -712,7 +710,7 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
 
     dt_t *d = NULL;
     for (size_t i = 0; i < dim; i++)
-    {   Parameter *arg = (Parameter *)tu->arguments->data[i];
+    {   Parameter *arg = tu->arguments->tdata()[i];
         Expression *e = arg->type->getTypeInfo(NULL);
         e = e->optimize(WANTvalue);
         e->toDt(&d);
@@ -826,7 +824,7 @@ int TypeClass::builtinTypeInfo()
  * Used to supply hidden _arguments[] value for variadic D functions.
  */
 
-Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
+Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
 {
 #if 1
     /* Get the corresponding TypeInfo_Tuple and
@@ -839,7 +837,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], int dim)
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {   Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
-        args->data[i] = (void *)arg;
+        args->tdata()[i] = arg;
     }
     TypeTuple *tup = new TypeTuple(args);
     Expression *e = tup->getTypeInfo(sc);

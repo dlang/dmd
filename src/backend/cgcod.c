@@ -607,7 +607,10 @@ void stackoffsets(int flags)
     targ_size_t Amax,sz;
     unsigned alignsize;
     int offi;
+#if AUTONEST
     targ_size_t offstack[20];
+    int offi = 0;                       // index into offstack[]
+#endif
     vec_t tbl = NULL;
 
 
@@ -616,7 +619,6 @@ void stackoffsets(int flags)
     {
         tbl = vec_calloc(globsym.top);
     }
-    offi = 0;                           // index into offstack[]
     Aoffset = 0;                        // automatic & register offset
     Toffset = 0;                        // temporary offset
     Poffset = 0;                        // parameter offset
@@ -1819,7 +1821,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
 #ifdef DEBUG
 #define allocreg(a,b,c) allocreg((a),(b),(c),__LINE__,__FILE__)
 #endif
-{       regm_t r,s;
+{       regm_t r;
         regm_t retregs;
         unsigned reg;
         unsigned msreg,lsreg;
@@ -1857,7 +1859,6 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
 L1:
         //printf("L1: allregs = x%x, *pretregs = x%x\n", allregs, *pretregs);
         assert(++count < 20);           /* fail instead of hanging if blocked */
-        s = retregs & mES;
         assert(retregs);
         msreg = lsreg = (unsigned)-1;           /* no value assigned yet        */
 L3:
@@ -2347,8 +2348,6 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     regm_t regm,emask,csemask;
     unsigned reg,i,byte,sz;
     code *c;
-    int forcc;                  // !=0 if we evaluate for condition codes
-    int forregs;                // !=0 if we evaluate into registers
 
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
@@ -2398,8 +2397,6 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
   tym = tybasic(e->Ety);
   sz = tysize[tym];
   byte = sz == 1;
-  forcc = *pretregs & mPSW;
-  forregs = *pretregs & (mBP | ALLREGS | mES);
 
   if (sz <= REGSIZE)                    // if data will fit in one register
   {
@@ -2637,7 +2634,6 @@ elem_print(e);
 code *codelem(elem *e,regm_t *pretregs,bool constflag)
 { code *c;
   Symbol *s;
-  tym_t tym;
   unsigned op;
 
 #ifdef DEBUG
@@ -2774,7 +2770,6 @@ const char *regm_str(regm_t rm)
     static char str[NUM][SMAX + 1];
     static int i;
     char *p;
-    char *s;
     int j;
 
     if (rm == 0)
@@ -2788,7 +2783,6 @@ const char *regm_str(regm_t rm)
     p = str[i];
     if (++i == NUM)
         i = 0;
-    s = p;
     *p = 0;
     for (j = 0; j < 32; j++)
     {
@@ -2801,7 +2795,7 @@ const char *regm_str(regm_t rm)
         }
     }
     if (rm)
-    {   s = p + strlen(p);
+    {   char *s = p + strlen(p);
         sprintf(s,"x%02x",rm);
     }
     assert(strlen(p) <= SMAX);

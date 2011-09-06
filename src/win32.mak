@@ -1,8 +1,12 @@
 #_ win32.mak
-# Copyright (C) 1999-2010 by Digital Mars, http://www.digitalmars.com
+# Copyright (C) 1999-2011 by Digital Mars, http://www.digitalmars.com
 # Written by Walter Bright
 # All Rights Reserved
 # Build dmd with Digital Mars C++ compiler
+#   http://www.digitalmars.com/ctg/sc.html
+# This makefile is designed to be used with Digital Mars make.exe
+#   http://www.digitalmars.com/ctg/make.html
+# which should be in \dm\bin or in \dmd\windows\bin 
 
 D=
 DMDSVN=\svnproj\dmd\trunk\src
@@ -77,10 +81,10 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj aliasthis.obj \
+	interpret.obj traits.obj aliasthis.obj intrange.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
-	util.obj bit.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
+	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj
 
 # from C/C++ compiler optimizer and back end
@@ -107,21 +111,21 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h version.c inifile.c iasm.c staticassert.c \
 	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
-	eh.c toctype.c class.c mangle.c bit.c tocsym.c func.c inline.c \
+	eh.c toctype.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h unialpha.c irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
-	identifier.h parse.h scope.h enum.h import.h \
+	identifier.h parse.h scope.h enum.h import.h intrange.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
-	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
+	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c intrange.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c
 
 # From C++ compiler
 
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
-	$C\global.h $C\parser.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
+	$C\global.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h $C\html.h \
 	$C\bcomplex.c $C\blockopt.c $C\cg.c $C\cg87.c \
 	$C\cgcod.c $C\cgcs.c $C\cgcv.c $C\cgelem.c $C\cgen.c $C\cgobj.c \
@@ -133,7 +137,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
 	$C\type.c $C\melf.h $C\mach.h $C\bcomplex.h \
 	$C\cdeflnx.h $C\outbuf.h $C\token.h $C\tassert.h \
-	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\cpp.h $C\exh.h $C\go.h \
+	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c \
@@ -168,7 +172,7 @@ $(TARGET).exe : $(OBJS) win32.mak
 CCH=
 #TOTALH=$(CCH) total.sym
 TOTALH=$(CCH) id.h
-CH= $C\cc.h $C\global.h $C\parser.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h
+CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h
 
 ##################### GENERATED SOURCE #####################
 
@@ -210,9 +214,6 @@ bcomplex.obj : $C\bcomplex.c
 
 aa.obj : $C\tinfo.h $C\aa.h $C\aa.c
 	$(CC) -c $(MFLAGS) -I. $C\aa
-
-bit.obj : expression.h bit.c
-	$(CC) -c -I$(ROOT) $(MFLAGS) bit
 
 blockopt.obj : $C\blockopt.c
 	$(CC) -c $(MFLAGS) $C\blockopt
@@ -470,6 +471,7 @@ inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
 interpret.obj : $(TOTALH) interpret.c declaration.h expression.h
+intrange.obj : $(TOTALH) intrange.h intrange.c
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libomf.obj : $(TOTALH) lib.h libomf.c

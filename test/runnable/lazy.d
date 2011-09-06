@@ -187,6 +187,39 @@ void test6()
 
 /*********************************************************/
 
+struct Bug5750 { int a, b; }
+pure Bug5750 bug5750(lazy int y) {
+    Bug5750 retval;
+    retval.a = y;
+    retval.b = y;
+    return retval;
+}
+
+pure void test5750a() {
+    auto z1 = bug5750(3);
+    assert(z1 == Bug5750(3, 3));
+    auto z2 = bug5750(z1.a);
+    assert(z2 == Bug5750(3, 3));
+    auto z3 = bug5750(z1.a+z2.a+3);
+    assert(z3 == Bug5750(9, 9));
+    auto z4 = bug5750(++z1.a);    // expected???
+    assert(z4 == Bug5750(4, 5));
+    assert(z1 == Bug5750(5, 3));
+}
+
+int bug5750Global = 7;
+void test5750b() {
+    auto z4 = bug5750(bug5750Global);
+    assert(z4 == Bug5750(7, 7));
+    auto z5 = bug5750(++bug5750Global);
+    assert(z5 == Bug5750(8, 9));  // expected???
+    assert(bug5750Global == 9);
+}
+// Note: also need to make up some fail-compilation tests.
+
+/*********************************************************/
+
+
 int main()
 {
     test1();
@@ -195,6 +228,9 @@ int main()
     test4();
     test5();
     test6();
+
+    test5750a();
+    test5750b();    
 
     printf("Success\n");
     return 0;

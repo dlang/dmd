@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -377,8 +377,8 @@ type *TypeStruct::toCtype()
          * (after setting ctype to avoid infinite recursion)
          */
         if (global.params.symdebug)
-            for (int i = 0; i < sym->fields.dim; i++)
-            {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+            for (size_t i = 0; i < sym->fields.dim; i++)
+            {   VarDeclaration *v = sym->fields.tdata()[i];
 
                 Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
                 s2->Smemoff = v->offset;
@@ -504,8 +504,8 @@ type *TypeClass::toCtype()
      * (after setting ctype to avoid infinite recursion)
      */
     if (global.params.symdebug)
-        for (int i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        for (size_t i = 0; i < sym->fields.dim; i++)
+        {   VarDeclaration *v = sym->fields.tdata()[i];
 
             Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
             s2->Smemoff = v->offset;

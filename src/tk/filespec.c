@@ -97,14 +97,14 @@ char * filespecrootpath(char *filespec)
 #define DIRCHAR ':'
 #endif
 
-    char *cwd, *cwd_t, cwd_d[132];
+    char *cwd, *cwd_t;
     char *p, *p2;
 
     if (!filespec)
         return filespec;
 #if MSDOS || __OS2__ || __NT__ || _WIN32
     /* if already absolute (with \ or drive:) ... */
-    if (*filespec == DIRCHAR || (isalpha(*filespec) && *(filespec+1) == ':'))
+    if (*filespec == DIRCHAR || (isalpha((unsigned char)*filespec) && *(filespec+1) == ':'))
         return filespec;        /*      ... return input string */
 #else
     if (*filespec == DIRCHAR)   /* already absolute ... */
@@ -116,6 +116,7 @@ char * filespecrootpath(char *filespec)
     cwd_t = (char *)getcwd(NULL, 256);
 #endif
 #if MSDOS || __OS2__ || __NT__ || _WIN32
+    char cwd_d[132];
     if (getcwd(cwd_d, sizeof(cwd_d)))
        cwd_t = cwd_d;
     else

@@ -3436,6 +3436,19 @@ alias tough4302!() tougher;
 
 /***************************************************/
 
+template Bug6602A(T) {
+  Bug6602B!(T).Result result;
+}
+
+template Bug6602B(U) {
+  static assert(is(U == int));
+  alias bool Result;
+}
+
+enum bug6602Compiles = __traits(compiles, Bug6602A!short);
+
+/***************************************************/
+
 // Bugzilla 190
 
 //typedef int avocado;
@@ -4212,6 +4225,161 @@ else
 }
 
 /***************************************************/
+// 6229
+
+int test6229()
+{
+  {
+    ubyte a = 2;
+    ubyte b = 4;
+    b += a;
+  }
+
+    char a = 2;
+    char b = 4;
+    b += a;
+
+    wchar c = 2;
+    wchar d = 4;
+    c /= d;
+
+    return b;
+}
+
+/***************************************************/
+// XMMBug
+
+class XMMPainter
+{
+  float call()
+  {
+    return sumFloats(0.0f, 0.0f);
+  }
+
+  static float sumFloats(float a, float b)
+  {
+    return a + b;
+  }
+}
+
+void test6270()
+{
+  auto painter = new XMMPainter;
+  assert(XMMPainter.sumFloats(20, painter.call()) == 20.0f);
+  auto dg = () { return XMMPainter.sumFloats(0.0f, 0.0f); };
+  assert(XMMPainter.sumFloats(20, dg()) == 20.0f);
+}
+
+/***************************************************/
+
+void test236()
+{
+    uint a;
+    int shift;
+    a = 7;
+    shift = 1;
+    int r;
+    r = (a >> shift) | (a << (int.sizeof * 8 - shift));
+    assert(r == 0x8000_0003);
+    r = (a << shift) | (a >> (int.sizeof * 8 - shift));
+    assert(a == 7);
+}
+
+/***************************************************/
+// 4460
+
+void test237()
+{
+    foreach (s, i; [ "a":1, "b":2 ])
+    {
+        writeln(s, i);
+    }
+}
+
+
+/***************************************************/
+
+void foo238(long a, long b)
+{
+  while (1)		// prevent inlining
+  {
+    long x = a / b;
+    long y = a % b;
+    assert(x == 3);
+    assert(y == 1);
+    break;
+  }
+}
+
+void test238()
+{
+    long a, b;
+    a = 10;
+    b = 3;
+    long x = a / b;
+    long y = a % b;	// evaluate at compile time
+    assert(x == 3);
+    assert(y == 1);
+
+    foo238(a, b);
+}
+
+/***************************************************/
+// 5239
+
+struct S239 { int x; }
+
+int test239()
+{
+   S239[4] w = void;
+   w[$-2].x = 217;
+   return w[2].x;
+}
+
+
+/***************************************************/
+
+void enforce6506b(bool condition, void delegate() m) {
+    assert(!condition);
+}
+void toImpl6506b(int value) {
+    void f(){}
+    enforce6506b(value >= 0, &f);
+}
+void test6506() {
+    toImpl6506b(-112345);
+}
+
+/***************************************************/
+// 6505
+
+double foo240() {
+    return 1.0;
+}
+
+void test240() {
+    double a = foo240();
+    double b = foo240();
+    double x = a*a + a*a + a*a + a*a + a*a + a*a + a*a +
+               a*b + a*b;
+    assert(x > 0);
+}
+
+/***************************************************/
+// 6563
+
+int foo6563(float a, float b, float c, float d, float e, float f, float g, float h)
+{
+    assert(a == 1);
+    return 0; // return something to prevent folding
+}
+
+void test6563()
+{
+    auto res = foo6563(1, 1, 1, 1, 1, 1, 1, 1);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4437,6 +4605,15 @@ int main()
     test232();
     test233();
     bug6184();
+    test236();
+    test237();
+    test238();
+    test239();
+    test6229();
+    test6270();
+    test6506();
+    test240();
+    test6563();
 
     writefln("Success");
     return 0;

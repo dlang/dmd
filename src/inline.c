@@ -54,7 +54,7 @@ int CompoundStatement::inlineCost(InlineCostState *ics)
 {   int cost = 0;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  statements->tdata()[i];
         if (s)
         {
             cost += s->inlineCost(ics);
@@ -69,7 +69,7 @@ int UnrolledLoopStatement::inlineCost(InlineCostState *ics)
 {   int cost = 0;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  statements->tdata()[i];
         if (s)
         {
             cost += s->inlineCost(ics);
@@ -135,13 +135,13 @@ int ImportStatement::inlineCost(InlineCostState *ics)
 
 /* -------------------------- */
 
-int arrayInlineCost(InlineCostState *ics, Array *arguments)
+int arrayInlineCost(InlineCostState *ics, Expressions *arguments)
 {   int cost = 0;
 
     if (arguments)
     {
-        for (int i = 0; i < arguments->dim; i++)
-        {   Expression *e = (Expression *)arguments->data[i];
+        for (size_t i = 0; i < arguments->dim; i++)
+        {   Expression *e = arguments->tdata()[i];
 
             if (e)
                 cost += e->inlineCost(ics);
@@ -231,7 +231,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
             return COST_MAX;    // finish DeclarationExp::doInline
 #else
             for (size_t i = 0; i < td->objects->dim; i++)
-            {   Object *o = (Object *)td->objects->data[i];
+            {   Object *o = td->objects->tdata()[i];
                 if (o->dyncast() != DYNCAST_EXPRESSION)
                     return COST_MAX;
                 Expression *eo = (Expression *)o;
@@ -335,8 +335,8 @@ int CondExp::inlineCost(InlineCostState *ics)
 struct InlineDoState
 {
     VarDeclaration *vthis;
-    Array from;         // old Dsymbols
-    Array to;           // parallel array of new Dsymbols
+    Dsymbols from;      // old Dsymbols
+    Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol *parent;    // new parent
 };
 
@@ -360,7 +360,7 @@ Expression *CompoundStatement::doInline(InlineDoState *ids)
 
     //printf("CompoundStatement::doInline() %d\n", statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  statements->tdata()[i];
         if (s)
         {
             Expression *e2 = s->doInline(ids);
@@ -392,7 +392,7 @@ Expression *UnrolledLoopStatement::doInline(InlineDoState *ids)
 
     //printf("UnrolledLoopStatement::doInline() %d\n", statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  statements->tdata()[i];
         if (s)
         {
             Expression *e2 = s->doInline(ids);
@@ -469,12 +469,12 @@ Expressions *arrayExpressiondoInline(Expressions *a, InlineDoState *ids)
         newa = new Expressions();
         newa->setDim(a->dim);
 
-        for (int i = 0; i < a->dim; i++)
-        {   Expression *e = (Expression *)a->data[i];
+        for (size_t i = 0; i < a->dim; i++)
+        {   Expression *e = a->tdata()[i];
 
             if (e)
                 e = e->doInline(ids);
-            newa->data[i] = (void *)e;
+            newa->tdata()[i] = e;
         }
     }
     return newa;
@@ -488,16 +488,14 @@ Expression *Expression::doInline(InlineDoState *ids)
 
 Expression *SymOffExp::doInline(InlineDoState *ids)
 {
-    int i;
-
     //printf("SymOffExp::doInline(%s)\n", toChars());
-    for (i = 0; i < ids->from.dim; i++)
+    for (size_t i = 0; i < ids->from.dim; i++)
     {
-        if (var == (Declaration *)ids->from.data[i])
+        if (var == ids->from.tdata()[i])
         {
             SymOffExp *se = (SymOffExp *)copy();
 
-            se->var = (Declaration *)ids->to.data[i];
+            se->var = (Declaration *)ids->to.tdata()[i];
             return se;
         }
     }
@@ -506,16 +504,14 @@ Expression *SymOffExp::doInline(InlineDoState *ids)
 
 Expression *VarExp::doInline(InlineDoState *ids)
 {
-    int i;
-
     //printf("VarExp::doInline(%s)\n", toChars());
-    for (i = 0; i < ids->from.dim; i++)
+    for (size_t i = 0; i < ids->from.dim; i++)
     {
-        if (var == (Declaration *)ids->from.data[i])
+        if (var == ids->from.tdata()[i])
         {
             VarExp *ve = (VarExp *)copy();
 
-            ve->var = (Declaration *)ids->to.data[i];
+            ve->var = (Declaration *)ids->to.tdata()[i];
             return ve;
         }
     }
@@ -559,7 +555,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
         if (td)
         {
             for (size_t i = 0; i < td->objects->dim; i++)
-            {   DsymbolExp *se = (DsymbolExp *)td->objects->data[i];
+            {   DsymbolExp *se = td->objects->tdata()[i];
                 assert(se->op == TOKdsymbol);
                 se->s;
             }
@@ -822,9 +818,9 @@ Statement *ExpStatement::inlineScan(InlineScanState *iss)
 Statement *CompoundStatement::inlineScan(InlineScanState *iss)
 {
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  statements->tdata()[i];
         if (s)
-            statements->data[i] = (void *)s->inlineScan(iss);
+            statements->tdata()[i] = s->inlineScan(iss);
     }
     return this;
 }
@@ -832,9 +828,9 @@ Statement *CompoundStatement::inlineScan(InlineScanState *iss)
 Statement *UnrolledLoopStatement::inlineScan(InlineScanState *iss)
 {
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  statements->tdata()[i];
         if (s)
-            statements->data[i] = (void *)s->inlineScan(iss);
+            statements->tdata()[i] = s->inlineScan(iss);
     }
     return this;
 }
@@ -917,11 +913,11 @@ Statement *SwitchStatement::inlineScan(InlineScanState *iss)
         sdefault = (DefaultStatement *)sdefault->inlineScan(iss);
     if (cases)
     {
-        for (int i = 0; i < cases->dim; i++)
-        {   Statement *s;
+        for (size_t i = 0; i < cases->dim; i++)
+        {   CaseStatement *s;
 
-            s = (Statement *) cases->data[i];
-            cases->data[i] = (void *)s->inlineScan(iss);
+            s =  cases->tdata()[i];
+            cases->tdata()[i] = (CaseStatement *)s->inlineScan(iss);
         }
     }
     return this;
@@ -983,8 +979,8 @@ Statement *TryCatchStatement::inlineScan(InlineScanState *iss)
         body = body->inlineScan(iss);
     if (catches)
     {
-        for (int i = 0; i < catches->dim; i++)
-        {   Catch *c = (Catch *)catches->data[i];
+        for (size_t i = 0; i < catches->dim; i++)
+        {   Catch *c = catches->tdata()[i];
 
             if (c->handler)
                 c->handler = c->handler->inlineScan(iss);
@@ -1029,17 +1025,17 @@ Statement *LabelStatement::inlineScan(InlineScanState *iss)
 
 /* -------------------------- */
 
-void arrayInlineScan(InlineScanState *iss, Array *arguments)
+void arrayInlineScan(InlineScanState *iss, Expressions *arguments)
 {
     if (arguments)
     {
-        for (int i = 0; i < arguments->dim; i++)
-        {   Expression *e = (Expression *)arguments->data[i];
+        for (size_t i = 0; i < arguments->dim; i++)
+        {   Expression *e = arguments->tdata()[i];
 
             if (e)
             {
                 e = e->inlineScan(iss);
-                arguments->data[i] = (void *)e;
+                arguments->tdata()[i] = e;
             }
         }
     }
@@ -1059,7 +1055,7 @@ void scanVar(Dsymbol *s, InlineScanState *iss)
         if (td)
         {
             for (size_t i = 0; i < td->objects->dim; i++)
-            {   DsymbolExp *se = (DsymbolExp *)td->objects->data[i];
+            {   DsymbolExp *se = (DsymbolExp *)td->objects->tdata()[i];
                 assert(se->op == TOKdsymbol);
                 scanVar(se->s, iss);
             }
@@ -1354,9 +1350,9 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
 #if 0
     if (parameters)
     {
-        for (int i = 0; i < parameters->dim; i++)
+        for (size_t i = 0; i < parameters->dim; i++)
         {
-            VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+            VarDeclaration *v = parameters->tdata()[i];
             if (
 #if DMDV1
                 v->isOut() || v->isRef() ||
@@ -1381,7 +1377,6 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan)
     if (!hdrscan)    // Don't scan recursively for header content scan
         inlineScan();
 
-Lyes:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
         inlineStatus = ILSyes;
 #if CANINLINE_LOG
@@ -1398,7 +1393,7 @@ Lno:
     return 0;
 }
 
-Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, Array *arguments)
+Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, Expressions *arguments)
 {
     InlineDoState ids;
     DeclarationExp *de;
@@ -1472,11 +1467,11 @@ Expression *FuncDeclaration::doInline(InlineScanState *iss, Expression *ethis, A
     {
         assert(parameters->dim == arguments->dim);
 
-        for (int i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {
-            VarDeclaration *vfrom = (VarDeclaration *)parameters->data[i];
+            VarDeclaration *vfrom = parameters->tdata()[i];
             VarDeclaration *vto;
-            Expression *arg = (Expression *)arguments->data[i];
+            Expression *arg = arguments->tdata()[i];
             ExpInitializer *ei;
             VarExp *ve;
 

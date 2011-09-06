@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -60,8 +60,8 @@ void arrayExpressionScanForNestedRef(Scope *sc, Expressions *a)
     //printf("arrayExpressionScanForNestedRef(%p)\n", a);
     if (a)
     {
-        for (int i = 0; i < a->dim; i++)
-        {   Expression *e = (Expression *)a->data[i];
+        for (size_t i = 0; i < a->dim; i++)
+        {   Expression *e = (*a)[i];
 
             if (e)
             {

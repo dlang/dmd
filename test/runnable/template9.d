@@ -1,5 +1,7 @@
 // PERMUTE_ARGS:
 
+module breaker;
+
 import std.c.stdio;
 
 /**********************************/
@@ -149,6 +151,156 @@ void test7()
 }
 
 /**********************************/
+// 5946
+
+template TTest8()
+{
+    int call(){ return this.g(); }
+}
+class CTest8
+{
+    int f() { mixin TTest8!(); return call(); }
+    int g() { return 10; }
+}
+void test8()
+{
+    assert((new CTest8()).f() == 10);
+}
+
+/**********************************/
+// 693
+
+template TTest9(alias sym)
+{
+    int call(){ return sym.g(); }
+}
+class CTest9
+{
+    int f1() { mixin TTest9!(this); return call(); }
+    int f2() { mixin TTest9!this; return call(); }
+    int g() { return 10; }
+}
+void test9()
+{
+    assert((new CTest9()).f1() == 10);
+    assert((new CTest9()).f2() == 10);
+}
+
+/**********************************/
+// 5015
+
+import breaker;
+
+static if (is(ElemType!(int))){}
+
+template ElemType(T) {
+  alias _ElemType!(T).type ElemType;
+}
+
+template _ElemType(T) {
+    alias r type;
+}
+
+/**********************************/
+// 6404
+
+// receive only rvalue
+void rvalue(T)(auto ref T x) if (!__traits(isRef, x)) {}
+
+// receive only lvalue
+void lvalue(T)(auto ref T x) if ( __traits(isRef, x)) {}
+
+void test6404()
+{
+    int n;
+
+    static assert(!__traits(compiles, rvalue(n)));
+    static assert( __traits(compiles, rvalue(0)));
+
+    static assert( __traits(compiles, lvalue(n)));
+    static assert(!__traits(compiles, lvalue(0)));
+}
+
+/**********************************/
+// 2246
+
+class A2246(T,d){
+    T p;
+}
+
+class B2246(int rk){
+    int[rk] p;
+}
+
+class C2246(T,int rk){
+    T[rk] p;
+}
+
+template f2246(T:A2246!(U,d),U,d){
+    void f2246(){ }
+}
+
+template f2246(T:B2246!(rank),int rank){
+    void f2246(){ }
+}
+
+template f2246(T:C2246!(U,rank),U,int rank){
+    void f2246(){ }
+}
+
+void test2246(){
+    A2246!(int,long) a;
+    B2246!(2) b;
+    C2246!(int,2) c;
+    f2246!(A2246!(int,long))();
+    f2246!(B2246!(2))();
+    f2246!(C2246!(int,2))();
+}
+
+/**********************************/
+// 1684
+
+template Test1684( uint memberOffset ){}
+
+class MyClass1684 {
+    int flags2;
+    mixin Test1684!(cast(uint)flags2.offsetof) t1; // compiles ok
+    mixin Test1684!(cast(int)flags2.offsetof)  t2; // compiles ok
+    mixin Test1684!(flags2.offsetof)           t3; // Error: no property 'offsetof' for type 'int'
+}
+
+/**********************************/
+
+void bug4984a(int n)() if (n > 0 && is(typeof(bug4984a!(n-1) ()))) {
+}
+
+void bug4984a(int n : 0)() {
+}
+
+void bug4984b(U...)(U args) if ( is(typeof( bug4984b(args[1..$]) )) ) {
+}
+
+void bug4984b(U)(U u) {
+}
+
+void bug4984() {
+    bug4984a!400();
+    bug4984b(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
+}
+
+/***************************************/
+// 2579
+
+void foo2579(T)(T delegate(in Object) dlg)
+{
+}
+
+void test2579()
+{
+    foo2579( (in Object) { return 15; } );
+}
+
+/**********************************/
 
 int main()
 {
@@ -159,6 +311,12 @@ int main()
     test5();
     test6();
     test7();
+    test8();
+    test9();
+    test6404();
+    test2246();
+    bug4984();
+    test2579();
 
     printf("Success\n");
     return 0;

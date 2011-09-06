@@ -92,7 +92,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v2.054";
+    version = "v2.055";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -101,7 +101,6 @@ Global::Global()
 char *Loc::toChars()
 {
     OutBuffer buf;
-    char *p;
 
     if (filename)
     {
@@ -277,7 +276,6 @@ Usage:\n\
   --help         print help\n\
   -Ipath         where to look for imports\n\
   -ignore        ignore unsupported pragmas\n\
-  -property      enforce property syntax\n\
   -inline        do function inlining\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
@@ -293,6 +291,7 @@ Usage:\n\
   -op            do not strip paths from source file\n\
   -oq            use fully qualified module name for object filenames\n\
   -profile       profile runtime performance of generated code\n\
+  -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
@@ -312,9 +311,8 @@ extern signed char tyalignsize[];
 
 int main(int argc, char *argv[])
 {
-    int i;
-    Array files;
-    Array libmodules;
+    Strings files;
+    Strings libmodules;
     char *p;
     Module *m;
     int status = EXIT_SUCCESS;
@@ -322,6 +320,10 @@ int main(int argc, char *argv[])
     int setdebuglib = 0;
     char noboundscheck = 0;
     const char *inifilename = NULL;
+
+#ifdef DEBUG
+    printf("DMD %s DEBUG\n", global.version);
+#endif
 
     unittests();
 
@@ -332,7 +334,7 @@ int main(int argc, char *argv[])
         error("missing or null command line arguments");
         fatal();
     }
-    for (i = 0; i < argc; i++)
+    for (size_t i = 0; i < argc; i++)
     {
         if (!argv[i])
             goto Largs;
@@ -357,13 +359,13 @@ int main(int argc, char *argv[])
     global.params.Dversion = 2;
     global.params.quiet = 1;
 
-    global.params.linkswitches = new Array();
-    global.params.libfiles = new Array();
-    global.params.objfiles = new Array();
-    global.params.ddocfiles = new Array();
+    global.params.linkswitches = new Strings();
+    global.params.libfiles = new Strings();
+    global.params.objfiles = new Strings();
+    global.params.ddocfiles = new Strings();
 
     // Default to -m32 for 32 bit dmd, -m64 for 64 bit dmd
-    global.params.isX86_64 = (sizeof(size_t) == 8);
+    global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
     global.params.defaultlibname = "phobos";
@@ -428,13 +430,13 @@ int main(int argc, char *argv[])
     getenv_setargv("DFLAGS", &argc, &argv);
 
 #if 0
-    for (i = 0; i < argc; i++)
+    for (size_t i = 0; i < argc; i++)
     {
         printf("argv[%d] = '%s'\n", i, argv[i]);
     }
 #endif
 
-    for (i = 1; i < argc; i++)
+    for (size_t i = 1; i < argc; i++)
     {
         p = argv[i];
         if (*p == '-')
@@ -466,9 +468,9 @@ int main(int argc, char *argv[])
                 global.params.trace = 1;
             }
             else if (strcmp(p + 1, "m32") == 0)
-                global.params.isX86_64 = 0;
+                global.params.is64bit = 0;
             else if (strcmp(p + 1, "m64") == 0)
-                global.params.isX86_64 = 1;
+                global.params.is64bit = 1;
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = 1;
             else if (strcmp(p + 1, "v") == 0)
@@ -617,13 +619,13 @@ int main(int argc, char *argv[])
             else if (p[1] == 'I')
             {
                 if (!global.params.imppath)
-                    global.params.imppath = new Array();
+                    global.params.imppath = new Strings();
                 global.params.imppath->push(p + 2);
             }
             else if (p[1] == 'J')
             {
                 if (!global.params.fileImppath)
-                    global.params.fileImppath = new Array();
+                    global.params.fileImppath = new Strings();
                 global.params.fileImppath->push(p + 2);
             }
             else if (memcmp(p + 1, "debug", 5) == 0 && p[6] != 'l')
@@ -634,7 +636,7 @@ int main(int argc, char *argv[])
                 //      -debug=identifier
                 if (p[6] == '=')
                 {
-                    if (isdigit(p[7]))
+                    if (isdigit((unsigned char)p[7]))
                     {   long level;
 
                         errno = 0;
@@ -660,7 +662,7 @@ int main(int argc, char *argv[])
                 //      -version=identifier
                 if (p[8] == '=')
                 {
-                    if (isdigit(p[9]))
+                    if (isdigit((unsigned char)p[9]))
                     {   long level;
 
                         errno = 0;
@@ -878,7 +880,7 @@ int main(int argc, char *argv[])
             //fatal();
         }
     }
-    if (global.params.isX86_64)
+    if (global.params.is64bit)
     {
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition::addPredefinedGlobalIdent("X86_64");
@@ -926,15 +928,15 @@ int main(int argc, char *argv[])
     // Build import search path
     if (global.params.imppath)
     {
-        for (i = 0; i < global.params.imppath->dim; i++)
+        for (size_t i = 0; i < global.params.imppath->dim; i++)
         {
-            char *path = (char *)global.params.imppath->data[i];
-            Array *a = FileName::splitPath(path);
+            char *path = global.params.imppath->tdata()[i];
+            Strings *a = FileName::splitPath(path);
 
             if (a)
             {
                 if (!global.path)
-                    global.path = new Array();
+                    global.path = new Strings();
                 global.path->append(a);
             }
         }
@@ -943,33 +945,35 @@ int main(int argc, char *argv[])
     // Build string import search path
     if (global.params.fileImppath)
     {
-        for (i = 0; i < global.params.fileImppath->dim; i++)
+        for (size_t i = 0; i < global.params.fileImppath->dim; i++)
         {
-            char *path = (char *)global.params.fileImppath->data[i];
-            Array *a = FileName::splitPath(path);
+            char *path = global.params.fileImppath->tdata()[i];
+            Strings *a = FileName::splitPath(path);
 
             if (a)
             {
                 if (!global.filePath)
-                    global.filePath = new Array();
+                    global.filePath = new Strings();
                 global.filePath->append(a);
             }
         }
     }
 
     // Create Modules
-    Array modules;
+    Modules modules;
     modules.reserve(files.dim);
-    for (i = 0; i < files.dim; i++)
+
+    int firstmodule = 1;
+    for (size_t i = 0; i < files.dim; i++)
     {
         char *ext;
         char *name;
 
-        p = (char *) files.data[i];
+        p = files.tdata()[i];
 
 #if _WIN32
         // Convert / to \ so linker will work
-        for (int i = 0; p[i]; i++)
+        for (size_t i = 0; p[i]; i++)
         {
             if (p[i] == '/')
                 p[i] = '\\';
@@ -983,47 +987,47 @@ int main(int argc, char *argv[])
              */
             if (FileName::equals(ext, global.obj_ext))
             {
-                global.params.objfiles->push(files.data[i]);
-                libmodules.push(files.data[i]);
+                global.params.objfiles->push(files.tdata()[i]);
+                libmodules.push(files.tdata()[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.lib_ext))
             {
-                global.params.libfiles->push(files.data[i]);
-                libmodules.push(files.data[i]);
+                global.params.libfiles->push(files.tdata()[i]);
+                libmodules.push(files.tdata()[i]);
                 continue;
             }
 
             if (strcmp(ext, global.ddoc_ext) == 0)
             {
-                global.params.ddocfiles->push(files.data[i]);
+                global.params.ddocfiles->push(files.tdata()[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.json_ext))
             {
                 global.params.doXGeneration = 1;
-                global.params.xfilename = (char *)files.data[i];
+                global.params.xfilename = files.tdata()[i];
                 continue;
             }
 
             if (FileName::equals(ext, global.map_ext))
             {
-                global.params.mapfile = (char *)files.data[i];
+                global.params.mapfile = files.tdata()[i];
                 continue;
             }
 
 #if TARGET_WINDOS
             if (FileName::equals(ext, "res"))
             {
-                global.params.resfile = (char *)files.data[i];
+                global.params.resfile = files.tdata()[i];
                 continue;
             }
 
             if (FileName::equals(ext, "def"))
             {
-                global.params.deffile = (char *)files.data[i];
+                global.params.deffile = files.tdata()[i];
                 continue;
             }
 
@@ -1054,7 +1058,7 @@ int main(int argc, char *argv[])
                     strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error("invalid file name '%s'", (char *)files.data[i]);
+                    error("invalid file name '%s'", files.tdata()[i]);
                     fatal();
                 }
             }
@@ -1074,7 +1078,7 @@ int main(int argc, char *argv[])
          */
 
         Identifier *id = Lexer::idPool(name);
-        m = new Module((char *) files.data[i], id, global.params.doDocComments, global.params.doHdrGeneration);
+        m = new Module(files.tdata()[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
     }
 
@@ -1087,55 +1091,56 @@ int main(int argc, char *argv[])
 #if ASYNCREAD
     // Multi threaded
     AsyncRead *aw = AsyncRead::create(modules.dim);
-    for (i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.dim; i++)
     {
-        m = (Module *)modules.data[i];
+        m = modules.tdata()[i];
         aw->addFile(m->srcfile);
     }
     aw->start();
 #else
     // Single threaded
-    for (i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.dim; i++)
     {
-        m = (Module *)modules.data[i];
+        m = modules.tdata()[i];
         m->read(0);
     }
 #endif
 
     // Parse files
-    int anydocfiles = 0;
-	int firstmodule = 1;
-    for (i = 0; i < modules.dim; i++)
+    bool anydocfiles = false;
+    size_t filecount = modules.dim;
+    for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
-        m = (Module *)modules.data[i];
+        m = modules.tdata()[modi];
         if (global.params.verbose)
             printf("parse     %s\n", m->toChars());
         if (!Module::rootModule)
             Module::rootModule = m;
         m->importedFrom = m;
+
 #if ASYNCREAD
-        if (aw->read(i))
+        if (aw->read(filei))
         {
             error("cannot read file %s", m->srcfile->name->toChars());
         }
 #endif
         m->parse();
         m->prepareObjfile();
-        if (!global.params.oneobj || i == 0 || m->isDocFile)
+        if (!global.params.oneobj || modi == 0 || m->isDocFile)
             m->deleteObjFile();
         if (m->isDocFile)
         {
-            anydocfiles = 1;
+            anydocfiles = true;
             m->gendocfile();
 
             // Remove m from list of modules
-            modules.remove(i);
-            i--;
+            modules.remove(modi);
+            modi--;
 
             // Remove m's object file from list of object files
-            for (int j = 0; j < global.params.objfiles->dim; j++)
+            for (size_t j = 0; j < global.params.objfiles->dim; j++)
             {
-                if (m->objfile->name->str == global.params.objfiles->data[j])
+                if (m->objfile->name->str == global.params.objfiles->tdata()[j])
                 {
                     global.params.objfiles->remove(j);
                     break;
@@ -1170,9 +1175,9 @@ int main(int argc, char *argv[])
          * line switches and what else is imported, they are generated
          * before any semantic analysis.
          */
-        for (i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.dim; i++)
         {
-            m = (Module *)modules.data[i];
+            m = modules.tdata()[i];
             if (global.params.verbose)
                 printf("import    %s\n", m->toChars());
             m->genhdrfile();
@@ -1182,9 +1187,9 @@ int main(int argc, char *argv[])
         fatal();
 
     // load all unconditional imports for better symbol resolving
-    for (i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.dim; i++)
     {
-       m = (Module *)modules.data[i];
+       m = modules.tdata()[i];
        if (global.params.verbose)
            printf("importall %s\n", m->toChars());
        m->importAll(0);
@@ -1193,9 +1198,9 @@ int main(int argc, char *argv[])
        fatal();
 
     // Do semantic analysis
-    for (i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.dim; i++)
     {
-        m = (Module *)modules.data[i];
+        m = modules.tdata()[i];
         if (global.params.verbose)
             printf("semantic  %s\n", m->toChars());
         m->semantic();
@@ -1207,9 +1212,9 @@ int main(int argc, char *argv[])
     Module::runDeferredSemantic();
 
     // Do pass 2 semantic analysis
-    for (i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.dim; i++)
     {
-        m = (Module *)modules.data[i];
+        m = modules.tdata()[i];
         if (global.params.verbose)
             printf("semantic2 %s\n", m->toChars());
         m->semantic2();
@@ -1218,9 +1223,9 @@ int main(int argc, char *argv[])
         fatal();
 
     // Do pass 3 semantic analysis
-    for (i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < modules.dim; i++)
     {
-        m = (Module *)modules.data[i];
+        m = modules.tdata()[i];
         if (global.params.verbose)
             printf("semantic3 %s\n", m->toChars());
         m->semantic3();
@@ -1251,9 +1256,9 @@ int main(int argc, char *argv[])
         {
             // Do pass 3 semantic analysis on all imported modules,
             // since otherwise functions in them cannot be inlined
-            for (i = 0; i < Module::amodules.dim; i++)
+            for (size_t i = 0; i < Module::amodules.dim; i++)
             {
-                m = (Module *)Module::amodules.data[i];
+                m = Module::amodules.tdata()[i];
                 if (global.params.verbose)
                     printf("semantic3 %s\n", m->toChars());
                 m->semantic3();
@@ -1262,9 +1267,9 @@ int main(int argc, char *argv[])
                 fatal();
         }
 
-        for (i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.dim; i++)
         {
-            m = (Module *)modules.data[i];
+            m = modules.tdata()[i];
             if (global.params.verbose)
                 printf("inline scan %s\n", m->toChars());
             m->inlineScan();
@@ -1282,9 +1287,9 @@ int main(int argc, char *argv[])
         library->setFilename(global.params.objdir, global.params.libname);
 
         // Add input object and input library files to output library
-        for (int i = 0; i < libmodules.dim; i++)
+        for (size_t i = 0; i < libmodules.dim; i++)
         {
-            char *p = (char *)libmodules.data[i];
+            char *p = libmodules.tdata()[i];
             library->addObject(p, NULL, 0);
         }
     }
@@ -1296,9 +1301,9 @@ int main(int argc, char *argv[])
 
     if (global.params.oneobj)
     {
-        for (i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.dim; i++)
         {
-            m = (Module *)modules.data[i];
+            m = modules.tdata()[i];
             if (global.params.verbose)
                 printf("code      %s\n", m->toChars());
             if (i == 0)
@@ -1309,14 +1314,14 @@ int main(int argc, char *argv[])
         }
         if (!global.errors && modules.dim)
         {
-            obj_end(library, ((Module *)modules.data[0])->objfile);
+            obj_end(library, modules.tdata()[0]->objfile);
         }
     }
     else
     {
-        for (i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < modules.dim; i++)
         {
-            m = (Module *)modules.data[i];
+            m = modules.tdata()[i];
             if (global.params.verbose)
                 printf("code      %s\n", m->toChars());
             if (global.params.obj)
@@ -1371,9 +1376,9 @@ int main(int argc, char *argv[])
 
                 /* Delete .obj files and .exe file
                  */
-                for (i = 0; i < modules.dim; i++)
+                for (size_t i = 0; i < modules.dim; i++)
                 {
-                    Module *m = (Module *)modules.data[i];
+                    Module *m = modules.tdata()[i];
                     m->deleteObjFile();
                     if (global.params.oneobj)
                         break;
@@ -1409,13 +1414,13 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
     env = mem.strdup(env);      // create our own writable copy
 
     int argc = *pargc;
-    Array *argv = new Array();
+    Strings *argv = new Strings();
     argv->setDim(argc);
 
-    for (int i = 0; i < argc; i++)
-        argv->data[i] = (void *)(*pargv)[i];
+    for (size_t i = 0; i < argc; i++)
+        argv->tdata()[i] = (*pargv)[i];
 
-    int j = 1;                  // leave argv[0] alone
+    size_t j = 1;               // leave argv[0] alone
     while (1)
     {
         int wildcard = 1;       // do wildcard expansion
@@ -1489,7 +1494,7 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
 
 Ldone:
     *pargc = argc;
-    *pargv = (char **)argv->data;
+    *pargv = argv->tdata();
 }
 
 #if WINDOWS_SEH

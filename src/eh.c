@@ -228,7 +228,7 @@ void except_fillInEHTable(symbol *s)
         int stackbuf[STACKINC];
         int *stack = stackbuf;
         int stackmax = STACKINC;
-        stack[0] = b->Bscope_index;
+        stack[0] = b->Btry ? b->Btry->Bscope_index : -1;
         int stacki = 1;
 
         unsigned boffset = b->Boffset;
@@ -258,11 +258,16 @@ void except_fillInEHTable(symbol *s)
                             foffset = eoffset;
                             code *cf = code_next(c2);
                             if (config.flags2 & CFG2seh)
-                            {   cf->IEV2.Vsize_t = scopeindex;
+                            {   cf->IEV2.Vsize_t = stack[stacki - 1];
                                 foffset += calccodsize(cf);
                                 cf = code_next(cf);
                             }
                             foffset += calccodsize(cf);
+                            while (cf->Iop != JMP && cf->Iop != JMPS)
+                            {
+                                cf = code_next(cf);
+                                foffset += calccodsize(cf);
+                            }
                             cf = code_next(cf);
                             foffset += calccodsize(cf);
 #if OUREH
@@ -311,34 +316,29 @@ void except_fillInEHTable(symbol *s)
     // Generate catch[]
     for (block *b = startblock; b; b = b->Bnext)
     {
-        if (b->BC == BC_try)
-        {   block *bhandler;
-            int nsucc;
+        if (b->BC == BC_try && b->jcatchvar)         // if try-catch
+        {
+            int nsucc = list_nitems(b->Bsucc);
+            pdt = dtsize_t(pdt,nsucc - 1);           // # of catch blocks
+            sz += NPTRSIZE;
 
-            if (b->jcatchvar)                           // if try-catch
-            {   list_t bl;
+            for (list_t bl = list_next(b->Bsucc); bl; bl = list_next(bl))
+            {
+                block *bcatch = list_block(bl);
 
-                nsucc = list_nitems(b->Bsucc);
-                pdt = dtsize_t(pdt,nsucc - 1);           // # of catch blocks
-                sz += NPTRSIZE;
+                pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
 
-                for (bl = list_next(b->Bsucc); bl; bl = list_next(bl))
-                {
-                    block *bcatch = list_block(bl);
-
-                    pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
-
-                    pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
+                pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 
 #if OUREH
-                    pdt = dtxoff(pdt,funcsym_p,bcatch->Boffset - startblock->Boffset, TYnptr);  // catch handler address
+                pdt = dtxoff(pdt,funcsym_p,bcatch->Boffset - startblock->Boffset, TYnptr);  // catch handler address
 #else
-                    pdt = dtcoff(pdt,bcatch->Boffset);        // catch handler address
+                pdt = dtcoff(pdt,bcatch->Boffset);        // catch handler address
 #endif
-                    sz += 3 * NPTRSIZE;
-                }
+                sz += 3 * NPTRSIZE;
             }
         }
     }
     assert(sz != 0);
 }
+

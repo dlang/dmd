@@ -809,7 +809,7 @@ void test32()
   {
     S32 s = bar32();
   }
-  assert(S32.x == 0x211);
+  assert(S32.x == 0x101);
 }
 
 /**********************************/
@@ -1016,7 +1016,7 @@ void test38()
   {
     auto s1 = foo38;
     assert(S38.count == 1);
-    assert(S38.postblit == 1);
+    assert(S38.postblit == 0);
   }
   assert(S38.count == 0);
   S38.postblit = 0;
@@ -1312,7 +1312,7 @@ void test52()
     printf("a: %p, b: %p\n", &a, &b);
   }
     printf("s = '%.*s'\n", s52.length, s52.ptr);
-    assert(s52 == "caabbb");
+    assert(s52 == "cabb");
 }
 
 /**********************************/
@@ -1461,17 +1461,22 @@ int foo56()
 
 void test56()
 {
-   int i;
-   try
-   {
-       i = S56(1).x + foo56() + 1;
-   }
-   catch (Throwable o)
-   {
-	printf("caught\n");
-   }
-   printf("i = %d\n", i);
-   assert(i == 0);
+    int i;
+    int j;
+    try
+    {
+        j |= 1;
+        i = S56(1).x + foo56() + 1;
+        j |= 2;
+    }
+    catch (Throwable o)
+    {
+        printf("caught\n");
+        j |= 4;
+    }
+    printf("i = %d, j = %d\n", i, j);
+    assert(i == 0);
+    assert(j == 5);
 }
 
 /**********************************/
@@ -1642,6 +1647,110 @@ struct bar5574b
 }
 
 /**********************************/
+// 5777
+
+int sdtor58 = 0;
+S58* ps58;
+
+struct S58
+{
+	@disable this(this);
+	~this(){ ++sdtor58; }
+}
+
+S58 makeS58()
+{
+	S58 s;
+	ps58 = &s;
+	return s;
+}
+
+void test58()
+{
+	auto s1 = makeS58();
+	assert(ps58 == &s1);
+	assert(sdtor58 == 0);
+}
+
+/**********************************/
+// 6308
+
+struct C59
+{
+    void oops()
+    {
+        throw new Throwable("Oops!");
+    }
+
+    ~this()
+    {
+    }
+}
+
+void foo59()
+{
+    C59().oops();
+//    auto c = C(); c.oops();
+}
+
+
+void test59()
+{
+    int i = 0;
+    try
+	foo59();
+    catch (Throwable)
+    {   i = 1;
+    }
+    assert(i == 1);
+}
+
+/**********************************/
+// 6499
+
+struct S6499
+{
+    string m = "<not set>";
+
+    this(string s)
+    {
+        m = s;
+        printf("Constructor - %.*s\n", m.length, m.ptr);
+        if (m == "foo") { ++sdtor; assert(sdtor == 1); }
+        if (m == "bar") { ++sdtor; assert(sdtor == 2); }
+    }
+    this(this)
+    {
+        printf("Postblit    - %.*s\n", m.length, m.ptr);
+        assert(0);
+    }
+    ~this()
+    {
+        printf("Destructor  - %.*s\n", m.length, m.ptr);
+        if (m == "bar") { assert(sdtor == 2); --sdtor; }
+        if (m == "foo") { assert(sdtor == 1); --sdtor; }
+    }
+    S6499 bar()     { return S6499("bar"); }
+    S6499 baz()()   { return S6499("baz"); }
+}
+
+void test6499()
+{
+    S6499 foo() { return S6499("foo"); }
+
+    {
+        sdtor = 0;
+        scope(exit) assert(sdtor == 0);
+        foo().bar();
+    }
+    {
+        sdtor = 0;
+        scope(exit) assert(sdtor == 0);
+        foo().baz();
+    }
+}
+
+/**********************************/
 
 int main()
 {
@@ -1702,6 +1811,9 @@ int main()
     test55();
     test56();
     test57();
+    test58();
+    test59();
+    test6499();
 
     printf("Success\n");
     return 0;

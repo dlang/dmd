@@ -28,21 +28,21 @@ struct HdrGenState;
 
 struct Import : Dsymbol
 {
-    Array *packages;            // array of Identifier's representing packages
+    Identifiers *packages;      // array of Identifier's representing packages
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import
 
     // Pairs of alias=name to bind into current namespace
-    Array names;
-    Array aliases;
+    Identifiers names;
+    Identifiers aliases;
 
-    Array aliasdecls;           // AliasDeclarations for names/aliases
+    AliasDeclarations aliasdecls; // AliasDeclarations for names/aliases
 
     Module *mod;
     Package *pkg;               // leftmost package/module
 
-    Import(Loc loc, Array *packages, Identifier *id, Identifier *aliasId,
+    Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
         int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
 

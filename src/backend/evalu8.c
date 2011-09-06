@@ -35,11 +35,13 @@
 #include        "cc.h"
 #include        "oper.h"                /* OPxxxx definitions           */
 #include        "global.h"
-#include        "parser.h"
 #include        "el.h"
 #include        "type.h"
-#include        "cpp.h"
 
+#if SCPP
+#include        "parser.h"
+#include        "cpp.h"
+#endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -159,7 +161,6 @@ HINT boolres(elem *e)
                 case TYdouble_alias:
                 case TYildouble:
                 case TYldouble:
-                T68000(case TYcomp:)
                 {   targ_ldouble ld = el_toldouble(e);
 
                     if (isnan((double)ld))
@@ -574,12 +575,7 @@ elem * evalu8(elem *e)
 {   elem *e1,*e2;
     tym_t tym,tym2,uns;
     unsigned op;
-#if TARGET_MAC
-    targ_short i1,i2;
-    targ_char c1,c2;
-#else
     targ_int i1,i2;
-#endif
     int i;
     targ_llong l1,l2;
     targ_ldouble d1,d2;
@@ -602,14 +598,22 @@ elem * evalu8(elem *e)
             elem_debug(e2);
             if (e2->Eoper == OPconst)
             {
-                T68000(c2 =) i2 = l2 = el_tolong(e2);
+                i2 = l2 = el_tolong(e2);
                 d2 = el_toldouble(e2);
             }
             else
                 return e;
             tym2 = tybasic(typemask(e2));
         }
-        T68000(c1 =) i1 = l1 = el_tolong(e1);
+        else
+        {
+            tym2 = 0;
+            e2 = NULL;
+            i2 = 0;             // not used, but static analyzer complains
+            l2 = 0;             // "
+            d2 = 0;             // "
+        }
+        i1 = l1 = el_tolong(e1);
         d1 = el_toldouble(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
 
@@ -625,11 +629,6 @@ elem * evalu8(elem *e)
     }
     else
         return e;
-
-#if TARGET_MAC
-    c1 = i1;
-    c2 = i2;
-#endif
 
     /* if left or right leaf is unsigned, this is an unsigned operation */
     uns = tyuns(tym) | tyuns(tym2);
@@ -677,13 +676,6 @@ elem * evalu8(elem *e)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                    #if HOST_THINK
-                        // if this is true, then our "double" is really an ldouble
-                        if (PCrel_option & PC_THINKC_DBL) {
-                            e->EV.Vldouble = d1 + d2;
-                        }
-                        else
-                    #endif
                             e->EV.Vdouble = e1->EV.Vdouble + e2->EV.Vdouble;
                         break;
                     case TYidouble:
@@ -879,14 +871,7 @@ elem * evalu8(elem *e)
                 {
                     case TYdouble:
                     case TYdouble_alias:
-                    #if HOST_THINK
-                        // if this is true, then our "double" is really an ldouble
-                        if (PCrel_option & PC_THINKC_DBL) {
-                            e->EV.Vldouble = d1 - d2;
-                        }
-                        else
-                    #endif
-                            e->EV.Vdouble = e1->EV.Vdouble - e2->EV.Vdouble;
+                        e->EV.Vdouble = e1->EV.Vdouble - e2->EV.Vdouble;
                         break;
                     case TYidouble:
                         e->EV.Vcdouble.re =  e1->EV.Vdouble;
@@ -1072,12 +1057,6 @@ elem * evalu8(elem *e)
                     {
                         case TYdouble:
                         case TYdouble_alias:
-#if HOST_THINK
-                            if (PCrel_option & PC_THINKC_DBL) {
-                                e->EV.Vldouble = d1 * d2;
-                            }
-                            else
-#endif
                         case TYidouble:
                             e->EV.Vdouble = e1->EV.Vdouble * e2->EV.Vdouble;
                             break;
@@ -1255,12 +1234,6 @@ elem * evalu8(elem *e)
                     {
                         case TYdouble:
                         case TYdouble_alias:
-#if HOST_THINK
-                            if (PCrel_option & PC_THINKC_DBL) {
-                                e->EV.Vldouble = d1 / d2;
-                            }
-                            else
-#endif
                             e->EV.Vdouble = e1->EV.Vdouble / e2->EV.Vdouble;
                             break;
                         case TYidouble:
@@ -1506,6 +1479,10 @@ elem * evalu8(elem *e)
             case 4:
                 e->EV.Vllong = (rem << 32) | (quo & 0xFFFFFFFF);
                 break;
+            case 8:
+                e->EV.Vcent.lsw = quo;
+                e->EV.Vcent.msw = rem;
+                break;
             default:
                 assert(0);
                 break;
@@ -1625,13 +1602,6 @@ elem * evalu8(elem *e)
 #else
         switch (tym)
         {   case TYdouble:
-            T68000(case TYcomp:)
-#if HOST_THINK
-                if (PCrel_option & PC_THINKC_DBL) {
-                    e->EV.Vldouble = -d1;
-                }
-                else
-#endif
                 e->EV.Vdouble = -e1->EV.Vdouble;
                 break;
             case TYfloat:
@@ -1646,18 +1616,10 @@ elem * evalu8(elem *e)
         }
 #endif
         break;
-#if !(TARGET_POWERPC)
     case OPabs:
 #if 1
         switch (tym)
         {
-#if TARGET_MAC
-            case TYdouble:
-            case TYfloat:
-            case TYldouble:
-                e->EV.Vldouble = fabs(d1);
-                break;
-#else
             case TYdouble:
             case TYidouble:
             case TYdouble_alias:
@@ -1684,7 +1646,6 @@ elem * evalu8(elem *e)
             case TYcldouble:
                 e->EV.Vldouble = Complex_ld::abs(e1->EV.Vcldouble);
                 break;
-#endif
             default:
                 e->EV.Vllong = labs(l1);
                 break;
@@ -1697,7 +1658,6 @@ elem * evalu8(elem *e)
     case OPcos:
     case OPrint:
         return e;
-#endif
     case OPngt:
         i++;
     case OPgt:
@@ -1713,21 +1673,12 @@ elem * evalu8(elem *e)
     case OPle:
         if (uns)
         {
-#if TARGET_MAC
-            if (tybyte(tym))
-                i ^= ((targ_uns) c1) <= ((targ_uns) c2);
-            else
-#endif
             i ^= ((targ_ullong) l1) <= ((targ_ullong) l2);
         }
         else
         {
             if (tyfloating(tym))
                 i ^= d1 <= d2;
-#if TARGET_MAC
-            else if (tybyte(tym))
-                i ^= c1 <= c2;
-#endif
             else
                 i ^= l1 <= l2;
         }
@@ -1749,21 +1700,12 @@ elem * evalu8(elem *e)
     case OPlt:
         if (uns)
         {
-#if TARGET_MAC
-            if (tybyte(tym))
-                i ^= ((targ_uns) c1) < ((targ_uns) c2);
-            else
-#endif
             i ^= ((targ_ullong) l1) < ((targ_ullong) l2);
         }
         else
         {
             if (tyfloating(tym))
                 i ^= d1 < d2;
-#if TARGET_MAC
-            else if (tybyte(tym))
-                i ^= c1 < c2;
-#endif
             else
                 i ^= l1 < l2;
         }
@@ -1807,12 +1749,6 @@ elem * evalu8(elem *e)
             }
             //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1->EV.Vcldouble.re, e1->EV.Vcldouble.im, e2->EV.Vcldouble.re, e2->EV.Vcldouble.im);
         }
-#if TARGET_MAC
-        else if (tybyte(tym))
-            i ^= c1 == c2;
-        else if (tyshort(tym))
-            i ^= i1 == i2;
-#endif
         else
             i ^= l1 == l2;
         e->EV.Vint = i;
@@ -1893,60 +1829,6 @@ elem * evalu8(elem *e)
     case OPu16_32:
         e->EV.Vulong = (targ_ushort) i1;
         break;
-#if TARGET_MAC
-    case OPd_s32:
-        e->EV.Vlong = d1;
-        break;
-    case OPd_u32:
-        e->EV.Vulong = d1;
-        break;
-    case OPs32_d:
-        e->EV.Vldouble = l1;
-        break;
-    case OPu32_d:
-#if HOST_THINK
-        if (PCrel_option & PC_THINKC_DBL) {
-            e->EV.Vldouble = (unsigned long) l1;
-        }
-        else
-#endif
-        e->EV.Vldouble = (unsigned) l1;
-        break;
-    case OPd_s16:
-        e->EV.Vint = d1;
-        break;
-    case OPs16_d:
-        e->EV.Vldouble = i1;
-        break;
-    case OPdbluns:
-        e->EV.Vuns = d1;
-        break;
-    case OPu16_d:
-        e->EV.Vldouble = (targ_uns) i1;
-        break;
-    case OPd_f:
-#if HOST_THINK
-        if (PCrel_option & PC_THINKC_DBL) {
-            e->EV.Vldouble = d1;
-        }
-        else
-#endif
-        e->EV.Vdouble = d1;
-        break;
-    case OPf_d:
-        e->EV.Vldouble = e1->EV.Vdouble;
-        break;
-    case OPdblsflt:
-        e->EV.Vfloat = d1;
-        break;
-    case OPsfltdbl:
-        e->EV.Vldouble = e1->EV.Vfloat;
-        break;
-    case OPcompdbl:
-    case OPdblcomp:
-        e->EV.Vldouble = e1->EV.Vldouble;
-        break;
-#else
     case OPd_u32:
         e->EV.Vulong = (targ_ulong)d1;
         //printf("OPd_u32: dbl = %g, ulng = x%lx\n",d1,e->EV.Vulong);
@@ -2026,7 +1908,6 @@ elem * evalu8(elem *e)
                 assert(0);
         }
         break;
-#endif
     case OPs8int:
         e->EV.Vint = (targ_schar) i1;
         break;
@@ -2095,6 +1976,35 @@ elem * evalu8(elem *e)
                      ((i1 <<  8) & 0x00FF0000) |
                      ((i1 << 24) & 0xFF000000);
         break;
+    case OProl:
+    case OPror:
+    {   unsigned n = i2;
+        if (op == OPror)
+            n = -n;
+        switch (tysize(tym))
+        {
+            case 1:
+                n &= 7;
+                e->EV.Vuchar = (unsigned char)((i1 << n) | ((i1 & 0xFF) >> (8 - n)));
+                break;
+            case 2:
+                n &= 0xF;
+                e->EV.Vushort = (targ_ushort)((i1 << n) | ((i1 & 0xFFFF) >> (16 - n)));
+                break;
+            case 4:
+                n &= 0x1F;
+                e->EV.Vulong = (targ_ulong)((i1 << n) | ((i1 & 0xFFFFFFFF) >> (32 - n)));
+                break;
+            case 8:
+                n &= 0x3F;
+                e->EV.Vullong = (targ_ullong)((l1 << n) | ((l1 & 0xFFFFFFFFFFFFFFFFLL) >> (64 - n)));
+                break;
+            //case 16:
+            default:
+                assert(0);
+        }
+        break;
+    }
     case OPind:
 #if 0 && MARS
         /* The problem with this is that although the only reaching definition

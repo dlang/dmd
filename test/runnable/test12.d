@@ -1,6 +1,3 @@
-// REQUIRED_ARGS: -d
-
-import std.utf: toUTF8;
 
 extern(C) int printf(const char*, ...);
 extern(C) int sprintf(char*, const char*, ...);
@@ -99,7 +96,7 @@ void test2()
 
 /**************************************/
 
-bool all(string array, bool (*predicate)(char)) {
+bool all(string array, bool function(char) predicate) {
     for (int i = 0; i < array.length; i++) {
         if (!predicate(array[i])) {
             return false;
@@ -216,7 +213,7 @@ template base7( T )
  typedef T safeptr = cast(T)&errfunc;
 }
 
-alias int (*mfp)(int);
+alias int function(int) mfp;
 alias base7!(mfp) I_V_fp;
 
 void test7()
@@ -488,7 +485,7 @@ void test20()
 
 /**************************************/
 
-import std.math;
+bool isnan(float x) { return !( (x >= 0)  || (x < 0)); }
 
 struct X21 { float f, g, h; }
 X21 x21_1;
@@ -1202,34 +1199,22 @@ void test56()
 
 /**************************************/
 
-void writefln(wstring ws)
-{
-    string s = toUTF8(ws);
-    printf("%.*s\n", s.length, s.ptr);
-}
-
+// DMD 0.114: Fixed .reverse bug of char[] and wchar[] with multibyte encodings.
 void test57()
 {
     wstring a = "abcd";
-    wstring r;
+    wchar[] r;
 
-    r = a.idup.reverse;
-    writefln(r);
+    r = a.dup.reverse;
     assert(r == "dcba");
 
     a = "a\U00012356\U00012346c";
-    writefln(a);
-    r = a.idup.reverse;
-    writefln(r);
+    r = a.dup.reverse;
     assert(r == "c\U00012346\U00012356a");
 
     a = "ab\U00012345c";
-    writefln(a);
-    r = a.idup.reverse;
-    writefln(r);
+    r = a.dup.reverse;
     assert(r == "c\U00012345ba");
-
-    printf("Success\n");
 }
 
 /**************************************/

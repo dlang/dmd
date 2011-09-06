@@ -22,7 +22,7 @@ import std.c.windows.windows;
 import std.c.windows.com;
 
 GUID CLSID_Hello = { 0x30421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
-GUID IID_IHello = { 0x00421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
+GUID IID_IHello  = { 0x00421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
 
 interface IHello : IUnknown
 {
@@ -31,7 +31,7 @@ interface IHello : IUnknown
 }
 
 // Type for an object-destroyed callback
-alias void (*PFNDESTROYED)();
+alias void function() PFNDESTROYED;
 
 /*
  * The class definition for an object that singly implements
@@ -77,7 +77,7 @@ public:
     }
 
 public:
-    HRESULT QueryInterface(const (IID)*riid, LPVOID *ppv)
+    override HRESULT QueryInterface(const (IID)*riid, LPVOID *ppv)
     {
         MessageBoxA(null, "CHello.QueryInterface()", null, MB_OK);
 
@@ -95,7 +95,7 @@ public:
         return NOERROR;
     }
 
-    ULONG Release()
+    override ULONG Release()
     {
         MessageBoxA(null, "CHello.Release()", null, MB_OK);
 
@@ -116,7 +116,7 @@ public:
     }
 
     // IHello members
-    HRESULT Print()
+    override HRESULT Print()
     {
         MessageBoxA(null, "CHello.Print()", null, MB_OK);
         return NOERROR;

@@ -81,7 +81,6 @@ unsigned cv4_memfunctypidx(FuncDeclaration *fd)
         unsigned nparam;
         idx_t paramidx;
         idx_t thisidx;
-        unsigned u;
         unsigned char call;
 
         // It's a member function, which gets a special type record
@@ -121,7 +120,6 @@ unsigned cv4_Denum(EnumDeclaration *e)
     unsigned len;
     unsigned property;
     unsigned attribute;
-    int i;
     const char *id;
     idx_t typidx;
 
@@ -145,10 +143,10 @@ unsigned cv4_Denum(EnumDeclaration *e)
     // Compute the number of fields, and the length of the fieldlist record
     nfields = 0;
     fnamelen = 2;
-    if (e->members)
+    if (!property)
     {
-        for (i = 0; i < e->members->dim; i++)
-        {   EnumMember *sf = ((Dsymbol *)e->members->data[i])->isEnumMember();
+        for (size_t i = 0; i < e->members->dim; i++)
+        {   EnumMember *sf = (e->members->tdata()[i])->isEnumMember();
             dinteger_t value;
 
             if (sf)
@@ -173,7 +171,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     TOWORD(d->data + 2,nfields);
 
     // If forward reference, then field list is 0
-    if (!e->members)
+    if (property)
     {
         TOWORD(d->data + 6,0);
         return typidx;
@@ -184,10 +182,10 @@ unsigned cv4_Denum(EnumDeclaration *e)
     TOWORD(dt->data,LF_FIELDLIST);
 
     // And fill it in
-    int j = 2;
-    int fieldi = 0;
-    for (i = 0; i < e->members->dim; i++)
-    {   EnumMember *sf = ((Dsymbol *)e->members->data[i])->isEnumMember();
+    unsigned j = 2;
+    unsigned fieldi = 0;
+    for (size_t i = 0; i < e->members->dim; i++)
+    {   EnumMember *sf = (e->members->tdata()[i])->isEnumMember();
         dinteger_t value;
 
         if (sf)
@@ -295,7 +293,6 @@ void StructDeclaration::toDebug()
     unsigned numidx;
     debtyp_t *d,*dt;
     unsigned len;
-    int i;
     int count;                  // COUNT field in LF_CLASS
     unsigned char *p;
     idx_t typidx = 0;
@@ -362,8 +359,8 @@ void StructDeclaration::toDebug()
     fnamelen = 2;
 
     count = nfields;
-    for (i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
         int nwritten;
 
         nwritten = s->cvMember(NULL);
@@ -385,8 +382,8 @@ void StructDeclaration::toDebug()
     // And fill it in
     TOWORD(p,LF_FIELDLIST);
     p += 2;
-    for (i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
 
         p += s->cvMember(p);
     }
@@ -473,26 +470,23 @@ void ClassDeclaration::toDebug()
 
     if (1)
     {   debtyp_t *vshape;
-        unsigned n;
         unsigned char descriptor;
 
-        n = vtbl.dim;                   // number of virtual functions
+        size_t n = vtbl.dim;                   // number of virtual functions
         if (n == 0)
         {
             TOWORD(d->data + 10,0);             // vshape is 0
         }
         else
-        {   int i;
-
+        {
             vshape = debtyp_alloc(4 + (n + 1) / 2);
             TOWORD(vshape->data,LF_VTSHAPE);
             TOWORD(vshape->data + 2,1);
 
             n = 0;
             descriptor = 0;
-            for (i = 0; i < vtbl.dim; i++)
-            {   FuncDeclaration *fd = (FuncDeclaration *)vtbl.data[i];
-                tym_t ty;
+            for (size_t i = 0; i < vtbl.dim; i++)
+            {   FuncDeclaration *fd = (FuncDeclaration *)vtbl.tdata()[i];
 
                 //if (intsize == 4)
                     descriptor |= 5;
@@ -527,16 +521,16 @@ void ClassDeclaration::toDebug()
     fnamelen = 2;
 
     // Add in base classes
-    for (i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
+    for (size_t i = 0; i < baseclasses->dim; i++)
+    {   BaseClass *bc = baseclasses->tdata()[i];
 
         nfields++;
         fnamelen += 6 + cv4_numericbytes(bc->offset);
     }
 
     count = nfields;
-    for (i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
         int nwritten;
 
         nwritten = s->cvMember(NULL);
@@ -560,8 +554,8 @@ void ClassDeclaration::toDebug()
     p += 2;
 
     // Add in base classes
-    for (i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
+    for (size_t i = 0; i < baseclasses->dim; i++)
+    {   BaseClass *bc = baseclasses->tdata()[i];
         idx_t typidx;
         unsigned attribute;
 
@@ -580,8 +574,8 @@ void ClassDeclaration::toDebug()
 
 
 
-    for (i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
 
         p += s->cvMember(p);
     }
@@ -630,9 +624,7 @@ int TypedefDeclaration::cvMember(unsigned char *p)
 {
     char *id;
     idx_t typidx;
-    unsigned attribute;
     int nwritten = 0;
-    debtyp_t *d;
 
     //printf("TypedefDeclaration::cvMember() '%s'\n", toChars());
     id = toChars();
@@ -656,9 +648,7 @@ int EnumDeclaration::cvMember(unsigned char *p)
 {
     char *id;
     idx_t typidx;
-    unsigned attribute;
     int nwritten = 0;
-    debtyp_t *d;
 
     //printf("EnumDeclaration::cvMember() '%s'\n", toChars());
     id = toChars();

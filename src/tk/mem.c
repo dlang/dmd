@@ -58,7 +58,7 @@ extern int strlen();
 int mem_inited = 0;             /* != 0 if initialized                  */
 
 static int mem_behavior = MEM_ABORTMSG;
-static int (*fp)(void) = NULL;  /* out-of-memory handler                */
+static int (*oom_fp)(void) = NULL;  /* out-of-memory handler                */
 static int mem_count;           /* # of allocs that haven't been free'd */
 static int mem_scount;          /* # of sallocs that haven't been free'd */
 
@@ -81,7 +81,7 @@ void mem_setexception(enum MEM_E flag,...)
 
     mem_behavior = flag;
     va_start(ap,flag);
-    fp = (mem_behavior == MEM_CALLFP) ? va_arg(ap,fp_t) : 0;
+    oom_fp = (mem_behavior == MEM_CALLFP) ? va_arg(ap,fp_t) : 0;
     va_end(ap);
 #if MEM_DEBUG
     assert(0 <= flag && flag <= MEM_RETRY);
@@ -118,8 +118,8 @@ int mem_exception()
                 exit(EXIT_FAILURE);
                 /* NOTREACHED */
             case MEM_CALLFP:
-                assert(fp);
-                behavior = (*fp)();
+                assert(oom_fp);
+                behavior = (*oom_fp)();
                 break;
             case MEM_RETNULL:
                 return 0;
@@ -755,10 +755,17 @@ void *mem_fmalloc(unsigned numbytes)
 {   void *p;
 
     //printf("fmalloc(%d)\n",numbytes);
+#if defined(__llvm__) && (defined(__GNUC__) || defined(__clang__))
+    // LLVM-GCC and Clang assume some types, notably elem (see DMD issue 6215),
+    // to be 16-byte aligned. Because we do not have any type information
+    // available here, we have to 16 byte-align everything.
+    numbytes = (numbytes + 0xF) & ~0xF;
+#else
     if (sizeof(size_t) == 2)
         numbytes = (numbytes + 1) & ~1;         /* word align   */
     else
         numbytes = (numbytes + 3) & ~3;         /* dword align  */
+#endif
 
     /* This ugly flow-of-control is so that the most common case
        drops straight through.
@@ -832,7 +839,7 @@ void mem_init()
         if (mem_inited == 0)
         {       mem_count = 0;
                 mem_scount = 0;
-                fp = NULL;
+                oom_fp = NULL;
                 mem_behavior = MEM_ABORTMSG;
 #if MEM_DEBUG
                 mem_numalloc = 0;

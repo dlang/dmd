@@ -19,10 +19,6 @@
 #ifndef EL_H
 #define EL_H    1
 
-#if TARGET_MAC
-#include "TGel.h"
-#endif
-
 /******************************************
  * Elems:
  *      Elems are the basic tree element. They can be either
@@ -115,19 +111,10 @@ struct elem
                                         // first, intermediate, and last references
                                         // to a CSE)
             #define Ecomsub _EU._EC.Ecomsub_
-
-#if TARGET_POWERPC
-            unsigned char Gflags;
-            #define     GFLassrval      1               // element is rvalue of an assign
-            #define     GFLsignok       2               // element does not need sign extend
-            #define     GFLstrthis_fixed        4       // strthis child elem has been fixed
-                                                        // on first pass, do not do it again
-#endif
         }_EC;
     }_EU;
 
     struct TYPE *ET;            // pointer to type of elem if TYstruct | TYarray
-    TARGET_structELEM           // target specific additions
     Srcpos Esrcpos;             // source file position
 };
 
@@ -192,6 +179,7 @@ int el_match(elem_p ,elem_p);
 int el_match2(elem_p ,elem_p);
 int el_match3(elem_p ,elem_p);
 int el_match4(elem_p ,elem_p);
+int el_match5(elem_p ,elem_p);
 
 int el_appears(elem *e,symbol *s);
 Symbol *el_basesym(elem *e);
@@ -242,11 +230,6 @@ elem *el_convstring(elem *);
 elem *el_convert(elem *e);
 int el_isdependent(elem *);
 unsigned el_alignsize(elem *);
-
-#if  (TARGET_POWERPC)
-// convert float | double constants to memory constants
-void el_convconst(elem *);
-#endif
 
 void elem_print(elem *);
 void el_hydrate(elem **);

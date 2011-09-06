@@ -38,11 +38,17 @@ class Connection
 
 int main ()
 {
-	Connection ns;
-	ns = new Connection ();
-	ns.connect ("localhost", 80);
-	ns.poll ();
-	delete ns;
+	try
+	{
+	    Connection ns;
+	    ns = new Connection ();
+	    ns.connect ("localhost", 80);
+	    ns.poll ();
+	    delete ns;
+	}
+	catch(SocketException e)
+	{
+	}
 	return 0;
 }
 

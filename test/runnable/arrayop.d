@@ -1,3 +1,5 @@
+import std.math;
+
 extern(C) int printf(const char*, ...);
 
 string abc;
@@ -494,6 +496,39 @@ void test5()
 
 /************************************************************************/
 
+void test6()
+{
+    int[10] a = [1,2,3,4,5,6,7,8,9,10];
+    int[10] b;
+
+    b = a[] ^^ 2;
+    assert(b[0] == 1);
+    assert(b[1] == 4);
+    assert(b[2] == 9);
+    assert(b[3] == 16);
+    assert(b[4] == 25);
+    assert(b[5] == 36);
+    assert(b[6] == 49);
+    assert(b[7] == 64);
+    assert(b[8] == 81);
+    assert(b[9] == 100);
+
+    int[10] c = 3;
+    b = a[] ^^ c[];
+    assert(b[0] == 1);
+    assert(b[1] == 8);
+    assert(b[2] == 27);
+    assert(b[3] == 64);
+    assert(b[4] == 125);
+    assert(b[5] == 216);
+    assert(b[6] == 343);
+    assert(b[7] == 512);
+    assert(b[8] == 729);
+    assert(b[9] == 1000);
+}
+
+/************************************************************************/
+
 int main()
 {
     test1();
@@ -501,6 +536,7 @@ int main()
     test3();
     test4();
     test5();
+    test6();
 
     printf("Success\n");
     return 0;

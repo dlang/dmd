@@ -51,7 +51,7 @@ void vec_init()
 void vec_term()
 {
     if (--vec_initcount == 0)
-    {   int i;
+    {
 
 #ifdef DEBUG
         if (vec_count != 0)
@@ -63,6 +63,7 @@ void vec_term()
         assert(vec_count == 0);
 #endif
 #if TERMCODE
+        int i;
         for (i = 0; i < VECMAX; i++)
         {   void **v;
             void **vn;
@@ -234,7 +235,7 @@ void vec_setbit(unsigned b,vec_t v)
 #ifdef DEBUG
   if (!(v && b < vec_numbits(v)))
         printf("vec_setbit(v = %p,b = %d): numbits = %d dim = %d\n",
-            v,b,vec_numbits(v),vec_dim(v));
+            v,b,v ? vec_numbits(v) : 0, v ? vec_dim(v) : 0);
 #endif
   assert(v && b < vec_numbits(v));
   *(v + (b >> VECSHIFT)) |= MASK(b);
@@ -299,7 +300,6 @@ int vec_testbit(unsigned b,vec_t v)
   if (b >= vec_numbits(v))
   {     printf("vec_testbit(v = %p,b = %d): numbits = %d dim = %d\n",
             v,b,vec_numbits(v),vec_dim(v));
-        b = *(unsigned *)0;             // generate GP fault
         b = (unsigned)-1;
   }
 #endif
@@ -490,7 +490,6 @@ void vec_orass(vec_t v1,vec_t v2)
     }
     else
         assert(!v2);
-Lret: ;
 }
 
 /********************************
@@ -583,7 +582,7 @@ void vec_copy(vec_t to,vec_t from)
 #ifdef DEBUG
         if (!(to && from && vec_numbits(to) == vec_numbits(from)))
             printf("to = x%lx, from = x%lx, numbits(to) = %d, numbits(from) = %d\n",
-                (long)to,(long)from,vec_numbits(to),vec_numbits(from));
+                (long)to,(long)from,to ? vec_numbits(to) : 0, from ? vec_numbits(from): 0);
 #endif
         assert(to && from && vec_numbits(to) == vec_numbits(from));
         memcpy(to,from,sizeof(to[0]) * vec_dim(to));
@@ -644,13 +643,12 @@ void vec_println(vec_t v)
 }
 
 void vec_print(vec_t v)
-{ register unsigned i;
-
+{
 #ifdef DEBUG
   printf(" Vec %p, numbits %d dim %d",v,vec_numbits(v),vec_dim(v));
   if (v)
   {     fputc('\t',stdout);
-        for (i = 0; i < vec_numbits(v); i++)
+        for (unsigned i = 0; i < vec_numbits(v); i++)
                 fputc((vec_testbit(i,v)) ? '1' : '0',stdout);
   }
 #endif

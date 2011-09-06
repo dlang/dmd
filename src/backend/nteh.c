@@ -25,8 +25,6 @@
 #include        "dt.h"
 #if SCPP
 #include        "scope.h"
-#include        "parser.h"
-#include        "cpp.h"
 #endif
 #include        "exh.h"
 
@@ -169,6 +167,7 @@ void nteh_gentables()
 void nteh_declarvars(Blockx *bx)
 {   symbol *s;
 
+    //printf("nteh_declarvars()\n");
 #if MARS
     if (!(bx->funcsym->Sfunc->Fflags3 & Fnteh)) // if haven't already done it
     {   bx->funcsym->Sfunc->Fflags3 |= Fnteh;
@@ -686,7 +685,6 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     code cs;
     code *cs1;
     code *cs2;
-    int i;
     regm_t desregs;
     int reg;
     int local_unwind;
@@ -886,7 +884,6 @@ code *nteh_monitor_epilog(regm_t retregs)
     code *cs1;
     code *cs2;
     code *cpop;
-    int i;
     regm_t desregs;
     Symbol *s;
 

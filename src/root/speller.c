@@ -111,7 +111,7 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
 
     /* Deletions */
     memcpy(buf, seed + 1, seedlen);
-    for (int i = 0; i < seedlen; i++)
+    for (size_t i = 0; i < seedlen; i++)
     {
         //printf("del buf = '%s'\n", buf);
         void *p;
@@ -129,7 +129,7 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
     if (!flag)
     {
         memcpy(buf, seed, seedlen + 1);
-        for (int i = 0; i + 1 < seedlen; i++)
+        for (size_t i = 0; i + 1 < seedlen; i++)
         {
             // swap [i] and [i + 1]
             buf[i] = seed[i + 1];
@@ -148,7 +148,7 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
     {
         /* Substitutions */
         memcpy(buf, seed, seedlen + 1);
-        for (int i = 0; i < seedlen; i++)
+        for (size_t i = 0; i < seedlen; i++)
         {
             for (const char *s = charset; *s; s++)
             {
@@ -168,7 +168,7 @@ void *spellerX(const char *seed, size_t seedlen, fp_speller_t fp, void *fparg,
 
         /* Insertions */
         memcpy(buf + 1, seed, seedlen + 1);
-        for (int i = 0; i <= seedlen; i++)      // yes, do seedlen+1 iterations
+        for (size_t i = 0; i <= seedlen; i++)      // yes, do seedlen+1 iterations
         {
             for (const char *s = charset; *s; s++)
             {

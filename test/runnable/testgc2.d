@@ -2,10 +2,8 @@
 
 module testgc2;
 
-import std.stdio;
-import std.string;
-import std.format;
-import core.exception;
+import core.stdc.stdio;
+import core.exception : OutOfMemoryError;
 
 /*******************************************/
 
@@ -45,7 +43,7 @@ void main()
 {
     test1();
 
-    writefln("Success");
+    printf("Success\n");
 }
 
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -44,7 +44,7 @@ int StructDeclaration::needOpAssign()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)fields.data[i];
+        Dsymbol *s = fields.tdata()[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -87,7 +87,7 @@ int StructDeclaration::needOpEquals()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)fields.data[i];
+        Dsymbol *s = fields.tdata()[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -104,7 +104,6 @@ int StructDeclaration::needOpEquals()
                 goto Lneed;
         }
     }
-Ldontneed:
     if (X) printf("\tdontneed\n");
     return 0;
 
@@ -185,9 +184,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             /* Instead of running the destructor on s, run it
              * on tmp. This avoids needing to copy tmp back in to s.
              */
-            Expression *ec = new DotVarExp(0, new VarExp(0, tmp), dtor, 0);
-            ec = new CallExp(0, ec);
-            e = Expression::combine(e, ec);
+            Expression *ec2 = new DotVarExp(0, new VarExp(0, tmp), dtor, 0);
+            ec2 = new CallExp(0, ec2);
+            e = Expression::combine(e, ec2);
         }
     }
     else
@@ -196,7 +195,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < fields.dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)fields.data[i];
+            Dsymbol *s = fields.tdata()[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v && v->storage_class & STCfield);
             // this.v = s.v;
@@ -267,7 +266,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     //printf("\tmemberwise compare\n");
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)fields.data[i];
+        Dsymbol *s = fields.tdata()[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -390,13 +389,13 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)fields.data[i];
+        Dsymbol *s = fields.tdata()[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        size_t dim = (tv->ty == Tsarray ? 1 : 0);
+        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -458,12 +457,12 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
             return NULL;
 
         case 1:
-            return (FuncDeclaration *)postblits.data[0];
+            return postblits.tdata()[0];
 
         default:
             e = NULL;
             for (size_t i = 0; i < postblits.dim; i++)
-            {   FuncDeclaration *fd = (FuncDeclaration *)postblits.data[i];
+            {   FuncDeclaration *fd = postblits.tdata()[i];
                 stc |= fd->storage_class & STCdisable;
                 if (stc & STCdisable)
                 {
@@ -502,13 +501,13 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 #if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)fields.data[i];
+        Dsymbol *s = fields.tdata()[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        size_t dim = (tv->ty == Tsarray ? 1 : 0);
+        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -563,12 +562,12 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
             return NULL;
 
         case 1:
-            return (FuncDeclaration *)dtors.data[0];
+            return dtors.tdata()[0];
 
         default:
             e = NULL;
             for (size_t i = 0; i < dtors.dim; i++)
-            {   FuncDeclaration *fd = (FuncDeclaration *)dtors.data[i];
+            {   FuncDeclaration *fd = dtors.tdata()[i];
                 Expression *ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, fd, 0);
                 ex = new CallExp(0, ex);

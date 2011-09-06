@@ -19,7 +19,6 @@
 
 #include <limits.h>
 
-#if TX86
 typedef unsigned char mangle_t;
 
 #define mTYman_c        1       // C mangling
@@ -29,10 +28,6 @@ typedef unsigned char mangle_t;
 #define mTYman_sys      5       // _syscall mangling
 #define mTYman_std      6       // _stdcall mangling
 #define mTYman_d        7       // D mangling
-
-#else
-#include "TGtype.h"
-#endif
 
 /*********************************
  * Data type.
@@ -53,7 +48,7 @@ struct TYPE
     tym_t       Tty;            /* mask (TYxxx)                         */
     unsigned short Tflags;      // TFxxxxx
 
-#if TX86
+#if !MARS
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 #define mTYnoret        0x010000        // function has no return
 #define mTYtransu       0x010000        // transparent union
@@ -73,12 +68,11 @@ struct TYPE
 #else
 #define mTYTFF          0xFF0000
 #endif
+#endif
 
-#define TARGET_strucTYPE
     mangle_t Tmangle;           // name mangling
 // Return name mangling of type
 #define type_mangle(t)  ((t)->Tmangle)
-#endif
 
     unsigned Tcount;            // # pointing to this type
     struct TYPE *Tnext;         // next in list
@@ -102,7 +96,6 @@ struct TYPE
 #if 0
     unsigned short Tstabidx;    // Index into stab types
 #endif
-    TARGET_strucTYPE
 #if SOURCE_4TYPES
     Srcpos Tsrcpos;             /* position of type definition */
 #endif
@@ -139,9 +132,8 @@ typedef struct TYPETEMP
 // CPP
 #define TFdependent     4       // template dependent type
 
-#if !TX86
+#if DEHYDRATE
 #define TFhydrated      0x20    // type data already hydrated
-#define TFbasicrev      0x80    // if basic reserved type
 #endif
 
 /* Return !=0 if function type has a variable number of arguments       */
@@ -190,9 +182,7 @@ extern typep_t tsclib;
 extern typep_t tsdlib;
 extern typep_t tspvoid,tspcvoid;
 extern typep_t tsptrdiff, tssize;
-#if TX86
 extern typep_t tstrace;
-#endif
 
 #define tserr           tsint   /* error type           */
 
@@ -236,5 +226,6 @@ void param_free(param_t **);
 symbol *param_search(const char *name, param_t **pp);
 void param_hydrate(param_t **);
 void param_dehydrate(param_t **);
+int typematch(type *t1, type *t2, int relax);
 
 #endif

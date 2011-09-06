@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -326,7 +326,7 @@ Expression *UnaExp::op_overload(Scope *sc)
                 else
                 {
                     // Rewrite +e1 as e1.add()
-                    return build_overload(loc, sc, e1, NULL, fd->ident);
+                    return build_overload(loc, sc, e1, NULL, fd);
                 }
             }
         }
@@ -417,7 +417,7 @@ Expression *CastExp::op_overload(Scope *sc)
 #if 1 // Backwards compatibility with D1 if opCast is a function, not a template
             if (fd->isFuncDeclaration())
             {   // Rewrite as:  e1.opCast()
-                return build_overload(loc, sc, e1, NULL, fd->ident);
+                return build_overload(loc, sc, e1, NULL, fd);
             }
 #endif
             Objects *targsi = new Objects();
@@ -474,11 +474,14 @@ Expression *BinExp::op_overload(Scope *sc)
 
     Objects *targsi = NULL;
 #if DMDV2
-    if (!s && !s_r && op != TOKequal && op != TOKnotequal && op != TOKassign)
-    {
-        if (op == TOKplusplus || op == TOKminusminus)
+    if (op == TOKplusplus || op == TOKminusminus)
+    {   // Bug4099 fix
+        if (ad1 && search_function(ad1, Id::opUnary))
             return NULL;
-
+    }
+    if (!s && !s_r && op != TOKequal && op != TOKnotequal && op != TOKassign &&
+        op != TOKplusplus && op != TOKminusminus)
+    {
         /* Try the new D2 scheme, opBinary and opBinaryRight
          */
         if (ad1)
@@ -505,9 +508,9 @@ Expression *BinExp::op_overload(Scope *sc)
          */
 
         args1.setDim(1);
-        args1.data[0] = (void*) e1;
+        args1.tdata()[0] = e1;
         args2.setDim(1);
-        args2.data[0] = (void*) e2;
+        args2.tdata()[0] = e2;
         argsset = 1;
 
         Match m;
@@ -563,13 +566,13 @@ Expression *BinExp::op_overload(Scope *sc)
             // as unary, but it's implemented as a binary.
             // Rewrite (e1 ++ e2) as e1.postinc()
             // Rewrite (e1 -- e2) as e1.postdec()
-            e = build_overload(loc, sc, e1, NULL, id);
-        else if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
+            e = build_overload(loc, sc, e1, NULL, m.lastf ? m.lastf : s);
+        else if (lastf && m.lastf == lastf || !s_r && m.last == MATCHnomatch)
             // Rewrite (e1 op e2) as e1.opfunc(e2)
-            e = build_overload(loc, sc, e1, e2, id, targsi);
+            e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
         else
             // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-            e = build_overload(loc, sc, e2, e1, id_r, targsi);
+            e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s_r);
         return e;
     }
 
@@ -598,9 +601,9 @@ L1:
 
             if (!argsset)
             {   args1.setDim(1);
-                args1.data[0] = (void*) e1;
+                args1.tdata()[0] = e1;
                 args2.setDim(1);
-                args2.data[0] = (void*) e2;
+                args2.tdata()[0] = e2;
             }
 
             Match m;
@@ -648,13 +651,12 @@ L1:
             }
 
             Expression *e;
-            if (lastf && m.lastf == lastf ||
-                id_r && m.last == MATCHnomatch)
+            if (lastf && m.lastf == lastf || !s && m.last == MATCHnomatch)
                 // Rewrite (e1 op e2) as e1.opfunc_r(e2)
-                e = build_overload(loc, sc, e1, e2, id_r, targsi);
+                e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s_r);
             else
                 // Rewrite (e1 op e2) as e2.opfunc(e1)
-                e = build_overload(loc, sc, e2, e1, id, targsi);
+                e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s);
 
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
@@ -757,9 +759,9 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         Expressions args2;
 
         args1.setDim(1);
-        args1.data[0] = (void*) e1;
+        args1.tdata()[0] = e1;
         args2.setDim(1);
-        args2.data[0] = (void*) e2;
+        args2.tdata()[0] = e2;
 
         Match m;
         memset(&m, 0, sizeof(m));
@@ -828,12 +830,12 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         }
 
         Expression *e;
-        if (lastf && m.lastf == lastf || m.last == MATCHnomatch)
+        if (lastf && m.lastf == lastf || !s_r && m.last == MATCHnomatch)
             // Rewrite (e1 op e2) as e1.opfunc(e2)
-            e = build_overload(loc, sc, e1, e2, id, targsi);
+            e = build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
         else
         {   // Rewrite (e1 op e2) as e2.opfunc_r(e1)
-            e = build_overload(loc, sc, e2, e1, id, targsi);
+            e = build_overload(loc, sc, e2, e1, m.lastf ? m.lastf : s_r);
 
             // When reversing operands of comparison operators,
             // need to reverse the sense of the op
@@ -897,12 +899,17 @@ Expression *EqualExp::op_overload(Scope *sc)
     if (t1->ty == Tclass && t2->ty == Tclass)
     {
         /* Rewrite as:
-         *      .object.opEquals(e1, e2)
+         *      .object.opEquals(cast(Object)e1, cast(Object)e2)
+         * The explicit cast is necessary for interfaces,
+         * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
          */
+        Expression *e1x = e1; //new CastExp(loc, e1, ClassDeclaration::object->getType());
+        Expression *e2x = e2; //new CastExp(loc, e2, ClassDeclaration::object->getType());
+
         Expression *e = new IdentifierExp(loc, Id::empty);
         e = new DotIdExp(loc, e, Id::object);
         e = new DotIdExp(loc, e, Id::eq);
-        e = new CallExp(loc, e, e1, e2);
+        e = new CallExp(loc, e, e1x, e2x);
         e = e->semantic(sc);
         return e;
     }
@@ -942,8 +949,8 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             {
                 Expressions *a = new Expressions();
                 a->push(e2);
-                for (int i = 0; i < ae->arguments->dim; i++)
-                    a->push(ae->arguments->data[i]);
+                for (size_t i = 0; i < ae->arguments->dim; i++)
+                    a->push(ae->arguments->tdata()[i]);
 
                 Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
@@ -1056,7 +1063,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
          */
 
         args2.setDim(1);
-        args2.data[0] = (void*) e2;
+        args2.tdata()[0] = e2;
 
         Match m;
         memset(&m, 0, sizeof(m));
@@ -1090,10 +1097,8 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 goto L1;
         }
 
-        Expression *e;
         // Rewrite (e1 op e2) as e1.opOpAssign(e2)
-        e = build_overload(loc, sc, e1, e2, id, targsi);
-        return e;
+        return build_overload(loc, sc, e1, e2, m.lastf ? m.lastf : s);
     }
 
 L1:
@@ -1134,22 +1139,20 @@ L1:
  */
 
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg,
-        Identifier *id, Objects *targsi)
+        Dsymbol *d)
 {
+    assert(d);
     Expression *e;
 
     //printf("build_overload(id = '%s')\n", id->toChars());
     //earg->print();
     //earg->type->print();
-    if (targsi)
-        e = new DotTemplateInstanceExp(loc, ethis, id, targsi);
+    Declaration *decl = d->isDeclaration();
+    if (decl)
+        e = new DotVarExp(loc, ethis, decl, 0);
     else
-        e = new DotIdExp(loc, ethis, id);
-
-    if (earg)
-        e = new CallExp(loc, e, earg);
-    else
-        e = new CallExp(loc, e);
+        e = new DotIdExp(loc, ethis, d->ident);
+    e = new CallExp(loc, e, earg);
 
     e = e->semantic(sc);
     return e;
@@ -1200,7 +1203,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
     for (size_t u = 0; 1; u++)
     {   if (u == arguments->dim)
             return;
-        Parameter *arg = (Parameter *)arguments->data[u];
+        Parameter *arg = arguments->tdata()[u];
         if (!arg->type)
             break;
     }
@@ -1208,7 +1211,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
     Dsymbol *s;
     AggregateDeclaration *ad;
 
-    Parameter *arg = (Parameter *)arguments->data[0];
+    Parameter *arg = arguments->tdata()[0];
     Type *taggr = aggr->type;
     if (!taggr)
         return;
@@ -1222,7 +1225,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
             {
                 if (!arg->type)
                     arg->type = Type::tsize_t;  // key type
-                arg = (Parameter *)arguments->data[1];
+                arg = arguments->tdata()[1];
             }
             if (!arg->type && tab->ty != Ttuple)
                 arg->type = tab->nextOf();      // value type
@@ -1235,7 +1238,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
             {
                 if (!arg->type)
                     arg->type = taa->index;     // key type
-                arg = (Parameter *)arguments->data[1];
+                arg = arguments->tdata()[1];
             }
             if (!arg->type)
                 arg->type = taa->next;          // value type
@@ -1371,7 +1374,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
 
     for (size_t u = 0; u < nparams; u++)
     {
-        Parameter *arg = (Parameter *)arguments->data[u];
+        Parameter *arg = arguments->tdata()[u];
         Parameter *param = Parameter::getNth(tf->parameters, u);
         if (arg->type)
         {   if (!arg->type->equals(param->type))
@@ -1415,7 +1418,7 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
         }
         if (!td->parameters || td->parameters->dim != 1)
             continue;
-        TemplateParameter *tp = (TemplateParameter *)td->parameters->data[0];
+        TemplateParameter *tp = td->parameters->tdata()[0];
         TemplateAliasParameter *tap = tp->isTemplateAliasParameter();
         if (!tap || !tap->specType || tap->specType->ty != Tfunction)
             continue;

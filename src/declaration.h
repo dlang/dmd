@@ -82,6 +82,7 @@ enum PURE;
 #define STCctfe         0x1000000000LL  // can be used in CTFE, even if it is static
 #define STCdisable      0x2000000000LL  // for functions that are not callable
 #define STCresult       0x4000000000LL  // for result variables passed to out contracts
+#define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
 
 struct Match
 {
@@ -146,7 +147,7 @@ struct Declaration : Dsymbol
     int isParameter()    { return storage_class & STCparameter; }
     int isDeprecated()   { return storage_class & STCdeprecated; }
     int isOverride()     { return storage_class & STCoverride; }
-    int isResult()       { return storage_class & STCresult; }
+    StorageClass isResult()       { return storage_class & STCresult; }
 
     int isIn()    { return storage_class & STCin; }
     int isOut()   { return storage_class & STCout; }
@@ -515,7 +516,7 @@ enum BUILTIN { };
 
 struct FuncDeclaration : Declaration
 {
-    Array *fthrows;                     // Array of Type's of exceptions (not used)
+    Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statement *frequire;
     Statement *fensure;
     Statement *fbody;
@@ -536,7 +537,7 @@ struct FuncDeclaration : Declaration
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
     VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
-    Dsymbols *parameters;               // Array of VarDeclaration's for parameters
+    VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
     Declaration *overnext;              // next in overload list
     Loc endloc;                         // location of closing curly bracket
@@ -573,7 +574,7 @@ struct FuncDeclaration : Declaration
 
     int tookAddressOf;                  // set if someone took the address of
                                         // this function
-    Dsymbols closureVars;               // local variables in this function
+    VarDeclarations closureVars;        // local variables in this function
                                         // which are referenced by nested
                                         // functions
 
@@ -597,7 +598,7 @@ struct FuncDeclaration : Declaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
-    int findVtblIndex(Array *vtbl, int dim);
+    int findVtblIndex(Dsymbols *vtbl, int dim);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
@@ -620,6 +621,7 @@ struct FuncDeclaration : Declaration
     int isCodeseg();
     int isOverloadable();
     enum PURE isPure();
+    enum PURE isPureBypassingInference();
     bool setImpure();
     int isSafe();
     int isTrusted();
@@ -633,7 +635,7 @@ struct FuncDeclaration : Declaration
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void inlineScan();
     int canInline(int hasthis, int hdrscan = 0);
-    Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
+    Expression *doInline(InlineScanState *iss, Expression *ethis, Expressions *arguments);
     const char *kind();
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();

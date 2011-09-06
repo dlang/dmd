@@ -22,8 +22,6 @@
 #include        "oper.h"
 #include        "global.h"
 #include        "type.h"
-#include        "parser.h"
-#include        "cpp.h"
 #include        "exh.h"
 #include        "list.h"
 
@@ -1350,6 +1348,11 @@ STATIC void getinfo(Cinfo *ci,code *c)
             c->Iflags |= CFpsw;
             break;
 
+        case ESCAPE:
+            if (c->Iop == (ESCAPE | ESCadjfpu))
+                ci->fpuadjust = c->IEV2.Vint;
+            break;
+
         case 0xD0:
         case 0xD1:
         case 0xD2:
@@ -1795,7 +1798,7 @@ STATIC code * cnext(code *c)
 //                      if 2, then adjust ci1 as well as ci2
 
 STATIC int conflict(Cinfo *ci1,Cinfo *ci2,int fpsched)
-{   code *c;
+{
     code *c1;
     code *c2;
     unsigned r1,w1,a1;
@@ -2329,7 +2332,7 @@ int Schedule::insert(Cinfo *ci)
 
         clocks = conflict(cit,ci,1);
         if (clocks)
-        {   int k,j;
+        {   int j;
 
             ic = i;                     // where the conflict occurred
             clocks &= 0xFF;             // convert to delay count
@@ -2561,7 +2564,6 @@ int Schedule::stage(code *c)
     list_t l;
     list_t ln;
     int agi;
-    int op;
 
     //printf("stage: "); c->print();
     if (cinfomax == TBLMAX)             // if out of space
@@ -2694,7 +2696,9 @@ code *schedule(code *c,regm_t scratch)
     sch.initialize(0);                  // initialize scheduling table
     while (c)
     {
-        if ((c->Iop == NOP || (c->Iop & 0xFF) == ESCAPE || c->Iflags & CFclassinit) &&
+        if ((c->Iop == NOP ||
+             ((c->Iop & 0xFF) == ESCAPE && c->Iop != (ESCAPE | ESCadjfpu)) ||
+             c->Iflags & CFclassinit) &&
             !(c->Iflags & (CFtarg | CFtarg2)))
         {   code *cn;
 
@@ -2838,7 +2842,7 @@ code *peephole(code *cstart,regm_t scratch)
     //  OP ?,r2
     // to improve pairing
     code *c;
-    code *c1,*c2,*c3;
+    code *c1;
     unsigned r1,r2;
     unsigned mod,reg,rm;
 

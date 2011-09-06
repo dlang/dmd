@@ -319,7 +319,7 @@ Expression *BinExp::arrayOp(Scope *sc)
 
             Parameters *fparams = new Parameters();
             Expression *loopbody = buildArrayLoop(fparams);
-            Parameter *p = (Parameter *)fparams->data[0 /*fparams->dim - 1*/];
+            Parameter *p = fparams->tdata()[0 /*fparams->dim - 1*/];
 #if DMDV1
             // for (size_t i = 0; i < p.length; i++)
             Initializer *init = new ExpInitializer(0, new IntegerExp(0, 0, Type::tsize_t));
@@ -434,6 +434,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -467,6 +470,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -522,7 +528,7 @@ Expression *AssignExp::buildArrayLoop(Parameters *fparams)
     ex2 = new CastExp(0, ex2, e1->type->nextOf());
 #endif
     Expression *ex1 = e1->buildArrayLoop(fparams);
-    Parameter *param = (Parameter *)fparams->data[0];
+    Parameter *param = fparams->tdata()[0];
     param->storageClass = 0;
     Expression *e = new AssignExp(0, ex1, ex2);
     return e;
@@ -535,7 +541,7 @@ Expression *Str##AssignExp::buildArrayLoop(Parameters *fparams) \
      */                                                         \
     Expression *ex2 = e2->buildArrayLoop(fparams);              \
     Expression *ex1 = e1->buildArrayLoop(fparams);              \
-    Parameter *param = (Parameter *)fparams->data[0];           \
+    Parameter *param = fparams->tdata()[0];           \
     param->storageClass = 0;                                    \
     Expression *e = new Str##AssignExp(0, ex1, ex2);            \
     return e;                                                   \
@@ -549,6 +555,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -585,6 +594,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 

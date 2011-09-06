@@ -43,7 +43,6 @@ struct Environment;
 
 Environment *benv;
 
-void out_config_init();
 void slist_add(Symbol *s);
 void slist_reset();
 void clearStringTab();
@@ -53,12 +52,12 @@ void clearStringTab();
 elem *eictor;
 symbol *ictorlocalgot;
 elem *ector;
-Array ectorgates;
+StaticDtorDeclarations ectorgates;
 elem *edtor;
 elem *etest;
 
 elem *esharedctor;
-Array esharedctorgates;
+SharedStaticDtorDeclarations esharedctorgates;
 elem *eshareddtor;
 
 int dtorcount;
@@ -70,7 +69,7 @@ char *lastmname;
  * Append s to list of object files to generate later.
  */
 
-Array obj_symbols_towrite;
+Dsymbols obj_symbols_towrite;
 
 void obj_append(Dsymbol *s)
 {
@@ -79,8 +78,8 @@ void obj_append(Dsymbol *s)
 
 void obj_write_deferred(Library *library)
 {
-    for (int i = 0; i < obj_symbols_towrite.dim; i++)
-    {   Dsymbol *s = (Dsymbol *)obj_symbols_towrite.data[i];
+    for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
+    {   Dsymbol *s = obj_symbols_towrite.tdata()[i];
         Module *m = s->getModule();
 
         char *mname;
@@ -154,8 +153,6 @@ void obj_start(char *srcfile)
 {
     //printf("obj_start()\n");
 
-    out_config_init();
-
     rtlsym_reset();
     slist_reset();
     clearStringTab();
@@ -227,7 +224,7 @@ void Module::genobjfile(int multiobj)
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = (Module *)aimports.data[0];
+        Module *m = aimports.tdata()[0];
         assert(m);
         if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
         {
@@ -273,9 +270,9 @@ void Module::genobjfile(int multiobj)
         covb = (unsigned *)calloc((numlines + 32) / 32, sizeof(*covb));
     }
 
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *member = (Dsymbol *)members->data[i];
+        Dsymbol *member = members->tdata()[i];
         member->toObjFile(multiobj);
     }
 
@@ -360,8 +357,8 @@ void Module::genobjfile(int multiobj)
 #if DMDV2
             cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
 
-            for (int i = 0; i < ectorgates.dim; i++)
-            {   StaticDtorDeclaration *f = (StaticDtorDeclaration *)ectorgates.data[i];
+            for (size_t i = 0; i < ectorgates.dim; i++)
+            {   StaticDtorDeclaration *f = ectorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
                 elem *e = el_var(s);
@@ -401,8 +398,8 @@ void Module::genobjfile(int multiobj)
             ssharedctor = toSymbolX("__modsharedctor", SCglobal, t, moddeco);
             cstate.CSpsymtab = &ssharedctor->Sfunc->Flocsym;
 
-            for (int i = 0; i < esharedctorgates.dim; i++)
-            {   SharedStaticDtorDeclaration *f = (SharedStaticDtorDeclaration *)esharedctorgates.data[i];
+            for (size_t i = 0; i < esharedctorgates.dim; i++)
+            {   SharedStaticDtorDeclaration *f = esharedctorgates.tdata()[i];
 
                 Symbol *s = f->vgate->toSymbol();
                 elem *e = el_var(s);
@@ -536,12 +533,9 @@ void Module::genobjfile(int multiobj)
 
 void FuncDeclaration::toObjFile(int multiobj)
 {
-    Symbol *senter;
-    Symbol *sexit;
     FuncDeclaration *func = this;
     ClassDeclaration *cd = func->parent->isClassDeclaration();
     int reverse;
-    int i;
     int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
@@ -676,7 +670,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     IRState irs(m, func);
-    Array deferToObj;                   // write these to OBJ file later
+    Dsymbols deferToObj;                   // write these to OBJ file later
     irs.deferToObj = &deferToObj;
 
     TypeFunction *tf;
@@ -742,8 +736,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
     if (parameters)
     {
-        for (i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+        for (size_t i = 0; i < parameters->dim; i++)
+        {   VarDeclaration *v = parameters->tdata()[i];
             if (v->csym)
             {
                 error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
@@ -751,12 +745,12 @@ void FuncDeclaration::toObjFile(int multiobj)
             }
             params[pi + i] = v->toSymbol();
         }
-        pi += i;
+        pi += parameters->dim;
     }
 
     if (reverse)
     {   // Reverse params[] entries
-        for (i = 0; i < pi/2; i++)
+        for (size_t i = 0; i < pi/2; i++)
         {
             Symbol *sptmp = params[i];
             params[i] = params[pi - 1 - i];
@@ -801,7 +795,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         params[1] = sp;
     }
 
-    for (i = 0; i < pi; i++)
+    for (size_t i = 0; i < pi; i++)
     {   Symbol *sp = params[i];
         sp->Sclass = SCparameter;
         sp->Sflags &= ~SFLspill;
@@ -812,14 +806,14 @@ void FuncDeclaration::toObjFile(int multiobj)
     // Determine register assignments
     if (pi)
     {
-        if (global.params.isX86_64)
+        if (global.params.is64bit)
         {
             // Order of assignment of pointer or integer parameters
             static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };
             int r = 0;
             int xmmcnt = XMM0;
 
-            for (int i = 0; i < pi; i++)
+            for (size_t i = 0; i < pi; i++)
             {   Symbol *sp = params[i];
                 tym_t ty = tybasic(sp->Stype->Tty);
                 // BUG: doesn't work for structs
@@ -833,7 +827,7 @@ void FuncDeclaration::toObjFile(int multiobj)
                         ++r;
                     }
                 }
-                if (xmmcnt < XMM7)
+                if (xmmcnt <= XMM7)
                 {
                     if (tyfloating(ty) && tysize(ty) <= 8)
                     {
@@ -1027,9 +1021,9 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (isExport())
         obj_export(s, Poffset);
 
-    for (i = 0; i < irs.deferToObj->dim; i++)
+    for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)irs.deferToObj->data[i];
+        Dsymbol *s = irs.deferToObj->tdata()[i];
         s->toObjFile(0);
     }
 

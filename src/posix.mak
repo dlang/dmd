@@ -1,6 +1,7 @@
 # NOTE: need to validate solaris behavior
 ifeq (,$(TARGET))
     OS:=$(shell uname)
+    OSVER:=$(shell uname -r)
     ifeq (Darwin,$(OS))
         TARGET=OSX
     else
@@ -33,12 +34,15 @@ MODEL=32
 ifeq (OSX,$(TARGET))
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
     ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
-    SDK=/Developer/SDKs/MacOSX10.5.sdk
+    #SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
+    #SDK=/Developer/SDKs/MacOSX10.5.sdk
     #SDK=/Developer/SDKs/MacOSX10.6.sdk
-
+    SDK:=$(if $(filter 11.*, $(OSVER)), /Developer/SDKs/MacOSX10.5.sdk, /Developer/SDKs/MacOSX10.6.sdk)
     TARGET_CFLAGS=-isysroot ${SDK}
-    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
+    #-syslibroot is only passed to libtool, not ld.
+    #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
+    #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
+    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
 else
     LDFLAGS=-lm -lstdc++ -lpthread
 endif
@@ -58,11 +62,11 @@ GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -DMARS=1 -DTARGET_$(TARGET)=1
 
-CH= $C/cc.h $C/global.h $C/parser.h $C/oper.h $C/code.h $C/type.h \
+CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
 
 DMD_OBJS = \
-	access.o array.o attrib.o bcomplex.o bit.o blockopt.o \
+	access.o array.o attrib.o bcomplex.o blockopt.o \
 	cast.o code.o cg.o cg87.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o cgsched.o class.o cod1.o cod2.o cod3.o cod4.o cod5.o \
 	constfold.o irstate.o dchar.o cond.o debug.o \
@@ -77,7 +81,7 @@ DMD_OBJS = \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o clone.o aliasthis.o \
+	builtin.o clone.o aliasthis.o intrange.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o
 
@@ -93,9 +97,9 @@ SRC = win32.mak posix.mak \
 	template.c lexer.c declaration.c cast.c cond.h cond.c link.c \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
-	attrib.c opover.c class.c mangle.c bit.c tocsym.c func.c inline.c \
+	attrib.c opover.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
+	s2ir.c todt.c e2ir.c util.c identifier.h parse.h intrange.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
 	utf.h utf.c staticassert.h staticassert.c unialpha.c \
@@ -104,9 +108,9 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c \
+	argtypes.c intrange.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
-	$C/global.h $C/parser.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
+	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
 	$C/bcomplex.c $C/blockopt.c $C/cg.c $C/cg87.c \
 	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
@@ -118,7 +122,7 @@ SRC = win32.mak posix.mak \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
 	$C/type.c $C/melf.h $C/mach.h $C/bcomplex.h \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
-	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/cpp.h $C/exh.h $C/go.h \
+	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c \
 	$C/machobj.c \
@@ -137,7 +141,7 @@ SRC = win32.mak posix.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(ENVP) gcc -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
+	$(ENVP) g++ -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -205,9 +209,6 @@ attrib.o: attrib.c
 
 bcomplex.o: $C/bcomplex.c
 	$(CC) -c $(MFLAGS) $<
-
-bit.o: bit.c expression.h
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 blockopt.o: $C/blockopt.c
 	$(CC) -c $(MFLAGS) $<
@@ -323,7 +324,7 @@ ee.o: $C/ee.c
 eh.o: eh.c $C/cc.h $C/code.h $C/type.h $C/dt.h
 	$(CC) -c $(MFLAGS) $<
 
-el.o: $C/el.c $C/rtlsym.h $C/el.h $C/el.c
+el.o: $C/el.c $C/rtlsym.h $C/el.h
 	$(CC) -c $(MFLAGS) $<
 
 elfobj.o: $C/elfobj.c
@@ -338,7 +339,7 @@ enum.o: enum.c
 evalu8.o: $C/evalu8.c
 	$(CC) -c $(MFLAGS) $<
 
-expression.o: expression.c
+expression.o: expression.c expression.h
 	$(CC) -c $(CFLAGS) $<
 
 func.o: func.c
@@ -353,7 +354,7 @@ gflow.o: $C/gflow.c
 #globals.o: globals.c
 #	$(CC) -c $(CFLAGS) $<
 
-glocal.o: $C/glocal.c $C/rtlsym.h 
+glocal.o: $C/glocal.c $C/rtlsym.h
 	$(CC) -c $(MFLAGS) $<
 
 gloop.o: $C/gloop.c
@@ -406,6 +407,9 @@ inline.o: inline.c
 
 interpret.o: interpret.c
 	$(CC) -c $(CFLAGS) $<
+
+intrange.o: intrange.h intrange.c
+	$(CC) -c $(CFLAGS) intrange.c
 
 json.o: json.c
 	$(CC) -c $(CFLAGS) $<
@@ -579,7 +583,6 @@ gcov:
 	gcov aliasthis.c
 	gcov arrayop.c
 	gcov attrib.c
-	gcov bit.c
 	gcov builtin.c
 	gcov cast.c
 	gcov class.c
@@ -642,6 +645,7 @@ endif
 	gcov utf.c
 	gcov util.c
 	gcov version.c
+	gcov intrange.c
 
 #	gcov hdrgen.c
 #	gcov tocvdebug.c

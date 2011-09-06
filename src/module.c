@@ -48,9 +48,9 @@ ClassDeclaration *Module::moduleinfo;
 
 Module *Module::rootModule;
 DsymbolTable *Module::modules;
-Array Module::amodules;
+Modules Module::amodules;
 
-Array Module::deferred; // deferred Dsymbol's needing semantic() run on them
+Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
 unsigned Module::dprogress;
 
 void Module::init()
@@ -62,8 +62,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         : Package(ident)
 {
     FileName *srcfilename;
-    FileName *cfilename;
-    FileName *hfilename;
     FileName *objfilename;
     FileName *symfilename;
 
@@ -276,7 +274,7 @@ const char *Module::kind()
     return "module";
 }
 
-Module *Module::load(Loc loc, Array *packages, Identifier *ident)
+Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {   Module *m;
     char *filename;
 
@@ -290,10 +288,9 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
     if (packages && packages->dim)
     {
         OutBuffer buf;
-        int i;
 
-        for (i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (Identifier *)packages->data[i];
+        for (size_t i = 0; i < packages->dim; i++)
+        {   Identifier *pid = packages->tdata()[i];
 
             buf.writestring(pid->toChars());
 #if _WIN32
@@ -330,7 +327,7 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
     {
         for (size_t i = 0; i < global.path->dim; i++)
         {
-            char *p = (char *)global.path->data[i];
+            char *p = global.path->tdata()[i];
             char *n = FileName::combine(p, sdi);
             if (FileName::exists(n))
             {   result = n;
@@ -354,7 +351,7 @@ Module *Module::load(Loc loc, Array *packages, Identifier *ident)
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
-            {   Identifier *pid = (Identifier *)packages->data[i];
+            {   Identifier *pid = packages->tdata()[i];
                 printf("%s.", pid->toChars());
             }
         }
@@ -381,10 +378,10 @@ void Module::read(Loc loc)
              */
             if (global.path)
             {
-                for (int i = 0; i < global.path->dim; i++)
+                for (size_t i = 0; i < global.path->dim; i++)
                 {
-                    char *p = (char *)global.path->data[i];
-                    fprintf(stdmsg, "import path[%d] = %s\n", i, p);
+                    char *p = global.path->tdata()[i];
+                    fprintf(stdmsg, "import path[%zd] = %s\n", i, p);
                 }
             }
             else
@@ -705,7 +702,7 @@ void Module::importAll(Scope *prevsc)
     // Add import of "object" if this module isn't "object"
     if (ident != Id::object)
     {
-        if (members->dim == 0 || ((Dsymbol *)members->data[0])->ident != Id::object)
+        if (members->dim == 0 || members->tdata()[0]->ident != Id::object)
         {
             Import *im = new Import(0, NULL, Id::object, NULL, 0);
             members->shift(im);
@@ -716,9 +713,9 @@ void Module::importAll(Scope *prevsc)
     {
         // Add all symbols into module's symbol table
         symtab = new DsymbolTable();
-        for (int i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = members->tdata()[i];
             s->addMember(NULL, sc->scopesym, 1);
         }
     }
@@ -730,14 +727,14 @@ void Module::importAll(Scope *prevsc)
      * before any semantic() on any of them.
      */
     setScope(sc);               // remember module scope for semantic
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
         s->setScope(sc);
     }
 
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)members->data[i];
+        Dsymbol *s = members->tdata()[i];
         s->importAll(sc);
     }
 
@@ -774,7 +771,7 @@ void Module::semantic()
 
     // Add all symbols into module's symbol table
     symtab = new DsymbolTable();
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (Dsymbol *)members->data[i];
         s->addMember(NULL, sc->scopesym, 1);
     }
@@ -784,23 +781,23 @@ void Module::semantic()
      * If this works out well, it can be extended to all modules
      * before any semantic() on any of them.
      */
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (Dsymbol *)members->data[i];
         s->setScope(sc);
     }
 #endif
 
     // Do semantic() on members that don't depend on others
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
 
         //printf("\tModule('%s'): '%s'.semantic0()\n", toChars(), s->toChars());
         s->semantic0(sc);
     }
 
     // Pass 1 semantic routines: do public side of the definition
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
 
         //printf("\tModule('%s'): '%s'.semantic()\n", toChars(), s->toChars());
         s->semantic(sc);
@@ -816,13 +813,12 @@ void Module::semantic()
 }
 
 void Module::semantic2()
-{   int i;
-
+{
     if (deferred.dim)
     {
-        for (int i = 0; i < deferred.dim; i++)
+        for (size_t i = 0; i < deferred.dim; i++)
         {
-            Dsymbol *sd = (Dsymbol *)deferred.data[i];
+            Dsymbol *sd = deferred.tdata()[i];
 
             sd->error("unable to resolve forward reference in definition");
         }
@@ -841,10 +837,10 @@ void Module::semantic2()
     //printf("Module = %p\n", sc.scopesym);
 
     // Pass 2 semantic routines: do initializers and function bodies
-    for (i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s;
 
-        s = (Dsymbol *)members->data[i];
+        s = members->tdata()[i];
         s->semantic2(sc);
     }
 
@@ -855,8 +851,7 @@ void Module::semantic2()
 }
 
 void Module::semantic3()
-{   int i;
-
+{
     //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
     if (semanticstarted >= 3)
         return;
@@ -870,10 +865,10 @@ void Module::semantic3()
     //printf("Module = %p\n", sc.scopesym);
 
     // Pass 3 semantic routines: do initializers and function bodies
-    for (i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s;
 
-        s = (Dsymbol *)members->data[i];
+        s = members->tdata()[i];
         //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
         s->semantic3(sc);
     }
@@ -895,8 +890,8 @@ void Module::inlineScan()
     // gets imported, it is unaffected by context.
     //printf("Module = %p\n", sc.scopesym);
 
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
         //if (global.params.verbose)
             //printf("inline scan symbol %s\n", s->toChars());
 
@@ -918,8 +913,8 @@ void Module::gensymfile()
     buf.printf("// Sym file generated from '%s'", srcfile->toChars());
     buf.writenl();
 
-    for (int i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = members->tdata()[i];
 
         s->toCBuffer(&buf, &hgs);
     }
@@ -979,8 +974,8 @@ Dsymbol *Module::symtabInsert(Dsymbol *s)
 
 void Module::clearCache()
 {
-    for (int i = 0; i < amodules.dim; i++)
-    {   Module *m = (Module *)amodules.data[i];
+    for (size_t i = 0; i < amodules.dim; i++)
+    {   Module *m = amodules.tdata()[i];
         m->searchCacheIdent = NULL;
     }
 }
@@ -992,9 +987,9 @@ void Module::clearCache()
 void Module::addDeferredSemantic(Dsymbol *s)
 {
     // Don't add it if it is already there
-    for (int i = 0; i < deferred.dim; i++)
+    for (size_t i = 0; i < deferred.dim; i++)
     {
-        Dsymbol *sd = (Dsymbol *)deferred.data[i];
+        Dsymbol *sd = deferred.tdata()[i];
 
         if (sd == s)
             return;
@@ -1039,10 +1034,10 @@ void Module::runDeferredSemantic()
             todo = (Dsymbol **)alloca(len * sizeof(Dsymbol *));
             assert(todo);
         }
-        memcpy(todo, deferred.data, len * sizeof(Dsymbol *));
+        memcpy(todo, deferred.tdata(), len * sizeof(Dsymbol *));
         deferred.setDim(0);
 
-        for (int i = 0; i < len; i++)
+        for (size_t i = 0; i < len; i++)
         {
             Dsymbol *s = todo[i];
 
@@ -1066,13 +1061,13 @@ int Module::imports(Module *m)
     //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
     int aimports_dim = aimports.dim;
 #if 0
-    for (int i = 0; i < aimports.dim; i++)
+    for (size_t i = 0; i < aimports.dim; i++)
     {   Module *mi = (Module *)aimports.data[i];
         printf("\t[%d] %s\n", i, mi->toChars());
     }
 #endif
-    for (int i = 0; i < aimports.dim; i++)
-    {   Module *mi = (Module *)aimports.data[i];
+    for (size_t i = 0; i < aimports.dim; i++)
+    {   Module *mi = aimports.tdata()[i];
         if (mi == m)
             return TRUE;
         if (!mi->insearch)
@@ -1095,16 +1090,16 @@ int Module::selfImports()
     //printf("Module::selfImports() %s\n", toChars());
     if (!selfimports)
     {
-        for (int i = 0; i < amodules.dim; i++)
-        {   Module *mi = (Module *)amodules.data[i];
+        for (size_t i = 0; i < amodules.dim; i++)
+        {   Module *mi = amodules.tdata()[i];
             //printf("\t[%d] %s\n", i, mi->toChars());
             mi->insearch = 0;
         }
 
         selfimports = imports(this) + 1;
 
-        for (int i = 0; i < amodules.dim; i++)
-        {   Module *mi = (Module *)amodules.data[i];
+        for (size_t i = 0; i < amodules.dim; i++)
+        {   Module *mi = amodules.tdata()[i];
             //printf("\t[%d] %s\n", i, mi->toChars());
             mi->insearch = 0;
         }
@@ -1115,7 +1110,7 @@ int Module::selfImports()
 
 /* =========================== ModuleDeclaration ===================== */
 
-ModuleDeclaration::ModuleDeclaration(Array *packages, Identifier *id, bool safe)
+ModuleDeclaration::ModuleDeclaration(Identifiers *packages, Identifier *id, bool safe)
 {
     this->packages = packages;
     this->id = id;
@@ -1125,12 +1120,11 @@ ModuleDeclaration::ModuleDeclaration(Array *packages, Identifier *id, bool safe)
 char *ModuleDeclaration::toChars()
 {
     OutBuffer buf;
-    int i;
 
     if (packages && packages->dim)
     {
-        for (i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (Identifier *)packages->data[i];
+        for (size_t i = 0; i < packages->dim; i++)
+        {   Identifier *pid = packages->tdata()[i];
 
             buf.writestring(pid->toChars());
             buf.writeByte('.');
@@ -1155,7 +1149,7 @@ const char *Package::kind()
 }
 
 
-DsymbolTable *Package::resolve(Array *packages, Dsymbol **pparent, Package **ppkg)
+DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
 {
     DsymbolTable *dst = Module::modules;
     Dsymbol *parent = NULL;
@@ -1165,10 +1159,9 @@ DsymbolTable *Package::resolve(Array *packages, Dsymbol **pparent, Package **ppk
         *ppkg = NULL;
 
     if (packages)
-    {   int i;
-
-        for (i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (Identifier *)packages->data[i];
+    {
+        for (size_t i = 0; i < packages->dim; i++)
+        {   Identifier *pid = packages->tdata()[i];
             Dsymbol *p;
 
             p = dst->lookup(pid);
