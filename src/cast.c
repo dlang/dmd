@@ -1657,7 +1657,8 @@ Lagain:
     if (t1 == t2)
     {
     }
-    else if (t1->ty == Tpointer && t2->ty == Tpointer)
+    else if ((t1->ty == Tpointer && t2->ty == Tpointer) ||
+             (t1->ty == Tdelegate && t2->ty == Tdelegate))
     {
         // Bring pointers to compatible type
         Type *t1n = t1->nextOf();
@@ -1693,7 +1694,14 @@ Lagain:
             else
                 d->trust = TRUSTtrusted;
 
-            Type *tx = d->pointerTo();
+            Type *tx = NULL;
+            if (t1->ty == Tdelegate)
+            {
+                tx = new TypeDelegate(d);
+                tx = tx->merge();
+            }
+            else
+                tx = d->pointerTo();
 
             if (t1->implicitConvTo(tx) && t2->implicitConvTo(tx))
             {
