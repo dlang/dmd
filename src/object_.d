@@ -941,12 +941,12 @@ class TypeInfo_Struct : TypeInfo
 
     override equals_t equals(in void* p1, in void* p2)
     {
-        if (p1 == p2)
-            return true;
-        else if (!p1 || !p2)
+        if (!p1 || !p2)
             return false;
         else if (xopEquals)
             return (*xopEquals)(p1, p2);
+        else if (p1 == p2)
+            return true;
         else
             // BUG: relies on the GC not moving objects
             return memcmp(p1, p2, init.length) == 0;
@@ -1022,6 +1022,19 @@ class TypeInfo_Struct : TypeInfo
         TypeInfo m_arg1;
         TypeInfo m_arg2;
     }
+}
+
+unittest
+{
+    struct S
+    {
+        const bool opEquals(ref const S rhs)
+        {
+            return false;
+        }
+    }
+    S s;
+    assert(!typeid(S).equals(&s, &s));
 }
 
 class TypeInfo_Tuple : TypeInfo
