@@ -2794,3 +2794,7 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 }
 
 
+bool _xopEquals(in void*, in void*)
+{
+    throw new Error("TypeInfo.equals is not implemented");
+}
