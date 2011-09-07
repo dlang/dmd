@@ -908,8 +908,6 @@ int main(int argc, char *argv[])
     Module::init();
     initPrecedence();
 
-    backend_init();
-
     if (global.params.verbose)
     {   printf("binary    %s\n", argv[0]);
         printf("version   %s\n", global.version);
@@ -1186,6 +1184,8 @@ int main(int argc, char *argv[])
     }
     if (global.errors)
        fatal();
+
+    backend_init();
 
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
