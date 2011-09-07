@@ -126,11 +126,12 @@ struct StructDeclaration : AggregateDeclaration
     int zeroInit;               // !=0 if initialize with 0 fill
 #if DMDV2
     int hasIdentityAssign;      // !=0 if has identity opAssign
+    int hasIdentityEquals;      // !=0 if has identity opEquals
     FuncDeclaration *cpctor;    // generated copy-constructor, if any
-    FuncDeclaration *eq;        // bool opEquals(ref const T), if any
-
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
+
+    FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
 #endif
 
     StructDeclaration(Loc loc, Identifier *id);

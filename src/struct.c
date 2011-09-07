@@ -299,9 +299,11 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     zeroInit = 0;       // assume false until we do semantic processing
 #if DMDV2
     hasIdentityAssign = 0;
+    hasIdentityEquals = 0;
     cpctor = NULL;
     postblit = NULL;
-    eq = NULL;
+
+    xeq = NULL;
 #endif
 
     // For forward references

@@ -201,6 +201,9 @@ int StructDeclaration::needOpEquals()
 #define X 0
     if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
 
+    if (hasIdentityEquals)
+        goto Lneed;
+
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
@@ -219,7 +222,7 @@ int StructDeclaration::needOpEquals()
         if (tv->ty == Tstruct)
         {   TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
-            if (sd->eq)
+            if (sd->needOpEquals())
                 goto Lneed;
         }
     }

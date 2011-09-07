@@ -567,8 +567,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     else
         dtsize_t(pdt, 0);
 
-    if (sd->eq)
-        dtxoff(pdt, sd->eq->toSymbol(), 0, TYnptr);
+    if (sd->xeq)
+        dtxoff(pdt, sd->xeq->toSymbol(), 0, TYnptr);
     else
         dtsize_t(pdt, 0);
 
