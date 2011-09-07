@@ -229,6 +229,26 @@ private struct Demangle
     }
 
 
+    char[] putAsHex( size_t val, int width = 0 )
+    {
+        char tmp[20];
+        int  pos = tmp.length;
+
+        while( val )
+        {
+            int  digit = val % 16;
+
+            tmp[--pos] = digit < 10 ? cast(char)(digit + '0') :
+                                      cast(char)((digit - 10) + 'a');
+            val /= 16;
+            width--;
+        }
+        for( ; width > 0; width-- )
+            tmp[--pos] = '0';
+        return put( tmp[pos .. $] );
+    }
+
+
     void pad( const(char)[] val )
     {
         if( val.length )
@@ -680,7 +700,7 @@ private struct Demangle
                 return dst[beg .. len];
             default:
                 error();
-                assert(0);
+                assert( 0 );
             }
         case 'A': // TypeArray (A Type)
             next();
@@ -1064,7 +1084,6 @@ private struct Demangle
                 parseType();
             }
         }
-        assert(0);
     }
 
 
@@ -1120,12 +1139,12 @@ private struct Demangle
                 error( "Number expected" );
             // fall-through intentional
         case '0': .. case '9':
-            putIntegerValue( name, type );
+            parseIntegerValue( name, type );
             return;
         case 'N':
             next();
             put( "-" );
-            putIntegerValue( name, type );
+            parseIntegerValue( name, type );
             return;
         case 'e':
             next();
@@ -1218,10 +1237,10 @@ private struct Demangle
     }
 
 
-    void putIntegerValue( char[] name = null, char type = '\0' )
+    void parseIntegerValue( char[] name = null, char type = '\0' )
     {
-        debug(trace) printf( "putIntegerValue+\n" );
-        debug(trace) scope(success) printf( "putIntegerValue-\n" );
+        debug(trace) printf( "parseIntegerValue+\n" );
+        debug(trace) scope(success) printf( "parseIntegerValue-\n" );
 
         switch( type )
         {
@@ -1263,17 +1282,31 @@ private struct Demangle
                 put( "'\\v'" );
                 return;
             default:
-                if( num < 0x20 || num == 0x7F )
+                switch( type )
                 {
-                    // TODO: Put as hex.
-                    put( val );
+                case 'a':
+                    if( num >= 0x20 && num < 0x7F )
+                    {
+                        put( "'" );
+                        put( (cast(char*) &num)[0 .. 1] );
+                        put( "'" );
+                        return;
+                    }
+                    put( "\\x" );
+                    putAsHex( num, 2 );
                     return;
-                }
-                else
-                {
-                    // TODO: Handle wchar & dchar.
-                    put( val );
+                case 'u':
+                    put( "'\\u" );
+                    putAsHex( num, 4 );
+                    put( "'" );
                     return;
+                case 'w':
+                    put( "'\\U" );
+                    putAsHex( num, 8 );
+                    put( "'" );
+                    return;
+                default:
+                    assert( 0 );
                 }
             }
         }
@@ -1564,7 +1597,8 @@ unittest
         ["_D8demangle14__T2fnVeeNINFZ2fnFZv", "void demangle.fn!(-real.infinity).fn()"],
         ["_D8demangle13__T2fnVeeINFZ2fnFZv", "void demangle.fn!(real.infinity).fn()"],
         ["_D8demangle21__T2fnVHiiA2i1i2i3i4Z2fnFZv", "void demangle.fn!([1:2, 3:4]).fn()"],
-        ["_D8demangle2fnFNgiZNgi", "inout(int) demangle.fn(inout(int))"]
+        ["_D8demangle2fnFNgiZNgi", "inout(int) demangle.fn(inout(int))"],
+        ["_D8demangle29__T2fnVa97Va9Va0Vu257Vw65537Z2fnFZv", "void demangle.fn!('a', '\\t', \\x00, '\\u0101', '\\U00010001').fn()"]
     ];
 
     foreach( i, name; table )
