@@ -1,7 +1,5 @@
 
-import core.vararg;
-import std.c.stdio;
-import core.exception;
+extern (C) int printf(const(char*) fmt, ...);
 
 int sdtor;
 
@@ -66,14 +64,14 @@ int sdtor4;
 struct S4
 {   int a = 3;
     ~this()
-    {	printf("~S4()\n");
-	if (a == 4)
-	    assert(sdtor4 == 2);
-	else
-	{   assert(a == 3);
-	    assert(sdtor4 == 1);
-	}
-	sdtor4++;
+    {   printf("~S4()\n");
+        if (a == 4)
+            assert(sdtor4 == 2);
+        else
+        {   assert(a == 3);
+            assert(sdtor4 == 1);
+        }
+        sdtor4++;
     }
 }
 
@@ -100,7 +98,7 @@ int sdtor5;
 template M5()
 {  ~this()
    {
-	printf("~M5()\n"); assert(sdtor5 == 1); sdtor5++;
+        printf("~M5()\n"); assert(sdtor5 == 1); sdtor5++;
    }
 }
 
@@ -122,11 +120,11 @@ void test5()
 int sdtor6;
 
 struct S6
-{  int b = 7;
-   ~this()
-   {
-	printf("~S6()\n"); assert(b == 7); assert(sdtor6 == 1); sdtor6++;
-   }
+{   int b = 7;
+    ~this()
+    {
+        printf("~S6()\n"); assert(b == 7); assert(sdtor6 == 1); sdtor6++;
+    }
 }
 
 class T6
@@ -148,14 +146,14 @@ void test6()
 int sdtor7;
 
 struct S7
-{  int b = 7;
-   ~this()
-   {
-	printf("~S7()\n");
-	assert(b == 7);
-	assert(sdtor7 >= 1 && sdtor7 <= 3);
-	sdtor7++;
-   }
+{   int b = 7;
+    ~this()
+    {
+        printf("~S7()\n");
+        assert(b == 7);
+        assert(sdtor7 >= 1 && sdtor7 <= 3);
+        sdtor7++;
+    }
 }
 
 struct T7
@@ -163,10 +161,10 @@ struct T7
     int a = 3;
     S7[3] s;
     ~this()
-    {	printf("~T7() %d\n", sdtor7);
-	assert(a == 3);
-	assert(sdtor7 == 0);
-	sdtor7++;
+    {   printf("~T7() %d\n", sdtor7);
+        assert(a == 3);
+        assert(sdtor7 == 0);
+        sdtor7++;
     }
 }
 
@@ -182,15 +180,15 @@ void test7()
 int sdtor8;
 
 struct S8
-{  int b = 7;
-   int c;
-   ~this()
-   {
-	printf("~S8() %d\n", sdtor8);
-	assert(b == 7);
-	assert(sdtor8 == c);
-	sdtor8++;
-   }
+{   int b = 7;
+    int c;
+    ~this()
+    {
+        printf("~S8() %d\n", sdtor8);
+        assert(b == 7);
+        assert(sdtor8 == c);
+        sdtor8++;
+    }
 }
 
 void test8()
@@ -208,13 +206,13 @@ void test8()
 int sdtor9;
 
 struct S9
-{  int b = 7;
-   ~this()
-   {
-	printf("~S9() %d\n", sdtor9);
-	assert(b == 7);
-	sdtor9++;
-   }
+{   int b = 7;
+    ~this()
+    {
+        printf("~S9() %d\n", sdtor9);
+        assert(b == 7);
+        sdtor9++;
+    }
 }
 
 void test9()
@@ -230,15 +228,15 @@ void test9()
 int sdtor10;
 
 struct S10
-{  int b = 7;
-   int c;
-   ~this()
-   {
-	printf("~S10() %d\n", sdtor10);
-	assert(b == 7);
-	assert(sdtor10 == c);
-	sdtor10++;
-   }
+{   int b = 7;
+    int c;
+    ~this()
+    {
+        printf("~S10() %d\n", sdtor10);
+        assert(b == 7);
+        assert(sdtor10 == c);
+        sdtor10++;
+    }
 }
 
 void test10()
@@ -257,10 +255,10 @@ void test10()
 int sdtor11;
 
 template M11()
-{  ~this()
-   {
-	printf("~M11()\n"); assert(sdtor11 == 1); sdtor11++;
-   }
+{   ~this()
+    {
+        printf("~M11()\n"); assert(sdtor11 == 1); sdtor11++;
+    }
 }
 
 class T11
@@ -305,9 +303,9 @@ struct S13
 {   int a = 3;
     int opAssign(S13 s)
     {
-	printf("S13.opAssign(%p)\n", &this);
-	a = 4;
-	return s.a + 2;
+        printf("S13.opAssign(%p)\n", &this);
+        a = 4;
+        return s.a + 2;
     }
 }
 
@@ -325,9 +323,9 @@ struct S14
 {   int a = 3;
     int opAssign(ref S14 s)
     {
-	printf("S14.opAssign(%p)\n", &this);
-	a = 4;
-	return s.a + 2;
+        printf("S14.opAssign(%p)\n", &this);
+        a = 4;
+        return s.a + 2;
     }
 }
 
@@ -345,9 +343,9 @@ struct S15
 {   int a = 3;
     int opAssign(ref const S15 s)
     {
-	printf("S15.opAssign(%p)\n", &this);
-	a = 4;
-	return s.a + 2;
+        printf("S15.opAssign(%p)\n", &this);
+        a = 4;
+        return s.a + 2;
     }
 }
 
@@ -365,9 +363,9 @@ struct S16
 {   int a = 3;
     int opAssign(S16 s, ...)
     {
-	printf("S16.opAssign(%p)\n", &this);
-	a = 4;
-	return s.a + 2;
+        printf("S16.opAssign(%p)\n", &this);
+        a = 4;
+        return s.a + 2;
     }
 }
 
@@ -385,9 +383,9 @@ struct S17
 {   int a = 3;
     int opAssign(...)
     {
-	printf("S17.opAssign(%p)\n", &this);
-	a = 4;
-	return 5;
+        printf("S17.opAssign(%p)\n", &this);
+        a = 4;
+        return 5;
     }
 }
 
@@ -405,10 +403,10 @@ struct S18
 {   int a = 3;
     int opAssign(S18 s, int x = 7)
     {
-	printf("S18.opAssign(%p)\n", &this);
-	a = 4;
-	assert(x == 7);
-	return s.a + 2;
+        printf("S18.opAssign(%p)\n", &this);
+        a = 4;
+        assert(x == 7);
+        return s.a + 2;
     }
 }
 
@@ -533,10 +531,10 @@ struct S23
 
     this(int x)
     {
-	printf("S23(%d)\n", x);
-	assert(x == 3);
-	assert(m == 4 && n == 0 && o == 0 && p == 0 && q == 0);
-	q = 7;
+        printf("S23(%d)\n", x);
+        assert(x == 3);
+        assert(m == 4 && n == 0 && o == 0 && p == 0 && q == 0);
+        q = 7;
     }
 }
 
@@ -568,10 +566,10 @@ struct S24
 
     this(int x)
     {
-	printf("S24(%d)\n", x);
-	assert(x == 3);
-	assert(m == 0 && n == 0 && o == 0 && p == 0 && q == 0);
-	q = 7;
+        printf("S24(%d)\n", x);
+        assert(x == 3);
+        assert(m == 0 && n == 0 && o == 0 && p == 0 && q == 0);
+        q = 7;
     }
 }
 
@@ -681,7 +679,7 @@ struct A28
     this(this)
     {
         printf("A's copy\n");
-	s28 ~= "A";
+        s28 ~= "A";
     }
 }
 
@@ -691,7 +689,7 @@ struct B28
     this(this)
     {
         printf("B's copy\n");
-	s28 ~= "B";
+        s28 ~= "B";
     }
 }
 
@@ -767,20 +765,20 @@ struct S32
 
     this(int i)
     {
-	printf("ctor %p(%d)\n", &this, i);
-	x += 1;
+        printf("ctor %p(%d)\n", &this, i);
+        x += 1;
     }
 
     this(this)
     {
-	printf("postblit %p\n", &this);
-	x += 0x10;
+        printf("postblit %p\n", &this);
+        x += 0x10;
     }
 
     ~this()
     {
-	printf("dtor %p\n", &this);
-	x += 0x100;
+        printf("dtor %p\n", &this);
+        x += 0x100;
     }
 }
 
@@ -820,20 +818,20 @@ struct S33
 
     this(int i)
     {
-	printf("ctor %p(%d)\n", &this, i);
-	x += 1;
+        printf("ctor %p(%d)\n", &this, i);
+        x += 1;
     }
 
     this(this)
     {
-	printf("postblit %p\n", &this);
-	x += 0x10;
+        printf("postblit %p\n", &this);
+        x += 0x10;
     }
 
     ~this()
     {
-	printf("dtor %p\n", &this);
-	x += 0x100;
+        printf("dtor %p\n", &this);
+        x += 0x100;
     }
 }
 
@@ -841,7 +839,7 @@ struct T33
 {
     S33 foo()
     {
-	return t;
+        return t;
     }
 
     S33 t;
@@ -849,12 +847,12 @@ struct T33
 
 void test33()
 {
-  {
-	T33 t;
-	S33 s = t.foo();
-  }
-  printf("S.x = %x\n", S33.x);
-  assert(S33.x == 0x210);
+    {
+        T33 t;
+        S33 s = t.foo();
+    }
+    printf("S.x = %x\n", S33.x);
+    assert(S33.x == 0x210);
 }
 
 /**********************************/
@@ -862,28 +860,28 @@ void test33()
 struct X34 {
     int i;
     this(this) {
-	printf("postblit %p\n", &this);
+        printf("postblit %p\n", &this);
         ++i;
     }
 
     ~this() {
-	printf("dtor %p\n", &this);
+        printf("dtor %p\n", &this);
     }
 }
 
 void test34()
 {
-     X34[2] xs;
-//     xs[0][0] = X34();
-     printf("foreach\n");
-     for (int j = 0; j < xs.length; j++) { auto x = (j++,j--,xs[j]);
-	//foreach(x; xs) {
-	//printf("foreach x.i = %d\n", x[0].i);
+    X34[2] xs;
+//  xs[0][0] = X34();
+    printf("foreach\n");
+    for (int j = 0; j < xs.length; j++) { auto x = (j++,j--,xs[j]);
+        //foreach(x; xs) {
+        //printf("foreach x.i = %d\n", x[0].i);
         //assert(x[0].i == 1);
-	printf("foreach x.i = %d\n", x.i);
+        printf("foreach x.i = %d\n", x.i);
         assert(x.i == 1);
-     }
-     printf("loop done\n");
+    }
+    printf("loop done\n");
 }
 
 /**********************************/
@@ -892,28 +890,28 @@ struct X35 {
     __gshared int k;
     int i;
     this(this) {
-	printf("postblit %p\n", &this);
+        printf("postblit %p\n", &this);
         ++i;
     }
 
     ~this() {
-	printf("dtor %p\n", &this);
-	k++;
+        printf("dtor %p\n", &this);
+        k++;
     }
 }
 
 void test35()
 {
-  {
-     X35[2] xs;
-     printf("foreach\n");
-     foreach(ref x; xs) {
-	printf("foreach x.i = %d\n", x.i);
-        assert(x.i == 0);
-     }
-     printf("loop done\n");
-  }
-  assert(X35.k == 2);
+    {
+        X35[2] xs;
+        printf("foreach\n");
+        foreach(ref x; xs) {
+            printf("foreach x.i = %d\n", x.i);
+            assert(x.i == 0);
+        }
+        printf("loop done\n");
+    }
+    assert(X35.k == 2);
 }
 
 /**********************************/
@@ -922,28 +920,28 @@ struct X36 {
     __gshared int k;
     int i;
     this(this) {
-	printf("postblit %p\n", &this);
+        printf("postblit %p\n", &this);
         ++i;
     }
 
     ~this() {
-	printf("dtor %p\n", &this);
-	k++;
+        printf("dtor %p\n", &this);
+        k++;
     }
 }
 
 void test36()
 {
-  {
-     X36[2] xs;
-     printf("foreach\n");
-     foreach(x; xs) {
-	printf("foreach x.i = %d\n", x.i);
-        assert(x.i == 1);
-     }
-     printf("loop done\n");
-  }
-  assert(X36.k == 4);
+    {
+        X36[2] xs;
+        printf("foreach\n");
+        foreach(x; xs) {
+            printf("foreach x.i = %d\n", x.i);
+            assert(x.i == 1);
+        }
+        printf("loop done\n");
+    }
+    assert(X36.k == 4);
 }
 
 /**********************************/
@@ -952,26 +950,26 @@ struct X37 {
     __gshared int k;
     int i;
     this(this) {
-	printf("postblit %p\n", &this);
+        printf("postblit %p\n", &this);
         ++i;
     }
 
     ~this() {
-	printf("dtor %p\n", &this);
-	k++;
+        printf("dtor %p\n", &this);
+        k++;
     }
 }
 
 void test37() {
-  {
-     X37[2][3] xs;
-     printf("foreach\n");
-     foreach(ref x; xs) {
-	printf("foreach x.i = %d\n", x[0].i);
-        assert(x[0].i == 0);
-     }
-     printf("loop done\n");
-  }
+    {
+        X37[2][3] xs;
+        printf("foreach\n");
+        foreach(ref x; xs) {
+            printf("foreach x.i = %d\n", x[0].i);
+            assert(x[0].i == 0);
+        }
+        printf("loop done\n");
+    }
   assert(X37.k == 6);
 }
 
@@ -983,21 +981,21 @@ struct S38 {
 
     this(int x) {
         printf("this(%d)\n", x);
-	assert(this.x == 0);
+        assert(this.x == 0);
         this.x = x;
-	count++;
+        count++;
     }
     this(this) {
         printf("this(this) with %d\n", x);
-	assert(x == 1 || x == 2);
-	count++;
-	postblit++;
+        assert(x == 1 || x == 2);
+        count++;
+        postblit++;
     }
     ~this() {
         printf("~this(%d)\n", x);
-	assert(x == 1 || x == 2);
-	x = 0;
-	count--;
+        assert(x == 1 || x == 2);
+        x = 0;
+        count--;
     }
     int x;
 }
@@ -1048,7 +1046,7 @@ void test39()
     assert(f.x == 6);
     f = y;
     assert(f.x == 8);
-//    f = Foo39(y);
+//  f = Foo39(y);
 
 }
 
@@ -1059,12 +1057,12 @@ bool approxEqual(float a, float b)
     return a < b ? b-a < .001 : a-b < .001;
 }
 
-struct Point { 
-   float x = 0, y = 0;
-   const bool opEquals(const ref Point rhs)
-   {
-	return approxEqual(x, rhs.x) && approxEqual(y, rhs.y);
-   }
+struct Point {
+    float x = 0, y = 0;
+    const bool opEquals(const ref Point rhs)
+    {
+        return approxEqual(x, rhs.x) && approxEqual(y, rhs.y);
+    }
 }
 
 struct Rectangle {
@@ -1121,7 +1119,7 @@ void test42()
 struct S43 {
     int i;
     int* p;
-//    this(int i, int* t) immutable { this.i = i; p = t;  }
+//  this(int i, int* t) immutable { this.i = i; p = t;  }
 }
 
 void test43()
@@ -1155,10 +1153,10 @@ void test44()
 /**********************************/
 
 class C45 {
-   C45 next;
-   this(int[] data) immutable {
-      next = new immutable(C45)(data[1 .. $]);
-   }
+    C45 next;
+    this(int[] data) immutable {
+        next = new immutable(C45)(data[1 .. $]);
+    }
 }
 
 void test45()
@@ -1185,24 +1183,24 @@ struct Segfault3984
 {
     int a;
     this(int x){
-      a = x;
+        a = x;
     }
 }
 
 void test47()
 {
     //static
-	assert(Segfault3984(3).a == 3);
+    assert(Segfault3984(3).a == 3);
 }
 
 /**********************************/
 
 void test48()
 {
-   struct B {
-       void foo()  {   }
-   }
-   B x = B.init;
+    struct B {
+        void foo()  {   }
+    }
+    B x = B.init;
 }
 
 /**********************************/
@@ -1236,7 +1234,7 @@ struct aStruct{
 class aClass{
     void aFunc(aStruct a = aStruct(44))
     {
-	assert(a.m_Int == 44);
+        assert(a.m_Int == 44);
     }
 }
 
@@ -1289,18 +1287,18 @@ struct A52
     this(this)
     {
         printf("this(this) %p\n", &this);
-	s52 ~= 'a';
+        s52 ~= 'a';
     }
     ~this()
     {
         printf("~this() %p\n", &this);
-	s52 ~= 'b';
+        s52 ~= 'b';
     }
     A52 copy()
     {
-	s52 ~= 'c';
-	A52 another = this;
-	return another;
+        s52 ~= 'c';
+        A52 another = this;
+        return another;
     }
 }
 
@@ -1335,20 +1333,20 @@ struct S54
 
     this(int i)
     {
-	printf("ctor %p(%d)\n", &this, i);
-	t ~= "a";
+        printf("ctor %p(%d)\n", &this, i);
+        t ~= "a";
     }
 
     this(this)
     {
-	printf("postblit %p\n", &this);
-	t ~= "b";
+        printf("postblit %p\n", &this);
+        t ~= "b";
     }
 
     ~this()
     {
-	printf("dtor %p\n", &this);
-	t ~= "c";
+        printf("dtor %p\n", &this);
+        t ~= "c";
     }
 
     static string t;
@@ -1360,50 +1358,50 @@ S54 abc54() { return S54(1); }
 
 void test54()
 {
-    {	S54.t = null;
-	S54 s = S54(1);
+    {   S54.t = null;
+        S54 s = S54(1);
     }
     assert(S54.t == "ac");
 
-    {	S54.t = null;
-	S54 s = S54();
+    {   S54.t = null;
+        S54 s = S54();
     }
     assert(S54.t == "c");
 
-    {	S54.t = null;
-	int b = 1 && (bar54(S54(1)), 1);
+    {   S54.t = null;
+        int b = 1 && (bar54(S54(1)), 1);
     }
     assert(S54.t == "ac");
 
-    {	S54.t = null;
-	int b = 0 && (bar54(S54(1)), 1);
+    {   S54.t = null;
+        int b = 0 && (bar54(S54(1)), 1);
     }
     assert(S54.t == "");
 
-    {	S54.t = null;
-	int b = 0 || (bar54(S54(1)), 1);
+    {   S54.t = null;
+        int b = 0 || (bar54(S54(1)), 1);
     }
     assert(S54.t == "ac");
 
-    {	S54.t = null;
-	int b = 1 || (bar54(S54(1)), 1);
+    {   S54.t = null;
+        int b = 1 || (bar54(S54(1)), 1);
     }
     assert(S54.t == "");
 
     {
-	S54.t = null;
-	{ const S54 s = S54(1); }
-	assert(S54.t == "ac");
+    S54.t = null;
+    { const S54 s = S54(1); }
+        assert(S54.t == "ac");
     }
     {
-	S54.t = null;
-	abc54();
-	assert(S54.t == "ac");
+        S54.t = null;
+        abc54();
+        assert(S54.t == "ac");
     }
     {
-	S54.t = null;
-	abc54().x += 1;
-	assert(S54.t == "ac");
+        S54.t = null;
+        abc54().x += 1;
+        assert(S54.t == "ac");
     }
 }
 
@@ -1433,20 +1431,20 @@ struct S56
 
     this(int i)
     {
-	printf("ctor %p(%d)\n", &this, i);
-	t ~= "a";
+        printf("ctor %p(%d)\n", &this, i);
+        t ~= "a";
     }
 
     this(this)
     {
-	printf("postblit %p\n", &this);
-	t ~= "b";
+        printf("postblit %p\n", &this);
+        t ~= "b";
     }
 
     ~this()
     {
-	printf("dtor %p\n", &this);
-	t ~= "c";
+        printf("dtor %p\n", &this);
+        t ~= "c";
     }
 
     static string t;
@@ -1482,147 +1480,146 @@ void test56()
 /**********************************/
 // 5859
 
-import std.stdio : writeln;
 int dtor_cnt = 0;
 struct S57
 {
-	int v;
-	this(int n){ writeln("S.ctor v=", v=n); }
-	~this(){ ++dtor_cnt; writeln("S.dtor v=", v); }
-	bool opCast(T:bool)(){ writeln("S.cast v=", v); return true; }
+    int v;
+    this(int n){ v = n; printf("S.ctor v=%d\n", v); }
+    ~this(){ ++dtor_cnt; printf("S.dtor v=%d\n", v); }
+    bool opCast(T:bool)(){ printf("S.cast v=%d\n", v); return true; }
 }
 S57 f(int n){ return S57(n); }
 
 void test57()
 {
-	writeln("----");
-	dtor_cnt = 0;
-	if (auto s = S57(10))
-	{
-		writeln("ifbody");
-	}
-	else assert(0);
-	assert(dtor_cnt == 1);
+    printf("----\n");
+    dtor_cnt = 0;
+    if (auto s = S57(10))
+    {
+        printf("ifbody\n");
+    }
+    else assert(0);
+    assert(dtor_cnt == 1);
 
-	writeln("----");	//+
-	dtor_cnt = 0;
-	if (auto s = (S57(1), S57(2), S57(10)))
-	{
-		assert(dtor_cnt == 2);
-		writeln("ifbody");
-	}
-	else assert(0);
-	assert(dtor_cnt == 3);	// +/
+    printf("----\n");    //+
+    dtor_cnt = 0;
+    if (auto s = (S57(1), S57(2), S57(10)))
+    {
+        assert(dtor_cnt == 2);
+        printf("ifbody\n");
+    }
+    else assert(0);
+    assert(dtor_cnt == 3);  // +/
 
-	writeln("----");
-	dtor_cnt = 0;
-	try{
-		if (auto s = S57(10))
-		{
-			writeln("ifbody");
-			throw new Exception("test");
-		}
-		else assert(0);
-	}catch (Exception e){}
-	assert(dtor_cnt == 1);
-
-
-
-	writeln("----");
-	dtor_cnt = 0;
-	if (auto s = f(10))
-	{
-		writeln("ifbody");
-	}
-	else assert(0);
-	assert(dtor_cnt == 1);
-
-	writeln("----");	//+
-	dtor_cnt = 0;
-	if (auto s = (f(1), f(2), f(10)))
-	{
-		assert(dtor_cnt == 2);
-		writeln("ifbody");
-	}
-	else assert(0);
-	assert(dtor_cnt == 3);	// +/
-
-	writeln("----");
-	dtor_cnt = 0;
-	try{
-		if (auto s = f(10))
-		{
-			writeln("ifbody");
-			throw new Exception("test");
-		}
-		else assert(0);
-	}catch (Exception e){}
-	assert(dtor_cnt == 1);
+    printf("----\n");
+    dtor_cnt = 0;
+    try{
+        if (auto s = S57(10))
+        {
+            printf("ifbody\n");
+            throw new Exception("test");
+        }
+        else assert(0);
+    }catch (Exception e){}
+    assert(dtor_cnt == 1);
 
 
 
+    printf("----\n");
+    dtor_cnt = 0;
+    if (auto s = f(10))
+    {
+        printf("ifbody\n");
+    }
+    else assert(0);
+    assert(dtor_cnt == 1);
 
-	writeln("----");
-	dtor_cnt = 0;
-	if (S57(10))
-	{
-		assert(dtor_cnt == 1);
-		writeln("ifbody");
-	}
-	else assert(0);
+    printf("----\n");    //+
+    dtor_cnt = 0;
+    if (auto s = (f(1), f(2), f(10)))
+    {
+        assert(dtor_cnt == 2);
+        printf("ifbody\n");
+    }
+    else assert(0);
+    assert(dtor_cnt == 3);  // +/
 
-	writeln("----");
-	dtor_cnt = 0;
-	if ((S57(1), S57(2), S57(10)))
-	{
-		assert(dtor_cnt == 3);
-		writeln("ifbody");
-	}
-	else assert(0);
-
-	writeln("----");
-	dtor_cnt = 0;
-	try{
-		if (auto s = S57(10))
-		{
-			writeln("ifbody");
-			throw new Exception("test");
-		}
-		else assert(0);
-	}catch (Exception e){}
-	assert(dtor_cnt == 1);
+    printf("----\n");
+    dtor_cnt = 0;
+    try{
+        if (auto s = f(10))
+        {
+            printf("ifbody\n");
+            throw new Exception("test");
+        }
+        else assert(0);
+    }catch (Exception e){}
+    assert(dtor_cnt == 1);
 
 
 
-	writeln("----");
-	dtor_cnt = 0;
-	if (f(10))
-	{
-		assert(dtor_cnt == 1);
-		writeln("ifbody");
-	}
-	else assert(0);
 
-	writeln("----");
-	dtor_cnt = 0;
-	if ((f(1), f(2), f(10)))
-	{
-		assert(dtor_cnt == 3);
-		writeln("ifbody");
-	}
-	else assert(0);
+    printf("----\n");
+    dtor_cnt = 0;
+    if (S57(10))
+    {
+        assert(dtor_cnt == 1);
+        printf("ifbody\n");
+    }
+    else assert(0);
 
-	writeln("----");
-	dtor_cnt = 0;
-	try{
-		if (auto s = f(10))
-		{
-			writeln("ifbody");
-			throw new Exception("test");
-		}
-		else assert(0);
-	}catch (Exception e){}
-	assert(dtor_cnt == 1);
+    printf("----\n");
+    dtor_cnt = 0;
+    if ((S57(1), S57(2), S57(10)))
+    {
+        assert(dtor_cnt == 3);
+        printf("ifbody\n");
+    }
+    else assert(0);
+
+    printf("----\n");
+    dtor_cnt = 0;
+    try{
+        if (auto s = S57(10))
+        {
+            printf("ifbody\n");
+            throw new Exception("test");
+        }
+        else assert(0);
+    }catch (Exception e){}
+    assert(dtor_cnt == 1);
+
+
+
+    printf("----\n");
+    dtor_cnt = 0;
+    if (f(10))
+    {
+        assert(dtor_cnt == 1);
+        printf("ifbody\n");
+    }
+    else assert(0);
+
+    printf("----\n");
+    dtor_cnt = 0;
+    if ((f(1), f(2), f(10)))
+    {
+        assert(dtor_cnt == 3);
+        printf("ifbody\n");
+    }
+    else assert(0);
+
+    printf("----\n");
+    dtor_cnt = 0;
+    try{
+        if (auto s = f(10))
+        {
+            printf("ifbody\n");
+            throw new Exception("test");
+        }
+        else assert(0);
+    }catch (Exception e){}
+    assert(dtor_cnt == 1);
 }
 
 /**********************************/
@@ -1654,22 +1651,22 @@ S58* ps58;
 
 struct S58
 {
-	@disable this(this);
-	~this(){ ++sdtor58; }
+    @disable this(this);
+    ~this(){ ++sdtor58; }
 }
 
 S58 makeS58()
 {
-	S58 s;
-	ps58 = &s;
-	return s;
+    S58 s;
+    ps58 = &s;
+    return s;
 }
 
 void test58()
 {
-	auto s1 = makeS58();
-	assert(ps58 == &s1);
-	assert(sdtor58 == 0);
+    auto s1 = makeS58();
+    assert(ps58 == &s1);
+    assert(sdtor58 == 0);
 }
 
 /**********************************/
@@ -1690,7 +1687,7 @@ struct C59
 void foo59()
 {
     C59().oops();
-//    auto c = C(); c.oops();
+//  auto c = C(); c.oops();
 }
 
 
@@ -1698,7 +1695,7 @@ void test59()
 {
     int i = 0;
     try
-	foo59();
+        foo59();
     catch (Throwable)
     {   i = 1;
     }
