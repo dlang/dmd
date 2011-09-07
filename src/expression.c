@@ -11701,6 +11701,33 @@ EqualExp::EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
     assert(op == TOKequal || op == TOKnotequal);
 }
 
+int needDirectEq(Type *t1, Type *t2)
+{
+    assert(t1->ty == Tarray || t1->ty == Tsarray);
+    assert(t2->ty == Tarray || t2->ty == Tsarray);
+
+    Type *t1n = t1->nextOf()->toBasetype();
+    Type *t2n = t2->nextOf()->toBasetype();
+
+    if (((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
+         (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) ||
+        (t1n->ty == Tvoid || t2n->ty == Tvoid))
+    {
+        return FALSE;
+    }
+
+    if (t1n->constOf() != t2n->constOf())
+        return TRUE;
+
+    Type *t = t1n;
+    while (t->toBasetype()->nextOf())
+        t = t->nextOf()->toBasetype();
+    if (t->ty != Tstruct)
+        return FALSE;
+
+    return ((TypeStruct *)t)->sym->xeq == StructDeclaration::xerreq;
+}
+
 Expression *EqualExp::semantic(Scope *sc)
 {   Expression *e;
 
@@ -11744,13 +11771,8 @@ Expression *EqualExp::semantic(Scope *sc)
 
     if ((t1->ty == Tarray || t1->ty == Tsarray) &&
         (t2->ty == Tarray || t2->ty == Tsarray))
-    {   Type *t1n = t1->nextOf()->toBasetype();
-        Type *t2n = t2->nextOf()->toBasetype();
-        if (t1n->constOf() != t2n->constOf() &&
-            !((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
-              (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) &&
-            !(t1n->ty == Tvoid || t2n->ty == Tvoid)
-           )
+    {
+        if (needDirectEq(t1, t2))
         {   /* Rewrite as:
              * _ArrayEq(e1, e2)
              */

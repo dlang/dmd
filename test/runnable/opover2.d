@@ -645,6 +645,27 @@ void test16()
 
 /**************************************/
 
+void test17()
+{
+    static int opeq = 0;
+
+    struct S
+    {
+        bool opEquals(ref S rhs) { ++opeq; return false; }
+    }
+    S[] sa1 = new S[3];
+    S[] sa2 = new S[3];
+    assert(sa1 != sa2);     // isn't used TypeInfo.equals
+    assert(opeq == 1);
+
+    const(S)[] csa = new const(S)[3];
+    static assert(!__traits(compiles, csa == sa1));
+    static assert(!__traits(compiles, sa1 == csa));
+    static assert(!__traits(compiles, csa == csa));
+}
+
+/**************************************/
+
 int main()
 {
     test1();
@@ -664,6 +685,7 @@ int main()
     test14();
     test15();
     test16();
+    test17();
 
     printf("Success\n");
     return 0;
