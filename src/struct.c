@@ -595,39 +595,7 @@ void StructDeclaration::semantic(Scope *sc)
     }
 #endif
 #if DMDV2
-    /* Try to find the opEquals function. Build it if necessary.
-     */
-    TypeFunction *tfeqptr;
-    {   // bool opEquals(const T*) const;
-        Parameters *parameters = new Parameters;
-#if STRUCTTHISREF
-        // bool opEquals(ref const T) const;
-        Parameter *param = new Parameter(STCref, type->constOf(), NULL, NULL);
-#else
-        // bool opEquals(const T*) const;
-        Parameter *param = new Parameter(STCin, type->pointerTo(), NULL, NULL);
-#endif
-
-        parameters->push(param);
-        tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-        tfeqptr->mod = MODconst;
-        tfeqptr = (TypeFunction *)tfeqptr->semantic(0, sc2);
-
-        Dsymbol *s = search_function(this, Id::eq);
-        FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
-        if (fdx)
-        {
-            eq = fdx->overloadExactMatch(tfeqptr);
-            if (!eq)
-                fdx->error("type signature should be %s not %s", tfeqptr->toChars(), fdx->type->toChars());
-        }
-
-        TemplateDeclaration *td = s ? s->isTemplateDeclaration() : NULL;
-        // BUG: should also check that td is a function template, not just a template
-
-        if (!eq && !td)
-            eq = buildOpEquals(sc2);
-    }
+    buildOpEquals(sc2);
 
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);

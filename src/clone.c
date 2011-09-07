@@ -71,48 +71,6 @@ Lneed:
 #undef X
 }
 
-/*******************************************
- * We need an opEquals for the struct if
- * any fields has an opEquals.
- * Generate one if a user-specified one does not exist.
- */
-
-int StructDeclaration::needOpEquals()
-{
-#define X 0
-    if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
-
-    /* If any of the fields has an opEquals, then we
-     * need it too.
-     */
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        Dsymbol *s = fields.tdata()[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
-        if (v->storage_class & STCref)
-            continue;
-        Type *tv = v->type->toBasetype();
-        while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            tv = tv->nextOf()->toBasetype();
-        }
-        if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->eq)
-                goto Lneed;
-        }
-    }
-    if (X) printf("\tdontneed\n");
-    return 0;
-
-Lneed:
-    if (X) printf("\tneed\n");
-    return 1;
-#undef X
-}
-
 /******************************************
  * Build opAssign for struct.
  *      S* opAssign(S s) { ... }
@@ -230,6 +188,48 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     //printf("-StructDeclaration::buildOpAssign() %s\n", toChars());
 
     return fop;
+}
+
+/*******************************************
+ * We need an opEquals for the struct if
+ * any fields has an opEquals.
+ * Generate one if a user-specified one does not exist.
+ */
+
+int StructDeclaration::needOpEquals()
+{
+#define X 0
+    if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
+
+    /* If any of the fields has an opEquals, then we
+     * need it too.
+     */
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        Dsymbol *s = fields.tdata()[i];
+        VarDeclaration *v = s->isVarDeclaration();
+        assert(v && v->storage_class & STCfield);
+        if (v->storage_class & STCref)
+            continue;
+        Type *tv = v->type->toBasetype();
+        while (tv->ty == Tsarray)
+        {   TypeSArray *ta = (TypeSArray *)tv;
+            tv = tv->nextOf()->toBasetype();
+        }
+        if (tv->ty == Tstruct)
+        {   TypeStruct *ts = (TypeStruct *)tv;
+            StructDeclaration *sd = ts->sym;
+            if (sd->eq)
+                goto Lneed;
+        }
+    }
+    if (X) printf("\tdontneed\n");
+    return 0;
+
+Lneed:
+    if (X) printf("\tneed\n");
+    return 1;
+#undef X
 }
 
 /******************************************
