@@ -1752,6 +1752,75 @@ void test6499()
 
 /**********************************/
 
+template isImplicitlyConvertible(From, To)
+{
+    enum bool isImplicitlyConvertible = is(typeof({
+                        void fun(ref From v) {
+                            void gun(To) {}
+                            gun(v);
+                        }
+                    }()));
+}
+
+void test60()
+{
+    static struct X1
+    {
+        void* ptr;
+        this(this){}
+    }
+    static struct S1
+    {
+        X1 x;
+    }
+
+    static struct X2
+    {
+        int ptr;
+        this(this){}
+    }
+    static struct S2
+    {
+        X2 x;
+    }
+
+    {
+              S1  ms;
+              S1  ms2 = ms; // mutable to mutable
+        const(S1) cs2 = ms; // mutable to const                         // NG -> OK
+    }
+    {
+        const(S1) cs;
+        static assert(!__traits(compiles,{                              // NG -> OK
+              S1 ms2 = cs;  // field has reference, then const to mutable is invalid
+        }));
+        const(S1) cs2 = cs; // const to const                           // NG -> OK
+    }
+    static assert( isImplicitlyConvertible!(      S1 ,       S1 ) );
+    static assert( isImplicitlyConvertible!(      S1 , const(S1)) );    // NG -> OK
+    static assert(!isImplicitlyConvertible!(const(S1),       S1 ) );
+    static assert( isImplicitlyConvertible!(const(S1), const(S1)) );    // NG -> OK
+
+
+    {
+              S2  ms;
+              S2  ms2 = ms; // mutable to mutable
+        const(S2) cs2 = ms; // mutable to const                         // NG -> OK
+    }
+    {
+        const(S2) cs;
+              S2  ms2 = cs; // all fields are value, then const to mutable is OK
+        const(S2) cs2 = cs; // const to const                           // NG -> OK
+    }
+
+    static assert( isImplicitlyConvertible!(      S2 ,       S2 ) );
+    static assert( isImplicitlyConvertible!(      S2 , const(S2)) );    // NG -> OK
+    static assert( isImplicitlyConvertible!(const(S2),       S2 ) );
+    static assert( isImplicitlyConvertible!(const(S2), const(S2)) );    // NG -> OK
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -1814,6 +1883,7 @@ int main()
     test58();
     test59();
     test6499();
+    test60();
 
     printf("Success\n");
     return 0;

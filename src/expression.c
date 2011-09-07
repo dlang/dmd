@@ -9798,6 +9798,9 @@ Ltupleassign:
                 {   /* Write as:
                      *  e1.cpctor(e2);
                      */
+                    if (!e2->type->implicitConvTo(e1->type))
+                        error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
                     if (ec)

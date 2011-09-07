@@ -405,10 +405,10 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
  * Copy constructors are compiler generated only, and are only
  * callable from the compiler. They are not user accessible.
  * A copy constructor is:
- *    void cpctpr(ref S s)
+ *    void cpctpr(ref const S s) const
  *    {
- *      *this = s;
- *      this.postBlit();
+ *      (*cast(S*)&this) = *cast(S*)s;
+ *      (*cast(S*)&this).postBlit();
  *    }
  * This is done so:
  *      - postBlit() never sees uninitialized data
@@ -428,10 +428,11 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     {
         //printf("generating cpctor\n");
 
-        Parameter *param = new Parameter(STCref, type, Id::p, NULL);
+        Parameter *param = new Parameter(STCref, type->constOf(), Id::p, NULL);
         Parameters *fparams = new Parameters;
         fparams->push(param);
         Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd);
+        ftype->mod = MODconst;
 
         fcp = new FuncDeclaration(loc, 0, Id::cpctor, STCundefined, ftype);
         fcp->storage_class |= postblit->storage_class & STCdisable;
@@ -443,12 +444,20 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 #if !STRUCTTHISREF
             e = new PtrExp(0, e);
 #endif
-            AssignExp *ea = new AssignExp(0, e, new IdentifierExp(0, Id::p));
+            AssignExp *ea = new AssignExp(0,
+                new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo())),
+                new PtrExp(0, new CastExp(0, new AddrExp(0, new IdentifierExp(0, Id::p)), type->mutableOf()->pointerTo()))
+            );
             ea->op = TOKblit;
             Statement *s = new ExpStatement(0, ea);
 
             // Build postBlit();
-            e = new VarExp(0, postblit, 0);
+            e = new ThisExp(0);
+#if !STRUCTTHISREF
+            e = new PtrExp(0, e);
+#endif
+            e = new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo()));
+            e = new DotVarExp(0, e, postblit, 0);
             e = new CallExp(0, e);
 
             s = new CompoundStatement(0, s, new ExpStatement(0, e));
