@@ -21,6 +21,7 @@
 #include "expression.h"
 #include "statement.h"
 #include "init.h"
+#include "template.h"
 
 
 /*******************************************
@@ -237,31 +238,52 @@ Lneed:
 
 /******************************************
  * Build opEquals for struct.
- *      const bool opEquals(const ref S s) { ... }
+ *      const bool opEquals(const S s) { ... }
  */
 
 FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 {
+    Dsymbol *eq = search_function(this, Id::eq);
+    if (eq)
+    {
+        for (size_t i = 0; i <= 1; i++)
+        {
+            Expression *e =
+                i == 0 ? new NullExp(loc, type->constOf())  // dummy rvalue
+                       : type->constOf()->defaultInit();    // dummy lvalue
+            Expressions *arguments = new Expressions();
+            arguments->push(e);
+
+            // check identity opEquals exists
+            FuncDeclaration *fd = eq->isFuncDeclaration();
+            if (fd)
+            {   fd = fd->overloadResolve(loc, e, arguments, 1);
+                if (fd && !(fd->storage_class & STCdisable))
+                    return fd;
+            }
+
+            TemplateDeclaration *td = eq->isTemplateDeclaration();
+            if (td)
+            {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1);
+                if (fd && !(fd->storage_class & STCdisable))
+                    return fd;
+            }
+        }
+        return NULL;
+    }
+
     if (!needOpEquals())
         return NULL;
+
     //printf("StructDeclaration::buildOpEquals() %s\n", toChars());
-    Loc loc = this->loc;
 
     Parameters *parameters = new Parameters;
-#if STRUCTTHISREF
-    // bool opEquals(ref const T) const;
-    Parameter *param = new Parameter(STCref, type->constOf(), Id::p, NULL);
-#else
-    // bool opEquals(const T*) const;
-    Parameter *param = new Parameter(STCin, type->pointerTo(), Id::p, NULL);
-#endif
+    parameters->push(new Parameter(STCin, type, Id::p, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+    tf->mod = MODconst;
+    tf = (TypeFunction *)tf->semantic(loc, sc);
 
-    parameters->push(param);
-    TypeFunction *ftype = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-    ftype->mod = MODconst;
-    ftype = (TypeFunction *)ftype->semantic(loc, sc);
-
-    FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::eq, STCundefined, ftype);
+    FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::eq, STCundefined, tf);
 
     Expression *e = NULL;
     /* Do memberwise compare
@@ -299,6 +321,80 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     sc->pop();
 
     //printf("-StructDeclaration::buildOpEquals() %s\n", toChars());
+
+    return fop;
+}
+
+/******************************************
+ * Build __xopEquals for TypeInfo_Struct
+ *      bool __xopEquals(in void* p, in void* q) { ... }
+ */
+
+FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
+{
+    if (!search_function(this, Id::eq))
+        return NULL;
+
+    /* static bool__xopEquals(in void* p, in void* q) {
+     *     return ( *cast(const S*)(p) ).opEquals( *cast(const S*)(q) );
+     * }
+     */
+
+    Parameters *parameters = new Parameters;
+    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::p, NULL));
+    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::q, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+    tf = (TypeFunction *)tf->semantic(loc, sc);
+
+    Identifier *id = Lexer::idPool("__xopEquals");
+    FuncDeclaration *fop = new FuncDeclaration(loc, 0, id, STCstatic, tf);
+
+    Expression *e = new CallExp(0,
+        new DotIdExp(0,
+            new PtrExp(0, new CastExp(0,
+                new IdentifierExp(0, Id::p), type->pointerTo()->constOf())),
+            Id::eq),
+        new PtrExp(0, new CastExp(0,
+            new IdentifierExp(0, Id::q), type->pointerTo()->constOf())));
+
+    fop->fbody = new ReturnStatement(loc, e);
+
+    size_t index = members->dim;
+    members->push(fop);
+
+    sc = sc->push();
+    sc->stc = 0;
+    sc->linkage = LINKd;
+
+    unsigned errors = global.startGagging();
+    fop->semantic(sc);
+    if (errors == global.gaggedErrors)
+    {   fop->semantic2(sc);
+        if (errors == global.gaggedErrors)
+        {   fop->semantic3(sc);
+            if (errors == global.gaggedErrors)
+                fop->addMember(sc, this, 1);
+        }
+    }
+    if (global.endGagging(errors))    // if errors happened
+    {
+        members->remove(index);
+
+        if (!xerreq)
+        {
+            Expression *e = new IdentifierExp(loc, Id::empty);
+            e = new DotIdExp(loc, e, Id::object);
+            e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
+            e = e->semantic(sc);
+            Dsymbol *s = getDsymbol(e);
+            FuncDeclaration *fd = s->isFuncDeclaration();
+
+            xerreq = fd;
+        }
+        fop = xerreq;
+    }
+
+    sc->pop();
 
     return fop;
 }

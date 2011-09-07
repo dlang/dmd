@@ -132,6 +132,7 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclaration *postblit;  // aggregate postblit
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
+    static FuncDeclaration *xerreq;      // object.xopEquals
 #endif
 
     StructDeclaration(Loc loc, Identifier *id);
@@ -151,6 +152,8 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
     FuncDeclaration *buildCpCtor(Scope *sc);
+
+    FuncDeclaration *buildXopEquals(Scope *sc);
 #endif
     void toDocBuffer(OutBuffer *buf);
 

@@ -21,6 +21,8 @@
 #include "statement.h"
 #include "template.h"
 
+FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
+
 /********************************* AggregateDeclaration ****************************/
 
 AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
@@ -597,12 +599,14 @@ void StructDeclaration::semantic(Scope *sc)
     }
 #endif
 #if DMDV2
-    buildOpEquals(sc2);
-
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
+
     buildOpAssign(sc2);
+    hasIdentityEquals = (buildOpEquals(sc2) != NULL);
+
+    xeq = buildXopEquals(sc2);
 #endif
 
     sc2->pop();
