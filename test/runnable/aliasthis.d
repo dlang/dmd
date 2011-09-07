@@ -6,7 +6,7 @@ struct Tup(T...)
     T field;
     alias field this;
 
-    bool opEquals()(auto ref Tup rhs) const
+    bool opEquals(const Tup rhs) const
     {
         foreach (i, _; T)
             if (field[i] != rhs.field[i])
