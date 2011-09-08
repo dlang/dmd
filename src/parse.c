@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
@@ -3678,6 +3677,7 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen);
             condition = parseExpression();
             check(TOKrparen);
+            check(TOKsemicolon);
             s = new DoStatement(loc, body, condition);
             break;
         }
