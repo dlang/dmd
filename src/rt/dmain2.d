@@ -28,6 +28,7 @@ version (Windows)
 {
     private import core.stdc.wchar_;
 
+    extern (Windows) uint       GetVersion();
     extern (Windows) alias int function() FARPROC;
     extern (Windows) FARPROC    GetProcAddress(void*, in char*);
     extern (Windows) void*      LoadLibraryA(in char*);
@@ -37,6 +38,16 @@ version (Windows)
     extern (Windows) wchar_t**  CommandLineToArgvW(wchar_t*, int*);
     extern (Windows) export int WideCharToMultiByte(uint, uint, wchar_t*, int, char*, int, char*, int);
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
+
+    wchar_t** doCommandLineToArgvW(wchar_t* cmdLine, int* numArgs)
+    {
+        if (GetVersion() < 0x80000000)
+        {
+            return CommandLineToArgvW(cmdLine, numArgs);
+        }
+        // TODO: Handle this manually for Win98 and earlier.
+        return CommandLineToArgvW(cmdLine, numArgs);
+    }
 }
 
 version (all)
