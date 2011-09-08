@@ -11783,7 +11783,11 @@ Expression *EqualExp::semantic(Scope *sc)
             e = new CallExp(loc, eq, args);
             if (op == TOKnotequal)
                 e = new NotExp(loc, e);
-            e = e->semantic(sc);
+            e = e->trySemantic(sc); // for better error message
+            if (!e)
+            {   error("cannot compare %s and %s", t1->toChars(), t2->toChars());
+                return new ErrorExp();
+            }
             return e;
         }
     }
