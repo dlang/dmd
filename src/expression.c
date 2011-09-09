@@ -9789,7 +9789,7 @@ Ltupleassign:
     }
     else if (t1->ty == Tclass)
     {   // Disallow assignment operator overloads for same type
-        if (!e2->type->implicitConvTo(e1->type))
+        if (!e2->implicitConvTo(e1->type))
         {
             Expression *e = op_overload(sc);
             if (e)
