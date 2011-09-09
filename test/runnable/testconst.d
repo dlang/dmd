@@ -807,7 +807,7 @@ void abc50(T)(const T t)
 {
     showf(typeid(T).toString());
     showf(typeid(typeof(t)).toString());
-    assert(is(T == const(C)));
+    assert(is(T == C));
     assert(is(typeof(t) == const(C)));
 }
 
