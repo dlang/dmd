@@ -3678,6 +3678,7 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen);
             condition = parseExpression();
             check(TOKrparen);
+            check(TOKsemicolon);
             s = new DoStatement(loc, body, condition);
             break;
         }
