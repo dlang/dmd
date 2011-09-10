@@ -860,6 +860,7 @@ export BOOL SetFileTime(HANDLE hFile, in FILETIME *lpCreationTime, in FILETIME *
 export void GetLocalTime(SYSTEMTIME* lpSystemTime);
 export BOOL SetLocalTime(SYSTEMTIME* lpSystemTime);
 export BOOL SystemTimeToTzSpecificLocalTime(TIME_ZONE_INFORMATION* lpTimeZoneInformation, SYSTEMTIME* lpUniversalTime, SYSTEMTIME* lpLocalTime);
+export BOOL TzSpecificLocalTimeToSystemTime(TIME_ZONE_INFORMATION* lpTimeZoneInformation, SYSTEMTIME* lpLocalTime, SYSTEMTIME* lpUniversalTime);
 export DWORD GetTimeZoneInformation(TIME_ZONE_INFORMATION* lpTimeZoneInformation);
 export BOOL SetTimeZoneInformation(TIME_ZONE_INFORMATION* lpTimeZoneInformation);
 
