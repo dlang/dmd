@@ -3678,6 +3678,10 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen);
             condition = parseExpression();
             check(TOKrparen);
+            if (token.value == TOKsemicolon)
+                nextToken();
+            else if (!global.params.useDeprecated)
+                error("do-while statement requires terminating ;");
             s = new DoStatement(loc, body, condition);
             break;
         }
