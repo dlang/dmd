@@ -1,11 +1,10 @@
-// PERMUTE_ARGS:
 
 import std.stdio;
 import std.c.stdio;
 
 void main()
 {
-    auto f = std.stdio.File("runnable/extra-files/teststdio.txt", "r");
+    auto f = std.stdio.File("teststdio.txt", "r");
     FILE* fp = f.getFP();
     string buf;
     int i;
@@ -27,6 +26,6 @@ void main()
 	    default:	assert(0);
 	}
 	i++;
-    } while (!feof(fp))
+    } while (!feof(fp));
     //fclose(fp);
 }

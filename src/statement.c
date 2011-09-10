@@ -1194,7 +1194,7 @@ void DoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         body->toCBuffer(buf, hgs);
     buf->writestring("while (");
     condition->toCBuffer(buf, hgs);
-    buf->writebyte(')');
+    buf->writestring(");");
 }
 
 /******************************** ForStatement ***************************/
