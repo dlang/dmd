@@ -845,6 +845,15 @@ struct TIME_ZONE_INFORMATION {
     LONG DaylightBias;
 }
 
+struct REG_TZI_FORMAT
+{
+    LONG Bias;
+    LONG StandardBias;
+    LONG DaylightBias;
+    SYSTEMTIME StandardDate;
+    SYSTEMTIME DaylightDate;
+}
+
 enum
 {
     TIME_ZONE_ID_UNKNOWN =  0,
