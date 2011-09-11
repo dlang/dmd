@@ -7,14 +7,12 @@
        |int main() 
        |{ 
       1|    dmd_coverDestPath("test_results/runnable"); 
-       | 
+       |
       1|    int counter = 20; 
        |    do { 
      20|        --counter; 
        |    } 
-     20|    while(counter > 0) 
-       | 
-      1|        return 0; 
-       |} 
-cov2.d is 100% covered 
-
+     20|    while(counter > 0);
+       |
+      1|    return 0; 
+       |}
