@@ -543,6 +543,10 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
             if (result == MATCHnomatch)
                 break;                          // no need to check for worse
         }
+
+        if (!result)
+            result = type->implicitConvTo(t);
+
         return result;
     }
     else
