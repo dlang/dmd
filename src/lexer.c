@@ -96,7 +96,7 @@ void Token::print()
 
 const char *Token::toChars()
 {   const char *p;
-    static char buffer[3 + 3 * sizeof(value) + 1];
+    static char buffer[3 + 3 * sizeof(float80value) + 1];
 
     p = buffer;
     switch (value)
