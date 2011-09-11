@@ -604,7 +604,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
     else if (e2->type->isfloating())
     {
         // x ^ y for x < 0 and y not an integer is not defined
-        if (e2->toReal() < 0.0)
+        if (e1->toReal() < 0.0)
         {
             e = new RealExp(loc, Port::nan, type);
         }
