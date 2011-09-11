@@ -120,8 +120,7 @@ do
 {
 x++;
 }
-while (x < 10);
-try
+while (x < 10);try
 {
 try
 {
