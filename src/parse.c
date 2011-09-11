@@ -440,7 +440,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     nextToken();
                     if (token.value == TOKidentifier)
                         s = new DebugSymbol(loc, token.ident);
-                    else if (token.value == TOKint32v)
+                    else if (token.value == TOKint32v || token.value == TOKint64v)
                         s = new DebugSymbol(loc, (unsigned)token.uns64value);
                     else
                     {   error("identifier or integer expected, not %s", token.toChars());
@@ -461,7 +461,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     nextToken();
                     if (token.value == TOKidentifier)
                         s = new VersionSymbol(loc, token.ident);
-                    else if (token.value == TOKint32v)
+                    else if (token.value == TOKint32v || token.value == TOKint64v)
                         s = new VersionSymbol(loc, (unsigned)token.uns64value);
                     else
                     {   error("identifier or integer expected, not %s", token.toChars());
@@ -686,7 +686,7 @@ Condition *Parser::parseDebugCondition()
 
         if (token.value == TOKidentifier)
             id = token.ident;
-        else if (token.value == TOKint32v)
+        else if (token.value == TOKint32v || token.value == TOKint64v)
             level = (unsigned)token.uns64value;
         else
             error("identifier or integer expected, not %s", token.toChars());
@@ -715,7 +715,7 @@ Condition *Parser::parseVersionCondition()
         nextToken();
         if (token.value == TOKidentifier)
             id = token.ident;
-        else if (token.value == TOKint32v)
+        else if (token.value == TOKint32v || token.value == TOKint64v)
             level = (unsigned)token.uns64value;
 #if DMDV2
         /* Allow:
