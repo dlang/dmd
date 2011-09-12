@@ -1597,13 +1597,15 @@ Lagain:
                 Parameter *arg = arguments->tdata()[i];
                 Type *argtype = arg->type->semantic(loc, sc);
                 VarDeclaration *var;
+                int iskey = dim == 2 && i == 0;
 
-                var = new VarDeclaration(loc, argtype, arg->ident, NULL);
+                Identifier *id = !iskey || (arg->storageClass & STCref) ? arg->ident : Lexer::uniqueId("__key");
+                var = new VarDeclaration(loc, argtype, id, NULL);
                 var->storage_class |= STCforeach;
                 var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
                 if (var->storage_class & (STCref | STCout))
                     var->storage_class |= STCnodtor;
-                if (dim == 2 && i == 0)
+                if (iskey)
                 {   key = var;
                     //var->storage_class |= STCfinal;
                 }
@@ -1668,11 +1670,25 @@ Lagain:
                 // key += 1
                 increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
 
+            Statements *bodyinit = new Statements;
+            if (dim == 2 && !(arguments->tdata()[0]->storageClass & STCref))
+            {
+                // key = __key
+                bodyinit->reserve(3);
+                Parameter *arg = arguments->tdata()[0];
+                ExpInitializer *ie = new ExpInitializer(loc, new VarExp(loc, key));
+                VarDeclaration *argcopy = new VarDeclaration(loc, arg->type, arg->ident, ie);
+                bodyinit->push(new ExpStatement(loc, argcopy));
+            }
+            else
+                bodyinit->reserve(2);
+
             // T value = tmp[key];
             value->init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
-            Statement *ds = new ExpStatement(loc, value);
+            bodyinit->push(new ExpStatement(loc, value));
 
-            body = new CompoundStatement(loc, ds, body);
+            bodyinit->push(body);
+            body = new CompoundStatement(loc, bodyinit);
 
             s = new ForStatement(loc, forinit, cond, increment, body);
             s = s->semantic(sc);
