@@ -2270,12 +2270,13 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
      *  for (auto tmp = lwr, auto key = upr; key-- > tmp;)
      */
 
+    Identifier *idkey = arg->storageClass & STCref ? arg->ident : Lexer::uniqueId("__key");
     ExpInitializer *ie = new ExpInitializer(loc, (op == TOKforeach) ? lwr : upr);
-    key = new VarDeclaration(loc, arg->type, arg->ident, ie);
+    key = new VarDeclaration(loc, arg->type, idkey, ie);
 
-    Identifier *id = Lexer::uniqueId("__limit");
+    Identifier *idtmp = Lexer::uniqueId("__limit");
     ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
-    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, id, ie);
+    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, ie);
 
     Statements *cs = new Statements();
     // Keep order of evaluation as lwr, then upr
@@ -2317,6 +2318,15 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         // key += 1
         //increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
+
+    if (!(arg->storageClass & STCref))
+    {
+        ExpInitializer *ie = new ExpInitializer(loc, new VarExp(loc, key));
+        VarDeclaration *argcopy = new VarDeclaration(loc, arg->type, arg->ident, ie);
+        Statement *ds = new ExpStatement(loc, argcopy);
+
+        body = new CompoundStatement(loc, ds, body);
+    }
 
     ForStatement *fs = new ForStatement(loc, forinit, cond, increment, body);
     s = fs->semantic(sc);
