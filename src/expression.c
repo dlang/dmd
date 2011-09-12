@@ -625,6 +625,23 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 }
 #endif
 
+// Check if this function is a member of a template which has only been
+// instantiated speculatively, eg from inside is(typeof()).
+// Return the speculative template instance it is part of,
+// or NULL if not speculative.
+TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd)
+{
+    Dsymbol * par = fd->parent;
+    while (par)
+    {
+        TemplateInstance *ti = par->isTemplateInstance();
+        if (ti && ti->speculative)
+            return ti;
+        par = par->toParent();
+    }
+    return NULL;
+}
+
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
@@ -651,7 +668,15 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf->next && fd->inferRetType)
+    {
+        TemplateInstance *spec = isSpeculativeFunction(fd);
+        int olderrs = global.errors;
         fd->semantic3(fd->scope);
+        // Update the template instantiation with the number
+        // of errors which occured.
+        if (spec && global.errors != olderrs)
+            spec->errors = global.errors - olderrs;
+    }
 
     unsigned n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
@@ -2649,7 +2674,15 @@ Lagain:
 
         // if inferring return type, sematic3 needs to be run
         if (f->inferRetType && f->scope && f->type && !f->type->nextOf())
+        {
+            TemplateInstance *spec = isSpeculativeFunction(f);
+            int olderrs = global.errors;
             f->semantic3(f->scope);
+            // Update the template instantiation with the number
+            // of errors which occured.
+            if (spec && global.errors != olderrs)
+                spec->errors = global.errors - olderrs;
+        }
 
         if (f->isUnitTestDeclaration())
         {

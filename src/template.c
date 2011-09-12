@@ -3906,9 +3906,26 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         // It's a match
         inst = ti;
         parent = ti->parent;
-        // Check if it is the first non-speculative instantiation
+
+        // If both this and the previous instantiation were speculative,
+        // use the number of errors that happened last time.
+        if (inst->speculative && global.gag)
+        {
+            global.errors += inst->errors;
+            global.gaggedErrors += inst->errors;
+        }
+
+        // If the first instantiation was speculative, but this is not:
         if (inst->speculative && !global.gag)
+        {
+            // If the first instantiation had failed, re-run semantic,
+            // so that error messages are shown.
+            if (inst->errors)
+                goto L1;
+            // It had succeeded, mark it is a non-speculative instantiation,
+            // and reuse it.
             inst->speculative = 0;
+        }
 
 #if LOG
         printf("\tit's a match with instance %p\n", inst);
