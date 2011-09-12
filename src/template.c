@@ -3697,6 +3697,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->havetempdecl = 0;
     this->isnested = NULL;
     this->errors = 0;
+    this->speculative = 0;
 }
 
 /*****************
@@ -3725,6 +3726,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->havetempdecl = 1;
     this->isnested = NULL;
     this->errors = 0;
+    this->speculative = 0;
 
     assert((size_t)tempdecl->scope > 0x10000);
 }
@@ -3904,6 +3906,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         // It's a match
         inst = ti;
         parent = ti->parent;
+        // Check if it is the first non-speculative instantiation
+        if (inst->speculative && !global.gag)
+            inst->speculative = 0;
+
 #if LOG
         printf("\tit's a match with instance %p\n", inst);
 #endif
@@ -3921,6 +3927,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
     unsigned errorsave = global.errors;
     inst = this;
+    // Mark as speculative if we are instantiated from inside is(typeof())
+    if (global.gag && sc->intypeof)
+        speculative = 1;
+
     int tempdecl_instance_idx = tempdecl->instances.dim;
     tempdecl->instances.push(this);
     parent = tempdecl->parent;
