@@ -3564,6 +3564,33 @@ void test157()
 }
 
 /***************************************************/
+// 6630
+
+void test6630()
+{
+    static class B {}
+
+    static class A
+    {
+        this() { b = new B(); }
+        B b;
+        alias b this;
+    }
+
+    void fun(A a)
+    {
+        a = null;
+        assert(a is null);
+    }
+
+    auto a = new A;
+    assert(a.b !is null);
+    fun(a);
+    assert(a !is null);
+    assert(a.b !is null);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3743,6 +3770,7 @@ int main()
     test6220();
     test5799();
     test157();
+    test6630();
 
     printf("Success\n");
     return 0;
