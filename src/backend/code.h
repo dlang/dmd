@@ -731,6 +731,7 @@ regm_t cod3_useBP();
 void cod3_set32 (void );
 void cod3_set64 (void );
 void cod3_align (void );
+void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void doswitch (block *b );
 void outjmptab (block *b );
 void outswitab (block *b );

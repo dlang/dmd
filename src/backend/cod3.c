@@ -315,6 +315,400 @@ void cod3_align()
 }
 
 /*******************************
+ * Generate block exit code
+ */
+void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave)
+{
+    elem *e = bl->Belem;
+    block *nextb;
+    block *bs1,*bs2;
+    regm_t retregs = 0;
+    bool jcond;
+
+    switch (bl->BC)                     /* block exit condition         */
+    {
+        case BCiftrue:
+            jcond = TRUE;
+            bs1 = list_block(bl->Bsucc);
+            bs2 = list_block(list_next(bl->Bsucc));
+            if (bs1 == bl->Bnext)
+            {   // Swap bs1 and bs2
+                block *btmp;
+
+                jcond ^= 1;
+                btmp = bs1;
+                bs1 = bs2;
+                bs2 = btmp;
+            }
+            c = cat(c,logexp(e,jcond,FLblock,(code *) bs1));
+            nextb = bs2;
+            bl->Bcode = NULL;
+        L2:
+            if (nextb != bl->Bnext)
+            {   if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
+                    !(funcsym_p->ty() & mTYnaked))
+                    cgen_linnum(&c,bl->Bsrcpos);
+                assert(!(bl->Bflags & BFLepilog));
+                c = cat(c,genjmp(CNIL,JMP,FLblock,nextb));
+            }
+            bl->Bcode = cat(bl->Bcode,c);
+            break;
+        case BCjmptab:
+        case BCifthen:
+        case BCswitch:
+            assert(!(bl->Bflags & BFLepilog));
+            doswitch(bl);               /* hide messy details           */
+            bl->Bcode = cat(c,bl->Bcode);
+            break;
+#if MARS
+        case BCjcatch:
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in catch blocks.
+            c = cat(c,getregs((I32 | I64) ? allregs : (ALLREGS | mES)));
+#if 0 && TARGET_LINUX
+            if (config.flags3 & CFG3pic && !(allregs & mBX))
+            {
+                c = cat(c, cod3_load_got());
+            }
+#endif
+            goto case_goto;
+#endif
+#if SCPP
+        case BCcatch:
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in catch blocks.
+            c = cat(c,getregs(allregs | mES));
+#if 0 && TARGET_LINUX
+            if (config.flags3 & CFG3pic && !(allregs & mBX))
+            {
+                c = cat(c, cod3_load_got());
+            }
+#endif
+            goto case_goto;
+
+        case BCtry:
+            usednteh |= EHtry;
+            if (config.flags2 & CFG2seh)
+                usednteh |= NTEHtry;
+            goto case_goto;
+#endif
+        case BCgoto:
+            nextb = list_block(bl->Bsucc);
+            if ((funcsym_p->Sfunc->Fflags3 & Fnteh ||
+                 (MARS /*&& config.flags2 & CFG2seh*/)) &&
+                bl->Btry != nextb->Btry &&
+                nextb->BC != BC_finally)
+            {   int toindex;
+                int fromindex;
+
+                bl->Bcode = NULL;
+                c = gencodelem(c,e,&retregs,TRUE);
+                toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
+                assert(bl->Btry);
+                fromindex = bl->Btry->Bscope_index;
+#if MARS
+                if (toindex + 1 == fromindex)
+                {   // Simply call __finally
+                    if (bl->Btry &&
+                        list_block(list_next(bl->Btry->Bsucc))->BC == BCjcatch)
+                    {
+                        goto L2;
+                    }
+                }
+#endif
+                if (config.flags2 & CFG2seh)
+                    c = cat(c,nteh_unwind(0,toindex));
+#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+                else if (toindex + 1 <= fromindex)
+                {
+                    //c = cat(c, linux_unwind(0, toindex));
+                    block *bt;
+
+                    //printf("B%d: fromindex = %d, toindex = %d\n", bl->Bdfoidx, fromindex, toindex);
+                    bt = bl;
+                    while ((bt = bt->Btry) != NULL && bt->Bscope_index != toindex)
+                    {   block *bf;
+
+                        //printf("\tbt->Bscope_index = %d, bt->Blast_index = %d\n", bt->Bscope_index, bt->Blast_index);
+                        bf = list_block(list_next(bt->Bsucc));
+                        // Only look at try-finally blocks
+                        if (bf->BC == BCjcatch)
+                            continue;
+
+                        if (bf == nextb)
+                            continue;
+                        //printf("\tbf = B%d, nextb = B%d\n", bf->Bdfoidx, nextb->Bdfoidx);
+                        if (nextb->BC == BCgoto &&
+                            !nextb->Belem &&
+                            bf == list_block(nextb->Bsucc))
+                            continue;
+
+                        // call __finally
+                        code *cs;
+                        code *cr;
+                        int nalign = 0;
+
+                        gensaverestore(retregs,&cs,&cr);
+                        if (STACKALIGN == 16)
+                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
+                            if (npush & (STACKALIGN - 1))
+                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
+                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                                if (I64)
+                                    code_orrex(cs, REX_W);
+                            }
+                        }
+                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                        if (nalign)
+                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                            if (I64)
+                                code_orrex(cs, REX_W);
+                        }
+                        c = cat3(c,cs,cr);
+                    }
+                }
+#endif
+                goto L2;
+            }
+        case_goto:
+            c = gencodelem(c,e,&retregs,TRUE);
+            if (anyspill)
+            {   // Add in the epilog code
+                code *cstore = NULL;
+                code *cload = NULL;
+
+                for (int i = 0; i < anyspill; i++)
+                {   symbol *s = globsym.tab[i];
+
+                    if (s->Sflags & SFLspill &&
+                        vec_testbit(dfoidx,s->Srange))
+                    {
+                        s->Sfl = sflsave[i];    // undo block register assignments
+                        cgreg_spillreg_epilog(bl,s,&cstore,&cload);
+                    }
+                }
+                c = cat3(c,cstore,cload);
+            }
+
+        L3:
+            bl->Bcode = NULL;
+            nextb = list_block(bl->Bsucc);
+            goto L2;
+
+        case BC_try:
+            if (config.flags2 & CFG2seh)
+            {   usednteh |= NTEH_try;
+                nteh_usevars();
+            }
+            else
+                usednteh |= EHtry;
+            goto case_goto;
+
+        case BC_finally:
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in finally blocks.
+            assert(!getregs(allregs));
+            assert(!e);
+            assert(!bl->Bcode);
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            if (config.flags3 & CFG3pic)
+            {
+                int nalign = 0;
+                if (STACKALIGN == 16)
+                {   nalign = STACKALIGN - REGSIZE;
+                    c = genc2(c,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                    if (I64)
+                        code_orrex(c, REX_W);
+                }
+                // CALL bl->Bsucc
+                c = genc(c,0xE8,0,0,0,FLblock,(long)list_block(bl->Bsucc));
+                if (nalign)
+                {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                    if (I64)
+                        code_orrex(c, REX_W);
+                }
+                // JMP list_next(bl->Bsucc)
+                nextb = list_block(list_next(bl->Bsucc));
+                goto L2;
+            }
+            else
+#endif
+            {
+                // Generate a PUSH of the address of the successor to the
+                // corresponding BC_ret
+                //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
+                // PUSH &succ
+                c = genc(c,0x68,0,0,0,FLblock,(long)list_block(list_next(bl->Bsucc)));
+                nextb = list_block(bl->Bsucc);
+                goto L2;
+            }
+
+        case BC_ret:
+            c = gencodelem(c,e,&retregs,TRUE);
+            bl->Bcode = gen1(c,0xC3);   // RET
+            break;
+
+#if NTEXCEPTIONS
+        case BC_except:
+            assert(!e);
+            usednteh |= NTEH_except;
+            c = cat(c,nteh_setsp(0x8B));
+            getregs(allregs);
+            goto L3;
+
+        case BC_filter:
+            c = cat(c,nteh_filter(bl));
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in filter blocks.
+            getregs(allregs);
+            retregs = regmask(e->Ety, TYnfunc);
+            c = gencodelem(c,e,&retregs,TRUE);
+            bl->Bcode = gen1(c,0xC3);   // RET
+            break;
+#endif
+
+        case BCretexp:
+            retregs = regmask(e->Ety, funcsym_p->ty());
+
+            // For the final load into the return regs, don't set regcon.used,
+            // so that the optimizer can potentially use retregs for register
+            // variable assignments.
+
+            if (config.flags4 & CFG4optimized)
+            {   regm_t usedsave;
+
+                c = cat(c,docommas(&e));
+                usedsave = regcon.used;
+                if (EOP(e))
+                    c = gencodelem(c,e,&retregs,TRUE);
+                else
+                {
+                    if (e->Eoper == OPconst)
+                        regcon.mvar = 0;
+                    c = gencodelem(c,e,&retregs,TRUE);
+                    regcon.used = usedsave;
+                    if (e->Eoper == OPvar)
+                    {   symbol *s = e->EV.sp.Vsym;
+
+                        if (s->Sfl == FLreg && s->Sregm != mAX)
+                            *retsym = s;
+                    }
+                }
+            }
+            else
+            {
+        case BCret:
+        case BCexit:
+                c = gencodelem(c,e,&retregs,TRUE);
+            }
+            bl->Bcode = c;
+            if (retregs == mST0)
+            {   assert(stackused == 1);
+                pop87();                // account for return value
+            }
+            else if (retregs == mST01)
+            {   assert(stackused == 2);
+                pop87();
+                pop87();                // account for return value
+            }
+            if (bl->BC == BCexit && config.flags4 & CFG4optimized)
+                mfuncreg = mfuncregsave;
+            if (MARS || usednteh & NTEH_try)
+            {   block *bt;
+
+                bt = bl;
+                while ((bt = bt->Btry) != NULL)
+                {   block *bf;
+
+                    bf = list_block(list_next(bt->Bsucc));
+#if MARS
+                    // Only look at try-finally blocks
+                    if (bf->BC == BCjcatch)
+                    {
+                        continue;
+                    }
+#endif
+                    if (config.flags2 & CFG2seh)
+                    {
+                        if (bt->Bscope_index == 0)
+                        {
+                            // call __finally
+                            code *cs;
+                            code *cr;
+
+                            c = cat(c,nteh_gensindex(-1));
+                            gensaverestore(retregs,&cs,&cr);
+                            cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                            bl->Bcode = cat3(c,cs,cr);
+                        }
+                        else
+                            bl->Bcode = cat(c,nteh_unwind(retregs,~0));
+                        break;
+                    }
+                    else
+                    {
+                        // call __finally
+                        code *cs;
+                        code *cr;
+                        int nalign = 0;
+
+                        gensaverestore(retregs,&cs,&cr);
+                        if (STACKALIGN == 16)
+                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
+                            if (npush & (STACKALIGN - 1))
+                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
+                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                                if (I64)
+                                    code_orrex(cs, REX_W);
+                            }
+                        }
+                        // CALL bf->Bsucc
+                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                        if (nalign)
+                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                            if (I64)
+                                code_orrex(cs, REX_W);
+                        }
+                        bl->Bcode = c = cat3(c,cs,cr);
+                    }
+                }
+            }
+            break;
+
+#if SCPP || MARS
+        case BCasm:
+            assert(!e);
+            // Mark destroyed registers
+            assert(!c);
+            c = cat(c,getregs(iasm_regs(bl)));
+            if (bl->Bsucc)
+            {   nextb = list_block(bl->Bsucc);
+                if (!bl->Bnext)
+                    goto L2;
+                if (nextb != bl->Bnext &&
+                    bl->Bnext &&
+                    !(bl->Bnext->BC == BCgoto &&
+                     !bl->Bnext->Belem &&
+                     nextb == list_block(bl->Bnext->Bsucc)))
+                {   code *cl;
+
+                    // See if already have JMP at end of block
+                    cl = code_last(bl->Bcode);
+                    if (!cl || cl->Iop != JMP)
+                        goto L2;        // add JMP at end of block
+                }
+            }
+            break;
+#endif
+        default:
+#ifdef DEBUG
+            printf("bl->BC = %d\n",bl->BC);
+#endif
+            assert(0);
+    }
+}
+
+/*******************************
  * Generate code for blocks ending in a switch statement.
  * Take BCswitch and decide on
  *      BCifthen        use if - then code
