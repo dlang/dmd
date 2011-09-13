@@ -1842,7 +1842,7 @@ Lagain:
                     if (pos == -1)
                         break;
                 }
-                if (exps->dim > dim)
+                if (exps->dim != dim)
                     goto Lrangeerr;
 
                 for (size_t i = 0; i < dim; i++)
