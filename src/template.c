@@ -3697,6 +3697,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->havetempdecl = 0;
     this->isnested = NULL;
     this->errors = 0;
+    this->speculative = 0;
 }
 
 /*****************
@@ -3725,6 +3726,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->havetempdecl = 1;
     this->isnested = NULL;
     this->errors = 0;
+    this->speculative = 0;
 
     assert((size_t)tempdecl->scope > 0x10000);
 }
@@ -3904,6 +3906,27 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         // It's a match
         inst = ti;
         parent = ti->parent;
+
+        // If both this and the previous instantiation were speculative,
+        // use the number of errors that happened last time.
+        if (inst->speculative && global.gag)
+        {
+            global.errors += inst->errors;
+            global.gaggedErrors += inst->errors;
+        }
+
+        // If the first instantiation was speculative, but this is not:
+        if (inst->speculative && !global.gag)
+        {
+            // If the first instantiation had failed, re-run semantic,
+            // so that error messages are shown.
+            if (inst->errors)
+                goto L1;
+            // It had succeeded, mark it is a non-speculative instantiation,
+            // and reuse it.
+            inst->speculative = 0;
+        }
+
 #if LOG
         printf("\tit's a match with instance %p\n", inst);
 #endif
@@ -3921,6 +3944,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
     unsigned errorsave = global.errors;
     inst = this;
+    // Mark as speculative if we are instantiated from inside is(typeof())
+    if (global.gag && sc->intypeof)
+        speculative = 1;
+
     int tempdecl_instance_idx = tempdecl->instances.dim;
     tempdecl->instances.push(this);
     parent = tempdecl->parent;
@@ -4927,11 +4954,22 @@ void TemplateInstance::semantic3(Scope *sc)
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
+        int oldgag = global.gag;
+        /* If this is a speculative instantiation, gag errors.
+         * Future optimisation: If the results are actually needed, errors
+         * would already be gagged, so we don't really need to run semantic
+         * on the members.
+         */
+        if (speculative && !global.gag)
+            global.gag = 1;
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = members->tdata()[i];
             s->semantic3(sc);
+            if (global.gag && errors)
+                break;
         }
+        global.gag = oldgag;
         sc = sc->pop();
         sc->pop();
     }

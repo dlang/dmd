@@ -1358,9 +1358,7 @@ Lnomatch:
 
             if (!global.errors && !inferred)
             {
-                unsigned errors = global.errors;
-                global.gag++;
-                //printf("+gag\n");
+                unsigned errors = global.startGagging();
                 Expression *e;
                 Initializer *i2 = init;
                 inuse++;
@@ -1419,12 +1417,8 @@ Lnomatch:
                     i2 = i2->semantic(sc, type, WANTinterpret);
                 }
                 inuse--;
-                global.gag--;
-                //printf("-gag\n");
-                if (errors != global.errors)    // if errors happened
+                if (global.endGagging(errors))    // if errors happened
                 {
-                    if (global.gag == 0)
-                        global.errors = errors; // act as if nothing happened
 #if DMDV2
                     /* Save scope for later use, to try again
                      */

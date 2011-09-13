@@ -3597,13 +3597,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
                          * (but first ensure it doesn't fail the "check for
                          * escaping reference" test)
                          */
-                        unsigned errors = global.errors;
-                        global.gag++;
+                        unsigned errors = global.startGagging();
                         exp->checkEscapeRef();
-                        global.gag--;
-                        if (errors != global.errors)
+                        if (global.endGagging(errors))
                         {   tf->isref = FALSE;  // return by value
-                            global.errors = errors;
                         }
                     }
                     else

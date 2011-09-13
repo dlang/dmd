@@ -558,6 +558,10 @@ void Dsymbol::error(const char *format, ...)
         fflush(stdmsg);
 //halt();
     }
+    else
+    {
+        global.gaggedErrors++;
+    }
     global.errors++;
 
     //fatal();
@@ -586,6 +590,10 @@ void Dsymbol::error(Loc loc, const char *format, ...)
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
 //halt();
+    }
+    else
+    {
+        global.gaggedErrors++;
     }
 
     global.errors++;

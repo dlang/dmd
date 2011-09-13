@@ -293,6 +293,7 @@ struct TemplateInstance : ScopeDsymbol
     int havetempdecl;   // 1 if used second constructor
     Dsymbol *isnested;  // if referencing local symbols, this is the context
     int errors;         // 1 if compiled with errors
+    int speculative;    // 1 if only instantiated with errors gagged
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol
