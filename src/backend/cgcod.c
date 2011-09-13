@@ -1624,15 +1624,7 @@ STATIC code * cse_save(regm_t ms)
             // If we can simply reload the CSE, we don't need to save it
             if (!cse_simple(csextab[i].e,i))
             {
-                // MOV i[BP],reg
-                op = 0x89;              // normal mov
-                if (reg == ES)
-                {   reg = 0;            // the real reg number
-                    op = 0x8C;          // segment reg mov
-                }
-                c = genc1(c,op,modregxrm(2, reg, BPRM),FLcs,(targ_uns) i);
-                if (I64)
-                    code_orrex(c, REX_W);
+                c = cat(c, gensavereg(reg, i));
                 reflocal = TRUE;
             }
         }

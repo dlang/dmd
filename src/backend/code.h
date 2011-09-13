@@ -866,6 +866,7 @@ code *genpush (code *c , unsigned reg );
 code *genpop (code *c , unsigned reg );
 code *gentstreg (code *c , unsigned reg );
 code *genasm (code *c , char *s , unsigned slen );
+code* gensavereg(unsigned& reg, targ_uns slot);
 code *genmovreg (code *c , unsigned to , unsigned from );
 code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
 code *gencsi (code *c , unsigned op , unsigned rm , unsigned FL2 , SYMIDX si );

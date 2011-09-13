@@ -1663,6 +1663,24 @@ STATIC int obj_namestring(char *p,const char *name)
 }
 #endif
 
+/**************************
+ * Generate a MOV to save a register to a stack slot
+ */
+code *gensavereg(unsigned& reg, targ_uns slot)
+{
+    // MOV i[BP],reg
+    unsigned op = 0x89;              // normal mov
+    if (reg == ES)
+    {   reg = 0;            // the real reg number
+        op = 0x8C;          // segment reg mov
+    }
+    code *c = genc1(NULL,op,modregxrm(2, reg, BPRM),FLcs,slot);
+    if (I64)
+        code_orrex(c, REX_W);
+
+    return c;
+}
+
 /*******************************
  * Generate code for a function start.
  * Input:
