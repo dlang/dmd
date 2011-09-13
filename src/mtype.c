@@ -317,13 +317,10 @@ Type *Type::semantic(Loc loc, Scope *sc)
 Type *Type::trySemantic(Loc loc, Scope *sc)
 {
     //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
-    unsigned errors = global.errors;
-    global.gag++;                       // suppress printing of error messages
+    unsigned errors = global.startGagging();
     Type *t = semantic(loc, sc);
-    global.gag--;
-    if (errors != global.errors)        // if any errors happened
+    if (global.endGagging(errors))        // if any errors happened
     {
-        global.errors = errors;
         t = NULL;
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
@@ -5993,15 +5990,12 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
 
     if (sc->parameterSpecialization)
     {
-        unsigned errors = global.errors;
-        global.gag++;
+        unsigned errors = global.startGagging();
 
         resolve(loc, sc, &e, &t, &s);
 
-        global.gag--;
-        if (errors != global.errors)
-        {   if (global.gag == 0)
-                global.errors = errors;
+        if (global.endGagging(errors))
+        {
             return this;
         }
     }
@@ -6026,17 +6020,12 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
 
     if (sc->parameterSpecialization)
     {
-        unsigned errors = global.errors;
-        global.gag++;
+        unsigned errors = global.startGagging();
 
         resolve(loc, sc, &e, &t, &s);
 
-        global.gag--;
-        if (errors != global.errors)
-        {   if (global.gag == 0)
-                global.errors = errors;
+        if (global.endGagging(errors))
             return NULL;
-        }
     }
     else
         resolve(loc, sc, &e, &t, &s);
@@ -7258,13 +7247,10 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         /* If there is an error instantiating AssociativeArray!(), it shouldn't
          * be reported -- it just means implicit conversion is impossible.
          */
-        ++global.gag;
-        int errs = global.errors;
+        int errs = global.startGagging();
         to = ((TypeAArray*)to)->getImpl()->type;
-        --global.gag;
-        if (errs != global.errors)
+        if (global.endGagging(errs))
         {
-            global.errors = errs;
             return MATCHnomatch;
         }
     }
