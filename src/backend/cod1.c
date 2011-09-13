@@ -298,6 +298,29 @@ void andregcon(con_t *pregconsave)
     regcon.cse.mops &= regcon.cse.mval;
 }
 
+/****************************************
+ * Generate code for eecontext
+ */
+
+void genEEcode()
+{   regm_t retregs;
+    code *c;
+
+    eecontext.EEin++;
+    regcon.immed.mval = 0;
+    retregs = 0;    //regmask(eecontext.EEelem->Ety);
+    assert(EEoffset >= REGSIZE);
+    c = genc2(NULL,0x81,modregrm(3,5,SP),EEoffset - REGSIZE); // SUB ESP,EEoffset
+    gen1(c,0x50 + SI);                      // PUSH ESI
+    genadjesp(c,EEoffset);
+    c = gencodelem(c,eecontext.EEelem,&retregs, FALSE);
+    assignaddrc(c);
+    pinholeopt(c,NULL);
+    jmpaddr(c);
+    eecontext.EEcode = gen1(c,0xCC);        // INT 3
+    eecontext.EEin--;
+}
+
 /*********************************
  * Scan down comma-expressions.
  * Output:

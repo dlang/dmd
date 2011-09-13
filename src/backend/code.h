@@ -658,6 +658,7 @@ int ssindex(int op,targ_uns product);
 void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
 unsigned buildModregrm(int mod, int reg, int rm);
 void andregcon (con_t *pregconsave);
+void genEEcode();
 code *docommas (elem **pe );
 void gensaverestore(regm_t, code **, code **);
 code *genstackclean(code *c,unsigned numpara,regm_t keepmsk);
