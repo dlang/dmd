@@ -340,28 +340,6 @@ code *docommas(elem **pe)
     return cc;
 }
 
-/****************************************
- * Clean stack after call to codelem().
- */
-
-code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
-{
-    if (e)
-    {
-        unsigned stackpushsave;
-        int stackcleansave;
-
-        stackpushsave = stackpush;
-        stackcleansave = cgstate.stackclean;
-        cgstate.stackclean = 0;                         // defer cleaning of stack
-        c = cat(c,codelem(e,pretregs,constflag));
-        assert(cgstate.stackclean == 0);
-        cgstate.stackclean = stackcleansave;
-        c = genstackclean(c,stackpush - stackpushsave,*pretregs);       // do defered cleaning
-    }
-    return c;
-}
-
 /********************************************
  * Gen a save/restore sequence for mask of registers.
  */

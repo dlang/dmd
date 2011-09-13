@@ -659,7 +659,6 @@ void buildEA(code *c,int base,int index,int scale,targ_size_t disp);
 unsigned buildModregrm(int mod, int reg, int rm);
 void andregcon (con_t *pregconsave);
 code *docommas (elem **pe );
-code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag);
 void gensaverestore(regm_t, code **, code **);
 code *genstackclean(code *c,unsigned numpara,regm_t keepmsk);
 code *logexp (elem *e , int jcond , unsigned fltarg , code *targ );
@@ -883,6 +882,7 @@ code *genadjfpu(code *c, int offset);
 code *gennop(code *);
 code *genshift(code *);
 code *movregconst (code *c , unsigned reg , targ_size_t value , regm_t flags );
+code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag);
 bool reghasvalue (regm_t regm , targ_size_t value , unsigned *preg );
 code *regwithvalue (code *c , regm_t regm , targ_size_t value , unsigned *preg , regm_t flags );
 

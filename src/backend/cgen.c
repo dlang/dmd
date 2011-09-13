@@ -845,6 +845,28 @@ L1:
     return c;
 }
 
+/****************************************
+ * Clean stack after call to codelem().
+ */
+
+code *gencodelem(code *c,elem *e,regm_t *pretregs,bool constflag)
+{
+    if (e)
+    {
+        unsigned stackpushsave;
+        int stackcleansave;
+
+        stackpushsave = stackpush;
+        stackcleansave = cgstate.stackclean;
+        cgstate.stackclean = 0;                         // defer cleaning of stack
+        c = cat(c,codelem(e,pretregs,constflag));
+        assert(cgstate.stackclean == 0);
+        cgstate.stackclean = stackcleansave;
+        c = genstackclean(c,stackpush - stackpushsave,*pretregs);       // do defered cleaning
+    }
+    return c;
+}
+
 /**********************************
  * Determine if one of the registers in regm has value in it.
  * If so, return !=0 and set *preg to which register it is.
