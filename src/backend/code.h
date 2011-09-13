@@ -623,7 +623,6 @@ extern  code *(*cdxxx[])(elem *,regm_t *);
 
 void stackoffsets(int);
 void codgen (void );
-regm_t regmask (tym_t tym, tym_t tyf );
 #ifdef DEBUG
 unsigned findreg (regm_t regm , int line , const char *file );
 #define findreg(regm) findreg((regm),__LINE__,__FILE__)
@@ -731,6 +730,7 @@ regm_t cod3_useBP();
 void cod3_set32 (void );
 void cod3_set64 (void );
 void cod3_align (void );
+regm_t regmask(tym_t tym, tym_t tyf);
 void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void doswitch (block *b );
 void outjmptab (block *b );
