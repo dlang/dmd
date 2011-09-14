@@ -257,9 +257,18 @@ struct Global
     const char *version;
 
     Param params;
-    unsigned errors;    // number of errors reported so far
-    unsigned warnings;  // number of warnings reported so far
-    unsigned gag;       // !=0 means gag reporting of errors & warnings
+    unsigned errors;       // number of errors reported so far
+    unsigned warnings;     // number of warnings reported so far
+    unsigned gag;          // !=0 means gag reporting of errors & warnings
+    unsigned gaggedErrors; // number of errors reported while gagged
+
+    // Start gagging. Return the current number of gagged errors
+    unsigned startGagging();
+
+    /* End gagging, restoring the old gagged state.
+     * Return true if errors occured while gagged.
+     */
+    bool endGagging(unsigned oldGagged);
 
     Global();
 };

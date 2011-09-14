@@ -1168,9 +1168,7 @@ void VarDeclaration::semantic(Scope *sc)
 
             if (!global.errors && !inferred)
             {
-                unsigned errors = global.errors;
-                global.gag++;
-                //printf("+gag\n");
+                unsigned errors = global.startGagging();
                 Expression *e;
                 Initializer *i2 = init;
                 inuse++;
@@ -1185,12 +1183,8 @@ void VarDeclaration::semantic(Scope *sc)
                     i2 = i2->semantic(sc, type, WANTinterpret);
                 }
                 inuse--;
-                global.gag--;
-                //printf("-gag\n");
-                if (errors != global.errors)    // if errors happened
+                if (global.endGagging(errors))    // if errors happened
                 {
-                    if (global.gag == 0)
-                        global.errors = errors; // act as if nothing happened
 #if DMDV2
                     /* Save scope for later use, to try again
                      */
@@ -1459,6 +1453,15 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
         }
     }
     return e;
+}
+
+/******************************************
+ */
+
+void ObjectNotFound(Identifier *id)
+{
+    Type::error(0, "%s not found. object.d may be incorrectly installed or corrupt.", id->toChars());
+    fatal();
 }
 
 

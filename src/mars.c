@@ -98,6 +98,35 @@ Global::Global()
     memset(&params, 0, sizeof(Param));
 }
 
+unsigned Global::startGagging()
+{
+    ++gag;
+#if DMDV1
+    return global.errors;
+#else
+    return gaggedErrors;
+#endif
+}
+
+bool Global::endGagging(unsigned oldGagged)
+{
+#if DMDV1
+    bool anyErrs = (errors != oldGagged);
+    --gag;
+    errors = oldGagged;
+    return anyErrs;
+#else
+    bool anyErrs = (gaggedErrors != oldGagged);
+    --gag;
+    // Restore the original state of gagged errors; set total errors
+    // to be original errors + new ungagged errors.
+    errors -= (gaggedErrors - oldGagged);
+    gaggedErrors = oldGagged;
+    return anyErrs;
+#endif
+}
+
+
 char *Loc::toChars()
 {
     OutBuffer buf;
@@ -176,6 +205,10 @@ void verror(Loc loc, const char *format, va_list ap)
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
 //halt();
+    }
+    else
+    {
+        global.gaggedErrors++;
     }
     global.errors++;
 }

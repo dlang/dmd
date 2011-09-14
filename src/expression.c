@@ -509,6 +509,23 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e)
 }
 #endif
 
+// Check if this function is a member of a template which has only been
+// instantiated speculatively, eg from inside is(typeof()).
+// Return the speculative template instance it is part of,
+// or NULL if not speculative.
+TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd)
+{
+    Dsymbol * par = fd->parent;
+    while (par)
+    {
+        TemplateInstance *ti = par->isTemplateInstance();
+        if (ti && ti->speculative)
+            return ti;
+        par = par->toParent();
+    }
+    return NULL;
+}
+
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
@@ -527,6 +544,20 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 
     if (nargs > nparams && tf->varargs == 0)
         error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
+
+#if DMDV2
+    // If inferring return type, and semantic3() needs to be run if not already run
+    if (!tf->next && fd->inferRetType)
+    {
+        TemplateInstance *spec = isSpeculativeFunction(fd);
+        int olderrs = global.errors;
+        fd->semantic3(fd->scope);
+        // Update the template instantiation with the number
+        // of errors which occured.
+        if (spec && global.errors != olderrs)
+            spec->errors = global.errors - olderrs;
+    }
+#endif
 
     unsigned n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
@@ -913,6 +944,24 @@ Expression *Expression::semantic(Scope *sc)
     else
         type = Type::tvoid;
     return this;
+}
+
+/**********************************
+ * Try to run semantic routines.
+ * If they fail, return NULL.
+ */
+
+Expression *Expression::trySemantic(Scope *sc)
+{
+    //printf("+trySemantic(%s)\n", toChars());
+    unsigned errors = global.startGagging();
+    Expression *e = semantic(sc);
+    if (global.endGagging(errors))
+    {
+        e = NULL;
+    }
+    //printf("-trySemantic(%s)\n", toChars());
+    return e;
 }
 
 void Expression::print()
@@ -2186,6 +2235,21 @@ Lagain:
 
         if (!f->originalType && f->scope)       // semantic not yet run
             f->semantic(f->scope);
+
+#if DMDV2
+        // if inferring return type, sematic3 needs to be run
+        if (f->inferRetType && f->scope && f->type && !f->type->nextOf())
+        {
+            TemplateInstance *spec = isSpeculativeFunction(f);
+            int olderrs = global.errors;
+            f->semantic3(f->scope);
+            // Update the template instantiation with the number
+            // of errors which occured.
+            if (spec && global.errors != olderrs)
+                spec->errors = global.errors - olderrs;
+        }
+#endif
+
         if (f->isUnitTestDeclaration())
         {
             error("cannot call unittest function %s", toChars());
@@ -5808,14 +5872,11 @@ Expression *DotIdExp::semantic(Scope *sc)
          * as:
          *   .ident(e1)
          */
-        unsigned errors = global.errors;
-        global.gag++;
+        unsigned errors = global.startGagging();
         Type *t1 = e1->type;
         e = e1->type->dotExp(sc, e1, ident);
-        global.gag--;
-        if (errors != global.errors)    // if failed to find the property
+        if (global.endGagging(errors))    // if failed to find the property
         {
-            global.errors = errors;
             e1->type = t1;              // kludge to restore type
             e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
             e = new CallExp(loc, e, e1);

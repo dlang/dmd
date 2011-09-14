@@ -13,7 +13,7 @@
 
 #ifdef __DMC__
 #pragma once
-#endif /* __DMC__ mtype.h   Thu Oct 14 2010 */
+#endif /* __DMC__ */
 
 #include "root.h"
 #include "stringtable.h"
@@ -205,6 +205,7 @@ struct Type : Object
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
     virtual Type *semantic(Loc loc, Scope *sc);
+    Type *trySemantic(Loc loc, Scope *sc);
     virtual void toDecoBuffer(OutBuffer *buf);
     Type *merge();
     Type *merge2();

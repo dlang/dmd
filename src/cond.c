@@ -302,13 +302,14 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
             inc = 2;
             return 0;
         }
-        unsigned errors = global.errors;
-        global.gag++;                   // suppress printing of error messages
-        targ = targ->semantic(loc, sc);
-        global.gag--;
-        if (errors != global.errors)    // if any errors happened
-        {   inc = 2;                    // then condition is false
-            global.errors = errors;
+        Type *t = targ->trySemantic(loc, sc);
+        if (t)
+            targ = t;
+        else
+            inc = 2;                    // condition is false
+
+        if (!t)
+        {
         }
         else if (id && tspec)
         {
