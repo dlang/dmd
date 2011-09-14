@@ -300,32 +300,21 @@ Lexer::Lexer(Module *mod,
 
 void Lexer::error(const char *format, ...)
 {
-    if (mod && !global.gag)
-    {
-        char *p = loc.toChars();
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        va_list ap;
-        va_start(ap, format);
-        vfprintf(stdmsg, format, ap);
-        va_end(ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-
-        if (global.errors >= 20)        // moderate blizzard of cascading messages
-            fatal();
-    }
-    else
-    {
-        global.gaggedErrors++;
-    }
-    global.errors++;
+    va_list ap;
+    va_start(ap, format);
+    verror(loc, format, ap);
+    va_end(ap);
 }
 
 void Lexer::error(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    verror(loc, format, ap);
+    va_end(ap);
+}
+
+void Lexer::verror(Loc loc, const char *format, va_list ap)
 {
     if (mod && !global.gag)
     {
@@ -334,10 +323,7 @@ void Lexer::error(Loc loc, const char *format, ...)
             fprintf(stdmsg, "%s: ", p);
         mem.free(p);
 
-        va_list ap;
-        va_start(ap, format);
         vfprintf(stdmsg, format, ap);
-        va_end(ap);
 
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
