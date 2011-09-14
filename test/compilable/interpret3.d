@@ -1108,21 +1108,18 @@ static assert(bug6001f());
 
 // Assignment to AAs
 
-version(X86)
+void blah(int[char] as)
 {
-    void blah(int[char] as)
-    {
-        auto k = [6: as];
-        as = k[6];
-    }
-    int blaz()
-    {
-        int[char] q;
-        blah(q);
-        return 67;
-    }
-    static assert(blaz()==67);
+    auto k = [6: as];
+    as = k[6];
 }
+int blaz()
+{
+    int[char] q;
+    blah(q);
+    return 67;
+}
+static assert(blaz()==67);
 
 void bug6001g(ref int[] w)
 {
