@@ -459,25 +459,6 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 else
                 {
-                    vi = findVtblIndex(&cd->vtbl, cd->vtbl.dim);
-                    if (vi != -1)
-                    {
-                        FuncDeclaration *fdc = cd->vtbl.tdata()[vi];
-                        if (fdc->toParent() == parent)
-                        {
-                            // If either is not mixin, the one that is
-                            // overrides the other.
-                            if (fdc->parent->isClassDeclaration())
-                                break;
-                            if (this->parent->isClassDeclaration())
-                            {
-                                introducing = 1;
-                                cd->vtbl.tdata()[vi] = this;
-                                vtblIndex = vi;
-                                break;
-                            }
-                        }
-                    }
                     // Append to end of vtbl[]
                     //printf("\tintroducing function\n");
                     introducing = 1;
