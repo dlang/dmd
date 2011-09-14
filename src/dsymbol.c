@@ -535,39 +535,28 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 void Dsymbol::error(const char *format, ...)
 {
     //printf("Dsymbol::error()\n");
-    if (!global.gag)
+    if (!loc.filename)  // avoid bug 5861.
     {
-        char *p = locToChars();
+        Module *m = getModule();
 
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        fprintf(stdmsg, "Error: ");
-        if (isAnonymous())
-            fprintf(stdmsg, "%s ", kind());
-        else
-            fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
-
-        va_list ap;
-        va_start(ap, format);
-        vfprintf(stdmsg, format, ap);
-        va_end(ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-//halt();
+        if (m && m->srcfile)
+            loc.filename = m->srcfile->toChars();
     }
-    else
-    {
-        global.gaggedErrors++;
-    }
-    global.errors++;
-
-    //fatal();
+    va_list ap;
+    va_start(ap, format);
+    verror(loc, format, ap);
+    va_end(ap);
 }
 
 void Dsymbol::error(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    verror(loc, format, ap);
+    va_end(ap);
+}
+
+void Dsymbol::verror(Loc loc, const char *format, va_list ap)
 {
     if (!global.gag)
     {
@@ -582,10 +571,7 @@ void Dsymbol::error(Loc loc, const char *format, ...)
         fprintf(stdmsg, "Error: ");
         fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
 
-        va_list ap;
-        va_start(ap, format);
         vfprintf(stdmsg, format, ap);
-        va_end(ap);
 
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
