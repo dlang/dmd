@@ -1,7 +1,7 @@
 module winsamp;
 
 /+ Compile with:
- +	dmd winsamp winsamp.def
+ +  dmd winsamp winsamp.def
  + or:
  +  dmd winsamp -L-Subsystem:Windows
  +/

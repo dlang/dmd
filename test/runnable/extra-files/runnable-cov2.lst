@@ -1,18 +1,18 @@
-       |// PERMUTE_ARGS:
-       |// POST_SCRIPT: runnable/extra-files/cov2-postscript.sh
-       |// REQUIRED_ARGS: -cov
+       |// PERMUTE_ARGS: 
+       |// POST_SCRIPT: runnable/extra-files/cov2-postscript.sh 
+       |// REQUIRED_ARGS: -cov 
+       | 
+       |extern(C) void dmd_coverDestPath(string pathname); 
+       | 
+       |int main() 
+       |{ 
+      1|    dmd_coverDestPath("test_results/runnable"); 
        |
-       |extern(C) void dmd_coverDestPath(string pathname);
+      1|    int counter = 20; 
+       |    do { 
+     20|        --counter; 
+       |    } 
+     20|    while(counter > 0);
        |
-       |int main()
-       |{
-      1|    dmd_coverDestPath("test_results/runnable");
-       |
-      1|    int counter = 20;
-       |    do {
-     20|        --counter;
-       |    }
-     20|    while(counter > 0)
-       |
-      1|        return 0;
+      1|    return 0; 
        |}

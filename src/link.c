@@ -25,6 +25,17 @@
 #include        <unistd.h>
 #endif
 
+#if linux || __APPLE__
+    #define HAS_POSIX_SPAWN 1
+    #include        <spawn.h>
+    #if __APPLE__
+        #include <crt_externs.h>
+        #define environ (*(_NSGetEnviron()))
+    #endif
+#else
+    #define HAS_POSIX_SPAWN 0
+#endif
+
 #include        "root.h"
 
 #include        "mars.h"
@@ -47,7 +58,7 @@ void writeFilename(OutBuffer *buf, char *filename, size_t len)
     for (size_t i = 0; i < len; i++)
     {   char c = filename[i];
 
-        if (isalnum(c) || c == '_')
+        if (isalnum((unsigned char)c) || c == '_')
             continue;
 
         /* Need to quote
@@ -76,14 +87,13 @@ int runLINK()
 {
 #if _WIN32
     char *p;
-    int i;
     int status;
     OutBuffer cmdbuf;
 
     global.params.libfiles->push("user32");
     global.params.libfiles->push("kernel32");
 
-    for (i = 0; i < global.params.objfiles->dim; i++)
+    for (size_t i = 0; i < global.params.objfiles->dim; i++)
     {
         if (i)
             cmdbuf.writeByte('+');
@@ -136,7 +146,7 @@ int runLINK()
         cmdbuf.writestring("nul");
     cmdbuf.writeByte(',');
 
-    for (i = 0; i < global.params.libfiles->dim; i++)
+    for (size_t i = 0; i < global.params.libfiles->dim; i++)
     {
         if (i)
             cmdbuf.writeByte('+');
@@ -151,7 +161,7 @@ int runLINK()
 
     /* Eliminate unnecessary trailing commas    */
     while (1)
-    {   i = cmdbuf.offset;
+    {   size_t i = cmdbuf.offset;
         if (!i || cmdbuf.data[i - 1] != ',')
             break;
         cmdbuf.offset--;
@@ -181,7 +191,7 @@ int runLINK()
 #endif
 
     cmdbuf.writestring("/noi");
-    for (i = 0; i < global.params.linkswitches->dim; i++)
+    for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {
         cmdbuf.writestring(global.params.linkswitches->tdata()[i]);
     }
@@ -322,7 +332,7 @@ int runLINK()
         argv.push((char *)"--gc-sections");
     }
 
-    for (i = 0; i < global.params.linkswitches->dim; i++)
+    for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {   char *p = global.params.linkswitches->tdata()[i];
         if (!p || !p[0] || !(p[0] == '-' && p[1] == 'l'))
             // Don't need -Xlinker if switch starts with -l
@@ -338,7 +348,7 @@ int runLINK()
      *     to global.params.libfiles.
      *  4. standard libraries.
      */
-    for (i = 0; i < global.params.libfiles->dim; i++)
+    for (size_t i = 0; i < global.params.libfiles->dim; i++)
     {   char *p = global.params.libfiles->tdata()[i];
         size_t plen = strlen(p);
         if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
@@ -371,13 +381,21 @@ int runLINK()
     if (!global.params.quiet || global.params.verbose)
     {
         // Print it
-        for (i = 0; i < argv.dim; i++)
+        for (size_t i = 0; i < argv.dim; i++)
             printf("%s ", argv.tdata()[i]);
         printf("\n");
         fflush(stdout);
     }
 
     argv.push(NULL);
+#if HAS_POSIX_SPAWN
+    int spawn_err = posix_spawnp(&childpid, argv.tdata()[0], NULL, NULL, argv.tdata(), environ);
+    if (spawn_err != 0)
+    {
+        perror(argv.tdata()[0]);
+        return -1;
+    }
+#else
     childpid = fork();
     if (childpid == 0)
     {
@@ -385,6 +403,12 @@ int runLINK()
         perror(argv.tdata()[0]);           // failed to execute
         return -1;
     }
+    else if (childpid == -1)
+    {
+        perror("Unable to fork");
+        return -1;
+    }
+#endif
 
     waitpid(childpid, &status, 0);
 
@@ -430,7 +454,6 @@ void deleteExeFile()
 int executecmd(char *cmd, char *args, int useenv)
 {
     int status;
-    char *buff;
     size_t len;
 
     if (!global.params.quiet || global.params.verbose)

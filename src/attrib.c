@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -604,9 +604,9 @@ void ProtDeclaration::importAll(Scope *sc)
        newsc->explicitProtection = 1;
     }
 
-    for (int i = 0; i < decl->dim; i++)
+    for (size_t i = 0; i < decl->dim; i++)
     {
-       Dsymbol *s = decl->tdata()[i];
+       Dsymbol *s = (*decl)[i];
        s->importAll(newsc);
     }
 
@@ -900,11 +900,12 @@ void PragmaDeclaration::setScope(Scope *sc)
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
             args->tdata()[0] = e;
-            if (e->op != TOKstring)
+            StringExp* se = e->toString();
+            if (!se)
             {
                 error("string expected, not '%s'", e->toChars());
             }
-            PragmaScope* pragma = new PragmaScope(this, sc->parent, static_cast<StringExp*>(e));
+            PragmaScope* pragma = new PragmaScope(this, sc->parent, se);
 
             assert(sc);
             pragma->setScope(sc);
@@ -941,11 +942,11 @@ void PragmaDeclaration::semantic(Scope *sc)
             args->tdata()[0] = e;
             if (e->op == TOKerror)
                 goto Lnodecl;
-            if (e->op != TOKstring)
+            StringExp *se = e->toString();
+            if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
             {
-                StringExp *se = (StringExp *)e;
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
@@ -979,8 +980,9 @@ void PragmaDeclaration::semantic(Scope *sc)
 
             e = args->tdata()[1];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue);
-            if (e->op == TOKstring && ((StringExp *)e)->sz == 1)
+            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->toString();
+            if (e && ((StringExp *)e)->sz == 1)
                 s = ((StringExp *)e);
             else
                 error("second argument of GNU_asm must be a char string");
@@ -1419,12 +1421,12 @@ void CompileDeclaration::compileIt(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
-    if (exp->op != TOKstring)
+    StringExp *se = exp->toString();
+    if (!se)
     {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
     }
     else
     {
-        StringExp *se = (StringExp *)exp;
         se = se->toUTF8(sc);
         Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
         p.loc = loc;

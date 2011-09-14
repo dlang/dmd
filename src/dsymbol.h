@@ -163,7 +163,8 @@ struct Dsymbol : Object
     virtual int isforwardRef();
     virtual void defineRef(Dsymbol *s);
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
-    virtual ClassDeclaration *isClassMember();  // are we a member of a class?
+    AggregateDeclaration *isAggregateMember();  // are we a member of an aggregate?
+    ClassDeclaration *isClassMember();          // are we a member of a class?
     virtual int isExport();                     // is Dsymbol exported?
     virtual int isImportedSymbol();             // is Dsymbol imported?
     virtual int isDeprecated();                 // is Dsymbol deprecated?

@@ -1,20 +1,22 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import std.c.stdio;
-import std.random;
 
+/* This isn't a very good test. If it 'fails' it just takes a very
+ * long time. The performance improved by a factor of five between
+ * 2.042 and 2.043.
+ */
 void main()
 {
-    rand_seed(1, 2);
     uint[uint][] aa;
     aa.length = 10000;
     for(int i = 0; i < 10_000_000; i++)
     {
-	size_t j = rand() % aa.length;
-	uint k = rand();
-	uint l = rand();
-	aa[j][k] = l;
+        size_t j = i % aa.length;
+        uint k = i;
+        uint l = i;
+        aa[j][k] = l;
     }
     printf("finished\n");
     aa[] = null;

@@ -50,6 +50,7 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
+void ObjectNotFound(Identifier *id);
 
 
 #define LOGDOTEXP       0       // log ::dotExp()
@@ -167,12 +168,10 @@ char Type::needThisPrefix()
 }
 
 void Type::init()
-{   int i;
-    int j;
-
+{
     Lexer::initKeywords();
 
-    for (i = 0; i < TMAX; i++)
+    for (size_t i = 0; i < TMAX; i++)
         sizeTy[i] = sizeof(TypeBasic);
     sizeTy[Tsarray] = sizeof(TypeSArray);
     sizeTy[Tarray] = sizeof(TypeDArray);
@@ -239,9 +238,9 @@ void Type::init()
     mangleChar[Tslice] = '@';
     mangleChar[Treturn] = '@';
 
-    for (i = 0; i < TMAX; i++)
+    for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
-            fprintf(stdmsg, "ty = %d\n", i);
+            fprintf(stdmsg, "ty = %zd\n", i);
         assert(mangleChar[i]);
     }
 
@@ -254,7 +253,7 @@ void Type::init()
           Tbool,
           Tascii, Twchar, Tdchar };
 
-    for (i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
+    for (size_t i = 0; i < sizeof(basetab) / sizeof(basetab[0]); i++)
     {   Type *t = new TypeBasic(basetab[i]);
         t = t->merge();
         basic[basetab[i]] = t;
@@ -318,13 +317,10 @@ Type *Type::semantic(Loc loc, Scope *sc)
 Type *Type::trySemantic(Loc loc, Scope *sc)
 {
     //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
-    unsigned errors = global.errors;
-    global.gag++;                       // suppress printing of error messages
+    unsigned errors = global.startGagging();
     Type *t = semantic(loc, sc);
-    global.gag--;
-    if (errors != global.errors)        // if any errors happened
+    if (global.endGagging(errors))        // if any errors happened
     {
-        global.errors = errors;
         t = NULL;
     }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
@@ -335,7 +331,7 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
  * Determine if converting 'this' to 'to' is an identity operation,
  * a conversion to const operation, or the types aren't the same.
  * Returns:
- *      MATCHequal      'this' == 'to'
+ *      MATCHexact      'this' == 'to'
  *      MATCHconst      'to' is const
  *      MATCHnomatch    conversion to mutable or invariant
  */
@@ -862,7 +858,7 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-    if (tn && ty != Tfunction && ty != Tdelegate)
+    if (tn && ty != Tfunction && tn->ty != Tfunction)
     {   // Verify transitivity
         switch (mod)
         {
@@ -1852,17 +1848,6 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
         ident != Id::stringof &&
         ident != Id::offsetof)
     {
-        /* See if we should forward to the alias this.
-         */
-        if (sym->aliasthis)
-        {   /* Rewrite e.ident as:
-             *  e.aliasthis.ident
-             */
-            e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
-            e = new DotIdExp(e->loc, e, ident);
-            return e->semantic(sc);
-        }
-
         /* Look for overloaded opDot() to see if we should forward request
          * to it.
          */
@@ -1898,6 +1883,17 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             ((DotTemplateInstanceExp *)e)->ti->tempdecl = td;
             return e;
             //return e->semantic(sc);
+        }
+
+        /* See if we should forward to the alias this.
+         */
+        if (sym->aliasthis)
+        {   /* Rewrite e.ident as:
+             *  e.aliasthis.ident
+             */
+            e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
+            e = new DotIdExp(e->loc, e, ident);
+            return e->semantic(sc);
         }
     }
 
@@ -2152,7 +2148,7 @@ Type *TypeNext::makeConst()
         return cto;
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst())
     {   if (next->isShared())
@@ -2176,7 +2172,7 @@ Type *TypeNext::makeInvariant()
         return ito;
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
     {   t->next = next->invariantOf();
@@ -2196,7 +2192,7 @@ Type *TypeNext::makeShared()
         return sto;
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
@@ -2221,7 +2217,7 @@ Type *TypeNext::makeSharedConst()
         return scto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -2243,7 +2239,7 @@ Type *TypeNext::makeWild()
         return wto;
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst() && !next->isWild())
     {
@@ -2268,7 +2264,7 @@ Type *TypeNext::makeSharedWild()
         return swto;
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
-    if (ty != Tfunction && ty != Tdelegate &&
+    if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -2286,7 +2282,7 @@ Type *TypeNext::makeMutable()
 {
     //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
     TypeNext *t = (TypeNext *)Type::makeMutable();
-    if ((ty != Tfunction && ty != Tdelegate &&
+    if ((ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         next->isWild()) || ty == Tsarray)
     {
@@ -2764,7 +2760,6 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
         }
     }
 
-Ldefault:
     return Type::getProperty(loc, ident);
 
 Livalue:
@@ -3972,6 +3967,10 @@ StructDeclaration *TypeAArray::getImpl()
 
         // Create AssociativeArray!(index, next)
 #if 1
+        if (! Type::associativearray)
+        {
+            ObjectNotFound(Id::AssociativeArray);
+        }
         TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
 #else
         //Expression *e = new IdentifierExp(loc, Id::object);
@@ -4097,11 +4096,18 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     else
 #endif
+    if (ident != Id::__sizeof &&
+        ident != Id::__xalignof &&
+        ident != Id::init &&
+        ident != Id::mangleof &&
+        ident != Id::stringof &&
+        ident != Id::offsetof)
     {
         e->type = getImpl()->type;
         e = e->type->dotExp(sc, e, ident);
-        //e = Type::dotExp(sc, e, ident);
     }
+    else
+        e = Type::dotExp(sc, e, ident);
     return e;
 }
 
@@ -4255,14 +4261,35 @@ MATCH TypePointer::implicitConvTo(Type *to)
 
     if (equals(to))
         return MATCHexact;
-    if (to->ty == Tpointer)
+    if (next->ty == Tfunction)
+    {
+        if (to->ty == Tpointer)
+        {
+            TypePointer *tp = (TypePointer*)to;
+            if (tp->next->ty == Tfunction)
+            {
+                if (next->equals(tp->next))
+                    return MATCHconst;
+
+                if (next->covariant(tp->next) == 1)
+                    return MATCHconvert;
+            }
+            else if (tp->next->ty == Tvoid)
+            {
+                // Allow conversions to void*
+                return MATCHconvert;
+            }
+        }
+        return MATCHnomatch;
+    }
+    else if (to->ty == Tpointer)
     {   TypePointer *tp = (TypePointer *)to;
         assert(tp->next);
 
         if (!MODimplicitConv(next->mod, tp->next->mod))
             return MATCHnomatch;        // not const-compatible
 
-        /* Alloc conversion to void[]
+        /* Alloc conversion to void*
          */
         if (next->ty != Tvoid && tp->next->ty == Tvoid)
         {
@@ -4284,6 +4311,18 @@ MATCH TypePointer::implicitConvTo(Type *to)
             return MATCHconvert;
     }
     return MATCHnomatch;
+}
+
+MATCH TypePointer::constConv(Type *to)
+{
+    if (next->ty == Tfunction)
+    {
+        if (to->nextOf() && next->equals(((TypeNext*)to)->next))
+            return Type::constConv(to);
+        else
+            return MATCHnomatch;
+    }
+    return TypeNext::constConv(to);
 }
 
 int TypePointer::isscalar()
@@ -4707,7 +4746,7 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     }
     if (td)
     {   buf->writeByte('(');
-        for (int i = 0; i < td->origParameters->dim; i++)
+        for (size_t i = 0; i < td->origParameters->dim; i++)
         {
             TemplateParameter *tp = td->origParameters->tdata()[i];
             if (i)
@@ -5010,10 +5049,8 @@ void TypeFunction::purityLevel()
             {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
                 if (fparam->storageClass & STClazy)
                 {
-                    /* We could possibly allow this by doing further analysis on the
-                     * lazy parameter to see if it's pure.
-                     */
-                    error(0, "cannot have lazy parameters to a pure function");
+                    tf->purity = PUREweak;
+                    break;
                 }
                 if (fparam->storageClass & STCout)
                 {
@@ -5476,7 +5513,7 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
 {
     //printf("TypeQualified::syntaxCopyHelper(%s) %s\n", t->toChars(), toChars());
     idents.setDim(t->idents.dim);
-    for (int i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {
         Identifier *id = t->idents.tdata()[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
@@ -5498,9 +5535,7 @@ void TypeQualified::addIdent(Identifier *ident)
 
 void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 {
-    int i;
-
-    for (i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {   Identifier *id = idents.tdata()[i];
 
         buf->writeByte('.');
@@ -5534,9 +5569,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         Expression **pe, Type **pt, Dsymbol **ps)
 {
     VarDeclaration *v;
-    FuncDeclaration *fd;
     EnumMember *em;
-    TupleDeclaration *td;
     Expression *e;
 
 #if 0
@@ -5553,7 +5586,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         s->checkDeprecated(loc, sc);            // check for deprecated aliases
         s = s->toAlias();
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-        for (int i = 0; i < idents.dim; i++)
+        for (size_t i = 0; i < idents.dim; i++)
         {
             Identifier *id = idents.tdata()[i];
             Dsymbol *sm = s->searchX(loc, sc, id);
@@ -5573,7 +5606,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         goto Lerror;
                     goto L3;
                 }
-                else if (v && id == Id::stringof)
+                else if (v && (id == Id::stringof || id == Id::offsetof))
                 {
                     e = new DsymbolExp(loc, s, 0);
                     do
@@ -5775,6 +5808,29 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     Dsymbol *scopesym;
 
     //printf("TypeIdentifier::resolve(sc = %p, idents = '%s')\n", sc, toChars());
+
+    if ((ident->equals(Id::super) || ident->equals(Id::This)) && !hasThis(sc))
+    {
+        AggregateDeclaration *ad = sc->getStructClassScope();
+        if (ad)
+        {
+            ClassDeclaration *cd = ad->isClassDeclaration();
+            if (cd)
+            {
+                if (ident->equals(Id::This))
+                    ident = cd->ident;
+                else if (cd->baseClass && ident->equals(Id::super))
+                    ident = cd->baseClass->ident;
+            }
+            else
+            {
+                StructDeclaration *sd = ad->isStructDeclaration();
+                if (sd && ident->equals(Id::This))
+                    ident = sd->ident;
+            }
+        }
+    }
+
     Dsymbol *s = sc->search(loc, ident, &scopesym);
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
     if (*pt)
@@ -5797,7 +5853,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     Dsymbol *s = sc->search(loc, ident, &scopesym);
     if (s)
     {
-        for (int i = 0; i < idents.dim; i++)
+        for (size_t i = 0; i < idents.dim; i++)
         {
             Identifier *id = idents.tdata()[i];
             s = s->searchX(loc, sc, id);
@@ -5857,7 +5913,7 @@ Type *TypeIdentifier::reliesOnTident()
 Expression *TypeIdentifier::toExpression()
 {
     Expression *e = new IdentifierExp(loc, ident);
-    for (int i = 0; i < idents.dim; i++)
+    for (size_t i = 0; i < idents.dim; i++)
     {
         Identifier *id = idents.tdata()[i];
         e = new DotIdExp(loc, e, id);
@@ -5934,15 +5990,12 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
 
     if (sc->parameterSpecialization)
     {
-        unsigned errors = global.errors;
-        global.gag++;
+        unsigned errors = global.startGagging();
 
         resolve(loc, sc, &e, &t, &s);
 
-        global.gag--;
-        if (errors != global.errors)
-        {   if (global.gag == 0)
-                global.errors = errors;
+        if (global.endGagging(errors))
+        {
             return this;
         }
     }
@@ -5967,17 +6020,12 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
 
     if (sc->parameterSpecialization)
     {
-        unsigned errors = global.errors;
-        global.gag++;
+        unsigned errors = global.startGagging();
 
         resolve(loc, sc, &e, &t, &s);
 
-        global.gag--;
-        if (errors != global.errors)
-        {   if (global.gag == 0)
-                global.errors = errors;
+        if (global.endGagging(errors))
             return NULL;
-        }
     }
     else
         resolve(loc, sc, &e, &t, &s);
@@ -6029,7 +6077,7 @@ void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Type *TypeTypeof::semantic(Loc loc, Scope *sc)
-{   Expression *e;
+{
     Type *t;
 
     //printf("TypeTypeof::semantic() %s\n", toChars());
@@ -6849,8 +6897,7 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
-{   unsigned offset;
-
+{
     VarDeclaration *v;
     Dsymbol *s;
     DotVarExp *de;
@@ -7200,13 +7247,10 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         /* If there is an error instantiating AssociativeArray!(), it shouldn't
          * be reported -- it just means implicit conversion is impossible.
          */
-        ++global.gag;
-        int errs = global.errors;
+        int errs = global.startGagging();
         to = ((TypeAArray*)to)->getImpl()->type;
-        --global.gag;
-        if (errs != global.errors)
+        if (global.endGagging(errs))
         {
-            global.errors = errs;
             return MATCHnomatch;
         }
     }
@@ -7221,7 +7265,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
             {   /* Check all the fields. If they can all be converted,
                  * allow the conversion.
                  */
-                for (int i = 0; i < sym->fields.dim; i++)
+                for (size_t i = 0; i < sym->fields.dim; i++)
                 {   Dsymbol *s = sym->fields.tdata()[i];
                     VarDeclaration *v = s->isVarDeclaration();
                     assert(v && v->storage_class & STCfield);
@@ -7320,9 +7364,7 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
-{   unsigned offset;
-
-    Expression *b;
+{
     VarDeclaration *v;
     Dsymbol *s;
 
@@ -8065,7 +8107,7 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
     {   OutBuffer argbuf;
         HdrGenState hgs;
 
-        for (int i = 0; i < args->dim; i++)
+        for (size_t i = 0; i < args->dim; i++)
         {   if (i)
                 buf->writeByte(',');
             Parameter *arg = args->tdata()[i];
@@ -8089,10 +8131,10 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
 {
     buf->writeByte('(');
     if (arguments)
-    {   int i;
+    {
         OutBuffer argbuf;
 
-        for (i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < arguments->dim; i++)
         {
             if (i)
                 buf->writestring(", ");
@@ -8136,7 +8178,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
         }
         if (varargs)
         {
-            if (i && varargs == 1)
+            if (arguments->dim && varargs == 1)
                 buf->writeByte(',');
             buf->writestring("...");
         }

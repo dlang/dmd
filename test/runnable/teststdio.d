@@ -27,6 +27,6 @@ void main()
 	    default:	assert(0);
 	}
 	i++;
-    } while (!feof(fp))
+    } while (!feof(fp));
     //fclose(fp);
 }

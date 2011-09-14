@@ -82,9 +82,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         TemplateInstance::semanticTiargs(loc, sc, args, 1);
     }
     size_t dim = args ? args->dim : 0;
-    Object *o;
     Declaration *d;
-    FuncDeclaration *f;
 
 #define ISTYPE(cond) \
         for (size_t i = 0; i < dim; i++)        \
@@ -150,19 +148,23 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
     else if (ident == Id::isAbstractFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isAbstract())
     }
     else if (ident == Id::isVirtualFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
     }
     else if (ident == Id::isFinalFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
     }
 #if DMDV2
     else if (ident == Id::isStaticFunction)
     {
+        FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
     }
     else if (ident == Id::isRef)
@@ -227,11 +229,11 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
         }
         e = e->optimize(WANTvalue | WANTinterpret);
-        if (e->op != TOKstring)
+        StringExp *se = e->toString();
+        if (!se || se->length() == 0)
         {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
             goto Lfalse;
         }
-        StringExp *se = (StringExp *)e;
         se = se->toUTF8(sc);
         if (se->sz != 1)
         {   error("string must be chars");
@@ -261,7 +263,10 @@ Expression *TraitsExp::semantic(Scope *sc)
             e = e->trySemantic(sc);
             if (!e)
             {   if (global.gag)
+                {
                     global.errors++;
+                    global.gaggedErrors++;
+                }
                 goto Lfalse;
             }
             else
@@ -341,10 +346,12 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         Expressions *exps = new Expressions;
         while (1)
-        {   size_t dim = ScopeDsymbol::dim(sd->members);
-            for (size_t i = 0; i < dim; i++)
+        {   size_t sddim = ScopeDsymbol::dim(sd->members);
+            for (size_t i = 0; i < sddim; i++)
             {
                 Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
+                if (!sm)
+                    break;
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
@@ -396,8 +403,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         {   Object *o = args->tdata()[i];
             Expression *e;
 
-            unsigned errors = global.errors;
-            global.gag++;
+            unsigned errors = global.startGagging();
 
             Type *t = isType(o);
             if (t)
@@ -418,10 +424,8 @@ Expression *TraitsExp::semantic(Scope *sc)
                 }
             }
 
-            global.gag--;
-            if (errors != global.errors)
+            if (global.endGagging(errors))
             {
-                global.errors = errors;
                 goto Lfalse;
             }
         }
@@ -481,10 +485,6 @@ Expression *TraitsExp::semantic(Scope *sc)
     }
 
     return NULL;
-
-Lnottype:
-    error("%s is not a type", o->toChars());
-    goto Lfalse;
 
 Ldimerror:
     error("wrong number of arguments %d", dim);

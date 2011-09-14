@@ -362,7 +362,7 @@ int main(string[] args)
             writeln("Test failed.  The logged output:");
             if (std.file.exists(output_file))
             {
-                writeln(std.file.read(output_file));
+                writeln(cast(string)std.file.read(output_file));
                 std.file.remove(output_file);
             }
             return 1;

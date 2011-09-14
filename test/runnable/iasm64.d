@@ -4766,6 +4766,32 @@ L1:     pop     RAX;
     }
 }
 
+void test2941()
+{
+    ubyte *p;
+    static ubyte data[] =
+    [
+        0x9B, 0xDF, 0xE0,	// fstsw AX;
+    ];
+    int i;
+
+    asm
+    {
+        call	L1			;
+
+        fstsw AX;
+
+L1:
+        pop	RBX			;
+        mov	p[RBP],RBX		;
+    }
+    for (i = 0; i < data.length; i++)
+    {
+        assert(p[i] == data[i]);
+    }
+}
+
+/****************************************************/
 /****************************************************/
 
 int main()
@@ -4830,6 +4856,7 @@ int main()
     test57();
     test58();
     test59();
+    test2941();
 
     printf("Success\n");
     return 0;

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -104,7 +104,6 @@ int StructDeclaration::needOpEquals()
                 goto Lneed;
         }
     }
-Ldontneed:
     if (X) printf("\tdontneed\n");
     return 0;
 
@@ -185,9 +184,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             /* Instead of running the destructor on s, run it
              * on tmp. This avoids needing to copy tmp back in to s.
              */
-            Expression *ec = new DotVarExp(0, new VarExp(0, tmp), dtor, 0);
-            ec = new CallExp(0, ec);
-            e = Expression::combine(e, ec);
+            Expression *ec2 = new DotVarExp(0, new VarExp(0, tmp), dtor, 0);
+            ec2 = new CallExp(0, ec2);
+            e = Expression::combine(e, ec2);
         }
     }
     else
@@ -396,7 +395,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        size_t dim = (tv->ty == Tsarray ? 1 : 0);
+        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -508,7 +507,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        size_t dim = (tv->ty == Tsarray ? 1 : 0);
+        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();

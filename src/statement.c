@@ -403,11 +403,11 @@ Statements *CompileStatement::flatten(Scope *sc)
     exp = exp->optimize(WANTvalue | WANTinterpret);
     if (exp->op == TOKerror)
         return NULL;
-    if (exp->op != TOKstring)
+    StringExp *se = exp->toString();
+    if (!se)
     {   error("argument to mixin must be a string, not (%s)", exp->toChars());
         return NULL;
     }
-    StringExp *se = (StringExp *)exp;
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
@@ -530,14 +530,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
                          *      catch (Object __o)
                          *      { sexception; throw __o; }
                          */
-                        Statement *body;
                         Statements *a = new Statements();
-
-                        for (int j = i + 1; j < statements->dim; j++)
+                        for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push(statements->tdata()[j]);
                         }
-                        body = new CompoundStatement(0, a);
+                        Statement *body = new CompoundStatement(0, a);
                         body = new ScopeStatement(0, body);
 
                         Identifier *id = Lexer::uniqueId("__o");
@@ -571,14 +569,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
                          * As:
                          *      s; try { s1; s2; } finally { sfinally; }
                          */
-                        Statement *body;
                         Statements *a = new Statements();
-
-                        for (int j = i + 1; j < statements->dim; j++)
+                        for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push(statements->tdata()[j]);
                         }
-                        body = new CompoundStatement(0, a);
+                        Statement *body = new CompoundStatement(0, a);
                         s = new TryFinallyStatement(0, body, sfinally);
                         s = s->semantic(sc);
                         statements->setDim(i + 1);
@@ -606,7 +602,7 @@ ReturnStatement *CompoundStatement::isReturnStatement()
 {
     ReturnStatement *rs = NULL;
 
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s)
         {
@@ -636,7 +632,7 @@ Statement *CompoundStatement::last()
 
 void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s)
             s->toCBuffer(buf, hgs);
@@ -645,7 +641,7 @@ void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 int CompoundStatement::usesEH()
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s && s->usesEH())
             return TRUE;
@@ -702,7 +698,7 @@ int CompoundStatement::comeFrom()
 {   int comefrom = FALSE;
 
     //printf("CompoundStatement::comeFrom()\n");
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
 
         if (!s)
@@ -715,7 +711,7 @@ int CompoundStatement::comeFrom()
 
 int CompoundStatement::isEmpty()
 {
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         if (s && !s->isEmpty())
             return FALSE;
@@ -749,7 +745,7 @@ Statement *CompoundDeclarationStatement::syntaxCopy()
 void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     int nwritten = 0;
-    for (int i = 0; i < statements->dim; i++)
+    for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = statements->tdata()[i];
         ExpStatement *ds;
         if (s &&
@@ -1198,7 +1194,7 @@ void DoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         body->toCBuffer(buf, hgs);
     buf->writestring("while (");
     condition->toCBuffer(buf, hgs);
-    buf->writebyte(')');
+    buf->writestring(");");
 }
 
 /******************************** ForStatement ***************************/
@@ -1400,6 +1396,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (func->fes)
         func = func->fes->func;
 
+Lretry:
     aggr = aggr->semantic(sc);
     aggr = resolveProperties(sc, aggr);
     aggr = aggr->optimize(WANTvalue);
@@ -1418,6 +1415,25 @@ Statement *ForeachStatement::semantic(Scope *sc)
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
         error("cannot uniquely infer foreach argument types");
         return this;
+    }
+
+    Expression *prelude = NULL;
+    if (aggr->op == TOKcomma)
+    {
+        Expression **pe = &aggr;
+        while (((CommaExp *)(*pe))->e2->op == TOKcomma)
+            pe = &((CommaExp *)(*pe))->e2;
+        if (pe == &aggr)
+        {
+            prelude = ((CommaExp *)(*pe))->e1;
+            aggr = ((CommaExp *)(*pe))->e2;
+        }
+        else
+        {
+            prelude = aggr;
+            aggr = ((CommaExp *)(*pe))->e2;
+            *pe = ((CommaExp *)(*pe))->e1;
+        }
     }
 
     Type *tab = aggr->type->toBasetype();
@@ -1493,8 +1509,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     arg->type = e->type;
                     Initializer *ie = new ExpInitializer(0, e);
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-                    if (e->isConst() || e->op == TOKstring)
+                    if (e->isConst())
                         v->storage_class |= STCconst;
+                    if (e->op == TOKstring)
+                        v->storage_class |= STCmanifest;
                     var = v;
                 }
             }
@@ -1512,6 +1530,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
 
         s = new UnrolledLoopStatement(loc, statements);
+        if (prelude)
+            s = new CompoundStatement(loc,
+                    new ExpStatement(prelude->loc, prelude), s);
         s = s->semantic(sc);
         return s;
     }
@@ -1614,8 +1635,8 @@ Lagain:
 
             if (!key)
             {
-                Identifier *id = Lexer::uniqueId("__key");
-                key = new VarDeclaration(loc, Type::tsize_t, id, NULL);
+                Identifier *idkey = Lexer::uniqueId("__key");
+                key = new VarDeclaration(loc, Type::tsize_t, idkey, NULL);
             }
             if (op == TOKforeach_reverse)
                 key->init = new ExpInitializer(loc, tmp_length);
@@ -1646,8 +1667,11 @@ Lagain:
 
             body = new CompoundStatement(loc, ds, body);
 
-            ForStatement *fs = new ForStatement(loc, forinit, cond, increment, body);
-            s = fs->semantic(sc);
+            s = new ForStatement(loc, forinit, cond, increment, body);
+            if (prelude)
+                s = new CompoundStatement(loc,
+                        new ExpStatement(prelude->loc, prelude), s);
+            s = s->semantic(sc);
             break;
         }
 #else
@@ -1710,9 +1734,6 @@ Lagain:
 #if DMDV2
             /* Prefer using opApply, if it exists
              */
-            if (dim != 1)       // only one argument allowed with ranges
-                goto Lapply;
-
             sapply = search_function((AggregateDeclaration *)tab->toDsymbol(sc), idapply);
             if (sapply)
                 goto Lapply;
@@ -1741,7 +1762,24 @@ Lagain:
             }
             Dsymbol *shead = search_function(ad, idhead);
             if (!shead)
+            {
+                if (ad->aliasthis)
+                {
+                    Identifier *id = Lexer::uniqueId("__tup");
+                    ExpInitializer *ei = new ExpInitializer(aggr->loc, aggr);
+                    VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
+                    vd->storage_class |= STCctfe | STCref | STCforeach;
+
+                    aggr = new CommaExp(aggr->loc,
+                        new DeclarationExp(loc, vd),
+                        new DotIdExp(aggr->loc,
+                            new VarExp(loc, vd),
+                            ad->aliasthis->ident));
+
+                    goto Lretry;
+                }
                 goto Lapply;
+            }
 
             /* Generate a temporary __r and initialize it with the aggregate.
              */
@@ -1751,10 +1789,7 @@ Lagain:
             if (!rinit)                 // if application of [] failed
                 rinit = aggr;
             VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, rinit));
-//          r->semantic(sc);
-//printf("r: %s, init: %s\n", r->toChars(), r->init->toChars());
             Statement *init = new ExpStatement(loc, r);
-//printf("init: %s\n", init->toChars());
 
             // !__r.empty
             Expression *e = new VarExp(loc, r);
@@ -1770,25 +1805,83 @@ Lagain:
              */
             e = new VarExp(loc, r);
             Expression *einit = new DotIdExp(loc, e, idhead);
-//          einit = einit->semantic(sc);
-            Parameter *arg = arguments->tdata()[0];
-            VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
-            ve->storage_class |= STCforeach;
-            ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+            Statement *makeargs, *forbody;
+            if (dim == 1)
+            {
+                Parameter *arg = arguments->tdata()[0];
+                VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
+                ve->storage_class |= STCforeach;
+                ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
 
-            DeclarationExp *de = new DeclarationExp(loc, ve);
+                DeclarationExp *de = new DeclarationExp(loc, ve);
+                makeargs = new ExpStatement(loc, de);
+            }
+            else
+            {
+                Identifier *id = Lexer::uniqueId("__front");
+                ExpInitializer *ei = new ExpInitializer(loc, einit);
+                VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
+                vd->storage_class |= STCctfe | STCref | STCforeach;
 
-            Statement *body = new CompoundStatement(loc,
-                new ExpStatement(loc, de), this->body);
+                Expression *de = new DeclarationExp(loc, vd);
+                makeargs = new ExpStatement(loc, de);
 
-            s = new ForStatement(loc, init, condition, increment, body);
+                Expression *ve = new VarExp(loc, vd);
+                ve->type = shead->isDeclaration()->type;
+                if (ve->type->toBasetype()->ty == Tfunction)
+                    ve->type = ve->type->toBasetype()->nextOf();
+                if (!ve->type || ve->type->ty == Terror)
+                    goto Lrangeerr;
+
+                Expressions *exps = new Expressions();
+                exps->push(ve);
+                int pos = 0;
+                while (exps->dim < dim)
+                {
+                    pos = expandAliasThisTuples(exps, pos);
+                    if (pos == -1)
+                        break;
+                }
+                if (exps->dim != dim)
+                    goto Lrangeerr;
+
+                for (size_t i = 0; i < dim; i++)
+                {
+                    Parameter *arg = arguments->tdata()[i];
+                    Expression *exp = exps->tdata()[i];
+                #if 0
+                    printf("[%d] arg = %s %s, exp = %s %s\n", i,
+                            arg->type ? arg->type->toChars() : "?", arg->ident->toChars(),
+                            exp->type->toChars(), exp->toChars());
+                #endif
+                    if (arg->type && !exp->implicitConvTo(arg->type))
+                        goto Lrangeerr;
+                    if (!arg->type)
+                        arg->type = exp->type;
+
+                    VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, exp));
+                    var->storage_class |= STCctfe | STCref | STCforeach;
+                    DeclarationExp *de = new DeclarationExp(loc, var);
+                    makeargs = new CompoundStatement(loc, makeargs, new ExpStatement(loc, de));
+                }
+
+            }
+
+            forbody = new CompoundStatement(loc,
+                makeargs, this->body);
+
+            s = new ForStatement(loc, init, condition, increment, forbody);
 #if 0
             printf("init: %s\n", init->toChars());
             printf("condition: %s\n", condition->toChars());
             printf("increment: %s\n", increment->toChars());
-            printf("body: %s\n", body->toChars());
+            printf("body: %s\n", forbody->toChars());
 #endif
             s = s->semantic(sc);
+            break;
+
+        Lrangeerr:
+            error("cannot infer argument types");
             break;
         }
 #endif
@@ -2001,7 +2094,7 @@ Lagain:
                 a->push(s);
 
                 // cases 2...
-                for (int i = 0; i < cases->dim; i++)
+                for (size_t i = 0; i < cases->dim; i++)
                 {
                     s = cases->tdata()[i];
                     s = new CaseStatement(0, new IntegerExp(i + 2), s);
@@ -2010,8 +2103,11 @@ Lagain:
 
                 s = new CompoundStatement(loc, a);
                 s = new SwitchStatement(loc, e, s, FALSE);
-                s = s->semantic(sc);
             }
+            if (prelude)
+                s = new CompoundStatement(loc,
+                        new ExpStatement(prelude->loc, prelude), s);
+            s = s->semantic(sc);
             break;
         }
         case Terror:
@@ -2083,7 +2179,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(Token::toChars(op));
     buf->writestring(" (");
-    for (int i = 0; i < arguments->dim; i++)
+    for (size_t i = 0; i < arguments->dim; i++)
     {
         Parameter *a = arguments->tdata()[i];
         if (i)
@@ -2138,7 +2234,6 @@ Statement *ForeachRangeStatement::syntaxCopy()
 Statement *ForeachRangeStatement::semantic(Scope *sc)
 {
     //printf("ForeachRangeStatement::semantic() %p\n", this);
-    ScopeDsymbol *sym;
     Statement *s = this;
 
     lwr = lwr->semantic(sc);
@@ -2645,11 +2740,11 @@ Statement *PragmaStatement::semantic(Scope *sc)
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
             args->tdata()[0] = e;
-            if (e->op != TOKstring)
+            StringExp *se = e->toString();
+            if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
             else if (global.params.verbose)
             {
-                StringExp *se = (StringExp *)e;
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
@@ -2823,7 +2918,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     sc->noctor--;
 
     // Resolve any goto case's with exp
-    for (int i = 0; i < gotoCases.dim; i++)
+    for (size_t i = 0; i < gotoCases.dim; i++)
     {
         GotoCaseStatement *gcs = gotoCases.tdata()[i];
 
@@ -2837,7 +2932,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         {
             if (!scx->sw)
                 continue;
-            for (int j = 0; j < scx->sw->cases->dim; j++)
+            for (size_t j = 0; j < scx->sw->cases->dim; j++)
             {
                 CaseStatement *cs = scx->sw->cases->tdata()[j];
 
@@ -3020,7 +3115,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         }
 
     L1:
-        for (int i = 0; i < sw->cases->dim; i++)
+        for (size_t i = 0; i < sw->cases->dim; i++)
         {
             CaseStatement *cs = sw->cases->tdata()[i];
 
@@ -3034,7 +3129,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         sw->cases->push(this);
 
         // Resolve any goto case's with no exp to this case statement
-        for (int i = 0; i < sw->gotoCases.dim; i++)
+        for (size_t i = 0; i < sw->gotoCases.dim; i++)
         {
             GotoCaseStatement *gcs = sw->gotoCases.tdata()[i];
 
@@ -3486,13 +3581,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
                          * (but first ensure it doesn't fail the "check for
                          * escaping reference" test)
                          */
-                        unsigned errors = global.errors;
-                        global.gag++;
+                        unsigned errors = global.startGagging();
                         exp->checkEscapeRef();
-                        global.gag--;
-                        if (errors != global.errors)
+                        if (global.endGagging(errors))
                         {   tf->isref = FALSE;  // return by value
-                            global.errors = errors;
                         }
                     }
                     else
@@ -3508,6 +3600,13 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
+            if (fd->isPureBypassingInference() == PUREstrong &&
+                !exp->type->implicitConvTo(tret) &&
+                exp->type->invariantOf()->implicitConvTo(tret))
+            {
+                exp = exp->castTo(sc, exp->type->invariantOf());
+            }
+
             exp = exp->implicitCastTo(sc, tret);
             if (!((TypeFunction *)fd->type)->isref)
                 exp = exp->optimize(WANTvalue);
@@ -4154,7 +4253,7 @@ Statement *TryCatchStatement::syntaxCopy()
 {
     Catches *a = new Catches();
     a->setDim(catches->dim);
-    for (int i = 0; i < a->dim; i++)
+    for (size_t i = 0; i < a->dim; i++)
     {   Catch *c;
 
         c = catches->tdata()[i];
@@ -4579,7 +4678,7 @@ Statements *VolatileStatement::flatten(Scope *sc)
 
     a = statement ? statement->flatten(sc) : NULL;
     if (a)
-    {   for (int i = 0; i < a->dim; i++)
+    {   for (size_t i = 0; i < a->dim; i++)
         {   Statement *s = a->tdata()[i];
 
             s = new VolatileStatement(loc, s);
@@ -4899,7 +4998,7 @@ Statement *ImportStatement::syntaxCopy()
 {
     Dsymbols *m = new Dsymbols();
     m->setDim(imports->dim);
-    for (int i = 0; i < imports->dim; i++)
+    for (size_t i = 0; i < imports->dim; i++)
     {   Dsymbol *s = imports->tdata()[i];
         m->tdata()[i] = s->syntaxCopy(NULL);
     }
@@ -4908,7 +5007,7 @@ Statement *ImportStatement::syntaxCopy()
 
 Statement *ImportStatement::semantic(Scope *sc)
 {
-    for (int i = 0; i < imports->dim; i++)
+    for (size_t i = 0; i < imports->dim; i++)
     {   Dsymbol *s = imports->tdata()[i];
         s->semantic(sc);
         sc->insert(s);
@@ -4928,7 +5027,7 @@ int ImportStatement::isEmpty()
 
 void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    for (int i = 0; i < imports->dim; i++)
+    for (size_t i = 0; i < imports->dim; i++)
     {   Dsymbol *s = imports->tdata()[i];
         s->toCBuffer(buf, hgs);
     }

@@ -46,6 +46,7 @@ struct InterState;
 struct Symbol;          // back end symbol
 struct OverloadSet;
 struct Initializer;
+struct StringExp;
 
 enum TOK;
 
@@ -69,11 +70,15 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void expandTuples(Expressions *exps);
+TupleDeclaration *isAliasThisTuple(Expression *e);
+int expandAliasThisTuples(Expressions *exps, int starti = 0);
 FuncDeclaration *hasThis(Scope *sc);
 Expression *fromConstInitializer(int result, Expression *e);
 int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 void valueNoDtor(Expression *e);
+void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
+
 
 void printExpressionsToStdmsg(Expressions *args, Scope *sc);
 
@@ -118,6 +123,7 @@ struct Expression : Object
     virtual real_t toReal();
     virtual real_t toImaginary();
     virtual complex_t toComplex();
+    virtual StringExp *toString();
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toMangleBuffer(OutBuffer *buf);
     virtual int isLvalue();
@@ -343,6 +349,7 @@ struct NullExp : Expression
     Expression *semantic(Scope *sc);
     int isBool(int result);
     int isConst();
+    StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     MATCH implicitConvTo(Type *t);
@@ -369,6 +376,7 @@ struct StringExp : Expression
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     size_t length();
+    StringExp *toString();
     StringExp *toUTF8(Scope *sc);
     Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
@@ -422,6 +430,7 @@ struct ArrayLiteralExp : Expression
     int isBool(int result);
     elem *toElem(IRState *irs);
     int checkSideEffect(int flag);
+    StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     void scanForNestedRef(Scope *sc);
@@ -664,6 +673,7 @@ struct FuncExp : Expression
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
+    dt_t **toDt(dt_t **pdt);
 
     int inlineCost(InlineCostState *ics);
     //Expression *doInline(InlineDoState *ids);
@@ -937,6 +947,7 @@ struct DotTypeExp : UnaExp
 struct CallExp : UnaExp
 {
     Expressions *arguments;     // function arguments
+    FuncDeclaration *f;         // symbol to call
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);
@@ -956,6 +967,7 @@ struct CallExp : UnaExp
     Expression *toLvalue(Scope *sc, Expression *e);
     int canThrow(bool mustNotThrow);
     Expression *addDtorHook(Scope *sc);
+    MATCH implicitConvTo(Type *t);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -1282,6 +1294,8 @@ struct PowAssignExp : BinAssignExp
 {
     PowAssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
+    Expression *buildArrayLoop(Parameters *fparams);
 
     // For operator overloading
     Identifier *opId();
@@ -1393,6 +1407,8 @@ struct PowExp : BinExp
 {
     PowExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
+    Expression *buildArrayLoop(Parameters *fparams);
 
     // For operator overloading
     Identifier *opId();

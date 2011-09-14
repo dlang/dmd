@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1986-1995 by Symantec
- * Copyright (c) 2000-2009 by Digital Mars
+ * Copyright (c) 2000-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -385,7 +385,7 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
     {
         unsigned char       recTyp;      // 0xF0
         unsigned short      pagesize;
-        long                lSymSeek;
+        unsigned long       lSymSeek;
         unsigned short      ndicpages;
         unsigned char       flags;
     };
@@ -533,13 +533,13 @@ unsigned short Library::numDictPages(unsigned padding)
     unsigned short      bucksForSize;
     unsigned symSize = 0;
 
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *s = objsymbols.tdata()[i];
 
         symSize += ( strlen(s->name) + 4 ) & ~1;
     }
 
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules.tdata()[i];
 
         size_t len = strlen(om->name);
@@ -571,7 +571,7 @@ unsigned short Library::numDictPages(unsigned padding)
       0
     };
 
-    for (int i = 0; 1; i++)
+    for (size_t i = 0; 1; i++)
     {
         if ( primes[i] == 0 )
         {   // Quick and easy way is out.
@@ -715,7 +715,7 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
     //printf("FillDict()\n");
 
     // Add each of the module names
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules.tdata()[i];
 
         unsigned short n = strlen( om->name );
@@ -742,7 +742,7 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
     qsort( objsymbols.tdata(), objsymbols.dim, 4, (cmpfunc_t)NameCompare );
 
     // Add each of the symbols
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols.tdata()[i];
 
         unsigned short n = strlen( os->name );
@@ -783,7 +783,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     /* Scan each of the object modules for symbols
      * to go into the dictionary
      */
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules.tdata()[i];
 
         scanObjModule(om);
@@ -803,7 +803,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
 #endif
         unsigned offset = g_page_size;
 
-        for (int i = 0; i < objmodules.dim; i++)
+        for (size_t i = 0; i < objmodules.dim; i++)
         {   ObjModule *om = objmodules.tdata()[i];
 
             unsigned page = offset / g_page_size;
@@ -843,7 +843,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
 
     /* Write each object module into the library
      */
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules.tdata()[i];
 
         unsigned page = libbuf->offset / g_page_size;

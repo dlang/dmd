@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -52,7 +52,7 @@ void json_generate(Modules *modules)
 {   OutBuffer buf;
 
     buf.writestring("[\n");
-    for (int i = 0; i < modules->dim; i++)
+    for (size_t i = 0; i < modules->dim; i++)
     {   Module *m = modules->tdata()[i];
         if (global.params.verbose)
             printf("json gen %s\n", m->toChars());
@@ -194,7 +194,7 @@ void Module::toJsonBuffer(OutBuffer *buf)
     buf->writestring(" : [\n");
 
     size_t offset = buf->offset;
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = members->tdata()[i];
         if (offset != buf->offset)
         {   buf->writestring(",\n");
@@ -313,7 +313,7 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
             JsonString(buf, "interfaces");
             buf->writestring(" : [\n");
             size_t offset = buf->offset;
-            for (int i = 0; i < cd->interfaces_dim; i++)
+            for (size_t i = 0; i < cd->interfaces_dim; i++)
             {   BaseClass *b = cd->interfaces[i];
                 if (offset != buf->offset)
                 {   buf->writestring(",\n");
@@ -331,7 +331,7 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
         JsonString(buf, Pmembers);
         buf->writestring(" : [\n");
         size_t offset = buf->offset;
-        for (int i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = members->tdata()[i];
             if (offset != buf->offset)
             {   buf->writestring(",\n");
@@ -368,7 +368,7 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
     JsonString(buf, Pmembers);
     buf->writestring(" : [\n");
     size_t offset = buf->offset;
-    for (int i = 0; i < members->dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = members->tdata()[i];
         if (offset != buf->offset)
         {   buf->writestring(",\n");
@@ -389,7 +389,7 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
     {
         if (members)
         {
-            for (int i = 0; i < members->dim; i++)
+            for (size_t i = 0; i < members->dim; i++)
             {
                 Dsymbol *s = members->tdata()[i];
                 s->toJsonBuffer(buf);
@@ -422,7 +422,7 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
         JsonString(buf, Pmembers);
         buf->writestring(" : [\n");
         size_t offset = buf->offset;
-        for (int i = 0; i < members->dim; i++)
+        for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = members->tdata()[i];
             if (offset != buf->offset)
             {   buf->writestring(",\n");

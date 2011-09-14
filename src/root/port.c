@@ -216,9 +216,11 @@ unsigned _int64 Port::strtoull(const char *p, char **pend, int base)
     unsigned _int64 number = 0;
     int c;
     int error;
+#ifndef ULLONG_MAX
     #define ULLONG_MAX ((unsigned _int64)~0I64)
+#endif
 
-    while (isspace(*p))         /* skip leading white space     */
+    while (isspace((unsigned char)*p))         /* skip leading white space     */
         p++;
     if (*p == '+')
         p++;

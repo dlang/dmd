@@ -51,6 +51,8 @@ void AliasThis::semantic(Scope *sc)
             error("there can be only one alias this");
         assert(ad->members);
         Dsymbol *s = ad->search(loc, ident, 0);
+        if (!s)
+            ::error(loc, "undefined identifier %s", ident->toChars());
         ad->aliasthis = s;
     }
     else

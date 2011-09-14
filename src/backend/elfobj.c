@@ -652,7 +652,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
     if (I64)
     {
         static char section_names_init64[] =
-          "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0.comment\0.rodata\0.rela.text\0.rela.data";
+          "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0.comment\0.rodata\0.note.GNU-stack\0.rela.text\0.rela.data";
         #define NAMIDX_NONE      0
         #define NAMIDX_SYMTAB    1       // .symtab
         #define NAMIDX_STRTAB    9       // .strtab
@@ -663,9 +663,10 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         #define NAMIDX_NOTE     44      // .note
         #define NAMIDX_COMMENT  50      // .comment
         #define NAMIDX_RODATA   59      // .rodata
-        #define NAMIDX_RELTEXT  67      // .rel.text and .rela.text
-        #define NAMIDX_RELDATA  77      // .rel.data
-        #define NAMIDX_RELDATA64 78      // .rela.data
+        #define NAMIDX_GNUSTACK 67      // .note.GNU-stack
+        #define NAMIDX_RELTEXT  83      // .rel.text and .rela.text
+        #define NAMIDX_RELDATA  93      // .rel.data
+        #define NAMIDX_RELDATA64 94      // .rela.data
 
         if (section_names)
             section_names->setsize(sizeof(section_names_init64));
@@ -692,6 +693,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_COMMENT, SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_GNUSTACK,SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
 
         IDXSTR namidx;
         namidx = NAMIDX_TEXT;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
@@ -705,11 +707,12 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         namidx = NAMIDX_SHSTRTAB;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
         namidx = NAMIDX_COMMENT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
         namidx = NAMIDX_NOTE;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_GNUSTACK;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
     }
     else
     {
         static char section_names_init[] =
-          "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0.comment\0.rodata\0.rel.text\0.rel.data";
+          "\0.symtab\0.strtab\0.shstrtab\0.text\0.data\0.bss\0.note\0.comment\0.rodata\0.note.GNU-stack\0.rel.text\0.rel.data";
 
         if (section_names)
             section_names->setsize(sizeof(section_names_init));
@@ -736,6 +739,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         elf_newsection2(NAMIDX_SHSTRTAB,SHT_STRTAB, 0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_COMMENT, SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
         elf_newsection2(NAMIDX_NOTE,SHT_NOTE,   0,                      0,0,0,0,0, 1,0);
+        elf_newsection2(NAMIDX_GNUSTACK,SHT_PROGDEF,0,                  0,0,0,0,0, 1,0);
 
         IDXSTR namidx;
         namidx = NAMIDX_TEXT;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
@@ -749,6 +753,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         namidx = NAMIDX_SHSTRTAB;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
         namidx = NAMIDX_COMMENT;   *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
         namidx = NAMIDX_NOTE;      *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
+        namidx = NAMIDX_GNUSTACK;  *(IDXSTR *)section_names_hashtable->get(&namidx) = namidx;
     }
 
     if (SYMbuf)

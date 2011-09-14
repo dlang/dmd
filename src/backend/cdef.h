@@ -18,6 +18,8 @@
         __DMC__         Digital Mars compiler
         _MSC_VER        Microsoft compiler
         __GNUC__        Gnu compiler
+        __clang__       Clang compiler
+        __llvm__        Compiler using LLVM as backend (LLVM-GCC/Clang)
 
     Host operating system:
         _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000

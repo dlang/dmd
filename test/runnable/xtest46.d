@@ -1875,6 +1875,24 @@ void test99()
 
 /***************************************************/
 
+void test5081()
+{
+    static pure immutable(int[]) x()
+    {
+        return new int[](10);
+    }
+
+    static pure int[] y()
+    {
+        return new int[](10);
+    }
+
+    immutable a = x();
+    immutable b = y();
+}
+
+/***************************************************/
+
 void test100()
 {
    string s;
@@ -2012,6 +2030,14 @@ void test111()
     auto k5 = true ? [[[1,2]]] : [[[]]];
     auto k6 = true ? [] : [[[]]];
     static assert(!is(typeof(true ? [[[]]] : [[1,2]]))); // Must fail
+}
+
+/***************************************************/
+
+void test3069()
+{
+    ubyte id = 0;
+    void[] v = [id] ~ [id];
 }
 
 /***************************************************/
@@ -2939,6 +2965,44 @@ void cantthrow() nothrow
 }
 
 /***************************************************/
+
+class A2540
+{
+    int a;
+    int foo() { return 0; }
+    alias int X;
+}
+
+class B2540 : A2540
+{
+    int b;
+    super.X foo() { return 1; }
+
+    alias this athis;
+    alias this.b thisb;
+    alias super.a supera;
+    alias super.foo superfoo;
+    alias this.foo thisfoo;
+}
+
+struct X2540
+{
+    alias this athis;
+}
+
+void test2540()
+{
+    auto x = X2540.athis.init;
+    static assert(is(typeof(x) == X2540));
+
+    B2540 b = new B2540();
+
+    assert(&b.a == &b.supera);
+    assert(&b.b == &b.thisb);
+    assert(b.thisfoo() == 1);
+}
+
+/***************************************************/
 // 5659 
  
 void test149() 
@@ -2981,6 +3045,15 @@ void bar150(T)(T n) {  }
 @safe void test150()
 {
     bar150(1);
+}
+
+/***************************************************/
+
+void test5785()
+{
+    static struct x { static int y; }
+    assert(x.y !is 1);
+    assert(x.y !in [1:0]);
 }
 
 /***************************************************/
@@ -3189,6 +3262,11 @@ void test1471()
 
 /***************************************************/
 
+deprecated @disable int bug6389a;
+static assert(!is(typeof({ int bug6389b = bug6389a; })));
+
+/***************************************************/
+
 void test4963()
 {
     struct Value {
@@ -3202,8 +3280,6 @@ void test4963()
     Value[] list;
     auto x = single() ~ list;
 }
-
-/***************************************************/
 
 /***************************************************/ 
 
@@ -3406,6 +3482,115 @@ void test6293() {
 }
 
 /***************************************************/
+// 2774
+
+int foo2774(int n){ return 0; }
+static assert(foo2774.mangleof == "_D7xtest467foo2774FiZi");
+
+class C2774
+{
+    int foo2774(){ return 0; }
+}
+static assert(C2774.foo2774.mangleof == "_D7xtest465C27747foo2774MFZi");
+
+template TFoo2774(T){}
+static assert(TFoo2774!int.mangleof == "7xtest4615__T8TFoo2774TiZ");
+
+void test2774()
+{
+    int foo2774(int n){ return 0; }
+    static assert(foo2774.mangleof == "_D7xtest468test2774FZv7foo2774MFiZi");
+}
+
+/***************************************************/
+// 6220
+
+void test6220() {
+    struct Foobar { real x; real y; real z;};
+    switch("x") {
+        foreach(i,member; __traits(allMembers, Foobar)) {
+            case member : break;
+        }
+    default : break;
+    }
+}
+
+/***************************************************/
+// 5799
+
+void test5799()
+{
+    int a;
+    int *u = &(a ? a : (a ? a : a));
+    assert(u == &a);
+}
+
+/***************************************************/
+
+template X157(alias x)
+{
+    alias x X157;
+}
+
+template Parent(alias foo)
+{
+    alias X157!(__traits(parent, foo)) Parent;
+}
+
+template ParameterTypeTuple(alias foo)
+{
+    static if (is(typeof(foo) P == function))
+        alias P ParameterTypeTuple;
+    else
+        static assert(0, "argument has no parameters");
+}
+
+template Mfp(alias foo)
+{
+    auto Mfp = function(Parent!foo self, ParameterTypeTuple!foo i) { return self.foo(i); };
+}
+
+class C157 {
+ int a = 3;
+ int foo(int i, int y) { return i + a + y; }
+}
+
+void test157()
+{
+    auto c = new C157();
+    auto mfp = Mfp!(C157.foo);
+    auto i = mfp(c, 1, 7);
+    assert(i == 11);
+}
+
+/***************************************************/
+// 6630
+
+void test6630()
+{
+    static class B {}
+
+    static class A
+    {
+        this() { b = new B(); }
+        B b;
+        alias b this;
+    }
+
+    void fun(A a)
+    {
+        a = null;
+        assert(a is null);
+    }
+
+    auto a = new A;
+    assert(a.b !is null);
+    fun(a);
+    assert(a !is null);
+    assert(a.b !is null);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3480,6 +3665,7 @@ int main()
     test69();
     test70();
 
+    test5785();
     test72();
     test73();
     test74();
@@ -3527,6 +3713,7 @@ int main()
     test116();
     test117();
     test118();
+    test5081();
 
     test120();
 
@@ -3559,6 +3746,7 @@ int main()
     test147();
     test148();
     test149();
+    test2540();
     test150();
     test151();
     test152();
@@ -3578,6 +3766,11 @@ int main()
     test1471();
     test6335();
     test6228();
+    test2774();
+    test6220();
+    test5799();
+    test157();
+    test6630();
 
     printf("Success\n");
     return 0;

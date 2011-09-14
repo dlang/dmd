@@ -239,6 +239,23 @@ struct Matrix5248 {
 static assert(Matrix5248().Compile());
 
 /**************************************************
+    4837   >>>=
+**************************************************/
+
+bool bug4837()
+{
+    ushort x = 0x89AB;
+    x >>>= 4;
+    assert(x == 0x89A);
+    byte y = 0x7C;
+    y >>>= 2;
+    assert(y == 0x1F);
+    return true;
+}
+
+static assert(bug4837());
+
+/**************************************************
     Bug 6164
 **************************************************/
 
@@ -1654,6 +1671,28 @@ static assert({
 }() == 6);
 
 /**************************************************
+  6517 ptr++, ptr--
+**************************************************/
+
+int bug6517() {
+    int[] arr = [1, 2, 3];
+    auto startp = arr.ptr;
+    auto endp = arr.ptr + arr.length;
+
+    for(; startp < endp; startp++) {}
+    startp = arr.ptr;
+    assert(startp++ == arr.ptr);
+    assert(startp != arr.ptr);
+    assert(startp-- != arr.ptr);
+    assert(startp == arr.ptr);
+
+    return 84;
+}
+
+static assert(bug6517() == 84);
+
+
+/**************************************************
   Out-of-bounds pointer assignment and deference
 **************************************************/
 
@@ -2118,6 +2157,64 @@ static assert({
 }());
 
 /**************************************************
+    6420  ICE on dereference of invalid pointer
+**************************************************/
+
+static assert({
+    // Should compile, but pointer can't be dereferenced
+    int x = 123;
+    int* p = cast(int *)x;
+    auto q = cast(char*)x;
+    auto r = cast(char*)323;
+    // Valid const-changing cast
+    const float *m = cast(immutable float *)[1.2f,2.4f,3f];
+    return true;
+}()
+);
+
+static assert(!is(typeof(compiles!({
+    int x = 123;
+    int* p = cast(int *)x;
+    int a = *p;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    int* p = cast(int *)123;
+    int a = *p;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    auto k = cast(int*)45;
+    *k = 1;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    *cast(float*)"a" = 4.0;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    float f = 2.8;
+    long *p = &f;
+    return true;
+}()
+))));
+
+static assert(!is(typeof(compiles!({
+    long *p = cast(long *)[1.2f,2.4f,3f];
+    return true;
+}()
+))));
+
+
+/**************************************************
     6250  deref pointers to array
 **************************************************/
 
@@ -2198,6 +2295,7 @@ static assert(bug4021());
 
 /**************************************************
     3512 foreach(dchar; string)
+    6558 foreach(int, dchar; string)
 **************************************************/
 
 bool test3512()
@@ -2211,16 +2309,24 @@ bool test3512()
     assert(q==4);
     foreach (dchar c; s) { ++q; if (c=='h') break; } // _aApplycd1
     assert(q == 6);
-    foreach (int i, wchar c; s) {}   // _aApplycw2
-    foreach (int i, dchar c; s) {} // _aApplycd2
+    foreach (int i, wchar c; s) {
+        assert(i >= 0 && i < s.length);
+	}   // _aApplycw2
+    foreach (int i, dchar c; s) {
+        assert(i >= 0 && i < s.length);
+	} // _aApplycd2
 
     wstring w = "xüm";
     foreach (char c; w) {++q; } // _aApplywc1
     assert(q == 10);
     foreach (dchar c; w) { ++q; } // _aApplywd1
     assert(q == 13);
-    foreach (int i, char c; w) {} // _aApplywc2
-    foreach (int i, dchar c; w) {} // _aApplywd2
+    foreach (int i, char c; w) {
+        assert(i >= 0 && i < w.length);
+	} // _aApplywc2
+    foreach (int i, dchar c; w) {
+        assert(i >= 0 && i < w.length);
+	} // _aApplywd2
 
     dstring d = "yäq";
     q = 0;
@@ -2229,15 +2335,21 @@ bool test3512()
     q = 0;
     foreach (wchar c; d) { ++q; } // _aApplydw1
     assert(q == 3);
-    foreach (int i, char c; d) {} // _aApplydc2
-    foreach (int i, wchar c; d) {} // _aApplydw2
+    foreach (int i, char c; d) {
+        assert(i >= 0 && i < d.length);
+    } // _aApplydc2
+    foreach (int i, wchar c; d) {
+        assert(i >= 0 && i < d.length);
+    } // _aApplydw2
 
     dchar[] dr = "squop"d.dup;
     foreach(int n, char c; dr) { if (n==2) break; assert(c!='o'); }
     foreach_reverse (char c; dr) {} // _aApplyRdc1
     foreach_reverse (wchar c; dr) {} // _aApplyRdw1
     foreach_reverse (int n, char c; dr) { if (n==4) break; assert(c!='o');} // _aApplyRdc2
-    foreach_reverse (int i, wchar c; dr) {} // _aApplyRdw2
+    foreach_reverse (int i, wchar c; dr) {
+        assert(i >= 0 && i < dr.length);
+    } // _aApplyRdw2
     q = 0;
     wstring w2 = ['x', 'ü', 'm']; // foreach over array literals
     foreach_reverse (int n, char c; w2)
@@ -2249,3 +2361,74 @@ bool test3512()
     return true;
 }
 static assert(test3512());
+
+/**************************************************
+    6510 ICE only with -inline
+**************************************************/
+
+struct Stack6510 {
+    struct Proxy {
+        void shrink() {}
+    }
+    Proxy stack;
+    void pop() {
+        stack.shrink();
+    }
+}
+
+int bug6510() {
+    static int used() {
+        Stack6510 junk;
+        junk.pop();
+        return 3;
+    }
+    return used();
+}
+
+void test6510() {
+    static assert(bug6510()==3);
+}
+
+/**************************************************
+    6511   arr[] shouldn't make a copy
+**************************************************/
+
+T bug6511(T)() {
+    T[1] a = [1];
+    a[] += a[];
+    return a[0];
+}
+static assert(bug6511!ulong() == 2);
+static assert(bug6511!long() == 2);
+
+/**************************************************
+    6512   new T[][]
+**************************************************/
+
+bool bug6512(int m) {
+    auto x = new int[2][][](m, 5);
+    assert(x.length == m);
+    assert(x[0].length == 5);
+    assert(x[0][0].length == 2);
+    foreach( i; 0.. m)
+        foreach( j; 0..5)
+            foreach(k; 0..2)
+                x[i][j][k] = k + j*10 + i*100;
+    foreach( i; 0.. m)
+        foreach( j; 0..5)
+            foreach(k; 0..2)
+                assert( x[i][j][k] == k + j*10 + i*100);
+    return true;
+}
+static assert(bug6512(3));
+
+/**************************************************
+    6516   ICE(constfold.c)
+**************************************************/
+
+dstring bug6516()
+{
+    return cast(dstring) new dchar[](0);
+}
+
+static assert(bug6516() == ""d);

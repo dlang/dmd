@@ -371,7 +371,7 @@ Strings *FileName::splitPath(const char *path)
         do
         {   char instring = 0;
 
-            while (isspace(*p))         // skip leading whitespace
+            while (isspace((unsigned char)*p))         // skip leading whitespace
                 p++;
             buf.reserve(strlen(p) + 1); // guess size of path
             for (; ; p++)
@@ -953,7 +953,7 @@ void FileName::ensurePathExists(const char *path)
             {
                 //printf("mkdir(%s)\n", path);
 #if _WIN32
-                if (mkdir(path))
+                if (_mkdir(path))
 #endif
 #if POSIX
                 if (mkdir(path, 0777))

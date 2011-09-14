@@ -71,8 +71,6 @@ const char *inifile(const char *argv0x, const char *inifilex)
     char *path;         // need path for @P macro
     char *filename;
     OutBuffer buf;
-    int i;
-    int k;
     int envsection = 0;
 
 #if LOG
@@ -149,10 +147,9 @@ const char *inifile(const char *argv0x, const char *inifilex)
                     if (FileName::exists(filename))
                         goto Ldone;
                     }
-#endif
-
                     // Search /etc/ for inifile
                 Letc:
+#endif
                     filename = FileName::combine((char *)"/etc/", inifile);
 
                 Ldone:
@@ -173,9 +170,9 @@ const char *inifile(const char *argv0x, const char *inifilex)
 
     // Parse into lines
     int eof = 0;
-    for (i = 0; i < file.len && !eof; i++)
+    for (size_t i = 0; i < file.len && !eof; i++)
     {
-        int linestart = i;
+        size_t linestart = i;
 
         for (; i < file.len; i++)
         {
@@ -203,7 +200,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
 
         // The line is file.buffer[linestart..i]
         char *line;
-        int len;
+        size_t len;
         char *p;
         char *pn;
 
@@ -215,13 +212,11 @@ const char *inifile(const char *argv0x, const char *inifilex)
         // First, expand the macros.
         // Macros are bracketed by % characters.
 
-        for (k = 0; k < len; k++)
+        for (size_t k = 0; k < len; k++)
         {
             if (line[k] == '%')
             {
-                int j;
-
-                for (j = k + 1; j < len; j++)
+                for (size_t j = k + 1; j < len; j++)
                 {
                     if (line[j] == '%')
                     {
@@ -233,16 +228,16 @@ const char *inifile(const char *argv0x, const char *inifilex)
                                 p = (char *)".";
                         }
                         else
-                        {   int len = j - k;
+                        {   size_t len2 = j - k;
                             char tmp[10];       // big enough most of the time
 
-                            if (len <= sizeof(tmp))
+                            if (len2 <= sizeof(tmp))
                                 p = tmp;
                             else
-                                p = (char *)alloca(len);
-                            len--;
-                            memcpy(p, &line[k + 1], len);
-                            p[len] = 0;
+                                p = (char *)alloca(len2);
+                            len2--;
+                            memcpy(p, &line[k + 1], len2);
+                            p[len2] = 0;
                             strupr(p);
                             p = getenv(p);
                             if (!p)
@@ -277,7 +272,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
 
             case '[':           // look for [Environment]
                 p = skipspace(p + 1);
-                for (pn = p; isalnum(*pn); pn++)
+                for (pn = p; isalnum((unsigned char)*pn); pn++)
                     ;
                 if (pn - p == 11 &&
                     memicmp(p, "Environment", 11) == 0 &&
@@ -296,14 +291,14 @@ const char *inifile(const char *argv0x, const char *inifilex)
                     // Convert name to upper case;
                     // remove spaces bracketing =
                     for (p = pn; *p; p++)
-                    {   if (islower(*p))
+                    {   if (islower((unsigned char)*p))
                             *p &= ~0x20;
-                        else if (isspace(*p))
+                        else if (isspace((unsigned char)*p))
                             memmove(p, p + 1, strlen(p));
                         else if (*p == '=')
                         {
                             p++;
-                            while (isspace(*p))
+                            while (isspace((unsigned char)*p))
                                 memmove(p, p + 1, strlen(p));
                             break;
                         }
@@ -330,7 +325,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
 
 char *skipspace(const char *p)
 {
-    while (isspace(*p))
+    while (isspace((unsigned char)*p))
         p++;
     return (char *)p;
 }

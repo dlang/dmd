@@ -19,7 +19,7 @@ import std.c.windows.windows;
 import std.c.windows.com;
 
 GUID CLSID_Hello = { 0x30421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
-GUID IID_IHello = { 0x00421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
+GUID IID_IHello  = { 0x00421140, 0, 0, [0xC0, 0, 0, 0, 0, 0, 0, 0x46] };
 
 interface IHello : IUnknown
 {
@@ -93,7 +93,7 @@ int main()
  *      !=0     failure
  */
 
-extern (Windows) alias HRESULT (*pfn_t)();
+extern (Windows) alias HRESULT function() pfn_t;
 
 int dll_regserver(const (char) *dllname, int flag)
 {

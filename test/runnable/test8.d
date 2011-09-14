@@ -1,9 +1,7 @@
-// REQUIRED_ARGS: -d
 
 module testxxx8;
 
 import core.vararg;
-import std.utf: validate;
 
 extern(C)
 {
@@ -283,7 +281,7 @@ void test15()
 
 void test16()
 {
-    static int (*fp)() = &func16;
+    static int function() fp = &func16;
     int i = fp();
     assert(i == 648);
 }
@@ -1035,18 +1033,14 @@ void test51()
 
 /***********************************/
 
+// Bug 391
 void test52()
 {
-    string a;
-    a = "\u3026\u2021\u3061\n".idup;
-    printf("plain\n");
-    validate(a);
-
-    printf("sorted\n");
-    validate(a.sort);
-
-    printf("reversed\n");
-    validate(a.reverse);
+    char[] a;
+    a = "\u3026\u2021\u3061\n".dup;
+    assert(a =="\u3026\u2021\u3061\n");
+    assert(a.sort == "\n\u2021\u3026\u3061");
+    assert(a.reverse =="\u3061\u3026\u2021\n");
 }
 
 /***********************************/

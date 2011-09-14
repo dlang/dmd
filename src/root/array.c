@@ -190,7 +190,8 @@ char *Array::toChars()
     char *str;
     char *p;
 
-    buf = (char **)alloca(dim * sizeof(char *));
+    buf = (char **)malloc(dim * sizeof(char *));
+    assert(buf);
     len = 2;
     for (u = 0; u < dim; u++)
     {
@@ -211,6 +212,7 @@ char *Array::toChars()
     }
     *p++ = ']';
     *p = 0;
+    free(buf);
     return str;
 }
 

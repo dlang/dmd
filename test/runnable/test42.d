@@ -3436,6 +3436,19 @@ alias tough4302!() tougher;
 
 /***************************************************/
 
+template Bug6602A(T) {
+  Bug6602B!(T).Result result;
+}
+
+template Bug6602B(U) {
+  static assert(is(U == int));
+  alias bool Result;
+}
+
+enum bug6602Compiles = __traits(compiles, Bug6602A!short);
+
+/***************************************************/
+
 // Bugzilla 190
 
 //typedef int avocado;
@@ -4326,6 +4339,48 @@ int test239()
 
 /***************************************************/
 
+void enforce6506b(bool condition, void delegate() m) {
+    assert(!condition);
+}
+void toImpl6506b(int value) {
+    void f(){}
+    enforce6506b(value >= 0, &f);
+}
+void test6506() {
+    toImpl6506b(-112345);
+}
+
+/***************************************************/
+// 6505
+
+double foo240() {
+    return 1.0;
+}
+
+void test240() {
+    double a = foo240();
+    double b = foo240();
+    double x = a*a + a*a + a*a + a*a + a*a + a*a + a*a +
+               a*b + a*b;
+    assert(x > 0);
+}
+
+/***************************************************/
+// 6563
+
+int foo6563(float a, float b, float c, float d, float e, float f, float g, float h)
+{
+    assert(a == 1);
+    return 0; // return something to prevent folding
+}
+
+void test6563()
+{
+    auto res = foo6563(1, 1, 1, 1, 1, 1, 1, 1);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4556,6 +4611,9 @@ int main()
     test239();
     test6229();
     test6270();
+    test6506();
+    test240();
+    test6563();
 
     writefln("Success");
     return 0;

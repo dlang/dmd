@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2006 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // www.digitalmars.com
@@ -161,14 +161,14 @@ struct Dchar
     static int memcmp(const dchar *s1, const dchar *s2, int nchars) { return ::memcmp(s1, s2, nchars); }
     static int isDigit(dchar c) { return '0' <= c && c <= '9'; }
 #ifndef GCC_SAFE_DMD
-    static int isAlpha(dchar c) { return isalpha(c); }
-    static int isUpper(dchar c) { return isupper(c); }
-    static int isLower(dchar c) { return islower(c); }
-    static int isLocaleUpper(dchar c) { return isupper(c); }
-    static int isLocaleLower(dchar c) { return islower(c); }
-    static int toLower(dchar c) { return isupper(c) ? tolower(c) : c; }
+    static int isAlpha(dchar c) { return isalpha((unsigned char)c); }
+    static int isUpper(dchar c) { return isupper((unsigned char)c); }
+    static int isLower(dchar c) { return islower((unsigned char)c); }
+    static int isLocaleUpper(dchar c) { return isupper((unsigned char)c); }
+    static int isLocaleLower(dchar c) { return islower((unsigned char)c); }
+    static int toLower(dchar c) { return isupper((unsigned char)c) ? tolower(c) : c; }
     static int toLower(dchar *p) { return toLower(*p); }
-    static int toUpper(dchar c) { return islower(c) ? toupper(c) : c; }
+    static int toUpper(dchar c) { return islower((unsigned char)c) ? toupper(c) : c; }
     static dchar *dup(dchar *p) { return ::strdup(p); } // BUG: out of memory?
 #endif
     static dchar *chr(dchar *p, int c) { return strchr(p, c); }

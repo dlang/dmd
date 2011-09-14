@@ -508,6 +508,7 @@ struct TypePointer : TypeNext
     d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     MATCH implicitConvTo(Type *to);
+    MATCH constConv(Type *to);
     int isscalar();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);

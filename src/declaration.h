@@ -82,6 +82,7 @@ enum PURE;
 #define STCctfe         0x1000000000LL  // can be used in CTFE, even if it is static
 #define STCdisable      0x2000000000LL  // for functions that are not callable
 #define STCresult       0x4000000000LL  // for result variables passed to out contracts
+#define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
 
 struct Match
 {
@@ -146,7 +147,7 @@ struct Declaration : Dsymbol
     int isParameter()    { return storage_class & STCparameter; }
     int isDeprecated()   { return storage_class & STCdeprecated; }
     int isOverride()     { return storage_class & STCoverride; }
-    int isResult()       { return storage_class & STCresult; }
+    StorageClass isResult()       { return storage_class & STCresult; }
 
     int isIn()    { return storage_class & STCin; }
     int isOut()   { return storage_class & STCout; }
@@ -620,6 +621,7 @@ struct FuncDeclaration : Declaration
     int isCodeseg();
     int isOverloadable();
     enum PURE isPure();
+    enum PURE isPureBypassingInference();
     bool setImpure();
     int isSafe();
     int isTrusted();
