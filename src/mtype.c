@@ -3864,6 +3864,9 @@ d_uns64 TypeAArray::size(Loc loc)
 Type *TypeAArray::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeAArray::semantic() %s index->ty = %d\n", toChars(), index->ty);
+    if (deco)
+        return this;
+
     this->loc = loc;
     this->sc = sc;
     if (sc)
