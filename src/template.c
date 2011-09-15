@@ -4220,7 +4220,12 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             // (see bugzilla 4302 and 6602).
             tempdecl->instances.remove(tempdecl_instance_idx);
             if (target_symbol_list)
+            {
+                // Because we added 'this' in the last position above, we
+                // should be able to remove it without messing other indices up.
+                assert(target_symbol_list->tdata()[target_symbol_list_idx] == this);
                 target_symbol_list->remove(target_symbol_list_idx);
+            }
             semanticRun = 0;
             inst = NULL;
         }
