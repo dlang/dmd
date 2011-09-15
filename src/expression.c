@@ -6520,7 +6520,6 @@ Expression *CallExp::semantic(Scope *sc)
             {
                 /* Didn't work, go with partial explicit specialization
                  */
-                global.errors = errors;
                 targsi = ti->tiargs;
                 e1 = new IdentifierExp(loc, ti->name);
             }
@@ -6540,13 +6539,10 @@ Expression *CallExp::semantic(Scope *sc)
              */
             ti->semanticTiargs(sc);
             Expression *etmp;
-            unsigned errors = global.errors;
-            global.gag++;
+            unsigned errors = global.startGagging();
             etmp = e1->semantic(sc);
-            global.gag--;
-            if (errors != global.errors)
+            if (global.endGagging(errors))
             {
-                global.errors = errors;
                 targsi = ti->tiargs;
                 e1 = new DotIdExp(loc, se->e1, ti->name);
             }
