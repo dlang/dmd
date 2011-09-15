@@ -696,10 +696,9 @@ StorageClass Parser::parsePostfix()
             case TOKpure:               stc |= STCpure;                 break;
             case TOKat:                 stc |= parseAttribute();        break;
 
-            default:
-                composeStorageClass(stc);
-                return stc;
+            default: return stc;
         }
+        composeStorageClass(stc);
         nextToken();
     }
 }
