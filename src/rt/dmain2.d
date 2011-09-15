@@ -367,24 +367,28 @@ extern (C) int main(int argc, char** argv)
     version (Windows)
     {
         wchar_t*  wcbuf = GetCommandLineW();
-        size_t    wclen = wcslen(wcbuf);
+        size_t 	  wclen = wcslen(wcbuf);
         int       wargc = 0;
         wchar_t** wargs = CommandLineToArgvW(wcbuf, &wargc);
         assert(wargc == argc);
 
+        // This is required because WideCharToMultiByte requires int as input.
+        assert(wclen <= int.max, "wclen must not exceed int.max");
+
         char*     cargp = null;
-        size_t    cargl = WideCharToMultiByte(65001, 0, wcbuf, wclen, null, 0, null, 0);
+        size_t    cargl = WideCharToMultiByte(65001, 0, wcbuf, cast(int)wclen, null, 0, null, 0);
 
         cargp = cast(char*) alloca(cargl);
         args  = ((cast(char[]*) alloca(wargc * (char[]).sizeof)))[0 .. wargc];
 
         for (size_t i = 0, p = 0; i < wargc; i++)
         {
-            int wlen = wcslen(wargs[i]);
-            int clen = WideCharToMultiByte(65001, 0, &wargs[i][0], wlen, null, 0, null, 0);
+            size_t wlen = wcslen(wargs[i]);
+            assert(wlen <= int.max, "wlen cannot exceed int.max");
+            int clen = WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, null, 0, null, 0);
             args[i]  = cargp[p .. p+clen];
             p += clen; assert(p <= cargl);
-            WideCharToMultiByte(65001, 0, &wargs[i][0], wlen, &args[i][0], clen, null, 0);
+            WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, &args[i][0], clen, null, 0);
         }
         LocalFree(wargs);
         wargs = null;

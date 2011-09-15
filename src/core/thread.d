@@ -796,7 +796,8 @@ class Thread
         {
             version( Windows )
             {
-                m_hndl = cast(HANDLE) _beginthreadex( null, m_sz, &thread_entryPoint, cast(void*) this, 0, &m_addr );
+                assert(m_sz <= uint.max, "m_sz should not exceed uint.max");
+                m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint)m_sz, &thread_entryPoint, cast(void*) this, 0, &m_addr );
                 if( cast(size_t) m_hndl == 0 )
                     throw new ThreadException( "Error creating thread" );
             }
