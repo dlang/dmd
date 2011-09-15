@@ -470,7 +470,7 @@ code *genlinnum(code *c,Srcpos srcpos)
     cs.Irex = 0;
     cs.IFL1 = 0;
     cs.IFL2 = 0;
-    cs.IEV2.Vsrcpos = srcpos;
+    cs.IEV1.Vsrcpos = srcpos;
     return gen(c,&cs);
 }
 
@@ -505,7 +505,7 @@ code *genadjesp(code *c, int offset)
         cs.Iop = ESCAPE | ESCadjesp;
         cs.Iflags = 0;
         cs.Irex = 0;
-        cs.IEV2.Vint = offset;
+        cs.IEV1.Vint = offset;
         return gen(c,&cs);
     }
     else
@@ -525,7 +525,7 @@ code *genadjfpu(code *c, int offset)
         cs.Iop = ESCAPE | ESCadjfpu;
         cs.Iflags = 0;
         cs.Irex = 0;
-        cs.IEV2.Vint = offset;
+        cs.IEV1.Vint = offset;
         return gen(c,&cs);
     }
     else
