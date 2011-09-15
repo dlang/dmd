@@ -4811,15 +4811,9 @@ Expression *IsExp::semantic(Scope *sc)
     if (id && !(sc->flags & SCOPEstaticif))
         error("can only declare type aliases within static if conditionals");
 
-    unsigned errors_save = global.errors;
-    global.errors = 0;
-    global.gag++;                       // suppress printing of error messages
+    unsigned errors_save = global.startGagging();
     targ = targ->semantic(loc, sc);
-    global.gag--;
-    unsigned gerrors = global.errors;
-    global.errors = errors_save;
-
-    if (gerrors)                        // if any errors happened
+    if (global.endGagging(errors_save)) // if any errors happened
     {                                   // then condition is false
         goto Lno;
     }
@@ -6520,11 +6514,9 @@ Expression *CallExp::semantic(Scope *sc)
              * If not, go with partial explicit specialization.
              */
             ti->semanticTiargs(sc);
-            unsigned errors = global.errors;
-            global.gag++;
+            unsigned errors = global.startGagging();
             ti->semantic(sc);
-            global.gag--;
-            if (errors != global.errors)
+            if (global.endGagging(errors))
             {
                 /* Didn't work, go with partial explicit specialization
                  */
