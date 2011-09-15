@@ -101,21 +101,11 @@ Global::Global()
 unsigned Global::startGagging()
 {
     ++gag;
-#if DMDV1
-    return global.errors;
-#else
     return gaggedErrors;
-#endif
 }
 
 bool Global::endGagging(unsigned oldGagged)
 {
-#if DMDV1
-    bool anyErrs = (errors != oldGagged);
-    --gag;
-    errors = oldGagged;
-    return anyErrs;
-#else
     bool anyErrs = (gaggedErrors != oldGagged);
     --gag;
     // Restore the original state of gagged errors; set total errors
@@ -123,7 +113,6 @@ bool Global::endGagging(unsigned oldGagged)
     errors -= (gaggedErrors - oldGagged);
     gaggedErrors = oldGagged;
     return anyErrs;
-#endif
 }
 
 

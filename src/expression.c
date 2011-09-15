@@ -4811,15 +4811,9 @@ Expression *IsExp::semantic(Scope *sc)
     if (id && !(sc->flags & SCOPEstaticif))
         error("can only declare type aliases within static if conditionals");
 
-    unsigned errors_save = global.errors;
-    global.errors = 0;
-    global.gag++;                       // suppress printing of error messages
+    unsigned errors_save = global.startGagging();
     targ = targ->semantic(loc, sc);
-    global.gag--;
-    unsigned gerrors = global.errors;
-    global.errors = errors_save;
-
-    if (gerrors)                        // if any errors happened
+    if (global.endGagging(errors_save)) // if any errors happened
     {                                   // then condition is false
         goto Lno;
     }
@@ -6520,15 +6514,12 @@ Expression *CallExp::semantic(Scope *sc)
              * If not, go with partial explicit specialization.
              */
             ti->semanticTiargs(sc);
-            unsigned errors = global.errors;
-            global.gag++;
+            unsigned errors = global.startGagging();
             ti->semantic(sc);
-            global.gag--;
-            if (errors != global.errors)
+            if (global.endGagging(errors))
             {
                 /* Didn't work, go with partial explicit specialization
                  */
-                global.errors = errors;
                 targsi = ti->tiargs;
                 e1 = new IdentifierExp(loc, ti->name);
             }
@@ -6548,13 +6539,10 @@ Expression *CallExp::semantic(Scope *sc)
              */
             ti->semanticTiargs(sc);
             Expression *etmp;
-            unsigned errors = global.errors;
-            global.gag++;
+            unsigned errors = global.startGagging();
             etmp = e1->semantic(sc);
-            global.gag--;
-            if (errors != global.errors)
+            if (global.endGagging(errors))
             {
-                global.errors = errors;
                 targsi = ti->tiargs;
                 e1 = new DotIdExp(loc, se->e1, ti->name);
             }

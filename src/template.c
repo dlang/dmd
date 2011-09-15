@@ -4467,7 +4467,6 @@ void TemplateInstance::semantic3(Scope *sc)
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
-#if DMDV2
         int oldgag = global.gag;
         /* If this is a speculative instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
@@ -4476,19 +4475,14 @@ void TemplateInstance::semantic3(Scope *sc)
          */
         if (speculative && !global.gag)
             global.gag = 1;
-#endif
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
-#if DMDV2
             if (global.gag && errors)
                 break;
-#endif
         }
-#if DMDV2
         global.gag = oldgag;
-#endif
         sc = sc->pop();
         sc->pop();
     }
