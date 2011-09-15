@@ -467,15 +467,12 @@ void FuncDeclaration::semantic(Scope *sc)
                         /* Only need to have a tintro if the vptr
                          * offsets differ
                          */
-                        unsigned errors = global.errors;
-                        global.gag++;            // suppress printing of error messages
+                        unsigned errors = global.startGagging();             // suppress printing of error messages
                         int offset;
                         int baseOf = fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset);
-                        global.gag--;            // suppress printing of error messages
-                        if (errors != global.errors)
+                        if (global.endGagging(errors))
                         {
                             // any error in isBaseOf() is a forward reference error, so we bail out
-                            global.errors = errors;
                             cd->sizeok = 2;    // can't finish due to forward reference
                             Module::dprogress = dprogress_save;
                             return;
