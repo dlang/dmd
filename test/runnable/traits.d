@@ -606,6 +606,29 @@ static assert([__traits(allMembers, S2234c)] == ["foo"]);
 
 /********************************************************/
 
+mixin template Members6674()
+{
+    static int i1;
+    static int i2;
+    static int i3;  //comment out to make func2 visible
+    static int i4;  //comment out to make func1 visible
+}
+
+class Test6674
+{
+    mixin Members6674;
+
+    typedef void function() func1;
+    typedef bool function() func2;
+}
+
+static assert([__traits(allMembers,Test6674)] == [
+    "i1","i2","i3","i4",
+    "func1","func2",
+    "toString","toHash","opCmp","opEquals","Monitor","factory"]);
+
+/********************************************************/
+
 int main()
 {
     test1();
