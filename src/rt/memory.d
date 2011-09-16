@@ -69,11 +69,10 @@ extern (C) void* rt_stackBottom()
         }
         else version( D_InlineAsm_X86_64 )
         {
-            static assert( false, "is this right?" );
             asm
             {
                 naked;
-                mov RAX,FS:8;
+                mov RAX,GS:8;
                 ret;
             }
         }
