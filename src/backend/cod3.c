@@ -2766,7 +2766,7 @@ void assignaddrc(code *c)
             if (c->Iop == (ESCAPE | ESCadjesp))
             {
                 //printf("adjusting EBPtoESP (%d) by %ld\n",EBPtoESP,c->IEV2.Vint);
-                EBPtoESP += c->IEV2.Vint;
+                EBPtoESP += c->IEV1.Vint;
                 c->Iop = NOP;
             }
             if (c->Iop == (ESCAPE | ESCframeptr))
@@ -4089,7 +4089,7 @@ unsigned codout(code *c)
                 switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
-                        objlinnum(c->IEV2.Vsrcpos,OFFSET());
+                        objlinnum(c->IEV1.Vsrcpos,OFFSET());
                         break;
 #if SCPP
 #if 1
@@ -4994,7 +4994,7 @@ void code_hydrate(code **pc)
                 break;
 
             case ESCAPE | ESClinnum:
-                srcpos_hydrate(&c->IEV2.Vsrcpos);
+                srcpos_hydrate(&c->IEV1.Vsrcpos);
                 goto done;
 
             case ESCAPE | ESCctor:
@@ -5162,7 +5162,7 @@ void code_dehydrate(code **pc)
                 break;
 
             case ESCAPE | ESClinnum:
-                srcpos_dehydrate(&c->IEV2.Vsrcpos);
+                srcpos_dehydrate(&c->IEV1.Vsrcpos);
                 goto done;
 
             case ESCAPE | ESCctor:
@@ -5348,7 +5348,7 @@ void code::print()
 
   if ((op & 0xFF) == ESCAPE)
   {     if ((op & 0xFF00) == ESClinnum)
-        {   printf(" linnum = %d\n",c->IEV2.Vsrcpos.Slinnum);
+        {   printf(" linnum = %d\n",c->IEV1.Vsrcpos.Slinnum);
             return;
         }
         printf(" ESCAPE %d",c->Iop >> 8);

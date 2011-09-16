@@ -523,6 +523,36 @@ void Parser::composeStorageClass(StorageClass stc)
 }
 #endif
 
+/***********************************************
+ * Parse storage class, lexer is on '@'
+ */
+
+#if DMDV2
+StorageClass Parser::parseAttribute()
+{
+    nextToken();
+    StorageClass stc = 0;
+    if (token.value != TOKidentifier)
+    {
+        error("identifier expected after @, not %s", token.toChars());
+    }
+    else if (token.ident == Id::property)
+        stc = STCproperty;
+    else if (token.ident == Id::safe)
+        stc = STCsafe;
+    else if (token.ident == Id::trusted)
+        stc = STCtrusted;
+    else if (token.ident == Id::system)
+        stc = STCsystem;
+    else if (token.ident == Id::disable)
+        stc = STCdisable;
+    else
+        error("valid attribute identifiers are @property, @safe, @trusted, @system, @disable not @%s", token.toChars());
+    return stc;
+}
+#endif
+
+
 /********************************************
  * Parse declarations after an align, protection, or extern decl.
  */
