@@ -314,6 +314,493 @@ void cod3_align()
 #endif
 }
 
+/*****************************
+ * Given a type, return a mask of
+ * registers to hold that type.
+ * Input:
+ *      tyf     function type
+ */
+
+regm_t regmask(tym_t tym, tym_t tyf)
+{
+    switch (tybasic(tym))
+    {
+        case TYvoid:
+        case TYstruct:
+            return 0;
+        case TYbool:
+        case TYwchar_t:
+        case TYchar16:
+        case TYchar:
+        case TYschar:
+        case TYuchar:
+        case TYshort:
+        case TYushort:
+        case TYint:
+        case TYuint:
+#if JHANDLE
+        case TYjhandle:
+#endif
+        case TYnullptr:
+        case TYnptr:
+        case TYsptr:
+        case TYcptr:
+            return mAX;
+
+        case TYfloat:
+        case TYifloat:
+            if (I64)
+                return mXMM0;
+            if (config.exe & EX_flat)
+                return mST0;
+        case TYlong:
+        case TYulong:
+        case TYdchar:
+            if (!I16)
+                return mAX;
+        case TYfptr:
+        case TYhptr:
+            return mDX | mAX;
+
+        case TYcent:
+        case TYucent:
+            assert(I64);
+            return mDX | mAX;
+
+        case TYvptr:
+            return mDX | mBX;
+
+        case TYdouble:
+        case TYdouble_alias:
+        case TYidouble:
+            if (I64)
+                return mXMM0;
+            if (config.exe & EX_flat)
+                return mST0;
+            return DOUBLEREGS;
+
+        case TYllong:
+        case TYullong:
+            return I64 ? mAX : (I32 ? mDX | mAX : DOUBLEREGS);
+
+        case TYldouble:
+        case TYildouble:
+            return mST0;
+
+        case TYcfloat:
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            if (I32 && tybasic(tyf) == TYnfunc)
+                return mDX | mAX;
+#endif
+        case TYcdouble:
+            if (I64)
+                return mXMM0 | mXMM1;
+        case TYcldouble:
+            return mST01;
+
+        default:
+#if DEBUG
+            WRTYxx(tym);
+#endif
+            assert(0);
+            return 0;
+    }
+}
+
+/*******************************
+ * Generate block exit code
+ */
+void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave)
+{
+    elem *e = bl->Belem;
+    block *nextb;
+    block *bs1,*bs2;
+    regm_t retregs = 0;
+    bool jcond;
+
+    switch (bl->BC)                     /* block exit condition         */
+    {
+        case BCiftrue:
+            jcond = TRUE;
+            bs1 = list_block(bl->Bsucc);
+            bs2 = list_block(list_next(bl->Bsucc));
+            if (bs1 == bl->Bnext)
+            {   // Swap bs1 and bs2
+                block *btmp;
+
+                jcond ^= 1;
+                btmp = bs1;
+                bs1 = bs2;
+                bs2 = btmp;
+            }
+            c = cat(c,logexp(e,jcond,FLblock,(code *) bs1));
+            nextb = bs2;
+            bl->Bcode = NULL;
+        L2:
+            if (nextb != bl->Bnext)
+            {   if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
+                    !(funcsym_p->ty() & mTYnaked))
+                    cgen_linnum(&c,bl->Bsrcpos);
+                assert(!(bl->Bflags & BFLepilog));
+                c = cat(c,genjmp(CNIL,JMP,FLblock,nextb));
+            }
+            bl->Bcode = cat(bl->Bcode,c);
+            break;
+        case BCjmptab:
+        case BCifthen:
+        case BCswitch:
+            assert(!(bl->Bflags & BFLepilog));
+            doswitch(bl);               /* hide messy details           */
+            bl->Bcode = cat(c,bl->Bcode);
+            break;
+#if MARS
+        case BCjcatch:
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in catch blocks.
+            c = cat(c,getregs((I32 | I64) ? allregs : (ALLREGS | mES)));
+#if 0 && TARGET_LINUX
+            if (config.flags3 & CFG3pic && !(allregs & mBX))
+            {
+                c = cat(c, cod3_load_got());
+            }
+#endif
+            goto case_goto;
+#endif
+#if SCPP
+        case BCcatch:
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in catch blocks.
+            c = cat(c,getregs(allregs | mES));
+#if 0 && TARGET_LINUX
+            if (config.flags3 & CFG3pic && !(allregs & mBX))
+            {
+                c = cat(c, cod3_load_got());
+            }
+#endif
+            goto case_goto;
+
+        case BCtry:
+            usednteh |= EHtry;
+            if (config.flags2 & CFG2seh)
+                usednteh |= NTEHtry;
+            goto case_goto;
+#endif
+        case BCgoto:
+            nextb = list_block(bl->Bsucc);
+            if ((funcsym_p->Sfunc->Fflags3 & Fnteh ||
+                 (MARS /*&& config.flags2 & CFG2seh*/)) &&
+                bl->Btry != nextb->Btry &&
+                nextb->BC != BC_finally)
+            {   int toindex;
+                int fromindex;
+
+                bl->Bcode = NULL;
+                c = gencodelem(c,e,&retregs,TRUE);
+                toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
+                assert(bl->Btry);
+                fromindex = bl->Btry->Bscope_index;
+#if MARS
+                if (toindex + 1 == fromindex)
+                {   // Simply call __finally
+                    if (bl->Btry &&
+                        list_block(list_next(bl->Btry->Bsucc))->BC == BCjcatch)
+                    {
+                        goto L2;
+                    }
+                }
+#endif
+                if (config.flags2 & CFG2seh)
+                    c = cat(c,nteh_unwind(0,toindex));
+#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+                else if (toindex + 1 <= fromindex)
+                {
+                    //c = cat(c, linux_unwind(0, toindex));
+                    block *bt;
+
+                    //printf("B%d: fromindex = %d, toindex = %d\n", bl->Bdfoidx, fromindex, toindex);
+                    bt = bl;
+                    while ((bt = bt->Btry) != NULL && bt->Bscope_index != toindex)
+                    {   block *bf;
+
+                        //printf("\tbt->Bscope_index = %d, bt->Blast_index = %d\n", bt->Bscope_index, bt->Blast_index);
+                        bf = list_block(list_next(bt->Bsucc));
+                        // Only look at try-finally blocks
+                        if (bf->BC == BCjcatch)
+                            continue;
+
+                        if (bf == nextb)
+                            continue;
+                        //printf("\tbf = B%d, nextb = B%d\n", bf->Bdfoidx, nextb->Bdfoidx);
+                        if (nextb->BC == BCgoto &&
+                            !nextb->Belem &&
+                            bf == list_block(nextb->Bsucc))
+                            continue;
+
+                        // call __finally
+                        code *cs;
+                        code *cr;
+                        int nalign = 0;
+
+                        gensaverestore(retregs,&cs,&cr);
+                        if (STACKALIGN == 16)
+                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
+                            if (npush & (STACKALIGN - 1))
+                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
+                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                                if (I64)
+                                    code_orrex(cs, REX_W);
+                            }
+                        }
+                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                        if (nalign)
+                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                            if (I64)
+                                code_orrex(cs, REX_W);
+                        }
+                        c = cat3(c,cs,cr);
+                    }
+                }
+#endif
+                goto L2;
+            }
+        case_goto:
+            c = gencodelem(c,e,&retregs,TRUE);
+            if (anyspill)
+            {   // Add in the epilog code
+                code *cstore = NULL;
+                code *cload = NULL;
+
+                for (int i = 0; i < anyspill; i++)
+                {   symbol *s = globsym.tab[i];
+
+                    if (s->Sflags & SFLspill &&
+                        vec_testbit(dfoidx,s->Srange))
+                    {
+                        s->Sfl = sflsave[i];    // undo block register assignments
+                        cgreg_spillreg_epilog(bl,s,&cstore,&cload);
+                    }
+                }
+                c = cat3(c,cstore,cload);
+            }
+
+        L3:
+            bl->Bcode = NULL;
+            nextb = list_block(bl->Bsucc);
+            goto L2;
+
+        case BC_try:
+            if (config.flags2 & CFG2seh)
+            {   usednteh |= NTEH_try;
+                nteh_usevars();
+            }
+            else
+                usednteh |= EHtry;
+            goto case_goto;
+
+        case BC_finally:
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in finally blocks.
+            assert(!getregs(allregs));
+            assert(!e);
+            assert(!bl->Bcode);
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            if (config.flags3 & CFG3pic)
+            {
+                int nalign = 0;
+                if (STACKALIGN == 16)
+                {   nalign = STACKALIGN - REGSIZE;
+                    c = genc2(c,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                    if (I64)
+                        code_orrex(c, REX_W);
+                }
+                // CALL bl->Bsucc
+                c = genc(c,0xE8,0,0,0,FLblock,(long)list_block(bl->Bsucc));
+                if (nalign)
+                {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                    if (I64)
+                        code_orrex(c, REX_W);
+                }
+                // JMP list_next(bl->Bsucc)
+                nextb = list_block(list_next(bl->Bsucc));
+                goto L2;
+            }
+            else
+#endif
+            {
+                // Generate a PUSH of the address of the successor to the
+                // corresponding BC_ret
+                //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
+                // PUSH &succ
+                c = genc(c,0x68,0,0,0,FLblock,(long)list_block(list_next(bl->Bsucc)));
+                nextb = list_block(bl->Bsucc);
+                goto L2;
+            }
+
+        case BC_ret:
+            c = gencodelem(c,e,&retregs,TRUE);
+            bl->Bcode = gen1(c,0xC3);   // RET
+            break;
+
+#if NTEXCEPTIONS
+        case BC_except:
+            assert(!e);
+            usednteh |= NTEH_except;
+            c = cat(c,nteh_setsp(0x8B));
+            getregs(allregs);
+            goto L3;
+
+        case BC_filter:
+            c = cat(c,nteh_filter(bl));
+            // Mark all registers as destroyed. This will prevent
+            // register assignments to variables used in filter blocks.
+            getregs(allregs);
+            retregs = regmask(e->Ety, TYnfunc);
+            c = gencodelem(c,e,&retregs,TRUE);
+            bl->Bcode = gen1(c,0xC3);   // RET
+            break;
+#endif
+
+        case BCretexp:
+            retregs = regmask(e->Ety, funcsym_p->ty());
+
+            // For the final load into the return regs, don't set regcon.used,
+            // so that the optimizer can potentially use retregs for register
+            // variable assignments.
+
+            if (config.flags4 & CFG4optimized)
+            {   regm_t usedsave;
+
+                c = cat(c,docommas(&e));
+                usedsave = regcon.used;
+                if (EOP(e))
+                    c = gencodelem(c,e,&retregs,TRUE);
+                else
+                {
+                    if (e->Eoper == OPconst)
+                        regcon.mvar = 0;
+                    c = gencodelem(c,e,&retregs,TRUE);
+                    regcon.used = usedsave;
+                    if (e->Eoper == OPvar)
+                    {   symbol *s = e->EV.sp.Vsym;
+
+                        if (s->Sfl == FLreg && s->Sregm != mAX)
+                            *retsym = s;
+                    }
+                }
+            }
+            else
+            {
+        case BCret:
+        case BCexit:
+                c = gencodelem(c,e,&retregs,TRUE);
+            }
+            bl->Bcode = c;
+            if (retregs == mST0)
+            {   assert(stackused == 1);
+                pop87();                // account for return value
+            }
+            else if (retregs == mST01)
+            {   assert(stackused == 2);
+                pop87();
+                pop87();                // account for return value
+            }
+            if (bl->BC == BCexit && config.flags4 & CFG4optimized)
+                mfuncreg = mfuncregsave;
+            if (MARS || usednteh & NTEH_try)
+            {   block *bt;
+
+                bt = bl;
+                while ((bt = bt->Btry) != NULL)
+                {   block *bf;
+
+                    bf = list_block(list_next(bt->Bsucc));
+#if MARS
+                    // Only look at try-finally blocks
+                    if (bf->BC == BCjcatch)
+                    {
+                        continue;
+                    }
+#endif
+                    if (config.flags2 & CFG2seh)
+                    {
+                        if (bt->Bscope_index == 0)
+                        {
+                            // call __finally
+                            code *cs;
+                            code *cr;
+
+                            c = cat(c,nteh_gensindex(-1));
+                            gensaverestore(retregs,&cs,&cr);
+                            cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                            bl->Bcode = cat3(c,cs,cr);
+                        }
+                        else
+                            bl->Bcode = cat(c,nteh_unwind(retregs,~0));
+                        break;
+                    }
+                    else
+                    {
+                        // call __finally
+                        code *cs;
+                        code *cr;
+                        int nalign = 0;
+
+                        gensaverestore(retregs,&cs,&cr);
+                        if (STACKALIGN == 16)
+                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
+                            if (npush & (STACKALIGN - 1))
+                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
+                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
+                                if (I64)
+                                    code_orrex(cs, REX_W);
+                            }
+                        }
+                        // CALL bf->Bsucc
+                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                        if (nalign)
+                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
+                            if (I64)
+                                code_orrex(cs, REX_W);
+                        }
+                        bl->Bcode = c = cat3(c,cs,cr);
+                    }
+                }
+            }
+            break;
+
+#if SCPP || MARS
+        case BCasm:
+            assert(!e);
+            // Mark destroyed registers
+            assert(!c);
+            c = cat(c,getregs(iasm_regs(bl)));
+            if (bl->Bsucc)
+            {   nextb = list_block(bl->Bsucc);
+                if (!bl->Bnext)
+                    goto L2;
+                if (nextb != bl->Bnext &&
+                    bl->Bnext &&
+                    !(bl->Bnext->BC == BCgoto &&
+                     !bl->Bnext->Belem &&
+                     nextb == list_block(bl->Bnext->Bsucc)))
+                {   code *cl;
+
+                    // See if already have JMP at end of block
+                    cl = code_last(bl->Bcode);
+                    if (!cl || cl->Iop != JMP)
+                        goto L2;        // add JMP at end of block
+                }
+            }
+            break;
+#endif
+        default:
+#ifdef DEBUG
+            printf("bl->BC = %d\n",bl->BC);
+#endif
+            assert(0);
+    }
+}
+
 /*******************************
  * Generate code for blocks ending in a switch statement.
  * Take BCswitch and decide on
@@ -1175,6 +1662,457 @@ STATIC int obj_namestring(char *p,const char *name)
     return len;
 }
 #endif
+
+code *genregs(code *c,unsigned op,unsigned dstreg,unsigned srcreg)
+{ return gen2(c,op,modregxrmx(3,dstreg,srcreg)); }
+
+code *gentstreg(code *c,unsigned t)
+{
+    c = gen2(c,0x85,modregxrmx(3,t,t));   // TEST t,t
+    code_orflag(c,CFpsw);
+    return c;
+}
+
+code *genpush(code *c, unsigned reg)
+{
+    c = gen1(c, 0x50 + (reg & 7));
+    if (reg & 8)
+        code_orrex(c, REX_B);
+    return c;
+}
+
+code *genpop(code *c, unsigned reg)
+{
+    c = gen1(c, 0x58 + (reg & 7));
+    if (reg & 8)
+        code_orrex(c, REX_B);
+    return c;
+}
+
+/**************************
+ * Generate a MOV to save a register to a stack slot
+ */
+code *gensavereg(unsigned& reg, targ_uns slot)
+{
+    // MOV i[BP],reg
+    unsigned op = 0x89;              // normal mov
+    if (reg == ES)
+    {   reg = 0;            // the real reg number
+        op = 0x8C;          // segment reg mov
+    }
+    code *c = genc1(NULL,op,modregxrm(2, reg, BPRM),FLcs,slot);
+    if (I64)
+        code_orrex(c, REX_W);
+
+    return c;
+}
+
+/**************************
+ * Generate a MOV to,from register instruction.
+ * Smart enough to dump redundant register moves, and segment
+ * register moves.
+ */
+
+code *genmovreg(code *c,unsigned to,unsigned from)
+{
+#if DEBUG
+        if (to > ES || from > ES)
+                printf("genmovreg(c = %p, to = %d, from = %d)\n",c,to,from);
+#endif
+        assert(to <= ES && from <= ES);
+        if (to != from)
+        {
+                if (to == ES)
+                        c = genregs(c,0x8E,0,from);
+                else if (from == ES)
+                        c = genregs(c,0x8C,0,to);
+                else
+                        c = genregs(c,0x89,from,to);
+                if (I64)
+                        code_orrex(c, REX_W);
+        }
+        return c;
+}
+
+/***************************************
+ * Generate immediate multiply instruction for r1=r2*imm.
+ * Optimize it into LEA's if we can.
+ */
+
+code *genmulimm(code *c,unsigned r1,unsigned r2,targ_int imm)
+{   code cs;
+
+    // These optimizations should probably be put into pinholeopt()
+    switch (imm)
+    {   case 1:
+            c = genmovreg(c,r1,r2);
+            break;
+        case 5:
+            cs.Iop = LEA;
+            cs.Iflags = 0;
+            cs.Irex = 0;
+            buildEA(&cs,r2,r2,4,0);
+            cs.orReg(r1);
+            c = gen(c,&cs);
+            break;
+        default:
+            c = genc2(c,0x69,modregxrmx(3,r1,r2),imm);    // IMUL r1,r2,imm
+            break;
+    }
+    return c;
+}
+
+/******************************
+ * Load CX with the value of _AHSHIFT.
+ */
+
+code *genshift(code *c)
+{
+#if SCPP && TX86
+    code *c1;
+
+    // Set up ahshift to trick ourselves into giving the right fixup,
+    // which must be seg-relative, external frame, external target.
+    c1 = gencs(CNIL,0xC7,modregrm(3,0,CX),FLfunc,rtlsym[RTLSYM_AHSHIFT]);
+    c1->Iflags |= CFoff;
+    return cat(c,c1);
+#else
+    assert(0);
+    return 0;
+#endif
+}
+
+/******************************
+ * Move constant value into reg.
+ * Take advantage of existing values in registers.
+ * If flags & mPSW
+ *      set flags based on result
+ * Else if flags & 8
+ *      do not disturb flags
+ * Else
+ *      don't care about flags
+ * If flags & 1 then byte move
+ * If flags & 2 then short move (for I32 and I64)
+ * If flags & 4 then don't disturb unused portion of register
+ * If flags & 16 then reg is a byte register AL..BH
+ * If flags & 64 (0x40) then 64 bit move (I64 only)
+ * Returns:
+ *      code (if any) generated
+ */
+
+code *movregconst(code *c,unsigned reg,targ_size_t value,regm_t flags)
+{   unsigned r;
+    regm_t mreg;
+
+    //printf("movregconst(reg=%s, value= %lld (%llx), flags=%x)\n", regm_str(mask[reg]), value, value, flags);
+#define genclrreg(a,r) genregs(a,0x31,r,r)
+
+    regm_t regm = regcon.immed.mval & mask[reg];
+    targ_size_t regv = regcon.immed.value[reg];
+
+    if (flags & 1)      // 8 bits
+    {
+        value &= 0xFF;
+        regm &= BYTEREGS;
+
+        // If we already have the right value in the right register
+        if (regm && (regv & 0xFF) == value)
+            goto L2;
+
+        if (flags & 16 && reg & 4 &&    // if an H byte register
+            regcon.immed.mval & mask[reg & 3] &&
+            (((regv = regcon.immed.value[reg & 3]) >> 8) & 0xFF) == value)
+            goto L2;
+
+        /* Avoid byte register loads on Pentium Pro and Pentium II
+         * to avoid dependency stalls.
+         */
+        if (config.flags4 & CFG4speed &&
+            config.target_cpu >= TARGET_PentiumPro && !(flags & 4))
+            goto L3;
+
+        // See if another register has the right value
+        r = 0;
+        for (mreg = (regcon.immed.mval & BYTEREGS); mreg; mreg >>= 1)
+        {
+            if (mreg & 1)
+            {
+                if ((regcon.immed.value[r] & 0xFF) == value)
+                {   c = genregs(c,0x8A,reg,r);          // MOV regL,rL
+                    if (I64 && reg >= 4 || r >= 4)
+                        code_orrex(c, REX);
+                    goto L2;
+                }
+                if (!(I64 && reg >= 4) &&
+                    r < 4 && ((regcon.immed.value[r] >> 8) & 0xFF) == value)
+                {   c = genregs(c,0x8A,reg,r | 4);      // MOV regL,rH
+                    goto L2;
+                }
+            }
+            r++;
+        }
+
+        if (value == 0 && !(flags & 8))
+        {
+            if (!(flags & 4) &&                 // if we can set the whole register
+                !(flags & 16 && reg & 4))       // and reg is not an H register
+            {   c = genregs(c,0x31,reg,reg);    // XOR reg,reg
+                regimmed_set(reg,value);
+                regv = 0;
+            }
+            else
+                c = genregs(c,0x30,reg,reg);    // XOR regL,regL
+            flags &= ~mPSW;                     // flags already set by XOR
+        }
+        else
+        {   c = genc2(c,0xC6,modregrmx(3,0,reg),value);  /* MOV regL,value */
+            if (reg >= 4 && I64)
+            {
+                code_orrex(c, REX);
+            }
+        }
+    L2:
+        if (flags & mPSW)
+            genregs(c,0x84,reg,reg);            // TEST regL,regL
+
+        if (regm)
+            // Set just the 'L' part of the register value
+            regimmed_set(reg,(regv & ~(targ_size_t)0xFF) | value);
+        else if (flags & 16 && reg & 4 && regcon.immed.mval & mask[reg & 3])
+            // Set just the 'H' part of the register value
+            regimmed_set((reg & 3),(regv & ~(targ_size_t)0xFF00) | (value << 8));
+        return c;
+    }
+L3:
+    if (I16)
+        value = (targ_short) value;             /* sign-extend MSW      */
+    else if (I32)
+        value = (targ_int) value;
+
+    if (!I16 && flags & 2)                      // load 16 bit value
+    {
+        value &= 0xFFFF;
+        if (value == 0)
+            goto L1;
+        else
+        {
+            if (flags & mPSW)
+                goto L1;
+            code *c1 = genc2(CNIL,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+            c1->Iflags |= CFopsize;             // yes, even for I64
+            c = cat(c,c1);
+            if (regm)
+                // High bits of register are not affected by 16 bit load
+                regimmed_set(reg,(regv & ~(targ_size_t)0xFFFF) | value);
+        }
+        return c;
+    }
+L1:
+
+    /* If we already have the right value in the right register */
+    if (regm && (regv & 0xFFFFFFFF) == (value & 0xFFFFFFFF) && !(flags & 64))
+    {   if (flags & mPSW)
+            c = gentstreg(c,reg);
+    }
+    else if (flags & 64 && regm && regv == value)
+    {   // Look at the full 64 bits
+        if (flags & mPSW)
+        {
+            c = gentstreg(c,reg);
+            code_orrex(c, REX_W);
+        }
+    }
+    else
+    {
+        if (flags & mPSW)
+        {
+            switch (value)
+            {   case 0:
+                    c = genclrreg(c,reg);
+                    if (flags & 64)
+                        code_orrex(c, REX_W);
+                    break;
+                case 1:
+                    if (I64)
+                        goto L4;
+                    c = genclrreg(c,reg);
+                    goto inc;
+                case -1:
+                    if (I64)
+                        goto L4;
+                    c = genclrreg(c,reg);
+                    goto dec;
+                default:
+                L4:
+                    if (flags & 64)
+                    {
+                        c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
+                        gentstreg(c,reg);
+                        code_orrex(c, REX_W);
+                    }
+                    else
+                    {   c = genc2(c,0xC7,modregrmx(3,0,reg),value); /* MOV reg,value */
+                        gentstreg(c,reg);
+                    }
+                    break;
+            }
+        }
+        else
+        {
+            /* Look for single byte conversion  */
+            if (regcon.immed.mval & mAX)
+            {
+                if (I32)
+                {   if (reg == AX && value == (targ_short) regv)
+                    {   c = gen1(c,0x98);               /* CWDE         */
+                        goto done;
+                    }
+                    if (reg == DX &&
+                        value == (regcon.immed.value[AX] & 0x80000000 ? 0xFFFFFFFF : 0) &&
+                        !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
+                       )
+                    {   c = gen1(c,0x99);               /* CDQ          */
+                        goto done;
+                    }
+                }
+                else if (I16)
+                {
+                    if (reg == AX &&
+                        (targ_short) value == (signed char) regv)
+                    {   c = gen1(c,0x98);               /* CBW          */
+                        goto done;
+                    }
+
+                    if (reg == DX &&
+                        (targ_short) value == (regcon.immed.value[AX] & 0x8000 ? (targ_short) 0xFFFF : (targ_short) 0) &&
+                        !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_Pentium)
+                       )
+                    {   c = gen1(c,0x99);               /* CWD          */
+                        goto done;
+                    }
+                }
+            }
+            if (value == 0 && !(flags & 8) && config.target_cpu >= TARGET_80486)
+            {   c = genclrreg(c,reg);           // CLR reg
+                if (flags & 64)
+                    code_orrex(c, REX_W);
+                goto done;
+            }
+
+            if (!I64 && regm && !(flags & 8))
+            {   if (regv + 1 == value ||
+                    /* Catch case of (0xFFFF+1 == 0) for 16 bit compiles */
+                    (I16 && (targ_short)(regv + 1) == (targ_short)value))
+                {
+                inc:
+                    c = gen1(c,0x40 + reg);     /* INC reg              */
+                    goto done;
+                }
+                if (regv - 1 == value)
+                {
+                dec:
+                    c = gen1(c,0x48 + reg);     /* DEC reg              */
+                    goto done;
+                }
+            }
+
+            /* See if another register has the right value      */
+            r = 0;
+            for (mreg = regcon.immed.mval; mreg; mreg >>= 1)
+            {
+#ifdef DEBUG
+                assert(!I16 || regcon.immed.value[r] == (targ_short)regcon.immed.value[r]);
+#endif
+                if (mreg & 1 && regcon.immed.value[r] == value)
+                {   c = genmovreg(c,reg,r);
+                    if (flags & 64)
+                        code_orrex(c, REX_W);
+                    goto done;
+                }
+                r++;
+            }
+
+            if (value == 0 && !(flags & 8))
+            {   c = genclrreg(c,reg);           // CLR reg
+                if (flags & 64)
+                    code_orrex(c, REX_W);
+            }
+            else
+            {   /* See if we can just load a byte       */
+                if (regm & BYTEREGS &&
+                    !(config.flags4 & CFG4speed && config.target_cpu >= TARGET_PentiumPro)
+                   )
+                {
+                    if ((regv & ~(targ_size_t)0xFF) == (value & ~(targ_size_t)0xFF))
+                    {   c = movregconst(c,reg,value,(flags & 8) |4|1);  // load regL
+                        return c;
+                    }
+                    if (regm & (mAX|mBX|mCX|mDX) &&
+                        (regv & ~(targ_size_t)0xFF00) == (value & ~(targ_size_t)0xFF00) &&
+                        !I64)
+                    {   c = movregconst(c,4|reg,value >> 8,(flags & 8) |4|1|16); // load regH
+                        return c;
+                    }
+                }
+                if (flags & 64)
+                    c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
+                else
+                    c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+            }
+        }
+    done:
+        regimmed_set(reg,value);
+    }
+    return c;
+}
+
+/**************************
+ * Generate a jump instruction.
+ */
+
+code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
+{   code cs;
+    code *cj;
+    code *cnop;
+
+    cs.Iop = op & 0xFF;
+    cs.Iflags = 0;
+    cs.Irex = 0;
+    if (op != JMP && op != 0xE8)        // if not already long branch
+          cs.Iflags = CFjmp16;          /* assume long branch for op = 0x7x */
+    cs.IFL2 = fltarg;                   /* FLblock (or FLcode)          */
+    cs.IEV2.Vblock = targ;              /* target block (or code)       */
+    if (fltarg == FLcode)
+        ((code *)targ)->Iflags |= CFtarg;
+
+    if (config.flags4 & CFG4fastfloat)  // if fast floating point
+        return gen(c,&cs);
+
+    cj = gen(CNIL,&cs);
+    switch (op & 0xFF00)                /* look at second jump opcode   */
+    {
+        /* The JP and JNP come from floating point comparisons          */
+        case JP << 8:
+            cs.Iop = JP;
+            gen(cj,&cs);
+            break;
+        case JNP << 8:
+            /* Do a JP around the jump instruction      */
+            cnop = gennop(CNIL);
+            c = genjmp(c,JP,FLcode,(block *) cnop);
+            cat(cj,cnop);
+            break;
+        case 1 << 8:                    /* toggled no jump              */
+        case 0 << 8:
+            break;
+        default:
+#ifdef DEBUG
+            printf("jop = x%x\n",op);
+#endif
+            assert(0);
+    }
+    return cat(c,cj);
+}
 
 /*******************************
  * Generate code for a function start.
