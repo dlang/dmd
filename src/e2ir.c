@@ -2483,33 +2483,9 @@ elem *InExp::toElem(IRState *irs)
     elem *keyti;
     TypeAArray *taa = (TypeAArray *)e2->type->toBasetype();
 
-
-    // set to:
-    Symbol *s;
-    if (I64)
-    {
-        // aaInX(aa, keyti, key);
-        key = addressElem(key, e1->type);
-        s = taa->aaGetSymbol("InX", 0);
-    }
-    else
-    {
-        //  aaIn(aa, keyti, key);
-        if (tybasic(key->Ety) == TYstruct)
-        {
-            key = el_una(OPstrpar, TYstruct, key);
-            key->ET = key->E1->ET;
-        }
-        else if (tybasic(key->Ety) == TYarray && taa->index->ty == Tsarray)
-        {   // e2->elem() turns string literals into a TYarray, so the
-            // length is lost. Restore it.
-            key = el_una(OPstrpar, TYstruct, key);
-            assert(e1->type->size() == taa->index->size());
-            key->ET = taa->index->toCtype();
-        }
-
-        s = taa->aaGetSymbol("In", 0);
-    }
+    // aaInX(aa, keyti, key);
+    key = addressElem(key, e1->type);
+    Symbol *s = taa->aaGetSymbol("InX", 0);
     keyti = taa->index->getInternalTypeInfo(NULL)->toElem(irs);
     ep = el_params(key, keyti, aa, NULL);
     e = el_bin(OPcall, type->totym(), el_var(s), ep);
@@ -2531,22 +2507,8 @@ elem *RemoveExp::toElem(IRState *irs)
     elem *ep;
     elem *keyti;
 
-    Symbol *s;
-    if (I64)
-    {
-        ekey = addressElem(ekey, e1->type);
-        s = taa->aaGetSymbol("DelX", 0);
-    }
-    else
-    {
-        if (tybasic(ekey->Ety) == TYstruct || tybasic(ekey->Ety) == TYarray)
-        {
-            ekey = el_una(OPstrpar, TYstruct, ekey);
-            ekey->ET = ekey->E1->ET;
-        }
-
-        s = taa->aaGetSymbol("Del", 0);
-    }
+    ekey = addressElem(ekey, e1->type);
+    Symbol *s = taa->aaGetSymbol("DelX", 0);
     keyti = taa->index->getInternalTypeInfo(NULL)->toElem(irs);
     ep = el_params(ekey, keyti, ea, NULL);
     e = el_bin(OPcall, TYnptr, el_var(s), ep);
@@ -4506,38 +4468,22 @@ elem *IndexExp::toElem(IRState *irs)
         // n2 becomes the index, also known as the key
         elem *n2 = e2->toElem(irs);
 
-        if (I64)
-        {
-            /* Turn n2 into a pointer to the index.  If it's an lvalue,
-             * take the address of it. If not, copy it to a temp and
-             * take the address of that.
-             */
-            n2 = addressElem(n2, taa->index);
-        }
-        else
-        {
-            if (tybasic(n2->Ety) == TYstruct || tybasic(n2->Ety) == TYarray)
-            {
-                n2 = el_una(OPstrpar, TYstruct, n2);
-                n2->ET = n2->E1->ET;
-                if (taa->index->ty == Tsarray)
-                {
-                    assert(e2->type->size() == taa->index->size());
-                }
-                //printf("numbytes = %d\n", n2->Enumbytes);
-            }
-        }
+        /* Turn n2 into a pointer to the index.  If it's an lvalue,
+         * take the address of it. If not, copy it to a temp and
+         * take the address of that.
+         */
+        n2 = addressElem(n2, taa->index);
 
         elem *valuesize = el_long(TYsize_t, vsize);
         //printf("valuesize: "); elem_print(valuesize);
         if (modifiable)
         {
             n1 = el_una(OPaddr, TYnptr, n1);
-            s = taa->aaGetSymbol(I64 ? "GetX" : "Get", 1);
+            s = taa->aaGetSymbol("GetX", 1);
         }
         else
         {
-            s = taa->aaGetSymbol(I64 ? "GetRvalueX" : "GetRvalue", 1);
+            s = taa->aaGetSymbol("GetRvalueX", 1);
         }
         //printf("taa->index = %s\n", taa->index->toChars());
         elem* keyti = taa->index->getInternalTypeInfo(NULL)->toElem(irs);
@@ -4656,81 +4602,48 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     Type *tb = type->toBasetype();
     if (elements)
     {
-        if (I64)
-        {   /* Instead of passing the initializers on the stack, allocate the
-             * array and assign the members inline.
-             * Avoids the whole variadic arg mess.
+        /* Instead of passing the initializers on the stack, allocate the
+         * array and assign the members inline.
+         * Avoids the whole variadic arg mess.
+         */
+        dim = elements->dim;
+        Elems args;
+        args.setDim(dim);           // +1 for number of args parameter
+        e = el_long(TYsize_t, dim);
+        e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+        // call _d_arrayliteralTX(ti, dim)
+        e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALTX]),e);
+        Symbol *stmp = symbol_genauto(Type::tvoid->pointerTo()->toCtype());
+        e = el_bin(OPeq,TYnptr,el_var(stmp),e);
+
+        targ_size_t sz = tb->nextOf()->size();      // element size
+        ::type *te = tb->nextOf()->toCtype();       // element type
+        for (size_t i = 0; i < dim; i++)
+        {   Expression *el = elements->tdata()[i];
+
+            /* Generate: *(stmp + i * sz) = element[i]
              */
-            dim = elements->dim;
-            Elems args;
-            args.setDim(dim);           // +1 for number of args parameter
-            e = el_long(TYsize_t, dim);
-            e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
-            // call _d_arrayliteralTX(ti, dim)
-            e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALTX]),e);
-            Symbol *stmp = symbol_genauto(Type::tvoid->pointerTo()->toCtype());
-            e = el_bin(OPeq,TYnptr,el_var(stmp),e);
+            elem *ep = el->toElem(irs);
+            elem *ev = el_var(stmp);
+            ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * sz));
+            ev = el_una(OPind, te->Tty, ev);
+            elem *eeq = el_bin(OPeq,te->Tty,ev,ep);
 
-            targ_size_t sz = tb->nextOf()->size();      // element size
-            ::type *te = tb->nextOf()->toCtype();       // element type
-            for (size_t i = 0; i < dim; i++)
-            {   Expression *el = elements->tdata()[i];
-
-                /* Generate: *(stmp + i * sz) = element[i]
-                 */
-                elem *ep = el->toElem(irs);
-                elem *ev = el_var(stmp);
-                ev = el_bin(OPadd, TYnptr, ev, el_long(TYsize_t, i * sz));
-                ev = el_una(OPind, te->Tty, ev);
-                elem *eeq = el_bin(OPeq,te->Tty,ev,ep);
-
-                if (tybasic(te->Tty) == TYstruct)
-                {
-                    eeq->Eoper = OPstreq;
-                    eeq->ET = te;
-                }
-                else if (tybasic(te->Tty) == TYarray)
-                {
-                    eeq->Eoper = OPstreq;
-                    eeq->Ejty = eeq->Ety = TYstruct;
-                    eeq->ET = te;
-                }
-                args.tdata()[i] = eeq;
+            if (tybasic(te->Tty) == TYstruct)
+            {
+                eeq->Eoper = OPstreq;
+                eeq->ET = te;
             }
-            e = el_combine(e, el_combines((void **)args.tdata(), dim));
-            e = el_combine(e, el_var(stmp));
-        }
-        else
-        {
-            Elems args;
-            dim = elements->dim;
-            args.setDim(dim + 1);           // +1 for number of args parameter
-            e = el_long(TYsize_t, dim);
-            args.tdata()[dim] = e;
-            for (size_t i = 0; i < dim; i++)
-            {   Expression *el = elements->tdata()[i];
-                elem *ep = el->toElem(irs);
-
-                if (tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray)
-                {
-                    ep = el_una(OPstrpar, TYstruct, ep);
-                    ep->ET = el->type->toCtype();
-                }
-                args.tdata()[dim - (i + 1)] = ep;
+            else if (tybasic(te->Tty) == TYarray)
+            {
+                eeq->Eoper = OPstreq;
+                eeq->Ejty = eeq->Ety = TYstruct;
+                eeq->ET = te;
             }
-
-            /* Because the number of parameters can get very large, produce
-             * a balanced binary tree so we don't blow up the stack in
-             * the subsequent tree walking code.
-             */
-            e = el_params((void **)args.tdata(), dim + 1);
-
-            e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
-
-            // call _d_arrayliteralT(ti, dim, ...)
-            e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ARRAYLITERALT]),e);
-            e->Eflags |= EFLAGS_variadic;
+            args.tdata()[i] = eeq;
         }
+        e = el_combine(e, el_combines((void **)args.tdata(), dim));
+        e = el_combine(e, el_var(stmp));
     }
     else
     {   dim = 0;
@@ -4808,80 +4721,29 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
     size_t dim = keys->dim;
     elem *e;
 
-    if (I64)
-    {   // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
-        // Prefer this to avoid the varargs fiasco in 64 bit code
-        Type *t = type->toBasetype()->mutableOf();
-        assert(t->ty == Taarray);
-        TypeAArray *ta = (TypeAArray *)t;
+    // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
+    // Prefer this to avoid the varargs fiasco in 64 bit code
+    Type *t = type->toBasetype()->mutableOf();
+    assert(t->ty == Taarray);
+    TypeAArray *ta = (TypeAArray *)t;
 
-        symbol *skeys;
-        elem *ekeys = ExpressionsToStaticArray(irs, loc, keys, ta->index, &skeys);
+    symbol *skeys;
+    elem *ekeys = ExpressionsToStaticArray(irs, loc, keys, ta->index, &skeys);
 
-        symbol *svalues;
-        elem *evalues = ExpressionsToStaticArray(irs, loc, values, ta->nextOf(), &svalues);
+    symbol *svalues;
+    elem *evalues = ExpressionsToStaticArray(irs, loc, values, ta->nextOf(), &svalues);
 
-        e = el_params(el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues)),
-                      el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  )),
-                      ta->getTypeInfo(NULL)->toElem(irs),
-                      NULL);
+    e = el_params(el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues)),
+                  el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  )),
+                  ta->getTypeInfo(NULL)->toElem(irs),
+                  NULL);
 
-        // call _d_assocarrayliteralTX(ti, keys, values)
-        e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALTX]),e);
-        el_setLoc(e,loc);
+    // call _d_assocarrayliteralTX(ti, keys, values)
+    e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALTX]),e);
+    el_setLoc(e,loc);
 
-        e = el_combine(evalues, e);
-        e = el_combine(ekeys, e);
-    }
-    else // Keep for binary backwards compatibility
-    {    // call _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
-        e = el_long(TYsize_t, dim);
-        for (size_t i = 0; i < dim; i++)
-        {   Expression *el = keys->tdata()[i];
-
-            for (int j = 0; j < 2; j++)
-            {
-                elem *ep = el->toElem(irs);
-
-                if (tybasic(ep->Ety) == TYstruct || tybasic(ep->Ety) == TYarray)
-                {
-                    ep = el_una(OPstrpar, TYstruct, ep);
-                    ep->ET = el->type->toCtype();
-                }
-                //printf("[%d] %s\n", i, el->toChars());
-                //elem_print(ep);
-                e = el_param(ep, e);
-                el = values->tdata()[i];
-            }
-        }
-
-        Type *t = type->toBasetype()->mutableOf();
-        assert(t->ty == Taarray);
-        TypeAArray *ta = (TypeAArray *)t;
-
-#if 0
-        /* Unfortunately, the hash function for Aa (array of chars) is custom and
-         * different from Axa and Aya, which get the generic hash function.
-         * So, rewrite the type of the AArray so that if it's key type
-         * is an array of const or invariant, make it an array of mutable.
-         */
-        Type *tkey = ta->index->toBasetype();
-        if (tkey->ty == Tarray)
-        {
-            tkey = tkey->nextOf()->mutableOf()->arrayOf();
-            tkey = tkey->semantic(0, NULL);
-            ta = new TypeAArray(ta->nextOf(), tkey);
-            ta = (TypeAArray *)ta->merge();
-        }
-#endif
-
-        e = el_param(e, ta->getTypeInfo(NULL)->toElem(irs));
-
-        // call _d_assocarrayliteralT(ti, dim, ...)
-        e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALT]),e);
-        e->Eflags |= EFLAGS_variadic;
-        el_setLoc(e,loc);
-    }
+    e = el_combine(evalues, e);
+    e = el_combine(ekeys, e);
 
     return e;
 }
