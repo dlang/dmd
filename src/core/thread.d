@@ -294,6 +294,14 @@ else version( Posix )
         }
 
 
+        // NOTE: On x86_64, if fiber throws an exception, backtrace() fails
+        //       inside pthread_once() if pthread_once() has never been called
+        //       for the thread.  thread_initOnce() exists to fix this issue.
+        extern (C) void thread_initOnce()
+        {
+        }
+
+
         //
         // Entry point for POSIX threads
         //
@@ -358,6 +366,8 @@ else version( Posix )
                 obj.m_tls = pstart[0 .. pend - pstart];
             }
 
+            pthread_once_t once;
+            pthread_once( &once, &thread_initOnce );
             obj.m_isRunning = true;
             Thread.setThis( obj );
             //Thread.add( obj );
@@ -1922,6 +1932,8 @@ extern (C) Thread thread_attachThis()
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
 
+        pthread_once_t once;
+        pthread_once( &once, &thread_initOnce );
         thisThread.m_isRunning = true;
     }
     thisThread.m_isDaemon = true;
@@ -2919,7 +2931,7 @@ private
         //       switch into a new context will fail.
 
         version( AsmX86_Windows )
-        {            
+        {
             asm
             {
                 naked;
@@ -2992,7 +3004,7 @@ private
                 // 'return' to complete switch
                 pop RCX;
                 jmp RCX;
-            }    
+            }
         }
         else version( AsmX86_Posix )
         {
@@ -3684,7 +3696,7 @@ private:
         }
 
         version( AsmX86_Windows )
-        {            
+        {
             push( cast(size_t) &fiber_entryPoint );                 // EIP
             push( cast(size_t) m_ctxt.bstack );                     // EBP
             push( 0x00000000 );                                     // EDI
@@ -3713,7 +3725,7 @@ private:
             push( 0x00000000_00000000 );                            // R13
             push( 0x00000000_00000000 );                            // R14
             push( 0x00000000_00000000 );                            // R15
-            push( 0xFFFFFFFF_FFFFFFFF );                            // GS:[0] 
+            push( 0xFFFFFFFF_FFFFFFFF );                            // GS:[0]
             version( StackGrowsDown )
             {
                 push( cast(size_t) m_ctxt.bstack );                 // GS:[8]
@@ -3722,11 +3734,11 @@ private:
             else
             {
                 push( cast(size_t) m_ctxt.bstack );                 // GS:[8]
-                push( cast(size_t) m_ctxt.bstack + m_size );        // GS:[16] 
-            }        
+                push( cast(size_t) m_ctxt.bstack + m_size );        // GS:[16]
+            }
         }
         else version( AsmX86_Posix )
-        {            
+        {
             push( 0x00000000 );                                     // Return address of fiber_entryPoint call
             push( cast(size_t) &fiber_entryPoint );                 // EIP
             push( cast(size_t) m_ctxt.bstack );                     // EBP
