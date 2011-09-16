@@ -1350,7 +1350,7 @@ STATIC void getinfo(Cinfo *ci,code *c)
 
         case ESCAPE:
             if (c->Iop == (ESCAPE | ESCadjfpu))
-                ci->fpuadjust = c->IEV2.Vint;
+                ci->fpuadjust = c->IEV1.Vint;
             break;
 
         case 0xD0:
