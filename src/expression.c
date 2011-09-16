@@ -5046,6 +5046,8 @@ Expression *DeclarationExp::semantic(Scope *sc)
     printf("DeclarationExp::semantic() %s\n", toChars());
 #endif
 
+    unsigned olderrors = global.errors;
+
     /* This is here to support extern(linkage) declaration,
      * where the extern(linkage) winds up being an AttribDeclaration
      * wrapper.
@@ -5111,14 +5113,14 @@ Expression *DeclarationExp::semantic(Scope *sc)
             sc2->pop();
         s->parent = sc->parent;
     }
-    if (!global.errors)
+    if (global.errors == olderrors)
     {
         declaration->semantic2(sc);
-        if (!global.errors)
+        if (global.errors == olderrors)
         {
             declaration->semantic3(sc);
 
-            if (!global.errors && global.params.useInline)
+            if ((global.errors == olderrors) && global.params.useInline)
                 declaration->inlineScan();
         }
     }
