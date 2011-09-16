@@ -307,23 +307,7 @@ tryagain:
     coffset = Coffset;
 
     if (eecontext.EEelem)
-    {   regm_t retregs;
-        code *c;
-
-        eecontext.EEin++;
-        regcon.immed.mval = 0;
-        retregs = 0;    //regmask(eecontext.EEelem->Ety);
-        assert(EEoffset >= REGSIZE);
-        c = genc2(NULL,0x81,modregrm(3,5,SP),EEoffset - REGSIZE); // SUB ESP,EEoffset
-        gen1(c,0x50 + SI);                      // PUSH ESI
-        genadjesp(c,EEoffset);
-        c = gencodelem(c,eecontext.EEelem,&retregs, FALSE);
-        assignaddrc(c);
-        pinholeopt(c,NULL);
-        jmpaddr(c);
-        eecontext.EEcode = gen1(c,0xCC);        // INT 3
-        eecontext.EEin--;
-    }
+        genEEcode();
 
     for (b = startblock; b; b = b->Bnext)
     {
@@ -814,12 +798,8 @@ void stackoffsets(int flags)
  */
 
 STATIC void blcodgen(block *bl)
-{   regm_t retregs;
-    bool jcond;
-    elem *e;
+{
     code *c;
-    block *nextb;
-    block *bs1,*bs2;
     list_t bpl;
     int refparamsave;
     regm_t mfuncregsave = mfuncreg;
@@ -927,394 +907,13 @@ STATIC void blcodgen(block *bl)
         regcon.indexregs &= regcon.indexregs - 1;
     }
 
-    e = bl->Belem;
     regsave.idx = 0;
-    retregs = 0;
     reflocal = 0;
     refparamsave = refparam;
     refparam = 0;
     assert((regcon.cse.mops & regcon.cse.mval) == regcon.cse.mops);
-    switch (bl->BC)                     /* block exit condition         */
-    {
-        case BCiftrue:
-            jcond = TRUE;
-            bs1 = list_block(bl->Bsucc);
-            bs2 = list_block(list_next(bl->Bsucc));
-            if (bs1 == bl->Bnext)
-            {   // Swap bs1 and bs2
-                block *btmp;
 
-                jcond ^= 1;
-                btmp = bs1;
-                bs1 = bs2;
-                bs2 = btmp;
-            }
-            c = cat(c,logexp(e,jcond,FLblock,(code *) bs1));
-            nextb = bs2;
-            bl->Bcode = NULL;
-        L2:
-            if (nextb != bl->Bnext)
-            {   if (configv.addlinenumbers && bl->Bsrcpos.Slinnum &&
-                    !(funcsym_p->ty() & mTYnaked))
-                    cgen_linnum(&c,bl->Bsrcpos);
-                assert(!(bl->Bflags & BFLepilog));
-                c = cat(c,genjmp(CNIL,JMP,FLblock,nextb));
-            }
-            bl->Bcode = cat(bl->Bcode,c);
-            break;
-        case BCjmptab:
-        case BCifthen:
-        case BCswitch:
-            assert(!(bl->Bflags & BFLepilog));
-            doswitch(bl);               /* hide messy details           */
-            bl->Bcode = cat(c,bl->Bcode);
-            break;
-#if MARS
-        case BCjcatch:
-            // Mark all registers as destroyed. This will prevent
-            // register assignments to variables used in catch blocks.
-            c = cat(c,getregs((I32 | I64) ? allregs : (ALLREGS | mES)));
-#if 0 && TARGET_LINUX
-            if (config.flags3 & CFG3pic && !(allregs & mBX))
-            {
-                c = cat(c, cod3_load_got());
-            }
-#endif
-            goto case_goto;
-#endif
-#if SCPP
-        case BCcatch:
-            // Mark all registers as destroyed. This will prevent
-            // register assignments to variables used in catch blocks.
-            c = cat(c,getregs(allregs | mES));
-#if 0 && TARGET_LINUX
-            if (config.flags3 & CFG3pic && !(allregs & mBX))
-            {
-                c = cat(c, cod3_load_got());
-            }
-#endif
-            goto case_goto;
-
-        case BCtry:
-            usednteh |= EHtry;
-            if (config.flags2 & CFG2seh)
-                usednteh |= NTEHtry;
-            goto case_goto;
-#endif
-        case BCgoto:
-            nextb = list_block(bl->Bsucc);
-            if ((funcsym_p->Sfunc->Fflags3 & Fnteh ||
-                 (MARS /*&& config.flags2 & CFG2seh*/)) &&
-                bl->Btry != nextb->Btry &&
-                nextb->BC != BC_finally)
-            {   int toindex;
-                int fromindex;
-
-                bl->Bcode = NULL;
-                c = gencodelem(c,e,&retregs,TRUE);
-                toindex = nextb->Btry ? nextb->Btry->Bscope_index : -1;
-                assert(bl->Btry);
-                fromindex = bl->Btry->Bscope_index;
-#if MARS
-                if (toindex + 1 == fromindex)
-                {   // Simply call __finally
-                    if (bl->Btry &&
-                        list_block(list_next(bl->Btry->Bsucc))->BC == BCjcatch)
-                    {
-                        goto L2;
-                    }
-                }
-#endif
-                if (config.flags2 & CFG2seh)
-                    c = cat(c,nteh_unwind(0,toindex));
-#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-                else if (toindex + 1 <= fromindex)
-                {
-                    //c = cat(c, linux_unwind(0, toindex));
-                    block *bt;
-
-                    //printf("B%d: fromindex = %d, toindex = %d\n", bl->Bdfoidx, fromindex, toindex);
-                    bt = bl;
-                    while ((bt = bt->Btry) != NULL && bt->Bscope_index != toindex)
-                    {   block *bf;
-
-                        //printf("\tbt->Bscope_index = %d, bt->Blast_index = %d\n", bt->Bscope_index, bt->Blast_index);
-                        bf = list_block(list_next(bt->Bsucc));
-                        // Only look at try-finally blocks
-                        if (bf->BC == BCjcatch)
-                            continue;
-
-                        if (bf == nextb)
-                            continue;
-                        //printf("\tbf = B%d, nextb = B%d\n", bf->Bdfoidx, nextb->Bdfoidx);
-                        if (nextb->BC == BCgoto &&
-                            !nextb->Belem &&
-                            bf == list_block(nextb->Bsucc))
-                            continue;
-
-                        // call __finally
-                        code *cs;
-                        code *cr;
-                        int nalign = 0;
-
-                        gensaverestore(retregs,&cs,&cr);
-                        if (STACKALIGN == 16)
-                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
-                            if (npush & (STACKALIGN - 1))
-                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-                                if (I64)
-                                    code_orrex(cs, REX_W);
-                            }
-                        }
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
-                        if (nalign)
-                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-                            if (I64)
-                                code_orrex(cs, REX_W);
-                        }
-                        c = cat3(c,cs,cr);
-                    }
-                }
-#endif
-                goto L2;
-            }
-        case_goto:
-            c = gencodelem(c,e,&retregs,TRUE);
-            if (anyspill)
-            {   // Add in the epilog code
-                code *cstore = NULL;
-                code *cload = NULL;
-
-                for (int i = 0; i < anyspill; i++)
-                {   symbol *s = globsym.tab[i];
-
-                    if (s->Sflags & SFLspill &&
-                        vec_testbit(dfoidx,s->Srange))
-                    {
-                        s->Sfl = sflsave[i];    // undo block register assignments
-                        cgreg_spillreg_epilog(bl,s,&cstore,&cload);
-                    }
-                }
-                c = cat3(c,cstore,cload);
-            }
-
-        L3:
-            bl->Bcode = NULL;
-            nextb = list_block(bl->Bsucc);
-            goto L2;
-
-        case BC_try:
-            if (config.flags2 & CFG2seh)
-            {   usednteh |= NTEH_try;
-                nteh_usevars();
-            }
-            else
-                usednteh |= EHtry;
-            goto case_goto;
-
-        case BC_finally:
-            // Mark all registers as destroyed. This will prevent
-            // register assignments to variables used in finally blocks.
-            assert(!getregs(allregs));
-            assert(!e);
-            assert(!bl->Bcode);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            if (config.flags3 & CFG3pic)
-            {
-                int nalign = 0;
-                if (STACKALIGN == 16)
-                {   nalign = STACKALIGN - REGSIZE;
-                    c = genc2(c,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-                    if (I64)
-                        code_orrex(c, REX_W);
-                }
-                // CALL bl->Bsucc
-                c = genc(c,0xE8,0,0,0,FLblock,(long)list_block(bl->Bsucc));
-                if (nalign)
-                {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-                    if (I64)
-                        code_orrex(c, REX_W);
-                }
-                // JMP list_next(bl->Bsucc)
-                nextb = list_block(list_next(bl->Bsucc));
-                goto L2;
-            }
-            else
-#endif
-            {
-                // Generate a PUSH of the address of the successor to the
-                // corresponding BC_ret
-                //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
-                // PUSH &succ
-                c = genc(c,0x68,0,0,0,FLblock,(long)list_block(list_next(bl->Bsucc)));
-                nextb = list_block(bl->Bsucc);
-                goto L2;
-            }
-
-        case BC_ret:
-            c = gencodelem(c,e,&retregs,TRUE);
-            bl->Bcode = gen1(c,0xC3);   // RET
-            break;
-
-#if NTEXCEPTIONS
-        case BC_except:
-            assert(!e);
-            usednteh |= NTEH_except;
-            c = cat(c,nteh_setsp(0x8B));
-            getregs(allregs);
-            goto L3;
-
-        case BC_filter:
-            c = cat(c,nteh_filter(bl));
-            // Mark all registers as destroyed. This will prevent
-            // register assignments to variables used in filter blocks.
-            getregs(allregs);
-            retregs = regmask(e->Ety, TYnfunc);
-            c = gencodelem(c,e,&retregs,TRUE);
-            bl->Bcode = gen1(c,0xC3);   // RET
-            break;
-#endif
-
-        case BCretexp:
-            retregs = regmask(e->Ety, funcsym_p->ty());
-
-            // For the final load into the return regs, don't set regcon.used,
-            // so that the optimizer can potentially use retregs for register
-            // variable assignments.
-
-            if (config.flags4 & CFG4optimized)
-            {   regm_t usedsave;
-
-                c = cat(c,docommas(&e));
-                usedsave = regcon.used;
-                if (EOP(e))
-                    c = gencodelem(c,e,&retregs,TRUE);
-                else
-                {
-                    if (e->Eoper == OPconst)
-                        regcon.mvar = 0;
-                    c = gencodelem(c,e,&retregs,TRUE);
-                    regcon.used = usedsave;
-                    if (e->Eoper == OPvar)
-                    {   symbol *s = e->EV.sp.Vsym;
-
-                        if (s->Sfl == FLreg && s->Sregm != mAX)
-                            retsym = s;
-                    }
-                }
-            }
-            else
-            {
-        case BCret:
-        case BCexit:
-                c = gencodelem(c,e,&retregs,TRUE);
-            }
-            bl->Bcode = c;
-            if (retregs == mST0)
-            {   assert(stackused == 1);
-                pop87();                // account for return value
-            }
-            else if (retregs == mST01)
-            {   assert(stackused == 2);
-                pop87();
-                pop87();                // account for return value
-            }
-            if (bl->BC == BCexit && config.flags4 & CFG4optimized)
-                mfuncreg = mfuncregsave;
-            if (MARS || usednteh & NTEH_try)
-            {   block *bt;
-
-                bt = bl;
-                while ((bt = bt->Btry) != NULL)
-                {   block *bf;
-
-                    bf = list_block(list_next(bt->Bsucc));
-#if MARS
-                    // Only look at try-finally blocks
-                    if (bf->BC == BCjcatch)
-                    {
-                        continue;
-                    }
-#endif
-                    if (config.flags2 & CFG2seh)
-                    {
-                        if (bt->Bscope_index == 0)
-                        {
-                            // call __finally
-                            code *cs;
-                            code *cr;
-
-                            c = cat(c,nteh_gensindex(-1));
-                            gensaverestore(retregs,&cs,&cr);
-                            cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
-                            bl->Bcode = cat3(c,cs,cr);
-                        }
-                        else
-                            bl->Bcode = cat(c,nteh_unwind(retregs,~0));
-                        break;
-                    }
-                    else
-                    {
-                        // call __finally
-                        code *cs;
-                        code *cr;
-                        int nalign = 0;
-
-                        gensaverestore(retregs,&cs,&cr);
-                        if (STACKALIGN == 16)
-                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
-                            if (npush & (STACKALIGN - 1))
-                            {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-                                if (I64)
-                                    code_orrex(cs, REX_W);
-                            }
-                        }
-                        // CALL bf->Bsucc
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
-                        if (nalign)
-                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-                            if (I64)
-                                code_orrex(cs, REX_W);
-                        }
-                        bl->Bcode = c = cat3(c,cs,cr);
-                    }
-                }
-            }
-            break;
-
-#if SCPP || MARS
-        case BCasm:
-            assert(!e);
-            // Mark destroyed registers
-            assert(!c);
-            c = cat(c,getregs(iasm_regs(bl)));
-            if (bl->Bsucc)
-            {   nextb = list_block(bl->Bsucc);
-                if (!bl->Bnext)
-                    goto L2;
-                if (nextb != bl->Bnext &&
-                    bl->Bnext &&
-                    !(bl->Bnext->BC == BCgoto &&
-                     !bl->Bnext->Belem &&
-                     nextb == list_block(bl->Bnext->Bsucc)))
-                {   code *cl;
-
-                    // See if already have JMP at end of block
-                    cl = code_last(bl->Bcode);
-                    if (!cl || cl->Iop != JMP)
-                        goto L2;        // add JMP at end of block
-                }
-            }
-            break;
-#endif
-        default:
-#ifdef DEBUG
-            printf("bl->BC = %d\n",bl->BC);
-#endif
-            assert(0);
-    }
+    outblkexitcode(bl, c, anyspill, sflsave, &retsym, mfuncregsave);
 
     for (int i = 0; i < anyspill; i++)
     {   symbol *s = globsym.tab[i];
@@ -1521,99 +1120,6 @@ STATIC void cgcod_eh()
 }
 
 #endif
-
-/*****************************
- * Given a type, return a mask of
- * registers to hold that type.
- * Input:
- *      tyf     function type
- */
-
-regm_t regmask(tym_t tym, tym_t tyf)
-{
-    switch (tybasic(tym))
-    {
-        case TYvoid:
-        case TYstruct:
-            return 0;
-        case TYbool:
-        case TYwchar_t:
-        case TYchar16:
-        case TYchar:
-        case TYschar:
-        case TYuchar:
-        case TYshort:
-        case TYushort:
-        case TYint:
-        case TYuint:
-#if JHANDLE
-        case TYjhandle:
-#endif
-        case TYnullptr:
-        case TYnptr:
-        case TYsptr:
-        case TYcptr:
-            return mAX;
-
-        case TYfloat:
-        case TYifloat:
-            if (I64)
-                return mXMM0;
-            if (config.exe & EX_flat)
-                return mST0;
-        case TYlong:
-        case TYulong:
-        case TYdchar:
-            if (!I16)
-                return mAX;
-        case TYfptr:
-        case TYhptr:
-            return mDX | mAX;
-
-        case TYcent:
-        case TYucent:
-            assert(I64);
-            return mDX | mAX;
-
-        case TYvptr:
-            return mDX | mBX;
-
-        case TYdouble:
-        case TYdouble_alias:
-        case TYidouble:
-            if (I64)
-                return mXMM0;
-            if (config.exe & EX_flat)
-                return mST0;
-            return DOUBLEREGS;
-
-        case TYllong:
-        case TYullong:
-            return I64 ? mAX : (I32 ? mDX | mAX : DOUBLEREGS);
-
-        case TYldouble:
-        case TYildouble:
-            return mST0;
-
-        case TYcfloat:
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            if (I32 && tybasic(tyf) == TYnfunc)
-                return mDX | mAX;
-#endif
-        case TYcdouble:
-            if (I64)
-                return mXMM0 | mXMM1;
-        case TYcldouble:
-            return mST01;
-
-        default:
-#if DEBUG
-            WRTYxx(tym);
-#endif
-            assert(0);
-            return 0;
-    }
-}
 
 /******************************
  * Count the number of bits set in a register mask.
@@ -2102,15 +1608,7 @@ STATIC code * cse_save(regm_t ms)
             // If we can simply reload the CSE, we don't need to save it
             if (!cse_simple(csextab[i].e,i))
             {
-                // MOV i[BP],reg
-                op = 0x89;              // normal mov
-                if (reg == ES)
-                {   reg = 0;            // the real reg number
-                    op = 0x8C;          // segment reg mov
-                }
-                c = genc1(c,op,modregxrm(2, reg, BPRM),FLcs,(targ_uns) i);
-                if (I64)
-                    code_orrex(c, REX_W);
+                c = cat(c, gensavereg(reg, i));
                 reflocal = TRUE;
             }
         }
@@ -2755,6 +2253,212 @@ L1:
     if (configv.addlinenumbers && e->Esrcpos.Slinnum)
         cgen_prelinnum(&c,e->Esrcpos);
     return c;
+}
+
+/*******************************
+ * Same as codelem(), but do not destroy the registers in keepmsk.
+ * Use scratch registers as much as possible, then use stack.
+ * Input:
+ *      constflag       TRUE if user of result will not modify the
+ *                      registers returned in *pretregs.
+ */
+
+code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
+{ code *c,*cs1,*cs2,*cs3;
+  unsigned i,j;
+  regm_t oldmfuncreg,oldregcon,oldregimmed,overlap,tosave,touse;
+  int adjesp;
+  unsigned stackpushsave;
+  char calledafuncsave;
+
+#ifdef DEBUG
+    if (debugw)
+        printf("+scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
+                e,regm_str(*pretregs),regm_str(keepmsk),constflag);
+#endif
+  elem_debug(e);
+  if (constflag)
+  {     regm_t regm;
+        unsigned reg;
+
+        if (isregvar(e,&regm,&reg) &&           // if e is a register variable
+            (regm & *pretregs) == regm &&       // in one of the right regs
+            e->EV.sp.Voffset == 0
+           )
+        {
+                unsigned sz1 = tysize(e->Ety);
+                unsigned sz2 = tysize(e->EV.sp.Vsym->Stype->Tty);
+                if (sz1 <= REGSIZE && sz2 > REGSIZE)
+                    regm &= mLSW;
+                c = fixresult(e,regm,pretregs);
+                cssave(e,regm,0);
+                freenode(e);
+#ifdef DEBUG
+                if (debugw)
+                    printf("-scodelem(e=%p *pretregs=x%x keepmsk=x%x constflag=%d\n",
+                            e,*pretregs,keepmsk,constflag);
+#endif
+                return c;
+        }
+  }
+  overlap = msavereg & keepmsk;
+  msavereg |= keepmsk;          /* add to mask of regs to save          */
+  oldregcon = regcon.cse.mval;
+  oldregimmed = regcon.immed.mval;
+  oldmfuncreg = mfuncreg;       /* remember old one                     */
+  mfuncreg = (mBP | mES | ALLREGS) & ~regcon.mvar;
+  stackpushsave = stackpush;
+#if 0
+  if (keepmsk)
+        stackpush++;            /* assume we'll have to save stuff on stack */
+#endif
+  calledafuncsave = calledafunc;
+  calledafunc = 0;
+  c = codelem(e,pretregs,constflag);    /* generate code for the elem   */
+#if 0
+  if (keepmsk)
+        stackpush--;
+#endif
+
+  tosave = keepmsk & ~msavereg; /* registers to save                    */
+  if (tosave)
+  {     cgstate.stackclean++;
+        c = genstackclean(c,stackpush - stackpushsave,*pretregs | msavereg);
+        cgstate.stackclean--;
+  }
+
+  /* Assert that no new CSEs are generated that are not reflected       */
+  /* in mfuncreg.                                                       */
+#ifdef DEBUG
+  if ((mfuncreg & (regcon.cse.mval & ~oldregcon)) != 0)
+        printf("mfuncreg x%x, regcon.cse.mval x%x, oldregcon x%x, regcon.mvar x%x\n",
+                mfuncreg,regcon.cse.mval,oldregcon,regcon.mvar);
+#endif
+  assert((mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
+
+  /* bugzilla 3521
+   * The problem is:
+   *    reg op (reg = exp)
+   * where reg must be preserved (in keepregs) while the expression to be evaluated
+   * must change it.
+   * The only solution is to make this variable not a register.
+   */
+  if (regcon.mvar & tosave)
+  {
+        //elem_print(e);
+        //printf("test1: regcon.mvar x%x tosave x%x\n", regcon.mvar, tosave);
+        cgreg_unregister(regcon.mvar & tosave);
+  }
+
+  /* which registers can we use to save other registers in? */
+  if (config.flags4 & CFG4space ||              // if optimize for space
+      config.target_cpu >= TARGET_80486)        // PUSH/POP ops are 1 cycle
+        touse = 0;                              // PUSH/POP pairs are always shorter
+  else
+  {     touse = mfuncreg & allregs & ~(msavereg | oldregcon | regcon.cse.mval);
+        /* Don't use registers we'll have to save/restore               */
+        touse &= ~(fregsaved & oldmfuncreg);
+        /* Don't use registers that have constant values in them, since
+           the code generated might have used the value.
+         */
+        touse &= ~oldregimmed;
+  }
+
+  cs1 = cs2 = cs3 = NULL;
+  adjesp = 0;
+
+  for (i = 0; tosave; i++)
+  {     regm_t mi = mask[i];
+
+        assert(i < REGMAX);
+        if (mi & tosave)        /* i = register to save                 */
+        {
+            if (touse)          /* if any scratch registers             */
+            {   for (j = 0; j < 8; j++)
+                {   regm_t mj = mask[j];
+
+                    if (touse & mj)
+                    {   cs1 = genmovreg(cs1,j,i);
+                        cs2 = cat(genmovreg(CNIL,i,j),cs2);
+                        touse &= ~mj;
+                        mfuncreg &= ~mj;
+                        regcon.used |= mj;
+                        break;
+                    }
+                }
+                assert(j < 8);
+            }
+            else                        /* else use stack               */
+#if 0
+            {   int push,pop;
+
+                stackchanged = 1;
+                adjesp += REGSIZE;
+                if (i == ES)
+                {       push = 0x06;
+                        pop = 0x07;
+                }
+                else
+                {       push = 0x50 + i;
+                        pop = push | 8;
+                }
+                cs1 = gen1(cs1,push);                   /* PUSH i       */
+                cs2 = cat(gen1(CNIL,pop),cs2);          /* POP i        */
+            }
+#else
+            {
+                stackchanged = 1;
+                adjesp += REGSIZE;
+                gensaverestore2(mask[i], &cs1, &cs2);
+            }
+#endif
+            cs3 = cat(getregs(mi),cs3);
+            tosave &= ~mi;
+        }
+  }
+  if (adjesp)
+  {
+        // If this is done an odd number of times, it
+        // will throw off the 8 byte stack alignment.
+        // We should *only* worry about this if a function
+        // was called in the code generation by codelem().
+        int sz;
+        if (STACKALIGN == 16)
+            sz = -(adjesp & (STACKALIGN - 1)) & (STACKALIGN - 1);
+        else
+            sz = -(adjesp & 7) & 7;
+        if (calledafunc && !I16 && sz && (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
+        {
+            unsigned grex = I64 ? REX_W << 16 : 0;
+            regm_t mval_save = regcon.immed.mval;
+            regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
+                                        // because c hasn't been executed yet
+            cs1 = genc2(cs1,0x81,grex | modregrm(3,5,SP),sz);  // SUB ESP,sz
+            if (I64)
+                code_orrex(cs1, REX_W);
+            regcon.immed.mval = mval_save;
+            cs1 = genadjesp(cs1, sz);
+
+            code *cx = genc2(CNIL,0x81,grex | modregrm(3,0,SP),sz);  // ADD ESP,sz
+            if (I64)
+                code_orrex(cx, REX_W);
+            cx = genadjesp(cx, -sz);
+            cs2 = cat(cx, cs2);
+        }
+
+        cs1 = genadjesp(cs1,adjesp);
+        cs2 = genadjesp(cs2,-adjesp);
+  }
+
+  calledafunc |= calledafuncsave;
+  msavereg &= ~keepmsk | overlap; /* remove from mask of regs to save   */
+  mfuncreg &= oldmfuncreg;      /* update original                      */
+#ifdef DEBUG
+  if (debugw)
+        printf("-scodelem(e=%p *pretregs=x%x keepmsk=x%x constflag=%d\n",
+                e,*pretregs,keepmsk,constflag);
+#endif
+  return cat4(cs1,c,cs3,cs2);
 }
 
 /*********************************************
