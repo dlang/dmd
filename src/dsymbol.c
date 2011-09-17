@@ -917,11 +917,19 @@ size_t ScopeDsymbol::dim(Dsymbols *members)
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
             AttribDeclaration *a = s->isAttribDeclaration();
+            TemplateMixin *tm = s->isTemplateMixin();
+            TemplateInstance *ti = s->isTemplateInstance();
 
             if (a)
             {
                 n += dim(a->decl);
             }
+            else if (tm)
+            {
+                n += dim(tm->members);
+            }
+            else if (ti)
+                ;
             else
                 n++;
         }
