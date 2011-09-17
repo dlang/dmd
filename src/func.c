@@ -255,12 +255,9 @@ void FuncDeclaration::semantic(Scope *sc)
     if (fbody &&
         (isFuncLiteralDeclaration() || parent->isTemplateInstance()))
     {
-        if (f->purity == PUREimpure &&      // purity not specified
-            !f->hasLazyParameters()
-           )
-        {
+        if (f->purity == PUREimpure)        // purity not specified
             flags |= FUNCFLAGpurityInprocess;
-        }
+
         if (f->trust == TRUSTdefault)
             flags |= FUNCFLAGsafetyInprocess;
 

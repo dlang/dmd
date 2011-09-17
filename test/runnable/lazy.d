@@ -219,6 +219,20 @@ void test5750b() {
 
 /*********************************************************/
 
+T calcLazy6682(T)(lazy T n)
+{
+    return n;
+}
+int purefunc6682() pure
+{
+    return calcLazy6682(1);
+}
+void test6682()
+{
+    assert(purefunc6682() == 1);
+}
+
+/*********************************************************/
 
 int main()
 {
@@ -230,7 +244,8 @@ int main()
     test6();
 
     test5750a();
-    test5750b();    
+    test5750b();
+    test6682();
 
     printf("Success\n");
     return 0;
