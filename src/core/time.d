@@ -679,6 +679,52 @@ public:
 
 
     /++
+        Returns a $(LREF TickDuration) with the same number of hnsecs as this
+        $(LREF Duration).
+      +/
+    TickDuration opCast(T)() const pure nothrow
+        if(is(T == TickDuration))
+    {
+        return TickDuration.from!"hnsecs"(_hnsecs);
+    }
+
+    //Skipping tests on Windows until properly robust tests
+    //can be devised and tested on a Windows box.
+    //The differences in ticksPerSec on Windows makes testing
+    //exact values a bit precarious.
+    version(Posix) unittest
+    {
+        foreach(units; _TypeTuple!("seconds", "msecs", "usecs"))
+        {
+            auto t = TickDuration.from!units(1);
+            assert(cast(TickDuration)dur!units(1) == t, units);
+            t = TickDuration.from!units(2);
+            assert(cast(TickDuration)dur!units(2) == t, units);
+        }
+
+        if(TickDuration.ticksPerSec == 1_000_000)
+        {
+            auto t = TickDuration.from!"hnsecs"(19_999_990);
+            assert(cast(TickDuration)dur!"hnsecs"(19_999_990) == t);
+            t = TickDuration.from!"hnsecs"(70);
+            assert(cast(TickDuration)dur!"hnsecs"(70) == t);
+            t = TickDuration.from!"hnsecs"(0);
+            assert(cast(TickDuration)dur!"hnsecs"(7) == t);
+        }
+
+        if(TickDuration.ticksPerSec >= 10_000_000)
+        {
+            auto t = TickDuration.from!"hnsecs"(19_999_999);
+            assert(cast(TickDuration)dur!"hnsecs"(19_999_999) == t);
+            t = TickDuration.from!"hnsecs"(70);
+            assert(cast(TickDuration)dur!"hnsecs"(70) == t);
+            t = TickDuration.from!"hnsecs"(7);
+            assert(cast(TickDuration)dur!"hnsecs"(7) == t);
+        }
+    }
+
+
+    /++
         Returns the number of the given units in the duration
         (minus the larger units).
 
@@ -1556,7 +1602,8 @@ struct TickDuration
 
 
     /++
-        Returns a Duration with the same number of hnsecs as this TickDuration.
+        Returns a $(LREF Duration) with the same number of hnsecs as this
+        $(LREF TickDuration).
       +/
     Duration opCast(T)() const pure nothrow
         if(is(T == Duration))
@@ -1564,34 +1611,38 @@ struct TickDuration
         return Duration(hnsecs);
     }
 
-    unittest
+    //Skipping tests on Windows until properly robust tests
+    //can be devised and tested on a Windows box.
+    //The differences in ticksPerSec on Windows makes testing
+    //exact values a bit precarious.
+    version(Posix) unittest
     {
-        //Skipping tests on Windows until properly robust tests
-        //can be devised and tested on a Windows box.
-        //The differences in ticksPerSec on Windows makes testing
-        //exact values a bit precarious.
-        version(Posix)
+        foreach(units; _TypeTuple!("seconds", "msecs", "usecs"))
         {
-            auto t = TickDuration.from!"hnsecs"(10_000_000);
-            assert(cast(Duration)t == Duration(10_000_000));
-            t = TickDuration.from!"hnsecs"(20_000_000);
-            assert(cast(Duration)t == Duration(20_000_000));
+            auto d = dur!units(1);
+            assert(cast(Duration)TickDuration.from!units(1) == d, units);
+            d = dur!units(2);
+            assert(cast(Duration)TickDuration.from!units(2) == d, units);
+        }
 
-            if(ticksPerSec == 1_000_000)
-            {
-                t.length -= 1;
-                assert(cast(Duration)t == Duration(19_999_990));
-                assert(cast(Duration)TickDuration.from!"hnsecs"(70) == Duration(70));
-                assert(cast(Duration)TickDuration.from!"hnsecs"(7) == Duration(0));
-            }
+        if(ticksPerSec == 1_000_000)
+        {
+            auto d = dur!"hnsecs"(19_999_990);
+            assert(cast(Duration)TickDuration.from!"hnsecs"(19_999_990) == d);
+            d = dur!"hnsecs"(70);
+            assert(cast(Duration)TickDuration.from!"hnsecs"(70) == d);
+            d = dur!"hnsecs"(0);
+            assert(cast(Duration)TickDuration.from!"hnsecs"(7) == d);
+        }
 
-            if(ticksPerSec >= 10_000_000)
-            {
-                t.length -= 1;
-                assert(cast(Duration)t == Duration(19_999_999));
-                assert(cast(Duration)TickDuration.from!"hnsecs"(70) == Duration(70));
-                assert(cast(Duration)TickDuration.from!"hnsecs"(7) == Duration(7));
-            }
+        if(ticksPerSec >= 10_000_000)
+        {
+            auto d = dur!"hnsecs"(19_999_990);
+            assert(cast(Duration)TickDuration.from!"hnsecs"(19_999_990) == d);
+            d = dur!"hnsecs"(70);
+            assert(cast(Duration)TickDuration.from!"hnsecs"(70) == d);
+            d = dur!"hnsecs"(7);
+            assert(cast(Duration)TickDuration.from!"hnsecs"(7) == d);
         }
     }
 
@@ -3234,5 +3285,10 @@ unittest
         assert(thrown);
     }
 }
+
+    private template _TypeTuple(TList...)
+    {
+        alias TList _TypeTuple;
+    }
 }
 
