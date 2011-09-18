@@ -4539,7 +4539,12 @@ int Type::covariant(Type *t)
         }
     }
     else if (t1->parameters != t2->parameters)
-        goto Ldistinct;
+    {
+        size_t dim1 = !t1->parameters ? 0 : t1->parameters->dim;
+        size_t dim2 = !t2->parameters ? 0 : t2->parameters->dim;
+        if (dim1 || dim2)
+            goto Ldistinct;
+    }
 
     // The argument lists match
     if (inoutmismatch)
