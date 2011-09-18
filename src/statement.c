@@ -663,7 +663,8 @@ int CompoundStatement::blockExit(bool mustNotThrow)
             if (global.params.warnings && result & BEfallthru && slast)
             {
                 slast = slast->last();
-                if (slast && (s->isCaseStatement() || s->isDefaultStatement()))
+                if (slast && (slast->isCaseStatement() || slast->isDefaultStatement()) &&
+                             (s->isCaseStatement() || s->isDefaultStatement()))
                 {
                     // Allow if last case/default was empty
                     CaseStatement *sc = slast->isCaseStatement();
