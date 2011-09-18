@@ -104,3 +104,13 @@ nothrow int foo6()
 
 /*****************************************/
 
+template TypeTuple(T...) { alias T TypeTuple; }
+void test6518()
+{
+    switch(2)
+    {
+        foreach(v; TypeTuple!(1, 2, 3))
+            case v: break;
+        default: assert(0);
+    }
+}
