@@ -34,6 +34,11 @@ void test2()
     assert(i2 == 1);
 }
 
+// bug 1200. Other tests in test42.d
+void foo6e() {
+        volatile debug {}
+}
+
 
 /**************************************
         octal literals

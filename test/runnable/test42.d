@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 module test42;
 
@@ -82,6 +82,7 @@ void test5()
 }
 
 /***************************************************/
+// Bug 1200. One case moved to deprecate1.d
 
 void foo6a() {
         do
@@ -104,7 +105,7 @@ void foo6d() {
 }
 
 void foo6e() {
-        volatile debug {}
+//        volatile debug {}
 }
 
 void test6()
@@ -1989,7 +1990,7 @@ void test121()
 T[] find123(alias pred, T)(T[] input) {
    while (input.length > 0) {
       if (pred(input[0])) break;
-      input = input[1 .. length];
+      input = input[1 .. $];
    }
    return input;
 }
@@ -3286,8 +3287,9 @@ void test201() {
 
 
 /***************************************************/
+// This was the original varargs example in std.vararg
 
-import std.stdarg;
+import core.vararg;
 
 void foo202(int x, ...) {
     printf("%d arguments\n", _arguments.length);
