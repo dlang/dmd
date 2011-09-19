@@ -25,6 +25,16 @@ void test5()
     test5a(&x);
 }
 
+// from test23
+static int i2 = 1;
+
+void test2()
+{
+    volatile { int i2 = 2; }
+    assert(i2 == 1);
+}
+
+
 /**************************************
         octal literals
 **************************************/
@@ -178,6 +188,7 @@ class Foo41(A, B, C) {
 
 int main()
 {
+    test2();
     test5();
     test10();
     test19();
