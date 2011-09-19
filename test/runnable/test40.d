@@ -1,6 +1,6 @@
 // EXTRA_SOURCES: imports/test40a.d
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import std.stdio;
 import imports.test40a;
