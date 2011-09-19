@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 module template1;
 
@@ -437,10 +437,10 @@ void test18()
 }
 
 /******************************************/
-
+/+
 template func19( T )
 {
-    typedef T (*fp)() = &erf;
+    typedef T function () fp = &erf;
     T erf()
     {
 	printf("erf()\n");
@@ -457,17 +457,18 @@ void test19()
     printf("tc = %p\n", tc);
     assert(tc() == 0);
 }
++/
 
 /******************************************/
 
 template one20( T )
 {
-  typedef T (*safeptr)();
+  alias T function () safeptr;
 }
 
 template one20( T1, T2 )
 {
-  typedef int (*safeptr)(int);
+  alias int function(int) safeptr;
 }
 
 alias one20!( int ) A;
@@ -561,15 +562,15 @@ template T23()
 
 template A23()
 {
-     struct Array
-     {
-	 typedef T23!().Rank Rank1;
+    struct Array
+    {
+        alias T23!().Rank Rank1;
 
-	 Rank1 data;
-     }
+        Rank1 data;
+    }
 }
 
-typedef A23!().Array Array_int23;
+alias A23!().Array Array_int23;
 
 void test23()
 {
@@ -679,7 +680,7 @@ void test27()
 /******************************************/
 
 template A28(T) {
-    public bool all(in T[] array, bool (*predicate)(T)) {
+    public bool all(in T[] array, bool function (T) predicate) {
         for (int i = 0; i < array.length; i++) {
             if (!predicate(array[i])) {
                 return false;
@@ -1581,8 +1582,9 @@ void test64()
 }
 
 /******************************************/
+// http://www.digitalmars.com/d/archives/28052.html
 
-typedef int value_type;
+alias int value_type;
 
 struct Foo65
 {
@@ -1768,7 +1770,7 @@ void test72()
 
 /******************************************/
 
-typedef int Int73;
+alias int Int73;
 class Test73(T = Int73);
 alias Test73!() Foo73;
 
@@ -1780,7 +1782,7 @@ void test73()
 
 class A74
 {
-    typedef A74 atype;
+    alias A74 atype;
     int x;
 }
 
@@ -1949,9 +1951,10 @@ specialization:: first int
 
 
 /******************************************/
+// http://www.digitalmars.com/pnews/read.php?server=news.digitalmars.com&group=digitalmars.D.bugs&artnum=2117
 
 class Conversion(T,U){
-	typedef char Small;
+	alias char Small;
 	class Big{
 		char[2] dummy;
 	}
