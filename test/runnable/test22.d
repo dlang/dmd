@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import std.math: poly;
 import std.c.stdarg;
@@ -564,7 +564,7 @@ string toString26(cdouble z)
 {
     char[ulong.sizeof*8] buf;
 
-    auto len = snprintf(buf, buf.sizeof, "%f+%fi", z.re, z.im);
+    auto len = snprintf(buf.ptr, buf.sizeof, "%f+%fi", z.re, z.im);
     return buf[0 .. len].idup;
 }
 
