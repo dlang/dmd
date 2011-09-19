@@ -4974,27 +4974,28 @@ Expression *FuncExp::semantic(Scope *sc)
 #endif
     if (!type)
     {
+        unsigned olderrors = global.errors;
         fd->semantic(sc);
         //fd->parent = sc->parent;
-        if (global.errors)
+        if (olderrors != global.errors)
         {
         }
         else
         {
             fd->semantic2(sc);
-            if (!global.errors ||
+            if ( (olderrors == global.errors) ||
                 // need to infer return type
                 (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf()))
             {
                 fd->semantic3(sc);
 
-                if (!global.errors && global.params.useInline)
+                if ( (olderrors == global.errors) && global.params.useInline)
                     fd->inlineScan();
             }
         }
 
         // need to infer return type
-        if (global.errors && fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
+        if ((olderrors != global.errors) && fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
             ((TypeFunction *)fd->type)->next = Type::terror;
 
         // Type is a "delegate to" or "pointer to" the function literal
