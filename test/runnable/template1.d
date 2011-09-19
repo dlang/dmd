@@ -437,29 +437,6 @@ void test18()
 }
 
 /******************************************/
-/+
-template func19( T )
-{
-    typedef T function () fp = &erf;
-    T erf()
-    {
-	printf("erf()\n");
-	return T.init;
-    }
-}
-
-alias func19!( int ) F19;
-
-F19.fp tc;
-
-void test19()
-{
-    printf("tc = %p\n", tc);
-    assert(tc() == 0);
-}
-+/
-
-/******************************************/
 
 template one20( T )
 {
