@@ -1,4 +1,4 @@
-﻿// REQUIRED_ARGS: -d
+// REQUIRED_ARGS: -d
 
 // Test cases using deprecated features
 module deprecate1;
