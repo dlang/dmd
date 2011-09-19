@@ -55,6 +55,17 @@ void test10()
 }
 
 /**************************************
+        backslash literals
+**************************************/
+
+// from lexer.d
+void lexerTest7()
+{
+    auto str = \xDB;
+    assert(str.length == 1);
+}
+
+/**************************************
             typedef
 **************************************/
 
@@ -195,6 +206,7 @@ int main()
 {
     test2();
     test5();
+    lexerTest7();
     test10();
     test19();
     test33();
