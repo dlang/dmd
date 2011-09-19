@@ -6717,7 +6717,7 @@ void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
         if (fd &&
             ((fd->isCtorDeclaration() && var->storage_class & STCfield) ||
              (fd->isStaticCtorDeclaration() && !(var->storage_class & STCfield))) &&
-            fd->toParent2() == var->toParent() &&
+            fd->toParent2() == var->toParent2() &&
             (!e1 || e1->op == TOKthis)
            )
         {

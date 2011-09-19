@@ -3598,6 +3598,21 @@ void test6630()
 
 /***************************************************/
 
+template Hoge6691()
+{
+    immutable static int[int] dict;
+    immutable static int value;
+
+    static this()
+    {
+        dict = [1:1, 2:2];
+        value = 10;
+    }
+}
+alias Hoge6691!() H6691;
+
+/***************************************************/
+
 int main()
 {
     test1();
