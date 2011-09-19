@@ -4,6 +4,8 @@
 module deprecate1;
 
 import core.stdc.stdio : printf;
+import std.traits;
+
 
 /**************************************
             volatile
@@ -115,6 +117,62 @@ void test59()
     b.foo(a);
 }
 
+/***************************************/
+// From variadic.d
+
+template foo33(TA...)
+{
+  const TA[0] foo33=0;
+}
+
+template bar33(TA...)
+{
+  const TA[0..1][0] bar33=TA[0..1][0].init;
+}
+
+void test33()
+{
+    typedef int dummy33=0;
+    typedef int myint=3;
+
+    assert(foo33!(int)==0);
+    assert(bar33!(int)==int.init);
+    assert(bar33!(myint)==myint.init);
+    assert(foo33!(int,dummy33)==0);
+    assert(bar33!(int,dummy33)==int.init);
+    assert(bar33!(myint,dummy33)==myint.init);
+}
+
+/***************************************/
+// Bug 875  ICE(glue.c)
+
+void test41()
+{
+    double bongos(int flux, string soup)
+    {
+        return 0.0;
+    }
+
+    auto foo = mk_future(& bongos, 99, "soup"[]);
+}
+
+int mk_future(A, B...)(A cmd, B args)
+{
+    typedef ReturnType!(A) TReturn;
+    typedef ParameterTypeTuple!(A) TParams;
+    typedef B TArgs;
+
+    alias Foo41!(TReturn, TParams, TArgs) TFoo;
+
+    return 0;
+}
+
+class Foo41(A, B, C) {
+    this(A delegate(B), C)
+    {
+    }
+}
+
 
 /******************************************/
 
@@ -123,6 +181,8 @@ int main()
     test5();
     test10();
     test19();
+    test33();
+    test41();
     test59();
     test60();
     return 0;
