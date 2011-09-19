@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import core.stdc.math;
 import core.vararg;
@@ -184,10 +184,6 @@ void test10()
 
     printf("b = %d\n", b);
     assert(b == 3626);
-
-    b = 0_1_2_3_4_;
-    printf("b = %d\n", b);
-    assert(b == 668);
 
     b = 1_2_3_4_;
     printf("b = %d\n", b);

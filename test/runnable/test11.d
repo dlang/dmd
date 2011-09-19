@@ -1,5 +1,4 @@
-// for two uses of volatile
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 extern(C) int printf(const char*, ...);
 extern(C) size_t strlen(const char*);

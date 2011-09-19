@@ -5,6 +5,42 @@ module deprecate1;
 
 import core.stdc.stdio : printf;
 
+/**************************************
+            volatile
+**************************************/
+void test5a(int *j)
+{
+    int i;
+
+    volatile i = *j;
+    volatile i = *j;
+}
+
+void test5()
+{
+    int x;
+
+    test5a(&x);
+}
+
+/**************************************
+        octal literals
+**************************************/
+
+void test10()
+{
+    int b = 0b_1_1__1_0_0_0_1_0_1_0_1_0_;
+    assert(b == 3626);
+
+    b = 0_1_2_3_4_;
+    printf("b = %d\n", b);
+    assert(b == 668);
+}
+
+/**************************************
+            typedef
+**************************************/
+
 template func19( T )
 {
     typedef T function () fp = &erf;
@@ -25,22 +61,6 @@ void test19()
     assert(tc() == 0);
 }
 
-/**************************************/
-
-void test5a(int *j)
-{
-    int i;
-
-    volatile i = *j;
-    volatile i = *j;
-}
-
-void test5()
-{
-    int x;
-
-    test5a(&x);
-}
 
 /**************************************/
 
@@ -100,8 +120,9 @@ void test59()
 
 int main()
 {
-    test19();
     test5();
+    test10();
+    test19();
     test59();
     test60();
     return 0;
