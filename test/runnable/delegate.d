@@ -42,7 +42,7 @@ int foo2()
 
 void test2()
 {
-    int (*fp)();
+    int function () fp;
 
     fp = &foo2;
     assert(fp() == 3);
@@ -105,7 +105,7 @@ int foo4(int x, int y) { return 3; }
 
 void test4()
 {
-    int (*fp)(char);
+    int function (char) fp;
 
     fp = &foo4;
     assert(fp(0) == 2);
