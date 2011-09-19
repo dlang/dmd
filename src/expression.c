@@ -3772,7 +3772,10 @@ Expression *StructLiteralExp::semantic(Scope *sc)
                         Initializer *i2 = v->init->syntaxCopy();
                         i2 = i2->semantic(v->scope, v->type, WANTinterpret);
                         e = i2->toExpression();
-                        v->scope = NULL;
+                        // remove v->scope (see bug 3426)
+                        // but not if gagged, for we might be called again.
+                        if (!global.gag)
+                            v->scope = NULL;
                     }
                 }
             }
