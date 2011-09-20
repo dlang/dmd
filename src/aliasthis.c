@@ -52,7 +52,12 @@ void AliasThis::semantic(Scope *sc)
         assert(ad->members);
         Dsymbol *s = ad->search(loc, ident, 0);
         if (!s)
-            ::error(loc, "undefined identifier %s", ident->toChars());
+        {   s = sc->search(loc, ident, 0);
+            if (s)
+                ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
+            else
+                ::error(loc, "undefined identifier %s", ident->toChars());
+        }
         ad->aliasthis = s;
     }
     else
