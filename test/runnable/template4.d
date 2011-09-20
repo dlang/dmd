@@ -1035,6 +1035,20 @@ void test39()
 }
 
 /*********************************************************/
+// 6701
+
+uint foo_6701(uint v:0)() { return 1; }
+uint foo_6701(uint v)() { return 0; }
+uint foo2_6701(uint v:0, string op)() { return 1; }
+uint foo2_6701(uint v, string op)() { return 0; }
+
+void test6701()
+{
+    assert(foo_6701!(0u)() == 1);
+    assert(foo2_6701!(0u, "+")() == 1);
+}
+
+/*********************************************************/
 
 int main()
 {
@@ -1077,6 +1091,7 @@ int main()
     test37();
     test38();
     test39();
+    test6701();
 
     printf("Success\n");
     return 0;
