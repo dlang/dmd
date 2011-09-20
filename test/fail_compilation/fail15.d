@@ -1,8 +1,12 @@
+/*
+Segfault on DMD 0.095
+http://www.digitalmars.com/d/archives/digitalmars/D/bugs/926.html
+*/
 module test;
 
 template Test()
 {
-    bit opIndex(bit x)
+    bool opIndex(bool x)
     {
         return !x;
     }
@@ -11,7 +15,7 @@ template Test()
 void main()
 {
     mixin Test!() xs;
-    bit x = xs[false];
+    bool x = xs[false];
 }
 
 
