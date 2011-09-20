@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 import std.stdio;
 import std.string;
 import std.typetuple;

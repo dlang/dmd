@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
+// REQUIRED_ARGS: -d -D -Ddtest_results/compilable -o-
 // POST_SCRIPT: compilable/extra-files/ddoc1-postscript.sh
 
 /** This module is for ABC

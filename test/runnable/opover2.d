@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 // Test operator overloading
 
 extern (C) int printf(const(char*) fmt, ...);

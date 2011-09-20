@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 typedef foo bar;
 typedef bar foo;
 

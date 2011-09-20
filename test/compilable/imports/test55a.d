@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 module imports.test55a;
 
 import test55;

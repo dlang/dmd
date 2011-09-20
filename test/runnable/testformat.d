@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 // PERMUTE_ARGS:
 
 import std.stdio;

@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 // EXTRA_SOURCES: imports/circularA.d
 
 // Bugzilla 4543

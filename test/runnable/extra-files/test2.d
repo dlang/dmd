@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 import object;
 import std.c.stdio;
 import std.string;
@@ -357,7 +357,7 @@ void test17()
 /* ================================ */
 
 
-typedef void* HANDLE18;
+alias void* HANDLE18;
 
 HANDLE18 testx18()
 {

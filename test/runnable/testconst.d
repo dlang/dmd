@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 import std.c.stdio;
 
 class C { }

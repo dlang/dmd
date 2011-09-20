@@ -1,4 +1,4 @@
-
+// REQUIRED_ARGS: -d
 module testxxx8;
 
 import core.vararg;

@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 // 289
 
 typedef int ft(int);

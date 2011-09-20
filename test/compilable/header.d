@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -H -Hdtest_results/compilable
+// REQUIRED_ARGS: -d -H -Hdtest_results/compilable
 // POST_SCRIPT: compilable/extra-files/header-postscript.sh
 
 module foo.bar;
