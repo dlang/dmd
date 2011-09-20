@@ -212,7 +212,7 @@ typedef struct Srcpos
 #endif
 #if MARS
     const char *Sfilename;
-    #define srcpos_name(p)      ((p).SFname)
+    #define srcpos_name(p)      ((p)->Sfilename)
 #endif
 #if M_UNIX
     short Sfilnum;              // file number
