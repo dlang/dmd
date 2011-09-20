@@ -1483,6 +1483,7 @@ void Type::modToBuffer(OutBuffer *buf)
 Type *Type::merge()
 {   Type *t;
 
+    if (ty == Terror) return this;
     //printf("merge(%s)\n", toChars());
     t = this;
     assert(t);
@@ -3341,10 +3342,11 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         return t;
     }
 
-    next = next->semantic(loc,sc);
-    transitive();
+    Type *tn = next->semantic(loc,sc);
+    if (tn->ty == Terror)
+        return terror;
 
-    Type *tbn = next->toBasetype();
+    Type *tbn = tn->toBasetype();
 
     if (dim)
     {   dinteger_t n, n2;
@@ -3433,7 +3435,9 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     /* Ensure things like const(immutable(T)[3]) become immutable(T[3])
      * and const(T)[3] become const(T[3])
      */
-    t = addMod(next->mod);
+    next = tn;
+    transitive();
+    t = addMod(tn->mod);
 
     return t->merge();
 
@@ -6585,7 +6589,10 @@ char *TypeTypedef::toChars()
 Type *TypeTypedef::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTypedef::semantic(%s), sem = %d\n", toChars(), sym->sem);
+    int errors = global.errors;
     sym->semantic(sc);
+    if (errors != global.errors)
+        return terror;
     return merge();
 }
 
