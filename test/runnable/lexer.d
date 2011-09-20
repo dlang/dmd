@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import std.stdio;
 
@@ -274,8 +274,8 @@ HERE";
 
 void test7()
 {
-    auto str = \xDB;
-    assert(str.length == 1);
+//    auto str = \xDB;
+//    assert(str.length == 1);
 }
 
 /*********************************************************/

@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import core.exception;
 import core.stdc.math;
@@ -626,10 +626,10 @@ int cfd(int x, int y)
 }
 
 
-extern (Windows) int (*fpw)(int, int);
-extern (C) int (*fpc)(int, int);
-extern (Pascal) int (*fpp)(int, int);
-int (*fpd)(int, int);
+extern (Windows) int function (int, int) fpw;
+extern (C) int function (int, int) fpc;
+extern (Pascal) int function (int, int) fpp;
+int function (int, int) fpd;
 
 void test20()
 {

@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import std.c.stdio;
 
@@ -107,7 +107,7 @@ int bar7(int a)
 
     static int foob(int b) { return b + c + 1; }
 
-    int (*fp)(int) = &foob;
+    int function(int) fp = &foob;
 
     return fp(a);
 }

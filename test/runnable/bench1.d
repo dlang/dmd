@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 // EXECUTE_ARGS: 10000
 
 extern(C) int printf(const char *, ...);

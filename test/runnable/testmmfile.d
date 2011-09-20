@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 import std.file;
 import std.mmfile;

@@ -1,15 +1,16 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 extern(C) int printf(const char*, ...);
 
 /************************************************/
-
+// These seem to be the original tests for $ (originally 'length').
+ 
 int x;
 
 int[] bar(int[] a)
 {
     x++;
-    return a[0 .. length - 1];
+    return a[0 .. $ - 1];
 }
 
 void test1()
@@ -17,31 +18,31 @@ void test1()
   {
     int[4] foo;
 
-    foo[length - 2] = 4;
+    foo[$ - 2] = 4;
     assert(foo[0] == 0);
     assert(foo[1] == 0);
     assert(foo[2] == 4);
     assert(foo[3] == 0);
 
     foo[3] = 5;
-    assert(foo[length - 1] == 5);
+    assert(foo[$ - 1] == 5);
 
     x = 0;
-    bar(foo)[length - 3] = 6;
+    bar(foo)[$ - 3] = 6;
     assert(x == 1);
     assert(foo[0] == 6);
 
-    assert(bar(foo)[length * 2 - 1 - length] == 4);
+    assert(bar(foo)[$ * 2 - 1 - $] == 4);
     assert(x == 2);
 
-    foo[0 .. length] = 1;
+    foo[0 .. $] = 1;
     assert(foo[0] == 1);
     assert(foo[1] == 1);
     assert(foo[2] == 1);
     assert(foo[3] == 1);
 
     x = 0;
-    bar(foo)[1 .. length * 3 - length - length] = 2;
+    bar(foo)[1 .. $ * 3 - $ - $] = 2;
     assert(x == 1);
     assert(foo[0] == 1);
     assert(foo[1] == 2);
@@ -49,12 +50,12 @@ void test1()
     assert(foo[3] == 1);
 
     int[] a = new int[3];
-    a[0..length] = foo[0..length-1];
+    a[0..$] = foo[0..$-1];
     assert(a[0] == 1);
     assert(a[1] == 2);
     assert(a[2] == 2);
     a[] = 4;
-    a[0..length] = bar(foo)[0..length];
+    a[0..$] = bar(foo)[0..$];
     assert(x == 2);
     assert(a[0] == 1);
     assert(a[1] == 2);
@@ -64,31 +65,31 @@ void test1()
   {
     int[4] f; int[] foo = f;
 
-    foo[length - 2] = 4;
+    foo[$ - 2] = 4;
     assert(foo[0] == 0);
     assert(foo[1] == 0);
     assert(foo[2] == 4);
     assert(foo[3] == 0);
 
     foo[3] = 5;
-    assert(foo[length - 1] == 5);
+    assert(foo[$ - 1] == 5);
 
     x = 0;
-    bar(foo)[length - 3] = 6;
+    bar(foo)[$ - 3] = 6;
     assert(x == 1);
     assert(foo[0] == 6);
 
-    assert(bar(foo)[length * 2 - 1 - length] == 4);
+    assert(bar(foo)[$ * 2 - 1 - $] == 4);
     assert(x == 2);
 
-    foo[0 .. length] = 1;
+    foo[0 .. $] = 1;
     assert(foo[0] == 1);
     assert(foo[1] == 1);
     assert(foo[2] == 1);
     assert(foo[3] == 1);
 
     x = 0;
-    bar(foo)[1 .. length * 3 - length - length] = 2;
+    bar(foo)[1 .. $ * 3 - $ - $] = 2;
     assert(x == 1);
     assert(foo[0] == 1);
     assert(foo[1] == 2);
@@ -96,12 +97,12 @@ void test1()
     assert(foo[3] == 1);
 
     int[] a = new int[3];
-    a[0..length] = foo[0..length-1];
+    a[0..$] = foo[0..$-1];
     assert(a[0] == 1);
     assert(a[1] == 2);
     assert(a[2] == 2);
     a[] = 4;
-    a[0..length] = bar(foo)[0..length];
+    a[0..$] = bar(foo)[0..$];
     assert(x == 2);
     assert(a[0] == 1);
     assert(a[1] == 2);

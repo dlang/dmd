@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 module test;
 
@@ -41,7 +41,7 @@ static int i2 = 1;
 
 void test2()
 {
-    volatile { int i2 = 2; }
+    synchronized { int i2 = 2; }
     assert(i2 == 1);
 }
 
@@ -120,7 +120,7 @@ void test6()
 {
     int[] yuiop;
     yuiop = 
-	Foo6.farray()[Foo6.flwr() .. length - Foo6.fupr()] = 3;
+	Foo6.farray()[Foo6.flwr() .. $ - Foo6.fupr()] = 3;
     assert(Foo6.x == 3);
     assert(yuiop.length == 3);
     assert(yuiop[0] == 3);
@@ -611,25 +611,25 @@ uint intRes()
 
 void test28()
 {
-	auto s = std.string.format("abc123"[intRes() % length] );
+	auto s = std.string.format("abc123"[intRes() % $] );
         writefln( "%s", s );
 	assert(s == "2");
 
 	static const char[] foo = "abc123";
-	s = std.string.format(foo[intRes() % length] );
+	s = std.string.format(foo[intRes() % $] );
 	assert(s == "2");
 
 
 	static string bar = "abc123";
-	s = std.string.format(bar[intRes() % length] );
+	s = std.string.format(bar[intRes() % $] );
 	assert(s == "2");
 
 	const char[] abc = "abc123";
-	s = std.string.format(abc[intRes() % length] );
+	s = std.string.format(abc[intRes() % $] );
 	assert(s == "2");
 
 	string def = "abc123";
-	s = std.string.format(def[intRes() % length] );
+	s = std.string.format(def[intRes() % $] );
 	assert(s == "2");
 }
 

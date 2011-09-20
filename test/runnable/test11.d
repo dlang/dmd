@@ -1,5 +1,4 @@
-// for two uses of volatile
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS:
 
 extern(C) int printf(const char*, ...);
 extern(C) size_t strlen(const char*);
@@ -100,23 +99,6 @@ void test4()
         assert(p.sizeof == 8);
     else
         assert(false, "unknown platform");
-}
-
-/**************************************/
-
-void test5a(int *j)
-{
-    int i;
-
-    volatile i = *j;
-    volatile i = *j;
-}
-
-void test5()
-{
-    int x;
-
-    test5a(&x);
 }
 
 
@@ -294,7 +276,7 @@ void test14()
 
 /**************************************/
 
-typedef void delegate(int) t_func;
+alias void delegate(int) t_func;
 
 class Foo15
 {
@@ -1170,60 +1152,6 @@ void test58()
     new S;
 }
 
-
-/**************************************/
-
-
-typedef ulong[3] BBB59;
-
-template A59()
-{
-    void foo(BBB59 a)
-    {
-	printf("A.foo\n");
-	bar(a);
-    }
-}
-
-struct B59
-{
-    mixin A59!();
-
-    void bar(BBB59 a)
-    {
-	printf("B.bar\n");
-    }
-}
-
-void test59()
-{
-    ulong[3] aa;
-    BBB59 a;
-    B59 b;
-
-    b.foo(a);
-}
-
-
-/**************************************/
-
-typedef void* T60;
-
-class A60
-{
-     int  List[T60][int][uint];
-
-     void GetMsgHandler(T60 h,uint Msg)
-     {
-         assert(Msg in List[h][0]);    //Offending line
-     }
-}
-
-void test60()
-{
-}
-
-
 /**************************************/
 
 struct S61 {
@@ -1323,7 +1251,6 @@ int main(string[] argv)
     test2();
     test3();
     test4();
-    test5();
     test6();
     test7();
     test8();
@@ -1377,8 +1304,6 @@ int main(string[] argv)
     test56();
     test57();
     test58();
-    test59();
-    test60();
     test61();
     test62();
     test63();

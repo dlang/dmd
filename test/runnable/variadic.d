@@ -1,6 +1,5 @@
 
 import std.stdio;
-import std.string;
 import std.typetuple;
 import std.traits;
 
@@ -666,32 +665,6 @@ void test32()
 
 /***************************************/
 
-template foo33(TA...)
-{
-  const TA[0] foo33=0;
-}
-
-template bar33(TA...)
-{
-  const TA[0..1][0] bar33=TA[0..1][0].init;
-}
-
-void test33()
-{
-    typedef int dummy33=0;
-    typedef int myint=3;
-
-    assert(foo33!(int)==0);
-    assert(bar33!(int)==int.init);
-    assert(bar33!(myint)==myint.init);
-    assert(foo33!(int,dummy33)==0);
-    assert(bar33!(int,dummy33)==int.init);
-    assert(bar33!(myint,dummy33)==myint.init);
-}
-
-
-/***************************************/
-
 struct S34
 {
     int x;
@@ -859,35 +832,6 @@ void test40()
     assert(TL.length == 2);
     assert(is (TL[0] == A));
     assert(is (TL[1] == I));
-}
-
-/***************************************/
-
-void test41()
-{
-    double bongos(int flux, string soup)
-    {
-        return 0.0;
-    }
-
-    auto foo = mk_future(& bongos, 99, "soup"[]);
-}
-
-int mk_future(A, B...)(A cmd, B args)
-{
-    typedef ReturnType!(A) TReturn;
-    typedef ParameterTypeTuple!(A) TParams;
-    typedef B TArgs;
-
-    alias Foo41!(TReturn, TParams, TArgs) TFoo;
-
-    return 0;
-}
-
-class Foo41(A, B, C) {
-    this(A delegate(B), C)
-    {
-    }
 }
 
 /***************************************/
@@ -1445,7 +1389,7 @@ int main()
     test30();
     test31();
     test32();
-    test33();
+//    test33();
     test34();
     test35();
     test36();
@@ -1453,7 +1397,7 @@ int main()
     test38();
     test39();
     test40();
-    test41();
+ //   test41();
     test42();
     test43();
     test44();
