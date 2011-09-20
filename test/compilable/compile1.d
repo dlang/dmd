@@ -80,7 +80,7 @@ template bug6661(Q)
     const Q blaz = 6;
 }
 
-static assert(is(typeof(bug6661!(int).blaz)));
+//static assert(is(typeof(bug6661!(int).blaz)));
 
 /**************************************************
     6599    ICE(constfold.c) or segfault
