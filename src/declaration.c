@@ -307,19 +307,35 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 void TypedefDeclaration::semantic(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
-    if (sem == 0)
-    {   sem = 1;
+    if (sem == SemanticStart)
+    {   sem = SemanticIn;
+        int errors = global.errors;
+        Type *savedbasetype = basetype;
         basetype = basetype->semantic(loc, sc);
-        sem = 2;
+        if (errors != global.errors)
+        {
+            basetype = savedbasetype;
+            sem = SemanticStart;
+            return;
+        }
+        sem = SemanticDone;
 #if DMDV2
         type = type->addStorageClass(storage_class);
 #endif
+        Type *savedtype = type;
         type = type->semantic(loc, sc);
         if (sc->parent->isFuncDeclaration() && init)
             semantic2(sc);
+        if (errors != global.errors)
+        {
+            basetype = savedbasetype;
+            type = savedtype;
+            sem = SemanticStart;
+            return;
+        }
         storage_class |= sc->stc & STCdeprecated;
     }
-    else if (sem == 1)
+    else if (sem == SemanticIn)
     {
         error("circular definition");
     }
@@ -328,11 +344,18 @@ void TypedefDeclaration::semantic(Scope *sc)
 void TypedefDeclaration::semantic2(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic2(%s) sem = %d\n", toChars(), sem);
-    if (sem == 2)
-    {   sem = 3;
+    if (sem == SemanticDone)
+    {   sem = Semantic2Done;
         if (init)
         {
+            Initializer *savedinit = init;
+            int errors = global.errors;
             init = init->semantic(sc, basetype, WANTinterpret);
+            if (errors != global.errors)
+            {
+                init = savedinit;
+                return;
+            }
 
             ExpInitializer *ie = init->isExpInitializer();
             if (ie)
@@ -461,6 +484,9 @@ void AliasDeclaration::semantic(Scope *sc)
     // type. If it is a symbol, then aliassym is set and type is NULL -
     // toAlias() will return aliasssym.
 
+    int errors = global.errors;
+    Type *savedtype = type;
+
     Dsymbol *s;
     Type *t;
     Expression *e;
@@ -513,11 +539,15 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     else if (t)
     {
-        type = t;
+        type = t->semantic(loc, sc);
+        //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)
         ScopeDsymbol::multiplyDefined(0, this, overnext);
     this->inSemantic = 0;
+
+    if (errors != global.errors)
+        type = savedtype;
     return;
 
   L2:
@@ -531,6 +561,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     else
     {
+        Dsymbol *savedovernext = overnext;
         FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
         if (f)
         {
@@ -550,6 +581,14 @@ void AliasDeclaration::semantic(Scope *sc)
         {
             assert(global.errors);
             s = NULL;
+        }
+        if (errors != global.errors)
+        {
+            type = savedtype;
+            overnext = savedovernext;
+            aliassym = NULL;
+            inSemantic = 0;
+            return;
         }
     }
     if (!type || type->ty != Terror)
@@ -617,7 +656,7 @@ Dsymbol *AliasDeclaration::toAlias()
     //static int count; if (++count == 75) exit(0); //*(char*)0=0;
     if (inSemantic)
     {   error("recursive alias declaration");
-        aliassym = new TypedefDeclaration(loc, ident, Type::terror, NULL);
+        aliassym = new AliasDeclaration(loc, ident, Type::terror);
         type = Type::terror;
     }
     else if (!aliassym && scope)
@@ -629,7 +668,7 @@ Dsymbol *AliasDeclaration::toAlias()
 void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("alias ");
-#if 0 && _DH
+#if 0
     if (hgs->hdrgen)
     {
         if (haliassym)

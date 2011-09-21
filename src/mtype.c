@@ -430,6 +430,7 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 
 Type *Type::merge()
 {
+    if (ty == Terror) return this;
     //printf("merge(%s)\n", toChars());
     Type *t = this;
     assert(t);
@@ -1938,7 +1939,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             {   error(loc, "tuple index %ju exceeds %u", d, tt->arguments->dim);
                 goto Lerror;
             }
-            Parameter *arg = (Parameter *)tt->arguments->data[(size_t)d];
+            Parameter *arg = tt->arguments->tdata()[(size_t)d];
             return arg->type;
         }
         case Tfunction:
@@ -4224,7 +4225,10 @@ char *TypeTypedef::toChars()
 Type *TypeTypedef::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeTypedef::semantic(%s), sem = %d\n", toChars(), sym->sem);
+    int errors = global.errors;
     sym->semantic(sc);
+    if (errors != global.errors)
+        return terror;
     return merge();
 }
 

@@ -2301,7 +2301,8 @@ Lagain:
     t = s->getType();
     if (t)
     {
-        return new TypeExp(loc, t);
+        TypeExp *te = new TypeExp(loc, t);
+        return te->semantic(sc);
     }
 
     TupleDeclaration *tup = s->isTupleDeclaration();
