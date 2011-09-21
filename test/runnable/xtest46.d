@@ -3597,6 +3597,20 @@ void test6630()
 }
 
 /***************************************************/
+// 6690
+
+T useLazy6690(T)(lazy T val)
+{
+    return val;
+    // val is converted to delegate call, but it is typed as int delegate() - not @safe!
+}
+void test6690() @safe
+{
+    useLazy6690(0);
+    // Error: safe function 'test6690' cannot call system function 'useLazy6690'
+}
+
+/***************************************************/
 
 template Hoge6691()
 {
@@ -3792,6 +3806,7 @@ int main()
     test5799();
     test157();
     test6630();
+    test6690();
 
     printf("Success\n");
     return 0;

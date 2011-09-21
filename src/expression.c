@@ -7233,7 +7233,8 @@ Lagain:
 
             if (ve->var->storage_class & STClazy)
             {
-                TypeFunction *tf = new TypeFunction(NULL, ve->var->type, 0, LINKd);
+                // lazy paramaters can be called without violating purity and safety
+                TypeFunction *tf = new TypeFunction(NULL, ve->var->type, 0, LINKd, STCsafe | STCpure);
                 TypeDelegate *t = new TypeDelegate(tf);
                 ve->type = t->semantic(loc, sc);
             }
@@ -7642,10 +7643,7 @@ Lagain:
             tf = (TypeFunction *)(td->next);
             if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
             {
-                if (e1->op == TOKvar && ((VarExp *)e1)->var->storage_class & STClazy)
-                {   // lazy paramaters can be called without violating purity
-                    // since they are checked explicitly
-                } else if (sc->func->setImpure())
+                if (sc->func->setImpure())
                     error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
             }
             if (sc->func && tf->trust <= TRUSTsystem)
