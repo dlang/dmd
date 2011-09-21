@@ -203,7 +203,7 @@ struct TemplateValueParameter : TemplateParameter
     Expression *specValue;
     Expression *defaultValue;
 
-    static Expression *edummy;
+    static AA *edummies;
 
     TemplateValueParameter(Loc loc, Identifier *ident, Type *valType, Expression *specValue, Expression *defaultValue);
 
