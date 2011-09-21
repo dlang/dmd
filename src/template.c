@@ -4285,7 +4285,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 tiargs->tdata()[j] = ea;
             }
             else if (sa)
-            {   tiargs->tdata()[j] = sa;
+            {
+              Ldsym:
+                tiargs->tdata()[j] = sa;
                 TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
                 if (d)
                 {
@@ -4337,6 +4339,10 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             if (ea->op == TOKtype)
             {   ta = ea->type;
                 goto Ltype;
+            }
+            if (ea->op == TOKimport)
+            {   sa = ((ScopeExp *)ea)->sds;
+                goto Ldsym;
             }
             if (ea->op == TOKtuple)
             {   // Expand tuple
