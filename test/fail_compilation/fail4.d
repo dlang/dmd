@@ -1,3 +1,6 @@
+// REQUIRED_ARGS: -d
+// On DMD0.165 fails only with typedef, not alias
+
 typedef foo bar;
 typedef bar foo;
 
