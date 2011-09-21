@@ -12,7 +12,7 @@ class Message
 void
 main()
   {
-    auto m2 = new invariant(Message)(2);
+    auto m2 = new immutable(Message)(2);
     m2.notifier = 3;
   }
 

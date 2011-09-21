@@ -12,7 +12,7 @@
 module switch_12;
 
 int main(){
-	wchar[] array = "123";
+	string array = "123";
 	switch(array){
 		case "123":{
 			assert(0);
@@ -24,5 +24,5 @@ int main(){
 			return -1; // dummy
 		}
 	}
-		
+	return 0;	
 }

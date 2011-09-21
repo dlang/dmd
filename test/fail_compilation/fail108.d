@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 // 249
 
 module test1;

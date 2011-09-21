@@ -1,5 +1,5 @@
 
-template Foo(T:invariant(T))
+template Foo(T:immutable(T))
 {
     alias T Foo;
 }

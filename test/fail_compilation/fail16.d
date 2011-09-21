@@ -1,3 +1,4 @@
+// ICE(template.c) in DMD0.080
 
 int i;
 

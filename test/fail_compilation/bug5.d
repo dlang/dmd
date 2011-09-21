@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -w
+// REQUIRED_ARGS:
 
 int test1()
 {

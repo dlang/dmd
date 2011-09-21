@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -d
 
 typedef int myint = 4;
 

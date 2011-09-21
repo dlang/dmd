@@ -1,3 +1,5 @@
+import core.stdc.stdio : printf;
+
 int ToTypeString (T:int) ()
 {
     return 1;

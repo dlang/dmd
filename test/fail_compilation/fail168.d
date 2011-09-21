@@ -2,6 +2,6 @@
 void main()
 {
     int x;
-    invariant(int)* p = &x;
+    immutable(int)* p = &x;
     *p = 3;
 }

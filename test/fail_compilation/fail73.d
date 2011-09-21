@@ -1,4 +1,7 @@
-int main()
+// segfault DMD 0.120
+// http://www.digitalmars.com/d/archives/digitalmars/D/bugs/4634.html
+
+void main()
 {
     int u=2;
 
@@ -11,6 +14,8 @@ int main()
 		    u++;
 	    }
 	break;
+    default:
+    break;
     }
 }
 
