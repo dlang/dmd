@@ -9,6 +9,7 @@ void foo()
         dq NOP,NOP,NOP,NOP;    //  64
         dq NOP,NOP,NOP,NOP;    //  96
         dq NOP,NOP,NOP,NOP;    // 128
-        loop L1; // signed underflow of rel8
+        // unnoticed signed underflow of rel8 with DMD2.056
+        loop L1;
     }
 }
