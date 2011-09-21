@@ -1,5 +1,21 @@
 // PERMUTE_ARGS:
 
+// ICE(expression.c) DMD 0.110
+// http://www.digitalmars.com/d/archives/digitalmars/D/bugs/2966.html
+
+string str255() { return "\255"; }
+void fromFail49()
+{
+    switch("abc")
+    {
+	case "":
+	case str255():
+	    break;
+    default:
+        break;
+    }
+}
+
 // Bugzilla 5735
 
 struct A {}

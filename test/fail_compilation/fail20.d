@@ -1,3 +1,5 @@
+// ICE(cod3) DMD0.080
+
 struct FOO{}
 void main(){
     FOO one;

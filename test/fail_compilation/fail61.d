@@ -1,3 +1,4 @@
+import core.stdc.stdio : printf;
 
 class A
 {

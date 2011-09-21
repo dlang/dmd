@@ -1,6 +1,6 @@
 // 289
 
-typedef int ft(int);
+alias int function (int) ft;
 
 ft[] x;  // is allowed 
 

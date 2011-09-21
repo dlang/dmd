@@ -1,6 +1,7 @@
+// accepts-valid with DMD0.120. volatile as well as synchronized
 
 void main(){
     int i = 1;
-    volatile int i = 2; // should fail to compile
+    synchronized int i = 2; // should fail to compile
 }
 
