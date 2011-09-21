@@ -628,6 +628,18 @@ static assert([__traits(allMembers,Test6674)] == [
     "toString","toHash","opCmp","opEquals","Monitor","factory"]);
 
 /********************************************************/
+// 6073
+
+struct S6073 {}
+
+template T6073(M...) {
+    //alias int T;
+}
+alias T6073!traits V6073;                       // ok
+alias T6073!(__traits(parent, S6073)) U6073;    // error
+static assert(__traits(isSame, V6073, U6073));  // same instantiation == same arguemnts
+
+/********************************************************/
 
 int main()
 {
