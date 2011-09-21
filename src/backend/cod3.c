@@ -5613,7 +5613,6 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
 { char *p;
   symbol *s;
   targ_size_t ad;
-  targ_ptrdiff_t delta;
 
   switch (fl)
   {
@@ -5668,17 +5667,13 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         }
         break;
     case FLblock:                       /* displacement to another block */
-        delta = uev->Vblock->Boffset - OFFSET() - 2;
-        if (delta > 0x7FFF || delta < (short)0x8000)
+        ad = uev->Vblock->Boffset - OFFSET() - 2;
+#ifdef DEBUG
         {
-            if (uev->Vblock->Bsrcpos.Slinnum)
-                fprintf(stderr, "%s(%d): overflow %d for block displacement.\n",
-                        uev->Vblock->Bsrcpos.Sfilename, uev->Vblock->Bsrcpos.Slinnum, delta);
-            else
-                fprintf(stderr, "Error: overflow %d for block displacement.\n", delta);
-            err_exit();
+            targ_ptrdiff_t delta = uev->Vblock->Boffset - OFFSET() - 2;
+            assert((signed short)delta == delta);
         }
-        ad = delta;
+#endif
     L1:
         GENP(2,&ad);                    // displacement
         return;
@@ -5708,13 +5703,11 @@ STATIC void do8bit(enum FL fl,union evc *uev)
         break;
     case FLblock:
         delta = uev->Vblock->Boffset - OFFSET() - 1;
-        if (delta > 0x7F || delta < (char)0x80)
+        if ((signed char)delta != delta)
         {
             if (uev->Vblock->Bsrcpos.Slinnum)
-                fprintf(stderr, "%s(%d): overflow %d for block displacement.\n",
-                        uev->Vblock->Bsrcpos.Sfilename, uev->Vblock->Bsrcpos.Slinnum, delta);
-            else
-                fprintf(stderr, "Error: overflow %d for block displacement.\n", delta);
+                fprintf(stderr, "%s(%d): ", uev->Vblock->Bsrcpos.Sfilename, uev->Vblock->Bsrcpos.Slinnum);
+            fprintf(stderr, "block displacement of %lld exceeds the maximum offset of -128 to 127.\n", (long long)delta);
             err_exit();
         }
         c = delta;
