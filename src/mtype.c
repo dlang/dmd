@@ -2727,7 +2727,12 @@ int Type::covariant(Type *t)
         }
     }
     else if (t1->parameters != t2->parameters)
-        goto Ldistinct;
+    {
+        size_t dim1 = !t1->parameters ? 0 : t1->parameters->dim;
+        size_t dim2 = !t2->parameters ? 0 : t2->parameters->dim;
+        if (dim1 || dim2)
+            goto Ldistinct;
+    }
 
     // The argument lists match
     if (inoutmismatch)
@@ -2735,6 +2740,7 @@ int Type::covariant(Type *t)
     if (t1->linkage != t2->linkage)
         goto Lnotcovariant;
 
+            // Return types
     Type *t1n = t1->next;
     Type *t2n = t2->next;
 
@@ -2757,7 +2763,7 @@ int Type::covariant(Type *t)
         if (!cd->isBaseInfoComplete())
 #endif
         {
-            return 3;
+            return 3;   // forward references
         }
     }
     if (t1n->implicitConvTo(t2n))
@@ -2848,7 +2854,7 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     {   buf->writeByte('(');
         for (size_t i = 0; i < td->origParameters->dim; i++)
         {
-            TemplateParameter *tp = (TemplateParameter *)td->origParameters->data[i];
+            TemplateParameter *tp = td->origParameters->tdata()[i];
             if (i)
                 buf->writestring(", ");
             tp->toCBuffer(buf, hgs);
@@ -2910,10 +2916,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (parameters)
     {   tf->parameters = (Parameters *)parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
-        {   Parameter *arg = (Parameter *)parameters->data[i];
+        {   Parameter *arg = parameters->tdata()[i];
             Parameter *cpy = (Parameter *)mem.malloc(sizeof(Parameter));
             memcpy(cpy, arg, sizeof(Parameter));
-            tf->parameters->data[i] = (void *)cpy;
+            tf->parameters->tdata()[i] = cpy;
         }
     }
 
