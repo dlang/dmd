@@ -1,6 +1,6 @@
 // 289
 
-alias int function (int) ft;
+alias int ft(int);
 
 ft[] x;  // is allowed 
 
