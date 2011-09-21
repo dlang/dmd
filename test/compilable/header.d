@@ -314,3 +314,11 @@ int bar11(T)()
 }
 
 
+struct S6360
+{
+    @property long weeks1() const pure nothrow { return 0; }
+
+    @property const pure nothrow long weeks2() { return 0; }
+}
+
+

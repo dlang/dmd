@@ -4454,6 +4454,9 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     if (stc & STCproperty)
         this->isproperty = true;
 
+    if (stc & STCref)
+        this->isref = true;
+
     this->trust = TRUSTdefault;
     if (stc & STCsafe)
         this->trust = TRUSTsafe;

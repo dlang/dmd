@@ -38,6 +38,8 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     //printf("storage_class = x%x\n", storage_class);
     this->storage_class = storage_class;
     this->type = type;
+    if (type)
+        this->storage_class &= ~(STC_TYPECTOR | STC_FUNCATTR);
     this->loc = loc;
     this->endloc = endloc;
     fthrows = NULL;
@@ -3059,10 +3061,10 @@ void CtorDeclaration::semantic(Scope *sc)
     //printf("CtorDeclaration::semantic() %s\n", toChars());
     TypeFunction *tf = (TypeFunction *)type;
     assert(tf && tf->ty == Tfunction);
-    Expressions *fargs = ((TypeFunction *)type)->fargs;         // for auto ref
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static constructor
+    sc->flags |= SCOPEctor;
 
     parent = sc->parent;
     Dsymbol *parent = toParent2();
@@ -3077,17 +3079,16 @@ void CtorDeclaration::semantic(Scope *sc)
     {   tret = ad->handle;
         assert(tret);
         tret = tret->addStorageClass(storage_class | sc->stc);
+        tret = tret->addMod(type->mod);
     }
-    tf = new TypeFunction(tf->parameters, tret, tf->varargs, LINKd, storage_class | sc->stc);
-    tf->fargs = fargs;
-    type = tf;
+    tf->next = tret;
+    type = type->semantic(loc, sc);
 
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
-    {   ((TypeFunction *)type)->isref = 1;
-        if (!originalType)
-            // Leave off the "ref"
-            originalType = new TypeFunction(tf->parameters, tret, tf->varargs, LINKd, storage_class | sc->stc);
+    {   if (!originalType)
+            originalType = type->syntaxCopy();
+        ((TypeFunction *)type)->isref = 1;
     }
 #endif
     if (!originalType)
@@ -3155,13 +3156,8 @@ int CtorDeclaration::addPostInvariant()
 
 void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    TypeFunction *tf = (TypeFunction *)type;
-    assert(tf && tf->ty == Tfunction);
-
-    if (originalType && originalType->ty == Tfunction)
-        ((TypeFunction *)originalType)->attributesToCBuffer(buf, 0);
-    buf->writestring("this");
-    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
+    type->toCBuffer(buf, Id::This, hgs);    // ident == Id::this
     bodyToCBuffer(buf, hgs);
 }
 

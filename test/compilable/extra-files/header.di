@@ -384,3 +384,16 @@ return 0;
 );
 }
 }
+struct S6360
+{
+    @property const pure nothrow long weeks1()
+{
+return 0;
+}
+
+    const nothrow pure @property long weeks2()
+{
+return 0;
+}
+
+}
