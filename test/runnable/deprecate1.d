@@ -263,6 +263,21 @@ void test4_test28()
   }
 }
 
+// from template4.d test 4
+void template4_test4()
+{
+    typedef char Typedef;
+
+    static if (is(Typedef Char == typedef))
+    {
+        static if (is(Char == char))
+        { }
+        else static assert(0);
+    }
+    else static assert(0);
+}
+
+
 
 /******************************************/
 

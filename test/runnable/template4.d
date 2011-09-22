@@ -176,20 +176,6 @@ void test4()
     else
 	assert(0);
 
-
-    typedef char Typedef;
-
-    static if (is(Typedef Char == typedef))
-	printf("if\n");
-    else
-	assert(0);
-
-    static if (is(Char == char))
-	printf("if\n");
-    else
-	assert(0);
-
-
     class Class { }
 
     static if (is(Class == class))
