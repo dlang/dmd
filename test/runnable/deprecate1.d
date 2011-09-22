@@ -399,6 +399,31 @@ void test20_test32()
 	assert(var[4] == 12);
 }
 
+/**************************************/
+
+class A2
+{
+    T opCast(T)()
+    {
+        auto s = T.stringof;
+        printf("A.opCast!(%.*s)\n", s.length, s.ptr);
+        return T.init;
+    }
+}
+
+
+void opover2_test2()
+{
+    auto a = new A2();
+
+    auto x = cast(int)a;
+    assert(x == 0);
+
+    typedef int myint_BUG6712 = 7;
+    auto y = cast(myint_BUG6712)a;
+    assert(y == 7);
+}
+
 /******************************************/
 
 int main()
@@ -420,5 +445,6 @@ int main()
     test15_test3();
     test15_test4();
     test20_test32();
+    opover2_test2();
     return 0;
 }
