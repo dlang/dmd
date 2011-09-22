@@ -454,6 +454,84 @@ typedef void* H41;
 
 const H41 INVALID_H41_VALUE = cast(H41)-1;
 
+/*******************************************/
+
+struct Ranged(T)
+{
+    T value, min, max, range;
+}
+
+typedef Ranged!(float) Degree = {0f, 0f, 360f, 360f};
+
+void test28_test5()
+{
+    static Degree a;
+    assert(a.value == 0f);
+    assert(a.min == 0f);
+    assert(a.max == 360f);
+    assert(a.range == 360f);
+}
+
+/*******************************************/
+
+void test28_test6()
+{
+    struct Foo
+    {
+        void foo() { }
+    }
+
+    typedef Foo Bar;
+
+    Bar a;
+    a.foo();
+}
+
+/*******************************************/
+
+typedef uint socket_t = -1u;
+
+class Socket
+{
+    socket_t sock;
+
+    void accept()
+    {
+	    socket_t newsock;
+    }
+}
+
+void test28_test16()
+{
+}
+
+/*******************************************/
+
+typedef int Xint = 42;
+
+void test28_test56()
+{
+    Xint[3][] x = new Xint[3][4];
+
+    foreach(Xint[3] i; x) {
+        foreach (Xint j; i)
+            assert(j == 42);
+    }
+}
+
+void test28_test57()
+{
+    Xint[3][] x = new Xint[3][4];
+    x.length = 200;
+    assert(x.length == 200);
+
+    foreach(Xint[3] i; x) {
+        foreach (Xint j; i)
+            assert(j == 42);
+    }
+}
+
+
 /******************************************/
 
 int main()
@@ -477,5 +555,10 @@ int main()
     test20_test32();
     opover2_test2();
     test12_test21();
+    test28_test5();
+    test28_test6();
+    test28_test16();
+    test28_test56();
+    test28_test57();
     return 0;
 }
