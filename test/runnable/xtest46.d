@@ -3626,6 +3626,27 @@ template Hoge6691()
 alias Hoge6691!() H6691;
 
 /***************************************************/
+// 2953
+
+template Tuple2953(T...)
+{
+    alias T Tuple2953;
+}
+template Range2953(int b)
+{
+    alias Tuple2953!(1) Range2953;
+}
+void foo2953()()
+{
+    Tuple2953!(int, int) args;
+    foreach( x ; Range2953!(args.length) ){ }
+}
+void test2953()
+{
+    foo2953!()();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3807,6 +3828,7 @@ int main()
     test157();
     test6630();
     test6690();
+    test2953();
 
     printf("Success\n");
     return 0;
