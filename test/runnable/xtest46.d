@@ -3655,6 +3655,17 @@ static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
 static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 
 /***************************************************/
+// 6084
+
+template TypeTuple6084(T...){ alias T TypeTuple6084; }
+void test6084()
+{
+    int foo(int x)() { return x; }
+    foreach(i; TypeTuple6084!(0))
+        foo!(i);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3837,6 +3848,7 @@ int main()
     test6630();
     test6690();
     test2953();
+    test6084();
 
     printf("Success\n");
     return 0;
