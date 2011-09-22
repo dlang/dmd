@@ -768,6 +768,38 @@ void testconst_test86()
    shared(Y86) x = new Y86;
 }
 
+/************************************/
+
+class Class19 : Throwable
+{
+    this() { super(""); }
+}
+
+typedef Class19 Alias19;
+
+void testdstress_test19()
+{
+	try{
+		throw new Alias19();
+	}catch{
+		return;
+	}
+	assert(0);
+}
+/************************************/
+
+public static const uint U20 = (cast(uint)(-1)) >>> 2;
+
+typedef uint myType20;
+public static const myType20 T20 = (cast(myType20)(-1)) >>> 2;
+
+void testdstress_test20()
+{
+	assert(U20 == 0x3FFFFFFF);
+	assert(T20 == 0x3FFFFFFF);
+}
+
+
 /******************************************/
 
 int main()
@@ -808,5 +840,7 @@ int main()
     testconst_test67();
     testconst_test71();
     testconst_test86();
+    testdstress_test19();
+    testdstress_test20();
     return 0;
 }
