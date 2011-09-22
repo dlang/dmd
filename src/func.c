@@ -3154,13 +3154,6 @@ int CtorDeclaration::addPostInvariant()
 }
 
 
-void CtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
-    type->toCBuffer(buf, Id::This, hgs);    // ident == Id::this
-    bodyToCBuffer(buf, hgs);
-}
-
 /********************************* PostBlitDeclaration ****************************/
 
 #if DMDV2
