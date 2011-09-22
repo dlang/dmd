@@ -385,6 +385,19 @@ void test15_test4()
 	assert(tb[i] == cast(tfloat)0.0);
 }
 
+/*****************************************/
+
+void test20_test32()
+{
+	typedef int Type = 12;
+	static Type[5] var = [0:1, 3:2];
+
+	assert(var[0] == 1);
+	assert(var[1] == 12);
+	assert(var[2] == 12);
+	assert(var[3] == 2);
+	assert(var[4] == 12);
+}
 
 /******************************************/
 
@@ -406,5 +419,6 @@ int main()
     test15_test2();
     test15_test3();
     test15_test4();
+    test20_test32();
     return 0;
 }
