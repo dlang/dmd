@@ -149,58 +149,6 @@ void test10()
     assert(d == 0.234e+35);
 }
 
-
-/************************************/
-
-typedef int[int] T11;
-T11 a11;
-
-void test11()
-{
-    1 in a11;
-}
-
-/************************************/
-
-struct A12
-{
-    int x;
-    int y;
-    int x1;
-    int x2;
-}
-
-typedef A12 B12;
-//alias A12 B12;
-
-template V12(T)
-{
-    T buf;
-
-    T get()
-    {
-       return buf;
-    }
-}
-
-alias V12!(B12) foo12;
-
-
-void test12()
-{
-    B12 b = foo12.get();
-}
-
-
-/************************************/
-
-typedef int[] T13;
-static T13 a13=[1,2,3];
-
-void test13()
-{
-}
-
 /************************************/
 
 class CA14 { }
@@ -530,8 +478,10 @@ void test30()
 
 
 /************************************/
+// http://www.digitalmars.com/d/archives/18204.html
+// DMD0.050 also failed with alias.
 
-typedef int recls_bool_t;
+alias int recls_bool_t;
 
 class Entry31
 {
@@ -1424,9 +1374,6 @@ int main()
     test8();
     test9();
     test10();
-    test11();
-    test12();
-    test13();
     test14();
     test15();
     test16();

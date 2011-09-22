@@ -385,6 +385,53 @@ void test15_test4()
 	assert(tb[i] == cast(tfloat)0.0);
 }
 
+/************************************/
+// failed to compile on DMD0.050, only with typedef (alias was OK)
+
+typedef int[int] T11;
+T11 a11;
+
+void test15_test11()
+{
+    1 in a11;
+}
+
+/************************************/
+// ICE(cgelem.c) on 0.050, alias was OK.
+struct A12
+{
+    int x;
+    int y;
+    int x1;
+    int x2;
+}
+
+typedef A12 B12;
+
+template V12(T)
+{
+    T buf;
+
+    T get()
+    {
+       return buf;
+    }
+}
+
+alias V12!(B12) foo12;
+
+
+void test15_test12()
+{
+    B12 b = foo12.get();
+}
+
+/************************************/
+// test15_test13. Failed to compile DMD0.050, OK with alias.
+typedef int[] T13;
+static T13 a13=[1,2,3];
+
+
 /*****************************************/
 
 void test20_test32()
@@ -579,6 +626,8 @@ int main()
     test15_test2();
     test15_test3();
     test15_test4();
+    test15_test11();
+    test15_test12();
     test20_test32();
     opover2_test2();
     test12_test21();
