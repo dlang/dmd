@@ -4366,7 +4366,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
 
     exps->reserve(tup->objects->dim);
     for (size_t i = 0; i < tup->objects->dim; i++)
-    {   Object *o = (Object *)tup->objects->data[i];
+    {   Object *o = tup->objects->tdata()[i];
         if (o->dyncast() == DYNCAST_EXPRESSION)
         {
             Expression *e = (Expression *)o;
@@ -4402,8 +4402,8 @@ int TupleExp::equals(Object *o)
         if (exps->dim != te->exps->dim)
             return 0;
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e1 = (Expression *)exps->data[i];
-            Expression *e2 = (Expression *)te->exps->data[i];
+        {   Expression *e1 = (*exps)[i];
+            Expression *e2 = (*te->exps)[i];
 
             if (!e1->equals(e2))
                 return 0;
@@ -4428,21 +4428,17 @@ Expression *TupleExp::semantic(Scope *sc)
 
     // Run semantic() on each argument
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (Expression *)exps->data[i];
+    {   Expression *e = (*exps)[i];
 
         e = e->semantic(sc);
         if (!e->type)
         {   error("%s has no value", e->toChars());
-            e->type = Type::terror;
+            e = new ErrorExp();
         }
-        exps->data[i] = (void *)e;
+        (*exps)[i] = e;
     }
 
     expandTuples(exps);
-    if (0 && exps->dim == 1)
-    {
-        return (Expression *)exps->data[0];
-    }
     type = new TypeTuple(exps);
     type = type->semantic(loc, sc);
     //printf("-TupleExp::semantic(%s)\n", toChars());
@@ -4460,7 +4456,7 @@ int TupleExp::checkSideEffect(int flag)
 {   int f = 0;
 
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (Expression *)exps->data[i];
+    {   Expression *e = (*exps)[i];
 
         f |= e->checkSideEffect(2);
     }
@@ -4470,16 +4466,16 @@ int TupleExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int TupleExp::canThrow()
+int TupleExp::canThrow(bool mustNotThrow)
 {
-    return arrayExpressionCanThrow(exps);
+    return arrayExpressionCanThrow(exps, mustNotThrow);
 }
 #endif
 
 void TupleExp::checkEscape()
 {
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (Expression *)exps->data[i];
+    {   Expression *e = (*exps)[i];
         e->checkEscape();
     }
 }

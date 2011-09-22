@@ -3397,7 +3397,14 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
 
                 t = s->getType();
                 if (!t && s->isDeclaration())
-                    t = s->isDeclaration()->type;
+                {   t = s->isDeclaration()->type;
+                    if (!t && s->isTupleDeclaration())
+                    {
+                        e = new TupleExp(loc, s->isTupleDeclaration());
+                        e = e->semantic(sc);
+                        t = e->type;
+                    }
+                }
                 if (t)
                 {
                     sm = t->toDsymbol(sc);
