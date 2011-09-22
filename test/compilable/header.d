@@ -322,3 +322,23 @@ struct S6360
 }
 
 
+struct S12
+{
+    /// postfix storage class and constructor
+    this(int n) nothrow{}
+
+    /// prefix storage class (==StorageClassDeclaration) and constructor
+    nothrow this(string s){}
+}
+
+/// dummy
+struct T12
+{
+    /// postfix storage class and template constructor
+    this()(int args) immutable { }
+
+    /// prefix storage class (==StorageClassDeclaration) and template constructor
+    immutable this(A...)(A args){ }
+}
+
+

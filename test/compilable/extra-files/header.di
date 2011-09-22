@@ -334,7 +334,7 @@ bool foo6(int a, int b, int c, int d)
 {
 return (a < b) != (c < d);
 }
-auto  foo7(int x)
+auto foo7(int x)
 {
 return 5;
 }
@@ -394,6 +394,32 @@ return 0;
     const nothrow pure @property long weeks2()
 {
 return 0;
+}
+
+}
+struct S12
+{
+    nothrow this(int n)
+{
+}
+    nothrow this(string s)
+{
+}
+
+}
+struct T12
+{
+    template __ctor()
+{
+immutable this(int args)
+{
+}
+}
+    immutable template __ctor(A...)
+{
+this(A args)
+{
+}
 }
 
 }

@@ -3647,6 +3647,14 @@ void test2953()
 }
 
 /***************************************************/
+// 6596
+
+extern (C) int function() pfunc6596;
+extern (C) int cfunc6596(){ return 0; }
+static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
+static assert(typeof(cfunc6596).stringof == "extern (C) int()");
+
+/***************************************************/
 
 int main()
 {
