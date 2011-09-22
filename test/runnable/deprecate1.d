@@ -723,6 +723,51 @@ void testswitch_test18()
     }
 }
 
+/************************************/
+
+void testconst_test7()
+{
+    typedef void *HANDLE;
+    const HANDLE INVALID_HANDLE_VALUE = cast(HANDLE)-1;
+}
+
+/************************************/
+
+void testconst_test67()
+{
+    typedef char mychar;
+    alias immutable(mychar)[] mystring;
+
+    mystring s = cast(mystring)"hello";
+    mychar c = s[0];
+}
+
+/************************************/
+
+void testconst_test71()
+{
+    string s = "hello world";
+    char c = s[0];
+
+    typedef char mychar;
+    alias immutable(mychar)[] mystring;
+
+    mystring t = cast(mystring)("hello world");
+    mychar d = t[0];
+}
+
+/************************************/
+
+class foo86 { }
+
+typedef shared foo86 Y86;
+
+void testconst_test86()
+{
+   pragma(msg, Y86);
+   shared(Y86) x = new Y86;
+}
+
 /******************************************/
 
 int main()
@@ -759,5 +804,9 @@ int main()
     test42_test102();
     test42_test167();
     testswitch_test18();
+    testconst_test7();
+    testconst_test67();
+    testconst_test71();
+    testconst_test86();
     return 0;
 }
