@@ -530,6 +530,33 @@ void test28_test57()
             assert(j == 42);
     }
 }
+/******************************************/
+// from runnable/traits.d
+typedef int traits_myint;
+static assert(__traits(isArithmetic, traits_myint) == true);
+static assert(__traits(isScalar, traits_myint) == true);
+static assert(__traits(isIntegral, traits_myint) == true);
+
+mixin template Members6674()
+{
+    static int i1;
+    static int i2;
+    static int i3;  //comment out to make func2 visible
+    static int i4;  //comment out to make func1 visible
+}
+
+class Test6674
+{
+    mixin Members6674;
+
+    typedef void function() func1;
+    typedef bool function() func2;
+}
+
+static assert([__traits(allMembers,Test6674)] == [
+    "i1","i2","i3","i4",
+    "func1","func2",
+    "toString","toHash","opCmp","opEquals","Monitor","factory"]);
 
 
 /******************************************/
