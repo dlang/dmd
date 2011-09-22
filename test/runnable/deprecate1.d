@@ -707,6 +707,22 @@ typedef ireal BUG3919;
 alias typeof(BUG3919.init*BUG3919.init) ICE3919;
 alias typeof(BUG3919.init/BUG3919.init) ICE3920;
 
+/*****************************************/
+// rejectsvalid 0.100. typedef only.
+
+void testswitch_test18()
+{
+    enum E { a, b }
+    typedef E F;
+    F i = E.a;
+    final switch (i)
+    {
+	case E.a:
+	case E.b:
+	    break;
+    }
+}
+
 /******************************************/
 
 int main()
@@ -742,5 +758,6 @@ int main()
     test42_test30();
     test42_test102();
     test42_test167();
+    testswitch_test18();
     return 0;
 }
