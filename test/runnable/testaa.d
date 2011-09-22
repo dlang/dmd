@@ -91,20 +91,6 @@ void test2()
 
 /************************************************/
 
-typedef int foo3;
-
-foo3 [foo3] list3;
-
-void test3()
-{
-    list3[cast(foo3)5] = cast(foo3)2;
-    foo3 x = list3.keys[0]; // This line fails.
-    assert(x == cast(foo3)5);
-}
-
-
-/************************************************/
-
 void test4()
 {
     int[const(ubyte)[]] b;
@@ -829,7 +815,6 @@ int main()
 {
 printf("before test 1\n");   test1();
 printf("before test 2\n");   test2();
-printf("before test 3\n");   test3();
 printf("before test 4\n");   test4();
 printf("before test 5\n");   test5();
 printf("before test 6\n");   test6();

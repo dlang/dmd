@@ -431,6 +431,20 @@ void test15_test12()
 typedef int[] T13;
 static T13 a13=[1,2,3];
 
+/************************************************/
+// Failed to compile DMD0.050, OK with alias.
+
+typedef int foo3;
+
+foo3 [foo3] list3;
+
+void testaa_test3()
+{
+    list3[cast(foo3)5] = cast(foo3)2;
+    foo3 x = list3.keys[0]; // This line fails.
+    assert(x == cast(foo3)5);
+}
+
 
 /*****************************************/
 
@@ -636,5 +650,6 @@ int main()
     test28_test16();
     test28_test56();
     test28_test57();
+    testaa_test3();
     return 0;
 }
