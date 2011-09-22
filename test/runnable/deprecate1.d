@@ -930,6 +930,244 @@ void test22_test28()
     Y five = cast(Y) (4.0i + 0.4);
 }
 
+/*******************************************/
+// Bug 184
+
+struct vegetarian
+{
+    carrots areYummy;
+}
+
+typedef ptrdiff_t carrots;
+
+void test23_test35()
+{
+    assert(vegetarian.sizeof == ptrdiff_t.sizeof);
+}
+
+/*******************************************/
+// bug 185
+void test23_test36()
+{
+        typedef double type = 5.0;
+
+        type t;
+        assert (t == type.init);
+
+        type[] ts = new type[10];
+        ts.length = 20;
+        foreach (i; ts)
+	{
+	    assert(i == cast(type)5.0);
+	}
+}
+
+/*******************************************/
+
+typedef int Int1; 
+typedef int Int2; 
+
+int show(Int1 v)
+{
+    printf("Int1: %d", v); 
+    return 1;
+}
+
+int show(Int2 v) {
+    printf("Int2: %d", v); 
+    return 2;
+}
+
+int show(int i) { 
+    printf("int: %d", i); 
+    return 3;
+}
+
+int show(long l) {
+    printf("long: %d", l);
+    return 4;
+}
+
+int show(uint u) { 
+    printf("uint: %d", u); 
+    return 5;
+}
+
+void test23_test49()
+{   int i;
+
+    Int1 value1 = 42; 
+    Int2 value2 = 69; 
+
+    i = show(value1 + value2); 
+    assert(i == 3);
+    i = show(value2 + value1); 
+    assert(i == 3);
+    i = show(2 * value1); 
+    assert(i == 3);
+    i = show(value1 * 2); 
+    assert(i == 3);
+    i = show(value1 + value1); 
+    assert(i == 1);
+    i = show(value2 - value2); 
+    assert(i == 2);
+    i = show(value1 + 2); 
+    assert(i == 3);
+    i = show(3 + value2); 
+    assert(i == 3);
+    i = show(3u + value2); 
+    assert(i == 5);
+    i = show(value1 + 3u); 
+    assert(i == 5);
+
+    long l = 23; 
+    i = show(value1 + l); 
+    assert(i == 4);
+    i = show(l + value2); 
+    assert(i == 4);
+
+    short s = 105; 
+    i = show(s + value1); 
+    assert(i == 3);
+    i = show(value2 + s); 
+    assert(i == 3);
+}
+
+/*******************************************/
+
+void test23_test51()
+{
+    typedef int fooQ = 10;
+
+    int[3][] p = new int[3][5];
+    int[3][] q = new int[3][](5);
+
+    int[][]  r = new int[][](5,3);
+
+    for (int i = 0; i < 5; i++)
+    {
+	for (int j = 0; j < 3; j++)
+	{
+	    assert(r[i][j] == 0);
+	    r[i][j] = i * j;
+	}
+    }
+
+    fooQ[][]  s = new fooQ[][](5,3);
+
+    for (int i = 0; i < 5; i++)
+    {
+	for (int j = 0; j < 3; j++)
+	{
+	    assert(s[i][j] == 10);
+	    s[i][j] = cast(fooQ)(i * j);
+	}
+    }
+
+    typedef fooQ[][] barQ;
+    barQ b = new barQ(5,3);
+
+    for (int i = 0; i < 5; i++)
+    {
+	for (int j = 0; j < 3; j++)
+	{
+	    assert(b[i][j] == 10);
+	    b[i][j] = cast(fooQ)(i * j);
+	}
+    }
+}
+
+/*******************************************/
+
+typedef ubyte x53 = void;
+
+void test23_test53()
+{
+    new x53[10];
+}
+
+/*******************************************/
+
+void test23_test55()
+{
+    typedef uint myintX = 6;
+
+    myintX[500][] data;
+
+    data.length = 1;
+    assert(data.length == 1);
+    foreach (ref foo; data)
+    {
+	assert(foo.length == 500);
+	foreach (ref u; foo)
+	{   //printf("u = %u\n", u);
+	    assert(u == 6);
+	    u = 23;
+	}
+    }
+    foreach (ref foo; data)
+    {
+	assert(foo.length == 500);
+	foreach (u; foo)
+	{   assert(u == 23);
+	    auto v = u;
+	    v = 23;
+	}
+    }
+
+    typedef byte mybyte = 7;
+
+    mybyte[500][] mata;
+
+    mata.length = 1;
+    assert(mata.length == 1);
+    foreach (ref foo; mata)
+    {
+	assert(foo.length == 500);
+	foreach (ref u; foo)
+	{   //printf("u = %u\n", u);
+	    assert(u == 7);
+	    u = 24;
+	}
+    }
+    foreach (ref foo; mata)
+    {
+	assert(foo.length == 500);
+	foreach (u; foo)
+	{   assert(u == 24);
+	    auto v = u;
+	    v = 24;
+	}
+    }
+}
+
+/*******************************************/
+
+typedef string String67;
+
+int f67( string c,  string a )
+{
+    return 1;
+}
+
+int f67( string c, String67 a )
+{
+    return 2;
+}
+
+void test23_test67()
+{
+    printf("test67()\n");
+    int i;
+    i = f67( "", "" );
+    assert(i == 1);
+    i = f67( "", cast(String67)"" );
+    assert(i == 2);
+    i = f67( null, "" );
+    assert(i == 1);
+    i = f67( null, cast(String67)"" );
+    assert(i == 2);
+}
 
 /******************************************/
 
@@ -979,5 +1217,12 @@ int main()
     test8_test23();
     test8_test41();
     test22_test28();
+    test23_test35();
+    test23_test36();
+    test23_test49();
+    test23_test51();
+    test23_test53();
+    test23_test55();
+    test23_test67();
     return 0;
 }
