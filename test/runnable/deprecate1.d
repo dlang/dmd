@@ -845,6 +845,83 @@ void testtypeid_test5()
 	assert(ti.toString()=="deprecate1.Foo5");
 }
 
+/***********************************/
+// test8.d test13()
+typedef void *HWND;
+
+const HWND hWnd = cast(HWND)(null);
+
+/***********************************/
+
+typedef int* IP;
+
+void test8_test21()
+{
+    int i = 5;
+    IP ip = cast(IP) &i;
+    assert(*ip == 5);
+}
+
+/***********************************/
+// http://www.digitalmars.com/d/archives/7812.html
+
+typedef int delegate() DG;
+
+class A23 {
+    int foo() { return 7; }
+    DG pfoo() { return &this.foo; } //this is ok
+}
+
+void test8_test23()
+{
+    int i;
+    A23 a = new A23;
+    DG dg = &a.foo;
+    i = dg();
+    assert(i == 7);
+    DG dg2 = a.pfoo();
+    i = dg2();
+    assert(i == 7);
+}
+
+/***********************************/
+// test8 test29()
+typedef int[] tint;
+
+void Set( ref tint array, int newLength )
+{
+    array.length= newLength;
+}
+
+/***********************************/
+
+struct V41 { int x; }
+
+typedef V41 W41 = { 3 };
+
+class Node41
+{
+   W41 v;
+}
+
+void test8_test41()
+{
+    Node41 n = new Node41;
+
+    printf("n.v.x == %d\n", n.v.x);
+    assert(n.v.x == 3);
+}
+
+/***********************************/
+// http://www.digitalmars.com/d/archives/digitalmars/D/bugs/1801.html
+// test8 test47. ICE(e2ir.c)
+
+typedef string Qwert47;
+
+string yuiop47(Qwert47 asdfg)
+{
+    return asdfg[4..6];
+}
 
 /******************************************/
 
@@ -890,5 +967,8 @@ int main()
     testdstress_test20();
     testtypeid_test1();
     testtypeid_test5();
+    test8_test21();
+    test8_test23();
+    test8_test41();
     return 0;
 }
