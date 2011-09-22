@@ -51,9 +51,8 @@ void test2()
     auto x = cast(int)a;
     assert(x == 0);
 
-    typedef int myint = 7;
-    auto y = cast(myint)a;
-    assert(y == 7);
+    auto y = cast(char)a;
+    assert(y == char.init);
 }
 
 /**************************************/

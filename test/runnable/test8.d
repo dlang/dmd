@@ -240,7 +240,7 @@ void test12()
 
 /***********************************/
 
-typedef void *HWND;
+alias void *HWND;
 
 const HWND hWnd = cast(HWND)(null); 
 
@@ -399,7 +399,7 @@ void test20()
 
 /***********************************/
 
-typedef int* IP;
+alias int* IP;
 
 void test21()
 {
@@ -448,28 +448,6 @@ void test22()
     Window w = new Window();
     w.createWindow();
 }
-
-/***********************************/
-
-typedef int delegate() DG;
-
-class A23 {
-    int foo() { return 7; }
-    DG pfoo() { return &this.foo; } //this is ok
-}
-
-void test23()
-{
-    int i;
-    A23 a = new A23;
-    DG dg = &a.foo;
-    i = dg();
-    assert(i == 7);
-    DG dg2 = a.pfoo();
-    i = dg2();
-    assert(i == 7);
-}
-
 
 /***********************************/
 
@@ -594,13 +572,6 @@ void test28()
 }
 
 /***********************************/
-
-typedef int[] tint;
-
-void Set( ref tint array, int newLength )
-{
-    array.length= newLength;
-}
 
 void test29()
 {
@@ -817,26 +788,6 @@ void test40()
 
 /***********************************/
 
-struct V41 { int x; }
-
-typedef V41 W41 = { 3 };
-
-class Node41
-{
-   W41 v;
-}
-
-void test41()
-{
-    Node41 n = new Node41;
-
-    printf("n.v.x == %d\n", n.v.x);
-    assert(n.v.x == 3);
-}
-
-
-/***********************************/
-
 int foo42(const(char) *x, ...)
 {
     va_list ap;
@@ -948,20 +899,6 @@ void test46()
     printf( "hello world\n" );
 }
 
-
-/***********************************/
-
-typedef string Qwert47;
-
-string yuiop47(Qwert47 asdfg)
-{
-    return asdfg[4..6];
-}
-
-void test47()
-{
-}
-
 /***********************************/
 
 void test48()
@@ -1069,7 +1006,6 @@ int main()
     test20();
     test21();
     test22();
-    test23();
     test24();
     test25();
     test26();
@@ -1087,13 +1023,11 @@ int main()
     test38();
     test39();
     test40();
-    test41();
     test42();
     test43();
     test44();
     test45();
     test46();
-    test47();
     test48();
     test49();
     test50();

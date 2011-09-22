@@ -83,24 +83,6 @@ void test4()
 
 /*******************************************/
 
-struct Ranged(T)
-{
-    T value, min, max, range;
-}
-
-typedef Ranged!(float) Degree = {0f, 0f, 360f, 360f};
-
-void test5()
-{
-    static Degree a;
-    assert(a.value == 0f);
-    assert(a.min == 0f);
-    assert(a.max == 360f);
-    assert(a.range == 360f);
-}
-
-/*******************************************/
-
 void test6()
 {
     struct Foo
@@ -108,7 +90,7 @@ void test6()
         void foo() { }
     }
 
-    typedef Foo Bar;
+    alias Foo Bar;
 
     Bar a;
     a.foo();
@@ -254,24 +236,6 @@ body {
 void test15()
 {
     func15(1, 2);
-}
-
-/*******************************************/
-
-typedef uint socket_t = -1u;
-
-class Socket
-{
-    socket_t sock;
-    
-    void accept()
-    {
-	    socket_t newsock;
-    }
-}
-
-void test16()
-{
 }
 
 /*******************************************/
@@ -1097,32 +1061,6 @@ void test55()
 
 /*******************************************/
 
-typedef int Xint = 42;
-
-void test56()
-{
-    Xint[3][] x = new Xint[3][4];
-
-    foreach(Xint[3] i; x) {
-        foreach (Xint j; i)
-            assert(j == 42);
-    }
-}
-
-void test57()
-{
-    Xint[3][] x = new Xint[3][4];
-    x.length = 200;
-    assert(x.length == 200);
-
-    foreach(Xint[3] i; x) {
-        foreach (Xint j; i)
-            assert(j == 42);
-    }
-}
-
-/*******************************************/
-
 void test58()
 {
     struct S
@@ -1317,7 +1255,6 @@ void main()
     test2();
     test3();
     test4();
-    test5();
     test6();
     test7();
     test8();
@@ -1328,7 +1265,6 @@ void main()
     test13();
     test14();
     test15();
-    test16();
     test17();
     test18();
     test19();
@@ -1368,8 +1304,6 @@ void main()
     test53();
     test54();
     test55();
-    test56();
-    test57();
     test58();
     test59();
     test60();

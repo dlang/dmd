@@ -1,4 +1,6 @@
+// REQUIRED_ARGS: -d
 // EXTRA_SOURCES: imports/circularA.d
+// This bug is typedef-specific.
 
 // Bugzilla 4543
 

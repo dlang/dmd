@@ -1,3 +1,6 @@
+// REQUIRED_ARGS: -d
+// The use of typedef in these tests is fundamental.
+
 public:
 
 // VECTOR

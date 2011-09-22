@@ -606,9 +606,6 @@ void test28()
 {
     alias cdouble X;
     X four = cast(X) (4.0i + 0.4);
-   
-    typedef cdouble Y;
-    Y five = cast(Y) (4.0i + 0.4);
 }
 
 /*************************************/
@@ -1161,7 +1158,7 @@ void test51()
 
 /*************************************/
 
-typedef int function (int) x52;
+alias int function (int) x52;
 
 template T52(string str){
 	const int T52 = 1;

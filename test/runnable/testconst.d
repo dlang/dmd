@@ -74,14 +74,6 @@ void test6()
 
 /************************************/
 
-void test7()
-{
-    typedef void *HANDLE;
-    const HANDLE INVALID_HANDLE_VALUE = cast(HANDLE)-1;
-}
-
-/************************************/
-
 class C8 { }
 
 void foo8(const char[] s, const C8 c, const int x)
@@ -1131,17 +1123,6 @@ void test66()
 
 /************************************/
 
-void test67()
-{
-    typedef char mychar;
-    alias immutable(mychar)[] mystring;
-
-    mystring s = cast(mystring)"hello";
-    mychar c = s[0];
-}
-
-/************************************/
-
 struct Foo68
 {
     int z;
@@ -1184,20 +1165,6 @@ void test70()
   const(S70) cs = s;
   S70 s1 = cs;
   S70 s2 = cast(S70)cs;
-}
-
-/************************************/
-
-void test71()
-{
-    string s = "hello world";
-    char c = s[0];
-
-    typedef char mychar;
-    alias immutable(mychar)[] mystring;
-
-    mystring t = cast(mystring)("hello world");
-    mychar d = t[0];
 }
 
 /************************************/
@@ -1540,18 +1507,6 @@ void test85()
 
 /************************************/
 
-class foo86 { }
-
-typedef shared foo86 Y86;
-
-void test86()
-{
-   pragma(msg, Y86);
-   shared(Y86) x = new Y86;
-}
-
-/************************************/
-
 struct foo87
 {
     int bar(T)(T t){ return 1; }
@@ -1607,7 +1562,6 @@ int main()
     test4();
     test5();
     test6();
-    test7();
     test8();
     test9();
     test10();
@@ -1667,11 +1621,9 @@ int main()
     test64();
     test65();
     test66();
-    test67();
     test68();
     test69();
     test70();
-    test71();
     test72();
     test73();
     test74();
@@ -1686,7 +1638,6 @@ int main()
     test83();
     test84();
     test85();
-    test86();
     test87();
 
     printf("Success\n");

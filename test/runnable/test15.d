@@ -1,6 +1,6 @@
 // REQUIRED_ARGS:
 
-import core.stdc.math;
+import core.stdc.math : cos, fabs, sin, sqrt, rint;
 import core.vararg;
 import std.math: rndtol;
 import std.stream: File;
@@ -10,67 +10,6 @@ extern (C)
 {
     int printf(const char*, ...);
 }
-
-void test1()
-{
-    int i;
-    bool[] b = new bool[10];
-    for (i = 0; i < 10; i++)
-	assert(b[i] == false);
-
-    typedef bool tbit = true;
-    tbit[] tb = new tbit[63];
-    for (i = 0; i < 63; i++)
-	assert(tb[i] == true);
-}
-
-void test2()
-{
-    int i;
-    byte[] b = new byte[10];
-    for (i = 0; i < 10; i++)
-    {	//printf("b[%d] = %d\n", i, b[i]);
-	assert(b[i] == 0);
-    }
-
-    typedef byte tbyte = 0x23;
-    tbyte[] tb = new tbyte[63];
-    for (i = 0; i < 63; i++)
-	assert(tb[i] == 0x23);
-}
-
-
-void test3()
-{
-    int i;
-    ushort[] b = new ushort[10];
-    for (i = 0; i < 10; i++)
-    {	//printf("b[%d] = %d\n", i, b[i]);
-	assert(b[i] == 0);
-    }
-
-    typedef ushort tushort = 0x2345;
-    tushort[] tb = new tushort[63];
-    for (i = 0; i < 63; i++)
-	assert(tb[i] == 0x2345);
-}
-
-
-void test4()
-{
-    int i;
-    float[] b = new float[10];
-    for (i = 0; i < 10; i++)
-    {	//printf("b[%d] = %d\n", i, b[i]);
-	assert(isnan(b[i]));
-    }
-
-    typedef float tfloat = 0.0;
-    tfloat[] tb = new tfloat[63];
-    for (i = 0; i < 63; i++)
-	assert(tb[i] == cast(tfloat)0.0);
-}
-
 
 struct A { int x; }
 struct B { int x = 22; }
@@ -208,58 +147,6 @@ void test10()
     d = 0_._2_3_4_e3_5_;
     printf("d = %g\n", d);
     assert(d == 0.234e+35);
-}
-
-
-/************************************/
-
-typedef int[int] T11;
-T11 a11;
-
-void test11()
-{
-    1 in a11;
-}
-
-/************************************/
-
-struct A12
-{
-    int x;
-    int y;
-    int x1;
-    int x2;
-}
-
-typedef A12 B12;
-//alias A12 B12;
-
-template V12(T)
-{
-    T buf;
-
-    T get()
-    {
-       return buf;
-    }
-}
-
-alias V12!(B12) foo12;
-
-
-void test12()
-{
-    B12 b = foo12.get();
-}
-
-
-/************************************/
-
-typedef int[] T13;
-static T13 a13=[1,2,3];
-
-void test13()
-{
 }
 
 /************************************/
@@ -591,8 +478,10 @@ void test30()
 
 
 /************************************/
+// http://www.digitalmars.com/d/archives/18204.html
+// DMD0.050 also failed with alias.
 
-typedef int recls_bool_t;
+alias int recls_bool_t;
 
 class Entry31
 {
@@ -1479,19 +1368,12 @@ void test72()
 
 int main()
 {
-    test1();
-    test2();
-    test3();
-    test4();
     test5();
     test6();
     test7();
     test8();
     test9();
     test10();
-    test11();
-    test12();
-    test13();
     test14();
     test15();
     test16();

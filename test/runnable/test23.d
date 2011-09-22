@@ -776,37 +776,6 @@ void test34()
 
 /*******************************************/
 
-struct vegetarian
-{
-    carrots areYummy;
-}
-
-typedef ptrdiff_t carrots;
-
-void test35()
-{
-    assert(vegetarian.sizeof == ptrdiff_t.sizeof);
-}
-
-/*******************************************/
-
-void test36()
-{
-        typedef double type = 5.0;
-
-        type t;
-        assert (t == type.init);
-
-        type[] ts = new type[10];
-        ts.length = 20;
-        foreach (i; ts)
-	{   writeln(i);
-	    assert(i == cast(type)5.0);
-	}
-}
-
-/*******************************************/
-
 class Foo37
 {
     float[4] array = 1.0;
@@ -1089,77 +1058,6 @@ void test48()
 
 /*******************************************/
 
-typedef int Int1; 
-typedef int Int2; 
-
-int show(Int1 v)
-{
-    writefln("Int1: %d", v); 
-    return 1;
-}
-
-int show(Int2 v) { 
-    writefln("Int2: %d", v); 
-    return 2;
-}
-
-int show(int i) { 
-    writefln("int: %d", i); 
-    return 3;
-}
-
-int show(long l) { 
-    writefln("long: %d", l); 
-    return 4;
-}
-
-int show(uint u) { 
-    writefln("uint: %d", u); 
-    return 5;
-}
-
-void test49()
-{   int i;
-
-    Int1 value1 = 42; 
-    Int2 value2 = 69; 
-
-    i = show(value1 + value2); 
-    assert(i == 3);
-    i = show(value2 + value1); 
-    assert(i == 3);
-    i = show(2 * value1); 
-    assert(i == 3);
-    i = show(value1 * 2); 
-    assert(i == 3);
-    i = show(value1 + value1); 
-    assert(i == 1);
-    i = show(value2 - value2); 
-    assert(i == 2);
-    i = show(value1 + 2); 
-    assert(i == 3);
-    i = show(3 + value2); 
-    assert(i == 3);
-    i = show(3u + value2); 
-    assert(i == 5);
-    i = show(value1 + 3u); 
-    assert(i == 5);
-
-    long l = 23; 
-    i = show(value1 + l); 
-    assert(i == 4);
-    i = show(l + value2); 
-    assert(i == 4);
-
-    short s = 105; 
-    i = show(s + value1); 
-    assert(i == 3);
-    i = show(value2 + s); 
-    assert(i == 3);
-} 
-
-/*******************************************/
-
 int x = 2, y = 1;
 
 void foo50(int z)
@@ -1182,51 +1080,6 @@ void test50()
 
 /*******************************************/
 
-void test51()
-{
-    printf("test51()\n");
-    typedef int foo = 10;
-
-    int[3][] p = new int[3][5];
-    int[3][] q = new int[3][](5);
-
-    int[][]  r = new int[][](5,3);
-
-    for (int i = 0; i < 5; i++)
-    {
-	for (int j = 0; j < 3; j++)
-	{
-	    assert(r[i][j] == 0);
-	    r[i][j] = i * j;
-	}
-    }
-
-    foo[][]  s = new foo[][](5,3);
-
-    for (int i = 0; i < 5; i++)
-    {
-	for (int j = 0; j < 3; j++)
-	{
-	    assert(s[i][j] == 10);
-	    s[i][j] = cast(foo)(i * j);
-	}
-    }
-
-    typedef foo[][] bar;
-    bar b = new bar(5,3);
-
-    for (int i = 0; i < 5; i++)
-    {
-	for (int j = 0; j < 3; j++)
-	{
-	    assert(b[i][j] == 10);
-	    b[i][j] = cast(foo)(i * j);
-	}
-    }
-}
-
-/*******************************************/
-
 void test52()
 {
     printf("test52()\n");
@@ -1242,15 +1095,6 @@ void test52()
     assert(x[2] == 29);
     assert(x[3] == 33);
     assert(x == [17, 18, 29, 33]);
-}
-
-/*******************************************/
-
-typedef ubyte x53 = void;
-
-void test53()
-{
-    new x53[10];
 }
 
 /*******************************************/
@@ -1278,61 +1122,6 @@ void test54()
 	{   assert(u == 23);
 	    auto v = u;
 	    v = 23;
-	}
-    }
-}
-
-/*******************************************/
-
-void test55()
-{
-    typedef uint myint = 6;
-
-    myint[500][] data;
-
-    data.length = 1;
-    assert(data.length == 1);
-    foreach (ref foo; data)
-    {
-	assert(foo.length == 500);
-	foreach (ref u; foo)
-	{   //printf("u = %u\n", u);
-	    assert(u == 6);
-	    u = 23;
-	}
-    }
-    foreach (ref foo; data)
-    {
-	assert(foo.length == 500);
-	foreach (u; foo)
-	{   assert(u == 23);
-	    auto v = u;
-	    v = 23;
-	}
-    }
-
-    typedef byte mybyte = 7;
-
-    mybyte[500][] mata;
-
-    mata.length = 1;
-    assert(mata.length == 1);
-    foreach (ref foo; mata)
-    {
-	assert(foo.length == 500);
-	foreach (ref u; foo)
-	{   //printf("u = %u\n", u);
-	    assert(u == 7);
-	    u = 24;
-	}
-    }
-    foreach (ref foo; mata)
-    {
-	assert(foo.length == 500);
-	foreach (u; foo)
-	{   assert(u == 24);
-	    auto v = u;
-	    v = 24;
 	}
     }
 }
@@ -1583,34 +1372,6 @@ void test66()
 
 /*******************************************/
 
-typedef string String67;
-
-int f67( string c,  string a )
-{
-    return 1;
-}
-
-int f67( string c, String67 a )
-{
-    return 2;
-}
-
-void test67()
-{
-    printf("test67()\n");
-    int i;
-    i = f67( "", "" );
-    assert(i == 1);
-    i = f67( "", cast(String67)"" );
-    assert(i == 2);
-    i = f67( null, "" );
-    assert(i == 1);
-    i = f67( null, cast(String67)"" );
-    assert(i == 2);
-}
-
-/*******************************************/
-
 class C68
 {
     static int value;
@@ -1756,8 +1517,6 @@ void main()
     test32();
     test33();
     test34();
-    test35();
-    test36();
     test37();
     test38();
     test39();
@@ -1770,13 +1529,9 @@ void main()
     test46();
     test47();
     test48();
-    test49();
     test50();
-    test51();
     test52();
-    test53();
     test54();
-    test55();
     test56();
     test57();
     test58();
@@ -1788,7 +1543,6 @@ void main()
     test64();
     test65();
     test66();
-    test67();
     test68();
     test69();
     test70();

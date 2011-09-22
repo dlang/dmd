@@ -359,7 +359,7 @@ void test17()
 /* ================================ */
 
 
-typedef void* HANDLE18;
+alias void* HANDLE18;
 
 HANDLE18 testx18()
 {

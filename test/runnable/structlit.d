@@ -184,7 +184,7 @@ void test9()
 
 /********************************************/
 
-typedef int myint10 = 4;
+alias int myint10;
 
 struct S10
 {
@@ -194,7 +194,7 @@ struct S10
 	int y;
     }
     int j = 3;
-    myint10 k;
+    myint10 k = 4;
 }
 
 void test10()
