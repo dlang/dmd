@@ -422,21 +422,6 @@ void test17()
 
 /*****************************************/
 
-void test18()
-{
-    enum E { a, b }
-    typedef E F;
-    F i = E.a;
-    final switch (i)
-    {
-	case E.a:
-	case E.b:
-	    break;
-    }
-}
-
-/*****************************************/
-
 int test19()
 {
   enum foo{ bar };
@@ -506,7 +491,6 @@ int main()
     test15();
     test16();
     test17();
-    test18();
     test19();
     test20();
 

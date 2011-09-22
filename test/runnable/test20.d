@@ -608,20 +608,6 @@ void test31()
 
 /*****************************************/
 
-void test32()
-{
-	typedef int Type = 12;
-	static Type[5] var = [0:1, 3:2];
-
-	assert(var[0] == 1);
-	assert(var[1] == 12);
-	assert(var[2] == 12);
-	assert(var[3] == 2);
-	assert(var[4] == 12);
-}
-
-/*****************************************/
-
 template Foo33(T, int L)
 {
 	T[L] arr;
@@ -1299,7 +1285,6 @@ int main()
     test29();
     test30();
     test31();
-    test32();
     test33();
     test34();
     test35();

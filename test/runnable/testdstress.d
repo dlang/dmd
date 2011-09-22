@@ -407,7 +407,7 @@ class Class19 : Throwable
     this() { super(""); }
 }
 
-typedef Class19 Alias19;
+alias Class19 Alias19;
 
 void test19()
 {
@@ -423,7 +423,7 @@ void test19()
 
 public static const uint U20 = (cast(uint)(-1)) >>> 2;
 
-typedef uint myType20;
+alias uint myType20;
 public static const myType20 T20 = (cast(myType20)(-1)) >>> 2;
 
 void test20()

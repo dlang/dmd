@@ -413,22 +413,6 @@ void test25()
     }   
 }
 
-/***************************************************/
-
-struct BaseStruct {
-  int n;
-  char c;
-}
-
-typedef BaseStruct MyStruct26;
-
-void myFunction(MyStruct26) {}
-
-void test26()
-{
-  myFunction(MyStruct26(0, 'x'));
-}
-
 /************************************/
 
 const char[][7] DAY_NAME = [
@@ -472,21 +456,6 @@ void test29() {
     C29 c;
 
     //foo(c);
-}
-
-/***************************************************/
-
-class Foo30
-{
-    int i;
-}
-
-typedef Foo30 Bar30;
-
-void test30()
-{
-    Bar30 testBar = new Bar30();
-    auto j = testBar.i;
 }
 
 /***************************************************/
@@ -838,10 +807,11 @@ void test54()
 }
 
 /***************************************************/
+// bug 1767
 
 class DebugInfo 
 {
-    typedef int CVHeaderType ;
+    alias int CVHeaderType ;
     enum anon:CVHeaderType{ CV_NONE, CV_DOS, CV_NT, CV_DBG }
 }
 
@@ -1700,18 +1670,6 @@ void test101()
 
 /***************************************************/
 
-void test102()
-{
-    typedef const(char)[] A;
-    A stripl(A s)
-    {
-	uint i;
-	return s[i .. $];
-    }
-}
-
-/***************************************************/
-
 version(X86)
 {
 int x103;
@@ -1784,9 +1742,10 @@ void test105()
 }
 
 /***************************************************/
+// rejects-valid 2.012.
 
 class foo107 {}
-typedef foo107 bar107;
+alias foo107 bar107;
 void x107()
 {
    bar107 a = new bar107();
@@ -2680,15 +2639,6 @@ struct B166 {}
 
 /***************************************************/
 
-void test167()
-{
-    typedef byte[] Foo;
-    Foo bar;
-    foreach(value; bar){}
-}
-
-/***************************************************/
-
 void x168(T)() {
     static assert(false);
 }
@@ -2845,7 +2795,7 @@ double[100_000] arr = 0.0;
 
 /***************************************************/
 
-typedef ireal BUG3919;
+alias ireal BUG3919;
 alias typeof(BUG3919.init*BUG3919.init) ICE3919;
 alias typeof(BUG3919.init/BUG3919.init) ICE3920;
 
@@ -3450,14 +3400,6 @@ template Bug6602B(U) {
 enum bug6602Compiles = __traits(compiles, Bug6602A!short);
 
 /***************************************************/
-
-// Bugzilla 190
-
-//typedef int avocado;
-//void test208(avocado x208 = .x208) { }
-//avocado x208;
-
-/***************************************************/
 // Bugzilla 3493
 
 const bar209 = foo209;
@@ -3885,7 +3827,7 @@ static assert(mixin(ice4390()) == ``);
 /***************************************************/
 // 190
 
-typedef int avocado;
+alias int avocado;
 void eat(avocado x225 = .x225);
 avocado x225;
 
@@ -4410,11 +4352,9 @@ int main()
     test23();
     test24();
     test25();
-    test26();
     test27();
     test28();
     test29();
-    test30();
     test31();
     test32();
     test33();
@@ -4486,7 +4426,6 @@ int main()
     test99();
     test100();
     test101();
-    test102();
     test103();
     test104();
     test105();
@@ -4546,7 +4485,6 @@ int main()
 
     test163();
 
-    test167();
 
     test169();
 

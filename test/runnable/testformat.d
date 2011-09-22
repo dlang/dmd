@@ -82,7 +82,7 @@ void test3()
     //assert(e.toString() == "object.Exception: hello");
     //assert(format(e) == "object.Exception: hello");
 
-    typedef char[] xstring;
+    alias char[] xstring;
     assert(format(cast(xstring)"world") == "world");
 }
 

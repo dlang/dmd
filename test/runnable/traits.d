@@ -1,7 +1,7 @@
 
 import std.stdio;
 
-typedef int myint;
+alias int myint;
 struct S { void bar() { } int x = 4; static int z = 5; }
 class C { void bar() { } final void foo() { } static void abc() { } }
 abstract class AC { }
@@ -618,8 +618,8 @@ class Test6674
 {
     mixin Members6674;
 
-    typedef void function() func1;
-    typedef bool function() func2;
+    alias void function() func1;
+    alias bool function() func2;
 }
 
 static assert([__traits(allMembers,Test6674)] == [
