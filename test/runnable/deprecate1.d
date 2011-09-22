@@ -619,6 +619,93 @@ static assert([__traits(allMembers,Test6674)] == [
     "func1","func2",
     "toString","toHash","opCmp","opEquals","Monitor","factory"]);
 
+/***************************************************/
+// Bug 1523. typedef only.
+
+struct BaseStruct {
+  int n;
+  char c;
+}
+
+typedef BaseStruct MyStruct26;
+
+void myFunction(MyStruct26) {}
+
+void test42_test26()
+{
+  myFunction(MyStruct26(0, 'x'));
+}
+
+/***************************************************/
+// typedef only
+
+class Foo30
+{
+    int i;
+}
+
+typedef Foo30 Bar30;
+
+void test42_test30()
+{
+    Bar30 testBar = new Bar30();
+    auto j = testBar.i;
+}
+
+/***************************************************/
+// test55. bug 1767
+
+class DebugInfo
+{
+    typedef int CVHeaderType ;
+    enum anon:CVHeaderType{ CV_NONE, CV_DOS, CV_NT, CV_DBG }
+}
+
+/***************************************************/
+
+void test42_test102()
+{
+    typedef const(char)[] A;
+    A stripl(A s)
+    {
+	uint i;
+	return s[i .. $];
+    }
+}
+
+/***************************************************/
+// test42.d test107(). segfault 2.020
+class foo107 {}
+typedef foo107 bar107;
+void x107()
+{
+   bar107 a = new bar107();
+   bar107 b = new bar107();
+   bool c = (a == b);
+}
+
+/***************************************************/
+// Bug 3668. segfault regression 2.032.
+
+void test42_test167()
+{
+    typedef byte[] Foo;
+    Foo bar;
+    foreach(value; bar){}
+}
+
+
+// Bug 190. Test42.d, test 225.
+
+typedef int avocado;
+void eat(avocado x225 = .x225);
+avocado x225;
+
+/***************************************************/
+
+typedef ireal BUG3919;
+alias typeof(BUG3919.init*BUG3919.init) ICE3919;
+alias typeof(BUG3919.init/BUG3919.init) ICE3920;
 
 /******************************************/
 
@@ -651,5 +738,9 @@ int main()
     test28_test56();
     test28_test57();
     testaa_test3();
+    test42_test26();
+    test42_test30();
+    test42_test102();
+    test42_test167();
     return 0;
 }
