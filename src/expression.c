@@ -4913,10 +4913,6 @@ Expression *TupleExp::semantic(Scope *sc)
     }
 
     expandTuples(exps);
-    if (0 && exps->dim == 1)
-    {
-        return (*exps)[0];
-    }
     type = new TypeTuple(exps);
     type = type->semantic(loc, sc);
     //printf("-TupleExp::semantic(%s)\n", toChars());
