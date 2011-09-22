@@ -199,6 +199,70 @@ class Foo41(A, B, C) {
     }
 }
 
+// Typedef tests from test4.d
+/* ================================ */
+
+void test4_test26()
+{
+    typedef int foo = cast(foo)3;
+    foo x;
+    assert(x == cast(foo)3);
+
+    typedef int bar = 4;
+    bar y;
+    assert(y == cast(bar)4);
+}
+
+/* ================================ */
+
+struct Foo28
+{
+    int a;
+    int b = 7;
+}
+
+void test4_test28()
+{
+  version (all)
+  {
+    int a;
+    int b = 1;
+    typedef int t = 2;
+    t c;
+    t d = cast(t)3;
+
+    assert(int.init == 0);
+    assert(a.init == 0);
+    assert(b.init == 0);
+    assert(t.init == cast(t)2);
+    assert(c.init == cast(t)2);
+    printf("d.init = %d\n", d.init);
+    assert(d.init == cast(t)2);
+
+    assert(Foo28.a.init == 0);
+    assert(Foo28.b.init == 0);
+  }
+  else
+  {
+    int a;
+    int b = 1;
+    typedef int t = 2;
+    t c;
+    t d = cast(t)3;
+
+    assert(int.init == 0);
+    assert(a.init == 0);
+    assert(b.init == 1);
+    assert(t.init == cast(t)2);
+    assert(c.init == cast(t)2);
+    printf("d.init = %d\n", d.init);
+    assert(d.init == cast(t)3);
+
+    assert(Foo28.a.init == 0);
+    assert(Foo28.b.init == 7);
+  }
+}
+
 
 /******************************************/
 
@@ -213,5 +277,7 @@ int main()
     test41();
     test59();
     test60();
+    test4_test26();
+    test4_test28();
     return 0;
 }
