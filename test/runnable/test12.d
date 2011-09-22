@@ -207,15 +207,6 @@ void test6()
 
 /**************************************/
 
-template base7( T )
-{
- void errfunc() { throw new Exception("no init"); }
- typedef T safeptr = cast(T)&errfunc;
-}
-
-alias int function(int) mfp;
-alias base7!(mfp) I_V_fp;
-
 void test7()
 {
 }
@@ -494,16 +485,12 @@ X21 x21_2 = { f: 1.0, h: 2.0 };
 char[3] y21_1;
 char[3] y21_2 = [ 0: 'a', 2: 'b' ];
 
-typedef bool antibool = 1;
-antibool[8] z21 = [ cast(antibool) 0, ];
-
 void test21()
 {
     assert(isnan(x21_1.g));
     assert(isnan(x21_2.g));
     assert(y21_1[1] == '\xff');
     assert(y21_2[1] == '\xff');
-    assert(z21[7]);
 }
 
 
@@ -843,6 +830,7 @@ void test38()
 
 
 /**************************************/
+// http://www.digitalmars.com/d/archives/digitalmars/D/bugs/2409.html
 
 class C39
 {
@@ -875,17 +863,6 @@ void test40()
 {
     C40 c = new C40();
     assert(C40.foo() == 4);
-}
-
-
-/**************************************/
-
-typedef void* H41;
-
-const H41 INVALID_H41_VALUE = cast(H41)-1;
-
-void test41()
-{
 }
 
 
@@ -1293,7 +1270,6 @@ int main(string[] argv)
     test38();
     test39();
     test40();
-    test41();
     test42();
     test43();
     test44();

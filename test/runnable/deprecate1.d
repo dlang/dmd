@@ -424,6 +424,36 @@ void opover2_test2()
     assert(y == 7);
 }
 
+/**************************************/
+// http://www.digitalmars.com/d/archives/10750.html
+// test12.d, test7(). ICE(constfold.c)
+
+template base7( T )
+{
+ void errfunc() { throw new Exception("no init"); }
+ typedef T safeptr = cast(T)&errfunc;
+}
+
+alias int function(int) mfp;
+alias base7!(mfp) I_V_fp;
+
+typedef bool antibool = 1;
+antibool[8] z21 = [ cast(antibool) 0, ];
+
+void test12_test21()
+{
+    assert(z21[7]);
+}
+
+/**************************************/
+// test12.d, test41.
+// Might be related to this:
+// http://www.digitalmars.com/d/archives/digitalmars/D/INVALID_HANDLE_VALUE_const_55633.html
+
+typedef void* H41;
+
+const H41 INVALID_H41_VALUE = cast(H41)-1;
+
 /******************************************/
 
 int main()
@@ -446,5 +476,6 @@ int main()
     test15_test4();
     test20_test32();
     opover2_test2();
+    test12_test21();
     return 0;
 }
