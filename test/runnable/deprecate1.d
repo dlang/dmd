@@ -923,6 +923,14 @@ string yuiop47(Qwert47 asdfg)
     return asdfg[4..6];
 }
 
+/***********************************/
+void test22_test28()
+{
+    typedef cdouble Y;
+    Y five = cast(Y) (4.0i + 0.4);
+}
+
+
 /******************************************/
 
 int main()
@@ -970,5 +978,6 @@ int main()
     test8_test21();
     test8_test23();
     test8_test41();
+    test22_test28();
     return 0;
 }
