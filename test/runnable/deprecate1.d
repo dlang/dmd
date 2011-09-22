@@ -5,6 +5,7 @@ module deprecate1;
 
 import core.stdc.stdio : printf;
 import std.traits;
+import std.math : isNaN;
 
 
 /**************************************
@@ -322,6 +323,67 @@ void structlit_test10()
     assert(v.k == 4);
 }
 
+/******************************************/
+
+void test15_test1()
+{
+    int i;
+    bool[] b = new bool[10];
+    for (i = 0; i < 10; i++)
+	assert(b[i] == false);
+
+    typedef bool tbit = true;
+    tbit[] tb = new tbit[63];
+    for (i = 0; i < 63; i++)
+	assert(tb[i] == true);
+}
+
+void test15_test2()
+{
+    int i;
+    byte[] b = new byte[10];
+    for (i = 0; i < 10; i++)
+    {	//printf("b[%d] = %d\n", i, b[i]);
+	assert(b[i] == 0);
+    }
+
+    typedef byte tbyte = 0x23;
+    tbyte[] tb = new tbyte[63];
+    for (i = 0; i < 63; i++)
+	assert(tb[i] == 0x23);
+}
+
+
+void test15_test3()
+{
+    int i;
+    ushort[] b = new ushort[10];
+    for (i = 0; i < 10; i++)
+    {	//printf("b[%d] = %d\n", i, b[i]);
+	assert(b[i] == 0);
+    }
+
+    typedef ushort tushort = 0x2345;
+    tushort[] tb = new tushort[63];
+    for (i = 0; i < 63; i++)
+	assert(tb[i] == 0x2345);
+}
+
+
+void test15_test4()
+{
+    int i;
+    float[] b = new float[10];
+    for (i = 0; i < 10; i++)
+    {	//printf("b[%d] = %d\n", i, b[i]);
+	assert(isNaN(b[i]));
+    }
+
+    typedef float tfloat = 0.0;
+    tfloat[] tb = new tfloat[63];
+    for (i = 0; i < 63; i++)
+	assert(tb[i] == cast(tfloat)0.0);
+}
 
 
 /******************************************/
@@ -340,5 +402,9 @@ int main()
     test4_test26();
     test4_test28();
     structlit_test10();
+    test15_test1();
+    test15_test2();
+    test15_test3();
+    test15_test4();
     return 0;
 }
