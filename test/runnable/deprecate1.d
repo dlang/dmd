@@ -1169,6 +1169,33 @@ void test23_test67()
     assert(i == 2);
 }
 
+/************************************************/
+
+void test34_test14()
+{
+    typedef Exception TypedefException;
+
+    try
+    {
+    }
+    catch(TypedefException e)
+    {
+    }
+}
+
+/************************************************/
+
+void test34_test52()
+{
+
+    struct Foo {
+	typedef int Y;
+    }
+    with (Foo) {
+         Y y;
+    }
+}
+
 /******************************************/
 
 int main()
@@ -1224,5 +1251,7 @@ int main()
     test23_test53();
     test23_test55();
     test23_test67();
+    test34_test14();
+    test34_test52();
     return 0;
 }
