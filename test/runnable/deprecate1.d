@@ -277,6 +277,51 @@ void template4_test4()
     else static assert(0);
 }
 
+// from structlit
+typedef int myint10 = 4;
+
+struct S10
+{
+    int i;
+    union
+    {	int x = 2;
+	int y;
+    }
+    int j = 3;
+    myint10 k;
+}
+
+void structlit_test10()
+{
+    S10 s = S10( 1 );
+    assert(s.i == 1);
+    assert(s.x == 2);
+    assert(s.y == 2);
+    assert(s.j == 3);
+    assert(s.k == 4);
+
+    static S10 t = S10( 1 );
+    assert(t.i == 1);
+    assert(t.x == 2);
+    assert(t.y == 2);
+    assert(t.j == 3);
+    assert(t.k == 4);
+
+    S10 u = S10( 1, 5 );
+    assert(u.i == 1);
+    assert(u.x == 5);
+    assert(u.y == 5);
+    assert(u.j == 3);
+    assert(u.k == 4);
+
+    static S10 v = S10( 1, 6 );
+    assert(v.i == 1);
+    assert(v.x == 6);
+    assert(v.y == 6);
+    assert(v.j == 3);
+    assert(v.k == 4);
+}
+
 
 
 /******************************************/
@@ -294,5 +339,6 @@ int main()
     test60();
     test4_test26();
     test4_test28();
+    structlit_test10();
     return 0;
 }
