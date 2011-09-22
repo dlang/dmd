@@ -799,6 +799,52 @@ void testdstress_test20()
 	assert(T20 == 0x3FFFFFFF);
 }
 
+/******************************************************/
+
+class ABC { }
+
+typedef ABC DEF;
+
+TypeInfo foo()
+{
+    ABC c;
+
+    return typeid(DEF);
+}
+
+void testtypeid_test1()
+{
+    TypeInfo ti = foo();
+
+    TypeInfo_Typedef td = cast(TypeInfo_Typedef)ti;
+    assert(td);
+
+    ti = td.base;
+
+    TypeInfo_Class tc = cast(TypeInfo_Class)ti;
+    assert(tc);
+
+    printf("%.*s\n", tc.info.name.length, tc.info.name.ptr);
+    assert(tc.info.name == "deprecate1.ABC");
+}
+
+/******************************************************/
+
+union MyUnion5{
+	int i;
+	byte b;
+}
+
+typedef MyUnion5* Foo5;
+
+void testtypeid_test5()
+{
+	TypeInfo ti = typeid(Foo5);
+	assert(!(ti is null));
+	assert(ti.tsize==(Foo5).sizeof);
+	assert(ti.toString()=="deprecate1.Foo5");
+}
+
 
 /******************************************/
 
@@ -842,5 +888,7 @@ int main()
     testconst_test86();
     testdstress_test19();
     testdstress_test20();
+    testtypeid_test1();
+    testtypeid_test5();
     return 0;
 }

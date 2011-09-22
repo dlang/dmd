@@ -4,35 +4,6 @@ import std.stdio;
 
 /******************************************************/
 
-class ABC { }
-
-typedef ABC DEF;
-
-TypeInfo foo()
-{
-    ABC c;
-
-    return typeid(DEF);
-}
-
-void test1()
-{
-    TypeInfo ti = foo();
-
-    TypeInfo_Typedef td = cast(TypeInfo_Typedef)ti;
-    assert(td);
-
-    ti = td.base;
-
-    TypeInfo_Class tc = cast(TypeInfo_Class)ti;
-    assert(tc);
-
-    printf("%.*s\n", tc.info.name.length, tc.info.name.ptr);
-    assert(tc.info.name == "testtypeid.ABC");
-}
-
-/******************************************************/
-
 void test2()
 {
     assert(typeid(int) == typeid(int));
@@ -124,24 +95,6 @@ void test4()
 	assert(!(ti is null));
 	ti = typeid(bool[]);
 	assert(!(ti is null));
-}
-
-/******************************************************/
-
-union MyUnion5{
-	int i;
-	byte b;
-}
-
-typedef MyUnion5* Foo5;
-
-void test5()
-{
-	TypeInfo ti = typeid(Foo5);
-	assert(!(ti is null));
-	writefln("%s %d %d", ti.toString(), ti.tsize, (Foo5).sizeof);
-	assert(ti.tsize==(Foo5).sizeof);
-	assert(ti.toString()=="testtypeid.Foo5");
 }
 
 /******************************************************/
@@ -462,8 +415,6 @@ void test32()
 
 void test33()
 {
-    typedef int int_t;
-//    assert(typeid(int_t).next is typeid(int));
 }
 
 /******************************************************/
@@ -511,11 +462,9 @@ void test37()
 
 int main()
 {
-    test1();
     test2();
     test3();
     test4();
-    test5();
     test6();
     test7();
     test8();
