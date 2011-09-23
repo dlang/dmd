@@ -3039,6 +3039,8 @@ void Lexer::initKeywords()
     enum TOK v;
     unsigned nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
+    stringtable.init();
+
     if (global.params.Dversion == 1)
         nkeywords -= 2;
 

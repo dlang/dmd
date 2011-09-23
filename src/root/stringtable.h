@@ -1,4 +1,4 @@
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -28,13 +28,13 @@ struct StringValue
     Lstring lstring;
 };
 
-struct StringTable : Object
+struct StringTable
 {
     void **table;
     unsigned count;
     unsigned tabledim;
 
-    StringTable(unsigned size = 37);
+    void init(unsigned size = 37);
     ~StringTable();
 
     StringValue *lookup(const dchar *s, unsigned len);

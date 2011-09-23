@@ -1,4 +1,4 @@
-// Copyright (C) 2000-2001 by Chromium Communications
+// Copyright (C) 2000-2011 by Digital Mars
 // All Rights Reserved
 
 #ifndef ROOT_MEM_H

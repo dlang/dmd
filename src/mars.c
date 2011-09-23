@@ -332,6 +332,8 @@ extern signed char tyalignsize[];
 
 int main(int argc, char *argv[])
 {
+    mem.init();                         // initialize storage allocator
+
     Strings files;
     Strings libmodules;
     char *p;

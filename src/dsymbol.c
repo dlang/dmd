@@ -669,7 +669,7 @@ Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
     Dsymbols *b = NULL;
     if (a)
     {
-        b = (Dsymbols *)a->copy();
+        b = a->copy();
         for (size_t i = 0; i < b->dim; i++)
         {
             Dsymbol *s = (*b)[i];
@@ -1227,6 +1227,7 @@ DsymbolTable::DsymbolTable()
 {
 #if STRINGTABLE
     tab = new StringTable;
+    tab->init();
 #else
     tab = NULL;
 #endif

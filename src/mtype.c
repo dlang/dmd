@@ -169,6 +169,7 @@ char Type::needThisPrefix()
 
 void Type::init()
 {
+    stringtable.init();
     Lexer::initKeywords();
 
     for (size_t i = 0; i < TMAX; i++)
