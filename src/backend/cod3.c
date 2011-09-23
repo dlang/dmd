@@ -5705,8 +5705,10 @@ STATIC void do8bit(enum FL fl,union evc *uev)
         delta = uev->Vblock->Boffset - OFFSET() - 1;
         if ((signed char)delta != delta)
         {
+#if MARS
             if (uev->Vblock->Bsrcpos.Slinnum)
                 fprintf(stderr, "%s(%d): ", uev->Vblock->Bsrcpos.Sfilename, uev->Vblock->Bsrcpos.Slinnum);
+#endif
             fprintf(stderr, "block displacement of %lld exceeds the maximum offset of -128 to 127.\n", (long long)delta);
             err_exit();
         }
