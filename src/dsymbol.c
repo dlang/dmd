@@ -1163,6 +1163,7 @@ DsymbolTable::DsymbolTable()
 {
 #if STRINGTABLE
     tab = new StringTable;
+    tab->init();
 #else
     tab = NULL;
 #endif

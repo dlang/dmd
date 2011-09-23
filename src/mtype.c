@@ -162,6 +162,7 @@ char Type::needThisPrefix()
 
 void Type::init()
 {
+    stringtable.init();
     Lexer::initKeywords();
 
     mangleChar[Tarray] = 'A';

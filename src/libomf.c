@@ -29,6 +29,7 @@
 Library::Library()
 {
     libfile = NULL;
+    tab.init();
 }
 
 /***********************************

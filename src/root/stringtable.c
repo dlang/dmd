@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -18,7 +18,7 @@
 #include "lstring.h"
 #include "stringtable.h"
 
-StringTable::StringTable(unsigned size)
+void StringTable::init(unsigned size)
 {
     table = (void **)mem.calloc(size, sizeof(void *));
     tabledim = size;

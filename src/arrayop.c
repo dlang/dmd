@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -13,7 +13,7 @@
 
 #include "rmem.h"
 
-#include "stringtable.h"
+#include "aav.h"
 
 #include "expression.h"
 #include "statement.h"
@@ -30,7 +30,7 @@ extern int binary(const char *p , const char **tab, int high);
  * Hash table of array op functions already generated or known about.
  */
 
-StringTable arrayfuncs;
+AA *arrayfuncs;
 
 /**********************************************
  * Check that there are no uses of arrays without [].
@@ -123,12 +123,13 @@ Expression *BinExp::arrayOp(Scope *sc)
 
     size_t namelen = buf.offset;
     buf.writeByte(0);
-    char *name = (char *)buf.extractData();
+    char *name = buf.toChars();
+    Identifier *ident = Lexer::idPool(name);
 
     /* Look up name in hash table
      */
-    StringValue *sv = arrayfuncs.update(name, namelen);
-    FuncDeclaration *fd = (FuncDeclaration *)sv->ptrvalue;
+    FuncDeclaration **pfd = (FuncDeclaration **)_aaGet(&arrayfuncs, ident);
+    FuncDeclaration *fd = (FuncDeclaration *)*pfd;
     if (!fd)
     {
         /* Some of the array op functions are written as library functions,
@@ -317,7 +318,7 @@ Expression *BinExp::arrayOp(Scope *sc)
 
             Parameters *fparams = new Parameters();
             Expression *loopbody = buildArrayLoop(fparams);
-            Parameter *p = (Parameter *)fparams->data[0 /*fparams->dim - 1*/];
+            Parameter *p = (*fparams)[0 /*fparams->dim - 1*/];
 #if DMDV1
             // for (size_t i = 0; i < p.length; i++)
             Initializer *init = new ExpInitializer(0, new IntegerExp(0, 0, Type::tsize_t));
@@ -343,7 +344,7 @@ Expression *BinExp::arrayOp(Scope *sc)
              */
             TypeFunction *ftype = new TypeFunction(fparams, type, 0, LINKc);
             //printf("ftype: %s\n", ftype->toChars());
-            fd = new FuncDeclaration(loc, 0, Lexer::idPool(name), STCundefined, ftype);
+            fd = new FuncDeclaration(loc, 0, ident, STCundefined, ftype);
             fd->fbody = fbody;
             fd->protection = PROTpublic;
             fd->linkage = LINKc;
@@ -363,9 +364,9 @@ Expression *BinExp::arrayOp(Scope *sc)
         else
         {   /* In library, refer to it.
              */
-            fd = FuncDeclaration::genCfunc(type, name);
+            fd = FuncDeclaration::genCfunc(type, ident);
         }
-        sv->ptrvalue = fd;      // cache symbol in hash table
+        *pfd = fd;      // cache symbol in hash table
     }
 
     /* Call the function fd(arguments)
@@ -432,6 +433,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -465,6 +469,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -520,7 +527,7 @@ Expression *AssignExp::buildArrayLoop(Parameters *fparams)
     ex2 = new CastExp(0, ex2, e1->type->nextOf());
 #endif
     Expression *ex1 = e1->buildArrayLoop(fparams);
-    Parameter *param = (Parameter *)fparams->data[0];
+    Parameter *param = (*fparams)[0];
     param->storageClass = 0;
     Expression *e = new AssignExp(0, ex1, ex2);
     return e;
@@ -533,7 +540,7 @@ Expression *Str##AssignExp::buildArrayLoop(Parameters *fparams) \
      */                                                         \
     Expression *ex2 = e2->buildArrayLoop(fparams);              \
     Expression *ex1 = e1->buildArrayLoop(fparams);              \
-    Parameter *param = (Parameter *)fparams->data[0];           \
+    Parameter *param = (*fparams)[0];                           \
     param->storageClass = 0;                                    \
     Expression *e = new Str##AssignExp(0, ex1, ex2);            \
     return e;                                                   \
@@ -547,6 +554,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
@@ -583,6 +593,9 @@ X(Mod)
 X(Xor)
 X(And)
 X(Or)
+#if DMDV2
+X(Pow)
+#endif
 
 #undef X
 
