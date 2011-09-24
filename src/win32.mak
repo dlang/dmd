@@ -100,8 +100,12 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 
 # from ROOT
 
-ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj rmem.obj port.obj root.obj \
-	stringtable.obj dchar.obj response.obj async.obj speller.obj aav.obj
+#GCOBJS=rmem.obj
+GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
+
+ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj root.obj port.obj \
+	stringtable.obj dchar.obj response.obj async.obj speller.obj aav.obj \
+	$(GCOBJS)
 
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
@@ -157,7 +161,10 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
-	$(ROOT)\aav.h $(ROOT)\aav.c
+	$(ROOT)\aav.h $(ROOT)\aav.c \
+	$(ROOT)\dmgcmem.c $(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
+	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
+	$(ROOT)\gc\win32.c
 
 MAKEFILES=win32.mak posix.mak
 
@@ -416,6 +423,9 @@ async.obj : $(ROOT)\async.h $(ROOT)\async.c
 dchar.obj : $(ROOT)\dchar.c
 	$(CC) -c $(CFLAGS) $(ROOT)\dchar.c
 
+dmgcmem.obj : $(ROOT)\dmgcmem.c
+	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.c
+
 gnuc.obj : $(ROOT)\gnuc.c
 	$(CC) -c $(CFLAGS) $(ROOT)\gnuc.c
 
@@ -442,6 +452,17 @@ speller.obj : $(ROOT)\speller.h $(ROOT)\speller.c
 
 stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
+
+# ROOT/GC
+
+bits.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\bits.c
+	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\bits.c
+
+gc.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\os.h $(ROOT)\gc\gc.h $(ROOT)\gc\gc.c
+	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\gc.c
+
+win32.obj : $(ROOT)\gc\os.h $(ROOT)\gc\win32.c
+	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\win32.c
 
 
 ################# Source file dependencies ###############
@@ -470,7 +491,7 @@ import.obj : $(TOTALH) dsymbol.h import.h import.c
 inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
-interpret.obj : $(TOTALH) interpret.c
+interpret.obj : $(TOTALH) interpret.c declaration.h expression.h
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
 libomf.obj : $(TOTALH) lib.h libomf.c
