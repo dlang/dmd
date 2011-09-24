@@ -109,6 +109,7 @@ private
     }
 
     extern (C) void onOutOfMemoryError();
+    extern (C) void onInvalidMemoryOperationError();
 
     enum
     {
@@ -456,7 +457,7 @@ class GC
         //debug(PRINTF) printf("gcx.self = %x, pthread_self() = %x\n", gcx.self, pthread_self());
 
         if (gcx.running)
-            onOutOfMemoryError();
+            onInvalidMemoryOperationError();
 
         size += SENTINEL_EXTRA;
         bin = gcx.findBin(size);
@@ -587,7 +588,7 @@ class GC
     private void *reallocNoSync(void *p, size_t size, uint bits = 0, size_t *alloc_size = null)
     {
         if (gcx.running)
-            onOutOfMemoryError();
+            onInvalidMemoryOperationError();
 
         if (!size)
         {   if (p)
@@ -768,7 +769,7 @@ class GC
     body
     {
         if (gcx.running)
-            onOutOfMemoryError();
+            onInvalidMemoryOperationError();
 
         //debug(PRINTF) printf("GC::extend(p = %p, minsize = %zu, maxsize = %zu)\n", p, minsize, maxsize);
         version (SENTINEL)
@@ -859,7 +860,7 @@ class GC
         assert(gcx);
 
         if (gcx.running)
-            onOutOfMemoryError();
+            onInvalidMemoryOperationError();
 
         return gcx.reserve(size);
     }
@@ -895,7 +896,7 @@ class GC
         assert (p);
 
         if (gcx.running)
-            onOutOfMemoryError();
+            onInvalidMemoryOperationError();
 
         Pool*  pool;
         size_t pagenum;
@@ -2465,7 +2466,7 @@ struct Gcx
         //printf("\tpool address range = %p .. %p\n", minAddr, maxAddr);
 
         if (running)
-            onOutOfMemoryError();
+            onInvalidMemoryOperationError();
         running = 1;
 
         thread_suspendAll();
