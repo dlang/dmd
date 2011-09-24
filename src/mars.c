@@ -330,9 +330,21 @@ Usage:\n\
 
 extern signed char tyalignsize[];
 
+#if _WIN32
+extern "C"
+{
+    extern int _xi_a;
+    extern int _end;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
     mem.init();                         // initialize storage allocator
+    mem.setStackBottom(&argv);
+#if _WIN32
+    mem.addroots((char *)&_xi_a, (char *)&_end);
+#endif
 
     Strings files;
     Strings libmodules;
@@ -945,7 +957,7 @@ int main(int argc, char *argv[])
     {
         for (size_t i = 0; i < global.params.imppath->dim; i++)
         {
-            char *path = global.params.imppath->tdata()[i];
+            char *path = (*global.params.imppath)[i];
             Strings *a = FileName::splitPath(path);
 
             if (a)
@@ -1092,7 +1104,7 @@ int main(int argc, char *argv[])
          */
 
         Identifier *id = Lexer::idPool(name);
-        m = new Module(files.tdata()[i], id, global.params.doDocComments, global.params.doHdrGeneration);
+        m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
         modules.push(m);
 
         if (firstmodule)
@@ -1112,7 +1124,7 @@ int main(int argc, char *argv[])
     AsyncRead *aw = AsyncRead::create(modules.dim);
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules.tdata()[i];
+        m = modules[i];
         aw->addFile(m->srcfile);
     }
     aw->start();
@@ -1120,7 +1132,7 @@ int main(int argc, char *argv[])
     // Single threaded
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules.tdata()[i];
+        m = modules[i];
         m->read(0);
     }
 #endif
@@ -1130,7 +1142,7 @@ int main(int argc, char *argv[])
     size_t filecount = modules.dim;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
-        m = modules.tdata()[modi];
+        m = modules[modi];
         if (global.params.verbose)
             printf("parse     %s\n", m->toChars());
         if (!Module::rootModule)
@@ -1189,7 +1201,7 @@ int main(int argc, char *argv[])
          */
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules.tdata()[i];
+            m = modules[i];
             if (global.params.verbose)
                 printf("import    %s\n", m->toChars());
             m->genhdrfile();
@@ -1201,7 +1213,7 @@ int main(int argc, char *argv[])
     // load all unconditional imports for better symbol resolving
     for (size_t i = 0; i < modules.dim; i++)
     {
-       m = modules.tdata()[i];
+       m = modules[i];
        if (global.params.verbose)
            printf("importall %s\n", m->toChars());
        m->importAll(0);
@@ -1214,7 +1226,7 @@ int main(int argc, char *argv[])
     // Do semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules.tdata()[i];
+        m = modules[i];
         if (global.params.verbose)
             printf("semantic  %s\n", m->toChars());
         m->semantic();
@@ -1228,7 +1240,7 @@ int main(int argc, char *argv[])
     // Do pass 2 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules.tdata()[i];
+        m = modules[i];
         if (global.params.verbose)
             printf("semantic2 %s\n", m->toChars());
         m->semantic2();
@@ -1239,7 +1251,7 @@ int main(int argc, char *argv[])
     // Do pass 3 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
     {
-        m = modules.tdata()[i];
+        m = modules[i];
         if (global.params.verbose)
             printf("semantic3 %s\n", m->toChars());
         m->semantic3();
@@ -1272,7 +1284,7 @@ int main(int argc, char *argv[])
             // since otherwise functions in them cannot be inlined
             for (size_t i = 0; i < Module::amodules.dim; i++)
             {
-                m = Module::amodules.tdata()[i];
+                m = Module::amodules[i];
                 if (global.params.verbose)
                     printf("semantic3 %s\n", m->toChars());
                 m->semantic3();
@@ -1283,7 +1295,7 @@ int main(int argc, char *argv[])
 
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules.tdata()[i];
+            m = modules[i];
             if (global.params.verbose)
                 printf("inline scan %s\n", m->toChars());
             m->inlineScan();
@@ -1303,7 +1315,7 @@ int main(int argc, char *argv[])
         // Add input object and input library files to output library
         for (size_t i = 0; i < libmodules.dim; i++)
         {
-            char *p = libmodules.tdata()[i];
+            char *p = libmodules[i];
             library->addObject(p, NULL, 0);
         }
     }
@@ -1317,7 +1329,7 @@ int main(int argc, char *argv[])
     {
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules.tdata()[i];
+            m = modules[i];
             if (global.params.verbose)
                 printf("code      %s\n", m->toChars());
             if (i == 0)
@@ -1335,7 +1347,7 @@ int main(int argc, char *argv[])
     {
         for (size_t i = 0; i < modules.dim; i++)
         {
-            m = modules.tdata()[i];
+            m = modules[i];
             if (global.params.verbose)
                 printf("code      %s\n", m->toChars());
             if (global.params.obj)
@@ -1392,7 +1404,7 @@ int main(int argc, char *argv[])
                  */
                 for (size_t i = 0; i < modules.dim; i++)
                 {
-                    Module *m = modules.tdata()[i];
+                    Module *m = modules[i];
                     m->deleteObjFile();
                     if (global.params.oneobj)
                         break;

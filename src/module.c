@@ -311,7 +311,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     {
         for (size_t i = 0; i < global.path->dim; i++)
         {
-            char *p = global.path->tdata()[i];
+            char *p = (*global.path)[i];
             char *n = FileName::combine(p, sdi);
             if (FileName::exists(n))
             {   result = n;
@@ -623,6 +623,11 @@ void Module::parse()
     Parser p(this, buf, buflen, docfile != NULL);
     p.nextToken();
     members = p.parseModule();
+
+    ::free(srcfile->buffer);
+    srcfile->buffer = NULL;
+    srcfile->len = 0;
+
     md = p.md;
     numlines = p.loc.linnum;
 
@@ -683,7 +688,7 @@ void Module::importAll(Scope *prevsc)
     // Add import of "object" if this module isn't "object"
     if (ident != Id::object)
     {
-        if (members->dim == 0 || members->tdata()[0]->ident != Id::object)
+        if (members->dim == 0 || ((*members)[0])->ident != Id::object)
         {
             Import *im = new Import(0, NULL, Id::object, NULL, 0);
             members->shift(im);

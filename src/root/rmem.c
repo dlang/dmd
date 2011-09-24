@@ -126,6 +126,15 @@ void Mem::mark(void *pointer)
     (void) pointer;             // necessary for VC /W4
 }
 
+void Mem::setStackBottom(void *bottom)
+{
+}
+
+void Mem::addroots(char* pStart, char* pEnd)
+{
+}
+
+
 /* =================================================== */
 
 void * operator new(size_t m_size)
