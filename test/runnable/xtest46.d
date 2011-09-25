@@ -3655,6 +3655,34 @@ static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
 static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 
 /***************************************************/
+// 5696
+
+template Seq5696(T...){ alias T Seq5696; }
+template Pred5696(T) { alias T Pred5696; }  // TOKtemplate
+template Scope5696(int n){ template X(T) { alias T X; } }   // TOKimport
+int foo5696(T)(T x) { return x; }
+void test5696()
+{
+    foreach (pred; Seq5696!(Pred5696, Pred5696))
+    {
+        static assert(is(pred!int == int));
+    }
+
+    foreach (scop; Seq5696!(Scope5696!0, Scope5696!1))
+    {
+        static assert(is(scop.X!int == int));
+    }
+
+    alias Seq5696!(foo5696, foo5696) funcs;
+    assert(funcs[0](0) == 0);
+    assert(funcs[1](1) == 1);
+    foreach (i, fn; funcs)
+    {
+        assert(fn(i) == i);
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3837,6 +3865,7 @@ int main()
     test6630();
     test6690();
     test2953();
+    test5696();
 
     printf("Success\n");
     return 0;
