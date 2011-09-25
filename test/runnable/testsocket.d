@@ -29,11 +29,6 @@ class Connection
 		sock = new TcpSocket;
 		sock.blocking = false;
 	}
-
-	~this ()
-	{
-		sock.close ();
-	}
 }
 
 int main ()
