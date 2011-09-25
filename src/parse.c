@@ -5765,7 +5765,10 @@ Expression *Parser::parseUnaryExp()
         {
             Type *t = parseBasicType();
             if (token.value != TOKlparen)
+            {
                 error("(arguments) expected following type");
+                return new TypeExp(loc, t);
+            }
             e = new TypeExp(loc, t);
             e = new CallExp(loc, e, parseArguments());
             break;
