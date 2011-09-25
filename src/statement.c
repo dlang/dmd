@@ -1516,9 +1516,7 @@ Lretry:
                     arg->type = e->type;
                     Initializer *ie = new ExpInitializer(0, e);
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-                    if (e->isConst())
-                        v->storage_class |= STCconst;
-                    if (e->op == TOKstring)
+                    if (e->isConst() || e->op == TOKstring)
                         v->storage_class |= STCmanifest;
                     var = v;
                 }
