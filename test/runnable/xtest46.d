@@ -3660,7 +3660,7 @@ static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 template Seq5696(T...){ alias T Seq5696; }
 template Pred5696(T) { alias T Pred5696; }  // TOKtemplate
 template Scope5696(int n){ template X(T) { alias T X; } }   // TOKimport
-int foo5696(T)(T x) { return x; }
+T foo5696(T)(T x) { return x; }
 void test5696()
 {
     foreach (pred; Seq5696!(Pred5696, Pred5696))
