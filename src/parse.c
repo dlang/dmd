@@ -5764,12 +5764,12 @@ Expression *Parser::parseUnaryExp()
         case TOKimmutable:      // immutable(type)(arguments)
         {
             Type *t = parseBasicType();
+            e = new TypeExp(loc, t);
             if (token.value != TOKlparen)
             {
-                error("(arguments) expected following type");
-                return new TypeExp(loc, t);
+                error("(arguments) expected following %s", t->toChars());
+                return e;
             }
-            e = new TypeExp(loc, t);
             e = new CallExp(loc, e, parseArguments());
             break;
         }
