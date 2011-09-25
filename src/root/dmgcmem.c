@@ -18,7 +18,6 @@
 #include <pthread.h>
 #endif
 
-#include "thread.h"
 #include "rmem.h"
 #include "gc/gc.h"
 //#include "printf.h"
