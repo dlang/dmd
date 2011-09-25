@@ -414,7 +414,7 @@ alias uint DWORD;
 MY_API_FUNCTION lpStartAddress;
 extern (Windows) alias DWORD function(void*) MY_API_FUNCTION;
 pragma(msg, MY_API_FUNCTION.stringof);
-static assert(MY_API_FUNCTION.stringof == "uint Windows function(void*)");
+static assert(MY_API_FUNCTION.stringof == "extern (Windows) uint function(void*)");
 
 /************************************/
 

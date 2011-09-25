@@ -74,6 +74,7 @@ enum PURE;
                                         // but not typed as "shared"
 #define STCwild         0x80000000LL    // for "wild" type constructor
 #define STC_TYPECTOR    (STCconst | STCimmutable | STCshared | STCwild)
+#define STC_FUNCATTR    (STCref | STCnothrow | STCpure | STCproperty | STCsafe | STCtrusted | STCsystem)
 
 #define STCproperty     0x100000000LL
 #define STCsafe         0x200000000LL
@@ -695,7 +696,6 @@ struct CtorDeclaration : FuncDeclaration
     CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     char *toChars();
     int isVirtual();
