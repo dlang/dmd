@@ -1422,7 +1422,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     arg->type = e->type;
                     Initializer *ie = new ExpInitializer(0, e);
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-                    if (e->isConst())
+                    if (e->isConst() || e->op == TOKstring)
                         v->storage_class |= STCconst;
                     var = v;
                 }
