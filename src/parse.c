@@ -992,27 +992,7 @@ Dsymbol *Parser::parseCtor()
         Expression *constraint = tpl ? parseConstraint() : NULL;
 
         Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
-
-        if (stc & STCconst)
-        {   if (tf->isShared())
-                tf = tf->makeSharedConst();
-            else
-                tf = tf->makeConst();
-        }
-        if (stc & STCimmutable)
-            tf = tf->makeInvariant();
-        if (stc & STCshared)
-        {   if (tf->isConst())
-                tf = tf->makeSharedConst();
-            else
-                tf = tf->makeShared();
-        }
-        if (stc & STCwild)
-        {   if (tf->isShared())
-                tf = tf->makeSharedWild();
-            else
-                tf = tf->makeWild();
-        }
+        tf = tf->addSTC(stc);
 
         CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
         parseContracts(f);
@@ -1031,27 +1011,7 @@ Dsymbol *Parser::parseCtor()
     Parameters *parameters = parseParameters(&varargs);
     StorageClass stc = parsePostfix();
     Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
-
-    if (stc & STCconst)
-    {   if (tf->isShared())
-            tf = tf->makeSharedConst();
-        else
-            tf = tf->makeConst();
-    }
-    if (stc & STCimmutable)
-        tf = tf->makeInvariant();
-    if (stc & STCshared)
-    {   if (tf->isConst())
-            tf = tf->makeSharedConst();
-        else
-            tf = tf->makeShared();
-    }
-    if (stc & STCwild)
-    {   if (tf->isShared())
-            tf = tf->makeSharedWild();
-        else
-            tf = tf->makeWild();
-    }
+    tf = tf->addSTC(stc);
 
     CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
     parseContracts(f);
@@ -2673,27 +2633,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                 StorageClass stc = parsePostfix();
                 stc |= storage_class;   // merge prefix storage classes
                 Type *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
-
-                if (stc & STCconst)
-                {   if (tf->isShared())
-                        tf = tf->makeSharedConst();
-                    else
-                        tf = tf->makeConst();
-                }
-                if (stc & STCimmutable)
-                    tf = tf->makeInvariant();
-                if (stc & STCshared)
-                {   if (tf->isConst())
-                        tf = tf->makeSharedConst();
-                    else
-                        tf = tf->makeShared();
-                }
-                if (stc & STCwild)
-                {   if (tf->isShared())
-                        tf = tf->makeSharedWild();
-                    else
-                        tf = tf->makeWild();
-                }
+                tf = tf->addSTC(stc);
 
                 /* Insert tf into
                  *   ts -> ... -> t

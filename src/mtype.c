@@ -1051,6 +1051,37 @@ Type *Type::makeMutable()
     return t;
 }
 
+/*************************************
+ * Apply STCxxxx bits to existing type.
+ * Use *before* semantic analysis is run.
+ */
+
+Type *Type::addSTC(StorageClass stc)
+{   Type *t = this;
+
+    if (stc & STCconst)
+    {   if (t->isShared())
+            t = t->makeSharedConst();
+        else
+            t = t->makeConst();
+    }
+    if (stc & STCimmutable)
+        t = t->makeInvariant();
+    if (stc & STCshared)
+    {   if (t->isConst())
+            t = t->makeSharedConst();
+        else
+            t = t->makeShared();
+    }
+    if (stc & STCwild)
+    {   if (t->isShared())
+            t = t->makeSharedWild();
+        else
+            t = t->makeWild();
+    }
+    return t;
+}
+
 /************************************
  * Apply MODxxxx bits to existing type.
  */

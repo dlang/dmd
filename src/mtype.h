@@ -267,6 +267,7 @@ struct Type : Object
     Type *sharedWildOf();
     void fixTo(Type *t);
     void check();
+    Type *addSTC(StorageClass stc);
     Type *castMod(unsigned mod);
     Type *addMod(unsigned mod);
     Type *addStorageClass(StorageClass stc);
