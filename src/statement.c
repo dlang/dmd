@@ -1501,10 +1501,16 @@ Lretry:
             Dsymbol *var;
             if (te)
             {   Type *tb = e->type->toBasetype();
+                Dsymbol *s = NULL;
                 if ((tb->ty == Tfunction || tb->ty == Tsarray) && e->op == TOKvar)
-                {   VarExp *ve = (VarExp *)e;
-                    var = new AliasDeclaration(loc, arg->ident, ve->var);
-                }
+                    s = ((VarExp *)e)->var;
+                else if (e->op == TOKtemplate)
+                    s =((TemplateExp *)e)->td;
+                else if (e->op == TOKimport)
+                    s =((ScopeExp *)e)->sds;
+
+                if (s)
+                    var = new AliasDeclaration(loc, arg->ident, s);
                 else
                 {
                     arg->type = e->type;
