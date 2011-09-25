@@ -1903,7 +1903,8 @@ void obj_byte(int seg,targ_size_t offset,unsigned byte)
     buf->writeByte(byte);
     if (save > offset+1)
         buf->setsize(save);
-    SegData[seg]->SDoffset = offset+1;
+    else
+        SegData[seg]->SDoffset = offset+1;
     //dbg_printf("\tsize now %d\n",buf->size());
 }
 
@@ -1954,7 +1955,8 @@ if (!buf) halt();
     }
     if (save > offset+nbytes)
         buf->setsize(save);
-    SegData[seg]->SDoffset = offset+nbytes;
+    else
+        SegData[seg]->SDoffset = offset+nbytes;
     return nbytes;
 }
 
