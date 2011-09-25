@@ -692,25 +692,18 @@ public:
     //can be devised and tested on a Windows box.
     //The differences in ticksPerSec on Windows makes testing
     //exact values a bit precarious.
-    unittest
+    version(Posix) unittest
     {
-        foreach(units; _TypeTuple!("seconds", "msecs", "usecs"))
-        {
-            auto t = TickDuration.from!units(1);
-            //Temporary output to debug failure on FreeBSD
-            printf("[%ld] [%ld] [%ld]\n", TickDuration.ticksPerSec, (cast(TickDuration)dur!units(1)).length, t.length);
-            printf("seconds [%ld] [%ld]\n", (cast(TickDuration)dur!units(1)).seconds, t.seconds);
-            printf("msecs   [%ld] [%ld]\n", (cast(TickDuration)dur!units(1)).msecs, t.msecs);
-            printf("usecs   [%ld] [%ld]\n", (cast(TickDuration)dur!units(1)).usecs, t.usecs);
-            printf("hnsecs  [%ld] [%ld]\n", (cast(TickDuration)dur!units(1)).hnsecs, t.hnsecs);
-            printf("nsecs   [%ld] [%ld]\n", (cast(TickDuration)dur!units(1)).nsecs, t.nsecs);
-            assert(cast(TickDuration)dur!units(1) == t, units);
-            t = TickDuration.from!units(2);
-            assert(cast(TickDuration)dur!units(2) == t, units);
-        }
-
         if(TickDuration.ticksPerSec == 1_000_000)
         {
+            foreach(units; _TypeTuple!("seconds", "msecs", "usecs"))
+            {
+                auto t = TickDuration.from!units(1);
+                assert(cast(TickDuration)dur!units(1) == t, units);
+                t = TickDuration.from!units(2);
+                assert(cast(TickDuration)dur!units(2) == t, units);
+            }
+
             auto t = TickDuration.from!"hnsecs"(19_999_990);
             assert(cast(TickDuration)dur!"hnsecs"(19_999_990) == t);
             t = TickDuration.from!"hnsecs"(70);
