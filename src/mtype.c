@@ -4455,6 +4455,9 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     if (stc & STCproperty)
         this->isproperty = true;
 
+    if (stc & STCref)
+        this->isref = true;
+
     this->trust = TRUSTdefault;
     if (stc & STCsafe)
         this->trust = TRUSTsafe;
@@ -4695,8 +4698,6 @@ void TypeFunction::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs
 void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td)
 {
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
-    const char *p = NULL;
-
     if (inuse)
     {   inuse = 2;              // flag error to caller
         return;
@@ -4735,30 +4736,41 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
             break;
     }
 
-    if (next && (!ident || ident->toHChars2() == ident->toChars()))
-        next->toCBuffer2(buf, hgs, 0);
-    else if (hgs->ddoc && !next)
-        buf->writestring("auto");
     if (hgs->ddoc != 1)
     {
+        const char *p = NULL;
         switch (attrs->linkage)
         {
             case LINKd:         p = NULL;       break;
-            case LINKc:         p = "C ";       break;
-            case LINKwindows:   p = "Windows "; break;
-            case LINKpascal:    p = "Pascal ";  break;
-            case LINKcpp:       p = "C++ ";     break;
+            case LINKc:         p = "C";        break;
+            case LINKwindows:   p = "Windows";  break;
+            case LINKpascal:    p = "Pascal";   break;
+            case LINKcpp:       p = "C++";      break;
             default:
                 assert(0);
         }
+        if (!hgs->hdrgen && p)
+        {
+            buf->writestring("extern (");
+            buf->writestring(p);
+            buf->writestring(") ");
+        }
     }
 
-    if (!hgs->hdrgen && p)
-        buf->writestring(p);
+    if (!ident || ident->toHChars2() == ident->toChars())
+    {   if (next)
+            next->toCBuffer2(buf, hgs, 0);
+        else if (hgs->ddoc)
+            buf->writestring("auto");
+    }
+
     if (ident)
-    {   buf->writeByte(' ');
+    {
+        if (next || hgs->ddoc)
+            buf->writeByte(' ');
         buf->writestring(ident->toHChars2());
     }
+
     if (td)
     {   buf->writeByte('(');
         for (size_t i = 0; i < td->origParameters->dim; i++)
@@ -4777,32 +4789,37 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
 void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
-    const char *p = NULL;
-
     if (inuse)
     {   inuse = 2;              // flag error to caller
         return;
     }
     inuse++;
-    if (next)
-        next->toCBuffer2(buf, hgs, 0);
     if (hgs->ddoc != 1)
     {
+        const char *p = NULL;
         switch (linkage)
         {
             case LINKd:         p = NULL;       break;
-            case LINKc:         p = " C";       break;
-            case LINKwindows:   p = " Windows"; break;
-            case LINKpascal:    p = " Pascal";  break;
-            case LINKcpp:       p = " C++";     break;
+            case LINKc:         p = "C";        break;
+            case LINKwindows:   p = "Windows";  break;
+            case LINKpascal:    p = "Pascal";   break;
+            case LINKcpp:       p = "C++";      break;
             default:
                 assert(0);
         }
+        if (!hgs->hdrgen && p)
+        {
+            buf->writestring("extern (");
+            buf->writestring(p);
+            buf->writestring(") ");
+        }
     }
-
-    if (!hgs->hdrgen && p)
-        buf->writestring(p);
-    buf->writestring(" function");
+    if (next)
+    {
+        next->toCBuffer2(buf, hgs, 0);
+        buf->writeByte(' ');
+    }
+    buf->writestring("function");
     Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
     attributesToCBuffer(buf, mod);
     inuse--;

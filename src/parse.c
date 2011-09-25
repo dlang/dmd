@@ -991,7 +991,29 @@ Dsymbol *Parser::parseCtor()
 
         Expression *constraint = tpl ? parseConstraint() : NULL;
 
-                Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
+        Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
+
+        if (stc & STCconst)
+        {   if (tf->isShared())
+                tf = tf->makeSharedConst();
+            else
+                tf = tf->makeConst();
+        }
+        if (stc & STCimmutable)
+            tf = tf->makeInvariant();
+        if (stc & STCshared)
+        {   if (tf->isConst())
+                tf = tf->makeSharedConst();
+            else
+                tf = tf->makeShared();
+        }
+        if (stc & STCwild)
+        {   if (tf->isShared())
+                tf = tf->makeSharedWild();
+            else
+                tf = tf->makeWild();
+        }
+
         CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
         parseContracts(f);
 
@@ -1008,7 +1030,29 @@ Dsymbol *Parser::parseCtor()
     int varargs;
     Parameters *parameters = parseParameters(&varargs);
     StorageClass stc = parsePostfix();
-        Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
+    Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
+
+    if (stc & STCconst)
+    {   if (tf->isShared())
+            tf = tf->makeSharedConst();
+        else
+            tf = tf->makeConst();
+    }
+    if (stc & STCimmutable)
+        tf = tf->makeInvariant();
+    if (stc & STCshared)
+    {   if (tf->isConst())
+            tf = tf->makeSharedConst();
+        else
+            tf = tf->makeShared();
+    }
+    if (stc & STCwild)
+    {   if (tf->isShared())
+            tf = tf->makeSharedWild();
+        else
+            tf = tf->makeWild();
+    }
+
     CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
     parseContracts(f);
     return f;
