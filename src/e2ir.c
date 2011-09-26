@@ -3184,6 +3184,22 @@ elem *XorAssignExp::toElem(IRState *irs)
 /***************************************
  */
 
+elem *PowAssignExp::toElem(IRState *irs)
+{
+    Type *tb1 = e1->type->toBasetype();
+    if (tb1->ty == Tarray || tb1->ty == Tsarray)
+    {
+        error("Array operation %s not implemented", toChars());
+        return el_long(type->totym(), 0);  // error recovery
+    }
+    else
+        assert(0);
+}
+
+
+/***************************************
+ */
+
 elem *AndAndExp::toElem(IRState *irs)
 {
     tym_t tym = type->totym();
@@ -3225,6 +3241,22 @@ elem *OrOrExp::toElem(IRState *irs)
 elem *XorExp::toElem(IRState *irs)
 {
     return toElemBin(irs,OPxor);
+}
+
+
+/***************************************
+ */
+
+elem *PowExp::toElem(IRState *irs)
+{
+    Type *tb1 = e1->type->toBasetype();
+    if (tb1->ty == Tarray || tb1->ty == Tsarray)
+    {
+        error("Array operation %s not implemented", toChars());
+        return el_long(type->totym(), 0);  // error recovery
+    }
+    else
+        assert(0);
 }
 
 

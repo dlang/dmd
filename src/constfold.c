@@ -550,6 +550,83 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
     return e;
 }
 
+Expression *Pow(Type *type, Expression *e1, Expression *e2)
+{   Expression *e;
+    Loc loc = e1->loc;
+
+    // Handle integer power operations.
+    if (e2->type->isintegral())
+    {
+        Expression * r;
+        Expression * v;
+        dinteger_t n = e2->toInteger();
+        bool neg;
+
+        if (!e2->type->isunsigned() && (sinteger_t)n < 0)
+        {
+            if (e1->type->isintegral())
+                return EXP_CANT_INTERPRET;
+
+            // Don't worry about overflow, from now on n is unsigned.
+            neg = true;
+            n = -n;
+        }
+        else
+            neg = false;
+
+        if (e1->type->isfloating())
+        {
+            r = new RealExp(loc, e1->toReal(), e1->type);
+            v = new RealExp(loc, 1.0, e1->type);
+        }
+        else
+        {
+            r = new RealExp(loc, e1->toReal(), Type::tfloat64);
+            v = new RealExp(loc, 1.0, Type::tfloat64);
+        }
+
+        while (n != 0)
+        {
+            if (n & 1)
+                v = Mul(v->type, v, r);
+            n >>= 1;
+            r = Mul(r->type, r, r);
+        }
+
+        if (neg)
+            v = Div(v->type, new RealExp(loc, 1.0, v->type), v);
+
+        if (type->isintegral())
+            e = new IntegerExp(loc, v->toInteger(), type);
+        else
+            e = new RealExp(loc, v->toReal(), type);
+    }
+    else if (e2->type->isfloating())
+    {
+        // x ^ y for x < 0 and y not an integer is not defined
+        if (e1->toReal() < 0.0)
+        {
+            e = new RealExp(loc, Port::nan, type);
+        }
+        else if (e2->toReal() == 0.5)
+        {
+            // Special case: call sqrt directly.
+            Expressions args;
+            args.setDim(1);
+            args.tdata()[0] = e1;
+            e = eval_builtin(BUILTINsqrt, &args);
+            if (!e)
+                e = EXP_CANT_INTERPRET;
+        }
+        else
+            e = EXP_CANT_INTERPRET;
+    }
+    else
+        e = EXP_CANT_INTERPRET;
+
+    return e;
+}
+
 Expression *Shl(Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
