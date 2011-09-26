@@ -1626,7 +1626,7 @@ struct TickDuration
     //can be devised and tested on a Windows box.
     //The differences in ticksPerSec on Windows makes testing
     //exact values a bit precarious.
-    version(Posix) unittest
+    version(linux) unittest
     {
         foreach(units; _TypeTuple!("seconds", "msecs", "usecs"))
         {
