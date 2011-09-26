@@ -2429,3 +2429,25 @@ dstring bug6516()
 }
 
 static assert(bug6516() == ""d);
+
+/**************************************************
+    6727   ICE(interpret.c)
+**************************************************/
+
+const(char) * ice6727(const(char) *z) { return z;}
+static assert(
+    {
+        auto q = ice6727("a".dup.ptr);
+        return true;
+    }());
+
+/**************************************************
+    6721   Cannot get pointer to start of char[]
+**************************************************/
+static assert({
+        char[] c1="".dup;
+        auto p = c1.ptr;
+        string c2="";
+        auto p2 = c2.ptr;
+        return 6;
+    }() == 6);
