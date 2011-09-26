@@ -4667,15 +4667,11 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
             e->type = type;
             return e;
         }
-        if (e1->op == TOKarrayliteral)
+        if (e1->op == TOKarrayliteral || e1->op == TOKstring)
         {
             e = new IndexExp(loc, e1, new IntegerExp(loc, 0, Type::tsize_t));
             e->type = type;
             return e;
-        }
-        if (e1->op == TOKstring)
-        {
-            return e1;
         }
         if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type != e1->type)
         {   // type painting operation
