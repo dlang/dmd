@@ -3,7 +3,7 @@
 static assert(__LINE__ == 3); // fails as __LINE__ is 2
 
 import std.stdio;
-import std.math;
+import std.math : signbit;
 
 
 /************************************/
@@ -343,6 +343,25 @@ static assert([1,2,3][1..3] == [2,3]);
 static assert(['a','b','c','d'] == "abcd");
 static assert("efgh" == ['e','f','g','h']);
 static assert("efgi" != ['e','f','g','h']);
+
+static assert((2 ^^ 8) == 256);
+static assert((3 ^^ 8.0) == 6561);
+static assert((4.0 ^^ 8) == 65536);
+static assert((5.0 ^^ 8.0) == 390625);
+
+static assert((0.5 ^^ 3) == 0.125);
+static assert((1.5 ^^ 3.0) == 3.375);
+static assert((2.5 ^^ 3) == 15.625);
+static assert((3.5 ^^ 3.0) == 42.875);
+
+static assert(((-2) ^^ -5.0) == -0.031250);
+static assert(((-2.0) ^^ -6) == 0.015625);
+static assert(((-2.0) ^^ -7.0) == -0.0078125);
+
+static assert((144 ^^ 0.5) == 12);
+static assert((1089 ^^ 0.5) == 33);
+static assert((1764 ^^ 0.5) == 42);
+static assert((650.25 ^^ 0.5) == 25.5);
 
 
 void test1()
