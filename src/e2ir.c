@@ -3193,7 +3193,9 @@ elem *PowAssignExp::toElem(IRState *irs)
         return el_long(type->totym(), 0);  // error recovery
     }
     else
-        assert(0);
+    {   assert(0);
+        return NULL;
+    }
 }
 
 
@@ -3255,8 +3257,8 @@ elem *PowExp::toElem(IRState *irs)
         error("Array operation %s not implemented", toChars());
         return el_long(type->totym(), 0);  // error recovery
     }
-    else
-        assert(0);
+    assert(0);
+    return NULL;
 }
 
 
