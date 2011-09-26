@@ -2939,13 +2939,13 @@ private
                 // save current stack state
                 push EBP;
                 mov  EBP, ESP;
-                push EDI;
-                push ESI;
-                push EBX;
+                push EAX;
                 push dword ptr FS:[0];
                 push dword ptr FS:[4];
                 push dword ptr FS:[8];
-                push EAX;
+                push EBX;
+                push ESI;
+                push EDI;
 
                 // store oldp again with more accurate address
                 mov EAX, dword ptr 8[EBP];
@@ -2954,13 +2954,13 @@ private
                 mov ESP, dword ptr 12[EBP];
 
                 // load saved state from new stack
-                pop EAX;
+                pop EDI;
+                pop ESI;
+                pop EBX;
                 pop dword ptr FS:[8];
                 pop dword ptr FS:[4];
                 pop dword ptr FS:[0];
-                pop EBX;
-                pop ESI;
-                pop EDI;
+                pop EAX;
                 pop EBP;
 
                 // 'return' to complete switch
@@ -3698,10 +3698,8 @@ private:
         version( AsmX86_Windows )
         {
             push( cast(size_t) &fiber_entryPoint );                 // EIP
-            push( cast(size_t) m_ctxt.bstack );                     // EBP
-            push( 0x00000000 );                                     // EDI
-            push( 0x00000000 );                                     // ESI
-            push( 0x00000000 );                                     // EBX
+            push( 0xFFFFFFFF );                                     // EBP
+            push( 0x00000000 );                                     // EAX
             push( 0xFFFFFFFF );                                     // FS:[0]
             version( StackGrowsDown )
             {
@@ -3713,7 +3711,9 @@ private:
                 push( cast(size_t) m_ctxt.bstack );                 // FS:[4]
                 push( cast(size_t) m_ctxt.bstack + m_size );        // FS:[8]
             }
-            push( 0x00000000 );                                     // EAX
+            push( 0x00000000 );                                     // EBX
+            push( 0x00000000 );                                     // ESI
+            push( 0x00000000 );                                     // EDI
         }
         else version( AsmX86_64_Windows )
         {
