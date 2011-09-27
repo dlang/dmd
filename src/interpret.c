@@ -3365,7 +3365,49 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         returnValue = newval;
     }
+    /* Check for assignment to an AA. This needs special treatment if the
+     * existing AA is empty. It's a 'while' loop because the AA may be an
+     * member of another AA which is also null.
+     */
+    while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+    {
+        IndexExp *ie = (IndexExp *)e1;
+        Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
+        Expression *oldagg = aggregate;
+        aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+        if (aggregate == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+        if (aggregate->op != TOKassocarrayliteral)
+        {   // It's an assignment to a null AA.
+            //  Change it from:
+            //  aggregate[i] = newval; into aggregate = [i: newval];
+            Expressions *valuesx = new Expressions();
+            Expressions *keysx = new Expressions();
+            Expression *indx = ie->e2->interpret(istate);
+            if (indx == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+            valuesx->push(newval);
+            keysx->push(indx);
+            Expression *aae2 = new AssocArrayLiteralExp(loc, keysx, valuesx);
+            aae2->type = aggregate->type;
+            newval = aae2;
+            e1 = aggregate->op == TOKnull ? oldagg : aggregate;
+            // This might still be an assignment to a null AA!
+        }
+        else
+        {
+            Expression *index = ie->e2->interpret(istate);
+            if (index == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
 
+            if (index->op == TOKslice)  // only happens with AA assignment
+                index = resolveSlice(index);
+            AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
+            if (assignAssocArrayElement(loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+            return returnValue;
+        }
+    }
     // ---------------------------------------
     //      Deal with dotvar expressions
     // ---------------------------------------
@@ -3478,12 +3520,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     {
         /* Assignment to array element of the form:
          *   aggregate[i] = newval
+         *   aggregate is not AA (AAs were dealt with already).
          */
         IndexExp *ie = (IndexExp *)e1;
-        uinteger_t destarraylen = 0; // not for AAs
+        assert(ie->e1->type->toBasetype()->ty != Taarray);
+        uinteger_t destarraylen = 0;
 
         // Set the $ variable, and find the array literal to modify
-        if (ie->e1->type->toBasetype()->ty != Taarray && ie->e1->type->toBasetype()->ty != Tpointer)
+        if (ie->e1->type->toBasetype()->ty != Tpointer)
         {
             Expression *oldval = ie->e1->interpret(istate);
             if (oldval->op == TOKnull)
@@ -3511,56 +3555,51 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (index == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
 
-        if (index->op == TOKslice)  // only happens with AA assignment
-            index = resolveSlice(index);
+        assert (index->op != TOKslice);  // only happens with AA assignment
 
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
-        AssocArrayLiteralExp *existingAA = NULL;
 
         Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
 
-        // Set the index to modify (for non-AAs), and check that it is in range
-        dinteger_t indexToModify = 0;
-        if (ie->e1->type->toBasetype()->ty != Taarray)
+        // Set the index to modify, and check that it is in range
+        dinteger_t indexToModify = index->toInteger();
+        if (ie->e1->type->toBasetype()->ty == Tpointer)
         {
-            indexToModify = index->toInteger();
-            if (ie->e1->type->toBasetype()->ty == Tpointer)
+            dinteger_t ofs;
+            aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+            if (aggregate == EXP_CANT_INTERPRET)
+                return EXP_CANT_INTERPRET;
+            if (aggregate->op == TOKnull)
             {
-                dinteger_t ofs;
-                aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-                if (aggregate == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
-                if (aggregate->op == TOKnull)
-                {
-                    error("cannot index through null pointer %s", ie->e1->toChars());
-                    return EXP_CANT_INTERPRET;
-                }
-                if (aggregate->op == TOKint64)
-                {
-                    error("cannot index through invalid pointer %s of value %s",
-                        ie->e1->toChars(), aggregate->toChars());
-                    return EXP_CANT_INTERPRET;
-                }
-                aggregate = getAggregateFromPointer(aggregate, &ofs);
-                indexToModify += ofs;
-                destarraylen = resolveArrayLength(aggregate);
-            }
-            if (indexToModify >= destarraylen)
-            {
-                error("array index %d is out of bounds [0..%d]", indexToModify,
-                    destarraylen);
+                error("cannot index through null pointer %s", ie->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
+            if (aggregate->op == TOKint64)
+            {
+                error("cannot index through invalid pointer %s of value %s",
+                    ie->e1->toChars(), aggregate->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            aggregate = getAggregateFromPointer(aggregate, &ofs);
+            indexToModify += ofs;
+            destarraylen = resolveArrayLength(aggregate);
+        }
+        if (indexToModify >= destarraylen)
+        {
+            error("array index %d is out of bounds [0..%d]", indexToModify,
+                destarraylen);
+            return EXP_CANT_INTERPRET;
         }
 
-        /* The only possible indexable LValue aggregates are array literals,
-         * slices of array literals, and AA literals.
+        /* The only possible indexable LValue aggregates are array literals, and
+         * slices of array literals.
          */
         if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
             aggregate->op == TOKslice || aggregate->op == TOKcall ||
             aggregate->op == TOKstar)
         {
+            Expression *origagg = aggregate;
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
             if (aggregate == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
@@ -3578,21 +3617,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             aggregate = v->getValue();
             if (aggregate->op == TOKnull)
             {
-                if (v->type->ty == Taarray)
-                {   // Assign to empty associative array
-                    Expressions *valuesx = new Expressions();
-                    Expressions *keysx = new Expressions();
-                    Expression *indx = ie->e2->interpret(istate);
-                    if (indx == EXP_CANT_INTERPRET)
-                        return EXP_CANT_INTERPRET;
-                    valuesx->push(newval);
-                    keysx->push(indx);
-                    Expression *aae2 = new AssocArrayLiteralExp(loc, keysx, valuesx);
-                    aae2->type = v->type;
-                    newval = aae2;
-                    v->setRefValue(newval);
-                    return returnValue;
-                }
                 // This would be a runtime segfault
                 error("cannot index null array %s", v->toChars());
                 return EXP_CANT_INTERPRET;
@@ -3609,8 +3633,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             existingAE = (ArrayLiteralExp *)aggregate;
         else if (aggregate->op == TOKstring)
             existingSE = (StringExp *)aggregate;
-        else if (aggregate->op == TOKassocarrayliteral)
-            existingAA = (AssocArrayLiteralExp *)aggregate;
         else
         {
             error("CTFE internal compiler error %s", aggregate->toChars());
@@ -3647,12 +3669,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     assert(0);
                     break;
             }
-            return returnValue;
-        }
-        else if (existingAA)
-        {
-            if (assignAssocArrayElement(loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
             return returnValue;
         }
         else
@@ -4330,6 +4346,8 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 
     if (e1->op == TOKnull)
     {
+        if (goal == ctfeNeedLvalue && e1->type->ty == Taarray)
+            return paintTypeOntoLiteral(type, e1);
         error("cannot index null array %s", this->e1->toChars());
         return EXP_CANT_INTERPRET;
     }
