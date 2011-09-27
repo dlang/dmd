@@ -4766,6 +4766,41 @@ L1:     pop     RAX;
     }
 }
 
+void test60()
+{
+    ubyte *p;
+    static ubyte data[] =
+    [
+        0x49, 0x8B, 0x00, // mov RAX, [R8]
+        0x4D, 0x8B, 0x00, // mov R8, [R8]
+        0x49, 0x89, 0x00, // mov [R8], RAX
+        0x4D, 0x89, 0x00, // mov [R8], R8
+        0x41, 0x0F, 0x10, 0x00, // movups XMM0, [R8]
+        0x45, 0x0F, 0x10, 0x00, // movups XMM8, [R8]
+    ];
+
+    asm
+    {
+        call	L1;
+
+        mov RAX, [R8];
+        mov R8, [R8];
+        mov [R8], RAX;
+        mov [R8], R8;
+        movups XMM0, [R8];
+        movups XMM8, [R8];
+
+L1:
+        pop RAX;
+        mov p[RBP], RAX;
+    }
+
+    foreach (i, b; data)
+    {
+        assert(p[i] == b);
+    }
+}
+
 void test2941()
 {
     ubyte *p;
@@ -4856,6 +4891,7 @@ int main()
     test57();
     test58();
     test59();
+    test60();
     test2941();
 
     printf("Success\n");
