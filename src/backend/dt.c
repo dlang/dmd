@@ -240,7 +240,11 @@ dt_t ** dtcoff(dt_t **pdtend,targ_size_t offset)
     while (*pdtend)
         pdtend = &((*pdtend)->DTnext);
     dt = dt_calloc(DT_coff);
+#if TARGET_FLAT
+    dt->Dty = TYnptr;
+#else
     dt->Dty = TYcptr;
+#endif
     dt->DToffset = offset;
     *pdtend = dt;
     pdtend = &dt->DTnext;

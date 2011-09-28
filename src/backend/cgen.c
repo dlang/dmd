@@ -629,12 +629,14 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
         symbol_debug(s);
         //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
 
+#if !TARGET_FLAT
         if (tybasic(s->ty()) == TYf16func)
         {
             obj_far16thunk(s);          /* make it into a thunk         */
             searchfixlist(s);
         }
         else
+#endif
         {
             if (s->Sxtrnnum == 0)
             {   if (s->Sclass == SCstatic)
