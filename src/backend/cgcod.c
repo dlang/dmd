@@ -2213,8 +2213,10 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                 case TYjhandle:
 #endif
                 case TYnptr:
+#if !TARGET_FLAT
                 case TYsptr:
                 case TYcptr:
+#endif
                     *pretregs |= IDXREGS;
                     break;
                 case TYshort:
@@ -2230,8 +2232,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 #if !TARGET_FLAT
                 case TYfptr:
                 case TYhptr:
-#endif
                 case TYvptr:
+#endif
                     *pretregs |= ALLREGS;
                     break;
             }

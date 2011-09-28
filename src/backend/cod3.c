@@ -343,8 +343,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
 #endif
         case TYnullptr:
         case TYnptr:
+#if !TARGET_FLAT
         case TYsptr:
         case TYcptr:
+#endif
             return mAX;
 
         case TYfloat:
@@ -358,8 +360,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYdchar:
             if (!I16)
                 return mAX;
+#if !TARGET_FLAT
         case TYfptr:
         case TYhptr:
+#endif
             return mDX | mAX;
 
         case TYcent:
@@ -367,8 +371,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
             assert(I64);
             return mDX | mAX;
 
+#if !TARGET_FLAT
         case TYvptr:
             return mDX | mBX;
+#endif
 
         case TYdouble:
         case TYdouble_alias:
@@ -3241,9 +3247,11 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 
     /* Skip over return address */
     thunkty = tybasic(sthunk->ty());
+#if !TARGET_FLAT
     if (tyfarfunc(thunkty))
         p += I32 ? 8 : tysize[TYfptr];          /* far function */
     else
+#endif
         p += tysize[TYnptr];
 
     if (!I16)
@@ -3319,7 +3327,9 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 #define FARTHIS (tysize(thisty) > REGSIZE)
 #define FARVPTR FARTHIS
 
+#if !TARGET_FLAT
         assert(thisty != TYvptr);               /* can't handle this case */
+#endif
 
         if (!I16)
         {
@@ -5848,12 +5858,14 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
         symbol_debug(s);
         //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
 
+#if !TARGET_FLAT
         if (tybasic(s->ty()) == TYf16func)
         {
             obj_far16thunk(s);          /* make it into a thunk         */
             searchfixlist(s);
         }
         else
+#endif
         {
             if (s->Sxtrnnum == 0)
             {   if (s->Sclass == SCstatic)

@@ -134,24 +134,25 @@ HINT boolres(elem *e)
                 case TYbool:
                 case TYwchar_t:
                 case TYenum:
+#if !MARS
                 case TYmemptr:
+#endif
                 case TYlong:
                 case TYulong:
                 case TYdchar:
                 case TYllong:
                 case TYullong:
-#if TX86
 #if JHANDLE
                 case TYjhandle:
 #endif
-                //case TYnullptr:
-                case TYnptr:
+#if !TARGET_FLAT
                 case TYsptr:
                 case TYcptr:
                 case TYhptr:
-#endif
                 case TYfptr:
                 case TYvptr:
+#endif
+                case TYnptr:
                     b = el_tolong(e) != 0;
                     break;
                 case TYfloat:
