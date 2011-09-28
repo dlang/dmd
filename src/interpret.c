@@ -3647,6 +3647,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 assert(0);
             }
         }
+        if (wantRef && newval->op == TOKindex
+            && ((IndexExp *)newval)->e1 == aggregate)
+        {   // It's a circular reference, resolve it now
+                newval = newval->interpret(istate);
+        }
 
         if (existingAE)
         {
@@ -3806,6 +3811,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 assert(0);
             }
         }
+        if (wantRef && newval->op == TOKindex
+            && ((IndexExp *)newval)->e1 == aggregate)
+        {   // It's a circular reference, resolve it now
+                newval = newval->interpret(istate);
+        }
 
         // For slice assignment, we check that the lengths match.
         size_t srclen = 0;
@@ -3834,7 +3844,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, firstIndex);
             return newval;
         }
-        else if (newval->op == TOKstring && existingAE)
+        else if (newval->op == TOKstring && existingAE
+                && existingAE->type->isString())
         {   /* Mixed slice: it was initialized as an array literal of chars.
              * Now a slice of it is being set with a string.
              */
