@@ -375,7 +375,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
 #endif
         case TYnullptr:
         case TYnptr:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
 #endif
@@ -392,7 +392,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYdchar:
             if (!I16)
                 return mAX;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         case TYfptr:
         case TYhptr:
 #endif
@@ -403,7 +403,7 @@ regm_t regmask(tym_t tym, tym_t tyf)
             assert(I64);
             return mDX | mAX;
 
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         case TYvptr:
             return mDX | mBX;
 #endif
@@ -3279,7 +3279,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 
     /* Skip over return address */
     thunkty = tybasic(sthunk->ty());
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     if (tyfarfunc(thunkty))
         p += I32 ? 8 : tysize[TYfptr];          /* far function */
     else
@@ -3359,7 +3359,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 #define FARTHIS (tysize(thisty) > REGSIZE)
 #define FARVPTR FARTHIS
 
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         assert(thisty != TYvptr);               /* can't handle this case */
 #endif
 
@@ -5491,7 +5491,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 #if DEBUG
             symbol_print(uev->sp.Vsym);
 #endif
-            assert(!TARGET_FLAT);
+            assert(TARGET_SEGMENTED);
             // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
             // strings and statics are treated like offsets from a
             // un-named external with is the start of .rodata or .data
@@ -5515,7 +5515,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 
         case FLfunc:                        /* function call                */
             s = uev->sp.Vsym;               /* symbol pointer               */
-            assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
+            assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
             FLUSH();
             reftoident(cseg,offset,s,0,CFoffset64 | flags);
             break;
@@ -5583,7 +5583,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 #if DEBUG
         symbol_print(uev->sp.Vsym);
 #endif
-        assert(!TARGET_FLAT);
+        assert(TARGET_SEGMENTED);
         // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
         // strings and statics are treated like offsets from a
         // un-named external with is the start of .rodata or .data
@@ -5607,7 +5607,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 
     case FLfunc:                        /* function call                */
         s = uev->sp.Vsym;               /* symbol pointer               */
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
                 FLUSH();
@@ -5623,7 +5623,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         else
 #endif
         {
-                assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
+                assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
                 FLUSH();
                 reftoident(cseg,offset,s,val,flags);
         }
@@ -5683,13 +5683,13 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
     case FLfardata:
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
-        assert(SIXTEENBIT || !TARGET_FLAT);
+        assert(SIXTEENBIT || TARGET_SEGMENTED);
         FLUSH();
         s = uev->sp.Vsym;               /* symbol pointer               */
         reftoident(cseg,offset,s,uev->sp.Voffset,flags);
         break;
     case FLfunc:                        /* function call                */
-        assert(SIXTEENBIT || !TARGET_FLAT);
+        assert(SIXTEENBIT || TARGET_SEGMENTED);
         s = uev->sp.Vsym;               /* symbol pointer               */
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */

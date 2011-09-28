@@ -145,7 +145,7 @@ HINT boolres(elem *e)
 #if JHANDLE
                 case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                 case TYsptr:
                 case TYcptr:
                 case TYhptr:

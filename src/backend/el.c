@@ -1882,7 +1882,7 @@ elem *el_convstring(elem *e)
 #if TX86
     // Handle strings that go into the code segment
     if (
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         tybasic(e->Ety) == TYcptr ||
 #endif
         (tyfv(e->Ety) && config.flags3 & CFG3strcod))
@@ -2378,7 +2378,7 @@ L1:
 #endif
                     case TYnullptr:
                     case TYnptr:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                     case TYsptr:
                     case TYcptr:
 #endif
@@ -2399,7 +2399,7 @@ L1:
                         if (n1->EV.Vschar != n2->EV.Vschar)
                                 goto nomatch;
                         break;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                     case TYfptr:
                     case TYhptr:
                     case TYvptr:
@@ -2658,7 +2658,7 @@ L1:
 #if JHANDLE
         case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
 #endif
@@ -2679,7 +2679,7 @@ L1:
 
         case TYulong:
         case TYdchar:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         case TYfptr:
         case TYhptr:
         case TYvptr:
@@ -3009,7 +3009,7 @@ void elem_print(elem *e)
 #if JHANDLE
                     case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                     case TYsptr:
                     case TYcptr:
 #endif
@@ -3045,7 +3045,7 @@ void elem_print(elem *e)
                     case TYlong:
                     case TYulong:
                     case TYdchar:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                     case TYfptr:
                     case TYvptr:
                     case TYhptr:
