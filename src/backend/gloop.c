@@ -2039,7 +2039,7 @@ STATIC famlist * newfamlist(tym_t ty)
 #if JHANDLE
             case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYnptr:
@@ -2053,7 +2053,7 @@ STATIC famlist * newfamlist(tym_t ty)
             default:
                 c.Vlong = 1;
                 break;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYhptr:
                 ty = TYlong;
                 c.Vlong = 1;
@@ -2075,7 +2075,7 @@ STATIC famlist * newfamlist(tym_t ty)
 #if JHANDLE
             case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYfptr:
@@ -2091,7 +2091,7 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYuint:
                 c.Vint = 1;
                 break;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYhptr:
                 ty = TYlong;
 #endif
@@ -2113,7 +2113,7 @@ STATIC famlist * newfamlist(tym_t ty)
         if (typtr(ty))
         {
             ty = TYint;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             if (tybasic(ty) == TYhptr)
                 ty = TYlong;
 #endif
@@ -2494,7 +2494,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                 n1 = n->E1;
         }
 
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         // Get rid of case where we painted a far pointer to a long
         if (op == OPadd || op == OPmin)
         {   int sz;
@@ -2550,7 +2550,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                                 /* Check for subtracting two pointers */
                                 if (typtr(c2ty) && typtr(n2->Ety))
                                 {
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                                     if (tybasic(c2ty) == TYhptr)
                                         c2ty = TYlong;
                                     else
@@ -2889,7 +2889,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     else                        /* can't subtract fptr  */
                         goto L1;
                 }
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                 if (tybasic(fls->c2->Ety) == TYhptr)
                     tymin = TYlong;
                 else
@@ -2897,7 +2897,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     tymin = I64 ? TYllong : TYint;         /* type of (ptr - ptr) */
         }
 
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         /* If e1 and fls->c2 are fptrs, and are not from the same       */
         /* segment, we cannot subtract them.                            */
         if (tyfv(e1->Ety) && tyfv(fls->c2->Ety))
@@ -3218,7 +3218,7 @@ STATIC void elimbasivs(register loop *l)
                                 ne = el_bin(OPmin,ty,
                                         el_var(fl->FLtemp),
                                         C2);
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                                 if (tybasic(ne->E1->Ety) == TYfptr &&
                                     tybasic(ne->E2->Ety) == TYfptr)
                                 {   ne->Ety = I64 ? TYllong : TYint;
@@ -3446,7 +3446,7 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
 #if JHANDLE
             case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
 #endif
@@ -3461,7 +3461,7 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
             case TYlong:
             case TYulong:
             case TYdchar:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYfptr:
             case TYvptr:
             case TYhptr:

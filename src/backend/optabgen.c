@@ -748,7 +748,7 @@ void fltables()
 void dotytab()
 {
     static tym_t _ptr[]      = { TYjhandle,TYnptr };
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
 #endif
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
@@ -765,7 +765,7 @@ void dotytab()
                                  TYchar16, TYcent, TYucent };
     static tym_t _ref[]      = { TYnref,TYref };
     static tym_t _func[]     = { TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc };
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     static tym_t _ref_nflat[] = { TYfref };
     static tym_t _func_nflat[]= { TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, };
 #endif
@@ -785,11 +785,11 @@ void dotytab()
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
 #endif
     static tym_t _pasfunc[] = { TYnpfunc,TYnsfunc,TYmfunc,TYjfunc };
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     static tym_t _pasfunc_nf[] = { TYfpfunc,TYf16func,TYfsfunc, };
 #endif
     static tym_t _revfunc[] = { TYnpfunc,TYjfunc };
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     static tym_t _revfunc_nf[] = { TYfpfunc,TYf16func, };
 #endif
     static tym_t _short[]     = { TYbool,TYchar,TYschar,TYuchar,TYshort,
@@ -858,7 +858,7 @@ void dotytab()
 "C func",       TYhfunc,        TYhfunc,   TYhfunc,     -1,     0,      0,
 "__near &",     TYnref,         TYnref,    TYnref,      2,      0,      0,
 
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
 "__ss *",       TYsptr,         TYsptr,    TYsptr,      2,  0x20,       0x100,
 "__cs *",       TYcptr,         TYcptr,    TYcptr,      2,  0x20,       0x100,
 "__far16 *",    TYf16ptr,       TYf16ptr,  TYf16ptr,    4,  0x40,       0x200,
@@ -907,7 +907,7 @@ void dotytab()
                      };
 
     T1(_ptr,      TYFLptr);
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     T1(_ptr_nflat,TYFLptr);
 #endif
     T1(_real,     TYFLreal);
@@ -930,7 +930,7 @@ void dotytab()
     T2(_ref,      TYFLref);
     T2(_func,     TYFLfunc);
     T2(_nullptr,  TYFLnullptr);
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     T2(_pasfunc_nf, TYFLpascal);
     T2(_revfunc_nf, TYFLrevparam);
     T2(_ref_nflat,  TYFLref);

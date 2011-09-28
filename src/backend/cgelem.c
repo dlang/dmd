@@ -136,7 +136,7 @@ int elemisone(elem *e)
 #if JHANDLE
             case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYhptr:
@@ -202,7 +202,7 @@ int elemisnegone(elem *e)
 #if JHANDLE
             case TYjhandle:
 #endif
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYhptr:
@@ -1085,7 +1085,7 @@ L1:
   if (e1->Eoper == OPadd && e2->Eoper == OPadd &&
       cnst(e1->E2) && cnst(e2->E2) &&
       (tyintegral(tym) || tybasic(tym) == TYjhandle || tybasic(tym) == TYnptr
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
        || tybasic(tym) == TYsptr
 #endif
       ))
@@ -2310,7 +2310,7 @@ STATIC elem * elind(elem *e)
           }
             break;
         case OPadd:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             if (OPTIMIZER)
             {   /* Try to convert far pointer to stack pointer  */
                 elem *e12 = e1->E2;
@@ -2560,10 +2560,10 @@ CEXTERN elem * elstruct(elem *e)
                 /* We should do the analysis to see if we can use
                    something simpler than TYfptr.
                  */
-#if TARGET_FLAT
-                typ = TYnptr;
-#else
+#if TARGET_SEGMENTED
                 typ = (intsize == LONGSIZE) ? TYnptr : TYfptr;
+#else
+                typ = TYnptr;
 #endif
                 e2 = el_una(OPaddr,typ,e2);
                 e2 = optelem(e2,TRUE);          /* distribute & to x and y leaves */
@@ -3419,7 +3419,7 @@ STATIC elem * elvptrfptr(elem *e)
     if (e1->Eoper == OPadd || e1->Eoper == OPmin)
     {
         e12 = e1->E2;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         if (tybasic(e12->Ety) != TYvptr)
 #endif
         {

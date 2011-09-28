@@ -568,7 +568,7 @@ code *cdeq(elem *e,regm_t *pretregs)
   }
   else if (retregs & mES &&
             (
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
              (e1->Eoper == OPind &&
                 ((tymll = tybasic(e1->E1->Ety)) == TYfptr || tymll == TYhptr)
                 ) ||
@@ -635,7 +635,7 @@ code *cdeq(elem *e,regm_t *pretregs)
   c = getregs_imm(varregm);
 
   assert(!(retregs & mES && (cs.Iflags & CFSEG) == CFes));
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
   if ((tyml == TYfptr || tyml == TYhptr) && retregs & mES)
   {
         reg = findreglsw(retregs);
@@ -872,7 +872,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
         (el_allbits(e2, 1) || el_allbits(e2, -1))
        ) ||
        (!evalinregister(e2)
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         && tyml != TYhptr
 #endif
         )
@@ -1049,7 +1049,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   else // evaluate e2 into register
   {
         retregs = (byte) ? BYTEREGS : ALLREGS;  // pick working reg
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         if (tyml == TYhptr)
             retregs &= ~mCX;                    // need CX for shift count
 #endif
@@ -1063,7 +1063,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
             if (sz == 1 && reg >= 4 && I64)
                 cs.Irex |= REX;
         }
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         else if (tyml == TYhptr)
         {   unsigned mreg,lreg;
 
@@ -1149,7 +1149,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
                 ce = gen(ce,&cs);               // MOV reg,EA
             }
         }
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         else if (tyfv(tyml) || tyml == TYhptr)
         {       regm_t idxregs;
 
@@ -2049,7 +2049,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     cs.Irm |= modregrm(0,7,0);
                     if (sz > REGSIZE)
                     {
-#if TARGET_FLAT
+#if !TARGET_SEGMENTED
                         if (sz == 6)
                             assert(0);
 #endif
@@ -2633,7 +2633,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             switch (tym1)
             {
                 case TYnptr:    segreg = SEG_DS;        break;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                 case TYcptr:    segreg = SEG_CS;        break;
                 case TYsptr:    segreg = SEG_SS;        break;
 #endif

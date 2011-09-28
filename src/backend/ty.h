@@ -85,7 +85,7 @@ enum TYM
     TYcent              = 0x3C, // 128 bit signed integer
     TYucent             = 0x3D, // 128 bit unsigned integer
 
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     TYsptr              = 0x1E, // stack segment relative pointer
     TYcptr              = 0x1F, // code segment relative pointer
     TYf16ptr            = 0x20, // special OS/2 far16 pointer

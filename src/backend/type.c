@@ -69,7 +69,7 @@ targ_size_t type_size(type *t)
         switch (tyb)
         {
             // in case program plays games with function pointers
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             case TYffunc:
             case TYfpfunc:
             case TYfsfunc:
@@ -239,7 +239,7 @@ type *type_alloc(tym_t ty)
 {   type *t;
     static type tzero;
 
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
     assert(tybasic(ty) != TYtemplate);
 #endif
     if (type_list)
@@ -470,10 +470,10 @@ void type_init()
     }
 
     // Type of trace function
-#if TARGET_FLAT
-    tstrace = type_fake(TYnfunc);
-#else
+#if TARGET_SEGMENTED
     tstrace = type_fake(I16 ? TYffunc : TYnfunc);
+#else
+    tstrace = type_fake(TYnfunc);
 #endif
     tstrace->Tmangle = mTYman_c;
     tstrace->Tcount++;
@@ -481,10 +481,10 @@ void type_init()
     chartype = (config.flags3 & CFG3ju) ? tsuchar : tschar;
 
     // Type of far library function
-#if TARGET_FLAT
-    tsclib = type_fake(TYnpfunc);
-#else
+#if TARGET_SEGMENTED
     tsclib = type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
+#else
+    tsclib = type_fake(TYnpfunc);
 #endif
     tsclib->Tmangle = mTYman_c;
     tsclib->Tcount++;
@@ -801,7 +801,7 @@ int type_isdependent(type *t)
         if (t->Tflags & TFdependent)
             goto Lisdependent;
         if (tyfunc(t->Tty)
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                 || tybasic(t->Tty) == TYtemplate
 #endif
                 )

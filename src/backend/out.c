@@ -402,7 +402,7 @@ void outdata(symbol *s)
                     flags = CFoff | CFseg;
                 if (I64)
                     flags |= CFoffset64;
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                     reftocodseg(seg,offset,dt->DTabytes);
                 else

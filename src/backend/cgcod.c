@@ -2213,7 +2213,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                 case TYjhandle:
 #endif
                 case TYnptr:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                 case TYsptr:
                 case TYcptr:
 #endif
@@ -2229,7 +2229,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
                 case TYullong:
                 case TYcent:
                 case TYucent:
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
                 case TYfptr:
                 case TYhptr:
                 case TYvptr:
