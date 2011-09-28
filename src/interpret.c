@@ -3292,6 +3292,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
         {
             newval = type->defaultInitLiteral(loc);
+            if (newval->op != TOKstructliteral)
+            {
+                error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
+                return EXP_CANT_INTERPRET;
+            }
         }
         newval = Cast(type, type, newval);
         if (newval == EXP_CANT_INTERPRET)
