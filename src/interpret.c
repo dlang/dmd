@@ -347,7 +347,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     while (1)
     {
         if (CtfeStatus::callDepth > 1000)
-        {
+        {   // This is a compiler error. It must not be suppressed.
+            global.gag = 0;
             error("CTFE recursion limit exceeded");
             e = NULL;
             break;
