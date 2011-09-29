@@ -402,13 +402,15 @@ void outdata(symbol *s)
                     flags = CFoff | CFseg;
                 if (I64)
                     flags |= CFoffset64;
+#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                     reftocodseg(seg,offset,dt->DTabytes);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 else
+#endif
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
-                else if (dt->DTseg == DATA)
+                /*else*/ if (dt->DTseg == DATA)
                     reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
                 else
                     reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);

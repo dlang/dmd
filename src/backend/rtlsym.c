@@ -66,12 +66,12 @@ void rtlsym_init()
         }
 
 #if MARS
-        type *t = type_fake(LARGECODE ? TYffunc : TYnfunc);
+        type *t = type_fake(TYnfunc);
         t->Tmangle = mTYman_c;
         t->Tcount++;
 
         // Variadic function
-        type *tv = type_fake(LARGECODE ? TYffunc : TYnfunc);
+        type *tv = type_fake(TYnfunc);
         tv->Tmangle = mTYman_c;
         tv->Tcount++;
 #endif
