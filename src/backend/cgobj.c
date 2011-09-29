@@ -2971,8 +2971,14 @@ void objledata(int seg,targ_size_t offset,targ_size_t data,
 {   unsigned i;
     unsigned size;                      // number of bytes to output
 
+#if TARGET_SEGMENTED
+    unsigned ptrsize = tysize[TYfptr];
+#else
+    unsigned ptrsize = I64 ? 10 : 6;
+#endif
+
     if ((lcfd & LOCxx) == obj.LOCpointer)
-        size = tysize[TYfptr];
+        size = ptrsize;
     else if ((lcfd & LOCxx) == LOCbase)
         size = 2;
     else
@@ -3016,7 +3022,7 @@ L1:     ;
         TOWORD(obj.ledata->data + i,data);
     else
         TOLONG(obj.ledata->data + i,data);
-    if (size == tysize[TYfptr])         // if doing a seg:offset pair
+    if (size == ptrsize)         // if doing a seg:offset pair
         TOWORD(obj.ledata->data + i + tysize[TYnptr],0);        // segment portion
     addfixup(offset - obj.ledata->offset,lcfd,idx1,idx2);
 }
@@ -3038,19 +3044,23 @@ L1:     ;
 
 void obj_long(int seg,targ_size_t offset,unsigned long data,
         unsigned lcfd,unsigned idx1,unsigned idx2)
-{ unsigned i;
-
+{
+#if TARGET_SEGMENTED
+    unsigned sz = tysize[TYfptr];
+#else
+    unsigned sz = I64 ? 10 : 6;
+#endif
   if (
         (seg != obj.ledata->lseg ||             // or segments don't match
-         obj.ledata->i + tysize[TYfptr] > LEDATAMAX || // or it'll overflow
+         obj.ledata->i + sz > LEDATAMAX || // or it'll overflow
          offset < obj.ledata->offset || // underflow
          offset > obj.ledata->offset + obj.ledata->i
         )
      )
         ledata_new(seg,offset);
-  i = offset - obj.ledata->offset;
-  if (obj.ledata->i < i + tysize[TYfptr])
-        obj.ledata->i = i + tysize[TYfptr];
+  unsigned i = offset - obj.ledata->offset;
+  if (obj.ledata->i < i + sz)
+        obj.ledata->i = i + sz;
   TOLONG(obj.ledata->data + i,data);
   if (I32)                              // if 6 byte far pointers
         TOWORD(obj.ledata->data + i + LONGSIZE,0);              // fill out seg
@@ -3239,7 +3249,11 @@ int reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
                 break;
             case CFoff | CFseg:
                 lc = obj.LOCpointer;
+#if TARGET_SEGMENTED
                 numbytes = tysize[TYfptr];
+#else
+                numbytes = I64 ? 10 : 6;
+#endif
                 break;
         }
         break;

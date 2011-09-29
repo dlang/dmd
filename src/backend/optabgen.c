@@ -778,11 +778,13 @@ void dotytab()
     static tym_t _mptr[]    = { TYmemptr };
 #endif
     static tym_t _nullptr[] = { TYnullptr };
+#if TARGET_SEGMENTED
 #if OMFOBJ
     static tym_t _fv[]      = { TYfptr, TYvptr };
 #endif
 #if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
+#endif
 #endif
     static tym_t _pasfunc[] = { TYnpfunc,TYnsfunc,TYmfunc,TYjfunc };
 #if TARGET_SEGMENTED
@@ -920,7 +922,7 @@ void dotytab()
     T1(_mptr,     TYFLmptr);
 #endif
 
-#if OMFOBJ
+#if OMFOBJ && TARGET_SEGMENTED
     T1(_fv,       TYFLfv);
     T2(_farfunc,  TYFLfarfunc);
 #endif

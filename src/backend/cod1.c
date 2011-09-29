@@ -2769,11 +2769,11 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
         assert(e1->Eoper == OPind);
         e11 = e1->E1;
         e11ty = tybasic(e11->Ety);
-        assert(!I16 || (e11ty == (
 #if TARGET_SEGMENTED
-                        farfunc ? TYfptr :
+        assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
+#else
+        assert(!I16 || (e11ty == TYnptr));
 #endif
-                        TYnptr)));
 
         /* if we can't use loadea()     */
         if ((EOP(e11) || e11->Eoper == OPconst) &&

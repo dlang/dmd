@@ -144,6 +144,7 @@ void outdata(symbol *s)
 #else
                 targ_size_t *poffset;
                 datasize += size(dt->Dty);
+#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                 {   seg = cseg;
                     poffset = &Coffset;
@@ -157,6 +158,7 @@ void outdata(symbol *s)
                 }
 #endif
                 else
+#endif
                 {   seg = DATA;
                     poffset = &Doffset;
                 }

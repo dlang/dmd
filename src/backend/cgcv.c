@@ -406,9 +406,11 @@ void cv_init()
         dttab4[TYptr]  = 0x400;
         dttab4[TYnptr] = 0x400;
         dttab4[TYjhandle] = 0x400;
+#if TARGET_SEGMENTED
         dttab4[TYsptr] = 0x400;
         dttab4[TYcptr] = 0x400;
         dttab4[TYfptr] = 0x500;
+#endif
 
         if (config.flags & CFGeasyomf)
         {   cgcv.LCFDoffset  = EASY_LCFDoffset;
@@ -1546,15 +1548,17 @@ unsigned char cv4_callconv(type *t)
 
     switch (tybasic(t->Tty))
     {
-        case TYnfunc:   call = 0;       break;
+#if TARGET_SEGMENTED
         case TYffunc:   call = 1;       break;
-        case TYnpfunc:  call = 2;       break;
         case TYfpfunc:  call = 3;       break;
         case TYf16func: call = 3;       break;
-        case TYnsfunc:  call = 7;       break;
         case TYfsfunc:  call = 8;       break;
         case TYnsysfunc: call = 9;      break;
         case TYfsysfunc: call = 10;     break;
+#endif
+        case TYnfunc:   call = 0;       break;
+        case TYnpfunc:  call = 2;       break;
+        case TYnsfunc:  call = 7;       break;
         case TYifunc:   call = 1;       break;
         case TYjfunc:   call = 2;       break;
         case TYmfunc:   call = 11;      break;  // this call
@@ -1738,13 +1742,17 @@ L1:
             if (t->Tkey)
                 goto Laarray;
 #endif
+#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
+#endif
         Lptr:
                         attribute |= I32 ? 10 : 0;      goto L2;
+#if TARGET_SEGMENTED
         case TYfptr:
         case TYvptr:    attribute |= I32 ? 11 : 1;      goto L2;
         case TYhptr:    attribute |= 2; goto L2;
+#endif
 
         L2:
 #if 1
@@ -1877,15 +1885,17 @@ L1:
             typidx = cv_debtyp(d);
             break;
 
-        case TYnfunc:
+#if TARGET_SEGMENTED
         case TYffunc:
-        case TYnpfunc:
         case TYfpfunc:
         case TYf16func:
-        case TYnsfunc:
         case TYfsfunc:
         case TYnsysfunc:
         case TYfsysfunc:
+#endif
+        case TYnfunc:
+        case TYnpfunc:
+        case TYnsfunc:
         case TYmfunc:
         case TYjfunc:
         case TYifunc:
@@ -2406,10 +2416,12 @@ STATIC void cv4_func(Funcsym *s)
 #if JHANDLE
             case TYjhandle:
 #endif
-            case TYnullptr:
-            case TYnptr:
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
+#endif
+            case TYnullptr:
+            case TYnptr:
                 if (I32)
                     goto case_eax;
                 else
@@ -2427,6 +2439,7 @@ STATIC void cv4_func(Funcsym *s)
                 else
                     goto case_dxax;
 
+#if TARGET_SEGMENTED
             case TYfptr:
             case TYhptr:
                 if (I32)
@@ -2439,6 +2452,7 @@ STATIC void cv4_func(Funcsym *s)
                     goto case_edxebx;
                 else
                     goto case_dxbx;
+#endif
 
             case TYdouble:
             case TYidouble:
