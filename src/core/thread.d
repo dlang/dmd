@@ -294,14 +294,6 @@ else version( Posix )
         }
 
 
-        // NOTE: On x86_64, if fiber throws an exception, backtrace() fails
-        //       inside pthread_once() if pthread_once() has never been called
-        //       for the thread.  thread_initOnce() exists to fix this issue.
-        extern (C) void thread_initOnce()
-        {
-        }
-
-
         //
         // Entry point for POSIX threads
         //
@@ -366,8 +358,6 @@ else version( Posix )
                 obj.m_tls = pstart[0 .. pend - pstart];
             }
 
-            pthread_once_t once;
-            pthread_once( &once, &thread_initOnce );
             obj.m_isRunning = true;
             Thread.setThis( obj );
             //Thread.add( obj );
@@ -806,8 +796,7 @@ class Thread
         {
             version( Windows )
             {
-                assert(m_sz <= uint.max, "m_sz should not exceed uint.max");
-                m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint)m_sz, &thread_entryPoint, cast(void*) this, 0, &m_addr );
+                m_hndl = cast(HANDLE) _beginthreadex( null, m_sz, &thread_entryPoint, cast(void*) this, 0, &m_addr );
                 if( cast(size_t) m_hndl == 0 )
                     throw new ThreadException( "Error creating thread" );
             }
@@ -1932,8 +1921,6 @@ extern (C) Thread thread_attachThis()
         thisContext.bstack = getStackBottom();
         thisContext.tstack = thisContext.bstack;
 
-        pthread_once_t once;
-        pthread_once( &once, &thread_initOnce );
         thisThread.m_isRunning = true;
     }
     thisThread.m_isDaemon = true;
@@ -2623,6 +2610,9 @@ extern(C) void thread_processGCMarks()
 }
 
 
+/**
+ *
+ */
 void[] thread_getTLSBlock()
 {
     version(OSX)
@@ -2640,6 +2630,15 @@ void[] thread_getTLSBlock()
 
         return (cast(void*)&_tlsstart)[0..(&_tlsend)-(&_tlsstart)];
     }
+}
+
+
+/**
+ *
+ */
+extern (C) void* thread_stackBottom()
+{
+    return Thread.getThis().topContext().bstack;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2939,13 +2938,13 @@ private
                 // save current stack state
                 push EBP;
                 mov  EBP, ESP;
-                push EAX;
+                push EDI;
+                push ESI;
+                push EBX;
                 push dword ptr FS:[0];
                 push dword ptr FS:[4];
                 push dword ptr FS:[8];
-                push EBX;
-                push ESI;
-                push EDI;
+                push EAX;
 
                 // store oldp again with more accurate address
                 mov EAX, dword ptr 8[EBP];
@@ -2954,13 +2953,13 @@ private
                 mov ESP, dword ptr 12[EBP];
 
                 // load saved state from new stack
-                pop EDI;
-                pop ESI;
-                pop EBX;
+                pop EAX;
                 pop dword ptr FS:[8];
                 pop dword ptr FS:[4];
                 pop dword ptr FS:[0];
-                pop EAX;
+                pop EBX;
+                pop ESI;
+                pop EDI;
                 pop EBP;
 
                 // 'return' to complete switch
@@ -3161,7 +3160,7 @@ class Fiber
      * In:
      *  fn must not be null.
      */
-    this( void function() fn, size_t sz = PAGESIZE )
+    this( void function() fn, size_t sz = PAGESIZE*4 )
     in
     {
         assert( fn );
@@ -3187,7 +3186,7 @@ class Fiber
      * In:
      *  dg must not be null.
      */
-    this( void delegate() dg, size_t sz = PAGESIZE )
+    this( void delegate() dg, size_t sz = PAGESIZE*4 )
     in
     {
         assert( dg );
@@ -3698,8 +3697,10 @@ private:
         version( AsmX86_Windows )
         {
             push( cast(size_t) &fiber_entryPoint );                 // EIP
-            push( 0xFFFFFFFF );                                     // EBP
-            push( 0x00000000 );                                     // EAX
+            push( cast(size_t) m_ctxt.bstack );                     // EBP
+            push( 0x00000000 );                                     // EDI
+            push( 0x00000000 );                                     // ESI
+            push( 0x00000000 );                                     // EBX
             push( 0xFFFFFFFF );                                     // FS:[0]
             version( StackGrowsDown )
             {
@@ -3711,9 +3712,7 @@ private:
                 push( cast(size_t) m_ctxt.bstack );                 // FS:[4]
                 push( cast(size_t) m_ctxt.bstack + m_size );        // FS:[8]
             }
-            push( 0x00000000 );                                     // EBX
-            push( 0x00000000 );                                     // ESI
-            push( 0x00000000 );                                     // EDI
+            push( 0x00000000 );                                     // EAX
         }
         else version( AsmX86_64_Windows )
         {

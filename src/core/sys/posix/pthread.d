@@ -123,7 +123,7 @@ version( linux )
 
     //enum pthread_mutex_t PTHREAD_MUTEX_INITIALIZER = { 0, 0, null, PTHREAD_MUTEX_NORMAL, { 0, 0 } };
 
-    enum PTHREAD_ONCE_INIT = 0;
+    enum PTHREAD_ONCE_INIT = pthread_once_t.init;
 
     enum
     {
@@ -163,7 +163,7 @@ else version( OSX )
 
     //enum pthread_mutex_t PTHREAD_MUTEX_INITIALIZER = { 0, 0, null, PTHREAD_MUTEX_NORMAL, { 0, 0 } };
 
-    enum PTHREAD_ONCE_INIT = 0;
+    enum PTHREAD_ONCE_INIT = pthread_once_t.init;
 
     enum
     {
@@ -203,7 +203,7 @@ else version( FreeBSD )
     enum PTHREAD_NEEDS_INIT = 0;
     enum PTHREAD_DONE_INIT  = 1;
 
-    //enum PTHREAD_ONCE_INIT = { PTHREAD_NEEDS_INIT, null };
+    //enum pthread_once_t PTHREAD_ONCE_INIT = { PTHREAD_NEEDS_INIT, null };
 
     enum PTHREAD_MUTEX_INITIALIZER              = null;
     enum PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP  = null;

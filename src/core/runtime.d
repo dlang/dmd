@@ -36,7 +36,7 @@ private
     extern (C) void* rt_loadLibrary( in char[] name );
     extern (C) bool  rt_unloadLibrary( void* ptr );
 
-    extern (C) void* rt_stackBottom();
+    extern (C) void* thread_stackBottom();
 
     extern (C) string[] rt_args();
 
@@ -397,7 +397,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
             {
                 static enum MAXFRAMES = 128;
                 void*[MAXFRAMES]  callstack;
-                numframes = backtrace( callstack, MAXFRAMES );
+                numframes = 0; //backtrace( callstack, MAXFRAMES );
                 if (numframes < 2) // backtrace() failed, do it ourselves
                 {
                     static void** getBasePtr()
@@ -411,16 +411,20 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                             return null;
                     }
 
-                    void** stackTop = getBasePtr(), stackBottom = cast(void**)rt_stackBottom();
+                    auto  stackTop    = getBasePtr();
+                    auto  stackBottom = cast(void**) thread_stackBottom();
                     void* dummy;
-                    if (stackTop && &dummy < stackTop && stackTop < stackBottom)
+
+                    if( stackTop && &dummy < stackTop && stackTop < stackBottom )
                     {
-                        void** stackPtr = stackTop;
-                        numframes = 0;
-                        while (stackTop <= stackPtr && stackPtr < stackBottom && numframes < MAXFRAMES)
+                        auto stackPtr = stackTop;
+
+                        for( numframes = 0; stackTop <= stackPtr &&
+                                            stackPtr < stackBottom && 
+                                            numframes < MAXFRAMES; )
                         {
-                            callstack[numframes++] = *(stackPtr+1);
-                            stackPtr = cast(void**)*stackPtr;
+                            callstack[numframes++] = *(stackPtr + 1);
+                            stackPtr = cast(void**) *stackPtr;
                         }
                     }
                 }
