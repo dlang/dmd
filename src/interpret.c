@@ -53,6 +53,14 @@ InterState::InterState()
     memset(this, 0, sizeof(InterState));
 }
 
+// Global status of the CTFE engine
+struct CtfeStatus
+{
+    static int callDepth; // current number of recursive calls
+};
+
+int CtfeStatus::callDepth = 0;
+
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
@@ -328,9 +336,18 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         }
     }
 
+    // Enter the function
+    ++CtfeStatus::callDepth;
+
     Expression *e = NULL;
     while (1)
     {
+        if (CtfeStatus::callDepth > 1000)
+        {
+            error("CTFE recursion limit exceeded");
+            e = NULL;
+            break;
+        }
         e = fbody->interpret(&istatex);
         if (e == EXP_CANT_INTERPRET)
         {
@@ -355,6 +372,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             break;
     }
     assert(e != EXP_CONTINUE_INTERPRET && e != EXP_BREAK_INTERPRET);
+
+    // Leave the function
+    --CtfeStatus::callDepth;
 
     /* Restore the parameter values
      */
