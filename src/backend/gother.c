@@ -1205,7 +1205,7 @@ void elimass(elem *n)
             /* Don't screw up assnod[]. */
             n->Eoper = OPcomma;
             n->Ety |= n->E2->Ety & (mTYconst | mTYvolatile | mTYimmutable | mTYshared
-#if TARGET_SEGMENTED
+#if !TARGET_FLAT
                  | mTYfar
 #endif
                 );

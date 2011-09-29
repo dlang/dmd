@@ -2036,16 +2036,14 @@ STATIC famlist * newfamlist(tym_t ty)
                 c.Vldouble = 1;
                 break;
 #if _MSDOS || __OS2__ || _WIN32         // if no byte ordering problems
+            case TYsptr:
+            case TYcptr:
 #if JHANDLE
             case TYjhandle:
 #endif
-#if TARGET_SEGMENTED
-            case TYsptr:
-            case TYcptr:
             case TYnptr:
             case TYfptr:
             case TYvptr:
-#endif
                 /* Convert pointers to integrals to avoid things like   */
                 /* multiplying pointers                                 */
                 ty = TYptrdiff;
@@ -2053,7 +2051,7 @@ STATIC famlist * newfamlist(tym_t ty)
             default:
                 c.Vlong = 1;
                 break;
-#if TARGET_SEGMENTED
+#if TX86
             case TYhptr:
                 ty = TYlong;
                 c.Vlong = 1;
@@ -2072,17 +2070,17 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYwchar_t:             // BUG: what about 4 byte wchar_t's?
                 c.Vshort = 1;
                 break;
+#if TX86
+            case TYsptr:
+            case TYcptr:
 #if JHANDLE
             case TYjhandle:
 #endif
-#if TARGET_SEGMENTED
-            case TYsptr:
-            case TYcptr:
+            case TYnptr:
+#endif
+            case TYnullptr:
             case TYfptr:
             case TYvptr:
-#endif
-            case TYnptr:
-            case TYnullptr:
                 ty = TYint;
                 if (I64)
                     ty = TYllong;
@@ -2091,7 +2089,7 @@ STATIC famlist * newfamlist(tym_t ty)
             case TYuint:
                 c.Vint = 1;
                 break;
-#if TARGET_SEGMENTED
+#if TX86
             case TYhptr:
                 ty = TYlong;
 #endif
@@ -2112,13 +2110,13 @@ STATIC famlist * newfamlist(tym_t ty)
         c.Vldouble = 0;
         if (typtr(ty))
         {
-            ty = TYint;
-#if TARGET_SEGMENTED
-            if (tybasic(ty) == TYhptr)
-                ty = TYlong;
-#endif
+#if TX86
+            ty = (tybasic(ty) == TYhptr) ? TYlong : TYint;
             if (I64)
                 ty = TYllong;
+#else
+            ty = TYint;
+#endif
         }
         fl->c2 = el_const(ty,&c);               /* c2 = 0               */
         return fl;
@@ -2494,7 +2492,6 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                 n1 = n->E1;
         }
 
-#if TARGET_SEGMENTED
         // Get rid of case where we painted a far pointer to a long
         if (op == OPadd || op == OPmin)
         {   int sz;
@@ -2504,7 +2501,6 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                 (sz != tysize(n1->Ety) || sz != tysize(n2->Ety)))
                 return;
         }
-#endif
 
         /* Look for function of basic IV (-biv or biv op const)         */
         if (n1->Eoper == OPvar && n1->EV.sp.Vsym == biv->IVbasic)
@@ -2550,7 +2546,7 @@ STATIC void ivfamelems(register Iv *biv,register elem **pn)
                                 /* Check for subtracting two pointers */
                                 if (typtr(c2ty) && typtr(n2->Ety))
                                 {
-#if TARGET_SEGMENTED
+#if TX86
                                     if (tybasic(c2ty) == TYhptr)
                                         c2ty = TYlong;
                                     else
@@ -2889,7 +2885,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     else                        /* can't subtract fptr  */
                         goto L1;
                 }
-#if TARGET_SEGMENTED
+#if TX86
                 if (tybasic(fls->c2->Ety) == TYhptr)
                     tymin = TYlong;
                 else
@@ -2897,7 +2893,7 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                     tymin = I64 ? TYllong : TYint;         /* type of (ptr - ptr) */
         }
 
-#if TARGET_SEGMENTED
+#if TX86
         /* If e1 and fls->c2 are fptrs, and are not from the same       */
         /* segment, we cannot subtract them.                            */
         if (tyfv(e1->Ety) && tyfv(fls->c2->Ety))
@@ -3218,7 +3214,7 @@ STATIC void elimbasivs(register loop *l)
                                 ne = el_bin(OPmin,ty,
                                         el_var(fl->FLtemp),
                                         C2);
-#if TARGET_SEGMENTED
+#if TX86
                                 if (tybasic(ne->E1->Ety) == TYfptr &&
                                     tybasic(ne->E2->Ety) == TYfptr)
                                 {   ne->Ety = I64 ? TYllong : TYint;
@@ -3443,15 +3439,15 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
                         goto Lf2;
                 break;
 
+#if TX86
 #if JHANDLE
             case TYjhandle:
 #endif
-#if TARGET_SEGMENTED
+            case TYnullptr:
+            case TYnptr:        // BUG: 64 bit pointers?
             case TYsptr:
             case TYcptr:
 #endif
-            case TYnptr:        // BUG: 64 bit pointers?
-            case TYnullptr:
             case TYint:
             case TYuint:
                 if (intsize == SHORTSIZE)
@@ -3461,9 +3457,9 @@ STATIC famlist * flcmp(famlist *f1,famlist *f2)
             case TYlong:
             case TYulong:
             case TYdchar:
-#if TARGET_SEGMENTED
             case TYfptr:
             case TYvptr:
+#if TX86
             case TYhptr:
 #endif
             case_long:

@@ -69,18 +69,18 @@ targ_size_t type_size(type *t)
         switch (tyb)
         {
             // in case program plays games with function pointers
-#if TARGET_SEGMENTED
             case TYffunc:
             case TYfpfunc:
-            case TYfsfunc:
-            case TYf16func:
-#endif
-            case TYhfunc:
+#if TX86
             case TYnfunc:       /* in case program plays games with function pointers */
+            case TYhfunc:
             case TYnpfunc:
             case TYnsfunc:
+            case TYfsfunc:
+            case TYf16func:
             case TYifunc:
             case TYjfunc:
+#endif
 #if SCPP
                 if (ANSI)
                     synerr(EM_unknown_size,"function"); /* size of function is not known */
@@ -239,9 +239,7 @@ type *type_alloc(tym_t ty)
 {   type *t;
     static type tzero;
 
-#if TARGET_SEGMENTED
     assert(tybasic(ty) != TYtemplate);
-#endif
     if (type_list)
     {   t = type_list;
         type_list = t->Tnext;
@@ -269,7 +267,6 @@ type *type_alloc(tym_t ty)
  * Allocate a TYtemplate.
  */
 
-#if !MARS
 type *type_alloc_template(symbol *s)
 {   type *t;
 
@@ -291,7 +288,6 @@ type *type_alloc_template(symbol *s)
 #endif
     return t;
 }
-#endif
 
 /*****************************
  * Fake a type & initialize it.
@@ -336,7 +332,6 @@ type *type_allocn(tym_t ty,type *tn)
  * Allocate a TYmemptr type.
  */
 
-#if !MARS
 type *type_allocmemptr(Classsym *stag,type *tn)
 {   type *t;
 
@@ -348,7 +343,6 @@ type *type_allocmemptr(Classsym *stag,type *tn)
     //type_print(t);
     return t;
 }
-#endif
 
 /*****************************
  * Free up data type.
@@ -370,12 +364,10 @@ void type_free(type *t)
         {   param_free(&t->Tparamtypes);
             list_free(&t->Texcspec, (list_free_fp)type_free);
         }
-#if !MARS
         else if (ty == TYtemplate)
             param_free(&t->Tparamtypes);
         else if (ty == TYident)
             MEM_PH_FREE(t->Tident);
-#endif
         else if (t->Tflags & TFvla && t->Tel)
             el_free(t->Tel);
 #if SCPP
@@ -470,22 +462,15 @@ void type_init()
     }
 
     // Type of trace function
-#if TARGET_SEGMENTED
     tstrace = type_fake(I16 ? TYffunc : TYnfunc);
-#else
-    tstrace = type_fake(TYnfunc);
-#endif
     tstrace->Tmangle = mTYman_c;
     tstrace->Tcount++;
 
+#if TX86
     chartype = (config.flags3 & CFG3ju) ? tsuchar : tschar;
 
     // Type of far library function
-#if TARGET_SEGMENTED
-    tsclib = type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
-#else
-    tsclib = type_fake(TYnpfunc);
-#endif
+    tsclib =    type_fake(LARGECODE ? TYfpfunc : TYnpfunc);
     tsclib->Tmangle = mTYman_c;
     tsclib->Tcount++;
 
@@ -517,6 +502,18 @@ void type_init()
             tsptr2types[i]->Tcount++;
         }
     }
+#else
+    chartype = tschar;                          /* default is signed chars */
+
+    type_list = NULL;
+    tsclib = type_fake( TYffunc );
+    tsclib->Tmangle = mTYman_c;
+    tsclib->Tcount++;
+#ifdef DEBUG
+    type_num = 0;
+    type_max = 0;
+#endif /* DEBUG */
+#endif /* TX86 */
 }
 
 /**********************************
@@ -581,26 +578,21 @@ type *type_copy(type *t)
     param_t *p;
 
     type_debug(t);
-#if !MARS
     if (tybasic(t->Tty) == TYtemplate)
     {
         tn = type_alloc_template(((typetemp_t *)t)->Tsym);
     }
     else
-#endif
         tn = type_alloc(t->Tty);
     *tn = *t;
     switch (tybasic(tn->Tty))
-    {
-#if !MARS
-            case TYtemplate:
+    {       case TYtemplate:
                 ((typetemp_t *)tn)->Tsym = ((typetemp_t *)t)->Tsym;
                 goto L1;
 
             case TYident:
                 tn->Tident = (char *)MEM_PH_STRDUP(t->Tident);
                 break;
-#endif
 
             case TYarray:
                 if (tn->Tflags & TFvla)
@@ -800,11 +792,7 @@ int type_isdependent(type *t)
         type_debug(t);
         if (t->Tflags & TFdependent)
             goto Lisdependent;
-        if (tyfunc(t->Tty)
-#if TARGET_SEGMENTED
-                || tybasic(t->Tty) == TYtemplate
-#endif
-                )
+        if (tyfunc(t->Tty) || tybasic(t->Tty) == TYtemplate)
         {
             for (param_t *p = t->Tparamtypes; p; p = p->Pnext)
             {
@@ -909,26 +897,21 @@ void type_print(type *t)
   dbg_printf(" Tcount=%d",t->Tcount);
   if (!(t->Tflags & TFsizeunknown) &&
         tybasic(t->Tty) != TYvoid &&
-#if !MARS
         tybasic(t->Tty) != TYident &&
-        tybasic(t->Tty) != TYtemplate &&
-#endif
         tybasic(t->Tty) != TYmfunc &&
-        tybasic(t->Tty) != TYarray)
+        tybasic(t->Tty) != TYarray &&
+        tybasic(t->Tty) != TYtemplate)
       dbg_printf(" Tsize=%ld",type_size(t));
   dbg_printf(" Tnext=%p",t->Tnext);
   switch (tybasic(t->Tty))
   {     case TYstruct:
-#if !MARS
         case TYmemptr:
-#endif
             dbg_printf(" Ttag=%p,'%s'",t->Ttag,t->Ttag->Sident);
             //dbg_printf(" Sfldlst=%p",t->Ttag->Sstruct->Sfldlst);
             break;
         case TYarray:
             dbg_printf(" Tdim=%ld",t->Tdim);
             break;
-#if !MARS
         case TYident:
             dbg_printf(" Tident='%s'",t->Tident);
             break;
@@ -953,7 +936,6 @@ dbg_printf("Pident=%p,Ptype=%p,Pelem=%p,Pnext=%p ",p->Pident,p->Ptype,p->Pelem,p
                 }
             }
             break;
-#endif
         default:
             if (tyfunc(t->Tty))
             {   param_t *p;
@@ -1457,9 +1439,7 @@ int typematch(type *t1,type *t2,int relax)
 
             (tybasic(t1ty) != TYstruct
                 && tybasic(t1ty) != TYenum
-#if !MARS
                 && tybasic(t1ty) != TYmemptr
-#endif
              || t1->Ttag == t2->Ttag)
                  &&
 

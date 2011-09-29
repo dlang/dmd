@@ -936,9 +936,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
              (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
             !(I64 && config.flags3 & CFG3pic) &&
             e1->Ecount == e1->Ecomsub &&
-#if TARGET_SEGMENTED
             (!e1->Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
-#endif
             tysize(e11->Ety) == REGSIZE
            )
         {   unsigned char t;            /* component of r/m field */
@@ -1109,11 +1107,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 refparam = TRUE;
             else if (f == FLauto || f == FLtmp || f == FLbprel || f == FLfltreg)
                 reflocal = TRUE;
-            else if (f == FLcsdata
-#if TARGET_SEGMENTED
-                    || tybasic(e12->Ety) == TYcptr
-#endif
-                    )
+            else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
                 pcs->Iflags |= CFcs;
             else
                 assert(f != FLreg);
@@ -1130,7 +1124,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 idxregs = IDXREGS & ~keepmsk;
                 c = cat(c,allocreg(&idxregs,&reg,TYoffset));
 
-#if TARGET_SEGMENTED
                 /* If desired result is a far pointer, we'll have       */
                 /* to load another register with the segment of v       */
                 if (e1ty == TYfptr)
@@ -1143,7 +1136,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                                                 /* MOV msreg,segreg     */
                     c = genregs(c,0x8C,segfl[f],msreg);
                 }
-#endif
                 opsave = pcs->Iop;
                 flagsave = pcs->Iflags;
                 pcs->Iop = 0x8D;
@@ -1180,7 +1172,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             keepmsk & RMstore)
             idxregs |= regcon.mvar;
 
-#if TARGET_SEGMENTED
+#if !TARGET_FLAT
         switch (e1ty)
         {   case TYfptr:                        /* if far pointer       */
             case TYhptr:
@@ -1459,7 +1451,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     }
 #endif
     case FLfardata:
-        assert(TARGET_SEGMENTED);
+        assert(!TARGET_FLAT);
     case FLfunc:                                /* reading from code seg */
         if (config.exe & EX_flat)
             goto L3;
@@ -1712,17 +1704,14 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
   forccs = *pretregs & mPSW;
   forregs = *pretregs & (mST01 | mST0 | mBP | ALLREGS | mES | mSTACK | XMMREGS);
   tym = tybasic(e->Ety);
-#if TARGET_SEGMENTED
+#if 0
+  if (tym == TYstruct)
+        // Hack to support cdstreq()
+        tym = TYfptr;
+#else
   if (tym == TYstruct)
         // Hack to support cdstreq()
         tym = (forregs & mMSW) ? TYfptr : TYnptr;
-#else
-  if (tym == TYstruct)
-  {
-        // Hack to support cdstreq()
-        assert(!(forregs & mMSW));
-        tym = TYnptr;
-  }
 #endif
   c = CNIL;
   sz = tysize[tym];
@@ -2298,12 +2287,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
             // First compute numpara, the total bytes pushed on the stack
             switch (tyf)
-            {
-#if TARGET_SEGMENTED
-                case TYf16func:
+            {   case TYf16func:
                     stackalign = 2;
                     goto Ldefault;
-#endif
                 case TYmfunc:
                 case TYjfunc:
                     // last parameter goes into register
@@ -2358,12 +2344,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
 
             switch (tyf)
-            {
-#if TARGET_SEGMENTED
-                case TYf16func:
+            {   case TYf16func:
                     stackalign = 2;
                     goto Ldefault2;
-#endif
                 case TYmfunc:   // last parameter goes into ECX
                     preg = CX;
                     goto L1;
@@ -2712,11 +2695,9 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             s->Sflags &= ~GTregcand;
             s->Sflags |= SFLread;
             ce = cat(c1,cdrelconst(e1,&retregs));
-#if TARGET_SEGMENTED
             if (farfunc)
                 goto LF1;
             else
-#endif
                 goto LF2;
         }
         else
@@ -2769,11 +2750,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
         assert(e1->Eoper == OPind);
         e11 = e1->E1;
         e11ty = tybasic(e11->Ety);
-        assert(!I16 || (e11ty == (
-#if TARGET_SEGMENTED
-                        farfunc ? TYfptr :
-#endif
-                        TYnptr)));
+        assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
 
         /* if we can't use loadea()     */
         if ((EOP(e11) || e11->Eoper == OPconst) &&
@@ -2787,7 +2764,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             cgstate.stackclean--;
             /* Kill registers destroyed by an arbitrary function call */
             ce = cat(ce,getregs((mBP | ALLREGS | mES | XMMREGS) & ~fregsaved));
-#if TARGET_SEGMENTED
             if (e11ty == TYfptr)
             {   unsigned lsreg;
              LF1:
@@ -2805,7 +2781,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
                         modregrm(2,3,BPRM),FLfltreg,0);
             }
             else
-#endif
             {
              LF2:
                 reg = findreg(retregs);
@@ -3097,7 +3072,6 @@ code *params(elem *e,unsigned stackalign)
                 npushes = sz / pushsize;
                 switch (e1->Eoper)
                 {   case OPind:
-#if TARGET_SEGMENTED
                         if (sz)
                         {   switch (tybasic(e1->E1->Ety))
                             {
@@ -3115,7 +3089,6 @@ code *params(elem *e,unsigned stackalign)
                                     break;
                             }
                         }
-#endif
                         c1 = codelem(e1->E1,&retregs,FALSE);
                         freenode(e1);
                         break;
@@ -3137,7 +3110,7 @@ code *params(elem *e,unsigned stackalign)
                             fl = el_fl(e1);
                             if (fl == FLfardata)
                             {   seg = CFes;
-                                assert(TARGET_SEGMENTED);
+                                assert(!TARGET_FLAT);
                                 retregs |= mES;
                             }
                             else
@@ -3149,7 +3122,7 @@ code *params(elem *e,unsigned stackalign)
                                     seg = 0;
                             }
                         }
-#if TARGET_SEGMENTED
+#if !TARGET_FLAT
                         if (e1->Ety & mTYfar)
                         {   seg = CFes;
                             retregs |= mES;
@@ -3278,14 +3251,8 @@ code *params(elem *e,unsigned stackalign)
             e1 = e->E1;
             tym1 = tybasic(e1->Ety);
             /* BUG: what about pointers to functions?   */
-            switch (tym1)
-            {
-                case TYnptr: segreg = 3<<3; break;
-#if TARGET_SEGMENTED
-                case TYcptr: segreg = 1<<3; break;
-#endif
-                default:     segreg = 2<<3; break;
-            }
+            segreg = (tym1 == TYnptr) ? 3<<3 :
+                     (tym1 == TYcptr) ? 1<<3 : 2<<3;
             if (I32 && stackalign == 2)
                 c = gen1(c,0x66);               /* push a word          */
             c = gen1(c,0x06 + segreg);          /* PUSH SEGREG          */
@@ -3298,7 +3265,7 @@ code *params(elem *e,unsigned stackalign)
         }
         break;
     case OPrelconst:
-#if TARGET_SEGMENTED
+#if !TARGET_FLAT
         /* Determine if we can just push the segment register           */
         /* Test size of type rather than TYfptr because of (long)(&v)   */
         s = e->EV.sp.Vsym;

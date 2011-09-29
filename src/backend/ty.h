@@ -63,55 +63,51 @@ enum TYM
     TYcdouble           = 0x19,
     TYcldouble          = 0x1A,
 
+#if TX86
     TYjhandle           = 0x1B, // Jupiter handle type, equals TYnptr except
                                 // that the debug type is different so the
                                 // debugger can distinguish them
     TYnullptr           = 0x1C,
     TYnptr              = 0x1D, // data segment relative pointer
-    TYref               = 0x24, // reference to another type
-    TYvoid              = 0x25,
-    TYstruct            = 0x26, // watch tyaggregate()
-    TYarray             = 0x27, // watch tyaggregate()
-    TYnfunc             = 0x28, // near C func
-    TYnpfunc            = 0x2A, // near Cpp func
-    TYnsfunc            = 0x2C, // near stdcall func
-    TYifunc             = 0x2E, // interrupt func
-    TYptr               = 0x33, // generic pointer type
-    TYmfunc             = 0x37, // NT C++ member func
-    TYjfunc             = 0x38, // LINKd D function
-    TYhfunc             = 0x39, // C function with hidden parameter
-    TYnref              = 0x3A, // near reference
-
-    TYcent              = 0x3C, // 128 bit signed integer
-    TYucent             = 0x3D, // 128 bit unsigned integer
-
-#if TARGET_SEGMENTED
     TYsptr              = 0x1E, // stack segment relative pointer
     TYcptr              = 0x1F, // code segment relative pointer
     TYf16ptr            = 0x20, // special OS/2 far16 pointer
     TYfptr              = 0x21, // far pointer (has segment and offset)
     TYhptr              = 0x22, // huge pointer (has segment and offset)
     TYvptr              = 0x23, // __handle pointer (has segment and offset)
+    TYref               = 0x24, // reference to another type
+    TYvoid              = 0x25,
+    TYstruct            = 0x26, // watch tyaggregate()
+    TYarray             = 0x27, // watch tyaggregate()
+    TYnfunc             = 0x28, // near C func
     TYffunc             = 0x29, // far  C func
+    TYnpfunc            = 0x2A, // near Cpp func
     TYfpfunc            = 0x2B, // far  Cpp func
+    TYnsfunc            = 0x2C, // near stdcall func
     TYfsfunc            = 0x2D, // far stdcall func
-    TYf16func           = 0x34, // _far16 _pascal function
-    TYnsysfunc          = 0x35, // near __syscall func
-    TYfsysfunc          = 0x36, // far __syscall func
-    TYfref              = 0x3B, // far reference
-#endif
-
-#if !MARS
+    TYifunc             = 0x2E, // interrupt func
     TYmemptr            = 0x2F, // pointer to member
     TYident             = 0x30, // type-argument
     TYtemplate          = 0x31, // unexpanded class template
     TYvtshape           = 0x32, // virtual function table
-#endif
+    TYptr               = 0x33, // generic pointer type
+    TYf16func           = 0x34, // _far16 _pascal function
+    TYnsysfunc          = 0x35, // near __syscall func
+    TYfsysfunc          = 0x36, // far __syscall func
+    TYmfunc             = 0x37, // NT C++ member func
+    TYjfunc             = 0x38, // LINKd D function
+    TYhfunc             = 0x39, // C function with hidden parameter
+    TYnref              = 0x3A, // near reference
+    TYfref              = 0x3B, // far reference
+
+    TYcent              = 0x3C, // 128 bit signed integer
+    TYucent             = 0x3D, // 128 bit unsigned integer
 
 #if MARS
 #define TYaarray        TYnptr
 #define TYdelegate      (I64 ? TYcent : TYllong)
 #define TYdarray        (I64 ? TYucent : TYullong)
+#endif
 #endif
 
     TYMAX               = 0x3E,

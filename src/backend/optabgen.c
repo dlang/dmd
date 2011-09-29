@@ -747,10 +747,8 @@ void fltables()
 
 void dotytab()
 {
-    static tym_t _ptr[]      = { TYjhandle,TYnptr };
-#if TARGET_SEGMENTED
-    static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
-#endif
+    static tym_t _ptr[]      = { TYjhandle,TYnptr,TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,
+                                 TYvptr };
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
                                };
     static tym_t _imaginary[] = {
@@ -763,20 +761,16 @@ void dotytab()
                                  TYwchar_t,TYushort,TYenum,TYint,TYuint,
                                  TYlong,TYulong,TYllong,TYullong,TYdchar,
                                  TYchar16, TYcent, TYucent };
-    static tym_t _ref[]      = { TYnref,TYref };
-    static tym_t _func[]     = { TYnfunc,TYnpfunc,TYnsfunc,TYifunc,TYmfunc,TYjfunc,TYhfunc };
-#if TARGET_SEGMENTED
-    static tym_t _ref_nflat[] = { TYfref };
-    static tym_t _func_nflat[]= { TYffunc,TYfpfunc,TYf16func,TYfsfunc,TYnsysfunc,TYfsysfunc, };
-#endif
+    static tym_t _ref[]      = { TYnref,TYfref,TYref };
+    static tym_t _func[]     = { TYnfunc,TYffunc,TYnpfunc,TYfpfunc,TYf16func,
+                                 TYnsfunc,TYfsfunc,TYifunc,TYmfunc,TYjfunc,
+                                 TYnsysfunc,TYfsysfunc, TYhfunc };
     static tym_t _uns[]     = { TYuchar,TYushort,TYuint,TYulong,
 #if MARS
                                 TYwchar_t,
 #endif
                                 TYdchar,TYullong,TYucent,TYchar16 };
-#if !MARS
     static tym_t _mptr[]    = { TYmemptr };
-#endif
     static tym_t _nullptr[] = { TYnullptr };
 #if OMFOBJ
     static tym_t _fv[]      = { TYfptr, TYvptr };
@@ -784,14 +778,8 @@ void dotytab()
 #if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
 #endif
-    static tym_t _pasfunc[] = { TYnpfunc,TYnsfunc,TYmfunc,TYjfunc };
-#if TARGET_SEGMENTED
-    static tym_t _pasfunc_nf[] = { TYfpfunc,TYf16func,TYfsfunc, };
-#endif
-    static tym_t _revfunc[] = { TYnpfunc,TYjfunc };
-#if TARGET_SEGMENTED
-    static tym_t _revfunc_nf[] = { TYfpfunc,TYf16func, };
-#endif
+    static tym_t _pasfunc[] = { TYnpfunc,TYfpfunc,TYf16func,TYnsfunc,TYfsfunc,TYmfunc,TYjfunc };
+    static tym_t _revfunc[] = { TYnpfunc,TYfpfunc,TYf16func,TYjfunc };
     static tym_t _short[]     = { TYbool,TYchar,TYschar,TYuchar,TYshort,
                                   TYwchar_t,TYushort,TYchar16 };
     static tym_t _aggregate[] = { TYstruct,TYarray };
@@ -842,43 +830,39 @@ void dotytab()
 "complex double",       TYcdouble,      TYcdouble,  TYcdouble,  2*DOUBLESIZE,0x89,0x51,
 "complex long double",  TYcldouble,     TYcldouble, TYcldouble, 2*LNGDBLSIZE,0x89,0x52,
 
+"*",            TYptr,          TYptr,     TYptr,       2,  0x20,       0x100,
 "__near *",     TYjhandle,      TYjhandle, TYjhandle,   2,  0x20,       0x100,
 "nullptr_t",    TYnullptr,      TYnullptr, TYptr,       2,  0x20,       0x100,
 "*",            TYnptr,         TYnptr,    TYnptr,      2,  0x20,       0x100,
-"&",            TYref,          TYref,     TYref,       -1,     0,      0,
-"void",         TYvoid,         TYvoid,    TYvoid,      -1,     0x85,   3,
-"struct",       TYstruct,       TYstruct,  TYstruct,    -1,     0,      0,
-"array",        TYarray,        TYarray,   TYarray,     -1,     0x78,   0,
-"C func",       TYnfunc,        TYnfunc,   TYnfunc,     -1,     0x63,   0,
-"Pascal func",  TYnpfunc,       TYnpfunc,  TYnpfunc,    -1,     0x74,   0,
-"std func",     TYnsfunc,       TYnsfunc,  TYnsfunc,    -1,     0x63,   0,
-"*",            TYptr,          TYptr,     TYptr,       2,  0x20,       0x100,
-"member func",  TYmfunc,        TYmfunc,   TYmfunc,     -1,     0x64,   0,
-"D func",       TYjfunc,        TYjfunc,   TYjfunc,     -1,     0x74,   0,
-"C func",       TYhfunc,        TYhfunc,   TYhfunc,     -1,     0,      0,
-"__near &",     TYnref,         TYnref,    TYnref,      2,      0,      0,
-
-#if TARGET_SEGMENTED
 "__ss *",       TYsptr,         TYsptr,    TYsptr,      2,  0x20,       0x100,
 "__cs *",       TYcptr,         TYcptr,    TYcptr,      2,  0x20,       0x100,
 "__far16 *",    TYf16ptr,       TYf16ptr,  TYf16ptr,    4,  0x40,       0x200,
 "__far *",      TYfptr,         TYfptr,    TYfptr,      4,  0x40,       0x200,
 "__huge *",     TYhptr,         TYhptr,    TYhptr,      4,  0x40,       0x300,
 "__handle *",   TYvptr,         TYvptr,    TYvptr,      4,  0x40,       0x200,
+"struct",       TYstruct,       TYstruct,  TYstruct,    -1,     0,      0,
+"array",        TYarray,        TYarray,   TYarray,     -1,     0x78,   0,
+"&",            TYref,          TYref,     TYref,       -1,     0,      0,
+"__near &",     TYnref,         TYnref,    TYnref,      2,      0,      0,
+"__far &",      TYfref,         TYfref,    TYfref,      4,      0,      0,
+"C func",       TYnfunc,        TYnfunc,   TYnfunc,     -1,     0x63,   0,
+"C func",       TYhfunc,        TYhfunc,   TYhfunc,     -1,     0,      0,
 "far C func",   TYffunc,        TYffunc,   TYffunc,     -1,     0x64,   0,
-"far Pascal func", TYfpfunc,    TYfpfunc,  TYfpfunc,    -1,     0x73,   0,
+"std func",     TYnsfunc,       TYnsfunc,  TYnsfunc,    -1,     0x63,   0,
 "far std func", TYfsfunc,       TYfsfunc,  TYfsfunc,    -1,     0x64,   0,
-"_far16 Pascal func", TYf16func, TYf16func, TYf16func,  -1,     0x63,   0,
 "sys func",     TYnsysfunc,     TYnsysfunc,TYnsysfunc,  -1,     0x63,   0,
 "far sys func", TYfsysfunc,     TYfsysfunc,TYfsysfunc,  -1,     0x64,   0,
-"__far &",      TYfref,         TYfref,    TYfref,      4,      0,      0,
-#endif
-#if !MARS
+"member func",  TYmfunc,        TYmfunc,   TYmfunc,     -1,     0x64,   0,
+"D func",        TYjfunc,       TYjfunc,   TYjfunc,     -1,     0x74,   0,
 "interrupt func", TYifunc,      TYifunc,   TYifunc,     -1,     0x64,   0,
+"_far16 Pascal func", TYf16func, TYf16func, TYf16func,  -1,     0x63,   0,
+"Pascal func",  TYnpfunc,       TYnpfunc,  TYnpfunc,    -1,     0x74,   0,
+"far Pascal func",  TYfpfunc,   TYfpfunc,  TYfpfunc,    -1,     0x73,   0,
+"void",         TYvoid,         TYvoid,    TYvoid,      -1,     0x85,   3,
 "memptr",       TYmemptr,       TYmemptr,  TYmemptr,    -1,     0,      0,
 "ident",        TYident,        TYident,   TYident,     -1,     0,      0,
+"template",     TYtemplate,     TYtemplate, TYtemplate, -1,     0,      0,
 "vtshape",      TYvtshape,      TYvtshape,  TYvtshape,  -1,     0,      0,
-#endif
     };
 
     FILE *f;
@@ -907,17 +891,12 @@ void dotytab()
                      };
 
     T1(_ptr,      TYFLptr);
-#if TARGET_SEGMENTED
-    T1(_ptr_nflat,TYFLptr);
-#endif
     T1(_real,     TYFLreal);
     T1(_integral, TYFLintegral);
     T1(_imaginary,TYFLimaginary);
     T1(_complex,  TYFLcomplex);
     T1(_uns,      TYFLuns);
-#if !MARS
     T1(_mptr,     TYFLmptr);
-#endif
 
 #if OMFOBJ
     T1(_fv,       TYFLfv);
@@ -930,12 +909,7 @@ void dotytab()
     T2(_ref,      TYFLref);
     T2(_func,     TYFLfunc);
     T2(_nullptr,  TYFLnullptr);
-#if TARGET_SEGMENTED
-    T2(_pasfunc_nf, TYFLpascal);
-    T2(_revfunc_nf, TYFLrevparam);
-    T2(_ref_nflat,  TYFLref);
-    T2(_func_nflat, TYFLfunc);
-#endif
+
 #undef T1
 #undef T2
 

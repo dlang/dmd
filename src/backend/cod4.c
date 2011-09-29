@@ -567,12 +567,9 @@ code *cdeq(elem *e,regm_t *pretregs)
                 retregs = BYTEREGS;
   }
   else if (retregs & mES &&
-            (
-#if TARGET_SEGMENTED
-             (e1->Eoper == OPind &&
-                ((tymll = tybasic(e1->E1->Ety)) == TYfptr || tymll == TYhptr)
-                ) ||
-#endif
+            ((e1->Eoper == OPind &&
+                ((tymll = tybasic(e1->E1->Ety)) == TYfptr || tymll == TYhptr))
+                ||
              (e1->Eoper == OPvar && e1->EV.sp.Vsym->Sfl == FLfardata)
             )
           )
@@ -635,7 +632,6 @@ code *cdeq(elem *e,regm_t *pretregs)
   c = getregs_imm(varregm);
 
   assert(!(retregs & mES && (cs.Iflags & CFSEG) == CFes));
-#if TARGET_SEGMENTED
   if ((tyml == TYfptr || tyml == TYhptr) && retregs & mES)
   {
         reg = findreglsw(retregs);
@@ -647,7 +643,6 @@ code *cdeq(elem *e,regm_t *pretregs)
         gen(c,&cs);                     /* MOV EA+2,ES                  */
   }
   else
-#endif
   {
         if (!I16)
         {
@@ -871,11 +866,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
         (op == OPaddass || op == OPminass) &&
         (el_allbits(e2, 1) || el_allbits(e2, -1))
        ) ||
-       (!evalinregister(e2)
-#if TARGET_SEGMENTED
-        && tyml != TYhptr
-#endif
-        )
+       (!evalinregister(e2) && tyml != TYhptr)
       )
      )
   {
@@ -1049,10 +1040,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
   else // evaluate e2 into register
   {
         retregs = (byte) ? BYTEREGS : ALLREGS;  // pick working reg
-#if TARGET_SEGMENTED
         if (tyml == TYhptr)
             retregs &= ~mCX;                    // need CX for shift count
-#endif
         cr = scodelem(e->E2,&retregs,0,TRUE);   // get rvalue
         cl = getlvalue(&cs,e1,retregs);         // get lvalue
         cl = cat(cl,modEA(&cs));
@@ -1063,7 +1052,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
             if (sz == 1 && reg >= 4 && I64)
                 cs.Irex |= REX;
         }
-#if TARGET_SEGMENTED
         else if (tyml == TYhptr)
         {   unsigned mreg,lreg;
 
@@ -1089,7 +1077,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
             NEWREG(cs.Irm,mreg);                        // ADD EA+2,mreg
             getlvalue_msw(&cs);
         }
-#endif
         else if (sz == 2 * REGSIZE)
         {
             cs.Irm |= modregrm(0,findreglsw(retregs),0);
@@ -1149,7 +1136,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
                 ce = gen(ce,&cs);               // MOV reg,EA
             }
         }
-#if TARGET_SEGMENTED
         else if (tyfv(tyml) || tyml == TYhptr)
         {       regm_t idxregs;
 
@@ -1177,7 +1163,6 @@ code *cdaddass(elem *e,regm_t *pretregs)
                     gen(ce,&cs);                /* MOV mreg,EA+2        */
                 }
         }
-#endif
         else if (sz == 2 * REGSIZE)
         {       regm_t idx;
                 code *cm,*cl;
@@ -2049,7 +2034,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
                     cs.Irm |= modregrm(0,7,0);
                     if (sz > REGSIZE)
                     {
-#if !TARGET_SEGMENTED
+#if TARGET_FLAT
                         if (sz == 6)
                             assert(0);
 #endif
@@ -2633,10 +2618,8 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             switch (tym1)
             {
                 case TYnptr:    segreg = SEG_DS;        break;
-#if TARGET_SEGMENTED
                 case TYcptr:    segreg = SEG_CS;        break;
                 case TYsptr:    segreg = SEG_SS;        break;
-#endif
                 default:        assert(0);
             }
             ce = gen2(ce,0x8C,modregrm(3,segreg,reg));  /* MOV reg,segreg */

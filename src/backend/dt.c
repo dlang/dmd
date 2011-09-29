@@ -240,11 +240,7 @@ dt_t ** dtcoff(dt_t **pdtend,targ_size_t offset)
     while (*pdtend)
         pdtend = &((*pdtend)->DTnext);
     dt = dt_calloc(DT_coff);
-#if TARGET_SEGMENTED
     dt->Dty = TYcptr;
-#else
-    dt->Dty = TYnptr;
-#endif
     dt->DToffset = offset;
     *pdtend = dt;
     pdtend = &dt->DTnext;
