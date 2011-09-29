@@ -193,7 +193,12 @@ void util_set32()
         tysize[TYuint + i] = LONGSIZE;
         tysize[TYjhandle + i] = LONGSIZE;
         tysize[TYnptr + i] = LONGSIZE;
+        tysize[TYsptr + i] = LONGSIZE;
+        tysize[TYcptr + i] = LONGSIZE;
         tysize[TYnref + i] = LONGSIZE;
+        tysize[TYfptr + i] = 6;
+        tysize[TYvptr + i] = 6;
+        tysize[TYfref + i] = 6;
     }
 
     for (int i = 0; i < 0x100; i += 0x40)
@@ -202,6 +207,8 @@ void util_set32()
         tyalignsize[TYuint + i] = LONGSIZE;
         tyalignsize[TYnullptr + i] = LONGSIZE;
         tyalignsize[TYnptr + i] = LONGSIZE;
+        tyalignsize[TYsptr + i] = LONGSIZE;
+        tyalignsize[TYcptr + i] = LONGSIZE;
         tyalignsize[TYnref + i] = LONGSIZE;
     }
 }
@@ -224,7 +231,12 @@ void util_set64()
         tysize[TYint  + i] = LONGSIZE;
         tysize[TYuint + i] = LONGSIZE;
         tysize[TYnptr + i] = 8;
+        tysize[TYsptr + i] = 8;
+        tysize[TYcptr + i] = 8;
         tysize[TYnref + i] = 8;
+        tysize[TYfptr + i] = 10;    // NOTE: There are codgen test that check
+        tysize[TYvptr + i] = 10;    // tysize[x] == tysize[TYfptr] so don't set
+        tysize[TYfref + i] = 10;    // tysize[TYfptr] to tysize[TYnptr]
         tysize[TYldouble + i] = REALSIZE;
         tysize[TYildouble + i] = REALSIZE;
         tysize[TYcldouble + i] = 2 * REALSIZE;
@@ -234,7 +246,12 @@ void util_set64()
         tyalignsize[TYuint + i] = LONGSIZE;
         tyalignsize[TYnullptr + i] = 8;
         tyalignsize[TYnptr + i] = 8;
+        tyalignsize[TYsptr + i] = 8;
+        tyalignsize[TYcptr + i] = 8;
         tyalignsize[TYnref + i] = 8;
+        tyalignsize[TYfptr + i] = 8;
+        tyalignsize[TYvptr + i] = 8;
+        tyalignsize[TYfref + i] = 8;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         tyalignsize[TYldouble + i] = 16;
         tyalignsize[TYildouble + i] = 16;
