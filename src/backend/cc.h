@@ -192,8 +192,10 @@ typedef struct Symbol symbol;
 typedef Symbol Funcsym;
 //typedef Symbol Classsym;      // a Symbol that is an SCclass, SCstruct or SCunion
 struct elem;
+#if !MARS
 typedef struct MACRO macro_t;
 typedef struct BLKLST blklst;
+#endif
 typedef list_t symlist_t;       /* list of pointers to Symbols          */
 typedef struct SYMTAB_S symtab_t;
 struct code;

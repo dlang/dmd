@@ -360,13 +360,11 @@ void chktok(enum_TK toknum , unsigned errnum, const char *str);
 void opttok(enum_TK toknum);
 bool iswhite(int c);
 void token_term(void);
-#if TX86
-int binary(const char *p , const char __near * __near *tab, int high);
-#endif
 
 #define ptoken()        rtoken(1)
 #define token()         rtoken(0)
 
+#if !MARS
 /* from pragma.c */
 //enum_TK ptoken(void);
 void pragma_process();
@@ -376,6 +374,7 @@ void __near listident(void);
 void pragma_term(void);
 macro_t *defmac(const char *name , const char *text);
 int pragma_defined(void);
+#endif
 
 #if SPP && TX86
 #define token_linnum()  getlinnum()
