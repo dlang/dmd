@@ -343,8 +343,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
 #endif
         case TYnullptr:
         case TYnptr:
+#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
+#endif
             return mAX;
 
         case TYfloat:
@@ -358,8 +360,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYdchar:
             if (!I16)
                 return mAX;
+#if TARGET_SEGMENTED
         case TYfptr:
         case TYhptr:
+#endif
             return mDX | mAX;
 
         case TYcent:
@@ -367,8 +371,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
             assert(I64);
             return mDX | mAX;
 
+#if TARGET_SEGMENTED
         case TYvptr:
             return mDX | mBX;
+#endif
 
         case TYdouble:
         case TYdouble_alias:
@@ -3241,9 +3247,11 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 
     /* Skip over return address */
     thunkty = tybasic(sthunk->ty());
+#if TARGET_SEGMENTED
     if (tyfarfunc(thunkty))
         p += I32 ? 8 : tysize[TYfptr];          /* far function */
     else
+#endif
         p += tysize[TYnptr];
 
     if (!I16)
@@ -3319,7 +3327,9 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 #define FARTHIS (tysize(thisty) > REGSIZE)
 #define FARVPTR FARTHIS
 
+#if TARGET_SEGMENTED
         assert(thisty != TYvptr);               /* can't handle this case */
+#endif
 
         if (!I16)
         {
@@ -5449,7 +5459,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 #if DEBUG
             symbol_print(uev->sp.Vsym);
 #endif
-            assert(!TARGET_FLAT);
+            assert(TARGET_SEGMENTED);
             // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
             // strings and statics are treated like offsets from a
             // un-named external with is the start of .rodata or .data
@@ -5473,7 +5483,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 
         case FLfunc:                        /* function call                */
             s = uev->sp.Vsym;               /* symbol pointer               */
-            assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
+            assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
             FLUSH();
             reftoident(cseg,offset,s,0,CFoffset64 | flags);
             break;
@@ -5541,7 +5551,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 #if DEBUG
         symbol_print(uev->sp.Vsym);
 #endif
-        assert(!TARGET_FLAT);
+        assert(TARGET_SEGMENTED);
         // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
         // strings and statics are treated like offsets from a
         // un-named external with is the start of .rodata or .data
@@ -5565,7 +5575,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 
     case FLfunc:                        /* function call                */
         s = uev->sp.Vsym;               /* symbol pointer               */
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
                 FLUSH();
@@ -5581,7 +5591,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         else
 #endif
         {
-                assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
+                assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
                 FLUSH();
                 reftoident(cseg,offset,s,val,flags);
         }
@@ -5641,13 +5651,13 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
     case FLfardata:
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
-        assert(SIXTEENBIT || !TARGET_FLAT);
+        assert(SIXTEENBIT || TARGET_SEGMENTED);
         FLUSH();
         s = uev->sp.Vsym;               /* symbol pointer               */
         reftoident(cseg,offset,s,uev->sp.Voffset,flags);
         break;
     case FLfunc:                        /* function call                */
-        assert(SIXTEENBIT || !TARGET_FLAT);
+        assert(SIXTEENBIT || TARGET_SEGMENTED);
         s = uev->sp.Vsym;               /* symbol pointer               */
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
@@ -5754,12 +5764,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         ln->Lnext = *pv;
         *pv = ln;
 
-#if TARGET_FLAT
-        numbytes = tysize[TYnptr];
-        if (I64 && !(flags & CFoffset64))
-            numbytes = 4;
-        assert(!(flags & CFseg));
-#else
+#if TARGET_SEGMENTED
         switch (flags & (CFoff | CFseg))
         {
             case CFoff:         numbytes = tysize[TYnptr];      break;
@@ -5767,6 +5772,11 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
             case CFoff | CFseg: numbytes = tysize[TYfptr];      break;
             default:            assert(0);
         }
+#else
+        numbytes = tysize[TYnptr];
+        if (I64 && !(flags & CFoffset64))
+            numbytes = 4;
+        assert(!(flags & CFseg));
 #endif
 #ifdef DEBUG
         assert(numbytes <= sizeof(zeros));
@@ -5848,12 +5858,14 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
         symbol_debug(s);
         //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
 
+#if TARGET_SEGMENTED
         if (tybasic(s->ty()) == TYf16func)
         {
             obj_far16thunk(s);          /* make it into a thunk         */
             searchfixlist(s);
         }
         else
+#endif
         {
             if (s->Sxtrnnum == 0)
             {   if (s->Sclass == SCstatic)
