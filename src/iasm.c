@@ -2554,7 +2554,7 @@ STATIC void asm_make_modrm_byte(
 
             if (popnd->uchMultiplier)
                 asmerr(EM_bad_addr_mode);               // illegal addressing mode
-            switch (popnd->pregDisp1->val)
+            switch (popnd->pregDisp1->val & NUM_MASK)
             {
                 case _EAX:      rm = 0; break;
                 case _ECX:      rm = 1; break;
@@ -2578,8 +2578,11 @@ STATIC void asm_make_modrm_byte(
                     rm = 0;                     // no uninitialized data
                     break;
             }
+            if (popnd->pregDisp1->val & NUM_MASKR)
+                pc->Irex |= REX_B;
             mrmb.modregrm.rm = rm;
         }
+
         if (!bModset && (!s ||
                 (!mrmb.modregrm.mod && popnd->disp)))
         {
