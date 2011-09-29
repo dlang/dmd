@@ -57,9 +57,13 @@ InterState::InterState()
 struct CtfeStatus
 {
     static int callDepth; // current number of recursive calls
+    static int stackTraceCallsToSuppress; /* When printing a stack trace,
+                                           * suppress this number of calls
+                                           */
 };
 
 int CtfeStatus::callDepth = 0;
+int CtfeStatus::stackTraceCallsToSuppress = 0;
 
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
@@ -4060,6 +4064,54 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
+// Print a stack trace, starting from callingExp which called fd.
+// To shorten the stack trace, try to detect recursion.
+void showCtfeBackTrace(InterState *istate, CallExp * callingExp, FuncDeclaration *fd)
+{
+    if (CtfeStatus::stackTraceCallsToSuppress > 0)
+    {
+        --CtfeStatus::stackTraceCallsToSuppress;
+        return;
+    }
+    fprintf(stdmsg, "%s:        called from here: %s\n", callingExp->loc.toChars(), callingExp->toChars());
+    // Quit if it's not worth trying to compress the stack trace
+    if (CtfeStatus::callDepth < 6 || global.params.verbose)
+        return;
+    // Recursion happens if the current function already exists in the call stack.
+    int numToSuppress = 0;
+    int recurseCount = 0;
+    int depthSoFar = 0;
+    InterState *lastRecurse = istate;
+    for (InterState * cur = istate; cur; cur = cur->caller)
+    {
+        if (cur->fd == fd)
+        {   ++recurseCount;
+            numToSuppress = depthSoFar;
+            lastRecurse = cur;
+        }
+        ++depthSoFar;
+    }
+    // We need at least three calls to the same function, to make compression worthwhile
+    if (recurseCount < 2)
+        return;
+    // We found a useful recursion.  Print all the calls involved in the recursion
+    fprintf(stdmsg, "%s:        %d recursive calls to function %s\n", fd->loc.toChars(), recurseCount, fd->toChars());
+    for (InterState *cur = istate; cur->fd != fd; cur = cur->caller)
+    {
+        fprintf(stdmsg, "%s:          recursively called from function %s\n", cur->fd->loc.toChars(), cur->fd->toChars());
+    }
+    // We probably didn't enter the recursion in this function.
+    // Go deeper to find the real beginning.
+    InterState * cur = istate;
+    while (lastRecurse->caller && cur->fd ==  lastRecurse->caller->fd)
+    {
+        cur = cur->caller;
+        lastRecurse = lastRecurse->caller;
+        ++numToSuppress;
+    }
+    CtfeStatus::stackTraceCallsToSuppress = numToSuppress;
+}
+
 Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
@@ -4199,7 +4251,10 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
         e = EXP_VOID_INTERPRET;
     else
-        error("cannot evaluate %s at compile time", toChars());
+    {   // Print a stack trace.
+        if (!global.gag)
+            showCtfeBackTrace(istate, this, fd);
+    }
     return e;
 }
 
