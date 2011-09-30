@@ -2504,3 +2504,22 @@ static assert({
     s.m[2] = 4;
     return 6693;
  }() == 6693);
+
+/**************************************************
+    6739   Nested AA assignment
+**************************************************/
+
+static assert({
+    int[int][int][int] aaa;
+    aaa[3][1][6] = 14;
+    return aaa[3][1][6];
+}() == 14);
+
+static assert({
+    int[int][int] aaa;
+    aaa[3][1] = 4;
+    aaa[3][3] = 3;
+    aaa[1][5] = 9;
+    auto kk = aaa[1][5];
+    return kk;
+}() == 9);
