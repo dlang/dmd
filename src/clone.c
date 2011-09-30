@@ -21,6 +21,7 @@
 #include "expression.h"
 #include "statement.h"
 #include "init.h"
+#include "template.h"
 
 
 /*******************************************
@@ -62,48 +63,6 @@ int StructDeclaration::needOpAssign()
         }
     }
 Ldontneed:
-    if (X) printf("\tdontneed\n");
-    return 0;
-
-Lneed:
-    if (X) printf("\tneed\n");
-    return 1;
-#undef X
-}
-
-/*******************************************
- * We need an opEquals for the struct if
- * any fields has an opEquals.
- * Generate one if a user-specified one does not exist.
- */
-
-int StructDeclaration::needOpEquals()
-{
-#define X 0
-    if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
-
-    /* If any of the fields has an opEquals, then we
-     * need it too.
-     */
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        Dsymbol *s = fields.tdata()[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
-        if (v->storage_class & STCref)
-            continue;
-        Type *tv = v->type->toBasetype();
-        while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            tv = tv->nextOf()->toBasetype();
-        }
-        if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-            if (sd->eq)
-                goto Lneed;
-        }
-    }
     if (X) printf("\tdontneed\n");
     return 0;
 
@@ -232,33 +191,99 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     return fop;
 }
 
+/*******************************************
+ * We need an opEquals for the struct if
+ * any fields has an opEquals.
+ * Generate one if a user-specified one does not exist.
+ */
+
+int StructDeclaration::needOpEquals()
+{
+#define X 0
+    if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
+
+    if (hasIdentityEquals)
+        goto Lneed;
+
+    /* If any of the fields has an opEquals, then we
+     * need it too.
+     */
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        Dsymbol *s = fields.tdata()[i];
+        VarDeclaration *v = s->isVarDeclaration();
+        assert(v && v->storage_class & STCfield);
+        if (v->storage_class & STCref)
+            continue;
+        Type *tv = v->type->toBasetype();
+        while (tv->ty == Tsarray)
+        {   TypeSArray *ta = (TypeSArray *)tv;
+            tv = tv->nextOf()->toBasetype();
+        }
+        if (tv->ty == Tstruct)
+        {   TypeStruct *ts = (TypeStruct *)tv;
+            StructDeclaration *sd = ts->sym;
+            if (sd->needOpEquals())
+                goto Lneed;
+        }
+    }
+    if (X) printf("\tdontneed\n");
+    return 0;
+
+Lneed:
+    if (X) printf("\tneed\n");
+    return 1;
+#undef X
+}
+
 /******************************************
  * Build opEquals for struct.
- *      const bool opEquals(const ref S s) { ... }
+ *      const bool opEquals(const S s) { ... }
  */
 
 FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 {
+    Dsymbol *eq = search_function(this, Id::eq);
+    if (eq)
+    {
+        for (size_t i = 0; i <= 1; i++)
+        {
+            Expression *e =
+                i == 0 ? new NullExp(loc, type->constOf())  // dummy rvalue
+                       : type->constOf()->defaultInit();    // dummy lvalue
+            Expressions *arguments = new Expressions();
+            arguments->push(e);
+
+            // check identity opEquals exists
+            FuncDeclaration *fd = eq->isFuncDeclaration();
+            if (fd)
+            {   fd = fd->overloadResolve(loc, e, arguments, 1);
+                if (fd && !(fd->storage_class & STCdisable))
+                    return fd;
+            }
+
+            TemplateDeclaration *td = eq->isTemplateDeclaration();
+            if (td)
+            {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1);
+                if (fd && !(fd->storage_class & STCdisable))
+                    return fd;
+            }
+        }
+        return NULL;
+    }
+
     if (!needOpEquals())
         return NULL;
+
     //printf("StructDeclaration::buildOpEquals() %s\n", toChars());
-    Loc loc = this->loc;
 
     Parameters *parameters = new Parameters;
-#if STRUCTTHISREF
-    // bool opEquals(ref const T) const;
-    Parameter *param = new Parameter(STCref, type->constOf(), Id::p, NULL);
-#else
-    // bool opEquals(const T*) const;
-    Parameter *param = new Parameter(STCin, type->pointerTo(), Id::p, NULL);
-#endif
+    parameters->push(new Parameter(STCin, type, Id::p, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+    tf->mod = MODconst;
+    tf = (TypeFunction *)tf->semantic(loc, sc);
 
-    parameters->push(param);
-    TypeFunction *ftype = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-    ftype->mod = MODconst;
-    ftype = (TypeFunction *)ftype->semantic(loc, sc);
-
-    FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::eq, STCundefined, ftype);
+    FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::eq, STCundefined, tf);
 
     Expression *e = NULL;
     /* Do memberwise compare
@@ -300,16 +325,90 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     return fop;
 }
 
+/******************************************
+ * Build __xopEquals for TypeInfo_Struct
+ *      bool __xopEquals(in void* p, in void* q) { ... }
+ */
+
+FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
+{
+    if (!search_function(this, Id::eq))
+        return NULL;
+
+    /* static bool__xopEquals(in void* p, in void* q) {
+     *     return ( *cast(const S*)(p) ).opEquals( *cast(const S*)(q) );
+     * }
+     */
+
+    Parameters *parameters = new Parameters;
+    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::p, NULL));
+    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::q, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+    tf = (TypeFunction *)tf->semantic(loc, sc);
+
+    Identifier *id = Lexer::idPool("__xopEquals");
+    FuncDeclaration *fop = new FuncDeclaration(loc, 0, id, STCstatic, tf);
+
+    Expression *e = new CallExp(0,
+        new DotIdExp(0,
+            new PtrExp(0, new CastExp(0,
+                new IdentifierExp(0, Id::p), type->pointerTo()->constOf())),
+            Id::eq),
+        new PtrExp(0, new CastExp(0,
+            new IdentifierExp(0, Id::q), type->pointerTo()->constOf())));
+
+    fop->fbody = new ReturnStatement(loc, e);
+
+    size_t index = members->dim;
+    members->push(fop);
+
+    sc = sc->push();
+    sc->stc = 0;
+    sc->linkage = LINKd;
+
+    unsigned errors = global.startGagging();
+    fop->semantic(sc);
+    if (errors == global.gaggedErrors)
+    {   fop->semantic2(sc);
+        if (errors == global.gaggedErrors)
+        {   fop->semantic3(sc);
+            if (errors == global.gaggedErrors)
+                fop->addMember(sc, this, 1);
+        }
+    }
+    if (global.endGagging(errors))    // if errors happened
+    {
+        members->remove(index);
+
+        if (!xerreq)
+        {
+            Expression *e = new IdentifierExp(loc, Id::empty);
+            e = new DotIdExp(loc, e, Id::object);
+            e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
+            e = e->semantic(sc);
+            Dsymbol *s = getDsymbol(e);
+            FuncDeclaration *fd = s->isFuncDeclaration();
+
+            xerreq = fd;
+        }
+        fop = xerreq;
+    }
+
+    sc->pop();
+
+    return fop;
+}
+
 
 /*******************************************
  * Build copy constructor for struct.
  * Copy constructors are compiler generated only, and are only
  * callable from the compiler. They are not user accessible.
  * A copy constructor is:
- *    void cpctpr(ref S s)
+ *    void cpctpr(ref const S s) const
  *    {
- *      *this = s;
- *      this.postBlit();
+ *      (*cast(S*)&this) = *cast(S*)s;
+ *      (*cast(S*)&this).postBlit();
  *    }
  * This is done so:
  *      - postBlit() never sees uninitialized data
@@ -329,10 +428,11 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     {
         //printf("generating cpctor\n");
 
-        Parameter *param = new Parameter(STCref, type, Id::p, NULL);
+        Parameter *param = new Parameter(STCref, type->constOf(), Id::p, NULL);
         Parameters *fparams = new Parameters;
         fparams->push(param);
         Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd);
+        ftype->mod = MODconst;
 
         fcp = new FuncDeclaration(loc, 0, Id::cpctor, STCundefined, ftype);
         fcp->storage_class |= postblit->storage_class & STCdisable;
@@ -344,12 +444,20 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 #if !STRUCTTHISREF
             e = new PtrExp(0, e);
 #endif
-            AssignExp *ea = new AssignExp(0, e, new IdentifierExp(0, Id::p));
+            AssignExp *ea = new AssignExp(0,
+                new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo())),
+                new PtrExp(0, new CastExp(0, new AddrExp(0, new IdentifierExp(0, Id::p)), type->mutableOf()->pointerTo()))
+            );
             ea->op = TOKblit;
             Statement *s = new ExpStatement(0, ea);
 
             // Build postBlit();
-            e = new VarExp(0, postblit, 0);
+            e = new ThisExp(0);
+#if !STRUCTTHISREF
+            e = new PtrExp(0, e);
+#endif
+            e = new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo()));
+            e = new DotVarExp(0, e, postblit, 0);
             e = new CallExp(0, e);
 
             s = new CompoundStatement(0, s, new ExpStatement(0, e));

@@ -73,6 +73,7 @@ Msgtable msgtable[] =
     { "line" },
     { "empty", "" },
     { "p" },
+    { "q" },
     { "coverage", "__coverage" },
     { "__vptr" },
     { "__monitor" },
