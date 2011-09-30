@@ -1656,6 +1656,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 v->inuse++;
                 e = e->interpret(istate, ctfeNeedAnyValue);
                 v->inuse--;
+                if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
+                    fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
                 if (e == EXP_CANT_INTERPRET)
                     return e;
                 e->type = v->type;
@@ -1666,6 +1668,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                     e->type = v->type;
                 if (e)
                     e = e->interpret(istate, ctfeNeedAnyValue);
+                if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
+                    fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
             }
             if (e && e != EXP_CANT_INTERPRET)
                 v->setValueWithoutChecking(e);
@@ -4245,9 +4249,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 
     TypeFunction *tf = fd ? (TypeFunction *)(fd->type) : NULL;
     if (!tf)
-    {   // DAC: I'm not sure if this ever happens
+    {   // DAC: This should never happen, it's an internal compiler error.
         //printf("ecall=%s %d %d\n", ecall->toChars(), ecall->op, TOKcall);
-        error("cannot evaluate %s at compile time", toChars());
+        if (ecall->op == TOKidentifier)
+            error("cannot evaluate %s at compile time. Circular reference?", toChars());
+        else
+            error("CTFE internal error: cannot evaluate %s at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     if (!fd)
