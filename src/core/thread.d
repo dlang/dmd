@@ -2638,7 +2638,9 @@ void[] thread_getTLSBlock()
  */
 extern (C) void* thread_stackBottom()
 {
-    return Thread.getThis().topContext().bstack;
+    if( auto t = Thread.getThis() )
+        return t.topContext().bstack;
+    return rt_stackBottom();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
