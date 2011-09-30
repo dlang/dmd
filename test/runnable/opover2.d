@@ -3,6 +3,14 @@
 
 extern (C) int printf(const(char*) fmt, ...);
 
+template Seq(T...){ alias T Seq; }
+
+bool thrown(E, T)(lazy T val)
+{
+    try { val(); return false; }
+    catch (E e) { return true; }
+}
+
 /**************************************/
 
 class A
@@ -497,6 +505,166 @@ void test4099()
 
 /**************************************/
 
+void test12()
+{
+    static int opeq;
+
+    // xopEquals OK
+    struct S1a { const bool opEquals(    const typeof(this) rhs) { ++opeq; return false; } }
+    struct S1b { const bool opEquals(ref const typeof(this) rhs) { ++opeq; return false; } }
+    struct S1c { const bool opEquals(          typeof(this) rhs) { ++opeq; return false; } }
+
+    // xopEquals NG
+    struct S2a {       bool opEquals(          typeof(this) rhs) { ++opeq; return false; } }
+
+    foreach (S; Seq!(S1a, S1b, S1c))
+    {
+        S s;
+        opeq = 0;
+        assert(s != s);                     // call opEquals directly
+        assert(!typeid(S).equals(&s, &s));  // -> xopEquals (-> __xopEquals) -> opEquals
+        assert(opeq == 2);
+    }
+
+    foreach (S; Seq!(S2a))
+    {
+        S s;
+        opeq = 0;
+        assert(s != s);
+        assert(thrown!Error(!typeid(S).equals(&s, &s)));
+            // Error("notImplemented") thrown
+        assert(opeq == 1);
+    }
+}
+
+/**************************************/
+
+void test13()
+{
+    static int opeq;
+
+    struct X
+    {
+        const bool opEquals(const X){ ++opeq; return false; }
+    }
+    struct S
+    {
+        X x;
+    }
+
+    S makeS(){ return S(); }
+
+    S s;
+    opeq = 0;
+    assert(s != s);
+    assert(makeS() != s);
+    assert(s != makeS());
+    assert(makeS() != makeS());
+    assert(opeq == 4);
+
+    // built-in opEquals == const bool opEquals(const S rhs);
+    assert(!s.opEquals(s));
+    assert(opeq == 5);
+
+    // xopEquals
+    assert(!typeid(S).equals(&s, &s));
+    assert(opeq == 6);
+}
+
+/**************************************/
+
+void test14()
+{
+    static int opeq;
+
+    struct S
+    {
+        const bool opEquals(T)(const T rhs) { ++opeq; return false; }
+    }
+
+    S makeS(){ return S(); }
+
+    S s;
+    opeq = 0;
+    assert(s != s);
+    assert(makeS() != s);
+    assert(s != makeS());
+    assert(makeS() != makeS());
+    assert(opeq == 4);
+
+    // xopEquals (-> __xxopEquals) -> template opEquals
+    assert(!typeid(S).equals(&s, &s));
+    assert(opeq == 5);
+}
+
+/**************************************/
+
+void test15()
+{
+    struct S
+    {
+        const bool opEquals(T)(const(T) rhs)
+        if (!is(T == typeof(this)))
+        { return false; }
+    }
+
+    S makeS(){ return S(); }
+
+    S s;
+    static assert(!__traits(compiles, s != s));
+    static assert(!__traits(compiles, makeS() != s));
+    static assert(!__traits(compiles, s != makeS()));
+    static assert(!__traits(compiles, makeS() != makeS()));
+
+    // xopEquals (-> __xxopEquals) -> Error thrown
+    assert(thrown!Error(!typeid(S).equals(&s, &s)));
+}
+
+/**************************************/
+
+void test16()
+{
+    struct X
+    {
+        int n;
+        const bool opEquals(T)(T t)
+        {
+            return false;
+        }
+    }
+    struct S
+    {
+        X x;
+    }
+
+    S s1, s2;
+    assert(s1 != s2);
+        // field template opEquals should call
+}
+
+/**************************************/
+
+void test17()
+{
+    static int opeq = 0;
+
+    struct S
+    {
+        bool opEquals(ref S rhs) { ++opeq; return false; }
+    }
+    S[] sa1 = new S[3];
+    S[] sa2 = new S[3];
+    assert(sa1 != sa2);     // isn't used TypeInfo.equals
+    assert(opeq == 1);
+
+    const(S)[] csa = new const(S)[3];
+    static assert(!__traits(compiles, csa == sa1));
+    static assert(!__traits(compiles, sa1 == csa));
+    static assert(!__traits(compiles, csa == csa));
+}
+
+/**************************************/
+
 int main()
 {
     test1();
@@ -511,6 +679,12 @@ int main()
     test10();
     test11();
     test4099();
+    test12();
+    test13();
+    test14();
+    test15();
+    test16();
+    test17();
 
     printf("Success\n");
     return 0;

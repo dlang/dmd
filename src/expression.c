@@ -9799,6 +9799,9 @@ Ltupleassign:
                 {   /* Write as:
                      *  e1.cpctor(e2);
                      */
+                    if (!e2->type->implicitConvTo(e1->type))
+                        error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
                     if (ec)
@@ -11640,6 +11643,33 @@ EqualExp::EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
     assert(op == TOKequal || op == TOKnotequal);
 }
 
+int needDirectEq(Type *t1, Type *t2)
+{
+    assert(t1->ty == Tarray || t1->ty == Tsarray);
+    assert(t2->ty == Tarray || t2->ty == Tsarray);
+
+    Type *t1n = t1->nextOf()->toBasetype();
+    Type *t2n = t2->nextOf()->toBasetype();
+
+    if (((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
+         (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) ||
+        (t1n->ty == Tvoid || t2n->ty == Tvoid))
+    {
+        return FALSE;
+    }
+
+    if (t1n->constOf() != t2n->constOf())
+        return TRUE;
+
+    Type *t = t1n;
+    while (t->toBasetype()->nextOf())
+        t = t->nextOf()->toBasetype();
+    if (t->ty != Tstruct)
+        return FALSE;
+
+    return ((TypeStruct *)t)->sym->xeq == StructDeclaration::xerreq;
+}
+
 Expression *EqualExp::semantic(Scope *sc)
 {   Expression *e;
 
@@ -11683,13 +11713,8 @@ Expression *EqualExp::semantic(Scope *sc)
 
     if ((t1->ty == Tarray || t1->ty == Tsarray) &&
         (t2->ty == Tarray || t2->ty == Tsarray))
-    {   Type *t1n = t1->nextOf()->toBasetype();
-        Type *t2n = t2->nextOf()->toBasetype();
-        if (t1n->constOf() != t2n->constOf() &&
-            !((t1n->ty == Tchar || t1n->ty == Twchar || t1n->ty == Tdchar) &&
-              (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) &&
-            !(t1n->ty == Tvoid || t2n->ty == Tvoid)
-           )
+    {
+        if (needDirectEq(t1, t2))
         {   /* Rewrite as:
              * _ArrayEq(e1, e2)
              */
@@ -11700,7 +11725,11 @@ Expression *EqualExp::semantic(Scope *sc)
             e = new CallExp(loc, eq, args);
             if (op == TOKnotequal)
                 e = new NotExp(loc, e);
-            e = e->semantic(sc);
+            e = e->trySemantic(sc); // for better error message
+            if (!e)
+            {   error("cannot compare %s and %s", t1->toChars(), t2->toChars());
+                return new ErrorExp();
+            }
             return e;
         }
     }

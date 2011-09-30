@@ -21,6 +21,8 @@
 #include "statement.h"
 #include "template.h"
 
+FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
+
 /********************************* AggregateDeclaration ****************************/
 
 AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
@@ -299,9 +301,11 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     zeroInit = 0;       // assume false until we do semantic processing
 #if DMDV2
     hasIdentityAssign = 0;
+    hasIdentityEquals = 0;
     cpctor = NULL;
     postblit = NULL;
-    eq = NULL;
+
+    xeq = NULL;
 #endif
 
     // For forward references
@@ -473,6 +477,65 @@ void StructDeclaration::semantic(Scope *sc)
 #endif
     }
 
+    if (sizeok == 2)
+    {   // semantic() failed because of forward references.
+        // Unwind what we did, and defer it for later
+        fields.setDim(0);
+        structsize = 0;
+        alignsize = 0;
+        structalign = 0;
+
+        scope = scx ? scx : new Scope(*sc);
+        scope->setNoFree();
+        scope->module->addDeferredSemantic(this);
+
+        Module::dprogress = dprogress_save;
+        //printf("\tdeferring %s\n", toChars());
+        return;
+    }
+
+    // 0 sized struct's are set to 1 byte
+    if (structsize == 0)
+    {
+        structsize = 1;
+        alignsize = 1;
+    }
+
+    // Round struct size up to next alignsize boundary.
+    // This will ensure that arrays of structs will get their internals
+    // aligned properly.
+    structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+
+    sizeok = 1;
+    Module::dprogress++;
+
+    //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
+
+    // Determine if struct is all zeros or not
+    zeroInit = 1;
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        Dsymbol *s = fields.tdata()[i];
+        VarDeclaration *vd = s->isVarDeclaration();
+        if (vd && !vd->isDataseg())
+        {
+            if (vd->init)
+            {
+                // Should examine init to see if it is really all 0's
+                zeroInit = 0;
+                break;
+            }
+            else
+            {
+                if (!vd->type->isZeroInit(loc))
+                {
+                    zeroInit = 0;
+                    break;
+                }
+            }
+        }
+    }
+
 #if DMDV1
     /* This doesn't work for DMDV2 because (ref S) and (S) parameter
      * lists will overload the same.
@@ -536,106 +599,17 @@ void StructDeclaration::semantic(Scope *sc)
     }
 #endif
 #if DMDV2
-    /* Try to find the opEquals function. Build it if necessary.
-     */
-    TypeFunction *tfeqptr;
-    {   // bool opEquals(const T*) const;
-        Parameters *parameters = new Parameters;
-#if STRUCTTHISREF
-        // bool opEquals(ref const T) const;
-        Parameter *param = new Parameter(STCref, type->constOf(), NULL, NULL);
-#else
-        // bool opEquals(const T*) const;
-        Parameter *param = new Parameter(STCin, type->pointerTo(), NULL, NULL);
-#endif
-
-        parameters->push(param);
-        tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-        tfeqptr->mod = MODconst;
-        tfeqptr = (TypeFunction *)tfeqptr->semantic(0, sc2);
-
-        Dsymbol *s = search_function(this, Id::eq);
-        FuncDeclaration *fdx = s ? s->isFuncDeclaration() : NULL;
-        if (fdx)
-        {
-            eq = fdx->overloadExactMatch(tfeqptr);
-            if (!eq)
-                fdx->error("type signature should be %s not %s", tfeqptr->toChars(), fdx->type->toChars());
-        }
-
-        TemplateDeclaration *td = s ? s->isTemplateDeclaration() : NULL;
-        // BUG: should also check that td is a function template, not just a template
-
-        if (!eq && !td)
-            eq = buildOpEquals(sc2);
-    }
-
     dtor = buildDtor(sc2);
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
+
     buildOpAssign(sc2);
+    hasIdentityEquals = (buildOpEquals(sc2) != NULL);
+
+    xeq = buildXopEquals(sc2);
 #endif
 
     sc2->pop();
-
-    if (sizeok == 2)
-    {   // semantic() failed because of forward references.
-        // Unwind what we did, and defer it for later
-        fields.setDim(0);
-        structsize = 0;
-        alignsize = 0;
-        structalign = 0;
-
-        scope = scx ? scx : new Scope(*sc);
-        scope->setNoFree();
-        scope->module->addDeferredSemantic(this);
-
-        Module::dprogress = dprogress_save;
-        //printf("\tdeferring %s\n", toChars());
-        return;
-    }
-
-    // 0 sized struct's are set to 1 byte
-    if (structsize == 0)
-    {
-        structsize = 1;
-        alignsize = 1;
-    }
-
-    // Round struct size up to next alignsize boundary.
-    // This will ensure that arrays of structs will get their internals
-    // aligned properly.
-    structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
-
-    sizeok = 1;
-    Module::dprogress++;
-
-    //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
-
-    // Determine if struct is all zeros or not
-    zeroInit = 1;
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        Dsymbol *s = fields.tdata()[i];
-        VarDeclaration *vd = s->isVarDeclaration();
-        if (vd && !vd->isDataseg())
-        {
-            if (vd->init)
-            {
-                // Should examine init to see if it is really all 0's
-                zeroInit = 0;
-                break;
-            }
-            else
-            {
-                if (!vd->type->isZeroInit(loc))
-                {
-                    zeroInit = 0;
-                    break;
-                }
-            }
-        }
-    }
 
     /* Look for special member functions.
      */
