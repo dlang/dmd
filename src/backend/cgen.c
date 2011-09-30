@@ -21,6 +21,8 @@
 #include        "code.h"
 #include        "type.h"
 #include        "global.h"
+#include        "aa.h"
+#include        "dt.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -481,64 +483,222 @@ code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t f
     return c;
 }
 
-/*************************************************
- * Allocate register temporaries
+/************************
+ * When we don't know whether a function symbol is defined or not
+ * within this module, we stuff it in this linked list of references
+ * to be fixed up later.
  */
 
-void REGSAVE::reset()
-{
-    off = 0;
-    top = 0;
-    idx = 0;
-    alignment = REGSIZE;
+struct fixlist
+{   //symbol      *Lsymbol;       // symbol we don't know about
+    int         Lseg;           // where the fixup is going (CODE or DATA, never UDATA)
+    int         Lflags;         // CFxxxx
+    targ_size_t Loffset;        // addr of reference to symbol
+    targ_size_t Lval;           // value to add into location
+#if TARGET_OSX
+    symbol      *Lfuncsym;      // function the symbol goes in
+#endif
+    fixlist *Lnext;             // next in threaded list
+
+    static AArray *start;
+    static int nodel;           // don't delete from within searchfixlist
+};
+
+AArray *fixlist::start = NULL;
+int fixlist::nodel = 0;
+
+/****************************
+ * Add to the fix list.
+ */
+
+void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flags)
+{       fixlist *ln;
+        static char zeros[8];
+        int numbytes;
+
+        //printf("addtofixlist(%p '%s')\n",s,s->Sident);
+        assert(flags);
+        ln = (fixlist *) mem_calloc(sizeof(fixlist));
+        //ln->Lsymbol = s;
+        ln->Loffset = soffset;
+        ln->Lseg = seg;
+        ln->Lflags = flags;
+        ln->Lval = val;
+#if TARGET_OSX
+        ln->Lfuncsym = funcsym_p;
+#endif
+
+        if (!fixlist::start)
+            fixlist::start = new AArray(&ti_pvoid, sizeof(fixlist *));
+        fixlist **pv = (fixlist **)fixlist::start->get(&s);
+        ln->Lnext = *pv;
+        *pv = ln;
+
+#if TARGET_FLAT
+        numbytes = tysize[TYnptr];
+        if (I64 && !(flags & CFoffset64))
+            numbytes = 4;
+        assert(!(flags & CFseg));
+#else
+        switch (flags & (CFoff | CFseg))
+        {
+            case CFoff:         numbytes = tysize[TYnptr];      break;
+            case CFseg:         numbytes = 2;                   break;
+            case CFoff | CFseg: numbytes = tysize[TYfptr];      break;
+            default:            assert(0);
+        }
+#endif
+#ifdef DEBUG
+        assert(numbytes <= sizeof(zeros));
+#endif
+        obj_bytes(seg,soffset,numbytes,zeros);
 }
 
-code *REGSAVE::save(code *c, int reg, unsigned *pidx)
+/****************************
+ * Given a function symbol we've just defined the offset for,
+ * search for it in the fixlist, and resolve any matches we find.
+ * Input:
+ *      s       function symbol just defined
+ */
+
+void searchfixlist(symbol *s)
 {
-    unsigned i;
-    if (reg >= XMM0)
+    //printf("searchfixlist(%s)\n",s->Sident);
+    if (fixlist::start)
     {
-        alignment = 16;
-        idx = (idx + 15) & ~15;
-        i = idx;
-        idx += 16;
-        // MOVD idx[RBP],xmm
-        c = genc1(c,0xF20F11,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
+        fixlist **lp = (fixlist **)fixlist::start->in(&s);
+        if (lp)
+        {   fixlist *p;
+            while ((p = *lp) != NULL)
+            {
+                //dbg_printf("Found reference at x%lx\n",p->Loffset);
+
+                // Determine if it is a self-relative fixup we can
+                // resolve directly.
+                if (s->Sseg == p->Lseg &&
+                    (s->Sclass == SCstatic ||
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                     (!(config.flags3 & CFG3pic) && s->Sclass == SCglobal)) &&
+#else
+                        s->Sclass == SCglobal) &&
+#endif
+                    s->Sxtrnnum == 0 && p->Lflags & CFselfrel)
+                {   targ_size_t ad;
+
+                    //printf("Soffset = x%lx, Loffset = x%lx, Lval = x%lx\n",s->Soffset,p->Loffset,p->Lval);
+                    ad = s->Soffset - p->Loffset - REGSIZE + p->Lval;
+                    obj_bytes(p->Lseg,p->Loffset,REGSIZE,&ad);
+                }
+                else
+                {
+#if TARGET_OSX
+                    symbol *funcsymsave = funcsym_p;
+                    funcsym_p = p->Lfuncsym;
+                    reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
+                    funcsym_p = funcsymsave;
+#else
+                    reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
+#endif
+                }
+                *lp = p->Lnext;
+                mem_free(p);            /* remove from list             */
+            }
+            if (!fixlist::nodel)
+                fixlist::start->del(&s);
+        }
     }
-    else
-    {
-        if (!alignment)
-            alignment = REGSIZE;
-        i = idx;
-        idx += REGSIZE;
-        // MOV idx[RBP],reg
-        c = genc1(c,0x89,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) i);
-        if (I64)
-            code_orrex(c, REX_W);
-    }
-    reflocal = TRUE;
-    if (idx > top)
-        top = idx;              // keep high water mark
-    *pidx = i;
-    return c;
 }
 
-code *REGSAVE::restore(code *c, int reg, unsigned idx)
+/****************************
+ * End of module. Output remaining fixlist elements as references
+ * to external symbols.
+ */
+
+STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 {
-    if (reg >= XMM0)
+    //printf("outfixlist_dg(pkey = %p, pvalue = %p)\n", pkey, pvalue);
+    symbol *s = *(symbol **)pkey;
+
+    fixlist **plnext = (fixlist **)pvalue;
+
+    while (*plnext)
     {
-        assert(alignment == 16);
-        // MOVD xmm,idx[RBP]
-        c = genc1(c,0xF20F10,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
+        fixlist *ln = *plnext;
+
+        symbol_debug(s);
+        //printf("outfixlist '%s' offset %04x\n",s->Sident,ln->Loffset);
+
+        if (tybasic(s->ty()) == TYf16func)
+        {
+            obj_far16thunk(s);          /* make it into a thunk         */
+            searchfixlist(s);
+        }
+        else
+        {
+            if (s->Sxtrnnum == 0)
+            {   if (s->Sclass == SCstatic)
+                {
+#if SCPP
+                    if (s->Sdt)
+                    {
+                        outdata(s);
+                        searchfixlist(s);
+                        continue;
+                    }
+
+                    synerr(EM_no_static_def,prettyident(s));    // no definition found for static
+#else // MARS
+                    printf("Error: no definition for static %s\n",prettyident(s));      // no definition found for static
+                    err_exit();                         // BUG: do better
+#endif
+                }
+                if (s->Sflags & SFLwasstatic)
+                {
+                    // Put it in BSS
+                    s->Sclass = SCstatic;
+                    s->Sfl = FLunde;
+                    dtnzeros(&s->Sdt,type_size(s->Stype));
+                    outdata(s);
+                    searchfixlist(s);
+                    continue;
+                }
+                s->Sclass = SCextern;   /* make it external             */
+                objextern(s);
+                if (s->Sflags & SFLweak)
+                {
+                    obj_wkext(s, NULL);
+                }
+            }
+#if TARGET_OSX
+            symbol *funcsymsave = funcsym_p;
+            funcsym_p = ln->Lfuncsym;
+            reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
+            funcsym_p = funcsymsave;
+#else
+            reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
+#endif
+            *plnext = ln->Lnext;
+#if TERMCODE
+            mem_free(ln);
+#endif
+        }
     }
-    else
-    {   // MOV reg,idx[RBP]
-        c = genc1(c,0x8B,modregxrm(2, reg, BPRM),FLregsave,(targ_uns) idx);
-        if (I64)
-            code_orrex(c, REX_W);
-    }
-    return c;
+    return 0;
 }
 
+void outfixlist()
+{
+    //printf("outfixlist()\n");
+    if (fixlist::start)
+    {
+        fixlist::nodel++;
+        fixlist::start->apply(NULL, &outfixlist_dg);
+        fixlist::nodel--;
+#if TERMCODE
+        delete fixlist::start;
+        fixlist::start = NULL;
+#endif
+    }
+}
 
 #endif // !SPP
