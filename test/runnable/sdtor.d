@@ -1,4 +1,6 @@
 
+import core.vararg;
+
 extern (C) int printf(const(char*) fmt, ...);
 
 int sdtor;
