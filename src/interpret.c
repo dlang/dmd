@@ -72,6 +72,7 @@ void addVarToInterstate(InterState *istate, VarDeclaration *v);
 bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
+Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
 bool evaluateIfBuiltin(Expression **result, InterState *istate,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
@@ -3395,49 +3396,99 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         returnValue = newval;
     }
-    /* Check for assignment to an AA. This needs special treatment if the
-     * existing AA is empty. It's a 'while' loop because the AA may be an
-     * member of another AA which is also null.
+
+    // ---------------------------------------
+    //      Deal with AA index assignment
+    // ---------------------------------------
+    /* This needs special treatment if the AA doesn't exist yet.
+     * There are two special cases:
+     * (1) If the AA is itself an index of another AA, we may need to create
+     * multiple nested AA literals before we can insert the new value.
+     * (2) If the ultimate AA is null, no insertion happens at all. Instead, we
+     * create nested AA literals, and change it into a assignment.
      */
-    while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+    if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
     {
         IndexExp *ie = (IndexExp *)e1;
+        int depth = 0; // how many nested AA indices are there?
+        while (ie->e1->op == TOKindex && ((IndexExp *)ie->e1)->e1->type->toBasetype()->ty == Taarray)
+        {
+            ie = (IndexExp *)ie->e1;
+            ++depth;
+        }
         Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
         Expression *oldagg = aggregate;
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (aggregate == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
-        if (aggregate->op != TOKassocarrayliteral)
-        {   // It's an assignment to a null AA.
-            //  Change it from:
-            //  aggregate[i] = newval; into aggregate = [i: newval];
-            Expressions *valuesx = new Expressions();
-            Expressions *keysx = new Expressions();
-            Expression *indx = ie->e2->interpret(istate);
-            if (indx == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            valuesx->push(newval);
-            keysx->push(indx);
-            Expression *aae2 = new AssocArrayLiteralExp(loc, keysx, valuesx);
-            aae2->type = aggregate->type;
-            newval = aae2;
-            e1 = aggregate->op == TOKnull ? oldagg : aggregate;
-            // This might still be an assignment to a null AA!
-        }
-        else
-        {
-            Expression *index = ie->e2->interpret(istate);
+        if (aggregate->op == TOKassocarrayliteral)
+        {   // Normal case, ultimate parent AA already exists
+            // We need to walk from the deepest index up, checking that an AA literal
+            // already exists on each level.
+            Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
-
             if (index->op == TOKslice)  // only happens with AA assignment
                 index = resolveSlice(index);
             AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
+            while (depth > 0)
+            {   // Walk the syntax tree to find the indexExp at this depth
+                IndexExp *xe = (IndexExp *)e1;
+                for (int d= 0; d < depth; ++d)
+                    xe = (IndexExp *)xe->e1;
+
+                Expression *indx = xe->e2->interpret(istate);
+                if (indx == EXP_CANT_INTERPRET)
+                    return EXP_CANT_INTERPRET;
+                if (indx->op == TOKslice)  // only happens with AA assignment
+                    indx = resolveSlice(indx);
+
+                // Look up this index in it up in the existing AA, to get the next level of AA.
+                AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(existingAA, indx);
+                if (newAA == EXP_CANT_INTERPRET)
+                    return newAA;
+                if (!newAA)
+                {   // Doesn't exist yet, create an empty AA...
+                    Expressions *valuesx = new Expressions();
+                    Expressions *keysx = new Expressions();
+                    newAA = new AssocArrayLiteralExp(loc, keysx, valuesx);
+                    newAA->type = xe->type;
+                    //... and insert it into the existing AA.
+                    existingAA->keys->push(indx);
+                    existingAA->values->push(newAA);
+                }
+                existingAA = newAA;
+                --depth;
+            }
             if (assignAssocArrayElement(loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             return returnValue;
         }
+        else
+        {   /* The AA is currently null. 'aggregate' is actually a reference to
+             * whatever contains it. It could be anything: var, dotvarexp, ...
+             * We rewrite the assignment from: aggregate[i][j] = newval;
+             *                           into: aggregate = [i:[j: newval]];
+             */
+            while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+            {
+                Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
+                if (index == EXP_CANT_INTERPRET)
+                    return EXP_CANT_INTERPRET;
+                if (index->op == TOKslice)  // only happens with AA assignment
+                    index = resolveSlice(index);
+                Expressions *valuesx = new Expressions();
+                Expressions *keysx = new Expressions();
+                valuesx->push(newval);
+                keysx->push(index);
+                newval = new AssocArrayLiteralExp(loc, keysx, valuesx);
+                newval->type = e1->type;
+                e1 = ((IndexExp *)e1)->e1;
+            }
+            // fall through -- let the normal assignment logic take care of it
+        }
     }
+
     // ---------------------------------------
     //      Deal with dotvar expressions
     // ---------------------------------------
