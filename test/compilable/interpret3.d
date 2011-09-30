@@ -2252,6 +2252,40 @@ int ctfeSort6250()
 static assert(ctfeSort6250()==57);
 
 /**************************************************
+    6672 circular references in array
+**************************************************/
+
+void bug6672(ref string lhs, ref string rhs)
+{
+    auto tmp = lhs;
+    lhs = rhs;
+    rhs = tmp;
+}
+
+static assert( {
+    auto kw = ["a"];
+    bug6672(kw[0], kw[0]);
+    return true;
+}());
+
+void slice6672(ref string[2] agg, ref string lhs) { agg[0..$] = lhs; }
+
+static assert( {
+    string[2] kw = ["a", "b"];
+    slice6672(kw, kw[0]);
+    assert(kw[0] == "a");
+    assert(kw[1] == "a");
+    return true;
+}());
+
+// an unrelated rejects-valid bug
+static assert( {
+    string[2] kw = ["a", "b"];
+    kw[0..2] = "x";
+    return true;
+}());
+
+/**************************************************
     6399 (*p).length = n
 **************************************************/
 
@@ -2470,3 +2504,22 @@ static assert({
     s.m[2] = 4;
     return 6693;
  }() == 6693);
+
+/**************************************************
+    6739   Nested AA assignment
+**************************************************/
+
+static assert({
+    int[int][int][int] aaa;
+    aaa[3][1][6] = 14;
+    return aaa[3][1][6];
+}() == 14);
+
+static assert({
+    int[int][int] aaa;
+    aaa[3][1] = 4;
+    aaa[3][3] = 3;
+    aaa[1][5] = 9;
+    auto kk = aaa[1][5];
+    return kk;
+}() == 9);

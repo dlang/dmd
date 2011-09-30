@@ -32,6 +32,9 @@ TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd);
 #define LOG     0
 #define LOGASSIGN 0
 
+// Maximum allowable recursive function calls in CTFE
+#define CTFE_RECURSION_LIMIT 1000
+
 struct InterState
 {
     InterState *caller;         // calling function's InterState
@@ -53,6 +56,18 @@ InterState::InterState()
     memset(this, 0, sizeof(InterState));
 }
 
+// Global status of the CTFE engine
+struct CtfeStatus
+{
+    static int callDepth; // current number of recursive calls
+    static int stackTraceCallsToSuppress; /* When printing a stack trace,
+                                           * suppress this number of calls
+                                           */
+};
+
+int CtfeStatus::callDepth = 0;
+int CtfeStatus::stackTraceCallsToSuppress = 0;
+
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
@@ -60,6 +75,7 @@ void addVarToInterstate(InterState *istate, VarDeclaration *v);
 bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
+Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
 bool evaluateIfBuiltin(Expression **result, InterState *istate,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
@@ -328,9 +344,19 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         }
     }
 
+    // Enter the function
+    ++CtfeStatus::callDepth;
+
     Expression *e = NULL;
     while (1)
     {
+        if (CtfeStatus::callDepth > CTFE_RECURSION_LIMIT)
+        {   // This is a compiler error. It must not be suppressed.
+            global.gag = 0;
+            error("CTFE recursion limit exceeded");
+            e = NULL;
+            break;
+        }
         e = fbody->interpret(&istatex);
         if (e == EXP_CANT_INTERPRET)
         {
@@ -355,6 +381,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             break;
     }
     assert(e != EXP_CONTINUE_INTERPRET && e != EXP_BREAK_INTERPRET);
+
+    // Leave the function
+    --CtfeStatus::callDepth;
 
     /* Restore the parameter values
      */
@@ -1630,6 +1659,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 v->inuse++;
                 e = e->interpret(istate, ctfeNeedAnyValue);
                 v->inuse--;
+                if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
+                    fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
                 if (e == EXP_CANT_INTERPRET)
                     return e;
                 e->type = v->type;
@@ -1640,6 +1671,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                     e->type = v->type;
                 if (e)
                     e = e->interpret(istate, ctfeNeedAnyValue);
+                if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
+                    fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
             }
             if (e && e != EXP_CANT_INTERPRET)
                 v->setValueWithoutChecking(e);
@@ -3295,6 +3328,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (type->toBasetype()->ty == Tstruct && newval->op == TOKint64)
         {
             newval = type->defaultInitLiteral(loc);
+            if (newval->op != TOKstructliteral)
+            {
+                error("nested structs with constructors are not yet supported in CTFE (Bug 6419)");
+                return EXP_CANT_INTERPRET;
+            }
         }
         newval = Cast(type, type, newval);
         if (newval == EXP_CANT_INTERPRET)
@@ -3368,49 +3406,99 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         returnValue = newval;
     }
-    /* Check for assignment to an AA. This needs special treatment if the
-     * existing AA is empty. It's a 'while' loop because the AA may be an
-     * member of another AA which is also null.
+
+    // ---------------------------------------
+    //      Deal with AA index assignment
+    // ---------------------------------------
+    /* This needs special treatment if the AA doesn't exist yet.
+     * There are two special cases:
+     * (1) If the AA is itself an index of another AA, we may need to create
+     * multiple nested AA literals before we can insert the new value.
+     * (2) If the ultimate AA is null, no insertion happens at all. Instead, we
+     * create nested AA literals, and change it into a assignment.
      */
-    while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+    if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
     {
         IndexExp *ie = (IndexExp *)e1;
+        int depth = 0; // how many nested AA indices are there?
+        while (ie->e1->op == TOKindex && ((IndexExp *)ie->e1)->e1->type->toBasetype()->ty == Taarray)
+        {
+            ie = (IndexExp *)ie->e1;
+            ++depth;
+        }
         Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
         Expression *oldagg = aggregate;
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (aggregate == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
-        if (aggregate->op != TOKassocarrayliteral)
-        {   // It's an assignment to a null AA.
-            //  Change it from:
-            //  aggregate[i] = newval; into aggregate = [i: newval];
-            Expressions *valuesx = new Expressions();
-            Expressions *keysx = new Expressions();
-            Expression *indx = ie->e2->interpret(istate);
-            if (indx == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-            valuesx->push(newval);
-            keysx->push(indx);
-            Expression *aae2 = new AssocArrayLiteralExp(loc, keysx, valuesx);
-            aae2->type = aggregate->type;
-            newval = aae2;
-            e1 = aggregate->op == TOKnull ? oldagg : aggregate;
-            // This might still be an assignment to a null AA!
-        }
-        else
-        {
-            Expression *index = ie->e2->interpret(istate);
+        if (aggregate->op == TOKassocarrayliteral)
+        {   // Normal case, ultimate parent AA already exists
+            // We need to walk from the deepest index up, checking that an AA literal
+            // already exists on each level.
+            Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
             if (index == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
-
             if (index->op == TOKslice)  // only happens with AA assignment
                 index = resolveSlice(index);
             AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
+            while (depth > 0)
+            {   // Walk the syntax tree to find the indexExp at this depth
+                IndexExp *xe = (IndexExp *)e1;
+                for (int d= 0; d < depth; ++d)
+                    xe = (IndexExp *)xe->e1;
+
+                Expression *indx = xe->e2->interpret(istate);
+                if (indx == EXP_CANT_INTERPRET)
+                    return EXP_CANT_INTERPRET;
+                if (indx->op == TOKslice)  // only happens with AA assignment
+                    indx = resolveSlice(indx);
+
+                // Look up this index in it up in the existing AA, to get the next level of AA.
+                AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(existingAA, indx);
+                if (newAA == EXP_CANT_INTERPRET)
+                    return newAA;
+                if (!newAA)
+                {   // Doesn't exist yet, create an empty AA...
+                    Expressions *valuesx = new Expressions();
+                    Expressions *keysx = new Expressions();
+                    newAA = new AssocArrayLiteralExp(loc, keysx, valuesx);
+                    newAA->type = xe->type;
+                    //... and insert it into the existing AA.
+                    existingAA->keys->push(indx);
+                    existingAA->values->push(newAA);
+                }
+                existingAA = newAA;
+                --depth;
+            }
             if (assignAssocArrayElement(loc, existingAA, index, newval) == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
             return returnValue;
         }
+        else
+        {   /* The AA is currently null. 'aggregate' is actually a reference to
+             * whatever contains it. It could be anything: var, dotvarexp, ...
+             * We rewrite the assignment from: aggregate[i][j] = newval;
+             *                           into: aggregate = [i:[j: newval]];
+             */
+            while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
+            {
+                Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
+                if (index == EXP_CANT_INTERPRET)
+                    return EXP_CANT_INTERPRET;
+                if (index->op == TOKslice)  // only happens with AA assignment
+                    index = resolveSlice(index);
+                Expressions *valuesx = new Expressions();
+                Expressions *keysx = new Expressions();
+                valuesx->push(newval);
+                keysx->push(index);
+                newval = new AssocArrayLiteralExp(loc, keysx, valuesx);
+                newval->type = e1->type;
+                e1 = ((IndexExp *)e1)->e1;
+            }
+            // fall through -- let the normal assignment logic take care of it
+        }
     }
+
     // ---------------------------------------
     //      Deal with dotvar expressions
     // ---------------------------------------
@@ -3650,6 +3738,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 assert(0);
             }
         }
+        if (wantRef && newval->op == TOKindex
+            && ((IndexExp *)newval)->e1 == aggregate)
+        {   // It's a circular reference, resolve it now
+                newval = newval->interpret(istate);
+        }
 
         if (existingAE)
         {
@@ -3809,6 +3902,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 assert(0);
             }
         }
+        if (wantRef && newval->op == TOKindex
+            && ((IndexExp *)newval)->e1 == aggregate)
+        {   // It's a circular reference, resolve it now
+                newval = newval->interpret(istate);
+        }
 
         // For slice assignment, we check that the lengths match.
         size_t srclen = 0;
@@ -3837,7 +3935,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, firstIndex);
             return newval;
         }
-        else if (newval->op == TOKstring && existingAE)
+        else if (newval->op == TOKstring && existingAE
+                && existingAE->type->isString())
         {   /* Mixed slice: it was initialized as an array literal of chars.
              * Now a slice of it is being set with a string.
              */
@@ -4030,6 +4129,54 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
+// Print a stack trace, starting from callingExp which called fd.
+// To shorten the stack trace, try to detect recursion.
+void showCtfeBackTrace(InterState *istate, CallExp * callingExp, FuncDeclaration *fd)
+{
+    if (CtfeStatus::stackTraceCallsToSuppress > 0)
+    {
+        --CtfeStatus::stackTraceCallsToSuppress;
+        return;
+    }
+    fprintf(stdmsg, "%s:        called from here: %s\n", callingExp->loc.toChars(), callingExp->toChars());
+    // Quit if it's not worth trying to compress the stack trace
+    if (CtfeStatus::callDepth < 6 || global.params.verbose)
+        return;
+    // Recursion happens if the current function already exists in the call stack.
+    int numToSuppress = 0;
+    int recurseCount = 0;
+    int depthSoFar = 0;
+    InterState *lastRecurse = istate;
+    for (InterState * cur = istate; cur; cur = cur->caller)
+    {
+        if (cur->fd == fd)
+        {   ++recurseCount;
+            numToSuppress = depthSoFar;
+            lastRecurse = cur;
+        }
+        ++depthSoFar;
+    }
+    // We need at least three calls to the same function, to make compression worthwhile
+    if (recurseCount < 2)
+        return;
+    // We found a useful recursion.  Print all the calls involved in the recursion
+    fprintf(stdmsg, "%s:        %d recursive calls to function %s\n", fd->loc.toChars(), recurseCount, fd->toChars());
+    for (InterState *cur = istate; cur->fd != fd; cur = cur->caller)
+    {
+        fprintf(stdmsg, "%s:          recursively called from function %s\n", cur->fd->loc.toChars(), cur->fd->toChars());
+    }
+    // We probably didn't enter the recursion in this function.
+    // Go deeper to find the real beginning.
+    InterState * cur = istate;
+    while (lastRecurse->caller && cur->fd ==  lastRecurse->caller->fd)
+    {
+        cur = cur->caller;
+        lastRecurse = lastRecurse->caller;
+        ++numToSuppress;
+    }
+    CtfeStatus::stackTraceCallsToSuppress = numToSuppress;
+}
+
 Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
@@ -4111,9 +4258,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 
     TypeFunction *tf = fd ? (TypeFunction *)(fd->type) : NULL;
     if (!tf)
-    {   // DAC: I'm not sure if this ever happens
+    {   // DAC: This should never happen, it's an internal compiler error.
         //printf("ecall=%s %d %d\n", ecall->toChars(), ecall->op, TOKcall);
-        error("cannot evaluate %s at compile time", toChars());
+        if (ecall->op == TOKidentifier)
+            error("cannot evaluate %s at compile time. Circular reference?", toChars());
+        else
+            error("CTFE internal error: cannot evaluate %s at compile time", toChars());
         return EXP_CANT_INTERPRET;
     }
     if (!fd)
@@ -4169,7 +4319,10 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
         e = EXP_VOID_INTERPRET;
     else
-        error("cannot evaluate %s at compile time", toChars());
+    {   // Print a stack trace.
+        if (!global.gag)
+            showCtfeBackTrace(istate, this, fd);
+    }
     return e;
 }
 
