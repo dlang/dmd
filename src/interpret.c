@@ -32,6 +32,9 @@ TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd);
 #define LOG     0
 #define LOGASSIGN 0
 
+// Maximum allowable recursive function calls in CTFE
+#define CTFE_RECURSION_LIMIT 1000
+
 struct InterState
 {
     InterState *caller;         // calling function's InterState
@@ -347,7 +350,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     Expression *e = NULL;
     while (1)
     {
-        if (CtfeStatus::callDepth > 1000)
+        if (CtfeStatus::callDepth > CTFE_RECURSION_LIMIT)
         {   // This is a compiler error. It must not be suppressed.
             global.gag = 0;
             error("CTFE recursion limit exceeded");
