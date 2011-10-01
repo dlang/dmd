@@ -386,10 +386,16 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 storageClass |= stc;
                 switch (token.value)
                 {
+                    case TOKshared:
+                        // Look for "shared static this" or "shared static ~this"
+                        if (peekNext() == TOKstatic)
+                        {   TOK next2 = peekNext2();
+                            if (next2 == TOKthis || next2 == TOKtilde)
+                                break;
+                        }
                     case TOKconst:
                     case TOKinvariant:
                     case TOKimmutable:
-                    case TOKshared:
                     case TOKwild:
                         // If followed by a (, it is not a storage class
                         if (peek(&token)->value == TOKlparen)
