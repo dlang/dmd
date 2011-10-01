@@ -3212,7 +3212,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             // ~= can create new values (see bug 6052)
             if (op == TOKcatass)
             {
-                if (needToCopyLiteral(this->e2))
+                if (needToCopyLiteral(newval))
                     newval = copyLiteral(newval);
                 if (newval->op == TOKslice)
                     newval = resolveSlice(newval);
