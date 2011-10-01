@@ -3104,6 +3104,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if ((e1->op==TOKslice) && ((SliceExp *)e1)->e1->type->ty == Tsarray)
             wantRef = false;
 #endif
+        // If it is assignment from a ref parameter, it's not a ref assignment
+        if (this->e2->op == TOKvar)
+        {
+            VarDeclaration *v = ((VarExp *)this->e2)->var->isVarDeclaration();
+            if (v && (v->storage_class & (STCref | STCout)))
+                wantRef = false;
+        }
     }
     if (isBlockAssignment && (e2->type->toBasetype()->ty == Tarray || e2->type->toBasetype()->ty == Tsarray))
     {
