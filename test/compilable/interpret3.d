@@ -1341,6 +1341,24 @@ static assert({
 }());
 
 /**************************************************
+    Bug 6749
+**************************************************/
+
+struct CtState {
+    string code;
+}
+
+CtState bug6749()
+{
+    CtState[] pieces;
+    CtState r = CtState("correct");
+    pieces ~= r;
+    r = CtState("clobbered");
+    return pieces[0];
+}
+static assert(bug6749().code == "correct");
+
+/**************************************************
     Index + slice assign to function returns
 **************************************************/
 
