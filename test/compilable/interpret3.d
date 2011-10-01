@@ -1341,6 +1341,24 @@ static assert({
 }());
 
 /**************************************************
+    Bug 6749
+**************************************************/
+
+struct CtState {
+    string code;
+}
+
+CtState bug6749()
+{
+    CtState[] pieces;
+    CtState r = CtState("correct");
+    pieces ~= r;
+    r = CtState("clobbered");
+    return pieces[0];
+}
+static assert(bug6749().code == "correct");
+
+/**************************************************
     Index + slice assign to function returns
 **************************************************/
 
@@ -2282,6 +2300,23 @@ static assert( {
 static assert( {
     string[2] kw = ["a", "b"];
     kw[0..2] = "x";
+    return true;
+}());
+
+void bug6672b(ref string lhs, ref string rhs)
+{
+    auto tmp = lhs;
+    assert(tmp == "a");
+    lhs = rhs;
+    assert(tmp == "a");
+    rhs = tmp;
+}
+
+static assert( {
+    auto kw=["a", "b"];
+    bug6672b(kw[0], kw[1]);
+    assert(kw[0]=="b");
+    assert(kw[1]=="a");
     return true;
 }());
 
