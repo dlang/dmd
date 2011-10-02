@@ -123,8 +123,10 @@ extern int TYptrdiff, TYsize, TYsize_t;
 
 /* Linkage type                 */
 #define mTYnear         0x100
+#if TARGET_SEGMENTED
 #define mTYfar          0x200
 #define mTYcs           0x400           // in code segment
+#endif
 #define mTYthread       0x800
 #define mTYLINK         0xF00           // all linkage bits
 

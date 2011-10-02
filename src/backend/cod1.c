@@ -1385,8 +1385,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             pcs->Iflags |= CFfs;                // add FS: override
 #endif
         }
+#if TARGET_SEGMENTED
         if (s->ty() & mTYcs && LARGECODE)
             goto Lfardata;
+#endif
         goto L3;
     case FLdata:
     case FLudata:
@@ -1421,10 +1423,12 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     pcs->Irex |= REX;
             }
         }
+#if TARGET_SEGMENTED
         else if (s->ty() & mTYcs && !(fl == FLextern && LARGECODE))
         {
             pcs->Iflags |= CFcs | CFoff;
         }
+#endif
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (I64 && config.flags3 & CFG3pic &&
             (fl == FLtlsdata || s->ty() & mTYthread))
@@ -3307,7 +3311,11 @@ code *params(elem *e,unsigned stackalign)
         if (tysize[tym] == tysize[TYfptr] &&
             (fl = s->Sfl) != FLfardata &&
             /* not a function that CS might not be the segment of       */
-            (!((fl == FLfunc || s->ty() & mTYcs) &&
+            (!((fl == FLfunc
+#if TARGET_SEGMENTED
+                || s->ty() & mTYcs
+#endif
+               ) &&
               (s->Sclass == SCcomdat || s->Sclass == SCextern || s->Sclass == SCinline || config.wflags & WFthunk)) ||
              (fl == FLfunc && config.exe == EX_DOSX)
             )
@@ -3315,7 +3323,11 @@ code *params(elem *e,unsigned stackalign)
         {
             stackpush += sz;
             c = gen1(c,0x06 +           /* PUSH SEGREG                  */
-                    (((fl == FLfunc || s->ty() & mTYcs) ? 1 : segfl[fl]) << 3));
+                    (((fl == FLfunc
+#if TARGET_SEGMENTED
+                       || s->ty() & mTYcs
+#endif
+                       ) ? 1 : segfl[fl]) << 3));
             c = genadjesp(c,REGSIZE);
 
             if (config.target_cpu >= TARGET_80286 && !e->Ecount)

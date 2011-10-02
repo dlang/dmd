@@ -3822,9 +3822,9 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         if ((tyfarfunc(ety) || ety == TYifunc) &&
             (sclass == SCextern || ClassInline(sclass) || config.wflags & WFthunk)
             || s->Sfl == FLfardata
+#if TARGET_SEGMENTED
             || (s->ty() & mTYcs && s->Sseg != cseg && (LARGECODE || s->Sclass == SCcomdat))
-//          || (s->Sfl == FLextern && s->ty() & mTYcs)
-//          || (LARGECODE && s->Sclass == SCcomdat)
+#endif
            )
         {       /* MOV mreg,seg of symbol       */
                 c1 = gencs(CNIL,0xB8 + mreg,0,FLextern,s);
@@ -3837,8 +3837,10 @@ code *cdrelconst(elem *e,regm_t *pretregs)
 
         loadreg:
             fl = s->Sfl;
+#if TARGET_SEGMENTED
             if (s->ty() & mTYcs)
                 fl = FLcsdata;
+#endif
             c = gen2(c,0x8C,            /* MOV mreg,SEG REGISTER        */
                 modregrm(3,segfl[fl],mreg));
         }

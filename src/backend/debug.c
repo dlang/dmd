@@ -81,10 +81,12 @@ void WRTYxx(tym_t t)
 #if TX86
     if (t & mTYnear)
         dbg_printf("mTYnear|");
+#if TARGET_SEGMENTED
     if (t & mTYfar)
         dbg_printf("mTYfar|");
     if (t & mTYcs)
         dbg_printf("mTYcs|");
+#endif
 #endif
     if (t & mTYconst)
         dbg_printf("mTYconst|");

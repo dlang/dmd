@@ -362,8 +362,10 @@ code *cdeq(elem *e,regm_t *pretregs)
              e2oper == OPrelconst &&
              !(I64 && config.flags3 & CFG3pic) &&
              ((fl = el_fl(e2)) == FLdata ||
-              fl==FLudata || fl == FLextern) &&
-             !(e2->EV.sp.Vsym->ty() & mTYcs)
+              fl==FLudata || fl == FLextern)
+#if TARGET_SEGMENTED
+              && !(e2->EV.sp.Vsym->ty() & mTYcs)
+#endif
             ) &&
             !evalinregister(e2) &&
             !e1->Ecount)        /* and no CSE headaches */

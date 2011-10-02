@@ -1888,7 +1888,11 @@ elem *el_convstring(elem *e)
         (tyfv(e->Ety) && config.flags3 & CFG3strcod))
     {
         assert(OMFOBJ);         // option not done yet for others
-        s = symbol_generate(SCstatic, type_fake(mTYcs | e->Ety));
+        s = symbol_generate(SCstatic, type_fake(
+#if TARGET_SEGMENTED
+                    mTYcs |
+#endif
+                    e->Ety));
         s->Sfl = FLcsdata;
         s->Soffset = Coffset;
         s->Sseg = cseg;
