@@ -597,39 +597,45 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
         onemember->toAlias()->isFuncDeclaration() : NULL;
     if (fd)
     {
+        /*
+            Making parameters is similar to FuncDeclaration::semantic3
+         */
         paramscope->parent = fd;
-        int fvarargs;                           // function varargs
-        Parameters *fparameters = fd->getParameters(&fvarargs);
+
+        TypeFunction *tf = (TypeFunction *)fd->type->syntaxCopy();
+
+        // Shouldn't run semantic on default arguments and return type.
+        for (int i = 0; i<tf->parameters->dim; i++)
+            tf->parameters->tdata()[i]->defaultArg = NULL;
+        tf->next = NULL;
+
+        // Resolve parameter types and 'auto ref's.
+        tf->fargs = fargs;
+        tf = (TypeFunction *)tf->semantic(loc, paramscope);
+
+        Parameters *fparameters = tf->parameters;
+        int fvarargs = tf->varargs;
+
         size_t nfparams = Parameter::dim(fparameters); // Num function parameters
         for (size_t i = 0; i < nfparams; i++)
         {
-            Parameter *fparam = Parameter::getNth(fparameters, i)->syntaxCopy();
+            Parameter *fparam = Parameter::getNth(fparameters, i);
+            // Remove addMod same as func.d L1065 of FuncDeclaration::semantic3
+            //Type *vtype = fparam->type;
+            //if (fd->type && fd->isPure())
+            //    vtype = vtype->addMod(MODconst);
+            fparam->storageClass &= (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
+            fparam->storageClass |= STCparameter;
+            if (fvarargs == 2 && i + 1 == nfparams)
+                fparam->storageClass |= STCvariadic;
+        }
+        for (size_t i = 0; i < fparameters->dim; i++)
+        {
+            Parameter *fparam = fparameters->tdata()[i];
             if (!fparam->ident)
                 continue;                       // don't add it, if it has no name
-            Type *vtype = fparam->type->syntaxCopy();
-            // isPure will segfault if called on a ctor, because fd->type is null.
-            if (fd->type && fd->isPure())
-                vtype = vtype->addMod(MODconst);
-            VarDeclaration *v = new VarDeclaration(loc, vtype, fparam->ident, NULL);
-            v->storage_class |= STCparameter;
-            // Not sure if this condition is correct/necessary.
-            //   It's from func.c
-            if (//fd->type && fd->type->ty == Tfunction &&
-             fvarargs == 2 && i + 1 == nfparams)
-                v->storage_class |= STCvariadic;
-
-            v->storage_class |= fparam->storageClass & (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
-            if (fparam->storageClass & STCauto)
-            {
-                if (fargs && i < fargs->dim)
-                {   Expression *farg = fargs->tdata()[i];
-                    if (farg->isLvalue())
-                        ;                               // ref parameter
-                    else
-                        v->storage_class &= ~STCref;    // value parameter
-                }
-            }
-
+            VarDeclaration *v = new VarDeclaration(loc, fparam->type, fparam->ident, NULL);
+            v->storage_class = fparam->storageClass;
             v->semantic(paramscope);
             if (!paramscope->insert(v))
                 error("parameter %s.%s is already defined", toChars(), v->toChars());
