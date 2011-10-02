@@ -3716,7 +3716,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
         if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
         {   // Function returns a reference
-            if (tbret->isMutable())
+            if (tret->isMutable())
                 exp = exp->modifiableLvalue(sc, exp);
             else
                 exp = exp->toLvalue(sc, exp);
