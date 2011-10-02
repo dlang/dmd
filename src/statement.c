@@ -1882,6 +1882,9 @@ Lagain:
             printf("increment: %s\n", increment->toChars());
             printf("body: %s\n", forbody->toChars());
 #endif
+            if (prelude)
+                s = new CompoundStatement(loc,
+                        new ExpStatement(prelude->loc, prelude), s);
             s = s->semantic(sc);
             break;
 
