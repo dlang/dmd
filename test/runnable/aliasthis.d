@@ -571,6 +571,32 @@ void test6366()
 }
 
 /**********************************************/
+// Bugzill 6579
+
+struct Range
+{
+    size_t front() { return 0; }
+    void popFront() { empty = true; }
+    bool empty;
+}
+
+struct ARange
+{
+    Range range;
+    alias range this;
+}
+
+void test6579()
+{
+    ARange arange;
+    assert(arange.front == 0);
+    foreach(e; arange)
+    {
+        assert(e == 0);
+    }
+}
+
+/**********************************************/
 
 int main()
 {
@@ -593,6 +619,7 @@ int main()
     test6369d();
     test6434();
     test6366();
+    test6579();
 
     printf("Success\n");
     return 0;
