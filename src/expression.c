@@ -655,7 +655,7 @@ TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd)
  */
 
 Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
-        Expressions *arguments, FuncDeclaration *fd)
+        Expression *ethis, Expressions *arguments, FuncDeclaration *fd)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -802,27 +802,22 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         L1:
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
-                if (p->type != arg->type)
+                if (p->type->hasWild())
+                {   unsigned mod = p->type->wildMatch(arg->type);
+                    if (mod)
+                    {
+                        wildmatch |= mod;
+                        arg = arg->implicitCastTo(sc, p->type->substWildTo(mod));
+                        arg = arg->optimize(WANTvalue);
+                    }
+                }
+                else if (p->type != arg->type)
                 {
                     //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
                     if (arg->op == TOKtype)
                     {   arg->error("cannot pass type %s as function argument", arg->toChars());
                         arg = new ErrorExp();
                         goto L3;
-                    }
-                    if (p->type->isWild() && tf->next->isWild())
-                    {   Type *t = p->type;
-                        MATCH m = arg->implicitConvTo(t);
-                        if (m == MATCHnomatch)
-                        {   t = t->constOf();
-                            m = arg->implicitConvTo(t);
-                            if (m == MATCHnomatch)
-                            {   t = t->sharedConstOf();
-                                m = arg->implicitConvTo(t);
-                            }
-                            wildmatch |= p->type->wildMatch(arg->type);
-                        }
-                        arg = arg->implicitCastTo(sc, t);
                     }
                     else
                         arg = arg->implicitCastTo(sc, p->type);
@@ -968,6 +963,19 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             break;
     }
 
+    if (ethis && tf->isWild())
+    {
+        Type *tthis = ethis->type;
+        if (tthis->isWild())
+            wildmatch |= MODwild;
+        else if (tthis->isConst())
+            wildmatch |= MODconst;
+        else if (tthis->isImmutable())
+            wildmatch |= MODimmutable;
+        else
+            wildmatch |= MODmutable;
+    }
+
     // If D linkage and variadic, add _arguments[] as first argument
     if (tf->linkage == LINKd && tf->varargs == 1)
     {
@@ -981,15 +989,17 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     if (wildmatch)
     {   /* Adjust function return type based on wildmatch
          */
-        //printf("wildmatch = x%x\n", wildmatch);
-        assert(tret->isWild());
+        //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
+        assert(tret->hasWild());
         if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
-            tret = tret->constOf();
+            tret = tret->substWildTo(MODconst);
         else if (wildmatch & MODimmutable)
-            tret = tret->invariantOf();
+            tret = tret->substWildTo(MODimmutable);
+        else if (wildmatch & MODwild)
+            ;
         else
         {   assert(wildmatch & MODmutable);
-            tret = tret->mutableOf();
+            tret = tret->substWildTo(MODmutable);
         }
     }
     return tret;
@@ -4311,7 +4321,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            functionParameters(loc, sc, tf, arguments, f);
+            functionParameters(loc, sc, tf, NULL, arguments, f);
 
             type = type->addMod(tf->nextOf()->mod);
         }
@@ -4336,7 +4346,7 @@ Lagain:
             assert(allocator);
 
             TypeFunction *tf = (TypeFunction *)f->type;
-            functionParameters(loc, sc, tf, newargs, f);
+            functionParameters(loc, sc, tf, NULL, newargs, f);
         }
         else
         {
@@ -4371,7 +4381,7 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
-            functionParameters(loc, sc, tf, arguments, f);
+            functionParameters(loc, sc, tf, NULL, arguments, f);
         }
         else
         {
@@ -4395,7 +4405,7 @@ Lagain:
             assert(allocator);
 
             tf = (TypeFunction *)f->type;
-            functionParameters(loc, sc, tf, newargs, f);
+            functionParameters(loc, sc, tf, NULL, newargs, f);
 #if 0
             e = new VarExp(loc, f);
             e = new CallExp(loc, e, newargs);
@@ -7401,6 +7411,7 @@ Lagain:
         if (f->needThis())
         {
             ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
+            ethis = ue->e1;
         }
 
         /* Cannot call public functions from inside invariant
@@ -7719,6 +7730,8 @@ Lagain:
 
         accessCheck(loc, sc, NULL, f);
 
+        ethis = NULL;
+
         ve->var = f;
 //      ve->hasOverloads = 0;
         ve->type = f->type;
@@ -7732,7 +7745,7 @@ Lcheckargs:
 
     if (!arguments)
         arguments = new Expressions();
-    type = functionParameters(loc, sc, tf, arguments, f);
+    type = functionParameters(loc, sc, tf, ethis, arguments, f);
 
     if (!type)
     {
