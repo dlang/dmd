@@ -906,6 +906,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
     Parameters *fparameters;            // function parameter list
     int fvarargs;                       // function varargs
     Objects dedtypes;   // for T:T*, the dedargs is the T*, dedtypes is the T
+    unsigned wildmatch = 0;
+
+    TypeFunction *tf = (TypeFunction *)fd->type;
 
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
@@ -1196,8 +1199,11 @@ L2:
 #endif
 
             MATCH m;
-            m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes);
+            m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes,
+                tf->hasWild() ? &wildmatch : NULL);
             //printf("\tdeduceType m = %d\n", m);
+            //if (tf->hasWild())
+            //    printf("\twildmatch = x%x m = %d\n", wildmatch, m);
 
             /* If no match, see if there's a conversion to a delegate
              */
@@ -1785,7 +1791,7 @@ int templateParameterLookup(Type *tparam, TemplateParameters *parameters)
  */
 
 MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes)
+        Objects *dedtypes, unsigned *wildmatch)
 {
 #if 0
     printf("Type::deduceType()\n");
@@ -1821,7 +1827,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
              */
             tparam = tparam->semantic(loc, sc);
             assert(tparam->ty != Tident);
-            return deduceType(sc, tparam, parameters, dedtypes);
+            return deduceType(sc, tparam, parameters, dedtypes, wildmatch);
         }
 
         TemplateParameter *tp = parameters->tdata()[i];
@@ -1835,6 +1841,59 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         // 7*7 == 49 cases
 
         #define X(U,T)  ((U) << 4) | (T)
+
+        if (wildmatch && (tparam->mod & MODwild))
+        {
+            switch (X(tparam->mod, mod))
+            {
+                case X(MODwild,              MODwild):
+                case X(MODwild | MODshared,  MODwild | MODshared):
+                case X(MODwild,              0):
+                case X(MODwild,              MODconst):
+                case X(MODwild,              MODimmutable):
+                case X(MODwild | MODshared,  MODshared):
+                case X(MODwild | MODshared,  MODconst | MODshared):
+
+                    if (!at)
+                    {
+                        if (mod & MODwild)
+                            *wildmatch |= MODwild;
+                        else if (mod == 0)
+                            *wildmatch |= MODmutable;
+                        else
+                            *wildmatch |= (mod & ~MODshared);
+                        tt = mutableOf();
+                        dedtypes->tdata()[i] = tt;
+                        goto Lconst;
+                    }
+
+                    //printf("\t> tt = %s, at = %s\n", tt->toChars(), at->toChars());
+                    //printf("\t> tt->implicitConvTo(at->constOf()) = %d\n", tt->implicitConvTo(at->constOf()));
+                    //printf("\t> at->implicitConvTo(tt->constOf()) = %d\n", at->implicitConvTo(tt->constOf()));
+
+                    if (tt->equals(at))
+                    {
+                        goto Lconst;
+                    }
+                    else if (tt->implicitConvTo(at->constOf()))
+                    {
+                        dedtypes->tdata()[i] = at->constOf()->mutableOf();
+                        *wildmatch |= MODconst;
+                        goto Lconst;
+                    }
+                    else if (at->implicitConvTo(tt->constOf()))
+                    {
+                        dedtypes->tdata()[i] = tt->constOf()->mutableOf();
+                        *wildmatch |= MODconst;
+                        goto Lconst;
+                    }
+                    goto Lnomatch;
+
+                default:
+                    break;
+            }
+        }
+
         switch (X(tparam->mod, mod))
         {
             case X(0, 0):
@@ -1997,7 +2056,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
     }
 
     if (nextOf())
-        return nextOf()->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
+        return nextOf()->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wildmatch);
 
 Lexact:
     return MATCHexact;
@@ -2013,19 +2072,19 @@ Lconst:
 
 #if DMDV2
 MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes)
+        Objects *dedtypes, unsigned *wildmatch)
 {
 #if 0
     printf("TypeDArray::deduceType()\n");
     printf("\tthis   = %d, ", ty); print();
     printf("\ttparam = %d, ", tparam->ty); tparam->print();
 #endif
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 #endif
 
 MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes)
+        Objects *dedtypes, unsigned *wildmatch)
 {
 #if 0
     printf("TypeSArray::deduceType()\n");
@@ -2094,7 +2153,7 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
                             else
                             {   dedtypes->tdata()[i] = dim;
                             }
-                            return next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
+                            return next->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wildmatch);
                         }
                     }
                 }
@@ -2103,19 +2162,19 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
         else if (tparam->ty == Tarray)
         {   MATCH m;
 
-            m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
+            m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wildmatch);
             if (m == MATCHexact)
                 m = MATCHconvert;
             return m;
         }
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 
   Lnomatch:
     return MATCHnomatch;
 }
 
-MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
+MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
 #if 0
     printf("TypeAArray::deduceType()\n");
@@ -2127,15 +2186,15 @@ MATCH TypeAArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     if (tparam && tparam->ty == Taarray)
     {
         TypeAArray *tp = (TypeAArray *)tparam;
-        if (!index->deduceType(sc, tp->index, parameters, dedtypes))
+        if (!index->deduceType(sc, tp->index, parameters, dedtypes, wildmatch))
         {
             return MATCHnomatch;
         }
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 
-MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
+MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
     //printf("TypeFunction::deduceType()\n");
     //printf("\tthis   = %d, ", ty); print();
@@ -2231,14 +2290,14 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
             Parameter *a = Parameter::getNth(this->parameters, i);
             Parameter *ap = Parameter::getNth(tp->parameters, i);
             if (a->storageClass != ap->storageClass ||
-                !a->type->deduceType(sc, ap->type, parameters, dedtypes))
+                !a->type->deduceType(sc, ap->type, parameters, dedtypes, wildmatch))
                 return MATCHnomatch;
         }
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 
-MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
+MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
     // Extra check
     if (tparam && tparam->ty == Tident)
@@ -2254,12 +2313,12 @@ MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *pa
                 return MATCHnomatch;
         }
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 
 MATCH TypeInstance::deduceType(Scope *sc,
         Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes)
+        Objects *dedtypes, unsigned *wildmatch)
 {
 #if 0
     printf("TypeInstance::deduceType()\n");
@@ -2400,7 +2459,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
 
             if (t1 && t2)
             {
-                if (!t1->deduceType(sc, t2, parameters, dedtypes))
+                if (!t1->deduceType(sc, t2, parameters, dedtypes, wildmatch))
                     goto Lnomatch;
             }
             else if (e1 && e2)
@@ -2473,14 +2532,14 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 goto Lnomatch;
         }
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 
 Lnomatch:
     //printf("no match\n");
     return MATCHnomatch;
 }
 
-MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
+MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
     //printf("TypeStruct::deduceType()\n");
     //printf("\tthis->parent   = %s, ", sym->parent->toChars()); print();
@@ -2497,7 +2556,7 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
         if (ti && ti->toAlias() == sym)
         {
             TypeInstance *t = new TypeInstance(0, ti);
-            return t->deduceType(sc, tparam, parameters, dedtypes);
+            return t->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
         }
 
         /* Match things like:
@@ -2514,7 +2573,7 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
                     /* Slice off the .foo in S!(T).foo
                      */
                     tpi->idents.dim--;
-                    MATCH m = tparent->deduceType(sc, tpi, parameters, dedtypes);
+                    MATCH m = tparent->deduceType(sc, tpi, parameters, dedtypes, wildmatch);
                     tpi->idents.dim++;
                     return m;
                 }
@@ -2530,10 +2589,10 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
         if (sym != tp->sym)
             return MATCHnomatch;
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 
-MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
+MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
     // Extra check
     if (tparam && tparam->ty == Tenum)
@@ -2543,10 +2602,10 @@ MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramete
         if (sym != tp->sym)
             return MATCHnomatch;
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 
-MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
+MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
     // Extra check
     if (tparam && tparam->ty == Ttypedef)
@@ -2556,7 +2615,7 @@ MATCH TypeTypedef::deduceType(Scope *sc, Type *tparam, TemplateParameters *param
         if (sym != tp->sym)
             return MATCHnomatch;
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 
 /* Helper for TypeClass::deduceType().
@@ -2616,7 +2675,7 @@ void deduceBaseClassParameters(BaseClass *b,
 
 }
 
-MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes)
+MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch)
 {
     //printf("TypeClass::deduceType(this = %s)\n", toChars());
 
@@ -2631,7 +2690,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
         if (ti && ti->toAlias() == sym)
         {
             TypeInstance *t = new TypeInstance(0, ti);
-            MATCH m = t->deduceType(sc, tparam, parameters, dedtypes);
+            MATCH m = t->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
             // Even if the match fails, there is still a chance it could match
             // a base class.
             if (m != MATCHnomatch)
@@ -2652,7 +2711,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
                     /* Slice off the .foo in S!(T).foo
                      */
                     tpi->idents.dim--;
-                    MATCH m = tparent->deduceType(sc, tpi, parameters, dedtypes);
+                    MATCH m = tparent->deduceType(sc, tpi, parameters, dedtypes, wildmatch);
                     tpi->idents.dim++;
                     return m;
                 }
@@ -2660,7 +2719,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
         }
 
         // If it matches exactly or via implicit conversion, we're done
-        MATCH m = Type::deduceType(sc, tparam, parameters, dedtypes);
+        MATCH m = Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
         if (m != MATCHnomatch)
             return m;
 
@@ -2709,7 +2768,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
         //printf("\t%d\n", (MATCH) implicitConvTo(tp));
         return implicitConvTo(tp);
     }
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 
 /* ======================== TemplateParameter =============================== */

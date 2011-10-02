@@ -2023,9 +2023,94 @@ int Type::hasWild()
  * Return MOD bits matching argument type (targ) to wild parameter type (this).
  */
 
+unsigned getWildModConv(Type *twild, Type *targ)
+{
+    assert(twild);
+    assert(targ);
+
+    unsigned mod = 0;
+    
+    if (twild->nextOf())
+        mod = getWildModConv(twild->nextOf(), targ->nextOf());
+
+    if (!mod)
+    {
+        if (twild->isWild())
+        {
+            if (targ->isWild())
+                mod = MODwild;
+            else if (targ->isConst())
+                mod = MODconst;
+            else if (targ->isImmutable())
+                mod = MODimmutable;
+            else if (targ->isMutable())
+                mod = MODmutable;
+            else
+                assert(0);
+        }
+    }
+
+    return mod;
+}
+
 unsigned Type::wildMatch(Type *targ)
 {
+    //printf("Type::wildMatch this = '%s', targ = '%s'\n", toChars(), targ->toChars());
+    assert(hasWild());
+
+    Type *tc = substWildTo(MODconst);
+    if (targ->implicitConvTo(tc))
+        return getWildModConv(this, targ);
+
     return 0;
+}
+
+Type *Type::substWildTo(unsigned mod)
+{
+    //printf("+Type::substWildTo this = %s, mod = x%x\n", toChars(), mod);
+    Type *t;
+
+    if (nextOf())
+    {
+        t = nextOf()->substWildTo(mod);
+        if (t == nextOf())
+            t = this;
+        else
+        {
+            if (ty == Tpointer)
+                t = t->pointerTo();
+            else if (ty == Tarray)
+                t = t->arrayOf();
+            else if (ty == Tsarray)
+                t = new TypeSArray(t, ((TypeSArray *)this)->dim->syntaxCopy());
+            else if (ty == Taarray)
+            {
+                t = new TypeAArray(t, ((TypeAArray *)this)->index->syntaxCopy());
+                t = t->merge();
+            }
+            else
+                assert(0);
+
+            t = t->addMod(this->mod);
+        }
+    }
+    else
+        t = this;
+
+    if (isWild())
+    {
+        if (mod & MODconst)
+            t = t->constOf();
+        else if (mod & MODimmutable)
+            t = t->invariantOf();
+        else if (mod & MODwild)
+            t = t->wildOf();
+        else
+            t = t->mutableOf();
+    }
+
+    //printf("-Type::substWildTo t = %s\n", t->toChars());
+    return t;
 }
 
 /********************************
@@ -2135,30 +2220,7 @@ Type *TypeNext::reliesOnTident()
 
 int TypeNext::hasWild()
 {
-    return mod == MODwild || next->hasWild();
-}
-
-/***************************************
- * Return MOD bits matching argument type (targ) to wild parameter type (this).
- */
-
-unsigned TypeNext::wildMatch(Type *targ)
-{   unsigned mod;
-
-    Type *tb = targ->nextOf();
-    if (!tb)
-        return 0;
-    tb = tb->toBasetype();
-    if (tb->isMutable())
-        mod = MODmutable;
-    else if (tb->isConst() || tb->isWild())
-        return MODconst;
-    else if (tb->isImmutable())
-        mod = MODimmutable;
-    else
-        assert(0);
-    mod |= next->wildMatch(tb);
-    return mod;
+    return mod == MODwild || (next && next->hasWild());
 }
 
 
@@ -4966,7 +5028,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             error(loc, "functions cannot return scope %s", tf->next->toChars());
         if (tf->next->toBasetype()->ty == Tvoid)
             tf->isref = FALSE;                  // rewrite "ref void" as just "void"
-        if (tf->next->isWild())
+        if (tf->next->hasWild())
             wildreturn = TRUE;
     }
 
@@ -5008,7 +5070,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
 
-            if (t->isWild())
+            if (t->hasWild())
             {
                 wildparams = TRUE;
                 if (tf->next && !wildreturn)
@@ -5067,6 +5129,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         }
         argsc->pop();
     }
+    if (tf->isWild())
+        wildparams = TRUE;
+
     if (wildreturn && !wildparams)
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
     if (wildsubparams && wildparams)
@@ -5194,6 +5259,11 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         {
             if (MODimplicitConv(t->mod, mod))
                 match = MATCHconst;
+            else if ((mod & MODwild)
+                && MODimplicitConv(t->mod, (mod & ~MODwild) | MODconst))
+            {
+                match = MATCHconst;
+            }
             else
                 return MATCHnomatch;
         }
@@ -5262,15 +5332,15 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             else
                 m = arg->implicitConvTo(p->type);
             //printf("match %d\n", m);
-            if (p->type->isWild())
+            if (p->type->hasWild())
             {
                 if (m == MATCHnomatch)
                 {
-                    m = arg->implicitConvTo(p->type->constOf());
-                    if (m == MATCHnomatch)
-                        m = arg->implicitConvTo(p->type->sharedConstOf());
-                    if (m != MATCHnomatch)
+                    if (p->type->wildMatch(arg->type))
+                    {
                         wildmatch = TRUE;       // mod matched to wild
+                        m = MATCHconst;
+                    }
                 }
                 else
                     exactwildmatch = TRUE;      // wild matched to wild
@@ -5278,8 +5348,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                 /* If both are allowed, then there could be more than one
                  * binding of mod to wild, leaving a gaping type hole.
                  */
-                if (wildmatch && exactwildmatch)
-                    m = MATCHnomatch;
+                //if (wildmatch && exactwildmatch)
+                //    m = MATCHnomatch;
             }
         }
 
@@ -6887,6 +6957,7 @@ int TypeTypedef::hasPointers()
 
 int TypeTypedef::hasWild()
 {
+    assert(toBasetype());
     return mod & MODwild || toBasetype()->hasWild();
 }
 
