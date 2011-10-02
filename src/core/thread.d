@@ -22,6 +22,24 @@ public import core.time; // for Duration
 // this should be true for most architectures
 version = StackGrowsDown;
 
+/**
+ * Returns the process ID of the calling process, which is guaranteed to be
+ * unique on the system. This call is always successful.
+ *
+ * Example:
+ * ---
+ * writefln("Current process id: %s", getpid());
+ * ---
+ */
+version(Posix)
+{
+    alias core.sys.posix.unistd.getpid getpid;
+}
+else version (Windows)
+{
+    alias std.c.windows.windows.GetCurrentProcessId getpid;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thread and Fiber Exceptions
