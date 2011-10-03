@@ -349,10 +349,8 @@ struct Array : Object
 };
 
 template <typename TYPE>
-struct ArrayBase : protected Array
+struct ArrayBase : Array
 {
-    using Array::dim;
-
     TYPE **tdata()
     {
         return (TYPE **)data;
@@ -364,28 +362,6 @@ struct ArrayBase : protected Array
         assert(index < dim);
 #endif
         return ((TYPE **)data)[index];
-    }
-
-    using Array::mark;
-    using Array::toChars;
-
-    using Array::reserve;
-    using Array::setDim;
-    using Array::fixDim;
-
-    void push(TYPE *a)
-    {
-        Array::push((void *)a);
-    }
-
-    TYPE *pop()
-    {
-        return (TYPE *)Array::pop();
-    }
-
-    void shift(TYPE *a)
-    {
-        Array::shift((void *)a);
     }
 
     void insert(size_t index, TYPE *v)
@@ -403,10 +379,10 @@ struct ArrayBase : protected Array
         Array::append((Array *)a);
     }
 
-    using Array::remove;
-    using Array::zero;
-    using Array::tos;
-    using Array::sort;
+    void push(TYPE *a)
+    {
+        Array::push((void *)a);
+    }
 
     ArrayBase *copy()
     {
