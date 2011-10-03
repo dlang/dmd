@@ -3832,8 +3832,10 @@ void assignaddrc(code *c)
                 c->IEVseg1 = DATA;
                 goto do2;
 
+#if TARGET_SEGMENTED
             case FLfardata:
             case FLcsdata:
+#endif
             case FLpseudo:
                 goto do2;
 
@@ -3986,9 +3988,11 @@ void assignaddrc(code *c)
             case FLdatseg:
                 c->IEVseg2 = DATA;
                 goto done;
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
                 goto done;
+#endif
             case FLreg:
             case FLpseudo:
                 assert(0);
@@ -5486,12 +5490,13 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             else
                     reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
             break;
+#if TARGET_SEGMENTED
         case FLcsdata:
         case FLfardata:
 #if DEBUG
             symbol_print(uev->sp.Vsym);
 #endif
-            assert(TARGET_SEGMENTED);
+#endif
             // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
             // strings and statics are treated like offsets from a
             // un-named external with is the start of .rodata or .data
@@ -5560,12 +5565,6 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         FLUSH();
         reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
-#if 0
-    case FLcsdata:
-        FLUSH();
-        reftocodseg(cseg,offset,uev->Vpointer);
-        break;
-#endif
     case FLframehandler:
         framehandleroffset = OFFSET();
         ad = 0;
@@ -5578,12 +5577,13 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         else
                 reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
         break;
+#if TARGET_SEGMENTED
     case FLcsdata:
     case FLfardata:
 #if DEBUG
         symbol_print(uev->sp.Vsym);
 #endif
-        assert(TARGET_SEGMENTED);
+#endif
         // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
         // strings and statics are treated like offsets from a
         // un-named external with is the start of .rodata or .data
@@ -5665,12 +5665,6 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         FLUSH();
         reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
-#if 0
-    case FLcsdata:
-        FLUSH();
-        reftocodseg(cseg,offset,uev->Vpointer);
-        break;
-#endif
     case FLswitch:
         FLUSH();
         ad = uev->Vswitch->Btableoffset;
@@ -5679,8 +5673,10 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         else
                 reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
         break;
+#if TARGET_SEGMENTED
     case FLcsdata:
     case FLfardata:
+#endif
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
         assert(SIXTEENBIT || TARGET_SEGMENTED);
@@ -5834,8 +5830,10 @@ void code_hydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:
@@ -5893,8 +5891,10 @@ void code_hydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:
@@ -6003,8 +6003,10 @@ void code_dehydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:
@@ -6061,8 +6063,10 @@ void code_dehydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:

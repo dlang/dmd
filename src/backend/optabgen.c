@@ -645,15 +645,21 @@ void fltables()
 
         static char indatafl[] =        /* is FLxxxx a data type?       */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,
-          FLcs,FLfltreg,FLallocatmp,FLdatseg,FLndp,FLfardata,FLtlsdata,FLbprel,
+          FLcs,FLfltreg,FLallocatmp,FLdatseg,FLndp,FLtlsdata,FLbprel,
           FLstack,FLregsave };
+#if TARGET_SEGMENTED
+        static char indatafl_s[] = { FLfardata, };
+#endif
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
         { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLndp,FLbprel,FLstack,FLregsave };
 
         static char inflinsymtab[] =    /* is FLxxxx in the symbol table? */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,FLfunc,
-          FLfardata,FLtlsdata,FLbprel,FLcsdata,FLstack };
+          FLtlsdata,FLbprel,FLstack };
+#if TARGET_SEGMENTED
+        static char inflinsymtab_s[] = { FLfardata,FLcsdata, };
+#endif
 
         for (i = 0; i < FLMAX; i++)
                 datafl[i] = stackfl[i] = flinsymtab[i] = 0;
@@ -666,6 +672,14 @@ void fltables()
 
         for (i = 0; i < sizeof(inflinsymtab); i++)
                 flinsymtab[inflinsymtab[i]] = 1;
+
+#if TARGET_SEGMENTED
+        for (i = 0; i < sizeof(indatafl_s); i++)
+                datafl[indatafl_s[i]] = 1;
+
+        for (i = 0; i < sizeof(inflinsymtab_s); i++)
+                flinsymtab[inflinsymtab_s[i]] = 1;
+#endif
 
 /* Segment registers    */
 #define ES      0
@@ -695,12 +709,14 @@ void fltables()
                 case FLblockoff: segfl[i] = CS; break;
                 case FLcs:      segfl[i] = SS;  break;
                 case FLregsave: segfl[i] = SS;  break;
-                case FLcsdata:  segfl[i] = CS;  break;
                 case FLndp:     segfl[i] = SS;  break;
                 case FLswitch:  segfl[i] = -1;  break;
                 case FLfltreg:  segfl[i] = SS;  break;
                 case FLoffset:  segfl[i] = -1;  break;
+#if TARGET_SEGMENTED
                 case FLfardata: segfl[i] = -1;  break;
+                case FLcsdata:  segfl[i] = CS;  break;
+#endif
                 case FLdatseg:  segfl[i] = DS;  break;
                 case FLctor:    segfl[i] = -1;  break;
                 case FLdtor:    segfl[i] = -1;  break;

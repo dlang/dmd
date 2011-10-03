@@ -465,6 +465,7 @@ code *cdorth(elem *e,regm_t *pretregs)
 #endif
         assert(tysize[ty2] == REGSIZE);
 
+#if TARGET_SEGMENTED
         /* Watch out for the case here where you are going to OP reg,EA */
         /* and both the reg and EA use ES! Prevent this by forcing      */
         /* reg into the regular registers.                              */
@@ -472,9 +473,9 @@ code *cdorth(elem *e,regm_t *pretregs)
             (e2oper == OPvar && el_fl(e2) == FLfardata)) &&
             !e2->Ecount)
         {
-                retregs = ALLREGS;
-                assert(TARGET_SEGMENTED);
+            retregs = ALLREGS;
         }
+#endif
 
         cl = codelem(e1,&retregs,test);
         reg = findreglsw(retregs);      /* reg is the register with the offset*/
@@ -3821,8 +3822,8 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         ety = tybasic(s->ty());
         if ((tyfarfunc(ety) || ety == TYifunc) &&
             (sclass == SCextern || ClassInline(sclass) || config.wflags & WFthunk)
-            || s->Sfl == FLfardata
 #if TARGET_SEGMENTED
+            || s->Sfl == FLfardata
             || (s->ty() & mTYcs && s->Sseg != cseg && (LARGECODE || s->Sclass == SCcomdat))
 #endif
            )
@@ -3871,9 +3872,10 @@ code *getoffset(elem *e,unsigned reg)
         cs.IEV2._EP.Vpointer = e->EV.Vpointer;
         goto L3;
 
+#if TARGET_SEGMENTED
     case FLfardata:
-        assert(TARGET_SEGMENTED);
         goto L4;
+#endif
 
     case FLtlsdata:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -3978,7 +3980,9 @@ code *getoffset(elem *e,unsigned reg)
     case FLgot:
     case FLgotoff:
 #endif
+#if TARGET_SEGMENTED
     case FLcsdata:
+#endif
     L4:
         cs.IEVsym2 = e->EV.sp.Vsym;
         cs.IEVoffset2 = e->EV.sp.Voffset;

@@ -932,7 +932,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
          */
         f = FLconst;
         if (e1isadd &&
-            ((e12->Eoper == OPrelconst && (f = el_fl(e12)) != FLfardata) ||
+            ((e12->Eoper == OPrelconst
+#if TARGET_SEGMENTED
+              && (f = el_fl(e12)) != FLfardata
+#endif
+             ) ||
              (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
             !(I64 && config.flags3 & CFG3pic) &&
             e1->Ecount == e1->Ecomsub &&
@@ -945,6 +949,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             int ss;
             int ssi;
 
+#if !TARGET_SEGMENTED
+            if (e12->Eoper == OPrelconst)
+                f = el_fl(e12);
+#endif
             /*assert(datafl[f]);*/              /* what if addr of func? */
             if (!I16)
             {   /* Any register can be an index register        */
@@ -958,15 +966,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     /* Load index register with result of e11->E1       */
                     c = cdisscaledindex(e11,&idxregs,keepmsk);
                     reg = findreg(idxregs);
-#if 0 && TARGET_LINUX
-                    if (f == FLgot || f == FLgotoff)    // config.flags3 & CFG3pic
-                    {
-                        gotref = 1;
-                        pcs->Irm = modregrm(2,0,4);
-                        pcs->Isib = modregrm(ss,reg,BX);
-                    }
-                    else
-#endif
                     {
                         t = stackfl[f] ? 2 : 0;
                         pcs->Irm = modregrm(t,0,4);
@@ -1109,12 +1108,10 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 refparam = TRUE;
             else if (f == FLauto || f == FLtmp || f == FLbprel || f == FLfltreg)
                 reflocal = TRUE;
-            else if (f == FLcsdata
 #if TARGET_SEGMENTED
-                    || tybasic(e12->Ety) == TYcptr
-#endif
-                    )
+            else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
                 pcs->Iflags |= CFcs;
+#endif
             else
                 assert(f != FLreg);
             pcs->IFL1 = f;
@@ -1392,7 +1389,9 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         goto L3;
     case FLdata:
     case FLudata:
+#if TARGET_SEGMENTED
     case FLcsdata:
+#endif
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     case FLgot:
     case FLgotoff:
@@ -1462,8 +1461,9 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
     }
 #endif
+#if TARGET_SEGMENTED
     case FLfardata:
-        assert(TARGET_SEGMENTED);
+#endif
     case FLfunc:                                /* reading from code seg */
         if (config.exe & EX_flat)
             goto L3;
@@ -3139,12 +3139,13 @@ code *params(elem *e,unsigned stackalign)
                             int fl;
 
                             fl = el_fl(e1);
+#if TARGET_SEGMENTED
                             if (fl == FLfardata)
                             {   seg = CFes;
-                                assert(TARGET_SEGMENTED);
                                 retregs |= mES;
                             }
                             else
+#endif
                             {
                                 s = segfl[fl];
                                 assert(s < 4);
@@ -3311,11 +3312,7 @@ code *params(elem *e,unsigned stackalign)
         if (tysize[tym] == tysize[TYfptr] &&
             (fl = s->Sfl) != FLfardata &&
             /* not a function that CS might not be the segment of       */
-            (!((fl == FLfunc
-#if TARGET_SEGMENTED
-                || s->ty() & mTYcs
-#endif
-               ) &&
+            (!((fl == FLfunc || s->ty() & mTYcs) &&
               (s->Sclass == SCcomdat || s->Sclass == SCextern || s->Sclass == SCinline || config.wflags & WFthunk)) ||
              (fl == FLfunc && config.exe == EX_DOSX)
             )
@@ -3323,11 +3320,7 @@ code *params(elem *e,unsigned stackalign)
         {
             stackpush += sz;
             c = gen1(c,0x06 +           /* PUSH SEGREG                  */
-                    (((fl == FLfunc
-#if TARGET_SEGMENTED
-                       || s->ty() & mTYcs
-#endif
-                       ) ? 1 : segfl[fl]) << 3));
+                    (((fl == FLfunc || s->ty() & mTYcs) ? 1 : segfl[fl]) << 3));
             c = genadjesp(c,REGSIZE);
 
             if (config.target_cpu >= TARGET_80286 && !e->Ecount)

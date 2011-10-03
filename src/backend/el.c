@@ -1879,20 +1879,13 @@ elem *el_convstring(elem *e)
     e->EV.ss.Vstring = NULL;
     len = e->EV.ss.Vstrlen;
 
-#if TX86
-    // Handle strings that go into the code segment
-    if (
 #if TARGET_SEGMENTED
-        tybasic(e->Ety) == TYcptr ||
-#endif
+    // Handle strings that go into the code segment
+    if (tybasic(e->Ety) == TYcptr ||
         (tyfv(e->Ety) && config.flags3 & CFG3strcod))
     {
         assert(OMFOBJ);         // option not done yet for others
-        s = symbol_generate(SCstatic, type_fake(
-#if TARGET_SEGMENTED
-                    mTYcs |
-#endif
-                    e->Ety));
+        s = symbol_generate(SCstatic, type_fake(mTYcs | e->Ety));
         s->Sfl = FLcsdata;
         s->Soffset = Coffset;
         s->Sseg = cseg;

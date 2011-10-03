@@ -568,15 +568,15 @@ code *cdeq(elem *e,regm_t *pretregs)
         if (!retregs)
                 retregs = BYTEREGS;
   }
-  else if (retregs & mES &&
-            (
+  else if (retregs & mES
 #if TARGET_SEGMENTED
+           && (
              (e1->Eoper == OPind &&
                 ((tymll = tybasic(e1->E1->Ety)) == TYfptr || tymll == TYhptr)
                 ) ||
-#endif
              (e1->Eoper == OPvar && e1->EV.sp.Vsym->Sfl == FLfardata)
             )
+#endif
           )
         // getlvalue() needs ES, so we can't return it
         retregs = allregs;              /* no conflicts with ES         */
@@ -1895,8 +1895,10 @@ code *cdcmp(elem *e,regm_t *pretregs)
                 if (sz > REGSIZE)       // compare against DS, not DGROUP
                     goto L2;
                 break;
+#if TARGET_SEGMENTED
             case FLfardata:
                 break;
+#endif
             default:
                 goto L2;
         }
