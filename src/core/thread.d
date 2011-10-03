@@ -37,7 +37,7 @@ version(Posix)
 }
 else version (Windows)
 {
-    alias std.c.windows.windows.GetCurrentProcessId getpid;
+    alias core.sys.windows.windows.GetCurrentProcessId getpid;
 }
 
 
