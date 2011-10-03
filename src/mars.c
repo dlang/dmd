@@ -292,6 +292,7 @@ Usage:\n\
 #endif
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
+  -gs            always emit stack frame\n\
   -H             generate 'header' file\n\
   -Hddirectory   write 'header' file to directory\n\
   -Hffilename    write 'header' file to filename\n\
@@ -491,6 +492,8 @@ int main(int argc, char *argv[])
                 global.params.symdebug = 1;
             else if (strcmp(p + 1, "gc") == 0)
                 global.params.symdebug = 2;
+            else if (strcmp(p + 1, "gs") == 0)
+                global.params.alwaysframe = 1;
             else if (strcmp(p + 1, "gt") == 0)
             {   error("use -profile instead of -gt\n");
                 global.params.trace = 1;

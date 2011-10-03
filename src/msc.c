@@ -163,6 +163,9 @@ void out_config_init()
         //config.flags &= ~CFGalwaysframe;
     }
 
+    if (params->alwaysframe)
+        config.flags &= ~CFGalwaysframe;
+
 #ifdef DEBUG
     debugb = params->debugb;
     debugc = params->debugc;

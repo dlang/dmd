@@ -145,6 +145,7 @@ struct Param
     char verbose;       // verbose compile
     char vtls;          // identify thread local variables
     char symdebug;      // insert debug symbolic information
+    char alwaysframe;   // always emit standard stack frame
     char optimize;      // run optimizer
     char map;           // generate linker .map file
     char cpu;           // target CPU
