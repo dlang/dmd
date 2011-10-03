@@ -1681,6 +1681,12 @@ struct TickDuration
     /++
        operator overloading "=="
       +/
+    bool opEquals(const TickDuration rhs) @safe const pure nothrow
+    {
+        return opEquals(rhs);
+    }
+
+    /// ditto
     bool opEquals(ref const TickDuration rhs) @safe const pure nothrow
     {
         return length == rhs.length;
