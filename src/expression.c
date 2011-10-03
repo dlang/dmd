@@ -6538,9 +6538,10 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         return e->type->dotExp(sc, e, ident);
     }
 #if DMDV2
-    else if (t1b->ty == Tarray ||
-             t1b->ty == Tsarray ||
-             t1b->ty == Taarray)
+    else if ((t1b->ty == Tarray || t1b->ty == Tsarray ||
+             t1b->ty == Taarray) &&
+             ident != Id::sort && ident != Id::reverse &&
+             ident != Id::dup && ident != Id::idup)
     {   /* If ident is not a valid property, rewrite:
          *   e1.ident
          * as:

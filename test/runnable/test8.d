@@ -347,7 +347,7 @@ void test18()
     str.sort;
 
     // This will crash the compiler
-    str[0].sort;
+    str[0] = str[0].dup.sort.idup;
 
     // This will give sintax error
     //str[0].sort();
@@ -367,7 +367,7 @@ void test19()
     string array = "foobar";
 
     array = array.idup;
-    array.sort;
+    array = array.dup.sort.idup;
     assert(array == "abfoor");
 }
 
