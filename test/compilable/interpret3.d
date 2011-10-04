@@ -2614,3 +2614,12 @@ static assert({
 void bug6751c(ref int[int][int] aa){
     aa = [38: [56 : 77]];
 }
+
+/**************************************************
+    6765   null AA.length
+**************************************************/
+
+static assert({
+    int[int] w;
+    return w.length;
+}()==0);
