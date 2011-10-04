@@ -2558,3 +2558,68 @@ static assert({
     auto kk = aaa[1][5];
     return kk;
 }() == 9);
+
+/**************************************************
+    6751   ref AA assignment
+**************************************************/
+
+void bug6751(ref int[int] aa){
+    aa[1] = 2;
+}
+
+static assert({
+    int[int] aa;
+    bug6751(aa);
+    assert(aa[1] == 2);
+    return true;
+}());
+
+void bug6751b(ref int[int][int] aa){
+    aa[1][17] = 2;
+}
+
+struct S6751
+{
+    int[int][int] aa;
+    int[int] bb;
+}
+
+static assert({
+    S6751 s;
+    bug6751b(s.aa);
+    assert(s.aa[1][17] == 2);
+    return true;
+}());
+
+static assert({
+    S6751 s;
+    s.aa[7][56]=57;
+    bug6751b(s.aa);
+    assert(s.aa[1][17] == 2);
+    assert(s.aa[7][56] == 57);
+    bug6751c(s.aa);
+    assert(s.aa.keys.length==1);
+    return true;
+}());
+
+static assert({
+    S6751 s;
+    s.bb[19] = 97;
+    bug6751(s.bb);
+    assert(s.bb[1] == 2);
+    assert(s.bb[19] == 97);
+    return true;
+}());
+
+void bug6751c(ref int[int][int] aa){
+    aa = [38: [56 : 77]];
+}
+
+/**************************************************
+    6765   null AA.length
+**************************************************/
+
+static assert({
+    int[int] w;
+    return w.length;
+}()==0);

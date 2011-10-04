@@ -2786,7 +2786,7 @@ Expression *copyLiteral(Expression *e)
                 uinteger_t length = tsa->dim->toInteger();
                 m = createBlockDuplicatedArrayLiteral(v->type, m, (size_t)length);
             }
-            else if (v->type->ty != Tarray) // NOTE: do not copy array references
+            else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
                 m = copyLiteral(m);
             newelems->tdata()[i] = m;
         }
@@ -3435,6 +3435,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
         Expression *oldagg = aggregate;
+        // Get the AA to be modified. (We do an LvalueRef interpret, unless it
+        // is a simple ref parameter -- in which case, we just want the value)
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (aggregate == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
@@ -3502,6 +3504,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 newval->type = e1->type;
                 e1 = ((IndexExp *)e1)->e1;
             }
+            // We must return to the original aggregate, in case it was a reference
+            wantRef = true;
+            e1 = oldagg;
             // fall through -- let the normal assignment logic take care of it
         }
     }
@@ -5153,21 +5158,6 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
 
 #if DMDV1
 
-Expression *interpret_aaLen(InterState *istate, Expressions *arguments)
-{
-    if (!arguments || arguments->dim != 1)
-        return NULL;
-    Expression *earg = arguments->tdata()[0];
-    earg = earg->interpret(istate);
-    if (earg == EXP_CANT_INTERPRET)
-        return NULL;
-    if (earg->op != TOKassocarrayliteral)
-        return NULL;
-    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
-    Expression *e = new IntegerExp(aae->loc, aae->keys->dim, Type::tsize_t);
-    return e;
-}
-
 Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
 {
 #if LOG
@@ -5215,20 +5205,21 @@ Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
 
 #endif
 
-#if DMDV2
-
 Expression *interpret_length(InterState *istate, Expression *earg)
 {
     //printf("interpret_length()\n");
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
-    if (earg->op != TOKassocarrayliteral)
-        return NULL;
-    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
-    Expression *e = new IntegerExp(aae->loc, aae->keys->dim, Type::tsize_t);
+    dinteger_t len = 0;
+    if (earg->op == TOKassocarrayliteral)
+        len = ((AssocArrayLiteralExp *)earg)->keys->dim;
+    else assert(earg->op == TOKnull);
+    Expression *e = new IntegerExp(earg->loc, len, Type::tsize_t);
     return e;
 }
+
+#if DMDV2
 
 Expression *interpret_keys(InterState *istate, Expression *earg, FuncDeclaration *fd)
 {
@@ -5586,16 +5577,16 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
 #if DMDV1
     if (!pthis)
     {
-        if (fd->ident == Id::aaLen)
-            e = interpret_aaLen(istate, arguments);
+        Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
+        if (fd->ident == Id::aaLen && nargs == 1 && firstarg->type->toBasetype()->ty == Taarray)
+            e = interpret_length(istate, firstarg);
         else if (fd->ident == Id::aaKeys)
             e = interpret_aaKeys(istate, arguments);
         else if (fd->ident == Id::aaValues)
             e = interpret_aaValues(istate, arguments);
         else if (fd->ident == Id::aaRehash && nargs == 2)
         {   // rehash is a no-op
-            Expression *earg = (Expression *)(arguments->data[0]);
-            return earg->interpret(istate, ctfeNeedLvalue);
+            return firstarg->interpret(istate, ctfeNeedLvalue);
         }
     }
 #endif
