@@ -588,7 +588,7 @@ void valueNoDtor(Expression *e)
                     {   VarExp *ve = (VarExp *)comma->e2;
                         VarDeclaration *ctmp = ve->var->isVarDeclaration();
                         if (ctmp)
-                            ctmp->noscope = 1;
+                            ctmp->flags |= VARFLAGnoscope;
                     }
                 }
             }
@@ -616,7 +616,8 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
         Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
         VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
         tmp->storage_class |= STCctfe;
-        tmp->noscope = noscope;
+        if (noscope)
+            tmp->flags |= VARFLAGnoscope;
         Expression *ae = new DeclarationExp(loc, tmp);
         e = new CommaExp(loc, ae, new VarExp(loc, tmp));
         e = e->semantic(sc);
@@ -4751,7 +4752,7 @@ void VarExp::checkEscape()
         // if reference type
         if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass)
         {
-            if (v->isScope() && !v->noscope)
+            if (v->isScope() && !(v->flags & VARFLAGnoscope))
                 error("escaping reference to scope local %s", v->toChars());
             else if (v->storage_class & STCvariadic)
                 error("escaping reference to variadic parameter %s", v->toChars());
@@ -5189,7 +5190,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
                 if (ie && ie->exp->canThrow(mustNotThrow))
                     return 1;
             }
-            if (vd->edtor && !vd->noscope)
+            if (vd->edtor && !(vd->flags & VARFLAGnoscope))
                 return vd->edtor->canThrow(mustNotThrow);
         }
     }
@@ -6734,7 +6735,7 @@ void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
             (!e1 || e1->op == TOKthis)
            )
         {
-            var->ctorinit = 1;
+            var->flags |= VARFLAGctorinit;
             //printf("setting ctorinit\n");
         }
         else

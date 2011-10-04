@@ -321,7 +321,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
         {
             DeclarationExp *de = (DeclarationExp *)(exp);
             VarDeclaration *v = de->declaration->isVarDeclaration();
-            if (v && !v->noscope)
+            if (v && !(v->flags & VARFLAGnoscope))
             {
                 Expression *e = v->edtor;
                 if (e)
@@ -348,7 +348,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
 #endif
                     *sfinally = new DtorExpStatement(loc, e, v);
                 }
-                v->noscope = 1;         // don't add in dtor again
+                v->flags |= VARFLAGnoscope;         // don't add in dtor again
             }
         }
     }
@@ -1908,7 +1908,7 @@ Lagain:
             if (!sc->func->vresult && tret && tret != Type::tvoid)
             {
                 VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
-                v->noscope = 1;
+                v->flags |= VARFLAGnoscope;
                 v->semantic(sc);
                 if (!sc->insert(v))
                     assert(0);
@@ -2495,7 +2495,7 @@ Statement *IfStatement::semantic(Scope *sc)
             Statement *sdtor = new ExpStatement(loc, match->edtor);
             sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
             ifbody = new CompoundStatement(loc, sdtor, ifbody);
-            match->noscope = 1;
+            match->flags |= VARFLAGnoscope;
        }
     }
     else
@@ -3687,7 +3687,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (!fd->vresult)
             {   // Declare vresult
                 VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
-                v->noscope = 1;
+                v->flags |= VARFLAGnoscope;
                 v->storage_class |= STCresult;
                 v->semantic(scx);
                 if (!scx->insert(v))

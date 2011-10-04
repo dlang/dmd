@@ -1168,7 +1168,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
 
             /* Mark the point of construction of a variable that needs to be destructed.
              */
-            if (vd->edtor && !vd->noscope)
+            if (vd->edtor && !(vd->flags & VARFLAGnoscope))
             {
                 e = el_dctor(e, vd);
 
