@@ -5199,7 +5199,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (t->ty == Ttuple)
             {
                 // Propagate storage class from tuple parameters to their element-parameters.
-                TypeTuple *tt = (TypeTuple *)t;
+                TypeTuple *tt = (TypeTuple *)(t->syntaxCopy());
                 if (tt->arguments)
                 {
                     size_t tdim = tt->arguments->dim;
@@ -5209,6 +5209,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     }
                     fparam->storageClass = 0;
                 }
+                fparam->type = tt;
 
                 /* Reset number of parameters, and back up one to do this fparam again,
                  * now that it is the first element of a tuple
