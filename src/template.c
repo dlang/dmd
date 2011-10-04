@@ -1590,6 +1590,17 @@ Lretry:
         Type *tb = prmtype->toBasetype();
         switch (tb->ty)
         {
+            // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
+            case Taarray:
+            {   TypeAArray *taa = (TypeAArray *)tb;
+                //printf("taa->index = %d %s\n", taa->index->ty, taa->index->toChars());
+                tb = taa->semantic(loc, paramscope);
+                //printf("taa -> tb = %d %s\n", tb->ty, tb->toChars());
+                if (tb->ty != Tsarray)
+                    break;
+                /* fall through */
+            }
+
             // Perhaps we can do better with this, see TypeFunction::callMatch()
             case Tsarray:
             {   TypeSArray *tsa = (TypeSArray *)tb;

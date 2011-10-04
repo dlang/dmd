@@ -744,6 +744,26 @@ void test6994()
 }
 
 /**********************************/
+// 6764
+
+enum N6764 = 1; //use const for D1
+
+alias size_t[N6764] T6764; //workaround
+void f6764()(T6764 arr...) { }
+
+void g6764()(size_t[1] arr...) { }
+
+void h6764()(size_t[N6764] arr...) { }
+
+void test6764()
+{
+    f6764(0);    //good
+    g6764(0);    //good
+    h6764!()(0); //good
+    h6764(0);    //Error: template main.f() does not match any function template declaration
+}
+
+/**********************************/
 // 3467 & 6806
 
 struct Foo3467( uint n )
@@ -1499,6 +1519,7 @@ int main()
     test6780();
     test6891();
     test6994();
+    test6764();
     test3467();
     test4413();
     test5525();
