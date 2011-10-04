@@ -2783,7 +2783,7 @@ Expression *copyLiteral(Expression *e)
                 uinteger_t length = tsa->dim->toInteger();
                 m = createBlockDuplicatedArrayLiteral(v->type, m, (size_t)length);
             }
-            else if (v->type->ty != Tarray) // NOTE: do not copy array references
+            else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
                 m = copyLiteral(m);
             newelems->tdata()[i] = m;
         }
@@ -3432,6 +3432,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
         Expression *oldagg = aggregate;
+        // Get the AA to be modified. (We do an LvalueRef interpret, unless it
+        // is a simple ref parameter -- in which case, we just want the value)
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (aggregate == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
@@ -3499,6 +3501,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 newval->type = e1->type;
                 e1 = ((IndexExp *)e1)->e1;
             }
+            // We must return to the original aggregate, in case it was a reference
+            wantRef = true;
+            e1 = oldagg;
             // fall through -- let the normal assignment logic take care of it
         }
     }
