@@ -2101,77 +2101,44 @@ elem *CatExp::toElem(IRState *irs)
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
-    Type *tn;
 
-#if 0
-    if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
-        (tb2->ty == Tarray || tb2->ty == Tsarray)
-       )
-#endif
+    Type *ta = (tb1->ty == Tarray || tb1->ty == Tsarray) ? tb1 : tb2;
+    Type *tn = ta->nextOf();
 
-    Type *ta = tb1->nextOf() ? e1->type : e2->type;
-    tn = tb1->nextOf() ? tb1->nextOf() : tb2->nextOf();
+    if (e1->op == TOKcat)
     {
-        if (e1->op == TOKcat)
-        {
-            elem *ep;
-            CatExp *ce = this;
-            int n = 2;
+        elem *ep;
+        CatExp *ce = this;
+        int n = 2;
 
-            ep = eval_Darray(irs, ce->e2);
-            do
-            {
-                n++;
-                ce = (CatExp *)ce->e1;
-                ep = el_param(ep, eval_Darray(irs, ce->e2));
-            } while (ce->e1->op == TOKcat);
-            ep = el_param(ep, eval_Darray(irs, ce->e1));
-#if 1
-            ep = el_params(
-                           ep,
-                           el_long(TYsize_t, n),
-                           ta->getTypeInfo(NULL)->toElem(irs),
-                           NULL);
-            e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNT]), ep);
-            e->Eflags |= EFLAGS_variadic;
-#else
-            ep = el_params(
-                           ep,
-                           el_long(TYsize_t, n),
-                           el_long(TYsize_t, tn->size()),
-                           NULL);
-            e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATN]), ep);
-            e->Eflags |= EFLAGS_variadic;
-#endif
-        }
-        else
+        ep = eval_Darray(irs, ce->e2);
+        do
         {
-            elem *e1;
-            elem *e2;
-            elem *ep;
-
-            e1 = eval_Darray(irs, this->e1);
-            e2 = eval_Darray(irs, this->e2);
-#if 1
-            ep = el_params(e2, e1, ta->getTypeInfo(NULL)->toElem(irs), NULL);
-            e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATT]), ep);
-#else
-            ep = el_params(el_long(TYsize_t, tn->size()), e2, e1, NULL);
-            e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCAT]), ep);
-#endif
-        }
-        el_setLoc(e,loc);
-    }
-#if 0
-    else if ((tb1->ty == Tarray || tb1->ty == Tsarray) &&
-             e2->type->equals(tb1->next))
-    {
-        error("array cat with element not implemented");
-        e = el_long(TYint, 0);
+            n++;
+            ce = (CatExp *)ce->e1;
+            ep = el_param(ep, eval_Darray(irs, ce->e2));
+        } while (ce->e1->op == TOKcat);
+        ep = el_param(ep, eval_Darray(irs, ce->e1));
+        ep = el_params(
+                       ep,
+                       el_long(TYsize_t, n),
+                       ta->getTypeInfo(NULL)->toElem(irs),
+                       NULL);
+        e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATNT]), ep);
+        e->Eflags |= EFLAGS_variadic;
     }
     else
-        assert(0);
-#endif
+    {
+        elem *e1;
+        elem *e2;
+        elem *ep;
+
+        e1 = eval_Darray(irs, this->e1);
+        e2 = eval_Darray(irs, this->e2);
+        ep = el_params(e2, e1, ta->getTypeInfo(NULL)->toElem(irs), NULL);
+        e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYCATT]), ep);
+    }
+    el_setLoc(e,loc);
     return e;
 }
 
