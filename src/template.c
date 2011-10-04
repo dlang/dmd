@@ -2278,6 +2278,7 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
         {
             Parameter *fparam = Parameter::getNth(tp->parameters, i);
             fparam->type = fparam->type->addStorageClass(fparam->storageClass);
+            fparam->storageClass &= ~(STC_TYPECTOR | STCin);
         }
         //printf("\t-> this   = %d, ", ty); print();
         //printf("\t-> tparam = %d, ", tparam->ty); tparam->print();

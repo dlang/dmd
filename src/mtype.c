@@ -5234,6 +5234,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 else
                     error(loc, "auto can only be used for template function parameters");
             }
+
+            // Remove redundant storage classes for type, they are already applied
+            fparam->storageClass &= ~(STC_TYPECTOR | STCin);
         }
         argsc->pop();
     }
@@ -8434,11 +8437,12 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
     {
         OutBuffer argbuf;
 
-        for (size_t i = 0; i < arguments->dim; i++)
+        size_t dim = Parameter::dim(arguments);
+        for (size_t i = 0; i < dim; i++)
         {
             if (i)
                 buf->writestring(", ");
-            Parameter *arg = arguments->tdata()[i];
+            Parameter *arg = Parameter::getNth(arguments, i);
 
             if (arg->storageClass & STCauto)
                 buf->writestring("auto ");
