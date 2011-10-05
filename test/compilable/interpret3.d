@@ -2634,3 +2634,15 @@ static assert({
     double[] z = w.values;
     return w.keys.length;
 }() == 1);
+
+/**************************************************
+    4022   AA.get
+**************************************************/
+
+static assert({
+    int[int] aa = [58: 13];
+    int r = aa.get(58, 1000);
+    assert(r == 13);
+    r = aa.get(59, 1000);
+    return r;
+}() == 1000);
