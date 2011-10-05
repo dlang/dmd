@@ -5213,7 +5213,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *elemTyp
     return copyLiteral(e);
 }
 
-Expression *interpret_AAget(InterState *istate, Expression *aa, Expression *key, Expression *lazyval)
+Expression *interpret_aaGet(InterState *istate, Expression *aa, Expression *key, Expression *lazyval)
 {   aa = aa->interpret(istate);
     if (aa == EXP_CANT_INTERPRET)
         return aa;
@@ -5235,6 +5235,59 @@ Expression *interpret_AAget(InterState *istate, Expression *aa, Expression *key,
     e = e->interpret(istate);
     return e;
 }
+
+// signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
+Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *deleg)
+{   aa = aa->interpret(istate);
+    if (aa == EXP_CANT_INTERPRET)
+        return aa;
+    if (aa->op != TOKassocarrayliteral)
+        return new IntegerExp(deleg->loc, 0, Type::tsize_t);
+
+    FuncDeclaration *fd = NULL;
+    Expression *pthis = NULL;
+    if (deleg->op == TOKdelegate)
+    {
+        fd = ((DelegateExp *)deleg)->func;
+        pthis = ((DelegateExp *)deleg)->e1;
+    }
+    else if (deleg->op == TOKfunction)
+        fd = ((FuncExp*)deleg)->fd;
+
+    assert(fd && fd->fbody);
+    assert(fd->parameters);
+    int numParams = fd->parameters->dim;
+    assert(numParams == 1 || numParams==2);
+
+    Type *valueType = fd->parameters->tdata()[numParams-1]->type;
+    Type *keyType = numParams == 2 ? fd->parameters->tdata()[0]->type
+                                   : Type::tsize_t;
+    Expressions args;
+    args.setDim(numParams);
+
+    AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)aa;
+    if (!ae->keys || ae->keys->dim == 0)
+        return new IntegerExp(deleg->loc, 0, Type::tsize_t);
+    Expression *eresult;
+
+    for (size_t i = 0; i < ae->keys->dim; ++i)
+    {
+        Expression *ekey = ae->keys->tdata()[i];
+        Expression *evalue = ae->values->tdata()[i];
+        args.tdata()[numParams - 1] = evalue;
+        if (numParams == 2) args.tdata()[0] = ekey;
+
+        eresult = fd->interpret(istate, &args, pthis);
+        if (eresult == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+
+        assert(eresult->op == TOKint64);
+        if (((IntegerExp *)eresult)->value != 0)
+            return eresult;
+    }
+    return eresult;
+}
+
 
 #if DMDV2
 // Return true if t is an AA, or AssociativeArray!(key, value)
@@ -5541,7 +5594,7 @@ Expression *evaluateIfBuiltin(InterState *istate,
         else if (fd->ident == Id::rehash && nargs==0)
             return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
         else if (!strcmp(fd->ident->string, "get") && nargs == 2)
-            return interpret_AAget(istate, pthis, arguments->tdata()[0], arguments->tdata()[1]);
+            return interpret_aaGet(istate, pthis, arguments->tdata()[0], arguments->tdata()[1]);
     }
 #endif
     if (!pthis)
@@ -5574,6 +5627,10 @@ Expression *evaluateIfBuiltin(InterState *istate,
         // template AA.var is always the AA data itself.
         Expression *firstdotvar = (firstarg && firstarg->op == TOKdotvar)
                 ?  ((DotVarExp *)firstarg)->e1 : NULL;
+        if (nargs==3 && isAssocArray(firstarg->type) && !strcmp(fd->ident->string, "_aaApply"))
+            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
+        if (nargs==3 && isAssocArray(firstarg->type) &&!strcmp(fd->ident->string, "_aaApply2"))
+            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
         if (firstdotvar && isAssocArray(firstdotvar->type))
         {   if (fd->ident == Id::aaLen && nargs == 1)
                 return interpret_length(istate, firstdotvar->interpret(istate));
