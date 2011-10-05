@@ -1109,11 +1109,18 @@ Lnomatch:
         error("only parameters or foreach declarations can be ref");
     }
 
-    if ((storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) ||
-        isDataseg()) &&
-        type->hasWild())
+    if (type->hasWild())
     {
-        error("only parameters or stack based variables can be inout");
+        if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) ||
+            isDataseg()
+            )
+        {
+            error("only parameters or stack based variables can be inout");
+        }
+        if (sc->func && !sc->func->type->hasWild())
+        {
+            error("only inside inout function variables can be inout");
+        }
     }
 
     if (!(storage_class & (STCctfe | STCref)) && tb->ty == Tstruct &&
