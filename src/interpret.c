@@ -5213,6 +5213,29 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *elemTyp
     return copyLiteral(e);
 }
 
+Expression *interpret_AAget(InterState *istate, Expression *aa, Expression *key, Expression *lazyval)
+{   aa = aa->interpret(istate);
+    if (aa == EXP_CANT_INTERPRET)
+        return aa;
+    key = key->interpret(istate);
+    if (key == EXP_CANT_INTERPRET)
+        return key;
+    Expression *e = NULL;
+    if (aa->op == TOKassocarrayliteral)
+    {   e = findKeyInAA((AssocArrayLiteralExp *)aa, key);
+        if (e)
+            return e;
+    }
+    // Not found, call the lazy argument and return it
+    e = lazyval->interpret(istate);
+    if (e == EXP_CANT_INTERPRET)
+        return e;
+    e = new CallExp(e->loc, e);
+    e->type = lazyval->type->nextOf();
+    e = e->interpret(istate);
+    return e;
+}
+
 #if DMDV2
 // Return true if t is an AA, or AssociativeArray!(key, value)
 bool isAssocArray(Type *t)
@@ -5507,17 +5530,20 @@ Expression *evaluateIfBuiltin(InterState *istate,
     Expression *e = NULL;
     int nargs = arguments ? arguments->dim : 0;
 #if DMDV2
-    if (pthis && isAssocArray(pthis->type) && nargs==0)
+    if (pthis && isAssocArray(pthis->type))
     {
-        if (fd->ident == Id::length)
+        if (fd->ident == Id::length &&  nargs==0)
             return interpret_length(istate, pthis);
-        else if (fd->ident == Id::keys)
+        else if (fd->ident == Id::keys && nargs==0)
             return interpret_keys(istate, pthis, returnedArrayElementType(fd));
-        else if (fd->ident == Id::values)
+        else if (fd->ident == Id::values && nargs==0)
             return interpret_values(istate, pthis, returnedArrayElementType(fd));
-        else if (fd->ident == Id::rehash)
+        else if (fd->ident == Id::rehash && nargs==0)
             return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
+        else if (!strcmp(fd->ident->string, "get") && nargs == 2)
+            return interpret_AAget(istate, pthis, arguments->tdata()[0], arguments->tdata()[1]);
     }
+#endif
     if (!pthis)
     {
         enum BUILTIN b = fd->isBuiltin();
@@ -5537,6 +5563,7 @@ Expression *evaluateIfBuiltin(InterState *istate,
                 e = EXP_CANT_INTERPRET;
         }
     }
+#if DMDV2
     /* Horrid hack to retrieve the builtin AA functions after they've been
      * mashed by the inliner.
      */
