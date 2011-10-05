@@ -76,7 +76,7 @@ bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
 Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
-bool evaluateIfBuiltin(Expression **result, InterState *istate,
+Expression *evaluateIfBuiltin(InterState *istate,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
 
@@ -4305,8 +4305,8 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         }
     }
     // Check for built-in functions
-    Expression *eresult;
-    if (evaluateIfBuiltin(&eresult, istate, fd, arguments, pthis))
+    Expression *eresult = evaluateIfBuiltin(istate, fd, arguments, pthis);
+    if (eresult)
         return eresult;
 
     // Inline .dup. Special case because it needs the return type.
@@ -5498,11 +5498,10 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     return eresult;
 }
 
-/* If this is a built-in function, set 'result' to the interpreted result,
- * and return true.
- * Otherwise, return false
+/* If this is a built-in function, return the interpreted result,
+ * Otherwise, return NULL.
  */
-bool evaluateIfBuiltin(Expression **result, InterState *istate,
+Expression *evaluateIfBuiltin(InterState *istate,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
 {
     Expression *e = NULL;
@@ -5511,13 +5510,13 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
     if (pthis && isAssocArray(pthis->type) && nargs==0)
     {
         if (fd->ident == Id::length)
-            e = interpret_length(istate, pthis);
+            return interpret_length(istate, pthis);
         else if (fd->ident == Id::keys)
-            e = interpret_keys(istate, pthis, returnedArrayElementType(fd));
+            return interpret_keys(istate, pthis, returnedArrayElementType(fd));
         else if (fd->ident == Id::values)
-            e = interpret_values(istate, pthis, returnedArrayElementType(fd));
+            return interpret_values(istate, pthis, returnedArrayElementType(fd));
         else if (fd->ident == Id::rehash)
-            e = pthis;  // rehash is a no-op
+            return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
     }
     if (!pthis)
     {
@@ -5530,10 +5529,7 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
                 Expression *earg = arguments->tdata()[i];
                 earg = earg->interpret(istate);
                 if (earg == EXP_CANT_INTERPRET)
-                {
-                    *result = EXP_CANT_INTERPRET;
-                    return true;
-                }
+                    return earg;
                 args.tdata()[i] = earg;
             }
             e = eval_builtin(b, &args);
@@ -5553,16 +5549,16 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
                 ?  ((DotVarExp *)firstarg)->e1 : NULL;
         if (firstdotvar && isAssocArray(firstdotvar->type))
         {   if (fd->ident == Id::aaLen && nargs == 1)
-                e = interpret_length(istate, firstdotvar->interpret(istate));
+                return interpret_length(istate, firstdotvar->interpret(istate));
             else if (fd->ident == Id::aaKeys && nargs == 2)
             {
                 Expression *trueAA = firstdotvar->interpret(istate);
-                e = interpret_keys(istate, trueAA, toBuiltinAAType(trueAA->type)->index);
+                return interpret_keys(istate, trueAA, toBuiltinAAType(trueAA->type)->index);
             }
             else if (fd->ident == Id::aaValues && nargs == 3)
             {
                 Expression *trueAA = firstdotvar->interpret(istate);
-                e = interpret_values(istate, trueAA, toBuiltinAAType(trueAA->type)->nextOf());
+                return interpret_values(istate, trueAA, toBuiltinAAType(trueAA->type)->nextOf());
             }
             else if (fd->ident == Id::aaRehash && nargs == 2)
             {
@@ -5608,19 +5604,12 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
             {   Expression *str = arguments->tdata()[0];
                 str = str->interpret(istate);
                 if (str == EXP_CANT_INTERPRET)
-                {
-                    *result = EXP_CANT_INTERPRET;
-                    return true;
-                }
-                *result = foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
-                return true;
+                    return str;
+                return foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
             }
         }
     }
-    if (!e)
-        return false;
-    *result = e;
-    return true;
+    return e;
 }
 
 /*************************** CTFE Sanity Checks ***************************/
