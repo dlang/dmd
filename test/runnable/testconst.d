@@ -1613,7 +1613,7 @@ struct S3748
     }
 
     version(error8)
-        inout(int) err8;
+        inout(int) err8;    // see fail_compilation/failinout3748a.d
 }
 
 inout(int)* getLowestXptr(inout(C3748) c1, inout(C3748) c2)
