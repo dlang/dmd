@@ -4417,6 +4417,12 @@ int TemplateInstance::needsTypeInference(Scope *sc)
             return FALSE;
         }
 
+#if DMDV2
+        for (size_t i = 0; i < td->parameters->dim; i++)
+            if (td->parameters->tdata()[i]->isTemplateThisParameter())
+                return TRUE;
+#endif
+
         /* Determine if the instance arguments, tiargs, are all that is necessary
          * to instantiate the template.
          */
