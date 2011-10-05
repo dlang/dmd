@@ -309,6 +309,52 @@ void test2579()
 }
 
 /**********************************/
+// 5886 & 5393
+
+struct K5886 {
+    void get1(this T)() const {
+        pragma(msg, T);
+    }
+    void get2(int N=4, this T)() const {
+        pragma(msg, N, " ; ", T);
+    }
+}
+
+void test5886() {
+    K5886 km;
+    const(K5886) kc;
+    immutable(K5886) ki;
+
+    km.get1;        // OK
+    kc.get1;        // OK
+    ki.get1;        // OK
+    km.get2;        // OK
+    kc.get2;        // OK
+    ki.get2;        // OK
+    km.get2!(1, K5886);             // Ugly
+    kc.get2!(2, const(K5886));      // Ugly
+    ki.get2!(3, immutable(K5886));  // Ugly
+    km.get2!8;      // Error
+    kc.get2!9;      // Error
+    ki.get2!10;     // Error
+}
+
+// --------
+
+void test5393()
+{
+    class A
+    {
+        void opDispatch (string name, this T) () { }
+    }
+
+    class B : A {}
+
+    auto b = new B;
+    b.foobar();
+}
+
+/**********************************/
 
 int main()
 {
@@ -325,6 +371,8 @@ int main()
     test2246();
     bug4984();
     test2579();
+    test5886();
+    test5393();
 
     printf("Success\n");
     return 0;
