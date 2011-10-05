@@ -5160,55 +5160,6 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
 
 /******************************* Special Functions ***************************/
 
-#if DMDV1
-
-Expression *interpret_aaKeys(InterState *istate, Expressions *arguments)
-{
-#if LOG
-    printf("interpret_aaKeys()\n");
-#endif
-    if (!arguments || arguments->dim != 2)
-        return NULL;
-    Expression *earg = arguments->tdata()[0];
-    earg = earg->interpret(istate);
-    if (earg == EXP_CANT_INTERPRET)
-        return NULL;
-    if (earg->op == TOKnull)
-        return new NullExp(earg->loc);
-    if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
-        return NULL;
-    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
-    Expression *e = new ArrayLiteralExp(aae->loc, aae->keys);
-    Type *elemType = ((TypeAArray *)aae->type)->index;
-    e->type = new TypeSArray(elemType, new IntegerExp(arguments ? arguments->dim : 0));
-    return copyLiteral(e);
-}
-
-Expression *interpret_aaValues(InterState *istate, Expressions *arguments)
-{
-#if LOG
-    printf("interpret_aaValues()\n");
-#endif
-    if (!arguments || arguments->dim != 3)
-        return NULL;
-    Expression *earg = arguments->tdata()[0];
-    earg = earg->interpret(istate);
-    if (earg == EXP_CANT_INTERPRET)
-        return NULL;
-    if (earg->op == TOKnull)
-        return new NullExp(earg->loc);
-    if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
-        return NULL;
-    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
-    Expression *e = new ArrayLiteralExp(aae->loc, aae->values);
-    Type *elemType = ((TypeAArray *)aae->type)->next;
-    e->type = new TypeSArray(elemType, new IntegerExp(arguments ? arguments->dim : 0));
-    //printf("result is %s\n", e->toChars());
-    return copyLiteral(e);
-}
-
-#endif
-
 Expression *interpret_length(InterState *istate, Expression *earg)
 {
     //printf("interpret_length()\n");
@@ -5222,8 +5173,6 @@ Expression *interpret_length(InterState *istate, Expression *earg)
     Expression *e = new IntegerExp(earg->loc, len, Type::tsize_t);
     return e;
 }
-
-#if DMDV2
 
 Expression *interpret_keys(InterState *istate, Expression *earg, Type *elemType)
 {
@@ -5263,8 +5212,6 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *elemTyp
     //printf("result is %s\n", e->toChars());
     return copyLiteral(e);
 }
-
-#endif
 
 #if DMDV2
 // Return true if t is an AA, or AssociativeArray!(key, value)
@@ -5628,15 +5575,19 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
     if (!pthis)
     {
         Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
-        if (fd->ident == Id::aaLen && nargs == 1 && firstarg->type->toBasetype()->ty == Taarray)
-            e = interpret_length(istate, firstarg);
-        else if (fd->ident == Id::aaKeys)
-            e = interpret_aaKeys(istate, arguments);
-        else if (fd->ident == Id::aaValues)
-            e = interpret_aaValues(istate, arguments);
-        else if (fd->ident == Id::aaRehash && nargs == 2)
-        {   // rehash is a no-op
-            return firstarg->interpret(istate, ctfeNeedLvalue);
+        if (firstarg && firstarg->type->toBasetype()->ty == Taarray)
+        {
+            TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
+            if (fd->ident == Id::aaLen && nargs == 1)
+                e = interpret_length(istate, firstarg);
+            else if (fd->ident == Id::aaKeys)
+                e = interpret_keys(istate, firstarg, firstAAtype->index);
+            else if (fd->ident == Id::aaValues)
+                e = interpret_values(istate, firstarg, firstAAtype->nextOf());
+            else if (fd->ident == Id::aaRehash && nargs == 2)
+            {   // rehash is a no-op
+                return firstarg->interpret(istate, ctfeNeedLvalue);
+            }
         }
     }
 #endif
