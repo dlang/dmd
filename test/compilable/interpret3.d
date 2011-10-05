@@ -2599,6 +2599,7 @@ static assert({
     assert(s.aa[7][56] == 57);
     bug6751c(s.aa);
     assert(s.aa.keys.length==1);
+    assert(s.aa.values.length==1);
     return true;
 }());
 
@@ -2623,3 +2624,13 @@ static assert({
     int[int] w;
     return w.length;
 }()==0);
+
+/**************************************************
+    6769   AA.keys, AA.values with -inline
+**************************************************/
+
+static assert({
+    double[char[3]] w = ["abc" : 2.3];
+    double[] z = w.values;
+    return w.keys.length;
+}() == 1);
