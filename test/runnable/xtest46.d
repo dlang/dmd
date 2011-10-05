@@ -3733,6 +3733,41 @@ void test3133()
 }
 
 /***************************************************/
+// 6695
+
+struct X6695
+{
+    void mfunc()
+    {
+        static assert(is(typeof(this) == X6695));
+    }
+    void cfunc() const
+    {
+        static assert(is(typeof(this) == const(X6695)));
+    }
+    void ifunc() immutable
+    {
+        static assert(is(typeof(this) == immutable(X6695)));
+    }
+    void sfunc() shared
+    {
+        static assert(is(typeof(this) == shared(X6695)));
+    }
+    void scfunc() shared const
+    {
+        static assert(is(typeof(this) == shared(const(X6695))));
+    }
+    void wfunc() inout
+    {
+        static assert(is(typeof(this) == inout(X6695)));
+    }
+    void swfunc() shared inout
+    {
+        static assert(is(typeof(this) == shared(inout(X6695))));
+    }
+}
+
+/***************************************************/
 
 int main()
 {
