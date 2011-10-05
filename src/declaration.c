@@ -107,6 +107,8 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
                 p = "const";
             else if (isImmutable())
                 p = "immutable";
+            else if (isWild())
+                p = "inout";
             else if (storage_class & STCmanifest)
                 p = "enum";
             else if (!t->isAssignable())
