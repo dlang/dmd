@@ -1109,7 +1109,8 @@ Lnomatch:
         error("only parameters or foreach declarations can be ref");
     }
 
-    if (type->hasWild())
+    if (type->hasWild() &&
+        !(type->ty == Tpointer && type->nextOf()->ty == Tfunction || type->ty == Tdelegate))
     {
         if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) ||
             isDataseg()

@@ -1878,6 +1878,23 @@ void test1961c()
 
 /************************************/
 
+inout(int) function(inout(int)) notinoutfun1() { return null; }
+inout(int) delegate(inout(int)) notinoutfun2() { return null; }
+void notinoutfun1(inout(int) function(inout(int)) fn) {}
+void notinoutfun2(inout(int) delegate(inout(int)) dg) {}
+
+void test88()
+{
+    inout(int) function(inout(int)) fp;
+    inout(int) delegate(inout(int)) dg;
+
+    static assert(!__traits(compiles, {
+        inout(int)* p;
+    }));
+}
+
+/************************************/
+
 int main()
 {
     test1();
@@ -1968,6 +1985,7 @@ int main()
     test1961a();
     test1961b();
     test1961c();
+    test88();
 
     printf("Success\n");
     return 0;
