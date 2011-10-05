@@ -4964,6 +4964,10 @@ int TemplateInstance::needsTypeInference(Scope *sc)
             return FALSE;
         }
 
+        for (size_t i = 0; i < td->parameters->dim; i++)
+            if (td->parameters->tdata()[i]->isTemplateThisParameter())
+                return TRUE;
+
         /* Determine if the instance arguments, tiargs, are all that is necessary
          * to instantiate the template.
          */

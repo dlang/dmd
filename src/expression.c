@@ -6859,7 +6859,13 @@ L1:
         TemplateDeclaration *td = dte->td;
         eleft = dte->e1;
         ti->tempdecl = td;
-        ti->semantic(sc);
+        if (ti->needsTypeInference(sc))
+        {
+            e = new CallExp(loc, this);
+            return e->semantic(sc);
+        }
+        else
+            ti->semantic(sc);
         if (!ti->inst)                  // if template failed to expand
             return new ErrorExp();
         Dsymbol *s = ti->inst->toAlias();
