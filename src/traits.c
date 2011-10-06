@@ -348,9 +348,6 @@ Expression *TraitsExp::semantic(Scope *sc)
         // use a struct as local function
         struct PushIdentsDg
         {
-            Loc loc;
-            Expressions *exps;
-
             static int dg(void *ctx, size_t n, Dsymbol *sm)
             {
                 if (!sm)
@@ -359,42 +356,53 @@ Expression *TraitsExp::semantic(Scope *sc)
                 if (sm->ident)
                 {
                     //printf("\t%s\n", sm->ident->toChars());
-                    char *str = sm->ident->toChars();
-                    PushIdentsDg *p = (PushIdentsDg *)ctx;
+                    Identifiers *idents = (Identifiers *)ctx;
 
-                    /* Skip if already present in exps[]
+                    /* Skip if already present in idents[]
                      */
-                    for (size_t j = 0; j < p->exps->dim; j++)
-                    {   StringExp *se2 = (StringExp *)p->exps->tdata()[j];
-                        if (strcmp(str, (char *)se2->string) == 0)
+                    for (size_t j = 0; j < idents->dim; j++)
+                    {   Identifier *id = idents->tdata()[j];
+                        if (id == sm->ident)
                             return 0;
+#ifdef DEBUG
+                        // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
+                        assert(strcmp(id->toChars(), sm->ident->toChars()) != 0);
+#endif
                     }
 
-                    StringExp *se = new StringExp(p->loc, str);
-                    p->exps->push(se);
+                    idents->push(sm->ident);
                 }
                 return 0;
             }
         };
 
-        PushIdentsDg ctx = { loc, new Expressions };
-        ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, &ctx);
+        Identifiers *idents = new Identifiers;
+        ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
 
         ClassDeclaration *cd = sd->isClassDeclaration();
         if (cd && cd->baseClass && ident == Id::allMembers)
         {   sd = cd->baseClass; // do again with base class
-            ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, &ctx);
+            ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
+        }
+
+        // Turn Identifiers into StringExps reusing the allocated array
+        ctassert(sizeof(Expressions) == sizeof(Identifiers));
+        Expressions *exps = (Expressions *)idents;
+        for (size_t i = 0; i < idents->dim; i++)
+        {   Identifier *id = idents->tdata()[i];
+            StringExp *se = new StringExp(loc, id->toChars());
+            exps->tdata()[i] = se;
         }
 
 #if DMDV1
-        Expression *e = new ArrayLiteralExp(loc, ctx.exps);
+        Expression *e = new ArrayLiteralExp(loc, exps);
 #endif
 #if DMDV2
         /* Making this a tuple is more flexible, as it can be statically unrolled.
          * To make an array literal, enclose __traits in [ ]:
          *   [ __traits(allMembers, ...) ]
          */
-        Expression *e = new TupleExp(loc, ctx.exps);
+        Expression *e = new TupleExp(loc, exps);
 #endif
         e = e->semantic(sc);
         return e;
