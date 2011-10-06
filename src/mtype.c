@@ -2220,7 +2220,7 @@ Type *TypeNext::reliesOnTident()
 
 int TypeNext::hasWild()
 {
-    return mod == MODwild || (next && next->hasWild());
+    return mod & MODwild || (next && next->hasWild());
 }
 
 
