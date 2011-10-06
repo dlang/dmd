@@ -2675,3 +2675,18 @@ static assert({
     assert(valsum == 0);
     return true;
 }());
+
+/**************************************************
+    AA.remove
+**************************************************/
+
+static assert({
+    int[int] aa = [58: 17, 45:6];
+    aa.remove(45);
+    assert(aa.length == 1);
+    aa.remove(7);
+    assert(aa.length == 1);
+    aa.remove(58);
+    assert(aa.length == 0);
+    return true;
+}());
