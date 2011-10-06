@@ -344,49 +344,57 @@ Expression *TraitsExp::semantic(Scope *sc)
             error("%s %s has no members", s->kind(), s->toChars());
             goto Lfalse;
         }
-        Expressions *exps = new Expressions;
-        while (1)
-        {   size_t sddim = ScopeDsymbol::dim(sd->members);
-            for (size_t i = 0; i < sddim; i++)
+
+        // use a struct as local function
+        struct PushIdentsDg
+        {
+            Loc loc;
+            Expressions *exps;
+
+            static int dg(void *ctx, size_t n, Dsymbol *sm)
             {
-                Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
                 if (!sm)
-                    break;
+                    return 1;
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
                     //printf("\t%s\n", sm->ident->toChars());
                     char *str = sm->ident->toChars();
+                    PushIdentsDg *p = (PushIdentsDg *)ctx;
 
                     /* Skip if already present in exps[]
                      */
-                    for (size_t j = 0; j < exps->dim; j++)
-                    {   StringExp *se2 = (StringExp *)exps->tdata()[j];
+                    for (size_t j = 0; j < p->exps->dim; j++)
+                    {   StringExp *se2 = (StringExp *)p->exps->tdata()[j];
                         if (strcmp(str, (char *)se2->string) == 0)
-                            goto Lnext;
+                            return 0;
                     }
 
-                    StringExp *se = new StringExp(loc, str);
-                    exps->push(se);
+                    StringExp *se = new StringExp(p->loc, str);
+                    p->exps->push(se);
                 }
-            Lnext:
-                ;
+                return 0;
             }
-            ClassDeclaration *cd = sd->isClassDeclaration();
-            if (cd && cd->baseClass && ident == Id::allMembers)
-                sd = cd->baseClass;     // do again with base class
-            else
-                break;
+        };
+
+        PushIdentsDg ctx = { loc, new Expressions };
+        ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, &ctx);
+
+        ClassDeclaration *cd = sd->isClassDeclaration();
+        if (cd && cd->baseClass && ident == Id::allMembers)
+        {   sd = cd->baseClass; // do again with base class
+            ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, &ctx);
         }
+
 #if DMDV1
-        Expression *e = new ArrayLiteralExp(loc, exps);
+        Expression *e = new ArrayLiteralExp(loc, ctx.exps);
 #endif
 #if DMDV2
         /* Making this a tuple is more flexible, as it can be statically unrolled.
          * To make an array literal, enclose __traits in [ ]:
          *   [ __traits(allMembers, ...) ]
          */
-        Expression *e = new TupleExp(loc, exps);
+        Expression *e = new TupleExp(loc, ctx.exps);
 #endif
         e = e->semantic(sc);
         return e;
