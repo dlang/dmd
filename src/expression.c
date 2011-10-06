@@ -2825,10 +2825,7 @@ ThisExp::ThisExp(Loc loc)
 }
 
 Expression *ThisExp::semantic(Scope *sc)
-{   FuncDeclaration *fd;
-    FuncDeclaration *fdthis;
-    int nested = 0;
-
+{
 #if LOGSEMANTIC
     printf("ThisExp::semantic()\n");
 #endif
@@ -2837,13 +2834,15 @@ Expression *ThisExp::semantic(Scope *sc)
         return this;
     }
 
+    FuncDeclaration *fd = hasThis(sc);  // fd is the uplevel function with the 'this' variable
+
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
-    if (sc->intypeof)
+    if (!fd && sc->intypeof)
     {
         // Find enclosing struct or class
-        for (Dsymbol *s = sc->parent; 1; s = s->parent)
+        for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
         {
             if (!s)
             {
@@ -2868,9 +2867,6 @@ Expression *ThisExp::semantic(Scope *sc)
             }
         }
     }
-
-    fdthis = sc->parent->isFuncDeclaration();
-    fd = hasThis(sc);   // fd is the uplevel function with the 'this' variable
     if (!fd)
         goto Lerr;
 
