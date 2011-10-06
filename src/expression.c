@@ -2276,7 +2276,7 @@ Lagain:
     {
         if (!imp->pkg)
         {   error("forward reference of import %s", imp->toChars());
-            return this;
+            return new ErrorExp();
         }
         ScopeExp *ie = new ScopeExp(loc, imp->pkg);
         return ie->semantic(sc);
@@ -2371,14 +2371,12 @@ Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 ThisExp::ThisExp(Loc loc)
         : Expression(loc, TOKthis, sizeof(ThisExp))
 {
+    //printf("ThisExp::ThisExp() loc = %d\n", loc.linnum);
     var = NULL;
 }
 
 Expression *ThisExp::semantic(Scope *sc)
-{   FuncDeclaration *fd;
-    FuncDeclaration *fdthis;
-    int nested = 0;
-
+{
 #if LOGSEMANTIC
     printf("ThisExp::semantic()\n");
 #endif
@@ -2387,39 +2385,39 @@ Expression *ThisExp::semantic(Scope *sc)
         return this;
     }
 
+    FuncDeclaration *fd = hasThis(sc);  // fd is the uplevel function with the 'this' variable
+
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
-    if (sc->intypeof)
+    if (!fd && sc->intypeof)
     {
         // Find enclosing struct or class
-        for (Dsymbol *s = sc->parent; 1; s = s->parent)
+        for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
         {
-            ClassDeclaration *cd;
-            StructDeclaration *sd;
-
             if (!s)
             {
-                error("%s is not in a struct or class scope", toChars());
+                error("%s is not in a class or struct scope", toChars());
                 goto Lerr;
             }
-            cd = s->isClassDeclaration();
+            ClassDeclaration *cd = s->isClassDeclaration();
             if (cd)
             {
                 type = cd->type;
                 return this;
             }
-            sd = s->isStructDeclaration();
+            StructDeclaration *sd = s->isStructDeclaration();
             if (sd)
             {
+#if STRUCTTHISREF
+                type = sd->type;
+#else
                 type = sd->type->pointerTo();
+#endif
                 return this;
             }
         }
     }
-
-    fdthis = sc->parent->isFuncDeclaration();
-    fd = hasThis(sc);   // fd is the uplevel function with the 'this' variable
     if (!fd)
         goto Lerr;
 
@@ -2428,22 +2426,13 @@ Expression *ThisExp::semantic(Scope *sc)
     assert(var->parent);
     type = var->type;
     var->isVarDeclaration()->checkNestedReference(sc, loc);
-#if 0
-    if (fd != fdthis)           // if nested
-    {
-        fdthis->getLevel(loc, fd);
-        fd->vthis->nestedref = 1;
-        fd->nestedFrameRef = 1;
-    }
-#endif
     if (!sc->intypeof)
         sc->callSuper |= CSXthis;
     return this;
 
 Lerr:
     error("'this' is only defined in non-static member functions, not %s", sc->parent->toChars());
-    type = Type::terror;
-    return this;
+    return new ErrorExp();
 }
 
 int ThisExp::isBool(int result)
