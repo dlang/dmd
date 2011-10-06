@@ -1268,7 +1268,7 @@ void test79()
 
 /************************************/
 
-void test80()
+inout(int) test80(inout(int) _ = 0)
 {
     char x;
     inout(char) y = x;
@@ -1321,11 +1321,13 @@ void test80()
     static assert(!__traits(compiles, sw = sc));
     static assert(!__traits(compiles, sw = w));
     sw = sw;
+
+    return 0;
 }
 
 /************************************/
 
-void test81()
+inout(int) test81(inout(int) _ = 0)
 {
     const(char)* c;
     immutable(char)* i;
@@ -1362,12 +1364,14 @@ void test81()
     static assert(!__traits(compiles, w = s));
     static assert(!__traits(compiles, w = sc));
     w = w;
+
+    return 0;
 }
 
 /************************************/
 
 
-void test82()
+inout(int) test82(inout(int) _ = 0)
 {
     const(immutable(char)*) c;
     pragma(msg, typeof(c));
@@ -1461,16 +1465,20 @@ void test82()
     static assert(typeof(s).stringof == "inout(shared(inout(char**))***)");
     pragma(msg, typeof(***s));
     static assert(typeof(***s).stringof == "shared(inout(char**))");
+
+    return 0;
 }
 
 /************************************/
 
-void test83()
+inout(int) test83(inout(int) _ = 0)
 {
     static assert(!__traits(compiles, typeid(int* function(inout int))));
     static assert(!__traits(compiles, typeid(inout(int*) function(int))));
     static assert(!__traits(compiles, typeid(inout(int*) function())));
     inout(int*) function(inout(int)) fp;
+
+    return 0;
 }
 
 /************************************/
@@ -1613,7 +1621,7 @@ struct S3748
     }
 
     version(error8)
-        inout(int) err8;
+        inout(int) err8;    // see fail_compilation/failinout3748a.d
 }
 
 inout(int)* getLowestXptr(inout(C3748) c1, inout(C3748) c2)
@@ -1654,7 +1662,7 @@ void test3748()
         int *err10 = s3.getX;
     }));
     version(error11)
-        inout(int)* err11;
+        inout(int)* err11;  // see fail_compilation/failinout3748b.d
 
     auto v4 = getLowestXptr(s.c, s3.c);
     static assert(is(typeof(v4) == const(int)*));
@@ -1870,6 +1878,23 @@ void test1961c()
 
 /************************************/
 
+inout(int) function(inout(int)) notinoutfun1() { return null; }
+inout(int) delegate(inout(int)) notinoutfun2() { return null; }
+void notinoutfun1(inout(int) function(inout(int)) fn) {}
+void notinoutfun2(inout(int) delegate(inout(int)) dg) {}
+
+void test88()
+{
+    inout(int) function(inout(int)) fp;
+    inout(int) delegate(inout(int)) dg;
+
+    static assert(!__traits(compiles, {
+        inout(int)* p;
+    }));
+}
+
+/************************************/
+
 int main()
 {
     test1();
@@ -1960,6 +1985,7 @@ int main()
     test1961a();
     test1961b();
     test1961c();
+    test88();
 
     printf("Success\n");
     return 0;

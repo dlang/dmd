@@ -5043,7 +5043,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             error(loc, "functions cannot return scope %s", tf->next->toChars());
         if (tf->next->toBasetype()->ty == Tvoid)
             tf->isref = FALSE;                  // rewrite "ref void" as just "void"
-        if (tf->next->hasWild())
+        if (tf->next->hasWild() &&
+            !(tf->next->ty == Tpointer && tf->next->nextOf()->ty == Tfunction || tf->next->ty == Tdelegate))
             wildreturn = TRUE;
     }
 
@@ -5085,7 +5086,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
 
-            if (t->hasWild())
+            if (t->hasWild() &&
+                !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
             {
                 wildparams = TRUE;
                 if (tf->next && !wildreturn)

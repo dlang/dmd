@@ -107,6 +107,8 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
                 p = "const";
             else if (isImmutable())
                 p = "immutable";
+            else if (isWild())
+                p = "inout";
             else if (storage_class & STCmanifest)
                 p = "enum";
             else if (!t->isAssignable())
@@ -1107,11 +1109,19 @@ Lnomatch:
         error("only parameters or foreach declarations can be ref");
     }
 
-    if ((storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest) ||
-        isDataseg()) &&
-        type->hasWild())
+    if (type->hasWild() &&
+        !(type->ty == Tpointer && type->nextOf()->ty == Tfunction || type->ty == Tdelegate))
     {
-        error("only fields, parameters or stack based variables can be inout");
+        if (storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCfield) ||
+            isDataseg()
+            )
+        {
+            error("only parameters or stack based variables can be inout");
+        }
+        if (sc->func && !sc->func->type->hasWild())
+        {
+            error("only inside inout function variables can be inout");
+        }
     }
 
     if (!(storage_class & (STCctfe | STCref)) && tb->ty == Tstruct &&

@@ -142,6 +142,7 @@ struct Declaration : Dsymbol
     int isAbstract()     { return storage_class & STCabstract; }
     int isConst()        { return storage_class & STCconst; }
     int isImmutable()    { return storage_class & STCimmutable; }
+    int isWild()         { return storage_class & STCwild; }
     int isAuto()         { return storage_class & STCauto; }
     int isScope()        { return storage_class & STCscope; }
     int isSynchronized() { return storage_class & STCsynchronized; }
