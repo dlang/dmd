@@ -2842,7 +2842,7 @@ Expression *ThisExp::semantic(Scope *sc)
     if (!fd && sc->intypeof)
     {
         // Find enclosing struct or class
-        for (Dsymbol *s = sc->parent; 1; s = s->parent)
+        for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
         {
             if (!s)
             {

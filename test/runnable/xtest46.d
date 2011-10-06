@@ -3765,6 +3765,25 @@ struct X6695
     {
         static assert(is(typeof(this) == shared(inout(X6695))));
     }
+
+    static assert(is(typeof(this) == X6695));
+}
+
+/***************************************************/
+// 6087
+
+template True6087(T)
+{
+    immutable True6087 = true;
+}
+struct Foo6087
+{
+    static assert( True6087!(typeof(this)) );
+}
+
+struct Bar6087
+{
+    static assert( is(typeof(this) == Bar6087) );
 }
 
 /***************************************************/
