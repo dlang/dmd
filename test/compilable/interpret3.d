@@ -2646,3 +2646,32 @@ static assert({
     r = aa.get(59, 1000);
     return r;
 }() == 1000);
+
+/**************************************************
+    6775 AA.opApply
+**************************************************/
+
+static assert({
+    int[int] aa = [58: 17, 45:6];
+    int valsum = 0;
+    int keysum = 0;
+    foreach(m; aa) { //aaApply
+        valsum += m;
+    }
+    assert(valsum == 17+6);
+    valsum = 0;
+    foreach(n, m; aa) { //aaApply2
+        valsum += m;
+        keysum += n;
+    }
+    assert(valsum == 17+6);
+    assert(keysum == 58+45);
+    // Check empty AA
+    valsum = 0;
+    int[int] bb;
+    foreach(m; bb) {
+        ++valsum;
+    }
+    assert(valsum == 0);
+    return true;
+}());
