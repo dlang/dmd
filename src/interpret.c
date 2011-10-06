@@ -4817,6 +4817,35 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
+#if DMDV2
+// Return true if t is an AA, or AssociativeArray!(key, value)
+bool isAssocArray(Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Taarray)
+        return true;
+    if (t->ty != Tstruct)
+        return false;
+    StructDeclaration *sym = ((TypeStruct *)t)->sym;
+    if (sym->ident == Id::AssociativeArray)
+        return true;
+    return false;
+}
+
+// Given a template AA type, extract the corresponding built-in AA type
+TypeAArray *toBuiltinAAType(Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Taarray)
+        return (TypeAArray *)t;
+    assert(t->ty == Tstruct);
+    StructDeclaration *sym = ((TypeStruct *)t)->sym;
+    assert(sym->ident == Id::AssociativeArray);
+    TemplateInstance *tinst = sym->parent->isTemplateInstance();
+    assert(tinst);
+    return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
+}
+#endif
 
 Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
@@ -4830,11 +4859,11 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         goto Lcant;
     if (to->ty == Tpointer && e1->op != TOKnull)
     {   // Deal with casts from char[] to char *
+        Type *pointee = ((TypePointer *)type)->next;
         if (e1->type->ty == Tarray || e1->type->ty == Tsarray)
         {
             // Check for unsupported type painting operations
             Type *elemtype = ((TypeArray *)(e1->type))->next;
-            Type *pointee = ((TypePointer *)type)->next;
             if (
 #if DMDV2
                 e1->type->nextOf()->castMod(0) != to->nextOf()->castMod(0)
@@ -4877,6 +4906,13 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         {   // Happens with Windows HANDLEs, for example.
             return paintTypeOntoLiteral(to, e1);
         }
+#if DMDV2
+        if (pointee->ty == Taarray && e1->op == TOKaddress
+            && isAssocArray(((AddrExp*)e1)->e1->type))
+        {   // cast from template AA pointer to true AA pointer is OK.
+            return paintTypeOntoLiteral(to, e1);
+        }
+#endif
         error("pointer cast from %s to %s is not supported at compile time",
                 e1->type->toChars(), to->toChars());
         return EXP_CANT_INTERPRET;
@@ -5092,6 +5128,13 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *ex = e1->interpret(istate);
     if (ex != EXP_CANT_INTERPRET)
     {
+        #if DMDV2
+        // Special case for template AAs: AA.var returns the AA itself.
+        //  ie AA.p  ----> AA. This is a hack, to get around the
+        // corresponding hack in the AA druntime implementation.
+        if (isAssocArray(ex->type))
+            return ex;
+        #endif
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
         if (ex->op == TOKstructliteral)
@@ -5213,29 +5256,6 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *elemTyp
     return copyLiteral(e);
 }
 
-Expression *interpret_aaGet(InterState *istate, Expression *aa, Expression *key, Expression *lazyval)
-{   aa = aa->interpret(istate);
-    if (aa == EXP_CANT_INTERPRET)
-        return aa;
-    key = key->interpret(istate);
-    if (key == EXP_CANT_INTERPRET)
-        return key;
-    Expression *e = NULL;
-    if (aa->op == TOKassocarrayliteral)
-    {   e = findKeyInAA((AssocArrayLiteralExp *)aa, key);
-        if (e)
-            return e;
-    }
-    // Not found, call the lazy argument and return it
-    e = lazyval->interpret(istate);
-    if (e == EXP_CANT_INTERPRET)
-        return e;
-    e = new CallExp(e->loc, e);
-    e->type = lazyval->type->nextOf();
-    e = e->interpret(istate);
-    return e;
-}
-
 // signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
 Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *deleg)
 {   aa = aa->interpret(istate);
@@ -5287,37 +5307,6 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
     }
     return eresult;
 }
-
-
-#if DMDV2
-// Return true if t is an AA, or AssociativeArray!(key, value)
-bool isAssocArray(Type *t)
-{
-    t = t->toBasetype();
-    if (t->ty == Taarray)
-        return true;
-    if (t->ty != Tstruct)
-        return false;
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    if (sym->ident == Id::AssociativeArray)
-        return true;
-    return false;
-}
-
-// Given a template AA type, extract the corresponding built-in AA type
-TypeAArray *toBuiltinAAType(Type *t)
-{
-    t = t->toBasetype();
-    if (t->ty == Taarray)
-        return (TypeAArray *)t;
-    assert(t->ty == Tstruct);
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    assert(sym->ident == Id::AssociativeArray);
-    TemplateInstance *tinst = sym->parent->isTemplateInstance();
-    assert(tinst);
-    return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
-}
-#endif
 
 // Helper function: given a function of type A[] f(...),
 // return A.
@@ -5593,8 +5582,6 @@ Expression *evaluateIfBuiltin(InterState *istate,
             return interpret_values(istate, pthis, returnedArrayElementType(fd));
         else if (fd->ident == Id::rehash && nargs==0)
             return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
-        else if (!strcmp(fd->ident->string, "get") && nargs == 2)
-            return interpret_aaGet(istate, pthis, arguments->tdata()[0], arguments->tdata()[1]);
     }
 #endif
     if (!pthis)
@@ -5659,15 +5646,17 @@ Expression *evaluateIfBuiltin(InterState *istate,
         {
             TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
             if (fd->ident == Id::aaLen && nargs == 1)
-                e = interpret_length(istate, firstarg);
+                return interpret_length(istate, firstarg);
             else if (fd->ident == Id::aaKeys)
-                e = interpret_keys(istate, firstarg, firstAAtype->index);
+                return interpret_keys(istate, firstarg, firstAAtype->index);
             else if (fd->ident == Id::aaValues)
-                e = interpret_values(istate, firstarg, firstAAtype->nextOf());
-            else if (fd->ident == Id::aaRehash && nargs == 2)
-            {   // rehash is a no-op
-                return firstarg->interpret(istate, ctfeNeedLvalue);
-            }
+                return interpret_values(istate, firstarg, firstAAtype->nextOf());
+            else if (nargs==2 && fd->ident == Id::aaRehash)
+                return firstarg->interpret(istate, ctfeNeedLvalue); //no-op
+            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply"))
+                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
+            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply2"))
+                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
         }
     }
 #endif
