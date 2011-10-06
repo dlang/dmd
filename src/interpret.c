@@ -5201,6 +5201,42 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
+Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
+{
+#if LOG
+    printf("RemoveExp::interpret() %s\n", toChars());
+#endif
+    Expression *agg = e1->interpret(istate);
+    if (agg == EXP_CANT_INTERPRET)
+        return agg;
+    Expression *index = e2->interpret(istate);
+    if (index == EXP_CANT_INTERPRET)
+        return index;
+    if (agg->op == TOKnull)
+        return EXP_VOID_INTERPRET;
+    assert(agg->op == TOKassocarrayliteral);
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)agg;
+    Expressions *keysx = aae->keys;
+    Expressions *valuesx = aae->values;
+    size_t removed = 0;
+    for (size_t j = 0; j < valuesx->dim; ++j)
+    {   Expression *ekey = keysx->tdata()[j];
+        Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, index);
+        if (ex == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+        if (ex->isBool(TRUE))
+            ++removed;
+        else if (removed != 0)
+        {   keysx->tdata()[j - removed] = ekey;
+            valuesx->tdata()[j - removed] = valuesx->tdata()[j];
+        }
+    }
+    valuesx->dim = valuesx->dim - removed;
+    keysx->dim = keysx->dim - removed;
+    return EXP_VOID_INTERPRET;
+}
+
+
 /******************************* Special Functions ***************************/
 
 Expression *interpret_length(InterState *istate, Expression *earg)
