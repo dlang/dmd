@@ -76,7 +76,7 @@ bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
 Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
-bool evaluateIfBuiltin(Expression **result, InterState *istate,
+Expression *evaluateIfBuiltin(InterState *istate,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
 
@@ -4311,8 +4311,8 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         }
     }
     // Check for built-in functions
-    Expression *eresult;
-    if (evaluateIfBuiltin(&eresult, istate, fd, arguments, pthis))
+    Expression *eresult = evaluateIfBuiltin(istate, fd, arguments, pthis);
+    if (eresult)
         return eresult;
 
     // Inline .dup. Special case because it needs the return type.
@@ -4823,6 +4823,35 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
+#if DMDV2
+// Return true if t is an AA, or AssociativeArray!(key, value)
+bool isAssocArray(Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Taarray)
+        return true;
+    if (t->ty != Tstruct)
+        return false;
+    StructDeclaration *sym = ((TypeStruct *)t)->sym;
+    if (sym->ident == Id::AssociativeArray)
+        return true;
+    return false;
+}
+
+// Given a template AA type, extract the corresponding built-in AA type
+TypeAArray *toBuiltinAAType(Type *t)
+{
+    t = t->toBasetype();
+    if (t->ty == Taarray)
+        return (TypeAArray *)t;
+    assert(t->ty == Tstruct);
+    StructDeclaration *sym = ((TypeStruct *)t)->sym;
+    assert(sym->ident == Id::AssociativeArray);
+    TemplateInstance *tinst = sym->parent->isTemplateInstance();
+    assert(tinst);
+    return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
+}
+#endif
 
 Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
@@ -4836,11 +4865,11 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         goto Lcant;
     if (to->ty == Tpointer && e1->op != TOKnull)
     {   // Deal with casts from char[] to char *
+        Type *pointee = ((TypePointer *)type)->next;
         if (e1->type->ty == Tarray || e1->type->ty == Tsarray)
         {
             // Check for unsupported type painting operations
             Type *elemtype = ((TypeArray *)(e1->type))->next;
-            Type *pointee = ((TypePointer *)type)->next;
             if (
 #if DMDV2
                 e1->type->nextOf()->castMod(0) != to->nextOf()->castMod(0)
@@ -4883,6 +4912,13 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         {   // Happens with Windows HANDLEs, for example.
             return paintTypeOntoLiteral(to, e1);
         }
+#if DMDV2
+        if (pointee->ty == Taarray && e1->op == TOKaddress
+            && isAssocArray(((AddrExp*)e1)->e1->type))
+        {   // cast from template AA pointer to true AA pointer is OK.
+            return paintTypeOntoLiteral(to, e1);
+        }
+#endif
         error("pointer cast from %s to %s is not supported at compile time",
                 e1->type->toChars(), to->toChars());
         return EXP_CANT_INTERPRET;
@@ -5098,6 +5134,13 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *ex = e1->interpret(istate);
     if (ex != EXP_CANT_INTERPRET)
     {
+        #if DMDV2
+        // Special case for template AAs: AA.var returns the AA itself.
+        //  ie AA.p  ----> AA. This is a hack, to get around the
+        // corresponding hack in the AA druntime implementation.
+        if (isAssocArray(ex->type))
+            return ex;
+        #endif
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
         if (ex->op == TOKstructliteral)
@@ -5164,6 +5207,42 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
+Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
+{
+#if LOG
+    printf("RemoveExp::interpret() %s\n", toChars());
+#endif
+    Expression *agg = e1->interpret(istate);
+    if (agg == EXP_CANT_INTERPRET)
+        return agg;
+    Expression *index = e2->interpret(istate);
+    if (index == EXP_CANT_INTERPRET)
+        return index;
+    if (agg->op == TOKnull)
+        return EXP_VOID_INTERPRET;
+    assert(agg->op == TOKassocarrayliteral);
+    AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)agg;
+    Expressions *keysx = aae->keys;
+    Expressions *valuesx = aae->values;
+    size_t removed = 0;
+    for (size_t j = 0; j < valuesx->dim; ++j)
+    {   Expression *ekey = keysx->tdata()[j];
+        Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, index);
+        if (ex == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+        if (ex->isBool(TRUE))
+            ++removed;
+        else if (removed != 0)
+        {   keysx->tdata()[j - removed] = ekey;
+            valuesx->tdata()[j - removed] = valuesx->tdata()[j];
+        }
+    }
+    valuesx->dim = valuesx->dim - removed;
+    keysx->dim = keysx->dim - removed;
+    return EXP_VOID_INTERPRET;
+}
+
+
 /******************************* Special Functions ***************************/
 
 Expression *interpret_length(InterState *istate, Expression *earg)
@@ -5219,35 +5298,57 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *elemTyp
     return copyLiteral(e);
 }
 
-#if DMDV2
-// Return true if t is an AA, or AssociativeArray!(key, value)
-bool isAssocArray(Type *t)
-{
-    t = t->toBasetype();
-    if (t->ty == Taarray)
-        return true;
-    if (t->ty != Tstruct)
-        return false;
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    if (sym->ident == Id::AssociativeArray)
-        return true;
-    return false;
-}
+// signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
+Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *deleg)
+{   aa = aa->interpret(istate);
+    if (aa == EXP_CANT_INTERPRET)
+        return aa;
+    if (aa->op != TOKassocarrayliteral)
+        return new IntegerExp(deleg->loc, 0, Type::tsize_t);
 
-// Given a template AA type, extract the corresponding built-in AA type
-TypeAArray *toBuiltinAAType(Type *t)
-{
-    t = t->toBasetype();
-    if (t->ty == Taarray)
-        return (TypeAArray *)t;
-    assert(t->ty == Tstruct);
-    StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    assert(sym->ident == Id::AssociativeArray);
-    TemplateInstance *tinst = sym->parent->isTemplateInstance();
-    assert(tinst);
-    return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
+    FuncDeclaration *fd = NULL;
+    Expression *pthis = NULL;
+    if (deleg->op == TOKdelegate)
+    {
+        fd = ((DelegateExp *)deleg)->func;
+        pthis = ((DelegateExp *)deleg)->e1;
+    }
+    else if (deleg->op == TOKfunction)
+        fd = ((FuncExp*)deleg)->fd;
+
+    assert(fd && fd->fbody);
+    assert(fd->parameters);
+    int numParams = fd->parameters->dim;
+    assert(numParams == 1 || numParams==2);
+
+    Type *valueType = fd->parameters->tdata()[numParams-1]->type;
+    Type *keyType = numParams == 2 ? fd->parameters->tdata()[0]->type
+                                   : Type::tsize_t;
+    Expressions args;
+    args.setDim(numParams);
+
+    AssocArrayLiteralExp *ae = (AssocArrayLiteralExp *)aa;
+    if (!ae->keys || ae->keys->dim == 0)
+        return new IntegerExp(deleg->loc, 0, Type::tsize_t);
+    Expression *eresult;
+
+    for (size_t i = 0; i < ae->keys->dim; ++i)
+    {
+        Expression *ekey = ae->keys->tdata()[i];
+        Expression *evalue = ae->values->tdata()[i];
+        args.tdata()[numParams - 1] = evalue;
+        if (numParams == 2) args.tdata()[0] = ekey;
+
+        eresult = fd->interpret(istate, &args, pthis);
+        if (eresult == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+
+        assert(eresult->op == TOKint64);
+        if (((IntegerExp *)eresult)->value != 0)
+            return eresult;
+    }
+    return eresult;
 }
-#endif
 
 // Helper function: given a function of type A[] f(...),
 // return A.
@@ -5504,27 +5605,27 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     return eresult;
 }
 
-/* If this is a built-in function, set 'result' to the interpreted result,
- * and return true.
- * Otherwise, return false
+/* If this is a built-in function, return the interpreted result,
+ * Otherwise, return NULL.
  */
-bool evaluateIfBuiltin(Expression **result, InterState *istate,
+Expression *evaluateIfBuiltin(InterState *istate,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
 {
     Expression *e = NULL;
     int nargs = arguments ? arguments->dim : 0;
 #if DMDV2
-    if (pthis && isAssocArray(pthis->type) && nargs==0)
+    if (pthis && isAssocArray(pthis->type))
     {
-        if (fd->ident == Id::length)
-            e = interpret_length(istate, pthis);
-        else if (fd->ident == Id::keys)
-            e = interpret_keys(istate, pthis, returnedArrayElementType(fd));
-        else if (fd->ident == Id::values)
-            e = interpret_values(istate, pthis, returnedArrayElementType(fd));
-        else if (fd->ident == Id::rehash)
-            e = pthis;  // rehash is a no-op
+        if (fd->ident == Id::length &&  nargs==0)
+            return interpret_length(istate, pthis);
+        else if (fd->ident == Id::keys && nargs==0)
+            return interpret_keys(istate, pthis, returnedArrayElementType(fd));
+        else if (fd->ident == Id::values && nargs==0)
+            return interpret_values(istate, pthis, returnedArrayElementType(fd));
+        else if (fd->ident == Id::rehash && nargs==0)
+            return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
     }
+#endif
     if (!pthis)
     {
         enum BUILTIN b = fd->isBuiltin();
@@ -5536,10 +5637,7 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
                 Expression *earg = arguments->tdata()[i];
                 earg = earg->interpret(istate);
                 if (earg == EXP_CANT_INTERPRET)
-                {
-                    *result = EXP_CANT_INTERPRET;
-                    return true;
-                }
+                    return earg;
                 args.tdata()[i] = earg;
             }
             e = eval_builtin(b, &args);
@@ -5547,6 +5645,7 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
                 e = EXP_CANT_INTERPRET;
         }
     }
+#if DMDV2
     /* Horrid hack to retrieve the builtin AA functions after they've been
      * mashed by the inliner.
      */
@@ -5557,18 +5656,22 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
         // template AA.var is always the AA data itself.
         Expression *firstdotvar = (firstarg && firstarg->op == TOKdotvar)
                 ?  ((DotVarExp *)firstarg)->e1 : NULL;
+        if (nargs==3 && isAssocArray(firstarg->type) && !strcmp(fd->ident->string, "_aaApply"))
+            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
+        if (nargs==3 && isAssocArray(firstarg->type) &&!strcmp(fd->ident->string, "_aaApply2"))
+            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
         if (firstdotvar && isAssocArray(firstdotvar->type))
         {   if (fd->ident == Id::aaLen && nargs == 1)
-                e = interpret_length(istate, firstdotvar->interpret(istate));
+                return interpret_length(istate, firstdotvar->interpret(istate));
             else if (fd->ident == Id::aaKeys && nargs == 2)
             {
                 Expression *trueAA = firstdotvar->interpret(istate);
-                e = interpret_keys(istate, trueAA, toBuiltinAAType(trueAA->type)->index);
+                return interpret_keys(istate, trueAA, toBuiltinAAType(trueAA->type)->index);
             }
             else if (fd->ident == Id::aaValues && nargs == 3)
             {
                 Expression *trueAA = firstdotvar->interpret(istate);
-                e = interpret_values(istate, trueAA, toBuiltinAAType(trueAA->type)->nextOf());
+                return interpret_values(istate, trueAA, toBuiltinAAType(trueAA->type)->nextOf());
             }
             else if (fd->ident == Id::aaRehash && nargs == 2)
             {
@@ -5585,15 +5688,17 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
         {
             TypeAArray *firstAAtype = (TypeAArray *)firstarg->type;
             if (fd->ident == Id::aaLen && nargs == 1)
-                e = interpret_length(istate, firstarg);
+                return interpret_length(istate, firstarg);
             else if (fd->ident == Id::aaKeys)
-                e = interpret_keys(istate, firstarg, firstAAtype->index);
+                return interpret_keys(istate, firstarg, firstAAtype->index);
             else if (fd->ident == Id::aaValues)
-                e = interpret_values(istate, firstarg, firstAAtype->nextOf());
-            else if (fd->ident == Id::aaRehash && nargs == 2)
-            {   // rehash is a no-op
-                return firstarg->interpret(istate, ctfeNeedLvalue);
-            }
+                return interpret_values(istate, firstarg, firstAAtype->nextOf());
+            else if (nargs==2 && fd->ident == Id::aaRehash)
+                return firstarg->interpret(istate, ctfeNeedLvalue); //no-op
+            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply"))
+                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
+            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply2"))
+                return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
         }
     }
 #endif
@@ -5614,19 +5719,12 @@ bool evaluateIfBuiltin(Expression **result, InterState *istate,
             {   Expression *str = arguments->tdata()[0];
                 str = str->interpret(istate);
                 if (str == EXP_CANT_INTERPRET)
-                {
-                    *result = EXP_CANT_INTERPRET;
-                    return true;
-                }
-                *result = foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
-                return true;
+                    return str;
+                return foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
             }
         }
     }
-    if (!e)
-        return false;
-    *result = e;
-    return true;
+    return e;
 }
 
 /*************************** CTFE Sanity Checks ***************************/

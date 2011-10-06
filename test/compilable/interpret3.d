@@ -2634,3 +2634,59 @@ static assert({
     double[] z = w.values;
     return w.keys.length;
 }() == 1);
+
+/**************************************************
+    4022   AA.get
+**************************************************/
+
+static assert({
+    int[int] aa = [58: 13];
+    int r = aa.get(58, 1000);
+    assert(r == 13);
+    r = aa.get(59, 1000);
+    return r;
+}() == 1000);
+
+/**************************************************
+    6775 AA.opApply
+**************************************************/
+
+static assert({
+    int[int] aa = [58: 17, 45:6];
+    int valsum = 0;
+    int keysum = 0;
+    foreach(m; aa) { //aaApply
+        valsum += m;
+    }
+    assert(valsum == 17+6);
+    valsum = 0;
+    foreach(n, m; aa) { //aaApply2
+        valsum += m;
+        keysum += n;
+    }
+    assert(valsum == 17+6);
+    assert(keysum == 58+45);
+    // Check empty AA
+    valsum = 0;
+    int[int] bb;
+    foreach(m; bb) {
+        ++valsum;
+    }
+    assert(valsum == 0);
+    return true;
+}());
+
+/**************************************************
+    AA.remove
+**************************************************/
+
+static assert({
+    int[int] aa = [58: 17, 45:6];
+    aa.remove(45);
+    assert(aa.length == 1);
+    aa.remove(7);
+    assert(aa.length == 1);
+    aa.remove(58);
+    assert(aa.length == 0);
+    return true;
+}());
