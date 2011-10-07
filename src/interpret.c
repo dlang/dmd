@@ -5625,7 +5625,6 @@ Expression *evaluateIfBuiltin(InterState *istate,
         else if (fd->ident == Id::rehash && nargs==0)
             return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
     }
-#endif
     if (!pthis)
     {
         enum BUILTIN b = fd->isBuiltin();
@@ -5645,14 +5644,13 @@ Expression *evaluateIfBuiltin(InterState *istate,
                 e = EXP_CANT_INTERPRET;
         }
     }
-#if DMDV2
     /* Horrid hack to retrieve the builtin AA functions after they've been
      * mashed by the inliner.
      */
     if (!pthis)
     {
         Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
-        // Check for the first parameter being a templatized AA. Hack: we assume that 
+        // Check for the first parameter being a templatized AA. Hack: we assume that
         // template AA.var is always the AA data itself.
         Expression *firstdotvar = (firstarg && firstarg->op == TOKdotvar)
                 ?  ((DotVarExp *)firstarg)->e1 : NULL;
