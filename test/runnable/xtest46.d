@@ -3788,6 +3788,18 @@ struct Bar6087
 
 /***************************************************/
 
+
+void test6289()
+{
+    typedef immutable(int)[] X;
+    static assert(is(typeof(X.init[]) == X));
+    static assert(is(typeof((immutable(int[])).init[]) == immutable(int)[]));
+    static assert(is(typeof((const(int[])).init[]) == const(int)[]));
+    static assert(is(typeof((const(int[3])).init[]) == const(int)[]));
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -3927,6 +3939,7 @@ int main()
     test131();
     test132();
     test133();
+    test6289();
     test134();
     test135();
     test136();

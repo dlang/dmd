@@ -8790,12 +8790,11 @@ Lagain:
         return e;
     }
 
-    if (t->ty == Tarray)
-    {
+    type = t->nextOf()->arrayOf();
+    // Allow typedef[] -> typedef[]
+    if (type->equals(t))
         type = e1->type;
-    }
-    else
-        type = t->nextOf()->arrayOf();
+
     return e;
 
 Lerror:
