@@ -11,7 +11,7 @@
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-import std.stdio, std.conv, std.datetime;
+import std.stdio, std.conv;
 
 class TreeNode {
     private TreeNode left, right;
@@ -47,8 +47,6 @@ class TreeNode {
 
 
 void main(string[] args) {
-    auto sw = StopWatch(AutoStart.yes);
-
     enum int minDepth = 4;
     enum n = 18;
 
@@ -68,6 +66,4 @@ void main(string[] args) {
             check += (TreeNode.bottomUpTree(-i, depth)).itemCheck();
         }
     }
-
-    writeln("Tree1:  ", sw.peek.seconds, " seconds");
 }
