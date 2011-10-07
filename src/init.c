@@ -799,6 +799,9 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, int needInterpret)
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
 
+    if (exp->op == TOKtype)
+        error("initializer must be an expression, not '%s'", exp->toChars());
+
     // Make sure all pointers are constants
     if (needInterpret && hasNonConstPointers(exp))
     {
