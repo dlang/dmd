@@ -449,17 +449,17 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, int needInterpret)
     length = 0;
     for (i = 0; i < index.dim; i++)
     {
-        Expression *idx = (Expression *)index.data[i];
+        Expression *idx = index[i];
         if (idx)
         {   idx = idx->semantic(sc);
             idx = idx->optimize(WANTvalue | WANTinterpret);
-            index.data[i] = (void *)idx;
+            index[i] = idx;
             length = idx->toInteger();
         }
 
-        Initializer *val = (Initializer *)value.data[i];
+        Initializer *val = value[i];
         val = val->semantic(sc, t->nextOf(), needInterpret);
-        value.data[i] = (void *)val;
+        value[i] = val;
         length++;
         if (length == 0)
         {   error(loc, "array dimension overflow");
@@ -526,8 +526,8 @@ Expression *ArrayInitializer::toExpression()
         edim = value.dim;
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
-            if (index.data[i])
-                j = ((Expression *)index.data[i])->toInteger();
+            if (index[i])
+                j = (index[i])->toInteger();
             if (j >= edim)
                 edim = j + 1;
         }
@@ -538,10 +538,10 @@ Expression *ArrayInitializer::toExpression()
     elements->zero();
     for (size_t i = 0, j = 0; i < value.dim; i++, j++)
     {
-        if (index.data[i])
-            j = ((Expression *)index.data[i])->toInteger();
+        if (index[i])
+            j = (index[i])->toInteger();
         assert(j < edim);
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value[i];
         if (!iz)
             goto Lno;
         Expression *ex = iz->toExpression();
@@ -549,7 +549,7 @@ Expression *ArrayInitializer::toExpression()
         {
             goto Lno;
         }
-        elements->data[j] = ex;
+        (*elements)[j] = ex;
     }
 
     /* Fill in any missing elements with the default initializer
@@ -558,13 +558,13 @@ Expression *ArrayInitializer::toExpression()
     Expression *init = NULL;
     for (size_t i = 0; i < edim; i++)
     {
-        if (!elements->data[i])
+        if (!(*elements)[i])
         {
             if (!type)
                 goto Lno;
             if (!init)
                 init = t->next->defaultInit();
-            elements->data[i] = init;
+            (*elements)[i] = init;
         }
     }
 
@@ -596,18 +596,18 @@ Initializer *ArrayInitializer::toAssocArrayInitializer()
 
     for (size_t i = 0; i < value.dim; i++)
     {
-        e = (Expression *)index.data[i];
+        e = index.tdata()[i];
         if (!e)
             goto Lno;
-        keys->data[i] = (void *)e;
+        keys->tdata()[i] = e;
 
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value.tdata()[i];
         if (!iz)
             goto Lno;
         e = iz->toExpression();
         if (!e)
             goto Lno;
-        values->data[i] = (void *)e;
+        values->tdata()[i] = e;
     }
     e = new AssocArrayLiteralExp(loc, keys, values);
     return new ExpInitializer(loc, e);
@@ -663,13 +663,13 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         if (i > 0)
             buf->writebyte(',');
-        Expression *ex = (Expression *)index.data[i];
+        Expression *ex = index.tdata()[i];
         if (ex)
         {
             ex->toCBuffer(buf, hgs);
             buf->writebyte(':');
         }
-        Initializer *iz = (Initializer *)value.data[i];
+        Initializer *iz = value.tdata()[i];
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
@@ -700,6 +700,9 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, int needInterpret)
     exp = exp->optimize(wantOptimize);
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
+
+    if (exp->op == TOKtype)
+        error("initializer must be an expression, not '%s'", exp->toChars());
     Type *tb = t->toBasetype();
 
     /* Look for case of initializing a static array with a too-short
