@@ -1894,6 +1894,44 @@ void test88()
 }
 
 /************************************/
+// 6782
+
+struct Tuple6782(T...)
+{
+    T field;
+    alias field this;
+}
+auto tuple6782(T...)(T field)
+{
+    return Tuple6782!T(field);
+}
+
+struct Range6782a
+{
+    int *ptr;
+    @property inout(int)* front() inout { return ptr; }
+    @property bool empty() const { return ptr is null; }
+    void popFront() { ptr = null; }
+}
+struct Range6782b
+{
+    Tuple6782!(int, int*) e;
+    @property front() inout { return e; }
+    @property empty() const { return e[1] is null; }
+    void popFront() { e[1] = null; }
+}
+
+void test6782()
+{
+    int x = 5;
+    auto r1 = Range6782a(&x);
+    foreach(p; r1) {}
+
+    auto r2 = Range6782b(tuple6782(1, &x));
+    foreach(i, p; r2) {}
+}
+
+/************************************/
 
 int main()
 {
@@ -1986,6 +2024,7 @@ int main()
     test1961b();
     test1961c();
     test88();
+    test6782();
 
     printf("Success\n");
     return 0;
