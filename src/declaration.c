@@ -1120,7 +1120,7 @@ Lnomatch:
         }
         if (sc->func && !sc->func->type->hasWild())
         {
-            error("only inside inout function variables can be inout");
+            error("inout variables can only be declared inside inout functions");
         }
     }
 
