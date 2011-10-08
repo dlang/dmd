@@ -603,7 +603,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
     }
     else if (e2->type->isfloating())
     {
-        // x ^ y for x < 0 and y not an integer is not defined
+        // x ^^ y for x < 0 and y not an integer is not defined
         if (e1->toReal() < 0.0)
         {
             e = new RealExp(loc, Port::nan, type);
@@ -614,7 +614,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
             Expressions args;
             args.setDim(1);
             args.tdata()[0] = e1;
-            e = eval_builtin(BUILTINsqrt, &args);
+            e = eval_builtin(loc, BUILTINsqrt, &args);
             if (!e)
                 e = EXP_CANT_INTERPRET;
         }

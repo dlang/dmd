@@ -1,6 +1,7 @@
 
 import std.stdio;
 import std.math;
+import core.bitop;
 
 /*******************************************/
 
@@ -41,6 +42,25 @@ void test2()
     i = i ^^ .5;
     assert(i == 2);
 }
+
+/**** Bug 5703 *****************************/
+
+static assert({
+    int a = 0x80;
+    int f = bsf(a);
+    int r = bsr(a);
+    a = 0x22;
+    assert(bsf(a)==1);
+    assert(bsr(a)==5);
+    a = 0x8000000;
+    assert(bsf(a)==27);
+    assert(bsr(a)==27);
+    a = 0x13f562c0;
+    assert(bsf(a) == 6);
+    assert(bsr(a) == 28);
+    assert(bswap(0xAABBCCDD) == 0xDDCCBBAA);
+    return true;
+}());
 
 /*******************************************/
 

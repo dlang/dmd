@@ -293,7 +293,17 @@ Msgtable msgtable[] =
     { "tan" },
     { "_sqrt", "sqrt" },
     { "_pow", "pow" },
+    { "atan2" },
+    { "rndtol" },
+    { "expm1" },
+    { "exp2" },
+    { "yl2x" },
+    { "yl2xp1" },
     { "fabs" },
+    { "bitop" },
+    { "bsf" },
+    { "bsr" },
+    { "bswap" },
 
     // Traits
     { "isAbstractClass" },
