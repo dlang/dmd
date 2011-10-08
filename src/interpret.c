@@ -76,7 +76,7 @@ bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
 Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
-Expression *evaluateIfBuiltin(InterState *istate,
+Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
 
@@ -4311,7 +4311,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         }
     }
     // Check for built-in functions
-    Expression *eresult = evaluateIfBuiltin(istate, fd, arguments, pthis);
+    Expression *eresult = evaluateIfBuiltin(istate, loc, fd, arguments, pthis);
     if (eresult)
         return eresult;
 
@@ -5608,7 +5608,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 /* If this is a built-in function, return the interpreted result,
  * Otherwise, return NULL.
  */
-Expression *evaluateIfBuiltin(InterState *istate,
+Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis)
 {
     Expression *e = NULL;
@@ -5639,7 +5639,7 @@ Expression *evaluateIfBuiltin(InterState *istate,
                     return earg;
                 args.tdata()[i] = earg;
             }
-            e = eval_builtin(b, &args);
+            e = eval_builtin(loc, b, &args);
             if (!e)
                 e = EXP_CANT_INTERPRET;
         }
