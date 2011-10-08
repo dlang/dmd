@@ -1075,6 +1075,31 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
     }
 }
 
+/**************************************************
+ * Print expressions to stdmsg, used by pragma(msg).
+ */
+
+void printExpressionsToStdmsg(Expressions *args, Scope *sc)
+{
+    for (size_t i = 0; i < args->dim; i++)
+    {
+        Expression *e = args->tdata()[i];
+        if (sc)
+        {
+            e = e->semantic(sc);
+            e = e->optimize(WANTvalue | WANTinterpret);
+        }
+        if (e->op == TOKstring)
+        {
+            StringExp *se = (StringExp *)e;
+            fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
+        }
+        else
+            fprintf(stdmsg, "%s", e->toChars());
+    }
+    fprintf(stdmsg, "\n");
+}
+
 /******************************** Expression **************************/
 
 Expression::Expression(Loc loc, enum TOK op, int size)

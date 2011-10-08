@@ -80,6 +80,8 @@ void valueNoDtor(Expression *e);
 void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
 
 
+void printExpressionsToStdmsg(Expressions *args, Scope *sc);
+
 /* Interpreter: what form of return value expression is required?
  */
 enum CtfeGoal

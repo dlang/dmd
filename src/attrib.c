@@ -926,23 +926,7 @@ void PragmaDeclaration::semantic(Scope *sc)
     if (ident == Id::msg)
     {
         if (args)
-        {
-            for (size_t i = 0; i < args->dim; i++)
-            {
-                Expression *e = args->tdata()[i];
-
-                e = e->semantic(sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
-                StringExp *se = e->toString();
-                if (se)
-                {
-                    fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
-                }
-                else
-                    fprintf(stdmsg, "%s", e->toChars());
-            }
-            fprintf(stdmsg, "\n");
-        }
+            printExpressionsToStdmsg(args, sc);
         goto Lnodecl;
     }
     else if (ident == Id::lib)
