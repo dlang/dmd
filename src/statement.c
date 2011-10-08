@@ -1838,6 +1838,9 @@ Lagain:
                 if (!ve->type || ve->type->ty == Terror)
                     goto Lrangeerr;
 
+                // Resolve inout qualifier of front type
+                ve->type = ve->type->substWildTo(tab->mod);
+
                 Expressions *exps = new Expressions();
                 exps->push(ve);
                 int pos = 0;
