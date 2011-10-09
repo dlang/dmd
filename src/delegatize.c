@@ -44,7 +44,11 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
 #else
     e = this->syntaxCopy();
 #endif
-    Statement *s = new ReturnStatement(loc, e);
+    Statement *s;
+    if (t->ty == Tvoid)
+        s = new ExpStatement(loc, e);
+    else
+        s = new ReturnStatement(loc, e);
     fld->fbody = s;
     e = new FuncExp(loc, fld);
     e = e->semantic(sc);
