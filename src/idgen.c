@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -233,6 +233,27 @@ Msgtable msgtable[] =
     // varargs implementation
     { "va_argsave_t", "__va_argsave_t" },
     { "va_argsave", "__va_argsave" },
+
+    // Builtin functions
+    { "std" },
+    { "core" },
+    { "math" },
+    { "sin" },
+    { "cos" },
+    { "tan" },
+    { "_sqrt", "sqrt" },
+    { "_pow", "pow" },
+    { "atan2" },
+    { "rndtol" },
+    { "expm1" },
+    { "exp2" },
+    { "yl2x" },
+    { "yl2xp1" },
+    { "fabs" },
+    { "bitop" },
+    { "bsf" },
+    { "bsr" },
+    { "bswap" },
 };
 
 

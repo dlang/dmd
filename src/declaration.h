@@ -508,9 +508,18 @@ enum BUILTIN
     BUILTINtan,                 // std.math.tan
     BUILTINsqrt,                // std.math.sqrt
     BUILTINfabs,                // std.math.fabs
+    BUILTINatan2,               // std.math.atan2
+    BUILTINrndtol,              // std.math.rndtol
+    BUILTINexpm1,               // std.math.expm1
+    BUILTINexp2,                // std.math.exp2
+    BUILTINyl2x,                // std.math.yl2x
+    BUILTINyl2xp1,              // std.math.yl2xp1
+    BUILTINbsr,                 // core.bitop.bsr
+    BUILTINbsf,                 // core.bitop.bsf
+    BUILTINbswap,               // core.bitop.bswap
 };
 
-Expression *eval_builtin(enum BUILTIN builtin, Expressions *arguments);
+Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments);
 
 #else
 enum BUILTIN { };

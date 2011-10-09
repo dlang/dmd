@@ -38,6 +38,8 @@ static real_t zero;     // work around DMC bug for now
 
 #define LOG 0
 
+int RealEquals(real_t x1, real_t x2);
+
 Expression *expType(Type *type, Expression *e)
 {
     if (type != e->type)
