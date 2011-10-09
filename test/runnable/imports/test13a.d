@@ -35,7 +35,7 @@ template TPair(T, U) {
         public U right() {
             return this._right;
         }
-        public boolean opEquals(Object obj) {
+        override public boolean opEquals(Object obj) {
             Pair other = cast(Pair) obj;
             if (other !is null) {
                 return (left() == other.left()) && (right() == other.right());

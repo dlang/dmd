@@ -2263,7 +2263,7 @@ class A143
 
 class B143 : A143
 {
-    void fill() { }
+    override void fill() { }
 }
 
 void test143()
@@ -2610,8 +2610,8 @@ class A164
 
 abstract class B164 : A164
 {
-    final B164 foo() { return null; }
-    final B164 foo() const { return null; }
+    override final B164 foo() { return null; }
+    override final B164 foo() const { return null; }
 }
 
 /***************************************************/
@@ -2624,8 +2624,8 @@ class A165
 
 abstract class B165 : A165
 {
-    final B165 foo() { return null; }
-    final const(B165) foo() const { return null; }
+    override final B165 foo() { return null; }
+    override final const(B165) foo() const { return null; }
 }
 
 /***************************************************/
@@ -2683,7 +2683,7 @@ class Class171 : Address {
 
     struct FwdStruct  {  }
 
-    int nameLen()    { return 0; }
+    override int nameLen()    { return 0; }
 }
 
 void test171 ()

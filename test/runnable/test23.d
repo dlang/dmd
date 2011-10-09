@@ -640,7 +640,7 @@ class UA {
 }
 
 class UB : UA {
-    B29 f() { return null; }
+    override B29 f() { return null; }
 }
 
 class A29

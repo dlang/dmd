@@ -441,7 +441,7 @@ class Abc22
 
 class Def22 : Abc22
 {
-    Bar22 test() { return new Bar22; }
+    override Bar22 test() { return new Bar22; }
 }
 
 void testx22(Abc22 a)
@@ -1003,7 +1003,7 @@ class A52
 
 class B52 : A52
 {
-    char get() { return 'B'; }
+    override char get() { return 'B'; }
 }
 
 void test52()
@@ -1050,7 +1050,7 @@ class A54
 
 class B54 : A54
 {
-    void a()
+    override void a()
     {
 	printf("B54.a\n");
 	assert(0);
@@ -1095,7 +1095,7 @@ class A56
 
 class B56 : A56
 {
-    int foo(int x = 7)
+    override int foo(int x = 7)
     {
 	printf("B56.x = %d\n", x);
 	return x;

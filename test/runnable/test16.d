@@ -141,7 +141,7 @@ class B3 : A3
 
 class C3 : B3
 {
-    void foo()
+    override void foo()
     {
 	printf("C.foo \n" );
 	super.foo();

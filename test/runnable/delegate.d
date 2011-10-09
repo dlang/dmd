@@ -13,7 +13,7 @@ class Foo
 
 class Bar : Foo
 {
-   int bar(int i, char[] s) { return 5; }
+   override int bar(int i, char[] s) { return 5; }
 }
 
 void test1()
@@ -72,9 +72,9 @@ class Foo3
 
 class Bar3 : Foo3
 {
-    int bar(int i, char[] s) { return 48; }
+    override int bar(int i, char[] s) { return 48; }
 
-    int result() { return 48; }
+    override int result() { return 48; }
 
     void test2()
     {
@@ -268,7 +268,7 @@ class A13
 
 class B13 : A13
 {
-    int f()
+    override int f()
     {
         return 2;
     }

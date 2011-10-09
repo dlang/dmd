@@ -29,7 +29,7 @@ class A
 
 class B : A
 {
-     int foo(int i)
+     override int foo(int i)
      in
      {
 	float f;
@@ -83,7 +83,7 @@ class A2
 
 class B2 : A2
 {
-     int foo(int i)
+     override int foo(int i)
      in
      {
 	float f;
@@ -105,7 +105,7 @@ class B2 : A2
 
 class C : B2
 {
-     int foo(int i)
+     override int foo(int i)
      in
      {
 	float f;
