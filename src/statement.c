@@ -3780,8 +3780,13 @@ Statement *ReturnStatement::semantic(Scope *sc)
          *      exp; return;
          */
         Statement *s = new ExpStatement(loc, exp);
-        exp = NULL;
         s = s->semantic(sc);
+
+        if (exp->type->ty != Tvoid && !exp->checkSideEffect(2))
+            error("expression with no side effects used with void return");
+
+        exp = NULL;
+
         return new CompoundStatement(loc, s, this);
     }
 
