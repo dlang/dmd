@@ -990,7 +990,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     {   /* Adjust function return type based on wildmatch
          */
         //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
-        assert(tret->hasWild());
         if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
             tret = tret->substWildTo(MODconst);
         else if (wildmatch & MODimmutable)
