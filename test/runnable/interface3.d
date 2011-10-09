@@ -40,7 +40,7 @@ class Writer : IWriter
 
 class FlushWriter : Writer
 {
-        IWriter put (I1 x)
+        override IWriter put (I1 x)
         {
                // have superclass handle the I1
                 super.put (x);

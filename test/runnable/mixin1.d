@@ -73,7 +73,7 @@ class Bar3
 
 class Code3 : Bar3
 {
-    int func() { printf("Code3.func()\n"); return 2; }
+    override int func() { printf("Code3.func()\n"); return 2; }
 }
 
 void test3()

@@ -1271,7 +1271,7 @@ class Abstract(T) : Interface!(T)
 
 class Concrete(T) : Abstract!(T)
 {
-    void foo52() { printf("Concrete.foo52(this = %p)\n", this); }
+    override void foo52() { printf("Concrete.foo52(this = %p)\n", this); }
 }
 
 class Sub(T) : Concrete!(T)

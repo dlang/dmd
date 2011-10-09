@@ -987,7 +987,7 @@ class B46 : A46
 
 class C46 : B46
 {
-    char foo() { return 'c'; }
+    override char foo() { return 'c'; }
     char bar()
     {
 	return B46.foo();

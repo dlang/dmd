@@ -13,11 +13,11 @@ class A : D {
 
 class B : A, D
 {
-	int foo() { return 2; }
+	override int foo() { return 2; }
 }
 
 class C : B, D {
-	int foo() { return 3; }
+	override int foo() { return 3; }
 }
 
 void test1()
@@ -56,11 +56,11 @@ class A2 : D2 {
 }
 
 class B2 : A2 {
-	int foo() { printf("B2\n"); return 2; }
+	override int foo() { printf("B2\n"); return 2; }
 }
 
 class C2 : B2, D2 {
-	int foo() { printf("C2\n"); return 3; }
+	override int foo() { printf("C2\n"); return 3; }
 }
 
 void test2()
