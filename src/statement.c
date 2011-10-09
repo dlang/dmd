@@ -3780,8 +3780,14 @@ Statement *ReturnStatement::semantic(Scope *sc)
          *      exp; return;
          */
         Statement *s = new ExpStatement(loc, exp);
-        exp = NULL;
         s = s->semantic(sc);
+
+        if (exp->type->ty != Tvoid)
+        {
+            error("cannot return non-void from void function");
+        }
+
+        exp = NULL;
         return new CompoundStatement(loc, s, this);
     }
 
