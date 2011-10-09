@@ -5877,6 +5877,15 @@ void BinExp::checkComplexAddAssign()
     }
 }
 
+// Disable +=, -= ++, -- etc on enum types
+void BinExp::checkEnumModifyAssign()
+{
+    if (type->ty == Tenum)
+    {
+        error("operator not allowed on enum expression %s", toChars());
+    }
+}
+
 void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     expToCBuffer(buf, hgs, e1, precedence[op]);
@@ -5943,6 +5952,7 @@ Expression *BinAssignExp::commonSemanticAssign(Scope *sc)
             error("operator not allowed on bool expression %s", toChars());
             return new ErrorExp();
         }
+        checkEnumModifyAssign();
         typeCombine(sc);
         e1->checkArithmetic();
         e2->checkArithmetic();
@@ -5987,6 +5997,7 @@ Expression *BinAssignExp::commonSemanticAssignIntegral(Scope *sc)
         {
             e2 = e2->implicitCastTo(sc, type);
         }
+        checkEnumModifyAssign();
 
         typeCombine(sc);
         e1->checkIntegral();
@@ -9363,6 +9374,9 @@ Expression *PostExp::semantic(Scope *sc)
 
         e1 = e1->modifiableLvalue(sc, e1);
 
+        type = e1->type;
+        checkEnumModifyAssign();
+
         Type *t1 = e1->type->toBasetype();
         if (t1->ty == Tclass || t1->ty == Tstruct)
         {   /* Check for operator overloading,
@@ -10072,6 +10086,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
             e1->checkArithmetic();
             e2->checkArithmetic();
             checkComplexAddAssign();
+            checkEnumModifyAssign();
             if (type->isreal() || type->isimaginary())
             {
                 assert(global.errors || e2->type->isfloating());
@@ -10127,6 +10142,7 @@ Expression *MinAssignExp::semantic(Scope *sc)
         e2 = e2->checkArithmetic();
         checkComplexAddAssign();
         type = e1->type;
+        checkEnumModifyAssign();
         typeCombine(sc);
         if (type->isreal() || type->isimaginary())
         {
@@ -10254,6 +10270,7 @@ Expression *MulAssignExp::semantic(Scope *sc)
     e1->checkArithmetic();
     e2->checkArithmetic();
     checkComplexMulAssign();
+    checkEnumModifyAssign();
     if (e2->type->isfloating())
     {   Type *t1;
         Type *t2;
@@ -10326,6 +10343,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
     e1->checkArithmetic();
     e2->checkArithmetic();
     checkComplexMulAssign();
+    checkEnumModifyAssign();
     if (e2->type->isimaginary())
     {   Type *t1;
         Type *t2;
@@ -10408,6 +10426,7 @@ Expression *ShlAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
+    checkEnumModifyAssign();
     typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
@@ -10440,6 +10459,7 @@ Expression *ShrAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
+    checkEnumModifyAssign();
     typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
@@ -10472,6 +10492,7 @@ Expression *UshrAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
+    checkEnumModifyAssign();
     typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
@@ -10557,6 +10578,9 @@ Expression *PowAssignExp::semantic(Scope *sc)
     {
         e1 = e1->modifiableLvalue(sc, e1);
     }
+
+    type = e1->type;
+    checkEnumModifyAssign();
 
     if ( (e1->type->isintegral() || e1->type->isfloating()) &&
          (e2->type->isintegral() || e2->type->isfloating()))

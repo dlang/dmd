@@ -788,6 +788,7 @@ struct BinExp : Expression
     int checkSideEffect(int flag);
     void checkComplexMulAssign();
     void checkComplexAddAssign();
+    void checkEnumModifyAssign();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *scaleFactor(Scope *sc);
     Expression *typeCombine(Scope *sc);
