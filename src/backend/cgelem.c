@@ -133,17 +133,17 @@ int elemisone(elem *e)
             case TYllong:
             case TYullong:
             case TYnullptr:
-#if TX86
 #if JHANDLE
             case TYjhandle:
 #endif
-            case TYnptr:
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYhptr:
-#endif
             case TYfptr:
             case TYvptr:
+#endif
+            case TYnptr:
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -198,17 +198,17 @@ int elemisnegone(elem *e)
             case TYllong:
             case TYullong:
             case TYnullptr:
-#if TX86
+            case TYnptr:
 #if JHANDLE
             case TYjhandle:
 #endif
-            case TYnptr:
+#if TARGET_SEGMENTED
             case TYsptr:
             case TYcptr:
             case TYhptr:
-#endif
             case TYfptr:
             case TYvptr:
+#endif
             case TYbool:
             case TYwchar_t:
             case TYdchar:
@@ -1084,7 +1084,11 @@ L1:
   /* for floating or far or huge pointers!                              */
   if (e1->Eoper == OPadd && e2->Eoper == OPadd &&
       cnst(e1->E2) && cnst(e2->E2) &&
-      (tyintegral(tym) || tybasic(tym) == TYjhandle || tybasic(tym) == TYnptr || tybasic(tym) == TYsptr ))
+      (tyintegral(tym) || tybasic(tym) == TYjhandle || tybasic(tym) == TYnptr
+#if TARGET_SEGMENTED
+       || tybasic(tym) == TYsptr
+#endif
+      ))
   {     elem *tmp;
 
         e->Eoper = OPadd;
@@ -2306,7 +2310,7 @@ STATIC elem * elind(elem *e)
           }
             break;
         case OPadd:
-#if TX86
+#if TARGET_SEGMENTED
             if (OPTIMIZER)
             {   /* Try to convert far pointer to stack pointer  */
                 elem *e12 = e1->E2;
@@ -2556,7 +2560,11 @@ CEXTERN elem * elstruct(elem *e)
                 /* We should do the analysis to see if we can use
                    something simpler than TYfptr.
                  */
+#if TARGET_SEGMENTED
                 typ = (intsize == LONGSIZE) ? TYnptr : TYfptr;
+#else
+                typ = TYnptr;
+#endif
                 e2 = el_una(OPaddr,typ,e2);
                 e2 = optelem(e2,TRUE);          /* distribute & to x and y leaves */
                 *pe2 = el_una(OPind,ty2,e2);
@@ -3401,7 +3409,7 @@ STATIC elem * elptrlptr(elem *e)
 /*********************************
  * Conversions of handle pointers to far pointers.
  */
-
+// TODO: should this function go away entirely in TARGET_FLAT mode?
 STATIC elem * elvptrfptr(elem *e)
 {   elem *e1;
     elem *e12;
@@ -3411,7 +3419,9 @@ STATIC elem * elvptrfptr(elem *e)
     if (e1->Eoper == OPadd || e1->Eoper == OPmin)
     {
         e12 = e1->E2;
+#if TARGET_SEGMENTED
         if (tybasic(e12->Ety) != TYvptr)
+#endif
         {
             /* Rewrite (vtof(e11 + e12)) to (vtof(e11) + e12)   */
             op = e->Eoper;

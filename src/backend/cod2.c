@@ -207,9 +207,14 @@ code *cdorth(elem *e,regm_t *pretregs)
   else
   {     /* If ty is a TYfptr, but both operands are long, treat the     */
         /* operation as a long.                                         */
+#if TARGET_SEGMENTED
         if ((tylong(ty1) || ty1 == TYhptr) &&
             (tylong(ty2) || ty2 == TYhptr))
             numwords++;
+#else
+        if (tylong(ty1) && tylong(ty2))
+            numwords++;
+#endif
   }
 
   // Special cases where only flags are set
@@ -460,6 +465,7 @@ code *cdorth(elem *e,regm_t *pretregs)
 #endif
         assert(tysize[ty2] == REGSIZE);
 
+#if TARGET_SEGMENTED
         /* Watch out for the case here where you are going to OP reg,EA */
         /* and both the reg and EA use ES! Prevent this by forcing      */
         /* reg into the regular registers.                              */
@@ -467,13 +473,14 @@ code *cdorth(elem *e,regm_t *pretregs)
             (e2oper == OPvar && el_fl(e2) == FLfardata)) &&
             !e2->Ecount)
         {
-                retregs = ALLREGS;
-                assert(!TARGET_FLAT);
+            retregs = ALLREGS;
         }
+#endif
 
         cl = codelem(e1,&retregs,test);
         reg = findreglsw(retregs);      /* reg is the register with the offset*/
   }
+#if TARGET_SEGMENTED
   else if (ty1 == TYhptr || ty2 == TYhptr)
   {     /* Generate code for add/subtract of huge pointers.
            No attempt is made to generate very good code.
@@ -524,6 +531,7 @@ code *cdorth(elem *e,regm_t *pretregs)
         genregs(c,0x03,mreg,lrreg);             // ADD mreg,MSREG(h)
         goto L5;
   }
+#endif
   else
   {     regm_t regm;
 
@@ -2460,7 +2468,7 @@ code *cdind(elem *e,regm_t *pretregs)
         case TYarray:
             // This case should never happen, why is it here?
             tym = TYnptr;               // don't confuse allocreg()
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             if (*pretregs & (mES | mCX) || e->Ety & mTYfar)
                     tym = TYfptr;
 #endif
@@ -2594,11 +2602,13 @@ code *cdind(elem *e,regm_t *pretregs)
                 if (byte && reg >= 4)
                     code_orrex(ce, REX);
         }
+#if TARGET_SEGMENTED
         else if ((tym == TYfptr || tym == TYhptr) && retregs & mES)
         {
                 cs.Iop = 0xC4;          /* LES reg,[idx]                */
                 goto L2;
         }
+#endif
         else if (sz <= 2 * REGSIZE)
         {   unsigned lsreg;
 
@@ -2696,7 +2706,7 @@ code *cdind(elem *e,regm_t *pretregs)
 
 
 
-#if TARGET_FLAT
+#if !TARGET_SEGMENTED
 #define cod2_setES(ty) NULL
 #else
 /********************************
@@ -2836,6 +2846,7 @@ code *cdstrcmp( elem *e, regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
+#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -2857,6 +2868,7 @@ code *cdstrcmp( elem *e, regm_t *pretregs)
             gen2(c3,0x8E,modregrm(3,SEG_DS,CX));        /* MOV DS,CX    */
             need_DS = TRUE;
             break;
+#endif
         default:
             assert(0);
     }
@@ -2945,6 +2957,7 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
+#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -2966,6 +2979,7 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
             gen2(c3,0x8E,modregrm(3,SEG_DS,DX));        /* MOV DS,DX    */
             need_DS = TRUE;
             break;
+#endif
         default:
             assert(0);
     }
@@ -3054,6 +3068,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
+#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -3074,6 +3089,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
             segreg = SEG_ES;
             goto L1;
             break;
+#endif
         default:
             assert(0);
     }
@@ -3172,6 +3188,7 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
         case TYnptr:
             need_DS = FALSE;
             break;
+#if TARGET_SEGMENTED
         case TYsptr:
             if (config.wflags & WFssneds)       /* if sptr can't use DS segment */
                 segreg = SEG_SS;
@@ -3193,6 +3210,7 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
             gen2(c3,0x8E,modregrm(3,SEG_DS,DX));        /* MOV DS,DX    */
             need_DS = TRUE;
             break;
+#endif
         default:
             assert(0);
     }
@@ -3563,6 +3581,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
     {   elem *e21 = e2->E1;
 
         segreg = SEG_DS;
+#if TARGET_SEGMENTED
         switch (tybasic(e21->Ety))
         {
             case TYsptr:
@@ -3580,6 +3599,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
                 need_DS = TRUE;
                 break;
         }
+#endif
         c1a = codelem(e21,&srcregs,FALSE);
         freenode(e2);
         if (segreg != SEG_DS)           /* if not DS                    */
@@ -3590,7 +3610,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
     }
     else if (e2->Eoper == OPvar)
     {
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         if (e2->EV.sp.Vsym->ty() & mTYfar) // if e2 is in a far segment
         {   srcregs |= mCX;             /* get segment also             */
             need_DS = TRUE;
@@ -3746,7 +3766,7 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         case TYildouble:
         case TYcldouble:
             tym = TYnptr;               // don't confuse allocreg()
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
             if (*pretregs & (mES | mCX) || e->Ety & mTYfar)
             {
                     tym = TYfptr;
@@ -3754,11 +3774,19 @@ code *cdrelconst(elem *e,regm_t *pretregs)
 #endif
             break;
         case TYifunc:
+#if TARGET_SEGMENTED
             tym = TYfptr;
+#else
+            assert(0); // what's the right thing to do here?  TYptr?
+#endif
             break;
         default:
             if (tyfunc(tym))
-                tym = tyfarfunc(tym) ? TYfptr : TYnptr;
+                tym =
+#if TARGET_SEGMENTED
+                    tyfarfunc(tym) ? TYfptr :
+#endif
+                    TYnptr;
             break;
   }
   /*assert(tym & typtr);*/              /* don't fail on (int)&a        */
@@ -3769,7 +3797,7 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         symbol *s;
 
         //elem_print(e);
-        assert(!TARGET_FLAT);
+        assert(TARGET_SEGMENTED);
 
         if (*pretregs & mES)
         {       regm_t scratch = (mAX|mBX|mDX|mDI) & ~mask[lreg];
@@ -3794,24 +3822,26 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         ety = tybasic(s->ty());
         if ((tyfarfunc(ety) || ety == TYifunc) &&
             (sclass == SCextern || ClassInline(sclass) || config.wflags & WFthunk)
+#if TARGET_SEGMENTED
             || s->Sfl == FLfardata
             || (s->ty() & mTYcs && s->Sseg != cseg && (LARGECODE || s->Sclass == SCcomdat))
-//          || (s->Sfl == FLextern && s->ty() & mTYcs)
-//          || (LARGECODE && s->Sclass == SCcomdat)
+#endif
            )
         {       /* MOV mreg,seg of symbol       */
                 c1 = gencs(CNIL,0xB8 + mreg,0,FLextern,s);
                 c1->Iflags = CFseg;
                 c = cat(c,c1);
-                assert(!TARGET_FLAT);
+                assert(TARGET_SEGMENTED);
         }
         else
         {   int fl;
 
         loadreg:
             fl = s->Sfl;
+#if TARGET_SEGMENTED
             if (s->ty() & mTYcs)
                 fl = FLcsdata;
+#endif
             c = gen2(c,0x8C,            /* MOV mreg,SEG REGISTER        */
                 modregrm(3,segfl[fl],mreg));
         }
@@ -3842,9 +3872,10 @@ code *getoffset(elem *e,unsigned reg)
         cs.IEV2._EP.Vpointer = e->EV.Vpointer;
         goto L3;
 
+#if TARGET_SEGMENTED
     case FLfardata:
-        assert(!TARGET_FLAT);
         goto L4;
+#endif
 
     case FLtlsdata:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -3949,7 +3980,9 @@ code *getoffset(elem *e,unsigned reg)
     case FLgot:
     case FLgotoff:
 #endif
+#if TARGET_SEGMENTED
     case FLcsdata:
+#endif
     L4:
         cs.IEVsym2 = e->EV.sp.Vsym;
         cs.IEVoffset2 = e->EV.sp.Voffset;
@@ -4508,6 +4541,7 @@ code *cdpost(elem *e,regm_t *pretregs)
         }
         return cat4(c1,c2,c3,fixresult(e,retregs,pretregs));
   }
+#if TARGET_SEGMENTED
   else if (tyml == TYhptr)
   {
         unsigned long rvalue;
@@ -4568,6 +4602,7 @@ code *cdpost(elem *e,regm_t *pretregs)
         gen(c3,&cs);
         return cat4(c1,c2,c3,fixresult(e,retregs,pretregs));
   }
+#endif
   else if (sz == 2 * REGSIZE)
   {     unsigned sreg;
 

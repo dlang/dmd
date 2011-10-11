@@ -233,7 +233,7 @@ One and only one of these macros must be set by the makefile:
  * This is not quite the same as !SIXTEENBIT, as one could
  * have near/far with 32 bit code.
  */
-#define TARGET_FLAT     (MARS || !TARGET_WINDOS)
+#define TARGET_SEGMENTED     (!MARS && TARGET_WINDOS)
 
 
 #define STATEMENT_SCOPES CPP

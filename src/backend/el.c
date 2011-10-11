@@ -1879,7 +1879,7 @@ elem *el_convstring(elem *e)
     e->EV.ss.Vstring = NULL;
     len = e->EV.ss.Vstrlen;
 
-#if TX86
+#if TARGET_SEGMENTED
     // Handle strings that go into the code segment
     if (tybasic(e->Ety) == TYcptr ||
         (tyfv(e->Ety) && config.flags3 & CFG3strcod))
@@ -2375,8 +2375,10 @@ L1:
 #endif
                     case TYnullptr:
                     case TYnptr:
+#if TARGET_SEGMENTED
                     case TYsptr:
                     case TYcptr:
+#endif
                         if (NPTRSIZE == SHORTSIZE)
                             goto case_short;
                         else if (NPTRSIZE == LONGSIZE)
@@ -2394,7 +2396,7 @@ L1:
                         if (n1->EV.Vschar != n2->EV.Vschar)
                                 goto nomatch;
                         break;
-#if TX86
+#if TARGET_SEGMENTED
                     case TYfptr:
                     case TYhptr:
                     case TYvptr:
@@ -2650,14 +2652,15 @@ L1:
             goto L1;
 #endif
 
-#if TX86
 #if JHANDLE
         case TYjhandle:
 #endif
-        case TYnullptr:
-        case TYnptr:
+#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
+#endif
+        case TYnptr:
+        case TYnullptr:
             if (NPTRSIZE == SHORTSIZE)
                 goto Ushort;
             if (NPTRSIZE == LONGSIZE)
@@ -2665,7 +2668,6 @@ L1:
             if (NPTRSIZE == LLONGSIZE)
                 goto Ullong;
             assert(0);
-#endif
 
         case TYuint:
             if (intsize == SHORTSIZE)
@@ -2674,17 +2676,16 @@ L1:
 
         case TYulong:
         case TYdchar:
+#if TARGET_SEGMENTED
         case TYfptr:
-#if TX86
         case TYhptr:
-#endif
         case TYvptr:
+#endif
         case TYvoid:                    /* some odd cases               */
         Ulong:
             result = e->EV.Vulong;
             break;
 
-#if TX86
         case TYint:
             if (intsize == SHORTSIZE)
                 goto Ishort;
@@ -2694,7 +2695,7 @@ L1:
         Ilong:
             result = e->EV.Vlong;
             break;
-#endif
+
         case TYllong:
         case TYullong:
         Ullong:
@@ -3002,15 +3003,15 @@ void elem_print(elem *e)
                     case TYuchar:
                         dbg_printf("%d ",e->EV.Vuchar);
                         break;
-#if TX86
-                    case TYsptr:
 #if JHANDLE
                     case TYjhandle:
 #endif
-                    case TYnullptr:
-                    case TYnptr:
+#if TARGET_SEGMENTED
+                    case TYsptr:
                     case TYcptr:
 #endif
+                    case TYnullptr:
+                    case TYnptr:
                         if (NPTRSIZE == LONGSIZE)
                             goto L1;
                         if (NPTRSIZE == SHORTSIZE)
@@ -3036,15 +3037,13 @@ void elem_print(elem *e)
                     case TYushort:
                     case TYchar16:
                     L3:
-#if TX86
                         dbg_printf("%d ",e->EV.Vint);
                         break;
-#endif
                     case TYlong:
                     case TYulong:
                     case TYdchar:
+#if TARGET_SEGMENTED
                     case TYfptr:
-#if TX86
                     case TYvptr:
                     case TYhptr:
 #endif
@@ -3101,9 +3100,11 @@ void elem_print(elem *e)
                         dbg_printf("%gL+%gLi ", (double)e->EV.Vcldouble.re, (double)e->EV.Vcldouble.im);
                         break;
 
+#if !MARS
                     case TYident:
                         dbg_printf("'%s' ", e->ET->Tident);
                         break;
+#endif
 
                     default:
                         dbg_printf("Invalid type ");
