@@ -3799,6 +3799,29 @@ void test6289()
 }
 
 /***************************************************/
+// 4237
+
+struct Struct4237(T) { T value; }
+void foo4237()
+{
+    typedef int Number = 1;
+    Struct4237!Number s;
+    pragma(msg, typeof(s).mangleof);
+    assert(s.value == 1);
+}
+void bar4237()
+{
+    typedef real Number = 2;
+    Struct4237!Number s;
+    pragma(msg, typeof(s).mangleof);
+    assert(s.value == 2); // Assertion failure
+}
+void test4237()
+{
+    foo4237(); bar4237();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -3986,6 +4009,7 @@ int main()
     test2953();
     test5696();
     test6084();
+    test4237();
 
     printf("Success\n");
     return 0;
