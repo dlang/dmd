@@ -272,6 +272,7 @@ void TypedefDeclaration::semantic(Scope *sc)
     //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
     if (sem == SemanticStart)
     {   sem = SemanticIn;
+        parent = sc->parent;
         int errors = global.errors;
         Type *savedbasetype = basetype;
         basetype = basetype->semantic(loc, sc);
