@@ -194,7 +194,7 @@ Type *TupleDeclaration::getType()
         /* It's only a type tuple if all the Object's are types
          */
         for (size_t i = 0; i < objects->dim; i++)
-        {   Object *o = (Object *)objects->data[i];
+        {   Object *o = (*objects)[i];
 
             if (o->dyncast() != DYNCAST_TYPE)
             {
@@ -221,7 +221,7 @@ Type *TupleDeclaration::getType()
 #else
             Parameter *arg = new Parameter(STCin, t, NULL, NULL);
 #endif
-            args->data[i] = (void *)arg;
+            (*args)[i] = arg;
             if (!t->deco)
                 hasdeco = 0;
         }
@@ -238,7 +238,7 @@ int TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());
     for (size_t i = 0; i < objects->dim; i++)
-    {   Object *o = (Object *)objects->data[i];
+    {   Object *o = (*objects)[i];
         if (o->dyncast() == DYNCAST_EXPRESSION)
         {   Expression *e = (Expression *)o;
             if (e->op == TOKdsymbol)
@@ -262,10 +262,8 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
     this->type = new TypeTypedef(this);
     this->basetype = basetype->toBasetype();
     this->init = init;
-#ifdef _DH
     this->htype = NULL;
     this->hbasetype = NULL;
-#endif
     this->sem = 0;
     this->loc = loc;
     this->sinit = NULL;
@@ -282,7 +280,7 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
     assert(!s);
     TypedefDeclaration *st;
     st = new TypedefDeclaration(loc, ident, basetype, init);
-#ifdef _DH
+
     // Syntax copy for header file
     if (!htype)      // Don't overwrite original
     {   if (type)    // Make copy for both old and new instances
@@ -300,7 +298,7 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
     }
     else
         st->hbasetype = hbasetype->syntaxCopy();
-#endif
+
     return st;
 }
 
@@ -309,6 +307,7 @@ void TypedefDeclaration::semantic(Scope *sc)
     //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
     if (sem == SemanticStart)
     {   sem = SemanticIn;
+        parent = sc->parent;
         int errors = global.errors;
         Type *savedbasetype = basetype;
         basetype = basetype->semantic(loc, sc);
