@@ -4058,6 +4058,10 @@ Lagain:
         //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         //printf("\tparent = '%s'\n", sds->parent->toChars());
         sds->semantic(sc);
+
+        AggregateDeclaration *ad = sds->isAggregateDeclaration();
+        if (ad)
+            return (new TypeExp(loc, ad->type))->semantic(sc);
     }
     type = Type::tvoid;
     //printf("-2ScopeExp::semantic() %s\n", toChars());
