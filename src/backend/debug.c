@@ -81,10 +81,12 @@ void WRTYxx(tym_t t)
 #if TX86
     if (t & mTYnear)
         dbg_printf("mTYnear|");
+#if TARGET_SEGMENTED
     if (t & mTYfar)
         dbg_printf("mTYfar|");
     if (t & mTYcs)
         dbg_printf("mTYcs|");
+#endif
 #endif
     if (t & mTYconst)
         dbg_printf("mTYconst|");
@@ -279,12 +281,16 @@ void WRFL(enum FL fl)
          "fltrg ","offst ","datsg ",
          "ctor  ","dtor  ","regsav","asm   ",
 #if TX86
-         "ndp   ","farda ","local ","csdat ","tlsdat",
+         "ndp   ",
+#endif
+#if TARGET_SEGMENTED
+         "farda ","csdat ",
+#endif
+         "local ","tlsdat",
          "bprel ","frameh","blocko","alloca",
          "stack ","dsym  ",
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
          "got   ","gotoff",
-#endif
 #endif
         };
 

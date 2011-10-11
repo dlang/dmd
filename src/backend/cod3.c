@@ -375,8 +375,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
 #endif
         case TYnullptr:
         case TYnptr:
+#if TARGET_SEGMENTED
         case TYsptr:
         case TYcptr:
+#endif
             return mAX;
 
         case TYfloat:
@@ -390,8 +392,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYdchar:
             if (!I16)
                 return mAX;
+#if TARGET_SEGMENTED
         case TYfptr:
         case TYhptr:
+#endif
             return mDX | mAX;
 
         case TYcent:
@@ -399,8 +403,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
             assert(I64);
             return mDX | mAX;
 
+#if TARGET_SEGMENTED
         case TYvptr:
             return mDX | mBX;
+#endif
 
         case TYdouble:
         case TYdouble_alias:
@@ -3273,9 +3279,11 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 
     /* Skip over return address */
     thunkty = tybasic(sthunk->ty());
+#if TARGET_SEGMENTED
     if (tyfarfunc(thunkty))
         p += I32 ? 8 : tysize[TYfptr];          /* far function */
     else
+#endif
         p += tysize[TYnptr];
 
     if (!I16)
@@ -3351,7 +3359,9 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 #define FARTHIS (tysize(thisty) > REGSIZE)
 #define FARVPTR FARTHIS
 
+#if TARGET_SEGMENTED
         assert(thisty != TYvptr);               /* can't handle this case */
+#endif
 
         if (!I16)
         {
@@ -3822,8 +3832,10 @@ void assignaddrc(code *c)
                 c->IEVseg1 = DATA;
                 goto do2;
 
+#if TARGET_SEGMENTED
             case FLfardata:
             case FLcsdata:
+#endif
             case FLpseudo:
                 goto do2;
 
@@ -3976,9 +3988,11 @@ void assignaddrc(code *c)
             case FLdatseg:
                 c->IEVseg2 = DATA;
                 goto done;
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
                 goto done;
+#endif
             case FLreg:
             case FLpseudo:
                 assert(0);
@@ -5476,12 +5490,13 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             else
                     reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
             break;
+#if TARGET_SEGMENTED
         case FLcsdata:
         case FLfardata:
 #if DEBUG
             symbol_print(uev->sp.Vsym);
 #endif
-            assert(!TARGET_FLAT);
+#endif
             // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
             // strings and statics are treated like offsets from a
             // un-named external with is the start of .rodata or .data
@@ -5505,7 +5520,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 
         case FLfunc:                        /* function call                */
             s = uev->sp.Vsym;               /* symbol pointer               */
-            assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
+            assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
             FLUSH();
             reftoident(cseg,offset,s,0,CFoffset64 | flags);
             break;
@@ -5550,12 +5565,6 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         FLUSH();
         reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
-#if 0
-    case FLcsdata:
-        FLUSH();
-        reftocodseg(cseg,offset,uev->Vpointer);
-        break;
-#endif
     case FLframehandler:
         framehandleroffset = OFFSET();
         ad = 0;
@@ -5568,12 +5577,13 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         else
                 reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
         break;
+#if TARGET_SEGMENTED
     case FLcsdata:
     case FLfardata:
 #if DEBUG
         symbol_print(uev->sp.Vsym);
 #endif
-        assert(!TARGET_FLAT);
+#endif
         // NOTE: In ELFOBJ all symbol refs have been tagged FLextern
         // strings and statics are treated like offsets from a
         // un-named external with is the start of .rodata or .data
@@ -5597,7 +5607,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 
     case FLfunc:                        /* function call                */
         s = uev->sp.Vsym;               /* symbol pointer               */
-#if !TARGET_FLAT
+#if TARGET_SEGMENTED
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
                 FLUSH();
@@ -5613,7 +5623,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         else
 #endif
         {
-                assert(!(TARGET_FLAT && tyfarfunc(s->ty())));
+                assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
                 FLUSH();
                 reftoident(cseg,offset,s,val,flags);
         }
@@ -5655,12 +5665,6 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         FLUSH();
         reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
-#if 0
-    case FLcsdata:
-        FLUSH();
-        reftocodseg(cseg,offset,uev->Vpointer);
-        break;
-#endif
     case FLswitch:
         FLUSH();
         ad = uev->Vswitch->Btableoffset;
@@ -5669,17 +5673,19 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         else
                 reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
         break;
+#if TARGET_SEGMENTED
     case FLcsdata:
     case FLfardata:
+#endif
     case FLextern:                      /* external data symbol         */
     case FLtlsdata:
-        assert(SIXTEENBIT || !TARGET_FLAT);
+        assert(SIXTEENBIT || TARGET_SEGMENTED);
         FLUSH();
         s = uev->sp.Vsym;               /* symbol pointer               */
         reftoident(cseg,offset,s,uev->sp.Voffset,flags);
         break;
     case FLfunc:                        /* function call                */
-        assert(SIXTEENBIT || !TARGET_FLAT);
+        assert(SIXTEENBIT || TARGET_SEGMENTED);
         s = uev->sp.Vsym;               /* symbol pointer               */
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
@@ -5824,8 +5830,10 @@ void code_hydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:
@@ -5883,8 +5891,10 @@ void code_hydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:
@@ -5993,8 +6003,10 @@ void code_dehydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:
@@ -6051,8 +6063,10 @@ void code_dehydrate(code **pc)
             case FLauto:
             case FLbprel:
             case FLpara:
+#if TARGET_SEGMENTED
             case FLcsdata:
             case FLfardata:
+#endif
             case FLtlsdata:
             case FLfunc:
             case FLpseudo:

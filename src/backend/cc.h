@@ -1422,9 +1422,12 @@ enum FL
         FLasm,          // (code) an ASM code
 #if TX86
         FLndp,          // saved 8087 register
+#endif
+#if TARGET_SEGMENTED
         FLfardata,      // ref to far data segment
-        FLlocalsize,    // replaced with # of locals in the stack frame
         FLcsdata,       // ref to code segment variable
+#endif
+        FLlocalsize,    // replaced with # of locals in the stack frame
         FLtlsdata,      // thread local storage
         FLbprel,        // ref to variable at fixed offset from frame pointer
         FLframehandler, // ref to C++ frame handler for NT EH
@@ -1438,7 +1441,6 @@ enum FL
         FLgotoff,       // global offset table entry inside this object file
         //FLoncedata,   // link once data
         //FLoncecode,   // link once code
-#endif
 #endif
         FLMAX
 };
