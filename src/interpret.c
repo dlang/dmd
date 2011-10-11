@@ -1472,6 +1472,27 @@ Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
     return this;
 }
 
+/* Is it safe to convert from srcPointee* to destPointee* ?
+ * srcPointee is the genuine type (never void).
+ * destPointee may be void.
+ */
+bool isSafePointerCast(Type *srcPointee, Type*destPointee)
+{   // It's OK if both are the same (modulo const)
+#if DMDV2
+    if (srcPointee->castMod(0) == destPointee->castMod(0))
+        return true;
+#else
+    if (srcPointee == destPointee)
+        return true;
+#endif
+    // it's OK to cast to void*
+    if (destPointee->ty == Tvoid)
+        return true;
+    // It's OK if they are the same size integers, eg int* and uint*
+    return srcPointee->isintegral() && destPointee->isintegral()
+           && srcPointee->size() == destPointee->size();
+}
+
 Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
@@ -1501,15 +1522,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
             e->type = type;
             return e;
         }
-        if (
-#if DMDV2
-        elemtype->castMod(0) != pointee->castMod(0)
-#else
-        elemtype != pointee
-#endif
-        // It's OK to cast from int[] to uint*
-        && !(elemtype->isintegral() && pointee->isintegral()
-            && elemtype->size() == pointee->size()))
+        if ( !isSafePointerCast(elemtype, pointee) )
         {
             error("reinterpreting cast from %s to %s is not supported in CTFE",
                 val->type->toChars(), type->toChars());
@@ -1537,13 +1550,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
             return ie;
         }
     }
-    else if (offset == 0 &&
-#if DMDV2
-        pointee->castMod(0) == var->type->castMod(0)
-#else
-        pointee == var->type
-#endif
-        )
+    else if ( offset == 0 && isSafePointerCast(var->type, pointee) )
     {
         if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
         {
@@ -2296,6 +2303,11 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
 Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     Expression *eptr, Expression *e2)
 {
+    if (eptr->type->nextOf()->ty == Tvoid)
+    {
+        error(loc, "cannot perform arithmetic on void* pointers at compile time");
+        return EXP_CANT_INTERPRET;
+    }
     dinteger_t ofs1, ofs2;
     if (eptr->op == TOKaddress)
         eptr = ((AddrExp *)eptr)->e1;
@@ -4865,25 +4877,50 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
     if (to->ty == Tpointer && e1->op != TOKnull)
-    {   // Deal with casts from char[] to char *
+    {
         Type *pointee = ((TypePointer *)type)->next;
-        if (e1->type->ty == Tarray || e1->type->ty == Tsarray)
+        // Implement special cases of normally-unsafe casts
+#if DMDV2
+        if (pointee->ty == Taarray && e1->op == TOKaddress
+            && isAssocArray(((AddrExp*)e1)->e1->type))
+        {   // cast from template AA pointer to true AA pointer is OK.
+            return paintTypeOntoLiteral(to, e1);
+        }
+#endif
+        if (e1->op == TOKint64)
+        {   // Happens with Windows HANDLEs, for example.
+            return paintTypeOntoLiteral(to, e1);
+        }
+        bool castBackFromVoid = false;
+        if (e1->type->ty == Tarray || e1->type->ty == Tsarray || e1->type->ty == Tpointer)
         {
             // Check for unsupported type painting operations
-            Type *elemtype = ((TypeArray *)(e1->type))->next;
-            if (
-#if DMDV2
-                e1->type->nextOf()->castMod(0) != to->nextOf()->castMod(0)
-#else
-                e1->type->nextOf() != to->nextOf()
-#endif
-                && !(elemtype->isintegral() && pointee->isintegral()
-                    && elemtype->size() == pointee->size()))
+            // For slices, we need the type being sliced,
+            // since it may have already been type painted
+            Type *elemtype = e1->type->nextOf();
+            if (e1->op == TOKslice)
+                elemtype =  ((SliceExp *)e1)->e1->type->nextOf();
+            // Allow casts from X* to void *, and X** to void** for any X.
+            // But don't allow cast from X* to void**.
+            // So, we strip all matching * from source and target to find X.
+            // Allow casts to X* from void* only if the 'void' was originally an X;
+            // we check this later on.
+            Type *ultimatePointee = pointee;
+            Type *ultimateSrc = elemtype;
+            while (ultimatePointee->ty == Tpointer && ultimateSrc->ty == Tpointer)
             {
-                error("reinterpreting cast from %s to %s is not supported in CTFE",
-                    e1->type->toChars(), type->toChars());
+                ultimatePointee = ultimatePointee->nextOf();
+                ultimateSrc = ultimateSrc->nextOf();
+            }
+            if (ultimatePointee->ty != Tvoid && ultimateSrc->ty != Tvoid
+                && !isSafePointerCast(elemtype, pointee))
+            {
+                error("reinterpreting cast from %s* to %s* is not supported in CTFE",
+                    elemtype->toChars(), pointee->toChars());
                 return EXP_CANT_INTERPRET;
             }
+            if (ultimateSrc->ty == Tvoid)
+                castBackFromVoid = true;
         }
 
         if (e1->op == TOKslice)
@@ -4905,21 +4942,30 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type != e1->type)
         {   // type painting operation
             IndexExp *ie = (IndexExp *)e1;
+            Type *origType = ie->e1->type->nextOf();
+            if (castBackFromVoid && !isSafePointerCast(origType, pointee))
+            {
+                error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
+                    origType->toChars(), pointee->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             e = new IndexExp(e1->loc, ie->e1, ie->e2);
             e->type = type;
             return e;
         }
-        if (e1->op == TOKint64)
-        {   // Happens with Windows HANDLEs, for example.
-            return paintTypeOntoLiteral(to, e1);
+        if (e1->op == TOKvar)
+        {   // type painting operation
+            Type *origType = ((VarExp *)e1)->var->type;
+            if (castBackFromVoid && !isSafePointerCast(origType, pointee))
+            {
+                error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
+                    origType->toChars(), pointee->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            e = new VarExp(e1->loc, ((VarExp *)e1)->var);
+            e->type = type;
+            return e;
         }
-#if DMDV2
-        if (pointee->ty == Taarray && e1->op == TOKaddress
-            && isAssocArray(((AddrExp*)e1)->e1->type))
-        {   // cast from template AA pointer to true AA pointer is OK.
-            return paintTypeOntoLiteral(to, e1);
-        }
-#endif
         error("pointer cast from %s to %s is not supported at compile time",
                 e1->type->toChars(), to->toChars());
         return EXP_CANT_INTERPRET;
@@ -4935,13 +4981,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     // types of identical size.
     if ((to->ty == Tsarray || to->ty == Tarray) &&
         (e1->type->ty == Tsarray || e1->type->ty == Tarray) &&
-#if DMDV2
-        e1->type->nextOf()->castMod(0) != to->nextOf()->castMod(0)
-#else
-        e1->type->nextOf() != to->nextOf()
-#endif
-        && !(to->nextOf()->isTypeBasic() && e1->type->nextOf()->isTypeBasic()
-            && to->nextOf()->size() == e1->type->nextOf()->size()) )
+        !isSafePointerCast(e1->type->nextOf(), to->nextOf()) )
     {
         error("array cast from %s to %s is not supported at compile time", e1->type->toChars(), to->toChars());
         return EXP_CANT_INTERPRET;
@@ -5104,6 +5144,10 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                 e = ((AddrExp*)e)->e1;
                 if (e->op == TOKdotvar || e->op == TOKindex)
                     e = e->interpret(istate, goal);
+            }
+            else if (e->op == TOKvar)
+            {
+                e = e->interpret(istate, goal);
             }
             if (e == EXP_CANT_INTERPRET)
                 return e;
