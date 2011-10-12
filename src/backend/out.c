@@ -144,6 +144,7 @@ void outdata(symbol *s)
 #else
                 targ_size_t *poffset;
                 datasize += size(dt->Dty);
+#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                 {   seg = cseg;
                     poffset = &Coffset;
@@ -157,6 +158,7 @@ void outdata(symbol *s)
                 }
 #endif
                 else
+#endif
                 {   seg = DATA;
                     poffset = &Doffset;
                 }
@@ -192,6 +194,7 @@ void outdata(symbol *s)
                      */
                     switch (ty & mTYLINK)
                     {
+#if TARGET_SEGMENTED
 #if OMFOBJ
                         case mTYfar:                    // if far data
                             seg = obj_fardata(s->Sident,datasize,&s->Soffset);
@@ -207,6 +210,7 @@ void outdata(symbol *s)
                             Coffset += datasize;
                             s->Sfl = FLcsdata;
                             break;
+#endif
                         case mTYthread:
                         {   seg_data *pseg = obj_tlsseg_bss();
 #if ELFOBJ || MACHOBJ
@@ -297,6 +301,7 @@ void outdata(symbol *s)
 #endif
         switch (ty & mTYLINK)
         {
+#if TARGET_SEGMENTED
 #if OMFOBJ
             case mTYfar:                // if far data
                 s->Sfl = FLfardata;
@@ -305,6 +310,7 @@ void outdata(symbol *s)
             case mTYcs:
                 s->Sfl = FLcsdata;
                 break;
+#endif
             case mTYnear:
             case 0:
                 s->Sfl = FLdata;        // initialized data
@@ -324,6 +330,7 @@ void outdata(symbol *s)
     {
       switch (ty & mTYLINK)
       {
+#if TARGET_SEGMENTED
 #if OMFOBJ
         case mTYfar:                    // if far data
             seg = obj_fardata(s->Sident,datasize,&s->Soffset);
@@ -337,6 +344,7 @@ void outdata(symbol *s)
             s->Soffset = Coffset;
             s->Sfl = FLcsdata;
             break;
+#endif
         case mTYthread:
         {   seg_data *pseg = obj_tlsseg();
 #if ELFOBJ || MACHOBJ
@@ -402,13 +410,15 @@ void outdata(symbol *s)
                     flags = CFoff | CFseg;
                 if (I64)
                     flags |= CFoffset64;
+#if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
                     reftocodseg(seg,offset,dt->DTabytes);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 else
+#endif
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                     reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
-                else if (dt->DTseg == DATA)
+                /*else*/ if (dt->DTseg == DATA)
                     reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
                 else
                     reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
@@ -488,6 +498,7 @@ void outcommon(symbol *s,targ_size_t n)
     if (n != 0)
     {
         assert(s->Sclass == SCglobal);
+#if TARGET_SEGMENTED
         if (s->ty() & mTYcs) // if store in code segment
         {
             /* COMDEFs not supported in code segment
@@ -499,7 +510,9 @@ void outcommon(symbol *s,targ_size_t n)
             out_extdef(s);
 #endif
         }
-        else if (s->ty() & mTYthread) // if store in thread local segment
+        else
+#endif
+        if (s->ty() & mTYthread) // if store in thread local segment
         {
 #if ELFOBJ
             s->Sclass = SCcomdef;
@@ -523,11 +536,17 @@ void outcommon(symbol *s,targ_size_t n)
             obj_comdef(s, 0, n, 1);
 #else
             s->Sclass = SCcomdef;
+#if TARGET_SEGMENTED
             s->Sxtrnnum = obj_comdef(s,(s->ty() & mTYfar) == 0,n,1);
+#else
+            s->Sxtrnnum = obj_comdef(s,true,n,1);
+#endif
             s->Sseg = UNKNOWN;
+#if TARGET_SEGMENTED
             if (s->ty() & mTYfar)
                 s->Sfl = FLfardata;
             else
+#endif
                 s->Sfl = FLextern;
             pstate.STflags |= PFLcomdef;
 #if SCPP

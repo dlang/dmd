@@ -996,14 +996,18 @@ STATIC void cpp_basic_data_type(type *t)
             CHAR('_');
             goto dochar;
 
+#if TARGET_SEGMENTED
         case TYsptr:
-        case TYnptr:
         case TYcptr:
         case TYf16ptr:
         case TYfptr:
         case TYhptr:
         case TYvptr:
+#endif
+#if !MARS
         case TYmemptr:
+#endif
+        case TYnptr:
             c = 'P' + cpp_cvidx(t->Tty);
             CHAR(c);
             cpp_pointer_type(t);
@@ -1021,6 +1025,7 @@ STATIC void cpp_basic_data_type(type *t)
         case TYvoid:
             c = 'X';
             goto dochar;
+#if !MARS
         case TYident:
             if (pstate.STintemplate)
             {
@@ -1045,6 +1050,7 @@ STATIC void cpp_basic_data_type(type *t)
             else
                 goto Ldefault;
             break;
+#endif
 
         default:
         Ldefault:
@@ -1067,6 +1073,7 @@ STATIC void cpp_function_indirect_type(type *t)
 {   int farfunc;
 
     farfunc = tyfarfunc(t->Tnext->Tty) != 0;
+#if !MARS
     if (tybasic(t->Tty) == TYmemptr)
     {
         CHAR('8' + farfunc);
@@ -1075,12 +1082,13 @@ STATIC void cpp_function_indirect_type(type *t)
         //cpp_this_type(t->Tnext,t->Ttag);      // MSC doesn't do this
     }
     else
+#endif
         CHAR('6' + farfunc);
 }
 
 STATIC void cpp_data_indirect_type(type *t)
 {   int i;
-
+#if !MARS
     if (tybasic(t->Tty) == TYmemptr)    // if pointer to member
     {
         i = cpp_cvidx(t->Tty);
@@ -1091,6 +1099,7 @@ STATIC void cpp_data_indirect_type(type *t)
         CHAR('@');
     }
     else
+#endif
         cpp_ecsu_data_indirect_type(t);
 }
 
@@ -1102,26 +1111,32 @@ STATIC void cpp_ecsu_data_indirect_type(type *t)
     if (t->Tnext)
     {   ty = t->Tnext->Tty & (mTYconst | mTYvolatile);
         switch (tybasic(t->Tty))
-        {   case TYfptr:
+        {
+#if TARGET_SEGMENTED
+            case TYfptr:
             case TYvptr:
             case TYfref:
                 ty |= mTYfar;
+                break;
+
+            case TYhptr:
+                i += 8;
                 break;
             case TYref:
             case TYarray:
                 if (LARGEDATA && !(ty & mTYLINK))
                     ty |= mTYfar;
                 break;
-            case TYhptr:
-                i += 8;
-                break;
+#endif
         }
     }
     else
         ty = t->Tty & (mTYLINK | mTYconst | mTYvolatile);
     i |= cpp_cvidx(ty);
+#if TARGET_SEGMENTED
     if (ty & (mTYcs | mTYfar))
         i += 4;
+#endif
     CHAR('A' + i);
 }
 
@@ -1250,17 +1265,30 @@ STATIC void cpp_calling_convention(type *t)
     {
         case TYnfunc:
         case TYhfunc:
-        case TYffunc:   c = 'A';        break;
+#if TARGET_SEGMENTED
+        case TYffunc:
+#endif
+            c = 'A';        break;
+#if TARGET_SEGMENTED
         case TYf16func:
+        case TYfpfunc:
+#endif
         case TYnpfunc:
-        case TYfpfunc:  c = 'C';        break;
+            c = 'C';        break;
         case TYnsfunc:
-        case TYfsfunc:  c = 'G';        break;
+#if TARGET_SEGMENTED
+        case TYfsfunc:
+#endif
+            c = 'G';        break;
         case TYjfunc:
         case TYmfunc:
+#if TARGET_SEGMENTED
         case TYnsysfunc:
-        case TYfsysfunc: c = 'E';       break;
-        case TYifunc:   c = 'K';        break;
+        case TYfsysfunc:
+#endif
+            c = 'E';       break;
+        case TYifunc:
+            c = 'K';        break;
         default:
             assert(0);
     }
@@ -1296,8 +1324,10 @@ STATIC void cpp_storage_convention(symbol *s)
     type *t = s->Stype;
 
     ty = t->Tty;
+#if TARGET_SEGMENTED
     if (LARGEDATA && !(ty & mTYLINK))
         t->Tty |= mTYfar;
+#endif
     cpp_data_indirect_type(t);
     t->Tty = ty;
 }
@@ -1357,9 +1387,11 @@ STATIC void cpp_function_type(type *t)
     //cpp_return_type(s);
     tn = t->Tnext;
     ty = tn->Tty;
+#if TARGET_SEGMENTED
     if (LARGEDATA && (tybasic(ty) == TYstruct || tybasic(ty) == TYenum) &&
         !(ty & mTYLINK))
         tn->Tty |= mTYfar;
+#endif
     cpp_data_type(tn);
     tn->Tty = ty;
     cpp_argument_types(t);
