@@ -11,8 +11,8 @@
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-import std.datetime, std.exception, std.file, std.getopt,
-    std.path, std.process, std.regex, std.stdio, std.string, std.typecons;
+import std.datetime, std.exception, std.file, std.path, std.process,
+    std.regex, std.stdio, std.string, std.typecons;
 
 // cmdline flags
 bool verbose;
@@ -24,7 +24,7 @@ void runCmd(string cmd)
     enforce(!system(cmd));
 }
 
-void runTest(string pattern)
+void runTest(string pattern, string dflags)
 {
     string[] sources;
     auto re = regex(pattern, "g");
@@ -41,17 +41,15 @@ void runTest(string pattern)
     foreach(ref src; sources)
     {
         writeln("COMPILING ", src);
-        auto bin = buildPath("bin", src.chomp(".d"));
-        runCmd("dmd -O -release -inline -op -odobj -of" ~ bin ~ " " ~ src);
+        auto bin = buildPath(absolutePath("bin"), src.chompPrefix("./").chomp(".d"));
+        auto cmd = std.string.format("dmd %s -op -odobj -of%s %s", dflags, bin, src);
+        runCmd(cmd);
         src = bin;
     }
 
     foreach(bin; sources)
     {
         StopWatch sw;
-
-        version (Windows)
-            bin = bin.chompPrefix("./");
 
         writeln("RUNNING ", baseName(bin));
         sw.start;
@@ -64,12 +62,48 @@ void runTest(string pattern)
     }
 }
 
-void main(string[] args) {
-    getopt(args,
-           "verbose|v", &verbose,
-    );
+void printHelp()
+{
+    auto helpString =
+        "usage: runbench [<tests>] [<dflags>] [-v|--verbose]"~newline~newline~
 
-    args = args[1 .. $];
-    foreach(arg; args.length ? args : [r".*\.d"])
-        runTest(arg);
+        "   tests  - List of regular expressions to select tests. Default: '.*\\.d'"~newline~
+        "   dflags - Flags passed to compiler. Default: '-O -release -inline'"~newline~newline~
+        "Don't pass any argument to run all tests with optimized builds.";
+
+    writeln(helpString);
+}
+
+void main(string[] args)
+{
+    string[] patterns;
+    string[] flags;
+
+    foreach(arg; args[1 .. $])
+    {
+        if (arg == "-v" || arg == "--verbose")
+            verbose = true;
+        else if (arg == "--help")
+        {
+            printHelp();
+            return;
+        }
+        else if (arg.length && arg[0] == '-') // DFLAGS
+            flags ~= arg;
+        else
+            patterns ~= arg;
+    }
+
+    if (!patterns.length)
+        patterns ~= r".*\.d";
+
+    auto dflags = std.string.join(flags, " ");
+    if (!dflags.length)
+        dflags = "-O -release -inline";
+
+    if (verbose)
+        dflags ~= " -version=VERBOSE";
+
+    foreach(p; patterns)
+        runTest(p, dflags);
 }
