@@ -484,12 +484,13 @@ void FuncDeclaration::semantic(Scope *sc)
                     warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 #endif
 
-                if (fdv->toParent() == parent)
+                FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
+                if (fdc->toParent() == parent)
                 {
                     // If both are mixins, then error.
                     // If either is not, the one that is not overrides
                     // the other.
-                    if (fdv->parent->isClassDeclaration())
+                    if (fdc->parent->isClassDeclaration())
                         break;
                     if (!this->parent->isClassDeclaration()
 #if !BREAKABI
