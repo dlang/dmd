@@ -583,13 +583,7 @@ STATIC int looprotate(loop *l)
     //if (debugc) { dbg_printf("looprotate: "); l->print(); }
 #endif
 
-    if (
-#if !TX86
-       // too costly overall - Slows compiler by 5%-10%,
-       // excess code generated, little or no time saving
-       0 && config.optimized &&
-#endif
-       (mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)
+    if ((mfoptim & MFtime) && head->BC != BCswitch && head->BC != BCasm)
     {   // Duplicate the header past the tail (but doing
         // switches would be too expensive in terms of code
         // generated).
@@ -599,13 +593,9 @@ STATIC int looprotate(loop *l)
         head2 = block_calloc(); // create new head block
         numblks++;                      // number of blocks in existence
         head2->Btry = head->Btry;
-#if 1
         head2->Bflags = head->Bflags;
         head->Bflags = BFLnomerg;       // move flags over to head2
         head2->Bflags |= BFLnomerg;
-#else
-        head->Bflags = 0;               // move flags over to head2
-#endif
         head2->BC = head->BC;
         assert(head2->BC != BCswitch);
         if (head->Belem)                // copy expression tree
@@ -906,11 +896,7 @@ restart:
         //list_free(&l->Llis,FPNULL);
         cmes2("...Loop %p done...\n",l);
 
-#if TX86
         if (mfoptim & MFliv)
-#else
-        if (config.optimized && (mfoptim & MFliv))
-#endif
         {       loopiv(l);              /* induction variables          */
                 if (addblk)             /* if we added a block          */
                 {       compdfo();
@@ -1610,11 +1596,7 @@ Lnextlis:
                 // first block of the function. Unfortunately, the rd vector
                 // does not take this into account. Therefore, we assume the
                 // worst and reject assignments to function parameters.
-                if (v->Sclass == SCparameter || v->Sclass == SCregpar
-        #if TX86
-                 || v->Sclass == SCfastpar
-        #endif
-                    )
+                if (v->Sclass == SCparameter || v->Sclass == SCregpar || v->Sclass == SCfastpar)
                         goto L3;
 
                 if (el_sideeffect(n->E2)) goto L3;              // case 5
@@ -1991,7 +1973,6 @@ Iv *Iv::mycalloc()
 STATIC void freeivlist(register Iv *biv)
 { register Iv *bivnext;
 
-#if TX86
   while (biv)
   {     register famlist *fl,*fln;
 
@@ -2010,7 +1991,6 @@ STATIC void freeivlist(register Iv *biv)
 
         biv = bivnext;
   }
-#endif
 }
 
 /****************************
@@ -2652,15 +2632,12 @@ cmes2("nrefs = %d\n",nrefs);
             {   elem *ec1 = fl->c1;
                 targ_llong c;
 
-                if (elemisone(ec1)
-#if TX86
-                        ||
+                if (elemisone(ec1) ||
                     // Eliminate fl's that can be represented by
                     // an addressing mode
                     (!I16 && ec1->Eoper == OPconst && tyintegral(ec1->Ety) &&
                      ((c = el_tolong(ec1)) == 2 || c == 4 || c == 8)
                     )
-#endif
                    )
                 {       fl->FLtemp = FLELIM;
 #ifdef DEBUG
@@ -2675,58 +2652,6 @@ cmes2("nrefs = %d\n",nrefs);
         }
     }
 }
-
-#if !TX86
-// input: IV tree, original IV symbol
-// output: offset into original IV symbol.
-//
-// the purpose is to keep track of offsets into integer after the following rewite:
-//
-//      int to short|char
-//              |
-//              |               =>
-//             int                              short | char
-//              |                                     |
-//              i                                    i + 2 | 3
-//
-//      i.e. we do not want the 2 | 3 to be lost int the process of creating a TMP IV
-//
-//
-static IVSymFound;
-static int FindIVOffset(elem * e, symbol *s)
-{
-    int   offset;
-    assert(e);
-    assert(s);
-
-        if (EOP(e))
-        {
-                offset = FindIVOffset(e->E1, s);
-                if (IVSymFound)
-                        return(offset);
-
-                if (EBIN(e))
-                {
-                        e = e->E2;
-                        offset = FindIVOffset(e, s);
-                        if (IVSymFound)
-                                return(offset);
-                }
-
-                assert(0);      // symbol should be found somewhere
-                return(0);
-
-        }
-
-        if (e->Eoper == OPvar && e->EV.sp.Vsym == s)
-        {
-                IVSymFound = TRUE;
-                return (e->Eoffset);
-        }
-
-        return(0);
-}
-#endif
 
 
 /******************************
@@ -2767,13 +2692,6 @@ STATIC void intronvars(loop *l)
             /* ne = biv*C1      */
             tyr = fl->FLivty;                   /* type of biv              */
             ne = el_var(biv->IVbasic);
-#if !TX86
-            {
-                // see comment for FindIVOffset
-                IVSymFound = FALSE;
-                ne->Eoffset = FindIVOffset((*fl->FLpelem), biv->IVbasic);
-            }
-#endif
             ne->Ety = tyr;
             if (!elemisone(fl->c1))             /* don't multiply ptrs by 1 */
                 ne = el_bin(OPmul,tyr,ne,el_copytree(fl->c1));
@@ -2851,10 +2769,8 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
         /* If the c2's match also, we got it easy */
         if (el_match(fls->c2,fl->c2))
         {
-#if TX86
                 if (tysize(fl->FLty) > tysize(fls->FLtemp->ty()))
                     continue;           /* can't increase size of var   */
-#endif
                 flse1 = el_var(fls->FLtemp);
                 flse1->Ety = fl->FLty;
                 goto L2;
@@ -2866,7 +2782,6 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                 case 2:         (fls->FLtemp + (fl->c2 - fls->c2))
          */
         e1 = fl->c2;
-#if TX86
         /* Subtracting relocatables usually generates slow code for     */
         /* linkers that can't handle arithmetic on relocatables.        */
         if (typtr(fls->c2->Ety))
@@ -2876,7 +2791,6 @@ STATIC bool funcprev(Iv *biv,famlist *fl)
                )
                 continue;
         }
-#endif
         flse1 = el_var(fls->FLtemp);
         e2 = flse1;                             /* assume case 1        */
         tymin = e2->Ety;
@@ -2922,22 +2836,16 @@ L1:
             goto L1;
 
         /* Do some type checking (can't add pointers and get a pointer!) */
-#if TX86
         //if (typtr(fl->FLty) && typtr(e1->Ety) && typtr(tymin))
             //goto L1;
-#else
-        assert(!(typtr(fl->FLty) && typtr(e1->Ety) && typtr(tymin)));
-#endif
         /* Construct (e1 + (e2 - fls->c2))      */
         flse1 = el_bin(OPadd,fl->FLty,
                             e1,
                             el_bin(OPmin,tymin,
                                     e2,
                                     el_copytree(fls->c2)));
-#if TX86
         if (sz < tysize(tymin) && sz == tysize(e1->Ety))
             flse1->E2 = el_una(OPoffset,fl->FLty,flse1->E2);
-#endif
 
         flse1 = doptelem(flse1,GOALvalue | GOALagain);
         fl->c2 = NULL;
@@ -3143,10 +3051,7 @@ STATIC void elimbasivs(register loop *l)
                 elimass(*biv->IVincr);          // dump the increment elem
 
                 // replace X with T
-#if TX86
                 assert(ref->E1->EV.sp.Voffset == 0);
-                                // can be set for 68K when cast to smaller size
-#endif
                 ref->E1->EV.sp.Vsym = fl->FLtemp;
                 ref->E1->Ety = flty;
                 ref->E2 = fofe;
@@ -3154,11 +3059,7 @@ STATIC void elimbasivs(register loop *l)
                 /* If sizes of expression worked out wrong...
                    Which can happen if we have (int)ptr==e
                  */
-#if TX86 // DJB: Who's correct here?
                 if (EBIN(fofe))         /* if didn't optimize it away   */
-#else
-                if (EOP(fofe))          /* if didn't optimize it away   */
-#endif
                 {   int sz;
                     tym_t ty,ty1,ty2;
 
@@ -3178,16 +3079,13 @@ STATIC void elimbasivs(register loop *l)
                     }
                 }
 
-#if TX86
                 /* Fix if leaves of compare are TYfptrs and the compare */
                 /* operator is < <= > >=.                               */
-                if (ref->Eoper >= OPle && ref->Eoper <= OPge &&
-                    tyfv(ref->E1->Ety))
+                if (ref->Eoper >= OPle && ref->Eoper <= OPge && tyfv(ref->E1->Ety))
                 {       assert(tyfv(ref->E2->Ety));
                         ref->E1 = el_una(OPoffset,TYuint,ref->E1);
                         ref->E2 = el_una(OPoffset,TYuint,fofe);
                 }
-#endif
 #ifdef DEBUG
                 if (debugc)
                 {   WReqn(ref);
@@ -3587,11 +3485,7 @@ STATIC void countrefs(register elem **pn,bool flag)
                  * that is, if X is a leaf of the comparison.
                  */
                 if (e1->Eoper == OPvar && e1->EV.sp.Vsym == X && !countrefs2(n->E2) ||
-#if TX86
                     n->E2->Eoper == OPvar && n->E2->EV.sp.Vsym == X && !countrefs2(e1))
-#else
-                    n->E2->Eoper == OPvar && n->E2->EV.sp.Vsym == X)
-#endif
                         nd = pn;                /* found the relop node */
         }
     L1:

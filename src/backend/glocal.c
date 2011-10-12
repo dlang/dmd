@@ -64,10 +64,6 @@ STATIC void local_ambigdef(void);
 STATIC void local_symref(symbol *s);
 STATIC void local_symdef(symbol *s);
 
-#if !TX86
-static  bool    fcall_seen = FALSE;
-#endif
-
 ///////////////////////////////
 // This optimization attempts to replace sequences like:
 //      x = func();
@@ -167,12 +163,7 @@ Loop:
             {   s = e1->EV.sp.Vsym;
                 if (s->Sflags & SFLunambig)
                 {   local_symdef(s);
-#if TX86
                     if (!goal)
-#else
-                    if (!(goal || fcall_seen))
-                        // do not localize if there is a function call on the rhs
-#endif
                         local_ins(e);
                 }
                 else

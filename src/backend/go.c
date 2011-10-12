@@ -36,15 +36,9 @@ void go_term()
     vec_free(defkill);
     vec_free(starkill);
     vec_free(vptrkill);
-#if TX86
     util_free(expnod);
     util_free(expblk);
     util_free(defnod);
-#else
-    MEM_BEF_FREE(expnod);
-    MEM_BEF_FREE(expblk);
-    MEM_BEF_FREE(defnod);
-#endif
 }
 
 #if DEBUG
@@ -61,7 +55,6 @@ void dbg_optprint(char *);
 #define dbg_optprint(c)
 #endif
 
-#if TX86
 /**************************************
  * Parse optimizer command line flag.
  * Input:
@@ -183,8 +176,6 @@ badflag:
     return 0;
 }
 
-#endif
-
 #if DEBUG_TREES
 void dbg_optprint(char *title)
 {
@@ -247,14 +238,10 @@ void optfunc()
     do
     {
         //printf("iter = %d\n", iter);
-#if TX86
         if (++iter > 200)
         {   assert(iter < iterationLimit);      // infinite loop check
             break;
         }
-#else
-     L1:
-#endif
 #if MARS
         util_progress();
 #else
@@ -284,7 +271,6 @@ void optfunc()
 #endif
             }
         //printf("blockopt\n");
-#if TX86
         if (mfoptim & MFdc)
             blockopt(0);                // do block optimization
         out_regcand(&globsym);          // recompute register candidates
@@ -292,21 +278,6 @@ void optfunc()
         if (mfoptim & MFcnp)
             constprop();                /* make relationals unsigned     */
         if (mfoptim & (MFli | MFliv))
-#else
-        if (config.optimized && (mfoptim & MFdc))
-            blockopt(0);                // do block optimization
-
-        dbg_optprint("blockopt\n");
-        out_regcand();                  // recompute register candidates
-        changes = 0;                    /* no changes yet                */
-
-        dbg_optprint("constprop\n");
-        if (config.optimized && (mfoptim & MFcnp))
-            constprop();                /* make relationals unsigned     */
-
-        dbg_optprint("loopopt\n");
-        if (config.optimized && (mfoptim & (MFli | MFliv)))
-#endif
             loopopt();                  /* remove loop invariants and    */
                                         /* induction vars                */
                                         /* do loop rotation              */
@@ -314,7 +285,7 @@ void optfunc()
             for (b = startblock; b; b = b->Bnext)
                 b->Bweight = 1;
         dbg_optprint("boolopt\n");
-#if TX86
+
         if (mfoptim & MFcnp)
             boolopt();                  // optimize boolean values
         if (changes && mfoptim & MFloop && (clock() - starttime) < 30 * CLOCKS_PER_SEC)
@@ -365,51 +336,19 @@ void optfunc()
     cmes2("%d iterations\n",iter);
     if (mfoptim & MFdc)
         blockopt(1);                    // do block optimization
-#else
-        if (config.optimized && (mfoptim & MFcnp))
-            boolopt();                  // optimize boolean values
-        util_progress();
-        if (changes)
-            goto L1;
 
-        dbg_optprint("constprop\n");
-        if (config.optimized && (mfoptim & MFcnp))
-            constprop();                /* constant propagation          */
-
-        dbg_optprint("copyprop\n");
-        if (config.optimized && (mfoptim & MFcp))
-            copyprop();                 /* do copy propagation           */
-
-        dbg_optprint("localize\n");
-        if (config.optimized && (mfoptim & MFlocal))
-            localize();                 // improve expression locality
-
-        dbg_optprint("rmdeadass\n");
-        if (config.optimized && (mfoptim & MFda))
-            rmdeadass();                /* remove dead assignments       */
-        cmes2 ("changes = %d\n", changes);
-        iter++;
-        assert (iter < 80);             /* infinite loop check           */
-    } while (changes && (config.optimized) && (mfoptim & MFloop));
-    cmes2("%d iterations\n",iter);
-    if (config.optimized && mfoptim & MFdc)
-        blockopt(1);                    // do block optimization
-    if (config.optimized)
-#endif
+    for (b = startblock; b; b = b->Bnext)
     {
-        for (b = startblock; b; b = b->Bnext)
-        {
-            if (b->Belem)
-            {   postoptelem(b->Belem);
-            }
-        }
-        if (mfoptim & MFvbe)
-            verybusyexp();              /* very busy expressions         */
-        if (mfoptim & MFcse)
-            builddags();                /* common subexpressions         */
-        if (mfoptim & MFdv)
-            deadvar();                  /* eliminate dead variables      */
+        if (b->Belem)
+            postoptelem(b->Belem);
     }
+    if (mfoptim & MFvbe)
+        verybusyexp();              /* very busy expressions         */
+    if (mfoptim & MFcse)
+        builddags();                /* common subexpressions         */
+    if (mfoptim & MFdv)
+        deadvar();                  /* eliminate dead variables      */
+
 #ifdef DEBUG
     if (debugb)
     {

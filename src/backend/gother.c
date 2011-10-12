@@ -131,11 +131,7 @@ STATIC void rd_compute()
         flowrd();               /* compute reaching definitions (rd)    */
         if (deftop == 0)        /* if no reaching defs                  */
                 return;
-#if TX86
         assert(rellist == NULL && inclist == NULL && eqeqlist == NULL && arraylist == NULL);
-#else
-        rellist = inclist = eqeqlist = arraylist = NULL;
-#endif
         block_clearvisit();
         for (i = 0; i < dfotop; i++)    /* for each block               */
         {   block *b = dfo[i];
@@ -366,10 +362,8 @@ STATIC void chkrd(elem *n,list_t rdlist)
     assert(sytab[sv->Sclass] & SCRD);
     if (sv->Sflags & SFLnord)           // if already printed a warning
         return;
-#if TX86
     if (sv->ty() & mTYvolatile)
         return;
-#endif
     unambig = sv->Sflags & SFLunambig;
     for (list_t l = rdlist; l; l = list_next(l))
     {   elem *d = (elem *) list_ptr(l);
@@ -1130,11 +1124,7 @@ void rmdeadass()
                         continue;
                 if (asstop > assmax)    /* if we need to reallocate     */
                 {       assnod = (elem **)
-#if TX86
-                            util_realloc(assnod,sizeof(elem *),asstop);
-#else
-                            MEM_BEF_REALLOC(assnod,sizeof(elem *)*asstop);
-#endif
+                        util_realloc(assnod,sizeof(elem *),asstop);
                         assmax = asstop;
                 }
                 /*setvecdim(asstop);*/
@@ -1181,11 +1171,7 @@ void rmdeadass()
                 vec_free(DEAD);
                 vec_free(POSS);
         } /* for */
-#if TX86
         util_free(assnod);
-#else
-        MEM_BEF_FREE(assnod);
-#endif
         assnod = NULL;
         assmax = 0;
 }
