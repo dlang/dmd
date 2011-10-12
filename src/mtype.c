@@ -3063,12 +3063,18 @@ int TypeFunction::callMatch(Expressions *args)
                 goto L1;
             goto Nomatch;               // not enough arguments
         }
-        arg = (Expression *)args->data[u];
+        arg = (*args)[u];
         assert(arg);
         if (p->storageClass & STClazy && p->type->ty == Tvoid && arg->type->ty != Tvoid)
             m = MATCHconvert;
         else
             m = arg->implicitConvTo(p->type);
+        /* prefer matching the element type rather than the array
+         * type when more arguments are present with T[]...
+         */
+        if (varargs == 2 && u + 1 == nparams && nargs > nparams)
+            goto L1;
+
         //printf("\tm = %d\n", m);
         if (m == MATCHnomatch)                  // if no match
         {
@@ -3088,7 +3094,7 @@ int TypeFunction::callMatch(Expressions *args)
                     case Tarray:
                         for (; u < nargs; u++)
                         {
-                            arg = (Expression *)args->data[u];
+                            arg = (*args)[u];
                             assert(arg);
 #if 1
                             /* If lazy array of delegates,

@@ -453,7 +453,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         expandTuples(exps);
 
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *arg = (Expression *)exps->data[i];
+        {   Expression *arg = (*exps)[i];
 
             if (!arg->type)
             {
@@ -466,7 +466,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
             }
 
             arg = resolveProperties(sc, arg);
-            exps->data[i] = (void *) arg;
+            (*exps)[i] =  arg;
 
             //arg->rvalue();
 #if 0
@@ -474,7 +474,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
             {
                 arg = new AddrExp(arg->loc, arg);
                 arg = arg->semantic(sc);
-                exps->data[i] = (void *) arg;
+                (*exps)[i] =  arg;
             }
 #endif
         }
@@ -599,7 +599,9 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
                 //printf("\t\tvarargs == 2, p->type = '%s'\n", p->type->toChars());
                 if (arg->implicitConvTo(p->type))
                 {
-                    if (nargs != nparams)
+                    if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()))
+                        goto L2;
+                    else if (nargs != nparams)
                     {   error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
                         return;
                     }
@@ -636,7 +638,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
                         c->type = v->type;
 
                         for (size_t u = i; u < nargs; u++)
-                        {   Expression *a = (Expression *)arguments->data[u];
+                        {   Expression *a = (*arguments)[u];
                             if (tret && !((TypeArray *)tb)->next->equals(a->type))
                                 a = a->toDelegate(sc, tret);
 
