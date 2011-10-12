@@ -1836,7 +1836,11 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
     symbol_debug(s);
 
     // can't have code or thread local comdef's
-    assert(!(s->ty() & (mTYcs | mTYthread)));
+    assert(!(s->ty() & (
+#if TARGET_SEGMENTED
+                    mTYcs |
+#endif
+                    mTYthread)));
 
     struct Comdef comdef;
     comdef.sym = s;

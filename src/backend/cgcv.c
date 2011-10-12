@@ -2270,10 +2270,12 @@ STATIC void cv4_outsym(symbol *s)
                         idx1 = idx2 = s->Sxtrnnum;
                     }
                 }
+#if TARGET_SEGMENTED
                 else if (s->ty() & (mTYfar | mTYcs))
                 {   fd = 0x04;
                     idx1 = idx2 = s->Sseg;
                 }
+#endif
                 else
                 {   fd = 0x14;
                     idx1 = DGROUPIDX;

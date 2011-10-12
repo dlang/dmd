@@ -1122,19 +1122,21 @@ STATIC void cpp_ecsu_data_indirect_type(type *t)
             case TYhptr:
                 i += 8;
                 break;
-#endif
             case TYref:
             case TYarray:
                 if (LARGEDATA && !(ty & mTYLINK))
                     ty |= mTYfar;
                 break;
+#endif
         }
     }
     else
         ty = t->Tty & (mTYLINK | mTYconst | mTYvolatile);
     i |= cpp_cvidx(ty);
+#if TARGET_SEGMENTED
     if (ty & (mTYcs | mTYfar))
         i += 4;
+#endif
     CHAR('A' + i);
 }
 
@@ -1322,8 +1324,10 @@ STATIC void cpp_storage_convention(symbol *s)
     type *t = s->Stype;
 
     ty = t->Tty;
+#if TARGET_SEGMENTED
     if (LARGEDATA && !(ty & mTYLINK))
         t->Tty |= mTYfar;
+#endif
     cpp_data_indirect_type(t);
     t->Tty = ty;
 }
@@ -1383,9 +1387,11 @@ STATIC void cpp_function_type(type *t)
     //cpp_return_type(s);
     tn = t->Tnext;
     ty = tn->Tty;
+#if TARGET_SEGMENTED
     if (LARGEDATA && (tybasic(ty) == TYstruct || tybasic(ty) == TYenum) &&
         !(ty & mTYLINK))
         tn->Tty |= mTYfar;
+#endif
     cpp_data_type(tn);
     tn->Tty = ty;
     cpp_argument_types(t);
