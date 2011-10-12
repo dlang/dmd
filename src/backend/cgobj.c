@@ -1857,11 +1857,12 @@ int obj_comdat(Symbol *s)
 #endif
                                 break;
 
+#if TARGET_SEGMENTED
             case mTYcs:         obj.ledata->flags |= 0x08;      // data in code seg
                                 atyp = 0x11;    break;
 
             case mTYfar:        atyp = 0x12;    break;
-
+#endif
             case mTYthread:     obj.ledata->pubbase = obj_tlsseg()->SDseg;
                                 atyp = 0x10;    // pick any (also means it is
                                                 // not searched for in a library)
@@ -2647,11 +2648,17 @@ STATIC void obj_modend()
             switch (s->Sfl)
             {
                 case FLextern:
-                    if (!(ty & (mTYcs | mTYthread)))
+                    if (!(ty & (
+#if TARGET_SEGMENTED
+                                    mTYcs |
+#endif
+                                    mTYthread)))
                         goto L1;
                 case FLfunc:
+#if TARGET_SEGMENTED
                 case FLfardata:
                 case FLcsdata:
+#endif
                 case FLtlsdata:
                     if (config.exe & EX_flat)
                     {   fd |= FD_F1;
@@ -2676,11 +2683,17 @@ STATIC void obj_modend()
             switch (s->Sfl)
             {
                 case FLextern:
-                    if (!(ty & (mTYcs | mTYthread)))
+                    if (!(ty & (
+#if TARGET_SEGMENTED
+                                    mTYcs |
+#endif
+                                    mTYthread)))
                         goto L1;
                 case FLfunc:
+#if TARGET_SEGMENTED
                 case FLfardata:
                 case FLcsdata:
+#endif
                 case FLtlsdata:
                     if (config.exe & EX_flat)
                     {   fd |= FD_F1;
@@ -3310,11 +3323,17 @@ int reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
         switch (s->Sfl)
         {
             case FLextern:
-                if (!(ty & (mTYcs | mTYthread)))
+                if (!(ty & (
+#if TARGET_SEGMENTED
+                                mTYcs |
+#endif
+                                mTYthread)))
                     goto L1;
             case FLfunc:
+#if TARGET_SEGMENTED
             case FLfardata:
             case FLcsdata:
+#endif
             case FLtlsdata:
                 if (config.exe & EX_flat)
                 {   lc |= FD_F1;
@@ -3339,11 +3358,17 @@ int reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
         switch (s->Sfl)
         {
             case FLextern:
-                if (!(ty & (mTYcs | mTYthread)))
+                if (!(ty & (
+#if TARGET_SEGMENTED
+                                mTYcs |
+#endif
+                                mTYthread)))
                     goto L1;
             case FLfunc:
+#if TARGET_SEGMENTED
             case FLfardata:
             case FLcsdata:
+#endif
             case FLtlsdata:
                 if (config.exe & EX_flat)
                 {   lc |= FD_F1;
