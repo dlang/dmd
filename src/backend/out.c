@@ -536,11 +536,17 @@ void outcommon(symbol *s,targ_size_t n)
             obj_comdef(s, 0, n, 1);
 #else
             s->Sclass = SCcomdef;
+#if TARGET_SEGMENTED
             s->Sxtrnnum = obj_comdef(s,(s->ty() & mTYfar) == 0,n,1);
+#else
+            s->Sxtrnnum = obj_comdef(s,true,n,1);
+#endif
             s->Sseg = UNKNOWN;
+#if TARGET_SEGMENTED
             if (s->ty() & mTYfar)
                 s->Sfl = FLfardata;
             else
+#endif
                 s->Sfl = FLextern;
             pstate.STflags |= PFLcomdef;
 #if SCPP
