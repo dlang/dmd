@@ -2942,11 +2942,7 @@ void elem_print(elem *e)
   {
         if (e->ET)
         {   type_debug(e->ET);
-            if (tybasic(e->ET->Tty) == TYstruct
-#if !TX86
- && (e->PEFflags & PEFstrsize)
-#endif
-               )
+            if (tybasic(e->ET->Tty) == TYstruct)
                 dbg_printf("%d ", (int)type_size(e->ET));
             WRTYxx(e->ET->Tty);
         }

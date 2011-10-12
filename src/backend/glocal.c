@@ -186,9 +186,6 @@ Loop:
                     local_exp(e1->E2,1);
                 local_ambigdef();
             }
-#if !TX86
-            e1->Nflags |= (e->E2->Nflags & NFLfcall);
-#endif
             break;
 
         case OPpostinc:
@@ -295,7 +292,6 @@ Loop:
             local_exp(e->E2,1);
             goto Lrd;
 
-#if TX86
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:
@@ -324,22 +320,6 @@ Loop:
             local_exp(e->E1,1);
             local_exp(e->E2,1);
             goto Lrd;
-#else
-        case OPcall:
-        case OPcallns:
-        {
-            local_exp(e->E2,1);
-        }
-        case OPstrctor:
-        case OPucall:
-        case OPucallns:
-            fcall_seen = FALSE;
-            local_exp(e->E1,1);
-
-            e->Nflags |= NFLfcall;
-            fcall_seen = TRUE;
-
-#endif
         case OPasm:
         Lrd:
             local_remove(LFfloat | LFambigref | LFambigdef);
@@ -378,11 +358,7 @@ Loop:
 
                         em = loctab[u].e;
                         if (em->E1->EV.sp.Vsym == s &&
-                            (em->Eoper == OPeq || em->Eoper == OPstreq)
-#if !TX86
-                                && !(em->Nflags & NFLfcall)
-#endif
-                                )
+                            (em->Eoper == OPeq || em->Eoper == OPstreq))
                         {
                             if (tysize(em->Ety) == tysize(e->Ety) &&
                                 em->E1->EV.sp.Voffset == e->EV.sp.Voffset &&
@@ -468,18 +444,6 @@ Loop:
             }
             break;
     }   // end of switch (e->Eoper)
-
-#if !TX86
-        if (EUNA(e))
-        {
-                e->Nflags |= (e->E1->Nflags & NFLfcall);
-        }
-
-        if (EBIN(e))
-        {
-                e->Nflags |= ((e->E1->Nflags | e->E2->Nflags) & NFLfcall);
-        }
-#endif
 }
 
 ///////////////////////////////////
