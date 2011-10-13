@@ -30,7 +30,6 @@ private
     }
 
     extern (C) void* gc_malloc( size_t sz, uint ba = 0 );
-    extern (C) void* gc_calloc( size_t sz, uint ba = 0 );
     extern (C) void  gc_free( void* p );
     
     // Convenience function to make sure the NO_INTERIOR gets set on the
@@ -245,7 +244,7 @@ body
     aaA *e;
     //printf("keyti = %p\n", keyti);
     //printf("aa = %p\n", aa);
-    auto keysize = aligntsize(keyti.tsize());
+    immutable keytitsize = keyti.tsize();
 
     if (!aa.a)
     {   aa.a = new BB();
@@ -272,11 +271,13 @@ body
 
     // Not found, create new elem
     //printf("create new one\n");
-    size_t size = aaA.sizeof + keysize + valuesize;
-    e = cast(aaA *) gc_calloc(size);
-    memcpy(e + 1, pkey, keyti.tsize);
-    memset(cast(byte*)(e + 1) + keyti.tsize, 0, keysize - keyti.tsize);
+    size_t size = aaA.sizeof + aligntsize(keytitsize) + valuesize;
+    e = cast(aaA *) gc_malloc(size);
+    e.next = null;
     e.hash = key_hash;
+    ubyte* ptail = cast(ubyte*)(e + 1);
+    memcpy(ptail, pkey, keytitsize);
+    memset(ptail + aligntsize(keytitsize), 0, valuesize); // zero value
     *pe = e;
 
     auto nodes = ++aa.a.nodes;
@@ -288,7 +289,7 @@ body
     }
 
 Lret:
-    return cast(void *)(e + 1) + keysize;
+    return cast(void *)(e + 1) + aligntsize(keytitsize);
 }
 
 

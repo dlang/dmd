@@ -11,14 +11,12 @@
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-import std.random, core.memory, std.datetime, std.stdio;
+import std.random, core.memory, std.stdio;
 
 enum nIter = 1000;
 
 void main() {
     auto ptrs = new void*[1024];
-
-    auto sw = StopWatch(autoStart);
 
     // Allocate 1024 large blocks with size uniformly distributed between 1
     // and 128 kilobytes.
@@ -27,6 +25,4 @@ void main() {
             ptr = GC.malloc(uniform(1024, 128 * 1024 + 1), GC.BlkAttr.NO_SCAN);
         }
     }
-
-    writefln("RandLarge:  Done %s iter in %s milliseconds.", nIter, sw.peek.msecs);
 }
