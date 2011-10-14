@@ -4942,16 +4942,42 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type != e1->type)
         {   // type painting operation
             IndexExp *ie = (IndexExp *)e1;
-            Type *origType = ie->e1->type->nextOf();
-            if (castBackFromVoid && !isSafePointerCast(origType, pointee))
-            {
-                error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
-                    origType->toChars(), pointee->toChars());
-                return EXP_CANT_INTERPRET;
-            }
             e = new IndexExp(e1->loc, ie->e1, ie->e2);
+            if (castBackFromVoid)
+            {
+                // get the original type. For strings, it's just the type...
+                Type *origType = ie->e1->type->nextOf();
+                // ..but for arrays of type void*, it's the type of the element
+                Expression *xx = NULL;
+                if (ie->e1->op == TOKarrayliteral && ie->e2->op == TOKint64)
+                {   ArrayLiteralExp *ale = (ArrayLiteralExp *)ie->e1;
+                    uinteger_t indx = ie->e2->toInteger();
+                    if (indx < ale->elements->dim)
+                    xx = ale->elements->tdata()[indx];
+                }
+                if (xx && xx->op == TOKindex)
+                    origType = ((IndexExp *)xx)->e1->type->nextOf();
+                else if (xx && xx->op == TOKaddress)
+                    origType= ((AddrExp *)xx)->e1->type;
+                if (!isSafePointerCast(origType, pointee))
+                {
+                    error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
+                        origType->toChars(), pointee->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
+            }
             e->type = type;
             return e;
+        }
+        if (e1->op == TOKaddress)
+        {
+            Type *origType = ((AddrExp *)e1)->type;
+            if (isSafePointerCast(origType, pointee))
+            {
+                e = new AddrExp(loc, ((AddrExp *)e1)->e1);
+                e->type = type;
+                return e;
+            }
         }
         if (e1->op == TOKvar)
         {   // type painting operation
@@ -4962,7 +4988,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                     origType->toChars(), pointee->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            e = new VarExp(e1->loc, ((VarExp *)e1)->var);
+            e = new VarExp(loc, ((VarExp *)e1)->var);
             e->type = type;
             return e;
         }
@@ -5118,6 +5144,16 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKindex && e->type->ty == Tpointer)
             {
                 IndexExp *ie = (IndexExp *)e;
+                // Is this a real index to an array of pointers, or just a CTFE pointer?
+                // If the index has the same levels of indirection, it's an index
+                int srcLevels = 0;
+                int destLevels = 0;
+                for(Type *xx = ie->e1->type; xx->ty == Tpointer; xx = xx->nextOf())
+                    ++srcLevels;
+                for(Type *xx = e->type->nextOf(); xx->ty == Tpointer; xx = xx->nextOf())
+                    ++destLevels;
+                bool isGenuineIndex = (srcLevels == destLevels);
+
                 if ((ie->e1->op == TOKarrayliteral || ie->e1->op == TOKstring)
                     && ie->e2->op == TOKint64)
                 {
@@ -5131,10 +5167,28 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                             toChars(), len);
                         return EXP_CANT_INTERPRET;
                     }
-                    return Index(type, ie->e1, ie->e2);
+                    e = Index(type, ie->e1, ie->e2);
+                    if (isGenuineIndex)
+                    {
+                        if (e->op == TOKindex)
+                            e = e->interpret(istate, goal);
+                        else if (e->op == TOKaddress)
+                            e = paintTypeOntoLiteral(type, ((AddrExp *)e)->e1);
+                    }
+                    return e;
                 }
                 if (ie->e1->op == TOKassocarrayliteral)
-                    return Index(type, ie->e1, ie->e2);
+                {
+                    e = Index(type, ie->e1, ie->e2);
+                    if (isGenuineIndex)
+                    {
+                        if (e->op == TOKindex)
+                            e = e->interpret(istate, goal);
+                        else if (e->op == TOKaddress)
+                            e = paintTypeOntoLiteral(type, ((AddrExp *)e)->e1);
+                    }
+                    return e;
+                }
             }
             if (e->op == TOKstructliteral)
                 return e;
