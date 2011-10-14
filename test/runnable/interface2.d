@@ -919,6 +919,20 @@ void test27()
 
 /*******************************************************/
 
+private interface IFoo
+{
+   void foo();
+}
+
+void test2553()
+{
+    IFoo foo;
+    if (0)
+	foo.foo;
+}
+
+/*******************************************************/
+
 int main()
 {
     test1();
@@ -948,6 +962,7 @@ int main()
     test25();
     test26();
     test27();
+    test2553();
 
     printf("Success\n");
     return 0;
