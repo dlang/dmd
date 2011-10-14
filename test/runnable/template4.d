@@ -738,7 +738,7 @@ alias TFoo27!(2+1) b;
 alias TFoo27!(3u) c;
 
 static assert(is(TFoo27!(3) == TFoo27!(2 + 1)));
-static assert(!is(TFoo27!(3) == TFoo27!(3u)));
+static assert(is(TFoo27!(3) == TFoo27!(3u)));
 
 void test27()
 {

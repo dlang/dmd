@@ -3571,6 +3571,11 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
         //printf("m: %d\n", m);
         if (!m)
             goto Lnomatch;
+        else if (m != MATCHexact)
+        {
+            ei = ei->implicitCastTo(sc, vt);
+            ei = ei->optimize(WANTvalue);
+        }
     }
     dedtypes->tdata()[i] = ei;
 

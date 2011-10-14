@@ -489,6 +489,33 @@ void test6994()
 }
 
 /**********************************/
+// 3467 & 6806
+
+struct Foo3467( uint n )
+{
+    Foo3467!( n ) bar( ) {
+        typeof( return ) result;
+        return result;
+    }
+}
+struct Vec3467(size_t N)
+{
+    void opBinary(string op:"~", size_t M)(Vec3467!M) {}
+}
+void test3467()
+{
+    Foo3467!( 4 ) baz;
+    baz = baz.bar;// FAIL
+
+    Vec3467!2 a1;
+    Vec3467!3 a2;
+    a1 ~ a2; // line 7, Error
+}
+
+struct TS6806(size_t n) { pragma(msg, typeof(n)); }
+static assert(is(TS6806!(1u) == TS6806!(1)));
+
+/**********************************/
 
 int main()
 {
@@ -513,6 +540,7 @@ int main()
     test2778aa();
     test2778get();
     test6994();
+    test3467();
 
     printf("Success\n");
     return 0;
