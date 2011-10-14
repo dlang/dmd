@@ -4959,6 +4959,8 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                     origType = ((IndexExp *)xx)->e1->type->nextOf();
                 else if (xx && xx->op == TOKaddress)
                     origType= ((AddrExp *)xx)->e1->type;
+                else if (xx && xx->op == TOKvar)
+                    origType = ((VarExp *)xx)->var->type;
                 if (!isSafePointerCast(origType, pointee))
                 {
                     error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",

@@ -2846,6 +2846,10 @@ static assert({
         ary[5]= &blah["abc"];
         S6792 t = *(cast(S6792*)ary[5]);
         assert(t.i == 6);
+
+        int Q= 6;
+        ary[3]= &Q;
+        int gg = *(cast(int*)(ary[3]));
     }
     return true;
 }());
