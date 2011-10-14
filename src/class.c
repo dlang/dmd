@@ -1265,21 +1265,24 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)members->data[i];
+        Dsymbol *s = (*members)[i];
         s->addMember(sc, this, 1);
     }
 
     sc = sc->push(this);
+    sc->stc &= STCsafe | STCtrusted | STCsystem;
     sc->parent = this;
     if (isCOMinterface())
         sc->linkage = LINKwindows;
     sc->structalign = 8;
+    sc->protection = PROTpublic;
+    sc->explicitProtection = 0;
     structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
     inuse++;
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = (Dsymbol *)members->data[i];
+        Dsymbol *s = (*members)[i];
         s->semantic(sc);
     }
     inuse--;
