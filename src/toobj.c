@@ -422,13 +422,15 @@ void ClassDeclaration::toObjFile(int multiobj)
     flags |= 32;
     if (ctor)
         flags |= 8;
+    if (isabstract)
+        flags |= 64;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
     {
         if (cd->members)
         {
             for (size_t i = 0; i < cd->members->dim; i++)
             {
-                Dsymbol *sm = (Dsymbol *)cd->members->data[i];
+                Dsymbol *sm = (*cd->members)[i];
                 //printf("sm = %s %s\n", sm->kind(), sm->toChars());
                 if (sm->hasPointers())
                     goto L2;
