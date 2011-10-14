@@ -3315,6 +3315,16 @@ pure int test4031()
     static const int x = 8; 
     return x; 
 } 
+
+/***************************************************/
+// 1962
+
+
+void test1962()
+{
+    class C { abstract void x(); }
+    assert(C.classinfo.create() is null);
+}
  
 /***************************************************/
 // 6228
@@ -3968,6 +3978,7 @@ int main()
     test136();
     test137();
     test138();
+    test1962();
     test139();
     test140();
     test141();
