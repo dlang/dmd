@@ -454,6 +454,18 @@ void test2778get()
 }
 
 /**********************************/
+// 6805
+
+struct T6805
+{
+    template opDispatch(string name)
+    {
+        alias int Type;
+    }
+}
+static assert(is(T6805.xxx.Type == int));
+
+/**********************************/
 
 int main()
 {

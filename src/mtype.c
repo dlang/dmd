@@ -5855,7 +5855,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         else
                             e = e->type->dotExp(sc, e, id);
                     }
-                    *pe = e;
+                    if (e->op == TOKtype)
+                        *pt = e->type;
+                    else
+                        *pe = e;
                 }
                 else
                 {
