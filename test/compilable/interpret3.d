@@ -2792,3 +2792,60 @@ static assert(!is(typeof(compiles!(badpointer(5)))));
 static assert(!is(typeof(compiles!(badpointer(6)))));
 static assert(!is(typeof(compiles!(badpointer(7)))));
 static assert(!is(typeof(compiles!(badpointer(8)))));
+
+/**************************************************
+    6792 ICE with pointer cast of indexed array
+**************************************************/
+
+struct S6792 {
+    int i;
+}
+
+static assert({
+    {
+        void* p;
+        p = [S6792(1)].ptr;
+        S6792 s = *(cast(S6792*)p);
+        assert(s.i == 1);
+    }
+    {
+        void*[] ary;
+        ary ~= [S6792(2)].ptr;
+        S6792 s = *(cast(S6792*)ary[0]);
+        assert(s.i == 2);
+    }
+    {
+        void*[7] ary;
+        ary[6]= [S6792(2)].ptr;
+        S6792 s = *(cast(S6792*)ary[6]);
+        assert(s.i == 2);
+    }
+    {
+        void* p;
+        p = [S6792(1)].ptr;
+        void*[7] ary;
+        ary[5]= p;
+        S6792 s = *(cast(S6792*)ary[5]);
+        assert(s.i == 1);
+    }
+    {
+        S6792*[string] aa;
+        aa["key"] = [S6792(3)].ptr;
+        const(S6792) s = *(cast(const(S6792) *)aa["key"]);
+        assert(s.i == 3);
+    }
+    {
+        S6792[string] blah;
+        blah["abc"] = S6792(6);
+        S6792*[string] aa;
+        aa["kuy"] = &blah["abc"];
+        const(S6792) s = *(cast(const(S6792) *)aa["kuy"]);
+        assert(s.i == 6);
+
+        void*[7] ary;
+        ary[5]= &blah["abc"];
+        S6792 t = *(cast(S6792*)ary[5]);
+        assert(t.i == 6);
+    }
+    return true;
+}());
