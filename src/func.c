@@ -385,12 +385,13 @@ void FuncDeclaration::semantic(Scope *sc)
                     warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
 #endif
 
-                if (fdv->toParent() == parent)
+                FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
+                if (fdc->toParent() == parent)
                 {
                     // If both are mixins, then error.
                     // If either is not, the one that is not overrides
                     // the other.
-                    if (fdv->parent->isClassDeclaration())
+                    if (fdc->parent->isClassDeclaration())
                         break;
                     if (!this->parent->isClassDeclaration()
 #if !BREAKABI
@@ -402,7 +403,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         )
                         error("multiple overrides of same function");
                 }
-                cd->vtbl.data[vi] = (void *)this;
+                cd->vtbl[vi] = this;
                 vtblIndex = vi;
 
                 /* Remember which functions this overrides
