@@ -432,7 +432,7 @@ doit:
 #endif
             break;
 #if TX86
-        case OPptrlptr:
+        case OPnp_fp:
             e->E1 = e1 = poptelem(e->E1);
             // If casting a non-NULL constant pointer
             if (e1->Eoper == OPconst && el_tolong(e1) != 0)
@@ -440,11 +440,11 @@ doit:
             goto L5;
         case OPoffset:
             e->E1 = e1 = poptelem(e->E1);
-            if (e1->Eoper == OPptrlptr)
+            if (e1->Eoper == OPnp_fp)
                 goto L6;
             goto L5;
 #endif
-        case OPlngsht:
+        case OP32_16:
             e->E1 = e1 = poptelem(e->E1);
         L5:
             if (e1->Eoper == OPrelconst || e1->Eoper == OPstring)
@@ -1821,11 +1821,11 @@ elem * evalu8(elem *e)
         break;
 
 #endif
-    case OPshtlng:
+    case OPs16_32:
         e->EV.Vlong = (targ_short) i1;
         break;
 #if TX86
-    case OPptrlptr:
+    case OPnp_fp:
 #endif
     case OPu16_32:
         e->EV.Vulong = (targ_ushort) i1;
@@ -1849,7 +1849,7 @@ elem * evalu8(elem *e)
     case OPs16_d:
         e->EV.Vdouble = (targ_short) i1;
         break;
-    case OPdbluns:
+    case OPd_u16:
         e->EV.Vushort = (targ_ushort)d1;
         break;
     case OPu16_d:
@@ -1909,19 +1909,19 @@ elem * evalu8(elem *e)
                 assert(0);
         }
         break;
-    case OPs8int:
+    case OPs8_16:
         e->EV.Vint = (targ_schar) i1;
         break;
-    case OPu8int:
+    case OPu8_16:
         e->EV.Vint = i1 & 0xFF;
         break;
-    case OPint8:
+    case OP16_8:
         e->EV.Vint = i1;
         break;
     case OPbool:
         e->EV.Vint = boolres(e1);
         break;
-    case OPlngsht:
+    case OP32_16:
 #if TX86
     case OPoffset:
 #endif

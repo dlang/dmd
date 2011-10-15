@@ -893,9 +893,9 @@ code *cdmul(elem *e,regm_t *pretregs)
   switch (e2->Eoper)
   {
     case OPu16_32:
-    case OPshtlng:
+    case OPs16_32:
     case OPu32_64:
-    case OPlngllng:
+    case OPs32_64:
         if (sz != 2 * REGSIZE || oper != OPmul || e1->Eoper != e2->Eoper ||
             e1->Ecount || e2->Ecount)
             goto L2;
@@ -2042,8 +2042,8 @@ code *cdshift(elem *e,regm_t *pretregs)
                 if (sz == 2 * REGSIZE && shiftcnt == 8 * REGSIZE &&
                     oper == OPshl &&
                     !e1->Ecount &&
-                    (e1->Eoper == OPshtlng  || e1->Eoper == OPu16_32 ||
-                     e1->Eoper == OPlngllng || e1->Eoper == OPu32_64)
+                    (e1->Eoper == OPs16_32 || e1->Eoper == OPu16_32 ||
+                     e1->Eoper == OPs32_64 || e1->Eoper == OPu32_64)
                    )
                 {   // Handle (shtlng)s << 16
                     regm_t r;
