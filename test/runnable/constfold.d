@@ -484,12 +484,51 @@ int foo9() {
 static assert(foo9()==2);
 
 /************************************/
+// Bugzilla 6077
+
+void test6077() {
+    static string scat(string s1, string s2)
+    {
+        return s1 ~ s2;
+    }
+
+    static string scatass(string s1, string s2)
+    {
+        s1 ~= s2;
+        return s1;
+    }
+
+    static string[] arycats(string[] ary, string s)
+    {
+        return ary ~ s;
+    }
+
+    static string[] scatary(string s, string[] ary)
+    {
+        return s ~ ary;
+    }
+
+    static string[] arycatasss(string[] ary, string s)
+    {
+        ary ~= s;
+        return ary;
+    }
+
+    static assert(scat(null, null) is null);
+    static assert(scatass(null, null) is null);
+    static assert(arycats(null, null) == cast(string[])[null]);
+    static assert(scatary(null, null) == cast(string[])[null]);
+    static assert(arycatasss(null, null) == cast(string[])[null]);
+}
+
+/************************************/
 
 int main()
 {
     test1();
     test2();
     test3();
+    test6077();
 
     printf("Success\n");
     return 0;
