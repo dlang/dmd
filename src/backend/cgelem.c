@@ -1671,7 +1671,7 @@ STATIC elem * elcond(elem *e)
                             }
                         }
                     }
-                    else
+                    else if(tyintegral(e1->Ety))
                         e->E1 = el_bin(OPge,TYint,e1,el_long(touns(e1->Ety),1));
                 }
 #endif
