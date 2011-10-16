@@ -484,12 +484,40 @@ int foo9() {
 static assert(foo9()==2);
 
 /************************************/
+// Bugzill 6815
+
+struct DChars
+{
+    dchar foo()
+    {
+        return ary[0];
+    }
+
+    dchar[] ary;
+}
+
+DChars get()
+{
+    DChars s;
+    s.ary ~= 'H';
+    s.ary ~= 'e';
+    return s;
+}
+
+void test6815()
+{
+    enum dchars = get().foo();
+    assert(dchars == 'H');
+}
+
+/************************************/
 
 int main()
 {
     test1();
     test2();
     test3();
+    test6815();
 
     printf("Success\n");
     return 0;

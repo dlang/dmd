@@ -1499,27 +1499,50 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     {
     L2:
         assert(t1->nextOf()); // because of TOKnull
+
         if (t2->ty == Tchar || t2->ty == Twchar || t2->ty == Tdchar)
-        {   // Create a StringExp
+        {
             Type *t1n = t1->nextOf()->toBasetype();
             int sz = t1n->size();
 
+            // transcode char
+            int len;
             dinteger_t v = e2->toInteger();
-
-            size_t len = (t2->ty == t1n->ty) ? 1 : utf_codeLength(sz, v);
-            void *s = mem.malloc((len + 1) * sz);
             if (t2->ty == t1n->ty)
-                memcpy((unsigned char *)s, &v, sz);
+                len = 1;
             else
-                utf_encode(sz, s, v);
+            {   len = utf_codeLength(sz, v);
+                utf_encode(sz, (unsigned char*)&v, v);
+            }
 
-            // Add terminating 0
-            memset((unsigned char *)s + len * sz, 0, sz);
+            if (t1n->mod & MODimmutable)
+            {   // Create a StringExp
+                void *s = mem.malloc((len + 1) * sz);
+                memcpy((unsigned char *)s, &v, len * sz);
+                memset((unsigned char *)s + len * sz, 0, sz); // terminating 0
 
-            StringExp *es = new StringExp(loc, s, len);
-            es->sz = sz;
-            es->committed = 1;
-            e = es;
+                StringExp *es = new StringExp(loc, s, len);
+                es->sz = sz;
+                es->committed = 1;
+                e = es;
+            }
+            else
+            {
+                Expressions *elements = new Expressions();
+                elements->reserve(len);
+                for (size_t i = 0; i < len; ++i)
+                {   dinteger_t cp;
+                    switch (sz)
+                    {
+                    case 1:  cp = ((unsigned char  *)&v)[i]; break;
+                    case 2:  cp = ((unsigned short *)&v)[i]; break;
+                    case 4:  cp = ((unsigned int   *)&v)[i]; break;
+                    default: assert(0);
+                    }
+                    elements->push(new IntegerExp(loc, cp, t1n));
+                }
+                e = new ArrayLiteralExp(loc, elements);
+            }
         }
         else
         {   // Create an ArrayLiteralExp
