@@ -4896,6 +4896,9 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     e1 = this->e1->interpret(istate, goal);
     if (e1 == EXP_CANT_INTERPRET)
         goto Lcant;
+    // If the expression has been cast to void, do nothing.
+    if (to->ty == Tvoid && goal == ctfeNeedNothing)
+        return e1;
     if (to->ty == Tpointer && e1->op != TOKnull)
     {
         Type *pointee = ((TypePointer *)type)->next;
