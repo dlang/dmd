@@ -2861,3 +2861,25 @@ static assert({
     }
     return true;
 }());
+
+/**************************************************
+    6817 if converted to &&, only with -inline
+**************************************************/
+static assert({
+    void toggle() {
+        bool b;
+        if (b)
+            b = false;
+    }
+    toggle();
+    return true;
+}());
+
+/**************************************************
+    cast to void
+**************************************************/
+
+static assert({
+    cast(void)(71);
+    return true;
+} ());
