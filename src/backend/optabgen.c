@@ -51,13 +51,13 @@ int _unary[] =
          OPbool,OPstrlen,OPnullcheck,
          OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,
          OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
-         OPd_f,OPf_d,OPvptrfptr,OPcvptrfptr,OPu8int,OPs8_16,OPint8,
+         OPd_f,OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,OP16_8,
          OPd_ld, OPld_d,OPc_r,OPc_i,
-         OPu32_64,OPlngllng,OP64_32,OPmsw,
+         OPu32_64,OPs32_64,OP64_32,OPmsw,
          OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
          OP128_64,OPs64_128,OPu64_128,
-         OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPdbluns,
-         OPinp,OPptrlptr,OPtofar16,OPfromfar16,OParrow,OPnegass,
+         OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
+         OPinp,OPnp_fp,OPnp_f16p,OPf16p_np,OParrow,OPnegass,
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
          OPbsf,OPbsr,OPbswap,
          OPddtor,
@@ -122,11 +122,11 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPxor,OPdiv,OPmod,OPshl,OPshr,OPashr,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
                 OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
                 OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
-                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,OPu16_d,OPdbluns,
-                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,OPptrlptr,OPtofar16,OPfromfar16,
-                OPd_f,OPf_d,OPvptrfptr,OPcvptrfptr,OPu8int,OPs8_16,OPint8,
+                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,OPu16_d,OPd_u16,
+                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,OPnp_fp,OPnp_f16p,OPf16p_np,
+                OPd_f,OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,OP16_8,
                 OPd_ld,OPld_d,OPc_r,OPc_i,
-                OPu32_64,OPlngllng,OP64_32,OPmsw,
+                OPu32_64,OPs32_64,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
                 OP128_64,OPs64_128,OPu64_128,
                 OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
@@ -144,11 +144,11 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
                 OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
                 OPcomma,OPasm,OPsizeof,OPmemcmp,
-                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,OPu16_d,OPdbluns,
-                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,OPptrlptr,OPtofar16,OPfromfar16,
-                OPd_f,OPf_d,OPvptrfptr,OPcvptrfptr,OPu8int,OPs8_16,OPint8,
+                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,OPu16_d,OPd_u16,
+                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,OPnp_fp,OPnp_f16p,OPf16p_np,
+                OPd_f,OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,OP16_8,
                 OPd_ld, OPld_d,OPc_r,OPc_i,
-                OPu32_64,OPlngllng,OP64_32,OPmsw,
+                OPu32_64,OPs32_64,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
                 OP128_64,OPs64_128,OPu64_128,
                 OPbit,OPind,OPucall,OPucallns,OPnullcheck,
@@ -162,11 +162,11 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass};
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs16_d,
-                OPf_d,OPvptrfptr,OPcvptrfptr,OPu8int,OPs8_16,
+                OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,
                 OPd_ld, OPld_d,
-                OPu32_64,OPlngllng,/*OP64_32,OPmsw,*/
+                OPu32_64,OPs32_64,/*OP64_32,OPmsw,*/
                 OPs64_128,OPu64_128,
-                OPu16_d,OPptrlptr,OPb_8,
+                OPu16_d,OPnp_fp,OPb_8,
                 OPnullptr,
                 };
 int _lvalue[] = {OPvar,OPind,OPcomma,OPbit,
@@ -429,8 +429,8 @@ void dotab()
         case OPdiv:     X("/",          eldiv,  cdmul);
         case OPmod:     X("%",          elmod,  cdmul);
         case OPxor:     X("^",          elxor,  cdorth);
-        case OPvptrfptr: X("vptrfptr",  elvptrfptr,cdcnvt);
-        case OPcvptrfptr: X("cvptrfptr", elvptrfptr,cdcnvt);
+        case OPvp_fp:   X("vptrfptr",   elvptrfptr,cdcnvt);
+        case OPcvp_fp:  X("cvptrfptr",  elvptrfptr,cdcnvt);
         case OPstring:  X("string",     elstring,cderr);
         case OPrelconst: X("relconst",  elzot, cdrelconst);
         case OPinp:     X("inp",        elzot, cdport);
@@ -536,9 +536,9 @@ void dotab()
         case OPnug:     X("~!<=",       elcmp,  cdcmp);
         case OPnue:     X("~!<>",       elcmp,  cdcmp);
 
-        case OPptrlptr: X("ptrlptr",    elptrlptr,cdshtlng);
-        case OPtofar16: X("tofar16",    elzot,  cdfar16);
-        case OPfromfar16: X("fromfar16",elzot,  cdfar16);
+        case OPnp_fp:   X("ptrlptr",    elptrlptr,cdshtlng);
+        case OPnp_f16p: X("tofar16",    elzot,  cdfar16);
+        case OPf16p_np: X("fromfar16",  elzot,  cdfar16);
         case OPs16_32:  X("s16_32",     evalu8, cdshtlng);
         case OPu16_32:  X("u16_32",     evalu8, cdshtlng);
         case OPd_s32:   X("d_s32",      evalu8, cdcnvt);

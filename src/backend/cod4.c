@@ -2445,9 +2445,9 @@ code *cdcnvt(elem *e, regm_t *pretregs)
   static unsigned char clib[][2] =
   {     OPd_s32,        CLIBdbllng,
         OPs32_d,        CLIBlngdbl,
-        OPdblint,       CLIBdblint,
+        OPd_s16,        CLIBdblint,
         OPs16_d,        CLIBintdbl,
-        OPdbluns,       CLIBdbluns,
+        OPd_u16,        CLIBdbluns,
         OPu16_d,        CLIBunsdbl,
         OPd_u32,        CLIBdblulng,
 #if TARGET_WINDOS
@@ -2457,10 +2457,10 @@ code *cdcnvt(elem *e, regm_t *pretregs)
         OPs64_d,        CLIBllngdbl,
         OPd_u64,        CLIBdblullng,
         OPu64_d,        CLIBullngdbl,
-        OPd_f,  CLIBdblflt,
-        OPf_d,  CLIBfltdbl,
-        OPvptrfptr,     CLIBvptrfptr,
-        OPcvptrfptr,    CLIBcvptrfptr,
+        OPd_f,          CLIBdblflt,
+        OPf_d,          CLIBfltdbl,
+        OPvp_fp,        CLIBvptrfptr,
+        OPcvp_fp,       CLIBcvptrfptr,
   };
 
 //printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
@@ -2597,7 +2597,7 @@ L1:
 
 /***************************
  * Convert short to long.
- * For OPs16_32, OPu16_32, OPptrlptr, OPu32_64, OPs32_64
+ * For OPs16_32, OPu16_32, OPnp_fp, OPu32_64, OPs32_64
  */
 
 code *cdshtlng(elem *e,regm_t *pretregs)
@@ -2611,7 +2611,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
   if ((*pretregs & (ALLREGS | mBP)) == 0)       // if don't need result in regs
     c = codelem(e->E1,pretregs,FALSE);  /* then conversion isn't necessary */
 
-  else if ((op = e->Eoper) == OPptrlptr ||
+  else if ((op = e->Eoper) == OPnp_fp ||
            (I16 && op == OPu16_32) ||
            (I32 && op == OPu32_64)
           )
@@ -2630,7 +2630,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         ce = allocreg(&regm,&reg,TYint);
         if (e1comsub)
             ce = cat(ce,getregs(retregs));
-        if (op == OPptrlptr)
+        if (op == OPnp_fp)
         {   int segreg;
 
             /* BUG: what about pointers to functions?   */
@@ -2803,7 +2803,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
 
 /***************************
  * Convert byte to int.
- * For OPu8int and OPs8int.
+ * For OPu8_16 and OPs8_16.
  */
 
 code *cdbyteint(elem *e,regm_t *pretregs)
@@ -2833,7 +2833,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
             retregs = *pretregs;
             c1 = allocreg(&retregs,&reg,TYint);
             if (config.flags4 & CFG4speed &&
-                op == OPu8int && mask[reg] & BYTEREGS &&
+                op == OPu8_16 && mask[reg] & BYTEREGS &&
                 config.target_cpu < TARGET_PentiumPro)
             {
                 c2 = movregconst(NULL,reg,0,0);                 //  XOR reg,reg
@@ -2841,7 +2841,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
             }
             else
             {
-                opcode = (op == OPu8int) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,EA
+                opcode = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,EA
                 c2 = loadea(e1,&cs,opcode,reg,0,0,retregs);
                 c3 = CNIL;
             }
@@ -2857,7 +2857,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
     }
     else
     {
-        if (op == OPu8int)              /* if unsigned conversion       */
+        if (op == OPu8_16)              /* if unsigned conversion       */
         {
             retregs = *pretregs & BYTEREGS;
             if (retregs == 0)
@@ -2882,7 +2882,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
 
     /* If previous instruction is an AND bytereg,value  */
     if (c->Iop == 0x80 && c->Irm == modregrm(3,4,reg & 7) &&
-        (op == OPu8int || (c->IEV2.Vuns & 0x80) == 0))
+        (op == OPu8_16 || (c->IEV2.Vuns & 0x80) == 0))
     {
         if (*pretregs & mPSW)
             c->Iflags |= CFpsw;
@@ -2895,7 +2895,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
      L1:
         if (!I16)
         {
-            if (op == OPs8int && reg == AX && size == 2)
+            if (op == OPs8_16 && reg == AX && size == 2)
             {   c3 = gen1(c3,0x98);             /* CBW                  */
                 c3->Iflags |= CFopsize;         /* don't do a CWDE      */
             }
@@ -2910,7 +2910,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
                 }
                 else
                 {
-                    unsigned iop = (op == OPu8int) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,reg
+                    unsigned iop = (op == OPu8_16) ? 0x0FB6 : 0x0FBE; // MOVZX/MOVSX reg,reg
                     c3 = genregs(c3,iop,reg,reg);
                     if (I64 && reg >= 4)
                         code_orrex(c3, REX);
@@ -2919,7 +2919,7 @@ code *cdbyteint(elem *e,regm_t *pretregs)
         }
         else
         {
-            if (op == OPu8int)
+            if (op == OPu8_16)
                 c3 = genregs(c3,0x30,reg+4,reg+4);      // XOR regH,regH
             else
             {
@@ -3105,7 +3105,7 @@ code *cdasm(elem *e,regm_t *pretregs)
 }
 
 /************************
- * Generate code for OPtofar16 and OPfromfar16.
+ * Generate code for OPnp_f16p and OPf16p_np.
  */
 
 code *cdfar16( elem *e, regm_t *pretregs)
@@ -3134,7 +3134,7 @@ code *cdfar16( elem *e, regm_t *pretregs)
     cs.IEV2.Vuns = 3;
     cs.Iflags |= CFopsize;
 
-    if (e->Eoper == OPtofar16)
+    if (e->Eoper == OPnp_f16p)
     {
         /*      OR  ereg,ereg
                 JE  L1
@@ -3170,7 +3170,7 @@ code *cdfar16( elem *e, regm_t *pretregs)
         genc2(c1,0x80,modregrm(3,1,rx),4);              /* OR  rl,4     */
         genregs(c1,0x0A | byte,reg,rx);                 /* OR  regl,rl  */
     }
-    else /* OPfromfar16 */
+    else /* OPf16p_np */
     {
         /*      ROR ereg,16
                 SHR reg,3
