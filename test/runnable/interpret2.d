@@ -142,6 +142,24 @@ static assert(!is(typeof(
 () { enum Bug5678* f = new Bug5678(0); return f; }
 )));
 
+/***** Bug 6816 *********************************/
+
+struct S6816
+{
+    size_t foo()
+    {
+        size_t nested()
+        {
+            return value + 1;
+        }
+        return nested();
+    }
+
+    size_t value;
+}
+
+static assert(S6816().foo() == 1);
+
 /************************************************/
 
 int main()

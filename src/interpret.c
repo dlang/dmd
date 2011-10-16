@@ -1400,6 +1400,9 @@ Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
 
 Expression *ThisExp::interpret(InterState *istate, CtfeGoal goal)
 {
+    while (istate && !istate->localThis)
+        istate = istate->caller;
+
     if (istate && istate->localThis && istate->localThis->op == TOKstructliteral)
         return istate->localThis;
     if (istate && istate->localThis)
