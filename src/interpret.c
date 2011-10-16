@@ -4245,6 +4245,8 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
                     fd = ((SymOffExp *)ecall)->var->isFuncDeclaration();
             }
         }
+        else if (pe->op == TOKsymoff)
+            fd = ((SymOffExp *)pe)->var->isFuncDeclaration();
         else
             ecall = ((PtrExp*)ecall)->e1->interpret(istate);
 
