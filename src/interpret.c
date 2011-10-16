@@ -4112,26 +4112,35 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
     printf("AndAndExp::interpret() %s\n", toChars());
 #endif
     Expression *e = e1->interpret(istate);
+    int result;
     if (e != EXP_CANT_INTERPRET)
     {
         if (e->isBool(FALSE))
-            e = new IntegerExp(e1->loc, 0, type);
+            result = 0;
         else if (isTrueBool(e))
         {
             e = e2->interpret(istate);
             if (e != EXP_CANT_INTERPRET)
             {
                 if (e->isBool(FALSE))
-                    e = new IntegerExp(e1->loc, 0, type);
+                    result = 0;
                 else if (isTrueBool(e))
-                    e = new IntegerExp(e1->loc, 1, type);
+                    result = 1;
                 else
+                {
+                    error("%s does not evaluate to a boolean", e->toChars());
                     e = EXP_CANT_INTERPRET;
+                }
             }
         }
         else
+        {
+            error("%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
+        }
     }
+    if (e != EXP_CANT_INTERPRET && goal != ctfeNeedNothing)
+        e = new IntegerExp(loc, result, type);
     return e;
 }
 
@@ -4141,26 +4150,35 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     printf("OrOrExp::interpret() %s\n", toChars());
 #endif
     Expression *e = e1->interpret(istate);
+    int result;
     if (e != EXP_CANT_INTERPRET)
     {
         if (isTrueBool(e))
-            e = new IntegerExp(e1->loc, 1, type);
+            result = 1;
         else if (e->isBool(FALSE))
         {
             e = e2->interpret(istate);
             if (e != EXP_CANT_INTERPRET)
             {
                 if (e->isBool(FALSE))
-                    e = new IntegerExp(e1->loc, 0, type);
+                    result = 0;
                 else if (isTrueBool(e))
-                    e = new IntegerExp(e1->loc, 1, type);
+                    result = 1;
                 else
+                {
+                    error("%s cannot be interpreted as a boolean", e->toChars());
                     e = EXP_CANT_INTERPRET;
+                }
             }
         }
         else
+        {
+            error("%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
+        }
     }
+    if (e != EXP_CANT_INTERPRET && goal != ctfeNeedNothing)
+        e = new IntegerExp(loc, result, type);
     return e;
 }
 
