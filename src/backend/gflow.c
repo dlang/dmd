@@ -833,8 +833,8 @@ void main()
                         break;
 
 
-                    case OPvptrfptr:
-                    case OPcvptrfptr:
+                    case OPvp_fp:
+                    case OPcvp_fp:
                         vec_setbit(i,vptrkill);
                         goto Lunary;
 
@@ -1009,8 +1009,8 @@ STATIC void accumaecpx(elem *n)
             break;
 #endif
 
-        case OPvptrfptr:
-        case OPcvptrfptr:                       // if vptr access
+        case OPvp_fp:
+        case OPcvp_fp:                          // if vptr access
             if ((flowxx == AE) && n->Eexp)
                 vec_orass(KILL,vptrkill);       // kill all other vptr accesses
             break;
@@ -1689,7 +1689,7 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                             }
                         }
                 }
-                if (op == OPvptrfptr || op == OPcvptrfptr)
+                if (op == OPvp_fp || op == OPcvp_fp)
                 {
                     vec_orass(KILL,vptrkill);   /* KILL all vptr accesses */
                     vec_subass(KILL,GEN);       /* except for GENed stuff */

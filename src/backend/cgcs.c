@@ -289,8 +289,8 @@ STATIC void ecom(elem **pe)
         ecom(&e->E1);
         ecom(&e->E2);
         break;
-    case OPvptrfptr:
-    case OPcvptrfptr:
+    case OPvp_fp:
+    case OPcvp_fp:
         ecom(&e->E1);
         touchaccess(e);
         break;
@@ -359,16 +359,16 @@ STATIC void ecom(elem **pe)
     case OPpreinc: case OPpredec:
     case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
     case OPd_s32: case OPd_u32: case OPoffset:
-    case OPs32_d: case OPu32_d: case OPdblint: case OPs16_d: case OPlngsht:
+    case OPs32_d: case OPu32_d: case OPd_s16: case OPs16_d: case OP32_16:
     case OPd_f: case OPf_d:
     case OPd_ld: case OPld_d:
     case OPc_r: case OPc_i:
-    case OPu8int: case OPs8int: case OPint8:
-    case OPu32_64: case OPlngllng: case OP64_32: case OPmsw:
+    case OPu8_16: case OPs8_16: case OP16_8:
+    case OPu32_64: case OPs32_64: case OP64_32: case OPmsw:
     case OPu64_128: case OPs64_128: case OP128_64:
     case OPd_s64: case OPs64_d: case OPd_u64: case OPu64_d:
-    case OPstrctor: case OPu16_d: case OPdbluns:
-    case OPptrlptr: case OPtofar16: case OPfromfar16: case OParrow:
+    case OPstrctor: case OPu16_d: case OPd_u16:
+    case OPnp_fp: case OPnp_f16p: case OPf16p_np: case OParrow:
     case OPvoid: case OPnullcheck:
     case OPbsf: case OPbsr: case OPbswap:
     case OPld_u64:
@@ -631,8 +631,8 @@ STATIC void touchfunc(int flag)
             case OPbt:
 #endif
                 goto L1;
-            case OPvptrfptr:
-            case OPcvptrfptr:
+            case OPvp_fp:
+            case OPcvp_fp:
                 if (flag == 0)          /* function calls destroy vptrfptr's, */
                     break;              /* not indirect assignments     */
             L1:
@@ -675,7 +675,7 @@ STATIC void touchaccess(elem *ev)
   {     e = hcstab[i].Helem;
         /* Invalidate any previous handle pointer accesses that */
         /* are not accesses of ev.                              */
-        if (e && (e->Eoper == OPvptrfptr || e->Eoper == OPcvptrfptr) &&
+        if (e && (e->Eoper == OPvp_fp || e->Eoper == OPcvp_fp) &&
             e->E1 != ev)
             hcstab[i].Helem = NULL;
   }

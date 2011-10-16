@@ -341,8 +341,8 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
         }
         if (n->Eexp)            // if an AE
         {
-            if (op == OPvptrfptr || op == OPcvptrfptr)
-                /* Invalidate all other OPvptrfptrs     */
+            if (op == OPvp_fp || op == OPcvp_fp)
+                /* Invalidate all other OPvp_fps     */
                 vec_subass(ae,vptrkill);
 
             /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");
@@ -520,7 +520,7 @@ L1:     e = *pe;
             }
 #if TX86
             // This CSE is too easy to regenerate
-            else if (op == OPushtlng && !I32 && e->Ecount)
+            else if (op == OPu16_32 && !I32 && e->Ecount)
                 e = delcse(pe);
 #endif
         }
@@ -758,8 +758,8 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
     }
     else if (n->Eexp)           /* if an AE                     */
     {
-        if (op == OPvptrfptr || op == OPcvptrfptr)
-            /* Invalidate all other OPvptrfptrs */
+        if (op == OPvp_fp || op == OPcvp_fp)
+            /* Invalidate all other OPvp_fps */
             vec_subass(ae,vptrkill);
 
         /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");

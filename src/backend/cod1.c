@@ -522,8 +522,8 @@ code *logexp(elem *e,int jcond,unsigned fltarg,code *targ)
             case OPnot:
                 jcond ^= 1;
             case OPbool:
-            case OPs8int:
-            case OPu8int:
+            case OPs8_16:
+            case OPu8_16:
             case OPs16_32:
             case OPu16_32:
             case OPs32_64:
@@ -3274,7 +3274,7 @@ code *params(elem *e,unsigned stackalign)
                 goto L2;
         }
         break;
-    case OPptrlptr:
+    case OPnp_fp:
         if (!e->Ecount)                         /* if (far *)e1 */
         {
             int segreg;

@@ -1041,9 +1041,9 @@ STATIC void markinvar(elem *n,vec_t rd)
                 break;
         case OPmsw:
         case OPneg:     case OPbool:    case OPnot:     case OPcom:
-        case OPshtlng:  case OPd_s32:   case OPs32_d:
-        case OPdblint:  case OPs16_d:   case OPd_f:     case OPf_d:
-        case OPlngsht:  case OPu8int:
+        case OPs16_32:  case OPd_s32:   case OPs32_d:
+        case OPd_s16:   case OPs16_d:   case OPd_f:     case OPf_d:
+        case OP32_16:   case OPu8_16:
         case OPld_d:    case OPd_ld:
         case OPld_u64:
         case OPc_r:     case OPc_i:
@@ -1054,12 +1054,12 @@ STATIC void markinvar(elem *n,vec_t rd)
 #else
         case OPunslng:
 #endif
-        case OPu16_d:   case OPdbluns:
-        case OPs8int:   case OPint8:
+        case OPu16_d:   case OPd_u16:
+        case OPs8_16:   case OP16_8:
         case OPd_u32:   case OPu32_d:
 
 #if LONGLONG
-        case OPlngllng: case OPu32_64:
+        case OPs32_64:  case OPu32_64:
         case OP64_32:
         case OPd_s64:   case OPd_u64:
         case OPs64_d:
@@ -1075,9 +1075,9 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPcos:
         case OPrint:
 #if TX86
-        case OPvptrfptr: /* BUG for MacHandles */
-        case OPtofar16: case OPfromfar16: case OPoffset: case OPptrlptr:
-        case OPcvptrfptr:
+        case OPvp_fp: /* BUG for MacHandles */
+        case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
+        case OPcvp_fp:
         case OPsetjmp:
         case OPbsf:
         case OPbsr:
@@ -2778,7 +2778,7 @@ STATIC void intronvars(loop *l)
             if (!elemisone(fl->c1))             /* don't multiply ptrs by 1 */
                 ne = el_bin(OPmul,tyr,ne,el_copytree(fl->c1));
             if (tyfv(tyr) && tysize(ty) == SHORTSIZE)
-                ne = el_una(OPlngsht,ty,ne);
+                ne = el_una(OP32_16,ty,ne);
             C2 = el_copytree(fl->c2);
             t2 = el_bin(OPadd,ty,ne,C2);        /* t2 = ne + C2         */
             ne = el_bin(OPeq,ty,el_copytree(T),t2);
@@ -3104,7 +3104,7 @@ STATIC void elimbasivs(register loop *l)
                  */
                 if (tysize(flty) == SHORTSIZE &&
                     tysize(refE2->Ety) == LONGSIZE)
-                    refE2 = el_una(OPlngsht,flty,refE2);
+                    refE2 = el_una(OP32_16,flty,refE2);
 
                 /* replace e with e*c1 + c2             */
                 C2 = el_copytree(fl->c2);
@@ -3223,7 +3223,7 @@ STATIC void elimbasivs(register loop *l)
                                     tybasic(ne->E2->Ety) == TYfptr)
                                 {   ne->Ety = I64 ? TYllong : TYint;
                                     if (tylong(ty) && intsize == 2)
-                                        ne = el_una(OPshtlng,ty,ne);
+                                        ne = el_una(OPs16_32,ty,ne);
                                 }
 #endif
 

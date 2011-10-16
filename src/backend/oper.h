@@ -136,11 +136,12 @@ enum OPER
 #define rel_toktoop(tk) ((enum OPER)((int)tk - (int)TKle + (int)OPle))
 
 /***************** End of relational operators ******************/
-#define CNVOPMIN        (OPnue+1)
-
-// parallel array inconvtab[] in cgelem.c)
 
 /* Convert from conversion operator to conversion index         */
+// parallel array invconvtab[] in cgelem.c)
+
+#define CNVOPMIN        (OPb_8)
+#define CNVOPMAX        (OPld_u64)
 #define convidx(op)     ((int)(op) - CNVOPMIN)
 
 /*      8,16,32,64      integral type of unspecified sign
@@ -148,7 +149,7 @@ enum OPER
         f,d,ld          float/double/long double
         np,fp,vp,f16p   near pointer/far pointer/handle pointer/far16 pointer
         cvp             const handle pointer
- */
+*/
 
         OPb_8,          // convert bit to byte
         OPd_s32,
@@ -186,40 +187,6 @@ enum OPER
         OPld_d,
         OPd_ld,
         OPld_u64,
-
-#define CNVOPMAX        (OPc_r-1)
-#define convidx(op)     ((int)(op) - CNVOPMIN)
-/* Convert from conversion operator to conversion index         */
-
-#if 1
-// The old conversion operators - retain until we get the code fixed
-#define OPlngdbl        OPs32_d
-#define OPdblint        OPd_s16
-#define OPintdbl        OPs16_d
-#define OPdbluns        OPd_u16
-#define OPunsdbl        OPu16_d
-#define OPdblulng       OPd_u32
-#define OPulngdbl       OPu32_d
-#define OPdblllng       OPd_s64
-#define OPllngdbl       OPs64_d
-#define OPdblullng      OPd_u64
-#define OPdblflt        OPd_f
-#define OPvptrfptr      OPvp_fp
-#define OPcvptrfptr     OPcvp_fp        // const handle * => far *
-#define OPshtlng        OPs16_32        // short to long
-#define OPushtlng       OPu16_32        // unsigned short to long
-#define OPlngsht        OP32_16         // long to short
-#define OPu8int         OPu8_16         // unsigned char to short
-#define OPs8int         OPs8_16         // signed char to short
-#define OPint8          OP16_8          // short to 8 bits
-#define OPlngllng       OPs32_64        // long to long long
-#define OPllnglng       OP64_32         // long long to long
-#define OPoffset        OPoffset        // get offset of far pointer
-#define OPptrlptr       OPnp_fp         // convert near pointer to far
-#define OPtofar16       OPnp_f16p       // from 0:32 to 16:16
-#define OPfromfar16     OPf16p_np       // from 16:16 to 0:32
-
-#endif
 
 /***************** End of conversion operators ******************/
 
