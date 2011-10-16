@@ -485,6 +485,38 @@ static assert(foo9()==2);
 
 /************************************/
 
+int test4()
+{
+    int i;
+
+    dchar  d;
+    d  >>= 1;
+    d >>>= 1;
+    d  <<= 1;
+    d = d  >> 1;
+    d = d >>> 1;
+    d = d  << 1;
+    wchar  w;
+    w  >>= 1;
+    w >>>= 1;
+    w  <<= 1;
+    w = w  >> 1;
+    w = w >>> 1;
+    i = w  << 1; // promoted to int
+    char   c;
+    c  >>= 1;
+    c >>>= 1;
+    c  <<= 1;
+    c = c  >> 1;
+    c = c >>> 1;
+    i = c  << 1; // promoted to int
+    return d + w + c + i;
+}
+
+static assert(test4() == 24666);
+
+/************************************/
+
 int main()
 {
     test1();

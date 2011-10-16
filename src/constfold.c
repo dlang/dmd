@@ -650,6 +650,7 @@ Expression *Shr(Type *type, Expression *e1, Expression *e2)
                 break;
 
         case Tuns8:
+        case Tchar:
                 value = (d_uns8)(value) >> count;
                 break;
 
@@ -658,6 +659,7 @@ Expression *Shr(Type *type, Expression *e1, Expression *e2)
                 break;
 
         case Tuns16:
+        case Twchar:
                 value = (d_uns16)(value) >> count;
                 break;
 
@@ -666,6 +668,7 @@ Expression *Shr(Type *type, Expression *e1, Expression *e2)
                 break;
 
         case Tuns32:
+        case Tdchar:
                 value = (d_uns32)(value) >> count;
                 break;
 
@@ -699,18 +702,21 @@ Expression *Ushr(Type *type, Expression *e1, Expression *e2)
     {
         case Tint8:
         case Tuns8:
+        case Tchar:
                 // Possible only with >>>=. >>> always gets promoted to int.
                 value = (value & 0xFF) >> count;
                 break;
 
         case Tint16:
         case Tuns16:
+        case Twchar:
                 // Possible only with >>>=. >>> always gets promoted to int.
                 value = (value & 0xFFFF) >> count;
                 break;
 
         case Tint32:
         case Tuns32:
+        case Tdchar:
                 value = (value & 0xFFFFFFFF) >> count;
                 break;
 
