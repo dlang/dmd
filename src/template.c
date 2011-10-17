@@ -4485,21 +4485,26 @@ void TemplateInstance::semantic3(Scope *sc)
         sc = sc->push(this);
         sc->tinst = this;
         int oldgag = global.gag;
+        int olderrors = global.errors;
         /* If this is a speculative instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
          * would already be gagged, so we don't really need to run semantic
          * on the members.
          */
-        if (speculative && !global.gag)
-            global.gag = 1;
+        if (speculative && !oldgag)
+            olderrors = global.startGagging();
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
-            if (global.gag && errors)
+            if (speculative && global.errors != olderrors)
                 break;
         }
-        global.gag = oldgag;
+        if (speculative && !oldgag)
+        {   // If errors occurred, this instantiation failed
+            errors += global.errors - olderrors;
+            global.endGagging(olderrors);
+        }
         sc = sc->pop();
         sc->pop();
     }
