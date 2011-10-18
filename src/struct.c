@@ -41,6 +41,8 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     sizeok = 0;                 // size not determined yet
     deferred = NULL;
     isdeprecated = 0;
+    softDeprecated = false;
+    deprecatedMessage = NULL;
     inv = NULL;
     aggNew = NULL;
     aggDelete = NULL;

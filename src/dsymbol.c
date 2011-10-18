@@ -31,6 +31,7 @@
 #include "import.h"
 #include "template.h"
 #include "attrib.h"
+#include "enum.h"
 
 /****************************** Dsymbol ******************************/
 
@@ -607,7 +608,29 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
                 goto L1;
         }
 
-        error(loc, "is deprecated");
+        char *dmsg = NULL;
+        bool dsoft = false;
+        if (Declaration *d = isDeclaration())
+        {
+            dmsg = d->deprecatedMessage;
+            dsoft = d->softDeprecated;
+        }
+        else if (AggregateDeclaration *d = isAggregateDeclaration())
+        {
+            dmsg = d->deprecatedMessage;
+            dsoft = d->softDeprecated;
+        }
+        else if (EnumDeclaration *d = isEnumDeclaration())
+        {
+            dmsg = d->deprecatedMessage;
+            dsoft = d->softDeprecated;
+        }
+        const char *msg = dmsg ? "%s %s is deprecated - %s" : "%s %s is deprecated";
+
+        if (dsoft)
+            ::warning(loc, msg, kind(), toPrettyChars(),dmsg);
+        else
+            ::error(loc, msg, kind(), toPrettyChars(),dmsg);
     }
 
   L1:

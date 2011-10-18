@@ -32,6 +32,8 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     defaultval = NULL;
     sinit = NULL;
     isdeprecated = 0;
+    softDeprecated = false;
+    deprecatedMessage = NULL;
     isdone = 0;
 }
 

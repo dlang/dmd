@@ -30,6 +30,8 @@ struct HdrGenState;
 struct AttribDeclaration : Dsymbol
 {
     Dsymbols *decl;     // array of Dsymbol's
+    bool softDeprecated;
+    char *deprecatedMessage;
 
     AttribDeclaration(Dsymbols *decl);
     virtual Dsymbols *include(Scope *sc, ScopeDsymbol *s);
@@ -181,6 +183,17 @@ struct CompileDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
     void compileIt(Scope *sc);
+    void semantic(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+};
+
+struct DeprecatedDeclaration : AttribDeclaration
+{
+    bool soft;
+    Expression *message;
+
+    DeprecatedDeclaration(Dsymbols *decl, Expression *message, bool soft);
+    Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };

@@ -35,6 +35,8 @@ Declaration::Declaration(Identifier *id)
     linkage = LINKdefault;
     inuse = 0;
     sem = SemanticStart;
+    softDeprecated = false;
+    deprecatedMessage = NULL;
 }
 
 void Declaration::semantic(Scope *sc)
