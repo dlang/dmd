@@ -67,6 +67,7 @@ struct StorageClassDeclaration: AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
+    int oneMember(Dsymbol **ps);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);

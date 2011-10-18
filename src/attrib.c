@@ -366,6 +366,35 @@ Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
     return scd;
 }
 
+int StorageClassDeclaration::oneMember(Dsymbol **ps)
+{
+
+    int t = Dsymbol::oneMembers(decl, ps);
+    if (t && *ps)
+    {
+        /* This is to deal with the following case:
+         * struct Tick {
+         *   template to(T) { const T to() { ... } }
+         * }
+         * For eponymous function templates, the 'const' needs to get attached to 'to'
+         * before the semantic analysis of 'to', so that template overloading based on the
+         * 'this' pointer can be successful.
+         */
+
+        FuncDeclaration *fd = (*ps)->isFuncDeclaration();
+        if (fd)
+        {
+            /* Use storage_class2 instead of storage_class otherwise when we do .di generation
+             * we'll wind up with 'const const' rather than 'const'.
+             */
+            /* Don't think we need to worry about mutually exclusive storage classes here
+             */
+            fd->storage_class2 |= stc;
+        }
+    }
+    return t;
+}
+
 void StorageClassDeclaration::setScope(Scope *sc)
 {
     if (decl)

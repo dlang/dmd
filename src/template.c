@@ -1117,7 +1117,7 @@ L2:
         {
             Type *tthis = ethis->type;
             unsigned mod = fd->type->mod;
-            StorageClass stc = scope->stc;
+            StorageClass stc = scope->stc | fd->storage_class2;
             // Propagate parent storage class (see bug 5504)
             Dsymbol *p = parent;
             while (p->isTemplateDeclaration() || p->isTemplateInstance())

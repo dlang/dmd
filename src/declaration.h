@@ -566,6 +566,7 @@ struct FuncDeclaration : Declaration
                                         // of the 'introducing' function
                                         // this one is overriding
     int inferRetType;                   // !=0 if return type is to be inferred
+    StorageClass storage_class2;        // storage class for template onemember's
 
     // Things that should really go into Scope
     int hasReturnExp;                   // 1 if there's a return exp; statement

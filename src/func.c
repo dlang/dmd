@@ -79,6 +79,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
      * NULL for the return type.
      */
     inferRetType = (type && type->nextOf() == NULL);
+    storage_class2 = 0;
     hasReturnExp = 0;
     nrvo_can = 1;
     nrvo_var = NULL;

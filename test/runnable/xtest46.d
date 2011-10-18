@@ -3832,6 +3832,40 @@ void test4237()
 }
 
 /***************************************************/
+// http://d.puremagic.com/issues/show_bug.cgi?id=6488
+
+struct TickDuration
+{
+    template to(T) if (__traits(isIntegral,T))
+    {
+        const T to()
+        {
+            return 1;
+        }
+    }
+
+    template to(T) if (__traits(isFloating,T))
+    {
+        const T to()
+        {
+            return 0;
+        }
+    }
+
+    const long seconds()
+    {
+        return to!(long)();
+    }
+
+}
+
+void test6488()
+{
+    TickDuration d;
+    d.seconds();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4021,6 +4055,7 @@ int main()
     test5696();
     test6084();
     test4237();
+    test6488();
 
     printf("Success\n");
     return 0;
