@@ -1061,13 +1061,15 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPcos:
         case OPrint:
 #if TX86
-        case OPvp_fp: /* BUG for MacHandles */
-        case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
-        case OPcvp_fp:
         case OPsetjmp:
         case OPbsf:
         case OPbsr:
         case OPbswap:
+#endif
+#if TARGET_SEGMENTED
+        case OPvp_fp: /* BUG for MacHandles */
+        case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
+        case OPcvp_fp:
 #endif
                 markinvar(n->E1,rd);
                 if (isLI(n->E1))        /* if child is LI               */
@@ -2845,7 +2847,11 @@ L1:
                                     e2,
                                     el_copytree(fls->c2)));
         if (sz < tysize(tymin) && sz == tysize(e1->Ety))
+#if TARGET_SEGMENTED
             flse1->E2 = el_una(OPoffset,fl->FLty,flse1->E2);
+#else
+            assert(0);
+#endif
 
         flse1 = doptelem(flse1,GOALvalue | GOALagain);
         fl->c2 = NULL;
@@ -3079,6 +3085,7 @@ STATIC void elimbasivs(register loop *l)
                     }
                 }
 
+#if TARGET_SEGMENTED
                 /* Fix if leaves of compare are TYfptrs and the compare */
                 /* operator is < <= > >=.                               */
                 if (ref->Eoper >= OPle && ref->Eoper <= OPge && tyfv(ref->E1->Ety))
@@ -3086,6 +3093,7 @@ STATIC void elimbasivs(register loop *l)
                         ref->E1 = el_una(OPoffset,TYuint,ref->E1);
                         ref->E2 = el_una(OPoffset,TYuint,fofe);
                 }
+#endif
 #ifdef DEBUG
                 if (debugc)
                 {   WReqn(ref);

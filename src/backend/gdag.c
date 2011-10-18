@@ -341,9 +341,11 @@ STATIC void aewalk(register elem **pn,register vec_t ae)
         }
         if (n->Eexp)            // if an AE
         {
+#if TARGET_SEGMENTED
             if (op == OPvp_fp || op == OPcvp_fp)
                 /* Invalidate all other OPvp_fps     */
                 vec_subass(ae,vptrkill);
+#endif
 
             /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");
             elem_print(n);*/
@@ -742,9 +744,11 @@ STATIC void abewalk(elem *n,vec_t ae,vec_t aeval)
     }
     else if (n->Eexp)           /* if an AE                     */
     {
+#if TARGET_SEGMENTED
         if (op == OPvp_fp || op == OPcvp_fp)
             /* Invalidate all other OPvp_fps */
             vec_subass(ae,vptrkill);
+#endif
 
         /*dbg_printf("available: ("); WReqn(n); dbg_printf(")\n");
         elem_print(n);*/

@@ -815,11 +815,12 @@ void main()
                         vec_setbit(i,starkill);
                         break;
 
-
+#if TARGET_SEGMENTED
                     case OPvp_fp:
                     case OPcvp_fp:
                         vec_setbit(i,vptrkill);
                         goto Lunary;
+#endif
 
                     default:
                         if (OTunary(op))
@@ -990,11 +991,13 @@ STATIC void accumaecpx(elem *n)
             t = Elvalue(n);
             break;
 
+#if TARGET_SEGMENTED
         case OPvp_fp:
         case OPcvp_fp:                          // if vptr access
             if ((flowxx == AE) && n->Eexp)
                 vec_orass(KILL,vptrkill);       // kill all other vptr accesses
             break;
+#endif
 
         default:
             if (OTunary(op))
@@ -1664,11 +1667,13 @@ STATIC void accumvbe(vec_t GEN,vec_t KILL,elem *n)
                             }
                         }
                 }
+#if TARGET_SEGMENTED
                 if (op == OPvp_fp || op == OPcvp_fp)
                 {
                     vec_orass(KILL,vptrkill);   /* KILL all vptr accesses */
                     vec_subass(KILL,GEN);       /* except for GENed stuff */
                 }
+#endif
         }
         else if (OTdef(op))             /* if definition elem           */
         {
