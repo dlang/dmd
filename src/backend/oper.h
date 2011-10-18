@@ -166,8 +166,6 @@ enum OPER
         OPu64_d,
         OPd_f,
         OPf_d,
-        OPvp_fp,
-        OPcvp_fp,       // const handle * => far *
         OPs16_32,       // short to long
         OPu16_32,       // unsigned short to long
         OP32_16,        // long to short
@@ -180,10 +178,14 @@ enum OPER
         OPu64_128,
         OPs64_128,
         OP128_64,
+#if TARGET_SEGMENTED
+        OPvp_fp,
+        OPcvp_fp,       // const handle * => far *
         OPoffset,       // get offset of far pointer
         OPnp_fp,        // convert near pointer to far
         OPnp_f16p,      // from 0:32 to 16:16
         OPf16p_np,      // from 16:16 to 0:32
+#endif
         OPld_d,
         OPd_ld,
         OPld_u64,

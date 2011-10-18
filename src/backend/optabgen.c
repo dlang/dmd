@@ -49,18 +49,21 @@ int _unary[] =
          OPabs,OPsqrt,OPrndtol,OPsin,OPcos,OPrint,
          OPpreinc,OPpredec,
          OPbool,OPstrlen,OPnullcheck,
-         OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,
+         OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,
          OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
-         OPd_f,OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,OP16_8,
+         OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
          OPd_ld, OPld_d,OPc_r,OPc_i,
          OPu32_64,OPs32_64,OP64_32,OPmsw,
          OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
          OP128_64,OPs64_128,OPu64_128,
          OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
-         OPinp,OPnp_fp,OPnp_f16p,OPf16p_np,OParrow,OPnegass,
+         OPinp,OParrow,OPnegass,
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
          OPbsf,OPbsr,OPbswap,
          OPddtor,
+#if TARGET_SEGMENTED
+         OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
+#endif
         };
 int _commut[] = {OPadd,OPand,OPor,OPxor,OPmul,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
@@ -122,9 +125,9 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPxor,OPdiv,OPmod,OPshl,OPshr,OPashr,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
                 OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
                 OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
-                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,OPu16_d,OPd_u16,
-                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,OPnp_fp,OPnp_f16p,OPf16p_np,
-                OPd_f,OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,OP16_8,
+                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPu16_d,OPd_u16,
+                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
+                OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
                 OPd_ld,OPld_d,OPc_r,OPc_i,
                 OPu32_64,OPs32_64,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
@@ -135,6 +138,9 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPgot,OPremquo,
                 OPnullptr,
                 OProl,OPror,
+#if TARGET_SEGMENTED
+                OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
+#endif
                 /*OPcomma,OPbit,OPoror,OPandand,OPcond,OPcolon,OPcolon2*/};
 int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
@@ -144,9 +150,9 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
                 OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
                 OPcomma,OPasm,OPsizeof,OPmemcmp,
-                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPoffset,OPu16_d,OPd_u16,
-                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,OPnp_fp,OPnp_f16p,OPf16p_np,
-                OPd_f,OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,OP16_8,
+                OPs16_32,OPu16_32,OPd_s32,OPd_u32,OPu16_d,OPd_u16,
+                OPs32_d,OPu32_d,OPd_s16,OPs16_d,OP32_16,
+                OPd_f,OPf_d,OPu8_16,OPs8_16,OP16_8,
                 OPd_ld, OPld_d,OPc_r,OPc_i,
                 OPu32_64,OPs32_64,OP64_32,OPmsw,
                 OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
@@ -159,15 +165,22 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,
                 OProl,OPror,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
-                OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass};
+                OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass
+#if TARGET_SEGMENTED
+                OPvp_fp,OPcvp_fp,OPoffset,OPnp_fp,OPnp_f16p,OPf16p_np,
+#endif
+};
 int _boolnop[] = {OPuadd,OPbool,OPs16_32,OPu16_32,
                 OPs16_d,
-                OPf_d,OPvp_fp,OPcvp_fp,OPu8_16,OPs8_16,
+                OPf_d,OPu8_16,OPs8_16,
                 OPd_ld, OPld_d,
                 OPu32_64,OPs32_64,/*OP64_32,OPmsw,*/
                 OPs64_128,OPu64_128,
-                OPu16_d,OPnp_fp,OPb_8,
+                OPu16_d,OPb_8,
                 OPnullptr,
+#if TARGET_SEGMENTED
+                OPnp_fp,OPvp_fp,OPcvp_fp,
+#endif
                 };
 int _lvalue[] = {OPvar,OPind,OPcomma,OPbit,
                 OPfield,OParray};
@@ -429,8 +442,6 @@ void dotab()
         case OPdiv:     X("/",          eldiv,  cdmul);
         case OPmod:     X("%",          elmod,  cdmul);
         case OPxor:     X("^",          elxor,  cdorth);
-        case OPvp_fp:   X("vptrfptr",   elvptrfptr,cdcnvt);
-        case OPcvp_fp:  X("cvptrfptr",  elvptrfptr,cdcnvt);
         case OPstring:  X("string",     elstring,cderr);
         case OPrelconst: X("relconst",  elzot, cdrelconst);
         case OPinp:     X("inp",        elzot, cdport);
@@ -536,9 +547,14 @@ void dotab()
         case OPnug:     X("~!<=",       elcmp,  cdcmp);
         case OPnue:     X("~!<>",       elcmp,  cdcmp);
 
+#if TARGET_SEGMENTED
+        case OPvp_fp:   X("vptrfptr",   elvptrfptr,cdcnvt);
+        case OPcvp_fp:  X("cvptrfptr",  elvptrfptr,cdcnvt);
+        case OPoffset:  X("offset",     ellngsht,cdlngsht);
         case OPnp_fp:   X("ptrlptr",    elptrlptr,cdshtlng);
         case OPnp_f16p: X("tofar16",    elzot,  cdfar16);
         case OPf16p_np: X("fromfar16",  elzot,  cdfar16);
+#endif
         case OPs16_32:  X("s16_32",     evalu8, cdshtlng);
         case OPu16_32:  X("u16_32",     evalu8, cdshtlng);
         case OPd_s32:   X("d_s32",      evalu8, cdcnvt);
@@ -550,7 +566,6 @@ void dotab()
         case OPu16_d:   X("u16_d",      evalu8, cdcnvt);
         case OPd_u32:   X("d_u32",      evalu8, cdcnvt);
         case OPu32_d:   X("u32_d",      evalu8, cdcnvt);
-        case OPoffset:  X("offset",     ellngsht,cdlngsht);
         case OP32_16:   X("32_16",      ellngsht,cdlngsht);
         case OPd_f:     X("d_f",        evalu8, cdcnvt);
         case OPf_d:     X("f_d",        evalu8, cdcnvt);

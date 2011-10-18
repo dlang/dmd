@@ -3274,6 +3274,7 @@ code *params(elem *e,unsigned stackalign)
                 goto L2;
         }
         break;
+#if TARGET_SEGMENTED
     case OPnp_fp:
         if (!e->Ecount)                         /* if (far *)e1 */
         {
@@ -3286,9 +3287,7 @@ code *params(elem *e,unsigned stackalign)
             switch (tym1)
             {
                 case TYnptr: segreg = 3<<3; break;
-#if TARGET_SEGMENTED
                 case TYcptr: segreg = 1<<3; break;
-#endif
                 default:     segreg = 2<<3; break;
             }
             if (I32 && stackalign == 2)
@@ -3302,6 +3301,7 @@ code *params(elem *e,unsigned stackalign)
             goto L2;
         }
         break;
+#endif
     case OPrelconst:
 #if TARGET_SEGMENTED
         /* Determine if we can just push the segment register           */

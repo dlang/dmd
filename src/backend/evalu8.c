@@ -431,7 +431,7 @@ doit:
             }
 #endif
             break;
-#if TX86
+#if TARGET_SEGMENTED
         case OPnp_fp:
             e->E1 = e1 = poptelem(e->E1);
             // If casting a non-NULL constant pointer
@@ -1824,7 +1824,7 @@ elem * evalu8(elem *e)
     case OPs16_32:
         e->EV.Vlong = (targ_short) i1;
         break;
-#if TX86
+#if TARGET_SEGMENTED
     case OPnp_fp:
 #endif
     case OPu16_32:
@@ -1922,7 +1922,7 @@ elem * evalu8(elem *e)
         e->EV.Vint = boolres(e1);
         break;
     case OP32_16:
-#if TX86
+#if TARGET_SEGMENTED
     case OPoffset:
 #endif
         e->EV.Vint = l1;
