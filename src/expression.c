@@ -2500,7 +2500,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
     if (hasThis(sc))
     {
         AggregateDeclaration *ad = sc->getStructClassScope();
-        if (ad->aliasthis)
+        if (ad && ad->aliasthis)
         {
             Expression *e;
             e = new IdentifierExp(loc, Id::This);
