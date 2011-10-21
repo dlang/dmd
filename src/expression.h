@@ -953,6 +953,7 @@ struct CallExp : UnaExp
     CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2);
 
     Expression *syntaxCopy();
+    Expression *resolveUFCS(Scope *sc);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
