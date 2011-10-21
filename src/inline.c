@@ -54,7 +54,7 @@ int CompoundStatement::inlineCost(InlineCostState *ics)
 {   int cost = 0;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s = (*statements)[i];
         if (s)
         {
             cost += s->inlineCost(ics);
@@ -69,7 +69,7 @@ int UnrolledLoopStatement::inlineCost(InlineCostState *ics)
 {   int cost = 0;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s = (*statements)[i];
         if (s)
         {
             cost += s->inlineCost(ics);
@@ -130,13 +130,13 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
 
 /* -------------------------- */
 
-int arrayInlineCost(InlineCostState *ics, Array *arguments)
+int arrayInlineCost(InlineCostState *ics, Expressions *arguments)
 {   int cost = 0;
 
     if (arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (Expression *)arguments->data[i];
+        {   Expression *e = (*arguments)[i];
 
             if (e)
                 cost += e->inlineCost(ics);
@@ -196,6 +196,10 @@ int AssocArrayLiteralExp::inlineCost(InlineCostState *ics)
 
 int StructLiteralExp::inlineCost(InlineCostState *ics)
 {
+#if DMDV2
+    if (sd->isnested)
+        return COST_MAX;
+#endif
     return 1 + arrayInlineCost(ics, elements);
 }
 
@@ -226,7 +230,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
             return COST_MAX;    // finish DeclarationExp::doInline
 #else
             for (size_t i = 0; i < td->objects->dim; i++)
-            {   Object *o = (Object *)td->objects->data[i];
+            {   Object *o = (*td->objects)[i];
                 if (o->dyncast() != DYNCAST_EXPRESSION)
                     return COST_MAX;
                 Expression *eo = (Expression *)o;
@@ -351,7 +355,7 @@ Expression *CompoundStatement::doInline(InlineDoState *ids)
 
     //printf("CompoundStatement::doInline() %d\n", statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  (*statements)[i];
         if (s)
         {
             Expression *e2 = s->doInline(ids);
@@ -383,7 +387,7 @@ Expression *UnrolledLoopStatement::doInline(InlineDoState *ids)
 
     //printf("UnrolledLoopStatement::doInline() %d\n", statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = (Statement *) statements->data[i];
+    {   Statement *s =  (*statements)[i];
         if (s)
         {
             Expression *e2 = s->doInline(ids);

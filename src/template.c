@@ -4190,10 +4190,12 @@ int TemplateInstance::hasNestedArgs(Objects *args)
      * symbol that is on the stack.
      */
     for (size_t i = 0; i < args->dim; i++)
-    {   Object *o = (Object *)args->data[i];
+    {   Object *o = (*args)[i];
         Expression *ea = isExpression(o);
+        Type *ta = isType(o);
         Dsymbol *sa = isDsymbol(o);
         Tuple *va = isTuple(o);
+        //printf("o %p ea %p ta %p sa %p va %p\n", o, ea, ta, sa, va);
         if (ea)
         {
             if (ea->op == TOKvar)
@@ -4207,20 +4209,36 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                 goto Lsa;
             }
         }
+        else if (ta)
+        {
+            if (ta->ty == Tstruct || ta->ty == Tclass)
+            {   sa = ta->toDsymbol(NULL);
+                TemplateInstance *ti = sa->parent->isTemplateInstance();
+                if (ti && ti->isnested)
+                {   sa = ti;
+                    goto Lsa;
+                }
+            }
+        }
         else if (sa)
         {
           Lsa:
+            //printf("sa = %s %s\n", sa->kind(), sa->toChars());
             Declaration *d = sa->isDeclaration();
-            if (d && !d->isDataseg() &&
+            TemplateInstance *ad = sa->isTemplateInstance();
+            if (
+                (ad && ad->isnested) ||
+                (d && !d->isDataseg() &&
 #if DMDV2
-                !(d->storage_class & STCmanifest) &&
+                 !(d->storage_class & STCmanifest) &&
 #endif
-                (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
-                !isTemplateMixin())
+                 (!d->isFuncDeclaration() || d->isFuncDeclaration()->isNested()) &&
+                 !isTemplateMixin()
+                ))
             {
                 // if module level template
                 if (tempdecl->toParent()->isModule())
-                {   Dsymbol *dparent = d->toParent();
+                {   Dsymbol *dparent = sa->toParent();
                     if (!isnested)
                         isnested = dparent;
                     else if (isnested != dparent)
@@ -4241,14 +4259,14 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                             }
                         }
                         error("%s is nested in both %s and %s",
-                                toChars(), isnested->toChars(), dparent->toChars());
+                                toChars(), isnested->toPrettyChars(), dparent->toPrettyChars());
                     }
                   L1:
                     //printf("\tnested inside %s\n", isnested->toChars());
                     nested |= 1;
                 }
                 else
-                    error("cannot use local '%s' as parameter to non-global template %s", d->toChars(), tempdecl->toChars());
+                    error("cannot use local '%s' as parameter to non-global template %s", sa->toChars(), tempdecl->toChars());
             }
         }
         else if (va)
