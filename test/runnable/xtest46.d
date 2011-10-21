@@ -3867,6 +3867,31 @@ void test6488()
 
 /***************************************************/
 
+struct Foo6813(T)
+{
+        Foo6813 Bar()
+        {
+            return Foo6813(_indices.abc());
+        }
+    
+    T _indices;
+}
+
+struct SortedRange(alias pred)
+{
+    SortedRange abc()
+    {
+        return SortedRange();
+    }
+}
+
+void test6813() {
+    auto ind = SortedRange!({ })();
+    auto a = Foo6813!(typeof(ind))();
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4056,6 +4081,7 @@ int main()
     test6084();
     test4237();
     test6488();
+    test6813();
 
     printf("Success\n");
     return 0;
