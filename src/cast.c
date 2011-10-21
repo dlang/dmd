@@ -1923,6 +1923,28 @@ Lagain:
             goto Lagain;
         }
     }
+    else if (t1->ty == Tstruct || t2->ty == Tstruct)
+    {
+        if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
+        {
+            e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);
+            e1 = e1->semantic(sc);
+            e1 = resolveProperties(sc, e1);
+            t1 = e1->type;
+            t = t1;
+            goto Lagain;
+        }
+        if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
+        {
+            e2 = new DotIdExp(e2->loc, e2, ((TypeStruct *)t2)->sym->aliasthis->ident);
+            e2 = e2->semantic(sc);
+            e2 = resolveProperties(sc, e2);
+            t2 = e2->type;
+            t = t2;
+            goto Lagain;
+        }
+        goto Lincompatible;
+    }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {
         goto Lt2;

@@ -631,6 +631,24 @@ mixin template Wrapper6479()
 }
 
 /**********************************************/
+// 6832
+
+void test6832()
+{
+	static class Foo { }
+	static struct Bar { Foo foo; alias foo this; }
+    Bar bar;
+    bar = new Foo;          // ok
+    assert(bar !is null);   // ng
+
+    struct Int { int n; alias n this; }
+    Int a;
+    int b;
+    auto c = (true ? a : b);    // TODO
+    assert(c == a);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -655,6 +673,7 @@ int main()
     test6434();
     test6366();
     test6759();
+    test6832();
 
     printf("Success\n");
     return 0;
