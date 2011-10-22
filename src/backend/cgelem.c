@@ -3958,7 +3958,7 @@ STATIC elem * elparam(elem *e)
 /********************************
  * Optimize an element. This routine is recursive!
  * Be careful not to do this if VBEs have been done (else the VBE
- * work will be undone), or it DAGs have been built (will crash if
+ * work will be undone), or if DAGs have been built (will crash if
  * there is more than one parent for an elem).
  * If (goal)
  *      we care about the result.
@@ -4103,6 +4103,8 @@ beg:
                 e->Ety = e1->Ety;
             return el_selecte1(e);
         }
+        if (op == OPparam && !goal)
+            e->Eoper = OPcomma; // DMD bug 6733
 
         if (cnst(e1) && cnst(e2))
         {
