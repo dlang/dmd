@@ -4355,6 +4355,23 @@ void test241()
 
 /***************************************************/
 
+struct Foo6665
+{
+    double[2][2] dat;
+
+    double foo(size_t i, size_t j)
+    {
+        return dat[i][j] = 0;
+    }
+}
+
+void test6665()
+{
+    Foo6665 a;
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4585,6 +4602,7 @@ int main()
     test240();
     test6563();
     test241();
+    test6665();
 
     writefln("Success");
     return 0;
