@@ -1636,11 +1636,15 @@ code *cdshass(elem *e,regm_t *pretregs)
             cg = allocreg(&retregs,&reg,tym);
             cs.Iop = 0x8B ^ byte;
             code_newreg(&cs, reg);
+            if (byte && I64 && (reg >= 4))
+                cs.Irex |= REX;
             c = ce = gen(CNIL,&cs);                     /* MOV reg,EA   */
             if (!I16)
             {
                 assert(!byte || (mask[reg] & BYTEREGS));
                 ce = genc2(CNIL,v ^ byte,modregrmx(3,op1,reg),shiftcnt);
+                if (byte && I64 && (reg >= 4))
+                    ce->Irex |= REX;
                 code_orrex(ce, rex);
                 /* We can do a 32 bit shift on a 16 bit operand if      */
                 /* it's a left shift and we're not concerned about      */
@@ -1666,6 +1670,8 @@ code *cdshass(elem *e,regm_t *pretregs)
             }
 
             cs.Iop = 0x89 ^ byte;
+            if (byte && I64 && (reg >= 4))
+                cs.Irex |= REX;
             gen(ce,&cs);                                /* MOV EA,reg   */
 
             // If result is not in correct register
