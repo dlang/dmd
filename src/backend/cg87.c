@@ -1986,7 +1986,7 @@ code *eq87(elem *e,regm_t *pretregs)
         cs.Irex = 0;
         cs.Iflags = 0;
         cs.Iop = op1;
-        if (*pretregs & (mST0 | ALLREGS | mBP)) // if want result on stack too
+        if (*pretregs & (mST0 | ALLREGS | mBP | XMMREGS)) // if want result on stack too
         {   // Make sure it's still there
             elem *e2 = e->E2;
             while (e2->Eoper == OPcomma)
