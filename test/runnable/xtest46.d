@@ -3924,6 +3924,44 @@ void test6836()
 }
 
 /***************************************************/
+// 6837
+
+struct Ref6837a(T)
+{
+    T storage;
+    alias storage this;
+}
+
+struct Ref6837b(T)
+{
+    T storage;
+    @property ref T get(){ return storage; }
+    alias get this;
+}
+
+int front6837(int[] arr){ return arr[0]; }
+
+void popFront6837(ref int[] arr){ arr = arr[1..$]; }
+
+void test6837()
+{
+    assert([1,2,3].front6837 == 1);
+
+    auto r1 = Ref6837a!(int[])([1,2,3]);
+    assert(r1.front6837() == 1);    // ng
+    assert(r1.front6837 == 1);      // ok
+    r1.popFront6837();              // ng
+    r1.storage.popFront6837();      // ok
+
+    auto r2 = Ref6837b!(int[])([1,2,3]);
+    assert(r2.front6837() == 1);    // ng
+    assert(r2.front6837 == 1);      // ok
+    r2.popFront6837();              // ng
+    r2.get.popFront6837();          // ng
+    r2.get().popFront6837();        // ok
+}
+
+/***************************************************/
 
 struct Foo6813(T)
 {
@@ -4324,6 +4362,7 @@ int main()
     test4237();
     test6488();
     test6836();
+    test6837();
     test6733();
     test6813();
     test6859();

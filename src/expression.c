@@ -7060,18 +7060,47 @@ Expression *CallExp::resolveUFCS(Scope *sc)
         dotid = (DotIdExp *)e1;
         ident = dotid->ident;
         ethis = dotid->e1 = dotid->e1->semantic(sc);
+        if (ethis->op == TOKdotexp)
+            return NULL;
+        ethis = resolveProperties(sc, ethis);
     }
     else if (e1->op == TOKdotti)
     {
         dotti = (DotTemplateInstanceExp *)e1;
         ident = dotti->ti->name;
         ethis = dotti->e1 = dotti->e1->semantic(sc);
+        if (ethis->op == TOKdotexp)
+            return NULL;
+        ethis = resolveProperties(sc, ethis);
     }
 
     if (ethis && ethis->type)
     {
+        AggregateDeclaration *ad;
+Lagain:
         Type *tthis = ethis->type->toBasetype();
-        if (tthis->ty == Taarray && e1->op == TOKdot)
+        if (tthis->ty == Tclass)
+        {
+            ad = ((TypeClass *)tthis)->sym;
+            if (search_function(ad, ident))
+                return NULL;
+            goto L1;
+        }
+        else if (tthis->ty == Tstruct)
+        {
+            ad = ((TypeStruct *)tthis)->sym;
+            if (search_function(ad, ident))
+                return NULL;
+        L1:
+            if (ad->aliasthis)
+            {
+                ethis = new DotIdExp(ethis->loc, ethis, ad->aliasthis->ident);
+                ethis = ethis->semantic(sc);
+                ethis = resolveProperties(sc, ethis);
+                goto Lagain;
+            }
+        }
+        else if (tthis->ty == Taarray && e1->op == TOKdot)
         {
             if (ident == Id::remove)
             {
