@@ -170,8 +170,15 @@ void FuncDeclaration::semantic(Scope *sc)
     if (!type->deco)
     {
         sc = sc->push();
-        sc->stc |= storage_class & (STCref | STCnothrow | STCpure | STCdisable
-            | STCsafe | STCtrusted | STCsystem | STCproperty);      // forward to function type
+        sc->stc |= storage_class & STCdisable;  // forward to function type
+        TypeFunction *tf = (TypeFunction *)type;
+        if (tf->isref)      sc->stc |= STCref;
+        if (tf->isnothrow)  sc->stc |= STCnothrow;
+        if (tf->isproperty) sc->stc |= STCproperty;
+        if (tf->purity == PUREfwdref)   sc->stc |= STCpure;
+        if (tf->trust == TRUSTsafe)     sc->stc |= STCsafe;
+        if (tf->trust == TRUSTsystem)   sc->stc |= STCsystem;
+        if (tf->trust == TRUSTtrusted)  sc->stc |= STCtrusted;
 
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
