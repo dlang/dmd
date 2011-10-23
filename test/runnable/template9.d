@@ -355,6 +355,22 @@ void test5393()
 }
 
 /**********************************/
+// 6825
+
+void test6825()
+{
+    struct File
+    {
+        void write(S...)(S args) {}
+    }
+
+    void dump(void delegate(string) d) {}
+
+    auto o = File();
+    dump(&o.write!string);
+}
+
+/**********************************/
 
 int main()
 {
@@ -373,6 +389,7 @@ int main()
     test2579();
     test5886();
     test5393();
+    test6825();
 
     printf("Success\n");
     return 0;
