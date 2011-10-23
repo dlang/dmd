@@ -615,6 +615,22 @@ void test6759()
 }
 
 /**********************************************/
+// 6479
+
+struct Memory6479
+{
+    mixin Wrapper6479!();
+}
+struct Image6479
+{
+    Memory6479 sup;
+    alias sup this;
+}
+mixin template Wrapper6479()
+{
+}
+
+/**********************************************/
 
 int main()
 {

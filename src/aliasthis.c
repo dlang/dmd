@@ -47,8 +47,6 @@ void AliasThis::semantic(Scope *sc)
         ad = parent->isAggregateDeclaration();
     if (ad)
     {
-        if (ad->aliasthis)
-            error("there can be only one alias this");
         assert(ad->members);
         Dsymbol *s = ad->search(loc, ident, 0);
         if (!s)
@@ -58,6 +56,8 @@ void AliasThis::semantic(Scope *sc)
             else
                 ::error(loc, "undefined identifier %s", ident->toChars());
         }
+        else if (ad->aliasthis && s != ad->aliasthis)
+            error("there can be only one alias this");
         ad->aliasthis = s;
     }
     else
