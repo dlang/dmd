@@ -3878,11 +3878,11 @@ void test6488()
 
 struct Foo6813(T)
 {
-        Foo6813 Bar()
-        {
-            return Foo6813(_indices.abc());
-        }
-    
+    Foo6813 Bar()
+    {
+        return Foo6813(_indices.abc());
+    }
+
     T _indices;
 }
 
@@ -3897,6 +3897,18 @@ struct SortedRange(alias pred)
 void test6813() {
     auto ind = SortedRange!({ })();
     auto a = Foo6813!(typeof(ind))();
+}
+
+/***************************************************/
+
+struct Interval6753{ int a,b; }
+@safe struct S6753
+{
+    int[] arr;
+    @trusted @property auto byInterval() const
+    {
+        return cast(const(Interval6753)[])arr;
+    }
 }
 
 /***************************************************/

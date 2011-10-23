@@ -5024,7 +5024,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     bool wildreturn = FALSE;
     if (tf->next)
     {
+        sc = sc->push();
+        sc->stc &= ~(STC_TYPECTOR | STC_FUNCATTR);
         tf->next = tf->next->semantic(loc,sc);
+        sc = sc->pop();
 #if !SARRAYVALUE
         if (tf->next->toBasetype()->ty == Tsarray)
         {   error(loc, "functions cannot return static array %s", tf->next->toChars());
