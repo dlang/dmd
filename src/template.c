@@ -4448,7 +4448,7 @@ int TemplateInstance::needsTypeInference(Scope *sc)
         //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, tiargs->dim);
         TypeFunction *fdtype = (TypeFunction *)fd->type;
         if (Parameter::dim(fdtype->parameters) &&
-            (tp || tiargs->dim < td->parameters->dim))
+            ((tp && td->parameters->dim > 1) || tiargs->dim < td->parameters->dim))
             return TRUE;
     }
     //printf("false\n");
