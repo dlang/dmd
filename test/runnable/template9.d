@@ -371,6 +371,35 @@ void test6825()
 }
 
 /**********************************/
+// 2778
+
+struct ArrayWrapper2778(T)
+{
+    T[] data;
+    alias data this;
+}
+
+void doStuffFunc2778(int[] data) {}
+
+void doStuffTempl2778(T)(T[] data) {}
+
+int doStuffTemplOver2778(T)(void* data) { return 1; }
+int doStuffTemplOver2778(T)(ArrayWrapper2778!T w) { return 2; }
+
+void test2778()
+{
+    ArrayWrapper2778!(int) foo;
+
+    doStuffFunc2778(foo);  // Works.
+
+    doStuffTempl2778!(int)(foo);  // Works.
+
+    doStuffTempl2778(foo);  // Error
+
+    assert(doStuffTemplOver2778(foo) == 2);
+}
+
+/**********************************/
 
 int main()
 {
@@ -390,6 +419,7 @@ int main()
     test5886();
     test5393();
     test6825();
+    test2778();
 
     printf("Success\n");
     return 0;
