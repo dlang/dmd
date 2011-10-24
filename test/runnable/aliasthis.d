@@ -530,6 +530,63 @@ void test6434()
 }
 
 /**************************************/
+// 4224
+
+struct A4224(T)
+{
+    T[string] table;
+    alias table this;
+
+    T opDispatch(string s)() {
+        return table[s];
+    }
+}
+
+void test4224()
+{
+    A4224!int a;
+    a["i"] = 4;
+    assert(a.i == 4);
+}
+
+/**************************************/
+// 4989
+
+struct X4989
+{
+    int foo() { return 1; }
+    bool foo2() {return true;}
+}
+
+struct S4989
+{
+    X4989 x;
+    alias x this;   // let all others pass through (i.e. foo2)
+
+    // override only int functions
+    auto opDispatch(string fn, Args...)(Args args) if (is(typeof(mixin("x." ~ fn ~ "(args)")) == int))
+    {
+        //writeln("calling " ~ fn);
+        mixin("return x." ~ fn ~ "(args);");
+    }
+
+    // override functions that aren't supported by X
+    auto opDispatch(string fn, Args...)(Args args) if (!is(typeof(mixin("x." ~ fn ~ "(args)"))))
+    {
+        //writeln("invalid function " ~ fn);
+        return 0;
+    }
+}
+
+void test4989()
+{
+    S4989 s;
+    assert(s.foo() == 1);
+    assert(s.foo2() == true);
+    assert(s.baz() == 0); // compiler error "Error: no property 'baz' for type 'X'"
+}
+
+/**************************************/
 // 6366
 
 void test6366()
@@ -896,6 +953,8 @@ int main()
     test6369c();
     test6369d();
     test6434();
+    test4224();
+    test4989();
     test6366();
     test6759();
     test6832();
