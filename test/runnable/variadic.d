@@ -1352,6 +1352,16 @@ void test64()
     auto arr = new int[4]; 
     auto x = arr[index];    // error 
 } 
+
+/***************************************/
+// 6700
+
+template bug6700(TList ...) {
+    const int bug6700 = 2;
+}
+TypeTuple!(int, long) TT6700;
+
+static assert(bug6700!( (TT6700[1..$]) )==2);
  
 /***************************************/
 
