@@ -1210,7 +1210,9 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                  * or a variable (in which case an expression is created in
                  * toir.c).
                  */
-                v->init = new VoidInitializer(0);
+                VoidInitializer *e = new VoidInitializer(0);
+                e->type = Type::tsize_t;
+                v->init = e;
             }
             *pvar = v;
         }
