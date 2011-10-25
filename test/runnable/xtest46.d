@@ -3825,6 +3825,22 @@ class Bar6848 : Foo6848
 }
 
 /***************************************************/
+// 6847
+
+template True6847(T)
+{
+    immutable True6847 = true;
+}
+class Foo6847
+{}
+
+class Bar6847 : Foo6847
+{
+    static assert( True6847!(typeof(super)) );
+    static assert( is(typeof(super) == Foo6847) );
+}
+
+/***************************************************/
 // 6289
 
 void test6289()
