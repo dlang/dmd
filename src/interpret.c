@@ -1319,8 +1319,7 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     printf("TryCatchStatement::interpret()\n");
 #endif
     START()
-    error("try-catch statements are not yet supported in CTFE");
-    return EXP_CANT_INTERPRET;
+    return body ? body->interpret(istate) : NULL;
 }
 
 
@@ -1330,8 +1329,10 @@ Expression *TryFinallyStatement::interpret(InterState *istate)
     printf("TryFinallyStatement::interpret()\n");
 #endif
     START()
-    error("try-finally statements are not yet supported in CTFE");
-    return EXP_CANT_INTERPRET;
+    Expression *e = body ? body->interpret(istate) : NULL;
+    if (e && e != EXP_CANT_INTERPRET)
+        e = finalbody ? finalbody->interpret(istate) : NULL;
+    return e;
 }
 
 Expression *ThrowStatement::interpret(InterState *istate)
