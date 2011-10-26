@@ -79,6 +79,29 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
+// CTFE only, this can be reused since TOKinterface never occurs in an expression
+#define TOKclassreference (TOKMAX+1)
+// Reference to a class, or an interface. We need this when we
+// point to a base class (we must record what the type is).
+struct ClassReferenceExp : Expression
+{
+    StructLiteralExp *value;
+    ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type) : Expression(loc, TOKclassreference, sizeof(ClassReferenceExp))
+    {
+        this->value = lit;
+        this->type = type;
+    }
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue)
+    {
+        error("classes are not yet supported in CTFE");
+        return EXP_CANT_INTERPRET;
+    }
+    char *toChars()
+    {
+        return value->toChars();
+    }
+};
+
 
 // Used for debugging only
 void showCtfeExpr(Expression *e, int level = 0)
@@ -87,10 +110,16 @@ void showCtfeExpr(Expression *e, int level = 0)
     Expressions *elements = NULL;
     // We need the struct definition to detect block assignment
     StructDeclaration *sd = NULL;
-    if (e->op == TOKstructliteral) {
-        elements = ((StructLiteralExp *)e)->elements;
+    ClassDeclaration *cd = NULL;
+    if (e->op == TOKstructliteral)
+    {   elements = ((StructLiteralExp *)e)->elements;
         sd = ((StructLiteralExp *)e)->sd;
         printf("STRUCT type = %s %p :\n", e->type->toChars(), e);
+    }
+    else if (e->op == TOKclassreference)
+    {   elements = ((ClassReferenceExp *)e)->value->elements;
+        cd = (ClassDeclaration *)(((ClassReferenceExp *)e)->value->sd);
+        printf("CLASS type = %s %p :\n", e->type->toChars(), ((ClassReferenceExp *)e)->value->toChars());
     }
     else if (e->op == TOKarrayliteral)
     {
@@ -121,11 +150,23 @@ void showCtfeExpr(Expression *e, int level = 0)
 
     if (elements)
     {
+        size_t fieldsSoFar = 0;
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *z = elements->tdata()[i];
+            Dsymbol *s = NULL;
             if (sd)
+                s = sd->fields.tdata()[i];
+            else if (cd)
+            {   while (i - fieldsSoFar >= cd->fields.dim)
+                {   fieldsSoFar += cd->fields.dim;
+                    cd = cd->baseClass;
+                    for (int j = level; j>0; --j) printf(" ");
+                    printf(" BASE CLASS: %s\n", cd->toChars());
+                }
+                s = cd->fields.tdata()[i - fieldsSoFar];
+            }
+            if (s)
             {
-                Dsymbol *s = sd->fields.tdata()[i];
                 VarDeclaration *v = s->isVarDeclaration();
                 assert(v);
                 // If it is a void assignment, use the default initializer
@@ -2209,10 +2250,34 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         e->type = type;
         return e;
     }
-    if (newtype->ty == Tclass)
+    if (newtype->toBasetype()->ty == Tclass)
     {
-        error("classes are not yet supported in CTFE");
-        return EXP_CANT_INTERPRET;
+        ClassDeclaration *cd = ((TypeClass *)newtype->toBasetype())->sym;
+        size_t totalFieldCount = 0;
+        for (ClassDeclaration *c = cd; c; c = c->baseClass)
+            totalFieldCount += c->fields.dim;
+        Expressions *elems = new Expressions;
+        elems->setDim(totalFieldCount);
+        size_t fieldsSoFar = 0;
+        for (ClassDeclaration *c = cd; c; c = c->baseClass)
+        {
+            for (size_t i = 0; i < c->fields.dim; i++)
+            {
+                Dsymbol *s = c->fields.tdata()[i];
+                VarDeclaration *v = s->isVarDeclaration();
+                assert(v);
+                Expression *m = v->init ? v->init->toExpression() : v->type->defaultInitLiteral();
+                if (m == EXP_CANT_INTERPRET)
+                    return m;
+                elems->tdata()[fieldsSoFar+i] = m;
+            }
+            fieldsSoFar += c->fields.dim;
+        }
+        // Hack: we store a ClassDeclaration instead of a StructDeclaration.
+        // We probably won't get away with this.
+        StructLiteralExp *se = new StructLiteralExp(loc, (StructDeclaration *)cd, elems,  newtype);
+        Expression *e = new ClassReferenceExp(loc, se, type);
+        return e;
     }
     error("Cannot interpret %s at compile time", toChars());
     return EXP_CANT_INTERPRET;
@@ -2793,7 +2858,7 @@ Expression *copyLiteral(Expression *e)
         {
             Expression *m = oldelems->tdata()[i];
             // We need the struct definition to detect block assignment
-            StructDeclaration *sd = se->sd;
+            AggregateDeclaration *sd = se->sd;
             Dsymbol *s = sd->fields.tdata()[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
@@ -5946,6 +6011,8 @@ bool isRefValueValid(Expression *newval)
         assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
         return true;
     }
+    if (newval->op == TOKclassreference)
+        return true;
     newval->error("CTFE internal error: illegal reference value %s\n", newval->toChars());
     return false;
 }
