@@ -45,6 +45,39 @@ void test2()
 }
 
 /**********************************************/
+// 5899
+
+auto f5899(bool b)
+{
+    if (b)
+        return new Object;
+    else
+        return null;
+}
+static assert(is(typeof(f5899) R == return) && is(R == Object));
+pragma(msg, typeof(f5899));
+
+auto g5899(bool b)
+{
+    if (b)
+        return new int;
+    else
+        return null;
+}
+static assert(is(typeof(g5899) R == return) && is(R == int*));
+pragma(msg, typeof(g5899));
+
+auto h5899(bool b)
+{
+    if (b)
+        return [1];
+    else
+        return null;
+}
+static assert(is(typeof(h5899) R == return) && is(R == int[]));
+pragma(msg, typeof(h5899));
+
+/**********************************************/
 
 void main()
 {
