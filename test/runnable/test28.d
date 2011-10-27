@@ -54,11 +54,11 @@ void test2()
 /*******************************************/
 
 template Qwert3(string yuiop) {
-    invariant string Qwert3 = cast(string)yuiop;
+    immutable string Qwert3 = cast(string)yuiop;
 }
 
 template Asdfg3(string yuiop) {
-    invariant string Asdfg3 = cast(string)Qwert3!(cast(string)(cast(string)yuiop ~ cast(string)"hjkl"));
+    immutable string Asdfg3 = cast(string)Qwert3!(cast(string)(cast(string)yuiop ~ cast(string)"hjkl"));
 }
 
 void test3()
@@ -72,7 +72,7 @@ void test3()
 
 template Qwert4(string yuiop)
 {
-    invariant string Qwert4 = cast(string)(yuiop ~ "asdfg" ~ yuiop);
+    immutable string Qwert4 = cast(string)(yuiop ~ "asdfg" ~ yuiop);
 }
 
 void test4()

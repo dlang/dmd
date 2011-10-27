@@ -1,7 +1,7 @@
 struct Static( uint width2, uint height2 )
 {
-    invariant width = width2;
-    invariant height = height2;
+    immutable width = width2;
+    immutable height = height2;
 
     static Static opCall()
     {

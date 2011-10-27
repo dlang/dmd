@@ -266,6 +266,8 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 }
                 else
                 {
+                    if (!global.params.useDeprecated)
+                        error("use of 'invariant' rather than 'immutable' is deprecated");
                     stc = STCimmutable;
                     goto Lstc;
                 }
@@ -407,7 +409,11 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         else if (token.value == TOKwild)
                             stc = STCwild;
                         else
+                        {
+                            if (token.value == TOKinvariant && !global.params.useDeprecated)
+                                error("use of 'invariant' rather than 'immutable' is deprecated");
                             stc = STCimmutable;
+                        }
                         goto Lstc;
                     case TOKfinal:        stc = STCfinal;        goto Lstc;
                     case TOKauto:         stc = STCauto;         goto Lstc;
@@ -1275,6 +1281,8 @@ Parameters *Parser::parseParameters(int *pvarargs)
                 case TOKimmutable:
                     if (peek(&token)->value == TOKlparen)
                         goto Ldefault;
+                    if (token.value == TOKinvariant && !global.params.useDeprecated)
+                        error("use of 'invariant' rather than 'immutable' is deprecated");
                     stc = STCimmutable;
                     goto L2;
 
@@ -2728,6 +2736,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
             case TOKimmutable:
                 if (peek(&token)->value == TOKlparen)
                     break;
+                if (token.value == TOKinvariant && !global.params.useDeprecated)
+                    error("use of 'invariant' rather than 'immutable' is deprecated");
                 stc = STCimmutable;
                 goto L1;
 
@@ -5332,6 +5342,8 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKdelegate ||
                          token.value == TOKreturn))
                     {
+                        if (token.value == TOKinvariant && !global.params.useDeprecated)
+                            error("use of 'invariant' rather than 'immutable' is deprecated");
                         tok2 = token.value;
                         nextToken();
                     }
@@ -5705,6 +5717,8 @@ Expression *Parser::parseUnaryExp()
             }
             else if ((token.value == TOKimmutable || token.value == TOKinvariant) && peekNext() == TOKrparen)
             {
+                if (token.value == TOKinvariant && !global.params.useDeprecated)
+                    error("use of 'invariant' rather than 'immutable' is deprecated");
                 m = MODimmutable;
                 goto Lmod2;
             }

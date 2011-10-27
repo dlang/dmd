@@ -60,7 +60,7 @@ void test3()
 
 void test4()
 {
-  invariant int maxi = 8;
+  immutable int maxi = 8;
   int[][maxi] neighbors = [ cast(int[])[ ], [ 0 ], [ 0, 1], [ 0, 2], [1, 2], [1, 2, 3, 4],
 [ 2, 3, 5], [ 4, 5, 6 ] ];
   int[maxi] grid;
@@ -437,7 +437,7 @@ void test21()
 
 void test22()
 {
-    invariant uint x, y;
+    immutable uint x, y;
     foreach (i; x .. y) {}
 }
 
