@@ -239,6 +239,8 @@ void Type::init()
     mangleChar[Tslice] = '@';
     mangleChar[Treturn] = '@';
 
+    mangleChar[Tnull] = 'n';    // same as TypeNone
+
     for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
             fprintf(stdmsg, "ty = %zd\n", i);
@@ -260,6 +262,9 @@ void Type::init()
         basic[basetab[i]] = t;
     }
     basic[Terror] = new TypeError();
+
+    tnull = new TypeNull();
+    tnull->deco = tnull->merge()->deco;
 
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->invariantOf()->arrayOf();
@@ -8272,6 +8277,53 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     buf->printf("[%s .. ", lwr->toChars());
     buf->printf("%s]", upr->toChars());
 }
+
+/***************************** TypeNull *****************************/
+
+TypeNull::TypeNull()
+        : Type(Tnull)
+{
+}
+
+MATCH TypeNull::implicitConvTo(Type *to)
+{
+    //printf("TypeNull::implicitConvTo(this=%p, to=%p)\n", this, to);
+    //printf("from: %s\n", toChars());
+    //printf("to  : %s\n", to->toChars());
+    MATCH m = Type::implicitConvTo(to);
+    if (m)
+        return m;
+
+    // NULL implicitly converts to any pointer type or dynamic array
+    //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
+    {
+        if (to->ty == Ttypedef)
+            to = ((TypeTypedef *)to)->sym->basetype;
+        if (to->ty == Tpointer || to->ty == Tarray ||
+            to->ty == Taarray  || to->ty == Tclass ||
+            to->ty == Tdelegate)
+            return MATCHconst;
+    }
+
+    return MATCHnomatch;
+}
+
+void TypeNull::toDecoBuffer(OutBuffer *buf, int flag)
+{
+    //tvoidptr->toDecoBuffer(buf, flag);
+    Type::toDecoBuffer(buf, flag);
+}
+
+void TypeNull::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    buf->writestring("typeof(null)");
+}
+
+d_uns64 TypeNull::size(Loc loc) { return tvoidptr->size(loc); }
+//Expression *TypeNull::getProperty(Loc loc, Identifier *ident) { return new ErrorExp(); }
+//Expression *TypeNull::dotExp(Scope *sc, Expression *e, Identifier *ident) { return new ErrorExp(); }
+Expression *TypeNull::defaultInit(Loc loc) { return new NullExp(0, Type::tnull); }
+//Expression *TypeNull::defaultInitLiteral(Loc loc) { return new ErrorExp(); }
 
 /***************************** Parameter *****************************/
 

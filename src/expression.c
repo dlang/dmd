@@ -3013,7 +3013,7 @@ Expression *NullExp::semantic(Scope *sc)
 #endif
     // NULL is the same as (void *)0
     if (!type)
-        type = Type::tvoid->pointerTo();
+        type = Type::tnull;
     return this;
 }
 

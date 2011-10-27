@@ -6237,7 +6237,8 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
 
 bool isStackValueValid(Expression *newval)
 {
-    if (newval->type->ty == Tpointer && newval->type->nextOf()->ty != Tfunction)
+    if (newval->type->ty == Tnull ||
+        newval->type->ty == Tpointer && newval->type->nextOf()->ty != Tfunction)
     {
         if (newval->op == TOKaddress || newval->op == TOKnull ||
             newval->op == TOKstring)

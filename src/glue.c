@@ -1109,6 +1109,10 @@ unsigned Type::totym()
             t = TYint;
             break;
 
+        case Tnull:
+            t = TYnptr;
+            break;
+
         default:
 #ifdef DEBUG
             printf("ty = %d, '%s'\n", ty, toChars());
