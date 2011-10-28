@@ -3912,6 +3912,42 @@ struct Interval6753{ int a,b; }
 }
 
 /***************************************************/
+// 6859
+
+class Parent6859
+{
+public:
+    bool isHage() const @property;
+
+public:
+    abstract void fuga()
+    out
+    {
+        assert(isHage);
+    }
+    body { }
+}
+
+class Child6859 : Parent6859
+{
+    override bool isHage() const @property
+    {
+        return true;
+    }
+    override void fuga()
+    {
+        //nop
+    }
+}
+
+void test6859()
+{
+    auto t = new Child6859;
+    t.fuga();
+    printf("done.\n");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4104,6 +4140,7 @@ int main()
     test6488();
     test6733();
     test6813();
+    test6859();
 
     printf("Success\n");
     return 0;
