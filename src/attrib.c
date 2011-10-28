@@ -140,7 +140,7 @@ void AttribDeclaration::semantic(Scope *sc)
     //printf("\tAttribDeclaration::semantic '%s', d = %p\n",toChars(), d);
     if (d)
     {
-        for (unsigned i = 0; i < d->dim; i++)
+        for (size_t i = 0; i < d->dim; i++)
         {
             Dsymbol *s = d->tdata()[i];
 
@@ -155,7 +155,7 @@ void AttribDeclaration::semantic2(Scope *sc)
 
     if (d)
     {
-        for (unsigned i = 0; i < d->dim; i++)
+        for (size_t i = 0; i < d->dim; i++)
         {   Dsymbol *s = d->tdata()[i];
             s->semantic2(sc);
         }
@@ -168,7 +168,7 @@ void AttribDeclaration::semantic3(Scope *sc)
 
     if (d)
     {
-        for (unsigned i = 0; i < d->dim; i++)
+        for (size_t i = 0; i < d->dim; i++)
         {   Dsymbol *s = d->tdata()[i];
             s->semantic3(sc);
         }
@@ -277,6 +277,22 @@ int AttribDeclaration::hasPointers()
         }
     }
     return 0;
+}
+
+bool AttribDeclaration::hasStaticCtorOrDtor()
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (size_t i = 0; i < d->dim; i++)
+        {
+            Dsymbol *s = (*d)[i];
+            if (s->hasStaticCtorOrDtor())
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 const char *AttribDeclaration::kind()

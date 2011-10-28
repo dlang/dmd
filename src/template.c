@@ -1676,6 +1676,11 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     return NULL;
 }
 
+bool TemplateDeclaration::hasStaticCtorOrDtor()
+{
+    return FALSE;               // don't scan uninstantiated templates
+}
+
 void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
 #if 0 // Should handle template functions for doc generation

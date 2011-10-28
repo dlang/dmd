@@ -764,6 +764,7 @@ struct StaticCtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    bool hasStaticCtorOrDtor();
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -791,6 +792,7 @@ struct StaticDtorDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
     int isVirtual();
+    bool hasStaticCtorOrDtor();
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);

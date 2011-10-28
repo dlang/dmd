@@ -3409,6 +3409,11 @@ int StaticCtorDeclaration::isVirtual()
     return FALSE;
 }
 
+bool StaticCtorDeclaration::hasStaticCtorOrDtor()
+{
+    return TRUE;
+}
+
 int StaticCtorDeclaration::addPreInvariant()
 {
     return FALSE;
@@ -3534,6 +3539,11 @@ AggregateDeclaration *StaticDtorDeclaration::isThis()
 int StaticDtorDeclaration::isVirtual()
 {
     return FALSE;
+}
+
+bool StaticDtorDeclaration::hasStaticCtorOrDtor()
+{
+    return TRUE;
 }
 
 int StaticDtorDeclaration::addPreInvariant()
