@@ -815,16 +815,12 @@ struct Reg              // data for trial register assignment
 
 int cgreg_assign(Symbol *retsym)
 {
-    Reg t;
-    vec_t v;
-
-    int si;
-    int flag = FALSE;
+    int flag = FALSE;                   // assume no changes
 
     /* First do any 'unregistering' which might have happened in the last
      * code gen pass.
      */
-    for (si = 0; si < globsym.top; si++)
+    for (size_t si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
 
         if (s->Sflags & GTunregister)
@@ -875,20 +871,17 @@ int cgreg_assign(Symbol *retsym)
         }
     }
 
-    v = vec_calloc(dfotop);
+    vec_t v = vec_calloc(dfotop);
 
     // Find symbol t, which is the most 'deserving' symbol that should be
     // placed into a register.
+    Reg t;
     t.sym = NULL;
     t.benefit = 0;
-    for (si = 0; si < globsym.top; si++)
+    for (size_t si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
+
         Reg u;
-        unsigned reg;
-        tym_t ty;
-        unsigned sz;
-
-
         u.sym = s;
         if (!(s->Sflags & GTregcand) ||
             s->Sflags & SFLspill ||
@@ -908,11 +901,8 @@ int cgreg_assign(Symbol *retsym)
             continue;
         }
 
-        char *pseq;
-        char *pseqmsw = NULL;
-
-        ty = s->ty();
-        sz = tysize(ty);
+        tym_t ty = s->ty();
+        unsigned sz = tysize(ty);
 
         #ifdef DEBUG
             if (debugr)
@@ -922,6 +912,14 @@ int cgreg_assign(Symbol *retsym)
             }
         #endif
 
+        // Select sequence of registers to try to map s onto
+        char *pseq;                     // sequence to try for LSW
+        char *pseqmsw = NULL;           // sequence to try for MSW, NULL if none
+        if (tyfloating(ty))
+        {
+            static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
+            pseq = sequence;
+        }
         if (I64)
         {
             if (sz == REGSIZE * 2)
@@ -970,14 +968,17 @@ int cgreg_assign(Symbol *retsym)
 
         u.benefit = 0;
         for (int i = 0; pseq[i] != NOREG; i++)
-        {   int benefit;
+        {
+            unsigned reg = pseq[i];
 
-            reg = pseq[i];
-
-            if (reg != AX && s == retsym)
+            // Symbols used as return values should only be mapped into return value registers
+            if (s == retsym && !(mask[reg] & (mAX | mXMM0)))
                 continue;
+
+            // If BP isn't available, can't assign to it
             if (reg == BP && !(allregs & mBP))
                 continue;
+
 #if 0 && TARGET_LINUX
             // Need EBX for static pointer
             if (reg == BX && !(allregs & mBX))
@@ -988,7 +989,7 @@ int cgreg_assign(Symbol *retsym)
                 !(mask[reg] & BYTEREGS))
                     continue;
 
-            benefit = cgreg_benefit(s,reg,retsym);
+            int benefit = cgreg_benefit(s,reg,retsym);
 
             #ifdef DEBUG
             if (debugr)
@@ -1002,16 +1003,15 @@ int cgreg_assign(Symbol *retsym)
             {   // successful assigning of lsw
                 unsigned regmsw = NOREG;
 
-                // Now assign in MSW
-                if (sz > REGSIZE && sz <= 2 * REGSIZE)
-                {   unsigned regj;
-
-                    for (regj = 0; 1; regj++)
+                // Now assign MSW
+                if (pseqmsw)
+                {
+                    for (unsigned regj = 0; 1; regj++)
                     {
                         regmsw = pseqmsw[regj];
                         if (regmsw == NOREG)
-                            goto Ltried;
-                        if (regmsw == reg)
+                            goto Ltried;                // tried and failed to assign MSW
+                        if (regmsw == reg)              // can't assign msw and lsw to same reg
                             continue;
                         #ifdef DEBUG
                         if (debugr)
@@ -1043,16 +1043,23 @@ Ltried:     ;
         flag = TRUE;
     }
 
-    // See if any registers have become available that we can use.
-    if ((I32 || I64) && !flag && (mfuncreg & ~fregsaved) & ALLREGS &&
-        !(funcsym_p->Sflags & SFLexit))
+    /* See if any scratch registers have become available that we can use.
+     * Scratch registers are cheaper, as they don't need save/restore.
+     * All floating point registers are scratch registers, so no need
+     * to do this for them.
+     */
+    if ((I32 || I64) &&                       // not worth the bother for 16 bit code
+        !flag &&                              // if haven't already assigned registers in this pass
+        (mfuncreg & ~fregsaved) & ALLREGS &&  // if unused non-floating scratch registers
+        !(funcsym_p->Sflags & SFLexit))       // don't need save/restore if function never returns
     {
-        for (int i = 0; i < globsym.top; i++)
-        {   symbol *s;
+        for (size_t si = 0; si < globsym.top; si++)
+        {   symbol *s = globsym.tab[si];
 
-            s = globsym.tab[i];
-            if (s->Sfl == FLreg && mask[s->Sreglsw] & fregsaved &&
-                type_size(s->Stype) <= REGSIZE)
+            if (s->Sfl == FLreg &&                // if assigned to register
+                mask[s->Sreglsw] & fregsaved &&   // and that register is not scratch
+                type_size(s->Stype) <= REGSIZE && // don't bother with register pairs
+                !tyfloating(s->ty()))             // don't assign floating regs to non-floating regs
             {
                 s->Sreglsw = findreg((mfuncreg & ~fregsaved) & ALLREGS);
                 s->Sregm = mask[s->Sreglsw];
