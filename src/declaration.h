@@ -269,6 +269,7 @@ struct VarDeclaration : Declaration
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
                                 // if the destructor should be run. Used to prevent
                                 // dtor calls on postblitted vars
+    Expression *edtor;          // if !=NULL, does the destruction of the variable
 #endif
 
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
@@ -590,9 +591,14 @@ struct FuncDeclaration : Declaration
 
     int tookAddressOf;                  // set if someone took the address of
                                         // this function
-    Dsymbols closureVars;               // local variables in this function
+    VarDeclarations closureVars;        // local variables in this function
                                         // which are referenced by nested
                                         // functions
+
+    unsigned flags;
+    #define FUNCFLAGpurityInprocess 1   // working on determining purity
+    #define FUNCFLAGsafetyInprocess 2   // working on determining safety
+    #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow
 #else
     int nestedFrameRef;                 // !=0 if nested variables referenced
 #endif
@@ -763,6 +769,7 @@ struct StaticCtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    bool hasStaticCtorOrDtor();
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -790,6 +797,7 @@ struct StaticDtorDeclaration : FuncDeclaration
     AggregateDeclaration *isThis();
     int isStaticDestructor();
     int isVirtual();
+    bool hasStaticCtorOrDtor();
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);

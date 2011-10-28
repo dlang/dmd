@@ -49,6 +49,7 @@ struct AttribDeclaration : Dsymbol
     const char *kind();
     int oneMember(Dsymbol **ps);
     int hasPointers();
+    bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

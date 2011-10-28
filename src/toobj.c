@@ -217,7 +217,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     if (!members)
         return;
 
-    if (multiobj)
+    if (multiobj && !hasStaticCtorOrDtor())
     {   obj_append(this);
         return;
     }
@@ -234,10 +234,11 @@ void ClassDeclaration::toObjFile(int multiobj)
     // Put out the members
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *member;
-
-        member = (Dsymbol *)members->data[i];
-        member->toObjFile(0);
+        Dsymbol *member = (*members)[i];
+        /* There might be static ctors in the members, and they cannot
+         * be put in separate obj files.
+         */
+        member->toObjFile(multiobj);
     }
 
 #if 0
@@ -943,7 +944,7 @@ void StructDeclaration::toObjFile(int multiobj)
 {
     //printf("StructDeclaration::toObjFile('%s')\n", toChars());
 
-    if (multiobj)
+    if (multiobj && !hasStaticCtorOrDtor())
     {   obj_append(this);
         return;
     }

@@ -279,6 +279,22 @@ int AttribDeclaration::hasPointers()
     return 0;
 }
 
+bool AttribDeclaration::hasStaticCtorOrDtor()
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (size_t i = 0; i < d->dim; i++)
+        {
+            Dsymbol *s = (*d)[i];
+            if (s->hasStaticCtorOrDtor())
+                return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 const char *AttribDeclaration::kind()
 {
     return "attribute";

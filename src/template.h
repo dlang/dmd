@@ -67,6 +67,7 @@ struct TemplateDeclaration : ScopeDsymbol
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    bool hasStaticCtorOrDtor();
     const char *kind();
     char *toChars();
 
