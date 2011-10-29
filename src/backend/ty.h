@@ -208,6 +208,9 @@ extern unsigned tytab[];
 // Fits into 64 bit register
 #define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
 
+// Can go in XMM floating point register
+#define tyxmmreg(ty)    ((tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary)) && tysize(ty) <= 8)
+
 #ifndef tyshort
 /* Types that are chars or shorts       */
 #define tyshort(ty)     (tytab[(ty) & 0xFF] & TYFLshort)

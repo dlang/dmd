@@ -93,7 +93,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	newman.obj glocal.obj os.obj nteh.obj evalu8.obj cgcs.obj \
 	rtlsym.obj html.obj cgelem.obj cgen.obj cgreg.obj out.obj \
 	blockopt.obj cgobj.obj cg.obj cgcv.obj type.obj dt.obj \
-	debug.obj code.obj cg87.obj cgsched.obj ee.obj csymbol.obj \
+	debug.obj code.obj cg87.obj cgxmm.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj
@@ -131,7 +131,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\global.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h $C\html.h \
-	$C\bcomplex.c $C\blockopt.c $C\cg.c $C\cg87.c \
+	$C\bcomplex.c $C\blockopt.c $C\cg.c $C\cg87.c $C\cgxmm.c \
 	$C\cgcod.c $C\cgcs.c $C\cgcv.c $C\cgelem.c $C\cgen.c $C\cgobj.c \
 	$C\cgreg.c $C\var.c \
 	$C\cgsched.c $C\cod1.c $C\cod2.c $C\cod3.c $C\cod4.c $C\cod5.c \
@@ -254,6 +254,9 @@ cgreg.obj : $C\cgreg.c
 
 cgsched.obj : $C\rtlsym.h $C\cgsched.c
 	$(CC) -c $(MFLAGS) $C\cgsched
+
+cgxmm.obj : $C\cgxmm.c
+	$(CC) -c $(MFLAGS) $C\cgxmm
 
 cod1.obj : $C\rtlsym.h $C\cod1.c
 	$(CC) -c $(MFLAGS) $C\cod1
