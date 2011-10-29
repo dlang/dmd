@@ -67,7 +67,7 @@ CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 
 DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o blockopt.o \
-	cast.o code.o cg.o cg87.o cgcod.o cgcs.o cgelem.o cgen.o \
+	cast.o code.o cg.o cg87.o cgxmm.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o cgsched.o class.o cod1.o cod2.o cod3.o cod4.o cod5.o \
 	constfold.o irstate.o dchar.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
@@ -112,7 +112,7 @@ SRC = win32.mak posix.mak \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
-	$C/bcomplex.c $C/blockopt.c $C/cg.c $C/cg87.c \
+	$C/bcomplex.c $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
 	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
 	$C/cgreg.c $C/var.c $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
@@ -247,6 +247,9 @@ cgreg.o: $C/cgreg.c
 	$(CC) -c $(MFLAGS) $<
 
 cgsched.o: $C/cgsched.c $C/rtlsym.h
+	$(CC) -c $(MFLAGS) $<
+
+cgxmm.o: $C/cgxmm.c
 	$(CC) -c $(MFLAGS) $<
 
 class.o: class.c

@@ -49,6 +49,7 @@ void out_config_init()
         config.target_scheduler = config.target_cpu;
     }
     config.fulltypes = CVNONE;
+    config.fpxmmregs = FALSE;
     config.inline8087 = 1;
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
@@ -74,7 +75,9 @@ void out_config_init()
 #endif
 #if TARGET_LINUX
     if (params->is64bit)
-        config.exe = EX_LINUX64;
+    {   config.exe = EX_LINUX64;
+        config.fpxmmregs = TRUE;
+    }
     else
         config.exe = EX_LINUX;
     config.flags |= CFGnoebp;

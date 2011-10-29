@@ -690,6 +690,7 @@ struct Config
 #       define WFdsnedgroup 0x4000      // DS != DGROUP
 #       define WFexe     0x8000 // generating code for Windows EXE
 
+    bool fpxmmregs;             // use XMM registers for floating point
     char inline8087;            /* 0:   emulator
                                    1:   IEEE 754 inline 8087 code
                                    2:   fast inline 8087 code
