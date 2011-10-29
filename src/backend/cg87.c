@@ -877,7 +877,7 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
     {   if (*pretregs & mPSW)
         {   if (!(retregs & mPSW))
             {   assert(retregs & mST0);
-                c1 = genftst(c1,e,!(*pretregs & mST0)); // FTST
+                c1 = genftst(c1,e,!(*pretregs & (mST0 | XMMREGS))); // FTST
             }
         }
         if (*pretregs & mST0 && retregs & XMMREGS)

@@ -49,7 +49,7 @@ STATIC int intree(symbol *s,elem *e)
  *      0       can't
  */
 
-STATIC int doinreg(symbol *s, elem *e)
+int doinreg(symbol *s, elem *e)
 {   int in = 0;
     int op;
 
@@ -337,6 +337,9 @@ code *cdeq(elem *e,regm_t *pretregs)
 
   if (tyfloating(tyml) && config.inline8087)
   {
+        if (tyxmmreg(tyml) && config.fpxmmregs)
+            return xmmeq(e, pretregs);
+
         if (tycomplex(tyml))
             return complex_eq87(e, pretregs);
 
@@ -720,7 +723,7 @@ Lp:
             if (cs.Irex & REX_B)
                 rm |= 8;
             c = genc1(c,0x8D,buildModregrm(2,reg,rm),FLconst,postinc);
-            if (sz == 8)
+            if (tysize(e11->E1->Ety) == 8)
                 code_orrex(c, REX_W);
         }
         else if (I64)
