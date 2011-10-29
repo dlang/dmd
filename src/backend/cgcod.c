@@ -1349,7 +1349,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         retregs = *pretregs;
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
-            if (size <= REGSIZE)
+            if (size <= REGSIZE || (retregs & XMMREGS))
             {   *preg = findreg(retregs);
                 assert(retregs == mask[*preg]); /* no more bits are set */
             }
@@ -1386,7 +1386,7 @@ L3:
         if (0 && r & ~fregsaved)
             r &= ~fregsaved;
 
-        if (size <= REGSIZE)
+        if (size <= REGSIZE || retregs & XMMREGS)
         {
             if (r & ~mBP)
                 r &= ~mBP;
@@ -1779,6 +1779,8 @@ bool evalinregister(elem *e)
                 return FALSE;
         if (EOP(e))                     /* operators are always in register */
                 return TRUE;
+
+        // Need to rethink this code if float or double can be CSE'd
         sz = tysize(e->Ety);
         if (e->Ecount == e->Ecomsub)    /* elem is a CSE that needs     */
                                         /* to be generated              */
@@ -2157,7 +2159,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
         assert(0);
   }
 
-  if (!constflag && *pretregs & (mES | ALLREGS | mBP) & ~regcon.mvar)
+  if (!constflag && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~regcon.mvar)
         *pretregs &= ~regcon.mvar;                      /* can't use register vars */
   op = e->Eoper;
   if (e->Ecount && e->Ecount != e->Ecomsub)     /* if common subexp     */
@@ -2291,7 +2293,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 unsigned sz1 = tysize(e->Ety);
                 unsigned sz2 = tysize(e->EV.sp.Vsym->Stype->Tty);
                 if (sz1 <= REGSIZE && sz2 > REGSIZE)
-                    regm &= mLSW;
+                    regm &= mLSW | XMMREGS;
                 c = fixresult(e,regm,pretregs);
                 cssave(e,regm,0);
                 freenode(e);
@@ -2475,8 +2477,6 @@ const char *regm_str(regm_t rm)
     #define SMAX 64
     static char str[NUM][SMAX + 1];
     static int i;
-    char *p;
-    int j;
 
     if (rm == 0)
         return "0";
@@ -2486,11 +2486,13 @@ const char *regm_str(regm_t rm)
         return "BYTEREGS";
     if (rm == allregs)
         return "allregs";
-    p = str[i];
+    if (rm == XMMREGS)
+        return "XMMREGS";
+    char *p = str[i];
     if (++i == NUM)
         i = 0;
     *p = 0;
-    for (j = 0; j < 32; j++)
+    for (size_t j = 0; j < 32; j++)
     {
         if (mask[j] & rm)
         {

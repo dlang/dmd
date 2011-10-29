@@ -777,6 +777,7 @@ void code_dehydrate(code **pc);
 extern  const unsigned dblreg[];
 extern int cdcmp_flag;
 
+int doinreg(symbol *s, elem *e);
 code *modEA(code *c);
 cd_t cdeq;
 cd_t cdaddass;
@@ -805,6 +806,7 @@ void cod5_noprol();
 
 /* cgxmm.c */
 code *orthxmm(elem *e, regm_t *pretregs);
+code *xmmeq(elem *e, regm_t *pretregs);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);
