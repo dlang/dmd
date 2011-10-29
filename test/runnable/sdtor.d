@@ -1819,6 +1819,20 @@ void test60()
 }
 
 /**********************************/
+// 4316
+
+struct A4316
+{
+    this(this) @safe { }
+}
+
+@safe void test4316()
+{
+    A4316 a;
+    auto b = a; // Error: safe function 'main' cannot call system function'__cpctor'
+}
+
+/**********************************/
 
 int main()
 {
@@ -1883,6 +1897,7 @@ int main()
     test59();
     test6499();
     test60();
+    test4316();
 
     printf("Success\n");
     return 0;

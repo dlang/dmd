@@ -93,9 +93,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     FuncDeclaration *fop = NULL;
 
-    Parameter *param = new Parameter(STCnodtor, type, Id::p, NULL);
     Parameters *fparams = new Parameters;
-    fparams->push(param);
+    fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
     Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
 #if STRUCTTHISREF
     ((TypeFunction *)ftype)->isref = 1;
@@ -428,14 +427,17 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     {
         //printf("generating cpctor\n");
 
-        Parameter *param = new Parameter(STCref, type->constOf(), Id::p, NULL);
+        StorageClass stc = postblit->storage_class &
+                            (STCdisable | STCsafe | STCtrusted | STCsystem | STCpure | STCnothrow);
+        if (stc & (STCsafe | STCtrusted))
+            stc = stc & ~STCsafe | STCtrusted;
+
         Parameters *fparams = new Parameters;
-        fparams->push(param);
-        Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd);
+        fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
+        Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd, stc);
         ftype->mod = MODconst;
 
-        fcp = new FuncDeclaration(loc, 0, Id::cpctor, STCundefined, ftype);
-        fcp->storage_class |= postblit->storage_class & STCdisable;
+        fcp = new FuncDeclaration(loc, 0, Id::cpctor, stc, ftype);
 
         if (!(fcp->storage_class & STCdisable))
         {
