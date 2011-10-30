@@ -399,6 +399,24 @@ void test2778()
     assert(doStuffTemplOver2778(foo) == 2);
 }
 
+// ----
+
+void test2778aa()
+{
+    void foo(K, V)(V[K] aa){ pragma(msg, "K=", K, ", V=", V); }
+
+    int[string] aa1;
+    foo(aa1);   // OK
+
+    struct SubTypeOf(T)
+    {
+        T val;
+        alias val this;
+    }
+    SubTypeOf!(string[char]) aa2;
+    foo(aa2);   // NG
+}
+
 /**********************************/
 
 int main()
@@ -420,6 +438,7 @@ int main()
     test5393();
     test6825();
     test2778();
+    test2778aa();
 
     printf("Success\n");
     return 0;
