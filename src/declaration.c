@@ -21,6 +21,7 @@
 #include "module.h"
 #include "id.h"
 #include "expression.h"
+#include "statement.h"
 #include "hdrgen.h"
 
 /********************************* Declaration ****************************/
@@ -1119,9 +1120,15 @@ Lnomatch:
         {
             error("only parameters or stack based variables can be inout");
         }
-        if (sc->func && !sc->func->type->hasWild())
+        FuncDeclaration *func = sc->func;
+        if (func)
         {
-            error("inout variables can only be declared inside inout functions");
+            if (func->fes)
+                func = func->fes->func;
+            if (!func->type->hasWild())
+            {
+                error("inout variables can only be declared inside inout functions");
+            }
         }
     }
 

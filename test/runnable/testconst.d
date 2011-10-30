@@ -1978,6 +1978,20 @@ void test6866()
 }
 
 /************************************/
+// 6867
+
+inout(char)[] test6867(inout(char)[] a)
+{
+   foreach(dchar d; a) // No error if 'dchar' is removed
+   {
+       foreach(c; a) // line 5
+       {
+       }
+   }
+   return [];
+}
+
+/************************************/
 
 int main()
 {
