@@ -1951,6 +1951,16 @@ void test6864()
 }
 
 /************************************/
+// 6865
+
+shared(inout(int)) foo6865(shared(inout(int)) n){ return n; }
+void test6865()
+{
+    shared(const(int)) n;
+    static assert(is(typeof(foo6865(n)) == shared(const(int))));
+}
+
+/************************************/
 
 int main()
 {
@@ -2045,6 +2055,7 @@ int main()
     test88();
     test6782();
     test6864();
+    test6865();
 
     printf("Success\n");
     return 0;

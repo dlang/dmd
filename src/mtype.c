@@ -2100,13 +2100,13 @@ Type *Type::substWildTo(unsigned mod)
     if (isWild())
     {
         if (mod & MODconst)
-            t = t->constOf();
+            t = isShared() ? t->sharedConstOf() : t->constOf();
         else if (mod & MODimmutable)
             t = t->invariantOf();
         else if (mod & MODwild)
-            t = t->wildOf();
+            t = isShared() ? t->sharedWildOf() : t->wildOf();
         else
-            t = t->mutableOf();
+            t = isShared() ? t->sharedOf() : t->mutableOf();
     }
 
     //printf("-Type::substWildTo t = %s\n", t->toChars());
