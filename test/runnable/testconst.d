@@ -1932,6 +1932,25 @@ void test6782()
 }
 
 /************************************/
+// 6864
+
+int fn6864( const int n) { return 1; }
+int fn6864(shared int n) { return 2; }
+inout(int) fw6864(inout int s) { return 1; }
+inout(int) fw6864(shared inout int s) { return 2; }
+
+void test6864()
+{
+    int n;
+    assert(fn6864(n) == 1);
+    assert(fw6864(n) == 1);
+
+    shared int sn;
+    assert(fn6864(sn) == 2);
+    assert(fw6864(sn) == 2);
+}
+
+/************************************/
 
 int main()
 {
@@ -2025,6 +2044,7 @@ int main()
     test1961c();
     test88();
     test6782();
+    test6864();
 
     printf("Success\n");
     return 0;

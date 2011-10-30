@@ -3098,7 +3098,14 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 #if DMDV2
     if (ty == to->ty)
     {
-        return (mod == to->mod) ? MATCHexact : MATCHconst;
+        if (mod == to->mod)
+            return MATCHexact;
+        else if (MODimplicitConv(mod, to->mod))
+            return MATCHconst;
+        else if (!((mod ^ to->mod) & MODshared))    // for wild matching
+            return MATCHconst;
+        else
+            return MATCHconvert;
     }
 #endif
 
