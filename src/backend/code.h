@@ -807,6 +807,7 @@ void cod5_noprol();
 /* cgxmm.c */
 code *orthxmm(elem *e, regm_t *pretregs);
 code *xmmeq(elem *e, regm_t *pretregs);
+code *xmmopass(elem *e, regm_t *pretregs);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);
