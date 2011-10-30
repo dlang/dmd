@@ -804,14 +804,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         L1:
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
-                if (p->type->hasWild())
-                {   unsigned mod = p->type->wildMatch(arg->type);
-                    if (mod)
-                    {
-                        wildmatch |= mod;
-                        arg = arg->implicitCastTo(sc, p->type->substWildTo(mod));
-                        arg = arg->optimize(WANTvalue);
-                    }
+                unsigned mod = arg->type->wildConvTo(p->type);
+                if (mod)
+                {
+                    wildmatch |= mod;
+                    arg = arg->implicitCastTo(sc, p->type->substWildTo(mod));
+                    arg = arg->optimize(WANTvalue);
                 }
                 else if (p->type != arg->type)
                 {

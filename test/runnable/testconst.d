@@ -1961,6 +1961,23 @@ void test6865()
 }
 
 /************************************/
+// 6866
+
+struct S6866
+{
+    const(char)[] val;
+    alias val this;
+}
+inout(char)[] foo6866(inout(char)[] s) { return s; }
+
+void test6866()
+{
+    S6866 s;
+    static assert(is(typeof(foo6866(s)) == const(char)[]));
+    // Assertion failure: 'targ' on line 2029 in file 'mtype.c'
+}
+
+/************************************/
 
 int main()
 {
@@ -2056,6 +2073,7 @@ int main()
     test6782();
     test6864();
     test6865();
+    test6866();
 
     printf("Success\n");
     return 0;
