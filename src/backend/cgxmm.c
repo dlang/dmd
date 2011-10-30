@@ -207,5 +207,111 @@ Lp:
     return c;
 }
 
+/********************************
+ * Generate code for += -= *= /=
+ */
+
+code *xmmopass(elem *e,regm_t *pretregs)
+{   elem *e1 = e->E1;
+    elem *e2 = e->E2;
+    tym_t ty1 = tybasic(e1->Ety);
+    unsigned sz1 = tysize[ty1];
+    assert(sz1 == 4 || sz1 == 8);       // float or double
+    regm_t rretregs = XMMREGS & ~*pretregs;
+    if (!rretregs)
+        rretregs = XMMREGS;
+
+    code *cr = codelem(e2,&rretregs,FALSE); // eval right leaf
+    unsigned rreg = findreg(rretregs);
+
+    code cs;
+    code *cl,*cg;
+
+    regm_t retregs;
+    unsigned reg;
+    bool regvar = FALSE;
+    if (config.flags4 & CFG4optimized)
+    {
+        // Be careful of cases like (x = x+x+x). We cannot evaluate in
+        // x if x is in a register.
+        unsigned varreg;
+        regm_t varregm;
+        if (isregvar(e1,&varregm,&varreg) &&    // if lvalue is register variable
+            doinreg(e1->EV.sp.Vsym,e2)          // and we can compute directly into it
+           )
+        {   regvar = TRUE;
+            retregs = varregm;
+            reg = varreg;                       // evaluate directly in target register
+            cl = NULL;
+            cg = getregs(retregs);              // destroy these regs
+        }
+    }
+
+    if (!regvar)
+    {
+        cl = getlvalue(&cs,e1,rretregs);        // get EA
+        retregs = *pretregs & XMMREGS & ~rretregs;
+        if (!retregs)
+            retregs = XMMREGS & ~rretregs;
+        cg = allocreg(&retregs,&reg,ty1);
+        cs.Iop = 0xF20F10;                  // MOVSD xmm,xmm_m64
+        if (sz1 == 4)
+            cs.Iop = 0xF30F10;              // MOVSS xmm,xmm_m32
+        code_newreg(&cs,reg - XMM0);
+        cg = gen(cg,&cs);
+    }
+
+    unsigned op;
+    switch (e->Eoper)
+    {
+        case OPaddass:
+            op = 0xF20F58;                      // ADDSD
+            if (sz1 == 4)                       // float
+                op = 0xF30F58;                  // ADDSS
+            break;
+
+        case OPminass:
+            op = 0xF20F5C;                      // SUBSD
+            if (sz1 == 4)                       // float
+                op = 0xF30F5C;                  // SUBSS
+            break;
+
+        case OPmulass:
+            op = 0xF20F59;                      // MULSD
+            if (sz1 == 4)                       // float
+                op = 0xF30F59;                  // MULSS
+            break;
+
+        case OPdivass:
+            op = 0xF20F5E;                      // DIVSD
+            if (sz1 == 4)                       // float
+                op = 0xF30F5E;                  // DIVSS
+            break;
+
+        default:
+            assert(0);
+    }
+    code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+
+    if (!regvar)
+    {
+        cs.Iop ^= 1;                            // reverse operand order of MOVS[SD]
+        gen(co,&cs);
+    }
+
+    if (e1->Ecount ||                     // if lvalue is a CSE or
+        regvar)                           // rvalue can't be a CSE
+    {
+        cl = cat(cl,getregs_imm(retregs));        // necessary if both lvalue and
+                                        //  rvalue are CSEs (since a reg
+                                        //  can hold only one e at a time)
+        cssave(e1,retregs,EOP(e1));     // if lvalue is a CSE
+    }
+
+    co = cat(co,fixresult(e,retregs,pretregs));
+    freenode(e1);
+    return cat4(cr,cl,cg,co);
+}
+
 
 #endif // !SPP

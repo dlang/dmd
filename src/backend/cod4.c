@@ -778,6 +778,9 @@ code *cdaddass(elem *e,regm_t *pretregs)
   byte = (sz == 1);                     // 1 for byte operation, else 0
   if (tyfloating(tyml))
   {
+        // See if evaluate in XMM registers
+        if (config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass && !(*pretregs & mST0))
+            return xmmopass(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
       if (op == OPnegass)
             c = cdnegass87(e,pretregs);
@@ -1238,12 +1241,17 @@ code *cdmulass(elem *e,regm_t *pretregs)
     unsigned grex = rex << 16;          // 64 bit operands
 
 
-  if (tyfloating(tyml))
+    if (tyfloating(tyml))
+    {
+        // See if evaluate in XMM registers
+        if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
+            return xmmopass(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return opass87(e,pretregs);
 #else
         return opassdbl(e,pretregs,op);
 #endif
+    }
 
   if (sz <= REGSIZE)                    /* if word or byte              */
   {     byte = (sz == 1);               /* 1 for byte operation         */
