@@ -93,8 +93,8 @@ struct ClassReferenceExp : Expression
     }
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue)
     {
-        error("classes are not yet supported in CTFE");
-        return EXP_CANT_INTERPRET;
+        //printf("ClassReferenceExp::interpret() %s\n", value->toChars());
+        return this;
     }
     char *toChars()
     {
@@ -152,10 +152,12 @@ void showCtfeExpr(Expression *e, int level = 0)
     {
         size_t fieldsSoFar = 0;
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *z = elements->tdata()[i];
+        {   Expression *z = NULL;
             Dsymbol *s = NULL;
             if (sd)
-                s = sd->fields.tdata()[i];
+            {   s = sd->fields.tdata()[i];
+                z = elements->tdata()[i];
+            }
             else if (cd)
             {   while (i - fieldsSoFar >= cd->fields.dim)
                 {   fieldsSoFar += cd->fields.dim;
@@ -164,17 +166,22 @@ void showCtfeExpr(Expression *e, int level = 0)
                     printf(" BASE CLASS: %s\n", cd->toChars());
                 }
                 s = cd->fields.tdata()[i - fieldsSoFar];
+                size_t indx = (elements->dim - fieldsSoFar)- cd->fields.dim + i;
+                assert(indx >= 0);
+                assert(indx < elements->dim);
+                z = elements->tdata()[indx];
             }
+            if (!z) {
+                for (int j = level; j>0; --j) printf(" ");
+                printf(" void\n");
+                continue;
+            }
+
             if (s)
             {
                 VarDeclaration *v = s->isVarDeclaration();
                 assert(v);
                 // If it is a void assignment, use the default initializer
-                if (!z) {
-                    for (int j = level; j>0; --j) printf(" ");
-                    printf(" field:void\n");
-                    continue;
-                }
                 if ((v->type->ty != z->type->ty) && v->type->ty == Tsarray)
                 {
                     for (int j = level; --j;) printf(" ");
@@ -2258,9 +2265,10 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
             totalFieldCount += c->fields.dim;
         Expressions *elems = new Expressions;
         elems->setDim(totalFieldCount);
-        size_t fieldsSoFar = 0;
+        size_t fieldsSoFar = totalFieldCount;
         for (ClassDeclaration *c = cd; c; c = c->baseClass)
         {
+            fieldsSoFar -= c->fields.dim;
             for (size_t i = 0; i < c->fields.dim; i++)
             {
                 Dsymbol *s = c->fields.tdata()[i];
@@ -2271,7 +2279,6 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                     return m;
                 elems->tdata()[fieldsSoFar+i] = m;
             }
-            fieldsSoFar += c->fields.dim;
         }
         // Hack: we store a ClassDeclaration instead of a StructDeclaration.
         // We probably won't get away with this.
@@ -5332,58 +5339,77 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         #endif
         if (ex->op == TOKaddress)
             ex = ((AddrExp *)ex)->e1;
-        if (ex->op == TOKstructliteral)
-        {   StructLiteralExp *se = (StructLiteralExp *)ex;
-            VarDeclaration *v = var->isVarDeclaration();
-            if (v)
+        VarDeclaration *v = var->isVarDeclaration();
+        if (!v)
+            error("CTFE internal error: %s\n", toChars());
+
+        if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
+        {
+            StructLiteralExp *se = ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : (StructLiteralExp *)ex;
+            // We can't use getField, because it makes a copy
+            int i = -1;
+            if (ex->op == TOKclassreference)
             {
-                if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
-                {
-                    // We can't use getField, because it makes a copy
-                    int i = se->getFieldIndex(type, v->offset);
-                    if (i == -1)
-                    {
-                        error("couldn't find field %s in %s", v->toChars(), type->toChars());
-                        return EXP_CANT_INTERPRET;
+                ClassDeclaration *cd = (ClassDeclaration *)(((ClassReferenceExp *)ex)->value->sd);
+                size_t fieldsSoFar = 0;
+                for (size_t j = 0; j < se->elements->dim; j++)
+                {   while (j - fieldsSoFar >= cd->fields.dim)
+                    {   fieldsSoFar += cd->fields.dim;
+                        cd = cd->baseClass;
                     }
-                    e = se->elements->tdata()[i];
-                    // If it is an lvalue literal, return it...
-                    if (e->op == TOKstructliteral)
-                        return e;
-                    if ((type->ty == Tsarray || goal == ctfeNeedLvalue) && (
-                        e->op == TOKarrayliteral ||
-                        e->op == TOKassocarrayliteral || e->op == TOKstring ||
-                        e->op == TOKslice))
-                        return e;
-                    /* Element is an allocated pointer, which was created in
-                     * CastExp.
-                     */
-                    if (goal == ctfeNeedLvalue && e->op == TOKindex &&
-                        e->type == type &&
-                        (type->ty == Tpointer && type->nextOf()->ty != Tfunction))
-                        return e;
-                    // ...Otherwise, just return the (simplified) dotvar expression
-                    e = new DotVarExp(loc, ex, v);
-                    e->type = type;
-                    return e;
+                    Dsymbol *s = cd->fields.tdata()[j - fieldsSoFar];
+                    VarDeclaration *v2 = s->isVarDeclaration();
+                    if (v->offset == v2->offset &&
+                        type->size() == v2->type->size())
+                    {   i = se->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+                        break;
+                    }
                 }
-                e = se->getField(type, v->offset);
-                if (!e)
-                {
-                    error("couldn't find field %s in %s", v->toChars(), type->toChars());
-                    e = EXP_CANT_INTERPRET;
-                }
-                // If it is an rvalue literal, return it...
-                if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
-                    e->op == TOKassocarrayliteral || e->op == TOKstring)
-                        return e;
-                if (type->ty == Tpointer && type->nextOf()->ty != Tfunction)
-                {
-                    assert(e->type == type);
-                    return e;
-                }
-                return e->interpret(istate, goal);
             }
+            else i = se->getFieldIndex(type, v->offset);
+            if (i == -1)
+            {
+                error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            e = se->elements->tdata()[i];
+            if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
+            {
+                // If it is an lvalue literal, return it...
+                if (e->op == TOKstructliteral)
+                    return e;
+                if ((type->ty == Tsarray || goal == ctfeNeedLvalue) && (
+                    e->op == TOKarrayliteral ||
+                    e->op == TOKassocarrayliteral || e->op == TOKstring ||
+                    e->op == TOKslice))
+                    return e;
+                /* Element is an allocated pointer, which was created in
+                 * CastExp.
+                 */
+                if (goal == ctfeNeedLvalue && e->op == TOKindex &&
+                    e->type == type &&
+                    (type->ty == Tpointer && type->nextOf()->ty != Tfunction))
+                    return e;
+                // ...Otherwise, just return the (simplified) dotvar expression
+                e = new DotVarExp(loc, ex, v);
+                e->type = type;
+                return e;
+            }
+            if (!e)
+            {
+                error("couldn't find field %s in %s", v->toChars(), type->toChars());
+                e = EXP_CANT_INTERPRET;
+            }
+            // If it is an rvalue literal, return it...
+            if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
+                e->op == TOKassocarrayliteral || e->op == TOKstring)
+                    return e;
+            if (type->ty == Tpointer && type->nextOf()->ty != Tfunction)
+            {
+                assert(e->type == type);
+                return e;
+            }
+            return e->interpret(istate, goal);
         }
         else
             error("%s.%s is not yet implemented at compile time", e1->toChars(), var->toChars());
