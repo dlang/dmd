@@ -27,6 +27,29 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+/*******************************************
+ * Move constant value into xmm register xreg.
+ */
+
+code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
+{
+    /* Generate:
+     *    MOV reg,value
+     *    MOV floatreg,reg
+     *    MOV xreg,floatreg
+     * Not so efficient. We should at least do a PXOR for 0.
+     */
+    assert(mask[xreg] & XMMREGS);
+    unsigned r;
+    code *c = regwithvalue(CNIL,ALLREGS,value,&r,(sz == 8) ? 64 : 0);
+    c = genfltreg(c,0x89,r,0);            // MOV floatreg,r
+    if (sz == 8)
+        code_orrex(c, REX_W);
+    assert(sz == 4 || sz == 8);             // float or double
+    unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
+    c = genfltreg(c,op,xreg - XMM0,0);     // MOVSS/MOVSD xreg,floatreg
+}
+
 /***********************************************
  * Do simple orthogonal operators for XMM registers.
  */
@@ -311,6 +334,45 @@ code *xmmopass(elem *e,regm_t *pretregs)
     co = cat(co,fixresult(e,retregs,pretregs));
     freenode(e1);
     return cat4(cr,cl,cg,co);
+}
+
+/******************
+ * Negate operator
+ */
+
+code *xmmneg(elem *e,regm_t *pretregs)
+{
+    //printf("xmmneg()\n");
+    //elem_print(e);
+    assert(*pretregs);
+    tym_t tyml = tybasic(e->E1->Ety);
+    int sz = tysize[tyml];
+
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+
+    /* Generate:
+     *    MOV reg,e1
+     *    MOV rreg,signbit
+     *    XOR reg,rreg
+     */
+    code *cl = codelem(e->E1,&retregs,FALSE);
+    cl = cat(cl,getregs(retregs));
+    unsigned reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    unsigned rreg;
+    cl = cat(cl,allocreg(&rretregs,&rreg,tyml));
+    targ_size_t signbit = 0x80000000;
+    if (sz == 8)
+        signbit = 0x8000000000000000LL;
+    code *c = movxmmconst(rreg, sz, signbit, 0);
+
+    code *cg = getregs(retregs);
+    unsigned op = (sz == 8) ? 0x660F57 : 0x0F57 ;       // XORPD/S reg,rreg
+    code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    co = cat(co,fixresult(e,retregs,pretregs));
+    return cat4(cl,c,cg,co);
 }
 
 
