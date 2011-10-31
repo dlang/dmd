@@ -1197,6 +1197,22 @@ void test34_test52()
 }
 
 /******************************************/
+// 3990
+
+void test3990()
+{
+    int[] a1 = [5, 4, 3];
+    assert(*a1 == 5);
+    alias typeof(a1) T1;
+    assert(is(typeof(*T1)));
+
+    int[3] a2 = [5, 4, 3];
+    assert(*a2 == 5);
+    alias typeof(a2) T2;
+    assert(is(typeof(*T2)));
+}
+
+/******************************************/
 
 int main()
 {
@@ -1253,5 +1269,7 @@ int main()
     test23_test67();
     test34_test14();
     test34_test52();
+    test3990();
+
     return 0;
 }
