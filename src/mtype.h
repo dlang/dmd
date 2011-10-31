@@ -274,6 +274,7 @@ struct Type : Object
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();
+    Type *aliasthisOf();
     virtual Type *makeConst();
     virtual Type *makeInvariant();
     virtual Type *makeShared();
@@ -283,10 +284,12 @@ struct Type : Object
     virtual Type *makeMutable();
     virtual Dsymbol *toDsymbol(Scope *sc);
     virtual Type *toBasetype();
-    virtual Type *toHeadMutable();
     virtual int isBaseOf(Type *t, int *poffset);
-    virtual MATCH constConv(Type *to);
     virtual MATCH implicitConvTo(Type *to);
+    virtual MATCH constConv(Type *to);
+    virtual unsigned wildConvTo(Type *tprm);
+    Type *substWildTo(unsigned mod);
+    virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident);
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
@@ -305,8 +308,6 @@ struct Type : Object
     virtual int builtinTypeInfo();
     virtual Type *reliesOnTident();
     virtual int hasWild();
-    unsigned wildMatch(Type *targ);
-    Type *substWildTo(unsigned mod);
     virtual Expression *toExpression();
     virtual int hasPointers();
     virtual TypeTuple *toArgTypes();
@@ -358,6 +359,7 @@ struct TypeNext : Type
     Type *makeSharedWild();
     Type *makeMutable();
     MATCH constConv(Type *to);
+    unsigned wildConvTo(Type *tprm);
     void transitive();
 };
 
@@ -728,6 +730,7 @@ struct TypeStruct : Type
     TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
+    unsigned wildConvTo(Type *tprm);
     Type *toHeadMutable();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -805,6 +808,7 @@ struct TypeTypedef : Type
     Type *toBasetype();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
+    Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     int isZeroInit(Loc loc);
@@ -814,7 +818,6 @@ struct TypeTypedef : Type
     int hasPointers();
     TypeTuple *toArgTypes();
     int hasWild();
-    Type *toHeadMutable();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -839,6 +842,9 @@ struct TypeClass : Type
     ClassDeclaration *isClassHandle();
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
+    MATCH constConv(Type *to);
+    unsigned wildConvTo(Type *tprm);
+    Type *toHeadMutable();
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
@@ -848,12 +854,8 @@ struct TypeClass : Type
     int hasPointers();
     TypeTuple *toArgTypes();
     int builtinTypeInfo();
-#if DMDV2
-    Type *toHeadMutable();
-    MATCH constConv(Type *to);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 #endif
 
     type *toCtype();
