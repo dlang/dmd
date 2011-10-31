@@ -331,6 +331,7 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
+  -sLlinkerflag  pass linkerflag at the end of the linker command line\n\
   -deps=filename write module dependencies to filename\n%s"
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
@@ -438,6 +439,7 @@ int main(int argc, char *argv[])
     global.params.quiet = 1;
 
     global.params.linkswitches = new Strings();
+    global.params.linkpostswitches = new Strings();
     global.params.libfiles = new Strings();
     global.params.objfiles = new Strings();
     global.params.ddocfiles = new Strings();
@@ -771,6 +773,10 @@ int main(int argc, char *argv[])
                 global.params.debugx = 1;
             else if (strcmp(p + 1, "-y") == 0)
                 global.params.debugy = 1;
+            else if (p[1] == 's' && p[2] == 'L')
+            {
+                global.params.linkpostswitches->push(p + 3);
+            }
             else if (p[1] == 'L')
             {
                 global.params.linkswitches->push(p + 2);

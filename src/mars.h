@@ -231,6 +231,7 @@ struct Param
     // Linker stuff
     Strings *objfiles;
     Strings *linkswitches;
+    Strings *linkpostswitches;
     Strings *libfiles;
     char *deffile;
     char *resfile;
