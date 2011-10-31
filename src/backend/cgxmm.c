@@ -48,6 +48,7 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
     assert(sz == 4 || sz == 8);             // float or double
     unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
     c = genfltreg(c,op,xreg - XMM0,0);     // MOVSS/MOVSD xreg,floatreg
+    return c;
 }
 
 /***********************************************
