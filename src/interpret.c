@@ -100,6 +100,10 @@ struct ClassReferenceExp : Expression
     {
         return value->toChars();
     }
+    ClassDeclaration *originalClass()
+    {
+        return value->sd->isClassDeclaration();
+    }
 };
 
 
@@ -118,7 +122,7 @@ void showCtfeExpr(Expression *e, int level = 0)
     }
     else if (e->op == TOKclassreference)
     {   elements = ((ClassReferenceExp *)e)->value->elements;
-        cd = (ClassDeclaration *)(((ClassReferenceExp *)e)->value->sd);
+        cd = ((ClassReferenceExp *)e)->originalClass();
         printf("CLASS type = %s %p :\n", e->type->toChars(), ((ClassReferenceExp *)e)->value->toChars());
     }
     else if (e->op == TOKarrayliteral)
@@ -2929,6 +2933,8 @@ Expression *copyLiteral(Expression *e)
         r->type = e->type;
         return r;
     }
+    else if (e->op == TOKclassreference)
+        return new ClassReferenceExp(e->loc, ((ClassReferenceExp *)e)->value, e->type);
     else
     {
         e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
@@ -5117,7 +5123,18 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (e1->op == TOKnull)
         return paintTypeOntoLiteral(to, e1);
-
+    if (e1->op == TOKclassreference)
+    {   // Disallow reinterpreting class casts. Do this by ensuring that
+        // the original class can implicitly convert to the target class
+        ClassDeclaration *originalClass = ((ClassReferenceExp *)e1)->originalClass();
+        if (originalClass->type->implicitConvTo(to))
+            return paintTypeOntoLiteral(to, e1);
+        else
+        {
+            error("cannot convert from %s to %s at compile time", originalClass->toChars(), to->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+    }
     e = Cast(type, to, e1);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
@@ -5350,7 +5367,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             int i = -1;
             if (ex->op == TOKclassreference)
             {
-                ClassDeclaration *cd = (ClassDeclaration *)(((ClassReferenceExp *)ex)->value->sd);
+                ClassDeclaration *cd = ((ClassReferenceExp *)ex)->originalClass();
                 size_t fieldsSoFar = 0;
                 for (size_t j = 0; j < se->elements->dim; j++)
                 {   while (j - fieldsSoFar >= cd->fields.dim)
