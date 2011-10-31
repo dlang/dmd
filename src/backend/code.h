@@ -805,9 +805,11 @@ void cod5_prol_epi();
 void cod5_noprol();
 
 /* cgxmm.c */
+code *movxmmconst(unsigned reg, unsigned sz, targ_size_t value, regm_t flags);
 code *orthxmm(elem *e, regm_t *pretregs);
 code *xmmeq(elem *e, regm_t *pretregs);
 code *xmmopass(elem *e, regm_t *pretregs);
+code *xmmneg(elem *e, regm_t *pretregs);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);
