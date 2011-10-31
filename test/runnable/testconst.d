@@ -1932,6 +1932,66 @@ void test6782()
 }
 
 /************************************/
+// 6864
+
+int fn6864( const int n) { return 1; }
+int fn6864(shared int n) { return 2; }
+inout(int) fw6864(inout int s) { return 1; }
+inout(int) fw6864(shared inout int s) { return 2; }
+
+void test6864()
+{
+    int n;
+    assert(fn6864(n) == 1);
+    assert(fw6864(n) == 1);
+
+    shared int sn;
+    assert(fn6864(sn) == 2);
+    assert(fw6864(sn) == 2);
+}
+
+/************************************/
+// 6865
+
+shared(inout(int)) foo6865(shared(inout(int)) n){ return n; }
+void test6865()
+{
+    shared(const(int)) n;
+    static assert(is(typeof(foo6865(n)) == shared(const(int))));
+}
+
+/************************************/
+// 6866
+
+struct S6866
+{
+    const(char)[] val;
+    alias val this;
+}
+inout(char)[] foo6866(inout(char)[] s) { return s; }
+
+void test6866()
+{
+    S6866 s;
+    static assert(is(typeof(foo6866(s)) == const(char)[]));
+    // Assertion failure: 'targ' on line 2029 in file 'mtype.c'
+}
+
+/************************************/
+// 6867
+
+inout(char)[] test6867(inout(char)[] a)
+{
+   foreach(dchar d; a) // No error if 'dchar' is removed
+   {
+       foreach(c; a) // line 5
+       {
+       }
+   }
+   return [];
+}
+
+/************************************/
 
 int main()
 {
@@ -2025,6 +2085,9 @@ int main()
     test1961c();
     test88();
     test6782();
+    test6864();
+    test6865();
+    test6866();
 
     printf("Success\n");
     return 0;
