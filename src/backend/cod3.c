@@ -2716,35 +2716,51 @@ Lcont:
         {
             /* MOV reg,param[BP]        */
             //assert(refparam);
-            code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
-                modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
-            if (!I16 && sz == SHORTSIZE)
-                c2->Iflags |= CFopsize; // operand size
-            if (I64 && sz == REGSIZE)
-                c2->Irex |= REX_W;
-            if (!hasframe)
-            {   /* Convert to ESP relative address rather than EBP      */
-                assert(!I16);
-                c2->Irm = modregxrm(2,s->Sreglsw,4);
-                c2->Isib = modregrm(0,4,SP);
-                c2->IEVpointer1 += EBPtoESP;
-            }
-            if (sz > REGSIZE)
+            if (mask[s->Sreglsw] & XMMREGS)
             {
-                code *c3 = genc1(CNIL,0x8B,
-                    modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
-                if (I64)
-                    c3->Irex |= REX_W;
+                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;  // MOVSS/D xreg,mem
+                unsigned xreg = s->Sreglsw - XMM0;
+                code *c2 = genc1(CNIL,op,modregxrm(2,xreg,BPRM),FLconst,Poff + s->Soffset);
                 if (!hasframe)
-                {   /* Convert to ESP relative address rather than EBP  */
-                    assert(!I16);
-                    c3->Irm = modregxrm(2,s->Sregmsw,4);
-                    c3->Isib = modregrm(0,4,SP);
-                    c3->IEVpointer1 += EBPtoESP;
+                {   // Convert to ESP relative address rather than EBP
+                    c2->Irm = modregxrm(2,xreg,4);
+                    c2->Isib = modregrm(0,4,SP);
+                    c2->IEVpointer1 += EBPtoESP;
                 }
-                c2 = cat(c2,c3);
+                c = cat(c,c2);
             }
-            c = cat(c,c2);
+            else
+            {
+                code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
+                    modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
+                if (!I16 && sz == SHORTSIZE)
+                    c2->Iflags |= CFopsize; // operand size
+                if (I64 && sz == REGSIZE)
+                    c2->Irex |= REX_W;
+                if (!hasframe)
+                {   /* Convert to ESP relative address rather than EBP      */
+                    assert(!I16);
+                    c2->Irm = modregxrm(2,s->Sreglsw,4);
+                    c2->Isib = modregrm(0,4,SP);
+                    c2->IEVpointer1 += EBPtoESP;
+                }
+                if (sz > REGSIZE)
+                {
+                    code *c3 = genc1(CNIL,0x8B,
+                        modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
+                    if (I64)
+                        c3->Irex |= REX_W;
+                    if (!hasframe)
+                    {   /* Convert to ESP relative address rather than EBP  */
+                        assert(!I16);
+                        c3->Irm = modregxrm(2,s->Sregmsw,4);
+                        c3->Isib = modregrm(0,4,SP);
+                        c3->IEVpointer1 += EBPtoESP;
+                    }
+                    c2 = cat(c2,c3);
+                }
+                c = cat(c,c2);
+            }
         }
         else if (s->Sclass == SCfastpar)
         {   // Argument is passed in a register
@@ -2754,9 +2770,18 @@ Lcont:
 
             if (s->Sfl == FLreg)
             {   // MOV reg,preg
-                c = genmovreg(c,s->Sreglsw,preg);
-                if (I64 && sz == 8)
-                    code_orrex(c, REX_W);
+                if (mask[preg] & XMMREGS)
+                {
+                    unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;      // MOVSS/D xreg,preg
+                    unsigned xreg = s->Sreglsw - XMM0;
+                    c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
+                }
+                else
+                {
+                    c = genmovreg(c,s->Sreglsw,preg);
+                    if (I64 && sz == 8)
+                        code_orrex(c, REX_W);
+                }
             }
             else if (s->Sflags & SFLdead ||
                 (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
