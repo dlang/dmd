@@ -4446,6 +4446,20 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
             if (pthis == EXP_CANT_INTERPRET)
                 return EXP_CANT_INTERPRET;
+            if (fd->isVirtual())
+            {   // Make a virtual function call.
+                Expression *thisval = pthis;
+                if (pthis->op == TOKvar)
+                {   assert(((VarExp*)thisval)->var->isVarDeclaration());
+                    thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
+                }
+                // Get the function from the vtable of the original class
+                assert(thisval && thisval->op == TOKclassreference);
+                ClassDeclaration *cd = ((ClassReferenceExp *)thisval)->originalClass();
+                assert(fd->vtblIndex < cd->vtbl.dim);
+                fd = cd->vtbl.tdata()[fd->vtblIndex]->isFuncDeclaration();
+                assert(fd);
+            }
         }
     }
     // Check for built-in functions
@@ -5998,8 +6012,9 @@ bool isStackValueValid(Expression *newval)
         newval->error("CTFE internal error: illegal pointer value %s\n", newval->toChars());
         return false;
     }
-    if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
-        (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
+    if ((newval->op == TOKarrayliteral) || ( newval->op == TOKstructliteral) ||
+        (newval->op == TOKclassreference) ||
+        (newval->op == TOKstring) || (newval->op == TOKassocarrayliteral) ||
         (newval->op == TOKnull) || (newval->op == TOKslice))
     {   return false;
     }
