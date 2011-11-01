@@ -2020,9 +2020,9 @@ void test6872a()
     assert(fw6872a(lga) == 2);
     assert(fw6872a(gga) == 3);
 
-//  assert(ft6872a(lla) == 1);
-//  assert(ft6872a(lga) == 2);
-//  assert(ft6872a(gga) == 3);
+    assert(ft6872a(lla) == 1);
+    assert(ft6872a(lga) == 2);
+    assert(ft6872a(gga) == 3);
 }
 
 // ----
@@ -2053,9 +2053,9 @@ void test6872b()
     assert(fw6872b(lgaa) == 2);
     assert(fw6872b(ggaa) == 3);
 
-//  assert(ft6872b(llaa) == 1);
-//  assert(ft6872b(lgaa) == 2);
-//  assert(ft6872b(ggaa) == 3);
+    assert(ft6872b(llaa) == 1);
+    assert(ft6872b(lgaa) == 2);
+    assert(ft6872b(ggaa) == 3);
 }
 
 /************************************/
