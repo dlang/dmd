@@ -8070,13 +8070,11 @@ Expression *PtrExp::semantic(Scope *sc)
 
             case Tsarray:
             case Tarray:
-                if (global.params.useDeprecated)
-                {
-                    type = ((TypeArray *)tb)->next;
-                    e1 = e1->castTo(sc, type->pointerTo());
-                    break;
-                }
-                // fall through
+                if (!global.params.useDeprecated)
+                    error("using * on an array is deprecated; use *(%s).ptr instead", e1->toChars());
+                type = ((TypeArray *)tb)->next;
+                e1 = e1->castTo(sc, type->pointerTo());
+                break;
 
             default:
                 error("can only * a pointer, not a '%s'", e1->type->toChars());
