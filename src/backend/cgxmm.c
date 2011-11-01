@@ -35,19 +35,16 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
 {
     /* Generate:
      *    MOV reg,value
-     *    MOV floatreg,reg
-     *    MOV xreg,floatreg
+     *    MOV xreg,reg
      * Not so efficient. We should at least do a PXOR for 0.
      */
     assert(mask[xreg] & XMMREGS);
-    unsigned r;
-    code *c = regwithvalue(CNIL,ALLREGS,value,&r,(sz == 8) ? 64 : 0);
-    c = genfltreg(c,0x89,r,0);            // MOV floatreg,r
+    assert(sz == 4 || sz == 8);
+    unsigned reg;
+    code *c = regwithvalue(CNIL,ALLREGS,value,&reg,(sz == 8) ? 64 : 0);
+    c = gen2(c,0x660F6E,modregxrmx(3,xreg-XMM0,reg));     // MOVD/MOVQ xreg,reg
     if (sz == 8)
         code_orrex(c, REX_W);
-    assert(sz == 4 || sz == 8);             // float or double
-    unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
-    c = genfltreg(c,op,xreg - XMM0,0);     // MOVSS/MOVSD xreg,floatreg
     return c;
 }
 
