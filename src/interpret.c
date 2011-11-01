@@ -88,6 +88,7 @@ struct ClassReferenceExp : Expression
     StructLiteralExp *value;
     ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type) : Expression(loc, TOKclassreference, sizeof(ClassReferenceExp))
     {
+        assert(lit && lit->sd && lit->sd->isClassDeclaration());
         this->value = lit;
         this->type = type;
     }
@@ -103,6 +104,25 @@ struct ClassReferenceExp : Expression
     ClassDeclaration *originalClass()
     {
         return value->sd->isClassDeclaration();
+    }
+    // Return index of the field, or -1 if not found
+    int getFieldIndex(Type *fieldtype, size_t fieldoffset)
+    {
+        ClassDeclaration *cd = originalClass();
+        size_t fieldsSoFar = 0;
+        for (size_t j = 0; j < value->elements->dim; j++)
+        {   while (j - fieldsSoFar >= cd->fields.dim)
+            {   fieldsSoFar += cd->fields.dim;
+                cd = cd->baseClass;
+            }
+            Dsymbol *s = cd->fields.tdata()[j - fieldsSoFar];
+            VarDeclaration *v2 = s->isVarDeclaration();
+            if (fieldoffset == v2->offset &&
+                fieldtype->size() == v2->type->size())
+            {   return value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+            }
+        }
+        return -1;
     }
 };
 
@@ -3696,21 +3716,28 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (exx == EXP_CANT_INTERPRET)
                 return exx;
         }
-        if (exx->op != TOKstructliteral)
+        if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
         {
             error("CTFE internal error: Dotvar assignment");
             return EXP_CANT_INTERPRET;
         }
-        StructLiteralExp *se = (StructLiteralExp *)exx;
         VarDeclaration *member = ((DotVarExp *)e1)->var->isVarDeclaration();
         if (!member)
         {
             error("CTFE internal error: Dotvar assignment");
             return EXP_CANT_INTERPRET;
         }
-        int fieldi = se->getFieldIndex(member->type, member->offset);
+        StructLiteralExp *se = exx->op == TOKstructliteral
+            ? (StructLiteralExp *)exx
+            : ((ClassReferenceExp *)exx)->value;
+        int fieldi =  exx->op == TOKstructliteral
+            ? se->getFieldIndex(member->type, member->offset)
+            : ((ClassReferenceExp *)exx)->getFieldIndex(member->type, member->offset);
         if (fieldi == -1)
+        {
+            error("CTFE internal error: cannot find field %s in %s", member->toChars(), exx->toChars());
             return EXP_CANT_INTERPRET;
+        }
         assert(fieldi>=0 && fieldi < se->elements->dim);
         if (newval->op == TOKstructliteral)
             assignInPlace(se->elements->tdata()[fieldi], newval);
@@ -5131,7 +5158,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
             return paintTypeOntoLiteral(to, e1);
         else
         {
-            error("cannot convert from %s to %s at compile time", originalClass->toChars(), to->toChars());
+            error("cannot reinterpret class from %s to %s at compile time", originalClass->toChars(), to->toChars());
             return EXP_CANT_INTERPRET;
         }
     }
@@ -5366,24 +5393,9 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             // We can't use getField, because it makes a copy
             int i = -1;
             if (ex->op == TOKclassreference)
-            {
-                ClassDeclaration *cd = ((ClassReferenceExp *)ex)->originalClass();
-                size_t fieldsSoFar = 0;
-                for (size_t j = 0; j < se->elements->dim; j++)
-                {   while (j - fieldsSoFar >= cd->fields.dim)
-                    {   fieldsSoFar += cd->fields.dim;
-                        cd = cd->baseClass;
-                    }
-                    Dsymbol *s = cd->fields.tdata()[j - fieldsSoFar];
-                    VarDeclaration *v2 = s->isVarDeclaration();
-                    if (v->offset == v2->offset &&
-                        type->size() == v2->type->size())
-                    {   i = se->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
-                        break;
-                    }
-                }
-            }
-            else i = se->getFieldIndex(type, v->offset);
+                i = ((ClassReferenceExp *)ex)->getFieldIndex(type, v->offset);
+            else
+                i = se->getFieldIndex(type, v->offset);
             if (i == -1)
             {
                 error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
