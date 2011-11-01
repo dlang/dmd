@@ -3869,7 +3869,8 @@ code *loaddata(elem *e,regm_t *pretregs)
     else if (forregs & XMMREGS)
     {
         // Can't load from registers directly to XMM regs
-        e->EV.sp.Vsym->Sflags &= ~GTregcand;
+//printf("test2 %s\n", e->EV.sp.Vsym->Sident);
+        //e->EV.sp.Vsym->Sflags &= ~GTregcand;
 
         assert(sz == 4 || sz == 8);             // float or double
         unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
