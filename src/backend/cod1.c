@@ -3874,6 +3874,12 @@ code *loaddata(elem *e,regm_t *pretregs)
 
         assert(sz == 4 || sz == 8);             // float or double
         unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
+        if (e->Eoper == OPvar)
+        {   symbol *s = e->EV.sp.Vsym;
+            if (s->Sfl == FLreg && !(mask[s->Sreglsw] & XMMREGS))
+            {   op = 0x660F6E;          // MOVD/MOVQ
+            }
+        }
         ce = loadea(e,&cs,op,reg,0,RMload,0); // MOVSS/MOVSD reg,data
         c = cat(c,ce);
     }
