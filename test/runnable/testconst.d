@@ -2059,6 +2059,16 @@ void test6872b()
 }
 
 /************************************/
+// 6837
+
+template Id6837(T)
+{
+	alias T Id6837;
+}
+static assert(is(Id6837!(shared const int) == shared const int));
+static assert(is(Id6837!(shared inout int) == shared inout int));
+
+/************************************/
 // 6870
 
 void test6870()
