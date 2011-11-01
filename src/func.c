@@ -3166,8 +3166,8 @@ int CtorDeclaration::addPostInvariant()
 /********************************* PostBlitDeclaration ****************************/
 
 #if DMDV2
-PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::_postblit, STCundefined, NULL)
+PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc)
+    : FuncDeclaration(loc, endloc, Id::_postblit, stc, NULL)
 {
 }
 
@@ -3200,7 +3200,7 @@ void PostBlitDeclaration::semantic(Scope *sc)
         ad->postblits.push(this);
 
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not static

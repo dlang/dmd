@@ -719,7 +719,7 @@ struct CtorDeclaration : FuncDeclaration
 #if DMDV2
 struct PostBlitDeclaration : FuncDeclaration
 {
-    PostBlitDeclaration(Loc loc, Loc endloc);
+    PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc = STCundefined);
     PostBlitDeclaration(Loc loc, Loc endloc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
