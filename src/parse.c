@@ -978,7 +978,8 @@ Dsymbol *Parser::parseCtor()
         nextToken();
         nextToken();
         check(TOKrparen);
-        PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0);
+        StorageClass stc = parsePostfix();
+        PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0, stc);
         parseContracts(f);
         return f;
     }
