@@ -2700,3 +2700,28 @@ static assert({
     assert(aa.length == 0);
     return true;
 }());
+
+/**************************************************
+    try, finally
+**************************************************/
+
+static assert({
+    int n = 0;
+    try {
+        n = 1;
+    }
+    catch (Exception e)
+    {}
+    assert(n == 1);
+    try {
+        n = 2;
+    }
+    catch (Exception e)
+    {}
+    finally {
+        assert(n == 2);
+        n = 3;
+    }
+    assert(n == 3);
+    return true;
+}());
