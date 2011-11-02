@@ -3806,7 +3806,42 @@ struct Bar6087
 }
 
 /***************************************************/
+// 6848
 
+class Foo6848 {}
+
+class Bar6848 : Foo6848
+{
+    void func() immutable
+    {
+        static assert(is(typeof(this) == immutable(Bar6848)));  // immutable(Bar6848)
+        auto t = this;
+        static assert(is(typeof(t) == immutable(Bar6848)));     // immutable(Bar6848)
+
+        static assert(is(typeof(super) == immutable(Foo6848))); // Foo6848 instead of immutable(Foo6848)
+        auto s = super;
+        static assert(is(typeof(s) == immutable(Foo6848)));     // Foo6848 instead of immutable(Foo6848)
+    }
+}
+
+/***************************************************/
+// 6847
+
+template True6847(T)
+{
+    immutable True6847 = true;
+}
+class Foo6847
+{}
+
+class Bar6847 : Foo6847
+{
+    static assert( True6847!(typeof(super)) );
+    static assert( is(typeof(super) == Foo6847) );
+}
+
+/***************************************************/
+// 6289
 
 void test6289()
 {
