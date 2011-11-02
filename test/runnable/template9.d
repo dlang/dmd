@@ -417,6 +417,22 @@ void test2778aa()
     foo(aa2);   // NG
 }
 
+// ----
+
+void test2778get()
+{
+    void foo(ubyte[]){}
+
+    static struct S
+    {
+        ubyte[] val = [1,2,3];
+        @property ref ubyte[] get(){ return val; }
+        alias get this;
+    }
+    S s;
+    foo(s);
+}
+
 /**********************************/
 
 int main()
@@ -439,6 +455,7 @@ int main()
     test6825();
     test2778();
     test2778aa();
+    test2778get();
 
     printf("Success\n");
     return 0;

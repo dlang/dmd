@@ -1245,6 +1245,7 @@ Lretry:
                     {
                         Expression *e = new DotIdExp(farg->loc, farg, ad->aliasthis->ident);
                         e = e->semantic(sc);
+                        e = resolveProperties(sc, e);
                         farg = e;
                         goto Lretry;
                     }
