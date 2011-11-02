@@ -391,7 +391,7 @@ void FuncDeclaration::semantic(Scope *sc)
 //          ctor = (CtorDeclaration *)this;
 //          if (!cd->ctor)
 //              cd->ctor = ctor;
-            return;
+            goto Ldone;
         }
 
 #if 0

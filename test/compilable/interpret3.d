@@ -2079,6 +2079,14 @@ struct Bug6337
 static assert( Bug6337().ctfe() == 6);
 
 /**************************************************
+    6603 call manifest function pointer
+**************************************************/
+
+int f6603(int a) { return a+5; }
+enum bug6603 = &f6603;
+static assert(bug6603(6)==11);
+
+/**************************************************
     6375
 **************************************************/
 
@@ -2725,3 +2733,257 @@ static assert({
     assert(n == 3);
     return true;
 }());
+
+/**************************************************
+    6800 bad pointer casts
+**************************************************/
+
+bool badpointer(int k)
+{
+    int m = 6;
+    int *w =  &m;
+    assert(*w == 6);
+    int [3] a = [17,2,21];
+    int *w2 = &a[2];
+    assert(*w2 == 21);
+
+    // cast int* to uint* is OK
+    uint* u1 = cast(uint*)w;
+    assert(*u1 == 6);
+    uint* u2 = cast(uint*)w2;
+    assert(*u2 == 21);
+    uint* u3 = cast(uint*)&m;
+    assert(*u3 == 6);
+    // cast int* to void* is OK
+    void *v1 = cast(void*)w;
+    void *v3 = &m;
+    void *v4 = &a[0];
+    // cast from void * back to int* is OK
+    int *t3 = cast(int *)v3;
+    assert(*t3 == 6);
+    int *t4 = cast(int *)v4;
+    assert(*t4 == 17);
+    // cast from void* to uint* is OK
+    uint *t1 = cast(uint *)v1;
+    assert(*t1 == 6);
+    // and check that they're real pointers
+    m = 18;
+    assert(*t1 == 18);
+    assert(*u3 == 18);
+
+    int **p = &w;
+
+    if (k == 1) // bad reinterpret
+        double *d1 = cast(double *)w;
+    if (k == 3) // bad reinterpret
+        char *d3 = cast(char *)w2;
+    if (k == 4) {
+        void *q1 = cast(void *)p;    // OK-void is int*
+        void **q = cast(void **)p;   // OK-void is int
+    }
+    if (k == 5)
+        void ***q = cast(void ***)p;  // bad: too many *
+    if (k == 6) // bad reinterpret through void *
+        double *d1 = cast(double*)v1;
+    if (k == 7)
+        double *d7 = cast(double*)v4;
+    if (k==8)
+        ++v4; // can't do pointer arithmetic on void *
+    return true;
+}
+static assert(badpointer(4));
+static assert(!is(typeof(compiles!(badpointer(1)))));
+static assert(is(typeof(compiles!(badpointer(2)))));
+static assert(!is(typeof(compiles!(badpointer(3)))));
+static assert(is(typeof(compiles!(badpointer(4)))));
+static assert(!is(typeof(compiles!(badpointer(5)))));
+static assert(!is(typeof(compiles!(badpointer(6)))));
+static assert(!is(typeof(compiles!(badpointer(7)))));
+static assert(!is(typeof(compiles!(badpointer(8)))));
+
+/**************************************************
+    6792 ICE with pointer cast of indexed array
+**************************************************/
+
+struct S6792 {
+    int i;
+}
+
+static assert({
+    {
+        void* p;
+        p = [S6792(1)].ptr;
+        S6792 s = *(cast(S6792*)p);
+        assert(s.i == 1);
+    }
+    {
+        void*[] ary;
+        ary ~= [S6792(2)].ptr;
+        S6792 s = *(cast(S6792*)ary[0]);
+        assert(s.i == 2);
+    }
+    {
+        void*[7] ary;
+        ary[6]= [S6792(2)].ptr;
+        S6792 s = *(cast(S6792*)ary[6]);
+        assert(s.i == 2);
+    }
+    {
+        void* p;
+        p = [S6792(1)].ptr;
+        void*[7] ary;
+        ary[5]= p;
+        S6792 s = *(cast(S6792*)ary[5]);
+        assert(s.i == 1);
+    }
+    {
+        S6792*[string] aa;
+        aa["key"] = [S6792(3)].ptr;
+        const(S6792) s = *(cast(const(S6792) *)aa["key"]);
+        assert(s.i == 3);
+    }
+    {
+        S6792[string] blah;
+        blah["abc"] = S6792(6);
+        S6792*[string] aa;
+        aa["kuy"] = &blah["abc"];
+        const(S6792) s = *(cast(const(S6792) *)aa["kuy"]);
+        assert(s.i == 6);
+
+        void*[7] ary;
+        ary[5]= &blah["abc"];
+        S6792 t = *(cast(S6792*)ary[5]);
+        assert(t.i == 6);
+
+        int Q= 6;
+        ary[3]= &Q;
+        int gg = *(cast(int*)(ary[3]));
+    }
+    return true;
+}());
+
+/**************************************************
+    6817 if converted to &&, only with -inline
+**************************************************/
+static assert({
+    void toggle() {
+        bool b;
+        if (b)
+            b = false;
+    }
+    toggle();
+    return true;
+}());
+
+/**************************************************
+    cast to void
+**************************************************/
+
+static assert({
+    cast(void)(71);
+    return true;
+} ());
+
+/**************************************************
+    6816 nested function can't access this
+**************************************************/
+
+struct S6816 {
+    size_t foo() {
+        return (){ return value+1; }();
+    }
+    size_t value;
+}
+
+enum s6816 = S6816().foo();
+
+/**************************************************
+    classes and interfaces
+**************************************************/
+
+interface SomeInterface
+{
+  int daz();
+  float bar(char);
+  int baz();
+}
+
+interface SomeOtherInterface
+{
+    int xxx();
+}
+
+class TheBase : SomeInterface, SomeOtherInterface
+{
+    int q = 88;
+    int rad = 61;
+    int a = 14;
+    int somebaseclassfunc() { return 28;}
+    int daz() { return 0; }
+    int baz() { return 0; }
+    int xxx() { return 762; }
+    int foo() { return q; }
+    float bar(char c) { return 3.6; }
+}
+
+class SomeClass : TheBase, SomeInterface
+{
+    int gab = 9;
+    int fab;
+    int a = 17;
+    int b = 23;
+    int foo() { return gab + a; }
+    float bar(char c) { return 2.6; }
+    int something() { return 0; }
+    int daz() { return 0; }
+    int baz() { return 0; }
+}
+
+class Unrelated : TheBase {
+    this(int x) { a = x; }
+}
+
+auto classtest1(int n)
+{
+    SomeClass c = new SomeClass;
+    assert(c.a == 17);
+    assert(c.q == 88);
+    TheBase d = c;
+    assert(d.a == 14);
+    assert(d.q == 88);
+    if (n==7)
+    {   // bad cast -- should fail
+        Unrelated u = cast(Unrelated)d;
+    }
+    SomeClass e = cast(SomeClass)d;
+    d.q = 35;
+    assert(c.q == 35);
+    assert(c.foo() == 9 + 17);
+    ++c.a;
+    assert(c.foo() == 9 + 18);
+    assert(d.foo() == 9 + 18);
+    d = new TheBase;
+    SomeInterface fc = c;
+    SomeOtherInterface ot = c;
+    assert(fc.bar('x') == 2.6);
+    assert(ot.xxx() == 762);
+    fc = d;
+    ot = d;
+    assert(fc.bar('x') == 3.6);
+    assert(ot.xxx() == 762);
+
+    Unrelated u2 = new Unrelated(7);
+    assert(u2.a == 7);
+    return 6;
+}
+static assert(classtest1(1));
+static assert(is(typeof(compiles!(classtest1(2)))));
+static assert(!is(typeof(compiles!(classtest1(7)))));
+
+// can't return classes literals outside CTFE
+SomeClass classtest2(int n)
+{
+    return n==5 ? (new SomeClass) : null;
+}
+static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
+static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
