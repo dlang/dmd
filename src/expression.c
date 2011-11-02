@@ -2469,8 +2469,7 @@ SuperExp::SuperExp(Loc loc)
 }
 
 Expression *SuperExp::semantic(Scope *sc)
-{   FuncDeclaration *fd;
-    FuncDeclaration *fdthis;
+{
     ClassDeclaration *cd;
     Dsymbol *s;
 
@@ -2480,22 +2479,22 @@ Expression *SuperExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    FuncDeclaration *fd = hasThis(sc);
+
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
-    if (sc->intypeof)
+    if (!fd && sc->intypeof)
     {
         // Find enclosing class
-        for (Dsymbol *s = sc->parent; 1; s = s->parent)
+        for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
         {
-            ClassDeclaration *cd;
-
             if (!s)
             {
                 error("%s is not in a class scope", toChars());
                 goto Lerr;
             }
-            cd = s->isClassDeclaration();
+            ClassDeclaration *cd = s->isClassDeclaration();
             if (cd)
             {
                 cd = cd->baseClass;
@@ -2508,11 +2507,9 @@ Expression *SuperExp::semantic(Scope *sc)
             }
         }
     }
-
-    fdthis = sc->parent->isFuncDeclaration();
-    fd = hasThis(sc);
     if (!fd)
         goto Lerr;
+
     assert(fd->vthis);
     var = fd->vthis;
     assert(var->parent);
@@ -2533,17 +2530,12 @@ Expression *SuperExp::semantic(Scope *sc)
     else
     {
         type = cd->baseClass->type;
+#if DMDV2
+        type = type->castMod(var->type->mod);
+#endif
     }
 
     var->isVarDeclaration()->checkNestedReference(sc, loc);
-#if 0
-    if (fd != fdthis)
-    {
-        fdthis->getLevel(loc, fd);
-        fd->vthis->nestedref = 1;
-        fd->nestedFrameRef = 1;
-    }
-#endif
 
     if (!sc->intypeof)
         sc->callSuper |= CSXsuper;
@@ -2552,8 +2544,7 @@ Expression *SuperExp::semantic(Scope *sc)
 
 Lerr:
     error("'super' is only allowed in non-static class member functions");
-    type = Type::tint32;
-    return this;
+    return new ErrorExp();
 }
 
 void SuperExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3257,11 +3248,12 @@ void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
 
 // sd( e1, e2, e3, ... )
 
-StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements)
+StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype)
     : Expression(loc, TOKstructliteral, sizeof(StructLiteralExp))
 {
     this->sd = sd;
     this->elements = elements;
+    this->stype = stype;
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
@@ -3269,7 +3261,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
 
 Expression *StructLiteralExp::syntaxCopy()
 {
-    return new StructLiteralExp(loc, sd, arraySyntaxCopy(elements));
+    return new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), stype);
 }
 
 Expression *StructLiteralExp::semantic(Scope *sc)
@@ -3297,7 +3289,9 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             continue;
 
         if (!e->type)
-            error("%s has no value", e->toChars());
+        {   error("%s has no value", e->toChars());
+            return new ErrorExp();
+        }
         e = resolveProperties(sc, e);
         if (i >= sd->fields.dim)
         {   error("more initializers than fields of %s", sd->toChars());
@@ -3364,7 +3358,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         elements->push(e);
     }
 
-    type = sd->type;
+    type = stype ? stype : sd->type;
     return this;
 }
 
