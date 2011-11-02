@@ -646,7 +646,7 @@ void test30()
 
 template dog31(string sheep)
 {
-  invariant string dog31 = "daschund";
+  immutable string dog31 = "daschund";
 }
 
 void test31()

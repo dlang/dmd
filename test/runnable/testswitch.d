@@ -323,7 +323,7 @@ void test14()
 /*****************************************/
 
 const int X15;
-invariant int Y15;
+immutable int Y15;
 const int Z15;
 
 int foo15(int i)

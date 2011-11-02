@@ -5,7 +5,7 @@ struct Struct {
 void main()
 {
         char ch = 'd';
-        invariant Struct iStruct = {&ch};
+        immutable Struct iStruct = {&ch};
 }
 
 
