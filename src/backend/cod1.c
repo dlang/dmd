@@ -1402,6 +1402,16 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     L2:
         if (fl == FLreg)
         {   assert(s->Sregm & regcon.mvar);
+
+            /* Attempting to paint a float as an integer or an integer as a float
+             * will cause serious problems since the EA is loaded separatedly from
+             * the opcode. The only way to deal with this is to prevent enregistering
+             * such variables.
+             */
+            if (tyfloating(ty) && !(s->Sregm & XMMREGS) ||
+                !tyfloating(ty) && (s->Sregm & XMMREGS))
+                cgreg_unregister(s->Sregm);
+
             if (
                 s->Sclass == SCregpar ||
                 s->Sclass == SCparameter)
@@ -3878,6 +3888,7 @@ code *loaddata(elem *e,regm_t *pretregs)
         {   symbol *s = e->EV.sp.Vsym;
             if (s->Sfl == FLreg && !(mask[s->Sreglsw] & XMMREGS))
             {   op = 0x660F6E;          // MOVD/MOVQ
+                /* getlvalue() will unwind this and unregister s; could use a better solution */
             }
         }
         ce = loadea(e,&cs,op,reg,0,RMload,0); // MOVSS/MOVSD reg,data
