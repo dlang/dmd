@@ -9,7 +9,7 @@ struct S
 
 void test(const(S) s, const(int) i)
 {
-    invariant int j = 3;
+    immutable int j = 3;
     j = 4;
     i = 4;
     s.x = 3;

@@ -4,7 +4,7 @@ struct Struct {
 
 void main()
 {
-        invariant Struct iStruct;
+        immutable Struct iStruct;
         Struct y = iStruct;
 }
 

@@ -21,7 +21,7 @@ void testaa()
 
 int a[string];
 
-size_t foo(invariant char [3] s)
+size_t foo(immutable char [3] s)
 {
     printf("foo()\n");
     int b[string];
