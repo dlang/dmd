@@ -699,14 +699,19 @@ Expression *ctfeEqual(enum TOK op, Type *type, Expression *e1, Expression *e2)
 }
 
 
-void scrubArray(Expressions *elems);
+void scrubArray(Loc loc, Expressions *elems);
 
 /* All results destined for use outside of CTFE need to have their CTFE-specific
  * features removed.
  * In particular, all slices must be resolved.
  */
-Expression *scrubReturnValue(Expression *e)
+Expression *scrubReturnValue(Loc loc, Expression *e)
 {
+    if (e->op == TOKclassreference)
+    {
+        error(loc, "%s class literals cannot be returned from CTFE", ((ClassReferenceExp*)e)->originalClass()->toChars());
+        return EXP_CANT_INTERPRET;
+    }
     if (e->op == TOKslice)
     {
         e = resolveSlice(e);
@@ -714,30 +719,30 @@ Expression *scrubReturnValue(Expression *e)
     if (e->op == TOKstructliteral)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
-        scrubArray(se->elements);
+        scrubArray(loc, se->elements);
     }
     if (e->op == TOKarrayliteral)
     {
-        scrubArray(((ArrayLiteralExp *)e)->elements);
+        scrubArray(loc, ((ArrayLiteralExp *)e)->elements);
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
-        scrubArray(aae->keys);
-        scrubArray(aae->values);
+        scrubArray(loc, aae->keys);
+        scrubArray(loc, aae->values);
     }
     return e;
 }
 
 // Scrub all members of an array
-void scrubArray(Expressions *elems)
+void scrubArray(Loc loc, Expressions *elems)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = elems->tdata()[i];
         if (!m)
             continue;
-        m = scrubReturnValue(m);
+        m = scrubReturnValue(loc, m);
         elems->tdata()[i] = m;
     }
 }
@@ -786,7 +791,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
         return e;
     if (!istate->caller)
     {
-        e = scrubReturnValue(e);
+        e = scrubReturnValue(loc, e);
         if (e == EXP_CANT_INTERPRET)
             return e;
     }
