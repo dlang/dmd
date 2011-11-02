@@ -2308,6 +2308,12 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         // We probably won't get away with this.
         StructLiteralExp *se = new StructLiteralExp(loc, (StructDeclaration *)cd, elems,  newtype);
         Expression *e = new ClassReferenceExp(loc, se, type);
+        if (member)
+        {   // Call constructor
+            Expression * ctorfail = member->interpret(istate, arguments, e);
+            if (ctorfail == EXP_CANT_INTERPRET)
+                return ctorfail;
+        }
         return e;
     }
     error("Cannot interpret %s at compile time", toChars());
