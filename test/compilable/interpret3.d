@@ -2883,3 +2883,94 @@ static assert({
     cast(void)(71);
     return true;
 } ());
+
+/**************************************************
+    classes and interfaces
+**************************************************/
+
+interface SomeInterface
+{
+  int daz();
+  float bar(char);
+  int baz();
+}
+
+interface SomeOtherInterface
+{
+    int xxx();
+}
+
+class TheBase : SomeInterface, SomeOtherInterface
+{
+    int q = 88;
+    int rad = 61;
+    int a = 14;
+    int somebaseclassfunc() { return 28;}
+    int daz() { return 0; }
+    int baz() { return 0; }
+    int xxx() { return 762; }
+    int foo() { return q; }
+    float bar(char c) { return 3.6; }
+}
+
+class SomeClass : TheBase, SomeInterface
+{
+    int gab = 9;
+    int fab;
+    int a = 17;
+    int b = 23;
+    int foo() { return gab + a; }
+    float bar(char c) { return 2.6; }
+    int something() { return 0; }
+    int daz() { return 0; }
+    int baz() { return 0; }
+}
+
+class Unrelated : TheBase {
+    this(int x) { a = x; }
+}
+
+auto classtest1(int n)
+{
+    SomeClass c = new SomeClass;
+    assert(c.a == 17);
+    assert(c.q == 88);
+    TheBase d = c;
+    assert(d.a == 14);
+    assert(d.q == 88);
+    if (n==7)
+    {   // bad cast -- should fail
+        Unrelated u = cast(Unrelated)d;
+    }
+    SomeClass e = cast(SomeClass)d;
+    d.q = 35;
+    assert(c.q == 35);
+    assert(c.foo() == 9 + 17);
+    ++c.a;
+    assert(c.foo() == 9 + 18);
+    assert(d.foo() == 9 + 18);
+    d = new TheBase;
+    SomeInterface fc = c;
+    SomeOtherInterface ot = c;
+    assert(fc.bar('x') == 2.6);
+    assert(ot.xxx() == 762);
+    fc = d;
+    ot = d;
+    assert(fc.bar('x') == 3.6);
+    assert(ot.xxx() == 762);
+
+    Unrelated u2 = new Unrelated(7);
+    assert(u2.a == 7);
+    return 6;
+}
+static assert(classtest1(1));
+static assert(is(typeof(compiles!(classtest1(2)))));
+static assert(!is(typeof(compiles!(classtest1(7)))));
+
+// can't return classes literals outside CTFE
+SomeClass classtest2(int n)
+{
+    return n==5 ? (new SomeClass) : null;
+}
+static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
+static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
