@@ -4335,6 +4335,16 @@ MATCH TypeAArray::implicitConvTo(Type *to)
             return m;
         }
     }
+    else if (to->ty == Tstruct && ((TypeStruct *)to)->sym->ident == Id::AssociativeArray)
+    {
+        int errs = global.startGagging();
+        Type *from = getImpl()->type;
+        if (global.endGagging(errs))
+        {
+            return MATCHnomatch;
+        }
+        return from->implicitConvTo(to);
+    }
     return Type::implicitConvTo(to);
 }
 
