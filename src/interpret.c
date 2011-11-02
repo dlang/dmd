@@ -4456,8 +4456,10 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
                 // Get the function from the vtable of the original class
                 assert(thisval && thisval->op == TOKclassreference);
                 ClassDeclaration *cd = ((ClassReferenceExp *)thisval)->originalClass();
-                assert(fd->vtblIndex < cd->vtbl.dim);
-                fd = cd->vtbl.tdata()[fd->vtblIndex]->isFuncDeclaration();
+                // We can't just use the vtable index to look it up, because
+                // vtables for interfaces don't get populated until the glue layer.
+                fd = cd->findFunc(fd->ident, (TypeFunction *)fd->type);
+
                 assert(fd);
             }
         }
