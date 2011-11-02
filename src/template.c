@@ -1182,7 +1182,9 @@ L2:
             }
         }
         else
-        {   Expression *farg = fargs->tdata()[i];
+        {
+            Expression *farg = fargs->tdata()[i];
+Lretry:
 #if 0
             printf("\tfarg->type   = %s\n", farg->type->toChars());
             printf("\tfparam->type = %s\n", fparam->type->toChars());
@@ -1213,18 +1215,40 @@ L2:
 
             /* If no match, see if there's a conversion to a delegate
              */
-            if (!m && fparam->type->toBasetype()->ty == Tdelegate)
-            {
-                TypeDelegate *td = (TypeDelegate *)fparam->type->toBasetype();
-                TypeFunction *tf = (TypeFunction *)td->next;
-
-                if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
+            if (!m)
+            {   Type *tbp = fparam->type->toBasetype();
+                Type *tba = farg->type->toBasetype();
+                AggregateDeclaration *ad;
+                if (tbp->ty == Tdelegate)
                 {
-                    m = farg->type->deduceType(paramscope, tf->next, parameters, &dedtypes);
-                    if (!m && tf->next->toBasetype()->ty == Tvoid)
-                        m = MATCHconvert;
+                    TypeDelegate *td = (TypeDelegate *)fparam->type->toBasetype();
+                    TypeFunction *tf = (TypeFunction *)td->next;
+
+                    if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
+                    {
+                        m = farg->type->deduceType(paramscope, tf->next, parameters, &dedtypes);
+                        if (!m && tf->next->toBasetype()->ty == Tvoid)
+                            m = MATCHconvert;
+                    }
+                    //printf("\tm2 = %d\n", m);
                 }
-                //printf("\tm2 = %d\n", m);
+                else if (tba->ty == Tclass)
+                {
+                    ad = ((TypeClass *)tba)->sym;
+                    goto Lad;
+                }
+                else if (tba->ty == Tstruct)
+                {
+                    ad = ((TypeStruct *)tba)->sym;
+            Lad:
+                    if (ad->aliasthis)
+                    {
+                        Expression *e = new DotIdExp(farg->loc, farg, ad->aliasthis->ident);
+                        e = e->semantic(sc);
+                        farg = e;
+                        goto Lretry;
+                    }
+                }
             }
 
             if (m)
