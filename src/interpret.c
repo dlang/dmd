@@ -79,8 +79,10 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
-// CTFE only, this can be reused since TOKinterface never occurs in an expression
+// CTFE only expressions
 #define TOKclassreference ((TOK)(TOKMAX+1))
+#define TOKthrownexception ((TOK)(TOKMAX+2))
+
 // Reference to a class, or an interface. We need this when we
 // point to a base class (we must record what the type is).
 struct ClassReferenceExp : Expression
@@ -126,6 +128,25 @@ struct ClassReferenceExp : Expression
     }
 };
 
+// Fake class which holds the thrown exception. Used for implementing exception handling.
+struct ThrownExceptionExp : Expression
+{
+    ClassReferenceExp *dwarf; // the thing being tossed
+    ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Expression(loc, TOKthrownexception, sizeof(ThrownExceptionExp))
+    {
+        this->dwarf = victim;
+        this->type = type;
+    }
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue)
+    {
+        assert(0); // This should never be interpreted
+        return this;
+    }
+    char *toChars()
+    {
+        return "CTFE ThrownException";
+    }
+};
 
 // Used for debugging only
 void showCtfeExpr(Expression *e, int level = 0)
