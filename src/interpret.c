@@ -2188,8 +2188,12 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
 {
     Expressions *elements = new Expressions();
     elements->setDim(dim);
+    bool mustCopy = needToCopyLiteral(elem);
     for (size_t i = 0; i < dim; i++)
-         elements->tdata()[i] = elem;
+    {   if (mustCopy)
+            elem  = copyLiteral(elem);
+        elements->tdata()[i] = elem;
+    }
     ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
     ae->type = type;
     return ae;

@@ -2987,3 +2987,27 @@ SomeClass classtest2(int n)
 }
 static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
 static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
+
+/**************************************************
+    6885 wrong code with new array
+**************************************************/
+
+struct S6885 {
+    int p;
+}
+
+int bug6885()
+{
+    auto array = new double[1][2];
+    array[1][0] = 6;
+    array[0][0] = 1;
+    assert(array[1][0]==6);
+
+    auto barray = new S6885[2];
+    barray[1].p = 5;
+    barray[0].p = 2;
+    assert(barray[1].p == 5);
+    return 1;
+}
+
+static assert(bug6885());
