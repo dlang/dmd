@@ -80,7 +80,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 
 // CTFE only, this can be reused since TOKinterface never occurs in an expression
-#define TOKclassreference (TOKMAX+1)
+#define TOKclassreference ((TOK)(TOKMAX+1))
 // Reference to a class, or an interface. We need this when we
 // point to a base class (we must record what the type is).
 struct ClassReferenceExp : Expression
