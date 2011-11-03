@@ -2863,6 +2863,24 @@ static assert({
 }());
 
 /**************************************************
+    6851 passing pointer by argument
+**************************************************/
+
+void set6851(int* pn)
+{
+    *pn = 20;
+}
+void bug6851()
+{
+    int n = 0;
+    auto pn = &n;
+    *pn = 10;
+    assert(n == 10);
+    set6851(&n);
+}
+static assert({ bug6851(); return true; }());
+
+/**************************************************
     6817 if converted to &&, only with -inline
 **************************************************/
 static assert({

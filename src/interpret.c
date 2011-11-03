@@ -1631,16 +1631,9 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     }
     else if ( offset == 0 && isSafePointerCast(var->type, pointee) )
     {
-        if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
-        {
-            VarExp *ve = new VarExp(loc, var);
-            ve->type = type;
-            return ve;
-        }
-        Expression *e = getVarExp(loc, istate, var, goal);
-        e = new AddrExp(loc, e);
-        e->type = type;
-        return e;
+        VarExp *ve = new VarExp(loc, var);
+        ve->type = type;
+        return ve;
     }
 
     error("Cannot convert &%s to %s at compile time", var->type->toChars(), type->toChars());
