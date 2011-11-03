@@ -59,6 +59,8 @@ code *orthxmm(elem *e, regm_t *pretregs)
     unsigned sz1 = tysize[ty1];
     assert(sz1 == 4 || sz1 == 8);       // float or double
     regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
     code *c = codelem(e1,&retregs,FALSE); // eval left leaf
     unsigned reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
@@ -92,7 +94,44 @@ code *orthxmm(elem *e, regm_t *pretregs)
                 op = 0xF30F5E;                  // DIVSS
             break;
 
+        case OPlt:
+        case OPle:
+        case OPgt:
+        case OPge:
+        case OPne:
+        case OPeqeq:
+        case OPunord:        /* !<>=         */
+        case OPlg:           /* <>           */
+        case OPleg:          /* <>=          */
+        case OPule:          /* !>           */
+        case OPul:           /* !>=          */
+        case OPuge:          /* !<           */
+        case OPug:           /* !<=          */
+        case OPue:           /* !<>          */
+        case OPngt:
+        case OPnge:
+        case OPnlt:
+        case OPnle:
+        case OPord:
+        case OPnlg:
+        case OPnleg:
+        case OPnule:
+        case OPnul:
+        case OPnuge:
+        case OPnug:
+        case OPnue:
+        {   retregs = mPSW;
+            op = 0x660F2E;                      // UCOMISD
+            if (sz1 == 4)                       // float
+                op = 0x0F2E;                    // UCIMISS
+            code *cc = gen2(CNIL,op,modregxrmx(3,rreg-XMM0,reg-XMM0));
+            return cat4(c,cr,cg,cc);
+        }
+
         default:
+#ifdef DEBUG
+            elem_print(e);
+#endif
             assert(0);
     }
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));

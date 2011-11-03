@@ -1750,7 +1750,10 @@ code *cdcmp(elem *e,regm_t *pretregs)
   if (tyfloating(tym))                  /* if floating operation        */
   {
         retregs = mPSW;
-        c = orth87(e,&retregs);
+        if (tyxmmreg(tym) && config.fpxmmregs)
+            c = orthxmm(e,&retregs);
+        else
+            c = orth87(e,&retregs);
         goto L3;
   }
 #else
@@ -2510,11 +2513,19 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     c1 = codelem(e->E1,pretregs,FALSE);
                     unsigned reg = findreg(*pretregs) - XMM0;
                     if (e->Eoper == OPf_d)
-                        // CVTSS2SD XMMreg,XMMreg
-                        c1 = gen2(c1, 0xF30F5A, modregxrmx(3,reg,reg));
-                    else
-                        // CVTSD2SS XMMreg,XMMreg
-                        c1 = gen2(c1, 0xF20F5A, modregxrmx(3,reg,reg));
+                    {   /*  0F 14 C0   UNPCKLPS     XMM0,XMM0
+                         *  0F 5A C0   CVTPS2PD     XMM0,XMM0
+                         */
+                        c1 = gen2(c1, 0x0F14, modregrm(3,reg,reg));
+                        c1 = gen2(c1, 0x0F5A, modregrm(3,reg,reg));
+                    }
+                    else // OPd_f
+                    {   /*  66 0F 14 C0   UPPCKLPD     XMM0,XMM0
+                         *  66 0F 5A C0   CVTPD2PS     XMM0,XMM0
+                         */
+                        c1 = gen2(c1, 0x660F14, modregrm(3,reg,reg));
+                        c1 = gen2(c1, 0x660F5A, modregrm(3,reg,reg));
+                    }
                     return c1;
                 }
                 /* if won't do us much good to transfer back and        */
