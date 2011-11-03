@@ -432,7 +432,7 @@ int main(int argc, char *argv[])
     global.params.isOSX = 1;
 
     // For legacy compatibility
-    VersionCondition::addPredefinedGlobalIdent("darwin");
+    VersionCondition::addPredefinedGlobalIdent("Darwin");
 #elif TARGET_FREEBSD
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
