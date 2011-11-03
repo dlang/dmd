@@ -3011,3 +3011,18 @@ int bug6885()
 }
 
 static assert(bug6885());
+
+/**************************************************
+    6886 ICE with new array of dynamic arrays
+**************************************************/
+
+int bug6886()
+{
+    auto carray = new int[][2];
+    carray[1] = [6];
+    carray[0] = [4];
+    assert(carray[1][0]==6);
+    return 1;
+}
+
+static assert(bug6886());

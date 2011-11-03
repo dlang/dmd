@@ -2235,9 +2235,8 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
         return EXP_CANT_INTERPRET;
     size_t len = (size_t)(lenExpr->toInteger());
     Type *elemType = ((TypeArray *)newtype)->next;
-    if (elemType->ty == Tarray)
+    if (elemType->ty == Tarray && argnum < arguments->dim - 1)
     {
-        assert(argnum < arguments->dim - 1);
         Expression *elem = recursivelyCreateArrayLiteral(elemType, istate,
             arguments, argnum + 1);
         if (elem == EXP_CANT_INTERPRET)
