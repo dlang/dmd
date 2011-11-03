@@ -1750,7 +1750,10 @@ code *cdcmp(elem *e,regm_t *pretregs)
   if (tyfloating(tym))                  /* if floating operation        */
   {
         retregs = mPSW;
-        c = orth87(e,&retregs);
+        if (tyxmmreg(tym) && config.fpxmmregs)
+            c = orthxmm(e,&retregs);
+        else
+            c = orth87(e,&retregs);
         goto L3;
   }
 #else
