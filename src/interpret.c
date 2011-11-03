@@ -148,6 +148,15 @@ struct ThrownExceptionExp : Expression
     }
 };
 
+// True if 'e' is EXP_CANT_INTERPRET, or an exception
+bool exceptionOrCantInterpret(Expression *e)
+{
+    if (e == EXP_CANT_INTERPRET) return true;
+    if (!e || e == EXP_GOTO_INTERPRET || e == EXP_VOID_INTERPRET) return false;
+    return e->op == TOKthrownexception;
+}
+
+
 // Used for debugging only
 void showCtfeExpr(Expression *e, int level = 0)
 {
@@ -359,6 +368,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 if (earg == EXP_CANT_INTERPRET)
                     return NULL;
             }
+            if (earg->op == TOKthrownexception)
+                return earg;
             eargs.tdata()[i] = earg;
         }
 
@@ -523,7 +534,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
  * Returns:
  *      NULL    continue to next statement
  *      EXP_CANT_INTERPRET      cannot interpret statement at compile time
- *      !NULL   expression from return statement
+ *      !NULL   expression from return statement, or thrown exception
  */
 
 Expression *Statement::interpret(InterState *istate)
@@ -550,6 +561,8 @@ Expression *ExpStatement::interpret(InterState *istate)
             //printf("-ExpStatement::interpret(): %p\n", e);
             return EXP_CANT_INTERPRET;
         }
+        if (e && e!= EXP_VOID_INTERPRET && e->op == TOKthrownexception)
+            return e;
     }
     return NULL;
 }
@@ -640,6 +653,8 @@ Expression *IfStatement::interpret(InterState *istate)
         Expression *e = NULL;
         if (ifbody)
             e = ifbody->interpret(istate);
+        if (exceptionOrCantInterpret(e))
+            return e;
         if (istate->start && elsebody)
             e = elsebody->interpret(istate);
         return e;
@@ -648,7 +663,7 @@ Expression *IfStatement::interpret(InterState *istate)
     Expression *e = condition->interpret(istate);
     assert(e);
     //if (e == EXP_CANT_INTERPRET) printf("cannot interpret\n");
-    if (e != EXP_CANT_INTERPRET)
+    if (e != EXP_CANT_INTERPRET && (e && e->op != TOKthrownexception))
     {
         if (isTrueBool(e))
             e = ifbody ? ifbody->interpret(istate) : NULL;
@@ -808,7 +823,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
         e = exp->interpret(istate, ctfeNeedLvalue);
     else
         e = exp->interpret(istate);
-    if (e == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(e))
         return e;
     if (!istate->caller)
     {
@@ -937,7 +952,7 @@ Expression *DoStatement::interpret(InterState *istate)
     Lcontinue:
         istate->gotoTarget = NULL;
         e = condition->interpret(istate);
-        if (e == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e))
             break;
         if (!e->isConst())
         {   e = EXP_CANT_INTERPRET;
@@ -968,7 +983,7 @@ Expression *ForStatement::interpret(InterState *istate)
     if (init)
     {
         e = init->interpret(istate);
-        if (e == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e))
             return e;
         assert(!e);
     }
@@ -1005,7 +1020,7 @@ Expression *ForStatement::interpret(InterState *istate)
         if (!condition)
             goto Lhead;
         e = condition->interpret(istate);
-        if (e == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e))
             break;
         if (!e->isConst())
         {   e = EXP_CANT_INTERPRET;
@@ -1300,8 +1315,8 @@ Expression *SwitchStatement::interpret(InterState *istate)
 
 
     Expression *econdition = condition->interpret(istate);
-    if (econdition == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
+    if (exceptionOrCantInterpret(econdition))
+        return econdition;
     if (econdition->op == TOKslice)
         econdition = resolveSlice(econdition);
 
@@ -1312,8 +1327,8 @@ Expression *SwitchStatement::interpret(InterState *istate)
         {
             CaseStatement *cs = cases->tdata()[i];
             e = ctfeEqual(TOKequal, Type::tint32, econdition, cs->exp);
-            if (e == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(e))
+                return e;
             if (e->isBool(TRUE))
             {   s = cs;
                 break;
@@ -1420,6 +1435,14 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     return body ? body->interpret(istate) : NULL;
 }
 
+ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionExp *newest)
+{
+    #if LOG
+    printf("Collided exceptions %s %s\n", oldest->dwarf->toChars(), newest->dwarf->toChars());
+    #endif
+    return newest;
+}
+
 
 Expression *TryFinallyStatement::interpret(InterState *istate)
 {
@@ -1428,8 +1451,16 @@ Expression *TryFinallyStatement::interpret(InterState *istate)
 #endif
     START()
     Expression *e = body ? body->interpret(istate) : NULL;
+    Expression *first = e;
     if (e && e != EXP_CANT_INTERPRET)
+    {
         e = finalbody ? finalbody->interpret(istate) : NULL;
+        if (e == EXP_CANT_INTERPRET)
+            return e;
+        // Check for collided exceptions
+        if (e->op == TOKthrownexception && first->op == TOKthrownexception)
+            e = chainExceptions((ThrownExceptionExp *)first, (ThrownExceptionExp *)e);
+    }
     return e;
 }
 
@@ -1439,6 +1470,11 @@ Expression *ThrowStatement::interpret(InterState *istate)
     printf("ThrowStatement::interpret()\n");
 #endif
     START()
+    Expression *e = exp->interpret(istate);
+    if (exceptionOrCantInterpret(e))
+        return e;
+    assert(e->op == TOKclassreference);
+    //return new ThrownExceptionExp(loc, (ClassReferenceExp *)e);
     error("throw statements are not yet supported in CTFE");
     return EXP_CANT_INTERPRET;
 }
@@ -1670,7 +1706,7 @@ Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
     TY tb = e1->type->toBasetype()->ty;
     bool needRef = (tb == Tarray || tb == Taarray || tb == Tclass);
     Expression *e = e1->interpret(istate, needRef ? ctfeNeedLvalueRef : ctfeNeedLvalue);
-    if (e == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(e))
         return e;
     // Return a simplified address expression
     e = new AddrExp(loc, e);
@@ -1772,7 +1808,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 v->inuse--;
                 if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
                     fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
-                if (e == EXP_CANT_INTERPRET)
+                if (exceptionOrCantInterpret(e))
                     return e;
                 e->type = v->type;
             }
@@ -1785,7 +1821,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
                     fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
             }
-            if (e && e != EXP_CANT_INTERPRET)
+            if (e && e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
                 v->setValueWithoutChecking(e);
         }
         else if (v->isCTFE() && !v->getValue())
@@ -1815,7 +1851,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             }
             else if (!e)
                 error(loc, "variable %s is used before initialization", v->toChars());
-            else if (e == EXP_CANT_INTERPRET)
+            else if (exceptionOrCantInterpret(e))
                 return e;
             else if ((goal == ctfeNeedLvalue)
                     || e->op == TOKstring || e->op == TOKstructliteral || e->op == TOKarrayliteral
@@ -1868,7 +1904,7 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
     }
     Expression *e = getVarExp(loc, istate, var, goal);
     // A VarExp may include an implicit cast. It must be done explicitly.
-    if (e != EXP_CANT_INTERPRET)
+    if (e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
         e = paintTypeOntoLiteral(type, e);
     return e;
 }
@@ -1953,7 +1989,7 @@ Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
         Expression *ex;
 
         ex = e->interpret(istate);
-        if (ex == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(ex))
         {   delete expsx;
             return ex;
         }
@@ -2008,6 +2044,8 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
             ex = e->interpret(istate);
             if (ex == EXP_CANT_INTERPRET)
                 goto Lerror;
+            if (ex->op == TOKthrownexception)
+                return ex;
 
             /* If any changes, do Copy On Write
              */
@@ -2064,6 +2102,9 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         ex = ekey->interpret(istate);
         if (ex == EXP_CANT_INTERPRET)
             goto Lerr;
+        if (ex->op == TOKthrownexception)
+            return ex;
+
 
         /* If any changes, do Copy On Write
          */
@@ -2077,6 +2118,8 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         ex = evalue->interpret(istate);
         if (ex == EXP_CANT_INTERPRET)
             goto Lerr;
+        if (ex->op == TOKthrownexception)
+            return ex;
 
         /* If any changes, do Copy On Write
          */
@@ -2158,9 +2201,9 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
                 continue;
 
             Expression *ex = e->interpret(istate);
-            if (ex == EXP_CANT_INTERPRET)
+            if (exceptionOrCantInterpret(ex))
             {   delete expsx;
-                return EXP_CANT_INTERPRET;
+                return ex;
             }
 
             /* If any changes, do Copy On Write
@@ -2245,15 +2288,15 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
     Expressions *arguments, int argnum)
 {
     Expression *lenExpr = ((arguments->tdata()[argnum]))->interpret(istate);
-    if (lenExpr == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
+    if (exceptionOrCantInterpret(lenExpr))
+        return lenExpr;
     size_t len = (size_t)(lenExpr->toInteger());
     Type *elemType = ((TypeArray *)newtype)->next;
     if (elemType->ty == Tarray && argnum < arguments->dim - 1)
     {
         Expression *elem = recursivelyCreateArrayLiteral(elemType, istate,
             arguments, argnum + 1);
-        if (elem == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(elem))
             return elem;
 
         Expressions *elements = new Expressions();
@@ -2323,7 +2366,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                 VarDeclaration *v = s->isVarDeclaration();
                 assert(v);
                 Expression *m = v->init ? v->init->toExpression() : v->type->defaultInitLiteral();
-                if (m == EXP_CANT_INTERPRET)
+                if (exceptionOrCantInterpret(m))
                     return m;
                 elems->tdata()[fieldsSoFar+i] = m;
             }
@@ -2335,7 +2378,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         if (member)
         {   // Call constructor
             Expression * ctorfail = member->interpret(istate, arguments, e);
-            if (ctorfail == EXP_CANT_INTERPRET)
+            if (exceptionOrCantInterpret(ctorfail))
                 return ctorfail;
         }
         return e;
@@ -2352,13 +2395,10 @@ Expression *UnaExp::interpretCommon(InterState *istate,  CtfeGoal goal, Expressi
     printf("UnaExp::interpretCommon() %s\n", toChars());
 #endif
     e1 = this->e1->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     e = (*fp)(type, e1);
     return e;
-
-Lcant:
-    return EXP_CANT_INTERPRET;
 }
 
 #define UNA_INTERPRET(op) \
@@ -2492,25 +2532,31 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
     if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer && op == TOKmin)
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(e1))
+            return e1;
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
-        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(e2))
+            return e2;
         return pointerDifference(loc, type, e1, e2);
     }
     if (this->e1->type->ty == Tpointer && this->e2->type->isintegral())
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(e1))
+            return e1;
         e2 = this->e2->interpret(istate);
-        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(e2))
+            return e2;
         return pointerArithmetic(loc, op, type, e1, e2);
     }
     if (this->e2->type->ty == Tpointer && this->e1->type->isintegral() && op==TOKadd)
     {
-        e2 = this->e2->interpret(istate, ctfeNeedLvalue);
         e1 = this->e1->interpret(istate);
-        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(e1))
+            return e1;
+        e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(e2))
+            return e1;
         return pointerArithmetic(loc, op, type, e2, e1);
     }
     if (this->e1->type->ty == Tpointer || this->e2->type->ty == Tpointer)
@@ -2519,14 +2565,14 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
         return EXP_CANT_INTERPRET;
     }
     e1 = this->e1->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     if (e1->isConst() != 1)
         goto Lcant;
 
     e2 = this->e2->interpret(istate);
-    if (e2 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e2))
+        return e2;
     if (e2->isConst() != 1)
         goto Lcant;
 
@@ -2631,9 +2677,11 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
     if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer)
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(e1))
+            return e1;
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
-        if (e1 == EXP_CANT_INTERPRET || e2 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(e2))
+            return e2;
         e = comparePointers(loc, op, type, e1, e2);
         if (e == EXP_CANT_INTERPRET)
         {
@@ -2644,8 +2692,8 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         return e;
     }
     e1 = this->e1->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     if (e1->op == TOKslice)
         e1 = resolveSlice(e1);
 
@@ -2660,8 +2708,8 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
     }
 
     e2 = this->e2->interpret(istate);
-    if (e2 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e2))
+        return e2;
     if (e2->op == TOKslice)
         e2 = resolveSlice(e2);
     if (e2->isConst() != 1 &&
@@ -2762,8 +2810,8 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae, Expressi
     {   j--;
         Expression *ekey = aae->keys->tdata()[j];
         Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, index);
-        if (ex == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(ex))
+            return ex;
         if (ex->isBool(TRUE))
         {   valuesx->tdata()[j] = newval;
             updated = 1;
@@ -3287,7 +3335,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             e1 = ce->e1;
         }
     }
-    if (e1 == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(e1))
         return e1;
 
     // First, deal with  this = e; and call() = e;
@@ -3301,7 +3349,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         istate->awaitingLvalueReturn = true;
         e1 = e1->interpret(istate);
         istate->awaitingLvalueReturn = oldWaiting;
-        if (e1 == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e1))
             return e1;
         if (e1->op == TOKarrayliteral || e1->op == TOKstring)
         {
@@ -3316,8 +3364,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (e1->op == TOKstar)
     {
         e1 = e1->interpret(istate, ctfeNeedLvalue);
-        if (e1 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(e1))
+            return e1;
         if (!(e1->op == TOKvar || e1->op == TOKdotvar || e1->op == TOKindex
             || e1->op == TOKslice))
         {
@@ -3344,9 +3392,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             newval = this->e2->interpret(istate, ctfeNeedLvalue);
         else
             newval = this->e2->interpret(istate);
+        if (exceptionOrCantInterpret(newval))
+            return newval;
     }
-    if (newval == EXP_CANT_INTERPRET)
-        return newval;
     // ----------------------------------------------------
     //  Deal with read-modify-write assignments.
     //  Set 'newval' to the final assignment value
@@ -3358,13 +3406,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     {
         // If it isn't a simple assignment, we need the existing value
         Expression * oldval = e1->interpret(istate);
-        if (oldval == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(oldval))
+            return oldval;
         while (oldval->op == TOKvar)
         {
             oldval = resolveReferences(oldval, istate->localThis);
             oldval = oldval->interpret(istate);
-            if (oldval == EXP_CANT_INTERPRET)
+            if (exceptionOrCantInterpret(oldval))
                 return oldval;
         }
 
@@ -3387,9 +3435,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     op == TOKplusplus || op == TOKminusminus))
             {
                 oldval = this->e1->interpret(istate, ctfeNeedLvalue);
+                if (exceptionOrCantInterpret(oldval))
+                    return oldval;
                 newval = this->e2->interpret(istate);
-                if (oldval == EXP_CANT_INTERPRET || newval == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
+                if (exceptionOrCantInterpret(newval))
+                    return newval;
                 newval = pointerArithmetic(loc, op, type, oldval, newval);
             }
             else if (this->e1->type->ty == Tpointer)
@@ -3406,9 +3456,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 error("Cannot interpret %s at compile time", toChars());
                 return EXP_CANT_INTERPRET;
             }
+            if (exceptionOrCantInterpret(newval))
+                return newval;
             // Determine the return value
             returnValue = Cast(type, type, post ? oldval : newval);
-            if (returnValue == EXP_CANT_INTERPRET)
+            if (exceptionOrCantInterpret(returnValue))
                 return returnValue;
         }
         else
@@ -3468,8 +3520,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 if (e1->op == TOKstar)
                 {   // arr.length+=n becomes (t=&arr, *(t).length=*(t).length+n);
                     e1 = e1->interpret(istate, ctfeNeedLvalue);
-                    if (e1 == EXP_CANT_INTERPRET)
-                        return EXP_CANT_INTERPRET;
+                    if (exceptionOrCantInterpret(e1))
+                        return e1;
                 }
             }
             else
@@ -3500,7 +3552,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         returnValue = newval;
     }
-    if (newval == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(newval))
         return newval;
 
     // -------------------------------------------------
@@ -3545,7 +3597,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (wantRef && !fp && this->e1->op != TOKarraylength)
     {
         newval = this->e2->interpret(istate, ctfeNeedLvalue);
-        if (newval == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(newval))
             return newval;
         // If it is an assignment from a array function parameter passed by
         // reference, resolve the reference. (This should NOT happen for
@@ -3589,15 +3641,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         // Get the AA to be modified. (We do an LvalueRef interpret, unless it
         // is a simple ref parameter -- in which case, we just want the value)
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-        if (aggregate == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(aggregate))
+            return aggregate;
         if (aggregate->op == TOKassocarrayliteral)
         {   // Normal case, ultimate parent AA already exists
             // We need to walk from the deepest index up, checking that an AA literal
             // already exists on each level.
             Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
-            if (index == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(index))
+                return index;
             if (index->op == TOKslice)  // only happens with AA assignment
                 index = resolveSlice(index);
             AssocArrayLiteralExp *existingAA = (AssocArrayLiteralExp *)aggregate;
@@ -3608,14 +3660,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     xe = (IndexExp *)xe->e1;
 
                 Expression *indx = xe->e2->interpret(istate);
-                if (indx == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
+                if (exceptionOrCantInterpret(indx))
+                    return indx;
                 if (indx->op == TOKslice)  // only happens with AA assignment
                     indx = resolveSlice(indx);
 
                 // Look up this index in it up in the existing AA, to get the next level of AA.
                 AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(existingAA, indx);
-                if (newAA == EXP_CANT_INTERPRET)
+                if (exceptionOrCantInterpret(newAA))
                     return newAA;
                 if (!newAA)
                 {   // Doesn't exist yet, create an empty AA...
@@ -3643,8 +3695,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             while (e1->op == TOKindex && ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
             {
                 Expression *index = ((IndexExp *)e1)->e2->interpret(istate);
-                if (index == EXP_CANT_INTERPRET)
-                    return EXP_CANT_INTERPRET;
+                if (exceptionOrCantInterpret(index))
+                    return index;
                 if (index->op == TOKslice)  // only happens with AA assignment
                     index = resolveSlice(index);
                 Expressions *valuesx = new Expressions();
@@ -3673,7 +3725,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         // (in which case, we already have the lvalue).
         if (this->e1->op != TOKcall)
             e1 = e1->interpret(istate, ctfeNeedLvalue);
-        if (e1 == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e1))
             return e1;
         if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
         {
@@ -3743,7 +3795,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (wantRef && exx->op != TOKstructliteral)
         {
             exx = exx->interpret(istate);
-            if (exx == EXP_CANT_INTERPRET)
+            if (exceptionOrCantInterpret(exx))
                 return exx;
         }
         if (exx->op != TOKstructliteral && exx->op != TOKclassreference)
@@ -3813,8 +3865,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         Expression *index = ie->e2->interpret(istate);
         if (ie->lengthVar)
             ie->lengthVar->setValueNull(); // $ is defined only inside []
-        if (index == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(index))
+            return index;
 
         assert (index->op != TOKslice);  // only happens with AA assignment
 
@@ -3829,8 +3881,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             dinteger_t ofs;
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-            if (aggregate == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(aggregate))
+                return aggregate;
             if (aggregate->op == TOKnull)
             {
                 error("cannot index through null pointer %s", ie->e1->toChars());
@@ -3862,8 +3914,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             Expression *origagg = aggregate;
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-            if (aggregate == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(aggregate))
+                return aggregate;
             // The array could be an index of an AA. Resolve it if so.
             if (aggregate->op == TOKindex)
             {
@@ -3980,12 +4032,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         Expression *lower = NULL;
         if (sexp->upr)
             upper = sexp->upr->interpret(istate);
+        if (exceptionOrCantInterpret(upper))
+            return upper;
         if (sexp->lwr)
             lower = sexp->lwr->interpret(istate);
+        if (exceptionOrCantInterpret(lower))
+            return lower;
         if (sexp->lengthVar)
             sexp->lengthVar->setValueNull(); // $ is defined only in [L..U]
-        if (upper == EXP_CANT_INTERPRET || lower == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
 
         size_t dim = dollar;
         size_t upperbound = upper ? upper->toInteger() : dim;
@@ -4015,8 +4069,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             aggregate->op == TOKstar  || aggregate->op == TOKcall)
         {
             aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-            if (aggregate == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(aggregate))
+                return aggregate;
             // The array could be an index of an AA. Resolve it if so.
             if (aggregate->op == TOKindex)
             {
@@ -4247,6 +4301,9 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
     printf("AndAndExp::interpret() %s\n", toChars());
 #endif
     Expression *e = e1->interpret(istate);
+    if (exceptionOrCantInterpret(e))
+        return e;
+
     int result;
     if (e != EXP_CANT_INTERPRET)
     {
@@ -4255,6 +4312,8 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
         else if (isTrueBool(e))
         {
             e = e2->interpret(istate);
+            if (exceptionOrCantInterpret(e))
+                return e;
             if (e != EXP_CANT_INTERPRET)
             {
                 if (e->isBool(FALSE))
@@ -4285,6 +4344,9 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
     printf("OrOrExp::interpret() %s\n", toChars());
 #endif
     Expression *e = e1->interpret(istate);
+    if (exceptionOrCantInterpret(e))
+        return e;
+
     int result;
     if (e != EXP_CANT_INTERPRET)
     {
@@ -4293,6 +4355,9 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
         else if (e->isBool(FALSE))
         {
             e = e2->interpret(istate);
+            if (exceptionOrCantInterpret(e))
+                return e;
+
             if (e != EXP_CANT_INTERPRET)
             {
                 if (e->isBool(FALSE))
@@ -4378,7 +4443,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     if (ecall->op == TOKcall)
     {
         ecall = e1->interpret(istate);
-        if (ecall == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(ecall))
             return ecall;
     }
     if (ecall->op == TOKstar)
@@ -4391,7 +4456,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             else
             {
                 ecall = getVarExp(loc, istate, vd, goal);
-                if (ecall == EXP_CANT_INTERPRET)
+                if (exceptionOrCantInterpret(ecall))
                     return ecall;
 
                 if (ecall->op == TOKsymoff)
@@ -4404,18 +4469,18 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             ecall = ((PtrExp*)ecall)->e1->interpret(istate);
 
     }
-    if (ecall == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(ecall))
         return ecall;
 
     if (ecall->op == TOKindex)
     {   ecall = e1->interpret(istate);
-        if (ecall == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(ecall))
             return ecall;
     }
 
     if (ecall->op == TOKdotvar && !((DotVarExp*)ecall)->var->isFuncDeclaration())
     {   ecall = e1->interpret(istate);
-        if (ecall == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(ecall))
             return ecall;
     }
 
@@ -4469,13 +4534,13 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         {
             if (pthis->op == TOKcomma)
                 pthis = pthis->interpret(istate);
-            if (pthis == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(pthis))
+                return pthis;
                 // Evaluate 'this'
             if (pthis->op != TOKvar)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
-            if (pthis == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(pthis))
+                return pthis;
             if (fd->isVirtual())
             {   // Make a virtual function call.
                 Expression *thisval = pthis;
@@ -4504,6 +4569,8 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     {
         e = arguments->tdata()[1];
         e = e->interpret(istate);
+        if (exceptionOrCantInterpret(e))
+            return e;
         if (e != EXP_CANT_INTERPRET)
         {
             if (e->op == TOKslice)
@@ -4567,8 +4634,8 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             // initializer is a void function (the variable is modified
             // through a reference parameter instead).
             newval = newval->interpret(istate);
-            if (newval == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
+            if (exceptionOrCantInterpret(newval))
+                return newval;
             if (newval != EXP_VOID_INTERPRET)
             {
                 // v isn't necessarily null.
@@ -4580,8 +4647,9 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
         return e2->interpret(istate, goal);
     }
     Expression *e = e1->interpret(istate, ctfeNeedNothing);
-    if (e != EXP_CANT_INTERPRET)
-        e = e2->interpret(istate, goal);
+    if (exceptionOrCantInterpret(e))
+        return e;
+    e = e2->interpret(istate, goal);
     return e;
 }
 
@@ -4594,25 +4662,24 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
     if (econd->type->ty == Tpointer && econd->type->nextOf()->ty != Tfunction)
     {
         e = econd->interpret(istate, ctfeNeedLvalue);
-        if (e == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e))
             return e;
         if (e->op != TOKnull)
             e = new IntegerExp(loc, 1, Type::tbool);
     }
     else
         e = econd->interpret(istate);
-    if (e != EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(e))
+        return e;
+    if (isTrueBool(e))
+        e = e1->interpret(istate, goal);
+    else if (e->isBool(FALSE))
+        e = e2->interpret(istate, goal);
+    else
     {
-        if (isTrueBool(e))
-            e = e1->interpret(istate, goal);
-        else if (e->isBool(FALSE))
-            e = e2->interpret(istate, goal);
-        else
-        {
-            error("%s does not evaluate to boolean result at compile time",
-                econd->toChars());
-            e = EXP_CANT_INTERPRET;
-        }
+        error("%s does not evaluate to boolean result at compile time",
+            econd->toChars());
+        e = EXP_CANT_INTERPRET;
     }
     return e;
 }
@@ -4626,8 +4693,8 @@ Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
 #endif
     e1 = this->e1->interpret(istate);
     assert(e1);
-    if (e1 == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKslice
         || e1->op == TOKassocarrayliteral || e1->op == TOKnull)
     {
@@ -4680,12 +4747,11 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     {
         // Indexing a pointer. Note that there is no $ in this case.
         e1 = this->e1->interpret(istate);
-        if (e1 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
-
+        if (exceptionOrCantInterpret(e1))
+            return e1;
         e2 = this->e2->interpret(istate);
-        if (e2 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(e2))
+            return e2;
         dinteger_t indx = e2->toInteger();
         dinteger_t ofs;
         Expression *agg = getAggregateFromPointer(e1, &ofs);
@@ -4706,8 +4772,8 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         return Index(type, agg, new IntegerExp(loc, indx+ofs, Type::tsize_t));
     }
     e1 = this->e1->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
 
     if (e1->op == TOKnull)
     {
@@ -4730,8 +4796,8 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     e2 = this->e2->interpret(istate);
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside []
-    if (e2 == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
+    if (exceptionOrCantInterpret(e2))
+        return e2;
     if (e1->op == TOKslice && e2->op == TOKint64)
     {
         // Simplify index of slice:  agg[lwr..upr][indx] --> agg[indx']
@@ -4769,7 +4835,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
                 e2->toChars(), this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
-        if (e == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e))
             return e;
         assert(!e->checkSideEffect(2));
         e = paintTypeOntoLiteral(type, e);
@@ -4803,8 +4869,8 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         // Slicing a pointer. Note that there is no $ in this case.
         e1 = this->e1->interpret(istate);
-        if (e1 == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(e1))
+            return e1;
         if (e1->op == TOKint64)
         {
             error("cannot slice invalid pointer %s of value %s",
@@ -4815,11 +4881,11 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         /* Evaluate lower and upper bounds of slice
          */
         lwr = this->lwr->interpret(istate);
-        if (lwr == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(lwr))
+            return lwr;
         upr = this->upr->interpret(istate);
-        if (upr == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(upr))
+            return upr;
         uinteger_t ilwr;
         uinteger_t iupr;
         ilwr = lwr->toInteger();
@@ -4855,8 +4921,8 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         e1 = this->e1; // Will get duplicated anyway
     else
         e1 = this->e1->interpret(istate, goal);
-    if (e1 == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     if (e1->op == TOKvar)
         e1 = e1->interpret(istate);
 
@@ -4885,14 +4951,17 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     /* Evaluate lower and upper bounds of slice
      */
     lwr = this->lwr->interpret(istate);
-    if (lwr != EXP_CANT_INTERPRET)
-        upr = this->upr->interpret(istate);
+    if (exceptionOrCantInterpret(lwr))
+    {
+        if (lengthVar)
+            lengthVar->setValueNull(); // $ is defined only inside [L..U]
+        return lwr;
+    }
+    upr = this->upr->interpret(istate);
     if (lengthVar)
         lengthVar->setValueNull(); // $ is defined only inside [L..U]
-    if (lwr == EXP_CANT_INTERPRET || upr == EXP_CANT_INTERPRET)
-    {
-        return EXP_CANT_INTERPRET;
-    }
+    if (exceptionOrCantInterpret(upr))
+        return upr;
 
     Expression *e;
     uinteger_t ilwr;
@@ -4949,10 +5018,10 @@ Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
     printf("InExp::interpret() %s\n", toChars());
 #endif
     Expression *e1 = this->e1->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(e1))
         return e1;
     Expression *e2 = this->e2->interpret(istate);
-    if (e2 == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(e2))
         return e2;
     if (e2->op == TOKnull)
         return new NullExp(loc, type);
@@ -4964,7 +5033,7 @@ Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1->op == TOKslice)
         e1 = resolveSlice(e1);
     e = findKeyInAA((AssocArrayLiteralExp *)e2, e1);
-    if (e == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(e))
         return e;
     if (!e)
         return new NullExp(loc, type);
@@ -4982,29 +5051,21 @@ Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
     printf("CatExp::interpret() %s\n", toChars());
 #endif
     e1 = this->e1->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
-    {
-        goto Lcant;
-    }
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     if (e1->op == TOKslice)
     {
         e1 = resolveSlice(e1);
     }
     e2 = this->e2->interpret(istate);
-    if (e2 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e2))
+        return e2;
     if (e2->op == TOKslice)
         e2 = resolveSlice(e2);
     e = Cat(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
     return e;
-
-Lcant:
-#if LOG
-    printf("CatExp::interpret() %s CANT\n", toChars());
-#endif
-    return EXP_CANT_INTERPRET;
 }
 
 #if DMDV2
@@ -5045,8 +5106,8 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     printf("CastExp::interpret() %s\n", toChars());
 #endif
     e1 = this->e1->interpret(istate, goal);
-    if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     // If the expression has been cast to void, do nothing.
     if (to->ty == Tvoid && goal == ctfeNeedNothing)
         return e1;
@@ -5212,12 +5273,6 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
     return e;
-
-Lcant:
-#if LOG
-    printf("CastExp::interpret() %s CANT\n", toChars());
-#endif
-    return EXP_CANT_INTERPRET;
 }
 
 
@@ -5243,15 +5298,15 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
     if (this->e1->type->ty == Tpointer && this->e1->type->nextOf()->ty != Tfunction)
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
-        if (e1 == EXP_CANT_INTERPRET)
-            goto Lcant;
+        if (exceptionOrCantInterpret(e1))
+            return e1;
         if (e1->op != TOKnull)
             return new IntegerExp(loc, 1, Type::tbool);
     }
     else
         e1 = this->e1->interpret(istate);
-    if (e1 == EXP_CANT_INTERPRET)
-        goto Lcant;
+    if (exceptionOrCantInterpret(e1))
+        return e1;
     if (isTrueBool(e1))
     {
     }
@@ -5260,8 +5315,8 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
         if (msg)
         {
             e = msg->interpret(istate);
-            if (e == EXP_CANT_INTERPRET)
-                goto Lcant;
+            if (exceptionOrCantInterpret(e))
+                return e;
             error("%s", e->toChars());
         }
         else
@@ -5292,16 +5347,15 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         {   AddrExp *ade = (AddrExp *)ae->e1;
             Expression *ex = ade->e1;
             ex = ex->interpret(istate);
-            if (ex != EXP_CANT_INTERPRET)
-            {
-                if (ex->op == TOKstructliteral)
-                {   StructLiteralExp *se = (StructLiteralExp *)ex;
-                    dinteger_t offset = ae->e2->toInteger();
-                    e = se->getField(type, offset);
-                    if (!e)
-                        e = EXP_CANT_INTERPRET;
-                    return e;
-                }
+            if (exceptionOrCantInterpret(ex))
+                return ex;
+            if (ex->op == TOKstructliteral)
+            {   StructLiteralExp *se = (StructLiteralExp *)ex;
+                dinteger_t offset = ae->e2->toInteger();
+                e = se->getField(type, offset);
+                if (!e)
+                    e = EXP_CANT_INTERPRET;
+                return e;
             }
         }
         e = Ptr(type, e1);
@@ -5318,7 +5372,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
     {   // It's possible we have an array bounds error. We need to make sure it
         // errors with this line number, not the one where the pointer was set.
         e = e1->interpret(istate, ctfeNeedLvalue);
-        if (e == EXP_CANT_INTERPRET)
+        if (exceptionOrCantInterpret(e))
             return e;
         if (!(e->op == TOKvar || e->op == TOKdotvar || e->op == TOKindex
             || e->op == TOKslice || e->op == TOKaddress))
@@ -5390,7 +5444,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             {
                 e = e->interpret(istate, goal);
             }
-            if (e == EXP_CANT_INTERPRET)
+            if (exceptionOrCantInterpret(e))
                 return e;
         }
         else if (e->op == TOKaddress)
@@ -5418,6 +5472,8 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
 #endif
 
     Expression *ex = e1->interpret(istate);
+    if (exceptionOrCantInterpret(ex))
+        return ex;
     if (ex != EXP_CANT_INTERPRET)
     {
         #if DMDV2
@@ -5503,10 +5559,10 @@ Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
     printf("RemoveExp::interpret() %s\n", toChars());
 #endif
     Expression *agg = e1->interpret(istate);
-    if (agg == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(agg))
         return agg;
     Expression *index = e2->interpret(istate);
-    if (index == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(index))
         return index;
     if (agg->op == TOKnull)
         return EXP_VOID_INTERPRET;
@@ -5518,8 +5574,8 @@ Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
     for (size_t j = 0; j < valuesx->dim; ++j)
     {   Expression *ekey = keysx->tdata()[j];
         Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, index);
-        if (ex == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(ex))
+            return ex;
         if (ex->isBool(TRUE))
             ++removed;
         else if (removed != 0)
@@ -5541,6 +5597,8 @@ Expression *interpret_length(InterState *istate, Expression *earg)
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
+    if (exceptionOrCantInterpret(earg))
+        return earg;
     dinteger_t len = 0;
     if (earg->op == TOKassocarrayliteral)
         len = ((AssocArrayLiteralExp *)earg)->keys->dim;
@@ -5557,6 +5615,8 @@ Expression *interpret_keys(InterState *istate, Expression *earg, Type *elemType)
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
+    if (exceptionOrCantInterpret(earg))
+        return earg;
     if (earg->op == TOKnull)
         return new NullExp(earg->loc);
     if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
@@ -5576,6 +5636,8 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *elemTyp
     earg = earg->interpret(istate);
     if (earg == EXP_CANT_INTERPRET)
         return NULL;
+    if (exceptionOrCantInterpret(earg))
+        return earg;
     if (earg->op == TOKnull)
         return new NullExp(earg->loc);
     if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
@@ -5591,7 +5653,7 @@ Expression *interpret_values(InterState *istate, Expression *earg, Type *elemTyp
 // signature is int delegate(ref Value) OR int delegate(ref Key, ref Value)
 Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *deleg)
 {   aa = aa->interpret(istate);
-    if (aa == EXP_CANT_INTERPRET)
+    if (exceptionOrCantInterpret(aa))
         return aa;
     if (aa->op != TOKassocarrayliteral)
         return new IntegerExp(deleg->loc, 0, Type::tsize_t);
@@ -5630,8 +5692,8 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
         if (numParams == 2) args.tdata()[0] = ekey;
 
         eresult = fd->interpret(istate, &args, pthis);
-        if (eresult == EXP_CANT_INTERPRET)
-            return EXP_CANT_INTERPRET;
+        if (exceptionOrCantInterpret(eresult))
+            return eresult;
 
         assert(eresult->op == TOKint64);
         if (((IntegerExp *)eresult)->value != 0)
@@ -5884,9 +5946,8 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
             args.tdata()[numParams - 1] = val;
 
             eresult = fd->interpret(istate, &args, pthis);
-            if (eresult == EXP_CANT_INTERPRET)
-                return EXP_CANT_INTERPRET;
-
+            if (exceptionOrCantInterpret(eresult))
+                return eresult;
             assert(eresult->op == TOKint64);
             if (((IntegerExp *)eresult)->value != 0)
                 return eresult;
@@ -5925,7 +5986,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             {
                 Expression *earg = arguments->tdata()[i];
                 earg = earg->interpret(istate);
-                if (earg == EXP_CANT_INTERPRET)
+                if (exceptionOrCantInterpret(earg))
                     return earg;
                 args.tdata()[i] = earg;
             }
@@ -6006,7 +6067,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                  (s == 'c' || s == 'w' || s == 'd') && c != s)
             {   Expression *str = arguments->tdata()[0];
                 str = str->interpret(istate);
-                if (str == EXP_CANT_INTERPRET)
+                if (exceptionOrCantInterpret(str))
                     return str;
                 return foreachApplyUtf(istate, str, arguments->tdata()[1], rvs);
             }
