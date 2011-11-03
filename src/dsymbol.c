@@ -1221,6 +1221,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         {   /* Create variable v and set it to the value of $
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
+            v->flags |= VARFLAGplaceholder;
             if (ce->op == TOKtuple)
             {   /* It is for an expression tuple, so the
                  * length will be a const.
