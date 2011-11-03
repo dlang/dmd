@@ -1631,16 +1631,9 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     }
     else if ( offset == 0 && isSafePointerCast(var->type, pointee) )
     {
-        if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
-        {
-            VarExp *ve = new VarExp(loc, var);
-            ve->type = type;
-            return ve;
-        }
-        Expression *e = getVarExp(loc, istate, var, goal);
-        e = new AddrExp(loc, e);
-        e->type = type;
-        return e;
+        VarExp *ve = new VarExp(loc, var);
+        ve->type = type;
+        return ve;
     }
 
     error("Cannot convert &%s to %s at compile time", var->type->toChars(), type->toChars());
@@ -2188,8 +2181,12 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
 {
     Expressions *elements = new Expressions();
     elements->setDim(dim);
+    bool mustCopy = needToCopyLiteral(elem);
     for (size_t i = 0; i < dim; i++)
-         elements->tdata()[i] = elem;
+    {   if (mustCopy)
+            elem  = copyLiteral(elem);
+        elements->tdata()[i] = elem;
+    }
     ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
     ae->type = type;
     return ae;
@@ -2231,9 +2228,8 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
         return EXP_CANT_INTERPRET;
     size_t len = (size_t)(lenExpr->toInteger());
     Type *elemType = ((TypeArray *)newtype)->next;
-    if (elemType->ty == Tarray)
+    if (elemType->ty == Tarray && argnum < arguments->dim - 1)
     {
-        assert(argnum < arguments->dim - 1);
         Expression *elem = recursivelyCreateArrayLiteral(elemType, istate,
             arguments, argnum + 1);
         if (elem == EXP_CANT_INTERPRET)

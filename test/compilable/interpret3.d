@@ -2863,6 +2863,24 @@ static assert({
 }());
 
 /**************************************************
+    6851 passing pointer by argument
+**************************************************/
+
+void set6851(int* pn)
+{
+    *pn = 20;
+}
+void bug6851()
+{
+    int n = 0;
+    auto pn = &n;
+    *pn = 10;
+    assert(n == 10);
+    set6851(&n);
+}
+static assert({ bug6851(); return true; }());
+
+/**************************************************
     6817 if converted to &&, only with -inline
 **************************************************/
 static assert({
@@ -2987,3 +3005,42 @@ SomeClass classtest2(int n)
 }
 static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
 static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
+
+/**************************************************
+    6885 wrong code with new array
+**************************************************/
+
+struct S6885 {
+    int p;
+}
+
+int bug6885()
+{
+    auto array = new double[1][2];
+    array[1][0] = 6;
+    array[0][0] = 1;
+    assert(array[1][0]==6);
+
+    auto barray = new S6885[2];
+    barray[1].p = 5;
+    barray[0].p = 2;
+    assert(barray[1].p == 5);
+    return 1;
+}
+
+static assert(bug6885());
+
+/**************************************************
+    6886 ICE with new array of dynamic arrays
+**************************************************/
+
+int bug6886()
+{
+    auto carray = new int[][2];
+    carray[1] = [6];
+    carray[0] = [4];
+    assert(carray[1][0]==6);
+    return 1;
+}
+
+static assert(bug6886());
