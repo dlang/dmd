@@ -536,7 +536,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
         }
     }
-    if (!e || e->op != TOKthrownexception)
+    if (e == EXP_CANT_INTERPRET || !exceptionOrCantInterpret(e))
         return e;
     if (istate)
         return e;
@@ -1467,7 +1467,11 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     // Search for an appropriate catch clause.
         for (size_t i = 0; i < catches->dim; i++)
         {
+#if DMDV1
+            Catch *ca = (Catch *)catches->data[i];
+#else
             Catch *ca = catches->tdata()[i];
+#endif
             Type *catype = ca->type;
 
             if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
