@@ -131,10 +131,10 @@ struct ClassReferenceExp : Expression
 // Fake class which holds the thrown exception. Used for implementing exception handling.
 struct ThrownExceptionExp : Expression
 {
-    ClassReferenceExp *dwarf; // the thing being tossed
+    ClassReferenceExp *thrown; // the thing being tossed
     ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Expression(loc, TOKthrownexception, sizeof(ThrownExceptionExp))
     {
-        this->dwarf = victim;
+        this->thrown = victim;
         this->type = type;
     }
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue)
@@ -149,7 +149,7 @@ struct ThrownExceptionExp : Expression
     // Generate an error message when this exception is not caught
     void generateUncaughtError()
     {
-        error("Uncaught CTFE exception %s", dwarf->toChars());
+        error("Uncaught CTFE exception %s", thrown->toChars());
     }
 };
 
@@ -1454,7 +1454,7 @@ Expression *TryCatchStatement::interpret(InterState *istate)
         return e;
     // An exception was thrown
     ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
-    Type *extype = ex->dwarf->type;
+    Type *extype = ex->thrown->type;
     // Search for an appropriate catch clause.
 	for (size_t i = 0; i < catches->dim; i++)
 	{
@@ -1466,9 +1466,9 @@ Expression *TryCatchStatement::interpret(InterState *istate)
             if (ca->var)
             {
                 if (!ca->var->getValue())
-                    ca->var->createStackValue(ex->dwarf);
+                    ca->var->createStackValue(ex->thrown);
                 else
-                    ca->var->setStackValue(ex->dwarf);
+                    ca->var->setStackValue(ex->thrown);
             }
             return ca->handler->interpret(istate);
 	    }
@@ -1484,13 +1484,13 @@ bool isAnErrorException(ClassDeclaration *cd)
 ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionExp *newest)
 {
 #if LOG
-    printf("Collided exceptions %s %s\n", oldest->dwarf->toChars(), newest->dwarf->toChars());
+    printf("Collided exceptions %s %s\n", oldest->thrown->toChars(), newest->thrown->toChars());
 #endif
 #if DMDV2
     // Little sanity check to make sure it's really a Throwable
-    ClassReferenceExp *boss = oldest->dwarf;
+    ClassReferenceExp *boss = oldest->thrown;
     assert(boss->value->elements->tdata()[4]->type->ty == Tclass);
-    ClassReferenceExp *collateral = newest->dwarf;
+    ClassReferenceExp *collateral = newest->thrown;
     if (isAnErrorException(collateral->originalClass())
         && !isAnErrorException(boss->originalClass()))
     {   // The new exception bypass the existing chain
