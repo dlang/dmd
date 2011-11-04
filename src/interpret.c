@@ -5567,8 +5567,11 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             ex = ((AddrExp *)ex)->e1;
         VarDeclaration *v = var->isVarDeclaration();
         if (!v)
-            error("CTFE internal error: %s\n", toChars());
-
+            error("CTFE internal error: %s", toChars());
+        if (ex->op == TOKnull && ex->type->toBasetype()->ty == Tclass)
+        {   error("class '%s' is null and cannot be dereferenced", e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
         if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
         {
             StructLiteralExp *se = ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : (StructLiteralExp *)ex;
