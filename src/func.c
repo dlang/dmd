@@ -1118,7 +1118,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     loc = fensure->loc;
 
                 VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
-                v->noscope = 1;
+                v->flags |= VARDECLnoscope;
                 v->storage_class |= STCresult;
 #if DMDV2
                 if (!isVirtual())
@@ -1216,7 +1216,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 for (size_t i = 0; i < ad->fields.dim; i++)
                 {   VarDeclaration *v = ad->fields[i];
 
-                    v->ctorinit = 0;
+                    v->flags &= ~VARDECLctorinit;
                 }
             }
 
@@ -1270,7 +1270,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     for (size_t i = 0; i < ad->fields.dim; i++)
                     {   VarDeclaration *v = ad->fields[i];
 
-                        if (v->ctorinit == 0)
+                        if (!(v->flags & VARDECLctorinit))
                         {
                             /* Current bugs in the flow analysis:
                              * 1. union members should not produce error messages even if
@@ -1453,7 +1453,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     e = new AssignExp(0, e1, e);
                     e->type = t;
                     a->push(new ExpStatement(0, e));
-                    p->isargptr = TRUE;
+                    p->flags |= VARDECLisargptr;
                 }
 #endif
             }
@@ -1562,7 +1562,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->type->toBasetype()->ty == Tsarray)
                         continue;
 
-                    if (v->noscope)
+                    if (v->flags & VARDECLnoscope)
                         continue;
 
                     Expression *e = v->edtor;
