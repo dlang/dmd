@@ -149,7 +149,7 @@ struct ThrownExceptionExp : Expression
     // Generate an error message when this exception is not caught
     void generateUncaughtError()
     {
-        error("Uncaught CTFE exception %s", thrown->toChars());
+        error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(), thrown->value->elements->tdata()[0]->toChars());
     }
 };
 
