@@ -87,7 +87,9 @@ void out_config_init()
 #endif
 #if TARGET_OSX
     if (params->is64bit)
-        config.exe = EX_OSX64;
+    {   config.exe = EX_OSX64;
+        config.fpxmmregs = TRUE;
+    }
     else
         config.exe = EX_OSX;
     config.flags |= CFGnoebp;
@@ -97,7 +99,9 @@ void out_config_init()
 #endif
 #if TARGET_FREEBSD
     if (params->is64bit)
-        config.exe = EX_FREEBSD64;
+    {   config.exe = EX_FREEBSD64;
+        config.fpxmmregs = TRUE;
+    }
     else
         config.exe = EX_FREEBSD;
     config.flags |= CFGnoebp;
@@ -107,7 +111,9 @@ void out_config_init()
 #endif
 #if TARGET_OPENBSD
     if (params->is64bit)
-        config.exe = EX_OPENBSD64;
+    {   config.exe = EX_OPENBSD64;
+        config.fpxmmregs = TRUE;
+    }
     else
         config.exe = EX_OPENBSD;
     config.flags |= CFGnoebp;
@@ -117,7 +123,9 @@ void out_config_init()
 #endif
 #if TARGET_SOLARIS
     if (params->is64bit)
-        config.exe = EX_SOLARIS64;
+    {   config.exe = EX_SOLARIS64;
+        config.fpxmmregs = TRUE;
+    }
     else
         config.exe = EX_SOLARIS;
     config.flags |= CFGnoebp;
@@ -241,7 +249,7 @@ void util_set64()
         tyalignsize[TYnullptr + i] = 8;
         tyalignsize[TYnptr + i] = 8;
         tyalignsize[TYnref + i] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
         tyalignsize[TYldouble + i] = 16;
         tyalignsize[TYildouble + i] = 16;
         tyalignsize[TYcldouble + i] = 16;
