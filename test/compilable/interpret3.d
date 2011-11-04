@@ -3006,6 +3006,26 @@ SomeClass classtest2(int n)
 static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
 static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
 
+class RecursiveClass
+{
+   int x;
+   this(int n) { x = n; }
+   RecursiveClass b;
+   void doit() { b = new RecursiveClass(7); b.x = 2;}
+}
+
+int classtest3()
+{
+    RecursiveClass x = new RecursiveClass(17);
+    x.doit();
+    RecursiveClass y = x.b;
+    assert(y.x == 2);
+    assert(x.x == 17);
+    return 1;
+}
+
+static assert(classtest3());
+
 /**************************************************
     6885 wrong code with new array
 **************************************************/
@@ -3044,3 +3064,328 @@ int bug6886()
 }
 
 static assert(bug6886());
+
+/****************************************************
+ * Exception chaining tests from xtest46.d
+ ****************************************************/
+class A75
+{
+    pure static void raise(string s)
+    {
+        throw new Exception(s);
+    }
+}
+
+int test75()
+{   int x = 0;
+    try
+    {
+	A75.raise("a");
+    } catch (Exception e)
+    {
+	x = 1;
+    }
+    assert(x == 1);
+    return 1;
+}
+static assert(test75());
+
+/****************************************************
+ * Exception chaining tests from test4.d
+ ****************************************************/
+
+int test4_test54()
+{
+	int status=0;
+
+	try
+	{
+		try
+		{
+			status++;
+			assert(status==1);
+			throw new Exception("first");
+		}
+		finally
+		{
+			status++;
+			assert(status==2);
+			status++;
+			throw new Exception("second");
+		}
+	}
+	catch(Exception e)
+	{
+        assert(e.msg == "first");
+        assert(e.next.msg == "second");
+	}
+	return true;
+}
+
+static assert(test4_test54());
+
+void foo55()
+{
+    try
+    {
+	Exception x = new Exception("second");
+	throw x;
+    }
+    catch (Exception e)
+    {
+	assert(e.msg == "second");
+    }
+}
+
+int test4_test55()
+{
+	int status=0;
+	try{
+		try{
+			status++;
+			assert(status==1);
+			Exception x = new Exception("first");
+			throw x;
+		}finally{
+			status++;
+			assert(status==2);
+			status++;
+			foo55();
+		}
+	}catch(Exception e){
+		assert(e.msg == "first");
+		assert(status==3);
+	}
+    return 1;
+}
+
+static assert(test4_test55());
+
+/****************************************************
+ * Exception chaining tests from eh.d
+ ****************************************************/
+
+void bug1513outer()
+{
+    int result1513;
+
+    void bug1513a()
+    {
+         throw new Exception("d");
+    }
+
+    void bug1513b()
+    {
+        try
+        {
+            try
+            {
+                bug1513a();
+            }
+            finally
+            {
+                result1513 |=4;
+               throw new Exception("f");
+            }
+        }
+        catch(Exception e)
+        {
+            assert(e.msg == "d");
+            assert(e.next.msg == "f");
+            assert(!e.next.next);
+        }
+    }
+
+    void bug1513c()
+    {
+        try
+        {
+            try
+            {
+                throw new Exception("a");
+            }
+            finally
+            {
+                result1513 |= 1;
+                throw new Exception("b");
+            }
+        }
+        finally
+        {
+            bug1513b();
+            result1513 |= 2;
+            throw new Exception("c");
+        }
+    }
+
+    void bug1513()
+    {
+        result1513 = 0;
+        try
+        {
+            bug1513c();
+        }
+        catch(Exception e)
+        {
+            assert(result1513 == 7);
+            assert(e.msg == "a");
+            assert(e.next.msg == "b");
+            assert(e.next.next.msg == "c");
+        }
+    }
+
+    bug1513();
+}
+
+void collideone()
+{
+    try
+    {
+        throw new Exception("x");
+    }
+    finally
+    {
+        throw new Exception("y");
+    }
+}
+
+void doublecollide()
+{
+    try
+    {
+        try
+        {
+            try
+            {
+                throw new Exception("p");
+            }
+            finally
+            {
+                throw new Exception("q");
+            }
+        }
+        finally
+        {
+            collideone();
+        }
+    }
+    catch(Exception e)
+    {
+            assert(e.msg == "p");
+            assert(e.next.msg == "q");
+            assert(e.next.next.msg == "x");
+            assert(e.next.next.next.msg == "y");
+            assert(!e.next.next.next.next);
+    }
+}
+
+void collidetwo()
+{
+       try
+        {
+            try
+            {
+                throw new Exception("p2");
+            }
+            finally
+            {
+                throw new Exception("q2");
+            }
+        }
+        finally
+        {
+            collideone();
+        }
+}
+
+void collideMixed()
+{
+    int works = 6;
+    try
+    {
+        try
+        {
+            try
+            {
+                throw new Exception("e");
+            }
+            finally
+            {
+                throw new Error("t");
+            }
+        }
+        catch(Exception f)
+        {    // Doesn't catch, because Error is chained to it.
+            works += 2;
+        }
+    }
+    catch(Error z)
+    {
+        works += 4;
+        assert(z.msg=="t"); // Error comes first
+        assert(z.next is null);
+        assert(z.bypassedException.msg == "e");
+    }
+    assert(works == 10);
+}
+
+class AnotherException : Exception
+{
+    this(string s)
+    {
+        super(s);
+    }
+}
+
+void multicollide()
+{
+    try
+    {
+       try
+        {
+            try
+            {
+                try
+                {
+                    throw new Exception("m2");
+                }
+                finally
+                {
+                    throw new AnotherException("n2");
+                }
+            }
+            catch(AnotherException s)
+            {   // Not caught -- we needed to catch the root cause "m2", not
+                // just the collateral "n2" (which would leave m2 uncaught).
+                assert(0);
+            }
+        }
+        finally
+        {
+            collidetwo();
+        }
+    }
+    catch(Exception f)
+    {
+        assert(f.msg == "m2");
+        assert(f.next.msg == "n2");
+        Throwable e = f.next.next;
+        assert(e.msg == "p2");
+        assert(e.next.msg == "q2");
+        assert(e.next.next.msg == "x");
+        assert(e.next.next.next.msg == "y");
+        assert(!e.next.next.next.next);
+    }
+}
+
+int testsFromEH()
+{
+    bug1513outer();
+    doublecollide();
+    collideMixed();
+    multicollide();
+    return 1;
+}
+static assert(testsFromEH());
+
+/****************************************************/
