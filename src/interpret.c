@@ -536,7 +536,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
         }
     }
-    if (!e || e->op != TOKthrownexception)
+    if (e == EXP_CANT_INTERPRET || !exceptionOrCantInterpret(e))
         return e;
     if (istate)
         return e;
