@@ -33,6 +33,7 @@ ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
 ClassDeclaration *ClassDeclaration::exception;
+ClassDeclaration *ClassDeclaration::errorException;
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : AggregateDeclaration(loc, id)
@@ -193,6 +194,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         {   if (exception)
                 exception->error("%s", msg);
             exception = this;
+        }
+
+        if (id == Id::Error)
+        {   if (errorException)
+                errorException->error("%s", msg);
+            errorException = this;
         }
 
         //if (id == Id::ClassInfo)
