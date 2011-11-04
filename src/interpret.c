@@ -1454,7 +1454,7 @@ Expression *TryCatchStatement::interpret(InterState *istate)
         return e;
     // An exception was thrown
     ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
-    Type *extype = ex->thrown->type;
+    Type *extype = ex->thrown->originalClass()->type;
     // Search for an appropriate catch clause.
 	for (size_t i = 0; i < catches->dim; i++)
 	{
