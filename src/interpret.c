@@ -146,6 +146,11 @@ struct ThrownExceptionExp : Expression
     {
         return "CTFE ThrownException";
     }
+    // Generate an error message when this exception is not caught
+    void generateUncaughtError()
+    {
+        error("Uncaught CTFE exception %s", dwarf->toChars());
+    }
 };
 
 // True if 'e' is EXP_CANT_INTERPRET, or an exception
@@ -369,7 +374,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     return NULL;
             }
             if (earg->op == TOKthrownexception)
-                return earg;
+            {
+                if (istate)
+                    return earg;
+                ((ThrownExceptionExp *)earg)->generateUncaughtError();
+                return NULL;
+            }
             eargs.tdata()[i] = earg;
         }
 
@@ -517,7 +527,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
         }
     }
-    return e;
+    if (!e || e->op != TOKthrownexception)
+        return e;
+    if (istate)
+        return e;
+    ((ThrownExceptionExp *)e)->generateUncaughtError();
+    return NULL;
 }
 
 /******************************** Statement ***************************/
@@ -1432,15 +1447,67 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     printf("TryCatchStatement::interpret()\n");
 #endif
     START()
-    return body ? body->interpret(istate) : NULL;
+    Expression *e = body ? body->interpret(istate) : NULL;
+    if (e == EXP_CANT_INTERPRET)
+        return e;
+    if (!exceptionOrCantInterpret(e))
+        return e;
+    // An exception was thrown
+    ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
+    Type *extype = ex->dwarf->type;
+    // Search for an appropriate catch clause.
+	for (size_t i = 0; i < catches->dim; i++)
+	{
+	    Catch *ca = catches->tdata()[i];
+	    Type *catype = ca->type;
+
+	    if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
+	    {   // Execute the handler
+            if (ca->var)
+            {
+                if (!ca->var->getValue())
+                    ca->var->createStackValue(ex->dwarf);
+                else
+                    ca->var->setStackValue(ex->dwarf);
+            }
+            return ca->handler->interpret(istate);
+	    }
+	}
+    return e;
+}
+
+bool isAnErrorException(ClassDeclaration *cd)
+{
+    return cd == ClassDeclaration::errorException || ClassDeclaration::errorException->isBaseOf(cd, NULL);
 }
 
 ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionExp *newest)
 {
-    #if LOG
+#if LOG
     printf("Collided exceptions %s %s\n", oldest->dwarf->toChars(), newest->dwarf->toChars());
-    #endif
+#endif
+#if DMDV2
+    // Little sanity check to make sure it's really a Throwable
+    ClassReferenceExp *boss = oldest->dwarf;
+    assert(boss->value->elements->tdata()[4]->type->ty == Tclass);
+    ClassReferenceExp *collateral = newest->dwarf;
+    if (isAnErrorException(collateral->originalClass())
+        && !isAnErrorException(boss->originalClass()))
+    {   // The new exception bypass the existing chain
+        assert(collateral->value->elements->tdata()[5]->type->ty == Tclass);
+        collateral->value->elements->tdata()[5] = boss;
+        return newest;
+    }
+    while (boss->value->elements->tdata()[4]->op == TOKclassreference)
+    {
+        boss = (ClassReferenceExp *)(boss->value->elements->tdata()[4]);
+    }
+    boss->value->elements->tdata()[4] = collateral;
+    return oldest;
+#else
+    // for D1, the newest exception just clobbers the older one
     return newest;
+#endif
 }
 
 
@@ -1451,15 +1518,17 @@ Expression *TryFinallyStatement::interpret(InterState *istate)
 #endif
     START()
     Expression *e = body ? body->interpret(istate) : NULL;
-    Expression *first = e;
-    if (e && e != EXP_CANT_INTERPRET)
-    {
-        e = finalbody ? finalbody->interpret(istate) : NULL;
-        if (e == EXP_CANT_INTERPRET)
-            return e;
-        // Check for collided exceptions
-        if (e->op == TOKthrownexception && first->op == TOKthrownexception)
-            e = chainExceptions((ThrownExceptionExp *)first, (ThrownExceptionExp *)e);
+    if (e == EXP_CANT_INTERPRET)
+        return e;
+    Expression *second = finalbody ? finalbody->interpret(istate) : NULL;
+    if (second == EXP_CANT_INTERPRET)
+        return second;
+    if (exceptionOrCantInterpret(second))
+    {   // Check for collided exceptions
+        if (exceptionOrCantInterpret(e))
+            e = chainExceptions((ThrownExceptionExp *)e, (ThrownExceptionExp *)second);
+        else
+            e = second;
     }
     return e;
 }
@@ -1474,9 +1543,7 @@ Expression *ThrowStatement::interpret(InterState *istate)
     if (exceptionOrCantInterpret(e))
         return e;
     assert(e->op == TOKclassreference);
-    //return new ThrownExceptionExp(loc, (ClassReferenceExp *)e);
-    error("throw statements are not yet supported in CTFE");
-    return EXP_CANT_INTERPRET;
+    return new ThrownExceptionExp(loc, (ClassReferenceExp *)e);
 }
 
 Expression *OnScopeStatement::interpret(InterState *istate)
@@ -2377,6 +2444,16 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
         Expression *e = new ClassReferenceExp(loc, se, type);
         if (member)
         {   // Call constructor
+            if (!member->fbody)
+            {
+                Expression *ctorfail = evaluateIfBuiltin(istate, loc, member, arguments, e);
+                if (ctorfail && exceptionOrCantInterpret(ctorfail))
+                    return ctorfail;
+                if (ctorfail)
+                    return e;
+                member->error("%s cannot be constructed at compile time, because the constructor has no available source code", newtype->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             Expression * ctorfail = member->interpret(istate, arguments, e);
             if (exceptionOrCantInterpret(ctorfail))
                 return ctorfail;
@@ -3084,6 +3161,30 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
     return e;
 }
 
+
+Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
+{
+    if (e->op == TOKnull)
+        return paintTypeOntoLiteral(to, e);
+    if (e->op == TOKclassreference)
+    {   // Disallow reinterpreting class casts. Do this by ensuring that
+        // the original class can implicitly convert to the target class
+        ClassDeclaration *originalClass = ((ClassReferenceExp *)e)->originalClass();
+        if (originalClass->type->implicitConvTo(to))
+            return paintTypeOntoLiteral(to, e);
+        else
+        {
+            error(loc, "cannot reinterpret class from %s to %s at compile time", originalClass->toChars(), to->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+    }
+    Expression *r = Cast(type, to, e);
+    if (r == EXP_CANT_INTERPRET)
+        error(loc, "cannot cast %s to %s at compile time", r->toChars(), to->toChars());
+    return r;
+}
+
+
 /* Set a slice of char array literal 'existingAE' from a string 'newval'.
  * existingAE[firstIndex..firstIndex+newval.length] = newval.
  */
@@ -3458,7 +3559,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (exceptionOrCantInterpret(newval))
                 return newval;
             // Determine the return value
-            returnValue = Cast(type, type, post ? oldval : newval);
+            returnValue = ctfeCast(loc, type, type, post ? oldval : newval);
             if (exceptionOrCantInterpret(returnValue))
                 return returnValue;
         }
@@ -3543,12 +3644,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return EXP_CANT_INTERPRET;
             }
         }
-        newval = Cast(type, type, newval);
-        if (newval == EXP_CANT_INTERPRET)
-        {
-            error("CTFE error: cannot cast %s to type %s", this->e2->toChars(), type->toChars());
-            return EXP_CANT_INTERPRET;
-        }
+        newval = ctfeCast(loc, type, type, newval);
+        if (exceptionOrCantInterpret(newval))
+            return newval;
         returnValue = newval;
     }
     if (exceptionOrCantInterpret(newval))
@@ -3770,7 +3868,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         else
         {
-            if (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
+            TY tyE1 = e1->type->toBasetype()->ty;
+            if (tyE1 == Tarray || tyE1 == Taarray)
             { // arr op= arr
                 if (!v->getValue())
                     v->createRefValue(newval);
@@ -5254,26 +5353,8 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     {
         return new IntegerExp(loc, e1->op != TOKnull, to);
     }
-    if (e1->op == TOKnull)
-        return paintTypeOntoLiteral(to, e1);
-    if (e1->op == TOKclassreference)
-    {   // Disallow reinterpreting class casts. Do this by ensuring that
-        // the original class can implicitly convert to the target class
-        ClassDeclaration *originalClass = ((ClassReferenceExp *)e1)->originalClass();
-        if (originalClass->type->implicitConvTo(to))
-            return paintTypeOntoLiteral(to, e1);
-        else
-        {
-            error("cannot reinterpret class from %s to %s at compile time", originalClass->toChars(), to->toChars());
-            return EXP_CANT_INTERPRET;
-        }
-    }
-    e = Cast(type, to, e1);
-    if (e == EXP_CANT_INTERPRET)
-        error("%s cannot be interpreted at compile time", toChars());
-    return e;
+    return ctfeCast(loc, type, to, e1);
 }
-
 
 Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
@@ -6050,6 +6131,25 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
         }
     }
 #endif
+#if DMDV2
+    if (pthis && !fd->fbody && fd->isCtorDeclaration() && fd->parent && fd->parent->parent && fd->parent->parent->ident == Id::object)
+    {
+        if (pthis->op == TOKclassreference && fd->parent->ident == Id::Throwable)
+        {   // At present, the constructors just copy their arguments into the struct.
+            // But we might need some magic if stack tracing gets added to druntime. 
+            StructLiteralExp *se = ((ClassReferenceExp *)pthis)->value;
+            assert(arguments->dim <= se->elements->dim);
+            for (int i = 0; i < arguments->dim; ++i)
+            {
+                Expression *e = arguments->tdata()[i]->interpret(istate);
+                if (exceptionOrCantInterpret(e))
+                    return e;
+                se->elements->tdata()[i] = e;
+            }
+            return EXP_VOID_INTERPRET;
+        }
+    }
+#endif
     if (!pthis)
     {
         size_t idlen = strlen(fd->ident->string);
@@ -6188,6 +6288,7 @@ void VarDeclaration::setValueWithoutChecking(Expression *newval)
     assert(!newval || isStackValueValid(newval) || isRefValueValid(newval));
     literalvalue = newval;
 }
+
 void VarDeclaration::createRefValue(Expression *newval)
 {
     assert(!literalvalue);
