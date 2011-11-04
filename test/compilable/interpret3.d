@@ -3006,6 +3006,26 @@ SomeClass classtest2(int n)
 static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
 static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
 
+class RecursiveClass
+{
+   int x;
+   this(int n) { x = n; }
+   RecursiveClass b;
+   void doit() { b = new RecursiveClass(7); b.x = 2;}
+}
+
+int classtest3()
+{
+    RecursiveClass x = new RecursiveClass(17);
+    x.doit();
+    RecursiveClass y = x.b;
+    assert(y.x == 2);
+    assert(x.x == 17);
+    return 1;
+}
+
+static assert(classtest3());
+
 /**************************************************
     6885 wrong code with new array
 **************************************************/

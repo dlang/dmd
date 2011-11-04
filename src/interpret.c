@@ -3282,8 +3282,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
     bool wantRef = false;
     if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
-        (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray ||
-         e1->type->toBasetype()->ty == Tclass)
+        (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
          //  e = *x is never a reference, because *x is always a value
          && this->e2->op != TOKstar
         )
@@ -6105,8 +6104,9 @@ bool isStackValueValid(Expression *newval)
         newval->error("CTFE internal error: illegal pointer value %s\n", newval->toChars());
         return false;
     }
+    if (newval->op == TOKclassreference || (newval->op == TOKnull && newval->type->ty == Tclass))
+        return true;
     if ((newval->op == TOKarrayliteral) || ( newval->op == TOKstructliteral) ||
-        (newval->op == TOKclassreference) ||
         (newval->op == TOKstring) || (newval->op == TOKassocarrayliteral) ||
         (newval->op == TOKnull) || (newval->op == TOKslice))
     {   return false;
@@ -6162,8 +6162,7 @@ bool isRefValueValid(Expression *newval)
     }
     // Dynamic arrays passed by ref may be null. When this happens
     // they may originate from an index or dotvar expression.
-    if (newval->type->ty == Tarray || newval->type->ty == Taarray
-        || newval->type->ty == Tclass)
+    if (newval->type->ty == Tarray || newval->type->ty == Taarray)
         if (newval->op == TOKdotvar || newval->op == TOKindex)
             return isStackValueValid(newval); // actually must be null
     if (newval->op == TOKslice)
@@ -6174,8 +6173,6 @@ bool isRefValueValid(Expression *newval)
         assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
         return true;
     }
-    if (newval->op == TOKclassreference)
-        return true;
     newval->error("CTFE internal error: illegal reference value %s\n", newval->toChars());
     return false;
 }
