@@ -1465,13 +1465,13 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
     Type *extype = ex->thrown->originalClass()->type;
     // Search for an appropriate catch clause.
-	for (size_t i = 0; i < catches->dim; i++)
-	{
-	    Catch *ca = catches->tdata()[i];
-	    Type *catype = ca->type;
+        for (size_t i = 0; i < catches->dim; i++)
+        {
+            Catch *ca = catches->tdata()[i];
+            Type *catype = ca->type;
 
-	    if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
-	    {   // Execute the handler
+            if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
+            {   // Execute the handler
             if (ca->var)
             {
                 if (!ca->var->getValue())
@@ -1480,8 +1480,8 @@ Expression *TryCatchStatement::interpret(InterState *istate)
                     ca->var->setStackValue(ex->thrown);
             }
             return ca->handler->interpret(istate);
-	    }
-	}
+            }
+        }
     return e;
 }
 
@@ -6148,7 +6148,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     {
         if (pthis->op == TOKclassreference && fd->parent->ident == Id::Throwable)
         {   // At present, the constructors just copy their arguments into the struct.
-            // But we might need some magic if stack tracing gets added to druntime. 
+            // But we might need some magic if stack tracing gets added to druntime.
             StructLiteralExp *se = ((ClassReferenceExp *)pthis)->value;
             assert(arguments->dim <= se->elements->dim);
             for (int i = 0; i < arguments->dim; ++i)
