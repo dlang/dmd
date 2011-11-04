@@ -332,6 +332,24 @@ void test6546()
 }
 
 /**********************************************/
+// 6736
+
+void test6736()
+{
+    static struct S1
+    {
+        struct S2 // must be 8 bytes in size
+        {
+            uint a, b;
+        }
+        S2 s2;
+        alias s2 this;
+    }
+    S1 c;
+    static assert(!is(typeof(c + c)));
+}
+
+/**********************************************/
 // 2777
 
 struct ArrayWrapper(T) {
@@ -610,6 +628,7 @@ int main()
     test6();
     test2781();
     test6546();
+    test6736();
     test2777a();
     test2777b();
     test6508();
