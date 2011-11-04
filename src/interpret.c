@@ -149,7 +149,14 @@ struct ThrownExceptionExp : Expression
     // Generate an error message when this exception is not caught
     void generateUncaughtError()
     {
-        error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(), thrown->value->elements->tdata()[0]->toChars());
+        thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(),
+            thrown->value->elements->tdata()[0]->toChars());
+        /* Also give the line where the throw statement was. We won't have it
+         * in the case where the ThrowStatement is generated internally
+         * (eg, in ScopeStatement)
+         */
+        if (loc.filename && !loc.equals(thrown->loc))
+            fprintf(stdmsg, "%s:        thrown from here\n", loc.toChars());
     }
 };
 
