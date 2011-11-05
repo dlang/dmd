@@ -482,7 +482,7 @@ typedef unsigned        targ_uns;
 #define FPTRSIZE        tysize[TYfptr]
 #define REGMASK         0xFFFF
 
-#if TARGET_LINUX || TARGET_FREEBSD
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
 typedef targ_llong      targ_ptrdiff_t; /* ptrdiff_t for target machine  */
 typedef targ_ullong     targ_size_t;    /* size_t for the target machine */
 #else
