@@ -2024,18 +2024,11 @@ Expression *BinExp::typeCombine(Scope *sc)
 
     if (op == TOKmin || op == TOKadd)
     {
-        // struct+struct, where the structs are the same type, and class+class are errors
-        if (t1->ty == Tstruct)
-        {
-            if (t2->ty == Tstruct &&
-                ((TypeStruct *)t1)->sym == ((TypeStruct *)t2)->sym)
-                goto Lerror;
-        }
-        else if (t1->ty == Tclass)
-        {
-            if (t2->ty == Tclass)
-                goto Lerror;
-        }
+        // struct+struct, and class+class are errors
+        if (t1->ty == Tstruct && t2->ty == Tstruct)
+            goto Lerror;
+        else if (t1->ty == Tclass && t2->ty == Tclass)
+            goto Lerror;
     }
 
     if (!typeMerge(sc, this, &type, &e1, &e2))
