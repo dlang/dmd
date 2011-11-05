@@ -81,6 +81,7 @@ struct load_command
         #define LC_SEGMENT      1
         #define LC_SYMTAB       2
         #define LC_DYSYMTAB     11
+        #define LC_SEGMENT_64   0x19
     uint32_t cmdsize;
 };
 
