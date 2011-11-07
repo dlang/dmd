@@ -6192,6 +6192,11 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
         }
     }
 #endif
+    if (nargs == 1 && !pthis &&
+        (fd->ident == Id::criticalenter || fd->ident == Id::criticalexit))
+    {   // Support synchronized{} as a no-op
+        return EXP_VOID_INTERPRET;
+    }
     if (!pthis)
     {
         size_t idlen = strlen(fd->ident->string);
