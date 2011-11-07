@@ -1291,7 +1291,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (!type->nextOf())
                 {
                     ((TypeFunction *)type)->next = Type::tvoid;
-                    //type = type->semantic(loc, sc);
+                    //type = type->semantic(loc, sc);   // Removed with 6902
                 }
                 f = (TypeFunction *)type;
             }

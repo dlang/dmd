@@ -3618,7 +3618,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         tf->isref = FALSE;      // return by value
                 }
                 tf->next = exp->type;
-                //fd->type = tf->semantic(loc, sc);
+                //fd->type = tf->semantic(loc, sc);     // Removed with 6902
                 if (!fd->tintro)
                 {   tret = fd->type->nextOf();
                     tbret = tret->toBasetype();
