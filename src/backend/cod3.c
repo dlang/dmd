@@ -5308,6 +5308,9 @@ unsigned codout(code *c)
                                         val = -8;
                                 }
                             }
+#if TARGET_OSX
+                            val = 0;
+#endif
                         }
                         do32bit((enum FL)c->IFL1,&c->IEV1,flags,val);
                         break;

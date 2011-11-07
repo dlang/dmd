@@ -4008,6 +4008,11 @@ code *getoffset(elem *e,unsigned reg)
                 if (config.flags3 & CFG3pic)
                 {   // LEA reg,immed32[RIP]
                     cs.Iop = 0x8D;
+#if TARGET_OSX
+                    symbol *s = e->EV.sp.Vsym;
+                    if (fl == FLextern)
+                        cs.Iop = 0x8B;          // MOV reg,[00][RIP]
+#endif
                     cs.Irm = modregrm(0,reg & 7,5);
                     if (reg & 8)
                         cs.Irex = (cs.Irex & ~REX_B) | REX_R;

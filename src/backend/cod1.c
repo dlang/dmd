@@ -2623,6 +2623,13 @@ code *cdfunc(elem *e,regm_t *pretregs)
             stackpushsave += numalign;
         }
 
+        // Variadic functions store the number of XMM registers used in AL
+        if (I64 && e->Eflags & EFLAGS_variadic)
+        {   code *c1 = getregs(mAX);
+            c1 = movregconst(c1,AX,0,1);
+            c = cat(c, c1);
+            keepmsk |= mAX;
+        }
     }
 Lret:
     cgstate.stackclean--;
