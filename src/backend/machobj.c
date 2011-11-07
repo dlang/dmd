@@ -527,17 +527,17 @@ int32_t *patchAddr(int seg, targ_size_t offset)
     return(int32_t *)(fobjbuf->buf + SecHdrTab[SegData[seg]->SDshtidx].offset + offset);
 }
 
-int64_t *patchAddr64(int seg, targ_size_t offset)
+int32_t *patchAddr64(int seg, targ_size_t offset)
 {
-    return(int64_t *)(fobjbuf->buf + SecHdrTab64[SegData[seg]->SDshtidx].offset + offset);
+    return(int32_t *)(fobjbuf->buf + SecHdrTab64[SegData[seg]->SDshtidx].offset + offset);
 }
 
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
 {
-    //printf("patch(offset = x%04x, seg = %d)\n", (unsigned)offset, seg);
+    //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (unsigned)offset, seg, value);
     if (I64)
     {
-        int64_t *p = (int64_t *)(fobjbuf->buf + SecHdrTab64[pseg->SDshtidx].offset + offset);
+        int32_t *p = (int32_t *)(fobjbuf->buf + SecHdrTab64[pseg->SDshtidx].offset + offset);
 #if 0
         printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
             SecHdrTab64[pseg->SDshtidx].addr,
@@ -711,11 +711,12 @@ void obj_term()
     }
 
     struct segment_command segment_cmd;
-    struct segment_command segment_cmd64;
+    struct segment_command_64 segment_cmd64;
     struct symtab_command symtab_cmd;
     struct dysymtab_command dysymtab_cmd;
 
     memset(&segment_cmd, 0, sizeof(segment_cmd));
+    memset(&segment_cmd64, 0, sizeof(segment_cmd64));
     memset(&symtab_cmd, 0, sizeof(symtab_cmd));
     memset(&dysymtab_cmd, 0, sizeof(dysymtab_cmd));
 
@@ -901,10 +902,9 @@ void obj_term()
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
             Relocation *rend = (Relocation *)(pseg->SDrel->buf + pseg->SDrel->size());
             for (; r != rend; r++)
-            {//   const char *rs = r->rtype == RELaddr ? "addr" : "rel";
-                symbol *s = r->targsym;
-                //printf("%d:x%04x : tseg %d tsym %p REL%s\n",
-                    //seg, r->offset, r->targseg, s, rs);
+            {   symbol *s = r->targsym;
+                const char *rs = r->rtype == RELaddr ? "addr" : "rel";
+                //printf("%d:x%04llx : tseg %d tsym %p REL%s\n", seg, r->offset, r->targseg, s, rs);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (s)
@@ -913,6 +913,49 @@ void obj_term()
                     //symbol_print(s);
                     if (pseg->isCode())
                     {
+                        if (I64)
+                        {
+                            if (s->Sclass == SCextern ||
+                                s->Sclass == SCcomdef ||
+                                s->Sclass == SCcomdat ||
+                                s->Sclass == SCglobal)
+                            {
+                                rel.r_address = r->offset;
+                                rel.r_symbolnum = s->Sxtrnnum;
+                                rel.r_pcrel = 1;
+                                rel.r_length = 2;
+                                rel.r_extern = 1;
+                                rel.r_type = (r->rtype == RELrel) ? GENERIC_RELOC_SECTDIFF : GENERIC_RELOC_PAIR;
+                                if (s->Sfl == FLfunc && r->rtype == RELaddr)
+                                    rel.r_type = GENERIC_RELOC_PB_LA_PTR;
+                                fobjbuf->write(&rel, sizeof(rel));
+                                foffset += sizeof(rel);
+                                nreloc++;
+                                continue;
+                            }
+                            else
+                            {
+                                rel.r_address = r->offset;
+                                rel.r_symbolnum = s->Sseg;
+                                rel.r_pcrel = 1;
+                                rel.r_length = 2;
+                                rel.r_extern = 0;
+                                rel.r_type = GENERIC_RELOC_SECTDIFF;
+                                fobjbuf->write(&rel, sizeof(rel));
+                                foffset += sizeof(rel);
+                                nreloc++;
+
+                                int32_t *p = patchAddr64(seg, r->offset);
+                                // Absolute address; add in addr of start of targ seg
+//printf("*p = x%x, .addr = x%x, Soffset = x%x\n", *p, (int)SecHdrTab64[SegData[s->Sseg]->SDshtidx].addr, (int)s->Soffset);
+//printf("pseg = x%x, r->offset = x%x\n", (int)SecHdrTab64[pseg->SDshtidx].addr, (int)r->offset);
+                                *p += SecHdrTab64[SegData[s->Sseg]->SDshtidx].addr;
+                                *p += s->Soffset;
+                                *p -= SecHdrTab64[pseg->SDshtidx].addr + r->offset + 4;
+                                //patch(pseg, r->offset, s->Sseg, s->Soffset);
+                                continue;
+                            }
+                        }
                     }
                     else
                     {
@@ -926,6 +969,10 @@ void obj_term()
                             rel.r_length = 2;
                             rel.r_extern = 1;
                             rel.r_type = GENERIC_RELOC_VANILLA;
+                            if (I64)
+                            {
+                                rel.r_length = 3;
+                            }
                             fobjbuf->write(&rel, sizeof(rel));
                             foffset += sizeof(rel);
                             nreloc++;
@@ -939,12 +986,17 @@ void obj_term()
                             rel.r_length = 2;
                             rel.r_extern = 0;
                             rel.r_type = GENERIC_RELOC_VANILLA;
+                            if (I64)
+                            {
+                                rel.r_length = 3;
+                            }
                             fobjbuf->write(&rel, sizeof(rel));
                             foffset += sizeof(rel);
                             nreloc++;
                             if (I64)
                             {
-                                int64_t *p = patchAddr64(seg, r->offset);
+                                rel.r_length = 3;
+                                int32_t *p = patchAddr64(seg, r->offset);
                                 // Absolute address; add in addr of start of targ seg
                                 *p += SecHdrTab64[SegData[s->Sseg]->SDshtidx].addr + s->Soffset;
                                 //patch(pseg, r->offset, s->Sseg, s->Soffset);
@@ -963,7 +1015,7 @@ void obj_term()
                 else if (r->rtype == RELaddr && pseg->isCode())
                 {
                     int32_t *p = NULL;
-                    int64_t *p64 = NULL;
+                    int32_t *p64 = NULL;
                     if (I64)
                         p64 = patchAddr64(seg, r->offset);
                     else
@@ -1027,12 +1079,16 @@ void obj_term()
                     rel.r_length = 2;
                     rel.r_extern = 0;
                     rel.r_type = GENERIC_RELOC_VANILLA;
+                    if (I64)
+                    {
+                        rel.r_length = 3;
+                    }
                     fobjbuf->write(&rel, sizeof(rel));
                     foffset += sizeof(rel);
                     nreloc++;
                     if (I64)
                     {
-                        int64_t *p64 = patchAddr64(seg, r->offset);
+                        int32_t *p64 = patchAddr64(seg, r->offset);
                         //int64_t before = *p64;
                         if (rel.r_pcrel)
                             // Relative address
@@ -1216,7 +1272,7 @@ void obj_term()
         }
         symtab_cmd.nsyms++;
     }
-    foffset += symtab_cmd.nsyms * sizeof(struct nlist);
+    foffset += symtab_cmd.nsyms * (I64 ? sizeof(struct nlist_64) : sizeof(struct nlist));
 
     // Put out string table
     foffset = elf_align(I64 ? 8 : 4, foffset);
@@ -2311,7 +2367,7 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     int save = buf->size();
     buf->setsize(offset);
 #if 0
-    printf("reftodatseg(seg:offset=%d:x%lx, val=x%lx, targetdatum %x, flags %x )\n",
+    printf("reftodatseg(seg:offset=%d:x%llx, val=x%llx, targetdatum %x, flags %x )\n",
         seg,offset,val,targetdatum,flags);
 #endif
     if (SegData[seg]->isCode() && SegData[targetdatum]->isCode())
@@ -2319,11 +2375,11 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         assert(0);
     }
     mach_addrel(seg, offset, NULL, targetdatum, RELaddr);
-    if (I64)
-        buf->write64(val);
-    else
+//    if (I64)
+//        buf->write64(val);
+//    else
         buf->write32(val);
-    if (save > offset + NPTRSIZE)
+    if (save > offset + 4)
         buf->setsize(save);
 }
 
@@ -2339,18 +2395,18 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
 
 void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
 {
-    printf("reftocodseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,(unsigned long)offset,(unsigned long)val);
+    //printf("reftocodseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,(unsigned long)offset,(unsigned long)val);
     assert(seg > 0);
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
     buf->setsize(offset);
     val -= funcsym_p->Soffset;
     mach_addrel(seg, offset, funcsym_p, 0, RELaddr);
-    if (I64)
-        buf->write64(val);
-    else
+//    if (I64)
+//        buf->write64(val);
+//    else
         buf->write32(val);
-    if (save > offset + NPTRSIZE)
+    if (save > offset + 4)
         buf->setsize(save);
 }
 
@@ -2365,15 +2421,17 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
  *                      CFseg: get segment
  *                      CFoff: get offset
  * Returns:
- *      number of bytes in reference (2 or 4 or 8)
+ *      number of bytes in reference (4 or 8)
  */
 
 int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
+    int retsize = (flags & CFoffset64) ? 8 : 4;
 #if 0
-    dbg_printf("\nreftoident('%s' seg %d, offset x%lx, val x%lx, flags x%x)\n",
-        s->Sident,seg,offset,val,flags);
+    dbg_printf("\nreftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
+        s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
+    printf("retsize = %d\n", retsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
     symbol_print(s);
 #endif
@@ -2384,100 +2442,117 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     }
     else
     {
-        if (SegData[seg]->isCode() && flags & CFselfrel)
+        if (I64)
         {
-            if (!jumpTableSeg)
+            //if (s->Sclass != SCcomdat)
+                //val += s->Soffset;
+            if (flags & CFselfrel)
             {
-                jumpTableSeg =
-                    mach_getsegment("__jump_table", "__IMPORT",  0, S_SYMBOL_STUBS | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS | S_ATTR_SELF_MODIFYING_CODE);
+                mach_addrel(seg, offset, s, 0, RELrel);
             }
-            seg_data *pseg = SegData[jumpTableSeg];
-            if (I64)
-                SecHdrTab64[pseg->SDshtidx].reserved2 = 5;
             else
-                SecHdrTab[pseg->SDshtidx].reserved2 = 5;
-
-            if (!indirectsymbuf1)
-                indirectsymbuf1 = new Outbuffer();
-            else
-            {   // Look through indirectsym to see if it is already there
-                int n = indirectsymbuf1->size() / sizeof(Symbol *);
-                Symbol **psym = (Symbol **)indirectsymbuf1->buf;
-                for (int i = 0; i < n; i++)
-                {   // Linear search, pretty pathetic
-                    if (s == psym[i])
-                    {   val = i * 5;
-                        goto L1;
-                    }
-                }
-            }
-
-            val = pseg->SDbuf->size();
-            static char halts[5] = { 0xF4,0xF4,0xF4,0xF4,0xF4 };
-            pseg->SDbuf->write(halts, 5);
-
-            // Add symbol s to indirectsymbuf1
-            indirectsymbuf1->write(&s, sizeof(Symbol *));
-         L1:
-            val -= offset + 4;
-            mach_addrel(seg, offset, NULL, jumpTableSeg, RELrel);
-        }
-        else if (SegData[seg]->isCode() &&
-                ((s->Sclass != SCextern && SegData[s->Sseg]->isCode()) || s->Sclass == SClocstat || s->Sclass == SCstatic))
-        {
-            val += s->Soffset;
-            mach_addrel(seg, offset, NULL, s->Sseg, RELaddr);
-        }
-        else if (SegData[seg]->isCode() && !tyfunc(s->ty()))
-        {
-            if (!pointersSeg)
             {
-                pointersSeg =
-                    mach_getsegment("__pointers", "__IMPORT",  0, S_NON_LAZY_SYMBOL_POINTERS);
+                mach_addrel(seg, offset, s, 0, RELaddr);
             }
-            seg_data *pseg = SegData[pointersSeg];
-
-            if (!indirectsymbuf2)
-                indirectsymbuf2 = new Outbuffer();
-            else
-            {   // Look through indirectsym to see if it is already there
-                int n = indirectsymbuf2->size() / sizeof(Symbol *);
-                Symbol **psym = (Symbol **)indirectsymbuf2->buf;
-                for (int i = 0; i < n; i++)
-                {   // Linear search, pretty pathetic
-                    if (s == psym[i])
-                    {   val = i * 4;
-                        goto L2;
-                    }
-                }
-            }
-
-            val = pseg->SDbuf->size();
-            pseg->SDbuf->writezeros(NPTRSIZE);
-
-            // Add symbol s to indirectsymbuf2
-            indirectsymbuf2->write(&s, sizeof(Symbol *));
-
-         L2:
-            //printf("reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s->Sident, val, pointersSeg);
-            mach_addrel(seg, offset, NULL, pointersSeg, RELaddr);
         }
         else
-        {   //val -= s->Soffset;
-            mach_addrel(seg, offset, s, 0, RELaddr);
+        {
+            if (SegData[seg]->isCode() && flags & CFselfrel)
+            {
+                if (!jumpTableSeg)
+                {
+                    jumpTableSeg =
+                        mach_getsegment("__jump_table", "__IMPORT",  0, S_SYMBOL_STUBS | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS | S_ATTR_SELF_MODIFYING_CODE);
+                }
+                seg_data *pseg = SegData[jumpTableSeg];
+                if (I64)
+                    SecHdrTab64[pseg->SDshtidx].reserved2 = 5;
+                else
+                    SecHdrTab[pseg->SDshtidx].reserved2 = 5;
+
+                if (!indirectsymbuf1)
+                    indirectsymbuf1 = new Outbuffer();
+                else
+                {   // Look through indirectsym to see if it is already there
+                    int n = indirectsymbuf1->size() / sizeof(Symbol *);
+                    Symbol **psym = (Symbol **)indirectsymbuf1->buf;
+                    for (int i = 0; i < n; i++)
+                    {   // Linear search, pretty pathetic
+                        if (s == psym[i])
+                        {   val = i * 5;
+                            goto L1;
+                        }
+                    }
+                }
+
+                val = pseg->SDbuf->size();
+                static char halts[5] = { 0xF4,0xF4,0xF4,0xF4,0xF4 };
+                pseg->SDbuf->write(halts, 5);
+
+                // Add symbol s to indirectsymbuf1
+                indirectsymbuf1->write(&s, sizeof(Symbol *));
+             L1:
+                val -= offset + 4;
+                mach_addrel(seg, offset, NULL, jumpTableSeg, RELrel);
+            }
+            else if (SegData[seg]->isCode() &&
+                    ((s->Sclass != SCextern && SegData[s->Sseg]->isCode()) || s->Sclass == SClocstat || s->Sclass == SCstatic))
+            {
+                val += s->Soffset;
+                mach_addrel(seg, offset, NULL, s->Sseg, RELaddr);
+            }
+            else if (SegData[seg]->isCode() && !tyfunc(s->ty()))
+            {
+                if (!pointersSeg)
+                {
+                    pointersSeg =
+                        mach_getsegment("__pointers", "__IMPORT",  0, S_NON_LAZY_SYMBOL_POINTERS);
+                }
+                seg_data *pseg = SegData[pointersSeg];
+
+                if (!indirectsymbuf2)
+                    indirectsymbuf2 = new Outbuffer();
+                else
+                {   // Look through indirectsym to see if it is already there
+                    int n = indirectsymbuf2->size() / sizeof(Symbol *);
+                    Symbol **psym = (Symbol **)indirectsymbuf2->buf;
+                    for (int i = 0; i < n; i++)
+                    {   // Linear search, pretty pathetic
+                        if (s == psym[i])
+                        {   val = i * 4;
+                            goto L2;
+                        }
+                    }
+                }
+
+                val = pseg->SDbuf->size();
+                pseg->SDbuf->writezeros(NPTRSIZE);
+
+                // Add symbol s to indirectsymbuf2
+                indirectsymbuf2->write(&s, sizeof(Symbol *));
+
+             L2:
+                //printf("reftoident: seg = %d, offset = x%x, s = %s, val = x%x, pointersSeg = %d\n", seg, offset, s->Sident, val, pointersSeg);
+                mach_addrel(seg, offset, NULL, pointersSeg, RELaddr);
+            }
+            else
+            {   //val -= s->Soffset;
+                mach_addrel(seg, offset, s, 0, RELaddr);
+            }
         }
 
         Outbuffer *buf = SegData[seg]->SDbuf;
         int save = buf->size();
         buf->setsize(offset);
-        if (I64)
+        //printf("offset = x%llx, val = x%llx\n", offset, val);
+        if (retsize == 8)
             buf->write64(val);
         else
             buf->write32(val);
-        if (save > offset + NPTRSIZE)
+        if (save > offset + retsize)
             buf->setsize(save);
     }
-    return NPTRSIZE;
+    return retsize;
 }
 
 /*****************************************

@@ -1408,6 +1408,9 @@ elem * el_var(symbol *s)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // OSX is currently always pic
     if (config.flags3 & CFG3pic &&
+#if TARGET_OSX
+        I32 &&
+#endif
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         (!(s->Stype->Tty & mTYthread) || I64) &&
 #endif
@@ -1616,7 +1619,7 @@ elem * el_ptr(symbol *s)
     symbol_debug(s);
     type_debug(s->Stype);
 #if TARGET_OSX
-    if (config.flags3 & CFG3pic && tyfunc(s->ty()))
+    if (config.flags3 & CFG3pic && tyfunc(s->ty()) && I32)
     {
         /* Cannot access address of code from code.
          * Instead, create a data variable, put the address of the
@@ -1630,7 +1633,11 @@ elem * el_ptr(symbol *s)
     }
 #endif
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    if (config.flags3 & CFG3pic && tyfunc(s->ty()))
+    if (config.flags3 & CFG3pic &&
+#if TARGET_OSX
+        I32 &&
+#endif
+        tyfunc(s->ty()))
         e = el_picvar(s);
     else
 #endif
