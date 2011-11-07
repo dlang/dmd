@@ -4659,6 +4659,11 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
                 {   assert(((VarExp*)thisval)->var->isVarDeclaration());
                     thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
                 }
+                if (thisval && thisval->op == TOKnull)
+                {
+                    error("function call through null class reference %s", pthis->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
                 // Get the function from the vtable of the original class
                 assert(thisval && thisval->op == TOKclassreference);
                 ClassDeclaration *cd = ((ClassReferenceExp *)thisval)->originalClass();
