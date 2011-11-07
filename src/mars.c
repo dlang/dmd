@@ -423,27 +423,41 @@ int main(int argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("D_NET");
 #endif
 #elif TARGET_LINUX
+    VersionCondition::addPredefinedGlobalIdent("POSIX");
+    VersionCondition::addPredefinedGlobalIdent("Linux");
+
+    // For legacy compatibility
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
     global.params.isLinux = 1;
 #elif TARGET_OSX
-    VersionCondition::addPredefinedGlobalIdent("Posix");
+    VersionCondition::addPredefinedGlobalIdent("POSIX");
     VersionCondition::addPredefinedGlobalIdent("OSX");
     global.params.isOSX = 1;
 
     // For legacy compatibility
+    VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("darwin");
 #elif TARGET_FREEBSD
-    VersionCondition::addPredefinedGlobalIdent("Posix");
+    VersionCondition::addPredefinedGlobalIdent("POSIX");
     VersionCondition::addPredefinedGlobalIdent("FreeBSD");
+
+    // For legacy compatibility
+    VersionCondition::addPredefinedGlobalIdent("Posix");
     global.params.isFreeBSD = 1;
 #elif TARGET_OPENBSD
-    VersionCondition::addPredefinedGlobalIdent("Posix");
+    VersionCondition::addPredefinedGlobalIdent("POSIX");
     VersionCondition::addPredefinedGlobalIdent("OpenBSD");
+
+    // For legacy compatibility
+    VersionCondition::addPredefinedGlobalIdent("Posix");
     global.params.isFreeBSD = 1;
 #elif TARGET_SOLARIS
-    VersionCondition::addPredefinedGlobalIdent("Posix");
+    VersionCondition::addPredefinedGlobalIdent("POSIX");
     VersionCondition::addPredefinedGlobalIdent("Solaris");
+
+    // For legacy compatibility
+    VersionCondition::addPredefinedGlobalIdent("Posix");
     global.params.isSolaris = 1;
 #else
 #error "fix this"
