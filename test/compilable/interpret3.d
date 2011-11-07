@@ -3388,4 +3388,99 @@ int testsFromEH()
 }
 static assert(testsFromEH());
 
-/****************************************************/
+/**************************************************
+    With + synchronized statements + bug 6901
+**************************************************/
+
+struct With1
+{
+    int a;
+    int b;
+}
+
+class Foo6
+{
+}
+
+class Foo32
+{
+   struct Bar
+   {
+	int x;
+   }
+}
+
+class Base56
+{
+    private string myfoo;
+    private string mybar;
+
+    // Get/set properties that will be overridden.
+    void foo(string s) { myfoo = s; }
+    string foo() { return myfoo; }
+
+    // Get/set properties that will not be overridden.
+    void bar(string s) { mybar = s; }
+    string bar() { return mybar; }
+}
+
+class Derived56: Base56
+{
+    alias Base56.foo foo; // Bring in Base56's foo getter.
+    override void foo(string s) { super.foo = s; } // Override foo setter.
+}
+
+
+int testwith()
+{
+    With1 x = With1(7);
+    with(x)
+    {
+        a = 2;
+    }
+    assert(x.a == 2);
+
+    // from test11.d
+    Foo6 foo6 = new Foo6();
+
+    with (foo6)
+    {
+        int xx;
+        xx = 4;
+    }
+    with (new Foo32)
+    {
+        Bar z;
+        z.x = 5;
+    }
+    Derived56 d = new Derived56;
+    with (d)
+    {
+        foo = "hi";
+        d.foo = "hi";
+        bar = "hi";
+        assert(foo == "hi");
+        assert(d.foo == "hi");
+        assert(bar == "hi");
+    }
+    int w = 7;
+    synchronized {
+        ++w;
+    }
+    assert(w == 8);
+    return 1;
+}
+
+static assert(testwith());
+
+/**************************************************
+    6416 static struct declaration
+**************************************************/
+
+static assert({
+    static struct S { int y = 7; }
+    S a;
+    a.y += 6;
+    assert(a.y == 13);
+    return true;
+}());
