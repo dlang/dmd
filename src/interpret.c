@@ -24,6 +24,7 @@
 #include "aggregate.h"
 #include "id.h"
 #include "utf.h"
+#include "attrib.h" // for AttribDeclaration
 
 #include "template.h"
 TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd);
@@ -2055,7 +2056,13 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
     else if (declaration->isAttribDeclaration() ||
              declaration->isTemplateMixin() ||
              declaration->isTupleDeclaration())
-    {   // These can be made to work, too lazy now
+    {   // Check for static struct declarations, which aren't executable
+        AttribDeclaration *ad = declaration->isAttribDeclaration();
+        if (ad && ad->decl && ad->decl->dim == 1
+            && ad->decl->tdata()[0]->isAggregateDeclaration())
+            return NULL;    // static struct declaration. Nothing to do.
+
+        // These can be made to work, too lazy now
         error("Declaration %s is not yet implemented in CTFE", toChars());
         e = EXP_CANT_INTERPRET;
     }
