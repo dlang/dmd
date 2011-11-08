@@ -284,7 +284,7 @@ void FuncDeclaration::semantic(Scope *sc)
 //          ctor = (CtorDeclaration *)this;
 //          if (!cd->ctor)
 //              cd->ctor = ctor;
-            return;
+            goto Ldone;
         }
 
 #if 0
@@ -745,7 +745,10 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->sw = NULL;
         sc2->fes = fes;
         sc2->linkage = LINKd;
-        sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STCfinal);
+        sc2->stc &= ~(STCauto | STCscope | STCstatic | STCabstract |
+                        STCdeprecated | STCoverride |
+                        STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref |
+                        STCproperty | STCsafe | STCtrusted | STCsystem);
         sc2->protection = PROTpublic;
         sc2->explicitProtection = 0;
         sc2->structalign = 8;
