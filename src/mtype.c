@@ -6352,7 +6352,6 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
             goto Lerr;
         }
         t = exp->type;
-        t = t->addMod(mod);
         if (!t)
         {
             error(loc, "expression (%s) has no type", exp->toChars());
@@ -6362,6 +6361,8 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
         {   error(loc, "forward reference to %s", toChars());
             goto Lerr;
         }
+
+        t = t->addMod(mod);
 
         /* typeof should reflect the true type,
          * not what 'auto' would have gotten us.
