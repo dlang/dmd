@@ -8588,7 +8588,7 @@ Expression *AssignExp::checkToBoolean()
     //  if (a = b) ...
     // are usually mistakes.
 
-    error("'=' does not give a boolean result");
+    error("assignment cannot be used as a condition, perhaps == was meant?");
     return this;
 }
 
