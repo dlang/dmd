@@ -3264,6 +3264,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
+            if (fd->tintro)
+                exp = exp->implicitCastTo(sc, fd->type->nextOf());
             exp = exp->implicitCastTo(sc, tret);
         }
     }
