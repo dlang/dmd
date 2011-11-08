@@ -689,7 +689,7 @@ class Foo32
 
     new (size_t sz)
     {
-	void* p = std.c.stdlib.malloc(sz);
+	void* p = core.stdc.stdlib.malloc(sz);
 	printf("new(sz = %d) = %p\n", sz, p);
 	ps = p;
         return p;
@@ -699,7 +699,7 @@ class Foo32
     {
 	printf("delete(p = %p)\n", p);
 	assert(p == ps);
-        if (p) std.c.stdlib.free(p);
+        if (p) core.stdc.stdlib.free(p);
     }
 }
 
@@ -721,7 +721,7 @@ class Foo33
 
     new (size_t sz, int i)
     {
-	void* p = std.c.stdlib.malloc(sz);
+	void* p = core.stdc.stdlib.malloc(sz);
 	printf("new(sz = %d) = %p\n", sz, p);
 	ps = p;
         return p;
@@ -731,7 +731,7 @@ class Foo33
     {
 	printf("delete(p = %p)\n", p);
 	assert(p == ps);
-        if (p) std.c.stdlib.free(p);
+        if (p) core.stdc.stdlib.free(p);
 	del += 1;
     }
 }
