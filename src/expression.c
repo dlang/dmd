@@ -9958,7 +9958,7 @@ Expression *AssignExp::checkToBoolean(Scope *sc)
     //  if (a = b) ...
     // are usually mistakes.
 
-    error("'=' does not give a boolean result");
+    error("assignment cannot be used as a condition");
     return new ErrorExp();
 }
 
