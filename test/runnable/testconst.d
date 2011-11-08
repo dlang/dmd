@@ -1992,6 +1992,18 @@ inout(char)[] test6867(inout(char)[] a)
 }
 
 /************************************/
+// 6870
+
+void test6870()
+{
+   shared(int) x;
+   static assert(is(typeof(x) == shared(int))); // pass
+   const(typeof(x)) y;
+   const(shared(int)) z;
+   static assert(is(typeof(y) == typeof(z))); // fail!
+}
+
+/************************************/
 
 int main()
 {
@@ -2088,6 +2100,7 @@ int main()
     test6864();
     test6865();
     test6866();
+    test6870();
 
     printf("Success\n");
     return 0;

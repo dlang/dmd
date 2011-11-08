@@ -6352,6 +6352,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
             goto Lerr;
         }
         t = exp->type;
+        t = t->addMod(mod);
         if (!t)
         {
             error(loc, "expression (%s) has no type", exp->toChars());
