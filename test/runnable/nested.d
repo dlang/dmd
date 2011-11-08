@@ -1486,6 +1486,28 @@ void test55()
 }
 
 /*******************************************/
+// 4401
+
+void test4401()
+{
+    auto foo() {
+        return 3;
+    }
+
+    auto bar() nothrow pure {
+        return 3;
+    }
+
+    auto baz() @property pure @safe {
+        return 3;
+    }
+
+    auto zoo()() @property pure @safe nothrow {
+        return 3;
+    }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1544,6 +1566,7 @@ int main()
     test53();
     test54();
     test55();
+    test4401();
 
     printf("Success\n");
     return 0;

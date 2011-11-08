@@ -2822,7 +2822,11 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
         token.value == TOKidentifier &&
         (tk = peek(&token))->value == TOKlparen &&
         skipParens(tk, &tk) &&
-        peek(tk)->value == TOKlparen)
+        ((tk = peek(tk)), 1) &&
+        skipAttributes(tk, &tk) &&
+        (tk->value == TOKlparen ||
+         tk->value == TOKlcurly)
+       )
     {
         ts = NULL;
     }
@@ -5039,7 +5043,8 @@ int Parser::skipAttributes(Token *t, Token **pt)
             //case TOKmanifest:
                 break;
             case TOKat:
-                if (parseAttribute() == STCundefined)
+                t = peek(t);
+                if (t->value == TOKidentifier)
                     break;
                 goto Lerror;
             default:
