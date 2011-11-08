@@ -24,6 +24,7 @@
 #include "aggregate.h"
 #include "id.h"
 #include "utf.h"
+#include "attrib.h" // for AttribDeclaration
 
 #include "template.h"
 TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd);
@@ -1575,8 +1576,18 @@ Expression *WithStatement::interpret(InterState *istate)
     printf("WithStatement::interpret()\n");
 #endif
     START()
-    error("with statements are not yet supported in CTFE");
-    return EXP_CANT_INTERPRET;
+    Expression *e = exp->interpret(istate);
+    if (exceptionOrCantInterpret(e))
+        return e;
+    if (wthis->type->ty == Tpointer && exp->type->ty != Tpointer)
+    {
+        e = new AddrExp(loc, e);
+        e->type = wthis->type;
+    }
+    wthis->createStackValue(e);
+    e = body ? body->interpret(istate) : EXP_VOID_INTERPRET;
+    wthis->setValueNull();
+    return e;
 }
 
 Expression *AsmStatement::interpret(InterState *istate)
@@ -2034,16 +2045,24 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         }
         else if (s->isTupleDeclaration() && !v->init)
             e = NULL;
+        else if (v->isStatic() && !v->init)
+            e = NULL;   // Just ignore static variables which aren't read or written yet
         else
         {
-            error("Declaration %s is not yet implemented in CTFE", toChars());
+            error("Static variable %s cannot be modified at compile time", v->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
     else if (declaration->isAttribDeclaration() ||
              declaration->isTemplateMixin() ||
              declaration->isTupleDeclaration())
-    {   // These can be made to work, too lazy now
+    {   // Check for static struct declarations, which aren't executable
+        AttribDeclaration *ad = declaration->isAttribDeclaration();
+        if (ad && ad->decl && ad->decl->dim == 1
+            && ad->decl->tdata()[0]->isAggregateDeclaration())
+            return NULL;    // static struct declaration. Nothing to do.
+
+        // These can be made to work, too lazy now
         error("Declaration %s is not yet implemented in CTFE", toChars());
         e = EXP_CANT_INTERPRET;
     }
@@ -4648,6 +4667,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             if (exceptionOrCantInterpret(pthis))
                 return pthis;
                 // Evaluate 'this'
+            Expression *oldpthis = pthis;
             if (pthis->op != TOKvar)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
             if (exceptionOrCantInterpret(pthis))
@@ -4660,8 +4680,21 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
                     thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
                 }
                 // Get the function from the vtable of the original class
-                assert(thisval && thisval->op == TOKclassreference);
-                ClassDeclaration *cd = ((ClassReferenceExp *)thisval)->originalClass();
+                ClassDeclaration *cd;
+                if (thisval && thisval->op == TOKnull)
+                {
+                    error("function call through null class reference %s", pthis->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
+                if (oldpthis->op == TOKsuper)
+                {   assert(oldpthis->type->ty == Tclass);
+                    cd = ((TypeClass *)oldpthis->type)->sym;
+                }
+                else
+                {
+                    assert(thisval && thisval->op == TOKclassreference);
+                    cd = ((ClassReferenceExp *)thisval)->originalClass();
+                }
                 // We can't just use the vtable index to look it up, because
                 // vtables for interfaces don't get populated until the glue layer.
                 fd = cd->findFunc(fd->ident, (TypeFunction *)fd->type);
@@ -6166,6 +6199,11 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
         }
     }
 #endif
+    if (nargs == 1 && !pthis &&
+        (fd->ident == Id::criticalenter || fd->ident == Id::criticalexit))
+    {   // Support synchronized{} as a no-op
+        return EXP_VOID_INTERPRET;
+    }
     if (!pthis)
     {
         size_t idlen = strlen(fd->ident->string);
