@@ -1091,223 +1091,15 @@ Expression *ForStatement::interpret(InterState *istate)
 
 Expression *ForeachStatement::interpret(InterState *istate)
 {
-#if 1
     assert(0);                  // rewritten to ForStatement
     return NULL;
-#else
-#if LOG
-    printf("ForeachStatement::interpret()\n");
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (istate->start)
-        return NULL;
-
-    Expression *e = NULL;
-    Expression *eaggr;
-
-    if (value->isOut() || value->isRef())
-        return EXP_CANT_INTERPRET;
-
-    eaggr = aggr->interpret(istate);
-    if (eaggr == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
-
-    Expression *dim = ArrayLength(Type::tsize_t, eaggr);
-    if (dim == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
-
-    Expression *keysave = key ? key->value : NULL;
-    Expression *valuesave = value->value;
-
-    uinteger_t d = dim->toUInteger();
-    uinteger_t index;
-
-    if (op == TOKforeach)
-    {
-        for (index = 0; index < d; index++)
-        {
-            Expression *ekey = new IntegerExp(loc, index, Type::tsize_t);
-            if (key)
-                key->value = ekey;
-            e = Index(value->type, eaggr, ekey);
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            value->value = e;
-
-            e = body ? body->interpret(istate) : NULL;
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            if (e == EXP_BREAK_INTERPRET)
-            {
-                if (!istate->gotoTarget || istate->gotoTarget == this)
-                {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
-                break;
-            }
-            if (e == EXP_CONTINUE_INTERPRET)
-            {
-                if (istate->gotoTarget && istate->gotoTarget != this)
-                    break; // continue at higher level
-                istate->gotoTarget = NULL;
-                e = NULL;
-            }
-            else if (e)
-                break;
-        }
-    }
-    else // TOKforeach_reverse
-    {
-        for (index = d; index-- != 0;)
-        {
-            Expression *ekey = new IntegerExp(loc, index, Type::tsize_t);
-            if (key)
-                key->value = ekey;
-            e = Index(value->type, eaggr, ekey);
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            value->value = e;
-
-            e = body ? body->interpret(istate) : NULL;
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            if (e == EXP_BREAK_INTERPRET)
-            {
-                if (!istate->gotoTarget || istate->gotoTarget == this)
-                {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
-                break;
-            }
-            if (e == EXP_CONTINUE_INTERPRET)
-            {
-                if (istate->gotoTarget && istate->gotoTarget != this)
-                    break; // continue at higher level
-                istate->gotoTarget = NULL;
-                e = NULL;
-            }
-            else if (e)
-                break;
-        }
-    }
-    value->value = valuesave;
-    if (key)
-        key->value = keysave;
-    return e;
-#endif
 }
 
 #if DMDV2
 Expression *ForeachRangeStatement::interpret(InterState *istate)
 {
-#if 1
     assert(0);                  // rewritten to ForStatement
     return NULL;
-#else
-#if LOG
-    printf("ForeachRangeStatement::interpret()\n");
-#endif
-    if (istate->start == this)
-        istate->start = NULL;
-    if (istate->start)
-        return NULL;
-
-    Expression *e = NULL;
-    Expression *elwr = lwr->interpret(istate);
-    if (elwr == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
-
-    Expression *eupr = upr->interpret(istate);
-    if (eupr == EXP_CANT_INTERPRET)
-        return EXP_CANT_INTERPRET;
-
-    Expression *keysave = key->value;
-
-    if (op == TOKforeach)
-    {
-        key->value = elwr;
-
-        while (1)
-        {
-            e = Cmp(TOKlt, key->value->type, key->value, eupr);
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            if (e->isBool(TRUE) == FALSE)
-            {   e = NULL;
-                break;
-            }
-
-            e = body ? body->interpret(istate) : NULL;
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            if (e == EXP_BREAK_INTERPRET)
-            {
-                if (!istate->gotoTarget || istate->gotoTarget == this)
-                {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
-                break;
-            }
-            if (e == EXP_CONTINUE_INTERPRET
-                && istate->gotoTarget && istate->gotoTarget != this)
-                break; // continue at higher level
-            if (e == NULL || e == EXP_CONTINUE_INTERPRET)
-            {   e = Add(key->value->type, key->value, new IntegerExp(loc, 1, key->value->type));
-                istate->gotoTarget = NULL;
-                if (e == EXP_CANT_INTERPRET)
-                    break;
-                key->value = e;
-            }
-            else
-                break;
-        }
-    }
-    else // TOKforeach_reverse
-    {
-        key->value = eupr;
-
-        do
-        {
-            e = Cmp(TOKgt, key->value->type, key->value, elwr);
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            if (e->isBool(TRUE) == FALSE)
-            {   e = NULL;
-                break;
-            }
-
-            e = Min(key->value->type, key->value, new IntegerExp(loc, 1, key->value->type));
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            key->value = e;
-
-            e = body ? body->interpret(istate) : NULL;
-            if (e == EXP_CANT_INTERPRET)
-                break;
-            if (e == EXP_BREAK_INTERPRET)
-            {
-                if (!istate->gotoTarget || istate->gotoTarget == this)
-                {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
-                break;
-            }
-            if (e == EXP_CONTINUE_INTERPRET)
-            {
-                if (istate->gotoTarget && istate->gotoTarget != this)
-                    break; // continue at higher level
-                istate->gotoTarget = NULL;
-            }
-        } while (e == NULL || e == EXP_CONTINUE_INTERPRET);
-    }
-    key->value = keysave;
-    return e;
-#endif
 }
 #endif
 
@@ -1562,11 +1354,7 @@ Expression *ThrowStatement::interpret(InterState *istate)
 
 Expression *OnScopeStatement::interpret(InterState *istate)
 {
-#if LOG
-    printf("OnScopeStatement::interpret()\n");
-#endif
-    START()
-    error("scope guard statements are not yet supported in CTFE");
+    assert(0);
     return EXP_CANT_INTERPRET;
 }
 
