@@ -1544,7 +1544,13 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
             return e;
         }
         if ( !isSafePointerCast(elemtype, pointee) )
-        {
+        {   // It's also OK to cast from &string to string*.
+            if ( offset == 0 && isSafePointerCast(var->type, pointee) )
+            {
+                VarExp *ve = new VarExp(loc, var);
+                ve->type = type;
+                return ve;
+            }
             error("reinterpreting cast from %s to %s is not supported in CTFE",
                 val->type->toChars(), type->toChars());
             return EXP_CANT_INTERPRET;
