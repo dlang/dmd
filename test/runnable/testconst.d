@@ -1404,7 +1404,7 @@ inout(int) test82(inout(int) _ = 0)
 
     inout(immutable(char)) i;
     pragma(msg, typeof(i));
-    static assert(typeof(i).stringof == "inout(char)");
+    static assert(typeof(i).stringof == "immutable(char)");
 
     immutable(inout(char)) j;
     pragma(msg, typeof(j));
@@ -1412,7 +1412,7 @@ inout(int) test82(inout(int) _ = 0)
 
     inout(const(char)) k;
     pragma(msg, typeof(k));
-    static assert(typeof(k).stringof == "inout(char)");
+    static assert(typeof(k).stringof == "const(char)");
 
     const(inout(char)) l;
     pragma(msg, typeof(l));
@@ -1990,6 +1990,44 @@ inout(char)[] test6867(inout(char)[] a)
    }
    return [];
 }
+
+/************************************/
+// 6338, 6922
+
+alias int T;
+
+static assert(is( immutable(       T )  == immutable(T) ));
+static assert(is( immutable( const(T))  == immutable(T) )); // 6922
+static assert(is( immutable(shared(T))  == immutable(T) ));
+static assert(is( immutable( inout(T))  == immutable(T) ));
+static assert(is(        immutable(T)   == immutable(T) ));
+static assert(is(  const(immutable(T))  == immutable(T) )); // 6922
+static assert(is( shared(immutable(T))  == immutable(T) )); // 6338
+static assert(is(  inout(immutable(T))  == immutable(T) ));
+
+static assert(is( inout(const(T)) == const(T) ));
+static assert(is( const(inout(T)) == const(T) ));
+
+static assert(is( immutable(shared(const(T))) == immutable(T) ));
+static assert(is( immutable(const(shared(T))) == immutable(T) ));
+static assert(is( shared(immutable(const(T))) == immutable(T) ));
+static assert(is( shared(const(immutable(T))) == immutable(T) ));
+static assert(is( const(shared(immutable(T))) == immutable(T) ));
+static assert(is( const(immutable(shared(T))) == immutable(T) ));
+
+static assert(is( immutable(shared(inout(T))) == immutable(T) ));
+static assert(is( immutable(inout(shared(T))) == immutable(T) ));
+static assert(is( shared(immutable(inout(T))) == immutable(T) ));
+static assert(is( shared(inout(immutable(T))) == immutable(T) ));
+static assert(is( inout(shared(immutable(T))) == immutable(T) ));
+static assert(is( inout(immutable(shared(T))) == immutable(T) ));
+
+static assert(is( const(shared(inout(T))) == shared(const(T)) ));
+static assert(is( const(inout(shared(T))) == shared(const(T)) ));
+static assert(is( shared(const(inout(T))) == shared(const(T)) ));
+static assert(is( shared(inout(const(T))) == shared(const(T)) ));
+static assert(is( inout(shared(const(T))) == shared(const(T)) ));
+static assert(is( inout(const(shared(T))) == shared(const(T)) ));
 
 /************************************/
 
