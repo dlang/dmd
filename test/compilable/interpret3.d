@@ -3484,3 +3484,23 @@ static assert({
     assert(a.y == 13);
     return true;
 }());
+
+/**************************************************
+    6522 opAssign + foreach
+**************************************************/
+
+struct Foo6522 {
+    bool b = false;
+    void opAssign(int x) {
+        this.b = true;
+    }
+}
+
+bool foo6522() {
+    Foo6522[1] array;
+    foreach (ref item; array)
+        item = 1;
+    return true;
+}
+
+static assert(foo6522());
