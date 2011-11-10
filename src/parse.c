@@ -2414,7 +2414,7 @@ Type *Parser::parseBasicType()
             check(TOKlparen);
             t = parseType();
             check(TOKrparen);
-            if (t->isImmutable() || t->isConst())
+            if (t->isImmutable()/* || t->isConst()*/)
                 ;
             else if (t->isShared())
                 t = t->makeSharedWild();
