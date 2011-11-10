@@ -49,6 +49,8 @@ void clearStringTab();
 
 #define STATICCTOR      0
 
+#define C_ONLY          0       // 1 means don't emit references to Phobos
+
 elem *eictor;
 symbol *ictorlocalgot;
 elem *ector;
@@ -464,7 +466,7 @@ void Module::genobjfile(int multiobj)
         toModuleArray();
     }
 
-#if 1
+#if !C_ONLY
     // If module assert
     for (int i = 0; i < 2; i++)
     {
@@ -519,7 +521,7 @@ void Module::genobjfile(int multiobj)
     }
 #endif
 
-#if 1
+#if !C_ONLY
     // Always generate module info, because of templates and -cov
     if (1 || needModuleInfo())
         genmoduleinfo();
