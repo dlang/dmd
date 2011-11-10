@@ -352,7 +352,7 @@ symbol * elf_sym_cdata(tym_t ty,char *p,int len)
     symbol *s;
 
 #if 0
-    if (OPT_IS_SET(OPTfwritable_strings))
+    if (I64)
     {
         alignOffset(DATA, tysize(ty));
         s = symboldata(Doffset, ty);
@@ -384,7 +384,7 @@ symbol * elf_sym_cdata(tym_t ty,char *p,int len)
 int elf_data_cdata(char *p, int len, int *pseg)
 {
     int oldoff;
-    /*if (OPT_IS_SET(OPTfwritable_strings))
+    if (I64)
     {
         oldoff = Doffset;
         SegData[DATA]->SDbuf->reserve(len);
@@ -392,7 +392,7 @@ int elf_data_cdata(char *p, int len, int *pseg)
         Doffset += len;
         *pseg = DATA;
     }
-    else*/
+    else
     {
         oldoff = CDoffset;
         SegData[CDATA]->SDbuf->reserve(len);
@@ -926,7 +926,7 @@ void obj_term()
                                 rel.r_length = 2;
                                 rel.r_extern = 1;
                                 rel.r_type = (r->rtype == RELrel) ? GENERIC_RELOC_SECTDIFF : GENERIC_RELOC_PAIR;
-                                if (s->Sfl == FLfunc && r->rtype == RELaddr)
+                                if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal) && r->rtype == RELaddr)
                                     rel.r_type = GENERIC_RELOC_PB_LA_PTR;
                                 fobjbuf->write(&rel, sizeof(rel));
                                 foffset += sizeof(rel);
@@ -989,6 +989,8 @@ void obj_term()
                             if (I64)
                             {
                                 rel.r_length = 3;
+                                if (0 && s->Sseg != seg)
+                                    rel.r_type = GENERIC_RELOC_SECTDIFF;
                             }
                             fobjbuf->write(&rel, sizeof(rel));
                             foffset += sizeof(rel);
@@ -1082,6 +1084,8 @@ void obj_term()
                     if (I64)
                     {
                         rel.r_length = 3;
+                        if (0 && r->targseg != seg)
+                            rel.r_type = GENERIC_RELOC_SECTDIFF;
                     }
                     fobjbuf->write(&rel, sizeof(rel));
                     foffset += sizeof(rel);
@@ -1094,8 +1098,12 @@ void obj_term()
                             // Relative address
                             patch(pseg, r->offset, r->targseg, 0);
                         else
-                            // Absolute address; add in addr of start of targ seg
+                        {   // Absolute address; add in addr of start of targ seg
+//printf("*p = x%x, targ.addr = x%x\n", *p64, (int)SecHdrTab64[SegData[r->targseg]->SDshtidx].addr);
+//printf("pseg = x%x, r->offset = x%x\n", (int)SecHdrTab64[pseg->SDshtidx].addr, (int)r->offset);
                             *p64 += SecHdrTab64[SegData[r->targseg]->SDshtidx].addr;
+                            //*p64 -= SecHdrTab64[pseg->SDshtidx].addr;
+                        }
                         //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r->offset, before, *p64, rel.r_pcrel);
                     }
                     else
@@ -2375,10 +2383,17 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         assert(0);
     }
     mach_addrel(seg, offset, NULL, targetdatum, RELaddr);
-//    if (I64)
-//        buf->write64(val);
-//    else
-        buf->write32(val);
+    if (I64)
+    {
+        if (flags & CFoffset64)
+        {
+            buf->write64(val);
+            if (save > offset + 8)
+                buf->setsize(save);
+            return;
+        }
+    }
+    buf->write32(val);
     if (save > offset + 4)
         buf->setsize(save);
 }
