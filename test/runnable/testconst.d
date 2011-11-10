@@ -1992,6 +1992,27 @@ inout(char)[] test6867(inout(char)[] a)
 }
 
 /************************************/
+// 6912
+
+@property inout(int) testinout(string code)(inout(int) x=0){ mixin(code); return x; }
+static assert( is(typeof(testinout!q{ inout(int) wda = 2; }))); // unittest of testinout function
+
+void test6912()
+{
+    static assert(!is(typeof(testinout!q{           int [] mda; inout(          int []) wda = mda; })));
+    static assert(!is(typeof(testinout!q{           int [] mda; inout(    const(int)[]) wda = mda; })));
+    static assert(!is(typeof(testinout!q{     const(int)[] cda; inout(    const(int)[]) wda = cda; })));
+    static assert(!is(typeof(testinout!q{ immutable(int)[] ida; inout(    const(int)[]) wda = ida; })));
+    static assert(!is(typeof(testinout!q{ immutable(int)[] ida; inout(immutable(int)[]) wda = ida; })));
+
+    static assert(!is(typeof(testinout!q{           int [int] maa; inout(          int [int]) waa = maa; })));
+    static assert(!is(typeof(testinout!q{           int [int] maa; inout(    const(int)[int]) waa = maa; })));
+    static assert(!is(typeof(testinout!q{     const(int)[int] caa; inout(    const(int)[int]) waa = caa; })));
+    static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(    const(int)[int]) waa = iaa; })));
+    static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(immutable(int)[int]) waa = iaa; })));
+}
+
+/************************************/
 
 int main()
 {
@@ -2088,6 +2109,7 @@ int main()
     test6864();
     test6865();
     test6866();
+    test6912();
 
     printf("Success\n");
     return 0;
