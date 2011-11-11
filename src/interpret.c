@@ -55,10 +55,23 @@ private:
      * have to redo them. This saves a lot of time and memory.
      */
     Expressions globalValues; // values of global constants
+    size_t framepointer; // current frame pointer
 public:
     size_t stackPointer()
     {
         return values.dim;
+    }
+    // return the previous frame
+    size_t startFrame()
+    {
+        size_t oldframe = framepointer;
+        framepointer = stackPointer();
+        return oldframe;
+    }
+    void endFrame(size_t oldframe)
+    {
+        popAll(framepointer);
+        framepointer = oldframe;
     }
     Expression *getValue(VarDeclaration *v)
     {
@@ -73,6 +86,12 @@ public:
     }
     void push(VarDeclaration *v)
     {
+        if (v->ctfeAdrOnStack!= (size_t)-1
+            && v->ctfeAdrOnStack >= framepointer)
+        {   // Already exists in this frame, reuse it.
+            values.tdata()[v->ctfeAdrOnStack] = NULL;
+            return;
+        }
         savedId.push((void *)(v->ctfeAdrOnStack));
         v->ctfeAdrOnStack = values.dim;
         vars.push(v);
@@ -115,7 +134,7 @@ struct InterState
 {
     InterState *caller;         // calling function's InterState
     FuncDeclaration *fd;        // function being interpreted
-    size_t stackpointer;
+    size_t framepointer;        // frame pointer of previous frame
     Statement *start;           // if !=NULL, start execution at this statement
     Statement *gotoTarget;      /* target of EXP_GOTO_INTERPRET result; also
                                  * target of labelled EXP_BREAK_INTERPRET or
@@ -398,7 +417,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     istatex.caller = istate;
     istatex.fd = this;
     istatex.localThis = thisarg;
-    istatex.stackpointer = ctfeStack.stackPointer();
+    istatex.framepointer = ctfeStack.startFrame();
 
     Expressions vsave;          // place to save previous parameter values
     size_t dim = 0;
@@ -542,7 +561,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // Leave the function
     --CtfeStatus::callDepth;
 
-    ctfeStack.popAll(istatex.stackpointer);
+    ctfeStack.endFrame(istatex.framepointer);
 
     if (e == EXP_CANT_INTERPRET || !exceptionOrCantInterpret(e))
         return e;
