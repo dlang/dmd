@@ -1,3 +1,9 @@
+$(VERSION 057, mmm dd, 2011, =================================================,
+
+    $(RUNTIMEBUGSFIXED
+$(LI $(BUGZILLA 6909): incorrect definition of the OVERLAPPED struct in core.sys.windows.windows ?)
+    )
+)
 $(VERSION 055, mmm dd, 2011, =================================================,
 
     $(RUNTIMEBUGSFIXED
