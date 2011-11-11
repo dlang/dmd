@@ -4041,6 +4041,49 @@ void test6902()
 }
 
 /***************************************************/
+// 5311
+
+class C5311
+{
+    private static int globalData;
+
+    void breaksPure() pure const
+    {
+        static assert(!__traits(compiles, { globalData++; }));		// SHOULD BE ERROR
+        static assert(!__traits(compiles, { X.globalData++; }));	// SHOULD BE ERROR
+        static assert(!__traits(compiles, { this.globalData++; }));	// SHOULD BE ERROR
+
+        static assert(!__traits(compiles, { int a = this.globalData; }));
+    }
+}
+static void breaksPure5311a(C5311 x) pure
+{
+    static assert(!__traits(compiles, { x.globalData++; }));		// SHOULD BE ERROR
+
+    static assert(!__traits(compiles, { int a = x.globalData; }));
+}
+
+struct S5311
+{
+    private static int globalData;
+
+    void breaksPure() pure const
+    {
+        static assert(!__traits(compiles, { globalData++; }));		// SHOULD BE ERROR
+        static assert(!__traits(compiles, { X.globalData++; }));	// SHOULD BE ERROR
+        static assert(!__traits(compiles, { this.globalData++; }));	// SHOULD BE ERROR
+
+        static assert(!__traits(compiles, { int a = this.globalData; }));
+    }
+}
+static void breaksPure5311b(S5311 x) pure
+{
+    static assert(!__traits(compiles, { x.globalData++; }));		// SHOULD BE ERROR
+
+    static assert(!__traits(compiles, { int a = x.globalData; }));
+}
+
+/***************************************************/
 
 int main()
 {
