@@ -323,11 +323,16 @@ enum
 }
 
 struct OVERLAPPED {
-    DWORD   Internal;
-    DWORD   InternalHigh;
-    DWORD   Offset;
-    DWORD   OffsetHigh;
-    HANDLE  hEvent;
+    ULONG_PTR Internal;
+    ULONG_PTR InternalHigh;
+    union {
+        struct {
+            DWORD Offset;
+            DWORD OffsetHigh;
+        }
+        void* Pointer;
+    }
+    HANDLE hEvent;
 }
 
 struct SECURITY_ATTRIBUTES {
