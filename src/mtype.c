@@ -7268,7 +7268,7 @@ L1:
         accessCheck(e->loc, sc, e, d);
         ve = new VarExp(e->loc, d);
         e = new CommaExp(e->loc, e, ve);
-        e->type = d->type;
+        e = e->semantic(sc);
         return e;
     }
 
@@ -7824,7 +7824,7 @@ L1:
         accessCheck(e->loc, sc, e, d);
         ve = new VarExp(e->loc, d);
         e = new CommaExp(e->loc, e, ve);
-        e->type = d->type;
+        e = e->semantic(sc);
         return e;
     }
 
