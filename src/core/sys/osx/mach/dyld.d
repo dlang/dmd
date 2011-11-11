@@ -14,11 +14,15 @@ module core.sys.osx.mach.dyld;
 
 version (OSX):
 
-import core.sys.osx.mach.loader;
+public import core.stdc.stdint; // for intptr_t
+public import core.sys.osx.mach.loader;
 
 extern (C):
 
-uint _dyld_image_count ();
-mach_header* _dyld_get_image_header (uint image_index);
+uint         _dyld_image_count();
+const(char)* _dyld_get_image_name(uint image_index);
+mach_header* _dyld_get_image_header(uint image_index);
+void         _dyld_register_func_for_add_image(void function(in mach_header* mh, intptr_t vmaddr_slide));
+void         _dyld_register_func_for_remove_image(void function(in mach_header* mh, intptr_t vmaddr_slide));
 
 

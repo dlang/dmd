@@ -186,7 +186,7 @@ MANIFEST= \
 	src/rt/llmath.d \
 	src/rt/mars.h \
 	src/rt/memory.d \
-	src/rt/memory_osx.c \
+	src/rt/memory_osx.d \
 	src/rt/memset.d \
 	src/rt/minit.asm \
 	src/rt/monitor_.d \
@@ -311,6 +311,7 @@ SRC_D_MODULES = \
 	rt/lifetime \
 	rt/llmath \
 	rt/memory \
+	rt/memory_osx \
 	rt/memset \
 	rt/monitor_ \
 	rt/obj \
@@ -364,7 +365,7 @@ SRC_D_MODULES = \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o $(OBJDIR)/memory_osx.o
+OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o
 
 DOCS=\
 	$(DOCDIR)/object.html \

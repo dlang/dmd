@@ -167,7 +167,7 @@ MANIFEST= \
 	src\rt\llmath.d \
 	src\rt\mars.h \
 	src\rt\memory.d \
-	src\rt\memory_osx.c \
+	src\rt\memory_osx.d \
 	src\rt\memset.d \
 	src\rt\minit.asm \
 	src\rt\monitor.c \
@@ -758,13 +758,13 @@ $(IMPDIR)\core\sys\posix\utime.di : src\core\sys\posix\utime.d
 
 $(IMPDIR)\core\sys\windows\dbghelp.di : src\core\sys\windows\dbghelp.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
+
 $(IMPDIR)\core\sys\windows\dll.di : src\core\sys\windows\dll.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sys\windows\stacktrace.di : src\core\sys\windows\stacktrace.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-	
+
 $(IMPDIR)\core\sys\windows\threadaux.di : src\core\sys\windows\threadaux.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
