@@ -3983,6 +3983,44 @@ void test6859()
 }
 
 /***************************************************/
+// 6910
+
+template Test6910(alias i, B)
+{
+    void fn()
+    {
+        foreach(t; B.Types)
+        {
+            switch(i)
+            {
+                case 0://IndexOf!(t, B.Types):
+                {
+                    pragma(msg, __traits(allMembers, t));
+                    pragma(msg, __traits(hasMember, t, "m"));
+                    static assert(__traits(hasMember, t, "m")); // test
+                    break;
+                }
+                default: {}
+            }
+        }
+    }
+}
+void test6910()
+{
+    static struct Bag(S...)
+    {
+        alias S Types;
+    }
+    static struct A
+    {
+        int m;
+    }
+
+    int i;
+    alias Test6910!(i, Bag!(A)).fn func;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4176,6 +4214,7 @@ int main()
     test6733();
     test6813();
     test6859();
+    test6910();
 
     printf("Success\n");
     return 0;
