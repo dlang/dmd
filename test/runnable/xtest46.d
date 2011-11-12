@@ -4041,6 +4041,24 @@ void test6902()
 }
 
 /***************************************************/
+// 6330
+
+struct S6330
+{
+    void opAssign(S6330 s) @disable
+    {
+        assert(0);  // This fails.
+    }
+}
+
+void test6330()
+{
+    S6330 s;
+    S6330 s2;
+    static assert(!is(typeof({ s2 = s; })));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4236,6 +4254,7 @@ int main()
     test6859();
     test6910();
     test6902();
+    test6330();
 
     printf("Success\n");
     return 0;
