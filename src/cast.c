@@ -1914,7 +1914,8 @@ Lagain:
                 e1b = resolveProperties(sc, e1b);
                 i2 = e1b->implicitConvTo(t2);
             }
-            assert(!(i1 && i2));
+            if (i1 && i2)
+                goto Lincompatible;
 
             if (i1)
                 goto Lt1;

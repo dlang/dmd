@@ -672,6 +672,26 @@ void test6928()
 }
 
 /**********************************************/
+// 6929
+
+struct S6929
+{
+    T6929 get() const { return T6929.init; }
+    alias get this;
+}
+struct T6929
+{
+    S6929 get() const { return S6929.init; }
+    alias get this;
+}
+void test6929()
+{
+    T6929 t;
+    S6929 s;
+    static assert(!is(typeof(1? t:s)));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -698,6 +718,7 @@ int main()
     test6759();
     test6832();
     test6928();
+    test6929();
 
     printf("Success\n");
     return 0;
