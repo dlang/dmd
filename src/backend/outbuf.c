@@ -15,6 +15,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdio.h>
 
 #include "cc.h"
 
@@ -87,6 +88,12 @@ void Outbuffer::reserve(unsigned nbytes)
         else
             buf = (unsigned char *) malloc(len);
 #endif
+        if (!buf)
+        {
+            fprintf(stderr, "Fatal Error: Out of memory");
+            exit(EXIT_FAILURE);
+        }
+
         pend = buf + len;
         p = buf + used;
     }
