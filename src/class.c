@@ -31,6 +31,7 @@
 
 ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
+ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
@@ -184,13 +185,31 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
             object = this;
         }
 
+#if DMDV2
+        if (id == Id::Throwable)
+        {   if (throwable)
+                throwable->error("%s", msg);
+            throwable = this;
+        }
+#endif
+
+        if (id == Id::Exception)
+        {   if (exception)
+                exception->error("%s", msg);
+            exception = this;
+        }
+
         if (id == Id::Error)
         {   if (errorException)
                 errorException->error("%s", msg);
             errorException = this;
         }
 
+#if DMDV2
+        if (id == Id::TypeInfo_Class)
+#else
         if (id == Id::ClassInfo)
+#endif
         {   if (classinfo)
                 classinfo->error("%s", msg);
             classinfo = this;
