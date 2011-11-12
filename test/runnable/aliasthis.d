@@ -649,6 +649,29 @@ void test6832()
 }
 
 /**********************************************/
+// 6928
+
+void test6928()
+{
+    struct T { int* p; } // p is necessary.
+    T tx;
+
+    struct S {
+        T get() const { return tx; }
+        alias get this;
+    }
+
+    immutable(S) s;
+    immutable(T) t;
+    static assert(is(typeof(1? s:t))); // ok.
+    static assert(is(typeof(1? t:s))); // ok.
+    static assert(is(typeof(1? s:t)==typeof(1? t:s))); // fail.
+
+    auto x = 1? t:s; // ok.
+    auto y = 1? s:t; // compile error.
+}
+
+/**********************************************/
 
 int main()
 {
@@ -674,6 +697,7 @@ int main()
     test6366();
     test6759();
     test6832();
+    test6928();
 
     printf("Success\n");
     return 0;

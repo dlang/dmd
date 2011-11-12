@@ -1879,6 +1879,15 @@ Lagain:
     }
     else if (t1->ty == Tstruct && t2->ty == Tstruct)
     {
+        if (t1->mod != t2->mod)
+        {
+            unsigned char mod = MODmerge(t1->mod, t2->mod);
+            t1 = t1->castMod(mod);
+            t2 = t2->castMod(mod);
+            t = t1;
+            goto Lagain;
+        }
+
         TypeStruct *ts1 = (TypeStruct *)t1;
         TypeStruct *ts2 = (TypeStruct *)t2;
         if (ts1->sym != ts2->sym)
@@ -1920,11 +1929,21 @@ Lagain:
             {   e2 = e2b;
                 t2 = e2b->type->toBasetype();
             }
+            t = t1;
             goto Lagain;
         }
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct)
     {
+        if (t1->mod != t2->mod)
+        {
+            unsigned char mod = MODmerge(t1->mod, t2->mod);
+            t1 = t1->castMod(mod);
+            t2 = t2->castMod(mod);
+            t = t1;
+            goto Lagain;
+        }
+
         if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
         {
             e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);
