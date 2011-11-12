@@ -672,7 +672,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     aliassym = NULL;
     onstack = 0;
     canassign = 0;
-    setValueNull();
+    ctfeAdrOnStack = (size_t)(-1);
 #if DMDV2
     rundtor = NULL;
     edtor = NULL;

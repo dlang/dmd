@@ -3484,3 +3484,52 @@ static assert({
     assert(a.y == 13);
     return true;
 }());
+
+/**************************************************
+    6522 opAssign + foreach
+**************************************************/
+
+struct Foo6522 {
+    bool b = false;
+    void opAssign(int x) {
+        this.b = true;
+    }
+}
+
+bool foo6522() {
+    Foo6522[1] array;
+    foreach (ref item; array)
+        item = 1;
+    return true;
+}
+
+static assert(foo6522());
+
+/**************************************************
+    6919
+**************************************************/
+
+void bug6919(int* val)
+{
+    *val = 1;
+}
+void test6919()
+{
+    int n;
+    bug6919(&n);
+    assert(n == 1);
+}
+static assert({ test6919(); return true; }());
+
+void bug6919b(string* val)
+{
+    *val = "1";
+}
+
+void test6919b()
+{
+    string val;
+    bug6919b(&val);
+    assert(val == "1");
+}
+static assert({ test6919b(); return true; }());
