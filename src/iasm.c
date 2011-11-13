@@ -52,7 +52,9 @@
 #include        "code.h"
 #include        "iasm.h"
 
+#if DMDV1
 #undef _DH
+#endif
 
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
@@ -3897,7 +3899,7 @@ STATIC OPND *asm_una_exp()
         ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
         char bPtr = 0;
 
-        switch (tok_value)
+        switch ((int)tok_value)
         {
 #if 0
                 case TOKand:
@@ -4401,7 +4403,9 @@ Statement *AsmStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     assert(fd);
+#if DMDV1
     fd->inlineAsm = 1;
+#endif
 
     if (!tokens)
         return NULL;
