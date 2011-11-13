@@ -2539,6 +2539,25 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                 /* FALL-THROUGH */
             case OPs64_d:
             case OPs32_d:
+                if (I64 && *pretregs & XMMREGS)
+                {
+                    unsigned retregs = ALLREGS;
+                    c1 = codelem(e->E1, &retregs, FALSE);
+                    unsigned reg = findreg(retregs);
+
+                    unsigned xreg;
+                    retregs = XMMREGS & *pretregs;
+                    c1 = cat(c1,allocreg(&retregs,&xreg,TYdouble));
+                    xreg = findreg(retregs);
+
+                    // CVTSI2SD xreg,reg
+                    c2 = gen2(NULL, 0xF20F2A, modregxrmx(3,xreg-XMM0,reg));
+                    if (e->Eoper == OPs64_d)
+                        c2->Irex |= REX_W;
+                    *pretregs = mask[xreg];
+                    return cat(c1, c2);
+                }
+                /* FALL-THROUGH */
             case OPs16_d:
             case OPu16_d:
                 return load87(e,0,pretregs,NULL,-1);
