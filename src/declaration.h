@@ -252,15 +252,13 @@ struct VarDeclaration : Declaration
     int canassign;              // it can be assigned to
     Dsymbol *aliassym;          // if redone as alias to another symbol
 
-    // When interpreting, these point to the value (NULL if value not determinable)
-    // The index of this variable on the CTFE stack, -1 if not allocated
-    size_t ctfeAdrOnStack;
+    // When interpreting, these hold the value (NULL if value not determinable)
     // The various functions are used only to detect compiler CTFE bugs
-    Expression *getValue();
-    bool hasValue();
+    Expression *literalvalue;
+    Expression *getValue() { return literalvalue; }
     void setValueNull();
     void setValueWithoutChecking(Expression *newval);
-    void createRefValue(Expression *newval);
+    void createRefValue(Expression *newval); // struct or array literal
     void setRefValue(Expression *newval);
     void setStackValue(Expression *newval);
     void createStackValue(Expression *newval);
