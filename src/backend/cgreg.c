@@ -48,7 +48,7 @@ static int *weights;
 
 void cgreg_init()
 {
-    if (!config.flags4 & CFG4optimized)
+    if (!(config.flags4 & CFG4optimized))
         return;
 
     // Use calloc() instead because sometimes the alloc is too large

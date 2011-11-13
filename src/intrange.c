@@ -21,7 +21,7 @@
 static uinteger_t copySign(uinteger_t x, bool sign)
 {
     // return sign ? -x : x;
-    return (x - sign) ^ -sign; 
+    return (x - (uinteger_t)sign) ^ -(uinteger_t)sign;
 }
 
 #ifndef UINT64_MAX
@@ -127,7 +127,7 @@ SignExtendedNumber SignExtendedNumber::operator/(const SignExtendedNumber& a) co
         anything / INT65_MIN = 0
         + / 0 = INT65_MAX  (eh?)
         - / 0 = INT65_MIN  (eh?)
-    */    
+    */
     if (a.value == 0)
     {
         if (a.negative)
@@ -136,8 +136,8 @@ SignExtendedNumber SignExtendedNumber::operator/(const SignExtendedNumber& a) co
             return extreme(negative);
     }
 
-    uinteger_t aAbs = copySign(a.value, a.negative); 
-    uinteger_t rvVal;   
+    uinteger_t aAbs = copySign(a.value, a.negative);
+    uinteger_t rvVal;
 
     if (!isMinimum())
         rvVal = copySign(value, negative) / aAbs;
@@ -146,7 +146,7 @@ SignExtendedNumber SignExtendedNumber::operator/(const SignExtendedNumber& a) co
     else if (aAbs & (aAbs-1))
         rvVal = UINT64_MAX / aAbs;
     // otherwise, it's the same as reversing the bits of x.
-    else 
+    else
     {
         if (aAbs == 1)
             return extreme(!a.negative);
@@ -210,7 +210,7 @@ SignExtendedNumber SignExtendedNumber::operator<<(const SignExtendedNumber& a) c
         return extreme(negative);
 
     uinteger_t v = copySign(value, negative);
-    
+
     // compute base-2 log of 'v' to determine the maximum allowed bits to shift.
     // Ref: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
 
@@ -236,7 +236,7 @@ SignExtendedNumber SignExtendedNumber::operator>>(const SignExtendedNumber& a) c
         return negative ? SignExtendedNumber(-1, true) : SignExtendedNumber(0);
     else if (isMinimum())
         return a.value == 0 ? *this : SignExtendedNumber(-1ULL << (64-a.value), true);
-    
+
     uinteger_t x = value ^ -negative;
     x >>= a.value;
     return SignExtendedNumber(x ^ -negative, negative);
@@ -308,11 +308,11 @@ IntRange& IntRange::castUnsigned(uinteger_t mask)
 {
     // .... 0x1eff ] [0x1f00 .. 0x1fff] [0 .. 0xff] [0x100 .. 0x1ff] [0x200 ....
     //
-    // regular unsigned type. We just need to see if ir steps across the 
+    // regular unsigned type. We just need to see if ir steps across the
     //  boundary of validRange. If yes, ir will represent the whole validRange,
     //  otherwise, we just take the modulus.
     // e.g. [0x105, 0x107] & 0xff == [5, 7]
-    //      [0x105, 0x207] & 0xff == [0, 0xff] 
+    //      [0x105, 0x207] & 0xff == [0, 0xff]
     uinteger_t minChunk = imin.value & ~mask;
     uinteger_t maxChunk = imax.value & ~mask;
     if (minChunk == maxChunk && imin.negative == imax.negative)
@@ -455,7 +455,7 @@ void IntRange::splitBySign(IntRange& negRange, bool& hasNegRange,
 
 
 #if !PERFORM_UNITTEST
-const IntRange& IntRange::dump(const char* funcName, Expression *e) const 
+const IntRange& IntRange::dump(const char* funcName, Expression *e) const
 {
     printf("[(%c)%#018llx, (%c)%#018llx] @ %s ::: %s\n",
            imin.negative?'-':'+', (unsigned long long)imin.value,

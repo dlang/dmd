@@ -7670,7 +7670,7 @@ Lagain:
                 if (sc->func->setImpure())
                     error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
             }
-            if (sc->func && !((TypeFunction *)t1)->trust <= TRUSTsystem)
+            if (sc->func && ((TypeFunction *)t1)->trust <= TRUSTsystem)
             {
                 if (sc->func->setUnsafe())
                     error("safe function '%s' cannot call system function pointer '%s'", sc->func->toChars(), e1->toChars());

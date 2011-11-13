@@ -85,12 +85,12 @@ void rtlsym_init()
 #endif
 
 #undef SYMBOL_Z
-#define SYMBOL_Z(e, fl, saved, n, flags, ty)                            \
-        if (ty) rtlsym[RTLSYM_##e]->Stype = ty;                         \
-        if (fl != FLfunc) rtlsym[RTLSYM_##e]->Sfl = fl;                 \
-        if (flags) rtlsym[RTLSYM_##e]->Sflags = flags;                  \
-        if (saved != FREGSAVED) rtlsym[RTLSYM_##e]->Sregsaved = saved;  \
-        strcpy(rtlsym[RTLSYM_##e]->Sident, n);                          \
+#define SYMBOL_Z(e, fl, saved, n, flags, ty)                                \
+        if (ty) rtlsym[RTLSYM_##e]->Stype = (ty);                           \
+        if ((fl) != FLfunc) rtlsym[RTLSYM_##e]->Sfl = (fl);                 \
+        if (flags) rtlsym[RTLSYM_##e]->Sflags = (flags);                    \
+        if ((saved) != FREGSAVED) rtlsym[RTLSYM_##e]->Sregsaved = (saved);  \
+        strcpy(rtlsym[RTLSYM_##e]->Sident, (n));                            \
 
         RTLSYMS
     }

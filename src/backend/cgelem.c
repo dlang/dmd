@@ -339,7 +339,7 @@ STATIC elem *fixconvop(elem *e)
         elem **pe;
         unsigned cop,icop,op;
         tym_t tycop,tym,tyme;
-        static char invconvtab[] =
+        static unsigned char invconvtab[] =
         {
                 OPbool,         // OPb_8
                 OPs32_d,        // OPd_s32

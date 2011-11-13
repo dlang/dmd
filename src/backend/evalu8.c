@@ -1664,7 +1664,7 @@ elem * evalu8(elem *e)
     case OPgt:
         if (!tyfloating(tym))
             goto Lnle;
-        i ^= d1 > d2;
+        i ^= (int)(d1 > d2);
         e->EV.Vint = i;
         break;
 
@@ -1674,14 +1674,14 @@ elem * evalu8(elem *e)
     case OPle:
         if (uns)
         {
-            i ^= ((targ_ullong) l1) <= ((targ_ullong) l2);
+            i ^= (int)(((targ_ullong) l1) <= ((targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
-                i ^= d1 <= d2;
+                i ^= (int)(d1 <= d2);
             else
-                i ^= l1 <= l2;
+                i ^= (int)(l1 <= l2);
         }
         e->EV.Vint = i;
         break;
@@ -1691,7 +1691,7 @@ elem * evalu8(elem *e)
     case OPge:
         if (!tyfloating(tym))
             goto Lnlt;
-        i ^= d1 >= d2;
+        i ^= (int)(d1 >= d2);
         e->EV.Vint = i;
         break;
 
@@ -1701,14 +1701,14 @@ elem * evalu8(elem *e)
     case OPlt:
         if (uns)
         {
-            i ^= ((targ_ullong) l1) < ((targ_ullong) l2);
+            i ^= (int)(((targ_ullong) l1) < ((targ_ullong) l2));
         }
         else
         {
             if (tyfloating(tym))
-                i ^= d1 < d2;
+                i ^= (int)(d1 < d2);
             else
-                i ^= l1 < l2;
+                i ^= (int)(l1 < l2);
         }
         e->EV.Vint = i;
         break;
@@ -1725,33 +1725,33 @@ elem * evalu8(elem *e)
                         isnan(e2->EV.Vcfloat.re) || isnan(e2->EV.Vcfloat.im))
                         i ^= 1;
                     else
-                        i ^= (e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
-                             (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im);
+                        i ^= (int)((e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
+                                   (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im));
                     break;
                 case TYcdouble:
                     if (isnan(e1->EV.Vcdouble.re) || isnan(e1->EV.Vcdouble.im) ||
                         isnan(e2->EV.Vcdouble.re) || isnan(e2->EV.Vcdouble.im))
                         i ^= 1;
                     else
-                        i ^= (e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
-                             (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im);
+                        i ^= (int)((e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
+                                   (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im));
                     break;
                 case TYcldouble:
                     if (isnan(e1->EV.Vcldouble.re) || isnan(e1->EV.Vcldouble.im) ||
                         isnan(e2->EV.Vcldouble.re) || isnan(e2->EV.Vcldouble.im))
                         i ^= 1;
                     else
-                        i ^= (e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
-                             (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im);
+                        i ^= (int)((e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
+                                   (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im));
                     break;
                 default:
-                    i ^= d1 == d2;
+                    i ^= (int)(d1 == d2);
                     break;
             }
             //printf("%Lg + %Lgi, %Lg + %Lgi\n", e1->EV.Vcldouble.re, e1->EV.Vcldouble.im, e2->EV.Vcldouble.re, e2->EV.Vcldouble.im);
         }
         else
-            i ^= l1 == l2;
+            i ^= (int)(l1 == l2);
         e->EV.Vint = i;
         break;
 

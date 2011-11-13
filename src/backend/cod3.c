@@ -321,7 +321,7 @@ void cod3_set64()
 
 void cod3_align()
 {
-    static char nops[7] = { 0x90,0x90,0x90,0x90,0x90,0x90,0x90 };
+    static unsigned char nops[7] = { 0x90,0x90,0x90,0x90,0x90,0x90,0x90 };
     unsigned nbytes;
 #if OMFOBJ
     if (config.flags4 & CFG4speed)      // if optimized for speed
