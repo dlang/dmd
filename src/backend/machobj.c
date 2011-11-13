@@ -56,6 +56,17 @@ const SInt32 MacOSX_10_6 = 0x1060;
 #include        "mach.h"
 #include        "dwarf.h"
 
+// for x86_64
+#define X86_64_RELOC_UNSIGNED           0
+#define X86_64_RELOC_SIGNED             1
+#define X86_64_RELOC_BRANCH             2
+#define X86_64_RELOC_GOT_LOAD           3
+#define X86_64_RELOC_GOT                4
+#define X86_64_RELOC_SUBTRACTOR         5
+#define X86_64_RELOC_SIGNED_1           6
+#define X86_64_RELOC_SIGNED_2           7
+#define X86_64_RELOC_SIGNED_4           8
+
 static Outbuffer *fobjbuf;
 
 regm_t BYTEREGS = BYTEREGS_INIT;
@@ -196,9 +207,10 @@ struct Relocation
                         // to address of this symbol
     unsigned targseg;   // if !=0, then location is to be fixed up
                         // to address of start of this segment
-    int rtype;          // RELxxxx
+    unsigned char rtype;   // RELxxxx
 #define RELaddr 0       // straight address
 #define RELrel  1       // relative to location to be fixed up
+    short val;          // 0, -1, -2, -4
 };
 
 
@@ -904,7 +916,7 @@ void obj_term()
             for (; r != rend; r++)
             {   symbol *s = r->targsym;
                 const char *rs = r->rtype == RELaddr ? "addr" : "rel";
-                //printf("%d:x%04llx : tseg %d tsym %p REL%s\n", seg, r->offset, r->targseg, s, rs);
+                //printf("%d:x%04llx : tseg %d tsym %s REL%s\n", seg, r->offset, r->targseg, s ? s->Sident : "0", rs);
                 relocation_info rel;
                 scattered_relocation_info srel;
                 if (s)
@@ -915,19 +927,28 @@ void obj_term()
                     {
                         if (I64)
                         {
+                            rel.r_type = (r->rtype == RELrel)
+                                    ? X86_64_RELOC_BRANCH
+                                    : X86_64_RELOC_SIGNED;
+                            if (r->val == -1)
+                                rel.r_type = X86_64_RELOC_SIGNED_1;
+                            else if (r->val == -2)
+                                rel.r_type = X86_64_RELOC_SIGNED_2;
+                            if (r->val == -4)
+                                rel.r_type = X86_64_RELOC_SIGNED_4;
+
                             if (s->Sclass == SCextern ||
                                 s->Sclass == SCcomdef ||
                                 s->Sclass == SCcomdat ||
                                 s->Sclass == SCglobal)
                             {
+                                if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal || s->Sclass == SCcomdat || s->Sclass == SCcomdef) && r->rtype == RELaddr)
+                                    rel.r_type = X86_64_RELOC_GOT_LOAD;
                                 rel.r_address = r->offset;
                                 rel.r_symbolnum = s->Sxtrnnum;
                                 rel.r_pcrel = 1;
                                 rel.r_length = 2;
                                 rel.r_extern = 1;
-                                rel.r_type = (r->rtype == RELrel) ? GENERIC_RELOC_SECTDIFF : GENERIC_RELOC_PAIR;
-                                if ((s->Sfl == FLfunc || s->Sfl == FLextern || s->Sclass == SCglobal) && r->rtype == RELaddr)
-                                    rel.r_type = GENERIC_RELOC_PB_LA_PTR;
                                 fobjbuf->write(&rel, sizeof(rel));
                                 foffset += sizeof(rel);
                                 nreloc++;
@@ -940,7 +961,6 @@ void obj_term()
                                 rel.r_pcrel = 1;
                                 rel.r_length = 2;
                                 rel.r_extern = 0;
-                                rel.r_type = GENERIC_RELOC_SECTDIFF;
                                 fobjbuf->write(&rel, sizeof(rel));
                                 foffset += sizeof(rel);
                                 nreloc++;
@@ -971,6 +991,7 @@ void obj_term()
                             rel.r_type = GENERIC_RELOC_VANILLA;
                             if (I64)
                             {
+                                rel.r_type = X86_64_RELOC_UNSIGNED;
                                 rel.r_length = 3;
                             }
                             fobjbuf->write(&rel, sizeof(rel));
@@ -988,9 +1009,10 @@ void obj_term()
                             rel.r_type = GENERIC_RELOC_VANILLA;
                             if (I64)
                             {
+                                rel.r_type = X86_64_RELOC_UNSIGNED;
                                 rel.r_length = 3;
                                 if (0 && s->Sseg != seg)
-                                    rel.r_type = GENERIC_RELOC_SECTDIFF;
+                                    rel.r_type = X86_64_RELOC_BRANCH;
                             }
                             fobjbuf->write(&rel, sizeof(rel));
                             foffset += sizeof(rel);
@@ -1025,15 +1047,16 @@ void obj_term()
                     srel.r_scattered = 1;
 
                     srel.r_address = r->offset;
-                    srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
                     srel.r_length = 2;
                     if (I64)
                     {
+                        srel.r_type = X86_64_RELOC_GOT;
                         srel.r_value = SecHdrTab64[SegData[r->targseg]->SDshtidx].addr + *p64;
                         //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].addr, *p, srel.r_value);
                     }
                     else
                     {
+                        srel.r_type = GENERIC_RELOC_LOCAL_SECTDIFF;
                         srel.r_value = SecHdrTab[SegData[r->targseg]->SDshtidx].addr + *p;
                         //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].addr, *p, srel.r_value);
                     }
@@ -1083,9 +1106,10 @@ void obj_term()
                     rel.r_type = GENERIC_RELOC_VANILLA;
                     if (I64)
                     {
+                        rel.r_type = X86_64_RELOC_UNSIGNED;
                         rel.r_length = 3;
                         if (0 && r->targseg != seg)
-                            rel.r_type = GENERIC_RELOC_SECTDIFF;
+                            rel.r_type = X86_64_RELOC_BRANCH;
                     }
                     fobjbuf->write(&rel, sizeof(rel));
                     foffset += sizeof(rel);
@@ -1559,7 +1583,7 @@ void obj_funcptr(Symbol *s)
 //#endif
 
 /***************************************
- * Stuff the following data in a separate segment:
+ * Stuff the following data (instance of struct FuncTable) in a separate segment:
  *      pointer to function
  *      pointer to ehsym
  *      length of function
@@ -1573,18 +1597,23 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
      * otherwise the duplicates aren't removed.
      */
 
-    symbol *ehtab_entry = symbol_generate(SCstatic,type_alloc(TYint));
-    symbol_keep(ehtab_entry);
-    mach_getsegment("__deh_beg", "__DATA", 2, S_COALESCED, 12);
-    ehtab_entry->Sseg = mach_getsegment("__deh_eh", "__DATA", 2, S_REGULAR);
-    mach_getsegment("__deh_end", "__DATA", 2, S_COALESCED, 4);
-    ehtab_entry->Stype->Tmangle = mTYman_c;
-    ehsym->Stype->Tmangle = mTYman_c;
-    dt_t **pdte = &ehtab_entry->Sdt;
-    pdte = dtxoff(pdte,sfunc,0,TYnptr);
-    pdte = dtxoff(pdte,ehsym,0,TYnptr);
-    dtnbytes(pdte,4,(char *)&sfunc->Ssize);
-    outdata(ehtab_entry);
+    int align = I64 ? 3 : 2;            // align to NPTRSIZE
+    // The size is sizeof(struct FuncTable) in deh2.d
+    mach_getsegment("__deh_beg", "__DATA", align, S_COALESCED, 3 * NPTRSIZE);
+    int seg = mach_getsegment("__deh_eh", "__DATA", align, S_REGULAR);
+    mach_getsegment("__deh_end", "__DATA", align, S_COALESCED, NPTRSIZE);
+
+    Outbuffer *buf = SegData[seg]->SDbuf;
+    if (I64)
+    {   reftoident(seg, buf->size(), sfunc, 0, CFoff | CFoffset64);
+        reftoident(seg, buf->size(), ehsym, 0, CFoff | CFoffset64);
+        buf->write64(sfunc->Ssize);
+    }
+    else
+    {   reftoident(seg, buf->size(), sfunc, 0, CFoff);
+        reftoident(seg, buf->size(), ehsym, 0, CFoff);
+        buf->write32(sfunc->Ssize);
+    }
 }
 
 /*********************************************
@@ -1691,6 +1720,7 @@ int obj_comdat(Symbol *s)
  * Get segment.
  * Input:
  *      flags2  put out some data for this, so the linker will keep things in order
+ *      align   segment alignment as power of 2
  * Returns:
  *      segment index of found or newly created segment
  */
@@ -2299,7 +2329,7 @@ if (!buf) halt();
  */
 
 void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
-        unsigned targseg, int rtype)
+        unsigned targseg, int rtype, int val)
 {
     Relocation rel;
     rel.offset = offset;
@@ -2307,6 +2337,7 @@ void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
     rel.targseg = targseg;
     rel.rtype = rtype;
     rel.funcsym = funcsym_p;
+    rel.val = val;
     seg_data *pseg = SegData[seg];
     if (!pseg->SDrel)
         pseg->SDrel = new Outbuffer();
@@ -2435,6 +2466,8 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
  *      flags =         CFselfrel: self-relative
  *                      CFseg: get segment
  *                      CFoff: get offset
+ *                      CFpc32: [RIP] addressing, val is 0, -1, -2 or -4
+ *                      CFoffset64: 8 byte offset for 64 bit builds
  * Returns:
  *      number of bytes in reference (4 or 8)
  */
@@ -2461,13 +2494,16 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         {
             //if (s->Sclass != SCcomdat)
                 //val += s->Soffset;
+            int v = 0;
+            if (flags & CFpc32)
+                v = (int)val;
             if (flags & CFselfrel)
             {
-                mach_addrel(seg, offset, s, 0, RELrel);
+                mach_addrel(seg, offset, s, 0, RELrel, v);
             }
             else
             {
-                mach_addrel(seg, offset, s, 0, RELaddr);
+                mach_addrel(seg, offset, s, 0, RELaddr, v);
             }
         }
         else
@@ -2678,7 +2714,10 @@ void obj_moduleinfo(Symbol *scc)
     objpubdef(seg, s_minfo_beg, 0);
 #endif
 
-    SegData[seg]->SDoffset += reftoident(seg, Offset(seg), scc, 0, CFoff);
+    int flags = CFoff;
+    if (I64)
+        flags |= CFoffset64;
+    SegData[seg]->SDoffset += reftoident(seg, Offset(seg), scc, 0, flags);
 
     mach_getsegment("__minfo_end", "__DATA", align, S_COALESCED, 4);
 }

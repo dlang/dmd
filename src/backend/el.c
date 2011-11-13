@@ -1112,8 +1112,7 @@ elem *el_picvar(symbol *s)
 {   elem *e;
     int x;
 
-    //printf("el_picvar(s = '%s')\n", s->Sident);
-    //printf("  Sclass = "); WRclass((enum SC) s->Sclass); printf("\n");
+    //printf("el_picvar(s = '%s')", s->Sident); printf("  Sclass = "); WRclass((enum SC) s->Sclass); printf("\n");
     //symbol_print(s);
     symbol_debug(s);
     type_debug(s->Stype);
@@ -1131,7 +1130,7 @@ elem *el_picvar(symbol *s)
 
         case SCcomdat:
         case SCcomdef:
-            if (I64)
+            if (0 && I64)
             {
                 x = 0;
                 goto case_got;

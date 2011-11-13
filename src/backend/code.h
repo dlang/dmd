@@ -682,6 +682,7 @@ code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
 
 /* cod2.c */
+int movOnly(elem *e);
 regm_t idxregm(code *c);
 #if TARGET_WINDOS
 code *opdouble (elem *e , regm_t *pretregs , unsigned clib );

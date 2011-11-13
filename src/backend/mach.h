@@ -7,6 +7,7 @@
 #include <mach-o/nlist.h>
 #include <mach-o/stab.h>
 #include <mach-o/reloc.h>
+//#include <mach-o/x86_64/reloc.h>
 
 #ifndef S_DTRACE_DOF
         #define S_DTRACE_DOF                    15
@@ -281,11 +282,23 @@ struct relocation_info
         r_length:2,
         r_extern:1,
         r_type:4;
+            // for i386
             #define GENERIC_RELOC_VANILLA               0
             #define GENERIC_RELOC_PAIR                  1
             #define GENERIC_RELOC_SECTDIFF              2
             #define GENERIC_RELOC_PB_LA_PTR             3
             #define GENERIC_RELOC_LOCAL_SECTDIFF        4
+
+            // for x86_64
+            #define X86_64_RELOC_UNSIGNED               0
+            #define X86_64_RELOC_SIGNED                 1
+            #define X86_64_RELOC_BRANCH                 2
+            #define X86_64_RELOC_GOT_LOAD               3
+            #define X86_64_RELOC_GOT                    4
+            #define X86_64_RELOC_SUBTRACTOR             5
+            #define X86_64_RELOC_SIGNED_1               6
+            #define X86_64_RELOC_SIGNED_2               7
+            #define X86_64_RELOC_SIGNED_4               8
 };
 
 struct scattered_relocation_info

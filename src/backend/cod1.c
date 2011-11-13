@@ -3674,6 +3674,15 @@ code *loaddata(elem *e,regm_t *pretregs)
                 ce = gen2(CNIL,0xD1,modregrmx(3,4,reg)); /* SHL reg,1      */
                 c = cat(c,ce);
             }
+#if TARGET_OSX
+            else if (e->Eoper == OPvar && movOnly(e))
+            {   c = allocreg(&regm,&reg,TYoffset);      /* get a register */
+                ce = loadea(e,&cs,0x8B,reg,0,0,0);      // MOV reg,data
+                c = cat(c,ce);
+                ce = fixresult(e,regm,pretregs);
+                c = cat(c,ce);
+            }
+#endif
             else
             {   cs.IFL2 = FLconst;
                 cs.IEV2.Vsize_t = 0;
@@ -3866,16 +3875,21 @@ code *loaddata(elem *e,regm_t *pretregs)
                 printf("forregs = x%x\n",forregs);
         }
 #endif
+        int op = 0x8A;                                  // byte MOV
+#if TARGET_OSX
+        if (movOnly(e))
+            op = 0x8B;
+#endif
         assert(forregs & BYTEREGS);
         if (!I16)
-            c = cat(c,loadea(e,&cs,0x8A,reg,0,0,0));    // MOV regL,data
+            c = cat(c,loadea(e,&cs,op,reg,0,0,0));    // MOV regL,data
         else
         {   nregm = tyuns(tym) ? BYTEREGS : mAX;
             if (*pretregs & nregm)
                 nreg = reg;                     /* already allocated    */
             else
                 c = cat(c,allocreg(&nregm,&nreg,tym));
-            ce = loadea(e,&cs,0x8A,nreg,0,0,0); /* MOV nregL,data       */
+            ce = loadea(e,&cs,op,nreg,0,0,0); /* MOV nregL,data       */
             c = cat(c,ce);
             if (reg != nreg)
             {   genmovreg(c,reg,nreg);          /* MOV reg,nreg         */

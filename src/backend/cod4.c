@@ -2193,6 +2193,10 @@ code *cdcmp(elem *e,regm_t *pretregs)
         goto L5;
 
       case OPvar:
+#if TARGET_OSX
+        if (movOnly(e2))
+            goto L2;
+#endif
         if ((e1->Eoper == OPvar &&
              isregvar(e2,&rretregs,&reg) &&
              sz <= REGSIZE
