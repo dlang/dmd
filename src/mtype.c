@@ -7251,7 +7251,8 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        if (d->needThis() && fd && fd->vthis)
+        else if (d->needThis() && fd && fd->vthis &&
+                 fd->toParent2()->isStructDeclaration() == sym)
         {
             e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
             e = e->semantic(sc);
