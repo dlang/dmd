@@ -5307,10 +5307,11 @@ unsigned codout(code *c)
                                     else
                                         val = -8;
                                 }
-                            }
 #if TARGET_OSX
-                            val = 0;
+                                // Mach-O linkage already takes the 4 byte size into account
+                                val += 4;
 #endif
+                            }
                         }
                         do32bit((enum FL)c->IFL1,&c->IEV1,flags,val);
                         break;

@@ -31,6 +31,24 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 int cdcmp_flag;
 extern signed char regtorm[8];
 
+/*******************************************
+ * !=0 if cannot use this EA in anything other than a MOV instruction.
+ */
+
+int movOnly(elem *e)
+{
+#if TARGET_OSX
+    if (I64 && config.flags3 & CFG3pic && e->Eoper == OPvar)
+    {   symbol *s = e->EV.sp.Vsym;
+        // Fixups for these can only be done with a MOV
+        if (s->Sclass == SCglobal || s->Sclass == SCextern ||
+            s->Sclass == SCcomdat || s->Sclass == SCcomdef)
+            return 1;
+    }
+#endif
+    return 0;
+}
+
 /********************************
  * Return mask of index registers used by addressing mode.
  * Index is rm of modregrm field.
@@ -222,7 +240,11 @@ code *cdorth(elem *e,regm_t *pretregs)
 
   // Special cases where only flags are set
   if (test && tysize[ty1] <= REGSIZE &&
-      (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount)))
+      (e1->Eoper == OPvar || (e1->Eoper == OPind && !e1->Ecount))
+#if TARGET_OSX
+      && !movOnly(e1)
+#endif
+     )
   {
         // Handle the case of (var & const)
         if (e2->Eoper == OPconst && el_signx32(e2))
@@ -736,6 +758,10 @@ code *cdorth(elem *e,regm_t *pretregs)
         break;
 
     case OPvar:
+#if TARGET_OSX
+        if (movOnly(e2))
+            goto L2;
+#endif
     L1:
         if (tyfv(ty2))
                 goto L2;
@@ -4010,8 +4036,8 @@ code *getoffset(elem *e,unsigned reg)
                     cs.Iop = 0x8D;
 #if TARGET_OSX
                     symbol *s = e->EV.sp.Vsym;
-                    if (fl == FLextern)
-                        cs.Iop = 0x8B;          // MOV reg,[00][RIP]
+//                    if (fl == FLextern)
+//                        cs.Iop = 0x8B;          // MOV reg,[00][RIP]
 #endif
                     cs.Irm = modregrm(0,reg & 7,5);
                     if (reg & 8)

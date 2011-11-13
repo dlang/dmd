@@ -553,7 +553,7 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
 int mach_getsegment(const char *sectname, const char *segname,
         int align, int flags, int flags2 = 0);
 void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
-        unsigned targseg, int rtype);
+        unsigned targseg, int rtype, int val = 0);
 #endif
 void elf_func_start(Symbol *sfunc);
 int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg);

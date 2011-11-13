@@ -907,7 +907,25 @@ int os_critsecsize64()
 }
 #endif
 
-#if __APPLE__ || __sun&&__SVR4
+#if __APPLE__
+int os_critsecsize32()
+{
+#if __LP64__    // check for bit rot
+    assert(sizeof(pthread_mutex_t) == 64);
+#else
+    assert(sizeof(pthread_mutex_t) == 44);
+#endif
+    return 44;
+}
+
+int os_critsecsize64()
+{
+    return 64;
+}
+#endif
+
+
+#if __sun&&__SVR4
 int os_critsecsize32()
 {
     return sizeof(pthread_mutex_t);
@@ -920,4 +938,16 @@ int os_critsecsize64()
 }
 #endif
 
+/* This is the magic program to get the size on Posix systems: */
+
+#if 0
+#include <stdio.h>
+#include <pthread.h>
+
+int main()
+{
+    printf("%d\n", (int)sizeof(pthread_mutex_t));
+    return 0;
+}
+#endif
 
