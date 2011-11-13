@@ -2541,9 +2541,16 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             case OPs32_d:
                 if (I64 && *pretregs & XMMREGS)
                 {
+                LXMMint2double:
                     unsigned retregs = ALLREGS;
+
                     c1 = codelem(e->E1, &retregs, FALSE);
                     unsigned reg = findreg(retregs);
+
+                    if (e->Eoper == OPu32_d)
+                    {   // MOV reg,reg to zero upper 32 bits
+                        c1 = genregs(c1,0x89,reg,reg);
+                    }
 
                     unsigned xreg;
                     retregs = XMMREGS & *pretregs;
@@ -2552,7 +2559,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
 
                     // CVTSI2SD xreg,reg
                     c2 = gen2(NULL, 0xF20F2A, modregxrmx(3,xreg-XMM0,reg));
-                    if (e->Eoper == OPs64_d)
+                    if (e->Eoper == OPs64_d || e->Eoper == OPu32_d)
                         c2->Irex |= REX_W;
                     *pretregs = mask[xreg];
                     return cat(c1, c2);
@@ -2562,7 +2569,10 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             case OPu16_d:
                 return load87(e,0,pretregs,NULL,-1);
             case OPu32_d:
-                if (!I16)
+                // load as 64-bit signed value
+                if (I64 && *pretregs & XMMREGS)
+                    goto LXMMint2double;
+                else if (!I16)
                 {
                     unsigned retregs = ALLREGS;
                     c1 = codelem(e->E1, &retregs, FALSE);
