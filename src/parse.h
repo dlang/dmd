@@ -108,7 +108,7 @@ struct Parser : Lexer
     Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
-    Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0);
+    Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL);
     Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
     void parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
