@@ -337,13 +337,32 @@ real __U64_LDBL()
                 fld         real ptr [ESP]          ; // adjust
                 add         ESP,12                  ;
                 faddp       ST(1), ST               ;
-L1:                                                 ;
+            L1:                                     ;
                 add         ESP, 8                  ;
                 ret                                 ;
             }
         }
-        else version(D_InlineAsm_X86_64)
-            static assert(0);
+        else version (D_InlineAsm_X86_64)
+        {
+            asm
+            {   naked                               ;
+                push        RAX                     ;
+                and         dword ptr 4[RSP], 0x7FFFFFFF    ;
+                fild        qword ptr [RSP]         ;
+                test        RAX,RAX                 ;
+                jns         L1                      ;
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+                faddp       ST(1), ST               ;
+            L1:                                     ;
+                add         RSP, 8                  ;
+                ret                                 ;
+            }
+        }
         else
             static assert(0);
     }
@@ -375,7 +394,13 @@ L1:                                                 ;
                 fild        qword ptr [RSP]         ;
                 test        RAX,RAX                 ;
                 jns         L1                      ;
-                fld         real ptr adjust         ;
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+              //fld         real ptr adjust         ;
                 faddp       ST(1), ST               ;
             L1:                                     ;
                 add         RSP, 8                  ;
@@ -464,7 +489,59 @@ L1:                                                 ;
             }
         }
         else version (D_InlineAsm_X86_64)
-            static assert(0);
+        {
+            asm
+            {   naked                               ;
+                push        RAX                     ;
+                fld         double ptr [RSP]        ;
+                sub         RSP,8                   ;
+
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+                //fld         real ptr adjust         ;
+
+                fcomp                               ;
+                fstsw       AX                      ;
+                fstcw       8[RSP]                  ;
+
+                mov         word ptr [RSP],0xFBF    ; // roundTo0
+                fldcw       [RSP]                   ;
+                //fldcw       roundTo0                ;
+
+                test        AH,1                    ;
+                jz          L1                      ;
+                //sahf                              ;
+                //jae       L1                      ;
+
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+                //fld         real ptr adjust         ;
+
+                fsubp       ST(1), ST               ;
+                fistp       qword ptr [RSP]         ;
+                pop         RAX                     ;
+                fldcw       [RSP]                   ;
+                add         RSP,8                   ;
+                mov         EDX,0x8000_0000         ;
+                shl         RDX,32                  ;
+                add         RAX,RDX                 ;
+                ret                                 ;
+            L1:                                     ;
+                fistp       qword ptr [RSP]         ;
+                pop         RAX                     ;
+                fldcw       [RSP]                   ;
+                add         RSP,8                   ;
+                ret                                 ;
+            }
+        }
         else
             static assert(0);
     }
@@ -510,18 +587,36 @@ L1:                                                 ;
                 push        RAX                     ;
                 fld         double ptr [RSP]        ;
                 sub         RSP,8                   ;
-                fld         real ptr adjust         ;
+
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+              //fld         real ptr adjust         ;
+
                 fcomp                               ;
                 fstsw       AX                      ;
                 fstcw       8[RSP]                  ;
-                fldcw       roundTo0                ;
+
+                mov         word ptr [RSP],0xFBF    ; // roundTo0
+                fldcw       [RSP]                   ;
+              //fldcw       roundTo0                ;
 
                 test        AH,1                    ;
                 jz          L1                      ;
                 //sahf                              ;
                 //jae       L1                      ;
 
-                fld         real ptr adjust         ;
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+              //fld         real ptr adjust         ;
+
                 fsubp       ST(1), ST               ;
                 fistp       qword ptr [RSP]         ;
                 pop         RAX                     ;
@@ -567,7 +662,23 @@ uint __DBLULNG()
             }
         }
         else version (D_InlineAsm_X86_64)
-            static assert(0);
+        {
+            asm
+            {   naked                               ;
+                sub         RSP,16                  ;
+                fstcw       8[RSP]                  ;
+
+                mov         word ptr [RSP],0xFBF    ; // roundTo0
+                fldcw       [RSP]                   ;
+                //fldcw       roundTo0                ;
+
+                fistp       qword ptr [RSP]         ;
+                fldcw       8[RSP]                  ;
+                pop         RAX                     ;
+                add         RSP,8                   ;
+                ret                                 ;
+            }
+        }
         else
             static assert(0);
     }
@@ -593,7 +704,11 @@ uint __DBLULNG()
             {   naked                               ;
                 sub         RSP,16                  ;
                 fstcw       8[RSP]                  ;
-                fldcw       roundTo0                ;
+
+                mov         word ptr [RSP],0xFBF    ; // roundTo0
+                fldcw       [RSP]                   ;
+              //fldcw       roundTo0                ;
+
                 fistp       qword ptr [RSP]         ;
                 fldcw       8[RSP]                  ;
                 pop         RAX                     ;
@@ -646,6 +761,58 @@ L1:                                                 ;
                 ret                                 ;
             }
         }
+        else version (D_InlineAsm_X86_64)
+        {
+            asm
+            {   naked                               ;
+                sub         RSP,16                  ;
+
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+                //fld         real ptr adjust         ;
+
+                fcomp                               ;
+                fstsw       AX                      ;
+                fstcw       8[RSP]                  ;
+
+                mov         word ptr [RSP],0xFBF    ; // roundTo0
+                fldcw       [RSP]                   ;
+                //fldcw       roundTo0                ;
+
+                test        AH,1                    ;
+                jz          L1                      ;
+                //sahf                              ;
+                //jae         L1                    ;
+
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+                //fld         real ptr adjust         ;
+
+                fsubp       ST(1), ST               ;
+                fistp       qword ptr [RSP]         ;
+                pop         RAX                     ;
+                fldcw       [RSP]                   ;
+                add         RSP,8                   ;
+                mov         RCX,0x8000_0000         ;
+                shl         RCX,32                  ;
+                add         RAX,RCX                 ;
+                ret                                 ;
+            L1:                                     ;
+                fistp       qword ptr [RSP]         ;
+                pop         RAX                     ;
+                fldcw       [RSP]                   ;
+                add         RSP,8                   ;
+                ret                                 ;
+            }
+        }
         else
             static assert(false, "Unsupported platform");
     }
@@ -686,18 +853,36 @@ L1:                                                 ;
             asm
             {   naked                               ;
                 sub         RSP,16                  ;
-                fld         real ptr adjust         ;
+
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+              //fld         real ptr adjust         ;
+
                 fcomp                               ;
                 fstsw       AX                      ;
                 fstcw       8[RSP]                  ;
-                fldcw       roundTo0                ;
+
+                mov         word ptr [RSP],0xFBF    ; // roundTo0
+                fldcw       [RSP]                   ;
+              //fldcw       roundTo0                ;
 
                 test        AH,1                    ;
                 jz          L1                      ;
                 //sahf                              ;
                 //jae       L1                      ;
 
-                fld         real ptr adjust         ;
+                mov         RAX,0x0000403e          ;
+                push        RAX                     ;
+                mov         RAX,0x80000000_00000000 ;
+                push        RAX                     ;
+                fld         real ptr [RSP]          ; // adjust
+                add         RSP,16                  ;
+              //fld         real ptr adjust         ;
+
                 fsubp       ST(1), ST               ;
                 fistp       qword ptr [RSP]         ;
                 pop         RAX                     ;
