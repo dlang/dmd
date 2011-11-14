@@ -454,6 +454,60 @@ void test2778get()
 }
 
 /**********************************/
+// 6208
+
+int getRefNonref(T)(ref T s){ return 1; }
+int getRefNonref(T)(    T s){ return 2; }
+
+int getAutoRef(T)(auto ref T s){ return __traits(isRef, s) ? 1 : 2; }
+
+void getOut(T)(out T s){ ; }
+
+void getLazy1(T=int)(lazy void s){ s(), s(); }
+void getLazy2(T)(lazy T s){  s(), s(); }
+
+void test6208a()
+{
+    int lvalue;
+    int rvalue(){ int t; return t; }
+
+    assert(getRefNonref(lvalue  ) == 1);
+    assert(getRefNonref(rvalue()) == 2);
+
+    assert(getAutoRef(lvalue  ) == 1);
+    assert(getAutoRef(rvalue()) == 2);
+
+    static assert( __traits(compiles, getOut(lvalue  )));
+    static assert(!__traits(compiles, getOut(rvalue())));
+
+    int n1; getLazy1(++n1); assert(n1 == 2);
+    int n2; getLazy2(++n2); assert(n2 == 2);
+
+    struct X
+    {
+        int f(T)(auto ref T t){ return 1; }
+        int f(T)(auto ref T t, ...){ return -1; }
+    }
+    auto xm =       X ();
+    auto xc = const(X)();
+    int n;
+    assert(xm.f!int(n) == 1);   // resolved 'auto ref'
+    assert(xm.f!int(0) == 1);   // ditto
+}
+
+/**********************************/
+
+void test6208b()
+{
+    void foo(T)(const T value) if (!is(T == int)) {}
+
+    int mn;
+    const int cn;
+    static assert(!__traits(compiles, foo(mn)));    // OK -> OK
+    static assert(!__traits(compiles, foo(cn)));    // NG -> OK
+}
+
+/**********************************/
 // 6805
 
 struct T6805
@@ -580,6 +634,8 @@ int main()
     test2778();
     test2778aa();
     test2778get();
+    test6208a();
+    test6208b();
     test6994();
     test3467();
     test10();
