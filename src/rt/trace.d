@@ -1,15 +1,15 @@
 /**
  * Contains support code for code profiling.
  *
- * Copyright: Copyright Digital Mars 1995 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 1995 - 2011.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE_1_0.txt)
  * Authors:   Walter Bright, Sean Kelly
+ * Source: $(DRUNTIMESRC src/rt/_trace.d)
  */
 
-/*          Copyright Digital Mars 1995 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
+/*          Copyright Digital Mars 1995 - 2011.
  */
 module rt.trace;
 
@@ -798,7 +798,48 @@ void _trace_pro_n()
             }
         }
         else version (D_InlineAsm_X86_64)
-            static assert(0);
+        {
+            asm
+            {   naked                           ;
+                push    RAX                     ;
+                push    RCX                     ;
+                push    RDX                     ;
+                push    RSI                     ;
+                push    RDI                     ;
+                push    R8                      ;
+                push    R9                      ;
+                push    R10                     ;
+                push    R11                     ;
+                mov     RCX,9*8[RSP]            ;
+                xor     RAX,RAX                 ;
+                mov     AL,[RCX]                ;
+                cmp     AL,0xFF                 ;
+                jne     L1                      ;
+                cmp     byte ptr 1[RCX],0       ;
+                jne     L1                      ;
+                mov     AX,2[RCX]               ;
+                add     9*8[RSP],3              ;
+                add     RCX,3                   ;
+            L1: inc     RAX                     ;
+                inc     RCX                     ;
+                add     9*8[RSP],RAX            ;
+                dec     RAX                     ;
+                push    RCX                     ;
+                push    RAX                     ;
+                call    trace_pro               ;
+                add     RSP,16                  ;
+                pop     R11                     ;
+                pop     R10                     ;
+                pop     R9                      ;
+                pop     R8                      ;
+                pop     RDI                     ;
+                pop     RSI                     ;
+                pop     RDX                     ;
+                pop     RCX                     ;
+                pop     RAX                     ;
+                ret                             ;
+            }
+        }
         else
             static assert(0);
     }
@@ -906,7 +947,37 @@ void _trace_epi_n()
             }
         }
         else version (D_InlineAsm_X86_64)
-            static assert(0);
+        {
+            asm
+            {   naked           ;
+                push    RAX     ;
+                push    RCX     ;
+                push    RDX     ;
+                push    RSI     ;
+                push    RDI     ;
+                push    R8      ;
+                push    R9      ;
+                push    R10     ;
+                push    R11     ;
+                /* Don't worry about saving XMM0/1 or ST0/1
+                 * Hope trace_epi() doesn't change them
+                 */
+            }
+            trace_epi();
+            asm
+            {
+                pop     R11     ;
+                pop     R10     ;
+                pop     R9      ;
+                pop     R8      ;
+                pop     RDI     ;
+                pop     RSI     ;
+                pop     RDX     ;
+                pop     RCX     ;
+                pop     RAX     ;
+                ret             ;
+            }
+        }
         else
             static assert(0);
     }
