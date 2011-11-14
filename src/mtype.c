@@ -4654,7 +4654,8 @@ L1:
     if (e->op == TOKtype)
     {   FuncDeclaration *fd = sc->func;
 
-        if (d->needThis() && fd && fd->vthis)
+        if (d->needThis() && fd && fd->vthis &&
+                 fd->toParent2()->isStructDeclaration() == sym)
         {
             e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
             e = e->semantic(sc);
