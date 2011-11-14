@@ -1291,7 +1291,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (!type->nextOf())
                 {
                     ((TypeFunction *)type)->next = Type::tvoid;
-                    type = type->semantic(loc, sc);
+                    //type = type->semantic(loc, sc);   // Removed with 6902
                 }
                 f = (TypeFunction *)type;
             }
@@ -1695,6 +1695,12 @@ void FuncDeclaration::semantic3(Scope *sc)
     {
         flags &= ~FUNCFLAGsafetyInprocess;
         f->trust = TRUSTsafe;
+    }
+
+    // Do semantic type AFTER pure/nothrow inference.
+    if (inferRetType)
+    {
+        type = type->semantic(loc, sc);
     }
 
     if (global.gag && global.errors != nerrors)

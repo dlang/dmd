@@ -4021,6 +4021,26 @@ void test6910()
 }
 
 /***************************************************/
+// 6902
+
+void test6902()
+{
+    static assert(is(typeof({
+        return int.init; // int, long, real, etc.
+    })));
+
+    int f() pure nothrow { assert(0); }
+    alias int T() pure nothrow;
+    static if(is(typeof(&f) DT == delegate))
+    {
+        static assert(is(DT* == T*));  // ok
+
+        // Error: static assert  (is(pure nothrow int() == pure nothrow int())) is false
+        static assert(is(DT == T));
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4215,6 +4235,7 @@ int main()
     test6813();
     test6859();
     test6910();
+    test6902();
 
     printf("Success\n");
     return 0;
