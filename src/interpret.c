@@ -4757,7 +4757,13 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
     // the variable to be created in, we need to create one now.
     InterState istateComma;
     if (!istate &&  firstComma->e1->op == TOKdeclaration)
+    {
+        assert(ctfeStack.stackPointer() == 0);
+        ctfeStack.startFrame();
         istate = &istateComma;
+    }
+
+    Expression *e = EXP_CANT_INTERPRET;
 
     // If the comma returns a temporary variable, it needs to be an lvalue
     // (this is particularly important for struct constructors)
@@ -4773,13 +4779,16 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
         }
         if (!v->getValue()) {
             Expression *newval = v->init->toExpression();
-//            v->setRefValue(v->init->toExpression());
             // Bug 4027. Copy constructors are a weird case where the
             // initializer is a void function (the variable is modified
             // through a reference parameter instead).
             newval = newval->interpret(istate);
             if (exceptionOrCantInterpret(newval))
+            {
+                if (istate == &istateComma)
+                    ctfeStack.endFrame(0);
                 return newval;
+            }
             if (newval != EXP_VOID_INTERPRET)
             {
                 // v isn't necessarily null.
@@ -4787,13 +4796,19 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             }
         }
         if (goal == ctfeNeedLvalue || goal == ctfeNeedLvalueRef)
-            return e2;
-        return e2->interpret(istate, goal);
+            e = e2;
+        else
+            e = e2->interpret(istate, goal);
     }
-    Expression *e = e1->interpret(istate, ctfeNeedNothing);
-    if (exceptionOrCantInterpret(e))
-        return e;
-    e = e2->interpret(istate, goal);
+    else
+    {
+        e = e1->interpret(istate, ctfeNeedNothing);
+        if (!exceptionOrCantInterpret(e))
+            e = e2->interpret(istate, goal);
+    }
+    // If we created a temporary stack frame, end it now.
+    if (istate == &istateComma)
+        ctfeStack.endFrame(0);
     return e;
 }
 
