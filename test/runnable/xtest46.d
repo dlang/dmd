@@ -4102,6 +4102,23 @@ static void breaksPure5311b(S5311 x) pure
 }
 
 /***************************************************/
+// 6868
+
+@property bool empty6868(T)(in T[] a) @safe pure nothrow
+{
+    return !a.length;
+}
+
+void test6868()
+{
+    alias int[] Range;
+    static if (is(char[1 + Range.empty6868]))  // Line 9
+        enum bool isInfinite = true;
+
+    char[0] s;  // need
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4298,6 +4315,7 @@ int main()
     test6910();
     test6902();
     test6330();
+    test6868();
 
     printf("Success\n");
     return 0;

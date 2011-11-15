@@ -3498,7 +3498,10 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     if (dim)
     {   dinteger_t n, n2;
 
+        int errors = global.errors;
         dim = semanticLength(sc, tbn, dim);
+        if (errors != global.errors)
+            goto Lerror;
 
         dim = dim->optimize(WANTvalue);
         if (sc && sc->parameterSpecialization && dim->op == TOKvar &&
