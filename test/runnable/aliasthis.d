@@ -631,6 +631,67 @@ mixin template Wrapper6479()
 }
 
 /**********************************************/
+// 6832
+
+void test6832()
+{
+	static class Foo { }
+	static struct Bar { Foo foo; alias foo this; }
+    Bar bar;
+    bar = new Foo;          // ok
+    assert(bar !is null);   // ng
+
+    struct Int { int n; alias n this; }
+    Int a;
+    int b;
+    auto c = (true ? a : b);    // TODO
+    assert(c == a);
+}
+
+/**********************************************/
+// 6928
+
+void test6928()
+{
+    struct T { int* p; } // p is necessary.
+    T tx;
+
+    struct S {
+        T get() const { return tx; }
+        alias get this;
+    }
+
+    immutable(S) s;
+    immutable(T) t;
+    static assert(is(typeof(1? s:t))); // ok.
+    static assert(is(typeof(1? t:s))); // ok.
+    static assert(is(typeof(1? s:t)==typeof(1? t:s))); // fail.
+
+    auto x = 1? t:s; // ok.
+    auto y = 1? s:t; // compile error.
+}
+
+/**********************************************/
+// 6929
+
+struct S6929
+{
+    T6929 get() const { return T6929.init; }
+    alias get this;
+}
+struct T6929
+{
+    S6929 get() const { return S6929.init; }
+    alias get this;
+}
+void test6929()
+{
+    T6929 t;
+    S6929 s;
+    static assert(!is(typeof(1? t:s)));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -655,6 +716,9 @@ int main()
     test6434();
     test6366();
     test6759();
+    test6832();
+    test6928();
+    test6929();
 
     printf("Success\n");
     return 0;

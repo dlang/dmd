@@ -1879,6 +1879,15 @@ Lagain:
     }
     else if (t1->ty == Tstruct && t2->ty == Tstruct)
     {
+        if (t1->mod != t2->mod)
+        {
+            unsigned char mod = MODmerge(t1->mod, t2->mod);
+            t1 = t1->castMod(mod);
+            t2 = t2->castMod(mod);
+            t = t1;
+            goto Lagain;
+        }
+
         TypeStruct *ts1 = (TypeStruct *)t1;
         TypeStruct *ts2 = (TypeStruct *)t2;
         if (ts1->sym != ts2->sym)
@@ -1905,7 +1914,8 @@ Lagain:
                 e1b = resolveProperties(sc, e1b);
                 i2 = e1b->implicitConvTo(t2);
             }
-            assert(!(i1 && i2));
+            if (i1 && i2)
+                goto Lincompatible;
 
             if (i1)
                 goto Lt1;
@@ -1920,8 +1930,40 @@ Lagain:
             {   e2 = e2b;
                 t2 = e2b->type->toBasetype();
             }
+            t = t1;
             goto Lagain;
         }
+    }
+    else if (t1->ty == Tstruct || t2->ty == Tstruct)
+    {
+        if (t1->mod != t2->mod)
+        {
+            unsigned char mod = MODmerge(t1->mod, t2->mod);
+            t1 = t1->castMod(mod);
+            t2 = t2->castMod(mod);
+            t = t1;
+            goto Lagain;
+        }
+
+        if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
+        {
+            e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);
+            e1 = e1->semantic(sc);
+            e1 = resolveProperties(sc, e1);
+            t1 = e1->type;
+            t = t1;
+            goto Lagain;
+        }
+        if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
+        {
+            e2 = new DotIdExp(e2->loc, e2, ((TypeStruct *)t2)->sym->aliasthis->ident);
+            e2 = e2->semantic(sc);
+            e2 = resolveProperties(sc, e2);
+            t2 = e2->type;
+            t = t2;
+            goto Lagain;
+        }
+        goto Lincompatible;
     }
     else if ((e1->op == TOKstring || e1->op == TOKnull) && e1->implicitConvTo(t2))
     {
