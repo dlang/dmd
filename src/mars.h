@@ -398,7 +398,9 @@ enum MATCH
     MATCHnomatch,       // no match
     MATCHconvert,       // match with conversions
 #if DMDV2
+    MATCHconstref,      // match with conversion to const with lvalue as non-ref
     MATCHconst,         // match with conversion to const
+    MATCHref,           // match with lvalue as non-ref 
 #endif
     MATCHexact          // exact match
 };

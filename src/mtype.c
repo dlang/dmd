@@ -5414,6 +5414,16 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                 m = MATCHconst;
             }
         }
+        // lvalues match non-ref or out parameters with lower match level
+        if (!(p->storageClass & (STCref | STCout)))
+        {
+            if (arg->isLvalue()) {
+                if (m == MATCHconst)
+                    m = MATCHconstref;
+                else
+                    m = (MATCHref < m) ? MATCHref : m;
+            }
+        }
 
         /* prefer matching the element type rather than the array
          * type when more arguments are present with T[]...
