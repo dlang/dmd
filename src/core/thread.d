@@ -257,8 +257,6 @@ else version( Posix )
         import core.sys.posix.signal;
         import core.sys.posix.time;
 
-        extern (C) int getErrno();
-
         version( OSX )
         {
             import core.sys.osx.mach.thread_act;
