@@ -1762,33 +1762,23 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     // Extra check that array dimensions must match
     if (tparam)
     {
+        if (tparam->ty == Tarray)
+        {   MATCH m;
+
+            m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
+            if (m == MATCHexact)
+                m = MATCHconvert;
+            return m;
+        }
+
+        Identifier *id = NULL;
         if (tparam->ty == Tsarray)
         {
             TypeSArray *tp = (TypeSArray *)tparam;
-
             if (tp->dim->op == TOKvar &&
                 ((VarExp *)tp->dim)->var->storage_class & STCtemplateparameter)
-            {   int i = templateIdentifierLookup(((VarExp *)tp->dim)->var->ident, parameters);
-                // This code matches code in TypeInstance::deduceType()
-                if (i == -1)
-                    goto Lnomatch;
-                TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
-                TemplateValueParameter *tvp = tp->isTemplateValueParameter();
-                if (!tvp)
-                    goto Lnomatch;
-                Expression *e = (Expression *)dedtypes->data[i];
-                if (e)
-                {
-                    if (!dim->equals(e))
-                        goto Lnomatch;
-                }
-                else
-                {   Type *vt = tvp->valType->semantic(0, sc);
-                    MATCH m = (MATCH)dim->implicitConvTo(vt);
-                    if (!m)
-                        goto Lnomatch;
-                    dedtypes->data[i] = dim;
-                }
+            {
+                id = ((VarExp *)tp->dim)->var->ident;
             }
             else if (dim->toInteger() != tp->dim->toInteger())
                 return MATCHnomatch;
@@ -1796,43 +1786,37 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
         else if (tparam->ty == Taarray)
         {
             TypeAArray *tp = (TypeAArray *)tparam;
-            if (tp->index->ty == Tident)
-            {   TypeIdentifier *tident = (TypeIdentifier *)tp->index;
-
-                if (tident->idents.dim == 0)
-                {   Identifier *id = tident->ident;
-
-                    for (size_t i = 0; i < parameters->dim; i++)
-                    {
-                        TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
-
-                        if (tp->ident->equals(id))
-                        {   // Found the corresponding template parameter
-                            TemplateValueParameter *tvp = tp->isTemplateValueParameter();
-                            if (!tvp || !tvp->valType->isintegral())
-                                goto Lnomatch;
-
-                            if (dedtypes->data[i])
-                            {
-                                if (!dim->equals((Object *)dedtypes->data[i]))
-                                    goto Lnomatch;
-                            }
-                            else
-                            {   dedtypes->data[i] = (void *)dim;
-                            }
-                            return next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
-                        }
-                    }
-                }
+            if (tp->index->ty == Tident &&
+                ((TypeIdentifier *)tp->index)->idents.dim == 0)
+            {
+                id = ((TypeIdentifier *)tp->index)->ident;
             }
         }
-        else if (tparam->ty == Tarray)
-        {   MATCH m;
-
-            m = next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
-            if (m == MATCHexact)
-                m = MATCHconvert;
-            return m;
+        if (id)
+        {
+            // This code matches code in TypeInstance::deduceType()
+            int i = templateIdentifierLookup(id, parameters);
+            if (i == -1)
+                goto Lnomatch;
+            TemplateParameter *tprm = parameters->tdata()[i];
+            TemplateValueParameter *tvp = tprm->isTemplateValueParameter();
+            if (!tvp)
+                goto Lnomatch;
+            Expression *e = (Expression *)dedtypes->tdata()[i];
+            if (e)
+            {
+                if (!dim->equals(e))
+                    goto Lnomatch;
+            }
+            else
+            {
+                Type *vt = tvp->valType->semantic(0, sc);
+                MATCH m = (MATCH)dim->implicitConvTo(vt);
+                if (!m)
+                    goto Lnomatch;
+                dedtypes->tdata()[i] = dim;
+            }
+            return next->deduceType(sc, tparam->nextOf(), parameters, dedtypes);
         }
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes);
