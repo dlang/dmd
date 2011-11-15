@@ -78,7 +78,7 @@ static int resolve_sizeof;
  */
 
 #if __DMC__
-long double _modulo(long double x, long double y)
+long_double _modulo(long_double x, long_double y)
 {   short sw;
 
     __asm

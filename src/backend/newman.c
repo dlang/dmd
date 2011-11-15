@@ -199,6 +199,7 @@ struct OPTABLE
 /****************************************
  * Convert from identifier to operator
  */
+#if SCPP
 
 #if __GNUC__    // NOT DONE - FIX
 char * unmangle_pt(const char **s)
@@ -264,12 +265,15 @@ char *cpp_unmangleident(const char *p)
     //printf("-cpp_unmangleident() = '%s'\n", p);
     return (char *)p;
 }
+#endif
 
 /****************************************
  * Find index in oparray[] for operator.
  * Returns:
  *      index or -1 if not found
  */
+
+#if SCPP
 
 int cpp_opidx(int op)
 {   int i;
@@ -279,6 +283,8 @@ int cpp_opidx(int op)
             return i;
     return -1;
 }
+
+#endif
 
 /***************************************
  * Find identifier string associated with operator.

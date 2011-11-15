@@ -367,7 +367,7 @@ bool Module::read(Loc loc)
                 for (size_t i = 0; i < global.path->dim; i++)
                 {
                     char *p = global.path->tdata()[i];
-                    fprintf(stdmsg, "import path[%zd] = %s\n", i, p);
+                    fprintf(stdmsg, "import path[%llu] = %s\n", (ulonglong)i, p);
                 }
             }
             else

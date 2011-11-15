@@ -2037,8 +2037,9 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
          * Use 'volatile' to prevent optimizer from folding away the conversions,
          * and thereby missing the truncation in the conversion to double.
          */
-        volatile long double v = e->EV.Vldouble;
-        volatile double vDouble;
+        ld_volatile long_double v = e->EV.Vldouble;
+        ld_volatile double vDouble;
+
         *(&vDouble) = v;
         if (v == vDouble)       // This will fail if compiler does NaN incorrectly!
         {

@@ -459,7 +459,7 @@ typedef struct opnd
         opflag_t usFlags;
         Dsymbol *s;
         targ_llong disp;
-        long double real;
+        long_double real;
         Type *ptype;
         ASM_JUMPTYPE ajt;
 } OPND;

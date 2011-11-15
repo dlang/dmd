@@ -12,15 +12,6 @@
 #include <assert.h>
 #include <math.h>
 
-#if __FreeBSD__
-extern "C"
-{
-    long double sinl(long double);
-    long double cosl(long double);
-    long double tanl(long double);
-    long double sqrtl(long double);
-}
-#endif
 
 #include "mars.h"
 #include "declaration.h"
@@ -32,6 +23,16 @@ extern "C"
 #include "identifier.h"
 #include "id.h"
 #include "module.h"
+
+#if __FreeBSD__
+extern "C"
+{
+    long_double sinl(long_double);
+    long_double cosl(long_double);
+    long_double tanl(long_double);
+    long_double sqrtl(long_double);
+}
+#endif
 
 #if DMDV2
 

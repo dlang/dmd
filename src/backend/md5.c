@@ -80,8 +80,7 @@ static unsigned char PADDING[64] = {
    (a) += (b); \
   }
 
-void MD5Init (mdContext)
-MD5_CTX *mdContext;
+void MD5Init (MD5_CTX *mdContext)
 {
   mdContext->i[0] = mdContext->i[1] = (UINT4)0;
 
@@ -93,10 +92,7 @@ MD5_CTX *mdContext;
   mdContext->buf[3] = (UINT4)0x10325476;
 }
 
-void MD5Update (mdContext, inBuf, inLen)
-MD5_CTX *mdContext;
-unsigned char *inBuf;
-unsigned int inLen;
+void MD5Update (MD5_CTX *mdContext, unsigned char *inBuf, unsigned int inLen)
 {
   UINT4 in[16];
   int mdi;
@@ -128,8 +124,7 @@ unsigned int inLen;
   }
 }
 
-void MD5Final (mdContext)
-MD5_CTX *mdContext;
+void MD5Final (MD5_CTX *mdContext)
 {
   UINT4 in[16];
   int mdi;
@@ -169,9 +164,7 @@ MD5_CTX *mdContext;
 
 /* Basic MD5 step. Transform buf based on in.
  */
-static void Transform (buf, in)
-UINT4 *buf;
-UINT4 *in;
+static void Transform (UINT4 *buf, UINT4 *in)
 {
   UINT4 a = buf[0], b = buf[1], c = buf[2], d = buf[3];
 

@@ -15,7 +15,7 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
-#include        <complex.h>
+//#include        <complex.h>
 
 #include        "lexer.h"
 #include        "expression.h"

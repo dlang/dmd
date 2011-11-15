@@ -251,7 +251,7 @@ void Type::init()
 
     for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
-            fprintf(stdmsg, "ty = %zd\n", i);
+            fprintf(stdmsg, "ty = %llu\n", (ulonglong)i);
         assert(mangleChar[i]);
     }
 
@@ -3041,7 +3041,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
             case Timaginary64:  t = tfloat64;           goto L2;
             case Timaginary80:  t = tfloat80;           goto L2;
             L2:
-                e = new RealExp(0, 0.0, t);
+                e = new RealExp(0, to_real(0.0), t);
                 break;
 
             default:
@@ -3073,7 +3073,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                e = new RealExp(0, 0.0, this);
+                e = new RealExp(0, to_real(0.0), this);
                 break;
 
             default:
@@ -3100,7 +3100,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
      */
     union
     {   unsigned short us[8];
-        long double    ld;
+        long_double    ld;
     } snan = {{ 0, 0, 0, 0xA000, 0x7FFF }};
     /*
      * Although long doubles are 10 bytes long, some
@@ -3605,7 +3605,7 @@ d_uns64 TypeSArray::size(Loc loc)
     return sz;
 
 Loverflow:
-    error(loc, "index %jd overflow for static array", sz);
+    error(loc, "index %lld overflow for static array", sz);
     return 1;
 }
 
@@ -3672,7 +3672,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             sc = sc->pop();
 
             if (d >= td->objects->dim)
-            {   error(loc, "tuple index %ju exceeds length %u", d, td->objects->dim);
+            {   error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
                 goto Ldefault;
             }
             Object *o = td->objects->tdata()[(size_t)d];
@@ -3732,7 +3732,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         uinteger_t d = dim->toUInteger();
 
         if (d >= sd->objects->dim)
-        {   error(loc, "tuple index %ju exceeds %u", d, sd->objects->dim);
+        {   error(loc, "tuple index %llu exceeds %u", d, sd->objects->dim);
             return Type::terror;
         }
         Object *o = sd->objects->tdata()[(size_t)d];
@@ -3799,7 +3799,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             if (n && n2 / n != d2)
             {
               Loverflow:
-                error(loc, "index %jd overflow for static array", d1);
+                error(loc, "index %lld overflow for static array", d1);
                 goto Lerror;
             }
         }
@@ -3813,7 +3813,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             uinteger_t d = dim->toUInteger();
 
             if (d >= tt->arguments->dim)
-            {   error(loc, "tuple index %ju exceeds %u", d, tt->arguments->dim);
+            {   error(loc, "tuple index %llu exceeds %u", d, tt->arguments->dim);
                 goto Lerror;
             }
             Parameter *arg = tt->arguments->tdata()[(size_t)d];
@@ -3854,7 +3854,7 @@ void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
 {
     Type::toDecoBuffer(buf, flag);
     if (dim)
-        buf->printf("%ju", dim->toInteger());
+        buf->printf("%llu", dim->toInteger());
     if (next)
         /* Note that static arrays are value types, so
          * for a parameter, propagate the 0x100 to the next
@@ -8642,7 +8642,7 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     uinteger_t i2 = upr->toUInteger();
 
     if (!(i1 <= i2 && i2 <= tt->arguments->dim))
-    {   error(loc, "slice [%ju..%ju] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
+    {   error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, tt->arguments->dim);
         return Type::terror;
     }
 
@@ -8688,7 +8688,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             sc = sc->pop();
 
             if (!(i1 <= i2 && i2 <= td->objects->dim))
-            {   error(loc, "slice [%ju..%ju] is out of range of [0..%u]", i1, i2, td->objects->dim);
+            {   error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td->objects->dim);
                 goto Ldefault;
             }
 

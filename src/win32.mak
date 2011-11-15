@@ -37,7 +37,7 @@ LFLAGS=
 LINKN=$(SCROOT)\bin\link /de
 
 CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
+MFLAGS=-I$C;$(TK);$(ROOT) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
 
 # Makerules:
 .c.obj:
@@ -193,7 +193,7 @@ msgsx.exe : msgsx.c
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK) $(WINLIBS) #-L$(LINKS)
+	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK);$(ROOT) $(WINLIBS) #-L$(LINKS)
 	optabgen
 
 impcnvtab.c : impcnvgen.c

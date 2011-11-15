@@ -692,7 +692,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     size_t nparams = Parameter::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
-    {   error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
+    {   error(loc, "expected %zu arguments, not %llu for non-variadic function type %s", nparams, (ulonglong)nargs, tf->toChars());
         return Type::terror;
     }
 
@@ -744,7 +744,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 {
                     if (tf->varargs == 2 && i + 1 == nparams)
                         goto L2;
-                    error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
+                    error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
                     return Type::terror;
                 }
                 arg = p->defaultArg;
@@ -773,7 +773,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()))
                         goto L2;
                     else if (nargs != nparams)
-                    {   error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
+                    {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
                         return Type::terror;
                     }
                     goto L1;
@@ -1306,13 +1306,13 @@ uinteger_t Expression::toUInteger()
 real_t Expression::toReal()
 {
     error("Floating point constant expression expected instead of %s", toChars());
-    return 0;
+    return to_real(0);
 }
 
 real_t Expression::toImaginary()
 {
     error("Floating point constant expression expected instead of %s", toChars());
-    return 0;
+    return to_real(0);
 }
 
 complex_t Expression::toComplex()
@@ -1828,7 +1828,7 @@ char *IntegerExp::toChars()
 #else
     static char buffer[sizeof(value) * 3 + 1];
 
-    sprintf(buffer, "%jd", value);
+    sprintf(buffer, "%lld", value);
     return buffer;
 #endif
 }
@@ -1900,14 +1900,14 @@ real_t IntegerExp::toReal()
     toInteger();
     t = type->toBasetype();
     if (t->ty == Tuns64)
-        return (real_t)(d_uns64)value;
+        return to_real((d_uns64)value);
     else
-        return (real_t)(d_int64)value;
+        return to_real((d_int64)value);
 }
 
 real_t IntegerExp::toImaginary()
 {
-    return (real_t) 0;
+    return to_real(0);
 }
 
 complex_t IntegerExp::toComplex()
@@ -2024,12 +2024,12 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 break;
 
             case Tint64:
-                buf->printf("%jdL", v);
+                buf->printf("%lldL", v);
                 break;
 
             case Tuns64:
             L4:
-                buf->printf("%juLU", v);
+                buf->printf("%lluLU", v);
                 break;
 
             case Tbool:
@@ -2062,15 +2062,15 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
     }
     else if (v & 0x8000000000000000LL)
-        buf->printf("0x%jx", v);
+        buf->printf("0x%llx", v);
     else
-        buf->printf("%jd", v);
+        buf->printf("%lld", v);
 }
 
 void IntegerExp::toMangleBuffer(OutBuffer *buf)
 {
     if ((sinteger_t)value < 0)
-        buf->printf("N%jd", -value);
+        buf->printf("N%lld", -value);
     else
     {
         /* This is an awful hack to maintain backwards compatibility.
@@ -2082,7 +2082,7 @@ void IntegerExp::toMangleBuffer(OutBuffer *buf)
         if (buf->offset > 0 && isdigit(buf->data[buf->offset - 1]))
             buf->writeByte('i');
 
-        buf->printf("%jd", value);
+        buf->printf("%lld", value);
     }
 }
 
@@ -2153,12 +2153,12 @@ uinteger_t RealExp::toUInteger()
 
 real_t RealExp::toReal()
 {
-    return type->isreal() ? value : 0;
+    return type->isreal() ? value : to_real(0);
 }
 
 real_t RealExp::toImaginary()
 {
-    return type->isreal() ? 0 : value;
+    return type->isreal() ? to_real(0) : value;
 }
 
 complex_t RealExp::toComplex()
@@ -9004,7 +9004,7 @@ Lagain:
         }
         else
         {
-            error("string slice [%ju .. %ju] is out of bounds", i1, i2);
+            error("string slice [%llu .. %llu] is out of bounds", i1, i2);
             goto Lerr;
         }
         return e;
@@ -9471,8 +9471,8 @@ Expression *IndexExp::semantic(Scope *sc)
             }
             else
             {
-                error("array index [%ju] is outside array bounds [0 .. %zu]",
-                        index, length);
+                error("array index [%llu] is outside array bounds [0 .. %llu]",
+                        index, (ulonglong)length);
                 e = e1;
             }
             break;
