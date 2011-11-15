@@ -18,9 +18,7 @@
 #include "dsymbol.h"
 
 struct Expression;
-#ifdef _DH
 struct HdrGenState;
-#endif
 
 struct StaticAssert : Dsymbol
 {

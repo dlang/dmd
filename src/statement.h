@@ -96,9 +96,7 @@ struct Statement : Object
     virtual TryCatchStatement *isTryCatchStatement() { return NULL; }
     virtual GotoStatement *isGotoStatement() { return NULL; }
     virtual AsmStatement *isAsmStatement() { return NULL; }
-#ifdef _DH
     int incontract;
-#endif
     virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);

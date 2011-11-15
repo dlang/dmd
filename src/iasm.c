@@ -52,10 +52,6 @@
 #include        "code.h"
 #include        "iasm.h"
 
-#if DMDV1
-#undef _DH
-#endif
-
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
 #undef I16
