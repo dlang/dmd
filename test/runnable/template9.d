@@ -371,6 +371,26 @@ void test6825()
 }
 
 /**********************************/
+// 6789
+
+template isStaticArray6789(T)
+{
+    static if (is(T U : U[N], size_t N))    // doesn't match
+    {
+        pragma(msg, "> U = ", U, ", N:", typeof(N), " = ", N);
+        enum isStaticArray6789 = true;
+    }
+    else
+        enum isStaticArray6789 = false;
+}
+
+void test6789()
+{
+    alias int[3] T;
+    static assert(isStaticArray6789!T);
+}
+
+/**********************************/
 // 2778
 
 struct ArrayWrapper2778(T)
@@ -453,6 +473,7 @@ int main()
     test5886();
     test5393();
     test6825();
+    test6789();
     test2778();
     test2778aa();
     test2778get();
