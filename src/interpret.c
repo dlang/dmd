@@ -57,6 +57,9 @@ private:
     Expressions globalValues; // values of global constants
     size_t framepointer; // current frame pointer
 public:
+    CtfeStack() : framepointer(0)
+    {
+    }
     size_t stackPointer()
     {
         return values.dim;
