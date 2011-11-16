@@ -3910,6 +3910,75 @@ void test6488()
 }
 
 /***************************************************/
+// 6836
+
+template map6836(fun...) if (fun.length >= 1)
+{
+    auto map6836(Range)(Range r)
+    {
+    }
+}
+void test6836()
+{
+    [1].map6836!"a"();
+}
+
+/***************************************************/
+// 6837
+
+struct Ref6837a(T)
+{
+    T storage;
+    alias storage this;
+}
+
+struct Ref6837b(T)
+{
+    T storage;
+    @property ref T get(){ return storage; }
+    alias get this;
+}
+
+int front6837(int[] arr){ return arr[0]; }
+
+void popFront6837(ref int[] arr){ arr = arr[1..$]; }
+
+void test6837()
+{
+    assert([1,2,3].front6837 == 1);
+
+    auto r1 = Ref6837a!(int[])([1,2,3]);
+    assert(r1.front6837() == 1);    // ng
+    assert(r1.front6837 == 1);      // ok
+    r1.popFront6837();              // ng
+    r1.storage.popFront6837();      // ok
+
+    auto r2 = Ref6837b!(int[])([1,2,3]);
+    assert(r2.front6837() == 1);    // ng
+    assert(r2.front6837 == 1);      // ok
+    r2.popFront6837();              // ng
+    r2.get.popFront6837();          // ng
+    r2.get().popFront6837();        // ok
+}
+
+/***************************************************/
+// 6927
+
+@property int[] foo6927()
+{
+    return [1, 2];
+}
+int[] bar6927(int[] a)
+{
+    return a;
+}
+void test6927()
+{
+    bar6927(foo6927); // OK
+    foo6927.bar6927(); // line 9, Error
+}
+
+/***************************************************/
 
 struct Foo6813(T)
 {
@@ -4323,6 +4392,9 @@ int main()
     test6084();
     test4237();
     test6488();
+    test6836();
+    test6837();
+    test6927();
     test6733();
     test6813();
     test6859();
