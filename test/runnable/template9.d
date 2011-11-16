@@ -539,6 +539,23 @@ void test6738()
 }
 
 /**********************************/
+// 6780
+
+@property int foo6780()(){ return 10; }
+
+int g6780;
+@property void bar6780()(int n){ g6780 = n; }
+
+void test6780()
+{
+    auto n = foo6780;
+    assert(n == 10);
+
+    bar6780 = 10;
+    assert(g6780 == 10);
+}
+
+/**********************************/
 // 6994
 
 struct Foo6994
@@ -795,6 +812,7 @@ int main()
     test6208a();
     test6208b();
     test6738();
+    test6780();
     test6994();
     test3467();
     test4413();
