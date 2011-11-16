@@ -1,4 +1,7 @@
 
+
+/******************************************/
+
 struct Foo
 {
     int v;
@@ -7,7 +10,7 @@ struct Foo
     int bar() { return 73; }
 }
 
-int main()
+int test1()
 {
     Foo f;
     int i;
@@ -22,3 +25,26 @@ int main()
     return 0;
 }
 
+/******************************************/
+// 6259
+
+struct S6259
+{
+    private int m_prop;
+    ref const(int) prop() { return m_prop; }
+    void prop(int v) { m_prop = v; }
+}
+
+void test6259()
+{
+    S6259 s;
+    s.prop = 1;
+}
+
+/******************************************/
+
+void main()
+{
+    test1();
+    test6259();
+}
