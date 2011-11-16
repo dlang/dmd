@@ -1848,10 +1848,12 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
                 DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
                 VarDeclaration *v2 = s ? s->s->isVarDeclaration() : NULL;
                 assert(v2);
-                ctfeStack.push(v2);
+                if (!v2->isDataseg() || v2->isCTFE())
+                    ctfeStack.push(v2);
             }
         }
-        ctfeStack.push(v);
+        if (!v->isDataseg() || v->isCTFE())
+            ctfeStack.push(v);
         Dsymbol *s = v->toAlias();
         if (s == v && !v->isStatic() && v->init)
         {
