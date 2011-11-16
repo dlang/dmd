@@ -79,16 +79,23 @@ public:
     Expression *getValue(VarDeclaration *v)
     {
         if (v->isDataseg() && !v->isCTFE())
+        {
+            assert(v->ctfeAdrOnStack >= 0 &&
+            v->ctfeAdrOnStack < globalValues.dim);
             return globalValues.tdata()[v->ctfeAdrOnStack];
+        }
+        assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < stackPointer());
         return values.tdata()[v->ctfeAdrOnStack];
     }
     void setValue(VarDeclaration *v, Expression *e)
     {
+        assert(!v->isDataseg() || v->isCTFE());
         assert(v->ctfeAdrOnStack >= 0 && v->ctfeAdrOnStack < stackPointer());
         values.tdata()[v->ctfeAdrOnStack] = e;
     }
     void push(VarDeclaration *v)
     {
+        assert(!v->isDataseg() || v->isCTFE());
         if (v->ctfeAdrOnStack!= (size_t)-1
             && v->ctfeAdrOnStack >= framepointer)
         {   // Already exists in this frame, reuse it.
@@ -102,6 +109,7 @@ public:
     }
     void pop(VarDeclaration *v)
     {
+        assert(!v->isDataseg() || v->isCTFE());
         int oldid = v->ctfeAdrOnStack;
         v->ctfeAdrOnStack = (size_t)(savedId.tdata()[oldid]);
         if (v->ctfeAdrOnStack == values.dim - 1)
@@ -113,8 +121,8 @@ public:
     }
     void popAll(size_t stackpointer)
     {
-        assert(values.dim >= stackpointer);
-        for (size_t i= stackpointer; i < values.dim; ++i)
+        assert(values.dim >= stackpointer && stackpointer >= 0);
+        for (size_t i = stackpointer; i < values.dim; ++i)
         {
             VarDeclaration *v = vars.tdata()[i];
             v->ctfeAdrOnStack = (size_t)(savedId.tdata()[i]);
@@ -125,6 +133,7 @@ public:
     }
     void saveGlobalConstant(VarDeclaration *v, Expression *e)
     {
+        assert(v->isDataseg() && !v->isCTFE());
         v->ctfeAdrOnStack = globalValues.dim;
         globalValues.push(e);
     }
