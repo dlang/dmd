@@ -4119,6 +4119,20 @@ void test6868()
 }
 
 /***************************************************/
+// 2856
+
+struct foo2856    { static void opIndex(int i) { printf("foo\n"); } }
+struct bar2856(T) { static void opIndex(int i) { printf("bar\n"); } }
+
+void test2856()
+{
+    foo2856[1];
+    bar2856!(float)[1];     // Error (# = __LINE__)
+    alias bar2856!(float) B;
+    B[1];                   // Okay
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4316,6 +4330,7 @@ int main()
     test6902();
     test6330();
     test6868();
+    test2856();
 
     printf("Success\n");
     return 0;
