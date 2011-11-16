@@ -7052,6 +7052,131 @@ Expression *CallExp::syntaxCopy()
 }
 
 
+Expression *CallExp::resolveUFCS(Scope *sc)
+{
+    Expression *ethis = NULL;
+    DotIdExp *dotid;
+    DotTemplateInstanceExp *dotti;
+    Identifier *ident;
+
+    if (e1->op == TOKdot)
+    {
+        dotid = (DotIdExp *)e1;
+        ident = dotid->ident;
+        ethis = dotid->e1 = dotid->e1->semantic(sc);
+        if (ethis->op == TOKdotexp)
+            return NULL;
+        ethis = resolveProperties(sc, ethis);
+    }
+    else if (e1->op == TOKdotti)
+    {
+        dotti = (DotTemplateInstanceExp *)e1;
+        ident = dotti->ti->name;
+        ethis = dotti->e1 = dotti->e1->semantic(sc);
+        if (ethis->op == TOKdotexp)
+            return NULL;
+        ethis = resolveProperties(sc, ethis);
+    }
+
+    if (ethis && ethis->type)
+    {
+        AggregateDeclaration *ad;
+Lagain:
+        Type *tthis = ethis->type->toBasetype();
+        if (tthis->ty == Tclass)
+        {
+            ad = ((TypeClass *)tthis)->sym;
+            if (search_function(ad, ident))
+                return NULL;
+            goto L1;
+        }
+        else if (tthis->ty == Tstruct)
+        {
+            ad = ((TypeStruct *)tthis)->sym;
+            if (search_function(ad, ident))
+                return NULL;
+        L1:
+            if (ad->aliasthis)
+            {
+                ethis = new DotIdExp(ethis->loc, ethis, ad->aliasthis->ident);
+                ethis = ethis->semantic(sc);
+                ethis = resolveProperties(sc, ethis);
+                goto Lagain;
+            }
+        }
+        else if (tthis->ty == Taarray && e1->op == TOKdot)
+        {
+            if (ident == Id::remove)
+            {
+                /* Transform:
+                 *  aa.remove(arg) into delete aa[arg]
+                 */
+                if (!arguments || arguments->dim != 1)
+                {   error("expected key as argument to aa.remove()");
+                    return new ErrorExp();
+                }
+                Expression *key = arguments->tdata()[0];
+                key = key->semantic(sc);
+                key = resolveProperties(sc, key);
+                key->rvalue();
+
+                TypeAArray *taa = (TypeAArray *)tthis;
+                key = key->implicitCastTo(sc, taa->index);
+
+                return new RemoveExp(loc, ethis, key);
+            }
+            else if (ident == Id::apply || ident == Id::applyReverse)
+            {
+                return NULL;
+            }
+            else
+            {   TypeAArray *taa = (TypeAArray *)tthis;
+                assert(taa->ty == Taarray);
+                StructDeclaration *sd = taa->getImpl();
+                Dsymbol *s = sd->search(0, ident, 2);
+                if (s)
+                    return NULL;
+                goto Lshift;
+            }
+        }
+        else if (tthis->ty == Tarray || tthis->ty == Tsarray)
+        {
+Lshift:
+            if (!arguments)
+                arguments = new Expressions();
+            arguments->shift(ethis);
+            if (e1->op == TOKdot)
+            {
+                /* Transform:
+                 *  array.id(args) into .id(array,args)
+                 */
+#if DMDV2
+                e1 = new DotIdExp(dotid->loc,
+                                  new IdentifierExp(dotid->loc, Id::empty),
+                                  ident);
+#else
+                e1 = new IdentifierExp(dotid->loc, ident);
+#endif
+            }
+            else if (e1->op == TOKdotti)
+            {
+                /* Transform:
+                 *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
+                 */
+#if DMDV2
+                e1 = new DotExp(dotti->loc,
+                                new IdentifierExp(dotti->loc, Id::empty),
+                                new ScopeExp(dotti->loc, dotti->ti));
+#else
+                e1 = new ScopeExp(dotti->loc, dotti->ti);
+#endif
+            }
+            //printf("-> this = %s\n", toChars());
+        }
+    }
+    return NULL;
+}
+
 Expression *CallExp::semantic(Scope *sc)
 {
     TypeFunction *tf;
@@ -7082,61 +7207,9 @@ Expression *CallExp::semantic(Scope *sc)
         return semantic(sc);
     }
 
-    /* Transform:
-     *  array.id(args) into .id(array,args)
-     *  aa.remove(arg) into delete aa[arg]
-     */
-    if (e1->op == TOKdot)
-    {
-        // BUG: we should handle array.a.b.c.e(args) too
-
-        DotIdExp *dotid = (DotIdExp *)(e1);
-        dotid->e1 = dotid->e1->semantic(sc);
-        assert(dotid->e1);
-        if (dotid->e1->type)
-        {
-            TY e1ty = dotid->e1->type->toBasetype()->ty;
-            if (e1ty == Taarray && dotid->ident == Id::remove)
-            {
-                if (!arguments || arguments->dim != 1)
-                {   error("expected key as argument to aa.remove()");
-                    return new ErrorExp();
-                }
-                Expression *key = arguments->tdata()[0];
-                key = key->semantic(sc);
-                key = resolveProperties(sc, key);
-                key->rvalue();
-
-                TypeAArray *taa = (TypeAArray *)dotid->e1->type->toBasetype();
-                key = key->implicitCastTo(sc, taa->index);
-
-                return new RemoveExp(loc, dotid->e1, key);
-            }
-            else if (e1ty == Tarray || e1ty == Tsarray ||
-                     (e1ty == Taarray && dotid->ident != Id::apply && dotid->ident != Id::applyReverse))
-            {
-                if (e1ty == Taarray)
-                {   TypeAArray *taa = (TypeAArray *)dotid->e1->type->toBasetype();
-                    assert(taa->ty == Taarray);
-                    StructDeclaration *sd = taa->getImpl();
-                    Dsymbol *s = sd->search(0, dotid->ident, 2);
-                    if (s)
-                        goto L2;
-                }
-                if (!arguments)
-                    arguments = new Expressions();
-                arguments->shift(dotid->e1);
-#if DMDV2
-                e1 = new DotIdExp(dotid->loc, new IdentifierExp(dotid->loc, Id::empty), dotid->ident);
-#else
-                e1 = new IdentifierExp(dotid->loc, dotid->ident);
-#endif
-            }
-
-         L2:
-            ;
-        }
-    }
+    Expression *e = resolveUFCS(sc);
+    if (e)
+        return e;
 
 #if 1
     /* This recognizes:
