@@ -408,12 +408,11 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 {
 #if LOG
     printf("\n********\nFuncDeclaration::interpret(istate = %p) %s\n", istate, toChars());
-    printf("cantInterpret = %d, semanticRun = %d\n", cantInterpret, semanticRun);
 #endif
     if (global.errors)
         return EXP_CANT_INTERPRET;
 
-    if (cantInterpret || semanticRun == PASSsemantic3)
+    if (semanticRun == PASSsemantic3)
         return EXP_CANT_INTERPRET;
 
     if (semanticRun < PASSsemantic3 && scope)
@@ -446,7 +445,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     Type *tret = tf->next->toBasetype();
     if (tf->varargs && arguments &&
         ((parameters && arguments->dim != parameters->dim) || (!parameters && arguments->dim)))
-    {   cantInterpret = 1;
+    {
         error("C-style variadic functions are not yet implemented in CTFE");
         return EXP_CANT_INTERPRET;
     }

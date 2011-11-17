@@ -558,7 +558,6 @@ struct FuncDeclaration : Declaration
     int naked;                          // !=0 if naked
     ILS inlineStatus;
     int inlineNest;                     // !=0 if nested inline
-    int cantInterpret;                  // !=0 if cannot interpret function
     int isArrayOp;                      // !=0 if array operation
     enum PASS semanticRun;
                                         // this function's frame ptr
