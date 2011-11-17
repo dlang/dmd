@@ -60,8 +60,13 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->pop();
     if (e->op == TOKerror)
         return;
+    unsigned olderrs = global.errors;
     e = e->optimize(WANTvalue | WANTinterpret);
-    if (e->isBool(FALSE))
+    if (global.errors != olderrs)
+    {
+        errorSupplemental(loc, "while evaluating: static assert(%s)", exp->toChars());
+    }
+    else if (e->isBool(FALSE))
     {
         if (msg)
         {   HdrGenState hgs;
