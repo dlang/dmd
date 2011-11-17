@@ -4319,8 +4319,10 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
+            unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, NULL, arguments, f);
-
+            if (olderrors != global.errors)
+                return new ErrorExp();
             type = type->addMod(tf->nextOf()->mod);
         }
         else
@@ -4344,7 +4346,11 @@ Lagain:
             assert(allocator);
 
             TypeFunction *tf = (TypeFunction *)f->type;
+            unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, NULL, newargs, f);
+            if (olderrors != global.errors)
+                return new ErrorExp();
+
         }
         else
         {
@@ -4379,7 +4385,11 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
+            unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, NULL, arguments, f);
+            if (olderrors != global.errors)
+                return new ErrorExp();
+
         }
         else
         {
@@ -4403,7 +4413,11 @@ Lagain:
             assert(allocator);
 
             tf = (TypeFunction *)f->type;
+            unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, NULL, newargs, f);
+            if (olderrors != global.errors)
+                return new ErrorExp();
+
 #if 0
             e = new VarExp(loc, f);
             e = new CallExp(loc, e, newargs);
@@ -7823,7 +7837,10 @@ Lcheckargs:
 
     if (!arguments)
         arguments = new Expressions();
+    int olderrors = global.errors;
     type = functionParameters(loc, sc, tf, ethis, arguments, f);
+    if (olderrors != global.errors)
+        return new ErrorExp();
 
     if (!type)
     {
