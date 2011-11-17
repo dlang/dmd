@@ -401,7 +401,7 @@ void showCtfeExpr(Expression *e, int level = 0)
  *      arguments  function arguments
  *      thisarg    'this', if a needThis() function, NULL if not.
  *
- * Return result expression if successful, NULL if not.
+ * Return result expression if successful, EXP_CANT_INTERPRET if not.
  */
 
 Expression *FuncDeclaration::interpret(InterState *istate, Expressions *arguments, Expression *thisarg)
@@ -411,10 +411,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     printf("cantInterpret = %d, semanticRun = %d\n", cantInterpret, semanticRun);
 #endif
     if (global.errors)
-        return NULL;
+        return EXP_CANT_INTERPRET;
 
     if (cantInterpret || semanticRun == PASSsemantic3)
-        return NULL;
+        return EXP_CANT_INTERPRET;
 
     if (semanticRun < PASSsemantic3 && scope)
     {
@@ -435,10 +435,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         if (spec && global.errors != olderrors)
             spec->errors = global.errors - olderrors;
         if (olderrors != global.errors) // if errors compiling this function
-            return NULL;
+            return EXP_CANT_INTERPRET;
     }
     if (semanticRun < PASSsemantic3done)
-        return NULL;
+        return EXP_CANT_INTERPRET;
 
     Type *tb = type->toBasetype();
     assert(tb->ty == Tfunction);
@@ -448,7 +448,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         ((parameters && arguments->dim != parameters->dim) || (!parameters && arguments->dim)))
     {   cantInterpret = 1;
         error("C-style variadic functions are not yet implemented in CTFE");
-        return NULL;
+        return EXP_CANT_INTERPRET;
     }
 
     InterState istatex;
@@ -462,12 +462,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     if (needThis() && !thisarg)
     {   // error, no this. Prevent segfault.
         error("need 'this' to access member %s", toChars());
-        return NULL;
+        return EXP_CANT_INTERPRET;
     }
     if (thisarg && !istate)
     {   // Check that 'this' aleady has a value
         if (thisarg->interpret(istate) == EXP_CANT_INTERPRET)
-            return NULL;
+            return EXP_CANT_INTERPRET;
     }
     if (arguments)
     {
@@ -490,12 +490,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 if (!istate && (arg->storageClass & STCout))
                 {   // initializing an out parameter involves writing to it.
                     earg->error("global %s cannot be passed as an 'out' parameter at compile time", earg->toChars());
-                    return NULL;
+                    return EXP_CANT_INTERPRET;
                 }
                 // Convert all reference arguments into lvalue references
                 earg = earg->interpret(istate, ctfeNeedLvalueRef);
                 if (earg == EXP_CANT_INTERPRET)
-                    return NULL;
+                    return earg;
             }
             else if (arg->storageClass & STClazy)
             {
@@ -513,14 +513,14 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 }
                 earg = earg->interpret(istate);
                 if (earg == EXP_CANT_INTERPRET)
-                    return NULL;
+                    return earg;
             }
             if (earg->op == TOKthrownexception)
             {
                 if (istate)
                     return earg;
                 ((ThrownExceptionExp *)earg)->generateUncaughtError();
-                return NULL;
+                return EXP_CANT_INTERPRET;
             }
             eargs.tdata()[i] = earg;
         }
@@ -539,8 +539,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 VarDeclaration *v2 = ve->var->isVarDeclaration();
                 if (!v2)
                 {
-                        error("cannot interpret %s as a ref parameter", ve->toChars());
-                        return NULL;
+                    error("cannot interpret %s as a ref parameter", ve->toChars());
+                    return EXP_CANT_INTERPRET;
                 }
                 v->setValueWithoutChecking(earg);
             }
@@ -570,7 +570,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         {   // This is a compiler error. It must not be suppressed.
             global.gag = 0;
             error("CTFE recursion limit exceeded");
-            e = NULL;
+            e = EXP_CANT_INTERPRET;
             break;
         }
         e = fbody->interpret(&istatex);
@@ -579,7 +579,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #if LOG
             printf("function body failed to interpret\n");
 #endif
-            e = NULL;
         }
 
         /* This is how we deal with a recursive statement AST
@@ -603,12 +602,16 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
     ctfeStack.endFrame(istatex.framepointer);
 
+    // If fell off the end of a void function, return void
+    if (!e && type->toBasetype()->nextOf()->ty == Tvoid)
+        return EXP_VOID_INTERPRET;
+
     if (e == EXP_CANT_INTERPRET || !exceptionOrCantInterpret(e))
         return e;
     if (istate)
         return e;
     ((ThrownExceptionExp *)e)->generateUncaughtError();
-    return NULL;
+    return EXP_CANT_INTERPRET;
 }
 
 /******************************** Statement ***************************/
@@ -4597,16 +4600,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         return EXP_CANT_INTERPRET;
     }
     eresult = fd->interpret(istate, arguments, pthis);
-    if (eresult)
-        e = eresult;
-    else if (fd->type->toBasetype()->nextOf()->ty == Tvoid && !global.errors)
-        e = EXP_VOID_INTERPRET;
-    else
+    if (eresult == EXP_CANT_INTERPRET)
     {   // Print a stack trace.
         if (!global.gag)
             showCtfeBackTrace(istate, this, fd);
     }
-    return e;
+    return eresult;
 }
 
 Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
