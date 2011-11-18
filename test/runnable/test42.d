@@ -4372,6 +4372,32 @@ void test6665()
 
 /***************************************************/
 
+double entropy(double[] probs) {
+    double result = 0;
+    foreach (p; probs) {
+	if (!p) continue;
+	result -= p;
+    }
+    return result;
+}
+
+/***************************************************/
+
+long b5364(long bmax){
+    if(true){
+    }
+    if(bmax >= 0) bmax = -1;
+    return bmax;
+}
+
+void test5364()
+{
+    assert(b5364(0) == -1L);
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4603,6 +4629,7 @@ int main()
     test6563();
     test241();
     test6665();
+    test5364();
 
     writefln("Success");
     return 0;
