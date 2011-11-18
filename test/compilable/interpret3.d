@@ -403,7 +403,7 @@ size_t bug5524(int x, int[] more...)
     return 7 + more.length + x;
 }
 
-//static assert(bug5524(3) == 10);
+static assert(bug5524(3) == 10);
 
 
 // 5722
