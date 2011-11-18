@@ -229,7 +229,7 @@ extern (C) void _d_throwc(Object *h)
             printf("handler_info[%d]:\n", dim);
             for (int i = 0; i < dim; i++)
             {
-                auto phi = &handler_table.handler_info[i];
+                auto phi = &handler_table.handler_info.ptr[i];
                 printf("\t[%d]: offset = x%04x, endoffset = x%04x, prev_index = %d, cioffset = x%04x, finally_code = %x\n",
                         i, phi.offset, phi.endoffset, phi.prev_index, phi.cioffset, phi.finally_code);
             }
@@ -238,7 +238,7 @@ extern (C) void _d_throwc(Object *h)
         auto index = -1;
         for (int i = 0; i < dim; i++)
         {
-            auto phi = &handler_table.handler_info[i];
+            auto phi = &handler_table.handler_info.ptr[i];
 
             debug printf("i = %d, phi.offset = %04x\n", i, funcoffset + phi.offset);
             if (retaddr > funcoffset + phi.offset &&
@@ -249,7 +249,7 @@ extern (C) void _d_throwc(Object *h)
 
         if (dim)
         {
-            auto phi = &handler_table.handler_info[index+1];
+            auto phi = &handler_table.handler_info.ptr[index+1];
             debug printf("next finally_code %p\n", phi.finally_code);
             auto prev = cast(InFlight*) &__inflight;
             auto curr = prev.next;
@@ -286,7 +286,7 @@ extern (C) void _d_throwc(Object *h)
         int prev_ndx;
         for (auto ndx = index; ndx != -1; ndx = prev_ndx)
         {
-            auto phi = &handler_table.handler_info[ndx];
+            auto phi = &handler_table.handler_info.ptr[ndx];
             prev_ndx = phi.prev_index;
             if (phi.cioffset)
             {
@@ -298,7 +298,7 @@ extern (C) void _d_throwc(Object *h)
                 {
                     auto ci = **cast(ClassInfo **)h;
 
-                    auto pcb = &pci.catch_block[i];
+                    auto pcb = &pci.catch_block.ptr[i];
 
                     if (_d_isbaseof(ci, pcb.type))
                     {
