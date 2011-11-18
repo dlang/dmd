@@ -32,6 +32,7 @@ TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd);
 
 #define LOG     0
 #define LOGASSIGN 0
+#define SHOWPERFORMANCE 0
 
 // Maximum allowable recursive function calls in CTFE
 #define CTFE_RECURSION_LIMIT 1000
@@ -56,6 +57,7 @@ private:
      */
     Expressions globalValues; // values of global constants
     size_t framepointer; // current frame pointer
+    size_t maxStackPointer; // most stack we've ever used
 public:
     CtfeStack() : framepointer(0)
     {
@@ -63,6 +65,11 @@ public:
     size_t stackPointer()
     {
         return values.dim;
+    }
+    // Largest number of stack positions we've used
+    size_t maxStackUsage()
+    {
+        return maxStackPointer;
     }
     // return the previous frame
     size_t startFrame()
@@ -121,6 +128,8 @@ public:
     }
     void popAll(size_t stackpointer)
     {
+        if (stackPointer() > maxStackPointer)
+            maxStackPointer = stackPointer();
         assert(values.dim >= stackpointer && stackpointer >= 0);
         for (size_t i = stackpointer; i < values.dim; ++i)
         {
@@ -170,10 +179,27 @@ struct CtfeStatus
     static int stackTraceCallsToSuppress; /* When printing a stack trace,
                                            * suppress this number of calls
                                            */
+    static int maxCallDepth; // highest number of recursive calls
+    static int numArrayAllocs; // Number of allocated arrays
+    static int numAssignments; // total number of assignments executed
 };
 
 int CtfeStatus::callDepth = 0;
 int CtfeStatus::stackTraceCallsToSuppress = 0;
+int CtfeStatus::maxCallDepth = 0;
+int CtfeStatus::numArrayAllocs = 0;
+int CtfeStatus::numAssignments = 0;
+
+// CTFE diagnostic information
+void printCtfePerformanceStats()
+{
+#if SHOWPERFORMANCE
+    printf("        ---- CTFE Performance ----\n");
+    printf("max call depth = %d\tmax stack = %d\n", CtfeStatus::maxCallDepth, ctfeStack.maxStackUsage());
+    printf("array allocs = %d\tassignments = %d\n\n", CtfeStatus::numArrayAllocs, CtfeStatus::numAssignments);
+#endif
+}
+
 
 Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
@@ -534,6 +560,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 
     // Enter the function
     ++CtfeStatus::callDepth;
+    if (CtfeStatus::callDepth > CtfeStatus::maxCallDepth)
+        CtfeStatus::maxCallDepth = CtfeStatus::callDepth;
 
     Expression *e = NULL;
     while (1)
@@ -1957,6 +1985,7 @@ Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
         {
             if (!expsx)
             {   expsx = new Expressions();
+                ++CtfeStatus::numArrayAllocs;
                 expsx->setDim(exps->dim);
                 for (size_t j = 0; j < i; j++)
                 {
@@ -2001,6 +2030,7 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
             {
                 if (!expsx)
                 {   expsx = new Expressions();
+                    ++CtfeStatus::numArrayAllocs;
                     expsx->setDim(elements->dim);
                     for (size_t j = 0; j < elements->dim; j++)
                     {
@@ -2160,6 +2190,7 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
             {
                 if (!expsx)
                 {   expsx = new Expressions();
+                    ++CtfeStatus::numArrayAllocs;
                     expsx->setDim(elements->dim);
                     for (size_t j = 0; j < elements->dim; j++)
                     {
@@ -2707,6 +2738,7 @@ BIN_INTERPRET2(Cmp)
 Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expression *newelem)
 {
     Expressions *expsx = new Expressions();
+    ++CtfeStatus::numArrayAllocs;
     expsx->setDim(oldelems->dim);
     for (size_t j = 0; j < expsx->dim; j++)
     {
@@ -2849,6 +2881,7 @@ Expressions *copyLiteralArray(Expressions *oldelems)
 {
     if (!oldelems)
         return oldelems;
+    CtfeStatus::numArrayAllocs++;
     Expressions *newelems = new Expressions();
     newelems->setDim(oldelems->dim);
     for (size_t i = 0; i < oldelems->dim; i++)
@@ -3210,6 +3243,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         error("value of %s is not known at compile time", e1->toChars());
         return returnValue;
     }
+    ++CtfeStatus::numAssignments;
     /* Before we begin, we need to know if this is a reference assignment
      * (dynamic array, AA, or class) or a value assignment.
      * Determining this for slice assignments are tricky: we need to know
@@ -3291,7 +3325,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
     if (fp)
     {
-        if (e1->op == TOKcast)
+        while (e1->op == TOKcast)
         {   CastExp *ce = (CastExp *)e1;
             e1 = ce->e1;
         }
@@ -3338,9 +3372,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
         || e1->op == TOKindex || e1->op == TOKslice))
-        printf("CTFE internal error: unsupported assignment %s\n", toChars());
-    assert(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
-        || e1->op == TOKindex || e1->op == TOKslice);
+    {
+        error("CTFE internal error: unsupported assignment %s", toChars());
+        return EXP_CANT_INTERPRET;
+    }
 
     Expression * newval = NULL;
 
