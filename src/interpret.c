@@ -3291,7 +3291,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
     if (fp)
     {
-        if (e1->op == TOKcast)
+        while (e1->op == TOKcast)
         {   CastExp *ce = (CastExp *)e1;
             e1 = ce->e1;
         }
@@ -3338,9 +3338,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
         || e1->op == TOKindex || e1->op == TOKslice))
-        printf("CTFE internal error: unsupported assignment %s\n", toChars());
-    assert(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
-        || e1->op == TOKindex || e1->op == TOKslice);
+    {
+        error("CTFE internal error: unsupported assignment %s", toChars());
+        return EXP_CANT_INTERPRET;
+    }
 
     Expression * newval = NULL;
 
