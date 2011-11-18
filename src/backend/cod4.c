@@ -493,7 +493,14 @@ code *cdeq(elem *e,regm_t *pretregs)
                         cl = movregconst(cl,reg,*p,1 ^ (cs.Iop & 1));
                     if (sz == 2 * REGSIZE)
                     {   getlvalue_msw(&cs);
-                        cl = movregconst(cl,cs.Irm & 7,p[1],0);
+                        if (REGSIZE == 2)
+                            cl = movregconst(cl,cs.Irm & 7,((unsigned short *)p)[1],0);
+                        else if (REGSIZE == 4)
+                            cl = movregconst(cl,cs.Irm & 7,((unsigned *)p)[1],0);
+                        else if (REGSIZE == 8)
+                            cl = movregconst(cl,cs.Irm & 7,p[1],0);
+                        else
+                            assert(0);
                     }
                 }
                 else if (I64 && sz == 8 && *p >= 0x80000000)
@@ -2327,6 +2334,7 @@ code *longcmp(elem *e,bool jcond,unsigned fltarg,code *targ)
   static const unsigned char jopmsw[4] = {JL, JG, JL, JG };
   static const unsigned char joplsw[4] = {JBE, JA, JB, JAE };
 
+  //printf("longcmp(e = %p)\n", e);
   cr = CNIL;
   e1 = e->E1;
   e2 = e->E2;
