@@ -30,11 +30,14 @@ inline int ld_sprint(char* str, int fmt, longdouble x)
 typedef long double longdouble;
 typedef volatile long double volatile_longdouble;
 
-template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
+// also used from within C code, so use a #define rather than a template
+// template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
+#define ldouble(x) ((longdouble)(x))
 
 inline int ld_sprint(char* str, int fmt, longdouble x)
 {
-    char sfmt[4] = { '%', 'L', fmt, 0 };
+    char sfmt[4] = "%Lg";
+    sfmt[2] = fmt;
     return sprintf(str, sfmt, x);
 }
 
@@ -202,61 +205,34 @@ extern longdouble ld_log2e;
 extern longdouble ld_log2;
 extern longdouble ld_ln2;
 
+extern longdouble ld_inf;
+extern longdouble ld_qnan;
+extern longdouble ld_snan;
+
 ///////////////////////////////////////////////////////////////////////
 // CLASS numeric_limits<longdouble>
 template<> class _CRTIMP2_PURE std::numeric_limits<longdouble>
-	: public _Num_float_base
-	{	// limits for type long double
+: public _Num_float_base
+{	// limits for type long double
 public:
-	typedef longdouble _Ty;
+    typedef longdouble _Ty;
 
-	static _Ty (__CRTDECL min)() _THROW0()
-		{	// return minimum value
-		return LDBL_MIN;
-		}
+    static _Ty (__CRTDECL min)() _THROW0()         { return LDBL_MIN; }
+    static _Ty (__CRTDECL max)() _THROW0()         { return LDBL_MAX; }
+    static _Ty __CRTDECL epsilon() _THROW0()       { return LDBL_EPSILON; }
+    static _Ty __CRTDECL round_error() _THROW0()   { return ldouble(0.5); }
+    static _Ty __CRTDECL denorm_min() _THROW0()    { return ldouble(0x0000000000000001ULL, 1); }
+    static _Ty __CRTDECL infinity() _THROW0()      { return ld_inf; }
+    static _Ty __CRTDECL quiet_NaN() _THROW0()     { return ld_qnan; }
+    static _Ty __CRTDECL signaling_NaN() _THROW0() { return ld_snan; }
 
-	static _Ty (__CRTDECL max)() _THROW0()
-		{	// return maximum value
-		return LDBL_MAX;
-		}
-
-	static _Ty __CRTDECL epsilon() _THROW0()
-		{	// return smallest effective increment from 1.0
-		return LDBL_EPSILON;
-		}
-
-	static _Ty __CRTDECL round_error() _THROW0()
-		{	// return largest rounding error
-		return ldouble(0.5);
-		}
-
-	static _Ty __CRTDECL denorm_min() _THROW0()
-		{	// return minimum denormalized value
-		return ldouble(0x0000000000000001ULL, 1);
-		}
-
-	static _Ty __CRTDECL infinity() _THROW0()
-		{	// return positive infinity
-		return ldouble(::_LInf._Long_double);
-		}
-
-	static _Ty __CRTDECL quiet_NaN() _THROW0()
-		{	// return non-signaling NaN
-		return ldouble(::_LNan._Long_double);
-		}
-
-	static _Ty __CRTDECL signaling_NaN() _THROW0()
-		{	// return signaling NaN
-		return ldouble(::_LSnan._Long_double);
-		}
-
-	_STCONS(int, digits, LDBL_MANT_DIG);
-	_STCONS(int, digits10, LDBL_DIG);
-	_STCONS(int, max_exponent, (int)LDBL_MAX_EXP);
-	_STCONS(int, max_exponent10, (int)LDBL_MAX_10_EXP);
-	_STCONS(int, min_exponent, (int)LDBL_MIN_EXP);
-	_STCONS(int, min_exponent10, (int)LDBL_MIN_10_EXP);
-	};
+    _STCONS(int, digits, LDBL_MANT_DIG);
+    _STCONS(int, digits10, LDBL_DIG);
+    _STCONS(int, max_exponent, (int)LDBL_MAX_EXP);
+    _STCONS(int, max_exponent10, (int)LDBL_MAX_10_EXP);
+    _STCONS(int, min_exponent, (int)LDBL_MIN_EXP);
+    _STCONS(int, min_exponent10, (int)LDBL_MIN_10_EXP);
+};
 
 _STCONSDEF(numeric_limits<longdouble>, int, digits)
 _STCONSDEF(numeric_limits<longdouble>, int, digits10)
