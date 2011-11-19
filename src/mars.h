@@ -320,7 +320,7 @@ typedef uint64_t                d_uns64;
 
 typedef float                   d_float32;
 typedef double                  d_float64;
-typedef long_double             d_float80;
+typedef longdouble              d_float80;
 
 typedef d_uns8                  d_char;
 typedef d_uns16                 d_wchar;
@@ -329,7 +329,7 @@ typedef d_uns32                 d_dchar;
 #ifdef IN_GCC
 #include "d-gcc-real.h"
 #else
-typedef long_double real_t;
+typedef longdouble real_t;
 #endif
 
 // Modify OutBuffer::writewchar to write the correct size of wchar

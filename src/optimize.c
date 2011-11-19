@@ -863,7 +863,7 @@ Expression *PowExp::optimize(int result)
         if (e1->type->isintegral())
             e = new IntegerExp(loc, 1, e1->type);
         else
-            e = new RealExp(loc, to_real(1.0), e1->type);
+            e = new RealExp(loc, ldouble(1.0), e1->type);
 
         e = new CommaExp(loc, e1, e);
     }
@@ -876,7 +876,7 @@ Expression *PowExp::optimize(int result)
     // Replace x ^^ -1.0 by (1.0 / x)
     else if ((e2->op == TOKfloat64 && e2->toReal() == -1.0))
     {
-        e = new DivExp(loc, new RealExp(loc, to_real(1.0), e2->type), e1);
+        e = new DivExp(loc, new RealExp(loc, ldouble(1.0), e2->type), e1);
     }
     // All other negative integral powers are illegal
     else if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)

@@ -352,16 +352,16 @@ MATCH IntegerExp::implicitConvTo(Type *t)
 
         case Tfloat80:
         {
-            ld_volatile long_double f;
+            volatile_longdouble f;
             if (type->isunsigned())
             {
-                f = to_real(value);
+                f = ldouble(value);
                 if (f != value) // isn't this a noop, because the compiler prefers ld
                     goto Lno;
             }
             else
             {
-                f = to_real((long long)value);
+                f = ldouble((long long)value);
                 if (f != (long long)value)
                     goto Lno;
             }

@@ -1,38 +1,57 @@
+
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2011 by Digital Mars
+// All Rights Reserved
+// written by Rainer Schuetze
+// http://www.digitalmars.com
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
+
+// 80 bit floating point value implementation for Microsoft compiler
+
 #include "longdouble.h"
+
+#include "assert.h"
 
 #include <float.h>
 #include <stdio.h>
-
-static long_double _sincos(long_double,int);
+#include <string.h>
 
 extern "C"
 {
-    int ld_initfpu(int rc);
-    double ld_read(volatile ld_data* ld);
-    void ld_set(ld_data* ld, double d);
-    void ld_setll(ld_data* ld, long long d);
-    void ld_setull(ld_data* ld, unsigned long long d);
-    void ld_expl(ld_data* ld, int exp);
-    long_double ld_add(long_double ld1, long_double ld2);
-    long_double ld_sub(long_double ld1, long_double ld2);
-    long_double ld_mul(long_double ld1, long_double ld2);
-    long_double ld_div(long_double ld1, long_double ld2);
-    long_double ld_mod(long_double ld1, long_double ld2);
-    bool ld_cmpb(long_double ld1, long_double ld2);
-    bool ld_cmpbe(long_double ld1, long_double ld2);
-    bool ld_cmpa(long_double ld1, long_double ld2);
-    bool ld_cmpae(long_double ld1, long_double ld2);
-    bool ld_cmpe(long_double ld1, long_double ld2);
-    bool ld_cmpne(long_double ld1, long_double ld2);
-    long_double ld_sin(long_double ld1);
-    long_double ld_cos(long_double ld1);
-    long_double ld_tan(long_double ld1);
+    // implemented in ldfpu.asm for _WIN64
+    int ld_initfpu(int bits, int mask);
+    double ld_read(longdouble* ld);
+    long long ld_readll(longdouble* ld);
+    unsigned long long ld_readull(longdouble* ld);
+    void ld_set(longdouble* ld, double d);
+    void ld_setll(longdouble* ld, long long d);
+    void ld_setull(longdouble* ld, unsigned long long d);
+    void ld_expl(longdouble* ld, int exp);
+    longdouble ld_add(longdouble ld1, longdouble ld2);
+    longdouble ld_sub(longdouble ld1, longdouble ld2);
+    longdouble ld_mul(longdouble ld1, longdouble ld2);
+    longdouble ld_div(longdouble ld1, longdouble ld2);
+    longdouble ld_mod(longdouble ld1, longdouble ld2);
+    bool ld_cmpb(longdouble ld1, longdouble ld2);
+    bool ld_cmpbe(longdouble ld1, longdouble ld2);
+    bool ld_cmpa(longdouble ld1, longdouble ld2);
+    bool ld_cmpae(longdouble ld1, longdouble ld2);
+    bool ld_cmpe(longdouble ld1, longdouble ld2);
+    bool ld_cmpne(longdouble ld1, longdouble ld2);
+    longdouble ld_sqrt(longdouble ld1);
+    longdouble ld_sin(longdouble ld1);
+    longdouble ld_cos(longdouble ld1);
+    longdouble ld_tan(longdouble ld1);
 }
 
 bool initFPU()
 {
 #ifdef _WIN64
-    int old_cw = ld_initfpu(_RC_NEAR);
+//    int old_cw = ld_initfpu(_RC_NEAR);
+    int old_cw = ld_initfpu(0x300 /*_PC_64  | _RC_NEAR*/, // #defines NOT identical to CPU FPU control word!
+                            0xF00 /*_MCW_PC | _MCW_RC*/);
 #else
     int old_cw = _control87(_MCW_EM | _PC_64  | _RC_NEAR,
                             _MCW_EM | _MCW_PC | _MCW_RC);
@@ -41,12 +60,12 @@ bool initFPU()
 }
 static bool doInitFPU = initFPU();
 
-double ld_data::read()
+double longdouble::readd()
 { 
 #ifdef _WIN64
     return ld_read(this);
 #else
-    volatile ld_data* pthis = this;
+    longdouble* pthis = this;
     __asm 
     {
         mov eax, pthis
@@ -55,12 +74,70 @@ double ld_data::read()
     // return double in FP register
 #endif
 }
-void ld_data::set(double d) 
+long long longdouble::readll()
+{
+#if 1
+    return readull();
+#elif defined _WIN64
+    return ld_readll(this);
+#else
+    longdouble* pthis = this;
+    long long res;
+    __asm 
+    {
+        mov eax, pthis
+        fld tbyte ptr [eax]
+        fistp qword ptr res
+    }
+    return res;
+#endif
+}
+
+unsigned long long longdouble::readull()
+{
+#if 1
+    // somehow the FPU does not respect the CHOP mode of the rounding control
+    // in 64-bit mode
+    // so we roll our own conversion (it also allows the usual C wrap-around
+    // instead of the "invalid value" created by the FPU)
+    int expo = exponent - 0x3fff;
+    unsigned long long u;
+    if(expo < 0 || expo > 127)
+        return 0;
+    if(expo < 64)
+        u = mantissa >> (63 - expo);
+    else
+        u = mantissa << (expo - 63);
+    if(sign)
+        u = ~u + 1;
+    return u;
+#elif defined _WIN64
+    return ld_readull(this);
+#else
+    longdouble* pthis = this;
+    long long res; // cannot use unsigned, VC will not generate "fistp qword"
+    longdouble twoPow63 = { 1ULL << 63, 0x3fff + 63, 0 };
+    __asm 
+    {
+        mov eax, pthis
+        fld tbyte ptr [eax]
+        fld tbyte ptr twoPow63
+        fsubp ST(1),ST(0)  // move it into signed range
+
+        lea eax, res
+        fistp qword ptr [eax]
+    }
+    res ^= (1LL << 63);
+    return res;
+#endif
+}
+
+void longdouble::setd(double d) 
 { 
 #ifdef _WIN64
     return ld_set(this, d);
 #else
-    ld_data* pthis = this;
+    longdouble* pthis = this;
     __asm 
     { 
         mov eax, pthis
@@ -69,12 +146,12 @@ void ld_data::set(double d)
     }
 #endif
 }
-void ld_data::setll(long long d) 
+void longdouble::setll(long long d) 
 {
 #ifdef _WIN64
     return ld_setll(this, d);
 #else
-    ld_data* pthis = this;
+    longdouble* pthis = this;
     __asm 
     { 
         fild qword ptr d
@@ -83,38 +160,29 @@ void ld_data::setll(long long d)
     }
 #endif
 }
-void ld_data::setull(unsigned long long d) 
+void longdouble::setull(unsigned long long d) 
 {
 #ifdef _WIN64
     return ld_setull(this, d);
 #else
-    ld_data* pthis = this;
-    if(d & (1LL << 63))
-    {
-        ld_data twoPow64 = { 1ULL << 63, 0x3fff + 64, 0 };
-        __asm
-        {
-            fild qword ptr d
-            fld tbyte ptr twoPow64;
-            fadd ST(1),ST(0)
-            fstp ST(0)
-        }
-    }
-    else
-        __asm fild qword ptr d
-
+    d ^= (1LL << 63);
+    longdouble* pthis = this;
+    longdouble twoPow63 = { 1ULL << 63, 0x3fff + 63, 0 };
     __asm
     {
+        fild qword ptr d
+        fld tbyte ptr twoPow63
+        faddp ST(1),ST(0)
         mov eax, pthis
         fstp tbyte ptr [eax]
     }
 #endif
 }
 
-long_double ldexpl(long_double ld, int exp)
+longdouble ldexpl(longdouble ld, int exp)
 {
 #ifdef _WIN64
-    ld_expl(&ld.tdbl, exp);
+    ld_expl(&ld, exp);
 #else
     __asm
     {
@@ -129,12 +197,12 @@ long_double ldexpl(long_double ld, int exp)
 }
 
 ///////////////////////////////////////////////////////////////////////
-long_double operator+(long_double ld1, long_double ld2) 
+longdouble operator+(longdouble ld1, longdouble ld2) 
 {
 #ifdef _WIN64
     return ld_add(ld1, ld2);
 #else
-    long_double res;
+    longdouble res;
     __asm
     {
         fld tbyte ptr ld1
@@ -146,12 +214,12 @@ long_double operator+(long_double ld1, long_double ld2)
 #endif
 }
 
-long_double operator-(long_double ld1, long_double ld2)
+longdouble operator-(longdouble ld1, longdouble ld2)
 {
 #ifdef _WIN64
     return ld_sub(ld1, ld2);
 #else
-    long_double res;
+    longdouble res;
     __asm
     {
         fld tbyte ptr ld1
@@ -163,12 +231,12 @@ long_double operator-(long_double ld1, long_double ld2)
 #endif
 }
 
-long_double operator*(long_double ld1, long_double ld2)
+longdouble operator*(longdouble ld1, longdouble ld2)
 {
 #ifdef _WIN64
     return ld_mul(ld1, ld2);
 #else
-    long_double res;
+    longdouble res;
     __asm
     {
         fld tbyte ptr ld1
@@ -180,12 +248,12 @@ long_double operator*(long_double ld1, long_double ld2)
 #endif
 }
 
-long_double operator/(long_double ld1, long_double ld2)
+longdouble operator/(longdouble ld1, longdouble ld2)
 {
 #ifdef _WIN64
     return ld_div(ld1, ld2);
 #else
-    long_double res;
+    longdouble res;
     __asm
     {
         fld tbyte ptr ld1
@@ -197,7 +265,7 @@ long_double operator/(long_double ld1, long_double ld2)
 #endif
 }
 
-bool operator< (long_double x, long_double y)
+bool operator< (longdouble x, longdouble y)
 { 
 #ifdef _WIN64
     return ld_cmpb(x, y);
@@ -218,7 +286,7 @@ bool operator< (long_double x, long_double y)
     return res;
 #endif
 }
-bool operator<=(long_double x, long_double y)
+bool operator<=(longdouble x, longdouble y)
 {
 #ifdef _WIN64
     return ld_cmpbe(x, y);
@@ -239,7 +307,7 @@ bool operator<=(long_double x, long_double y)
     return res;
 #endif
 }
-bool operator> (long_double x, long_double y)
+bool operator> (longdouble x, longdouble y)
 {
 #ifdef _WIN64
     return ld_cmpa(x, y);
@@ -260,7 +328,7 @@ bool operator> (long_double x, long_double y)
     return res;
 #endif
 }
-bool operator>=(long_double x, long_double y)
+bool operator>=(longdouble x, longdouble y)
 { 
 #ifdef _WIN64
     return ld_cmpae(x, y);
@@ -281,7 +349,7 @@ bool operator>=(long_double x, long_double y)
     return res;
 #endif
 }
-bool operator==(long_double x, long_double y)
+bool operator==(longdouble x, longdouble y)
 {
 #ifdef _WIN64
     return ld_cmpe(x, y);
@@ -302,7 +370,7 @@ bool operator==(long_double x, long_double y)
     return res;
 #endif
 }
-bool operator!=(long_double x, long_double y)
+bool operator!=(longdouble x, longdouble y)
 { 
 #ifdef _WIN64
     return ld_cmpne(x, y);
@@ -325,48 +393,87 @@ bool operator!=(long_double x, long_double y)
 }
 
 
-int _isnan(long_double ld) { return _isnan(ld.read()); }
-
-long_double fabsl(long_double ld)
+int _isnan(longdouble ld)
 {
-    ld.tdbl.sign = 0;
+    return (ld.exponent == 0x7fff && ld.mantissa != 0);
+}
+
+longdouble fabsl(longdouble ld)
+{
+    ld.sign = 0;
     return ld;
 }
 
-long_double sqrtl(long_double ld) { return ldouble(sqrt(ld.read())); }
+longdouble sqrtl(longdouble ld)
+{
+#ifdef _WIN64
+    return ld_sqrt(ld);
+#else
+    longdouble res;
+    __asm
+    {
+        fld tbyte ptr ld;
+        fsqrt;
+        fstp tbyte ptr res;
+    }
+    return res;
+#endif
+}
 
-long_double sinl (long_double ld)
+longdouble sinl (longdouble ld)
 {
 #ifdef _WIN64
     return ld_sin(ld);
 #else
-    return _sincos(ld, 0);
+    longdouble res;
+    __asm
+    {
+        fld tbyte ptr ld;
+        fsin; // exact for |x|<=PI/4
+        fstp tbyte ptr res
+    }
+    return res;
 #endif
 }
-long_double cosl (long_double ld)
+longdouble cosl (longdouble ld)
 { 
 #ifdef _WIN64
     return ld_cos(ld);
 #else
-    return _sincos(ld, 1);
+    longdouble res;
+    __asm
+    {
+        fld tbyte ptr ld;
+        fcos; // exact for |x|<=PI/4
+        fstp tbyte ptr res;
+    }
+    return res;
 #endif
 }
-long_double tanl (long_double ld)
+longdouble tanl (longdouble ld)
 {
 #ifdef _WIN64
     return ld_tan(ld);
 #else
-    return _sincos(ld, 2);
+    longdouble res;
+    __asm
+    {
+        fld tbyte ptr ld;
+        fptan;
+        fstp ST(0); // always 1
+        fstp tbyte ptr res;
+    }
+    return res;
 #endif
 }
 
-long_double fmodl(long_double x, long_double y)
+longdouble fmodl(longdouble x, longdouble y)
 {
 #ifdef _WIN64
     return ld_mod(x, y);
 #else
     short sw;
-    long_double res;
+    longdouble res;
     __asm
     {
         fld     tbyte ptr y
@@ -388,148 +495,68 @@ FM1:    // We don't use fprem1 because for some inexplicable
 
 //////////////////////////////////////////////////////////////
 
-#define DTYPE_OTHER	0
-#define DTYPE_ZERO	1
-#define DTYPE_INFINITE	2
-#define DTYPE_SNAN	3
-#define DTYPE_QNAN	4
+longdouble ld_qnan = { 0x8000000000000000ULL, 0x7fff, 0 };
+longdouble ld_snan = { 0x0000000000000001ULL, 0x7fff, 0 };
+longdouble ld_inf  = { 0x0000000000000000ULL, 0x7fff, 0 };
 
-long_double ld_qnan = { 0x8000000000000000ULL, 0x7fff, 0 };
-long_double ld_snan = { 0x0000000000000000ULL, 0x7fff, 0 };
+longdouble ld_zero  = { 0, 0, 0 };
+longdouble ld_one   = { 0x8000000000000000ULL, 0x3fff, 0 };
+longdouble ld_pi    = { 0xc90fdaa22168c235ULL, 0x4000, 0 };
+longdouble ld_log2t = { 0xd49a784bcd1b8afeULL, 0x4000, 0 };
+longdouble ld_log2e = { 0xb8aa3b295c17f0bcULL, 0x3fff, 0 };
+longdouble ld_log2  = { 0x9a209a84fbcff799ULL, 0x3ffd, 0 };
+longdouble ld_ln2   = { 0xb17217f7d1cf79acULL, 0x3ffe, 0 };
 
-long_double ld_zero  = { 0, 0, 0 };
-long_double ld_one   = { 0x8000000000000000ULL, 0x3fff, 0 };
-long_double ld_pi    = { 0xc90fdaa22168c235ULL, 0x4000, 0 };
-long_double ld_log2t = { 0xd49a784bcd1b8afeULL, 0x4000, 0 };
-long_double ld_log2e = { 0xb8aa3b295c17f0bcULL, 0x3fff, 0 };
-long_double ld_log2  = { 0x9a209a84fbcff799ULL, 0x3ffd, 0 };
-long_double ld_ln2   = { 0xb17217f7d1cf79acULL, 0x3ffe, 0 };
+longdouble ld_pi2     = ld_pi*2;
+longdouble ld_piOver2 = ld_pi*0.5;
+longdouble ld_piOver4 = ld_pi*0.25;
 
-long_double ld_pi2     = ld_pi*2;
-long_double ld_piOver2 = ld_pi*0.5;
-long_double ld_piOver4 = ld_pi*0.25;
+//////////////////////////////////////////////////////////////
 
-int __dtype(long_double x)
+#define LD_TYPE_OTHER    0
+#define LD_TYPE_ZERO     1
+#define LD_TYPE_INFINITE 2
+#define LD_TYPE_SNAN     3
+#define LD_TYPE_QNAN     4
+
+int ld_type(longdouble x)
 {
-    if(x.tdbl.exponent == 0)
-        return x.tdbl.mantissa == 0 ? DTYPE_ZERO : DTYPE_OTHER; // dnormal if not zero
-    if(x.tdbl.exponent != 0x7fff)
-        return DTYPE_OTHER;
-    if(x.tdbl.mantissa == 0)
-        return DTYPE_INFINITE;
-    if(x.tdbl.mantissa & (1LL << 63))
-        return DTYPE_QNAN;
-    return DTYPE_SNAN;
+    if(x.exponent == 0)
+        return x.mantissa == 0 ? LD_TYPE_ZERO : LD_TYPE_OTHER; // dnormal if not zero
+    if(x.exponent != 0x7fff)
+        return LD_TYPE_OTHER;
+    if(x.mantissa == 0)
+        return LD_TYPE_INFINITE;
+    if(x.mantissa & (1LL << 63))
+        return LD_TYPE_QNAN;
+    return LD_TYPE_SNAN;
 }
 
-static long_double _sincos(long_double x,int flag)
-{
-    switch(__dtype(x))
-    {
-    case DTYPE_ZERO:
-        if (flag == 1)
-            return ldouble(1.0);
-    case DTYPE_QNAN:
-        return x;
-    case DTYPE_INFINITE:
-        return ld_qnan;
-    case DTYPE_SNAN:
-        return ld_qnan;
-    }
-
-    long_double y;
-
-#if 0 // DMC uses intrinsics without reduction!
-    if(flag == 1)
-    {
-        x = x + piOver2;
-        flag = 0;
-    }
-    bool inv = false;
-    bool neg = x.tdbl.sign;
-    x.tdbl.sign = 0;
-    if(x > piOver4)
-    {
-        //while(x >= pi2)
-        //    x = x - pi2;
-        __asm
-        {
-            fldpi
-            fstp tbyte ptr pi
-        }
-        x = fmodl(x, pi);
-        if(flag != 2)
-        {
-            if(x > pi)
-            {
-                x = x - pi;
-                neg = !neg;
-            }
-            if(x > piOver2)
-                x = pi - x;
-            if(x > piOver4)
-            {
-                x = piOver2 - x;
-                flag = 1;
-            }
-        }
-    }
-#else
-    bool neg = false;
-#endif
-#ifdef _WIN64
-    return x;
-#else
-    switch(flag)
-    {
-    case 0:
-        __asm fld tbyte ptr x;
-        __asm fsin; // exact for |x|<=PI/4
-        __asm fstp tbyte ptr y;
-        break;
-    case 1:
-        __asm fld tbyte ptr x;
-        __asm fcos; // exact for |x|<=PI/4
-        __asm fstp tbyte ptr y;
-        break;
-    case 2:
-        __asm fld tbyte ptr x;
-        __asm fptan;
-        __asm fstp ST(0);
-        __asm fstp tbyte ptr y;
-        break;
-    }
-    if(neg)
-        y.tdbl.sign = y.tdbl.sign ^ 1;
-    return y;
-#endif
-}
-
-int ld_sprint(char* str, int fmt, long_double x)
+int ld_sprint(char* str, int fmt, longdouble x)
 {
     // fmt is 'a','A','f' or 'g'
     if(fmt != 'a' && fmt != 'A')
     {
         char format[] = { '%', fmt, 0 };
-        return sprintf(str, format, x.read());
+        return sprintf(str, format, x.readd());
     }
 
-    unsigned short exp = x.tdbl.exponent;
-    unsigned long long mantissa = x.tdbl.mantissa;
+    unsigned short exp = x.exponent;
+    unsigned long long mantissa = x.mantissa;
 
-    switch(__dtype(x))
+    switch(ld_type(x))
     {
-    case DTYPE_ZERO:
+    case LD_TYPE_ZERO:
         return sprintf(str, "0x0.0L");
-    case DTYPE_QNAN:
-    case DTYPE_SNAN:
+    case LD_TYPE_QNAN:
+    case LD_TYPE_SNAN:
         return sprintf(str, "NAN");
-    case DTYPE_INFINITE:
-        return sprintf(str, x.tdbl.sign ? "-INF" : "INF");
+    case LD_TYPE_INFINITE:
+        return sprintf(str, x.sign ? "-INF" : "INF");
     }
 
     int len = 0;
-    if(x.tdbl.sign)
+    if(x.sign)
         str[len++] = '-';
     len += sprintf(str + len, mantissa & (1LL << 63) ? "0x1." : "0x0.");
     mantissa = mantissa << 1;
@@ -561,3 +588,65 @@ int ld_sprint(char* str, int fmt, long_double x)
     str[len] = 0;
     return len;
 }
+
+//////////////////////////////////////////////////////////////
+
+#if UNITTEST
+static bool unittest()
+{
+    char buffer[32];
+    ld_sprint(buffer, 'a', ld_pi);
+    assert(strcmp(buffer, "0x1.921fb54442d1846ap+1") == 0);
+
+    longdouble ldb = ldouble(0.4);
+    long long b = ldb;
+    assert(b == 0);
+
+    b = ldouble(0.9);
+    assert(b == 0);
+
+    long long x = 0x12345678abcdef78LL;
+    longdouble ldx = ldouble(x);
+    assert(ldx > 0);
+    long long y = ldx;
+    assert(x == y);
+
+    x = -0x12345678abcdef78LL;
+    ldx = ldouble(x);
+    assert(ldx < 0);
+    y = ldx;
+    assert(x == y);
+
+    unsigned long long u = 0x12345678abcdef78LL;
+    longdouble ldu = ldouble(u);
+    assert(ldu > 0);
+    unsigned long long v = ldu;
+    assert(u == v);
+
+    u = 0xf234567812345678ULL;
+    ldu = ldouble(u);
+    assert(ldu > 0);
+    v = ldu;
+    assert(u == v);
+
+    u = 0xf2345678;
+    ldu = ldouble(u);
+    ldu = ldu * ldu;
+    ldu = sqrt(ldu);
+    v = ldu;
+    assert(u == v);
+
+    u = 0x123456789A;
+    ldu = ldouble(u);
+    ldu = ldu * (1LL << 23);
+    v = ldu;
+    u = u * (1LL << 23);
+    assert(u == v);
+
+    return true;
+}
+
+static bool runUnittest = unittest();
+
+#endif
+

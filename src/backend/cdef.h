@@ -446,7 +446,7 @@ typedef unsigned long long      targ_ullong;
 #endif
 typedef float           targ_float;
 typedef double          targ_double;
-typedef long_double     targ_ldouble;
+typedef longdouble      targ_ldouble;
 
 // Extract most significant register from constant
 #define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))

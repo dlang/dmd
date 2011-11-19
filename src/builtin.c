@@ -27,10 +27,10 @@
 #if __FreeBSD__
 extern "C"
 {
-    long_double sinl(long_double);
-    long_double cosl(long_double);
-    long_double tanl(long_double);
-    long_double sqrtl(long_double);
+    longdouble sinl(longdouble);
+    longdouble cosl(longdouble);
+    longdouble tanl(longdouble);
+    longdouble sqrtl(longdouble);
 }
 #endif
 

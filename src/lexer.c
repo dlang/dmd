@@ -143,27 +143,32 @@ const char *Token::toChars()
             break;
 #else
         case TOKfloat32v:
-            sprintf(buffer,"%Lgf", float80value);
+            ld_sprint(buffer, 'g', float80value);
+            strcat(buffer, "f");
             break;
 
         case TOKfloat64v:
-            sprintf(buffer,"%Lg", float80value);
+            ld_sprint(buffer, 'g', float80value);
             break;
 
         case TOKfloat80v:
-            sprintf(buffer,"%LgL", float80value);
+            ld_sprint(buffer, 'g', float80value);
+            strcat(buffer, "L");
             break;
 
         case TOKimaginary32v:
-            sprintf(buffer,"%Lgfi", float80value);
+            ld_sprint(buffer, 'g', float80value);
+            strcat(buffer, "fi");
             break;
 
         case TOKimaginary64v:
-            sprintf(buffer,"%Lgi", float80value);
+            ld_sprint(buffer, 'g', float80value);
+            strcat(buffer, "i");
             break;
 
         case TOKimaginary80v:
-            sprintf(buffer,"%LgLi", float80value);
+            ld_sprint(buffer, 'g', float80value);
+            strcat(buffer, "Li");
             break;
 #endif
 

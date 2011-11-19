@@ -93,7 +93,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|x64"
-			OutputDirectory="$(Platformname)\$(ConfigurationName)"
+			OutputDirectory="vcbuild\$(Platformname)\$(ConfigurationName)"
 			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="1"
 			>
@@ -116,14 +116,14 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/TP"
-				AdditionalIncludeDirectories=".\root;.\tk;.\backend;."
+				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
 				PreprocessorDefinitions="DEBUG,_DEBUG"
 				RuntimeLibrary="1"
 				StructMemberAlignment="1"
 				WarningLevel="4"
 				DebugInformationFormat="3"
 				CompileAs="0"
-				ForcedIncludeFiles="mscinc.h"
+				ForcedIncludeFiles="vcbuild\warnings.h"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -166,7 +166,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(Platformname)\$(ConfigurationName)"
+			OutputDirectory="vcbuild\$(Platformname)\$(ConfigurationName)"
 			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="1"
 			WholeProgramOptimization="1"
@@ -194,7 +194,7 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
-				AdditionalIncludeDirectories=".\root;.\tk;.\backend;."
+				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
 				PreprocessorDefinitions="NDEBUG"
 				RuntimeLibrary="0"
 				StructMemberAlignment="1"
@@ -202,7 +202,7 @@
 				WarningLevel="4"
 				DebugInformationFormat="3"
 				CompileAs="0"
-				ForcedIncludeFiles="mscinc.h"
+				ForcedIncludeFiles="vcbuild\warnings.h"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -245,7 +245,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|x64"
-			OutputDirectory="$(Platformname)\$(ConfigurationName)"
+			OutputDirectory="vcbuild\$(Platformname)\$(ConfigurationName)"
 			IntermediateDirectory="$(OutDir)"
 			ConfigurationType="1"
 			WholeProgramOptimization="1"
@@ -275,7 +275,7 @@
 				FavorSizeOrSpeed="1"
 				OmitFramePointers="true"
 				WholeProgramOptimization="true"
-				AdditionalIncludeDirectories=".\root;.\tk;.\backend;."
+				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
 				PreprocessorDefinitions="NDEBUG"
 				RuntimeLibrary="0"
 				StructMemberAlignment="1"
@@ -283,7 +283,7 @@
 				WarningLevel="4"
 				DebugInformationFormat="3"
 				CompileAs="0"
-				ForcedIncludeFiles="mscinc.h"
+				ForcedIncludeFiles="vcbuild\warnings.h"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -1546,7 +1546,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="idgen.c"
 							Outputs="id.c;id.h;$(IntDir)\$(InputName).exe"
 						/>
@@ -1557,7 +1557,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /DNO_C99 /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="idgen.c"
 							Outputs="id.c;id.h;$(IntDir)\$(InputName).exe"
 						/>
@@ -1568,7 +1568,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /DNO_C99 /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="idgen.c"
 							Outputs="id.c;id.h;$(IntDir)\$(InputName).exe"
 						/>
@@ -1583,7 +1583,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /DNO_C99 /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="mtype.h"
 							Outputs="impcnvtab.c"
 						/>
@@ -1594,7 +1594,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /DNO_C99 /Itk /Iroot /Imsc /FImscinc.h /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="mtype.h"
 							Outputs="impcnvtab.c"
 						/>
@@ -1605,7 +1605,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /DNO_C99 /Iroot /Imsc /FImscinc.h /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="mtype.h"
 							Outputs="impcnvtab.c"
 						/>
@@ -1616,7 +1616,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /DNO_C99 /Iroot /Imsc /FImscinc.h /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputFileName)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="mtype.h"
 							Outputs="impcnvtab.c"
 						/>
@@ -1631,7 +1631,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /DNO_C99 /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1642,7 +1642,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /DNO_C99 /Itk /Iroot /Imsc /FImscinc.h /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1653,7 +1653,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /DNO_C99 /Iroot /Imsc /FImscinc.h /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1664,7 +1664,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /DNO_C99 /Iroot /Imsc /FImscinc.h /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -2025,6 +2025,38 @@
 				<File
 					RelativePath=".\vcbuild\fenv.h"
 					>
+				</File>
+				<File
+					RelativePath=".\vcbuild\ldfpu.asm"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						ExcludedFromBuild="true"
+						>
+						<Tool
+							Name="VCCustomBuildTool"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Debug|x64"
+						>
+						<Tool
+							Name="VCCustomBuildTool"
+							Description="ml64 -c -Zi &quot;-Fl$(IntDir)\$(InputName).lst&quot; &quot;-Fo$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+							CommandLine="ml64 -c -Zi &quot;-Fl$(IntDir)\$(InputName).lst&quot; &quot;-Fo$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;"
+							Outputs="$(IntDir)\$(InputName).obj"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|x64"
+						>
+						<Tool
+							Name="VCCustomBuildTool"
+							Description="ml64 -c -Zi &quot;-Fl$(IntDir)\$(InputName).lst&quot; &quot;-Fo$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;"
+							CommandLine="ml64 -c -Zi &quot;-Fl$(IntDir)\$(InputName).lst&quot; &quot;-Fo$(IntDir)\$(InputName).obj&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;"
+							Outputs="$(IntDir)\$(InputName).obj"
+						/>
+					</FileConfiguration>
 				</File>
 				<File
 					RelativePath=".\vcbuild\stdint.h"

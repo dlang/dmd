@@ -17,14 +17,14 @@ double Port::nan = NAN;
 double Port::infinity = INFINITY;
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
-long_double Port::ldbl_max = LDBL_MAX;
+longdouble Port::ldbl_max = LDBL_MAX;
 
 int Port::isNan(double r)
 {
     return ::isnan(r);
 }
 
-int Port::isNan(long_double r)
+int Port::isNan(longdouble r)
 {
     return ::isnan(r);
 }
@@ -37,7 +37,7 @@ int Port::isSignallingNan(double r)
     return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
 }
 
-int Port::isSignallingNan(long_double r)
+int Port::isSignallingNan(longdouble r)
 {
     /* A signalling NaN is a NaN with 0 as the most significant bit of
      * its significand, which is bit 62 of 0..79 for 80 bit reals.
@@ -70,7 +70,7 @@ double Port::pow(double x, double y)
     return ::pow(x, y);
 }
 
-long_double Port::fmodl(long_double x, long_double y)
+longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
 }
@@ -140,7 +140,7 @@ double Port::infinity = 1 / zero;
 
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
-long_double Port::ldbl_max = LDBL_MAX;
+longdouble Port::ldbl_max = LDBL_MAX;
 
 struct PortInitializer
 {
@@ -159,7 +159,7 @@ int Port::isNan(double r)
     return ::_isnan(r);
 }
 
-int Port::isNan(long_double r)
+int Port::isNan(longdouble r)
 {
     return ::_isnan(r);
 }
@@ -172,7 +172,7 @@ int Port::isSignallingNan(double r)
     return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
 }
 
-int Port::isSignallingNan(long_double r)
+int Port::isSignallingNan(longdouble r)
 {
     /* MSVC doesn't have 80 bit long doubles
      */
@@ -206,7 +206,7 @@ double Port::pow(double x, double y)
     return ::pow(x, y);
 }
 
-long_double Port::fmodl(long_double x, long_double y)
+longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
 }
@@ -351,7 +351,7 @@ double Port::nan = copysign(NAN, 1.0);
 double Port::infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
-long_double Port::ldbl_max = LDBL_MAX;
+longdouble Port::ldbl_max = LDBL_MAX;
 
 struct PortInitializer
 {
@@ -366,9 +366,9 @@ PortInitializer::PortInitializer()
 
 #if __FreeBSD__ && __i386__
     // LDBL_MAX comes out as infinity. Fix.
-    static unsigned char x[sizeof(long_double)] =
+    static unsigned char x[sizeof(longdouble)] =
         { 0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFE,0x7F };
-    Port::ldbl_max = *(long_double *)&x[0];
+    Port::ldbl_max = *(longdouble *)&x[0];
     // FreeBSD defaults to double precision. Switch to extended precision.
     fpsetprec(FP_PE);
 #endif
@@ -386,7 +386,7 @@ int Port::isNan(double r)
 #endif
 }
 
-int Port::isNan(long_double r)
+int Port::isNan(longdouble r)
 {
 #if __APPLE__
     return __inline_isnan(r);
@@ -406,7 +406,7 @@ int Port::isSignallingNan(double r)
     return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
 }
 
-int Port::isSignallingNan(long_double r)
+int Port::isSignallingNan(longdouble r)
 {
     /* A signalling NaN is a NaN with 0 as the most significant bit of
      * its significand, which is bit 62 of 0..79 for 80 bit reals.
@@ -450,7 +450,7 @@ double Port::pow(double x, double y)
     return ::pow(x, y);
 }
 
-long_double Port::fmodl(long_double x, long_double y)
+longdouble Port::fmodl(longdouble x, longdouble y)
 {
 #if __FreeBSD__ || __OpenBSD__
     return ::fmod(x, y);        // hack for now, fix later
@@ -528,7 +528,7 @@ double Port::nan = NAN;
 double Port::infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
-long_double Port::ldbl_max = LDBL_MAX;
+longdouble Port::ldbl_max = LDBL_MAX;
 
 struct PortInitializer
 {
@@ -542,7 +542,7 @@ PortInitializer::PortInitializer()
     // gcc nan's have the sign bit set by default, so turn it off
     // Need the volatile to prevent gcc from doing incorrect
     // constant folding.
-    volatile long_double foo;
+    volatile longdouble foo;
     foo = NAN;
     if (signbit(foo))   // signbit sometimes, not always, set
         foo = -foo;     // turn off sign bit
@@ -554,7 +554,7 @@ int Port::isNan(double r)
     return isnan(r);
 }
 
-int Port::isNan(long_double r)
+int Port::isNan(longdouble r)
 {
     return isnan(r);
 }
@@ -567,7 +567,7 @@ int Port::isSignallingNan(double r)
     return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
 }
 
-int Port::isSignallingNan(long_double r)
+int Port::isSignallingNan(longdouble r)
 {
     /* A signalling NaN is a NaN with 0 as the most significant bit of
      * its significand, which is bit 62 of 0..79 for 80 bit reals.

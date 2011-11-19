@@ -1306,13 +1306,13 @@ uinteger_t Expression::toUInteger()
 real_t Expression::toReal()
 {
     error("Floating point constant expression expected instead of %s", toChars());
-    return to_real(0);
+    return ldouble(0);
 }
 
 real_t Expression::toImaginary()
 {
     error("Floating point constant expression expected instead of %s", toChars());
-    return to_real(0);
+    return ldouble(0);
 }
 
 complex_t Expression::toComplex()
@@ -1900,14 +1900,14 @@ real_t IntegerExp::toReal()
     toInteger();
     t = type->toBasetype();
     if (t->ty == Tuns64)
-        return to_real((d_uns64)value);
+        return ldouble((d_uns64)value);
     else
-        return to_real((d_int64)value);
+        return ldouble((d_int64)value);
 }
 
 real_t IntegerExp::toImaginary()
 {
-    return to_real(0);
+    return ldouble(0);
 }
 
 complex_t IntegerExp::toComplex()
@@ -2124,11 +2124,12 @@ char *RealExp::toChars()
 
 #ifdef IN_GCC
     value.format(buffer, sizeof(buffer));
+#else
+    ld_sprint(buffer, 'g', value);
+#endif
     if (type->isimaginary())
         strcat(buffer, "i");
-#else
-    sprintf(buffer, type->isimaginary() ? "%Lgi" : "%Lg", value);
-#endif
+
     assert(strlen(buffer) < sizeof(buffer));
     return mem.strdup(buffer);
 }
@@ -2153,12 +2154,12 @@ uinteger_t RealExp::toUInteger()
 
 real_t RealExp::toReal()
 {
-    return type->isreal() ? value : to_real(0);
+    return type->isreal() ? value : ldouble(0);
 }
 
 real_t RealExp::toImaginary()
 {
-    return type->isreal() ? to_real(0) : value;
+    return type->isreal() ? ldouble(0) : value;
 }
 
 complex_t RealExp::toComplex()
@@ -2225,7 +2226,7 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
      * always exact.
      */
     char buffer[25];
-    sprintf(buffer, "%Lg", value);
+    ld_sprint(buffer, 'g', value);
     assert(strlen(buffer) < sizeof(buffer));
 #if _WIN32 && __DMC__
     char *save = __locale_decpoint;
@@ -2235,10 +2236,9 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
 #else
     real_t r = strtold(buffer, NULL);
 #endif
-    if (r == value)                     // if exact duplication
-        buf->writestring(buffer);
-    else
-        buf->printf("%La", value);      // ensure exact duplication
+    if (r != value)                     // if exact duplication
+        ld_sprint(buffer, 'a', value);
+    buf->writestring(buffer);
 
     if (type)
     {
@@ -2288,7 +2288,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
     else
     {
         char buffer[32];
-        int n = sprintf(buffer, "%LA", value);
+        int n = ld_sprint(buffer, 'A', value);
         assert(n > 0 && n < sizeof(buffer));
         for (int i = 0; i < n; i++)
         {   char c = buffer[i];
@@ -2336,16 +2336,17 @@ char *ComplexExp::toChars()
 {
     char buffer[sizeof(value) * 3 + 8 + 1];
 
-#ifdef IN_GCC
     char buf1[sizeof(value) * 3 + 8 + 1];
     char buf2[sizeof(value) * 3 + 8 + 1];
+#ifdef IN_GCC
     creall(value).format(buf1, sizeof(buf1));
     cimagl(value).format(buf2, sizeof(buf2));
-    sprintf(buffer, "(%s+%si)", buf1, buf2);
 #else
-    sprintf(buffer, "(%Lg+%Lgi)", creall(value), cimagl(value));
-    assert(strlen(buffer) < sizeof(buffer));
+    ld_sprint(buffer, 'g', creall(value));
+    ld_sprint(buffer, 'g', cimagl(value));
 #endif
+    sprintf(buffer, "(%s+%si)", buf1, buf2);
+    assert(strlen(buffer) < sizeof(buffer));
     return mem.strdup(buffer);
 }
 

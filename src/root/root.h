@@ -44,7 +44,7 @@ void warning(const char *format, ...);
 #include <float.h>  // for _isnan
 #include <malloc.h> // for alloca
 // According to VC 8.0 docs, long double is the same as double
-long_double strtold(const char *p,char **endp);
+longdouble strtold(const char *p,char **endp);
 #define strtof  strtod
 #define isnan   _isnan
 

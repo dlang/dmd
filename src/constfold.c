@@ -577,12 +577,12 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         if (e1->type->isfloating())
         {
             r = new RealExp(loc, e1->toReal(), e1->type);
-            v = new RealExp(loc, to_real(1.0), e1->type);
+            v = new RealExp(loc, ldouble(1.0), e1->type);
         }
         else
         {
             r = new RealExp(loc, e1->toReal(), Type::tfloat64);
-            v = new RealExp(loc, to_real(1.0), Type::tfloat64);
+            v = new RealExp(loc, ldouble(1.0), Type::tfloat64);
         }
 
         while (n != 0)
@@ -594,7 +594,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         }
 
         if (neg)
-            v = Div(v->type, new RealExp(loc, to_real(1.0), v->type), v);
+            v = Div(v->type, new RealExp(loc, ldouble(1.0), v->type), v);
 
         if (type->isintegral())
             e = new IntegerExp(loc, v->toInteger(), type);
@@ -606,7 +606,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         // x ^^ y for x < 0 and y not an integer is not defined
         if (e1->toReal() < 0.0)
         {
-            e = new RealExp(loc, to_real(Port::nan), type);
+            e = new RealExp(loc, ldouble(Port::nan), type);
         }
         else if (e2->toReal() == 0.5)
         {

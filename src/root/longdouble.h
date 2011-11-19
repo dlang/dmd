@@ -1,162 +1,178 @@
 
+// Compiler implementation of the D programming language
+// Copyright (c) 1999-2011 by Digital Mars
+// All Rights Reserved
+// written by Rainer Schuetze
+// http://www.digitalmars.com
+// License for redistribution is by either the Artistic License
+// in artistic.txt, or the GNU General Public License in gnu.txt.
+// See the included readme.txt for details.
+
+// 80 bit floating point value implementation for Microsoft compiler
+
 #ifndef __LONG_DOUBLE_H__
 #define __LONG_DOUBLE_H__
 
-#if !_MSC_VER // has native 10 byte doubles
-typedef long double long_double;
+#if IN_GCC
+#include "d-gcc-real.h"
+typedef real_t longdouble;
 
-template<typename T> long_double to_real(T x) { return (long_double) x; }
+template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
+inline int ld_sprint(char* str, int fmt, longdouble x)
+{
+    if(fmt == 'a' || fmt == 'A')
+        return x.formatHex(buffer, 46); // don't know the size here, but 46 is the max
+    return x.format(buffer, 46);
+}
 
-#define ld_volatile volatile
+#elif !_MSC_VER // has native 10 byte doubles
+#include <stdio.h>
+typedef long double longdouble;
+typedef volatile long double volatile_longdouble;
+
+template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
+
+inline int ld_sprint(char* str, int fmt, longdouble x)
+{
+    char sfmt[4] = { '%', 'L', fmt, 0 };
+    return sprintf(str, sfmt, x);
+}
+
 #else
 
 #include <float.h>
 #include <limits>
 
-#define ld_volatile /* going through asm, so no volatile required */
-
-struct ld_data
+struct longdouble
 {
     unsigned long long mantissa;
     unsigned short exponent:15;  // bias 0x3fff
     unsigned short sign:1;
-    unsigned short fill:16;
+    unsigned short fill:16;      // for 12 byte alignment
 
-    double __thiscall read();
-    void __thiscall set(double d);
-    void __thiscall setll(long long d);
-    void __thiscall setull(unsigned long long d);
-};
+    // no constructor to be able to use this class in a union
+    // use ldouble() to explicitely create a longdouble value
 
-struct long_double
-{
-    ld_data tdbl;
+    double readd();
+    long long readll();
+    unsigned long long readull();
+    void setd(double d);
+    void setll(long long d);
+    void setull(unsigned long long d);
 
-    //long_double() {}
-    //long_double(const long_double& ld) { dbl = ld.dbl; }
-    //explicit long_double(double d) { dbl = d; }
-    //long_double& operator=(long_double ld) { dbl = ld.dbl; return *this; }
+    template<typename T> longdouble& operator=(T x) { set(x); return *this; }
 
-    void set(long_double ld) { tdbl = ld.tdbl; }
-    template<typename T> void assign(T x) { tdbl.set(x); }
-
-    template<typename T> long_double& operator=(T x) { set(x); return *this; }
-    //template<typename T> void operator=(T x) { /*assign(x); return *this;*/ }
-
-    double read() { return tdbl.read(); }
+    void set(longdouble ld) { mantissa = ld.mantissa; exponent = ld.exponent; sign = ld.sign; }
 
     // we need to list all basic types to avoid ambiguities
-    void set(float              d) { tdbl.set(d); }
-    void set(double             d) { tdbl.set(d); }
-    void set(long double        d) { tdbl.set(d); }
+    void set(float              d) { setd(d); }
+    void set(double             d) { setd(d); }
+    void set(long double        d) { setd(d); }
 
-    void set(signed char        d) { tdbl.set(d); }
-    void set(short              d) { tdbl.set(d); }
-    void set(int                d) { tdbl.set(d); }
-    void set(long               d) { tdbl.set(d); }
-    void set(long long          d) { tdbl.setll(d); }
+    void set(signed char        d) { setd(d); }
+    void set(short              d) { setd(d); }
+    void set(int                d) { setd(d); }
+    void set(long               d) { setd(d); }
+    void set(long long          d) { setll(d); }
 
-    void set(unsigned char      d) { tdbl.set(d); }
-    void set(unsigned short     d) { tdbl.set(d); }
-    void set(unsigned int       d) { tdbl.set(d); }
-    void set(unsigned long      d) { tdbl.set(d); }
-    void set(unsigned long long d) { tdbl.setull(d); }
-    void set(bool               d) { tdbl.set(d); }
+    void set(unsigned char      d) { setd(d); }
+    void set(unsigned short     d) { setd(d); }
+    void set(unsigned int       d) { setd(d); }
+    void set(unsigned long      d) { setd(d); }
+    void set(unsigned long long d) { setull(d); }
+    void set(bool               d) { setd(d); }
     
-    operator float             () { return tdbl.read(); }
-    operator double            () { return tdbl.read(); }
+    operator float             () { return readd(); }
+    operator double            () { return readd(); }
 
-    operator signed char       () { return tdbl.read(); }
-    operator short             () { return tdbl.read(); }
-    operator int               () { return tdbl.read(); }
-    operator long              () { return tdbl.read(); }
-    operator long long         () { return tdbl.read(); }
+    operator signed char       () { return readd(); }
+    operator short             () { return readd(); }
+    operator int               () { return readd(); }
+    operator long              () { return readd(); }
+    operator long long         () { return readll(); }
 
-    operator unsigned char     () { return tdbl.read(); }
-    operator unsigned short    () { return tdbl.read(); }
-    operator unsigned int      () { return tdbl.read(); }
-    operator unsigned long     () { return tdbl.read(); }
-    operator unsigned long long() { return tdbl.read(); }
-    operator bool              () { return tdbl.mantissa != 0; }
+    operator unsigned char     () { return readd(); }
+    operator unsigned short    () { return readd(); }
+    operator unsigned int      () { return readd(); }
+    operator unsigned long     () { return readd(); }
+    operator unsigned long long() { return readull(); }
+    operator bool              () { return mantissa != 0 || exponent != 0; } // correct?
 };
 
-inline long_double ldouble(unsigned long long mantissa, int exp, int sign = 0)
+// some optimizations are avoided by adding volatile to the longdouble
+// type, but this introduces bad ambiguities when using the class implementation above
+// as we are going through asm these optimizations won't kick in anyway, so "volatile"
+// is not required.
+typedef longdouble volatile_longdouble;
+
+inline longdouble ldouble(unsigned long long mantissa, int exp, int sign = 0)
 {
-    long_double d; 
-    d.tdbl.mantissa = mantissa;
-    d.tdbl.exponent = exp;
-    d.tdbl.sign = sign;
+    longdouble d; 
+    d.mantissa = mantissa;
+    d.exponent = exp;
+    d.sign = sign;
     return d;
 }
-template<typename T> inline long_double ldouble(T x) { long_double d; d.set(x); return d; }
-//template<typename T> inline long_double ldouble(volatile T x) { long_double d; d.set(x); return d; }
+template<typename T> inline longdouble ldouble(T x) { longdouble d; d.set(x); return d; }
+//template<typename T> inline longdouble ldouble(volatile T x) { longdouble d; d.set(x); return d; }
 
-template<typename T> inline long_double to_real(T x) { return ldouble(x); }
+longdouble operator+(longdouble ld1, longdouble ld2);
+longdouble operator-(longdouble ld1, longdouble ld2);
+longdouble operator*(longdouble ld1, longdouble ld2);
+longdouble operator/(longdouble ld1, longdouble ld2);
 
+bool operator< (longdouble ld1, longdouble ld2);
+bool operator<=(longdouble ld1, longdouble ld2);
+bool operator> (longdouble ld1, longdouble ld2);
+bool operator>=(longdouble ld1, longdouble ld2);
+bool operator==(longdouble ld1, longdouble ld2);
+bool operator!=(longdouble ld1, longdouble ld2);
 
-long_double operator+(long_double ld1, long_double ld2);
-long_double operator-(long_double ld1, long_double ld2);
-long_double operator*(long_double ld1, long_double ld2);
-long_double operator/(long_double ld1, long_double ld2);
+inline longdouble operator-(longdouble ld1) { ld1.sign ^= 1; return ld1; }
+inline longdouble operator+(longdouble ld1) { return ld1; }
 
-bool operator< (long_double ld1, long_double ld2);
-bool operator<=(long_double ld1, long_double ld2);
-bool operator> (long_double ld1, long_double ld2);
-bool operator>=(long_double ld1, long_double ld2);
-bool operator==(long_double ld1, long_double ld2);
-bool operator!=(long_double ld1, long_double ld2);
+template<typename T> inline longdouble operator+(longdouble ld, T x) { return ld + ldouble(x); }
+template<typename T> inline longdouble operator-(longdouble ld, T x) { return ld - ldouble(x); }
+template<typename T> inline longdouble operator*(longdouble ld, T x) { return ld * ldouble(x); }
+template<typename T> inline longdouble operator/(longdouble ld, T x) { return ld / ldouble(x); }
 
-inline long_double operator-(long_double ld1) { ld1.tdbl.sign ^= 1; return ld1; }
-inline long_double operator+(long_double ld1) { return ld1; }
+template<typename T> inline longdouble operator+(T x, longdouble ld) { return ldouble(x) + ld; }
+template<typename T> inline longdouble operator-(T x, longdouble ld) { return ldouble(x) - ld; }
+template<typename T> inline longdouble operator*(T x, longdouble ld) { return ldouble(x) * ld; }
+template<typename T> inline longdouble operator/(T x, longdouble ld) { return ldouble(x) / ld; }
 
-#if 1
-template<typename T> inline long_double operator+(long_double ld, T x) { return ld + ldouble(x); }
-template<typename T> inline long_double operator-(long_double ld, T x) { return ld - ldouble(x); }
-template<typename T> inline long_double operator*(long_double ld, T x) { return ld * ldouble(x); }
-template<typename T> inline long_double operator/(long_double ld, T x) { return ld / ldouble(x); }
+template<typename T> inline longdouble& operator+=(longdouble& ld, T x) { return ld = ld + x; }
+template<typename T> inline longdouble& operator-=(longdouble& ld, T x) { return ld = ld - x; }
+template<typename T> inline longdouble& operator*=(longdouble& ld, T x) { return ld = ld * x; }
+template<typename T> inline longdouble& operator/=(longdouble& ld, T x) { return ld = ld / x; }
 
-template<typename T> inline long_double operator+(T x, long_double ld) { return ldouble(x) + ld; }
-template<typename T> inline long_double operator-(T x, long_double ld) { return ldouble(x) - ld; }
-template<typename T> inline long_double operator*(T x, long_double ld) { return ldouble(x) * ld; }
-template<typename T> inline long_double operator/(T x, long_double ld) { return ldouble(x) / ld; }
+template<typename T> inline bool operator< (longdouble ld, T x) { return ld <  ldouble(x); }
+template<typename T> inline bool operator<=(longdouble ld, T x) { return ld <= ldouble(x); }
+template<typename T> inline bool operator> (longdouble ld, T x) { return ld >  ldouble(x); }
+template<typename T> inline bool operator>=(longdouble ld, T x) { return ld >= ldouble(x); }
+template<typename T> inline bool operator==(longdouble ld, T x) { return ld == ldouble(x); }
+template<typename T> inline bool operator!=(longdouble ld, T x) { return ld != ldouble(x); }
 
-template<typename T> inline long_double& operator+=(long_double& ld, T x) { return ld = ld + x; }
-template<typename T> inline long_double& operator-=(long_double& ld, T x) { return ld = ld - x; }
-template<typename T> inline long_double& operator*=(long_double& ld, T x) { return ld = ld * x; }
-template<typename T> inline long_double& operator/=(long_double& ld, T x) { return ld = ld / x; }
+template<typename T> inline bool operator< (T x, longdouble ld) { return ldouble(x) <  ld; }
+template<typename T> inline bool operator<=(T x, longdouble ld) { return ldouble(x) <= ld; }
+template<typename T> inline bool operator> (T x, longdouble ld) { return ldouble(x) >  ld; }
+template<typename T> inline bool operator>=(T x, longdouble ld) { return ldouble(x) >= ld; }
+template<typename T> inline bool operator==(T x, longdouble ld) { return ldouble(x) == ld; }
+template<typename T> inline bool operator!=(T x, longdouble ld) { return ldouble(x) != ld; }
 
-template<typename T> inline bool operator< (long_double ld, T x) { return ld <  ldouble(x); }
-template<typename T> inline bool operator<=(long_double ld, T x) { return ld <= ldouble(x); }
-template<typename T> inline bool operator> (long_double ld, T x) { return ld >  ldouble(x); }
-template<typename T> inline bool operator>=(long_double ld, T x) { return ld >= ldouble(x); }
-template<typename T> inline bool operator==(long_double ld, T x) { return ld == ldouble(x); }
-template<typename T> inline bool operator!=(long_double ld, T x) { return ld != ldouble(x); }
+int _isnan(longdouble ld);
 
-//inline bool operator==(volatile long_double& ld, double x) { return ld.read() == x; }
-//inline bool operator!=(volatile long_double& ld, long long x) { return ld.read() != x; }
-//inline bool operator!=(volatile long_double& ld, unsigned long long x) { return ld.read() != x; }
+longdouble fabsl(longdouble ld);
+longdouble sqrtl(longdouble ld);
+longdouble sinl (longdouble ld);
+longdouble cosl (longdouble ld);
+longdouble tanl (longdouble ld);
 
-template<typename T> inline bool operator< (T x, long_double ld) { return ldouble(x) <  ld; }
-template<typename T> inline bool operator<=(T x, long_double ld) { return ldouble(x) <= ld; }
-template<typename T> inline bool operator> (T x, long_double ld) { return ldouble(x) >  ld; }
-template<typename T> inline bool operator>=(T x, long_double ld) { return ldouble(x) >= ld; }
-template<typename T> inline bool operator==(T x, long_double ld) { return ldouble(x) == ld; }
-template<typename T> inline bool operator!=(T x, long_double ld) { return ldouble(x) != ld; }
-#endif
+longdouble fmodl(longdouble x, longdouble y);
+longdouble ldexpl(longdouble ldval, int exp); // see strtold
 
-int _isnan(long_double ld);
-
-long_double fabsl(long_double ld);
-long_double sqrtl(long_double ld);
-long_double sinl (long_double ld);
-long_double cosl (long_double ld);
-long_double tanl (long_double ld);
-
-long_double fmodl(long_double x, long_double y);
-long_double ldexpl(long_double ldval, int exp); // see strtold
-
-inline long_double fabs (long_double ld) { return fabsl(ld); }
-inline long_double sqrt (long_double ld) { return sqrtl(ld); }
+inline longdouble fabs (longdouble ld) { return fabsl(ld); }
+inline longdouble sqrt (longdouble ld) { return sqrtl(ld); }
 
 #undef LDBL_DIG
 #undef LDBL_MAX
@@ -178,21 +194,21 @@ inline long_double sqrt (long_double ld) { return sqrtl(ld); }
 #define LDBL_MAX_10_EXP 4932
 #define LDBL_MIN_10_EXP (-4932)
 
-extern long_double ld_zero;
-extern long_double ld_one;
-extern long_double ld_pi;
-extern long_double ld_log2t;
-extern long_double ld_log2e;
-extern long_double ld_log2;
-extern long_double ld_ln2;
+extern longdouble ld_zero;
+extern longdouble ld_one;
+extern longdouble ld_pi;
+extern longdouble ld_log2t;
+extern longdouble ld_log2e;
+extern longdouble ld_log2;
+extern longdouble ld_ln2;
 
 ///////////////////////////////////////////////////////////////////////
-		// CLASS numeric_limits<long double>
-template<> class _CRTIMP2_PURE std::numeric_limits<long_double>
+// CLASS numeric_limits<longdouble>
+template<> class _CRTIMP2_PURE std::numeric_limits<longdouble>
 	: public _Num_float_base
 	{	// limits for type long double
 public:
-	typedef long_double _Ty;
+	typedef longdouble _Ty;
 
 	static _Ty (__CRTDECL min)() _THROW0()
 		{	// return minimum value
@@ -242,12 +258,14 @@ public:
 	_STCONS(int, min_exponent10, (int)LDBL_MIN_10_EXP);
 	};
 
-_STCONSDEF(numeric_limits<long_double>, int, digits)
-_STCONSDEF(numeric_limits<long_double>, int, digits10)
-_STCONSDEF(numeric_limits<long_double>, int, max_exponent)
-_STCONSDEF(numeric_limits<long_double>, int, max_exponent10)
-_STCONSDEF(numeric_limits<long_double>, int, min_exponent)
-_STCONSDEF(numeric_limits<long_double>, int, min_exponent10)
+_STCONSDEF(numeric_limits<longdouble>, int, digits)
+_STCONSDEF(numeric_limits<longdouble>, int, digits10)
+_STCONSDEF(numeric_limits<longdouble>, int, max_exponent)
+_STCONSDEF(numeric_limits<longdouble>, int, max_exponent10)
+_STCONSDEF(numeric_limits<longdouble>, int, min_exponent)
+_STCONSDEF(numeric_limits<longdouble>, int, min_exponent10)
+
+int ld_sprint(char* str, int fmt, longdouble x);
 
 #endif // !_MSC_VER
 
