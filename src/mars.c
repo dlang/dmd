@@ -46,6 +46,8 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv);
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
 
+void printCtfePerformanceStats();
+
 Global global;
 
 Global::Global()
@@ -1297,6 +1299,8 @@ int main(int argc, char *argv[])
     // Do not attempt to generate output files if errors or warnings occurred
     if (global.errors || global.warnings)
         fatal();
+
+    printCtfePerformanceStats();
 
     Library *library = NULL;
     if (global.params.lib)
