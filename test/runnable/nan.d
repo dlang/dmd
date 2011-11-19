@@ -1,6 +1,5 @@
 import core.stdc.stdio;
 
-/*
 enum real er1 = real.nan;
 enum real er2 = 1;
 static assert(er1 != er2);
@@ -20,18 +19,9 @@ static assert(!(ed1 >= ed2));
 static assert(!(ed1 <= ed2));
 
 bool b;
-*/
-
-void test43()
-{
-    real a = 0.9;
-    ulong b = cast(ulong) a;
-    assert(cast(uint) b == 0);
-}
 
 bool test()
 {
-/*
 	real r1 = real.nan;
 	real r2 = 1;
 	b = (r1 != r2); assert(b);
@@ -58,12 +48,10 @@ bool test()
 	b = (f1 >  f2); assert(!b);
 	b = (f1 <= f2); assert(!b);
 	b = (f1 >= f2); assert(!b);
-*/
 	return true;
 }
 
 void main()
 {
-	test43();
 	assert(test());
 }
