@@ -286,6 +286,8 @@ void TypedefDeclaration::semantic(Scope *sc)
         sem = SemanticDone;
 #if DMDV2
         type = type->addStorageClass(storage_class);
+        if (!global.params.useDeprecated)
+            error("use of typedef is deprecated");
 #endif
         Type *savedtype = type;
         type = type->semantic(loc, sc);

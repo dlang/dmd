@@ -1196,6 +1196,41 @@ void test34_test52()
     }
 }
 
+/***************************************************/
+
+
+void test6289()
+{
+    typedef immutable(int)[] X;
+    static assert(is(typeof(X.init[]) == X));
+    static assert(is(typeof((immutable(int[])).init[]) == immutable(int)[]));
+    static assert(is(typeof((const(int[])).init[]) == const(int)[]));
+    static assert(is(typeof((const(int[3])).init[]) == const(int)[]));
+}
+
+/***************************************************/
+// 4237
+
+struct Struct4237(T) { T value; }
+void foo4237()
+{
+    typedef int Number = 1;
+    Struct4237!Number s;
+    pragma(msg, typeof(s).mangleof);
+    assert(s.value == 1);
+}
+void bar4237()
+{
+    typedef real Number = 2;
+    Struct4237!Number s;
+    pragma(msg, typeof(s).mangleof);
+    assert(s.value == 2); // Assertion failure
+}
+void test4237()
+{
+    foo4237(); bar4237();
+}
+
 /******************************************/
 // 3990
 
@@ -1271,5 +1306,7 @@ int main()
     test34_test52();
     test3990();
 
+    test6289();
+    test4237();
     return 0;
 }
