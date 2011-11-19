@@ -1450,7 +1450,7 @@ inout(int) test82(inout(int) _ = 0)
     pragma(msg, typeof(cast()r));
     static assert(typeof(cast()r).stringof == "shared(char****)*");
     pragma(msg, typeof(cast(const)r));
-    static assert(typeof(cast(const)r).stringof == "const(shared(const(char****))*)");
+    static assert(typeof(cast(const)r).stringof == "const(shared(char****)*)");
     pragma(msg, typeof(cast(const shared)r));
     static assert(typeof(cast(const shared)r).stringof == "shared(const(char*****))");
     pragma(msg, typeof(cast(shared)r));
@@ -1458,11 +1458,11 @@ inout(int) test82(inout(int) _ = 0)
     pragma(msg, typeof(cast(immutable)r));
     static assert(typeof(cast(immutable)r).stringof == "immutable(char*****)");
     pragma(msg, typeof(cast(inout)r));
-    static assert(typeof(cast(inout)r).stringof == "inout(shared(inout(char****))*)");
+    static assert(typeof(cast(inout)r).stringof == "inout(shared(char****)*)");
 
     inout(shared(char**)***) s;
     pragma(msg, typeof(s));
-    static assert(typeof(s).stringof == "inout(shared(inout(char**))***)");
+    static assert(typeof(s).stringof == "inout(shared(char**)***)");
     pragma(msg, typeof(***s));
     static assert(typeof(***s).stringof == "shared(inout(char**))");
 
@@ -2051,6 +2051,15 @@ void test6912()
     static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(    const(int)[int]) waa = iaa; })));
     static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(immutable(int)[int]) waa = iaa; })));
 }
+
+/************************************/
+// 6941
+
+static assert((const(shared(int[])[])).stringof == "const(shared(int[])[])");	// fail
+static assert((const(shared(int[])[])).stringof != "const(shared(const(int[]))[])"); // fail
+
+static assert((inout(shared(int[])[])).stringof == "inout(shared(int[])[])");	// fail
+static assert((inout(shared(int[])[])).stringof != "inout(shared(inout(int[]))[])");	// fail
 
 /************************************/
 
