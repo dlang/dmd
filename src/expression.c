@@ -10789,7 +10789,7 @@ Expression *MinExp::semantic(Scope *sc)
         else if (t2->isintegral())
             e = scaleFactor(sc);
         else
-        {   error("incompatible types for minus");
+        {   error("can't subtract %s from pointer", t2->toChars());
             return new ErrorExp();
         }
     }
