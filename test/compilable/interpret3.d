@@ -1,5 +1,14 @@
 ﻿// PERMUTE_ARGS: -inline
 
+template compiles(int T)
+{
+   bool compiles = true;
+}
+
+/**************************************************
+    3901 Arbitrary struct assignment, ref return
+**************************************************/
+
 struct ArrayRet{
    int x;
 }
@@ -166,11 +175,14 @@ int retRefTest4()
     return b.x;
 }
 
-
 static assert(retRefTest1()==2);
 static assert(retRefTest2()==2);
 static assert(retRefTest3()==26);
 static assert(retRefTest4()==218);
+
+/**************************************************
+    Bug 4389
+**************************************************/
 
 int bug4389()
 {
@@ -254,6 +266,18 @@ bool bug4837()
 }
 
 static assert(bug4837());
+
+/**************************************************
+   6972 ICE with cast()cast()assign
+**************************************************/
+
+int bug6972()
+{
+    ubyte n = 6;
+    n /= 2u;
+    return n;
+}
+static assert(bug6972()==3);
 
 /**************************************************
     Bug 6164
@@ -343,11 +367,6 @@ int cov3(TCov3 t)
 
 static assert(cov3(1, 2) == 7);
 
-template compiles(int T)
-{
-   bool compiles = true;
-}
-
 int badassert1(int z)
 {
    assert(z == 5, "xyz");
@@ -384,7 +403,7 @@ size_t bug5524(int x, int[] more...)
     return 7 + more.length + x;
 }
 
-//static assert(bug5524(3) == 10);
+static assert(bug5524(3) == 10);
 
 
 // 5722
