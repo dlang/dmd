@@ -87,6 +87,10 @@ bool findTestParameter(string file, string token, ref string result)
 
     //writeln("arg: '", result, "'");
 
+    string result2;
+    if (findTestParameter(file[tokenStart+lineEnd..$], token, result2))
+        result ~= " " ~ result2;
+
     return true;
 }
 
