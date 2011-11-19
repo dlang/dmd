@@ -9256,15 +9256,15 @@ Expression *MinExp::semantic(Scope *sc)
         else if (t2->isintegral())
             e = scaleFactor(sc);
         else
-        {   error("incompatible types for minus");
-            return new IntegerExp(0);
+        {   error("can't subtract %s from pointer", t2->toChars());
+            return new ErrorExp();
         }
     }
     else if (t2->ty == Tpointer)
     {
         type = e2->type;
         error("can't subtract pointer from %s", e1->type->toChars());
-        return new IntegerExp(0);
+        return new ErrorExp();
     }
     else
     {
