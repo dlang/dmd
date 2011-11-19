@@ -4945,7 +4945,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     if (goal == ctfeNeedRvalue && this->e1->op == TOKstring)
         e1 = this->e1; // Will get duplicated anyway
     else
-        e1 = this->e1->interpret(istate, goal);
+        e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
     if (e1->op == TOKvar)
@@ -4963,7 +4963,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1->op != TOKarrayliteral && e1->op != TOKstring &&
         e1->op != TOKnull && e1->op != TOKslice)
     {
-        error("Cannot determine length of %s at compile time\n", e1->toChars());
+        error("Cannot determine length of %s at compile time", e1->toChars());
         return EXP_CANT_INTERPRET;
     }
     uinteger_t dollar = resolveArrayLength(e1);
