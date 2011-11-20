@@ -70,7 +70,7 @@ ulong mach_absolute_time();
     In std.datetime, it is also used as the result of various arithmetic
     operations on time points.
 
-    Use the $(D dur) function to create Durations.
+    Use the $(D dur) function to create $(D Duration)s.
 
     You cannot create a duration of months or years because the variable number
     of days in a month or a year makes it so that you cannot convert between
@@ -109,7 +109,7 @@ struct Duration
 public:
 
     /++
-        Compares this Duration with the given Duration.
+        Compares this $(D Duration) with the given $(D Duration).
 
         Returns:
             $(TABLE
@@ -118,7 +118,7 @@ public:
             $(TR $(TD this &gt; rhs) $(TD &gt; 0))
             )
      +/
-    int opCmp(in Duration rhs) @safe const pure nothrow
+    int opCmp(Duration rhs) @safe const pure nothrow
     {
         if(_hnsecs < rhs._hnsecs)
             return -1;
@@ -130,34 +130,27 @@ public:
 
     unittest
     {
-        assert(Duration(12).opCmp(Duration(12)) == 0);
-        assert(Duration(-12).opCmp(Duration(-12)) == 0);
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            foreach(E; _TypeTuple!(Duration, const Duration, immutable Duration))
+            {
+                assert((cast(D)Duration(12)).opCmp(cast(E)Duration(12)) == 0);
+                assert((cast(D)Duration(-12)).opCmp(cast(E)Duration(-12)) == 0);
 
-        assert(Duration(10).opCmp(Duration(12)) < 0);
-        assert(Duration(-12).opCmp(Duration(12)) < 0);
+                assert((cast(D)Duration(10)).opCmp(cast(E)Duration(12)) < 0);
+                assert((cast(D)Duration(-12)).opCmp(cast(E)Duration(12)) < 0);
 
-        assert(Duration(12).opCmp(Duration(10)) > 0);
-        assert(Duration(12).opCmp(Duration(-12)) > 0);
-
-        auto dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.opCmp(dur)));
-        static assert(__traits(compiles, cdur.opCmp(dur)));
-        static assert(__traits(compiles, idur.opCmp(dur)));
-        static assert(__traits(compiles, dur.opCmp(cdur)));
-        static assert(__traits(compiles, cdur.opCmp(cdur)));
-        static assert(__traits(compiles, idur.opCmp(cdur)));
-        static assert(__traits(compiles, dur.opCmp(idur)));
-        static assert(__traits(compiles, cdur.opCmp(idur)));
-        static assert(__traits(compiles, idur.opCmp(idur)));
+                assert((cast(D)Duration(12)).opCmp(cast(E)Duration(10)) > 0);
+                assert((cast(D)Duration(12)).opCmp(cast(E)Duration(-12)) > 0);
+            }
+        }
     }
 
 
     /++
-        Adds or subtracts two Durations.
+        Adds or subtracts two durations.
 
-        The legal types of arithmetic for Duration using this operator are
+        The legal types of arithmetic for $(D Duration) using this operator are
 
         $(TABLE
         $(TR $(TD Duration) $(TD +) $(TD Duration) $(TD -->) $(TD Duration))
@@ -167,12 +160,12 @@ public:
         )
 
         Params:
-            duration = The duration to add to or subtract from this duration.
+            rhs = The duration to add to or subtract from this $(D Duration).
       +/
-    Duration opBinary(string op, D)(in D rhs) @safe const pure nothrow
+    Duration opBinary(string op, D)(D rhs) @safe const pure nothrow
         if((op == "+" || op == "-") &&
            (is(_Unqual!D == Duration) ||
-           is(_Unqual!D == TickDuration)))
+            is(_Unqual!D == TickDuration)))
     {
         static if(is(_Unqual!D == Duration))
             return Duration(mixin("_hnsecs " ~ op ~ " rhs._hnsecs"));
@@ -182,105 +175,115 @@ public:
 
     unittest
     {
-        assert(Duration(5) + Duration(7) == Duration(12));
-        assert(Duration(5) - Duration(7) == Duration(-2));
-        assert(Duration(7) + Duration(5) == Duration(12));
-        assert(Duration(7) - Duration(5) == Duration(2));
-
-        assert(Duration(5) + Duration(-7) == Duration(-2));
-        assert(Duration(5) - Duration(-7) == Duration(12));
-        assert(Duration(7) + Duration(-5) == Duration(2));
-        assert(Duration(7) - Duration(-5) == Duration(12));
-
-        assert(Duration(-5) + Duration(7) == Duration(2));
-        assert(Duration(-5) - Duration(7) == Duration(-12));
-        assert(Duration(-7) + Duration(5) == Duration(-2));
-        assert(Duration(-7) - Duration(5) == Duration(-12));
-
-        assert(Duration(-5) + Duration(-7) == Duration(-12));
-        assert(Duration(-5) - Duration(-7) == Duration(2));
-        assert(Duration(-7) + Duration(-5) == Duration(-12));
-        assert(Duration(-7) - Duration(-5) == Duration(-2));
-
-        //This should run the test on Linux systems (I don't know about other Posix systems),
-        //but Windows doesn't seem to have a very round number for ticks per second
-        //(1_193_182 in wine on my Linux box), so testing on Windows is harder.
-        if(TickDuration.ticksPerSec == 1_000_000)
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
         {
-            assert(Duration(5) + TickDuration.from!"usecs"(7) == Duration(75));
-            assert(Duration(5) - TickDuration.from!"usecs"(7) == Duration(-65));
-            assert(Duration(7) + TickDuration.from!"usecs"(5) == Duration(57));
-            assert(Duration(7) - TickDuration.from!"usecs"(5) == Duration(-43));
+            foreach(E; _TypeTuple!(Duration, const Duration, immutable Duration))
+            {
+                assert((cast(D)Duration(5)) + (cast(E)Duration(7)) == Duration(12));
+                assert((cast(D)Duration(5)) - (cast(E)Duration(7)) == Duration(-2));
+                assert((cast(D)Duration(7)) + (cast(E)Duration(5)) == Duration(12));
+                assert((cast(D)Duration(7)) - (cast(E)Duration(5)) == Duration(2));
 
-            assert(Duration(5) + TickDuration.from!"usecs"(-7) == Duration(-65));
-            assert(Duration(5) - TickDuration.from!"usecs"(-7) == Duration(75));
-            assert(Duration(7) + TickDuration.from!"usecs"(-5) == Duration(-43));
-            assert(Duration(7) - TickDuration.from!"usecs"(-5) == Duration(57));
+                assert((cast(D)Duration(5)) + (cast(E)Duration(-7)) == Duration(-2));
+                assert((cast(D)Duration(5)) - (cast(E)Duration(-7)) == Duration(12));
+                assert((cast(D)Duration(7)) + (cast(E)Duration(-5)) == Duration(2));
+                assert((cast(D)Duration(7)) - (cast(E)Duration(-5)) == Duration(12));
 
-            assert(Duration(-5) + TickDuration.from!"usecs"(7) == Duration(65));
-            assert(Duration(-5) - TickDuration.from!"usecs"(7) == Duration(-75));
-            assert(Duration(-7) + TickDuration.from!"usecs"(5) == Duration(43));
-            assert(Duration(-7) - TickDuration.from!"usecs"(5) == Duration(-57));
+                assert((cast(D)Duration(-5)) + (cast(E)Duration(7)) == Duration(2));
+                assert((cast(D)Duration(-5)) - (cast(E)Duration(7)) == Duration(-12));
+                assert((cast(D)Duration(-7)) + (cast(E)Duration(5)) == Duration(-2));
+                assert((cast(D)Duration(-7)) - (cast(E)Duration(5)) == Duration(-12));
 
-            assert(Duration(-5) + TickDuration.from!"usecs"(-7) == Duration(-75));
-            assert(Duration(-5) - TickDuration.from!"usecs"(-7) == Duration(65));
-            assert(Duration(-7) + TickDuration.from!"usecs"(-5) == Duration(-57));
-            assert(Duration(-7) - TickDuration.from!"usecs"(-5) == Duration(43));
+                assert((cast(D)Duration(-5)) + (cast(E)Duration(-7)) == Duration(-12));
+                assert((cast(D)Duration(-5)) - (cast(E)Duration(-7)) == Duration(2));
+                assert((cast(D)Duration(-7)) + (cast(E)Duration(-5)) == Duration(-12));
+                assert((cast(D)Duration(-7)) - (cast(E)Duration(-5)) == Duration(-2));
+            }
+
+            foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            {
+
+                assertApprox((cast(D)Duration(5)) + cast(T)TickDuration.from!"usecs"(7), Duration(70), Duration(80));
+                assertApprox((cast(D)Duration(5)) - cast(T)TickDuration.from!"usecs"(7), Duration(-70), Duration(-60));
+                assertApprox((cast(D)Duration(7)) + cast(T)TickDuration.from!"usecs"(5), Duration(52), Duration(62));
+                assertApprox((cast(D)Duration(7)) - cast(T)TickDuration.from!"usecs"(5), Duration(-48), Duration(-38));
+
+                assertApprox((cast(D)Duration(5)) + cast(T)TickDuration.from!"usecs"(-7), Duration(-70), Duration(-60));
+                assertApprox((cast(D)Duration(5)) - cast(T)TickDuration.from!"usecs"(-7), Duration(70), Duration(80));
+                assertApprox((cast(D)Duration(7)) + cast(T)TickDuration.from!"usecs"(-5), Duration(-48), Duration(-38));
+                assertApprox((cast(D)Duration(7)) - cast(T)TickDuration.from!"usecs"(-5), Duration(52), Duration(62));
+
+                assertApprox((cast(D)Duration(-5)) + cast(T)TickDuration.from!"usecs"(7), Duration(60), Duration(70));
+                assertApprox((cast(D)Duration(-5)) - cast(T)TickDuration.from!"usecs"(7), Duration(-80), Duration(-70));
+                assertApprox((cast(D)Duration(-7)) + cast(T)TickDuration.from!"usecs"(5), Duration(38), Duration(48));
+                assertApprox((cast(D)Duration(-7)) - cast(T)TickDuration.from!"usecs"(5), Duration(-62), Duration(-52));
+
+                assertApprox((cast(D)Duration(-5)) + cast(T)TickDuration.from!"usecs"(-7), Duration(-80), Duration(-70));
+                assertApprox((cast(D)Duration(-5)) - cast(T)TickDuration.from!"usecs"(-7), Duration(60), Duration(70));
+                assertApprox((cast(D)Duration(-7)) + cast(T)TickDuration.from!"usecs"(-5), Duration(-62), Duration(-52));
+                assertApprox((cast(D)Duration(-7)) - cast(T)TickDuration.from!"usecs"(-5), Duration(38), Duration(48));
+            }
         }
-
-        auto hnsdur = Duration(12);
-        const chnsdur = Duration(12);
-        immutable ihnsdur = Duration(12);
-        auto tdur = TickDuration.from!"usecs"(12);
-        const ctdur = TickDuration.from!"usecs"(12);
-        immutable itdur = TickDuration.from!"usecs"(12);
-        static assert(__traits(compiles, hnsdur + hnsdur));
-        static assert(__traits(compiles, chnsdur + hnsdur));
-        static assert(__traits(compiles, ihnsdur + hnsdur));
-        static assert(__traits(compiles, hnsdur + chnsdur));
-        static assert(__traits(compiles, chnsdur + chnsdur));
-        static assert(__traits(compiles, ihnsdur + chnsdur));
-        static assert(__traits(compiles, hnsdur + ihnsdur));
-        static assert(__traits(compiles, chnsdur + ihnsdur));
-        static assert(__traits(compiles, ihnsdur + ihnsdur));
-
-        static assert(__traits(compiles, hnsdur + tdur));
-        static assert(__traits(compiles, chnsdur + tdur));
-        static assert(__traits(compiles, ihnsdur + tdur));
-        static assert(__traits(compiles, hnsdur + ctdur));
-        static assert(__traits(compiles, chnsdur + ctdur));
-        static assert(__traits(compiles, ihnsdur + ctdur));
-        static assert(__traits(compiles, hnsdur + itdur));
-        static assert(__traits(compiles, chnsdur + itdur));
-        static assert(__traits(compiles, ihnsdur + itdur));
-
-        static assert(__traits(compiles, hnsdur - hnsdur));
-        static assert(__traits(compiles, chnsdur - hnsdur));
-        static assert(__traits(compiles, ihnsdur - hnsdur));
-        static assert(__traits(compiles, hnsdur - chnsdur));
-        static assert(__traits(compiles, chnsdur - chnsdur));
-        static assert(__traits(compiles, ihnsdur - chnsdur));
-        static assert(__traits(compiles, hnsdur - ihnsdur));
-        static assert(__traits(compiles, chnsdur - ihnsdur));
-        static assert(__traits(compiles, ihnsdur - ihnsdur));
-
-        static assert(__traits(compiles, hnsdur - tdur));
-        static assert(__traits(compiles, chnsdur - tdur));
-        static assert(__traits(compiles, ihnsdur - tdur));
-        static assert(__traits(compiles, hnsdur - ctdur));
-        static assert(__traits(compiles, chnsdur - ctdur));
-        static assert(__traits(compiles, ihnsdur - ctdur));
-        static assert(__traits(compiles, hnsdur - itdur));
-        static assert(__traits(compiles, chnsdur - itdur));
-        static assert(__traits(compiles, ihnsdur - itdur));
     }
 
 
     /++
-        Adds or subtracts two Durations as well as assigning the result
-        to this Duration.
+        Adds or subtracts two durations.
 
-        The legal types of arithmetic for Duration using this operator are
+        The legal types of arithmetic for $(D Duration) using this operator are
+
+        $(TABLE
+        $(TR $(TD TickDuration) $(TD +) $(TD Duration) $(TD -->) $(TD Duration))
+        $(TR $(TD TickDuration) $(TD -) $(TD Duration) $(TD -->) $(TD Duration))
+        )
+
+        Params:
+            lhs = The $(D TickDuration) to add to this $(D Duration) or to
+                  subtract this $(D Duration) from.
+      +/
+    Duration opBinaryRight(string op, D)(D lhs) @safe const pure nothrow
+        if((op == "+" || op == "-") &&
+            is(_Unqual!D == TickDuration))
+    {
+        return Duration(mixin("lhs.hnsecs " ~ op ~ " _hnsecs"));
+    }
+
+    unittest
+    {
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            {
+
+                assertApprox((cast(T)TickDuration.from!"usecs"(7)) + cast(D)Duration(5), Duration(70), Duration(80));
+                assertApprox((cast(T)TickDuration.from!"usecs"(7)) - cast(D)Duration(5), Duration(60), Duration(70));
+                assertApprox((cast(T)TickDuration.from!"usecs"(5)) + cast(D)Duration(7), Duration(52), Duration(62));
+                assertApprox((cast(T)TickDuration.from!"usecs"(5)) - cast(D)Duration(7), Duration(38), Duration(48));
+
+                assertApprox((cast(T)TickDuration.from!"usecs"(-7)) + cast(D)Duration(5), Duration(-70), Duration(-60));
+                assertApprox((cast(T)TickDuration.from!"usecs"(-7)) - cast(D)Duration(5), Duration(-80), Duration(-70));
+                assertApprox((cast(T)TickDuration.from!"usecs"(-5)) + cast(D)Duration(7), Duration(-48), Duration(-38));
+                assertApprox((cast(T)TickDuration.from!"usecs"(-5)) - cast(D)Duration(7), Duration(-62), Duration(-52));
+
+                assertApprox((cast(T)TickDuration.from!"usecs"(7)) + (cast(D)Duration(-5)), Duration(60), Duration(70));
+                assertApprox((cast(T)TickDuration.from!"usecs"(7)) - (cast(D)Duration(-5)), Duration(70), Duration(80));
+                assertApprox((cast(T)TickDuration.from!"usecs"(5)) + (cast(D)Duration(-7)), Duration(38), Duration(48));
+                assertApprox((cast(T)TickDuration.from!"usecs"(5)) - (cast(D)Duration(-7)), Duration(52), Duration(62));
+
+                assertApprox((cast(T)TickDuration.from!"usecs"(-7)) + cast(D)Duration(-5), Duration(-80), Duration(-70));
+                assertApprox((cast(T)TickDuration.from!"usecs"(-7)) - cast(D)Duration(-5), Duration(-70), Duration(-60));
+                assertApprox((cast(T)TickDuration.from!"usecs"(-5)) + cast(D)Duration(-7), Duration(-62), Duration(-52));
+                assertApprox((cast(T)TickDuration.from!"usecs"(-5)) - cast(D)Duration(-7), Duration(-48), Duration(-38));
+            }
+        }
+    }
+
+
+    /++
+        Adds or subtracts two durations as well as assigning the result to this
+        $(D Duration).
+
+        The legal types of arithmetic for $(D Duration) using this operator are
 
         $(TABLE
         $(TR $(TD Duration) $(TD +) $(TD Duration) $(TD -->) $(TD Duration))
@@ -290,7 +293,7 @@ public:
         )
 
         Params:
-            rhs = The duration to add to or subtract from this DateTime.
+            rhs = The duration to add to or subtract from this $(D Duration).
       +/
     ref Duration opOpAssign(string op, D)(in D rhs) @safe pure nothrow
         if((op == "+" || op == "-") &&
@@ -307,118 +310,91 @@ public:
 
     unittest
     {
-        static void testDur(string op, D)(Duration dur, in D rhs, in Duration expected, size_t line = __LINE__)
+        static void test1(string op, E)(Duration actual, in E rhs, Duration expected, size_t line = __LINE__)
         {
-            if(mixin("dur " ~ op ~ " rhs") != expected)
+            if(mixin("actual " ~ op ~ " rhs") != expected)
                 throw new AssertError("op failed", __FILE__, line);
 
-            if(dur != expected)
+            if(actual != expected)
                 throw new AssertError("op assign failed", __FILE__, line);
         }
 
-        testDur!"+="(Duration(5), Duration(7), Duration(12));
-        testDur!"-="(Duration(5), Duration(7), Duration(-2));
-        testDur!"+="(Duration(7), Duration(5), Duration(12));
-        testDur!"-="(Duration(7), Duration(5), Duration(2));
-
-        testDur!"+="(Duration(5), Duration(-7), Duration(-2));
-        testDur!"-="(Duration(5), Duration(-7), Duration(12));
-        testDur!"+="(Duration(7), Duration(-5), Duration(2));
-        testDur!"-="(Duration(7), Duration(-5), Duration(12));
-
-        testDur!"+="(Duration(-5), Duration(7), Duration(2));
-        testDur!"-="(Duration(-5), Duration(7), Duration(-12));
-        testDur!"+="(Duration(-7), Duration(5), Duration(-2));
-        testDur!"-="(Duration(-7), Duration(5), Duration(-12));
-
-        testDur!"+="(Duration(-5), Duration(-7), Duration(-12));
-        testDur!"-="(Duration(-5), Duration(-7), Duration(2));
-        testDur!"+="(Duration(-7), Duration(-5), Duration(-12));
-        testDur!"-="(Duration(-7), Duration(-5), Duration(-2));
-
-        //This should run the test on Linux systems (I don't know about other Posix systems),
-        //but Windows doesn't seem to have a very round number for ticks per second
-        //(1_193_182 in wine on my Linux box), so testing on Windows is harder.
-        if(TickDuration.ticksPerSec == 1_000_000)
+        static void test2(string op, E)
+                         (Duration actual, in E rhs, Duration lower, Duration upper, size_t line = __LINE__)
         {
-            testDur!"+="(Duration(5), TickDuration.from!"usecs"(7), Duration(75));
-            testDur!"-="(Duration(5), TickDuration.from!"usecs"(7), Duration(-65));
-            testDur!"+="(Duration(7), TickDuration.from!"usecs"(5), Duration(57));
-            testDur!"-="(Duration(7), TickDuration.from!"usecs"(5), Duration(-43));
-
-            testDur!"+="(Duration(5), TickDuration.from!"usecs"(-7), Duration(-65));
-            testDur!"-="(Duration(5), TickDuration.from!"usecs"(-7), Duration(75));
-            testDur!"+="(Duration(7), TickDuration.from!"usecs"(-5), Duration(-43));
-            testDur!"-="(Duration(7), TickDuration.from!"usecs"(-5), Duration(57));
-
-            testDur!"+="(Duration(-5), TickDuration.from!"usecs"(7), Duration(65));
-            testDur!"-="(Duration(-5), TickDuration.from!"usecs"(7), Duration(-75));
-            testDur!"+="(Duration(-7), TickDuration.from!"usecs"(5), Duration(43));
-            testDur!"-="(Duration(-7), TickDuration.from!"usecs"(5), Duration(-57));
-
-            testDur!"+="(Duration(-5), TickDuration.from!"usecs"(-7), Duration(-75));
-            testDur!"-="(Duration(-5), TickDuration.from!"usecs"(-7), Duration(65));
-            testDur!"+="(Duration(-7), TickDuration.from!"usecs"(-5), Duration(-57));
-            testDur!"-="(Duration(-7), TickDuration.from!"usecs"(-5), Duration(43));
+            assertApprox(mixin("actual " ~ op ~ " rhs"), lower, upper, "op failed", line);
+            assertApprox(actual, lower, upper, "op assign failed", line);
         }
 
-        auto hnsdur = Duration(12);
-        const chnsdur = Duration(12);
-        immutable ihnsdur = Duration(12);
-        auto tdur = TickDuration.from!"usecs"(12);
-        const ctdur = TickDuration.from!"usecs"(12);
-        immutable itdur = TickDuration.from!"usecs"(12);
-        static assert(__traits(compiles, hnsdur += hnsdur));
-        static assert(!__traits(compiles, chnsdur += hnsdur));
-        static assert(!__traits(compiles, ihnsdur += hnsdur));
-        static assert(__traits(compiles, hnsdur += chnsdur));
-        static assert(!__traits(compiles, chnsdur += chnsdur));
-        static assert(!__traits(compiles, ihnsdur += chnsdur));
-        static assert(__traits(compiles, hnsdur += ihnsdur));
-        static assert(!__traits(compiles, chnsdur += ihnsdur));
-        static assert(!__traits(compiles, ihnsdur += ihnsdur));
+        foreach(E; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            test1!"+="(Duration(5), (cast(E)Duration(7)), Duration(12));
+            test1!"-="(Duration(5), (cast(E)Duration(7)), Duration(-2));
+            test1!"+="(Duration(7), (cast(E)Duration(5)), Duration(12));
+            test1!"-="(Duration(7), (cast(E)Duration(5)), Duration(2));
 
-        static assert(__traits(compiles, hnsdur += tdur));
-        static assert(!__traits(compiles, chnsdur += tdur));
-        static assert(!__traits(compiles, ihnsdur += tdur));
-        static assert(__traits(compiles, hnsdur += ctdur));
-        static assert(!__traits(compiles, chnsdur += ctdur));
-        static assert(!__traits(compiles, ihnsdur += ctdur));
-        static assert(__traits(compiles, hnsdur += itdur));
-        static assert(!__traits(compiles, chnsdur += itdur));
-        static assert(!__traits(compiles, ihnsdur += itdur));
+            test1!"+="(Duration(5), (cast(E)Duration(-7)), Duration(-2));
+            test1!"-="(Duration(5), (cast(E)Duration(-7)), Duration(12));
+            test1!"+="(Duration(7), (cast(E)Duration(-5)), Duration(2));
+            test1!"-="(Duration(7), (cast(E)Duration(-5)), Duration(12));
 
-        static assert(__traits(compiles, hnsdur -= hnsdur));
-        static assert(!__traits(compiles, chnsdur -= hnsdur));
-        static assert(!__traits(compiles, ihnsdur -= hnsdur));
-        static assert(__traits(compiles, hnsdur -= chnsdur));
-        static assert(!__traits(compiles, chnsdur -= chnsdur));
-        static assert(!__traits(compiles, ihnsdur -= chnsdur));
-        static assert(__traits(compiles, hnsdur -= ihnsdur));
-        static assert(!__traits(compiles, chnsdur -= ihnsdur));
-        static assert(!__traits(compiles, ihnsdur -= ihnsdur));
+            test1!"+="(Duration(-5), (cast(E)Duration(7)), Duration(2));
+            test1!"-="(Duration(-5), (cast(E)Duration(7)), Duration(-12));
+            test1!"+="(Duration(-7), (cast(E)Duration(5)), Duration(-2));
+            test1!"-="(Duration(-7), (cast(E)Duration(5)), Duration(-12));
 
-        static assert(__traits(compiles, hnsdur -= tdur));
-        static assert(!__traits(compiles, chnsdur -= tdur));
-        static assert(!__traits(compiles, ihnsdur -= tdur));
-        static assert(__traits(compiles, hnsdur -= ctdur));
-        static assert(!__traits(compiles, chnsdur -= ctdur));
-        static assert(!__traits(compiles, ihnsdur -= ctdur));
-        static assert(__traits(compiles, hnsdur -= itdur));
-        static assert(!__traits(compiles, chnsdur -= itdur));
-        static assert(!__traits(compiles, ihnsdur -= itdur));
+            test1!"+="(Duration(-5), (cast(E)Duration(-7)), Duration(-12));
+            test1!"-="(Duration(-5), (cast(E)Duration(-7)), Duration(2));
+            test1!"+="(Duration(-7), (cast(E)Duration(-5)), Duration(-12));
+            test1!"-="(Duration(-7), (cast(E)Duration(-5)), Duration(-2));
+        }
+
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            test2!"+="(Duration(5), cast(T)TickDuration.from!"usecs"(7), Duration(70), Duration(80));
+            test2!"-="(Duration(5), cast(T)TickDuration.from!"usecs"(7), Duration(-70), Duration(-60));
+            test2!"+="(Duration(7), cast(T)TickDuration.from!"usecs"(5), Duration(52), Duration(62));
+            test2!"-="(Duration(7), cast(T)TickDuration.from!"usecs"(5), Duration(-48), Duration(-38));
+
+            test2!"+="(Duration(5), cast(T)TickDuration.from!"usecs"(-7), Duration(-70), Duration(-60));
+            test2!"-="(Duration(5), cast(T)TickDuration.from!"usecs"(-7), Duration(70), Duration(80));
+            test2!"+="(Duration(7), cast(T)TickDuration.from!"usecs"(-5), Duration(-48), Duration(-38));
+            test2!"-="(Duration(7), cast(T)TickDuration.from!"usecs"(-5), Duration(52), Duration(62));
+
+            test2!"+="(Duration(-5), cast(T)TickDuration.from!"usecs"(7), Duration(60), Duration(70));
+            test2!"-="(Duration(-5), cast(T)TickDuration.from!"usecs"(7), Duration(-80), Duration(-70));
+            test2!"+="(Duration(-7), cast(T)TickDuration.from!"usecs"(5), Duration(38), Duration(48));
+            test2!"-="(Duration(-7), cast(T)TickDuration.from!"usecs"(5), Duration(-62), Duration(-52));
+
+            test2!"+="(Duration(-5), cast(T)TickDuration.from!"usecs"(-7), Duration(-80), Duration(-70));
+            test2!"-="(Duration(-5), cast(T)TickDuration.from!"usecs"(-7), Duration(60), Duration(70));
+            test2!"+="(Duration(-7), cast(T)TickDuration.from!"usecs"(-5), Duration(-62), Duration(-52));
+            test2!"-="(Duration(-7), cast(T)TickDuration.from!"usecs"(-5), Duration(38), Duration(48));
+        }
+
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            foreach(E; _TypeTuple!(Duration, const Duration, immutable Duration,
+                                   TickDuration, const TickDuration, immutable TickDuration))
+            {
+                D lhs = D(120);
+                E rhs = E(120);
+                static assert(!__traits(compiles, lhs += rhs), D.stringof ~ " " ~ E.stringof);
+            }
+        }
     }
 
 
     /++
-        The legal types of arithmetic for Duration using this operator overload are
+        The legal types of arithmetic for $(D Duration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD Duration) $(TD *) $(TD long) $(TD -->) $(TD Duration))
         )
 
         Params:
-            value = The value to multiply this duration by.
+            value = The value to multiply this $(D Duration) by.
       +/
     Duration opBinary(string op)(long value) @safe const pure nothrow
         if(op == "*")
@@ -428,39 +404,36 @@ public:
 
     unittest
     {
-        assert(Duration(5) * 7 == Duration(35));
-        assert(Duration(7) * 5 == Duration(35));
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            assert((cast(D)Duration(5)) * 7 == Duration(35));
+            assert((cast(D)Duration(7)) * 5 == Duration(35));
 
-        assert(Duration(5) * -7 == Duration(-35));
-        assert(Duration(7) * -5 == Duration(-35));
+            assert((cast(D)Duration(5)) * -7 == Duration(-35));
+            assert((cast(D)Duration(7)) * -5 == Duration(-35));
 
-        assert(Duration(-5) * 7 == Duration(-35));
-        assert(Duration(-7) * 5 == Duration(-35));
+            assert((cast(D)Duration(-5)) * 7 == Duration(-35));
+            assert((cast(D)Duration(-7)) * 5 == Duration(-35));
 
-        assert(Duration(-5) * -7 == Duration(35));
-        assert(Duration(-7) * -5 == Duration(35));
+            assert((cast(D)Duration(-5)) * -7 == Duration(35));
+            assert((cast(D)Duration(-7)) * -5 == Duration(35));
 
-        assert(Duration(5) * 0 == Duration(0));
-        assert(Duration(-5) * 0 == Duration(0));
-
-        auto dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur * 12));
-        static assert(__traits(compiles, cdur * 12));
-        static assert(__traits(compiles, idur * 12));
+            assert((cast(D)Duration(5)) * 0 == Duration(0));
+            assert((cast(D)Duration(-5)) * 0 == Duration(0));
+        }
     }
 
 
     /++
-        The legal types of arithmetic for Duration using this operator overload are
+        The legal types of arithmetic for $(D Duration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD Duration) $(TD *) $(TD long) $(TD -->) $(TD Duration))
         )
 
         Params:
-            value = The value to multiply this duration by.
+            value = The value to multiply this $(D Duration) by.
       +/
     ref Duration opOpAssign(string op)(long value) @safe pure nothrow
         if(op == "*")
@@ -472,41 +445,40 @@ public:
 
     unittest
     {
-        static void testDur(Duration dur, long value, in Duration expected, size_t line = __LINE__)
+        static void test(D)(D actual, long value, Duration expected, size_t line = __LINE__)
         {
-            if((dur *= value) != expected)
+            if((actual *= value) != expected)
                 throw new AssertError("op failed", __FILE__, line);
 
-            if(dur != expected)
+            if(actual != expected)
                 throw new AssertError("op assign failed", __FILE__, line);
         }
 
-        testDur(Duration(5), 7, Duration(35));
-        testDur(Duration(7), 5, Duration(35));
+        test(Duration(5), 7, Duration(35));
+        test(Duration(7), 5, Duration(35));
 
-        testDur(Duration(5), -7, Duration(-35));
-        testDur(Duration(7), -5, Duration(-35));
+        test(Duration(5), -7, Duration(-35));
+        test(Duration(7), -5, Duration(-35));
 
-        testDur(Duration(-5), 7, Duration(-35));
-        testDur(Duration(-7), 5, Duration(-35));
+        test(Duration(-5), 7, Duration(-35));
+        test(Duration(-7), 5, Duration(-35));
 
-        testDur(Duration(-5), -7, Duration(35));
-        testDur(Duration(-7), -5, Duration(35));
+        test(Duration(-5), -7, Duration(35));
+        test(Duration(-7), -5, Duration(35));
 
-        testDur(Duration(5), 0, Duration(0));
-        testDur(Duration(-5), 0, Duration(0));
+        test(Duration(5), 0, Duration(0));
+        test(Duration(-5), 0, Duration(0));
 
-        auto dur = Duration(12);
         const cdur = Duration(12);
         immutable idur = Duration(12);
-        static assert(__traits(compiles, dur *= 12));
         static assert(!__traits(compiles, cdur *= 12));
         static assert(!__traits(compiles, idur *= 12));
     }
 
 
     /++
-        The legal types of arithmetic for Duration using this operator overload are
+        The legal types of arithmetic for $(D Duration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD Duration) $(TD /) $(TD long) $(TD -->) $(TD Duration))
@@ -516,7 +488,7 @@ public:
             value = The value to divide from this duration.
 
         Throws:
-            TimeException if an attempt to divide by 0 is made.
+            $(D TimeException) if an attempt to divide by $(D 0) is made.
       +/
     Duration opBinary(string op)(long value) @safe pure const
         if(op == "/")
@@ -529,42 +501,45 @@ public:
 
     unittest
     {
+        //Unfortunately, putting these inside of the foreach loop results in
+        //linker errors regarding multiple definitions and the lambdas.
         _assertThrown!TimeException((){Duration(5) / 0;}());
         _assertThrown!TimeException((){Duration(-5) / 0;}());
+        _assertThrown!TimeException((){(cast(const Duration)Duration(5)) / 0;}());
+        _assertThrown!TimeException((){(cast(const Duration)Duration(-5)) / 0;}());
+        _assertThrown!TimeException((){(cast(immutable Duration)Duration(5)) / 0;}());
+        _assertThrown!TimeException((){(cast(immutable Duration)Duration(-5)) / 0;}());
 
-        assert(Duration(5) / 7 == Duration(0));
-        assert(Duration(7) / 5 == Duration(1));
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            assert((cast(D)Duration(5)) / 7 == Duration(0));
+            assert((cast(D)Duration(7)) / 5 == Duration(1));
 
-        assert(Duration(5) / -7 == Duration(0));
-        assert(Duration(7) / -5 == Duration(-1));
+            assert((cast(D)Duration(5)) / -7 == Duration(0));
+            assert((cast(D)Duration(7)) / -5 == Duration(-1));
 
-        assert(Duration(-5) / 7 == Duration(0));
-        assert(Duration(-7) / 5 == Duration(-1));
+            assert((cast(D)Duration(-5)) / 7 == Duration(0));
+            assert((cast(D)Duration(-7)) / 5 == Duration(-1));
 
-        assert(Duration(-5) / -7 == Duration(0));
-        assert(Duration(-7) / -5 == Duration(1));
-
-        auto dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur / 12));
-        static assert(__traits(compiles, cdur / 12));
-        static assert(__traits(compiles, idur / 12));
+            assert((cast(D)Duration(-5)) / -7 == Duration(0));
+            assert((cast(D)Duration(-7)) / -5 == Duration(1));
+        }
     }
 
 
     /++
-        The legal types of arithmetic for Duration using this operator overload are
+        The legal types of arithmetic for $(D Duration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD Duration) $(TD /) $(TD long) $(TD -->) $(TD Duration))
         )
 
         Params:
-            value = The value to divide from this duration.
+            value = The value to divide from this $(D Duration).
 
         Throws:
-            TimeException if an attempt to divide by 0 is made.
+            $(D TimeException) if an attempt to divide by $(D 0) is made.
       +/
     ref Duration opOpAssign(string op)(long value) @safe pure
         if(op == "/")
@@ -582,47 +557,46 @@ public:
         _assertThrown!TimeException((){Duration(5) /= 0;}());
         _assertThrown!TimeException((){Duration(-5) /= 0;}());
 
-        static void testDur(Duration dur, long value, in Duration expected, size_t line = __LINE__)
+        static void test(Duration actual, long value, Duration expected, size_t line = __LINE__)
         {
-            if((dur /= value) != expected)
+            if((actual /= value) != expected)
                 throw new AssertError("op failed", __FILE__, line);
 
-            if(dur != expected)
+            if(actual != expected)
                 throw new AssertError("op assign failed", __FILE__, line);
         }
 
-        testDur(Duration(5), 7, Duration(0));
-        testDur(Duration(7), 5, Duration(1));
+        test(Duration(5), 7, Duration(0));
+        test(Duration(7), 5, Duration(1));
 
-        testDur(Duration(5), -7, Duration(0));
-        testDur(Duration(7), -5, Duration(-1));
+        test(Duration(5), -7, Duration(0));
+        test(Duration(7), -5, Duration(-1));
 
-        testDur(Duration(-5), 7, Duration(0));
-        testDur(Duration(-7), 5, Duration(-1));
+        test(Duration(-5), 7, Duration(0));
+        test(Duration(-7), 5, Duration(-1));
 
-        testDur(Duration(-5), -7, Duration(0));
-        testDur(Duration(-7), -5, Duration(1));
+        test(Duration(-5), -7, Duration(0));
+        test(Duration(-7), -5, Duration(1));
 
-        auto dur = Duration(12);
         const cdur = Duration(12);
         immutable idur = Duration(12);
-        static assert(__traits(compiles, dur /= 12));
         static assert(!__traits(compiles, cdur /= 12));
         static assert(!__traits(compiles, idur /= 12));
     }
 
 
     /++
-        Multiplies an integral value and a Duration.
+        Multiplies an integral value and a $(D Duration).
 
-        The legal types of arithmetic for Duration using this operator overload are
+        The legal types of arithmetic for $(D Duration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD long) $(TD *) $(TD Duration) $(TD -->) $(TD Duration))
         )
 
         Params:
-            value = The number of units to multiply this duration by.
+            value = The number of units to multiply this $(D Duration) by.
       +/
     Duration opBinaryRight(string op)(long value) @safe const pure nothrow
         if(op == "*")
@@ -632,30 +606,28 @@ public:
 
     unittest
     {
-        assert(5 * Duration(7) == Duration(35));
-        assert(7 * Duration(5) == Duration(35));
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            assert(5 * cast(D)Duration(7) == Duration(35));
+            assert(7 * cast(D)Duration(5) == Duration(35));
 
-        assert(5 * Duration(-7) == Duration(-35));
-        assert(7 * Duration(-5) == Duration(-35));
+            assert(5 * cast(D)Duration(-7) == Duration(-35));
+            assert(7 * cast(D)Duration(-5) == Duration(-35));
 
-        assert(-5 * Duration(7) == Duration(-35));
-        assert(-7 * Duration(5) == Duration(-35));
+            assert(-5 * cast(D)Duration(7) == Duration(-35));
+            assert(-7 * cast(D)Duration(5) == Duration(-35));
 
-        assert(-5 * Duration(-7) == Duration(35));
-        assert(-7 * Duration(-5) == Duration(35));
+            assert(-5 * cast(D)Duration(-7) == Duration(35));
+            assert(-7 * cast(D)Duration(-5) == Duration(35));
 
-        assert(0 * Duration(5) == Duration(0));
-        assert(0 * Duration(-5) == Duration(0));
-
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, 12 * cdur));
-        static assert(__traits(compiles, 12 * idur));
+            assert(0 * cast(D)Duration(-5) == Duration(0));
+            assert(0 * cast(D)Duration(5) == Duration(0));
+        }
     }
 
 
     /++
-        Returns the negation of this Duration.
+        Returns the negation of this $(D Duration).
       +/
     Duration opUnary(string op)() @safe const pure nothrow
         if(op == "-")
@@ -665,67 +637,68 @@ public:
 
     unittest
     {
-        assert(-Duration(7) == Duration(-7));
-        assert(-Duration(5) == Duration(-5));
-        assert(-Duration(-7) == Duration(7));
-        assert(-Duration(-5) == Duration(5));
-        assert(-Duration(0) == Duration(0));
-
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, -cdur));
-        static assert(__traits(compiles, -idur));
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            assert(-(cast(D)Duration(7)) == Duration(-7));
+            assert(-(cast(D)Duration(5)) == Duration(-5));
+            assert(-(cast(D)Duration(-7)) == Duration(7));
+            assert(-(cast(D)Duration(-5)) == Duration(5));
+            assert(-(cast(D)Duration(0)) == Duration(0));
+        }
     }
 
 
     /++
         Returns a $(LREF TickDuration) with the same number of hnsecs as this
-        $(LREF Duration).
+        $(D Duration).
       +/
     TickDuration opCast(T)() @safe const pure nothrow
-        if(is(T == TickDuration))
+        if(is(_Unqual!T == TickDuration))
     {
         return TickDuration.from!"hnsecs"(_hnsecs);
     }
 
-    //Skipping tests on Windows until properly robust tests
-    //can be devised and tested on a Windows box.
-    //The differences in ticksPerSec on Windows makes testing
-    //exact values a bit precarious.
-    version(Posix) unittest
+    unittest
     {
-        if(TickDuration.ticksPerSec == 1_000_000)
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
         {
-            foreach(units; _TypeTuple!("seconds", "msecs", "usecs"))
+            foreach(units; _TypeTuple!("seconds", "msecs", "usecs", "hnsecs"))
             {
-                auto t = TickDuration.from!units(1);
-                assert(cast(TickDuration)dur!units(1) == t, units);
-                t = TickDuration.from!units(2);
-                assert(cast(TickDuration)dur!units(2) == t, units);
+                enum unitsPerSec = convert!("seconds", units)(1);
+
+                if(TickDuration.ticksPerSec >= unitsPerSec)
+                {
+                    foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+                    {
+                        auto t = TickDuration.from!units(1);
+                        assert(cast(T)cast(D)dur!units(1) == t, units);
+                        t = TickDuration.from!units(2);
+                        assert(cast(T)cast(D)dur!units(2) == t, units);
+                    }
+                }
+                else
+                {
+                    auto t = TickDuration.from!units(1);
+                    assert(t.to!(units, long)() == 0, units);
+                    t = TickDuration.from!units(1_000_000);
+                    assert(t.to!(units, long)() >= 900_000, units);
+                    assert(t.to!(units, long)() <= 1_100_000, units);
+                }
             }
-
-            auto t = TickDuration.from!"hnsecs"(19_999_990);
-            assert(cast(TickDuration)dur!"hnsecs"(19_999_990) == t);
-            t = TickDuration.from!"hnsecs"(70);
-            assert(cast(TickDuration)dur!"hnsecs"(70) == t);
-            t = TickDuration.from!"hnsecs"(0);
-            assert(cast(TickDuration)dur!"hnsecs"(7) == t);
-        }
-
-        if(TickDuration.ticksPerSec >= 10_000_000)
-        {
-            auto t = TickDuration.from!"hnsecs"(19_999_999);
-            assert(cast(TickDuration)dur!"hnsecs"(19_999_999) == t);
-            t = TickDuration.from!"hnsecs"(70);
-            assert(cast(TickDuration)dur!"hnsecs"(70) == t);
-            t = TickDuration.from!"hnsecs"(7);
-            assert(cast(TickDuration)dur!"hnsecs"(7) == t);
         }
     }
 
 
+    //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
+    Duration opCast(T)() @safe const pure nothrow
+        if(is(_Unqual!T == Duration))
+    {
+        return this;
+    }
+
+
     /++
-        Returns the number of the given units in the duration
+        Returns the number of the given units in this $(D Duration)
         (minus the larger units).
 
         Examples:
@@ -757,9 +730,9 @@ assert(dur!"hours"(49).get!"hours"() == 1);
         }
     }
 
+    //Verify Examples
     unittest
     {
-        //Verify Examples.
         assert(dur!"weeks"(12).get!"weeks"() == 12);
         assert(dur!"weeks"(12).get!"days"() == 0);
 
@@ -768,18 +741,27 @@ assert(dur!"hours"(49).get!"hours"() == 1);
 
         assert(dur!"hours"(49).get!"days"() == 2);
         assert(dur!"hours"(49).get!"hours"() == 1);
+    }
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.get!"days"()));
-        static assert(__traits(compiles, cdur.get!"days"()));
-        static assert(__traits(compiles, idur.get!"days"()));
+    unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"weeks"(12)).get!"weeks"() == 12);
+            assert((cast(D)dur!"weeks"(12)).get!"days"() == 0);
+
+            assert((cast(D)dur!"days"(13)).get!"weeks"() == 1);
+            assert((cast(D)dur!"days"(13)).get!"days"() == 6);
+
+            assert((cast(D)dur!"hours"(49)).get!"days"() == 2);
+            assert((cast(D)dur!"hours"(49)).get!"hours"() == 1);
+        }
     }
 
 
     /++
-        Returns the number of weeks in the duration.
+        Returns the number of weeks in this $(D Duration)
+        (minus the larger units).
 
         Examples:
 --------------------
@@ -792,23 +774,26 @@ assert(dur!"days"(13).weeks == 1);
         return get!"weeks"();
     }
 
+    //Verify Examples
     unittest
     {
-        //Verify Examples.
         assert(dur!"weeks"(12).weeks == 12);
         assert(dur!"days"(13).weeks == 1);
+    }
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.weeks));
-        static assert(__traits(compiles, cdur.weeks));
-        static assert(__traits(compiles, idur.weeks));
+    unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"weeks"(12)).weeks == 12);
+            assert((cast(D)dur!"days"(13)).weeks == 1);
+        }
     }
 
 
     /++
-        Returns the number of days in the duration (minus the larger units).
+        Returns the number of days in this $(D Duration)
+        (minus the larger units).
 
         Examples:
 --------------------
@@ -822,24 +807,28 @@ assert(dur!"hours"(49).days == 2);
         return get!"days"();
     }
 
+    //Verify Examples.
     unittest
     {
-        //Verify Examples.
         assert(dur!"weeks"(12).days == 0);
         assert(dur!"days"(13).days == 6);
         assert(dur!"hours"(49).days == 2);
+    }
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.days));
-        static assert(__traits(compiles, cdur.days));
-        static assert(__traits(compiles, idur.days));
+    unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"weeks"(12)).days == 0);
+            assert((cast(D)dur!"days"(13)).days == 6);
+            assert((cast(D)dur!"hours"(49)).days == 2);
+        }
     }
 
 
     /++
-        Returns the number of hours in the duration (minus the larger units).
+        Returns the number of hours in this $(D Duration)
+        (minus the larger units).
 
         Examples:
 --------------------
@@ -853,24 +842,28 @@ assert(dur!"minutes"(121).hours == 2);
         return get!"hours"();
     }
 
+    //Verify Examples.
     unittest
     {
-        //Verify Examples.
         assert(dur!"days"(8).hours == 0);
         assert(dur!"hours"(49).hours == 1);
         assert(dur!"minutes"(121).hours == 2);
+    }
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.hours));
-        static assert(__traits(compiles, cdur.hours));
-        static assert(__traits(compiles, idur.hours));
+    unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"days"(8)).hours == 0);
+            assert((cast(D)dur!"hours"(49)).hours == 1);
+            assert((cast(D)dur!"minutes"(121)).hours == 2);
+        }
     }
 
 
     /++
-        Returns the number of minutes in the duration (minus the larger units).
+        Returns the number of minutes in this $(D Duration)
+        (minus the larger units).
 
         Examples:
 --------------------
@@ -884,24 +877,28 @@ assert(dur!"seconds"(121).minutes == 2);
         return get!"minutes"();
     }
 
+    //Verify Examples.
     unittest
     {
-        //Verify Examples.
         assert(dur!"hours"(47).minutes == 0);
         assert(dur!"minutes"(127).minutes == 7);
         assert(dur!"seconds"(121).minutes == 2);
+    }
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.minutes));
-        static assert(__traits(compiles, cdur.minutes));
-        static assert(__traits(compiles, idur.minutes));
+    unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"hours"(47)).minutes == 0);
+            assert((cast(D)dur!"minutes"(127)).minutes == 7);
+            assert((cast(D)dur!"seconds"(121)).minutes == 2);
+        }
     }
 
 
     /++
-        Returns the number of seconds in the duration (minus the larger units).
+        Returns the number of seconds in this $(D Duration)
+        (minus the larger units).
 
         Examples:
 --------------------
@@ -915,24 +912,27 @@ assert(dur!"msecs"(1217).seconds == 1);
         return get!"seconds"();
     }
 
+    //Verify Examples.
     unittest
     {
-        //Verify Examples.
         assert(dur!"minutes"(47).seconds == 0);
         assert(dur!"seconds"(127).seconds == 7);
         assert(dur!"msecs"(1217).seconds == 1);
+    }
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.seconds));
-        static assert(__traits(compiles, cdur.seconds));
-        static assert(__traits(compiles, idur.seconds));
+    unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"minutes"(47)).seconds == 0);
+            assert((cast(D)dur!"seconds"(127)).seconds == 7);
+            assert((cast(D)dur!"msecs"(1217)).seconds == 1);
+        }
     }
 
 
     /++
-        Returns the fractional seconds passed the second.
+        Returns the fractional seconds passed the second in this $(D Duration).
 
         Examples:
 --------------------
@@ -979,20 +979,26 @@ assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
 
     unittest
     {
-        auto mdur = dur!"hnsecs"(12);
-        const cdur = dur!"hnsecs"(12);
-        immutable idur = dur!"hnsecs"(12);
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"msecs"(1000)).fracSec == FracSec.from!"msecs"(0));
+            assert((cast(D)dur!"msecs"(1217)).fracSec == FracSec.from!"msecs"(217));
+            assert((cast(D)dur!"usecs"(43)).fracSec == FracSec.from!"usecs"(43));
+            assert((cast(D)dur!"hnsecs"(50_007)).fracSec == FracSec.from!"hnsecs"(50_007));
+            assert((cast(D)dur!"nsecs"(62_127)).fracSec == FracSec.from!"nsecs"(62_100));
 
-        assert(mdur.fracSec == FracSec.from!"hnsecs"(12));
-        assert(cdur.fracSec == FracSec.from!"hnsecs"(12));
-        assert(idur.fracSec == FracSec.from!"hnsecs"(12));
+            assert((cast(D)dur!"msecs"(-1000)).fracSec == FracSec.from!"msecs"(-0));
+            assert((cast(D)dur!"msecs"(-1217)).fracSec == FracSec.from!"msecs"(-217));
+            assert((cast(D)dur!"usecs"(-43)).fracSec == FracSec.from!"usecs"(-43));
+            assert((cast(D)dur!"hnsecs"(-50_007)).fracSec == FracSec.from!"hnsecs"(-50_007));
+            assert((cast(D)dur!"nsecs"(-62_127)).fracSec == FracSec.from!"nsecs"(-62_100));
+        }
     }
 
 
     /++
-        Returns the total number of the given units in the duration.
-        So, unlike $(D get()), it does not strip out the larger
-        units.
+        Returns the total number of the given units in this $(D Duration).
+        So, unlike $(D get), it does not strip out the larger units.
 
         Examples:
 --------------------
@@ -1026,9 +1032,9 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
             return getUnitsFromHNSecs!units(_hnsecs);
     }
 
+    //Verify Examples.
     unittest
     {
-        //Verify Examples.
         assert(dur!"weeks"(12).total!"weeks" == 12);
         assert(dur!"weeks"(12).total!"days" == 84);
 
@@ -1040,18 +1046,29 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 
         assert(dur!"nsecs"(2007).total!"hnsecs" == 20);
         assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
+    }
 
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        dur.total!"days"; // just check that it compiles
-        cdur.total!"days"; // just check that it compiles
-        idur.total!"days"; // just check that it compiles
+    unittest
+    {
+        foreach(D; _TypeTuple!(const Duration, immutable Duration))
+        {
+            assert((cast(D)dur!"weeks"(12)).total!"weeks" == 12);
+            assert((cast(D)dur!"weeks"(12)).total!"days" == 84);
+
+            assert((cast(D)dur!"days"(13)).total!"weeks" == 1);
+            assert((cast(D)dur!"days"(13)).total!"days" == 13);
+
+            assert((cast(D)dur!"hours"(49)).total!"days" == 2);
+            assert((cast(D)dur!"hours"(49)).total!"hours" == 49);
+
+            assert((cast(D)dur!"nsecs"(2007)).total!"hnsecs" == 20);
+            assert((cast(D)dur!"nsecs"(2007)).total!"nsecs" == 2000);
+        }
     }
 
 
     /+
-        Converts this duration to a string.
+        Converts this $(D Duration) to a $(D string).
       +/
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
@@ -1063,7 +1080,7 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 
 
     /++
-        Converts this duration to a string.
+        Converts this $(D Duration) to a $(D string).
       +/
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
@@ -1075,15 +1092,57 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 
     unittest
     {
-        const dur = Duration(12);
-        const cdur = Duration(12);
-        immutable idur = Duration(12);
-        static assert(__traits(compiles, dur.toString()));
-        static assert(__traits(compiles, cdur.toString()));
-        static assert(__traits(compiles, idur.toString()));
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            assert((cast(D)Duration(0)).toString() == "0 hnsecs");
+            assert((cast(D)Duration(1)).toString() == "1 hnsec");
+            assert((cast(D)Duration(7)).toString() == "7 hnsecs");
+            assert((cast(D)Duration(10)).toString() == "1 μs");
+            assert((cast(D)Duration(20)).toString() == "2 μs");
+            assert((cast(D)Duration(10_000)).toString() == "1 ms");
+            assert((cast(D)Duration(20_000)).toString() == "2 ms");
+            assert((cast(D)Duration(10_000_000)).toString() == "1 sec");
+            assert((cast(D)Duration(20_000_000)).toString() == "2 secs");
+            assert((cast(D)Duration(600_000_000)).toString() == "1 minute");
+            assert((cast(D)Duration(1_200_000_000)).toString() == "2 minutes");
+            assert((cast(D)Duration(36_000_000_000)).toString() == "1 hour");
+            assert((cast(D)Duration(72_000_000_000)).toString() == "2 hours");
+            assert((cast(D)Duration(864_000_000_000)).toString() == "1 day");
+            assert((cast(D)Duration(1_728_000_000_000)).toString() == "2 days");
+            assert((cast(D)Duration(6_048_000_000_000)).toString() == "1 week");
+            assert((cast(D)Duration(12_096_000_000_000)).toString() == "2 weeks");
+
+            assert((cast(D)Duration(12)).toString() == "1 μs and 2 hnsecs");
+            assert((cast(D)Duration(120_795)).toString() == "12 ms, 79 μs, and 5 hnsecs");
+            assert((cast(D)Duration(12_096_020_900_003)).toString() == "2 weeks, 2 secs, 90 ms, and 3 hnsecs");
+
+            assert((cast(D)Duration(-1)).toString() == "-1 hnsecs");
+            assert((cast(D)Duration(-7)).toString() == "-7 hnsecs");
+            assert((cast(D)Duration(-10)).toString() == "-1 μs");
+            assert((cast(D)Duration(-20)).toString() == "-2 μs");
+            assert((cast(D)Duration(-10_000)).toString() == "-1 ms");
+            assert((cast(D)Duration(-20_000)).toString() == "-2 ms");
+            assert((cast(D)Duration(-10_000_000)).toString() == "-1 secs");
+            assert((cast(D)Duration(-20_000_000)).toString() == "-2 secs");
+            assert((cast(D)Duration(-600_000_000)).toString() == "-1 minutes");
+            assert((cast(D)Duration(-1_200_000_000)).toString() == "-2 minutes");
+            assert((cast(D)Duration(-36_000_000_000)).toString() == "-1 hours");
+            assert((cast(D)Duration(-72_000_000_000)).toString() == "-2 hours");
+            assert((cast(D)Duration(-864_000_000_000)).toString() == "-1 days");
+            assert((cast(D)Duration(-1_728_000_000_000)).toString() == "-2 days");
+            assert((cast(D)Duration(-6_048_000_000_000)).toString() == "-1 weeks");
+            assert((cast(D)Duration(-12_096_000_000_000)).toString() == "-2 weeks");
+
+            assert((cast(D)Duration(-12)).toString() == "-1 μs and -2 hnsecs");
+            assert((cast(D)Duration(-120_795)).toString() == "-12 ms, -79 μs, and -5 hnsecs");
+            assert((cast(D)Duration(-12_096_020_900_003)).toString() == "-2 weeks, -2 secs, -90 ms, and -3 hnsecs");
+        }
     }
 
 
+    /++
+        Returns whether this $(D Duration) is negative.
+      +/
     @property bool isNegative() @safe const pure nothrow
     {
         return _hnsecs < 0;
@@ -1091,18 +1150,21 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 
     unittest
     {
-        assert(!Duration(100).isNegative);
-        assert(!Duration(1).isNegative);
-        assert(!Duration(0).isNegative);
-        assert(Duration(-1).isNegative);
-        assert(Duration(-100).isNegative);
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            assert(!(cast(D)Duration(100)).isNegative);
+            assert(!(cast(D)Duration(1)).isNegative);
+            assert(!(cast(D)Duration(0)).isNegative);
+            assert((cast(D)Duration(-1)).isNegative);
+            assert((cast(D)Duration(-100)).isNegative);
+        }
     }
 
 
 private:
 
     /++
-        Since we have two versions of toString(), we have _toStringImpl()
+        Since we have two versions of toString, we have _toStringImpl
         so that they can share implementations.
       +/
     string _toStringImpl() @safe const pure nothrow
@@ -1141,7 +1203,7 @@ private:
             string retval;
             auto unitsUsed = 0;
 
-            string unitsToPrint(string units, bool plural)
+            static string unitsToPrint(string units, bool plural)
             {
                 if(units == "seconds")
                     return plural ? "secs" : "sec";
@@ -1194,56 +1256,10 @@ private:
             assert(0, "Something threw when nothing can throw.");
     }
 
-    unittest
-    {
-        assert(Duration(0).toString() == "0 hnsecs");
-        assert(Duration(1).toString() == "1 hnsec");
-        assert(Duration(7).toString() == "7 hnsecs");
-        assert(Duration(10).toString() == "1 μs");
-        assert(Duration(20).toString() == "2 μs");
-        assert(Duration(10_000).toString() == "1 ms");
-        assert(Duration(20_000).toString() == "2 ms");
-        assert(Duration(10_000_000).toString() == "1 sec");
-        assert(Duration(20_000_000).toString() == "2 secs");
-        assert(Duration(600_000_000).toString() == "1 minute");
-        assert(Duration(1_200_000_000).toString() == "2 minutes");
-        assert(Duration(36_000_000_000).toString() == "1 hour");
-        assert(Duration(72_000_000_000).toString() == "2 hours");
-        assert(Duration(864_000_000_000).toString() == "1 day");
-        assert(Duration(1_728_000_000_000).toString() == "2 days");
-        assert(Duration(6_048_000_000_000).toString() == "1 week");
-        assert(Duration(12_096_000_000_000).toString() == "2 weeks");
-
-        assert(Duration(12).toString() == "1 μs and 2 hnsecs");
-        assert(Duration(120_795).toString() == "12 ms, 79 μs, and 5 hnsecs");
-        assert(Duration(12_096_020_900_003).toString() == "2 weeks, 2 secs, 90 ms, and 3 hnsecs");
-
-        assert(Duration(-1).toString() == "-1 hnsecs");
-        assert(Duration(-7).toString() == "-7 hnsecs");
-        assert(Duration(-10).toString() == "-1 μs");
-        assert(Duration(-20).toString() == "-2 μs");
-        assert(Duration(-10_000).toString() == "-1 ms");
-        assert(Duration(-20_000).toString() == "-2 ms");
-        assert(Duration(-10_000_000).toString() == "-1 secs");
-        assert(Duration(-20_000_000).toString() == "-2 secs");
-        assert(Duration(-600_000_000).toString() == "-1 minutes");
-        assert(Duration(-1_200_000_000).toString() == "-2 minutes");
-        assert(Duration(-36_000_000_000).toString() == "-1 hours");
-        assert(Duration(-72_000_000_000).toString() == "-2 hours");
-        assert(Duration(-864_000_000_000).toString() == "-1 days");
-        assert(Duration(-1_728_000_000_000).toString() == "-2 days");
-        assert(Duration(-6_048_000_000_000).toString() == "-1 weeks");
-        assert(Duration(-12_096_000_000_000).toString() == "-2 weeks");
-
-        assert(Duration(-12).toString() == "-1 μs and -2 hnsecs");
-        assert(Duration(-120_795).toString() == "-12 ms, -79 μs, and -5 hnsecs");
-        assert(Duration(-12_096_020_900_003).toString() == "-2 weeks, -2 secs, -90 ms, and -3 hnsecs");
-    }
-
 
     /++
         Params:
-            hnsecs = The total number of hecto-nanoseconds in this duration.
+            hnsecs = The total number of hecto-nanoseconds in this $(D Duration).
       +/
     @safe pure nothrow this(long hnsecs)
     {
@@ -1256,16 +1272,17 @@ private:
 
 
 /++
-    This allows you to construct a Duration from the given time units
+    This allows you to construct a $(D Duration) from the given time units
     with the given length.
 
-    The possible values for units are "weeks", "days", "hours", "minutes",
-    "seconds", "msecs" (milliseconds), "usecs", (microseconds),
-    "hnsecs" (hecto-nanoseconds, i.e. 100 ns), and "nsecs".
+    The possible values for units are $(D "weeks"), $(D "days"), $(D "hours"),
+    $(D "minutes"), $(D "seconds"), $(D "msecs") (milliseconds), $(D "usecs"),
+    (microseconds), $(D "hnsecs") (hecto-nanoseconds, i.e. 100 ns), and
+    $(D "nsecs").
 
     Params:
-        units  = The time units of the duration (e.g. "days").
-        length = The number of units in the duration.
+        units  = The time units of the $(D Duration) (e.g. $(D "days")).
+        length = The number of units in the $(D Duration).
   +/
 Duration dur(string units)(long length) @safe pure nothrow
     if(units == "weeks" ||
@@ -1283,36 +1300,43 @@ Duration dur(string units)(long length) @safe pure nothrow
 
 unittest
 {
-    assert(dur!"weeks"(7).total!"weeks"() == 7);
-    assert(dur!"days"(7).total!"days"() == 7);
-    assert(dur!"hours"(7).total!"hours"() == 7);
-    assert(dur!"minutes"(7).total!"minutes"() == 7);
-    assert(dur!"seconds"(7).total!"seconds"() == 7);
-    assert(dur!"msecs"(7).total!"msecs"() == 7);
-    assert(dur!"usecs"(7).total!"usecs"() == 7);
-    assert(dur!"hnsecs"(7).total!"hnsecs"() == 7);
-    assert(dur!"nsecs"(7).total!"nsecs"() == 0);
+    foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
+    {
+        assert(dur!"weeks"(7).total!"weeks"() == 7);
+        assert(dur!"days"(7).total!"days"() == 7);
+        assert(dur!"hours"(7).total!"hours"() == 7);
+        assert(dur!"minutes"(7).total!"minutes"() == 7);
+        assert(dur!"seconds"(7).total!"seconds"() == 7);
+        assert(dur!"msecs"(7).total!"msecs"() == 7);
+        assert(dur!"usecs"(7).total!"usecs"() == 7);
+        assert(dur!"hnsecs"(7).total!"hnsecs"() == 7);
+        assert(dur!"nsecs"(7).total!"nsecs"() == 0);
+    }
 }
 
 
 /++
-   Duration in system clock ticks.
+   Represents a duration of time in system clock ticks.
 
-   This type maintains the most high precision ticks of system clock in each
-   environment.
+   The system clock ticks are the ticks of the system clock at the highest
+   precision that the system provides.
   +/
 struct TickDuration
 {
     /++
        The number of ticks that the system clock has in one second.
 
-       Confirm that it is not 0, to examine whether you can use TickDuration.
+       If $(D ticksPerSec) is $(D 0), then then $(D TickDuration) failed to
+       get the value of $(D ticksPerSec) on the current system, and
+       $(D TickDuration) is not going to work. That would be highly abnormal
+       though.
       +/
     static immutable long ticksPerSec;
 
 
     /++
-       TickDuration when application begins.
+        The tick of the system clock (as a $(D TickDuration)) when the
+        application started.
       +/
     static immutable TickDuration appOrigin;
 
@@ -1364,20 +1388,24 @@ struct TickDuration
 
 
     /++
-       The number of ticks.
+       The number of system ticks in this $(D TickDuration).
 
-       You can convert this length into number of seconds by dividing it
-       by ticksPerSec.
+       You can convert this $(D length) into the number of seconds by dividing
+       it by $(D ticksPerSec) (or using one the appropriate property function
+       to do it).
       +/
     long length;
 
 
     /++
-        Converts TickDuration to the given units as an integral value.
+        Converts this $(D TickDuration) to the given units as either an integral
+        value or a floating point value.
 
         Params:
-            units = The units to convert to. "seconds" and smaller only.
-            T     = The integral type to convert to.
+            units = The units to convert to. Accepts $(D "seconds") and smaller
+                    only.
+            T     = The type to convert to (either an integral type or a
+                    floating point type).
       +/
     T to(string units, T)() @safe const pure nothrow
         if((units == "seconds" ||
@@ -1385,44 +1413,35 @@ struct TickDuration
             units == "usecs" ||
             units == "hnsecs" ||
             units == "nsecs") &&
-           (__traits(isIntegral, T) && T.sizeof >= 4))
+           ((__traits(isIntegral, T) && T.sizeof >= 4) || __traits(isFloating, T)))
     {
-        enum unitsPerSec = convert!("seconds", units)(1);
+        static if(__traits(isIntegral, T) && T.sizeof >= 4)
+        {
+            enum unitsPerSec = convert!("seconds", units)(1);
 
-        if(ticksPerSec >= unitsPerSec)
-            return cast(T)(length / (ticksPerSec / unitsPerSec));
+            if(ticksPerSec >= unitsPerSec)
+                return cast(T)(length / (ticksPerSec / cast(real)unitsPerSec));
+            else
+                return cast(T)(length * (unitsPerSec / cast(real)ticksPerSec));
+        }
+        else static if(__traits(isFloating, T))
+        {
+            static if(units == "seconds")
+                return length / cast(T)ticksPerSec;
+            else
+            {
+                enum unitsPerSec = convert!("seconds", units)(1);
+
+                return to!("seconds", T) * unitsPerSec;
+            }
+        }
         else
-            return cast(T)(length * (unitsPerSec / ticksPerSec));
+            static assert(0, "Incorrect template constraint.");
     }
 
 
     /++
-        Converts TickDuration to the given units as a floating point value.
-
-        Params:
-            units = The units to convert to. "seconds" and smaller only.
-            T     = The floating point type to convert to.
-      +/
-    T to(string units, T)() @safe const pure nothrow
-        if((units == "seconds" ||
-            units == "msecs" ||
-            units == "usecs" ||
-            units == "hnsecs" ||
-            units == "nsecs") &&
-           __traits(isFloating, T))
-    {
-        static if(units == "seconds")
-            return length / cast(T)ticksPerSec;
-        else
-        {
-            enum unitsPerSec = convert!("seconds", units)(1);
-
-            return to!("seconds", T) * unitsPerSec;
-        }
-   }
-
-    /++
-        Alias for converting TickDuration to seconds.
+        Returns the total number of seconds in this $(D TickDuration).
       +/
     @property long seconds() @safe const pure nothrow
     {
@@ -1431,24 +1450,20 @@ struct TickDuration
 
     unittest
     {
-        auto t = TickDuration(ticksPerSec);
-        assert(t.seconds == 1);
-        t = TickDuration(ticksPerSec-1);
-        assert(t.seconds == 0);
-        t = TickDuration(ticksPerSec*2);
-        assert(t.seconds == 2);
-        t = TickDuration(ticksPerSec*2-1);
-        assert(t.seconds == 1);
-        t = TickDuration(-1);
-        assert(t.seconds == 0);
-        t = TickDuration(-ticksPerSec-1);
-        assert(t.seconds == -1);
-        t = TickDuration(-ticksPerSec);
-        assert(t.seconds == -1);
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            assert((cast(T)TickDuration(ticksPerSec)).seconds == 1);
+            assert((cast(T)TickDuration(ticksPerSec - 1)).seconds == 0);
+            assert((cast(T)TickDuration(ticksPerSec * 2)).seconds == 2);
+            assert((cast(T)TickDuration(ticksPerSec * 2 - 1)).seconds == 1);
+            assert((cast(T)TickDuration(-1)).seconds == 0);
+            assert((cast(T)TickDuration(-ticksPerSec - 1)).seconds == -1);
+            assert((cast(T)TickDuration(-ticksPerSec)).seconds == -1);
+        }
     }
 
     /++
-        Alias for converting TickDuration to milliseconds.
+        Returns the total number of milliseconds in this $(D TickDuration).
       +/
     @property long msecs() @safe const pure nothrow
     {
@@ -1457,7 +1472,7 @@ struct TickDuration
 
 
     /++
-        Alias for converting TickDuration to microseconds.
+        Returns the total number of microseconds in this $(D TickDuration).
       +/
     @property long usecs() @safe const pure nothrow
     {
@@ -1466,7 +1481,7 @@ struct TickDuration
 
 
     /++
-        Alias for converting TickDuration to hecto-nanoseconds (100 ns).
+        Returns the total number of hecto-nanoseconds in this $(D TickDuration).
       +/
     @property long hnsecs() @safe const pure nothrow
     {
@@ -1475,7 +1490,7 @@ struct TickDuration
 
 
     /++
-        Alias for converting TickDuration to nanoseconds.
+        Returns the total number of nanoseconds in this $(D TickDuration).
       +/
     @property long nsecs() @safe const pure nothrow
     {
@@ -1484,13 +1499,14 @@ struct TickDuration
 
 
     /++
-        Creates a TickDuration from the number of the given units.
+        This allows you to construct a $(D TickDuration) from the given time
+        units with the given length.
 
         Params:
-            units = The units to convert from. "seconds" and smaller.
-            value = The number of the units to convert from.
+            units  = The time units of the $(D TickDuration) (e.g. $(D "msecs")).
+            length = The number of units in the $(D TickDuration).
       +/
-    static TickDuration from(string units)(long value) @safe pure nothrow
+    static TickDuration from(string units)(long length) @safe pure nothrow
         if(units == "seconds" ||
            units == "msecs" ||
            units == "usecs" ||
@@ -1500,168 +1516,82 @@ struct TickDuration
         enum unitsPerSec = convert!("seconds", units)(1);
 
         if(ticksPerSec >= unitsPerSec)
-            return TickDuration(value * (ticksPerSec / unitsPerSec));
+            return TickDuration(cast(long)(length * (ticksPerSec / cast(real)unitsPerSec)));
         else
-            return TickDuration(value / (unitsPerSec / ticksPerSec));
+            return TickDuration(cast(long)(length / (unitsPerSec / cast(real)ticksPerSec)));
     }
 
-    //test from!"seconds"().
     unittest
     {
-        auto t = TickDuration.from!"seconds"(1_000_000);
-        assert(t.seconds == 1_000_000);
-        t = TickDuration.from!"seconds"(2_000_000);
-        assert(t.seconds == 2_000_000);
-
-        if(ticksPerSec >= 1)
+        foreach(units; _TypeTuple!("seconds", "msecs", "usecs", "nsecs"))
         {
-            t.length -= 1;
-            assert(t.seconds == 1_999_999);
-        }
-
-        if(ticksPerSec >= 1)
-            assert(TickDuration.from!"seconds"(7).seconds == 7);
-    }
-
-    //test from!"msecs"().
-    unittest
-    {
-        auto t = TickDuration.from!"msecs"(1_000_000);
-        assert(t.msecs == 1_000_000);
-        t = TickDuration.from!"msecs"(2_000_000);
-        assert(t.msecs == 2_000_000);
-
-        if(ticksPerSec >= 1000)
-        {
-            t.length -= 1;
-            assert(t.msecs == 1_999_999);
-        }
-
-        if(ticksPerSec >= 1_000)
-            assert(TickDuration.from!"msecs"(7).msecs == 7);
-    }
-
-    //test from!"usecs"().
-    unittest
-    {
-        auto t = TickDuration.from!"usecs"(1_000_000);
-        assert(t.usecs == 1_000_000);
-        t = TickDuration.from!"usecs"(2_000_000);
-        assert(t.usecs == 2_000_000);
-
-        if(ticksPerSec >= 1_000_000)
-        {
-            t.length -= 1;
-            assert(t.usecs == 1_999_999);
-        }
-
-        if(ticksPerSec >= 1_000_000)
-            assert(TickDuration.from!"usecs"(7).usecs == 7);
-    }
-
-    //test from!"hnsecs"().
-    //Skipping tests on Windows until properly robust tests
-    //can be devised and tested on a Windows box.
-    //The differences in ticksPerSec on Windows makes testing
-    //exact values a bit precarious.
-    version(Posix) unittest
-    {
-        auto t = TickDuration.from!"hnsecs"(10_000_000);
-        assert(t.hnsecs == 10_000_000);
-        t = TickDuration.from!"hnsecs"(20_000_000);
-        assert(t.hnsecs == 20_000_000);
-
-        if(ticksPerSec == 1_000_000)
-        {
-            t.length -= 1;
-            assert(t.hnsecs == 19999990);
-            assert(TickDuration.from!"hnsecs"(70).hnsecs == 70);
-            assert(TickDuration.from!"hnsecs"(7).hnsecs == 0);
-        }
-
-        if(ticksPerSec >= 10_000_000)
-        {
-            t.length -= 1;
-            assert(t.hnsecs == 19999999);
-            assert(TickDuration.from!"hnsecs"(70).hnsecs == 70);
-            assert(TickDuration.from!"hnsecs"(7).hnsecs == 7);
-        }
-    }
-
-    //test from!"nsecs"().
-    //Skipping tests everywhere except for Linux until properly robust tests
-    //can be devised.
-    version(Linux) unittest
-    {
-        auto t = TickDuration.from!"nsecs"(1_000_000_000);
-        assert(t.nsecs == 1_000_000_000);
-        t = TickDuration.from!"nsecs"(2_000_000_000);
-        assert(t.nsecs == 2_000_000_000);
-
-        if(ticksPerSec == 1_000_000)
-        {
-            t.length -= 1;
-            assert(t.nsecs == 1999999000);
-        }
-
-        if(ticksPerSec >= 1_000_000_000)
-        {
-            t.length -= 1;
-            assert(t.nsecs == 1999999999);
+            foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            {
+                assertApprox((cast(T)TickDuration).from!units(1000).to!(units, long)(),
+                             500, 1500, units);
+                assertApprox((cast(T)TickDuration).from!units(1_000_000).to!(units, long)(),
+                             900_000, 1_100_000, units);
+                assertApprox((cast(T)TickDuration).from!units(2_000_000).to!(units, long)(),
+                             1_900_000, 2_100_000, units);
+            }
         }
     }
 
 
     /++
         Returns a $(LREF Duration) with the same number of hnsecs as this
-        $(LREF TickDuration).
+        $(D TickDuration).
       +/
     Duration opCast(T)() @safe const pure nothrow
-        if(is(T == Duration))
+        if(is(_Unqual!T == Duration))
     {
         return Duration(hnsecs);
     }
 
-    //Skipping tests on Windows until properly robust tests
-    //can be devised and tested on a Windows box.
-    //The differences in ticksPerSec on Windows makes testing
-    //exact values a bit precarious.
-    version(linux) unittest
+    unittest
     {
-        foreach(units; _TypeTuple!("seconds", "msecs", "usecs"))
+        foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
         {
-            auto d = dur!units(1);
-            assert(cast(Duration)TickDuration.from!units(1) == d, units);
-            d = dur!units(2);
-            assert(cast(Duration)TickDuration.from!units(2) == d, units);
-        }
+            foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            {
+                auto expected = dur!"seconds"(1);
+                assert(cast(D)cast(T)TickDuration.from!"seconds"(1) == expected);
 
-        if(ticksPerSec == 1_000_000)
-        {
-            auto d = dur!"hnsecs"(19_999_990);
-            assert(cast(Duration)TickDuration.from!"hnsecs"(19_999_990) == d);
-            d = dur!"hnsecs"(70);
-            assert(cast(Duration)TickDuration.from!"hnsecs"(70) == d);
-            d = dur!"hnsecs"(0);
-            assert(cast(Duration)TickDuration.from!"hnsecs"(7) == d);
-        }
-
-        if(ticksPerSec >= 10_000_000)
-        {
-            auto d = dur!"hnsecs"(19_999_990);
-            assert(cast(Duration)TickDuration.from!"hnsecs"(19_999_990) == d);
-            d = dur!"hnsecs"(70);
-            assert(cast(Duration)TickDuration.from!"hnsecs"(70) == d);
-            d = dur!"hnsecs"(7);
-            assert(cast(Duration)TickDuration.from!"hnsecs"(7) == d);
+                foreach(units; _TypeTuple!("msecs", "usecs", "hnsecs"))
+                {
+                    D actual = cast(D)cast(T)TickDuration.from!units(1_000_000);
+                    assertApprox(actual, dur!units(900_000), dur!units(1_100_000));
+                }
+            }
         }
     }
 
 
+    //Temporary hack until bug http://d.puremagic.com/issues/show_bug.cgi?id=5747 is fixed.
+    TickDuration opCast(T)() @safe const pure nothrow
+        if(is(_Unqual!T == TickDuration))
+    {
+        return this;
+    }
+
+
     /++
-       operator overloading "-=, +="
+        Adds or subtracts two $(D TickDuration)s as well as assigning the result
+        to this $(D TickDuration).
+
+        The legal types of arithmetic for $(D TickDuration) using this operator
+        are
+
+        $(TABLE
+        $(TR $(TD TickDuration) $(TD +=) $(TD TickDuration) $(TD -->) $(TD TickDuration))
+        $(TR $(TD TickDuration) $(TD -=) $(TD TickDuration) $(TD -->) $(TD TickDuration))
+        )
+
+        Params:
+            rhs = The $(D TickDuration) to add to or subtract from this
+                  $(D $(D TickDuration)).
       +/
-    ref TickDuration opOpAssign(string op)(in TickDuration rhs) @safe pure nothrow
+    ref TickDuration opOpAssign(string op)(TickDuration rhs) @safe pure nothrow
         if(op == "+" || op == "-")
     {
         mixin("length " ~ op ~ "= rhs.length;");
@@ -1670,34 +1600,63 @@ struct TickDuration
 
     unittest
     {
-        TickDuration a = TickDuration.currSystemTick, b = TickDuration.currSystemTick;
-        a += TickDuration.currSystemTick;
-        assert(a.to!("seconds", real)() >= 0);
-        b -= TickDuration.currSystemTick;
-        assert(b.to!("seconds", real)() <= 0);
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            auto a = TickDuration.currSystemTick;
+            auto result = a += cast(T)TickDuration.currSystemTick;
+            assert(a == result);
+            assert(a.to!("seconds", real)() >= 0);
+
+            auto b = TickDuration.currSystemTick;
+            result = b -= cast(T)TickDuration.currSystemTick;
+            assert(b == result);
+            assert(b.to!("seconds", real)() <= 0);
+
+            foreach(U; _TypeTuple!(const TickDuration, immutable TickDuration))
+            {
+                U u = TickDuration(12);
+                static assert(!__traits(compiles, u += cast(T)TickDuration.currSystemTick));
+                static assert(!__traits(compiles, u -= cast(T)TickDuration.currSystemTick));
+            }
+        }
     }
 
 
     /++
-       operator overloading "-, +"
+        Adds or subtracts two $(D TickDuration)s.
+
+        The legal types of arithmetic for $(D TickDuration) using this operator
+        are
+
+        $(TABLE
+        $(TR $(TD TickDuration) $(TD +) $(TD TickDuration) $(TD -->) $(TD TickDuration))
+        $(TR $(TD TickDuration) $(TD -) $(TD TickDuration) $(TD -->) $(TD TickDuration))
+        )
+
+        Params:
+            rhs = The $(D TickDuration to add to or subtract from this
+                  $(D TickDuration).
       +/
-    TickDuration opBinary(string op)(in TickDuration rhs) @safe const pure nothrow
-        if(op == "-" || op == "+")
+    TickDuration opBinary(string op)(TickDuration rhs) @safe const pure nothrow
+        if(op == "+" || op == "-")
     {
         return TickDuration(mixin("length " ~ op ~ " rhs.length"));
     }
 
     unittest
     {
-        auto a = TickDuration.currSystemTick;
-        auto b = TickDuration.currSystemTick;
-        assert((a + b).to!("seconds", real)() > 0);
-        assert((a - b).to!("seconds", real)() <= 0);
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            T a = TickDuration.currSystemTick;
+            T b = TickDuration.currSystemTick;
+            assert((a + b).seconds > 0);
+            assert((a - b).seconds <= 0);
+        }
     }
 
 
     /++
-        Returns the negation of this TickDuration.
+        Returns the negation of this $(D TickDuration).
       +/
     TickDuration opUnary(string op)() @safe const pure nothrow
         if(op == "-")
@@ -1707,16 +1666,14 @@ struct TickDuration
 
     unittest
     {
-        assert(-TickDuration(7) == TickDuration(-7));
-        assert(-TickDuration(5) == TickDuration(-5));
-        assert(-TickDuration(-7) == TickDuration(7));
-        assert(-TickDuration(-5) == TickDuration(5));
-        assert(-TickDuration(0) == TickDuration(0));
-
-        const cdur = TickDuration(12);
-        immutable idur = TickDuration(12);
-        static assert(__traits(compiles, -cdur));
-        static assert(__traits(compiles, -idur));
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            assert(-(cast(T)TickDuration(7)) == TickDuration(-7));
+            assert(-(cast(T)TickDuration(5)) == TickDuration(-5));
+            assert(-(cast(T)TickDuration(-7)) == TickDuration(7));
+            assert(-(cast(T)TickDuration(-5)) == TickDuration(5));
+            assert(-(cast(T)TickDuration(0)) == TickDuration(0));
+        }
     }
 
 
@@ -1730,8 +1687,15 @@ struct TickDuration
 
     unittest
     {
-        auto t1 = TickDuration.currSystemTick;
-        assert(t1 == t1);
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            foreach(U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            {
+                T t = TickDuration.currSystemTick;
+                U u = t;
+                assert(t == u);
+            }
+        }
     }
 
 
@@ -1745,15 +1709,24 @@ struct TickDuration
 
     unittest
     {
-        auto t1 = TickDuration.currSystemTick;
-        auto t2 = TickDuration.currSystemTick;
-        assert(t1 <= t2);
-        assert(t2 >= t1);
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            foreach(U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+            {
+                T t = TickDuration.currSystemTick;
+                U u = t + t;
+                assert(t < u);
+                assert(t <= t);
+                assert(u > t);
+                assert(u >= u);
+            }
+        }
     }
 
 
     /++
-        The legal types of arithmetic for TickDuration using this operator overload are
+        The legal types of arithmetic for $(D TickDuration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD TickDuration) $(TD *) $(TD long) $(TD -->) $(TD TickDuration))
@@ -1772,17 +1745,32 @@ struct TickDuration
 
     unittest
     {
-        immutable t = TickDuration.currSystemTick;
-        TickDuration t1 = t, t2 = t;
-        t1 /= 2;
-        assert(t1 < t);
-        t2 /= 2.1L;
-        assert(t2 < t1);
+        immutable curr = TickDuration.currSystemTick;
+        TickDuration t1 = curr;
+        immutable t2 = curr + curr;
+        t1 *= 2;
+        assert(t1 == t2);
+
+        t1 = curr;
+        t1 *= 2.0;
+        assert(t1 == t2);
+
+        t1 = curr;
+        t1 *= 2.1;
+        assert(t1 > t2);
+
+        foreach(T; _TypeTuple!(const TickDuration, immutable TickDuration))
+        {
+            T t = TickDuration.currSystemTick;
+            assert(!__traits(compiles, t *= 12));
+            assert(!__traits(compiles, t *= 12.0));
+        }
     }
 
 
     /++
-        The legal types of arithmetic for TickDuration using this operator overload are
+        The legal types of arithmetic for $(D TickDuration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD TickDuration) $(TD /) $(TD long) $(TD -->) $(TD TickDuration))
@@ -1790,10 +1778,10 @@ struct TickDuration
         )
 
         Params:
-            value = The value to divide from this duration.
+            value = The value to divide from this $(D TickDuration).
 
         Throws:
-            TimeException if an attempt to divide by 0 is made.
+            $(D TimeException) if an attempt to divide by $(D 0) is made.
       +/
     void opOpAssign(string op, T)(T value) @safe pure
         if(op == "/" &&
@@ -1807,17 +1795,34 @@ struct TickDuration
 
     unittest
     {
-        immutable t = TickDuration.currSystemTick;
-        TickDuration t1 = t, t2 = t;
-        t1 /= 2;
-        assert(t1 < t);
-        t2 /= 2.1L;
-        assert(t2 < t1);
+        immutable curr = TickDuration.currSystemTick;
+        immutable t1 = curr;
+        TickDuration t2 = curr + curr;
+        t2 /= 2;
+        assert(t1 == t2);
+
+        t2 = curr + curr;
+        t2 /= 2.0;
+        assert(t1 == t2);
+
+        t2 = curr + curr;
+        t2 /= 2.1;
+        assert(t1 > t2);
+
+        _assertThrown!TimeException(t2 /= 0);
+
+        foreach(T; _TypeTuple!(const TickDuration, immutable TickDuration))
+        {
+            T t = TickDuration.currSystemTick;
+            assert(!__traits(compiles, t /= 12));
+            assert(!__traits(compiles, t /= 12.0));
+        }
     }
 
 
     /++
-        The legal types of arithmetic for TickDuration using this operator overload are
+        The legal types of arithmetic for $(D TickDuration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD TickDuration) $(TD *) $(TD long) $(TD -->) $(TD TickDuration))
@@ -1825,7 +1830,7 @@ struct TickDuration
         )
 
         Params:
-            value = The value to divide from this duration.
+            value = The value to divide from this $(D TickDuration).
       +/
     TickDuration opBinary(string op, T)(T value) @safe const pure nothrow
         if(op == "*" &&
@@ -1836,15 +1841,20 @@ struct TickDuration
 
     unittest
     {
-        auto t = TickDuration.currSystemTick;
-        auto t2 = t*2;
-        assert(t < t2);
-        assert(t*3.5 > t2);
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            T t1 = TickDuration.currSystemTick;
+            T t2 = t1 + t1;
+            assert(t1 * 2 == t2);
+            assert(t1 * 2.0 == t2);
+            assert(t1 * 2.1 > t2);
+        }
     }
 
 
     /++
-        The legal types of arithmetic for TickDuration using this operator overload are
+        The legal types of arithmetic for $(D TickDuration) using this operator
+        overload are
 
         $(TABLE
         $(TR $(TD TickDuration) $(TD /) $(TD long) $(TD -->) $(TD TickDuration))
@@ -1852,10 +1862,10 @@ struct TickDuration
         )
 
         Params:
-            value = The value to divide from this duration.
+            value = The value to divide from this $(D TickDuration).
 
         Throws:
-            TimeException if an attempt to divide by 0 is made.
+            $(D TimeException) if an attempt to divide by $(D 0) is made.
       +/
     TickDuration opBinary(string op, T)(T value) @safe const pure
         if(op == "/" &&
@@ -1865,6 +1875,20 @@ struct TickDuration
             throw new TimeException("Attempted division by 0.");
 
         return TickDuration(cast(long)(length / value));
+    }
+
+    unittest
+    {
+        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
+        {
+            T t1 = TickDuration.currSystemTick;
+            T t2 = t1 + t1;
+            assert(t2 / 2 == t1);
+            assert(t2 / 2.0 == t1);
+            assert(t2 / 2.1 < t1);
+
+            _assertThrown!TimeException(t2 / 0);
+        }
     }
 
 
@@ -1877,22 +1901,29 @@ struct TickDuration
         this.length = ticks;
     }
 
+    unittest
+    {
+        foreach(i; [-42, 0, 42])
+            assert(TickDuration(i).length == i);
+    }
+
 
     /++
         The current system tick. The number of ticks per second varies from
-        system to system. This uses a monotonic clock, so it's intended for
-        precision timing by comparing relative time values, not for getting
-        the current system time.
+        system to system. $(D currSystemTick) uses a monotonic clock, so it's
+        intended for precision timing by comparing relative time values, not for
+        getting the current system time.
 
-        On Windows, QueryPerformanceCounter() is used. On Mac OS X,
-        mach_absolute_time() is used, while on other Posix systems,
-        clock_gettime() is used. If mach_absolute_time() or clock_gettime()
-        is unavailable, then Posix systems use gettimeofday(), which
-        unfortunately, is not monotonic, but without
-        mach_absolute_time()/clock_gettime() available, gettimeofday() is the
-        the best that you can do.
+        On Windows, $(D QueryPerformanceCounter) is used. On Mac OS X,
+        $(D mach_absolute_time) is used, while on other Posix systems,
+        $(D clock_gettime) is used. If $(D mach_absolute_time) or
+        $(D clock_gettime) is unavailable, then Posix systems use
+        $(D gettimeofday) (the decision is made when $(D TickDuration) is
+        compiled), which unfortunately, is not monotonic, but if
+        $(D mach_absolute_time) and $(D clock_gettime() aren't available, then
+        $(D gettimeofday) is the the best that there is.
 
-        Warning:
+        $(RED Warning):
             On some systems, the monotonic clock may stop counting when
             the computer goes to sleep or hibernates. So, the monotonic
             clock could be off if that occurs. This is known to happen
@@ -1900,7 +1931,7 @@ struct TickDuration
             either Windows or on Linux.
 
         Throws:
-            TimeException if it fails to get the time.
+            $(D TimeException) if it fails to get the time.
       +/
     static @property TickDuration currSystemTick() @trusted
     {
@@ -1961,7 +1992,10 @@ struct TickDuration
 
 /++
     Generic way of converting between two time units. Conversions to smaller
-    units use truncating division.
+    units use truncating division. Years and months can be converted to each
+    other, small units can be converted to each other, but years and months
+    cannot be converted to or from smaller units (due to the varying number
+    of days in a month or year).
 
     Params:
         tuFrom = The units of time to covert from.
@@ -1972,11 +2006,39 @@ struct TickDuration
 --------------------
 assert(convert!("years", "months")(1) == 12);
 assert(convert!("months", "years")(12) == 1);
+
+assert(convert!("weeks", "days")(1) == 7);
+assert(convert!("hours", "seconds")(1) == 3600);
+assert(convert!("seconds", "days")(1) == 0);
+assert(convert!("seconds", "days")(86_400) == 1);
+
+assert(convert!("nsecs", "nsecs")(1) == 1);
+assert(convert!("nsecs", "hnsecs")(1) == 0);
+assert(convert!("hnsecs", "nsecs")(1) == 100);
+assert(convert!("nsecs", "seconds")(1) == 0);
+assert(convert!("seconds", "nsecs")(1) == 1_000_000_000);
 --------------------
   +/
 long convert(string from, string to)(long value) @safe pure nothrow
-    if((from == "years" || from == "months") &&
-       (to == "years" || to == "months"))
+    if(((from == "weeks" ||
+         from == "days" ||
+         from == "hours" ||
+         from == "minutes" ||
+         from == "seconds" ||
+         from == "msecs" ||
+         from == "usecs" ||
+         from == "hnsecs" ||
+         from == "nsecs") &&
+        (to == "weeks" ||
+         to == "days" ||
+         to == "hours" ||
+         to == "minutes" ||
+         to == "seconds" ||
+         to == "msecs" ||
+         to == "usecs" ||
+         to == "hnsecs" ||
+         to == "nsecs")) ||
+       ((from == "years" || from == "months") && (to == "years" || to == "months")))
 {
     static if(from == "years")
     {
@@ -1996,8 +2058,14 @@ long convert(string from, string to)(long value) @safe pure nothrow
         else
             static assert(0, "A generic month or year cannot be converted to or from smaller units.");
     }
+    else static if(from == "nsecs" && to == "nsecs")
+        return value;
+    else static if(from == "nsecs")
+        return convert!("hnsecs", to)(value / 100);
+    else static if(to == "nsecs")
+        return convert!(from, "hnsecs")(value) * 100;
     else
-        static assert(0, "Template constraint broken. Invalid time unit string.");
+        return (hnsecsPer!from * value) / hnsecsPer!to;
 }
 
 //Verify Examples
@@ -2005,71 +2073,33 @@ unittest
 {
     assert(convert!("years", "months")(1) == 12);
     assert(convert!("months", "years")(12) == 1);
+
+    assert(convert!("weeks", "days")(1) == 7);
+    assert(convert!("hours", "seconds")(1) == 3600);
+    assert(convert!("seconds", "days")(1) == 0);
+    assert(convert!("seconds", "days")(86_400) == 1);
+
+    assert(convert!("nsecs", "nsecs")(1) == 1);
+    assert(convert!("nsecs", "hnsecs")(1) == 0);
+    assert(convert!("hnsecs", "nsecs")(1) == 100);
+    assert(convert!("nsecs", "seconds")(1) == 0);
+    assert(convert!("seconds", "nsecs")(1) == 1_000_000_000);
 }
 
 unittest
 {
-    foreach(units; _TypeTuple!("weeks", "days", "hours", "seconds", "msecs", "usecs", "hnsecs"))
+    foreach(units; _TypeTuple!("weeks", "days", "hours", "seconds", "msecs", "usecs", "hnsecs", "nsecs"))
     {
         static assert(!__traits(compiles, convert!("years", units)(12)), units);
         static assert(!__traits(compiles, convert!(units, "years")(12)), units);
     }
 
-    assert(convert!("years", "years")(12) == 12);
-    assert(convert!("months", "months")(12) == 12);
-}
+    foreach(units; _TypeTuple!("years", "months", "weeks", "days",
+                               "hours", "seconds", "msecs", "usecs", "hnsecs", "nsecs"))
+    {
+        assert(convert!(units, units)(12) == 12);
+    }
 
-
-/++
-    Generic way of converting between two time units. Conversions to smaller
-    units use truncating division.
-
-    Params:
-        tuFrom = The units of time to covert from.
-        tuFrom = The units of time to covert type.
-        value  = The value to convert.
-
-    Examples:
---------------------
-assert(convert!("weeks", "days")(1) == 7);
-assert(convert!("hours", "seconds")(1) == 3600);
-assert(convert!("seconds", "days")(1) == 0);
-assert(convert!("seconds", "days")(86_400) == 1);
---------------------
-  +/
-static long convert(string from, string to)(long value) @safe pure nothrow
-    if((from == "weeks" ||
-        from == "days" ||
-        from == "hours" ||
-        from == "minutes" ||
-        from == "seconds" ||
-        from == "msecs" ||
-        from == "usecs" ||
-        from == "hnsecs") &&
-       (to == "weeks" ||
-        to == "days" ||
-        to == "hours" ||
-        to == "minutes" ||
-        to == "seconds" ||
-        to == "msecs" ||
-        to == "usecs" ||
-        to == "hnsecs"))
-{
-    return (hnsecsPer!from * value) / hnsecsPer!to;
-}
-
-
-//Verify Examples.
-unittest
-{
-    assert(convert!("weeks", "days")(1) == 7);
-    assert(convert!("hours", "seconds")(1) == 3600);
-    assert(convert!("seconds", "days")(1) == 0);
-    assert(convert!("seconds", "days")(86_400) == 1);
-}
-
-unittest
-{
     assert(convert!("weeks", "hnsecs")(1) == 6_048_000_000_000L);
     assert(convert!("days", "hnsecs")(1) == 864_000_000_000L);
     assert(convert!("hours", "hnsecs")(1) == 36_000_000_000L);
@@ -2085,9 +2115,6 @@ unittest
     assert(convert!("hnsecs", "seconds")(10_000_000L) == 1);
     assert(convert!("hnsecs", "msecs")(10_000) == 1);
     assert(convert!("hnsecs", "usecs")(10) == 1);
-
-    foreach(units; _TypeTuple!("weeks", "days", "hours", "seconds", "msecs", "usecs", "hnsecs"))
-        assert(convert!(units, units)(12) == 12);
 
     assert(convert!("weeks", "days")(1) == 7);
     assert(convert!("days", "weeks")(7) == 1);
@@ -2110,72 +2137,6 @@ unittest
     assert(convert!("usecs", "hnsecs")(1) == 10);
     assert(convert!("hnsecs", "usecs")(10) == 1);
 
-    assert(convert!("hnsecs", "hnsecs")(10) == 10);
-}
-
-
-/++
-    Generic way of converting between two time units. Conversions to smaller
-    units use truncating division.
-
-    Params:
-        tuFrom = The units of time to covert from.
-        tuFrom = The units of time to covert type.
-        value  = The value to convert.
-
-    Examples:
---------------------
-assert(convert!("nsecs", "nsecs")(1) == 1);
-assert(convert!("nsecs", "hnsecs")(1) == 0);
-assert(convert!("hnsecs", "nsecs")(1) == 100);
-assert(convert!("nsecs", "seconds")(1) == 0);
-assert(convert!("seconds", "nsecs")(1) == 1_000_000_000);
---------------------
-  +/
-static long convert(string from, string to)(long value) @safe pure nothrow
-    if((from == "nsecs" &&
-        (to == "weeks" ||
-         to == "days" ||
-         to == "hours" ||
-         to == "minutes" ||
-         to == "seconds" ||
-         to == "msecs" ||
-         to == "usecs" ||
-         to == "hnsecs" ||
-         to == "nsecs")) ||
-       (to == "nsecs" &&
-        (from == "weeks" ||
-         from == "days" ||
-         from == "hours" ||
-         from == "minutes" ||
-         from == "seconds" ||
-         from == "msecs" ||
-         from == "usecs" ||
-         from == "hnsecs" ||
-         from == "nsecs")))
-{
-    static if(from == "nsecs" && to == "nsecs")
-        return value;
-    else static if(from == "nsecs")
-        return convert!("hnsecs", to)(value / 100);
-    else static if(to == "nsecs")
-        return convert!(from, "hnsecs")(value) * 100;
-    else
-        static assert(0);
-}
-
-//Verify Examples
-unittest
-{
-    assert(convert!("nsecs", "nsecs")(1) == 1);
-    assert(convert!("nsecs", "hnsecs")(1) == 0);
-    assert(convert!("hnsecs", "nsecs")(1) == 100);
-    assert(convert!("nsecs", "seconds")(1) == 0);
-    assert(convert!("seconds", "nsecs")(1) == 1_000_000_000);
-}
-
-unittest
-{
     assert(convert!("weeks", "nsecs")(1) == 604_800_000_000_000L);
     assert(convert!("days", "nsecs")(1) == 86_400_000_000_000L);
     assert(convert!("hours", "nsecs")(1) == 3_600_000_000_000L);
@@ -2193,17 +2154,15 @@ unittest
     assert(convert!("nsecs", "msecs")(1_000_000) == 1);
     assert(convert!("nsecs", "usecs")(1000) == 1);
     assert(convert!("nsecs", "hnsecs")(100) == 1);
-
-    assert(convert!("nsecs", "nsecs")(1) == 1);
 }
 
 
 /++
     Represents fractional seconds.
 
-    This is the portion of the time which is smaller than a second and cannot
-    hold values which would greater than or equal to a second (or less than or
-    equal to a negative second).
+    This is the portion of the time which is smaller than a second and it cannot
+    hold values which would be greater than or equal to a second (or less than
+    or equal to a negative second).
 
     It holds hnsecs internally, but you can create it using either milliseconds,
     microseconds, or hnsecs. What it does is allow for a simple way to set or
@@ -2212,11 +2171,11 @@ unittest
     dealing with milliseconds, microseconds, or hnsecs.
 
     $(D FracSec)'s functions which take time unit strings do accept
-    $(D "nsecs"), but the because the resolution for $(D Duration) and
+    $(D "nsecs"), but because the resolution of $(D Duration) and
     $(XREF datetime, SysTime) is hnsecs, you don't actually get precision higher
     than hnsecs. $(D "nsecs") is accepted merely for convenience. Any values
     given as nsecs will be converted to hnsecs using $(D convert) (which uses
-    truncation when converting to smaller units).
+    truncating division when converting to smaller units).
   +/
 struct FracSec
 {
@@ -2282,9 +2241,9 @@ public:
 
 
     /++
-        Returns the negation of this FracSec.
+        Returns the negation of this $(D FracSec).
       +/
-    FracSec opUnary(string op)() @safe const nothrow
+    FracSec opUnary(string op)() @safe const pure nothrow
         if(op == "-")
     {
         try
@@ -2297,18 +2256,17 @@ public:
     {
         foreach(val; [-7, -5, 0, 5, 7])
         {
-            auto fs = FracSec(val);
-            const cfs = FracSec(val);
-            immutable ifs = FracSec(val);
-            assert(-fs == FracSec(-val));
-            assert(-cfs == FracSec(-val));
-            assert(-ifs == FracSec(-val));
+            foreach(F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
+            {
+                F fs = FracSec(val);
+                assert(-fs == FracSec(-val));
+            }
         }
     }
 
 
     /++
-        The value of this FracSec as milliseconds.
+        The value of this $(D FracSec) as milliseconds.
       +/
     @property int msecs() @safe const pure nothrow
     {
@@ -2317,33 +2275,30 @@ public:
 
     unittest
     {
-        assert(FracSec(0).msecs == 0);
-
-        foreach(sign; [1, -1])
+        foreach(F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
         {
-            assert(FracSec(1 * sign).msecs == 0);
-            assert(FracSec(999 * sign).msecs == 0);
-            assert(FracSec(999_999 * sign).msecs == 99 * sign);
-            assert(FracSec(9_999_999 * sign).msecs == 999 * sign);
-        }
+            assert(FracSec(0).msecs == 0);
 
-        auto fs = FracSec(1234567);
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        assert(fs.msecs == 123);
-        assert(cfs.msecs == 123);
-        assert(ifs.msecs == 123);
+            foreach(sign; [1, -1])
+            {
+                assert((cast(F)FracSec(1 * sign)).msecs == 0);
+                assert((cast(F)FracSec(999 * sign)).msecs == 0);
+                assert((cast(F)FracSec(999_999 * sign)).msecs == 99 * sign);
+                assert((cast(F)FracSec(9_999_999 * sign)).msecs == 999 * sign);
+            }
+        }
     }
 
 
     /++
-        The value of this FracSec as milliseconds.
+        The value of this $(D FracSec) as milliseconds.
 
         Params:
             milliseconds = The number of milliseconds passed the second.
 
         Throws:
-            TimeException if the given value is not less than one second.
+            $(D TimeException) if the given value is not less than $(D 1) second
+            and greater than a $(D -1) seconds.
       +/
     @property void msecs(int milliseconds) @safe pure
     {
@@ -2355,35 +2310,36 @@ public:
 
     unittest
     {
-        static void testFS(int ms, in FracSec expected = FracSec.init, size_t line = __LINE__)
+        static void test(int msecs, FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
-            fs.msecs = ms;
+            fs.msecs = msecs;
 
             if(fs != expected)
-                throw new AssertError("", __FILE__, line);
+                throw new AssertError("unittest failure", __FILE__, line);
         }
 
-        _assertThrown!TimeException(testFS(-1000));
-        _assertThrown!TimeException(testFS(1000));
+        _assertThrown!TimeException(test(-1000));
+        _assertThrown!TimeException(test(1000));
 
-        testFS(0, FracSec(0));
+        test(0, FracSec(0));
 
         foreach(sign; [1, -1])
         {
-            testFS(1 * sign, FracSec(10_000 * sign));
-            testFS(999 * sign, FracSec(9_990_000 * sign));
+            test(1 * sign, FracSec(10_000 * sign));
+            test(999 * sign, FracSec(9_990_000 * sign));
         }
 
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        static assert(!__traits(compiles, cfs.msecs = 54));
-        static assert(!__traits(compiles, ifs.msecs = 54));
+        foreach(F; _TypeTuple!(const FracSec, immutable FracSec))
+        {
+            F fs = FracSec(1234567);
+            static assert(!__traits(compiles, fs.msecs = 12), F.stringof);
+        }
     }
 
 
     /++
-        The value of this FracSec as microseconds.
+        The value of this $(D FracSec) as microseconds.
       +/
     @property int usecs() @safe const pure nothrow
     {
@@ -2392,33 +2348,30 @@ public:
 
     unittest
     {
-        assert(FracSec(0).usecs == 0);
-
-        foreach(sign; [1, -1])
+        foreach(F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
         {
-            assert(FracSec(1 * sign).usecs == 0);
-            assert(FracSec(999 * sign).usecs == 99 * sign);
-            assert(FracSec(999_999 * sign).usecs == 99_999 * sign);
-            assert(FracSec(9_999_999 * sign).usecs == 999_999 * sign);
-        }
+            assert(FracSec(0).usecs == 0);
 
-        auto fs = FracSec(1234567);
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        assert(fs.usecs == 123456);
-        assert(cfs.usecs == 123456);
-        assert(ifs.usecs == 123456);
+            foreach(sign; [1, -1])
+            {
+                assert((cast(F)FracSec(1 * sign)).usecs == 0);
+                assert((cast(F)FracSec(999 * sign)).usecs == 99 * sign);
+                assert((cast(F)FracSec(999_999 * sign)).usecs == 99_999 * sign);
+                assert((cast(F)FracSec(9_999_999 * sign)).usecs == 999_999 * sign);
+            }
+        }
     }
 
 
     /++
-        The value of this FracSec as microseconds.
+        The value of this $(D FracSec) as microseconds.
 
         Params:
             microseconds = The number of microseconds passed the second.
 
         Throws:
-            TimeException if the given value is not less than one second.
+            $(D TimeException) if the given value is not less than $(D 1) second
+            and greater than a $(D -1) seconds.
       +/
     @property void usecs(int microseconds) @safe pure
     {
@@ -2430,36 +2383,37 @@ public:
 
     unittest
     {
-        static void testFS(int ms, in FracSec expected = FracSec.init, size_t line = __LINE__)
+        static void test(int usecs, FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
-            fs.usecs = ms;
+            fs.usecs = usecs;
 
             if(fs != expected)
-                throw new AssertError("", __FILE__, line);
+                throw new AssertError("unittest failure", __FILE__, line);
         }
 
-        _assertThrown!TimeException(testFS(-1_000_000));
-        _assertThrown!TimeException(testFS(1_000_000));
+        _assertThrown!TimeException(test(-1_000_000));
+        _assertThrown!TimeException(test(1_000_000));
 
-        testFS(0, FracSec(0));
+        test(0, FracSec(0));
 
         foreach(sign; [1, -1])
         {
-            testFS(1 * sign, FracSec(10 * sign));
-            testFS(999 * sign, FracSec(9990 * sign));
-            testFS(999_999 * sign, FracSec(9_999_990 * sign));
+            test(1 * sign, FracSec(10 * sign));
+            test(999 * sign, FracSec(9990 * sign));
+            test(999_999 * sign, FracSec(9_999_990 * sign));
         }
 
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        static assert(!__traits(compiles, cfs.usecs = 54));
-        static assert(!__traits(compiles, ifs.usecs = 54));
+        foreach(F; _TypeTuple!(const FracSec, immutable FracSec))
+        {
+            F fs = FracSec(1234567);
+            static assert(!__traits(compiles, fs.usecs = 12), F.stringof);
+        }
     }
 
 
     /++
-        The value of this FracSec as hnsecs.
+        The value of this $(D FracSec) as hnsecs.
       +/
     @property int hnsecs() @safe const pure nothrow
     {
@@ -2468,33 +2422,30 @@ public:
 
     unittest
     {
-        assert(FracSec(0).hnsecs == 0);
-
-        foreach(sign; [1, -1])
+        foreach(F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
         {
-            assert(FracSec(1 * sign).hnsecs == 1 * sign);
-            assert(FracSec(999 * sign).hnsecs == 999 * sign);
-            assert(FracSec(999_999 * sign).hnsecs == 999_999 * sign);
-            assert(FracSec(9_999_999 * sign).hnsecs == 9_999_999 * sign);
-        }
+            assert(FracSec(0).hnsecs == 0);
 
-        auto fs = FracSec(1234567);
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        assert(fs.hnsecs == 1234567);
-        assert(cfs.hnsecs == 1234567);
-        assert(ifs.hnsecs == 1234567);
+            foreach(sign; [1, -1])
+            {
+                assert((cast(F)FracSec(1 * sign)).hnsecs == 1 * sign);
+                assert((cast(F)FracSec(999 * sign)).hnsecs == 999 * sign);
+                assert((cast(F)FracSec(999_999 * sign)).hnsecs == 999_999 * sign);
+                assert((cast(F)FracSec(9_999_999 * sign)).hnsecs == 9_999_999 * sign);
+            }
+        }
     }
 
 
     /++
-        The value of this FracSec as hnsecs.
+        The value of this $(D FracSec) as hnsecs.
 
         Params:
             hnsecs = The number of hnsecs passed the second.
 
         Throws:
-            TimeException if the given value is not less than one second.
+            $(D TimeException) if the given value is not less than $(D 1) second
+            and greater than a $(D -1) seconds.
       +/
     @property void hnsecs(int hnsecs) @safe pure
     {
@@ -2504,40 +2455,41 @@ public:
 
     unittest
     {
-        static void testFS(int hnsecs, in FracSec expected = FracSec.init, size_t line = __LINE__)
+        static void test(int hnsecs, FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
             fs.hnsecs = hnsecs;
 
             if(fs != expected)
-                throw new AssertError("", __FILE__, line);
+                throw new AssertError("unittest failure", __FILE__, line);
         }
 
-        _assertThrown!TimeException(testFS(-10_000_000));
-        _assertThrown!TimeException(testFS(10_000_000));
+        _assertThrown!TimeException(test(-10_000_000));
+        _assertThrown!TimeException(test(10_000_000));
 
-        testFS(0, FracSec(0));
+        test(0, FracSec(0));
 
         foreach(sign; [1, -1])
         {
-            testFS(1 * sign, FracSec(1 * sign));
-            testFS(999 * sign, FracSec(999 * sign));
-            testFS(999_999 * sign, FracSec(999_999 * sign));
-            testFS(9_999_999 * sign, FracSec(9_999_999 * sign));
+            test(1 * sign, FracSec(1 * sign));
+            test(999 * sign, FracSec(999 * sign));
+            test(999_999 * sign, FracSec(999_999 * sign));
+            test(9_999_999 * sign, FracSec(9_999_999 * sign));
         }
 
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        static assert(!__traits(compiles, cfs.hnsecs = 54));
-        static assert(!__traits(compiles, ifs.hnsecs = 54));
+        foreach(F; _TypeTuple!(const FracSec, immutable FracSec))
+        {
+            F fs = FracSec(1234567);
+            static assert(!__traits(compiles, fs.hnsecs = 12), F.stringof);
+        }
     }
 
 
     /++
-        The value of this FracSec as nsecs.
+        The value of this $(D FracSec) as nsecs.
 
         Note that this does not give you any greater precision
-        than getting the value of this FracSec as hnsecs.
+        than getting the value of this $(D FracSec) as hnsecs.
       +/
     @property int nsecs() @safe const pure nothrow
     {
@@ -2546,43 +2498,36 @@ public:
 
     unittest
     {
-        assert(FracSec(0).nsecs == 0);
-
-        foreach(sign; [1, -1])
+        foreach(F; _TypeTuple!(FracSec, const FracSec, immutable FracSec))
         {
-            assert(FracSec(1 * sign).nsecs == 100 * sign);
-            assert(FracSec(999 * sign).nsecs == 99_900 * sign);
-            assert(FracSec(999_999 * sign).nsecs == 99_999_900 * sign);
-            assert(FracSec(9_999_999 * sign).nsecs == 999_999_900 * sign);
-        }
+            assert(FracSec(0).nsecs == 0);
 
-        auto fs = FracSec(1234567);
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        assert(fs.nsecs == 123456700);
-        assert(cfs.nsecs == 123456700);
-        assert(ifs.nsecs == 123456700);
+            foreach(sign; [1, -1])
+            {
+                assert((cast(F)FracSec(1 * sign)).nsecs == 100 * sign);
+                assert((cast(F)FracSec(999 * sign)).nsecs == 99_900 * sign);
+                assert((cast(F)FracSec(999_999 * sign)).nsecs == 99_999_900 * sign);
+                assert((cast(F)FracSec(9_999_999 * sign)).nsecs == 999_999_900 * sign);
+            }
+        }
     }
 
 
     /++
-        The value of this FracSec as nsecs.
+        The value of this $(D FracSec) as nsecs.
 
         Note that this does not give you any greater precision
-        than setting the value of this FracSec as hnsecs.
+        than setting the value of this $(D FracSec) as hnsecs.
 
         Params:
             nsecs = The number of nsecs passed the second.
 
         Throws:
-            TimeException if the given value is not less than one second.
+            $(D TimeException) if the given value is not less than $(D 1) second
+            and greater than a $(D -1) seconds.
       +/
     @property void nsecs(long nsecs) @safe pure
     {
-        //So that -99 through -1 throw instead of result in FracSec(0).
-        if(nsecs < 0)
-            _enforceValid(-1);
-
         immutable hnsecs = cast(int)convert!("nsecs", "hnsecs")(nsecs);
 
         _enforceValid(hnsecs);
@@ -2591,39 +2536,40 @@ public:
 
     unittest
     {
-        static void testFS(long nsecs, in FracSec expected = FracSec.init, size_t line = __LINE__)
+        static void test(int nsecs, FracSec expected = FracSec.init, size_t line = __LINE__)
         {
             FracSec fs;
             fs.nsecs = nsecs;
 
             if(fs != expected)
-                throw new AssertError("", __FILE__, line);
+                throw new AssertError("unittest failure", __FILE__, line);
         }
 
-        _assertThrown!TimeException(testFS(-1_000_000_000));
-        _assertThrown!TimeException(testFS(1_000_000_000));
+        _assertThrown!TimeException(test(-1_000_000_000));
+        _assertThrown!TimeException(test(1_000_000_000));
 
-        testFS(0, FracSec(0));
+        test(0, FracSec(0));
 
         foreach(sign; [1, -1])
         {
-            testFS(1 * sign, FracSec(0));
-            testFS(10 * sign, FracSec(0));
-            testFS(100 * sign, FracSec(1 * sign));
-            testFS(999 * sign, FracSec(9 * sign));
-            testFS(999_999 * sign, FracSec(9999 * sign));
-            testFS(9_999_999 * sign, FracSec(99_999 * sign));
+            test(1 * sign, FracSec(0));
+            test(10 * sign, FracSec(0));
+            test(100 * sign, FracSec(1 * sign));
+            test(999 * sign, FracSec(9 * sign));
+            test(999_999 * sign, FracSec(9999 * sign));
+            test(9_999_999 * sign, FracSec(99_999 * sign));
         }
 
-        const cfs = FracSec(1234567);
-        immutable ifs = FracSec(1234567);
-        static assert(!__traits(compiles, cfs.nsecs = 54));
-        static assert(!__traits(compiles, ifs.nsecs = 54));
+        foreach(F; _TypeTuple!(const FracSec, immutable FracSec))
+        {
+            F fs = FracSec(1234567);
+            static assert(!__traits(compiles, fs.nsecs = 12), F.stringof);
+        }
     }
 
 
     /+
-        Converts this duration to a string.
+        Converts this $(D TickDuration) to a string.
       +/
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
@@ -2635,7 +2581,7 @@ public:
 
 
     /++
-        Converts this duration to a string.
+        Converts this $(D TickDuration) to a string.
       +/
     //Due to bug http://d.puremagic.com/issues/show_bug.cgi?id=3715 , we can't
     //have versions of toString() with extra modifiers, so we define one version
@@ -2659,7 +2605,7 @@ public:
 private:
 
     /++
-        Since we have two versions of toString(), we have _toStringImpl()
+        Since we have two versions of $(D toString), we have $(D _toStringImpl)
         so that they can share implementations.
       +/
     string _toStringImpl() @safe const pure nothrow
@@ -2709,47 +2655,53 @@ private:
 
     unittest
     {
-        assert(FracSec.from!"msecs"(0).toString() == "0 hnsecs");
-        assert(FracSec.from!"msecs"(1).toString() == "1 ms");
-        assert(FracSec.from!"msecs"(2).toString() == "2 ms");
-        assert(FracSec.from!"msecs"(100).toString() == "100 ms");
-        assert(FracSec.from!"msecs"(999).toString() == "999 ms");
+        foreach(sign; [1 , -1])
+        {
+            immutable signStr = sign == 1 ? "" : "-";
 
-        assert(FracSec.from!"usecs"(0).toString() == "0 hnsecs");
-        assert(FracSec.from!"usecs"(1).toString() == "1 μs");
-        assert(FracSec.from!"usecs"(2).toString() == "2 μs");
-        assert(FracSec.from!"usecs"(100).toString() == "100 μs");
-        assert(FracSec.from!"usecs"(999).toString() == "999 μs");
-        assert(FracSec.from!"usecs"(1000).toString() == "1 ms");
-        assert(FracSec.from!"usecs"(2000).toString() == "2 ms");
-        assert(FracSec.from!"usecs"(9999).toString() == "9999 μs");
-        assert(FracSec.from!"usecs"(10_000).toString() == "10 ms");
-        assert(FracSec.from!"usecs"(20_000).toString() == "20 ms");
-        assert(FracSec.from!"usecs"(100_000).toString() == "100 ms");
-        assert(FracSec.from!"usecs"(100_001).toString() == "100001 μs");
-        assert(FracSec.from!"usecs"(999_999).toString() == "999999 μs");
+            assert(FracSec.from!"msecs"(0 * sign).toString() == "0 hnsecs");
+            assert(FracSec.from!"msecs"(1 * sign).toString() == signStr ~ "1 ms");
+            assert(FracSec.from!"msecs"(2 * sign).toString() == signStr ~ "2 ms");
+            assert(FracSec.from!"msecs"(100 * sign).toString() == signStr ~ "100 ms");
+            assert(FracSec.from!"msecs"(999 * sign).toString() == signStr ~ "999 ms");
 
-        assert(FracSec.from!"hnsecs"(0).toString() == "0 hnsecs");
-        assert(FracSec.from!"hnsecs"(1).toString() == "1 hnsec");
-        assert(FracSec.from!"hnsecs"(2).toString() == "2 hnsecs");
-        assert(FracSec.from!"hnsecs"(100).toString() == "10 μs");
-        assert(FracSec.from!"hnsecs"(999).toString() == "999 hnsecs");
-        assert(FracSec.from!"hnsecs"(1000).toString() == "100 μs");
-        assert(FracSec.from!"hnsecs"(2000).toString() == "200 μs");
-        assert(FracSec.from!"hnsecs"(9999).toString() == "9999 hnsecs");
-        assert(FracSec.from!"hnsecs"(10_000).toString() == "1 ms");
-        assert(FracSec.from!"hnsecs"(20_000).toString() == "2 ms");
-        assert(FracSec.from!"hnsecs"(100_000).toString() == "10 ms");
-        assert(FracSec.from!"hnsecs"(100_001).toString() == "100001 hnsecs");
-        assert(FracSec.from!"hnsecs"(200_000).toString() == "20 ms");
-        assert(FracSec.from!"hnsecs"(999_999).toString() == "999999 hnsecs");
-        assert(FracSec.from!"hnsecs"(1_000_001).toString() == "1000001 hnsecs");
-        assert(FracSec.from!"hnsecs"(9_999_999).toString() == "9999999 hnsecs");
+            assert(FracSec.from!"usecs"(0* sign).toString() == "0 hnsecs");
+            assert(FracSec.from!"usecs"(1* sign).toString() == signStr ~ "1 μs");
+            assert(FracSec.from!"usecs"(2* sign).toString() == signStr ~ "2 μs");
+            assert(FracSec.from!"usecs"(100* sign).toString() == signStr ~ "100 μs");
+            assert(FracSec.from!"usecs"(999* sign).toString() == signStr ~ "999 μs");
+            assert(FracSec.from!"usecs"(1000* sign).toString() == signStr ~ "1 ms");
+            assert(FracSec.from!"usecs"(2000* sign).toString() == signStr ~ "2 ms");
+            assert(FracSec.from!"usecs"(9999* sign).toString() == signStr ~ "9999 μs");
+            assert(FracSec.from!"usecs"(10_000* sign).toString() == signStr ~ "10 ms");
+            assert(FracSec.from!"usecs"(20_000* sign).toString() == signStr ~ "20 ms");
+            assert(FracSec.from!"usecs"(100_000* sign).toString() == signStr ~ "100 ms");
+            assert(FracSec.from!"usecs"(100_001* sign).toString() == signStr ~ "100001 μs");
+            assert(FracSec.from!"usecs"(999_999* sign).toString() == signStr ~ "999999 μs");
+
+            assert(FracSec.from!"hnsecs"(0* sign).toString() == "0 hnsecs");
+            assert(FracSec.from!"hnsecs"(1* sign).toString() == (sign == 1 ? "1 hnsec" : "-1 hnsecs"));
+            assert(FracSec.from!"hnsecs"(2* sign).toString() == signStr ~ "2 hnsecs");
+            assert(FracSec.from!"hnsecs"(100* sign).toString() == signStr ~ "10 μs");
+            assert(FracSec.from!"hnsecs"(999* sign).toString() == signStr ~ "999 hnsecs");
+            assert(FracSec.from!"hnsecs"(1000* sign).toString() == signStr ~ "100 μs");
+            assert(FracSec.from!"hnsecs"(2000* sign).toString() == signStr ~ "200 μs");
+            assert(FracSec.from!"hnsecs"(9999* sign).toString() == signStr ~ "9999 hnsecs");
+            assert(FracSec.from!"hnsecs"(10_000* sign).toString() == signStr ~ "1 ms");
+            assert(FracSec.from!"hnsecs"(20_000* sign).toString() == signStr ~ "2 ms");
+            assert(FracSec.from!"hnsecs"(100_000* sign).toString() == signStr ~ "10 ms");
+            assert(FracSec.from!"hnsecs"(100_001* sign).toString() == signStr ~ "100001 hnsecs");
+            assert(FracSec.from!"hnsecs"(200_000* sign).toString() == signStr ~ "20 ms");
+            assert(FracSec.from!"hnsecs"(999_999* sign).toString() == signStr ~ "999999 hnsecs");
+            assert(FracSec.from!"hnsecs"(1_000_001* sign).toString() == signStr ~ "1000001 hnsecs");
+            assert(FracSec.from!"hnsecs"(9_999_999* sign).toString() == signStr ~ "9999999 hnsecs");
+        }
     }
 
 
     /++
-        Returns whether the given number of hnsecs fits within the range of FracSec.
+        Returns whether the given number of hnsecs fits within the range of
+        $(D FracSec).
 
         Params:
             hnsecs = The number of hnsecs.
@@ -2764,7 +2716,7 @@ private:
 
     /++
         Throws:
-            TimeException if valid(hnsecs) is false.
+            $(D TimeException) if $(D valid(hnsecs)) is $(D false).
       +/
     static void _enforceValid(int hnsecs) @safe pure
     {
@@ -2778,8 +2730,8 @@ private:
             hnsecs = The number of hnsecs passed the second.
 
         Throws:
-            TimeException if the given hnsecs less than 0 or would result in a
-            FracSec greater than or equal to 1 second.
+            $(D TimeException) if the given hnsecs less than 0 or would result
+            in a $(D FracSec) not within the range (-1 second, 1 second).
       +/
     @safe pure this(int hnsecs)
     {
@@ -2859,8 +2811,8 @@ template hnsecsPer(string units)
 
 /+
     Splits out a particular unit from hnsecs and gives you the value for that
-    unit and the remaining hnsecs. It really shouldn't be used unless unless
-    all units larger than the given units have already been split out.
+    unit and the remaining hnsecs. It really shouldn't be used unless all units
+    larger than the given units have already been split out.
 
     Params:
         units  = The units to split out.
@@ -2898,9 +2850,9 @@ long splitUnitsFromHNSecs(string units)(ref long hnsecs) @safe pure nothrow
     return value;
 }
 
+//Verify Examples.
 unittest
 {
-    //Verify Example.
     auto hnsecs = 2595000000007L;
     immutable days = splitUnitsFromHNSecs!"days"(hnsecs);
     assert(days == 3);
@@ -2917,7 +2869,7 @@ unittest
     hnsecs.
 
     See_Also:
-        splitUnitsFromHNSecs()
+        $(LREF splitUnitsFromHNSecs)
 
     Params:
         units  = The units to split out.
@@ -2947,9 +2899,9 @@ long getUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow
     return convert!("hnsecs", units)(hnsecs);
 }
 
+//Verify Examples.
 unittest
 {
-    //Verify Example.
     auto hnsecs = 2595000000007L;
     immutable days = getUnitsFromHNSecs!"days"(hnsecs);
     assert(days == 3);
@@ -2962,7 +2914,7 @@ unittest
     just the remaining hnsecs.
 
     See_Also:
-        splitUnitsFromHNSecs()
+        $(LREF splitUnitsFromHNSecs)
 
     Params:
         units  = The units to split out.
@@ -2994,9 +2946,9 @@ long removeUnitsFromHNSecs(string units)(long hnsecs) @safe pure nothrow
     return hnsecs - convert!(units, "hnsecs")(value);
 }
 
+//Verify Examples.
 unittest
 {
-    //Verify Example.
     auto hnsecs = 2595000000007L;
     auto returned = removeUnitsFromHNSecs!"days"(hnsecs);
     assert(returned == 3000000007);
@@ -3063,6 +3015,13 @@ template nextLargerTimeUnits(string units)
         static assert(0, "Broken template constraint");
 }
 
+//Verify Examples.
+unittest
+{
+    assert(nextLargerTimeUnits!"minutes" == "hours");
+    assert(nextLargerTimeUnits!"hnsecs" == "usecs");
+}
+
 unittest
 {
     assert(nextLargerTimeUnits!"nsecs" == "hnsecs");
@@ -3077,15 +3036,11 @@ unittest
     static assert(!__traits(compiles, nextLargerTimeUnits!"weeks"));
     static assert(!__traits(compiles, nextLargerTimeUnits!"months"));
     static assert(!__traits(compiles, nextLargerTimeUnits!"years"));
-
-    //Verify Examples
-    assert(nextLargerTimeUnits!"minutes" == "hours");
-    assert(nextLargerTimeUnits!"hnsecs" == "usecs");
 }
 
 
 /++
-    Unfortunately, snprintf is not pure, so here's a way to convert
+    Unfortunately, $(D snprintf) is not pure, so here's a way to convert
     a number to a string which is.
   +/
 string numToString(long value) @safe pure nothrow
@@ -3184,6 +3139,7 @@ version(unittest) void _assertThrown(T : Throwable = Exception, E)
 
 unittest
 {
+
     void throwEx(Throwable t)
     {
         throw t;
@@ -3252,4 +3208,29 @@ unittest
 
         assert(thrown);
     }
+}
+
+
+version(unittest) void assertApprox(D)(D actual,
+                                       Duration lower,
+                                       Duration upper,
+                                       string msg = "unittest failure",
+                                       size_t line = __LINE__)
+{
+    if(actual < lower)
+        throw new AssertError(msg ~ ": lower: " ~ actual.toString(), __FILE__, line);
+    if(actual > upper)
+        throw new AssertError(msg ~ ": upper: " ~ actual.toString(), __FILE__, line);
+}
+
+version(unittest) void assertApprox()(long actual,
+                                      long lower,
+                                      long upper,
+                                      string msg = "unittest failure",
+                                      size_t line = __LINE__)
+{
+    if(actual < lower)
+        throw new AssertError(msg ~ ": lower: " ~ numToString(actual), __FILE__, line);
+    if(actual > upper)
+        throw new AssertError(msg ~ ": upper: " ~ numToString(actual), __FILE__, line);
 }
