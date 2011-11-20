@@ -1495,47 +1495,66 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     //printf("Cat(e1 = %s, e2 = %s)\n", e1->toChars(), e2->toChars());
     //printf("\tt1 = %s, t2 = %s, type = %s\n", t1->toChars(), t2->toChars(), type->toChars());
 
-    if (e1->op == TOKnull && (e2->op == TOKint64 || e2->op == TOKstructliteral))
-    {   e = e2;
-        t = t1;
+    if ((e1->op == TOKint64 || e1->op == TOKstructliteral) && e2->op == TOKnull)
+    {   // handle e ~ null as null ~ e
+        Expression *etmp = e1; e1 = e2; e2 = etmp;
+        Type *ttmp = t1; t1 = t2; t2 = ttmp;
         goto L2;
     }
-    else if ((e1->op == TOKint64 || e1->op == TOKstructliteral) && e2->op == TOKnull)
-    {   e = e1;
-        t = t2;
-     L2:
-        Type *tn = e->type->toBasetype();
-        if (tn->ty == Tchar || tn->ty == Twchar || tn->ty == Tdchar)
+    else if (e1->op == TOKnull && (e2->op == TOKint64 || e2->op == TOKstructliteral))
+    {
+    L2:
+        assert(t1->nextOf()); // because of TOKnull
+
+        if (t2->ty == Tchar || t2->ty == Twchar || t2->ty == Tdchar)
         {
-            // Create a StringExp
-            void *s;
-            StringExp *es;
-            if (t->nextOf())
-                t = t->nextOf()->toBasetype();
-            int sz = t->size();
+            Type *t1n = t1->nextOf()->toBasetype();
+            int sz = t1n->size();
 
-            dinteger_t v = e->toInteger();
-
-            size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, v);
-            s = mem.malloc((len + 1) * sz);
-            if (t->ty == tn->ty)
-                memcpy((unsigned char *)s, &v, sz);
+            // transcode char
+            int len;
+            dinteger_t v = e2->toInteger();
+            if (t2->ty == t1n->ty)
+                len = 1;
             else
-                utf_encode(sz, s, v);
+            {   len = utf_codeLength(sz, v);
+                utf_encode(sz, (unsigned char*)&v, v);
+            }
 
-            // Add terminating 0
-            memset((unsigned char *)s + len * sz, 0, sz);
+            if (t1n->mod & MODimmutable)
+            {   // Create a StringExp
+                void *s = mem.malloc((len + 1) * sz);
+                memcpy((unsigned char *)s, &v, len * sz);
+                memset((unsigned char *)s + len * sz, 0, sz); // terminating 0
 
-            es = new StringExp(loc, s, len);
-            es->sz = sz;
-            es->committed = 1;
-            e = es;
+                StringExp *es = new StringExp(loc, s, len);
+                es->sz = sz;
+                es->committed = 1;
+                e = es;
+            }
+            else
+            {
+                Expressions *elements = new Expressions();
+                elements->reserve(len);
+                for (size_t i = 0; i < len; ++i)
+                {   dinteger_t cp;
+                    switch (sz)
+                    {
+                    case 1:  cp = ((unsigned char  *)&v)[i]; break;
+                    case 2:  cp = ((unsigned short *)&v)[i]; break;
+                    case 4:  cp = ((unsigned int   *)&v)[i]; break;
+                    default: assert(0);
+                    }
+                    elements->push(new IntegerExp(loc, cp, t1n));
+                }
+                e = new ArrayLiteralExp(loc, elements);
+            }
         }
         else
         {   // Create an ArrayLiteralExp
             Expressions *elements = new Expressions();
-            elements->push(e);
-            e = new ArrayLiteralExp(e->loc, elements);
+            elements->push(e2);
+            e = new ArrayLiteralExp(loc, elements);
         }
         e->type = type;
         return e;
