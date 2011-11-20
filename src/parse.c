@@ -2726,6 +2726,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
             }
             break;
         case TOKtypedef:
+            if (!global.params.useDeprecated)
+                error("use of typedef is deprecated; use alias instead");
             tok = token.value;
             nextToken();
             break;
@@ -2876,7 +2878,10 @@ L2:
                 init = parseInitializer();
             }
             if (tok == TOKtypedef)
-                v = new TypedefDeclaration(loc, ident, t, init);
+            {   v = new TypedefDeclaration(loc, ident, t, init);
+                if (!global.params.useDeprecated)
+                    error("use of typedef is deprecated; use alias instead");
+            }
             else
             {   if (init)
                     error("alias cannot have initializer");
