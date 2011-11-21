@@ -145,7 +145,7 @@ bool Loc::equals(const Loc& loc)
 }
 
 /**************************************
- * Print error message and exit.
+ * Print error message
  */
 
 void error(Loc loc, const char *format, ...)
@@ -171,6 +171,18 @@ void warning(Loc loc, const char *format, ...)
     va_list ap;
     va_start(ap, format);
     vwarning(loc, format, ap);
+    va_end( ap );
+}
+
+/**************************************
+ * Print supplementary message about the last error
+ * Used for backtraces, etc
+ */
+void errorSupplemental(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    verrorSupplemental(loc, format, ap);
     va_end( ap );
 }
 
@@ -202,6 +214,25 @@ void verror(Loc loc, const char *format, va_list ap)
         global.gaggedErrors++;
     }
     global.errors++;
+}
+
+// Doesn't increase error count, doesn't print "Error:".
+void verrorSupplemental(Loc loc, const char *format, va_list ap)
+{
+    if (!global.gag)
+    {
+        fprintf(stdmsg, "%s:        ", loc.toChars());
+#if _MSC_VER
+        // MS doesn't recognize %zu format
+        OutBuffer tmp;
+        tmp.vprintf(format, ap);
+        fprintf(stdmsg, "%s", tmp.toChars());
+#else
+        vfprintf(stdmsg, format, ap);
+#endif
+        fprintf(stdmsg, "\n");
+        fflush(stdmsg);
+    }
 }
 
 void vwarning(Loc loc, const char *format, va_list ap)

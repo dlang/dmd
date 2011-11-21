@@ -288,7 +288,7 @@ struct ThrownExceptionExp : Expression
          * (eg, in ScopeStatement)
          */
         if (loc.filename && !loc.equals(thrown->loc))
-            fprintf(stdmsg, "%s:        thrown from here\n", loc.toChars());
+            errorSupplemental(loc, "thrown from here");
     }
 };
 
@@ -1761,7 +1761,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 e = e->interpret(istate, ctfeNeedAnyValue);
                 v->inuse--;
                 if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
-                    fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
+                    errorSupplemental(loc, "while evaluating %s.init", v->toChars());
                 if (exceptionOrCantInterpret(e))
                     return e;
                 e->type = v->type;
@@ -1773,7 +1773,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 if (e)
                     e = e->interpret(istate, ctfeNeedAnyValue);
                 if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
-                    fprintf(stdmsg, "%s:        while evaluating %s.init\n", loc.toChars(), v->toChars());
+                    errorSupplemental(loc, "while evaluating %s.init", v->toChars());
             }
             if (e && e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
                 if (v->isDataseg())
@@ -4389,7 +4389,7 @@ void showCtfeBackTrace(InterState *istate, CallExp * callingExp, FuncDeclaration
         --CtfeStatus::stackTraceCallsToSuppress;
         return;
     }
-    fprintf(stdmsg, "%s:        called from here: %s\n", callingExp->loc.toChars(), callingExp->toChars());
+    errorSupplemental(callingExp->loc, "called from here: %s", callingExp->toChars());
     // Quit if it's not worth trying to compress the stack trace
     if (CtfeStatus::callDepth < 6 || global.params.verbose)
         return;
@@ -4411,10 +4411,10 @@ void showCtfeBackTrace(InterState *istate, CallExp * callingExp, FuncDeclaration
     if (recurseCount < 2)
         return;
     // We found a useful recursion.  Print all the calls involved in the recursion
-    fprintf(stdmsg, "%s:        %d recursive calls to function %s\n", fd->loc.toChars(), recurseCount, fd->toChars());
+    errorSupplemental(fd->loc, "%d recursive calls to function %s", recurseCount, fd->toChars());
     for (InterState *cur = istate; cur->fd != fd; cur = cur->caller)
     {
-        fprintf(stdmsg, "%s:          recursively called from function %s\n", cur->fd->loc.toChars(), cur->fd->toChars());
+        errorSupplemental(cur->fd->loc, "recursively called from function %s", cur->fd->toChars());
     }
     // We probably didn't enter the recursion in this function.
     // Go deeper to find the real beginning.
