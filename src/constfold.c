@@ -1543,7 +1543,17 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
     else if (e1->op == TOKnull && e2->op == TOKnull)
     {
         if (type == e1->type)
-            return e1;
+        {
+            // Handle null ~= null
+            if (t1->ty == Tarray && t2 == t1->nextOf())
+            {
+                e = new ArrayLiteralExp(e1->loc, e2);
+                e->type = type;
+                return e;
+            }
+            else
+                return e1;
+        }
         if (type == e2->type)
             return e2;
         return new NullExp(e1->loc, type);
