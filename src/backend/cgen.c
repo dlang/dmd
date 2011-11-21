@@ -204,6 +204,7 @@ code *gen1(code *c,unsigned op)
 
   ce = code_calloc();
   ce->Iop = op;
+  ccheck(ce);
   assert(op != LEA);
   if (c)
   {     cstart = c;
