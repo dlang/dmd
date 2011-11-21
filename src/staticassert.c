@@ -58,7 +58,7 @@ void StaticAssert::semantic2(Scope *sc)
     sc->flags |= SCOPEstaticassert;
     Expression *e = exp->semantic(sc);
     sc = sc->pop();
-    if (e->op == TOKerror)
+    if (e->type == Type::terror)
         return;
     unsigned olderrs = global.errors;
     e = e->optimize(WANTvalue | WANTinterpret);
