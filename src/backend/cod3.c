@@ -2700,6 +2700,15 @@ Lcont:
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
+
+    // Keep track of used registers.
+    unsigned usedregs = 0;
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        if (s->Sclass == SCfastpar)
+            usedregs |= mask[s->Spreg];
+    }
+
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
         code *c2;
@@ -2716,6 +2725,8 @@ Lcont:
         {
             /* MOV reg,param[BP]        */
             //assert(refparam);
+            assert(!(usedregs & mask[s->Sreglsw])); // bug 6189
+            usedregs |= mask[s->Sreglsw];
             if (mask[s->Sreglsw] & XMMREGS)
             {
                 unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;  // MOVSS/D xreg,mem
@@ -2746,6 +2757,8 @@ Lcont:
                 }
                 if (sz > REGSIZE)
                 {
+                    assert(!(usedregs & mask[s->Sregmsw])); // bug 6189
+                    usedregs |= mask[s->Sregmsw];
                     code *c3 = genc1(CNIL,0x8B,
                         modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
                     if (I64)
@@ -2765,11 +2778,15 @@ Lcont:
         else if (s->Sclass == SCfastpar)
         {   // Argument is passed in a register
             unsigned preg = s->Spreg;
+            assert(usedregs & mask[preg]); // bug 6189
+            usedregs &= ~mask[preg];
 
             namedargs |= mask[preg];
 
             if (s->Sfl == FLreg)
             {   // MOV reg,preg
+                assert(!(usedregs & mask[s->Sreglsw])); // bug 6189
+                usedregs |= mask[s->Sreglsw];
                 if (mask[preg] & XMMREGS)
                 {
                     unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;      // MOVSS/D xreg,preg
