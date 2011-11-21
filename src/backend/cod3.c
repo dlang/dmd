@@ -2821,16 +2821,37 @@ Lcont:
         }
     }
 
-    // Do register argument to register variable moves.
+#ifdef DEBUG
+    // check that SFLprologue flag is not used
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
-        if (s->Sclass == SCfastpar && s->Sfl == FLreg)
-        {   // MOV reg,preg
+        assert(!(s->Sflags & SFLprologue));
+    }
+#endif
+
+    // Do register argument to register variable moves.
+    while (1)
+    {
+        size_t cnt=0, defer=0;
+        for (si = 0; si < globsym.top; si++)
+        {   symbol *s = globsym.tab[si];
+            if (s->Sclass != SCfastpar || s->Sfl != FLreg ||
+                s->Spreg == s->Sreglsw || s->Sflags & SFLprologue)
+                continue;
+
+            ++cnt;
+            if (usedregs & mask[s->Sreglsw])
+            {
+                ++defer;
+                continue;
+            }
+
+            s->Sflags |= SFLprologue;
+
+            // MOV reg,preg
             unsigned preg = s->Spreg;
             assert(usedregs & mask[preg]); // bug 6189
             usedregs &= ~mask[preg];
-
-            assert(!(usedregs & mask[s->Sreglsw])); // bug 6189
             usedregs |= mask[s->Sreglsw];
             if (mask[preg] & XMMREGS)
             {
@@ -2845,7 +2866,17 @@ Lcont:
                     code_orrex(c, REX_W);
             }
         }
+        if (defer)
+            assert(defer < cnt); // no cyclic register moves
+        else
+            break;
     }
+
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        s->Sflags &= ~SFLprologue;
+    }
+
 
     // Do stack argument to register variable moves.
     for (si = 0; si < globsym.top; si++)
