@@ -2697,10 +2697,6 @@ Lcont:
         c = cat(c,nteh_setsp(0x89));            // MOV __context[EBP].esp,ESP
 #endif
 
-    // Load register parameters off of the stack. Do not use
-    // assignaddr(), as it will replace the stack reference with
-    // the register!
-
     // Keep track of used registers.
     unsigned usedregs = 0;
     for (si = 0; si < globsym.top; si++)
@@ -2708,12 +2704,122 @@ Lcont:
         if (s->Sclass == SCfastpar)
             usedregs |= mask[s->Spreg];
     }
+    namedargs = usedregs;
 
+    // Do register argument to stack moves.
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
-        code *c2;
-        unsigned sz = type_size(s->Stype);
+        if (s->Sclass == SCfastpar && s->Sfl != FLreg)
+        {
+            unsigned preg = s->Spreg;
+            assert(usedregs & mask[preg]); // bug 6189
+            usedregs &= ~mask[preg];
 
+            if (s->Sflags & SFLdead ||
+                (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
+#if MARS
+                 // This variable has been reference by a nested function
+                 !(s->Stype->Tty & mTYvolatile) &&
+#endif
+                 (config.flags4 & CFG4optimized || !config.fulltypes)))
+            {
+                // Ignore it, as it is never referenced
+                ;
+            }
+            else
+            {
+                unsigned sz = type_size(s->Stype);
+                targ_size_t offset = Aoff + BPoff + s->Soffset;
+                int op = 0x89;                  // MOV x[EBP],preg
+                if (preg >= XMM0 && preg <= XMM15)
+                {
+                    if (sz == 8)
+                        op = 0xF20F11;          // MOVSD x[EBP],preg
+                    else
+                    {
+                        assert(sz == 4);
+                        op = 0xF30F11;          // MOVSS x[EBP],preg
+                    }
+                }
+                if (hasframe)
+                {
+                    if (!(pushalloc && preg == pushallocreg))
+                    {
+                        // MOV x[EBP],preg
+                        code *c2 = genc1(CNIL,op,
+                            modregxrm(2,preg,BPRM),FLconst, offset);
+                        if (preg >= XMM0 && preg <= XMM15)
+                        {
+                        }
+                        else
+                        {
+//printf("%s Aoff = %d, BPoff = %d, Soffset = %d, sz = %d\n", s->Sident, (int)Aoff, (int)BPoff, (int)s->Soffset, (int)sz);
+//                          if (offset & 2)
+//                              c2->Iflags |= CFopsize;
+                            if (I64 && sz == 8)
+                                code_orrex(c2, REX_W);
+                        }
+                        c = cat(c, c2);
+                    }
+                }
+                else
+                {
+                    offset += EBPtoESP;
+                    if (!(pushalloc && preg == pushallocreg))
+                    {
+                        // MOV offset[ESP],preg
+                        // BUG: byte size?
+                        code *c2 = genc1(CNIL,op,
+                            (modregrm(0,4,SP) << 8) |
+                            modregxrm(2,preg,4),FLconst,offset);
+                        if (preg >= XMM0 && preg <= XMM15)
+                        {
+                        }
+                        else
+                        {
+                            if (I64 && sz == 8)
+                                c2->Irex |= REX_W;
+//                          if (offset & 2)
+//                              c2->Iflags |= CFopsize;
+                        }
+                        c = cat(c,c2);
+                    }
+                }
+            }
+        }
+    }
+
+    // Do register argument to register variable moves.
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        unsigned sz = type_size(s->Stype);
+        if (s->Sclass == SCfastpar && s->Sfl == FLreg)
+        {   // MOV reg,preg
+            unsigned preg = s->Spreg;
+            assert(usedregs & mask[preg]); // bug 6189
+            usedregs &= ~mask[preg];
+
+            assert(!(usedregs & mask[s->Sreglsw])); // bug 6189
+            usedregs |= mask[s->Sreglsw];
+            if (mask[preg] & XMMREGS)
+            {
+                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;      // MOVSS/D xreg,preg
+                unsigned xreg = s->Sreglsw - XMM0;
+                c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
+            }
+            else
+            {
+                c = genmovreg(c,s->Sreglsw,preg);
+                if (I64 && sz == 8)
+                    code_orrex(c, REX_W);
+            }
+        }
+    }
+
+    // Do stack argument to register variable moves.
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        unsigned sz = type_size(s->Stype);
         if ((s->Sclass == SCregpar || s->Sclass == SCparameter) &&
             s->Sfl == FLreg &&
             (refparam
@@ -2773,102 +2879,6 @@ Lcont:
                     c2 = cat(c2,c3);
                 }
                 c = cat(c,c2);
-            }
-        }
-        else if (s->Sclass == SCfastpar)
-        {   // Argument is passed in a register
-            unsigned preg = s->Spreg;
-            assert(usedregs & mask[preg]); // bug 6189
-            usedregs &= ~mask[preg];
-
-            namedargs |= mask[preg];
-
-            if (s->Sfl == FLreg)
-            {   // MOV reg,preg
-                assert(!(usedregs & mask[s->Sreglsw])); // bug 6189
-                usedregs |= mask[s->Sreglsw];
-                if (mask[preg] & XMMREGS)
-                {
-                    unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;      // MOVSS/D xreg,preg
-                    unsigned xreg = s->Sreglsw - XMM0;
-                    c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
-                }
-                else
-                {
-                    c = genmovreg(c,s->Sreglsw,preg);
-                    if (I64 && sz == 8)
-                        code_orrex(c, REX_W);
-                }
-            }
-            else if (s->Sflags & SFLdead ||
-                (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
-#if MARS
-                 // This variable has been reference by a nested function
-                 !(s->Stype->Tty & mTYvolatile) &&
-#endif
-                 (config.flags4 & CFG4optimized || !config.fulltypes)))
-            {
-                // Ignore it, as it is never referenced
-                ;
-            }
-            else
-            {
-                targ_size_t offset = Aoff + BPoff + s->Soffset;
-                int op = 0x89;                  // MOV x[EBP],preg
-                if (preg >= XMM0 && preg <= XMM15)
-                {
-                    if (sz == 8)
-                        op = 0xF20F11;          // MOVSD x[EBP],preg
-                    else
-                    {
-                        assert(sz == 4);
-                        op = 0xF30F11;          // MOVSS x[EBP],preg
-                    }
-                }
-                if (hasframe)
-                {
-                    if (!(pushalloc && preg == pushallocreg))
-                    {
-                        // MOV x[EBP],preg
-                        c2 = genc1(CNIL,op,
-                            modregxrm(2,preg,BPRM),FLconst, offset);
-                        if (preg >= XMM0 && preg <= XMM15)
-                        {
-                        }
-                        else
-                        {
-//printf("%s Aoff = %d, BPoff = %d, Soffset = %d, sz = %d\n", s->Sident, (int)Aoff, (int)BPoff, (int)s->Soffset, (int)sz);
-//                          if (offset & 2)
-//                              c2->Iflags |= CFopsize;
-                            if (I64 && sz == 8)
-                                code_orrex(c2, REX_W);
-                        }
-                        c = cat(c, c2);
-                    }
-                }
-                else
-                {
-                    offset += EBPtoESP;
-                    if (!(pushalloc && preg == pushallocreg))
-                    {
-                        // MOV offset[ESP],preg
-                        // BUG: byte size?
-                        c2 = genc1(CNIL,op,
-                            (modregrm(0,4,SP) << 8) |
-                            modregxrm(2,preg,4),FLconst,offset);
-                        if (preg >= XMM0 && preg <= XMM15)
-                        {
-                        }
-                        else
-                        {
-                            if (I64 && sz == 8)
-                                c2->Irex |= REX_W;
-//                          if (offset & 2)
-//                              c2->Iflags |= CFopsize;
-                        }
-                        c = cat(c,c2);
-                    }
-                }
             }
         }
     }
