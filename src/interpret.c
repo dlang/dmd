@@ -409,9 +409,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 #if LOG
     printf("\n********\nFuncDeclaration::interpret(istate = %p) %s\n", istate, toChars());
 #endif
-    if (global.errors)
-        return EXP_CANT_INTERPRET;
-
     if (semanticRun == PASSsemantic3)
         return EXP_CANT_INTERPRET;
 
@@ -4437,6 +4434,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("CallExp::interpret() %s\n", toChars());
 #endif
+
+    if (global.errors)
+    {
+        error("CTFE failed because of previous errors");
+        return EXP_CANT_INTERPRET;
+    }
 
     Expression * pthis = NULL;
     FuncDeclaration *fd = NULL;
