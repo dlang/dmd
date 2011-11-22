@@ -1211,7 +1211,10 @@ Expression *SwitchStatement::interpret(InterState *istate)
         for (size_t i = 0; i < cases->dim; i++)
         {
             CaseStatement *cs = cases->tdata()[i];
-            e = ctfeEqual(TOKequal, Type::tint32, econdition, cs->exp);
+            Expression * caseExp = cs->exp->interpret(istate);
+            if (exceptionOrCantInterpret(caseExp))
+                return caseExp;
+            e = ctfeEqual(TOKequal, Type::tint32, econdition, caseExp);
             if (exceptionOrCantInterpret(e))
                 return e;
             if (e->isBool(TRUE))
