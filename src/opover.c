@@ -28,6 +28,7 @@
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
+#include "scope.h"
 #include "id.h"
 #include "declaration.h"
 #include "aggregate.h"
@@ -372,6 +373,29 @@ Expression *ArrayExp::op_overload(Scope *sc)
         Dsymbol *fd = search_function(ad, opId());
         if (fd)
         {
+            for (size_t i = 0; i < arguments->dim; i++)
+            {   Expression *x = arguments->tdata()[i];
+                // Create scope for '$' variable for this dimension
+                ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, this);
+                sym->loc = loc;
+                sym->parent = sc->scopesym;
+                sc = sc->push(sym);
+                lengthVar = NULL;       // Create it only if required
+                currentDimension = i;   // Dimension for $, if required
+
+                x = x->semantic(sc);
+                if (!x->type)
+                    error("%s has no value", x->toChars());
+                if (lengthVar)
+                {   // If $ was used, declare it now
+                    Expression *av = new DeclarationExp(loc, lengthVar);
+                    x = new CommaExp(0, av, x);
+                    x->semantic(sc);
+                }
+                arguments->tdata()[i] = x;
+                sc = sc->pop();
+            }
+
             /* Rewrite op e1[arguments] as:
              *    e1.opIndex(arguments)
              */
