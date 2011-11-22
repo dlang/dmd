@@ -1121,7 +1121,7 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, Expression *e)
     : ScopeDsymbol()
 {
-    assert(e->op == TOKindex || e->op == TOKslice);
+    assert(e->op == TOKindex || e->op == TOKslice || e->op == TOKarray);
     exp = e;
     type = NULL;
     td = NULL;
@@ -1195,6 +1195,68 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
             pvar = &se->lengthVar;
             ce = se->e1;
+        }
+        else if (exp->op == TOKarray)
+        {   /* array[e0, e1, e2, e3] where e0, e1, e2 are some function of $
+             * $ is a opDollar!(dim)() where dim is the dimension(0,1,2,...)
+             */
+            ArrayExp *ae = (ArrayExp *)exp;
+            AggregateDeclaration *ad = NULL;
+
+            Type *t = ae->e1->type->toBasetype();
+            if (t->ty == Tclass)
+            {
+                ad = ((TypeClass *)t)->sym;
+            }
+            else if (t->ty == Tstruct)
+            {
+                ad = ((TypeStruct *)t)->sym;
+            }
+            assert(ad);
+
+            Dsymbol *dsym = search_function(ad, Id::opDollar);
+            if (!dsym)  // no dollar exists -- search in higher scope
+                return NULL;
+            VarDeclaration *v = ae->lengthVar;
+            if (!v)
+            {   // $ is lazily initialized. Create it now.
+                TemplateDeclaration *td = dsym->isTemplateDeclaration();
+                if (td)
+                {   // Instantiate opDollar!(dim) with the index as a template argument
+                    Objects *tdargs = new Objects();
+                    tdargs->setDim(1);
+
+                    Expression *x = new IntegerExp(0, ae->currentDimension, Type::tsize_t);
+                    x = x->semantic(sc);
+                    tdargs->data[0] = x;
+
+                    //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
+                    //ti->semantic(sc);
+
+                    DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(loc, ae->e1, td->ident, tdargs);
+
+                    v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, dte));
+                }
+                else
+                {   /* opDollar exists, but it's a function, not a template.
+                     * This is acceptable ONLY for single-dimension indexing.
+                     * Note that it's impossible to have both template & function opDollar,
+                     * because both take no arguments.
+                     */
+                    if (ae->arguments->dim != 1) {
+                        ae->error("%s only defines opDollar for one dimension", ad->toChars());
+                        return NULL;
+                    }
+                    FuncDeclaration *fd = dsym->isFuncDeclaration();
+                    assert(fd);
+                    Expression * x = new DotVarExp(loc, ae->e1, fd);
+
+                    v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, x));
+                }
+                v->semantic(sc);
+                ae->lengthVar = v;
+            }
+            return v;
         }
         else
             /* Didn't find $, look in enclosing scope(s).

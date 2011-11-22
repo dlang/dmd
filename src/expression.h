@@ -1148,6 +1148,8 @@ struct ArrayLengthExp : UnaExp
 struct ArrayExp : UnaExp
 {
     Expressions *arguments;             // Array of Expression's
+    size_t currentDimension;            // for opDollar
+    VarDeclaration *lengthVar;
 
     ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();

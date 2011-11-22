@@ -9041,6 +9041,8 @@ ArrayExp::ArrayExp(Loc loc, Expression *e1, Expressions *args)
         : UnaExp(loc, TOKarray, sizeof(ArrayExp), e1)
 {
     arguments = args;
+    lengthVar = NULL;
+    currentDimension = 0;
 }
 
 Expression *ArrayExp::syntaxCopy()
@@ -9585,6 +9587,29 @@ Expression *AssignExp::semantic(Scope *sc)
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
             {   Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
+                // Deal with $
+                for (size_t i = 0; i < ae->arguments->dim; i++)
+                {   Expression *x = ae->arguments->tdata()[i];
+                    // Create scope for '$' variable for this dimension
+                    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
+                    sym->loc = loc;
+                    sym->parent = sc->scopesym;
+                    sc = sc->push(sym);
+                    ae->lengthVar = NULL;       // Create it only if required
+                    ae->currentDimension = i;   // Dimension for $, if required
+
+                    x = x->semantic(sc);
+                    if (!x->type)
+                        ae->error("%s has no value", x->toChars());
+                    if (ae->lengthVar)
+                    {   // If $ was used, declare it now
+                        Expression *av = new DeclarationExp(ae->loc, ae->lengthVar);
+                        x = new CommaExp(0, av, x);
+                        x->semantic(sc);
+                    }
+                    ae->arguments->tdata()[i] = x;
+                    sc = sc->pop();
+                }
                 Expressions *a = (Expressions *)ae->arguments->copy();
 
                 a->insert(0, e2);

@@ -216,6 +216,7 @@ Msgtable msgtable[] =
     { "opStar" },
     { "opDot" },
     { "opDispatch" },
+    { "opDollar" },
     { "opUnary" },
     { "opIndexUnary" },
     { "opSliceUnary" },
