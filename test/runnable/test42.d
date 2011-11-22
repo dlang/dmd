@@ -4398,6 +4398,31 @@ void test5364()
 
 /***************************************************/
 
+struct FPoint {
+  float x, y;
+}
+
+void constructBezier(FPoint p0, FPoint p1, FPoint p2, ref FPoint[3] quad) {
+  quad[0] = p0;
+  quad[1] = FPoint(p1.x, p1.y);
+  quad[$-1] = p2;
+}
+
+void test6189() {
+  auto p0 = FPoint(0, 0);
+  auto p1 = FPoint(1, 1);
+  auto p2 = FPoint(2, 2);
+
+  // avoid inline of call
+  FPoint[3] quad;
+  auto f = &constructBezier;
+  f(p0, p1, p2, quad);
+
+  assert(quad == [p0, p1, p2]);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4630,6 +4655,7 @@ int main()
     test241();
     test6665();
     test5364();
+    test6189();
 
     writefln("Success");
     return 0;
