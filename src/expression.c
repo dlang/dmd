@@ -3053,6 +3053,7 @@ StringExp::StringExp(Loc loc, char *string)
     this->sz = 1;
     this->committed = 0;
     this->postfix = 0;
+    this->ctfeRefCount = 0;
 }
 
 StringExp::StringExp(Loc loc, void *string, size_t len)
@@ -3063,6 +3064,7 @@ StringExp::StringExp(Loc loc, void *string, size_t len)
     this->sz = 1;
     this->committed = 0;
     this->postfix = 0;
+    this->ctfeRefCount = 0;
 }
 
 StringExp::StringExp(Loc loc, void *string, size_t len, unsigned char postfix)
@@ -3073,6 +3075,7 @@ StringExp::StringExp(Loc loc, void *string, size_t len, unsigned char postfix)
     this->sz = 1;
     this->committed = 0;
     this->postfix = postfix;
+    this->ctfeRefCount = 0;
 }
 
 #if 0
@@ -3450,6 +3453,7 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expressions *elements)
     : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
 {
     this->elements = elements;
+    this->ctfeRefCount = 0;
 }
 
 ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
@@ -3579,6 +3583,7 @@ AssocArrayLiteralExp::AssocArrayLiteralExp(Loc loc,
     assert(keys->dim == values->dim);
     this->keys = keys;
     this->values = values;
+    this->ctfeRefCount = 0;
 }
 
 Expression *AssocArrayLiteralExp::syntaxCopy()
@@ -3691,6 +3696,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
+    this->ctfeRefCount = 0;
 }
 
 Expression *StructLiteralExp::syntaxCopy()
