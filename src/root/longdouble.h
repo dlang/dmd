@@ -46,6 +46,19 @@ inline int ld_sprint(char* str, int fmt, longdouble x)
 #include <float.h>
 #include <limits>
 
+struct longdouble;
+
+extern "C"
+{
+    // implemented in ldfpu.asm for _WIN64
+    double ld_read(const longdouble* ld);
+    long long ld_readll(const longdouble* ld);
+    unsigned long long ld_readull(const longdouble* ld);
+    void ld_set(longdouble* ld, double d);
+    void ld_setll(longdouble* ld, long long d);
+    void ld_setull(longdouble* ld, unsigned long long d);
+}
+
 struct longdouble
 {
     unsigned long long mantissa;
@@ -56,49 +69,42 @@ struct longdouble
     // no constructor to be able to use this class in a union
     // use ldouble() to explicitely create a longdouble value
 
-    double readd();
-    long long readll();
-    unsigned long long readull();
-    void setd(double d);
-    void setll(long long d);
-    void setull(unsigned long long d);
-
     template<typename T> longdouble& operator=(T x) { set(x); return *this; }
 
     void set(longdouble ld) { mantissa = ld.mantissa; exponent = ld.exponent; sign = ld.sign; }
 
     // we need to list all basic types to avoid ambiguities
-    void set(float              d) { setd(d); }
-    void set(double             d) { setd(d); }
-    void set(long double        d) { setd(d); }
+    void set(float              d) { ld_set(this, d); }
+    void set(double             d) { ld_set(this, d); }
+    void set(long double        d) { ld_set(this, d); }
 
-    void set(signed char        d) { setd(d); }
-    void set(short              d) { setd(d); }
-    void set(int                d) { setd(d); }
-    void set(long               d) { setd(d); }
-    void set(long long          d) { setll(d); }
+    void set(signed char        d) { ld_set(this, d); }
+    void set(short              d) { ld_set(this, d); }
+    void set(int                d) { ld_set(this, d); }
+    void set(long               d) { ld_set(this, d); }
+    void set(long long          d) { ld_setll(this, d); }
 
-    void set(unsigned char      d) { setd(d); }
-    void set(unsigned short     d) { setd(d); }
-    void set(unsigned int       d) { setd(d); }
-    void set(unsigned long      d) { setd(d); }
-    void set(unsigned long long d) { setull(d); }
-    void set(bool               d) { setd(d); }
+    void set(unsigned char      d) { ld_set(this, d); }
+    void set(unsigned short     d) { ld_set(this, d); }
+    void set(unsigned int       d) { ld_set(this, d); }
+    void set(unsigned long      d) { ld_set(this, d); }
+    void set(unsigned long long d) { ld_setull(this, d); }
+    void set(bool               d) { ld_set(this, d); }
     
-    operator float             () { return readd(); }
-    operator double            () { return readd(); }
+    operator float             () { return ld_read(this); }
+    operator double            () { return ld_read(this); }
 
-    operator signed char       () { return readd(); }
-    operator short             () { return readd(); }
-    operator int               () { return readd(); }
-    operator long              () { return readd(); }
-    operator long long         () { return readll(); }
+    operator signed char       () { return ld_read(this); }
+    operator short             () { return ld_read(this); }
+    operator int               () { return ld_read(this); }
+    operator long              () { return ld_read(this); }
+    operator long long         () { return ld_readll(this); }
 
-    operator unsigned char     () { return readd(); }
-    operator unsigned short    () { return readd(); }
-    operator unsigned int      () { return readd(); }
-    operator unsigned long     () { return readd(); }
-    operator unsigned long long() { return readull(); }
+    operator unsigned char     () { return ld_read(this); }
+    operator unsigned short    () { return ld_read(this); }
+    operator unsigned int      () { return ld_read(this); }
+    operator unsigned long     () { return ld_read(this); }
+    operator unsigned long long() { return ld_readull(this); }
     operator bool              () { return mantissa != 0 || exponent != 0; } // correct?
 };
 
@@ -234,12 +240,12 @@ public:
     _STCONS(int, min_exponent10, (int)LDBL_MIN_10_EXP);
 };
 
-_STCONSDEF(numeric_limits<longdouble>, int, digits)
-_STCONSDEF(numeric_limits<longdouble>, int, digits10)
-_STCONSDEF(numeric_limits<longdouble>, int, max_exponent)
-_STCONSDEF(numeric_limits<longdouble>, int, max_exponent10)
-_STCONSDEF(numeric_limits<longdouble>, int, min_exponent)
-_STCONSDEF(numeric_limits<longdouble>, int, min_exponent10)
+//_STCONSDEF(numeric_limits<longdouble>, int, digits)
+//_STCONSDEF(numeric_limits<longdouble>, int, digits10)
+//_STCONSDEF(numeric_limits<longdouble>, int, max_exponent)
+//_STCONSDEF(numeric_limits<longdouble>, int, max_exponent10)
+//_STCONSDEF(numeric_limits<longdouble>, int, min_exponent)
+//_STCONSDEF(numeric_limits<longdouble>, int, min_exponent10)
 
 int ld_sprint(char* str, int fmt, longdouble x);
 

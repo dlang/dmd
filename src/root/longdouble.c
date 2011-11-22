@@ -23,12 +23,6 @@ extern "C"
 {
     // implemented in ldfpu.asm for _WIN64
     int ld_initfpu(int bits, int mask);
-    double ld_read(longdouble* ld);
-    long long ld_readll(longdouble* ld);
-    unsigned long long ld_readull(longdouble* ld);
-    void ld_set(longdouble* ld, double d);
-    void ld_setll(longdouble* ld, long long d);
-    void ld_setull(longdouble* ld, unsigned long long d);
     void ld_expl(longdouble* ld, int exp);
     longdouble ld_add(longdouble ld1, longdouble ld2);
     longdouble ld_sub(longdouble ld1, longdouble ld2);
@@ -61,24 +55,25 @@ bool initFPU()
 }
 static bool doInitFPU = initFPU();
 
-double longdouble::readd()
+#ifndef _WIN64
+extern "C"
+{
+
+double ld_read(const longdouble* pthis)
 { 
-#ifdef _WIN64
-    return ld_read(this);
-#else
-    longdouble* pthis = this;
+    double res;
     __asm 
     {
         mov eax, pthis
         fld tbyte ptr [eax]
+        fstp res
     }
-    // return double in FP register
-#endif
+    return res;
 }
-long long longdouble::readll()
+long long ld_readll(const longdouble* pthis)
 {
 #if 1
-    return readull();
+    return ld_readull(pthis);
 #elif defined _WIN64
     return ld_readll(this);
 #else
@@ -94,26 +89,24 @@ long long longdouble::readll()
 #endif
 }
 
-unsigned long long longdouble::readull()
+unsigned long long ld_readull(const longdouble* pthis)
 {
 #if 1
     // somehow the FPU does not respect the CHOP mode of the rounding control
     // in 64-bit mode
     // so we roll our own conversion (it also allows the usual C wrap-around
     // instead of the "invalid value" created by the FPU)
-    int expo = exponent - 0x3fff;
+    int expo = pthis->exponent - 0x3fff;
     unsigned long long u;
     if(expo < 0 || expo > 127)
         return 0;
     if(expo < 64)
-        u = mantissa >> (63 - expo);
+        u = pthis->mantissa >> (63 - expo);
     else
-        u = mantissa << (expo - 63);
-    if(sign)
+        u = pthis->mantissa << (expo - 63);
+    if(pthis->sign)
         u = ~u + 1;
     return u;
-#elif defined _WIN64
-    return ld_readull(this);
 #else
     longdouble* pthis = this;
     long long res; // cannot use unsigned, VC will not generate "fistp qword"
@@ -133,41 +126,27 @@ unsigned long long longdouble::readull()
 #endif
 }
 
-void longdouble::setd(double d) 
+void ld_set(longdouble* pthis, double d) 
 { 
-#ifdef _WIN64
-    return ld_set(this, d);
-#else
-    longdouble* pthis = this;
     __asm 
     { 
         mov eax, pthis
         fld d
         fstp tbyte ptr [eax]
     }
-#endif
 }
-void longdouble::setll(long long d) 
+void ld_setll(longdouble* pthis, long long d) 
 {
-#ifdef _WIN64
-    return ld_setll(this, d);
-#else
-    longdouble* pthis = this;
     __asm 
     { 
         fild qword ptr d
         mov eax, pthis
         fstp tbyte ptr [eax]
     }
-#endif
 }
-void longdouble::setull(unsigned long long d) 
+void ld_setull(longdouble* pthis, unsigned long long d) 
 {
-#ifdef _WIN64
-    return ld_setull(this, d);
-#else
     d ^= (1LL << 63);
-    longdouble* pthis = this;
     longdouble twoPow63 = { 1ULL << 63, 0x3fff + 63, 0 };
     __asm
     {
@@ -177,8 +156,10 @@ void longdouble::setull(unsigned long long d)
         mov eax, pthis
         fstp tbyte ptr [eax]
     }
-#endif
 }
+
+} // extern "C"
+#endif // !_WIN64
 
 longdouble ldexpl(longdouble ld, int exp)
 {
@@ -539,7 +520,7 @@ int ld_sprint(char* str, int fmt, longdouble x)
     if(fmt != 'a' && fmt != 'A')
     {
         char format[] = { '%', fmt, 0 };
-        return sprintf(str, format, x.readd());
+        return sprintf(str, format, ld_read(&x));
     }
 
     unsigned short exp = x.exponent;

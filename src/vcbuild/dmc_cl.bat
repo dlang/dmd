@@ -1,7 +1,8 @@
 @echo off
 rem echo called with: %*
 set def=/DLITTLE_ENDIAN=1 /D__pascal= /D_M_I86=1
-set copt=
+rem copt defaults to linker options
+set copt=/nologo /link /LARGEADDRESSAWARE
 set cmd=
 :next
 if "%1" == "" goto done
@@ -15,7 +16,7 @@ if "%opt:~-2%" == ".c" goto isC
 if "%opt:~-4%" == ".obj" goto add
 set opt=%opt%.c
 :isC
-set copt=/TP /Ivcbuild /Iroot /nologo /EHsc %def%
+set copt=/TP /Ivcbuild /Iroot /nologo /EHsc /Zp1 %def%
 goto add
 
 :opt
@@ -40,4 +41,4 @@ goto next
 
 :done
 rem echo cl %copt% %cmd%
-cl %copt% %cmd%
+cl %cmd% %copt% 

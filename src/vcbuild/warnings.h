@@ -15,6 +15,7 @@
 #pragma warning(disable:4800) // forcing value to bool 'true' or 'false' (performance warning)
 #pragma warning(disable:4390) // ';' : empty controlled statement found; is this the intent?
 #pragma warning(disable:4702) // unreachable code
+#pragma warning(disable:4703) // potentially uninitialized local pointer variable 'm' used
  
 #ifdef _WIN64
 #pragma warning(disable:4366) // The result of the unary '&' operator may be unaligned
