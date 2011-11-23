@@ -355,6 +355,10 @@ void showCtfeExpr(Expression *e, int level = 0)
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *z = NULL;
             Dsymbol *s = NULL;
+            if (i > 15) {
+                printf("...(total %d elements)\n", elements->dim);
+                return;
+            }
             if (sd)
             {   s = sd->fields.tdata()[i];
                 z = elements->tdata()[i];
@@ -2058,8 +2062,7 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
             goto Lerror;
         ArrayLiteralExp *ae = new ArrayLiteralExp(loc, expsx);
         ae->type = type;
-        ae->ctfeRefCount = 1;
-        return ae;
+        return copyLiteral(ae);
     }
 #if DMDV2
     if (((TypeNext *)type)->next->mod & (MODconst | MODimmutable))
@@ -2870,9 +2873,11 @@ bool needToCopyLiteral(Expression *expr)
        switch (expr->op)
        {
             case TOKarrayliteral:
+                return ((ArrayLiteralExp *)expr)->ctfeRefCount == 0;
             case TOKassocarrayliteral:
+                return ((AssocArrayLiteralExp *)expr)->ctfeRefCount == 0;
             case TOKstructliteral:
-                return true;
+                return ((StructLiteralExp *)expr)->ctfeRefCount == 0;
             case TOKstring:
             case TOKthis:
             case TOKvar:
@@ -3447,7 +3452,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             // ~= can create new values (see bug 6052)
             if (op == TOKcatass)
             {
-                if (needToCopyLiteral(newval))
+                // We need to dup it. We can skip this if it's a dynamic array,
+                // because it gets copied later anyway
+                if (newval->type->ty != Tarray)
                     newval = copyLiteral(newval);
                 if (newval->op == TOKslice)
                     newval = resolveSlice(newval);
@@ -3635,7 +3642,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (newval->op == TOKassocarrayliteral || newval->op == TOKstring ||
             newval->op==TOKarrayliteral)
         {
-            if (needToCopyLiteral(this->e2))
+            if (needToCopyLiteral(newval))
                 newval = copyLiteral(newval);
         }
         returnValue = newval;
@@ -4834,7 +4841,9 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         }
         return Index(type, agg, new IntegerExp(loc, indx+ofs, Type::tsize_t));
     }
-    e1 = this->e1->interpret(istate);
+    e1 = this->e1;
+    if (!(e1->op == TOKarrayliteral && ((ArrayLiteralExp *)e1)->ctfeRefCount>0))
+        e1 = e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
 
