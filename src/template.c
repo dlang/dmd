@@ -760,7 +760,25 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
         Expression *e = constraint->syntaxCopy();
         Scope *sc = paramscope->push();
         sc->flags |= SCOPEstaticif;
+
+        FuncDeclaration *fd = onemember && onemember->toAlias() ?
+            onemember->toAlias()->isFuncDeclaration() : NULL;
+        Dsymbol *s = parent;
+        while (s->isTemplateInstance() || s->isTemplateMixin())
+            s = s->parent;
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        VarDeclaration *vthissave;
+        if (fd && ad)
+        {
+            vthissave = fd->vthis;
+            fd->vthis = fd->declareThis(paramscope, ad);
+        }
+
         e = e->semantic(sc);
+
+        if (fd && fd->vthis)
+            fd->vthis = vthissave;
+
         sc->pop();
         e = e->optimize(WANTvalue | WANTinterpret);
         if (e->isBool(TRUE))
@@ -918,7 +936,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
 
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
-    for (i = 0; i < fargs->dim; i++)
+    for (size_t i = 0; i < fargs->dim; i++)
     {   Expression *e = fargs->tdata()[i];
         printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
     }
@@ -1418,7 +1436,23 @@ Lmatch:
 
         int nerrors = global.errors;
 
+        FuncDeclaration *fd = onemember && onemember->toAlias() ?
+            onemember->toAlias()->isFuncDeclaration() : NULL;
+        Dsymbol *s = parent;
+        while (s->isTemplateInstance() || s->isTemplateMixin())
+            s = s->parent;
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        VarDeclaration *vthissave;
+        if (fd && ad)
+        {
+            vthissave = fd->vthis;
+            fd->vthis = fd->declareThis(paramscope, ad);
+        }
+
         e = e->semantic(paramscope);
+
+        if (fd && fd->vthis)
+            fd->vthis = vthissave;
 
         previous = pr.prev;             // unlink from threaded list
 

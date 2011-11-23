@@ -466,6 +466,29 @@ struct T6805
 static assert(is(T6805.xxx.Type == int));
 
 /**********************************/
+// 6994
+
+struct Foo6994
+{
+    T get(T)(){ return T.init; }
+
+    T func1(T)()
+    if (__traits(compiles, get!T()))
+    { return get!T; }
+
+    T func2(T)()
+    if (__traits(compiles, this.get!T()))   // add explicit 'this'
+    { return get!T; }
+}
+void test6994()
+{
+    Foo6994 foo;
+    foo.get!int();      // OK
+    foo.func1!int();    // OK
+    foo.func2!int();    // NG
+}
+
+/**********************************/
 
 int main()
 {
@@ -489,6 +512,7 @@ int main()
     test2778();
     test2778aa();
     test2778get();
+    test6994();
 
     printf("Success\n");
     return 0;
