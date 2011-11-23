@@ -763,12 +763,18 @@ struct Struct6934 {
 }
 
 void bar6934(ref int[] p) {
+    p[0] = 12;
+    assert(p[0] == 12);
+    p[0..1] = 17;
+    assert(p[0] == 17);
     p = p[1..$];
 }
 
 int bug6934() {
     Struct6934 q;
     bar6934(q.x);
+    int[][] y = [[2,5], [3,6, 8]];
+    bar6934(y[0]);
     return 1;
 }
 
