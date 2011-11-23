@@ -7914,13 +7914,21 @@ Lagain:
                     tierror->error("errors instantiating template");    // give better error message
                 return new ErrorExp();
             }
-            if (f->needThis() && hasThis(sc))
+            if (f->needThis())
             {
-                // Supply an implicit 'this', as in
-                //        this.ident
+                if (hasThis(sc))
+                {
+                    // Supply an implicit 'this', as in
+                    //        this.ident
 
-                e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
-                goto Lagain;
+                    e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
+                    goto Lagain;
+                }
+                else if (!sc->intypeof && !sc->getStructClassScope())
+                {
+                    error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
+                    return new ErrorExp();
+                }
             }
 
             e1 = new VarExp(loc, f);
@@ -7948,13 +7956,21 @@ Lagain:
 #endif
         f->checkNestedReference(sc, loc);
 
-        if (f->needThis() && hasThis(sc))
+        if (f->needThis())
         {
-            // Supply an implicit 'this', as in
-            //    this.ident
+            if (hasThis(sc))
+            {
+                // Supply an implicit 'this', as in
+                //    this.ident
 
-            e1 = new DotVarExp(loc, new ThisExp(loc), f);
-            goto Lagain;
+                e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), f);
+                goto Lagain;
+            }
+            else if (!sc->intypeof && !sc->getStructClassScope())
+            {
+                error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
+                return new ErrorExp();
+            }
         }
 
         accessCheck(loc, sc, NULL, f);
