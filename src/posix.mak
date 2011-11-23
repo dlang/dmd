@@ -528,7 +528,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc -m$(MODEL) -c $<
+	gcc -m$(MODEL) -I$(ROOT) -c $<
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<

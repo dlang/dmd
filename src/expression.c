@@ -1321,7 +1321,7 @@ complex_t Expression::toComplex()
 #ifdef IN_GCC
     return complex_t(real_t(0)); // %% nicer
 #else
-    return 0;
+    return 0.0;
 #endif
 }
 
