@@ -1047,15 +1047,34 @@ struct Xarg
 {
    char [] s;
 }
-int zfs()
+
+int zfs(int n)
 {
+    char [] m = "exy".dup;
+    if (n == 1)
+    {   // it's OK to cast to const, then cast back
+        string ss = cast(string)m;
+        m = cast(char[])ss;
+        m[2]='q';
+        return 56;
+    }
     auto q = Xarg(cast(char[])"abc");
     assert(q.s[1]=='b');
-    q.s[1] = 'p';
+    if (n==2)
+        q.s[1] = 'p';
+    else if (n==3)
+        q.s[0..$] = 'p';
+    char * w = &q.s[2];
+    if (n==4)
+        *w = 'z';
     return 76;
 }
 
-static assert(!is(typeof(compiles!(zfs()))));
+static assert(!is(typeof(compiles!(zfs(2)))));
+static assert(!is(typeof(compiles!(zfs(3)))));
+static assert(!is(typeof(compiles!(zfs(4)))));
+static assert(is(typeof(compiles!(zfs(1)))));
+static assert(!is(typeof(compiles!(zfs(5)))));
 
 /**************************************************
    .dup must protect string literals

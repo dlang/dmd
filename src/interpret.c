@@ -314,12 +314,15 @@ void showCtfeExpr(Expression *e, int level = 0)
     if (e->op == TOKstructliteral)
     {   elements = ((StructLiteralExp *)e)->elements;
         sd = ((StructLiteralExp *)e)->sd;
-        printf("STRUCT type = %s %p :\n", e->type->toChars(), e);
+        printf("STRUCT type = %s %p refcount %d:\n", e->type->toChars(),
+            e, ((StructLiteralExp *)e)->ctfeRefCount);
     }
     else if (e->op == TOKclassreference)
     {   elements = ((ClassReferenceExp *)e)->value->elements;
         cd = ((ClassReferenceExp *)e)->originalClass();
-        printf("CLASS type = %s %p :\n", e->type->toChars(), ((ClassReferenceExp *)e)->value->toChars());
+        printf("CLASS type = %s %p refcount %d:\n", e->type->toChars(),
+            ((ClassReferenceExp *)e)->value,
+            ((ClassReferenceExp *)e)->value->ctfeRefCount);
     }
     else if (e->op == TOKarrayliteral)
     {
@@ -329,11 +332,13 @@ void showCtfeExpr(Expression *e, int level = 0)
     }
     else if (e->op == TOKassocarrayliteral)
     {
-        printf("AA LITERAL type=%s %p:\n", e->type->toChars(), e);
+        printf("AA LITERAL type=%s %p refcount %d:\n", e->type->toChars(),
+            e, ((AssocArrayLiteralExp *)e)->ctfeRefCount);
     }
     else if (e->op == TOKstring)
     {
-        printf("STRING %s %p\n", e->toChars(), ((StringExp *)e)->string);
+        printf("STRING %s %p refcount %d\n", e->toChars(),
+            ((StringExp *)e)->string, ((StringExp *)e)->ctfeRefCount);
     }
     else if (e->op == TOKslice)
     {
@@ -1527,21 +1532,15 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("StringExp::interpret() %s\n", toChars());
 #endif
-    /* Since we are using StringExps as reference types for char[] arrays,
-     * we need to dup them if there's any chance they'll be modified.
-     * For efficiency, we try to only dup when necessary.
+    /* In both D1 and D2, attempts to modify string literals are prevented
+     * in BinExp::interpretAssignCommon.
+     * In D2, we also disallow casts of read-only literals to mutable,
+     * though it isn't strictly necessary.
      */
+#if DMDV2
     // Fixed-length char arrays always get duped later anyway.
     if (type->ty == Tsarray)
         return this;
-    /* String literals are normally immutable, so we don't need to dup them
-     * In D2, we can detect attempts to write to read-only literals.
-     * For D1, we could be pessimistic, and always dup.
-     * But since it fails only when there has been an explicit cast, and any
-     * such function would give different results at runtime anyway (eg, it
-     * may crash), it hardly seems worth the massive performance hit.
-     */
-#if DMDV2
     if (!(((TypeNext *)type)->next->mod & (MODconst | MODimmutable)))
     {   // It seems this happens only when there has been an explicit cast
         error("cannot cast a read-only string literal to mutable in CTFE");
@@ -3932,7 +3931,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
         if (indexToModify >= destarraylen)
         {
-            error("array index %d is out of bounds [0..%d]", indexToModify,
+            error("array index %lld is out of bounds [0..%lld]", indexToModify,
                 destarraylen);
             return EXP_CANT_INTERPRET;
         }
@@ -4009,6 +4008,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (existingSE)
         {
             unsigned char *s = (unsigned char *)existingSE->string;
+            if (existingSE->ctfeRefCount == 0)
+            {
+                error("cannot modify read-only string literal %s", ie->e1->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             unsigned value = newval->toInteger();
             switch (existingSE->sz)
             {
@@ -4149,10 +4153,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return EXP_CANT_INTERPRET;
             }
         }
-        if (aggregate->op==TOKarrayliteral)
+        if (aggregate->op == TOKarrayliteral)
             existingAE = (ArrayLiteralExp *)aggregate;
-        else if (aggregate->op==TOKstring)
+        else if (aggregate->op == TOKstring)
             existingSE = (StringExp *)aggregate;
+        if (existingSE && existingSE->ctfeRefCount == 0)
+        {   error("cannot modify read-only string literal %s", sexp->e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
 
         if (!wantRef && newval->op == TOKslice)
         {
@@ -6271,6 +6279,8 @@ bool IsRefValueValid(Expression *newval)
         assert(se->lwr && se->lwr != EXP_CANT_INTERPRET && se->lwr->op == TOKint64);
         assert(se->upr && se->upr != EXP_CANT_INTERPRET && se->upr->op == TOKint64);
         assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
+        if (se->e1->op == TOKarrayliteral)
+            assert(((ArrayLiteralExp *)se->e1)->ctfeRefCount > 0);
         return true;
     }
     newval->error("CTFE internal error: illegal reference value %s\n", newval->toChars());
