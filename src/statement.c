@@ -3241,7 +3241,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
-        if (fd->returnLabel && tbret->ty != Tvoid)
+        if (fd->returnLabel && tbret && tbret->ty != Tvoid)
         {
         }
         else if (fd->inferRetType)
@@ -3349,7 +3349,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
         if (fd->returnLabel && tbret->ty != Tvoid)
         {
-            assert(fd->vresult);
+            fd->buildResultVar();
             VarExp *v = new VarExp(0, fd->vresult);
 
             exp = new AssignExp(loc, v, exp);
