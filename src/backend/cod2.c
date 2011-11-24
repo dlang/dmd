@@ -4270,8 +4270,8 @@ code *cdabs( elem *e, regm_t *pretregs)
             cg = gen1(cg,0x99);                             // CWD
             code_orrex(cg, rex);
         }
-        gen2(cg,0x33 ^ byte,(rex << 16) | modregrm(3,reg,r));         // XOR reg,r
-        c = gen2(CNIL,0x2B ^ byte,(rex << 16) | modregrm(3,reg,r));   // SUB reg,r
+        gen2(cg,0x33 ^ byte,(rex << 16) | modregxrmx(3,reg,r));       // XOR reg,r
+        c = gen2(CNIL,0x2B ^ byte,(rex << 16) | modregxrmx(3,reg,r)); // SUB reg,r
         if (!I16 && sz == SHORTSIZE && *pretregs & mPSW)
             c->Iflags |= CFopsize | CFpsw;
         if (*pretregs & mPSW)
