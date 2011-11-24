@@ -4422,6 +4422,44 @@ void test6189() {
 }
 
 /***************************************************/
+// 6997
+
+long fun6997(long a,long b,long c)
+{
+    return a < b ? a < c ? a : b < c ? b : c : b;
+}
+
+long baz6997(long a, long b)
+{
+    bool s = (a<0) != (b<0);
+    a = a > 0 ? a : -a;
+    return s ? a : a;
+}
+
+struct S6997
+{
+    ulong bar, qux;
+    bool c;
+
+    S6997 foo()
+    {
+        if(!c)
+        {
+            long a = baz6997(bar, 0),
+                b = baz6997(bar, 0),
+                c = baz6997(bar, 0);
+            return S6997(fun6997(a,b,c), fun6997(a,b,c));
+        }
+        return S6997();
+    }
+}
+
+void test6997()
+{
+    auto x = S6997().foo();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4656,6 +4694,7 @@ int main()
     test6665();
     test5364();
     test6189();
+    test6997();
 
     writefln("Success");
     return 0;
