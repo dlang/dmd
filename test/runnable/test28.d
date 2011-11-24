@@ -764,7 +764,7 @@ class C38 { }
 
 const(Object)[] foo38(C38[3] c)
 {   const(Object)[] x = c;
-    return x.dup;
+    return x;
 }
 
 void test38()
