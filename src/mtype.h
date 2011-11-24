@@ -918,6 +918,9 @@ struct Parameter : Object
     static int isTPL(Parameters *arguments);
     static size_t dim(Parameters *arguments);
     static Parameter *getNth(Parameters *arguments, size_t nth, size_t *pn = NULL);
+
+    typedef int (*ForeachDg)(void *ctx, size_t paramidx, Parameter *param);
+    static int foreach(Parameters *args, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
 extern int PTRSIZE;

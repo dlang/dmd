@@ -3445,10 +3445,19 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
         default:
             assert(0);
     }
+    buf->reserve(1 + 11 + 2 * qlen);
     buf->writeByte(m);
-    buf->printf("%d_", qlen);
-    for (size_t i = 0; i < qlen; i++)
-        buf->printf("%02x", q[i]);
+    buf->printf("%d_", qlen); // nbytes <= 11
+
+    for (unsigned char *p = buf->data + buf->offset, *pend = p + 2 * qlen;
+         p < pend; p += 2, ++q)
+    {
+        unsigned char hi = *q >> 4 & 0xF;
+        p[0] = (hi < 10 ? hi + '0' : hi - 10 + 'a');
+        unsigned char lo = *q & 0xF;
+        p[1] = (lo < 10 ? lo + '0' : lo - 10 + 'a');
+    }
+    buf->offset += 2 * qlen;
 }
 
 /************************ ArrayLiteralExp ************************************/

@@ -344,40 +344,56 @@ Expression *TraitsExp::semantic(Scope *sc)
             error("%s %s has no members", s->kind(), s->toChars());
             goto Lfalse;
         }
-        Expressions *exps = new Expressions;
-        while (1)
-        {   size_t sddim = ScopeDsymbol::dim(sd->members);
-            for (size_t i = 0; i < sddim; i++)
+
+        // use a struct as local function
+        struct PushIdentsDg
+        {
+            static int dg(void *ctx, size_t n, Dsymbol *sm)
             {
-                Dsymbol *sm = ScopeDsymbol::getNth(sd->members, i);
                 if (!sm)
-                    break;
+                    return 1;
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
                     //printf("\t%s\n", sm->ident->toChars());
-                    char *str = sm->ident->toChars();
+                    Identifiers *idents = (Identifiers *)ctx;
 
-                    /* Skip if already present in exps[]
+                    /* Skip if already present in idents[]
                      */
-                    for (size_t j = 0; j < exps->dim; j++)
-                    {   StringExp *se2 = (StringExp *)exps->tdata()[j];
-                        if (strcmp(str, (char *)se2->string) == 0)
-                            goto Lnext;
+                    for (size_t j = 0; j < idents->dim; j++)
+                    {   Identifier *id = idents->tdata()[j];
+                        if (id == sm->ident)
+                            return 0;
+#ifdef DEBUG
+                        // Avoid using strcmp in the first place due to the performance impact in an O(N^2) loop.
+                        assert(strcmp(id->toChars(), sm->ident->toChars()) != 0);
+#endif
                     }
 
-                    StringExp *se = new StringExp(loc, str);
-                    exps->push(se);
+                    idents->push(sm->ident);
                 }
-            Lnext:
-                ;
+                return 0;
             }
-            ClassDeclaration *cd = sd->isClassDeclaration();
-            if (cd && cd->baseClass && ident == Id::allMembers)
-                sd = cd->baseClass;     // do again with base class
-            else
-                break;
+        };
+
+        Identifiers *idents = new Identifiers;
+        ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
+
+        ClassDeclaration *cd = sd->isClassDeclaration();
+        if (cd && cd->baseClass && ident == Id::allMembers)
+        {   sd = cd->baseClass; // do again with base class
+            ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
         }
+
+        // Turn Identifiers into StringExps reusing the allocated array
+        ctassert(sizeof(Expressions) == sizeof(Identifiers));
+        Expressions *exps = (Expressions *)idents;
+        for (size_t i = 0; i < idents->dim; i++)
+        {   Identifier *id = idents->tdata()[i];
+            StringExp *se = new StringExp(loc, id->toChars());
+            exps->tdata()[i] = se;
+        }
+
 #if DMDV1
         Expression *e = new ArrayLiteralExp(loc, exps);
 #endif

@@ -76,6 +76,10 @@ the target object file format:
 #endif
 #endif
 
+#define ctassert(x)      ctassert1(x, __LINE__)
+#define ctassert1(x, y)  ctassert2(x, y)
+#define ctassert2(x, y)  typedef char __assert ## y[x ? 1 : -1]
+
 #ifdef DEBUG
 #define UNITTEST 1
 #endif
