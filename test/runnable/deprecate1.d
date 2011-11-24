@@ -1248,6 +1248,21 @@ void test3990()
 }
 
 /******************************************/
+// from extra-files/test2.d
+
+typedef void* HANDLE18;
+
+HANDLE18 testx18()
+{
+    return null;
+}
+
+void test18()
+{
+    assert(testx18() is null);
+}
+
+/******************************************/
 
 int main()
 {
@@ -1305,8 +1320,9 @@ int main()
     test34_test14();
     test34_test52();
     test3990();
-
     test6289();
     test4237();
+    test18();
+
     return 0;
 }

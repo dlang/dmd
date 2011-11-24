@@ -356,21 +356,6 @@ void test17()
 
 /* ================================ */
 
-
-typedef void* HANDLE18;
-
-HANDLE18 testx18()
-{
-    return null;
-}
-
-void test18()
-{
-    assert(testx18() is null);
-}
-
-/* ================================ */
-
 class Test19 { struct { int a, b, c; } }
 
 void test19()
@@ -403,7 +388,6 @@ int main()
     test15();
     test16();
     test17();
-    test18();
     test19();
     printf("Success\n");
     return 0;
