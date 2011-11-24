@@ -607,6 +607,7 @@ struct FuncDeclaration : Declaration
     void semantic3(Scope *sc);
     // called from semantic3
     void varArgs(Scope *sc, TypeFunction*, VarDeclaration *&, VarDeclaration *&);
+    VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
     int equals(Object *o);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

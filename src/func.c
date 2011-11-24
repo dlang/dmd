@@ -898,76 +898,16 @@ void FuncDeclaration::semantic3(Scope *sc)
         // Declare 'this'
         AggregateDeclaration *ad = isThis();
         if (ad)
-        {   VarDeclaration *v;
-
+        {
             if (isFuncLiteralDeclaration() && isNested() && !sc->intypeof)
             {
                 error("function literals cannot be class members");
                 return;
             }
             else
-            {
                 assert(!isNested() || sc->intypeof);    // can't be both member and nested
-                assert(ad->handle);
-                Type *thandle = ad->handle;
-#if STRUCTTHISREF
-                thandle = thandle->addMod(type->mod);
-                thandle = thandle->addStorageClass(storage_class);
-                //if (isPure())
-                    //thandle = thandle->addMod(MODconst);
-#else
-                if (storage_class & STCconst || type->isConst())
-                {
-                    assert(0); // BUG: shared not handled
-                    if (thandle->ty == Tclass)
-                        thandle = thandle->constOf();
-                    else
-                    {   assert(thandle->ty == Tpointer);
-                        thandle = thandle->nextOf()->constOf()->pointerTo();
-                    }
-                }
-                else if (storage_class & STCimmutable || type->isImmutable())
-                {
-                    if (thandle->ty == Tclass)
-                        thandle = thandle->invariantOf();
-                    else
-                    {   assert(thandle->ty == Tpointer);
-                        thandle = thandle->nextOf()->invariantOf()->pointerTo();
-                    }
-                }
-                else if (storage_class & STCshared || type->isShared())
-                {
-                    assert(0);  // not implemented
-                }
-#endif
-                v = new ThisDeclaration(loc, thandle);
-                //v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
-                v->storage_class |= STCparameter;
-#if STRUCTTHISREF
-                if (thandle->ty == Tstruct)
-                    v->storage_class |= STCref;
-#endif
-                v->semantic(sc2);
-                if (!sc2->insert(v))
-                    assert(0);
-                v->parent = this;
-                vthis = v;
-            }
         }
-        else if (isNested())
-        {
-            /* The 'this' for a nested function is the link to the
-             * enclosing function's stack frame.
-             * Note that nested functions and member functions are disjoint.
-             */
-            VarDeclaration *v = new ThisDeclaration(loc, Type::tvoid->pointerTo());
-            v->storage_class |= STCparameter;
-            v->semantic(sc2);
-            if (!sc2->insert(v))
-                assert(0);
-            v->parent = this;
-            vthis = v;
-        }
+        vthis = declareThis(sc2, ad);
 
         // Declare hidden variable _arguments[] and _argptr
         if (f->varargs == 1)
@@ -1718,6 +1658,76 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     StorageClassDeclaration::stcToCBuffer(buf, storage_class);
     type->toCBuffer(buf, ident, hgs);
     bodyToCBuffer(buf, hgs);
+}
+
+VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
+{
+    if (ad)
+    {   VarDeclaration *v;
+
+        {
+            assert(ad->handle);
+            Type *thandle = ad->handle;
+#if STRUCTTHISREF
+            thandle = thandle->addMod(type->mod);
+            thandle = thandle->addStorageClass(storage_class);
+            //if (isPure())
+                //thandle = thandle->addMod(MODconst);
+#else
+            if (storage_class & STCconst || type->isConst())
+            {
+                assert(0); // BUG: shared not handled
+                if (thandle->ty == Tclass)
+                    thandle = thandle->constOf();
+                else
+                {   assert(thandle->ty == Tpointer);
+                    thandle = thandle->nextOf()->constOf()->pointerTo();
+                }
+            }
+            else if (storage_class & STCimmutable || type->isImmutable())
+            {
+                if (thandle->ty == Tclass)
+                    thandle = thandle->invariantOf();
+                else
+                {   assert(thandle->ty == Tpointer);
+                    thandle = thandle->nextOf()->invariantOf()->pointerTo();
+                }
+            }
+            else if (storage_class & STCshared || type->isShared())
+            {
+                assert(0);  // not implemented
+            }
+#endif
+            v = new ThisDeclaration(loc, thandle);
+            //v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
+            v->storage_class |= STCparameter;
+#if STRUCTTHISREF
+            if (thandle->ty == Tstruct)
+                v->storage_class |= STCref;
+#endif
+            v->semantic(sc);
+            if (!sc->insert(v))
+                assert(0);
+            v->parent = this;
+            return v;
+        }
+    }
+    else if (isNested())
+    {
+        /* The 'this' for a nested function is the link to the
+         * enclosing function's stack frame.
+         * Note that nested functions and member functions are disjoint.
+         */
+        VarDeclaration *v = new ThisDeclaration(loc, Type::tvoid->pointerTo());
+        v->storage_class |= STCparameter;
+        v->semantic(sc);
+        if (!sc->insert(v))
+            assert(0);
+        v->parent = this;
+        return v;
+    }
+
+    return NULL;
 }
 
 int FuncDeclaration::equals(Object *o)

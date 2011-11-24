@@ -157,6 +157,15 @@ FuncDeclaration *hasThis(Scope *sc)
     fdthis = sc->parent->isFuncDeclaration();
     //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
 
+    /* Special case for inside template constraint
+     */
+    if (fdthis && (sc->flags & SCOPEstaticif) && fdthis->parent->isTemplateDeclaration())
+    {
+        //TemplateDeclaration *td = fdthis->parent->isTemplateDeclaration();
+        //printf("[%s] td = %s, fdthis->vthis = %p\n", td->loc.toChars(), td->toChars(), fdthis->vthis);
+        return fdthis->vthis ? fdthis : NULL;
+    }
+
     // Go upwards until we find the enclosing member function
     fd = fdthis;
     while (1)
