@@ -3691,7 +3691,8 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         if (next->equals(ta->next) ||
 //          next->implicitConvTo(ta->next) >= MATCHconst ||
             next->constConv(ta->next) != MATCHnomatch ||
-            (ta->next->isBaseOf(next, &offset) && offset == 0) ||
+            (ta->next->isBaseOf(next, &offset) && offset == 0 &&
+             !ta->next->isMutable()) ||
             ta->next->ty == Tvoid)
             return MATCHconvert;
         return MATCHnomatch;
@@ -3959,9 +3960,10 @@ MATCH TypeDArray::implicitConvTo(Type *to)
         }
 #endif
 
-        /* Conversion of array of derived to array of base
+        /* Conversion of array of derived to array of const(base)
          */
-        if (ta->next->isBaseOf(next, &offset) && offset == 0)
+        if (ta->next->isBaseOf(next, &offset) && offset == 0 &&
+            !ta->next->isMutable())
             return MATCHconvert;
     }
     return Type::implicitConvTo(to);
