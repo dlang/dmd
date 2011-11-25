@@ -407,7 +407,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
     else
     {
         // Jump to catch block if matching one is found
-        int ndx,prev_ndx,i;
+        int ndx,prev_ndx;
         DHandlerInfo *phi;
         DCatchInfo *pci;
         DCatchBlock *pcb;
@@ -437,7 +437,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                 pci = cast(DCatchInfo *)(cast(ubyte *)handlerTable + phi.cioffset);
                 ncatches = pci.ncatches;
 
-                for (i = 0; i < ncatches; i++)
+                foreach (i; 0..ncatches)
                 {
                     pcb = &pci.catch_block[i];
                     int match = 0;

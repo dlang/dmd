@@ -88,29 +88,24 @@ Object _d_dynamic_cast(Object o, ClassInfo c)
 }
 
 int _d_isbaseof2(ClassInfo oc, ClassInfo c, ref size_t offset)
-{   int i;
-
+{
     if (oc is c)
         return 1;
     do
     {
         if (oc.base is c)
             return 1;
-        for (i = 0; i < oc.interfaces.length; i++)
+        foreach (i; 0..oc.interfaces.length)
         {
-            ClassInfo ic;
-
-            ic = oc.interfaces[i].classinfo;
+            auto ic = oc.interfaces[i].classinfo;
             if (ic is c)
             {   offset = oc.interfaces[i].offset;
                 return 1;
             }
         }
-        for (i = 0; i < oc.interfaces.length; i++)
+        foreach (i; 0..oc.interfaces.length)
         {
-            ClassInfo ic;
-
-            ic = oc.interfaces[i].classinfo;
+            auto ic = oc.interfaces[i].classinfo;
             if (_d_isbaseof2(ic, c, offset))
             {   offset = oc.interfaces[i].offset;
                 return 1;
@@ -122,19 +117,16 @@ int _d_isbaseof2(ClassInfo oc, ClassInfo c, ref size_t offset)
 }
 
 int _d_isbaseof(ClassInfo oc, ClassInfo c)
-{   int i;
-
+{
     if (oc is c)
         return 1;
     do
     {
         if (oc.base is c)
             return 1;
-        for (i = 0; i < oc.interfaces.length; i++)
+        foreach (i; 0..oc.interfaces.length)
         {
-            ClassInfo ic;
-
-            ic = oc.interfaces[i].classinfo;
+            auto ic = oc.interfaces[i].classinfo;
             if (ic is c || _d_isbaseof(ic, c))
                 return 1;
         }
@@ -148,19 +140,15 @@ int _d_isbaseof(ClassInfo oc, ClassInfo c)
  */
 
 void *_d_interface_vtbl(ClassInfo ic, Object o)
-{   int i;
-    ClassInfo oc;
-
+{
     //printf("__d_interface_vtbl(o = %p, ic = %p)\n", o, ic);
 
     assert(o);
 
-    oc = o.classinfo;
-    for (i = 0; i < oc.interfaces.length; i++)
+    auto oc = o.classinfo;
+    foreach (i; 0..oc.interfaces.length)
     {
-        ClassInfo oic;
-
-        oic = oc.interfaces[i].classinfo;
+        auto oic = oc.interfaces[i].classinfo;
         if (oic is ic)
         {
             return cast(void *)oc.interfaces[i].vtbl;

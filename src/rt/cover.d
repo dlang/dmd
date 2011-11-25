@@ -170,7 +170,7 @@ shared static ~this()
         uint nno;
         uint nyes;
 
-        for( int i = 0; i < c.data.length; i++ )
+        foreach (i; 0..c.data.length)
         {
             if( i < srclines.length )
             {

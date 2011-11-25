@@ -164,7 +164,7 @@ public:
             return false;
         return (features & SYSENTERSYSEXIT_BIT)!=0;
     }
-    
+
 
     /// Is 3DNow prefetch supported?
     bool has3dnowPrefetch()
@@ -359,7 +359,7 @@ void getcacheinfoCPUID2()
             16, 16, 16, 24, 24, 24
         ];
         enum { FIRSTDATA2 = 8, FIRSTDATA3 = 28+9 }
-        for (int i=0; i< ids.length; ++i) {
+        for (size_t i=0; i< ids.length; ++i) {
             if (x==ids[i]) {
                 int level = i< FIRSTDATA2 ? 0: i<FIRSTDATA3 ? 1 : 2;
                 if (x==0x49 && family==0xF && model==0x6) level=2;
@@ -846,7 +846,7 @@ shared static this()
     }
     numCacheLevels = 1;
     // And now fill up all the unused levels with full memory space.
-    for (int i=1; i< datacache.length; ++i) {
+    for (size_t i=1; i< datacache.length; ++i) {
         if (datacache[i].size==0) {
             // Set all remaining levels of cache equal to full address space.
             datacache[i].size = uint.max/1024;

@@ -97,7 +97,7 @@ extern (C) void[] _d_arrayctor(TypeInfo ti, void[] from, void[] to)
 
     auto element_size = ti.tsize();
 
-    int i;
+    size_t i;
     try
     {
         for (i = 0; i < to.length; i++)

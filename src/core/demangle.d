@@ -59,7 +59,7 @@ private struct Demangle
     }
 
 
-    enum minBufSize = 4000;
+    enum size_t minBufSize = 4000;
 
 
     const(char)[]   buf     = null;
@@ -176,7 +176,7 @@ private struct Demangle
 
             for( size_t n = 0; n < val.length; n++ )
             {
-                for( auto v = val.ptr - dst.ptr; v + 1 < len; v++ )
+                for( size_t v = val.ptr - dst.ptr; v + 1 < len; v++ )
                 {
                     exch( v, v + 1 );
                 }
@@ -1164,7 +1164,7 @@ private struct Demangle
             auto n = decodeNumber();
             match( '_' );
             put( "\"" );
-            for( auto i = 0; i < n; i++ )
+            foreach (i; 0..n)
             {
                 auto a = ascii2hex( tok() ); next();
                 auto b = ascii2hex( tok() ); next();
@@ -1613,7 +1613,7 @@ unittest
 /*
  *
  */
-string decodeDmdString( const(char)[] ln, ref int p )
+string decodeDmdString( const(char)[] ln, ref size_t p )
 {
     string s;
     uint zlen, zpos;

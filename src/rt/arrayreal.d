@@ -65,7 +65,7 @@ in
 }
 body
 {
-    for (int i = 0; i < a.length; i++)
+    foreach (i; 0..a.length)
         a[i] = b[i] + c[i];
     return a;
 }
@@ -124,7 +124,7 @@ in
 }
 body
 {
-    for (int i = 0; i < a.length; i++)
+    foreach (i; 0..a.length)
         a[i] = b[i] - c[i];
     return a;
 }
