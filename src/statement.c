@@ -3586,9 +3586,26 @@ Statement *ReturnStatement::semantic(Scope *sc)
             Type *tfret = tf->nextOf();
             if (tfret)
             {
-                if (tfret != Type::terror && !exp->type->equals(tfret))
-                    error("mismatched function return type inference of %s and %s",
-                        exp->type->toChars(), tfret->toChars());
+                if (tfret != Type::terror)
+                {
+                    if (!exp->type->equals(tfret))
+                    {
+                        int m1 = exp->type->implicitConvTo(tfret);
+                        int m2 = tfret->implicitConvTo(exp->type);
+                        //printf("exp->type = %s m2<-->m1 tret %s\n", exp->type->toChars(), tfret->toChars());
+                        //printf("m1 = %d, m2 = %d\n", m1, m2);
+
+                        if (m1 && m2)
+                            ;
+                        else if (!m1 && m2)
+                            tf->next = exp->type;
+                        else if (m1 && !m2)
+                            ;
+                        else
+                            error("mismatched function return type inference of %s and %s",
+                                exp->type->toChars(), tfret->toChars());
+                    }
+                }
 
                 /* The "refness" is determined by the first return statement,
                  * not all of them. This means:

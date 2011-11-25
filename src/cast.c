@@ -395,23 +395,13 @@ MATCH NullExp::implicitConvTo(Type *t)
     if (this->type->equals(t))
         return MATCHexact;
 
-    /* Allow implicit conversions from invariant to mutable|const,
-     * and mutable to invariant. It works because, after all, a null
+    /* Allow implicit conversions from immutable to mutable|const,
+     * and mutable to immutable. It works because, after all, a null
      * doesn't actually point to anything.
      */
     if (t->invariantOf()->equals(type->invariantOf()))
         return MATCHconst;
 
-    // NULL implicitly converts to any pointer type or dynamic array
-    if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
-    {
-        if (t->ty == Ttypedef)
-            t = ((TypeTypedef *)t)->sym->basetype;
-        if (t->ty == Tpointer || t->ty == Tarray ||
-            t->ty == Taarray  || t->ty == Tclass ||
-            t->ty == Tdelegate)
-            return committed ? MATCHconvert : MATCHexact;
-    }
     return Expression::implicitConvTo(t);
 }
 
@@ -918,18 +908,18 @@ Expression *ComplexExp::castTo(Scope *sc, Type *t)
 
 
 Expression *NullExp::castTo(Scope *sc, Type *t)
-{   NullExp *e;
-    Type *tb;
-
+{
     //printf("NullExp::castTo(t = %p)\n", t);
     if (type == t)
     {
         committed = 1;
         return this;
     }
-    e = (NullExp *)copy();
+
+    NullExp *e = (NullExp *)copy();
     e->committed = 1;
-    tb = t->toBasetype();
+    Type *tb = t->toBasetype();
+#if 0
     e->type = type->toBasetype();
     if (tb != e->type)
     {
@@ -938,7 +928,6 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
             (tb->ty == Tpointer || tb->ty == Tarray || tb->ty == Taarray ||
              tb->ty == Tdelegate))
         {
-#if 0
             if (tb->ty == Tdelegate)
             {   TypeDelegate *td = (TypeDelegate *)tb;
                 TypeFunction *tf = (TypeFunction *)td->nextOf();
@@ -950,13 +939,19 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
                     return Expression::castTo(sc, t);
                 }
             }
-#endif
         }
         else
         {
-            return e->Expression::castTo(sc, t);
+            //return e->Expression::castTo(sc, t);
         }
     }
+#else
+    if (tb->ty == Tvoid)
+    {
+        e->type = type->toBasetype();
+        return e->Expression::castTo(sc, t);
+    }
+#endif
     e->type = t;
     return e;
 }

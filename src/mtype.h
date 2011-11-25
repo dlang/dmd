@@ -61,8 +61,8 @@ enum ENUMTY
     Tident,
     Tclass,
     Tstruct,
-
     Tenum,
+
     Ttypedef,
     Tdelegate,
     Tnone,
@@ -72,8 +72,8 @@ enum ENUMTY
     Tint16,
     Tuns16,
     Tint32,
-
     Tuns32,
+
     Tint64,
     Tuns64,
     Tfloat32,
@@ -83,8 +83,8 @@ enum ENUMTY
     Timaginary64,
     Timaginary80,
     Tcomplex32,
-
     Tcomplex64,
+
     Tcomplex80,
     Tbool,
     Tchar,
@@ -93,10 +93,11 @@ enum ENUMTY
     Terror,
     Tinstance,
     Ttypeof,
-
     Ttuple,
     Tslice,
+
     Treturn,
+    Tnull,
     TMAX
 };
 typedef unsigned char TY;       // ENUMTY
@@ -175,6 +176,8 @@ struct Type : Object
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
     #define terror      basic[Terror]   // for error recovery
+
+    #define tnull       basic[Tnull]    // for null type
 
     #define tsize_t     basic[Tsize_t]          // matches size_t alias
     #define tptrdiff_t  basic[Tptrdiff_t]       // matches ptrdiff_t alias
@@ -892,6 +895,22 @@ struct TypeSlice : TypeNext
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+};
+
+struct TypeNull : Type
+{
+    TypeNull();
+
+    void toDecoBuffer(OutBuffer *buf, int flag);
+    MATCH implicitConvTo(Type *to);
+
+    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+
+    d_uns64 size(Loc loc);
+    //Expression *getProperty(Loc loc, Identifier *ident);
+    //Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *defaultInit(Loc loc);
+    //Expression *defaultInitLiteral(Loc loc);
 };
 
 /**************************************************************/
