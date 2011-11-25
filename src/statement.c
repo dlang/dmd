@@ -1477,6 +1477,7 @@ Lretry:
             {   // Declare key
                 if (arg->storageClass & (STCout | STCref | STClazy))
                     error("no storage class for key %s", arg->ident->toChars());
+                arg->type = arg->type->semantic(loc, sc);
                 TY keyty = arg->type->ty;
                 if (keyty != Tint32 && keyty != Tuns32)
                 {
