@@ -11726,7 +11726,31 @@ Expression *CmpExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
+    Expression *eb1 = e1;
+    Expression *eb2 = e2;
+
     typeCombine(sc);
+
+    // For integer comparisons, ensure the combined type can hold both arguments.
+    if (type && type->isintegral() && (op == TOKlt || op == TOKle ||
+                                       op == TOKgt || op == TOKge))
+    {
+        IntRange trange = IntRange::fromType(type);
+
+        Expression *errorexp = 0;
+        if (!trange.contains(eb1->getIntRange()))
+            errorexp = eb1;
+        if (!trange.contains(eb2->getIntRange()))
+            errorexp = eb2;
+
+        if (errorexp)
+        {
+            error("implicit conversion of '%s' to '%s' is unsafe in '(%s) %s (%s)'",
+                  errorexp->toChars(), type->toChars(), eb1->toChars(), Token::toChars(op), eb2->toChars());
+            return new ErrorExp();
+        }
+    }
+
     type = Type::tboolean;
 
     // Special handling for array comparisons
