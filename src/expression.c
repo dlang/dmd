@@ -11731,6 +11731,7 @@ Expression *CmpExp::semantic(Scope *sc)
 
     typeCombine(sc);
 
+#if 0
     // For integer comparisons, ensure the combined type can hold both arguments.
     if (type && type->isintegral() && (op == TOKlt || op == TOKle ||
                                        op == TOKgt || op == TOKge))
@@ -11750,6 +11751,7 @@ Expression *CmpExp::semantic(Scope *sc)
             return new ErrorExp();
         }
     }
+#endif
 
     type = Type::tboolean;
 
