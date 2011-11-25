@@ -1,6 +1,7 @@
 /**
  * Identify the characteristics of the host CPU, providing information
- * about cache sizes and assembly optimisation hints.
+ * about cache sizes and assembly optimisation hints. This module is
+ * provided primarily for assembly language programmers.
  *
  * References:
  * Some of this information was extremely difficult to track down. Some of the
@@ -99,7 +100,7 @@ struct CacheInfo
     /// For L1 unified (data + code) caches, this size is half the physical size.
     /// (we don't halve it for larger sizes, since normally
     /// data size is much greater than code size for critical loops).
-    uint size;
+    size_t size;
     /// Number of ways of associativity, eg:
     /// 1 = direct mapped
     /// 2 = 2-way set associative
@@ -119,7 +120,7 @@ public:
     string processor()  {return processorName;}
 
     /// The data caches. If there are fewer than 5 physical caches levels,
-    /// the remaining levels are set to uint.max (== entire memory space)
+    /// the remaining levels are set to size_t.max (== entire memory space)
     __gshared CacheInfo[5] datacache;
     @property {
     /// Does it have an x87 FPU on-chip?
@@ -849,9 +850,11 @@ shared static this()
     for (size_t i=1; i< datacache.length; ++i) {
         if (datacache[i].size==0) {
             // Set all remaining levels of cache equal to full address space.
-            datacache[i].size = uint.max/1024;
+            datacache[i].size = size_t.max/1024;
             datacache[i].associativity = 1;
             datacache[i].lineSize = datacache[i-1].lineSize;
-        } else numCacheLevels = i+1;
+        }
+        else
+            ++numCacheLevels;
     }
 }
