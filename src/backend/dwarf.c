@@ -1504,6 +1504,7 @@ unsigned dwarf_typidx(type *t)
         DW_AT_byte_size,        DW_FORM_data1,
         0,                      0,
     };
+#ifdef USE_DWARF_D_EXTENSIONS
     static unsigned char abbrevTypeDArray[] =
     {
         DW_TAG_darray_type,
@@ -1519,6 +1520,7 @@ unsigned dwarf_typidx(type *t)
         DW_AT_byte_size,        DW_FORM_data1,
         0,                      0,
     };
+#endif
     static unsigned char abbrevTypeAArray[] =
     {
         DW_TAG_aarray_type,
@@ -1622,9 +1624,31 @@ unsigned dwarf_typidx(type *t)
             {   p = (tybasic(t->Tty) == TYullong) ? "unsigned long long" : "ucent";
                 goto Lsigned;
             }
+
+            static unsigned char abbrevTypeArrayStruct[] =
+            {
+                DW_TAG_structure_type,
+                1,                      // children
+                DW_AT_sibling,          DW_FORM_ref4,
+                DW_AT_name,             DW_FORM_string,
+                DW_AT_byte_size,        DW_FORM_data1,
+                0,                      0,
+            };
+
+            static unsigned char abbrevTypeArrayField[] =
+            {
+                DW_TAG_member,
+                0,                      // no children
+                DW_AT_name,             DW_FORM_string,
+                DW_AT_type,             DW_FORM_ref4,
+                DW_AT_data_member_location, DW_FORM_block1,
+                0,                      0,
+            };
+
             /* It's really TYdarray, and Tnext is the
              * element type
              */
+#ifdef USE_DWARF_D_EXTENSIONS
             nextidx = dwarf_typidx(t->Tnext);
             code = nextidx
                 ? dwarf_abbrev_code(abbrevTypeDArray, sizeof(abbrevTypeDArray))
@@ -1634,6 +1658,56 @@ unsigned dwarf_typidx(type *t)
             infobuf->writeByte(tysize(t->Tty)); // DW_AT_byte_size
             if (nextidx)
                 infobuf->write32(nextidx);      // DW_AT_type
+#else
+            {
+            unsigned lenidx = I64 ? dwarf_typidx(tsulong) : dwarf_typidx(tsuns);
+
+            {
+                type *tdata = type_alloc(TYnptr);
+                tdata->Tnext = t->Tnext;
+                t->Tnext->Tcount++;
+                tdata->Tcount++;
+                nextidx = dwarf_typidx(tdata);
+                type_free(tdata);
+            }
+
+            code = dwarf_abbrev_code(abbrevTypeArrayStruct, sizeof(abbrevTypeArrayStruct));
+            idx = infobuf->size();
+            infobuf->writeuLEB128(code);        // abbreviation code
+            unsigned siblingoffset = infobuf->size();
+            unsigned idxsibling = 0;
+            infobuf->write32(idxsibling);       // DW_AT_sibling
+            infobuf->write("_Array_", 7);       // DW_AT_name
+            if (tybasic(t->Tnext->Tty))
+                infobuf->writeString(tystring[tybasic(t->Tnext->Tty)]);
+            else
+                infobuf->writeByte(0);
+            infobuf->writeByte(tysize(t->Tty)); // DW_AT_byte_size
+
+            // length
+            code = dwarf_abbrev_code(abbrevTypeArrayField, sizeof(abbrevTypeArrayField));
+            infobuf->writeuLEB128(code);        // abbreviation code
+            infobuf->writeString("length");     // DW_AT_name
+            infobuf->write32(lenidx);           // DW_AT_type
+
+            infobuf->writeByte(2);              // DW_AT_data_member_location
+            infobuf->writeByte(DW_OP_plus_uconst);
+            infobuf->writeByte(0);
+
+            // ptr
+            infobuf->writeuLEB128(code);        // abbreviation code
+            infobuf->writeString("ptr");        // DW_AT_name
+            infobuf->write32(nextidx);          // DW_AT_type
+
+            infobuf->writeByte(2);              // DW_AT_data_member_location
+            infobuf->writeByte(DW_OP_plus_uconst);
+            infobuf->writeByte(I64 ? 8 : 4);
+
+            infobuf->writeByte(0);              // no more siblings
+            idxsibling = infobuf->size();
+            *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
+            }
+#endif
             break;
 
         case TYllong:
