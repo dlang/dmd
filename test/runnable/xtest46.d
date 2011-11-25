@@ -3902,6 +3902,22 @@ void test2774()
 }
 
 /***************************************************/
+// 4392
+
+class C4392
+{
+    int foo() const { return 1; }
+    int foo()       { return 2; }
+
+    int bar() const { return foo(); }
+}
+void test4392()
+{
+    auto c = new C4392();
+    assert(c.bar() == 1);
+}
+
+/***************************************************/
 // 6220
 
 void test6220() {
@@ -5555,6 +5571,7 @@ int main()
     test6335();
     test6228();
     test2774();
+    test4392();
     test6220();
     test5799();
     test157();

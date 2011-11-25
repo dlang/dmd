@@ -8332,7 +8332,7 @@ Lagain:
                 // Supply an implicit 'this', as in
                 //    this.ident
 
-                e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), f);
+                e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), ve->var);
                 goto Lagain;
             }
             else if (!sc->intypeof && !sc->getStructClassScope())
