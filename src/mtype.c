@@ -8303,11 +8303,10 @@ MATCH TypeNull::implicitConvTo(Type *to)
     // NULL implicitly converts to any pointer type or dynamic array
     //if (type->ty == Tpointer && type->nextOf()->ty == Tvoid)
     {
-        if (to->ty == Ttypedef)
-            to = ((TypeTypedef *)to)->sym->basetype;
-        if (to->ty == Tpointer || to->ty == Tarray ||
-            to->ty == Taarray  || to->ty == Tclass ||
-            to->ty == Tdelegate)
+        Type *tb= to->toBasetype();
+        if (tb->ty == Tpointer || tb->ty == Tarray ||
+            tb->ty == Taarray  || tb->ty == Tclass ||
+            tb->ty == Tdelegate)
             return MATCHconst;
     }
 
