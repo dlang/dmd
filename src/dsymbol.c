@@ -934,31 +934,17 @@ bool ScopeDsymbol::hasStaticCtorOrDtor()
  */
 
 #if DMDV2
+static int dimDg(void *ctx, size_t n, Dsymbol *)
+{
+    ++*(size_t *)ctx;
+    return 0;
+}
+
 size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
     if (members)
-    {
-        for (size_t i = 0; i < members->dim; i++)
-        {   Dsymbol *s = (*members)[i];
-            AttribDeclaration *a = s->isAttribDeclaration();
-            TemplateMixin *tm = s->isTemplateMixin();
-            TemplateInstance *ti = s->isTemplateInstance();
-
-            if (a)
-            {
-                n += dim(a->decl);
-            }
-            else if (tm)
-            {
-                n += dim(tm->members);
-            }
-            else if (ti)
-                ;
-            else
-                n++;
-        }
-    }
+        foreach(members, &dimDg, &n);
     return n;
 }
 #endif
@@ -972,41 +958,65 @@ size_t ScopeDsymbol::dim(Dsymbols *members)
  */
 
 #if DMDV2
+struct GetNthSymbolCtx
+{
+    size_t nth;
+    Dsymbol *sym;
+};
+
+static int getNthSymbolDg(void *ctx, size_t n, Dsymbol *sym)
+{
+    GetNthSymbolCtx *p = (GetNthSymbolCtx *)ctx;
+    if (n == p->nth)
+    {   p->sym = sym;
+        return 1;
+    }
+    return 0;
+}
+
 Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
-    if (!members)
-        return NULL;
+    GetNthSymbolCtx ctx = { nth, NULL };
+    int res = foreach(members, &getNthSymbolDg, &ctx);
+    return res ? ctx.sym : NULL;
+}
+#endif
 
-    size_t n = 0;
+/***************************************
+ * Expands attribute declarations in members in depth first
+ * order. Calls dg(void *ctx, size_t symidx, Dsymbol *sym) for each
+ * member.
+ * If dg returns !=0, stops and returns that value else returns 0.
+ * Use this function to avoid the O(N + N^2/2) complexity of
+ * calculating dim and calling N times getNth.
+ */
+
+#if DMDV2
+int ScopeDsymbol::foreach(Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
+{
+    assert(members);
+
+    size_t n = pn ? *pn : 0; // take over index
+    int result = 0;
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
-        AttribDeclaration *a = s->isAttribDeclaration();
-        TemplateMixin *tm = s->isTemplateMixin();
-        TemplateInstance *ti = s->isTemplateInstance();
 
-        if (a)
-        {
-            s = getNth(a->decl, nth - n, &n);
-            if (s)
-                return s;
-        }
-        else if (tm)
-        {
-            s = getNth(tm->members, nth - n, &n);
-            if (s)
-                return s;
-        }
-        else if (ti)
+        if (AttribDeclaration *a = s->isAttribDeclaration())
+            result = foreach(a->decl, dg, ctx, &n);
+        else if (TemplateMixin *tm = s->isTemplateMixin())
+            result = foreach(tm->members, dg, ctx, &n);
+        else if (s->isTemplateInstance())
             ;
-        else if (n == nth)
-            return s;
         else
-            n++;
+            result = dg(ctx, n++, s);
+
+        if (result)
+            break;
     }
 
     if (pn)
-        *pn += n;
-    return NULL;
+        *pn = n; // update index
+    return result;
 }
 #endif
 
