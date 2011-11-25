@@ -8317,13 +8317,7 @@ Lagain:
         assert(f);
 
         if (ve->hasOverloads)
-            f = f->overloadResolve(loc, NULL, arguments);
-        checkDeprecated(sc, f);
-#if DMDV2
-        checkPurity(sc, f);
-        checkSafety(sc, f);
-#endif
-        f->checkNestedReference(sc, loc);
+            f = f->overloadResolve(loc, NULL, arguments, 2);
 
         if (f->needThis())
         {
@@ -8342,6 +8336,12 @@ Lagain:
             }
         }
 
+        checkDeprecated(sc, f);
+#if DMDV2
+        checkPurity(sc, f);
+        checkSafety(sc, f);
+#endif
+        f->checkNestedReference(sc, loc);
         accessCheck(loc, sc, NULL, f);
 
         ethis = NULL;

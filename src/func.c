@@ -2316,6 +2316,8 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 
 /********************************************
  * Decide which function matches the arguments best.
+ *      flags           1: do not issue error message on no match, just return NULL
+ *                      2: do not issue error on ambiguous matches and need explicit this
  */
 
 struct Param2
@@ -2481,6 +2483,8 @@ if (arguments)
         }
         else
         {
+            if ((flags & 2) && m.lastf->needThis() && !ethis)
+                return m.lastf;
 #if 1
             TypeFunction *t1 = (TypeFunction *)m.lastf->type;
             TypeFunction *t2 = (TypeFunction *)m.nextf->type;
