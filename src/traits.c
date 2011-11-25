@@ -386,7 +386,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
 
         // Turn Identifiers into StringExps reusing the allocated array
-        ctassert(sizeof(Expressions) == sizeof(Identifiers));
+        assert(sizeof(Expressions) == sizeof(Identifiers));
         Expressions *exps = (Expressions *)idents;
         for (size_t i = 0; i < idents->dim; i++)
         {   Identifier *id = idents->tdata()[i];
