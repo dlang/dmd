@@ -363,13 +363,13 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writenl();
             buf->writeByte('{');
             buf->writenl();
+            buf->level++;
             for (size_t i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = (*decl)[i];
-
-                buf->writestring("    ");
                 s->toCBuffer(buf, hgs);
             }
+            buf->level--;
             buf->writeByte('}');
         }
     }
@@ -911,16 +911,16 @@ void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf(isunion ? "union" : "struct");
     buf->writestring("\n{\n");
+    buf->level++;
     if (decl)
     {
         for (size_t i = 0; i < decl->dim; i++)
         {
             Dsymbol *s = (*decl)[i];
-
-            //buf->writestring("    ");
             s->toCBuffer(buf, hgs);
         }
     }
+    buf->level--;
     buf->writestring("}\n");
 }
 
@@ -1355,16 +1355,16 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
         buf->writeByte('{');
         buf->writenl();
+        buf->level++;
         if (decl)
         {
             for (size_t i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = (*decl)[i];
-
-                buf->writestring("    ");
                 s->toCBuffer(buf, hgs);
             }
         }
+        buf->level--;
         buf->writeByte('}');
         if (elsedecl)
         {
@@ -1373,13 +1373,13 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writenl();
             buf->writeByte('{');
             buf->writenl();
+            buf->level++;
             for (size_t i = 0; i < elsedecl->dim; i++)
             {
                 Dsymbol *s = (*elsedecl)[i];
-
-                buf->writestring("    ");
                 s->toCBuffer(buf, hgs);
             }
+            buf->level--;
             buf->writeByte('}');
         }
     }

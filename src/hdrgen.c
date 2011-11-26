@@ -51,6 +51,7 @@ void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);
 void Module::genhdrfile()
 {
     OutBuffer hdrbufr;
+    hdrbufr.doindent = 1;
 
     hdrbufr.printf("// D import file generated from '%s'", srcfile->toChars());
     hdrbufr.writenl();

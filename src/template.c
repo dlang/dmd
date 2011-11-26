@@ -2322,11 +2322,13 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
         buf->writebyte('{');
         buf->writenl();
+        buf->level++;
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             s->toCBuffer(buf, hgs);
         }
+        buf->level--;
         buf->writebyte('}');
         buf->writenl();
         hgs->tpltMember--;
