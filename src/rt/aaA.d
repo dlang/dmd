@@ -104,7 +104,7 @@ struct AA
 
 size_t aligntsize(size_t tsize)
 {
-    version (X86_64)
+    version (D_LP64)
         // Size of key needed to align value on 16 bytes
         return (tsize + 15) & ~(15);
     else

@@ -192,7 +192,7 @@ enum _cstr SCNxFAST16       = "x";
 enum _cstr SCNxFAST32       = "lx";
 enum _cstr SCNxFAST64       = "llx";
 
-version( X86_64 )
+version( D_LP64 )
 {
     enum _cstr PRIdMAX      = PRId64;
     enum _cstr PRIiMAX      = PRIi64;
