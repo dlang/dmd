@@ -57,15 +57,6 @@ struct elem
                 #define PEFaddrmem      0x40    // address of member
                 #define PEFdependent    0x80    // value-dependent
                 #define PEFmember       0x100   // was a class member access
-#if !TX86
-                #define PEFdblldbl      2       // long double return from dbl func
-                #define PEFfltldbl      4       // long double return from flt func
-                #define PEFstrsize      8       // The structure size for this
-                                                // node of type TYstruct is
-                                                // not the same as type_size
-                                                // of the struct.  This happens
-                                                // in C++ operator = generation
-#endif
             Symbol *Emember_;                   // if PEFmember, this is the member
             #define Emember _EU._EP.Emember_
         }_EP;
@@ -87,12 +78,6 @@ struct elem
                 #define NFLassign 8     // unambiguous assignment elem
                 #define NFLaecp 0x10    // AE or CP or VBE expression
                 #define NFLdelcse 0x40  // this is not the generating CSE
-#if !TX86
-                #define NFLfcall  0x20  // flag that there has been a function call on RHS
-                                        // of an assignment of this LHS value hence do not
-                                        // propagate this assignment into a paramter list
-                                        // (see glocal.c)
-#endif
                 #define NFLtouns 0x80   // relational operator was changed from signed to unsigned
 #if MARS
             unsigned char Ejty_;                // original Jupiter/Mars type
@@ -147,11 +132,7 @@ elem *el_params(void **args, int length);
 elem *el_combines(void **args, int length);
 int el_nparams(elem *e);
 elem_p el_pair(tym_t, elem_p, elem_p);
-#if TX86 || DEBUG
 void el_copy(elem_p ,elem_p);
-#else
-#define el_copy(to,from) {*(to) = *(from);}
-#endif
 elem_p el_alloctmp(tym_t);
 elem_p el_selecte1(elem_p);
 elem_p el_selecte2(elem_p);
@@ -160,9 +141,7 @@ void   el_replace_sym(elem *e,symbol *s1,symbol *s2);
 elem_p el_scancommas(elem_p);
 int el_countCommas(elem_p);
 int el_sideeffect(elem_p);
-#if TX86
 int el_depends(elem *ea,elem *eb);
-#endif
 #if LONGLONG
 targ_llong el_tolongt(elem_p);
 targ_llong el_tolong(elem_p);
