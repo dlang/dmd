@@ -533,10 +533,8 @@ STATIC void touchlvalue(elem *e)
             break;
         case SCauto:
         case SCparameter:
-#if TX86
         case SCfastpar:
         case SCbprel:
-#endif
             if (e->EV.sp.Vsym->Sflags & SFLunambig)
                 break;
             /* FALL-THROUGH */
@@ -548,9 +546,7 @@ STATIC void touchlvalue(elem *e)
         case SCinline:
         case SCsinline:
         case SCeinline:
-#if TX86
         case SCcomdef:
-#endif
             touchstar();
             break;
         default:
@@ -595,19 +591,15 @@ STATIC void touchfunc(int flag)
                         break;
                     case SCauto:
                     case SCparameter:
-#if TX86
                     case SCfastpar:
                     case SCbprel:
-#endif
                         //printf("he = '%s'\n", he->EV.sp.Vsym->Sident);
                         if (he->EV.sp.Vsym->Sflags & SFLunambig)
                             break;
                         /* FALL-THROUGH */
                     case SCstatic:
                     case SCextern:
-#if TX86
                     case SCcomdef:
-#endif
                     case SCglobal:
                     case SClocstat:
                     case SCcomdat:
