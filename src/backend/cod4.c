@@ -582,8 +582,7 @@ code *cdeq(elem *e,regm_t *pretregs)
 #if TARGET_SEGMENTED
            && (
              (e1->Eoper == OPind &&
-                ((tymll = tybasic(e1->E1->Ety)) == TYfptr || tymll == TYhptr)
-                ) ||
+                ((tymll = tybasic(e1->E1->Ety)) == TYfptr || tymll == TYhptr)) ||
              (e1->Eoper == OPvar && e1->EV.sp.Vsym->Sfl == FLfardata)
             )
 #endif
@@ -2491,8 +2490,10 @@ code *cdcnvt(elem *e, regm_t *pretregs)
         OPu64_d,        CLIBullngdbl,
         OPd_f,          CLIBdblflt,
         OPf_d,          CLIBfltdbl,
+#if TARGET_SEGMENTED
         OPvp_fp,        CLIBvptrfptr,
         OPcvp_fp,       CLIBcvptrfptr,
+#endif
   };
 
 //printf("cdcnvt: *pretregs = %s\n", regm_str(*pretregs));
@@ -2655,15 +2656,18 @@ L1:
 code *cdshtlng(elem *e,regm_t *pretregs)
 { code *c,*ce,*c1,*c2,*c3,*c4;
   unsigned reg;
-  unsigned char op;
   regm_t retregs;
 
   //printf("cdshtlng(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
   int e1comsub = e->E1->Ecount;
+  unsigned char op = e->Eoper;
   if ((*pretregs & (ALLREGS | mBP)) == 0)       // if don't need result in regs
     c = codelem(e->E1,pretregs,FALSE);  /* then conversion isn't necessary */
 
-  else if ((op = e->Eoper) == OPnp_fp ||
+  else if (
+#if TARGET_SEGMENTED
+           op == OPnp_fp ||
+#endif
            (I16 && op == OPu16_32) ||
            (I32 && op == OPu32_64)
           )
@@ -2682,6 +2686,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         ce = allocreg(&regm,&reg,TYint);
         if (e1comsub)
             ce = cat(ce,getregs(retregs));
+#if TARGET_SEGMENTED
         if (op == OPnp_fp)
         {   int segreg;
 
@@ -2689,15 +2694,14 @@ code *cdshtlng(elem *e,regm_t *pretregs)
             switch (tym1)
             {
                 case TYnptr:    segreg = SEG_DS;        break;
-#if TARGET_SEGMENTED
                 case TYcptr:    segreg = SEG_CS;        break;
                 case TYsptr:    segreg = SEG_SS;        break;
-#endif
                 default:        assert(0);
             }
             ce = gen2(ce,0x8C,modregrm(3,segreg,reg));  /* MOV reg,segreg */
         }
         else
+#endif
             ce = movregconst(ce,reg,0,0);               /* 0 extend     */
 
         c = cat3(c,ce,fixresult(e,retregs | regm,pretregs));
@@ -3003,7 +3007,9 @@ code *cdlngsht(elem *e,regm_t *pretregs)
     switch (e->Eoper)
     {
         case OP32_16:
+#if TARGET_SEGMENTED
         case OPoffset:
+#endif
         case OP16_8:
         case OP64_32:
         case OP128_64:
@@ -3024,9 +3030,14 @@ code *cdlngsht(elem *e,regm_t *pretregs)
         else
         {   retregs = *pretregs ? ALLREGS : 0;
             c = codelem(e->E1,&retregs,FALSE);
+#if TARGET_SEGMENTED
+            bool isOff = e->Eoper == OPoffset;
+#else
+            bool isOff = false;
+#endif
             if (I16 ||
-                I32 && (e->Eoper == OPoffset || e->Eoper == OP64_32) ||
-                I64 && (e->Eoper == OPoffset || e->Eoper == OP128_64))
+                I32 && (isOff || e->Eoper == OP64_32) ||
+                I64 && (isOff || e->Eoper == OP128_64))
                 retregs &= mLSW;                /* want LSW only        */
         }
   }
@@ -3156,6 +3167,7 @@ code *cdasm(elem *e,regm_t *pretregs)
     return cat(c,fixresult(e,(I16 ? mDX | mAX : mAX),pretregs));
 }
 
+#if TARGET_SEGMENTED
 /************************
  * Generate code for OPnp_f16p and OPf16p_np.
  */
@@ -3235,6 +3247,7 @@ code *cdfar16( elem *e, regm_t *pretregs)
     }
     return cat4(c,c1,c3,cnop);
 }
+#endif
 
 /*************************
  * Generate code for OPbt, OPbtc, OPbtr, OPbts

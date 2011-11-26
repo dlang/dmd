@@ -356,8 +356,6 @@ STATIC elem *fixconvop(elem *e)
                 OPd_u64,        // OPu64_d
                 OPf_d,          // OPd_f
                 OPd_f,          // OPf_d
-                0,              /* OPvp_fp      */
-                0,              /* OPcvp_fp     */
                 OP32_16,        // OPs16_32
                 OP32_16,        // OPu16_32
                 OPs16_32,       // OP32_16
@@ -370,10 +368,14 @@ STATIC elem *fixconvop(elem *e)
                 OP128_64,       // OPu64_128
                 OP128_64,       // OPs64_128
                 OPs64_128,      // OP128_64
+#if TARGET_SEGMENTED
+                0,              /* OPvp_fp      */
+                0,              /* OPcvp_fp     */
                 OPnp_fp,        /* OPoffset     */
                 OPoffset,       /* OPnp_fp      */
                 OPf16p_np,      /* OPnp_f16p    */
                 OPnp_f16p,      /* OPf16p_np    */
+#endif
                 OPd_ld,         // OPld_d
                 OPld_d,         // OPd_ld
                 OPu64_d,        // OPld_u64
@@ -568,7 +570,7 @@ STATIC elem * elstrcpy(elem *e)
     elem_debug(e);
     switch (e->E2->Eoper)
     {
-#if TX86
+#if TARGET_SEGMENTED
         case OPnp_fp:
             if (OPTIMIZER)
             {
@@ -612,13 +614,17 @@ STATIC elem * elstrcmp(elem *e)
     elem_debug(e);
     if (OPTIMIZER)
     {
+#if TARGET_SEGMENTED
         if (e->E1->Eoper == OPnp_fp)
             eltonear(&e->E1);
+#endif
         switch (e->E2->Eoper)
         {
+#if TARGET_SEGMENTED
             case OPnp_fp:
                 eltonear(&e->E2);
                 break;
+#endif
 
             case OPstring:
                 // Replace strcmp(e1,"string") with memcmp(e1,"string",sizeof("string"))
@@ -644,16 +650,20 @@ STATIC elem * elmemxxx(elem *e)
         ex = e->E1;
         switch (e->Eoper)
         {   case OPmemcmp:
+#if TARGET_SEGMENTED
                 if (ex->E1->Eoper == OPnp_fp)
                     eltonear(&ex->E1);
                 if (ex->E2->Eoper == OPnp_fp)
                     eltonear(&ex->E2);
+#endif
                 break;
 
             case OPmemset:
+#if TARGET_SEGMENTED
                 if (ex->Eoper == OPnp_fp)
                     eltonear(&ex);
                 else
+#endif
                 {
                     // lvalue OPmemset (nbytes param value)
                     elem *enbytes = e->E2->E1;
@@ -711,11 +721,15 @@ STATIC elem * elmemxxx(elem *e)
                 break;
 
             case OPmemcpy:
+#if TARGET_SEGMENTED
                 if (ex->Eoper == OPnp_fp)
                     eltonear(&e->E1);
+#endif
                 ex = e->E2;
+#if TARGET_SEGMENTED
                 if (ex->E1->Eoper == OPnp_fp)
                     eltonear(&ex->E1);
+#endif
                 if (ex->E2->Eoper == OPconst)
                 {
                     if (!boolres(ex->E2))
@@ -739,8 +753,10 @@ STATIC elem * elmemxxx(elem *e)
                     ex->E1 = NULL;
                     el_free(ex);
                     ex = el_copytree(e->E1->E1);
+#if TARGET_SEGMENTED
                     if (tysize(e->Ety) > tysize(ex->Ety))
                         ex = el_una(OPnp_fp,e->Ety,ex);
+#endif
                     e = el_bin(OPcomma,e->Ety,e,ex);
                     if (el_sideeffect(e->E2))
                         fixside(&e->E1->E1->E1,&e->E2);
@@ -867,7 +883,7 @@ L1:
         e1->E2->Eoper = OPconst;
         e1->E2->Ety = TYint;
         {
-#if TX86
+#if TARGET_SEGMENTED
             /* Watch out for pointer types changing, requiring a conversion */
             tym_t ety,e11ty;
 
@@ -1491,15 +1507,17 @@ STATIC elem * elnot(elem *e)
         case OPu16_d:
         case OPu32_d:
         case OPf_d:
-        case OPvp_fp:
-        case OPcvp_fp:
         case OPs16_32:
         case OPu16_32:
         case OPu8_16:
         case OPs8_16:
         case OPu32_64:
         case OPs32_64:
+#if TARGET_SEGMENTED
+        case OPvp_fp:
+        case OPcvp_fp:
         case OPnp_fp:
+#endif
             e1->Eoper = e->Eoper;
             goto L1;
 
@@ -1671,7 +1689,7 @@ STATIC elem * elcond(elem *e)
                             }
                         }
                     }
-                    else
+                    else if(tyintegral(e1->Ety))
                         e->E1 = el_bin(OPge,TYint,e1,el_long(touns(e1->Ety),1));
                 }
 #endif
@@ -2367,7 +2385,7 @@ STATIC elem * eladdr(elem *e)
 
         tym2 = e1->E1->Ety;
 
-#if TX86
+#if TARGET_SEGMENTED
         /* Watch out for conversions between near and far pointers      */
         sz = tysize(tym) - tysize(tym2);
         if (sz != 0)
@@ -3392,6 +3410,7 @@ STATIC elem * elbool(elem *e)
 }
 
 
+#if TARGET_SEGMENTED
 /*********************************
  * Conversions of pointers to far pointers.
  */
@@ -3409,7 +3428,6 @@ STATIC elem * elptrlptr(elem *e)
 /*********************************
  * Conversions of handle pointers to far pointers.
  */
-// TODO: should this function go away entirely in TARGET_FLAT mode?
 STATIC elem * elvptrfptr(elem *e)
 {   elem *e1;
     elem *e12;
@@ -3419,9 +3437,7 @@ STATIC elem * elvptrfptr(elem *e)
     if (e1->Eoper == OPadd || e1->Eoper == OPmin)
     {
         e12 = e1->E2;
-#if TARGET_SEGMENTED
         if (tybasic(e12->Ety) != TYvptr)
-#endif
         {
             /* Rewrite (vtof(e11 + e12)) to (vtof(e11) + e12)   */
             op = e->Eoper;
@@ -3435,6 +3451,8 @@ STATIC elem * elvptrfptr(elem *e)
     }
     return e;
 }
+
+#endif
 
 /************************
  * Optimize conversions of longs to ints.
@@ -3481,6 +3499,7 @@ STATIC elem * ellngsht(elem *e)
         e = el_selecte1(e);
         break;
 
+#if TARGET_SEGMENTED
     case OPnp_fp:
         if (e->Eoper != OPoffset)
             goto case_default;
@@ -3488,6 +3507,7 @@ STATIC elem * ellngsht(elem *e)
         e = el_selecte1(el_selecte1(e));
         e->Ety = ty;                    // retain original type
         break;
+#endif
 
     default: /* operator */
     case_default:
@@ -3519,7 +3539,7 @@ STATIC elem * ellngsht(elem *e)
                         }
                     }
                     break;
-#if TX86
+#if TARGET_SEGMENTED
                 case OPoffset:
                     if (intsize == LONGSIZE)
                     {
@@ -4315,7 +4335,7 @@ beg:
         e1 = e->E1 = optelem(e->E1,TRUE);
         if (e1->Eoper == OPconst)
         {
-#if TX86
+#if TARGET_SEGMENTED
             if (!(op == OPnp_fp && el_tolong(e1) != 0))
 #endif
                 return evalu8(e);
