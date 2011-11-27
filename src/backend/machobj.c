@@ -1885,10 +1885,11 @@ seg_data *obj_tlsseg()
 
     if (seg_tlsseg == UNKNOWN)
     {
-        mach_getsegment("__tls_beg", "__DATA", 2, S_COALESCED, 4);
-        seg_tlsseg = mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR);
+        int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
+        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
+        seg_tlsseg = mach_getsegment("__tls_data", "__DATA", align, S_REGULAR);
         mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
-        mach_getsegment("__tls_end", "__DATA", 2, S_COALESCED, 4);
+        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
     }
     return SegData[seg_tlsseg];
 }
