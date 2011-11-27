@@ -489,8 +489,9 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
     section_cnt = 1;
 
     seg_count = 0;
+    int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
     mach_getsegment("__text",  "__TEXT", 2, S_REGULAR | S_ATTR_PURE_INSTRUCTIONS | S_ATTR_SOME_INSTRUCTIONS);
-    mach_getsegment("__data",  "__DATA", 2, S_REGULAR);         // DATA
+    mach_getsegment("__data",  "__DATA", align, S_REGULAR);         // DATA
     mach_getsegment("__const", "__TEXT", 2, S_REGULAR);         // CDATA
     mach_getsegment("__bss",   "__DATA", 4, S_ZEROFILL);        // UDATA
 
@@ -1691,10 +1692,11 @@ int obj_comdat(Symbol *s)
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
         s->Sfl = FLtlsdata;
-        mach_getsegment("__tls_beg", "__DATA", 2, S_COALESCED, 4);
-        mach_getsegment("__tls_data", "__DATA", 2, S_REGULAR, 4);
+        align = I64 ? 4 : 2;            // align to 16 bytes for floating point
+        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
+        mach_getsegment("__tls_data", "__DATA", align, S_REGULAR, 4);
         s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
-        mach_getsegment("__tls_end", "__DATA", 2, S_COALESCED, 4);
+        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
     }
     else
     {
