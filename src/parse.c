@@ -2540,10 +2540,14 @@ Type *Parser::parseBasicType2(Type *t)
                 arguments = parseParameters(&varargs);
 
                 StorageClass stc = parsePostfix();
-                if (stc & (STCconst | STCimmutable | STCshared | STCwild))
-                    error("const/immutable/shared/inout attributes are only valid for non-static member functions");
-
                 TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
+                if (stc & (STCconst | STCimmutable | STCshared | STCwild))
+                {
+                    if (save == TOKfunction)
+                        error("const/immutable/shared/inout attributes are only valid for non-static member functions");
+                    else
+                        tf = (TypeFunction *)tf->addSTC(stc);
+                }
 
                 if (save == TOKdelegate)
                     t = new TypeDelegate(tf);
