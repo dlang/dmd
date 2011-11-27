@@ -94,12 +94,12 @@ struct CPU
 
         bool is32bit ()
         {
-                return (header.magic & MH_MAGIC) != 0;
+                return (header.magic == MH_MAGIC);
         }
 
         bool is64bit ()
         {
-                return (header.magic & MH_MAGIC_64) != 0;
+                return (header.magic == MH_MAGIC_64);
         }
 }
 
