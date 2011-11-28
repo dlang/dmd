@@ -32,7 +32,7 @@ struct SegRef
 enum SegRef[5] dataSegs = [{SEG_DATA, SECT_DATA},
                            {SEG_DATA, SECT_BSS},
                            {SEG_DATA, SECT_COMMON},
-				           // These two must match names used by compiler machobj.c
+                                           // These two must match names used by compiler machobj.c
                            {SEG_DATA, "__tls_data"},
                            {SEG_DATA, "__tlscoal_nt"}];
 
@@ -71,7 +71,7 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
         return null;
     }
     else
-	return null;
+        return null;
 }
 
 
