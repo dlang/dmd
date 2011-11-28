@@ -100,6 +100,21 @@ void cgsched_pentium(code **pc,regm_t scratch)
     }
 }
 
+void cgsched_block(block* b)
+{
+    if (config.flags4 & CFG4speed &&
+        config.target_cpu >= TARGET_Pentium &&
+        b->BC != BCasm)
+    {
+        regm_t scratch = allregs;
+
+        scratch &= ~(b->Bregcon.used | b->Bregcon.params | mfuncreg);
+        scratch &= ~(b->Bregcon.immed.mval | b->Bregcon.cse.mval);
+        cgsched_pentium(&b->Bcode,scratch);
+        //printf("after schedule:\n"); WRcodlst(b->Bcode);
+    }
+}
+
 #define NP      0       // not pairable
 #define PU      1       // pairable in U only, never executed in V
 #define PV      2       // pairable in V only

@@ -320,17 +320,7 @@ tryagain:
             startoffset = coffset + calcblksize(cprolog) - funcoffset;
             b->Bcode = cat(cprolog,b->Bcode);
         }
-        if (config.flags4 & CFG4speed &&
-            config.target_cpu >= TARGET_Pentium &&
-            b->BC != BCasm
-           )
-        {   regm_t scratch;
-
-            scratch = allregs & ~(b->Bregcon.used | b->Bregcon.params | mfuncreg);
-            scratch &= ~(b->Bregcon.immed.mval | b->Bregcon.cse.mval);
-            cgsched_pentium(&b->Bcode,scratch);
-            //printf("after schedule:\n"); WRcodlst(b->Bcode);
-        }
+        cgsched_block(b);
         b->Bsize = calcblksize(b->Bcode);       // calculate block size
         if (b->Balign)
         {   targ_size_t u = b->Balign - 1;

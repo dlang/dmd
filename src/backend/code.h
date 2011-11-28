@@ -912,7 +912,7 @@ int cgreg_assign(Symbol *retsym);
 void cgreg_unregister(regm_t conflict);
 
 // cgsched.c
-void cgsched_pentium(code **pc,regm_t scratch);
+void cgsched_block(block *b);
 
 //      Data and code can be in any number of sections
 //
