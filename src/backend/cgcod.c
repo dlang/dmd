@@ -172,7 +172,9 @@ tryagain:
     retsym = NULL;
 
     regsave.reset();
+#if TX86
     memset(_8087elems,0,sizeof(_8087elems));
+#endif
 
     usednteh = 0;
 #if (MARS) && TARGET_WINDOS
@@ -189,7 +191,9 @@ tryagain:
 #endif
 
     floatreg = FALSE;
+#if TX86
     assert(stackused == 0);             /* nobody in 8087 stack         */
+#endif
     cstop = 0;                          /* no entries in table yet      */
     memset(&regcon,0,sizeof(regcon));
     regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
@@ -566,6 +570,7 @@ tryagain:
 
     util_free(csextab);
     csextab = NULL;
+#if TX86
 #ifdef DEBUG
     if (stackused != 0)
           printf("stackused = %d\n",stackused);
@@ -577,6 +582,7 @@ tryagain:
     NDP::save = NULL;
     NDP::savetop = 0;
     NDP::savemax = 0;
+#endif
 }
 
 

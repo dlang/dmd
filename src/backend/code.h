@@ -516,6 +516,7 @@ struct CSE
 /************************************
  */
 
+#if TX86
 struct NDP
 {
     elem *e;                    // which elem is stored here (NULL if none)
@@ -527,6 +528,7 @@ struct NDP
 };
 
 extern NDP _8087elems[8];
+#endif
 
 /************************************
  * Register save state.
@@ -541,7 +543,7 @@ struct REGSAVE
     unsigned idx;               // current number in use
     int alignment;              // 8 or 16
 
-    void reset();
+    void reset() { off = 0; top = 0; idx = 0; alignment = REGSIZE; }
     code *save(code *c, int reg, unsigned *pidx);
     code *restore(code *c, int reg, unsigned idx);
 };
@@ -842,7 +844,9 @@ cd_t cdscale;
 code *neg87 (elem *e , regm_t *pretregs );
 code *neg_complex87(elem *e, regm_t *pretregs);
 code *cdind87(elem *e,regm_t *pretregs);
+#if TX86
 extern int stackused;
+#endif
 code *cdconvt87(elem *e, regm_t *pretregs);
 code *cload87(elem *e, regm_t *pretregs);
 

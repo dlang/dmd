@@ -192,14 +192,6 @@ static unsigned char inssize2[256] =
  * Allocate register temporaries
  */
 
-void REGSAVE::reset()
-{
-    off = 0;
-    top = 0;
-    idx = 0;
-    alignment = REGSIZE;
-}
-
 code *REGSAVE::save(code *c, int reg, unsigned *pidx)
 {
     unsigned i;
