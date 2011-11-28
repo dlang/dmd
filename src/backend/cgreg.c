@@ -462,39 +462,29 @@ Lcant:
     return -1;                  // can't assign to reg
 }
 
-code* gen_spill_reg(Symbol* s, int inoutp)
+code* gen_spill_reg(Symbol* s, bool toreg)
 {
     code *c;
     code cs;
-    regm_t keepmsk;
+    regm_t keepmsk = toreg ? RMload : RMstore;
     int sz = type_size(s->Stype);
 
     elem* e = el_var(s); // so we can trick getlvalue() into working for us
 
-    if (inoutp == -1)
-    {
-        cs.Iop = 0x89; // MOV mem[ESP],reg
-        keepmsk = RMstore;
-    }
-    else
-    {
-        cs.Iop = 0x8B; // MOV reg,mem[ESP]
-        keepmsk = RMload;
-    }
-
     if (mask[s->Sreglsw] & XMMREGS)
     {   // Convert to save/restore of XMM register
         assert(sz == 4 || sz == 8);                         // float or double
-        if (cs.Iop == 0x89)
-            cs.Iop = (sz == 4) ? 0xF30F11 : 0xF20F11;       // MOVSS/D mem,xreg
-        else
+        if (toreg)
             cs.Iop = (sz == 4) ? 0xF30F10 : 0xF20F10;       // MOVSS/D xreg,mem
+        else
+            cs.Iop = (sz == 4) ? 0xF30F11 : 0xF20F11;       // MOVSS/D mem,xreg
         c = getlvalue(&cs,e,keepmsk);
         cs.orReg(s->Sreglsw - XMM0);
         c = gen(c,&cs);
     }
     else
     {
+        cs.Iop = toreg ? 0x8B : 0x89; // MOV reg,mem[ESP] : MOV mem[ESP],reg
         cs.Iop ^= (sz == 1);
         c = getlvalue(&cs,e,keepmsk);
         cs.orReg(s->Sreglsw);
@@ -521,10 +511,7 @@ code* gen_spill_reg(Symbol* s, int inoutp)
 
 void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
 {
-    int bpi;
-    block *bp;
     list_t bl;
-
     code *cstore = *pcstore;
     code *cload = *pcload;
     int bi = b->Bdfoidx;
@@ -551,8 +538,10 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
     // Look at predecessors to see if we need to load in/out of register
     for (bl = b->Bpred; bl; bl = list_next(bl))
     {
-        bp = list_block(bl);
-        bpi = bp->Bdfoidx;
+      {
+        block *bp = list_block(bl);
+        int bpi = bp->Bdfoidx;
+
         if (!vec_testbit(bpi,s->Srange))
             continue;
         if (vec_testbit(bpi,s->Slvreg))
@@ -565,25 +554,21 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
             if (inoutp != 1)
                 continue;
         }
+      }
 
 Lload:
 #ifdef DEBUG
-        if (inoutp == -1)
+        if (debugr)
         {
-            if (debugr)
+            if (inoutp == -1)
                 printf("B%d: prolog moving %s into '%s'\n",bi,regstring[s->Sreglsw],s->Sident);
-        }
-        else
-        {
-            if (debugr)
-            {
+            else
                 printf("B%d: prolog moving '%s' into %s:%s\n",
                         bi, s->Sident, regstring[s->Sregmsw], sz > REGSIZE ? regstring[s->Sreglsw] : "");
-            }
         }
 #endif
 
-        code* c = gen_spill_reg(s, inoutp);
+        code* c = gen_spill_reg(s, inoutp == 1);
 
         if (inoutp == -1)
             cstore = cat(cstore,c);
@@ -604,15 +589,9 @@ Lload:
 
 void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
 {
-    code *c;
-    code cs;
-    regm_t keepmsk;
-
-    elem *e = NULL;
     code *cstore = *pcstore;
     code *cload = *pcload;
     int bi = b->Bdfoidx;
-    int sz = type_size(s->Stype);
 
     //printf("cgreg_spillreg_epilog(block %d, s = '%s')\n",bi,s->Sident);
     //assert(b->BC == BCgoto);
@@ -634,62 +613,26 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
             continue;
         if (vec_testbit(bpi,s->Slvreg))
         {
-            if (inoutp == -1)
-            {
-                // MOV reg,mem[ESP]
-                cs.Iop = 0x8B;
-                keepmsk = RMload;
-                #ifdef DEBUG
-                if (debugr)
-                    printf("B%d: epilog moving '%s' into %s\n",bi,s->Sident,regstring[s->Sreglsw]);
-                #endif
-            }
-            else
+            if (inoutp != -1)
                 continue;
         }
         else
+        {
+            if (inoutp != 1)
+                continue;
+        }
+
+#ifdef DEBUG
+        if (debugr)
         {
             if (inoutp == 1)
-            {   // MOV mem[ESP],reg
-                cs.Iop = 0x89;
-                keepmsk = RMstore;
-                #ifdef DEBUG
-                if (debugr)
-                    printf("B%d: epilog moving %s into '%s'\n",bi,regstring[s->Sreglsw],s->Sident);
-                #endif
-            }
+                printf("B%d: epilog moving %s into '%s'\n",bi,regstring[s->Sreglsw],s->Sident);
             else
-                continue;
+                printf("B%d: epilog moving '%s' into %s\n",bi,s->Sident,regstring[s->Sreglsw]);
         }
-        if (!e)
-            e = el_var(s);              // so we can trick getlvalue() into
-                                        // working for us
-        if (mask[s->Sreglsw] & XMMREGS)
-        {   // Convert to save/restore of XMM register
-            assert(sz == 4 || sz == 8);                         // float or double
-            if (cs.Iop == 0x89)
-                cs.Iop = (sz == 4) ? 0xF30F11 : 0xF20F11;       // MOVSS/D mem,xreg
-            else
-                cs.Iop = (sz == 4) ? 0xF30F10 : 0xF20F10;       // MOVSS/D xreg,mem
-            c = getlvalue(&cs,e,keepmsk);
-            cs.orReg(s->Sreglsw - XMM0);
-            c = gen(c,&cs);
-        }
-        else
-        {
-            cs.Iop ^= (sz == 1);
-            c = getlvalue(&cs,e,keepmsk);
-            cs.orReg(s->Sreglsw);
-            if (I64 && sz == 1 && s->Sreglsw >= 4)
-                cs.Irex |= REX;
-            c = gen(c,&cs);
-            if (sz > REGSIZE)
-            {
-                cs.setReg(s->Sregmsw);
-                getlvalue_msw(&cs);
-                c = gen(c,&cs);
-            }
-        }
+#endif
+
+        code* c = gen_spill_reg(s, inoutp == -1);
 
         if (inoutp == 1)
             cstore = cat(cstore,c);
@@ -697,7 +640,6 @@ void cgreg_spillreg_epilog(block *b,Symbol *s,code **pcstore,code **pcload)
             cload = cat(cload,c);
         break;
     }
-    el_free(e);
 
     // Store old register values before loading in new ones
     *pcstore = cstore;
