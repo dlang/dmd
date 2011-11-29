@@ -822,6 +822,7 @@ void pop87();
 code *push87 (void );
 code *save87 (void );
 code *save87regs(unsigned n);
+void gensaverestore87(regm_t, code **, code **);
 code *genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset);
 code *genfwait(code *c);
 code *comsub87(elem *e, regm_t *pretregs);
