@@ -428,6 +428,32 @@ code *save87regs(unsigned n)
     return c;
 }
 
+/*****************************************************
+ * Save/restore ST0 or ST01
+ */
+
+void gensaverestore87(regm_t regm, code **csave, code **crestore)
+{
+    //printf("gensaverestore87(%s)\n", regm_str(regm));
+    code *cs1 = *csave;
+    code *cs2 = *crestore;
+    assert(regm == mST0 || regm == mST01);
+
+    int i = getemptyslot();
+    NDP::save[i].e = el_calloc();       // this blocks slot [i] for the life of this function
+    cs1 = ndp_fstp(cs1, i, TYldouble);
+    cs2 = cat(ndp_fld(CNIL, i, TYldouble), cs2);
+    if (regm == mST01)
+    {
+        int j = getemptyslot();
+        NDP::save[j].e = el_calloc();
+        cs1 = ndp_fstp(cs1, j, TYldouble);
+        cs2 = cat(ndp_fld(CNIL, j, TYldouble), cs2);
+    }
+    *csave = cs1;
+    *crestore = cs2;
+}
+
 /*************************************
  * Find which, if any, slot on stack holds elem e.
  */
