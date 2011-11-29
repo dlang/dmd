@@ -4484,6 +4484,8 @@ code *cdpost(elem *e,regm_t *pretregs)
         }
         c2 = allocreg(&retregs,&reg,TYint);
         code_newreg(&cs, reg);
+        if (sz == 1 && I64 && reg >= 4)
+            cs.Irex |= REX;
         c3 = gen(CNIL,&cs);                     /* MOV reg,EA   */
         cs2 = cs;
 
