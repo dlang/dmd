@@ -643,7 +643,7 @@ code *cdeq(elem *e,regm_t *pretregs)
         cl = getlvalue(&cs,e1,RMstore | retregs);       // get lvalue (cl == CNIL if regvar)
     }
 
-  c = getregs_imm(varregm);
+    c = getregs(varregm);
 
   assert(!(retregs & mES && (cs.Iflags & CFSEG) == CFes));
 #if TARGET_SEGMENTED
