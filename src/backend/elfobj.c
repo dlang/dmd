@@ -921,6 +921,7 @@ void *elf_renumbersyms()
                 {
                     unsigned t = ELF64_R_TYPE(rel->r_info);
                     unsigned si = ELF64_R_SYM(rel->r_info);
+                    assert(si < symbol_idx);
                     rel->r_info = ELF64_R_INFO(sym_map[si],t);
                     rel++;
                 }
@@ -933,6 +934,7 @@ void *elf_renumbersyms()
                 {
                     unsigned t = ELF32_R_TYPE(rel->r_info);
                     unsigned si = ELF32_R_IDX(rel->r_info);
+                    assert(si < symbol_idx);
                     rel->r_info = ELF32_R_INFO(sym_map[si],t);
                     rel++;
                 }
