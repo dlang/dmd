@@ -687,6 +687,7 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 #endif
         }
     }
+    s->Sxtrnnum = 0;
     return 0;
 }
 
@@ -700,8 +701,8 @@ void outfixlist()
         fixlist::nodel--;
 #if TERMCODE
         delete fixlist::start;
-        fixlist::start = NULL;
 #endif
+        fixlist::start = NULL;
     }
 }
 
