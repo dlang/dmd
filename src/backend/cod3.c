@@ -2735,7 +2735,7 @@ Lcont:
                     modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
                 if (!I16 && sz == SHORTSIZE)
                     c2->Iflags |= CFopsize; // operand size
-                if (I64 && sz == REGSIZE)
+                if (I64 && sz >= REGSIZE)
                     c2->Irex |= REX_W;
                 if (!hasframe)
                 {   /* Convert to ESP relative address rather than EBP      */

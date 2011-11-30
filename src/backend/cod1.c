@@ -1694,7 +1694,9 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
             if (tyfloating(tym) && sz == 2 * intsize)
                 ce = gen2(ce,0xD1,modregrm(3,4,reg));   // SHL reg,1
             ce = genorreg(ce,reg,findreglsw(regm));     // OR reg,reg+1
-        }
+            if (I64)
+                code_orrex(ce, REX_W);
+       }
         else if (sz == 8)
         {   assert(regm == DOUBLEREGS_16);
             ce = getregs(mAX);                          // allocate AX
