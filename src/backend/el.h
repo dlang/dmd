@@ -172,6 +172,7 @@ elem_p el_longt(type *,targ_llong);
 #else
 elem_p el_longt(type *,targ_long);
 #endif
+symbol *el_alloc_localgot();
 elem_p el_var(symbol *);
 elem_p el_settype(elem_p ,type *);
 elem_p el_typesize(type *);

@@ -1102,6 +1102,35 @@ Lnodep:
 }
 #endif
 
+/***************************************
+ * Allocate localgot symbol.
+ */
+
+symbol *el_alloc_localgot()
+{
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    /* Since localgot is a local variable to each function,
+     * localgot must be set back to NULL
+     * at the start of code gen for each function.
+     */
+    if (I32 && !localgot)
+    {
+        //printf("el_alloc_localgot()\n");
+        char name[15];
+        static int tmpnum;
+        sprintf(name, "_LOCALGOT%d", tmpnum++);
+        localgot = symbol_name(name, SCtmp, type_fake(TYnptr));
+        symbol_add(localgot);
+        localgot->Sfl = FLtmp;
+        localgot->Sflags = SFLfree | SFLunambig | GTregcand;
+    }
+    return localgot;
+#else
+    return NULL;
+#endif
+}
+
+
 /**************************
  * Make an elem out of a symbol, PIC style.
  */
@@ -1145,23 +1174,12 @@ elem *el_picvar(symbol *s)
                 x = 1;
         case_got:
         {
-            if (I32 && !localgot)
-            {
-                //localgot = symbol_generate(SCtmp,type_fake(TYnptr));
-                char name[15];
-                static int tmpnum;
-                sprintf(name, "_LOCALGOT%d", tmpnum++);
-                localgot = symbol_name(name, SCtmp, type_fake(TYnptr));
-                symbol_add(localgot);
-                localgot->Sfl = FLtmp;
-                localgot->Sflags = SFLfree | SFLunambig | GTregcand;
-            }
             int op = e->Eoper;
             tym_t tym = e->Ety;
             e->Eoper = OPrelconst;
             e->Ety = TYnptr;
             if (I32)
-                e = el_bin(OPadd, TYnptr, e, el_var(localgot));
+                e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
 #if 1
             if (s->Stype->Tty & mTYthread)
             {
@@ -1336,22 +1354,12 @@ elem *el_picvar(symbol *s)
             else
                 x = 1;
         case_got:
-        {   if (!localgot)
-            {
-                //localgot = symbol_generate(SCtmp,type_fake(TYnptr));
-                char name[15];
-                static int tmpnum;
-                sprintf(name, "_LOCALGOT%d", tmpnum++);
-                localgot = symbol_name(name, SCtmp, type_fake(TYnptr));
-                symbol_add(localgot);
-                localgot->Sfl = FLtmp;
-                localgot->Sflags = SFLfree | SFLunambig | GTregcand;
-            }
+        {
             int op = e->Eoper;
             tym_t tym = e->Ety;
             e->Eoper = OPrelconst;
             e->Ety = TYnptr;
-            e = el_bin(OPadd, TYnptr, e, el_var(localgot));
+            e = el_bin(OPadd, TYnptr, e, el_var(el_alloc_localgot()));
 
             if (s->Stype->Tty & mTYthread)
             {
@@ -1420,6 +1428,20 @@ elem * el_var(symbol *s)
         !tyfunc(s->ty()))
         // Position Independent Code
         return el_picvar(s);
+#endif
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (config.flags3 & CFG3pic && tyfunc(s->ty()))
+    {
+        switch (s->Sclass)
+        {
+            case SCcomdat:
+            case SCcomdef:
+            case SCglobal:
+            case SCextern:
+                el_alloc_localgot();
+                break;
+        }
+    }
 #endif
     symbol_debug(s);
     type_debug(s->Stype);

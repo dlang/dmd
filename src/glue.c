@@ -50,17 +50,18 @@ void clearStringTab();
 #define STATICCTOR      0
 
 #define C_ONLY          0       // 1 means don't emit references to Phobos
+typedef ArrayBase<symbol> symbols;
 
 elem *eictor;
 symbol *ictorlocalgot;
-elem *ector;
-Array ectorgates;
-elem *edtor;
-elem *etest;
+symbols sctors;
+StaticDtorDeclarations ectorgates;
+symbols sdtors;
+symbols stests;
 
-elem *esharedctor;
-Array esharedctorgates;
-elem *eshareddtor;
+symbols ssharedctors;
+SharedStaticDtorDeclarations esharedctorgates;
+symbols sshareddtors;
 
 int dtorcount;
 int shareddtorcount;
@@ -145,6 +146,67 @@ void obj_write_deferred(Library *library)
     obj_symbols_towrite.dim = 0;
 }
 
+/***********************************************
+ * Generate function that calls array of functions and gates.
+ */
+
+symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ectorgates,
+        const char *id)
+{
+    symbol *sctor = NULL;
+
+    if ((sctors && sctors->dim) ||
+        (ectorgates && ectorgates->dim))
+    {
+        static type *t;
+        if (!t)
+        {
+            /* t will be the type of the functions generated:
+             *      extern (C) void func();
+             */
+            t = type_alloc(TYnfunc);
+            t->Tflags |= TFprototype | TFfixed;
+            t->Tmangle = mTYman_c;
+            t->Tnext = tsvoid;
+            tsvoid->Tcount++;
+        }
+
+        localgot = NULL;
+        sctor = m->toSymbolX(id, SCglobal, t, "FZv");
+        cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
+        elem *ector = NULL;
+
+        if (ectorgates)
+        {
+            for (size_t i = 0; i < ectorgates->dim; i++)
+            {   StaticDtorDeclaration *f = (*ectorgates)[i];
+
+                Symbol *s = f->vgate->toSymbol();
+                elem *e = el_var(s);
+                e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
+                ector = el_combine(ector, e);
+            }
+        }
+
+        if (sctors)
+        {
+            for (size_t i = 0; i < sctors->dim; i++)
+            {   symbol *s = (*sctors)[i];
+                elem *e = el_una(OPucall, TYvoid, el_var(s));
+                ector = el_combine(ector, e);
+            }
+        }
+
+        block *b = block_calloc();
+        b->BC = BCret;
+        b->Belem = ector;
+        sctor->Sfunc->Fstartline.Sfilename = m->arg;
+        sctor->Sfunc->Fstartblock = b;
+        writefunc(sctor);
+    }
+    return sctor;
+}
+
 /**************************************
  * Prepare for generating obj file.
  */
@@ -211,13 +273,13 @@ void Module::genobjfile(int multiobj)
 
     eictor = NULL;
     ictorlocalgot = NULL;
-    ector = NULL;
+    sctors.setDim(0);
     ectorgates.setDim(0);
-    edtor = NULL;
-    esharedctor = NULL;
+    sdtors.setDim(0);
+    ssharedctors.setDim(0);
     esharedctorgates.setDim(0);
-    eshareddtor = NULL;
-    etest = NULL;
+    sshareddtors.setDim(0);
+    stests.setDim(0);
     dtorcount = 0;
     shareddtorcount = 0;
 
@@ -326,19 +388,9 @@ void Module::genobjfile(int multiobj)
     }
 
     // If coverage / static constructor / destructor / unittest calls
-    if (eictor || ector || edtor || etest)
+    if (eictor || sctors.dim || ectorgates.dim || sdtors.dim ||
+        ssharedctors.dim || esharedctorgates.dim || sshareddtors.dim || stests.dim)
     {
-        /* t will be the type of the functions generated:
-         *      extern (C) void func();
-         */
-        type *t = type_alloc(TYnfunc);
-        t->Tflags |= TFprototype | TFfixed;
-        t->Tmangle = mTYman_c;
-        t->Tnext = tsvoid;
-        tsvoid->Tcount++;
-
-        static char moddeco[] = "FZv";
-
         if (eictor)
         {
             localgot = ictorlocalgot;
@@ -351,100 +403,14 @@ void Module::genobjfile(int multiobj)
             writefunc(sictor);
         }
 
-        if (ector)
-        {
-            localgot = NULL;
-            sctor = toSymbolX("__modctor", SCglobal, t, moddeco);
-#if DMDV2
-            cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
-
-            for (size_t i = 0; i < ectorgates.dim; i++)
-            {   StaticDtorDeclaration *f = ectorgates.tdata()[i];
-
-                Symbol *s = f->vgate->toSymbol();
-                elem *e = el_var(s);
-                e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
-                ector = el_combine(ector, e);
-            }
-#endif
-
-            block *b = block_calloc();
-            b->BC = BCret;
-            b->Belem = ector;
-            sctor->Sfunc->Fstartline.Sfilename = arg;
-            sctor->Sfunc->Fstartblock = b;
-            writefunc(sctor);
-#if STATICCTOR
-            obj_staticctor(sctor, dtorcount, 1);
-#endif
-        }
-
-        if (edtor)
-        {
-            localgot = NULL;
-            sdtor = toSymbolX("__moddtor", SCglobal, t, moddeco);
-
-            block *b = block_calloc();
-            b->BC = BCret;
-            b->Belem = edtor;
-            sdtor->Sfunc->Fstartline.Sfilename = arg;
-            sdtor->Sfunc->Fstartblock = b;
-            writefunc(sdtor);
-        }
+        sctor = callFuncsAndGates(this, &sctors, &ectorgates, "__modctor");
+        sdtor = callFuncsAndGates(this, &sdtors, NULL, "__moddtor");
 
 #if DMDV2
-        if (esharedctor || esharedctorgates.dim)
-        {
-            localgot = NULL;
-            ssharedctor = toSymbolX("__modsharedctor", SCglobal, t, moddeco);
-            cstate.CSpsymtab = &ssharedctor->Sfunc->Flocsym;
-
-            for (size_t i = 0; i < esharedctorgates.dim; i++)
-            {   SharedStaticDtorDeclaration *f = esharedctorgates.tdata()[i];
-
-                Symbol *s = f->vgate->toSymbol();
-                elem *e = el_var(s);
-                e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
-                esharedctor = el_combine(esharedctor, e);
-            }
-
-            block *b = block_calloc();
-            b->BC = BCret;
-            b->Belem = esharedctor;
-            ssharedctor->Sfunc->Fstartline.Sfilename = arg;
-            ssharedctor->Sfunc->Fstartblock = b;
-            writefunc(ssharedctor);
-#if STATICCTOR
-            obj_staticctor(ssharedctor, shareddtorcount, 1);
+        ssharedctor = callFuncsAndGates(this, &ssharedctors, (StaticDtorDeclarations *)&esharedctorgates, "__modsharedctor");
+        sshareddtor = callFuncsAndGates(this, &sshareddtors, NULL, "__modshareddtor");
 #endif
-        }
-
-        if (eshareddtor)
-        {
-            localgot = NULL;
-            sshareddtor = toSymbolX("__modshareddtor", SCglobal, t, moddeco);
-
-            block *b = block_calloc();
-            b->BC = BCret;
-            b->Belem = eshareddtor;
-            sshareddtor->Sfunc->Fstartline.Sfilename = arg;
-            sshareddtor->Sfunc->Fstartblock = b;
-            writefunc(sshareddtor);
-        }
-#endif
-
-        if (etest)
-        {
-            localgot = NULL;
-            stest = toSymbolX("__modtest", SCglobal, t, moddeco);
-
-            block *b = block_calloc();
-            b->BC = BCret;
-            b->Belem = etest;
-            stest->Sfunc->Fstartline.Sfilename = arg;
-            stest->Sfunc->Fstartblock = b;
-            writefunc(stest);
-        }
+        stest = callFuncsAndGates(this, &stests, NULL, "__modtest");
 
         if (doppelganger)
             genmoduleinfo();
@@ -945,28 +911,19 @@ void FuncDeclaration::toObjFile(int multiobj)
 #if DMDV2
     if (isSharedStaticCtorDeclaration())        // must come first because it derives from StaticCtorDeclaration
     {
-        elem *e = el_una(OPucall, TYvoid, el_var(s));
-        esharedctor = el_combine(esharedctor, e);
+        ssharedctors.push(s);
     }
     else
 #endif
     if (isStaticCtorDeclaration())
     {
-        elem *e = el_una(OPucall, TYvoid, el_var(s));
-        ector = el_combine(ector, e);
+        sctors.push(s);
     }
 
     // If static destructor
 #if DMDV2
     if (isSharedStaticDtorDeclaration())        // must come first because it derives from StaticDtorDeclaration
     {
-        elem *e;
-
-#if STATICCTOR
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_FATEXIT]), el_ptr(s));
-        esharedctor = el_combine(esharedctor, e);
-        shareddtorcount++;
-#else
         SharedStaticDtorDeclaration *f = isSharedStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
@@ -975,42 +932,27 @@ void FuncDeclaration::toObjFile(int multiobj)
             esharedctorgates.push(f);
         }
 
-        e = el_una(OPucall, TYvoid, el_var(s));
-        eshareddtor = el_combine(e, eshareddtor);
-#endif
+        sshareddtors.shift(s);
     }
     else
 #endif
     if (isStaticDtorDeclaration())
     {
-        elem *e;
-
-#if STATICCTOR
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_FATEXIT]), el_ptr(s));
-        ector = el_combine(ector, e);
-        dtorcount++;
-#else
         StaticDtorDeclaration *f = isStaticDtorDeclaration();
         assert(f);
         if (f->vgate)
         {   /* Increment destructor's vgate at construction time
              */
-            Symbol *s = f->vgate->toSymbol();
-            e = el_var(s);
-            e = el_bin(OPaddass, TYint, e, el_long(TYint, 1));
-            ector = el_combine(ector, e);
+            ectorgates.push(f);
         }
 
-        e = el_una(OPucall, TYvoid, el_var(s));
-        edtor = el_combine(e, edtor);
-#endif
+        sdtors.shift(s);
     }
 
     // If unit test
     if (isUnitTestDeclaration())
     {
-        elem *e = el_una(OPucall, TYvoid, el_var(s));
-        etest = el_combine(etest, e);
+        stests.push(s);
     }
 
     if (global.errors)
