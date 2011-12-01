@@ -1405,7 +1405,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         pcs->Irm = modregrm(0,0,BPRM);
     L2:
         if (fl == FLreg)
-        {   assert(s->Sregm & regcon.mvar);
+        {
+#ifdef DEBUG
+            if (!(s->Sregm & regcon.mvar)) symbol_print(s);
+#endif
+            assert(s->Sregm & regcon.mvar);
 
             /* Attempting to paint a float as an integer or an integer as a float
              * will cause serious problems since the EA is loaded separatedly from
@@ -2754,13 +2758,17 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
                 fl = el_fl(e1);
             if (tym1 == TYifunc)
                 c1 = gen1(c1,0x9C);                             // PUSHF
-#if 0 && TARGET_LINUX
-            if (s->Sfl == FLgot || s->Sfl == FLgotoff)
-                fl = s->Sfl;
+            ce = CNIL;
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            if (s != tls_get_addr_sym)
+            {
+                //printf("call %s\n", s->Sident);
+                ce = load_localgot();
+            }
 #endif
-            ce = gencs(CNIL,farfunc ? 0x9A : 0xE8,0,fl,s);      // CALL extern
+            ce = gencs(ce,farfunc ? 0x9A : 0xE8,0,fl,s);      // CALL extern
             ce->Iflags |= farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff);
-#if TARGET_LINUX
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (s == tls_get_addr_sym)
             {
                 if (I32)

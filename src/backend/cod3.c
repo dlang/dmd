@@ -1671,6 +1671,38 @@ code *cdgot(elem *e, regm_t *pretregs)
 #endif
 }
 
+/**************************************************
+ * Load contents of localgot into EBX.
+ */
+
+code *load_localgot()
+{
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (config.flags3 & CFG3pic && I32)
+    {
+        if (localgot)
+        {
+            localgot->Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
+            elem *e = el_var(localgot);
+            regm_t retregs = mBX;
+            code *c = codelem(e,&retregs,FALSE);
+            el_free(e);
+            return c;
+        }
+        else
+        {
+            elem *e = el_long(TYnptr, 0);
+            e->Eoper = OPgot;
+            regm_t retregs = mBX;
+            code *c = codelem(e,&retregs,FALSE);
+            el_free(e);
+            return c;
+        }
+    }
+#endif
+    return NULL;
+}
+
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 /*****************************
  * Returns:

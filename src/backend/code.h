@@ -753,6 +753,7 @@ code *prolog (void );
 void epilog (block *b);
 cd_t cdframeptr;
 cd_t cdgot;
+code *load_localgot();
 targ_size_t cod3_spoff();
 code *cod3_load_got();
 void makeitextern (symbol *s );
