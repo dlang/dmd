@@ -60,7 +60,7 @@ alias uint      uint_fast16_t;
 alias uint      uint_fast32_t;
 alias ulong     uint_fast64_t;
 
-version( X86_64 )
+version( D_LP64 )
 {
     alias long  intptr_t;
     alias ulong uintptr_t;

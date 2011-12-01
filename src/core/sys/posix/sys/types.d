@@ -169,19 +169,7 @@ pthread_t
 
 version( linux )
 {
-    version(X86)
-    {
-        enum __SIZEOF_PTHREAD_ATTR_T = 36;
-        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
-        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
-        enum __SIZEOF_PTHREAD_COND_T = 48;
-        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
-        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
-        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
-        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
-        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
-    }
-    else version(X86_64)
+    version(D_LP64)
     {
         enum __SIZEOF_PTHREAD_ATTR_T = 56;
         enum __SIZEOF_PTHREAD_MUTEX_T = 40;
@@ -191,6 +179,18 @@ version( linux )
         enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
         enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
         enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
         enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
     }
 
@@ -254,7 +254,7 @@ version( linux )
 }
 else version( OSX )
 {
-    version( X86_64 )
+    version( D_LP64 )
     {
         enum __PTHREAD_SIZE__               = 1168;
         enum __PTHREAD_ATTR_SIZE__          = 56;
@@ -266,7 +266,7 @@ else version( OSX )
         enum __PTHREAD_RWLOCK_SIZE__        = 192;
         enum __PTHREAD_RWLOCKATTR_SIZE__    = 16;
     }
-    else version( X86 )
+    else
     {
         enum __PTHREAD_SIZE__               = 596;
         enum __PTHREAD_ATTR_SIZE__          = 36;

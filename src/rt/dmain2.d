@@ -213,12 +213,12 @@ extern (C)
 extern (C) void _d_hidden_func()
 {
     Object o;
-    version(X86)
+    version(D_InlineAsm_X86)
         asm
         {
             mov o, EAX;
         }
-    else version(X86_64)
+    else version(D_InlineAsm_X86_64)
         asm
         {
             mov o, RDI;
