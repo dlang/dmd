@@ -3532,6 +3532,19 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
         ei = ei->optimize(WANTvalue | WANTinterpret);
     }
 
+    //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
+    vt = valType->semantic(0, sc);
+    //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
+    //printf("vt = %s\n", vt->toChars());
+
+    if (ei->type)
+    {
+        m = (MATCH)ei->implicitConvTo(vt);
+        //printf("m: %d\n", m);
+        if (!m)
+            goto Lnomatch;
+    }
+
     if (specValue)
     {
         if (!ei || ei == edummy)
@@ -3546,6 +3559,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
         ei = ei->syntaxCopy();
         ei = ei->semantic(sc);
+        ei = ei->implicitCastTo(sc, vt);
         ei = ei->optimize(WANTvalue | WANTinterpret);
         //ei->type = ei->type->toHeadMutable();
         //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
@@ -3553,28 +3567,19 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
         if (!ei->equals(e))
             goto Lnomatch;
     }
-    else if (dedtypes->tdata()[i])
-    {   // Must match already deduced value
-        Expression *e = (Expression *)dedtypes->tdata()[i];
-
-        if (!ei || !ei->equals(e))
-            goto Lnomatch;
-    }
-
-    //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
-    vt = valType->semantic(0, sc);
-    //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
-    //printf("vt = %s\n", vt->toChars());
-    if (ei->type)
+    else
     {
-        m = (MATCH)ei->implicitConvTo(vt);
-        //printf("m: %d\n", m);
-        if (!m)
-            goto Lnomatch;
+        if (dedtypes->tdata()[i])
+        {   // Must match already deduced value
+            Expression *e = (Expression *)dedtypes->tdata()[i];
+
+            if (!ei || !ei->equals(e))
+                goto Lnomatch;
+        }
         else if (m != MATCHexact)
         {
             ei = ei->implicitCastTo(sc, vt);
-            ei = ei->optimize(WANTvalue);
+            ei = ei->optimize(WANTvalue | WANTinterpret);
         }
     }
     dedtypes->tdata()[i] = ei;

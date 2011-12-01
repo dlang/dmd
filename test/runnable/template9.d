@@ -516,6 +516,23 @@ struct TS6806(size_t n) { pragma(msg, typeof(n)); }
 static assert(is(TS6806!(1u) == TS6806!(1)));
 
 /**********************************/
+// 2550
+
+template pow10_2550(long n)
+{
+    const long pow10_2550 = 0;
+    static if (n < 0)
+        const long pow10_2550 = 0;
+    else
+        const long pow10_2550 = 10 * pow10_2550!(n - 1);
+}
+template pow10_2550(long n:0)
+{
+    const long pow10_2550 = 1;
+}
+static assert(pow10_2550!(0) == 1);
+
+/**********************************/
 
 int main()
 {
