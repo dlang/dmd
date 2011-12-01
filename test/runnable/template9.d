@@ -620,6 +620,21 @@ template Foo3092(A...)
 static assert(is(Foo3092!(int, "foo") == int));
 
 /**********************************/
+// 7037
+
+struct Foo7037 {}
+struct Bar7037 { Foo7037 f; alias f this; }
+void works7037( T )( T value ) if ( is( T : Foo7037 ) ) {}
+void doesnotwork7037( T : Foo7037 )( T value ) {}
+
+void test7037()
+{
+   Bar7037 b;
+   works7037( b );
+   doesnotwork7037( b );
+}
+
+/**********************************/
 
 int main()
 {
@@ -648,6 +663,7 @@ int main()
     test6994();
     test3467();
     test10();
+    test7037();
 
     printf("Success\n");
     return 0;
