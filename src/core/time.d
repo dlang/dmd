@@ -2596,9 +2596,9 @@ public:
         auto fs = FracSec(12);
         const cfs = FracSec(12);
         immutable ifs = FracSec(12);
-        assert(fs.toString == "12 hnsecs");
-        assert(cfs.toString == "12 hnsecs");
-        assert(ifs.toString == "12 hnsecs");
+        assert(fs.toString() == "12 hnsecs");
+        assert(cfs.toString() == "12 hnsecs");
+        assert(ifs.toString() == "12 hnsecs");
     }
 
 
