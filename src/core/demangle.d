@@ -132,18 +132,14 @@ private struct Demangle
 
     static ubyte ascii2hex( char val )
     {
-        switch( val )
-        {
-        case 'a': .. case 'f':
+        if (val >= 'a' && val <= 'f')
             return cast(ubyte)(val - 'a' + 10);
-        case 'A': .. case 'F':
+        if (val >= 'A' && val <= 'F')
             return cast(ubyte)(val - 'A' + 10);
-        case '0': .. case '9':
+        if (val >= '0' && val <= '9')
             return cast(ubyte)(val - '0');
-        default:
-            error();
-            return 0;
-        }
+        error();
+        return 0;
     }
 
 
@@ -337,14 +333,11 @@ private struct Demangle
 
         while( true )
         {
-            switch( tok() )
-            {
-            case '0': .. case '9':
+            auto t = tok();
+            if (t >= '0' && t <= '9')
                 next();
-                continue;
-            default:
+            else
                 return buf[beg .. pos];
-            }
         }
     }
 
@@ -655,11 +648,38 @@ private struct Demangle
     */
     char[] parseType( char[] name = null )
     {
+        static immutable string[23] primitives = [
+            "char", // a
+            "bool", // b
+            "creal", // c
+            "double", // d
+            "real", // e
+            "float", // f
+            "byte", // g
+            "ubyte", // h
+            "int", // i
+            "ireal", // j
+            "uint", // k
+            "long", // l
+            "ulong", // m
+            null, // n
+            "ifloat", // o
+            "idouble", // p
+            "cfloat", // q
+            "cdouble", // r
+            "short", // s
+            "ushort", // t
+            "wchar", // u
+            "void", // v
+            "dchar", // w
+        ];
+
         debug(trace) printf( "parseType+\n" );
         debug(trace) scope(success) printf( "parseType-\n" );
         auto beg = len;
+        auto t = tok();
 
-        switch( tok() )
+        switch( t )
         {
         case 'O': // Shared (O Type)
             next();
@@ -752,122 +772,20 @@ private struct Demangle
             next();
             // TODO: Anything needed here?
             return dst[beg .. len];
-        case 'v': // TypeVoid (v)
-            next();
-            put( "void" );
-            pad( name );
-            return dst[beg .. len];
-        case 'g': // TypeByte (g)
-            next();
-            put( "byte" );
-            pad( name );
-            return dst[beg .. len];
-        case 'h': // TypeUbyte (h)
-            next();
-            put( "ubyte" );
-            pad( name );
-            return dst[beg .. len];
-        case 's': // TypeShort (s)
-            next();
-            put( "short" );
-            pad( name );
-            return dst[beg .. len];
-        case 't': // TypeUshort (t)
-            next();
-            put( "ushort" );
-            pad( name );
-            return dst[beg .. len];
-        case 'i': // TypeInt (i)
-            next();
-            put( "int" );
-            pad( name );
-            return dst[beg .. len];
-        case 'k': // TypeUint (k)
-            next();
-            put( "uint" );
-            pad( name );
-            return dst[beg .. len];
-        case 'l': // TypeLong (l)
-            next();
-            put( "long" );
-            pad( name );
-            return dst[beg .. len];
-        case 'm': // TypeUlong (m)
-            next();
-            put( "ulong" );
-            pad( name );
-            return dst[beg .. len];
-        case 'f': // TypeFloat (f)
-            next();
-            put( "float" );
-            pad( name );
-            return dst[beg .. len];
-        case 'd': // TypeDouble (d)
-            next();
-            put( "double" );
-            pad( name );
-            return dst[beg .. len];
-        case 'e': // TypeReal (e)
-            next();
-            put( "real" );
-            pad( name );
-            return dst[beg .. len];
-        case 'o': // TypeIfloat (o)
-            next();
-            put( "ifloat" );
-            pad( name );
-            return dst[beg .. len];
-        case 'p': // TypeIdouble (p)
-            next();
-            put( "idouble" );
-            pad( name );
-            return dst[beg .. len];
-        case 'j': // TypeIreal (j)
-            next();
-            put( "ireal" );
-            pad( name );
-            return dst[beg .. len];
-        case 'q': // TypeCfloat (q)
-            next();
-            put( "cfloat" );
-            pad( name );
-            return dst[beg .. len];
-        case 'r': // TypeCdouble (r)
-            next();
-            put( "cdouble" );
-            pad( name );
-            return dst[beg .. len];
-        case 'c': // TypeCreal (c)
-            next();
-            put( "creal" );
-            pad( name );
-            return dst[beg .. len];
-        case 'b': // TypeBool (b)
-            next();
-            put( "bool" );
-            pad( name );
-            return dst[beg .. len];
-        case 'a': // TypeChar (a)
-            next();
-            put( "char" );
-            pad( name );
-            return dst[beg .. len];
-        case 'u': // TypeWchar (u)
-            next();
-            put( "wchar" );
-            pad( name );
-            return dst[beg .. len];
-        case 'w': // TypeDchar (w)
-            next();
-            put( "dchar" );
-            pad( name );
-            return dst[beg .. len];
         case 'B': // TypeTuple (B Number Arguments)
             next();
             // TODO: Handle this.
             return dst[beg .. len];
         default:
-            error(); return null;
+            if (t >= 'a' && t <= 'w')
+            {
+                next();
+                put( primitives[cast(size_t)(t - 'a')] );
+                pad( name );
+                return dst[beg .. len];
+            }
+            error();
+            return null;
         }
     }
 
