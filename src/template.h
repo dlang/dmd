@@ -159,6 +159,8 @@ struct TemplateTypeParameter : TemplateParameter
     Type *specType;     // type parameter: if !=NULL, this is the type specialization
     Type *defaultType;
 
+    static Type *tdummy;
+
     TemplateTypeParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
 
     TemplateTypeParameter *isTemplateTypeParameter();

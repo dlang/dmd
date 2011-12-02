@@ -3012,6 +3012,8 @@ TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
 
 // type-parameter
 
+Type *TemplateTypeParameter::tdummy = NULL;
+
 TemplateTypeParameter::TemplateTypeParameter(Loc loc, Identifier *ident, Type *specType,
         Type *defaultType)
     : TemplateParameter(loc, ident)
@@ -3137,6 +3139,9 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
 
     if (specType)
     {
+        if (!ta || ta == tdummy)
+            goto Lnomatch;
+
         //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
         MATCH m2 = ta->deduceType(sc, specType, parameters, dedtypes);
         if (m2 == MATCHnomatch)
@@ -3228,7 +3233,9 @@ void *TemplateTypeParameter::dummyArg()
         t = specType;
     else
     {   // Use this for alias-parameter's too (?)
-        t = new TypeIdentifier(loc, ident);
+        if (!tdummy)
+            tdummy = new TypeIdentifier(loc, ident);
+        t = tdummy;
     }
     return (void *)t;
 }
