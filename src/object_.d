@@ -924,7 +924,7 @@ class TypeInfo_Struct : TypeInfo
         return this is o ||
                 ((s = cast(TypeInfo_Struct)o) !is null &&
                  this.name == s.name &&
-                 this.init.length == s.init.length);
+                 this.init().length == s.init().length);
     }
 
     override hash_t getHash(in void* p)
@@ -938,7 +938,7 @@ class TypeInfo_Struct : TypeInfo
         else
         {
             debug(PRINTF) printf("getHash() using default hash\n");
-            return hashOf(p, init.length);
+            return hashOf(p, init().length);
         }
     }
 
@@ -952,7 +952,7 @@ class TypeInfo_Struct : TypeInfo
             return true;
         else
             // BUG: relies on the GC not moving objects
-            return memcmp(p1, p2, init.length) == 0;
+            return memcmp(p1, p2, init().length) == 0;
     }
 
     override int compare(in void* p1, in void* p2)
@@ -968,7 +968,7 @@ class TypeInfo_Struct : TypeInfo
                     return (*xopCmp)(p2, p1);
                 else
                     // BUG: relies on the GC not moving objects
-                    return memcmp(p1, p2, init.length);
+                    return memcmp(p1, p2, init().length);
             }
             else
                 return -1;
@@ -978,7 +978,7 @@ class TypeInfo_Struct : TypeInfo
 
     @property override size_t tsize() nothrow pure
     {
-        return init.length;
+        return init().length;
     }
 
     override void[] init() nothrow pure { return m_init; }
@@ -1153,7 +1153,7 @@ class TypeInfo_Const : TypeInfo
 
     @property override TypeInfo next() nothrow pure { return base.next; }
     @property override uint flags() nothrow pure { return base.flags; }
-    override void[] init() nothrow pure { return base.init; }
+    override void[] init() nothrow pure { return base.init(); }
 
     @property override size_t talign() nothrow pure { return base.talign(); }
 
@@ -2614,7 +2614,7 @@ version(unittest) unittest
                destroyed ++;
            }
        }
-       
+
        struct B
        {
            C c;
