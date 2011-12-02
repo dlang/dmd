@@ -1164,7 +1164,16 @@ void obj_term()
             sechdr->sh_size = seg->SDrel->size();
             sechdr->sh_offset = foffset;
             if (I64)
+            {
                 assert(seg->SDrelcnt == seg->SDrel->size() / sizeof(Elf64_Rela));
+#ifdef DEBUG
+                for (size_t i = 0; i < seg->SDrelcnt; ++i)
+                {   Elf64_Rela *p = ((Elf64_Rela *)seg->SDrel->buf) + i;
+                    if (ELF64_R_TYPE(p->r_info) == R_X86_64_64)
+                        assert(*(Elf64_Xword *)(seg->SDbuf->buf + p->r_offset) == 0);
+                }
+#endif
+            }
             else
                 assert(seg->SDrelcnt == seg->SDrel->size() / sizeof(Elf32_Rel));
             fobjbuf->write(seg->SDrel->buf, sechdr->sh_size);
