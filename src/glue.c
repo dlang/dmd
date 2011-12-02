@@ -302,8 +302,7 @@ void Module::genobjfile(int multiobj)
                 objextdef(s->Sident);
 #else
 #if ELFOBJ || MACHOBJ
-                int nbytes = reftoident(DATA, Offset(DATA), s, 0, CFoff);
-                Offset(DATA) += nbytes;
+                int nbytes = reftoident(DATA, Offset(DATA), s, 0, I64 ? (CFoff | CFoffset64) : CFoff);
 #else
                 int nbytes = reftoident(DATA, Doffset, s, 0, CFoff);
                 Doffset += nbytes;
