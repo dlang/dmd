@@ -174,7 +174,7 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
         sctor = m->toSymbolX(id, SCglobal, t, "FZv");
         cstate.CSpsymtab = &sctor->Sfunc->Flocsym;
         elem *ector = NULL;
-#if DMDV2
+
         if (ectorgates)
         {
             for (size_t i = 0; i < ectorgates->dim; i++)
@@ -186,7 +186,6 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
                 ector = el_combine(ector, e);
             }
         }
-#endif
 
         if (sctors)
         {
@@ -302,8 +301,7 @@ void Module::genobjfile(int multiobj)
                 objextdef(s->Sident);
 #else
 #if ELFOBJ || MACHOBJ
-                int nbytes = reftoident(DATA, Offset(DATA), s, 0, CFoff);
-                Offset(DATA) += nbytes;
+                int nbytes = reftoident(DATA, Offset(DATA), s, 0, I64 ? (CFoff | CFoffset64) : CFoff);
 #else
                 int nbytes = reftoident(DATA, Doffset, s, 0, CFoff);
                 Doffset += nbytes;
