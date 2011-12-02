@@ -2471,8 +2471,8 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
             if (flags & CFoffset64)
             {
                 relinfo = R_X86_64_64;
-                elf_addrel(seg, offset, relinfo, STI_RODAT, v);
-                buf->write64(val);
+                elf_addrel(seg, offset, relinfo, STI_RODAT, val);
+                buf->write64(0);
                 if (save > offset + 8)
                     buf->setsize(save);
                 return;
@@ -2631,12 +2631,17 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             if (flags & CFoffset64 && relinfo == R_X86_64_32)
             {
                 relinfo = R_X86_64_64;
+                elf_addrel(seg,offset,relinfo,STI_RODAT,val + s->Soffset);
+                buf->write64(0);
             }
-            elf_addrel(seg,offset,relinfo,STI_RODAT,v);
-            if (retsize == 8)
-                buf->write64(val + s->Soffset);
             else
-                buf->write32(val + s->Soffset);
+            {
+                elf_addrel(seg,offset,relinfo,STI_RODAT,v);
+                if (retsize == 8)
+                    buf->write64(val + s->Soffset);
+                else
+                    buf->write32(val + s->Soffset);
+            }
             break;
 
         case SCcomdat:
@@ -2770,12 +2775,15 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                             }
                         }
                     }
+                    targ_size_t v = 0;
                     if (flags & CFoffset64 && relinfo == R_X86_64_32)
                     {
+                        // The value to be added must only reside in the 64 bit addend.
                         relinfo = R_X86_64_64;
+                        v = val;
+                        val = 0;
                     }
                     //printf("\t\t************* adding relocation\n");
-                    targ_size_t v = 0;
                     if (I64 && retsize == 4)
                     {
                         assert(retsize == 4);
@@ -2792,6 +2800,7 @@ int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                     if (relinfo == R_X86_64_PC32 && flags & CFaddend8)
                         v = -8;
 #endif
+                    assert(!(I64 && relinfo == R_X86_64_64) || val == 0);
                     elf_addrel(seg,offset,relinfo,refseg,v);
                 }
 outaddrval:
@@ -3015,10 +3024,15 @@ void obj_moduleinfo(Symbol *scc)
 
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (I64)
-        buf->write64(codeOffset);
+    {
+        elf_addrel(seg, SegData[seg]->SDoffset, R_X86_64_64, STI_TEXT, codeOffset);
+        buf->write64(0);
+    }
     else
+    {
+        elf_addrel(seg, SegData[seg]->SDoffset, RI_TYPE_SYM32, STI_TEXT, 0);
         buf->write32(codeOffset);
-    elf_addrel(seg, SegData[seg]->SDoffset, I64 ? R_X86_64_64 : RI_TYPE_SYM32, STI_TEXT, 0);
+    }
     SegData[seg]->SDoffset += NPTRSIZE;
 }
 
