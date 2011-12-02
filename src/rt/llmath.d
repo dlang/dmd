@@ -276,6 +276,8 @@ L12:        jmp     __ULDIV__       ;
  * Returns result in flags
  */
 
+version (none) // dmd inlines this now
+{
 void __LCMP__()
 {
     version (D_InlineAsm_X86)
@@ -304,7 +306,7 @@ C1:         ret                     ;
     else
         static assert(0);
 }
-
+}
 
 
 
