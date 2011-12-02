@@ -144,7 +144,7 @@ struct TemplateParameter
 
     /* Match actual argument against parameter.
      */
-    virtual MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam, int flags = 0) = 0;
+    virtual MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
 
     /* Create dummy argument based on parameter.
      */
@@ -172,7 +172,7 @@ struct TemplateTypeParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam, int flags);
+    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -216,7 +216,7 @@ struct TemplateValueParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam, int flags);
+    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -243,7 +243,7 @@ struct TemplateAliasParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam, int flags);
+    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -264,7 +264,7 @@ struct TemplateTupleParameter : TemplateParameter
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
-    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam, int flags);
+    MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
