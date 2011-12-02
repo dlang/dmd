@@ -3099,7 +3099,6 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
         Declaration **psparam)
 {
     //printf("TemplateTypeParameter::matchArg()\n");
-    Type *t;
     Object *oarg;
     MATCH m = MATCHexact;
     Type *ta;
@@ -3128,8 +3127,6 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     }
     //printf("ta is %s\n", ta->toChars());
 
-    t = (Type *)dedtypes->tdata()[i];
-
     if (specType)
     {
         if (!ta || ta == tdummy)
@@ -3144,30 +3141,29 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
 
         if (m2 < m)
             m = m2;
-        t = (Type *)dedtypes->tdata()[i];
+        if (dedtypes->tdata()[i])
+            ta = (Type *)dedtypes->tdata()[i];
     }
     else
     {
-        // So that matches with specializations are better
-        m = MATCHconvert;
-
-        if (t)
+        if (dedtypes->tdata()[i])
         {   // Must match already deduced type
+            Type *t = (Type *)dedtypes->tdata()[i];
 
-            m = MATCHexact;
             if (!t->equals(ta))
             {   //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
                 goto Lnomatch;
             }
         }
+        else
+        {
+            // So that matches with specializations are better
+            m = MATCHconvert;
+        }
     }
+    dedtypes->tdata()[i] = ta;
 
-    if (!t)
-    {
-        dedtypes->tdata()[i] = ta;
-        t = ta;
-    }
-    *psparam = new AliasDeclaration(loc, ident, t);
+    *psparam = new AliasDeclaration(loc, ident, ta);
     //printf("\tm = %d\n", m);
     return m;
 
