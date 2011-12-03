@@ -459,7 +459,7 @@ void clear(T)(ref T obj) if (is(T == struct))
 {
     typeid(T).destroy(&obj);
     auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
-    auto init = cast(ubyte[])typeid(T).init;
+    auto init = cast(ubyte[])typeid(T).init();
     if(init.ptr is null) // null ptr means initialize to 0s
         buf[] = 0;
     else
