@@ -75,7 +75,7 @@ struct addrinfo
     int         ai_protocol;
     socklen_t   ai_addrlen;
     sockaddr*   ai_addr;
-    char*       ai_canonname; 
+    char*       ai_canonname;
     addrinfo*   ai_next;
 }
 
@@ -141,7 +141,7 @@ version( linux )
         int     h_addrtype;
         int     h_length;
         char**  h_addr_list;
-        char*   h_addr() { return h_addr_list[0]; } // non-standard
+        char*   h_addr() @property { return h_addr_list[0]; } // non-standard
     }
 
     struct netent
@@ -184,7 +184,7 @@ version( linux )
         int         ai_protocol;
         socklen_t   ai_addrlen;
         sockaddr*   ai_addr;
-        char*       ai_canonname; 
+        char*       ai_canonname;
         addrinfo*   ai_next;
     }
 
@@ -225,7 +225,7 @@ else version( OSX )
         int     h_addrtype;
         int     h_length;
         char**  h_addr_list;
-        char*   h_addr() { return h_addr_list[0]; } // non-standard
+        char*   h_addr() @property { return h_addr_list[0]; } // non-standard
     }
 
     struct netent
@@ -268,7 +268,7 @@ else version( OSX )
         int         ai_protocol;
         socklen_t   ai_addrlen;
         char*       ai_canonname;
-        sockaddr*   ai_addr; 
+        sockaddr*   ai_addr;
         addrinfo*   ai_next;
     }
 
@@ -309,7 +309,7 @@ else version( FreeBSD )
         int     h_addrtype;
         int     h_length;
         char**  h_addr_list;
-        char*   h_addr() { return h_addr_list[0]; } // non-standard
+        char*   h_addr() @property { return h_addr_list[0]; } // non-standard
     }
 
     struct netent
@@ -351,7 +351,7 @@ else version( FreeBSD )
         int         ai_socktype;
         int         ai_protocol;
         socklen_t   ai_addrlen;
-        char*       ai_canonname; 
+        char*       ai_canonname;
         sockaddr*   ai_addr;
         addrinfo*   ai_next;
     }
