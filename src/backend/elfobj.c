@@ -3006,8 +3006,7 @@ void obj_moduleinfo(Symbol *scc)
         const int seg = CODE;
         Outbuffer *buf = SegData[seg]->SDbuf;
         SegData[seg]->SDoffset = buf->size();
-        codeOffset = SegData[seg]->SDoffset + 1;
-        buf->writeByte(0xC3); /* ret */
+        codeOffset = SegData[seg]->SDoffset;
 
         int off = 0;
         if (I32)
