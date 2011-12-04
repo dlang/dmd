@@ -509,6 +509,24 @@ struct fixlist
 AArray *fixlist::start = NULL;
 int fixlist::nodel = 0;
 
+/* The AArray, being hashed on the pointer value of the symbol s, is in a different
+ * order from run to run. This plays havoc with trying to compare the .obj file output.
+ * When needing to do that, set FLARRAY to 1. This will replace the AArray with a
+ * simple (and very slow) linear array. Handy for tracking down compiler issues, though.
+ */
+#define FLARRAY 0
+#if FLARRAY
+struct Flarray
+{
+    symbol *s;
+    fixlist *fl;
+};
+
+Flarray *flarray;
+size_t flarray_dim;
+size_t flarray_max;
+#endif
+
 /****************************
  * Add to the fix list.
  */
@@ -530,9 +548,34 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         ln->Lfuncsym = funcsym_p;
 #endif
 
+#if FLARRAY
+        fixlist **pv;
+        for (size_t i = 0; 1; i++)
+        {
+            if (i == flarray_dim)
+            {
+                if (flarray_dim == flarray_max)
+                {
+                    flarray_max = flarray_max * 2 + 1000;
+                    flarray = (Flarray *)mem_realloc(flarray, flarray_max * sizeof(flarray[0]));
+                }
+                flarray_dim += 1;
+                flarray[i].s = s;
+                flarray[i].fl = NULL;
+                pv = &flarray[i].fl;
+                break;
+            }
+            if (flarray[i].s == s)
+            {
+                pv = &flarray[i].fl;
+                break;
+            }
+        }
+#else
         if (!fixlist::start)
             fixlist::start = new AArray(&ti_pvoid, sizeof(fixlist *));
         fixlist **pv = (fixlist **)fixlist::start->get(&s);
+#endif
         ln->Lnext = *pv;
         *pv = ln;
 
@@ -568,7 +611,19 @@ void searchfixlist(symbol *s)
     //printf("searchfixlist(%s)\n",s->Sident);
     if (fixlist::start)
     {
+#if FLARRAY
+        fixlist **lp = NULL;
+        size_t i;
+        for (i = 0; i < flarray_dim; i++)
+        {
+            if (flarray[i].s == s)
+            {   lp = &flarray[i].fl;
+                break;
+            }
+        }
+#else
         fixlist **lp = (fixlist **)fixlist::start->in(&s);
+#endif
         if (lp)
         {   fixlist *p;
             while ((p = *lp) != NULL)
@@ -606,7 +661,15 @@ void searchfixlist(symbol *s)
                 mem_free(p);            /* remove from list             */
             }
             if (!fixlist::nodel)
+            {
+#if FLARRAY
+                flarray[i].s = NULL;
+                if (i + 1 == flarray_dim)
+                    flarray_dim -= 1;
+#else
                 fixlist::start->del(&s);
+#endif
+            }
         }
     }
 }
@@ -693,6 +756,14 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 void outfixlist()
 {
     //printf("outfixlist()\n");
+#if FLARRAY
+    for (size_t i = 0; i < flarray_dim; i++)
+    {
+        fixlist::nodel++;
+        outfixlist_dg(NULL, &flarray[i].s, &flarray[i].fl);
+        fixlist::nodel--;
+    }
+#else
     if (fixlist::start)
     {
         fixlist::nodel++;
@@ -703,6 +774,7 @@ void outfixlist()
         fixlist::start = NULL;
 #endif
     }
+#endif
 }
 
 #endif // !SPP
