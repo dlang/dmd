@@ -2014,26 +2014,54 @@ struct Gcx
     void minimize()
     {
         debug(PRINTF) printf("Minimizing.\n");
-        size_t n;
-        size_t pn;
-        Pool*  pool;
-        size_t ncommitted;
 
-        Outer:
-        for (n = 0; n < npools; n++)
+        static bool isUsed(Pool *pool)
         {
-            pool = pooltable[n];
-            debug(PRINTF) printFreeInfo(pool);
-            if(pool.freepages < pool.npages) continue;
-            pool.Dtor();
-            cstdlib.free(pool);
-            memmove(pooltable + n,
-                    pooltable + n + 1,
-                    (--npools - n) * (Pool*).sizeof);
-            n--;
+            return pool.freepages < pool.npages;
         }
-        minAddr = pooltable[0].baseAddr;
-        maxAddr = pooltable[npools - 1].topAddr;
+
+        // semi-stable partition
+        for (size_t i = 0; i < npools; ++i)
+        {
+            auto pool = pooltable[i];
+            // find first unused pool
+            if (isUsed(pool)) continue;
+
+            // move used pools before unused ones
+            size_t j = i + 1;
+            for (; j < npools; ++j)
+            {
+                pool = pooltable[j];
+                if (!isUsed(pool)) continue;
+                // swap
+                pooltable[j] = pooltable[i];
+                pooltable[i] = pool;
+                ++i;
+            }
+            // npooltable[0     .. i]      => used
+            // npooltable[i + 1 .. npools] => free
+
+            // free unused pools
+            for (j = i + 1; j < npools; ++j)
+            {
+                pool = pooltable[j];
+                debug(PRINTF) printFreeInfo(pool);
+                pool.Dtor();
+                cstdlib.free(pool);
+            }
+            npools = i + 1;
+        }
+
+        if (npools)
+        {
+            minAddr = pooltable[0].baseAddr;
+            maxAddr = pooltable[npools - 1].topAddr;
+        }
+        else
+        {
+            minAddr = maxAddr = null;
+        }
+
         debug(PRINTF) printf("Done minimizing.\n");
     }
 
