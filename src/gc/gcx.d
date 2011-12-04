@@ -2014,24 +2014,44 @@ struct Gcx
     void minimize()
     {
         debug(PRINTF) printf("Minimizing.\n");
-        size_t n;
-        size_t pn;
-        Pool*  pool;
-        size_t ncommitted;
 
-        Outer:
-        for (n = 0; n < npools; n++)
+        static bool isUsed(Pool *pool)
         {
-            pool = pooltable[n];
-            debug(PRINTF) printFreeInfo(pool);
-            if(pool.freepages < pool.npages) continue;
-            pool.Dtor();
-            cstdlib.free(pool);
-            memmove(pooltable + n,
-                    pooltable + n + 1,
-                    (--npools - n) * (Pool*).sizeof);
-            n--;
+            return pool.freepages < pool.npages;
         }
+
+        // semi-stable partition
+        for (size_t i = 0; i < npools; ++i)
+        {
+            auto pool = pooltable[i];
+            // find first unused pool
+            if (isUsed(pool)) continue;
+
+            // move used pools before unused ones
+            size_t j = i + 1;
+            for (; j < npools; ++j)
+            {
+                pool = pooltable[j];
+                if (!isUsed(pool)) continue;
+                // swap
+                pooltable[j] = pooltable[i];
+                pooltable[i] = pool;
+                ++i;
+            }
+            // npooltable[0 .. i]      => used
+            // npooltable[i .. npools] => free
+
+            // free unused pools
+            for (j = i; j < npools; ++j)
+            {
+                pool = pooltable[j];
+                debug(PRINTF) printFreeInfo(pool);
+                pool.Dtor();
+                cstdlib.free(pool);
+            }
+            npools = i;
+        }
+
         if (npools)
         {
             minAddr = pooltable[0].baseAddr;
