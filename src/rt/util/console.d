@@ -48,7 +48,7 @@ struct Console
 
     Console opCall( ulong val )
     {
-            char[10] tmp = void;
+            char[20] tmp = void;
             return opCall( tmp.intToString( val ) );
     }
 }
