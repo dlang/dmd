@@ -2032,8 +2032,16 @@ struct Gcx
                     (--npools - n) * (Pool*).sizeof);
             n--;
         }
-        minAddr = pooltable[0].baseAddr;
-        maxAddr = pooltable[npools - 1].topAddr;
+        if (npools)
+        {
+            minAddr = pooltable[0].baseAddr;
+            maxAddr = pooltable[npools - 1].topAddr;
+        }
+        else
+        {
+            minAddr = maxAddr = null;
+        }
+
         debug(PRINTF) printf("Done minimizing.\n");
     }
 
