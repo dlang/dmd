@@ -2837,7 +2837,7 @@ struct Gcx
                         sentinel_Invariant(sentinel_add(p));
                         if (pool.finals.nbits && pool.finals.testClear(biti))
                             rt_finalize_gc(sentinel_add(p));
-                        clrBits(pool, biti, BlkAttr.ALL_BITS);
+                        clrBits(pool, biti, BlkAttr.ALL_BITS ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
                         log_free(sentinel_add(p));
@@ -2894,7 +2894,7 @@ struct Gcx
                             {
                                 if (pool.finals.nbits && pool.finals.testClear(biti))
                                     rt_finalize_gc(cast(List *)sentinel_add(p));
-                                gcx.clrBits(pool, biti, BlkAttr.ALL_BITS);
+                                gcx.clrBits(pool, biti, BlkAttr.ALL_BITS ^ BlkAttr.FINALIZE);
 
                                 List *list = cast(List *)p;
                                 //debug(PRINTF) printf("\tcollecting %p\n", list);
@@ -2919,7 +2919,7 @@ struct Gcx
                                 pool.freebits.set(biti);
                                 if (pool.finals.nbits && pool.finals.testClear(biti))
                                     rt_finalize_gc(cast(List *)sentinel_add(p));
-                                clrBits(pool, biti, BlkAttr.ALL_BITS);
+                                clrBits(pool, biti, BlkAttr.ALL_BITS ^ BlkAttr.FINALIZE);
 
                                 List *list = cast(List *)p;
                                 debug(PRINTF) printf("\tcollecting %p\n", list);
