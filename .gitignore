@@ -19,3 +19,4 @@ src/idgen.exe
 src/dmd.exe
 src/impcnvgen.exe
 *.map
+.DS_Store
