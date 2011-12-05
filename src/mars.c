@@ -322,6 +322,8 @@ Usage:\n\
   -deps=filename write module dependencies to filename\n%s"
 #if TARGET_OSX
 "  -dylib         generate dylib\n"
+#elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+"  -shared        generate shared library\n"
 #endif
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
@@ -516,13 +518,19 @@ int main(int argc, char *argv[])
                 global.params.link = 0;
             else if (strcmp(p + 1, "cov") == 0)
                 global.params.cov = 1;
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            else if (strcmp(p + 1, "shared") == 0)
+#elif TARGET_OSX
+            else if (strcmp(p + 1, "dylib") == 0)
+#endif
+            {
+                if (global.params.lib)
+                    error("cannot mix -lib and -shared\n");
+                global.params.dll = 1;
+            }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             else if (strcmp(p + 1, "fPIC") == 0)
                 global.params.pic = 1;
-#endif
-#if TARGET_OSX
-            else if (strcmp(p + 1, "dylib") == 0)
-                global.params.dll = 1;
 #endif
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = 1;
@@ -668,7 +676,11 @@ int main(int argc, char *argv[])
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = 1;
             else if (strcmp(p + 1, "lib") == 0)
+            {
+                if (global.params.dll)
+                    error("cannot mix -lib and -shared\n");
                 global.params.lib = 1;
+            }
             else if (strcmp(p + 1, "nofloat") == 0)
                 global.params.nofloat = 1;
             else if (strcmp(p + 1, "quiet") == 0)
