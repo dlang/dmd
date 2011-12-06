@@ -2014,164 +2014,27 @@ struct Gcx
     void minimize()
     {
         debug(PRINTF) printf("Minimizing.\n");
+        size_t n;
+        size_t pn;
+        Pool*  pool;
+        size_t ncommitted;
 
-        static bool isUsed(Pool *pool)
+        Outer:
+        for (n = 0; n < npools; n++)
         {
-            return pool.freepages < pool.npages;
+            pool = pooltable[n];
+            debug(PRINTF) printFreeInfo(pool);
+            if(pool.freepages < pool.npages) continue;
+            pool.Dtor();
+            cstdlib.free(pool);
+            memmove(pooltable + n,
+                    pooltable + n + 1,
+                    (--npools - n) * (Pool*).sizeof);
+            n--;
         }
-
-        // semi-stable partition
-        for (size_t i = 0; i < npools; ++i)
-        {
-            auto pool = pooltable[i];
-            // find first unused pool
-            if (isUsed(pool)) continue;
-
-            // move used pools before unused ones
-            size_t j = i + 1;
-            for (; j < npools; ++j)
-            {
-                pool = pooltable[j];
-                if (!isUsed(pool)) continue;
-                // swap
-                pooltable[j] = pooltable[i];
-                pooltable[i] = pool;
-                ++i;
-            }
-            // npooltable[0 .. i]      => used
-            // npooltable[i .. npools] => free
-
-            // free unused pools
-            for (j = i; j < npools; ++j)
-            {
-                pool = pooltable[j];
-                debug(PRINTF) printFreeInfo(pool);
-                pool.Dtor();
-                cstdlib.free(pool);
-            }
-            npools = i;
-        }
-
-        if (npools)
-        {
-            minAddr = pooltable[0].baseAddr;
-            maxAddr = pooltable[npools - 1].topAddr;
-        }
-        else
-        {
-            minAddr = maxAddr = null;
-        }
-
+        minAddr = pooltable[0].baseAddr;
+        maxAddr = pooltable[npools - 1].topAddr;
         debug(PRINTF) printf("Done minimizing.\n");
-    }
-
-    unittest
-    {
-        enum NPOOLS = 6;
-        Gcx gcx;
-
-        void reset()
-        {
-            foreach(i, ref pool; gcx.pooltable[0 .. gcx.npools])
-                pool.freepages = pool.npages;
-            gcx.minimize();
-            assert(gcx.npools == 0);
-
-            if (gcx.pooltable is null)
-                gcx.pooltable = cast(Pool**)cstdlib.malloc(NPOOLS * (Pool*).sizeof);
-            foreach(i; 0 .. NPOOLS)
-            {
-                auto pool = cast(Pool*)cstdlib.malloc(Pool.sizeof);
-                *pool = Pool.init;
-                gcx.pooltable[i] = pool;
-            }
-            gcx.npools = NPOOLS;
-        }
-
-        void usePools()
-        {
-            foreach(pool; gcx.pooltable[0 .. NPOOLS])
-            {
-                pool.pagetable = cast(ubyte*)cstdlib.malloc(10);
-                pool.npages = 10;
-                pool.freepages = 5;
-            }
-        }
-
-        // all pools are free
-        reset();
-        assert(gcx.npools == NPOOLS);
-        gcx.minimize();
-        assert(gcx.npools == 0);
-
-        // all pools used
-        reset();
-        usePools();
-        assert(gcx.npools == NPOOLS);
-        gcx.minimize();
-        assert(gcx.npools == NPOOLS);
-
-        // preserves order of used pools
-        reset();
-        usePools();
-
-        {
-            version (Bug7068_FIXED)
-                Pool*[NPOOLS] opools = gcx.pooltable[0 .. NPOOLS];
-            else
-            {
-                Pool*[NPOOLS] opools = void;
-                memcpy(opools.ptr, gcx.pooltable, (Pool*).sizeof * NPOOLS);
-            }
-            gcx.pooltable[2].freepages = 10;
-
-            gcx.minimize();
-            assert(gcx.npools == NPOOLS - 1);
-            assert(gcx.pooltable[0] == opools[0]);
-            assert(gcx.pooltable[1] == opools[1]);
-            assert(gcx.pooltable[2] == opools[3]);
-        }
-
-        // gcx reduces address span
-        reset();
-        usePools();
-
-        immutable base = cast(byte*)0x8000_0000;
-        byte* top = base;
-        foreach(i, pool; gcx.pooltable[0 .. NPOOLS])
-        {
-            pool.baseAddr = top;
-            top += pool.npages * PAGESIZE;
-            pool.topAddr = top;
-            top += PAGESIZE;
-        }
-        gcx.minimize();
-        assert(gcx.npools == NPOOLS);
-        assert(gcx.minAddr == base);
-        assert(gcx.maxAddr == top - PAGESIZE);
-
-        gcx.pooltable[NPOOLS - 1].freepages = 10;
-        gcx.pooltable[NPOOLS - 2].freepages = 10;
-
-        gcx.minimize();
-        assert(gcx.npools == NPOOLS - 2);
-        assert(gcx.minAddr == base);
-        assert(gcx.maxAddr == gcx.pooltable[NPOOLS - 3].topAddr);
-
-        gcx.pooltable[0].freepages = 10;
-
-        gcx.minimize();
-        assert(gcx.npools == NPOOLS - 3);
-        assert(gcx.minAddr != base);
-        assert(gcx.minAddr == gcx.pooltable[0].baseAddr);
-        assert(gcx.maxAddr == gcx.pooltable[NPOOLS - 4].topAddr);
-
-        // free all
-        foreach(pool; gcx.pooltable[0 .. NPOOLS - 2])
-            pool.freepages = 10;
-        gcx.minimize();
-        assert(gcx.npools == 0);
-        cstdlib.free(gcx.pooltable);
     }
 
 
