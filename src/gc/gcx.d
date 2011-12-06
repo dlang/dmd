@@ -2883,43 +2883,36 @@ struct Gcx
                         byte *ptop = p + PAGESIZE;
                         size_t biti = pn * (PAGESIZE/16);
                         size_t bitstride = size / 16;
-
-        version(none) // BUG: doesn't work because freebits() must also be cleared
-        {
-                        // If free'd entire page
-                        if (bbase[0] == 0 && bbase[1] == 0 && bbase[2] == 0 && bbase[3] == 0 &&
-                            bbase[4] == 0 && bbase[5] == 0 && bbase[6] == 0 && bbase[7] == 0)
-                        {
-                            for (; p < ptop; p += size, biti += bitstride)
+                        
+                        GCBits.wordtype toClear;
+                        size_t clearStart = 1;
+                        size_t clearIndex;
+                        void commitClears() {
+                            if(toClear) 
                             {
-                                if (pool.finals.nbits && pool.finals.testClear(biti))
-                                    rt_finalize_gc(cast(List *)sentinel_add(p));
-                                gcx.clrBits(pool, biti, BlkAttr.ALL_BITS ^ BlkAttr.FINALIZE);
-
-                                List *list = cast(List *)p;
-                                //debug(PRINTF) printf("\tcollecting %p\n", list);
-                                log_free(sentinel_add(list));
-
-                                debug (MEMSTOMP) memset(p, 0xF3, size);
+                                Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
+                                toClear = 0;
                             }
-                            pool.pagetable[pn] = B_FREE;
-                            if(pn < pool.searchStart) pool.searchStart = pn;
-                            freed += PAGESIZE;
-                            pool.freepages++;
-                            //debug(PRINTF) printf("freeing entire page %d\n", pn);
-                            continue;
+                            
+                            clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                            clearIndex = biti & GCBits.BITS_MASK;
                         }
-        }
-                        for (; p < ptop; p += size, biti += bitstride)
+
+                        for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
                         {
+                            if(clearIndex > GCBits.BITS_PER_WORD - 1) 
+                            {
+                                commitClears();
+                            }
+                            
                             if (!pool.mark.test(biti))
                             {
                                 sentinel_Invariant(sentinel_add(p));
 
                                 pool.freebits.set(biti);
-                                if (pool.finals.nbits && pool.finals.testClear(biti))
+                                if (pool.finals.nbits && pool.finals.test(biti))
                                     rt_finalize_gc(cast(List *)sentinel_add(p));
-                                clrBits(pool, biti, BlkAttr.ALL_BITS ^ BlkAttr.FINALIZE);
+                                toClear |= GCBits.BITS_1 << clearIndex;
 
                                 List *list = cast(List *)p;
                                 debug(PRINTF) printf("\tcollecting %p\n", list);
@@ -2930,6 +2923,8 @@ struct Gcx
                                 freed += size;
                             }
                         }
+                        
+                        commitClears();
                     }
                 }
             }
@@ -3140,6 +3135,27 @@ struct Gcx
             pool.nointerior.data[dataIndex] &= keep;
     }
 
+    void clrBitsSmallSweep(Pool* pool, size_t dataIndex, GCBits.wordtype toClear) 
+    in
+    {
+        assert(pool);
+    }
+    body
+    {
+        immutable toKeep = ~toClear;
+        if (pool.finals.nbits)
+            pool.finals.data[dataIndex] &= toKeep;
+        
+        pool.noscan.data[dataIndex] &= toKeep;
+        
+//        if (pool.nomove.nbits)
+//            pool.nomove.data[dataIndex] &= toKeep;
+        
+        pool.appendable.data[dataIndex] &= toKeep;
+        
+        if (pool.nointerior.nbits)
+            pool.nointerior.data[dataIndex] &= toKeep;
+    }
 
     /***** Leak Detector ******/
 
