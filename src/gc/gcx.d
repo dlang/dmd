@@ -2038,18 +2038,18 @@ struct Gcx
                 pooltable[i] = pool;
                 ++i;
             }
-            // npooltable[0     .. i]      => used
-            // npooltable[i + 1 .. npools] => free
+            // npooltable[0 .. i]      => used
+            // npooltable[i .. npools] => free
 
             // free unused pools
-            for (j = i + 1; j < npools; ++j)
+            for (j = i; j < npools; ++j)
             {
                 pool = pooltable[j];
                 debug(PRINTF) printFreeInfo(pool);
                 pool.Dtor();
                 cstdlib.free(pool);
             }
-            npools = i + 1;
+            npools = i;
         }
 
         if (npools)
