@@ -446,6 +446,14 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
 {
     //dbg_printf("elf_addsym(nam %d, val %d, sz %x, typ %x, bind %x, sec %d\n",
             //nam,val,sz,typ,bind,sec);
+
+    /* We want globally defined data symbols to have a size because
+     * zero sized symbols break copy relocations for shared libraries.
+     */
+    assert(!(sz == 0 && (bind == STB_GLOBAL || bind == STB_WEAK) &&
+             (typ == STT_OBJECT || typ == STT_TLS) &&
+             sec != SHT_UNDEF));
+
     if (I64)
     {
         if (!SYMbuf)
