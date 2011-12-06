@@ -2500,7 +2500,7 @@ struct Gcx
                         continue;
                     }
                     
-                    if(pool.isLargeObject && !pointsToBase && pool.nointerior.test(biti))
+                    if(pool.nointerior.nbits && !pointsToBase && pool.nointerior.test(biti))
                     {
                         continue;
                     }
@@ -3057,7 +3057,7 @@ struct Gcx
             bits |= BlkAttr.FINALIZE;
         if (pool.noscan.test(biti))
             bits |= BlkAttr.NO_SCAN;
-        if (pool.isLargeObject && pool.nointerior.test(biti))
+        if (pool.nointerior.nbits && pool.nointerior.test(biti))
             bits |= BlkAttr.NO_INTERIOR;
 //        if (pool.nomove.nbits &&
 //            pool.nomove.test(biti))
@@ -3107,6 +3107,8 @@ struct Gcx
         
         if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
         {
+            if(!pool.nointerior.nbits)
+                pool.nointerior.alloc(pool.mark.nbits);
             pool.nointerior.data[dataIndex] |= orWith;
         }
     }
@@ -3130,7 +3132,7 @@ struct Gcx
 //            pool.nomove.clear(biti);
         if (mask & BlkAttr.APPENDABLE)
             pool.appendable.clear(biti);
-        if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
+        if (pool.nointerior.nbits && (mask & BlkAttr.NO_INTERIOR))
             pool.nointerior.clear(biti);
     }
 
@@ -3323,13 +3325,8 @@ struct Pool
         scan.alloc(nbits);
 
         // pagetable already keeps track of what's free for the large object
-        // pool.  nointerior is only worth the overhead for the large object
         // pool.
-        if(isLargeObject) 
-        {
-            nointerior.alloc(nbits);
-        }
-        else
+        if(!isLargeObject)
         {
             freebits.alloc(nbits);
         }
