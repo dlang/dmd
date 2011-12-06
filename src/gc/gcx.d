@@ -2885,7 +2885,7 @@ struct Gcx
                         size_t bitstride = size / 16;
                         
                         GCBits.wordtype toClear;
-                        size_t clearStart = 1;
+                        size_t clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
                         size_t clearIndex;
                         void commitClears() {
                             if(toClear) 
