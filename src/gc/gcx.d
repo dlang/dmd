@@ -2458,7 +2458,7 @@ struct Gcx
                     size_t biti = void;
                     size_t pn = offset / PAGESIZE;
                     Bins   bin = cast(Bins)pool.pagetable[pn];
-                    void* base;
+                    void* base = void;
                     
                     // For the NO_INTERIOR attribute.  This tracks whether
                     // the pointer is an interior pointer or points to the
@@ -3124,16 +3124,20 @@ struct Gcx
     }
     body
     {
+        immutable dataIndex =  1 + (biti >> GCBits.BITS_SHIFT);
+        immutable bitOffset = biti & GCBits.BITS_MASK;
+        immutable keep = ~(GCBits.BITS_1 << bitOffset);
+        
         if (mask & BlkAttr.FINALIZE && pool.finals.nbits)
-            pool.finals.clear(biti);
+            pool.finals.data[dataIndex] &= keep;
         if (mask & BlkAttr.NO_SCAN)
-            pool.noscan.clear(biti);
+            pool.noscan.data[dataIndex] &= keep;
 //        if (mask & BlkAttr.NO_MOVE && pool.nomove.nbits)
-//            pool.nomove.clear(biti);
+//            pool.nomove.data[dataIndex] &= keep;
         if (mask & BlkAttr.APPENDABLE)
-            pool.appendable.clear(biti);
+            pool.appendable.data[dataIndex] &= keep;
         if (pool.nointerior.nbits && (mask & BlkAttr.NO_INTERIOR))
-            pool.nointerior.clear(biti);
+            pool.nointerior.data[dataIndex] &= keep;
     }
 
 
