@@ -2887,22 +2887,19 @@ struct Gcx
                         GCBits.wordtype toClear;
                         size_t clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
                         size_t clearIndex;
-                        void commitClears() {
-                            if(toClear) 
-                            {
-                                Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
-                                toClear = 0;
-                            }
-                            
-                            clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
-                            clearIndex = biti & GCBits.BITS_MASK;
-                        }
 
                         for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
                         {
                             if(clearIndex > GCBits.BITS_PER_WORD - 1) 
                             {
-                                commitClears();
+                                if(toClear) 
+                                {
+                                    Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
+                                    toClear = 0;
+                                }
+                                
+                                clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
+                                clearIndex = biti & GCBits.BITS_MASK;
                             }
                             
                             if (!pool.mark.test(biti))
@@ -2924,7 +2921,10 @@ struct Gcx
                             }
                         }
                         
-                        commitClears();
+                        if(toClear)
+                        {
+                            Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
+                        }
                     }
                 }
             }
