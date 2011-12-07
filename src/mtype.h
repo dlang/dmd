@@ -901,6 +901,7 @@ struct TypeNull : Type
 {
     TypeNull();
 
+    Type *syntaxCopy();
     void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH implicitConvTo(Type *to);
 

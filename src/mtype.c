@@ -8291,6 +8291,12 @@ TypeNull::TypeNull()
 {
 }
 
+Type *TypeNull::syntaxCopy()
+{
+    // No semantic analysis done, no need to copy
+    return this;
+}
+
 MATCH TypeNull::implicitConvTo(Type *to)
 {
     //printf("TypeNull::implicitConvTo(this=%p, to=%p)\n", this, to);
