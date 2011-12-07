@@ -2805,7 +2805,11 @@ STATIC elem * eleq(elem *e)
 
         // If floating point, replace (x = -y) with (x = y ^ signbit)
         if (op2 == OPneg && (tyreal(e2->Ety) || tyimaginary(e2->Ety)) &&
-            (e2->E1->Eoper == OPvar || e2->E1->Eoper == OPind))
+            (e2->E1->Eoper == OPvar || e2->E1->Eoper == OPind) &&
+           /* Turned off for 64 bits because XMM registers don't play well with
+            * int registers.
+            */
+           !I64)
         {   elem *es;
             tym_t ty;
 
