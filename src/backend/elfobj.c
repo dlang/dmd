@@ -1528,14 +1528,14 @@ void obj_ehsections()
     //obj_bytes(sec, 0, 4, NULL);
 
     IDXSTR namidx = elf_addstr(symtab_strings,"_deh_beg");
-    elf_addsym(namidx, 0, 0, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
     //elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
     elf_getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
 
     sec = elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
     namidx = elf_addstr(symtab_strings,"_deh_end");
-    elf_addsym(namidx, 0, 0, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
+    elf_addsym(namidx, 0, 4, STT_OBJECT, STB_GLOBAL, MAP_SEG2SECIDX(sec));
 
     obj_tlssections();
 }
