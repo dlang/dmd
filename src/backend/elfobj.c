@@ -3013,12 +3013,12 @@ void obj_moduleinfo(Symbol *scc)
             buf->write32(refOffset);
             elf_addrel(seg, codeOffset + 3, R_X86_64_PC32, STI_DATA, -4);
 
-            // LEA RCX,_DmoduleRef[RIP]
+            // MOV RCX,_DmoduleRef@GOTPCREL[RIP]
             buf->writeByte(REX | REX_W);
-            buf->writeByte(0x8D);
+            buf->writeByte(0x8B);
             buf->writeByte(modregrm(0,CX,5));
             buf->write32(0);
-            elf_addrel(seg, codeOffset + 10, R_X86_64_PC32, objextern("_Dmodule_ref"), -4);
+            elf_addrel(seg, codeOffset + 10, R_X86_64_GOTPCREL, objextern("_Dmodule_ref"), -4);
         }
         else
         {
