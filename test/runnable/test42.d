@@ -4502,6 +4502,31 @@ void test6354()
 
 /***************************************************/
 
+struct S7072
+{
+    this(A)(A args) { }
+}
+
+void test7072() {
+   auto s = S7072( null );
+} 
+
+/***************************************************/
+
+struct Point6881
+{
+    float _x, _y;
+
+    void rotateCCW()
+    {
+        float tmp = -_x;
+        _x = _y;
+        _y = tmp;
+    }
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4738,6 +4763,7 @@ int main()
     test6997();
     test7026();
     test6354();
+    test7072();
 
     writefln("Success");
     return 0;
