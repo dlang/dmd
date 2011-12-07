@@ -3000,19 +3000,10 @@ void obj_moduleinfo(Symbol *scc)
          *      ret
          */
 
-        const int reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
-        const int refsize = 4;                          // use 32 bit relocations, even in 64 bit mode
-
         const int seg = CODE;
         Outbuffer *buf = SegData[seg]->SDbuf;
         SegData[seg]->SDoffset = buf->size();
         codeOffset = SegData[seg]->SDoffset;
-
-        int off = 0;
-        if (I32)
-        {   buf->writeByte(0x60); // PUSHAD
-            off = 1;
-        }
 
         if (I64 && config.flags3 & CFG3pic)
         {   // LEA RAX,ModuleReference[RIP]
@@ -3020,26 +3011,28 @@ void obj_moduleinfo(Symbol *scc)
             buf->writeByte(0x8D);
             buf->writeByte(modregrm(0,AX,5));
             buf->write32(refOffset);
-            elf_addrel(seg, codeOffset + off + 3, R_X86_64_PC32, STI_DATA, -4);
+            elf_addrel(seg, codeOffset + 3, R_X86_64_PC32, STI_DATA, -4);
 
             // LEA RCX,_DmoduleRef[RIP]
             buf->writeByte(REX | REX_W);
             buf->writeByte(0x8D);
             buf->writeByte(modregrm(0,CX,5));
             buf->write32(0);
-            elf_addrel(seg, codeOffset + off + 10, R_X86_64_PC32, objextern("_Dmodule_ref"), -4);
+            elf_addrel(seg, codeOffset + 10, R_X86_64_PC32, objextern("_Dmodule_ref"), -4);
         }
         else
         {
+            const int reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+
             /* movl ModuleReference*, %eax */
             buf->writeByte(0xB8);
             buf->write32(refOffset);
-            elf_addrel(seg, codeOffset + off + 1, reltype, STI_DATA, 0);
+            elf_addrel(seg, codeOffset + 1, reltype, STI_DATA, 0);
 
             /* movl _Dmodule_ref, %ecx */
             buf->writeByte(0xB9);
             buf->write32(0);
-            elf_addrel(seg, codeOffset + off + 6, reltype, objextern("_Dmodule_ref"), 0);
+            elf_addrel(seg, codeOffset + 6, reltype, objextern("_Dmodule_ref"), 0);
         }
 
         if (I64)
@@ -3052,7 +3045,6 @@ void obj_moduleinfo(Symbol *scc)
             buf->writeByte(REX | REX_W);
         buf->writeByte(0x89); buf->writeByte(0x01); /* movl %eax, (%ecx) */
 
-        if (I32) buf->writeByte(0x61); // POPAD
         buf->writeByte(0xC3); /* ret */
         SegData[seg]->SDoffset = buf->size();
     }
