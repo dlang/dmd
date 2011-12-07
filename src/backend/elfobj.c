@@ -1571,7 +1571,7 @@ void obj_tlssections()
  *      "segment index" of COMDAT
  */
 
-int obj_comdat(Symbol *s)
+STATIC void setup_comdat(Symbol *s)
 {
     const char *prefix;
     int type;
@@ -1617,9 +1617,25 @@ int obj_comdat(Symbol *s)
     s->Sseg = elf_getsegment(prefix, cpp_mangle(s), type, flags, align);
                                 // find or create new segment
     SegData[s->Sseg]->SDsym = s;
+}
+
+int obj_comdat(Symbol *s)
+{
+    setup_comdat(s);
     if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
     {
         objpubdef(s->Sseg,s,0);
+        searchfixlist(s);               // backpatch any refs to this symbol
+    }
+    return s->Sseg;
+}
+
+int obj_comdatsize(Symbol *s, targ_size_t symsize)
+{
+    setup_comdat(s);
+    if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
+    {
+        objpubdefsize(s->Sseg,s,0,symsize);
         searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s->Sseg;
@@ -2033,6 +2049,22 @@ void elf_func_term(Symbol *sfunc)
 
 void objpubdef(int seg, Symbol *s, targ_size_t offset)
 {
+    const targ_size_t symsize=
+        tyfunc(s->ty()) ? Offset(s->Sseg) - offset : type_size(s->Stype);
+    objpubdefsize(seg, s, offset, symsize);
+}
+
+/********************************
+ * Output a public definition.
+ * Input:
+ *      seg =           segment index that symbol is defined in
+ *      s ->            symbol
+ *      offset =        offset of name within segment
+ *      symsize         size of symbol
+ */
+
+void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+{
     int bind;
     switch (s->Sclass)
     {
@@ -2059,14 +2091,14 @@ void objpubdef(int seg, Symbol *s, targ_size_t offset)
     //printf("\tnamidx %d,section %d\n",namidx,MAP_SEG2SECIDX(seg));
     if (tyfunc(s->ty()))
     {
-        s->Sxtrnnum = elf_addsym(namidx, offset, Offset(s->Sseg)-offset,
-            STT_FUNC, bind,MAP_SEG2SECIDX(seg));
+        s->Sxtrnnum = elf_addsym(namidx, offset, symsize,
+            STT_FUNC, bind, MAP_SEG2SECIDX(seg));
     }
     else
     {
-        s->Sxtrnnum = elf_addsym(namidx, offset, type_size(s->Stype),
-            (s->ty() & mTYthread) ? STT_TLS : STT_OBJECT,
-            bind,MAP_SEG2SECIDX(seg));
+        const unsigned typ = (s->ty() & mTYthread) ? STT_TLS : STT_OBJECT;
+        s->Sxtrnnum = elf_addsym(namidx, offset, symsize,
+            typ, bind, MAP_SEG2SECIDX(seg));
     }
     fflush(NULL);
 }

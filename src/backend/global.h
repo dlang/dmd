@@ -387,6 +387,11 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
 void obj_ehsections();
 void obj_moduleinfo(Symbol *scc);
 int  obj_comdat(Symbol *);
+#if ELFOBJ
+int  obj_comdatsize(Symbol *, targ_size_t symsize);
+#elif MACHOBJ
+    #define obj_comdatsize(s, symsize) obj_comdat(s)
+#endif
 void obj_setcodeseg(int seg,targ_size_t offset);
 int  obj_codeseg(char *name,int suffix);
 seg_data *obj_tlsseg();
@@ -396,6 +401,11 @@ void obj_browse(char *, unsigned);
 void objend(void);
 void obj_export(Symbol *s, unsigned argsize);
 void objpubdef(int seg, Symbol *s, targ_size_t offset);
+#if ELFOBJ
+void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
+#elif MACHOBJ
+    #define objpubdefsize(seg, s, offset, symsize) objpubdef(seg, s, offset)
+#endif
 int objextdef(const char *);
 int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg);
 int objextern(Symbol *);
