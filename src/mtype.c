@@ -3936,8 +3936,9 @@ MATCH TypeDArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(next->mod, ta->next->mod))
             return MATCHnomatch;        // not const-compatible
 
-        if ((mod & MODwild) != (to->mod & MODwild))
-            return MATCHnomatch;
+        if (!MODimplicitConv(mod, ta->mod))
+            if ((mod & MODwild) != (to->mod & MODwild))
+                return MATCHnomatch;
 
         /* Allow conversion to void[]
          */
@@ -4338,8 +4339,9 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(index->mod, ta->index->mod))
             return MATCHnomatch;        // not const-compatible
 
-        if ((mod & MODwild) != (to->mod & MODwild))
-            return MATCHnomatch;
+        if (!MODimplicitConv(mod, ta->mod))
+            if ((mod & MODwild) != (to->mod & MODwild))
+                return MATCHnomatch;
 
         MATCH m = next->constConv(ta->next);
         MATCH mi = index->constConv(ta->index);
