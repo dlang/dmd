@@ -2034,7 +2034,7 @@ static assert(is( inout(immutable(shared(T))) == immutable(T) ));
 /************************************/
 // 6912
 
-@property inout(int) testinout(string code)(inout(int) x=0){ mixin(code); return x; }
+@property inout(int) testinout(string code)(inout(int) _dummy=0){ mixin(code); return _dummy; }
 static assert( is(typeof(testinout!q{ inout(int) wda = 2; }))); // unittest of testinout function
 
 void test6912()
@@ -2050,6 +2050,8 @@ void test6912()
     static assert(!is(typeof(testinout!q{     const(int)[int] caa; inout(    const(int)[int]) waa = caa; })));
     static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(    const(int)[int]) waa = iaa; })));
     static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(immutable(int)[int]) waa = iaa; })));
+
+    static assert( is(typeof(testinout!q{ inout(int[]) x; const(int[]) y = x; })));
 }
 
 /************************************/
