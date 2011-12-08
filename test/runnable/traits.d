@@ -641,6 +641,13 @@ static assert(__traits(isSame, V6073, U6073));  // same instantiation == same ar
 
 /********************************************************/
 
+struct Foo7027 {
+  int a;
+}
+static assert(!__traits(compiles, { return Foo7027.a; }));
+
+/********************************************************/
+
 int main()
 {
     test1();
