@@ -4348,8 +4348,14 @@ MATCH TypeAArray::implicitConvTo(Type *to)
             return MATCHnomatch;        // not const-compatible
 
         if (!MODimplicitConv(mod, ta->mod))
-            if ((mod & MODwild) != (to->mod & MODwild))
-                return MATCHnomatch;
+        {   if ((mod & MODwild) != (to->mod & MODwild))
+            {
+                if (mod & MODwild)
+                    return MATCHnomatch;
+                if (!(next->mod & MODwild))
+                    return MATCHnomatch;
+            }
+        }
 
         MATCH m = next->constConv(ta->next);
         MATCH mi = index->constConv(ta->index);
