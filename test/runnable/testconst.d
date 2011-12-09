@@ -2034,24 +2034,118 @@ static assert(is( inout(immutable(shared(T))) == immutable(T) ));
 /************************************/
 // 6912
 
-@property inout(int) testinout(string code)(inout(int) _dummy=0){ mixin(code); return _dummy; }
-static assert( is(typeof(testinout!q{ inout(int) wda = 2; }))); // unittest of testinout function
-
 void test6912()
 {
-    static assert(!is(typeof(testinout!q{           int [] mda; inout(          int []) wda = mda; })));
-    static assert(!is(typeof(testinout!q{           int [] mda; inout(    const(int)[]) wda = mda; })));
-    static assert(!is(typeof(testinout!q{     const(int)[] cda; inout(    const(int)[]) wda = cda; })));
-    static assert(!is(typeof(testinout!q{ immutable(int)[] ida; inout(    const(int)[]) wda = ida; })));
-    static assert(!is(typeof(testinout!q{ immutable(int)[] ida; inout(immutable(int)[]) wda = ida; })));
+    //                 From                      To
+    static assert( is(                 int []  :                 int []  ));
+    static assert(!is(           inout(int []) :                 int []  ));
+    static assert(!is(                 int []  :           inout(int []) ));
+    static assert( is(           inout(int []) :           inout(int []) ));
 
-    static assert(!is(typeof(testinout!q{           int [int] maa; inout(          int [int]) waa = maa; })));
-    static assert(!is(typeof(testinout!q{           int [int] maa; inout(    const(int)[int]) waa = maa; })));
-    static assert(!is(typeof(testinout!q{     const(int)[int] caa; inout(    const(int)[int]) waa = caa; })));
-    static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(    const(int)[int]) waa = iaa; })));
-    static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(immutable(int)[int]) waa = iaa; })));
+    static assert( is(                 int []  :           const(int)[]  ));
+    static assert( is(           inout(int []) :           const(int)[]  ));
+    static assert(!is(                 int []  :     inout(const(int)[]) ));
+    static assert( is(           inout(int []) :     inout(const(int)[]) ));
 
-    static assert( is(typeof(testinout!q{ inout(int[]) x; const(int[]) y = x; })));
+    static assert( is(           const(int)[]  :           const(int)[]  ));
+    static assert( is(     inout(const(int)[]) :           const(int)[]  ));
+    static assert(!is(           const(int)[]  :     inout(const(int)[]) ));
+    static assert( is(     inout(const(int)[]) :     inout(const(int)[]) ));
+
+    static assert( is(       immutable(int)[]  :           const(int)[]  ));
+    static assert( is( inout(immutable(int)[]) :           const(int)[]  ));
+    static assert( is(       immutable(int)[]  :     inout(const(int)[]) ));
+    static assert( is( inout(immutable(int)[]) :     inout(const(int)[]) ));
+
+    static assert( is(       immutable(int)[]  :       immutable(int)[]  ));
+    static assert( is( inout(immutable(int)[]) :       immutable(int)[]  ));
+    static assert( is(       immutable(int)[]  : inout(immutable(int)[]) ));
+    static assert( is( inout(immutable(int)[]) : inout(immutable(int)[]) ));
+
+    static assert( is(           inout(int)[]  :           inout(int)[]  ));
+    static assert( is(     inout(inout(int)[]) :           inout(int)[]  ));
+    static assert( is(           inout(int)[]  :     inout(inout(int)[]) ));
+    static assert( is(     inout(inout(int)[]) :     inout(inout(int)[]) ));
+
+    static assert( is(           inout(int)[]  :           const(int)[]  ));
+    static assert( is(     inout(inout(int)[]) :           const(int)[]  ));
+    static assert( is(           inout(int)[]  :     inout(const(int)[]) ));
+    static assert( is(     inout(inout(int)[]) :     inout(const(int)[]) ));
+
+    //                 From                         To
+    static assert( is(                 int [int]  :                 int [int]  ));
+    static assert(!is(           inout(int [int]) :                 int [int]  ));
+    static assert(!is(                 int [int]  :           inout(int [int]) ));
+    static assert( is(           inout(int [int]) :           inout(int [int]) ));
+
+    static assert( is(                 int [int]  :           const(int)[int]  ));
+    static assert( is(           inout(int [int]) :           const(int)[int]  ));
+    static assert(!is(                 int [int]  :     inout(const(int)[int]) ));
+    static assert( is(           inout(int [int]) :     inout(const(int)[int]) ));
+
+    static assert( is(           const(int)[int]  :           const(int)[int]  ));
+    static assert( is(     inout(const(int)[int]) :           const(int)[int]  ));
+    static assert(!is(           const(int)[int]  :     inout(const(int)[int]) ));
+    static assert( is(     inout(const(int)[int]) :     inout(const(int)[int]) ));
+
+    static assert( is(       immutable(int)[int]  :           const(int)[int]  ));
+    static assert( is( inout(immutable(int)[int]) :           const(int)[int]  ));
+    static assert( is(       immutable(int)[int]  :     inout(const(int)[int]) ));
+    static assert( is( inout(immutable(int)[int]) :     inout(const(int)[int]) ));
+
+    static assert( is(       immutable(int)[int]  :       immutable(int)[int]  ));
+    static assert( is( inout(immutable(int)[int]) :       immutable(int)[int]  ));
+    static assert( is(       immutable(int)[int]  : inout(immutable(int)[int]) ));
+    static assert( is( inout(immutable(int)[int]) : inout(immutable(int)[int]) ));
+
+    static assert( is(           inout(int)[int]  :           inout(int)[int]  ));
+    static assert( is(     inout(inout(int)[int]) :           inout(int)[int]  ));
+    static assert( is(           inout(int)[int]  :     inout(inout(int)[int]) ));
+    static assert( is(     inout(inout(int)[int]) :     inout(inout(int)[int]) ));
+
+    static assert( is(           inout(int)[int]  :           const(int)[int]  ));
+    static assert( is(     inout(inout(int)[int]) :           const(int)[int]  ));
+    static assert( is(           inout(int)[int]  :     inout(const(int)[int]) ));
+    static assert( is(     inout(inout(int)[int]) :     inout(const(int)[int]) ));
+
+    // Regression check
+    static assert( is( const(int)[] : const(int[]) ) );
+
+    //                 From                     To
+    static assert( is(                 int *  :                 int *  ));
+    static assert(!is(           inout(int *) :                 int *  ));
+    static assert(!is(                 int *  :           inout(int *) ));
+    static assert( is(           inout(int *) :           inout(int *) ));
+
+    static assert( is(                 int *  :           const(int)*  ));
+    static assert( is(           inout(int *) :           const(int)*  ));
+    static assert(!is(                 int *  :     inout(const(int)*) ));
+    static assert( is(           inout(int *) :     inout(const(int)*) ));
+
+    static assert( is(           const(int)*  :           const(int)*  ));
+    static assert( is(     inout(const(int)*) :           const(int)*  ));
+    static assert(!is(           const(int)*  :     inout(const(int)*) ));
+    static assert( is(     inout(const(int)*) :     inout(const(int)*) ));
+
+    static assert( is(       immutable(int)*  :           const(int)*  ));
+    static assert( is( inout(immutable(int)*) :           const(int)*  ));
+    static assert( is(       immutable(int)*  :     inout(const(int)*) ));
+    static assert( is( inout(immutable(int)*) :     inout(const(int)*) ));
+
+    static assert( is(       immutable(int)*  :       immutable(int)*  ));
+    static assert( is( inout(immutable(int)*) :       immutable(int)*  ));
+    static assert( is(       immutable(int)*  : inout(immutable(int)*) ));
+    static assert( is( inout(immutable(int)*) : inout(immutable(int)*) ));
+
+    static assert( is(           inout(int)*  :           inout(int)*  ));
+    static assert( is(     inout(inout(int)*) :           inout(int)*  ));
+    static assert( is(           inout(int)*  :     inout(inout(int)*) ));
+    static assert( is(     inout(inout(int)*) :     inout(inout(int)*) ));
+
+    static assert( is(           inout(int)*  :           const(int)*  ));
+    static assert( is(     inout(inout(int)*) :           const(int)*  ));
+    static assert( is(           inout(int)*  :     inout(const(int)*) ));
+    static assert( is(     inout(inout(int)*) :     inout(const(int)*) ));
 }
 
 /************************************/
@@ -2062,18 +2156,6 @@ static assert((const(shared(int[])[])).stringof != "const(shared(const(int[]))[]
 
 static assert((inout(shared(int[])[])).stringof == "inout(shared(int[])[])");	// fail
 static assert((inout(shared(int[])[])).stringof != "inout(shared(inout(int[]))[])");	// fail
-
-/************************************/
-
-const(int[]) bar89(const(int)[] x)
-{
-    return x;
-}
-
-inout(int[]) foo89(inout(int)[] x)
-{
-    return x;
-}
 
 /************************************/
 
