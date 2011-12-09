@@ -2110,6 +2110,42 @@ void test6912()
 
     // Regression check
     static assert( is( const(int)[] : const(int[]) ) );
+
+    //                 From                     To
+    static assert( is(                 int *  :                 int *  ));
+    static assert(!is(           inout(int *) :                 int *  ));
+    static assert(!is(                 int *  :           inout(int *) ));
+    static assert( is(           inout(int *) :           inout(int *) ));
+
+    static assert( is(                 int *  :           const(int)*  ));
+    static assert( is(           inout(int *) :           const(int)*  ));
+    static assert(!is(                 int *  :     inout(const(int)*) ));
+    static assert( is(           inout(int *) :     inout(const(int)*) ));
+
+    static assert( is(           const(int)*  :           const(int)*  ));
+    static assert( is(     inout(const(int)*) :           const(int)*  ));
+    static assert(!is(           const(int)*  :     inout(const(int)*) ));
+    static assert( is(     inout(const(int)*) :     inout(const(int)*) ));
+
+    static assert( is(       immutable(int)*  :           const(int)*  ));
+    static assert( is( inout(immutable(int)*) :           const(int)*  ));
+    static assert( is(       immutable(int)*  :     inout(const(int)*) ));
+    static assert( is( inout(immutable(int)*) :     inout(const(int)*) ));
+
+    static assert( is(       immutable(int)*  :       immutable(int)*  ));
+    static assert( is( inout(immutable(int)*) :       immutable(int)*  ));
+    static assert( is(       immutable(int)*  : inout(immutable(int)*) ));
+    static assert( is( inout(immutable(int)*) : inout(immutable(int)*) ));
+
+    static assert( is(           inout(int)*  :           inout(int)*  ));
+    static assert( is(     inout(inout(int)*) :           inout(int)*  ));
+    static assert( is(           inout(int)*  :     inout(inout(int)*) ));
+    static assert( is(     inout(inout(int)*) :     inout(inout(int)*) ));
+
+    static assert( is(           inout(int)*  :           const(int)*  ));
+    static assert( is(     inout(inout(int)*) :           const(int)*  ));
+    static assert( is(           inout(int)*  :     inout(const(int)*) ));
+    static assert( is(     inout(inout(int)*) :     inout(const(int)*) ));
 }
 
 /************************************/

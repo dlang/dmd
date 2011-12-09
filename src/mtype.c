@@ -4481,6 +4481,13 @@ MATCH TypePointer::implicitConvTo(Type *to)
         if (!MODimplicitConv(next->mod, tp->next->mod))
             return MATCHnomatch;        // not const-compatible
 
+        // Check head inout conversion:
+        //       T * -> inout(const(T)*)
+        // const(T)* -> inout(const(T)*)
+        if (isMutable() && tp->isWild())
+            if ((next->isMutable() || next->isConst()) && tp->next->isConst())
+                return MATCHnomatch;
+
         /* Alloc conversion to void*
          */
         if (next->ty != Tvoid && tp->next->ty == Tvoid)
