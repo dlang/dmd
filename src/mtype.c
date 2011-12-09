@@ -3937,16 +3937,12 @@ MATCH TypeDArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(next->mod, ta->next->mod))
             return MATCHnomatch;        // not const-compatible
 
-        if (!MODimplicitConv(mod, ta->mod))
-        {
-            if ((mod & MODwild) != (to->mod & MODwild))
-            {
-                if (mod & MODwild)
-                    return MATCHnomatch;
-                if (!(next->mod & MODwild))
-                    return MATCHnomatch;
-            }
-        }
+        // Check head inout conversion:
+        //       T [] -> inout(const(T)[])
+        // const(T)[] -> inout(const(T)[])
+        if (isMutable() && ta->isWild())
+            if ((next->isMutable() || next->isConst()) && ta->next->isConst())
+                return MATCHnomatch;
 
         /* Allow conversion to void[]
          */
@@ -4347,15 +4343,12 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         if (!MODimplicitConv(index->mod, ta->index->mod))
             return MATCHnomatch;        // not const-compatible
 
-        if (!MODimplicitConv(mod, ta->mod))
-        {   if ((mod & MODwild) != (to->mod & MODwild))
-            {
-                if (mod & MODwild)
-                    return MATCHnomatch;
-                if (!(next->mod & MODwild))
-                    return MATCHnomatch;
-            }
-        }
+        // Check head inout conversion:
+        //       V [K] -> inout(const(V)[K])
+        // const(V)[K] -> inout(const(V)[K])
+        if (isMutable() && ta->isWild())
+            if ((next->isMutable() || next->isConst()) && ta->next->isConst())
+                return MATCHnomatch;
 
         MATCH m = next->constConv(ta->next);
         MATCH mi = index->constConv(ta->index);
