@@ -2039,6 +2039,7 @@ static assert( is(typeof(testinout!q{ inout(int) wda = 2; }))); // unittest of t
 
 void test6912()
 {
+/+
     static assert(!is(typeof(testinout!q{           int [] mda; inout(          int []) wda = mda; })));
     static assert(!is(typeof(testinout!q{           int [] mda; inout(    const(int)[]) wda = mda; })));
     static assert(!is(typeof(testinout!q{     const(int)[] cda; inout(    const(int)[]) wda = cda; })));
@@ -2050,8 +2051,11 @@ void test6912()
     static assert(!is(typeof(testinout!q{     const(int)[int] caa; inout(    const(int)[int]) waa = caa; })));
     static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(    const(int)[int]) waa = iaa; })));
     static assert(!is(typeof(testinout!q{ immutable(int)[int] iaa; inout(immutable(int)[int]) waa = iaa; })));
++/
 
+    // Regression check
     static assert( is(typeof(testinout!q{ inout(int[]) x; const(int[]) y = x; })));
+    static assert( is(typeof(testinout!q{ inout(int)[] x; inout(int[]) y = x; })));
 }
 
 /************************************/
