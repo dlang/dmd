@@ -1731,6 +1731,7 @@ MATCH Type::implicitConvTo(Type *to)
 
 MATCH Type::constConv(Type *to)
 {
+    //printf("Type::constConv(this = %s, to = %s)\n", toChars(), to->toChars());
     if (equals(to))
         return MATCHexact;
     if (ty == to->ty && MODimplicitConv(mod, to->mod))
@@ -3937,8 +3938,15 @@ MATCH TypeDArray::implicitConvTo(Type *to)
             return MATCHnomatch;        // not const-compatible
 
         if (!MODimplicitConv(mod, ta->mod))
+        {
             if ((mod & MODwild) != (to->mod & MODwild))
-                return MATCHnomatch;
+            {
+                if (mod & MODwild)
+                    return MATCHnomatch;
+                if (!(next->mod & MODwild))
+                    return MATCHnomatch;
+            }
+        }
 
         /* Allow conversion to void[]
          */

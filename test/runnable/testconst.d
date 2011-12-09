@@ -2065,6 +2065,18 @@ static assert((inout(shared(int[])[])).stringof != "inout(shared(inout(int[]))[]
 
 /************************************/
 
+const(int[]) bar89(const(int)[] x)
+{
+    return x;
+}
+
+inout(int[]) foo89(inout(int)[] x)
+{
+    return x;
+}
+
+/************************************/
+
 int main()
 {
     test1();
