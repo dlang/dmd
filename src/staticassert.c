@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -52,10 +52,8 @@ void StaticAssert::semantic(Scope *sc)
 
 void StaticAssert::semantic2(Scope *sc)
 {
-    Expression *e;
-
     //printf("StaticAssert::semantic2() %s\n", toChars());
-    e = exp->semantic(sc);
+    Expression *e = exp->semantic(sc);
     if (e->op == TOKerror)
         return;
     e = e->optimize(WANTvalue | WANTinterpret);

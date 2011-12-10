@@ -31,6 +31,7 @@
 
 ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
+ClassDeclaration *ClassDeclaration::errorException;
 
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : AggregateDeclaration(loc, id)
@@ -168,6 +169,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
                     Type::typeinfoshared->error("%s", msg);
                 Type::typeinfoshared = this;
             }
+
+            if (id == Id::TypeInfo_Wild)
+            {   if (Type::typeinfowild)
+                    Type::typeinfowild->error("%s", msg);
+                Type::typeinfowild = this;
+            }
 #endif
         }
 
@@ -175,6 +182,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         {   if (object)
                 object->error("%s", msg);
             object = this;
+        }
+
+        if (id == Id::Error)
+        {   if (errorException)
+                errorException->error("%s", msg);
+            errorException = this;
         }
 
         if (id == Id::ClassInfo)
