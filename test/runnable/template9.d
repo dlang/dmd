@@ -534,6 +534,30 @@ static assert(pow10_2550!(0) == 1);
 
 /**********************************/
 
+void foo10(T)(T prm)
+{
+    pragma(msg, T);
+    static assert(is(T == const(int)[]));
+}
+void bar10(T)(T prm)
+{
+    pragma(msg, T);
+    static assert(is(T == const(int)*));
+}
+void test10()
+{
+    const a = [1,2,3];
+    static assert(is(typeof(a) == const(int[])));
+    foo10(a);
+
+    int n;
+    const p = &n;
+    static assert(is(typeof(p) == const(int*)));
+    bar10(p);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -558,6 +582,7 @@ int main()
     test2778get();
     test6994();
     test3467();
+    test10();
 
     printf("Success\n");
     return 0;
