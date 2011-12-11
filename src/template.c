@@ -1222,6 +1222,14 @@ Lretry:
                     argtype = argtype->invariantOf();
                 }
             }
+
+            /* Remove top const for dynamic array types and pointer types
+             */
+            if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
+                !argtype->isMutable())
+            {
+                argtype = argtype->mutableOf();
+            }
 #endif
 
             MATCH m;
