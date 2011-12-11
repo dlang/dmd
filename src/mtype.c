@@ -349,7 +349,7 @@ Type *Type::constOf()
     Type *t = makeConst();
     t = t->merge();
     t->fixTo(this);
-    //printf("-Type::constOf() %p %s\n", t, toChars());
+    //printf("-Type::constOf() %p %s\n", t, t->toChars());
     return t;
 }
 
@@ -1532,11 +1532,16 @@ void Type::modToBuffer(OutBuffer *buf)
  */
 
 Type *Type::merge()
-{   Type *t;
-
+{
     if (ty == Terror) return this;
+    if (ty == Ttypeof) return this;
+    if (ty == Tident) return this;
+    if (ty == Tinstance) return this;
+    if (nextOf() && !nextOf()->merge()->deco)
+        return this;
+
     //printf("merge(%s)\n", toChars());
-    t = this;
+    Type *t = this;
     assert(t);
     if (!deco)
     {
