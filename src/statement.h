@@ -178,6 +178,7 @@ struct CompileStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statements *flatten(Scope *sc);
     Statement *semantic(Scope *sc);
+    int blockExit(bool mustNotThrow);
 };
 
 struct CompoundStatement : Statement
