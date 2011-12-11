@@ -2158,6 +2158,14 @@ static assert((inout(shared(int[])[])).stringof == "inout(shared(int[])[])");	//
 static assert((inout(shared(int[])[])).stringof != "inout(shared(inout(int[]))[])");	// fail
 
 /************************************/
+// 6872
+
+static assert((shared(inout(int)[])).stringof == "shared(inout(int)[])");
+static assert((shared(inout(const(int)[]))).stringof == "shared(inout(const(int)[]))");
+static assert((shared(inout(const(int)[])[])).stringof == "shared(inout(const(int)[])[])");
+static assert((shared(inout(const(immutable(int)[])[])[])).stringof == "shared(inout(const(immutable(int)[])[])[])");
+
+/************************************/
 
 int main()
 {
