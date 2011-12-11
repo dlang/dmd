@@ -1165,7 +1165,10 @@ Type *Type::addMod(unsigned mod)
                 break;
 
             case MODshared | MODwild:
-                t = sharedWildOf();
+                if (isConst())
+                    t = sharedConstOf();
+                else
+                    t = sharedWildOf();
                 break;
 
             default:
@@ -1493,22 +1496,23 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
     if (mod != this->mod)
     {
-        if (this->mod & MODshared)
+        if (!(mod & MODshared) && (this->mod & MODshared))
         {
             MODtoBuffer(buf, this->mod & MODshared);
             buf->writeByte('(');
         }
-        int m = (mod ^ (this->mod & ~MODshared)) & this->mod;
-        if (m)
+        int m1 = this->mod & ~MODshared;
+        int m2 = (mod ^ m1) & m1;
+        if (m2)
         {
-            MODtoBuffer(buf, m);
+            MODtoBuffer(buf, m2);
             buf->writeByte('(');
             toCBuffer2(buf, hgs, this->mod);
             buf->writeByte(')');
         }
         else
             toCBuffer2(buf, hgs, this->mod);
-        if (this->mod & MODshared)
+        if (!(mod & MODshared) && (this->mod & MODshared))
         {
             buf->writeByte(')');
         }
@@ -2319,8 +2323,10 @@ Type *TypeNext::makeShared()
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
-        if (next->isConst() || next->isWild())
+        if (next->isConst())
             t->next = next->sharedConstOf();
+        else if (next->isWild())
+            t->next = next->sharedWildOf();
         else
             t->next = next->sharedOf();
     }
@@ -2391,7 +2397,10 @@ Type *TypeNext::makeSharedWild()
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
-        t->next = next->sharedWildOf();
+        if (next->isConst())
+            t->next = next->sharedConstOf();
+        else
+            t->next = next->sharedWildOf();
     }
     if (ty == Taarray)
     {
