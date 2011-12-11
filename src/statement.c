@@ -433,6 +433,12 @@ Statement *CompileStatement::semantic(Scope *sc)
     return s->semantic(sc);
 }
 
+int CompileStatement::blockExit(bool mustNotThrow)
+{
+    assert(global.errors);
+    return BEfallthru;
+}
+
 
 /******************************** CompoundStatement ***************************/
 
