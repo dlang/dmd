@@ -2200,6 +2200,12 @@ TypeError::TypeError()
 {
 }
 
+Type *TypeError::syntaxCopy()
+{
+    // No semantic analysis done, no need to copy
+    return this;
+}
+
 void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
 {
     buf->writestring("_error_");
