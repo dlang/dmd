@@ -729,6 +729,31 @@ StorageClass Parser::parsePostfix()
     }
 }
 
+StorageClass Parser::parseTypeCtor()
+{
+    StorageClass stc = 0;
+
+    while (1)
+    {
+        if (peek(&token)->value == TOKlparen)
+            return stc;
+        switch (token.value)
+        {
+            case TOKconst:              stc |= STCconst;                break;
+            case TOKinvariant:
+                if (!global.params.useDeprecated)
+                    error("use of 'invariant' rather than 'immutable' is deprecated");
+            case TOKimmutable:          stc |= STCimmutable;            break;
+            case TOKshared:             stc |= STCshared;               break;
+            case TOKwild:               stc |= STCwild;                 break;
+
+            default: return stc;
+        }
+        composeStorageClass(stc);
+        nextToken();
+    }
+}
+
 /********************************************
  * Parse declarations after an align, protection, or extern decl.
  */
@@ -5926,7 +5951,9 @@ Expression *Parser::parseUnaryExp()
         case TOKinvariant:
         case TOKimmutable:      // immutable(type)(arguments)
         {
+            StorageClass stc = parseTypeCtor();
             Type *t = parseBasicType();
+            t = t->addSTC(stc);
             e = new TypeExp(loc, t);
             if (token.value != TOKlparen)
             {
@@ -6536,8 +6563,10 @@ Expression *Parser::parseNewExp(Expression *thisexp)
         return e;
     }
 
+    StorageClass stc = parseTypeCtor();
     t = parseBasicType();
     t = parseBasicType2(t);
+    t = t->addSTC(stc);
     if (t->ty == Taarray)
     {   TypeAArray *taa = (TypeAArray *)t;
         Type *index = taa->index;
