@@ -14,6 +14,7 @@
 module rt.minfo;
 
 import core.stdc.stdlib;  // alloca
+import core.stdc.string;  // memcpy
 import rt.util.console;   // console
 
 enum
@@ -236,18 +237,28 @@ extern(C) void _checkModCtors()
         return result;
     }
 
-    void println(string msg[]...)
+    void print(string msgs[]...)
     {
-        version(Windows)
-            immutable ret = "\r\n";
-        else
-            immutable ret = "\n";
-        foreach(m; msg)
+        version (unittest)
+        {
+            if (_inUnitTest)
+                return;
+        }
+
+        foreach(m; msgs)
         {
             // write message to stderr
             console(m);
         }
-        console(ret);
+    }
+
+    void println(string msgs[]...)
+    {
+        print(msgs);
+        version(Windows)
+            print("\r\n");
+        else
+            print("\n");
     }
 
     bool printCycle(ModuleInfo *current, ModuleInfo *target, bool orig = true)
@@ -349,7 +360,7 @@ extern(C) void _checkModCtors()
                     println("Cycle detected between modules with ctors/dtors:");
                     foreach(cm; dtors[dtoridx..$])
                     {
-                        console(cm.name)(" -> ");
+                        print(cm.name, " -> ");
                     }
                     println(cycleModule.name);
                     throw new Exception("Aborting!");
@@ -502,4 +513,159 @@ extern (C) void rt_moduleTlsCtor()
 extern (C) void rt_moduleTlsDtor()
 {
     _moduleTlsDtor();
+}
+
+version (unittest)
+  bool _inUnitTest;
+
+unittest
+{
+    auto oarray = _moduleinfo_array;
+    auto odtors = _moduleinfo_dtors;
+    auto odtorsi = _moduleinfo_dtors_i;
+    auto otlsdtors = _moduleinfo_tlsdtors;
+    auto otlsdtorsi = _moduleinfo_tlsdtors_i;
+
+    scope (exit)
+    {
+        _moduleinfo_array = oarray;
+        _moduleinfo_dtors = odtors;
+        _moduleinfo_dtors_i = odtorsi;
+        _moduleinfo_tlsdtors = otlsdtors;
+        _moduleinfo_tlsdtors_i = otlsdtorsi;
+        _inUnitTest = false;
+    }
+    _inUnitTest = true;
+
+    static void assertThrown(T : Throwable, E)(lazy E expr)
+    {
+        try
+            expr;
+        catch (T)
+            return;
+        assert(0);
+    }
+
+    static void stub()
+    {
+    }
+
+    static ModuleInfo mockMI(uint flags, ModuleInfo*[] imports...)
+    {
+        ModuleInfo mi;
+        mi.n.flags |= flags | MInew;
+        size_t fcnt;
+        auto p = cast(ubyte*)&mi + ModuleInfo.New.sizeof;
+        foreach(fl; [MItlsctor, MItlsdtor, MIctor, MIdtor, MIictor])
+        {
+            if (flags & fl)
+            {
+                *cast(void function()*)p = &stub;
+                p += (&stub).sizeof;
+            }
+        }
+        if (imports.length)
+        {
+            mi.n.flags |= MIimportedModules;
+            *cast(size_t*)p = imports.length;
+            p += size_t.sizeof;
+            immutable nb = imports.length * (ModuleInfo*).sizeof;
+            .memcpy(p, imports.ptr, nb);
+            p += nb;
+        }
+        assert(p - cast(ubyte*)&mi <= ModuleInfo.sizeof);
+        return mi;
+    }
+
+    ModuleInfo m0, m1, m2;
+    _moduleinfo_array = [&m0, &m1, &m2];
+
+    static void checkExp(ModuleInfo*[] dtors=null, ModuleInfo*[] tlsdtors=null)
+    {
+        assert(_moduleinfo_array.length == 3);
+        _checkModCtors();
+        assert(_moduleinfo_array.length == 3);
+        foreach(i, m; _moduleinfo_array)
+        {
+            assert(m.index == i);
+            m.index = 0;
+        }
+        assert(_moduleinfo_dtors[0 .. _moduleinfo_dtors_i] == dtors);
+        assert(_moduleinfo_tlsdtors[0 .. _moduleinfo_tlsdtors_i] == tlsdtors);
+    }
+
+    // no ctors
+    m0 = mockMI(0);
+    m1 = mockMI(0);
+    m2 = mockMI(0);
+    checkExp();
+
+    // independent ctors
+    m0 = mockMI(MIictor);
+    m1 = mockMI(0);
+    m2 = mockMI(MIictor);
+    checkExp();
+
+    // standalone ctor
+    m0 = mockMI(MIstandalone | MIctor);
+    m1 = mockMI(0);
+    m2 = mockMI(0);
+    checkExp([&m0]);
+
+    // imported standalone => no dependency
+    m0 = mockMI(MIstandalone | MIctor);
+    m1 = mockMI(MIstandalone | MIctor, &m0);
+    m2 = mockMI(0);
+    checkExp([&m0, &m1]);
+
+    m0 = mockMI(MIstandalone | MIctor, &m1);
+    m1 = mockMI(MIstandalone | MIctor);
+    m2 = mockMI(0);
+    checkExp([&m0, &m1]);
+
+    // standalone may have cycle
+    m0 = mockMI(MIstandalone | MIctor, &m1);
+    m1 = mockMI(MIstandalone | MIctor, &m0);
+    m2 = mockMI(0);
+    checkExp([&m0, &m1]);
+
+    // imported ctor => ordered ctors
+    m0 = mockMI(MIctor);
+    m1 = mockMI(MIctor, &m0);
+    m2 = mockMI(0);
+    checkExp([&m0, &m1], []);
+
+    m0 = mockMI(MIctor, &m1);
+    m1 = mockMI(MIctor);
+    m2 = mockMI(0);
+    checkExp([&m1, &m0], []);
+
+    // detects ctors cycles
+    m0 = mockMI(MIctor, &m1);
+    m1 = mockMI(MIctor, &m0);
+    m2 = mockMI(0);
+    assertThrown!Throwable(_checkModCtors());
+
+    // imported ctor/tlsctor => ordered ctors/tlsctors
+    m0 = mockMI(MIctor, &m1, &m2);
+    m1 = mockMI(MIctor);
+    m2 = mockMI(MItlsctor);
+    checkExp([&m1, &m0], [&m2]);
+
+    m0 = mockMI(MIctor | MItlsctor, &m1, &m2);
+    m1 = mockMI(MIctor);
+    m2 = mockMI(MItlsctor);
+    checkExp([&m1, &m0], [&m2, &m0]);
+
+    // no cycle between ctors/tlsctors
+    m0 = mockMI(MIctor, &m1, &m2);
+    m1 = mockMI(MIctor);
+    m2 = mockMI(MItlsctor, &m0);
+    checkExp([&m1, &m0], [&m2]);
+
+    // detects tlsctors cycle
+    m0 = mockMI(MItlsctor, &m2);
+    m1 = mockMI(MIctor);
+    m2 = mockMI(MItlsctor, &m0);
+    assertThrown!Throwable(_checkModCtors());
 }
