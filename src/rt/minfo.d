@@ -110,9 +110,6 @@ __gshared size_t        _moduleinfo_dtors_i;
 __gshared ModuleInfo*[] _moduleinfo_tlsdtors;
 __gshared size_t        _moduleinfo_tlsdtors_i;
 
-// Register termination function pointers
-extern (C) int _fatexit(void*);
-
 /**
  * Initialize the modules.
  */
