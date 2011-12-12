@@ -39,6 +39,14 @@ enum
 // Posix: this gets initialized in _moduleCtor()
 extern (C) __gshared ModuleInfo*[] _moduleinfo_array;
 
+struct SortedCtors
+{
+    ModuleInfo*[] _ctors;
+    ModuleInfo*[] _tlsctors;
+}
+
+__gshared SortedCtors _sortedCtors;
+
 int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
 {
     int ret = 0;
@@ -55,6 +63,24 @@ int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
     }
     return ret;
 }
+
+// Provide the TLS ctor and dtor using "rt_" prefixes, since these
+// routines must be called by core.thread.
+
+/********************************************
+ * Run static constructors for thread local global data.
+ */
+
+extern (C) void rt_moduleTlsCtor()
+{
+    runModuleFuncs!((a) { return a.tlsctor; })(_sortedCtors._tlsctors);
+}
+
+extern (C) void rt_moduleTlsDtor()
+{
+    runModuleFuncsRev!((a) { return a.tlsdtor; })(_sortedCtors._tlsctors);
+}
+
 
 version (linux)
 {
@@ -104,19 +130,11 @@ version (OSX)
     }
 }
 
-struct SortedCtors
-{
-    ModuleInfo*[] _ctors;
-    ModuleInfo*[] _tlsctors;
-}
-
-__gshared SortedCtors _sortedCtors;
-
 /**
  * Initialize the modules.
  */
 
-extern (C) void _moduleCtor()
+extern (C) void rt_moduleCtor()
 {
     debug(PRINTF) printf("_moduleCtor()\n");
 
@@ -161,35 +179,38 @@ extern (C) void _moduleCtor()
         //_fatexit(&_STD_moduleDtor);
     }
 
-    //_moduleinfo_dtors = new ModuleInfo*[_moduleinfo_array.length];
-    //debug(PRINTF) printf("_moduleinfo_dtors = x%x\n", cast(void*)_moduleinfo_dtors);
-    // this will determine the constructor/destructor order, and check for
-    // cycles for both shared and TLS ctors
-    _sortedCtors = _checkModCtors(_moduleinfo_array);
+    _sortedCtors = sortCtors(_moduleinfo_array);
 
-    _moduleIndependentCtors(_moduleinfo_array);
-    // now, call the module constructors in the designated order
-    foreach (m; _sortedCtors._ctors)
-    {
-        if(m.ctor)
-            (*m.ctor)();
-    }
-
-    //_moduleCtor2(_moduleinfo_array, 0);
-    // NOTE: _moduleTlsCtor is now called manually by dmain2
-    //_moduleTlsCtor();
+    // independent ctors
+    runModuleFuncs!((a) { return a.ictor; })(_moduleinfo_array);
+    // sorted module ctors
+    runModuleFuncs!((a) { return a.ctor; })(_sortedCtors._ctors);
 }
 
-void _moduleIndependentCtors(ModuleInfo*[] modules)
+extern (C) void rt_moduleDtor()
 {
-    debug(PRINTF) printf("_moduleIndependentCtors()\n");
+    runModuleFuncsRev!((a) { return a.dtor; })(_sortedCtors._ctors);
+}
+
+void runModuleFuncs(alias getfp)(ModuleInfo*[] modules)
+{
     foreach (m; modules)
     {
-        // TODO: Should null ModuleInfo be allowed?
-        if (m && m.ictor)
-        {
-            (*m.ictor)();
-        }
+        if (m is null)
+            continue;
+        if (auto fp = getfp(m))
+            (*fp)();
+    }
+}
+
+void runModuleFuncsRev(alias getfp)(ModuleInfo*[] modules)
+{
+    foreach_reverse (m; modules)
+    {
+        if (m is null)
+            continue;
+        if (auto fp = getfp(m))
+            (*fp)();
     }
 }
 
@@ -197,7 +218,7 @@ void _moduleIndependentCtors(ModuleInfo*[] modules)
  * Check for cycles on module constructors, and establish an order for module
  * constructors.
  */
-SortedCtors _checkModCtors(ModuleInfo*[] modules)
+SortedCtors sortCtors(ModuleInfo*[] modules)
 {
     SortedCtors result;
     // Create an array of modules that will determine the order of construction
@@ -437,80 +458,6 @@ SortedCtors _checkModCtors(ModuleInfo*[] modules)
     return result;
 }
 
-/********************************************
- * Run static constructors for thread local global data.
- */
-
-extern (C) void _moduleTlsCtor()
-{
-    // call the module constructors in the correct order as determined by the
-    // check routine.
-    foreach (m; _sortedCtors._tlsctors)
-    {
-        if(m.tlsctor)
-            (*m.tlsctor)();
-    }
-}
-
-
-/**
- * Destruct the modules.
- */
-
-// Starting the name with "_STD" means under Posix a pointer to the
-// function gets put in the .dtors segment.
-
-extern (C) void _moduleDtor()
-{
-    debug(PRINTF) printf("_moduleDtor(): %d modules\n", _moduleinfo_dtors_i);
-
-    // NOTE: _moduleTlsDtor is now called manually by dmain2
-    //_moduleTlsDtor();
-    foreach_reverse (i, m; _sortedCtors._ctors)
-    {
-        debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name.length, m.name.ptr, m);
-        if (m.dtor)
-        {
-            (*m.dtor)();
-        }
-    }
-    debug(PRINTF) printf("_moduleDtor() done\n");
-}
-
-extern (C) void _moduleTlsDtor()
-{
-    debug(PRINTF) printf("_moduleTlsDtor(): %d modules\n", _moduleinfo_tlsdtors_i);
-    version(none)
-    {
-        printf("_moduleinfo_tlsdtors = %d,%p\n", _moduleinfo_tlsdtors);
-        foreach (i,m; _sortedCtors._tlsctors[0..11])
-            printf("[%d] = %p\n", i, m);
-    }
-
-    foreach_reverse (i, m; _sortedCtors._tlsctors)
-    {
-        debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name.length, m.name.ptr, m);
-        if (m.tlsdtor)
-        {
-            (*m.tlsdtor)();
-        }
-    }
-    debug(PRINTF) printf("_moduleTlsDtor() done\n");
-}
-
-// Alias the TLS ctor and dtor using "rt_" prefixes, since these routines
-// must be called by core.thread.
-
-extern (C) void rt_moduleTlsCtor()
-{
-    _moduleTlsCtor();
-}
-
-extern (C) void rt_moduleTlsDtor()
-{
-    _moduleTlsDtor();
-}
-
 version (unittest)
   bool _inUnitTest;
 
@@ -564,7 +511,7 @@ unittest
     void checkExp(ModuleInfo*[] dtors=null, ModuleInfo*[] tlsdtors=null)
     {
         auto ptrs = [&m0, &m1, &m2];
-        auto sorted = _checkModCtors(ptrs);
+        auto sorted = sortCtors(ptrs);
         foreach (i, m; ptrs)
         {
             assert(m.index == i);

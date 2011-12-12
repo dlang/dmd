@@ -78,10 +78,10 @@ extern (C) void _STD_critical_term();
 extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void _minit();
-extern (C) void _moduleCtor();
-extern (C) void _moduleTlsCtor();
-extern (C) void _moduleDtor();
-extern (C) void _moduleTlsDtor();
+extern (C) void rt_moduleCtor();
+extern (C) void rt_moduleTlsCtor();
+extern (C) void rt_moduleDtor();
+extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
 extern (C) void rt_lifetimeInit();
 
@@ -271,8 +271,8 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
         version (Windows)
             _minit();
         rt_lifetimeInit();
-        _moduleCtor();
-        _moduleTlsCtor();
+        rt_moduleCtor();
+        rt_moduleTlsCtor();
         runModuleUnitTests();
         return true;
     }
@@ -300,10 +300,10 @@ extern (C) bool rt_term(ExceptionHandler dg = null)
 {
     try
     {
-        _moduleTlsDtor();
+        rt_moduleTlsDtor();
         thread_joinAll();
         _d_isHalting = true;
-        _moduleDtor();
+        rt_moduleDtor();
         gc_term();
         return true;
     }
@@ -522,16 +522,16 @@ extern (C) int main(int argc, char** argv)
         version (Windows)
             _minit();
         rt_lifetimeInit();
-        _moduleCtor();
-        _moduleTlsCtor();
+        rt_moduleCtor();
+        rt_moduleTlsCtor();
         if (runModuleUnitTests())
             tryExec(&runMain);
         else
             result = EXIT_FAILURE;
-        _moduleTlsDtor();
+        rt_moduleTlsDtor();
         thread_joinAll();
         _d_isHalting = true;
-        _moduleDtor();
+        rt_moduleDtor();
         gc_term();
     }
 
