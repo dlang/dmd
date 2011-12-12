@@ -104,11 +104,13 @@ version (OSX)
     }
 }
 
-__gshared ModuleInfo*[] _moduleinfo_dtors;
-__gshared size_t        _moduleinfo_dtors_i;
+struct SortedCtors
+{
+    ModuleInfo*[] _ctors;
+    ModuleInfo*[] _tlsctors;
+}
 
-__gshared ModuleInfo*[] _moduleinfo_tlsdtors;
-__gshared size_t        _moduleinfo_tlsdtors_i;
+__gshared SortedCtors _sortedCtors;
 
 /**
  * Initialize the modules.
@@ -163,15 +165,14 @@ extern (C) void _moduleCtor()
     //debug(PRINTF) printf("_moduleinfo_dtors = x%x\n", cast(void*)_moduleinfo_dtors);
     // this will determine the constructor/destructor order, and check for
     // cycles for both shared and TLS ctors
-    _checkModCtors();
+    _sortedCtors = _checkModCtors(_moduleinfo_array);
 
-    _moduleIndependentCtors();
+    _moduleIndependentCtors(_moduleinfo_array);
     // now, call the module constructors in the designated order
-    foreach(i; 0.._moduleinfo_dtors_i)
+    foreach (m; _sortedCtors._ctors)
     {
-        ModuleInfo *mi = _moduleinfo_dtors[i];
-        if(mi.ctor)
-            (*mi.ctor)();
+        if(m.ctor)
+            (*m.ctor)();
     }
 
     //_moduleCtor2(_moduleinfo_array, 0);
@@ -179,10 +180,10 @@ extern (C) void _moduleCtor()
     //_moduleTlsCtor();
 }
 
-extern (C) void _moduleIndependentCtors()
+void _moduleIndependentCtors(ModuleInfo*[] modules)
 {
     debug(PRINTF) printf("_moduleIndependentCtors()\n");
-    foreach (m; _moduleinfo_array)
+    foreach (m; modules)
     {
         // TODO: Should null ModuleInfo be allowed?
         if (m && m.ictor)
@@ -196,22 +197,23 @@ extern (C) void _moduleIndependentCtors()
  * Check for cycles on module constructors, and establish an order for module
  * constructors.
  */
-extern(C) void _checkModCtors()
+SortedCtors _checkModCtors(ModuleInfo*[] modules)
 {
+    SortedCtors result;
     // Create an array of modules that will determine the order of construction
     // (and destruction in reverse).
-    auto dtors = _moduleinfo_dtors = new ModuleInfo*[_moduleinfo_array.length];
-    size_t dtoridx = 0;
+    auto ctors = result._ctors = new ModuleInfo*[modules.length];
+    size_t ctoridx = 0;
 
     // this pointer will identify the module where the cycle was detected.
     ModuleInfo *cycleModule;
 
     // allocate some stack arrays that will be used throughout the process.
-    ubyte* p = cast(ubyte *)alloca(_moduleinfo_array.length * ubyte.sizeof);
-    auto reachable = p[0.._moduleinfo_array.length];
+    ubyte* p = cast(ubyte *)alloca(modules.length * ubyte.sizeof);
+    auto reachable = p[0..modules.length];
 
-    p = cast(ubyte *)alloca(_moduleinfo_array.length * ubyte.sizeof);
-    auto flags = p[0.._moduleinfo_array.length];
+    p = cast(ubyte *)alloca(modules.length * ubyte.sizeof);
+    auto flags = p[0..modules.length];
 
 
     // find all the non-trivial dependencies (that is, dependencies that have a
@@ -227,7 +229,7 @@ extern(C) void _checkModCtors()
         if(!orig && (flags[idx] & (MIctor | MIdtor)) && !(flags[idx] & MIstandalone))
             // non-trivial, stop here
             return result + 1;
-        foreach(ModuleInfo *m; current.importedModules)
+        foreach (ModuleInfo *m; current.importedModules)
         {
             result += _findDependencies(m, false);
         }
@@ -242,7 +244,7 @@ extern(C) void _checkModCtors()
                 return;
         }
 
-        foreach(m; msgs)
+        foreach (m; msgs)
         {
             // write message to stderr
             console(m);
@@ -272,7 +274,7 @@ extern(C) void _checkModCtors()
             // standalone.
             return false;
         // search connections from current to see if we can get to target
-        foreach(m; current.importedModules)
+        foreach (m; current.importedModules)
         {
             if(printCycle(m, target, false))
             {
@@ -302,11 +304,11 @@ extern(C) void _checkModCtors()
         auto dependencies = p[0..nmodules];
         uint depidx = 0;
         // fill in the dependencies
-        foreach(i, r; reachable)
+        foreach (i, r; reachable)
         {
             if(r)
             {
-                ModuleInfo *m = _moduleinfo_array[i];
+                ModuleInfo *m = modules[i];
                 if(m !is current && (flags[i] & (MIctor | MIdtor)) && !(flags[i] & MIstandalone))
                 {
                     dependencies[depidx++] = m;
@@ -319,7 +321,7 @@ extern(C) void _checkModCtors()
         auto curidx = current.index;
         flags[curidx] |= MIctorstart;
         bool valid = true;
-        foreach(m; dependencies)
+        foreach (m; dependencies)
         {
             auto mflags = flags[m.index];
             if(mflags & MIctorstart)
@@ -333,7 +335,7 @@ extern(C) void _checkModCtors()
 
                 // use the currently allocated dtor path to record the loop
                 // that contains module ctors/dtors only.
-                dtoridx = dtors.length;
+                ctoridx = ctors.length;
             }
             else if(!(mflags & MIctordone))
             {
@@ -350,12 +352,12 @@ extern(C) void _checkModCtors()
                 printCycle(current, m);
 
                 // record this as a module that was used in the loop.
-                dtors[--dtoridx] = current;
+                ctors[--ctoridx] = current;
                 if(current is cycleModule)
                 {
                     // print the cycle
                     println("Cycle detected between modules with ctors/dtors:");
-                    foreach(cm; dtors[dtoridx..$])
+                    foreach (cm; ctors[ctoridx..$])
                     {
                         print(cm.name, " -> ");
                     }
@@ -367,13 +369,13 @@ extern(C) void _checkModCtors()
         }
         flags[curidx] = (flags[curidx] & ~MIctorstart) | MIctordone;
         // add this module to the construction order list
-        dtors[dtoridx++] = current;
+        ctors[ctoridx++] = current;
         return true;
     }
 
     void _checkModCtors3()
     {
-        foreach(m; _moduleinfo_array)
+        foreach (m; modules)
         {
             // TODO: Should null ModuleInfo be allowed?
             if (m is null) continue;
@@ -383,7 +385,7 @@ extern(C) void _checkModCtors()
                 if(flag & MIstandalone)
                 {
                     // no need to run a check on this one, but we do need to call its ctor/dtor
-                    dtors[dtoridx++] = m;
+                    ctors[ctoridx++] = m;
                 }
                 else
                     _checkModCtors2(m);
@@ -392,7 +394,7 @@ extern(C) void _checkModCtors()
     }
 
     // ok, now we need to assign indexes, and also initialize the flags
-    foreach(uint i, m; _moduleinfo_array)
+    foreach (uint i, m; modules)
     {
         // TODO: Should null ModuleInfo be allowed?
         if (m is null) continue;
@@ -409,12 +411,12 @@ extern(C) void _checkModCtors()
     _checkModCtors3();
 
     // store the number of dtors/ctors
-    _moduleinfo_dtors_i = dtoridx;
+    result._ctors = result._ctors[0 .. ctoridx];
 
     // set up everything for tls ctors
-    dtors = _moduleinfo_tlsdtors = new ModuleInfo*[_moduleinfo_array.length];
-    dtoridx = 0;
-    foreach(i, m; _moduleinfo_array)
+    ctors = result._tlsctors = new ModuleInfo*[modules.length];
+    ctoridx = 0;
+    foreach (i, m; modules)
     {
         // TODO: Should null ModuleInfo be allowed?
         if (m is null) continue;
@@ -430,7 +432,9 @@ extern(C) void _checkModCtors()
     _checkModCtors3();
 
     // store the number of dtors/ctors
-    _moduleinfo_tlsdtors_i = dtoridx;
+    result._tlsctors = result._tlsctors[0 .. ctoridx];
+
+    return result;
 }
 
 /********************************************
@@ -441,11 +445,10 @@ extern (C) void _moduleTlsCtor()
 {
     // call the module constructors in the correct order as determined by the
     // check routine.
-    foreach(i; 0.._moduleinfo_tlsdtors_i)
+    foreach (m; _sortedCtors._tlsctors)
     {
-        ModuleInfo *mi = _moduleinfo_tlsdtors[i];
-        if(mi.tlsctor)
-            (*mi.tlsctor)();
+        if(m.tlsctor)
+            (*m.tlsctor)();
     }
 }
 
@@ -463,10 +466,8 @@ extern (C) void _moduleDtor()
 
     // NOTE: _moduleTlsDtor is now called manually by dmain2
     //_moduleTlsDtor();
-    for (auto i = _moduleinfo_dtors_i; i-- != 0;)
+    foreach_reverse (i, m; _sortedCtors._ctors)
     {
-        ModuleInfo* m = _moduleinfo_dtors[i];
-
         debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name.length, m.name.ptr, m);
         if (m.dtor)
         {
@@ -482,14 +483,12 @@ extern (C) void _moduleTlsDtor()
     version(none)
     {
         printf("_moduleinfo_tlsdtors = %d,%p\n", _moduleinfo_tlsdtors);
-        foreach (i,m; _moduleinfo_tlsdtors[0..11])
+        foreach (i,m; _sortedCtors._tlsctors[0..11])
             printf("[%d] = %p\n", i, m);
     }
 
-    for (auto i = _moduleinfo_tlsdtors_i; i-- != 0;)
+    foreach_reverse (i, m; _sortedCtors._tlsctors)
     {
-        ModuleInfo* m = _moduleinfo_tlsdtors[i];
-
         debug(PRINTF) printf("\tmodule[%d] = '%.*s', x%x\n", i, m.name.length, m.name.ptr, m);
         if (m.tlsdtor)
         {
@@ -517,22 +516,8 @@ version (unittest)
 
 unittest
 {
-    auto oarray = _moduleinfo_array;
-    auto odtors = _moduleinfo_dtors;
-    auto odtorsi = _moduleinfo_dtors_i;
-    auto otlsdtors = _moduleinfo_tlsdtors;
-    auto otlsdtorsi = _moduleinfo_tlsdtors_i;
-
-    scope (exit)
-    {
-        _moduleinfo_array = oarray;
-        _moduleinfo_dtors = odtors;
-        _moduleinfo_dtors_i = odtorsi;
-        _moduleinfo_tlsdtors = otlsdtors;
-        _moduleinfo_tlsdtors_i = otlsdtorsi;
-        _inUnitTest = false;
-    }
     _inUnitTest = true;
+    scope (exit) _inUnitTest = false;
 
     static void assertThrown(T : Throwable, E)(lazy E expr)
     {
@@ -553,7 +538,7 @@ unittest
         mi.n.flags |= flags | MInew;
         size_t fcnt;
         auto p = cast(ubyte*)&mi + ModuleInfo.New.sizeof;
-        foreach(fl; [MItlsctor, MItlsdtor, MIctor, MIdtor, MIictor])
+        foreach (fl; [MItlsctor, MItlsdtor, MIctor, MIdtor, MIictor])
         {
             if (flags & fl)
             {
@@ -575,20 +560,18 @@ unittest
     }
 
     ModuleInfo m0, m1, m2;
-    _moduleinfo_array = [&m0, &m1, &m2];
 
-    static void checkExp(ModuleInfo*[] dtors=null, ModuleInfo*[] tlsdtors=null)
+    void checkExp(ModuleInfo*[] dtors=null, ModuleInfo*[] tlsdtors=null)
     {
-        assert(_moduleinfo_array.length == 3);
-        _checkModCtors();
-        assert(_moduleinfo_array.length == 3);
-        foreach(i, m; _moduleinfo_array)
+        auto ptrs = [&m0, &m1, &m2];
+        auto sorted = _checkModCtors(ptrs);
+        foreach (i, m; ptrs)
         {
             assert(m.index == i);
             m.index = 0;
         }
-        assert(_moduleinfo_dtors[0 .. _moduleinfo_dtors_i] == dtors);
-        assert(_moduleinfo_tlsdtors[0 .. _moduleinfo_tlsdtors_i] == tlsdtors);
+        assert(sorted._ctors == dtors);
+        assert(sorted._tlsctors == tlsdtors);
     }
 
     // no ctors
@@ -641,7 +624,7 @@ unittest
     m0 = mockMI(MIctor, &m1);
     m1 = mockMI(MIctor, &m0);
     m2 = mockMI(0);
-    assertThrown!Throwable(_checkModCtors());
+    assertThrown!Throwable(checkExp());
 
     // imported ctor/tlsctor => ordered ctors/tlsctors
     m0 = mockMI(MIctor, &m1, &m2);
@@ -664,5 +647,5 @@ unittest
     m0 = mockMI(MItlsctor, &m2);
     m1 = mockMI(MIctor);
     m2 = mockMI(MItlsctor, &m0);
-    assertThrown!Throwable(_checkModCtors());
+    assertThrown!Throwable(checkExp());
 }
