@@ -1533,14 +1533,12 @@ void Type::modToBuffer(OutBuffer *buf)
 
 Type *Type::merge()
 {
-#if 0
     if (ty == Terror) return this;
     if (ty == Ttypeof) return this;
     if (ty == Tident) return this;
     if (ty == Tinstance) return this;
     if (nextOf() && !nextOf()->merge()->deco)
         return this;
-#endif
 
     //printf("merge(%s)\n", toChars());
     Type *t = this;
@@ -5169,10 +5167,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
 
             tf->inuse++;
-            if (!fparam->type->deco)
-            {
-                fparam->type = fparam->type->semantic(loc, argsc);
-            }
+            fparam->type = fparam->type->semantic(loc, argsc);
             if (tf->inuse == 1) tf->inuse--;
 
             fparam->type = fparam->type->addStorageClass(fparam->storageClass);
