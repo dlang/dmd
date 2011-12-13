@@ -2443,11 +2443,29 @@ Type *TypeNext::makeMutable()
 }
 
 MATCH TypeNext::constConv(Type *to)
-{   MATCH m = Type::constConv(to);
+{
+    //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to->toChars());
+    if (equals(to))
+        return MATCHexact;
 
-    if (m == MATCHconst &&
-        next->constConv(((TypeNext *)to)->next) == MATCHnomatch)
-        m = MATCHnomatch;
+    if (!(ty == to->ty && MODimplicitConv(mod, to->mod)))
+        return MATCHnomatch;
+
+    Type *tn = to->nextOf();
+    if (!(tn && next->ty == tn->ty))
+        return MATCHnomatch;
+
+    MATCH m;
+    if (to->isConst())  // whole tail const conversion
+    {   // Recursive shared level check
+        m = next->constConv(tn);
+        if (m == MATCHexact)
+            m = MATCHconst;
+    }
+    else
+    {   //printf("\tnext => %s, to->next => %s\n", next->toChars(), tn->toChars());
+        m = next->equals(tn) ? MATCHconst : MATCHnomatch;
+    }
     return m;
 }
 
@@ -3723,21 +3741,27 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         return MATCHnomatch;
     }
     if (to->ty == Tarray)
-    {   int offset = 0;
+    {
         TypeDArray *ta = (TypeDArray *)to;
 
         if (!MODimplicitConv(next->mod, ta->next->mod))
             return MATCHnomatch;
 
-        if (next->equals(ta->next) ||
-//          next->implicitConvTo(ta->next) >= MATCHconst ||
-            next->constConv(ta->next) != MATCHnomatch ||
-            (ta->next->isBaseOf(next, &offset) && offset == 0 &&
-             !ta->next->isMutable()) ||
-            ta->next->ty == Tvoid)
+        /* Allow conversion to void[]
+         */
+        if (ta->next->ty == Tvoid)
+        {
             return MATCHconvert;
+        }
+
+        MATCH m = next->constConv(ta->next);
+        if (m != MATCHnomatch)
+        {
+            return MATCHconvert;
+        }
         return MATCHnomatch;
     }
+
     if (to->ty == Tsarray)
     {
         if (this == to)
@@ -3966,7 +3990,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
     }
 
     if (to->ty == Tarray)
-    {   int offset = 0;
+    {
         TypeDArray *ta = (TypeDArray *)to;
 
         if (!MODimplicitConv(next->mod, ta->next->mod))
@@ -3993,23 +4017,6 @@ MATCH TypeDArray::implicitConvTo(Type *to)
                 m = MATCHconst;
             return m;
         }
-
-#if 0
-        /* Allow conversions of T[][] to const(T)[][]
-         */
-        if (mod == ta->mod && next->ty == Tarray && ta->next->ty == Tarray)
-        {
-            m = next->implicitConvTo(ta->next);
-            if (m == MATCHconst)
-                return m;
-        }
-#endif
-
-        /* Conversion of array of derived to array of const(base)
-         */
-        if (ta->next->isBaseOf(next, &offset) && offset == 0 &&
-            !ta->next->isMutable())
-            return MATCHconvert;
     }
     return Type::implicitConvTo(to);
 }
@@ -4419,8 +4426,7 @@ MATCH TypeAArray::constConv(Type *to)
         // Pick the worst match
         return mkey < mindex ? mkey : mindex;
     }
-    else
-        return Type::constConv(to);
+    return Type::constConv(to);
 }
 
 /***************************** TypePointer *****************************/
@@ -4510,7 +4516,8 @@ MATCH TypePointer::implicitConvTo(Type *to)
         return MATCHnomatch;
     }
     else if (to->ty == Tpointer)
-    {   TypePointer *tp = (TypePointer *)to;
+    {
+        TypePointer *tp = (TypePointer *)to;
         assert(tp->next);
 
         if (!MODimplicitConv(next->mod, tp->next->mod))
@@ -4537,12 +4544,6 @@ MATCH TypePointer::implicitConvTo(Type *to)
                 m = MATCHconst;
             return m;
         }
-
-        /* Conversion of ptr to derived to ptr to base
-         */
-        int offset = 0;
-        if (tp->next->isBaseOf(next, &offset) && offset == 0)
-            return MATCHconvert;
     }
     return MATCHnomatch;
 }
@@ -8008,6 +8009,13 @@ MATCH TypeClass::constConv(Type *to)
     if (ty == to->ty && sym == ((TypeClass *)to)->sym &&
         MODimplicitConv(mod, to->mod))
         return MATCHconst;
+
+    /* Conversion derived to const(base)
+     */
+    int offset = 0;
+    if (to->isBaseOf(this, &offset) && offset == 0 && !to->isMutable())
+        return MATCHconvert;
+
     return MATCHnomatch;
 }
 
