@@ -4201,31 +4201,29 @@ void test2856()
 }
 
 /***************************************************/
+// 6056 fixup
 
-version (Windows)
+template ParameterTypeTuple6056(func)
 {
-    template ParameterTypeTuple158(func)
-    {
-	static if (is(func Fptr : Fptr*) && is(Fptr P == function))
-	    alias P ParameterTypeTuple158;
-	else
-	    static assert(0, "argument has no parameters");
-    }
+    static if (is(func Fptr : Fptr*) && is(Fptr P == function))
+        alias P ParameterTypeTuple6056;
+    else
+        static assert(0, "argument has no parameters");
+}
 
-    extern(Windows) alias void function() fpw_t;
+extern(C) alias void function() fpw_t;
 
-    alias void function(fpw_t fp) cb_t;
+alias void function(fpw_t fp) cb_t;
 
-    void bar158(ParameterTypeTuple158!(cb_t) args) {
-	  pragma (msg, "TFunction1: " ~ typeof(args[0]).stringof);
-    }
+void bar6056(ParameterTypeTuple6056!(cb_t) args) {
+      pragma (msg, "TFunction1: " ~ typeof(args[0]).stringof);
+}
 
-    extern(Windows) void foo158() { }
+extern(C) void foo6056() { }
 
-    void test158()
-    {
-	bar158(&foo158);
-    }
+void test6056()
+{
+    bar6056(&foo6056);
 }
 
 /***************************************************/
@@ -4429,8 +4427,7 @@ int main()
     test6330();
     test6868();
     test2856();
-  version (Windows)
-    test158();
+    test6056();
 
     printf("Success\n");
     return 0;
