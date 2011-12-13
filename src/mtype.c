@@ -5462,10 +5462,14 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             else
                 m = arg->implicitConvTo(p->type);
             //printf("match %d\n", m);
-            if (m == MATCHnomatch && arg->type->wildConvTo(p->type))
+            if (m == MATCHnomatch)
             {
-                wildmatch = TRUE;       // mod matched to wild
-                m = MATCHconst;
+                unsigned mod = arg->type->wildConvTo(p->type);
+                if (mod)
+                {
+                    wildmatch = TRUE;       // mod matched to wild
+                    m = arg->type->implicitConvTo(p->type->substWildTo(mod));
+                }
             }
         }
 
