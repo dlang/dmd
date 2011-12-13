@@ -77,7 +77,6 @@ extern (C) void _STI_critical_init();
 extern (C) void _STD_critical_term();
 extern (C) void gc_init();
 extern (C) void gc_term();
-extern (C) void _minit();
 extern (C) void rt_moduleCtor();
 extern (C) void rt_moduleTlsCtor();
 extern (C) void rt_moduleDtor();
@@ -268,8 +267,6 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
     {
         gc_init();
         initStaticDataGC();
-        version (Windows)
-            _minit();
         rt_lifetimeInit();
         rt_moduleCtor();
         rt_moduleTlsCtor();
@@ -519,8 +516,6 @@ extern (C) int main(int argc, char** argv)
     {
         gc_init();
         initStaticDataGC();
-        version (Windows)
-            _minit();
         rt_lifetimeInit();
         rt_moduleCtor();
         rt_moduleTlsCtor();

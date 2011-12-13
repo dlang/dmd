@@ -38,6 +38,7 @@ enum
 // Windows: this gets initialized by minit.asm
 // Posix: this gets initialized in _moduleCtor()
 extern (C) __gshared ModuleInfo*[] _moduleinfo_array;
+extern(C) void _minit();
 
 struct SortedCtors
 {
@@ -68,8 +69,19 @@ int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
 // routines must be called by core.thread.
 
 /********************************************
- * Run static constructors for thread local global data.
+ * Module constructors and destructor routines.
  */
+
+extern (C) void rt_moduleCtor()
+{
+    _moduleinfo_array = getModuleInfos();
+    _sortedCtors = sortCtors(_moduleinfo_array);
+
+    // run independent ctors
+    runModuleFuncs!((a) { return a.ictor; })(_moduleinfo_array);
+    // sorted module ctors
+    runModuleFuncs!((a) { return a.ctor; })(_sortedCtors._ctors);
+}
 
 extern (C) void rt_moduleTlsCtor()
 {
@@ -81,6 +93,10 @@ extern (C) void rt_moduleTlsDtor()
     runModuleFuncsRev!((a) { return a.tlsdtor; })(_sortedCtors._tlsctors);
 }
 
+extern (C) void rt_moduleDtor()
+{
+    runModuleFuncsRev!((a) { return a.dtor; })(_sortedCtors._ctors);
+}
 
 version (linux)
 {
@@ -130,13 +146,9 @@ version (OSX)
     }
 }
 
-/**
- * Initialize the modules.
- */
-
-extern (C) void rt_moduleCtor()
+ModuleInfo*[] getModuleInfos()
 {
-    debug(PRINTF) printf("_moduleCtor()\n");
+    typeof(return) result = void;
 
     version (OSX)
     {
@@ -147,49 +159,30 @@ extern (C) void rt_moduleCtor()
          * respectively.
          */
          size_t length = cast(ModuleInfo**)&_minfo_end - cast(ModuleInfo**)&_minfo_beg;
-         _moduleinfo_array = (cast(ModuleInfo**)&_minfo_beg)[0 .. length];
-         debug printf("moduleinfo: ptr = %p, length = %d\n", _moduleinfo_array.ptr, _moduleinfo_array.length);
-
-         debug foreach (m; _moduleinfo_array)
-         {
-             // TODO: Should null ModuleInfo be allowed?
-             if (m !is null)
-                //printf("\t%p\n", m);
-                printf("\t%.*s\n", m.name);
-         }
+         result = (cast(ModuleInfo**)&_minfo_beg)[0 .. length];
     }
     // all other Posix variants (FreeBSD, Solaris, Linux)
     else version (Posix)
     {
-        int len = 0;
+        size_t len;
         ModuleReference *mr;
 
         for (mr = _Dmodule_ref; mr; mr = mr.next)
             len++;
-        _moduleinfo_array = new ModuleInfo*[len];
+        result = new ModuleInfo*[len];
         len = 0;
         for (mr = _Dmodule_ref; mr; mr = mr.next)
-        {   _moduleinfo_array[len] = mr.mod;
+        {   result[len] = mr.mod;
             len++;
         }
     }
     else version (Windows)
     {
-        // Ensure module destructors also get called on program termination
-        //_fatexit(&_STD_moduleDtor);
+        // _minit directly alters the global _moduleinfo_array
+        _minit();
+        result = _moduleinfo_array;
     }
-
-    _sortedCtors = sortCtors(_moduleinfo_array);
-
-    // independent ctors
-    runModuleFuncs!((a) { return a.ictor; })(_moduleinfo_array);
-    // sorted module ctors
-    runModuleFuncs!((a) { return a.ctor; })(_sortedCtors._ctors);
-}
-
-extern (C) void rt_moduleDtor()
-{
-    runModuleFuncsRev!((a) { return a.dtor; })(_sortedCtors._ctors);
+    return result;
 }
 
 void runModuleFuncs(alias getfp)(ModuleInfo*[] modules)
