@@ -4498,18 +4498,23 @@ int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
     int haveId = 0;
 
 #if DMDV2
-    if ((t->value == TOKconst ||
-         t->value == TOKinvariant ||
-         t->value == TOKimmutable ||
-         t->value == TOKwild ||
-         t->value == TOKshared) &&
-        peek(t)->value != TOKlparen)
-    {   /* const type
-         * immutable type
-         * shared type
-         * wild type
-         */
-        t = peek(t);
+    while (1)
+    {
+        if ((t->value == TOKconst ||
+             t->value == TOKinvariant ||
+             t->value == TOKimmutable ||
+             t->value == TOKwild ||
+             t->value == TOKshared) &&
+            peek(t)->value != TOKlparen)
+        {   /* const type
+             * immutable type
+             * shared type
+             * wild type
+             */
+            t = peek(t);
+            continue;
+        }
+        break;
     }
 #endif
 

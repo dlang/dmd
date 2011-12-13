@@ -4663,6 +4663,16 @@ void test3091(inout int = 0)
 }
 
 /***************************************************/
+// 6837
+
+template Id6837(T)
+{
+	alias T Id6837;
+}
+static assert(is(Id6837!(shared const int) == shared const int));
+static assert(is(Id6837!(shared inout int) == shared inout int));
+
+/***************************************************/
 // 6056 fixup
 
 template ParameterTypeTuple6056(func)
