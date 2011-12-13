@@ -5478,6 +5478,10 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             if (targb->nextOf() && tparb->ty == Tsarray &&
                 !MODimplicitConv(targb->nextOf()->mod, tparb->nextOf()->mod))
                 goto Nomatch;
+
+            // ref variable behaves like head-const reference
+            if (arg->op != TOKstring && !arg->type->toBasetype()->constConv(p->type->toBasetype()))
+                goto Nomatch;
         }
 
         if (p->storageClass & STClazy && p->type->ty == Tvoid &&

@@ -2037,6 +2037,61 @@ void test4251b()
 }
 
 /************************************/
+// 5493
+
+void test5493()
+{
+    // non template function
+    void pifun(immutable(char)[]* a) {}
+    void rifun(ref immutable(char)[] a) {}
+
+    void pcfun(const(char)[]* a) {}
+    void rcfun(ref const(char)[] a) {}
+
+    immutable char[] buf1 = "hello";
+    static assert(!__traits(compiles, pifun(buf1)));
+    static assert(!__traits(compiles, pcfun(buf1)));
+    static assert(!__traits(compiles, rifun(buf1)));
+    static assert(!__traits(compiles, rcfun(buf1)));
+
+    immutable char[5] buf2 = "hello";
+    static assert(!__traits(compiles, pifun(buf2)));
+    static assert(!__traits(compiles, pcfun(buf2)));
+    static assert(!__traits(compiles, rifun(buf2)));
+    static assert(!__traits(compiles, rcfun(buf2)));
+
+    const char[] buf3 = "hello";
+    static assert(!__traits(compiles, pcfun(buf3)));
+    static assert(!__traits(compiles, rcfun(buf3)));
+
+    const char[5] buf4 = "hello";
+    static assert(!__traits(compiles, pcfun(buf4)));
+    static assert(!__traits(compiles, rcfun(buf4)));
+
+    // template function
+    void pmesswith(T)(const(T)[]* ts, const(T) t)
+    {
+        *ts ~= t;
+    }
+    void rmesswith(T)(ref const(T)[] ts, const(T) t)
+    {
+        ts ~= t;
+    }
+    class C
+    {
+        int x;
+        this(int i) { x = i; }
+    }
+    C[] cs;
+    immutable C ci = new immutable(C)(6);
+    assert (ci.x == 6);
+    static assert(!__traits(compiles, pmesswith(&cs,ci)));
+    static assert(!__traits(compiles, rmesswith(cs,ci)));
+    //cs[$-1].x = 14;
+    //assert (ci.x == 14); //whoops.
+}
+
+/************************************/
 // 6782
 
 struct Tuple6782(T...)
@@ -2445,6 +2500,7 @@ int main()
     test88();
     test4251a();
     test4251b();
+    test5493();
     test6782();
     test6864();
     test6865();
