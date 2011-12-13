@@ -48,6 +48,10 @@ struct SortedCtors
 
 __gshared SortedCtors _sortedCtors;
 
+/********************************************
+ * Iterate over all module infos.
+ */
+
 int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
 {
     int ret = 0;
@@ -65,11 +69,8 @@ int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
     return ret;
 }
 
-// Provide the TLS ctor and dtor using "rt_" prefixes, since these
-// routines must be called by core.thread.
-
 /********************************************
- * Module constructors and destructor routines.
+ * Module constructor and destructor routines.
  */
 
 extern (C) void rt_moduleCtor()
@@ -98,44 +99,9 @@ extern (C) void rt_moduleDtor()
     runModuleFuncsRev!((a) { return a.dtor; })(_sortedCtors._ctors);
 }
 
-version (linux)
-{
-    // This linked list is created by a compiler generated function inserted
-    // into the .ctor list by the compiler.
-    struct ModuleReference
-    {
-        ModuleReference* next;
-        ModuleInfo*      mod;
-    }
-
-    extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
-}
-
-version (FreeBSD)
-{
-    // This linked list is created by a compiler generated function inserted
-    // into the .ctor list by the compiler.
-    struct ModuleReference
-    {
-        ModuleReference* next;
-        ModuleInfo*      mod;
-    }
-
-    extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
-}
-
-version (Solaris)
-{
-    // This linked list is created by a compiler generated function inserted
-    // into the .ctor list by the compiler.
-    struct ModuleReference
-    {
-        ModuleReference* next;
-        ModuleInfo*      mod;
-    }
-
-    extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
-}
+/********************************************
+ * Access compiler generated list of modules.
+ */
 
 version (OSX)
 {
@@ -144,6 +110,18 @@ version (OSX)
         extern __gshared void* _minfo_beg;
         extern __gshared void* _minfo_end;
     }
+}
+else version (Posix)
+{
+    // This linked list is created by a compiler generated function inserted
+    // into the .ctor list by the compiler.
+    struct ModuleReference
+    {
+        ModuleReference* next;
+        ModuleInfo*      mod;
+    }
+
+    extern (C) __gshared ModuleReference* _Dmodule_ref;   // start of linked list
 }
 
 ModuleInfo*[] getModuleInfos()
@@ -185,6 +163,10 @@ ModuleInfo*[] getModuleInfos()
     return result;
 }
 
+
+/********************************************
+ */
+
 void runModuleFuncs(alias getfp)(ModuleInfo*[] modules)
 {
     foreach (m; modules)
@@ -211,6 +193,7 @@ void runModuleFuncsRev(alias getfp)(ModuleInfo*[] modules)
  * Check for cycles on module constructors, and establish an order for module
  * constructors.
  */
+
 SortedCtors sortCtors(ModuleInfo*[] modules)
 {
     SortedCtors result;
