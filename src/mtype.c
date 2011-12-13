@@ -1533,12 +1533,14 @@ void Type::modToBuffer(OutBuffer *buf)
 
 Type *Type::merge()
 {
+#if 0
     if (ty == Terror) return this;
     if (ty == Ttypeof) return this;
     if (ty == Tident) return this;
     if (ty == Tinstance) return this;
     if (nextOf() && !nextOf()->merge()->deco)
         return this;
+#endif
 
     //printf("merge(%s)\n", toChars());
     Type *t = this;
@@ -5167,7 +5169,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
 
             tf->inuse++;
-            fparam->type = fparam->type->semantic(loc, argsc);
+            if (!fparam->type->deco)
+            {
+                fparam->type = fparam->type->semantic(loc, argsc);
+            }
             if (tf->inuse == 1) tf->inuse--;
 
             fparam->type = fparam->type->addStorageClass(fparam->storageClass);
@@ -5207,26 +5212,32 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 fparam->defaultArg = fparam->defaultArg->implicitCastTo(argsc, fparam->type);
             }
 
-            /* If fparam turns out to be a tuple, the number of parameters may
+            /* If fparam after semantic() turns out to be a tuple, the number of parameters may
              * change.
              */
             if (t->ty == Ttuple)
             {
-                // Propagate storage class from tuple parameters to their element-parameters.
-                TypeTuple *tt = (TypeTuple *)(t->syntaxCopy());
-                if (tt->arguments)
+                TypeTuple *tt = (TypeTuple *)t;
+                if (fparam->storageClass && tt->arguments && tt->arguments->dim)
                 {
+                    /* Propagate additional storage class from tuple parameters to their
+                     * element-parameters.
+                     * Make a copy, as original may be referenced elsewhere.
+                     */
                     size_t tdim = tt->arguments->dim;
+                    Parameters *newparams = new Parameters();
+                    newparams->setDim(tdim);
                     for (size_t j = 0; j < tdim; j++)
-                    {   Parameter *narg = tt->arguments->tdata()[j];
-                        narg->storageClass |= fparam->storageClass;
+                    {   Parameter *narg = (*tt->arguments)[j];
+                        newparams->tdata()[j] = new Parameter(narg->storageClass | fparam->storageClass,
+                                narg->type, narg->ident, narg->defaultArg);
                     }
-                    fparam->storageClass = 0;
+                    fparam->type = new TypeTuple(newparams);
                 }
-                fparam->type = tt;
+                fparam->storageClass = 0;
 
                 /* Reset number of parameters, and back up one to do this fparam again,
-                 * now that it is the first element of a tuple
+                 * now that it is a tuple
                  */
                 dim = Parameter::dim(tf->parameters);
                 i--;
@@ -8586,6 +8597,7 @@ void Parameter::toDecoBuffer(OutBuffer *buf)
             break;
         default:
 #ifdef DEBUG
+            printf("storageClass = x%lx\n", storageClass & (STCin | STCout | STCref | STClazy));
             halt();
 #endif
             assert(0);

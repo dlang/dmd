@@ -4202,6 +4202,34 @@ void test2856()
 
 /***************************************************/
 
+version (Windows)
+{
+    template ParameterTypeTuple158(func)
+    {
+	static if (is(func Fptr : Fptr*) && is(Fptr P == function))
+	    alias P ParameterTypeTuple158;
+	else
+	    static assert(0, "argument has no parameters");
+    }
+
+    extern(Windows) alias void function() fpw_t;
+
+    alias void function(fpw_t fp) cb_t;
+
+    void bar158(ParameterTypeTuple158!(cb_t) args) {
+	  pragma (msg, "TFunction1: " ~ typeof(args[0]).stringof);
+    }
+
+    extern(Windows) void foo158() { }
+
+    void test158()
+    {
+	bar158(&foo158);
+    }
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4401,6 +4429,8 @@ int main()
     test6330();
     test6868();
     test2856();
+  version (Windows)
+    test158();
 
     printf("Success\n");
     return 0;
