@@ -50,6 +50,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     aliasthis = NULL;
     noDefaultCtor = FALSE;
 #endif
+    dtor = NULL;
 }
 
 enum PROT AggregateDeclaration::prot()
