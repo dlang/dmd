@@ -262,9 +262,12 @@ Expression *TraitsExp::semantic(Scope *sc)
             if (t)
             {
                 Dsymbol *sym = t->toDsymbol(sc);
-                Dsymbol *sm = sym->search(loc, id, 0);
-                if (sm)
-                    goto Ltrue;
+                if (sym)
+                {
+                    Dsymbol *sm = sym->search(loc, id, 0);
+                    if (sm)
+                        goto Ltrue;
+                }
             }
 
             /* Take any errors as meaning it wasn't found
