@@ -347,6 +347,7 @@ struct StringExp : Expression
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
     unsigned char postfix;      // 'c', 'w', 'd'
+    bool ownedByCtfe;   // true = created in CTFE
 
     StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, size_t len);
@@ -398,6 +399,7 @@ struct TupleExp : Expression
 struct ArrayLiteralExp : Expression
 {
     Expressions *elements;
+    bool ownedByCtfe;   // true = created in CTFE
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
@@ -426,6 +428,7 @@ struct AssocArrayLiteralExp : Expression
 {
     Expressions *keys;
     Expressions *values;
+    bool ownedByCtfe;   // true = created in CTFE
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
 
@@ -457,6 +460,7 @@ struct StructLiteralExp : Expression
     Symbol *sym;                // back end symbol to initialize with literal
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
+    bool ownedByCtfe;           // true = created in CTFE
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 

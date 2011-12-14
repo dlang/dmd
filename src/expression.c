@@ -2609,6 +2609,7 @@ StringExp::StringExp(Loc loc, char *string)
     this->sz = 1;
     this->committed = 0;
     this->postfix = 0;
+    this->ownedByCtfe = false;
 }
 
 StringExp::StringExp(Loc loc, void *string, size_t len)
@@ -2619,6 +2620,7 @@ StringExp::StringExp(Loc loc, void *string, size_t len)
     this->sz = 1;
     this->committed = 0;
     this->postfix = 0;
+    this->ownedByCtfe = false;
 }
 
 StringExp::StringExp(Loc loc, void *string, size_t len, unsigned char postfix)
@@ -2629,6 +2631,7 @@ StringExp::StringExp(Loc loc, void *string, size_t len, unsigned char postfix)
     this->sz = 1;
     this->committed = 0;
     this->postfix = postfix;
+    this->ownedByCtfe = false;
 }
 
 #if 0
@@ -2641,7 +2644,7 @@ Expression *StringExp::syntaxCopy()
 
 int StringExp::equals(Object *o)
 {
-    //printf("StringExp::equals('%s')\n", o->toChars());
+    //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
     if (o && o->dyncast() == DYNCAST_EXPRESSION)
     {   Expression *e = (Expression *)o;
 
@@ -2687,7 +2690,7 @@ Expression *StringExp::semantic(Scope *sc)
                     p = utf_decodeChar((unsigned char *)string, len, &u, &c);
                     if (p)
                     {   error("%s", p);
-                        break;
+                        return new ErrorExp();
                     }
                     else
                     {   buffer.write4(c);
@@ -2708,7 +2711,7 @@ Expression *StringExp::semantic(Scope *sc)
                     p = utf_decodeChar((unsigned char *)string, len, &u, &c);
                     if (p)
                     {   error("%s", p);
-                        break;
+                        return new ErrorExp();
                     }
                     else
                     {   buffer.writeUTF16(c);
@@ -3003,6 +3006,7 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expressions *elements)
     : Expression(loc, TOKarrayliteral, sizeof(ArrayLiteralExp))
 {
     this->elements = elements;
+    this->ownedByCtfe = false;
 }
 
 ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
@@ -3081,7 +3085,7 @@ int ArrayLiteralExp::checkSideEffect(int flag)
 {   int f = 0;
 
     for (size_t i = 0; i < elements->dim; i++)
-    {   Expression *e = (Expression *)elements->data[i];
+    {   Expression *e = elements->tdata()[i];
 
         f |= e->checkSideEffect(2);
     }
@@ -3144,7 +3148,7 @@ void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     size_t dim = elements ? elements->dim : 0;
     buf->printf("A%u", dim);
     for (size_t i = 0; i < dim; i++)
-    {   Expression *e = (Expression *)elements->data[i];
+    {   Expression *e = elements->tdata()[i];
         e->toMangleBuffer(buf);
     }
 }
@@ -3160,6 +3164,7 @@ AssocArrayLiteralExp::AssocArrayLiteralExp(Loc loc,
     assert(keys->dim == values->dim);
     this->keys = keys;
     this->values = values;
+    this->ownedByCtfe = false;
 }
 
 Expression *AssocArrayLiteralExp::syntaxCopy()
@@ -3719,7 +3724,7 @@ Lagain:
         else
         {
             error("'this' for nested class must be a class type, not %s", thisexp->type->toChars());
-            type = newtype->semantic(loc, sc);
+            goto Lerr;
         }
     }
     else
@@ -3734,7 +3739,9 @@ Lagain:
     preFunctionParameters(loc, sc, arguments);
 
     if (thisexp && tb->ty != Tclass)
-        error("e.new is only for allocating nested classes, not %s", tb->toChars());
+    {   error("e.new is only for allocating nested classes, not %s", tb->toChars());
+        goto Lerr;
+    }
 
     if (tb->ty == Tclass)
     {   TypeFunction *tf;
@@ -3742,14 +3749,17 @@ Lagain:
         TypeClass *tc = (TypeClass *)(tb);
         ClassDeclaration *cd = tc->sym->isClassDeclaration();
         if (cd->isInterfaceDeclaration())
-            error("cannot create instance of interface %s", cd->toChars());
+        {   error("cannot create instance of interface %s", cd->toChars());
+            goto Lerr;
+        }
         else if (cd->isAbstract())
         {   error("cannot create instance of abstract class %s", cd->toChars());
             for (size_t i = 0; i < cd->vtbl.dim; i++)
-            {   FuncDeclaration *fd = ((Dsymbol *)cd->vtbl.data[i])->isFuncDeclaration();
+            {   FuncDeclaration *fd = cd->vtbl.tdata()[i]->isFuncDeclaration();
                 if (fd && fd->isAbstract())
                     error("function %s is abstract", fd->toChars());
             }
+            goto Lerr;
         }
         checkDeprecated(sc, cd);
         if (cd->isNested())
@@ -3771,7 +3781,7 @@ Lagain:
                     {   if (!sp)
                         {
                             error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
-                            break;
+                            goto Lerr;
                         }
                         ClassDeclaration *cdp = sp->isClassDeclaration();
                         if (!cdp)
@@ -3788,7 +3798,9 @@ Lagain:
                 {
                     //printf("cdthis = %s\n", cdthis->toChars());
                     if (cdthis != cdn && !cdn->isBaseOf(cdthis, NULL))
-                        error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
+                    {   error("'this' for nested class must be of type %s, not %s", cdn->toChars(), thisexp->type->toChars());
+                        goto Lerr;
+                    }
                 }
 #if 0
                 else
@@ -3798,7 +3810,7 @@ Lagain:
                         if (!sf)
                         {
                             error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
-                            break;
+                            goto Lerr;
                         }
                         printf("sf = %s\n", sf->toChars());
                         AggregateDeclaration *ad = sf->isThis();
@@ -3809,7 +3821,9 @@ Lagain:
 #endif
             }
             else if (thisexp)
-                error("e.new is only for allocating nested classes");
+            {   error("e.new is only for allocating nested classes");
+                goto Lerr;
+            }
             else if (fdn)
             {
                 // make sure the parent context fdn of cd is reachable from sc
@@ -3821,13 +3835,15 @@ Lagain:
                     if (!sp || (fsp && fsp->isStatic()))
                     {
                         error("outer function context of %s is needed to 'new' nested class %s", fdn->toPrettyChars(), cd->toPrettyChars());
-                        break;
+                        goto Lerr;
                     }
                 }
             }
         }
         else if (thisexp)
-            error("e.new is only for allocating nested classes");
+        {   error("e.new is only for allocating nested classes");
+            goto Lerr;
+        }
 
         FuncDeclaration *f = cd->ctor;
         if (f)
@@ -3845,12 +3861,18 @@ Lagain:
 
             if (!arguments)
                 arguments = new Expressions();
+            unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, arguments);
+            if (olderrors != global.errors)
+                return new ErrorExp();
+
         }
         else
         {
             if (arguments && arguments->dim)
-                error("no constructor for %s", cd->toChars());
+            {   error("no constructor for %s", cd->toChars());
+                goto Lerr;
+            }
         }
 
         if (cd->aggNew)
@@ -3866,12 +3888,18 @@ Lagain:
             assert(allocator);
 
             tf = (TypeFunction *)f->type;
+            unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, newargs);
+            if (olderrors != global.errors)
+                return new ErrorExp();
+
         }
         else
         {
             if (newargs && newargs->dim)
-                error("no allocator for %s", cd->toChars());
+            {   error("no allocator for %s", cd->toChars());
+                goto Lerr;
+            }
         }
     }
     else if (tb->ty == Tstruct)
@@ -3899,7 +3927,10 @@ Lagain:
             assert(allocator);
 
             tf = (TypeFunction *)f->type;
+            unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, newargs);
+            if (olderrors != global.errors)
+                return new ErrorExp();
 
             e = new VarExp(loc, f);
             e = new CallExp(loc, e, newargs);
@@ -3916,36 +3947,42 @@ Lagain:
         {
             if (tb->ty != Tarray)
             {   error("too many arguments for array");
-                arguments->dim = i;
-                break;
+                goto Lerr;
             }
 
-            Expression *arg = (Expression *)arguments->data[i];
+            Expression *arg = arguments->tdata()[i];
             arg = resolveProperties(sc, arg);
             arg = arg->implicitCastTo(sc, Type::tsize_t);
             if (arg->op == TOKint64 && (long long)arg->toInteger() < 0)
-                error("negative array index %s", arg->toChars());
-            arguments->data[i] = (void *) arg;
+            {   error("negative array index %s", arg->toChars());
+                goto Lerr;
+            }
+            arguments->tdata()[i] =  arg;
             tb = ((TypeDArray *)tb)->next->toBasetype();
         }
     }
     else if (tb->isscalar())
     {
         if (arguments && arguments->dim)
-            error("no constructor for %s", type->toChars());
+        {   error("no constructor for %s", type->toChars());
+            goto Lerr;
+        }
 
         type = type->pointerTo();
     }
     else
     {
         error("new can only create structs, dynamic arrays or class objects, not %s's", type->toChars());
-        type = type->pointerTo();
+        goto Lerr;
     }
 
 //printf("NewExp: '%s'\n", toChars());
 //printf("NewExp:type '%s'\n", type->toChars());
 
     return this;
+
+Lerr:
+    return new ErrorExp();
 }
 
 int NewExp::checkSideEffect(int flag)
@@ -3954,9 +3991,24 @@ int NewExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int NewExp::canThrow()
+int NewExp::canThrow(bool mustNotThrow)
 {
-    return 1;
+    if (arrayExpressionCanThrow(newargs, mustNotThrow) ||
+        arrayExpressionCanThrow(arguments, mustNotThrow))
+        return 1;
+    if (member)
+    {
+        // See if constructor call can throw
+        Type *t = member->type->toBasetype();
+        if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
+        {
+            if (mustNotThrow)
+                error("constructor %s is not nothrow", member->toChars());
+            return 1;
+        }
+    }
+    // regard storage allocation failures as not recoverable
+    return 0;
 }
 #endif
 
@@ -6980,7 +7032,10 @@ Lcheckargs:
 
     if (!arguments)
         arguments = new Expressions();
+    int olderrors = global.errors;
     functionParameters(loc, sc, tf, arguments);
+    if (olderrors != global.errors)
+        return new ErrorExp();
 
     assert(type);
 
@@ -7003,31 +7058,43 @@ Lcheckargs:
 int CallExp::checkSideEffect(int flag)
 {
 #if DMDV2
-    if (flag != 2)
-        return 1;
+    int result = 1;
 
-    if (e1->checkSideEffect(2))
-        return 1;
+    /* Calling a function or delegate that is pure nothrow
+     * has no side effects.
+     */
+    if (e1->type)
+    {
+        Type *t = e1->type->toBasetype();
+        if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
+                                   ((TypeFunction *)t)->isnothrow)
+            ||
+            (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
+                                   ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+           )
+        {
+            result = 0;
+            //if (flag == 0)
+                //warning("pure nothrow function %s has no effect", e1->toChars());
+        }
+        else
+            result = 1;
+    }
+
+    result |= e1->checkSideEffect(1);
 
     /* If any of the arguments have side effects, this expression does
      */
     for (size_t i = 0; i < arguments->dim; i++)
-    {   Expression *e = (Expression *)arguments->data[i];
+    {   Expression *e = arguments->tdata()[i];
 
-        if (e->checkSideEffect(2))
-            return 1;
+        result |= e->checkSideEffect(1);
     }
 
-    /* If calling a function or delegate that is typed as pure,
-     * then this expression has no side effects.
-     */
-    Type *t = e1->type->toBasetype();
-    if (t->ty == Tfunction && ((TypeFunction *)t)->ispure)
-        return 0;
-    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->ispure)
-        return 0;
-#endif
+    return result;
+#else
     return 1;
+#endif
 }
 
 #if DMDV2

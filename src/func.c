@@ -65,7 +65,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
     inlineAsm = 0;
-    cantInterpret = 0;
     isArrayOp = 0;
     semanticRun = PASSinit;
 #if DMDV1
@@ -85,6 +84,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
 #if DMDV2
     builtin = BUILTINunknown;
     tookAddressOf = 0;
+    flags = 0;
 #endif
 }
 

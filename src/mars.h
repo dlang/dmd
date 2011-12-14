@@ -409,8 +409,10 @@ typedef uint64_t StorageClass;
 
 void warning(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
+void errorSupplemental(Loc loc, const char *format, ...);
 void verror(Loc loc, const char *format, va_list);
 void vwarning(Loc loc, const char *format, va_list);
+void verrorSupplemental(Loc loc, const char *format, va_list);
 void fatal();
 void err_nomem();
 int runLINK();

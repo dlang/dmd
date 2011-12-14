@@ -54,10 +54,15 @@ void StaticAssert::semantic2(Scope *sc)
 {
     //printf("StaticAssert::semantic2() %s\n", toChars());
     Expression *e = exp->semantic(sc);
-    if (e->op == TOKerror)
+    if (e->type == Type::terror)
         return;
+    unsigned olderrs = global.errors;
     e = e->optimize(WANTvalue | WANTinterpret);
-    if (e->isBool(FALSE))
+    if (global.errors != olderrs)
+    {
+        errorSupplemental(loc, "while evaluating: static assert(%s)", exp->toChars());
+    }
+    else if (e->isBool(FALSE))
     {
         if (msg)
         {   HdrGenState hgs;
