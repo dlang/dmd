@@ -755,6 +755,32 @@ static assert(
 }());
 
 /*******************************************
+    6934
+*******************************************/
+
+struct Struct6934 {
+    int[] x = [1,2];
+}
+
+void bar6934(ref int[] p) {
+    p[0] = 12;
+    assert(p[0] == 12);
+    p[0..1] = 17;
+    assert(p[0] == 17);
+    p = p[1..$];
+}
+
+int bug6934() {
+    Struct6934 q;
+    bar6934(q.x);
+    int[][] y = [[2,5], [3,6, 8]];
+    bar6934(y[0]);
+    return 1;
+}
+
+static assert(bug6934());
+
+/*******************************************
              Bug 5671
 *******************************************/
 
@@ -1021,15 +1047,34 @@ struct Xarg
 {
    char [] s;
 }
-int zfs()
+
+int zfs(int n)
 {
+    char [] m = "exy".dup;
+    if (n == 1)
+    {   // it's OK to cast to const, then cast back
+        string ss = cast(string)m;
+        m = cast(char[])ss;
+        m[2]='q';
+        return 56;
+    }
     auto q = Xarg(cast(char[])"abc");
     assert(q.s[1]=='b');
-    q.s[1] = 'p';
+    if (n==2)
+        q.s[1] = 'p';
+    else if (n==3)
+        q.s[0..$] = 'p';
+    char * w = &q.s[2];
+    if (n==4)
+        *w = 'z';
     return 76;
 }
 
-static assert(!is(typeof(compiles!(zfs()))));
+static assert(!is(typeof(compiles!(zfs(2)))));
+static assert(!is(typeof(compiles!(zfs(3)))));
+static assert(!is(typeof(compiles!(zfs(4)))));
+static assert(is(typeof(compiles!(zfs(1)))));
+static assert(!is(typeof(compiles!(zfs(5)))));
 
 /**************************************************
    .dup must protect string literals
@@ -2007,6 +2052,26 @@ int bug4448b()
 }
 
 static assert(bug4448b()==3);
+
+/**************************************************
+    6985 - non-constant case
+**************************************************/
+
+int bug6985(int z)
+{
+    int q = z *2 - 6;
+    switch(z)
+    {
+    case q:
+        q = 87;
+        break;
+    default:
+    }
+    return q;
+}
+
+static assert(bug6985(6) == 87);
+
 
 /**************************************************
     6281 - [CTFE] A null pointer '!is null' returns 'true'

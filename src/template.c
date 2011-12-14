@@ -5161,7 +5161,7 @@ void TemplateInstance::printInstantiationTrace()
     {
         for (TemplateInstance *cur = this; cur; cur = cur->tinst)
         {
-            fprintf(stdmsg, format, cur->loc.toChars(), cur->toChars());
+            errorSupplemental(cur->loc, format, cur->toChars());
         }
     }
     else if (n_instantiations - n_totalrecursions <= max_shown)
@@ -5179,9 +5179,9 @@ void TemplateInstance::printInstantiationTrace()
             else
             {
                 if (recursionDepth)
-                    fprintf(stdmsg, "%s:        %d recursive instantiations from here: %s\n", cur->loc.toChars(), recursionDepth+2, cur->toChars());
+                    errorSupplemental(cur->loc, "%d recursive instantiations from here: %s", recursionDepth+2, cur->toChars());
                 else
-                    fprintf(stdmsg,format, cur->loc.toChars(), cur->toChars());
+                    errorSupplemental(cur->loc, format, cur->toChars());
                 recursionDepth = 0;
             }
         }
@@ -5194,11 +5194,11 @@ void TemplateInstance::printInstantiationTrace()
         for (TemplateInstance *cur = this; cur; cur = cur->tinst)
         {
             if (i == max_shown / 2)
-                fprintf(stdmsg,"    ... (%d instantiations, -v to show) ...\n", n_instantiations - max_shown);
+                errorSupplemental(cur->loc, "... (%d instantiations, -v to show) ...", n_instantiations - max_shown);
 
             if (i < max_shown / 2 ||
                 i >= n_instantiations - max_shown + max_shown / 2)
-                fprintf(stdmsg, format, cur->loc.toChars(), cur->toChars());
+                errorSupplemental(cur->loc, format, cur->toChars());
             ++i;
         }
     }
