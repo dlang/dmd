@@ -66,7 +66,6 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     naked = 0;
     inlineStatus = ILSuninitialized;
     inlineNest = 0;
-    cantInterpret = 0;
     isArrayOp = 0;
     semanticRun = PASSinit;
 #if DMDV1
