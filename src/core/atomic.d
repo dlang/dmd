@@ -985,14 +985,14 @@ if(__traits(isFloating, T))
     static if(T.sizeof == int.sizeof)
     {
         static assert(is(T : float));
-        auto ptr = cast(int*) &val;
+        auto ptr = cast(const shared int*) &val;
         auto asInt = atomicLoad!(ms)(*ptr);
         return *(cast(typeof(return)*) &asInt);
     }
     else static if(T.sizeof == long.sizeof)
     {
         static assert(is(T : double));
-        auto ptr = cast(long*) &val;
+        auto ptr = cast(const shared long*) &val;
         auto asLong = atomicLoad!(ms)(*ptr);
         return *(cast(typeof(return)*) &asLong);
     }
@@ -1016,7 +1016,7 @@ version( unittest )
 
         assert( base != val, T.stringof );
         assert( atom == base, T.stringof );
-        
+
         assert( cas( &atom, base, val ), T.stringof );
         assert( atom == val, T.stringof );
         assert( !cas( &atom, base, base ), T.stringof );
@@ -1032,7 +1032,7 @@ version( unittest )
         assert( atom == base );
         atomicStore!(ms)( atom, val );
         base = atomicLoad!(ms)( atom );
-        
+
         assert( base == val, T.stringof );
         assert( atom == val );
     }
@@ -1061,7 +1061,7 @@ version( unittest )
         testType!(uint)();
 
         testType!(shared int*)();
-        
+
         testType!(float)(1.0f);
         testType!(double)(1.0);
 
@@ -1078,12 +1078,12 @@ version( unittest )
 
         atomicOp!"-="( i, cast(size_t) 1 );
         assert( i == 0 );
-        
-        float f = 0;
+
+        shared float f = 0;
         atomicOp!"+="( f, 1 );
         assert( f == 1 );
-        
-        double d = 0;
+
+        shared double d = 0;
         atomicOp!"+="( d, 1 );
         assert( d == 1 );
     }

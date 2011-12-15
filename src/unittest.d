@@ -33,7 +33,7 @@ void main()
 {
     // Bring in unit test for module by referencing a function in it
     shared(int) i;
-    cas( &i, i.init, i.init + 1 ); // atomic
+    cas( &i, 0, 1 ); // atomic
     auto b = bsf( 0 ); // bitop
     mmx(); // cpuid
     demangle( "" ); // demangle
