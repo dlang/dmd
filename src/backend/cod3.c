@@ -4198,7 +4198,9 @@ void pinholeopt(code *c,block *b)
             //printf("c = %p, op = %02x rm = %02x\n", c, op, rm);
 
             /* If immediate second operand      */
-            if ((ins & T || op == 0xF6 || op == 0xF7) &&
+            if ((ins & T ||
+                 ((op == 0xF6 || op == 0xF7) && (reg < modregrm(0,2,0) || reg > modregrm(0,3,0)))
+                ) &&
                 c->IFL2 == FLconst)
             {
                 int flags = c->Iflags & CFpsw;      /* if want result in flags */
