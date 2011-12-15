@@ -44,11 +44,36 @@ void test7004()
 }
 
 /***************************************/
+// 3187
+class Collection
+{
+    int opApply(int delegate(ref Object) a)
+    {
+        return 0;
+    }
+}
+
+Object testForeach(Collection level1, Collection level2)
+{
+    foreach (first; level1) {
+        foreach (second; level2)
+            return second;
+    }
+    return null;
+}
+
+void test3187()
+{
+    testForeach(new Collection, new Collection);
+}
+
+/***************************************/
 
 int main()
 {
     test1();
     test7004();
+    test3187();
 
     printf("Success\n");
     return 0;
