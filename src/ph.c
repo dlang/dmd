@@ -137,7 +137,7 @@ void ph_free(void *p)
 {
 }
 
-void * __cdecl ph_realloc(void *p,size_t nbytes)
+void *ph_realloc(void *p,size_t nbytes)
 {
     //dbg_printf("ph_realloc(%p,%d)\n",p,nbytes);
     if (!p)

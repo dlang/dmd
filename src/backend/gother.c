@@ -796,7 +796,7 @@ STATIC void intranges()
                         if (debugc)
                         {   WReqn(rel->pelem);
                             dbg_printf(" made unsigned, initial = %ld, increment = %ld,\
- final = %ld\n",initial,increment,final);
+ final = %ld\n",(long int)initial,(long int)increment,(long int)final);
                         }
 #endif
                         changes++;

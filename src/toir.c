@@ -579,16 +579,16 @@ int intrinsic_op(char *name)
     {
         if (strcmp(std_namearray[i], std_namearray[i + 1]) >= 0)
         {
-            printf("std_namearray[%d] = '%s'\n", i, std_namearray[i]);
+            printf("std_namearray[%ld] = '%s'\n", (long)i, std_namearray[i]);
             assert(0);
         }
     }
     assert(sizeof(std_namearray64) / sizeof(char *) == sizeof(std_ioptab));
-    for (int i = 0; i < sizeof(std_namearray64) / sizeof(char *) - 1; i++)
+    for (size_t i = 0; i < sizeof(std_namearray64) / sizeof(char *) - 1; i++)
     {
         if (strcmp(std_namearray64[i], std_namearray64[i + 1]) >= 0)
         {
-            printf("std_namearray64[%d] = '%s'\n", i, std_namearray64[i]);
+            printf("std_namearray64[%ld] = '%s'\n", (long)i, std_namearray64[i]);
             assert(0);
         }
     }
@@ -599,16 +599,16 @@ int intrinsic_op(char *name)
     {
         if (strcmp(core_namearray[i], core_namearray[i + 1]) >= 0)
         {
-            printf("core_namearray[%d] = '%s'\n", i, core_namearray[i]);
+            printf("core_namearray[%ld] = '%s'\n", (long)i, core_namearray[i]);
             assert(0);
         }
     }
     assert(sizeof(core_namearray64) / sizeof(char *) == sizeof(core_ioptab));
-    for (int i = 0; i < sizeof(core_namearray64) / sizeof(char *) - 1; i++)
+    for (size_t i = 0; i < sizeof(core_namearray64) / sizeof(char *) - 1; i++)
     {
         if (strcmp(core_namearray64[i], core_namearray64[i + 1]) >= 0)
         {
-            printf("core_namearray64[%d] = '%s'\n", i, core_namearray64[i]);
+            printf("core_namearray64[%ld] = '%s'\n", (long)i, core_namearray64[i]);
             assert(0);
         }
     }

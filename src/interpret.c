@@ -276,7 +276,7 @@ struct ThrownExceptionExp : Expression
     }
     char *toChars()
     {
-        return "CTFE ThrownException";
+        return (char *)"CTFE ThrownException";
     }
     // Generate an error message when this exception is not caught
     void generateUncaughtError()

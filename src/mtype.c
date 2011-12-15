@@ -8592,7 +8592,7 @@ void Parameter::toDecoBuffer(OutBuffer *buf)
             break;
         default:
 #ifdef DEBUG
-            printf("storageClass = x%lx\n", storageClass & (STCin | STCout | STCref | STClazy));
+            printf("storageClass = x%llx\n", storageClass & (STCin | STCout | STCref | STClazy));
             halt();
 #endif
             assert(0);
