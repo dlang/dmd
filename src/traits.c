@@ -258,9 +258,24 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
 
         if (ident == Id::hasMember)
-        {   /* Take any errors as meaning it wasn't found
+        {
+            if (t)
+            {
+                Dsymbol *sym = t->toDsymbol(sc);
+                if (sym)
+                {
+                    Dsymbol *sm = sym->search(loc, id, 0);
+                    if (sm)
+                        goto Ltrue;
+                }
+            }
+
+            /* Take any errors as meaning it wasn't found
              */
-            e = e->trySemantic(sc);
+            Scope *sc2 = sc->push();
+            //sc2->inHasMember++;
+            e = e->trySemantic(sc2);
+            sc2->pop();
             if (!e)
             {   if (global.gag)
                 {
