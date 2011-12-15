@@ -120,9 +120,9 @@ void symbol_print(symbol *s)
     dbg_printf(" Sfl = "); WRFL((enum FL) s->Sfl);
     dbg_printf(" Sseg = %d\n",s->Sseg);
 //  dbg_printf(" Ssize   = x%02x\n",s->Ssize);
-    dbg_printf(" Soffset = x%04lx",s->Soffset);
+    dbg_printf(" Soffset = x%04llx",(unsigned long long)s->Soffset);
     dbg_printf(" Sweight = %d",s->Sweight);
-    dbg_printf(" Sflags = x%04lx",s->Sflags);
+    dbg_printf(" Sflags = x%04lx",(unsigned long)s->Sflags);
     dbg_printf(" Sxtrnnum = %d\n",s->Sxtrnnum);
     dbg_printf("  Stype   = %p",s->Stype);
 #if SCPP
@@ -139,7 +139,7 @@ void symbol_print(symbol *s)
         type_print(s->Stype);
     if (s->Sclass == SCmember || s->Sclass == SCfield)
     {
-        dbg_printf("  Smemoff =%5ld",s->Smemoff);
+        dbg_printf("  Smemoff =%5lld", (long long)s->Smemoff);
         dbg_printf("  Sbit    =%3d",s->Sbit);
         dbg_printf("  Swidth  =%3d\n",s->Swidth);
     }

@@ -2431,8 +2431,8 @@ STATIC void asm_make_modrm_byte(
 
 #ifdef DEBUG
         if (debuga)
-            printf("This is an mod = %d, popnd->s =%p, popnd->disp = %ld\n",
-               mrmb.modregrm.mod, s, popnd->disp);
+            printf("This is an mod = %d, popnd->s =%p, popnd->disp = %lld\n",
+               mrmb.modregrm.mod, s, (long long)popnd->disp);
 #endif
             if (!s || (!mrmb.modregrm.mod && popnd->disp))
             {
@@ -2634,7 +2634,7 @@ STATIC void asm_make_modrm_byte(
                     if (usFlags & (_modrm | NUM_MASK)) {
 #ifdef DEBUG
                         if (debuga)
-                            printf("Setting up value %ld\n", popnd->disp);
+                            printf("Setting up value %lld\n", (long long)popnd->disp);
 #endif
                         pc->IEVint1 = popnd->disp;
                         pc->IFL1 = FLconst;
@@ -2657,7 +2657,7 @@ STATIC void asm_make_modrm_byte(
                     if (usFlags & (_modrm | NUM_MASK)) {
 #ifdef DEBUG
                         if (debuga)
-                            printf("Setting up value %ld\n", popnd->disp);
+                            printf("Setting up value %lld\n", (long long)popnd->disp);
 #endif
                             pc->IEVpointer1 = (targ_size_t) popnd->disp;
                             pc->IFL1 = FLconst;
@@ -3095,10 +3095,10 @@ STATIC void asm_output_popnd(OPND *popnd)
                 }
         }
         if (ASM_GET_aopty(popnd->usFlags) == _imm)
-                printf("%lxh", popnd->disp);
+                printf("%llxh", (long long)popnd->disp);
         else
         if (popnd->disp)
-                printf("+%lxh", popnd->disp);
+                printf("+%llxh", (long long)popnd->disp);
 }
 
 #endif

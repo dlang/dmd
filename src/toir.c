@@ -487,7 +487,7 @@ int intrinsic_op(char *name)
     {
         if (strcmp(namearray[i], namearray[i + 1]) >= 0)
         {
-            printf("namearray[%d] = '%s'\n", i, namearray[i]);
+            printf("namearray[%ld] = '%s'\n", (long)i, namearray[i]);
             assert(0);
         }
     }
@@ -496,7 +496,7 @@ int intrinsic_op(char *name)
     {
         if (strcmp(namearray64[i], namearray64[i + 1]) >= 0)
         {
-            printf("namearray64[%d] = '%s'\n", i, namearray64[i]);
+            printf("namearray64[%ld] = '%s'\n", (long)i, namearray64[i]);
             assert(0);
         }
     }
