@@ -4227,6 +4227,12 @@ void test6056()
 }
 
 /***************************************************/
+// 7108
+
+static assert(!__traits(hasMember, int, "x"));
+static assert( __traits(hasMember, int, "init"));
+
+/***************************************************/
 
 int main()
 {
