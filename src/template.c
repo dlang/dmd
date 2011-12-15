@@ -4528,7 +4528,7 @@ void TemplateInstance::printInstantiationTrace()
         return;
 
     const unsigned max_shown = 6;
-    const char format[] = "%s:        instantiated from here: %s\n";
+    const char format[] = "instantiated from here: %s";
 
     // determine instantiation depth and number of recursive instantiations
     int n_instantiations = 1;
@@ -4608,7 +4608,7 @@ void TemplateInstance::toObjFile(int multiobj)
         {
             for (size_t i = 0; i < members->dim; i++)
             {
-                Dsymbol *s = (Dsymbol *)members->data[i];
+                Dsymbol *s = (*members)[i];
                 s->toObjFile(multiobj);
             }
         }
@@ -4624,7 +4624,7 @@ void TemplateInstance::inlineScan()
     {
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = (*members)[i];
             s->inlineScan();
         }
     }
@@ -4647,7 +4647,7 @@ void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         {
             if (i)
                 buf->writeByte(',');
-            Object *oarg = (Object *)args->data[i];
+            Object *oarg = (*args)[i];
             ObjectToCBuffer(buf, hgs, oarg);
         }
         nest--;
@@ -4710,7 +4710,7 @@ char *TemplateInstance::toChars()
 
 TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, Type *tqual,
         Identifiers *idents, Objects *tiargs)
-        : TemplateInstance(loc, (Identifier *)idents->data[idents->dim - 1])
+        : TemplateInstance(loc, idents->tdata()[idents->dim - 1])
 {
     //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");
     this->ident = ident;
@@ -4726,7 +4726,7 @@ Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
     ids->setDim(idents->dim);
     for (size_t i = 0; i < idents->dim; i++)
     {   // Matches TypeQualified::syntaxCopyHelper()
-        Identifier *id = (Identifier *)idents->data[i];
+        Identifier *id = idents->tdata()[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
         {
             TemplateInstance *ti = (TemplateInstance *)id;
@@ -4791,7 +4791,7 @@ void TemplateMixin::semantic(Scope *sc)
         else
         {
             i = 1;
-            id = (Identifier *)idents->data[0];
+            id = idents->tdata()[0];
             switch (id->dyncast())
             {
                 case DYNCAST_IDENTIFIER:
@@ -4814,7 +4814,7 @@ void TemplateMixin::semantic(Scope *sc)
         {
             if (!s)
                 break;
-            id = (Identifier *)idents->data[i];
+            id = idents->tdata()[i];
             s = s->searchX(loc, sc, id);
         }
         if (!s)
