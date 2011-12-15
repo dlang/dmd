@@ -3167,18 +3167,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
     Scope *scx = sc;
     int implicit0 = 0;
 
-    if (sc->fes)
-    {
-        // Find scope of function foreach is in
-        for (; 1; scx = scx->enclosing)
-        {
-            assert(scx);
-            if (scx->func != fd)
-            {   fd = scx->func;         // fd is now function enclosing foreach
-                break;
-            }
-        }
-    }
+    if (fd->fes)
+        fd = fd->fes->func;             // fd is now function enclosing foreach
 
     Type *tret = fd->type->nextOf();
     if (fd->tintro)
