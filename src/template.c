@@ -5138,7 +5138,7 @@ void TemplateInstance::printInstantiationTrace()
         return;
 
     const unsigned max_shown = 6;
-    const char format[] = "%s:        instantiated from here: %s\n";
+    const char format[] = "instantiated from here: %s";
 
     // determine instantiation depth and number of recursive instantiations
     int n_instantiations = 1;
