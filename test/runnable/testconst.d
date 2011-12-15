@@ -2092,6 +2092,54 @@ void test5493()
 }
 
 /************************************/
+// 5493 + inout
+
+void test5493inout()
+{
+    int m;
+    const(int) c;
+    immutable(int) i;
+
+    inout(int) ptrfoo(inout(int)** a, inout(int)* b)
+    {
+        *a = b;
+        return 0;   // dummy
+    }
+    inout(int) reffoo(ref inout(int)* a, inout(int)* b)
+    {
+        a = b;
+        return 0;   // dummy
+    }
+
+    // wild matching: inout == mutable
+    int* pm;
+                                      ptrfoo(&pm, &m);    assert(pm == &m);
+    static assert(!__traits(compiles, ptrfoo(&pm, &c)));
+    static assert(!__traits(compiles, ptrfoo(&pm, &i)));
+                                      reffoo( pm, &m);    assert(pm == &m);
+    static assert(!__traits(compiles, reffoo( pm, &c)));
+    static assert(!__traits(compiles, reffoo( pm, &i)));
+
+    // wild matching: inout == const
+    const(int)* pc;
+    ptrfoo(&pc, &m);    assert(pc == &m);
+    ptrfoo(&pc, &c);    assert(pc == &c);
+    ptrfoo(&pc, &i);    assert(pc == &i);
+    reffoo( pc, &m);    assert(pc == &m);
+    reffoo( pc, &c);    assert(pc == &c);
+    reffoo( pc, &i);    assert(pc == &i);
+
+    // wild matching: inout == immutable
+    immutable(int)* pi;
+    static assert(!__traits(compiles, ptrfoo(&pi, &m)));
+    static assert(!__traits(compiles, ptrfoo(&pi, &c)));
+                                      ptrfoo(&pi, &i);    assert(pi == &i);
+    static assert(!__traits(compiles, reffoo( pi, &m)));
+    static assert(!__traits(compiles, reffoo( pi, &c)));
+                                      reffoo( pi, &i);    assert(pi == &i);
+}
+
+/************************************/
 // 6782
 
 struct Tuple6782(T...)
@@ -2501,6 +2549,7 @@ int main()
     test4251a();
     test4251b();
     test5493();
+    test5493inout();
     test6782();
     test6864();
     test6865();

@@ -690,6 +690,19 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     unsigned n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
     unsigned wildmatch = 0;
+    if (ethis && tf->isWild())
+    {
+        Type *t = ethis->type;
+        if (t->isWild())
+            wildmatch |= MODwild;
+        else if (t->isConst())
+            wildmatch |= MODconst;
+        else if (t->isImmutable())
+            wildmatch |= MODimmutable;
+        else
+            wildmatch |= MODmutable;
+    }
+
     int done = 0;
     for (size_t i = 0; i < n; i++)
     {
@@ -699,7 +712,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             arg = arguments->tdata()[i];
         else
             arg = NULL;
-        Type *tb;
 
         if (i < nparams)
         {
@@ -816,6 +828,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arg = arg->semantic(sc);
                 //printf("\targ = '%s'\n", arg->toChars());
                 arguments->setDim(i + 1);
+                arguments->tdata()[i] =  arg;
+                nargs = i + 1;
                 done = 1;
             }
 
@@ -826,7 +840,42 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (mod)
                 {
                     wildmatch |= mod;
-                    arg = arg->implicitCastTo(sc, p->type->substWildTo(mod));
+                }
+            }
+        }
+        if (done)
+            break;
+    }
+    if (wildmatch)
+    {   /* Calculate wild matching modifier
+         */
+        if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
+            wildmatch = MODconst;
+        else if (wildmatch & MODimmutable)
+            wildmatch = MODimmutable;
+        else if (wildmatch & MODwild)
+            wildmatch = MODwild;
+        else
+        {   assert(wildmatch & MODmutable);
+            wildmatch = MODmutable;
+        }
+    }
+
+    assert(nargs >= nparams);
+    for (size_t i = 0; i < nargs; i++)
+    {
+        Expression *arg = arguments->tdata()[i];
+        assert(arg);
+
+        if (i < nparams)
+        {
+            Parameter *p = Parameter::getNth(tf->parameters, i);
+
+            if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
+            {
+                if (p->type->hasWild())
+                {
+                    arg = arg->implicitCastTo(sc, p->type->substWildTo(wildmatch));
                     arg = arg->optimize(WANTvalue);
                 }
                 else if (p->type != arg->type)
@@ -851,7 +900,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arg = arg->modifiableLvalue(sc, arg);
             }
 
-            tb = arg->type->toBasetype();
+            Type *tb = arg->type->toBasetype();
 #if !SARRAYVALUE
             // Convert static arrays to pointers
             if (tb->ty == Tsarray)
@@ -946,7 +995,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
-            tb = arg->type->toBasetype();
+            Type *tb = arg->type->toBasetype();
             if (tb->ty == Tsarray)
             {   TypeSArray *ts = (TypeSArray *)tb;
                 Type *ta = ts->next->arrayOf();
@@ -977,21 +1026,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         arg = arg->optimize(WANTvalue);
     L3:
         arguments->tdata()[i] =  arg;
-        if (done)
-            break;
-    }
-
-    if (ethis && tf->isWild())
-    {
-        Type *tthis = ethis->type;
-        if (tthis->isWild())
-            wildmatch |= MODwild;
-        else if (tthis->isConst())
-            wildmatch |= MODconst;
-        else if (tthis->isImmutable())
-            wildmatch |= MODimmutable;
-        else
-            wildmatch |= MODmutable;
     }
 
     // If D linkage and variadic, add _arguments[] as first argument
@@ -1008,16 +1042,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     {   /* Adjust function return type based on wildmatch
          */
         //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
-        if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
-            tret = tret->substWildTo(MODconst);
-        else if (wildmatch & MODimmutable)
-            tret = tret->substWildTo(MODimmutable);
-        else if (wildmatch & MODwild)
-            ;
-        else
-        {   assert(wildmatch & MODmutable);
-            tret = tret->substWildTo(MODmutable);
-        }
+        tret = tret->substWildTo(wildmatch);
     }
     return tret;
 }
