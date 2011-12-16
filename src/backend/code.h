@@ -921,11 +921,11 @@ void cgsched_pentium(code **pc,regm_t scratch);
 
 struct seg_data
 {
-    int                  SDseg;         // omf file segment index
+    int                  SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
 
     bool isfarseg;
-    int seg;                            // segment number
+    int segidx;                         // internal object file segment number
     int lnameidx;                       // lname idx of segment name
     int classidx;                       // lname idx of class name
     unsigned attr;                      // segment attribute
@@ -955,7 +955,7 @@ struct linnum_data
 
 struct seg_data
 {
-    int                  SDseg;         // segment index
+    int                  SDseg;         // segment index into SegData[]
     IDXSEC               SDshtidx;      // section header table index
     targ_size_t          SDoffset;      // starting offset for data
     Outbuffer           *SDbuf;         // buffer to hold data
@@ -987,7 +987,6 @@ extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset
 #define Doffset SegData[DATA]->SDoffset
 #define CDoffset SegData[CDATA]->SDoffset
-#define UDoffset SegData[UDATA]->SDoffset
 
 #if __cplusplus && TX86
 }

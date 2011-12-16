@@ -1183,9 +1183,6 @@ void outjmptab(block *b)
   /* Any alignment bytes necessary */
   alignbytes = align(0,*poffset) - *poffset;
   obj_lidata(jmpseg,*poffset,alignbytes);
-#if OMFOBJ
-  *poffset += alignbytes;
-#endif
 
   def = list_block(b->Bsucc)->Boffset;  /* default address              */
   assert(vmin <= vmax);
@@ -1226,6 +1223,7 @@ void outswitab(block *b)
 
   if (config.flags & CFGromable)
   {     poffset = &Coffset;
+        assert(cseg == CODE);
         seg = cseg;
   }
   else
@@ -1235,11 +1233,7 @@ void outswitab(block *b)
   }
   offset = *poffset;
   alignbytes = align(0,*poffset) - *poffset;
-  //printf("\t*poffset = x%x, alignbytes = %d, intsize = %d\n", *poffset, alignbytes, intsize);
   obj_lidata(seg,*poffset,alignbytes);  /* any alignment bytes necessary */
-#if OMFOBJ
-  *poffset += alignbytes;
-#endif
   assert(*poffset == offset + alignbytes);
 
   sz = intsize;
