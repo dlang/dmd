@@ -183,13 +183,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 break;
             }
 
-            case TOKstruct:
-            case TOKunion:
-            case TOKclass:
-            case TOKinterface:
-                s = parseAggregate();
-                break;
-
             case TOKimport:
                 s = parseImport(decldefs, 0);
                 break;
@@ -233,6 +226,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKtypeof:
             case TOKdot:
             case TOKvector:
+            case TOKstruct:
+            case TOKunion:
+            case TOKclass:
+            case TOKinterface:
             Ldeclaration:
                 a = parseDeclarations(STCundefined, NULL);
                 decldefs->append(a);
@@ -2853,12 +2850,22 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
         return parseAutoDeclarations(storage_class, comment);
     }
 
-    if (token.value == TOKclass)
+    if (token.value == TOKstruct ||
+        token.value == TOKunion ||
+        token.value == TOKclass ||
+        token.value == TOKinterface)
     {
-        AggregateDeclaration *s = (AggregateDeclaration *)parseAggregate();
-        s->storage_class |= storage_class;
+        Dsymbol *s = parseAggregate();
         Dsymbols *a = new Dsymbols();
         a->push(s);
+
+        if (storage_class)
+        {
+            s = new StorageClassDeclaration(storage_class, a);
+            a = new Dsymbols();
+            a->push(s);
+        }
+
         addComment(s, comment);
         return a;
     }
@@ -3566,16 +3573,6 @@ Statement *Parser::parseStatement(int flags)
                 condition = parseStaticIfCondition();
                 goto Lcondition;
             }
-            if (t->value == TOKstruct || t->value == TOKunion || t->value == TOKclass)
-            {
-                nextToken();
-                Dsymbols *a = parseBlock();
-                Dsymbol *d = new StorageClassDeclaration(STCstatic, a);
-                s = new ExpStatement(loc, d);
-                if (flags & PSscope)
-                    s = new ScopeStatement(loc, s);
-                break;
-            }
             if (t->value == TOKimport)
             {   nextToken();
                 Dsymbols *imports = new Dsymbols();
@@ -3616,6 +3613,10 @@ Statement *Parser::parseStatement(int flags)
         case TOKgshared:
         case TOKat:
 #endif
+        case TOKstruct:
+        case TOKunion:
+        case TOKclass:
+        case TOKinterface:
         Ldeclaration:
         {   Dsymbols *a;
 
@@ -3641,17 +3642,6 @@ Statement *Parser::parseStatement(int flags)
                 assert(0);
             if (flags & PSscope)
                 s = new ScopeStatement(loc, s);
-            break;
-        }
-
-        case TOKstruct:
-        case TOKunion:
-        case TOKclass:
-        case TOKinterface:
-        {   Dsymbol *d;
-
-            d = parseAggregate();
-            s = new ExpStatement(loc, d);
             break;
         }
 
