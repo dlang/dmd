@@ -397,6 +397,7 @@ void objend(void);
 void obj_export(Symbol *s, unsigned argsize);
 void objpubdef(int seg, Symbol *s, targ_size_t offset);
 int objextdef(const char *);
+int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg);
 int objextern(Symbol *);
 int obj_comdef(Symbol *s, int flag, targ_size_t size, targ_size_t count);
 void obj_lidata(int seg, targ_size_t offset, targ_size_t count);
@@ -556,7 +557,6 @@ void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val = 0);
 #endif
 void elf_func_start(Symbol *sfunc);
-int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg);
 void elf_func_term(Symbol *sfunc);
 unsigned elf_addstr(Outbuffer *strtab, const char *);
 

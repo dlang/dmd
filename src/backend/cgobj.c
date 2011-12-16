@@ -535,7 +535,7 @@ seg_data *getsegment()
     if (seg_count == seg_max)
     {
         seg_max += 10;
-        SegData = (seg_data **)mem_realloc(SegData, seg_max * sizeof(seg_data));
+        SegData = (seg_data **)mem_realloc(SegData, seg_max * sizeof(seg_data *));
         memset(&SegData[seg_count], 0, 10 * sizeof(seg_data *));
     }
     assert(seg_count < seg_max);
@@ -546,6 +546,7 @@ seg_data *getsegment()
 
     seg_data *pseg = SegData[seg];
     pseg->SDseg = seg;
+    pseg->segidx = seg;
     return pseg;
 }
 
@@ -625,12 +626,22 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         SegData[DATA]->SDseg = DATA;
         SegData[CDATA]->SDseg = CDATA;
         SegData[UDATA]->SDseg = UDATA;
+
+        SegData[CODE]->segidx = CODE;
+        SegData[DATA]->segidx = DATA;
+        SegData[CDATA]->segidx = CDATA;
+        SegData[UDATA]->segidx = UDATA;
+
         seg_count = UDATA;
 
         if (config.fulltypes)
         {
             SegData[DEBSYM]->SDseg = DEBSYM;
             SegData[DEBTYP]->SDseg = DEBTYP;
+
+            SegData[DEBSYM]->segidx = DEBSYM;
+            SegData[DEBTYP]->segidx = DEBTYP;
+
             seg_count = DEBTYP;
         }
 
@@ -698,7 +709,7 @@ void obj_term()
                 int lseg = d->lseg;
                 char header[sizeof(d->header)];
 
-                if (lseg < 0)   // if COMDAT
+                if (seg_is_comdat(lseg))   // if COMDAT
                 {
                     header[0] = d->flags | (d->offset ? 1 : 0); // continuation flag
                     header[1] = d->alloctyp;
@@ -763,7 +774,7 @@ void obj_term()
             SegData[obj.lastfarcodesegi]->SDoffset = Coffset;
             Coffset = obj.codeSegOffset;                // reset for benefit of next line
         }
-        objseggrp(Coffset,Doffset,0,UDoffset);  // do real sizes
+        objseggrp(Coffset,Doffset,0,SegData[UDATA]->SDoffset);  // do real sizes
 
         // Update any out-of-date far segment sizes
         for (i = 0; i <= seg_count; i++)
@@ -809,12 +820,12 @@ void objlinnum(Srcpos srcpos,targ_size_t offset)
 
 #if MARS
     if (!obj.term &&
-        (cseg < 0 || (srcpos.Sfilename && srcpos.Sfilename != obj.modname)))
+        (seg_is_comdat(cseg) || (srcpos.Sfilename && srcpos.Sfilename != obj.modname)))
 #else
     if (!srcpos.Sfilptr)
         return;
     sfile_debug(&srcpos_sfile(srcpos));
-    if (!obj.term && (!(srcpos_sfile(srcpos).SFflags & SFtop) || (cseg < 0 && !obj.term)))
+    if (!obj.term && (!(srcpos_sfile(srcpos).SFflags & SFtop) || (seg_is_comdat(cseg) && !obj.term)))
 #endif
     {   // Not original source file, or a COMDAT.
         // Save data away and deal with it at close of compile.
@@ -867,7 +878,7 @@ void objlinnum(Srcpos srcpos,targ_size_t offset)
         if (!obj.linrec)                        // if not allocated
         {       obj.linrec = (char *) mem_calloc(LINRECMAX);
                 obj.linrec[0] = 0;              // base group / flags
-                obj.linrecheader = 1 + insidx(obj.linrec + 1,cseg < 0 ? obj.pubnamidx : cseg);
+                obj.linrecheader = 1 + insidx(obj.linrec + 1,seg_is_comdat(cseg) ? obj.pubnamidx : cseg);
                 obj.linreci = obj.linrecheader;
                 obj.recseg = cseg;
 #if MULTISCOPE
@@ -884,14 +895,14 @@ void objlinnum(Srcpos srcpos,targ_size_t offset)
                 }
 
                 // Select record type to use
-                obj.mlinnum = (cseg < 0) ? LINSYM : LINNUM;
+                obj.mlinnum = seg_is_comdat(cseg) ? LINSYM : LINNUM;
                 if (I32 && !(config.flags & CFGeasyomf))
                     obj.mlinnum++;
         }
         else if (obj.linreci > LINRECMAX - (2 + intsize))
         {       objrecord(obj.mlinnum,obj.linrec,obj.linreci);  // output data
                 obj.linreci = obj.linrecheader;
-                if (cseg < 0)                   // if LINSYM record
+                if (seg_is_comdat(cseg))        // if LINSYM record
                     obj.linrec[0] |= 1;         // continuation bit
         }
 #if MULTISCOPE
@@ -1595,6 +1606,7 @@ void obj_staticctor(Symbol *s,int dtor,int seg)
 
         seg_data *pseg = getsegment();
         pseg->SDseg = obj.segidx++;
+        pseg->segidx = pseg->SDseg;
     }
 
     if (dtor)
@@ -1672,6 +1684,7 @@ void obj_funcptr(Symbol *s)
     objsegdef(dsegattr,(i & 2) + tysize[TYnptr],obj.lnameidx + 1,DATACLASS);
     seg_data *pseg = getsegment();
     pseg->SDseg = obj.segidx;
+    pseg->segidx = obj.segidx;
     reftoident(obj.segidx,0,s,0,0);     // put out function pointer
     obj.segidx++;
 
@@ -1876,6 +1889,7 @@ int obj_comdat(Symbol *s)
         obj.ledata->flags |= 0x04;      // local bit (make it an "LCOMDAT")
     seg_data *pseg = getsegment();
     pseg->SDseg = -obj.extidx;
+    pseg->segidx = -obj.extidx;
     return -obj.extidx;
 }
 
@@ -1980,6 +1994,7 @@ seg_data *obj_tlsseg()
         objsegdef(segattr,0,obj.lnameidx,obj.lnameidx + 1);
         SegData[obj.tlssegi]->attr = segattr;
         SegData[obj.tlssegi]->SDseg = obj.tlsseg;
+        SegData[obj.tlssegi]->segidx = obj.tlsseg;
 
         // Put out ending segment (.tls$ZZZ)
         objsegdef(segattr,0,obj.lnameidx + 3,obj.lnameidx + 1);
@@ -2014,7 +2029,7 @@ int obj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
         )
     {   *poffset = SegData[i]->SDoffset;        // BUG: should align this
         SegData[i]->SDoffset += size;
-        return SegData[i]->seg;
+        return SegData[i]->segidx;
     }
 
     // No. We need to build a new far segment
@@ -2061,21 +2076,13 @@ int obj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
 
 STATIC int obj_newfarseg(targ_size_t size,int classidx)
 {
-#if 1
-    seg_data *f;
-    f = getsegment();
-    int i = seg_count;
+    seg_data *f = getsegment();
+    int i = f->SDseg;
     f->SDseg = obj.segidx;
-#else
-    int i = obj.farsegi++;
-    Farseg *f;
-
-    obj.farseg = (Farseg *) mem_realloc(obj.farseg,sizeof(Farseg) * obj.farsegi);
-    f = &SegData[i];
-#endif
+    f->segidx = obj.segidx;
     f->isfarseg = true;
     f->seek = obj.buf->size();
-    f->seg = obj.segidx;
+    f->segidx = obj.segidx;
     f->attr = obj.fdsegattr;
     f->origsize = size;
     f->SDoffset = size;
@@ -2324,6 +2331,37 @@ void obj_export(Symbol *s,unsigned argsize)
     objrecord(COMENT,coment,4 + len + 1);       // module name record
 }
 
+/*******************************
+ * Update data information about symbol
+ *      align for output and assign segment
+ *      if not already specified.
+ *
+ * Input:
+ *      sdata           data symbol
+ *      datasize        output size
+ *      seg             default seg if not known
+ * Returns:
+ *      actual seg
+ */
+
+int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
+{
+    targ_size_t alignbytes;
+    //printf("elf_data_start(%s,size %llx,seg %d)\n",sdata->Sident,datasize,seg);
+    //symbol_print(sdata);
+
+    if (sdata->Sseg == UNKNOWN) // if we don't know then there
+        sdata->Sseg = seg;      // wasn't any segment override
+    else
+        seg = sdata->Sseg;
+    targ_size_t offset = SegData[seg]->SDoffset;
+    alignbytes = align(datasize, offset) - offset;
+    if (alignbytes)
+        obj_lidata(seg, offset, alignbytes);
+    sdata->Soffset = offset + alignbytes;
+    return seg;
+}
+
 /********************************
  * Output a public definition.
  * Input:
@@ -2510,7 +2548,7 @@ int obj_comdef(Symbol *s,int flag,targ_size_t size,targ_size_t count)
 void obj_write_zeros(seg_data *pseg, targ_size_t count)
 {
     obj_lidata(pseg->SDseg, pseg->SDoffset, count);
-    pseg->SDoffset += count;
+    //pseg->SDoffset += count;
 }
 
 /***************************************
@@ -2526,13 +2564,23 @@ void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
     char __ss *di;
 
     //printf("obj_lidata(seg = %d, offset = x%x, count = %d)\n", seg, offset, count);
+
+    if (seg == cseg)
+        Coffset += count;
+    else if (seg >= 0)
+        SegData[seg]->SDoffset += count;
+
+    if (seg == UDATA)
+        return;
+
+Lagain:
     if (count <= sizeof(zero))          // if shorter to use ledata
     {
         obj_bytes(seg,offset,count,zero);
         return;
     }
 
-    if (seg < 0)
+    if (seg_is_comdat(seg))
     {
         while (count > sizeof(zero))
         {
@@ -2559,7 +2607,10 @@ void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
             TOWORD(di + 4 + 2 + 2 + 2 + 2,1);   // 1 byte of 0
             reclen = i + 4 + 5 * 2;
             objrecord(obj.mlidata,data,reclen);
-            obj_lidata(seg,offset + (count & ~0x7FFFL),count & 0x7FFF);
+
+            offset += (count & ~0x7FFFL);
+            count &= 0x7FFF;
+            goto Lagain;
         }
         else
         {
@@ -2842,7 +2893,7 @@ STATIC void ledata_new(int seg,targ_size_t offset)
     obj.ledata = (Ledatarec *) mem_calloc(sizeof(Ledatarec));
     obj.ledata->lseg = seg;
     obj.ledata->offset = offset;
-    if (seg < 0 && offset)      // if continuation of an existing COMDAT
+    if (seg_is_comdat(seg) && offset)      // if continuation of an existing COMDAT
     {   list_t dl;
 
         for (dl = obj.ledata_list; 1; dl = list_next(dl))
@@ -2862,7 +2913,6 @@ STATIC void ledata_new(int seg,targ_size_t offset)
         }
     }
     list_prepend(&obj.ledata_list,obj.ledata);
-//    list_append(&obj.ledata_list,obj.ledata);
 }
 
 /***********************************

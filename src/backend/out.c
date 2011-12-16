@@ -195,16 +195,13 @@ void outdata(symbol *s)
                     switch (ty & mTYLINK)
                     {
 #if TARGET_SEGMENTED
-#if OMFOBJ
                         case mTYfar:                    // if far data
-                            seg = obj_fardata(s->Sident,datasize,&s->Soffset);
+                            s->Sseg = obj_fardata(s->Sident,datasize,&s->Soffset);
                             s->Sfl = FLfardata;
                             break;
-#endif
+
                         case mTYcs:
-#if OMFOBJ
-                            seg = cseg;
-#endif
+                            s->Sseg = cseg;
                             Coffset = align(datasize,Coffset);
                             s->Soffset = Coffset;
                             Coffset += datasize;
@@ -213,8 +210,8 @@ void outdata(symbol *s)
 #endif
                         case mTYthread:
                         {   seg_data *pseg = obj_tlsseg_bss();
-#if ELFOBJ || MACHOBJ
                             s->Sseg = pseg->SDseg;
+#if ELFOBJ || MACHOBJ
                             elf_data_start(s, datasize, pseg->SDseg);
                             obj_lidata(pseg->SDseg, pseg->SDoffset, datasize);
 #else
@@ -223,22 +220,17 @@ void outdata(symbol *s)
                             s->Soffset = TDoffset;
                             TDoffset += datasize;
                             pseg->SDoffset = TDoffset;
-                            seg = pseg->SDseg;
                             tls = 1;
 #endif
                             s->Sfl = FLtlsdata;
                             break;
                         }
                         default:
-#if ELFOBJ || MACHOBJ
+#if OMFOBJ
+                            s->Sseg = UDATA;
+#endif
                             elf_data_start(s,datasize,UDATA);
                             obj_lidata(s->Sseg,s->Soffset,datasize);
-#else
-                            seg = UDATA;
-                            UDoffset = align(datasize,UDoffset);
-                            s->Soffset = UDoffset;
-                            UDoffset += datasize;
-#endif
                             s->Sfl = FLudata;           // uninitialized data
                             break;
                     }
@@ -248,9 +240,8 @@ void outdata(symbol *s)
                         objpubdef(s->Sseg,s,s->Soffset);        /* do the definition    */
                                             /* if a pubdef to be done */
 #else
-                    s->Sseg = seg;
                     if (s->Sclass == SCglobal)          /* if a pubdef to be done */
-                        objpubdef(seg,s,s->Soffset);    /* do the definition    */
+                        objpubdef(s->Sseg,s,s->Soffset);    /* do the definition    */
 #endif
                     searchfixlist(s);
                     if (config.fulltypes &&
@@ -435,8 +426,17 @@ void outdata(symbol *s)
                 break;
             case DT_azeros:
                 //printf("obj_lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
-                obj_lidata(seg,offset,dt->DTazeros);
-                offset += dt->DTazeros;
+                if (seg < 0 || seg == cseg)
+                {
+                    obj_lidata(seg,offset,dt->DTazeros);
+                    offset += dt->DTazeros;
+                }
+                else
+                {
+                    SegData[seg]->SDoffset = offset;
+                    obj_lidata(seg,offset,dt->DTazeros);
+                    offset = SegData[seg]->SDoffset;
+                }
                 break;
             case DT_xoff:
             {
@@ -1445,7 +1445,7 @@ void alignOffset(int seg,targ_size_t datasize)
     if (alignbytes)
         obj_lidata(seg,Offset(seg),alignbytes);
 #if OMFOBJ
-    Offset(seg) += alignbytes;          /* offset of start of data      */
+    //Offset(seg) += alignbytes;          /* offset of start of data      */
 #endif
 }
 
