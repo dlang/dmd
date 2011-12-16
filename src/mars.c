@@ -207,7 +207,7 @@ void verror(Loc loc, const char *format, va_list ap)
 #endif
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
-halt();
+//halt();
     }
     else
     {
