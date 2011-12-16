@@ -67,6 +67,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
+	orig_filename = filename;
     md = NULL;
     errors = 0;
     numlines = 0;
@@ -136,6 +137,21 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         }
     }
 
+    srcfile = new File(srcfilename);
+
+    if (doDocComment)
+        setDocfile();
+
+    if (doHdrGen)
+        setHdrfile();
+}
+
+void Module::prepareObjfile()
+{
+	char *filename = orig_filename;
+    FileName *objfilename;
+    FileName *symfilename;
+
     char *argobj;
     if (global.params.objname)
         argobj = global.params.objname;
@@ -153,6 +169,18 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     {
         if (global.params.preservePaths)
             argobj = filename;
+
+	    else if (global.params.packagePaths) {
+	        argobj = (char*)toPrettyChars();
+	        //FileName::forceExt will think the last part of the package path is an extension
+	        //argobj = argobj ~ '.' ~ global.obj_ext;
+	        char* tmp = (char*)calloc(1, strlen(argobj) + strlen(global.obj_ext) + 2);
+	        memcpy(tmp, argobj, strlen(argobj));
+	        tmp[strlen(argobj)] = '.';
+	        memcpy(tmp + strlen(argobj) + 1, global.obj_ext, strlen(global.obj_ext));
+	        argobj = tmp;
+	    }
+
         else
             argobj = FileName::name(filename);
         if (!FileName::absolute(argobj))
@@ -168,18 +196,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         objfilename = FileName::forceExt(argobj, global.obj_ext);
 
     symfilename = FileName::forceExt(filename, global.sym_ext);
-
-    srcfile = new File(srcfilename);
-
-    if (doDocComment)
-    {
-        setDocfile();
-    }
-
-    if (doHdrGen)
-    {
-        setHdrfile();
-    }
 
     objfile = new File(objfilename);
     symfile = new File(symfilename);
@@ -243,7 +259,7 @@ void Module::setHdrfile()
 
 void Module::deleteObjFile()
 {
-    if (global.params.obj)
+    if (global.params.obj && objfile)
         objfile->remove();
     if (docfile)
         docfile->remove();
@@ -646,6 +662,9 @@ void Module::parse()
          */
         if (!Lexer::isValidIdentifier(this->ident->toChars()))
             error("has non-identifier characters in filename, use module declaration instead");
+
+		if (global.params.packagePaths)
+			error("has no module declaration; this is not allowed when using option -oq");
     }
 
     // Update global list of modules
