@@ -293,6 +293,7 @@ SRCS= \
 	src\rt\llmath.d \
 	src\rt\memory.d \
 	src\rt\memset.d \
+	src\rt\minfo.d \
 	src\rt\obj.d \
 	src\rt\qsort.d \
 	src\rt\switch_.d \
