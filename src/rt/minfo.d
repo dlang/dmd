@@ -42,6 +42,21 @@ extern(C) void _minit();
 
 struct SortedCtors
 {
+    void alloc(size_t n)
+    {
+        // don't bother to initialize, as they are getting overwritten anyhow
+        _ctors = (cast(ModuleInfo**).malloc(n * size_t.sizeof))[0 .. n];
+        _tlsctors = (cast(ModuleInfo**).malloc(n * size_t.sizeof))[0 .. n];
+    }
+
+    void free()
+    {
+        .free(_ctors.ptr);
+        _ctors = null;
+        .free(_tlsctors.ptr);
+        _tlsctors = null;
+    }
+
     ModuleInfo*[] _ctors;
     ModuleInfo*[] _tlsctors;
 }
@@ -97,6 +112,15 @@ extern (C) void rt_moduleTlsDtor()
 extern (C) void rt_moduleDtor()
 {
     runModuleFuncsRev!((a) { return a.dtor; })(_sortedCtors._ctors);
+
+    _sortedCtors.free();
+    version (OSX)
+    {}
+    else version (Posix)
+    {
+        .free(_moduleinfo_array.ptr);
+    }
+    _moduleinfo_array = null;
 }
 
 /********************************************
@@ -147,7 +171,7 @@ ModuleInfo*[] getModuleInfos()
 
         for (mr = _Dmodule_ref; mr; mr = mr.next)
             len++;
-        result = new ModuleInfo*[len];
+        result = (cast(ModuleInfo**).malloc(len * size_t.sizeof))[0 .. len];
         len = 0;
         for (mr = _Dmodule_ref; mr; mr = mr.next)
         {   result[len] = mr.mod;
@@ -197,9 +221,10 @@ void runModuleFuncsRev(alias getfp)(ModuleInfo*[] modules)
 SortedCtors sortCtors(ModuleInfo*[] modules)
 {
     SortedCtors result;
+    result.alloc(modules.length);
     // Create an array of modules that will determine the order of construction
     // (and destruction in reverse).
-    auto ctors = result._ctors = new ModuleInfo*[modules.length];
+    auto ctors = result._ctors;
     size_t ctoridx = 0;
 
     // this pointer will identify the module where the cycle was detected.
@@ -411,7 +436,7 @@ SortedCtors sortCtors(ModuleInfo*[] modules)
     result._ctors = result._ctors[0 .. ctoridx];
 
     // set up everything for tls ctors
-    ctors = result._tlsctors = new ModuleInfo*[modules.length];
+    ctors = result._tlsctors;
     ctoridx = 0;
     foreach (i, m; modules)
     {
