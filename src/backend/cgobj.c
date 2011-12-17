@@ -341,7 +341,7 @@ seg_data **SegData;
 static int seg_count;
 static int seg_max;
 
-targ_size_t     Coffset;        /* size of current code segment         */
+//targ_size_t     Coffset;        /* size of current code segment         */
 
 static Objstate obj;
 

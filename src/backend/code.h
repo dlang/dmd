@@ -933,7 +933,7 @@ struct seg_data
     long seek;                          // seek position in output file
 };
 
-extern  targ_size_t Coffset;
+//extern  targ_size_t Coffset;
 
 #endif
 
@@ -979,7 +979,6 @@ struct seg_data
     int isCode();
 };
 
-#define Coffset SegData[cseg]->SDoffset
 
 #endif
 
@@ -987,6 +986,7 @@ extern seg_data **SegData;
 #define Offset(seg) SegData[seg]->SDoffset
 #define Doffset SegData[DATA]->SDoffset
 #define CDoffset SegData[CDATA]->SDoffset
+#define Coffset SegData[cseg]->SDoffset
 
 #if __cplusplus && TX86
 }
