@@ -2125,29 +2125,7 @@ STATIC void cv4_outsym(symbol *s)
         obj_write_bytes(SegData[DEBSYM],length,debsym);
 
         // Put out fixup for function start offset
-#if 1
         reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
-#else
-        framedatum = targetdatum = cseg;
-        fd = cgcv.FD_code;
-        if (framedatum < 0)                     // if in COMDAT
-        {
-            targetdatum = -targetdatum;
-            if (config.exe & EX_flat)
-            {   fd = 0x12;
-                framedatum = DGROUPIDX;
-            }
-            else
-            {   fd = 0x22;
-                framedatum = targetdatum;
-            }
-        }
-        else if (cseg != CODE && config.exe & EX_flat)
-            fd = 0x00;
-        objledata(SegData[DEBSYM],soffset + u,s->Soffset,
-            (cgcv.LCFDpointer + 0x04) | fd,
-            framedatum,targetdatum);
-#endif
     }
     else
     {   targ_size_t base;
@@ -2273,13 +2251,13 @@ STATIC void cv4_outsym(symbol *s)
 #if TARGET_SEGMENTED
                 else if (s->ty() & (mTYfar | mTYcs))
                 {   fd = 0x04;
-                    idx1 = idx2 = s->Sseg;
+                    idx1 = idx2 = SegData[s->Sseg]->segidx;
                 }
 #endif
                 else
                 {   fd = 0x14;
                     idx1 = DGROUPIDX;
-                    idx2 = s->Sseg;
+                    idx2 = SegData[s->Sseg]->segidx;
                 }
                 /* Because of the linker limitations, the length cannot
                  * exceed 0x1000.

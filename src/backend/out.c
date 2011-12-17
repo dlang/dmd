@@ -381,6 +381,7 @@ void outdata(symbol *s)
     if (s->Sclass == SCglobal)          /* if a pubdef to be done       */
         objpubdef(seg,s,s->Soffset);    /* do the definition            */
 #endif
+    assert(s->Sseg != UNKNOWN);
     if (config.fulltypes &&
         !(s->Sclass == SCstatic && funcsym_p)) // not local static
         cv_outsym(s);
@@ -426,7 +427,7 @@ void outdata(symbol *s)
                 break;
             case DT_azeros:
                 //printf("obj_lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
-                if (seg < 0 || seg == cseg)
+                if (SegData[seg]->segidx < 0 || seg == cseg)
                 {
                     obj_lidata(seg,offset,dt->DTazeros);
                     offset += dt->DTazeros;
