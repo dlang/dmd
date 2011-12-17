@@ -292,12 +292,6 @@ struct ModuleInfo
     static int opApply(scope int delegate(ref ModuleInfo*) dg);
 }
 
-ModuleInfo*[] _moduleinfo_tlsdtors;
-uint          _moduleinfo_tlsdtors_i;
-
-extern (C) void _moduleTlsCtor();
-extern (C) void _moduleTlsDtor();
-
 class Throwable : Object
 {
     interface TraceInfo

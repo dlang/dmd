@@ -79,7 +79,9 @@ extern (C) void gc_init();
 extern (C) void gc_term();
 extern (C) void _minit();
 extern (C) void _moduleCtor();
+extern (C) void _moduleTlsCtor();
 extern (C) void _moduleDtor();
+extern (C) void _moduleTlsDtor();
 extern (C) void thread_joinAll();
 extern (C) void rt_lifetimeInit();
 
