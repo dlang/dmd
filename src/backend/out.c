@@ -427,7 +427,7 @@ void outdata(symbol *s)
                 break;
             case DT_azeros:
                 //printf("obj_lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
-                if (SegData[seg]->segidx < 0 || seg == cseg)
+                if (0 && seg == cseg)
                 {
                     obj_lidata(seg,offset,dt->DTazeros);
                     offset += dt->DTazeros;
