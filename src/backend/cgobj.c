@@ -2001,6 +2001,7 @@ seg_data *obj_tlsseg()
  *      size    Size of the segment to be created
  * Returns:
  *      segment index of far data segment created
+ *      *poffset start of the data for the far data segment
  */
 
 int obj_fardata(char *name,targ_size_t size,targ_size_t *poffset)
