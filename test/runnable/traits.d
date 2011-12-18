@@ -392,6 +392,26 @@ void test13()
 }
 
 /********************************************************/
+// 7123
+
+private struct DelegateFaker7123(F)
+{
+    template GeneratingPolicy() {}
+    enum WITH_BASE_CLASS = __traits(hasMember, GeneratingPolicy!(), "x");
+}
+
+auto toDelegate7123(F)(F fp)
+{
+    alias DelegateFaker7123!F Faker;
+}
+
+
+void test7123()
+{
+    static assert(is(typeof(toDelegate7123(&main))));
+}
+
+/********************************************************/
 
 class D14
 {
@@ -663,6 +683,7 @@ int main()
     test11();
     test12();
     test13();
+    test7123();
     test14();
     test15();
     test16();
