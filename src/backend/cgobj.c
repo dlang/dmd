@@ -268,9 +268,6 @@ struct Objstate
     int fdsegattr;      // far data segment attribute
     int csegattr;       // code segment attribute
 
-    targ_size_t codeSegOffset;  // size of default code segment
-
-    int lastfarcodesegi;        // SegData[] index of last far code seg
     int lastfardatasegi;        // SegData[] index of last far data seg
 
     int LOCoffset;
@@ -340,8 +337,6 @@ size_t ledatamax;
 seg_data **SegData;
 static int seg_count;
 static int seg_max;
-
-//targ_size_t     Coffset;        /* size of current code segment         */
 
 static Objstate obj;
 
@@ -562,7 +557,6 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
         obj.buf = objbuf;
         obj.buf->reserve(40000);
 
-        obj.lastfarcodesegi = -1;
         obj.lastfardatasegi = -1;
 
         obj.mlidata = LIDATA;
@@ -763,12 +757,7 @@ void obj_term()
         obj_theadr(obj.modname);
         objheader(obj.csegname);
         mem_free(obj.csegname);
-        if (obj.lastfarcodesegi != -1)
-        {
-            SegData[obj.lastfarcodesegi]->SDoffset = Coffset;
-            Coffset = obj.codeSegOffset;                // reset for benefit of next line
-        }
-        objseggrp(Coffset,Doffset,0,SegData[UDATA]->SDoffset);  // do real sizes
+        objseggrp(SegData[CODE]->SDoffset,Doffset,0,SegData[UDATA]->SDoffset);  // do real sizes
 
         // Update any out-of-date far segment sizes
         for (size_t i = 0; i <= seg_count; i++)
@@ -1914,10 +1903,6 @@ int obj_codeseg(char *name,int suffix)
     {
         if (cseg != CODE)
         {
-            if (obj.lastfarcodesegi != -1)
-                SegData[obj.lastfarcodesegi]->SDoffset = Coffset;
-            obj.lastfarcodesegi = -1;
-            Coffset = obj.codeSegOffset;
             cseg = CODE;
         }
         return cseg;
@@ -1933,14 +1918,9 @@ int obj_codeseg(char *name,int suffix)
         strcat(lnames + 1,"_TEXT");
     objrecord(LNAMES,lnames,lnamesize + 1);
 
-    if (obj.lastfarcodesegi == -1)
-        obj.codeSegOffset = Coffset;            // size of default code seg
-    else
-        SegData[obj.lastfarcodesegi]->SDoffset = Coffset;
-    obj.lastfarcodesegi = obj_newfarseg(0,4);
-    SegData[obj.lastfarcodesegi]->attr = obj.csegattr;
-    SegData[obj.lastfarcodesegi]->segidx = obj.segidx;
-    cseg = obj.lastfarcodesegi;                  // new code segment index
+    cseg = obj_newfarseg(0,4);
+    SegData[cseg]->attr = obj.csegattr;
+    SegData[cseg]->segidx = obj.segidx;
     assert(cseg > 0);
     obj.segidx++;
     Coffset = 0;
@@ -2547,10 +2527,7 @@ void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
 
     //printf("obj_lidata(seg = %d, offset = x%x, count = %d)\n", seg, offset, count);
 
-    if (seg == cseg)
-        Coffset += count;
-    else if (seg >= 0)
-        SegData[seg]->SDoffset += count;
+    SegData[seg]->SDoffset += count;
 
     if (seg == UDATA)
         return;
