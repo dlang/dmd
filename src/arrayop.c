@@ -544,7 +544,7 @@ Expression *Str##AssignExp::buildArrayLoop(Parameters *fparams) \
     Expression *ex1 = e1->buildArrayLoop(fparams);              \
     Parameter *param = (*fparams)[0];                           \
     param->storageClass = 0;                                    \
-    Expression *e = new Str##AssignExp(0, ex1, ex2);            \
+    Expression *e = new Str##AssignExp(loc, ex1, ex2);          \
     return e;                                                   \
 }
 
