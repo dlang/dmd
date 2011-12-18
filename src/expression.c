@@ -7551,7 +7551,10 @@ Lagain:
         if (!f->needThis())
         {
             VarExp *ve = new VarExp(loc, f);
-            e1 = new CommaExp(loc, ue->e1, ve);
+            if ((ue->e1)->op == TOKtype) // just a FQN
+                e1 = ve;
+            else // things like (new Foo).bar()
+                e1 = new CommaExp(loc, ue->e1, ve);
             e1->type = f->type;
         }
         else
