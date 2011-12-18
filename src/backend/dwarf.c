@@ -1568,10 +1568,21 @@ unsigned dwarf_typidx(type *t)
         return 0;
 
     if (t->Tty & mTYconst)
-    {   tnext = type_copy(t);
+    {   // We make a copy of the type to strip off the const qualifier and
+        // recurse, and then add the const abbrev code. To avoid ending in a
+        // loop if the type references the const version of itself somehow,
+        // we need to set TFforward here, because setting TFforward during
+        // member generation of dwarf_typidx(tnext) has no effect on t itself.
+        unsigned short old_flags = t->Tflags;
+        t->Tflags |= TFforward;
+
+        tnext = type_copy(t);
         tnext->Tcount++;
         tnext->Tty &= ~mTYconst;
         nextidx = dwarf_typidx(tnext);
+
+        t->Tflags = old_flags;
+
         code = nextidx
             ? dwarf_abbrev_code(abbrevTypeConst, sizeof(abbrevTypeConst))
             : dwarf_abbrev_code(abbrevTypeConstVoid, sizeof(abbrevTypeConstVoid));
