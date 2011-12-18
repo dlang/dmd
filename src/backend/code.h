@@ -751,6 +751,7 @@ code *movregconst (code *c , unsigned reg , targ_size_t value , regm_t flags );
 code *genjmp (code *c , unsigned op , unsigned fltarg , block *targ );
 code *prolog (void );
 void epilog (block *b);
+code *gen_spill_reg(Symbol *s, bool toreg);
 cd_t cdframeptr;
 cd_t cdgot;
 code *load_localgot();
