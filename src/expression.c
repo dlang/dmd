@@ -6803,7 +6803,10 @@ Lagain:
         if (!f->needThis())
         {
             VarExp *ve = new VarExp(loc, f);
-            e1 = new CommaExp(loc, ue->e1, ve);
+            if ((ue->e1)->op == TOKtype) // just a FQN
+                e1 = ve;
+            else // things like (new Foo).bar()
+                e1 = new CommaExp(loc, ue->e1, ve);
             e1->type = f->type;
         }
         else
@@ -6841,16 +6844,14 @@ Lagain:
         if (!cd || !cd->baseClass || !sc->func->isCtorDeclaration())
         {
             error("super class constructor call must be in a constructor");
-            type = Type::terror;
-            return this;
+            return new ErrorExp();
         }
         else
         {
             f = cd->baseClass->ctor;
             if (!f)
             {   error("no super class constructor for %s", cd->baseClass->toChars());
-                type = Type::terror;
-                return this;
+                return new ErrorExp();
             }
             else
             {
@@ -6889,8 +6890,7 @@ Lagain:
         if (!cd || !sc->func->isCtorDeclaration())
         {
             error("class constructor call must be in a constructor");
-            type = Type::terror;
-            return this;
+            return new ErrorExp();
         }
         else
         {
@@ -6912,6 +6912,7 @@ Lagain:
             checkDeprecated(sc, f);
 #if DMDV2
             checkPurity(sc, f);
+            checkSafety(sc, f);
 #endif
             e1 = new DotVarExp(e1->loc, e1, f);
             e1 = e1->semantic(sc);
@@ -6920,14 +6921,15 @@ Lagain:
             // BUG: this should really be done by checking the static
             // call graph
             if (f == sc->func)
-                error("cyclic constructor call");
+            {   error("cyclic constructor call");
+                return new ErrorExp();
+            }
         }
     }
     else if (!t1)
     {
         error("function expected before (), not '%s'", e1->toChars());
-        type = Type::terror;
-        return this;
+        return new ErrorExp();
     }
     else if (t1->ty != Tfunction)
     {
@@ -6938,9 +6940,8 @@ Lagain:
             goto Lcheckargs;
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
-        {   Expression *e;
-
-            e = new PtrExp(loc, e1);
+        {
+            Expression *e = new PtrExp(loc, e1);
             t1 = ((TypePointer *)t1)->next;
             e->type = t1;
             e1 = e;
@@ -6950,8 +6951,8 @@ Lagain:
             TemplateExp *te = (TemplateExp *)e1;
             f = te->td->deduceFunctionTemplate(sc, loc, targsi, NULL, arguments);
             if (!f)
-            {   type = Type::terror;
-                return this;
+            {
+                return new ErrorExp();
             }
             if (f->needThis() && hasThis(sc))
             {
@@ -6967,8 +6968,7 @@ Lagain:
         }
         else
         {   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
-            type = Type::terror;
-            return this;
+            return new ErrorExp();
         }
     }
     else if (e1->op == TOKvar)
@@ -7006,6 +7006,7 @@ Lagain:
         checkDeprecated(sc, f);
 #if DMDV2
         checkPurity(sc, f);
+        checkSafety(sc, f);
 #endif
 
         if (f->needThis() && hasThis(sc))
@@ -7037,7 +7038,11 @@ Lcheckargs:
     if (olderrors != global.errors)
         return new ErrorExp();
 
-    assert(type);
+    if (!type)
+    {
+        error("forward reference to inferred return type of function call %s", toChars());
+        return new ErrorExp();
+    }
 
     if (f && f->tintro)
     {
