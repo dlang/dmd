@@ -7550,9 +7550,12 @@ Lagain:
         accessCheck(loc, sc, ue->e1, f);
         if (!f->needThis())
         {
-            VarExp *ve = new VarExp(loc, f);
-            e1 = new CommaExp(loc, ue->e1, ve);
-            e1->type = f->type;
+            e1 = new VarExp(loc, f);
+            if (ue->e1->op != TOKtype)
+            {
+                e1 = new CommaExp(loc, ue->e1, e1);
+                e1->type = f->type;
+            }
         }
         else
         {

@@ -2766,6 +2766,18 @@ struct S5117b
 }
 
 /************************************************/
+
+struct Foo6995
+{
+    static size_t index(size_t v)()
+    {
+        return v;
+    }
+}
+
+static assert(Foo6995.index!(0)() == 0);
+
+/************************************************/
 // from tests/fail_compilation/fail147
 
 static assert(!is(typeof(Compileable!(
