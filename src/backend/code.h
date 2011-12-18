@@ -919,6 +919,8 @@ void cgsched_pentium(code **pc,regm_t scratch);
 
 #if OMFOBJ
 
+struct Ledatarec;
+
 struct seg_data
 {
     int                  SDseg;         // index into SegData[]
@@ -931,6 +933,7 @@ struct seg_data
     unsigned attr;                      // segment attribute
     targ_size_t origsize;               // original size
     long seek;                          // seek position in output file
+    Ledatarec *ledata;                  // current one we're filling in
 };
 
 //extern  targ_size_t Coffset;
