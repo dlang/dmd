@@ -518,6 +518,7 @@ Lload:
 #ifdef DEBUG
         if (debugr)
         {
+            int sz = type_size(s->Stype);
             if (inoutp == -1)
                 printf("B%d: prolog moving %s into '%s'\n",bi,regstring[s->Sreglsw],s->Sident);
             else
