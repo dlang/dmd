@@ -1356,7 +1356,7 @@ Expression *TryCatchStatement::interpret(InterState *istate)
             if (ca->var)
             {
                 ctfeStack.push(ca->var);
-                ca->var->createStackValue(ex->thrown);
+                ca->var->setValue(ex->thrown);
             }
             return ca->handler->interpret(istate);
             }
@@ -1455,7 +1455,7 @@ Expression *WithStatement::interpret(InterState *istate)
         e->type = wthis->type;
     }
     ctfeStack.push(wthis);
-    wthis->createStackValue(e);
+    wthis->setValue(e);
     e = body ? body->interpret(istate) : EXP_VOID_INTERPRET;
     ctfeStack.pop(wthis);
     return e;
@@ -3621,7 +3621,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         printf("FOREACH ASSIGN %s=%s\n", v->toChars(), e2->toChars());
 #endif
         v->setValueNull();
-        v->createStackValue(e2);
+        v->setValue(e2);
         return e2;
     }
 
@@ -3632,7 +3632,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // only modifying part of the variable. So we need to make sure
     // that the parent variable exists.
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-        ultimateVar->createRefValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));
+        ultimateVar->setValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));
 
     // ---------------------------------------
     //      Deal with reference assignment
@@ -3798,7 +3798,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (wantRef)
         {
             v->setValueNull();
-            v->createRefValue(newval);
+            v->setValue(newval);
         }
         else if (e1->type->toBasetype()->ty == Tstruct)
         {
@@ -3812,23 +3812,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (v->getValue())
                 assignInPlace(v->getValue(), newval);
             else
-                v->createRefValue(newval);
+                v->setValue(newval);
         }
         else
         {
             TY tyE1 = e1->type->toBasetype()->ty;
             if (tyE1 == Tarray || tyE1 == Taarray)
             { // arr op= arr
-                if (!v->getValue())
-                    v->createRefValue(newval);
-                else v->setRefValue(newval);
+                v->setValue(newval);
             }
             else
             {
-                if (!v->getValue()) // creating a new value
-                    v->createStackValue(newval);
-                else
-                    v->setStackValue(newval);
+                v->setValue(newval);
             }
         }
     }
@@ -3904,7 +3899,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             {
                 IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
                 ctfeStack.push(ie->lengthVar);
-                ie->lengthVar->createStackValue(dollarExp);
+                ie->lengthVar->setValue(dollarExp);
             }
         }
         Expression *index = ie->e2->interpret(istate);
@@ -4076,7 +4071,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
             ctfeStack.push(sexp->lengthVar);
-            sexp->lengthVar->createStackValue(arraylen);
+            sexp->lengthVar->setValue(arraylen);
         }
 
         Expression *upper = NULL;
@@ -4707,7 +4702,7 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
         ctfeStack.push(v);
         if (!v->init && !v->getValue())
         {
-            v->createRefValue(copyLiteral(v->type->defaultInitLiteral()));
+            v->setValue(copyLiteral(v->type->defaultInitLiteral()));
         }
         if (!v->getValue()) {
             Expression *newval = v->init->toExpression();
@@ -4884,7 +4879,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         uinteger_t dollar = resolveArrayLength(e1);
         Expression *dollarExp = new IntegerExp(loc, dollar, Type::tsize_t);
         ctfeStack.push(lengthVar);
-        lengthVar->createStackValue(dollarExp);
+        lengthVar->setValue(dollarExp);
     }
 
     e2 = this->e2->interpret(istate);
@@ -5040,7 +5035,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         IntegerExp *dollarExp = new IntegerExp(loc, dollar, Type::tsize_t);
         ctfeStack.push(lengthVar);
-        lengthVar->createStackValue(dollarExp);
+        lengthVar->setValue(dollarExp);
     }
 
     /* Evaluate lower and upper bounds of slice
@@ -6193,7 +6188,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
  * These functions exist to check for compiler CTFE bugs.
  */
 
-bool IsStackValueValid(Expression *newval)
+bool isCtfeValueValid(Expression *newval)
 {
     if (
 #if DMDV2
@@ -6217,16 +6212,10 @@ bool IsStackValueValid(Expression *newval)
             return true;
         if (newval->op == TOKint64)
             return true; // Result of a cast, but cannot be dereferenced
-        newval->error("CTFE internal error: illegal pointer value %s\n", newval->toChars());
-        return false;
+        // else it must be a reference
     }
     if (newval->op == TOKclassreference || (newval->op == TOKnull && newval->type->ty == Tclass))
         return true;
-    if ((newval->op == TOKarrayliteral) || ( newval->op == TOKstructliteral) ||
-        (newval->op == TOKstring) || (newval->op == TOKassocarrayliteral) ||
-        (newval->op == TOKnull) || (newval->op == TOKslice))
-    {   return false;
-    }
     if (newval->op == TOKvar)
     {
         VarExp *ve = (VarExp *)newval;
@@ -6267,13 +6256,9 @@ bool IsStackValueValid(Expression *newval)
     if (newval->op == TOKint64 || newval->op == TOKfloat64 ||
         newval->op == TOKchar || newval->op == TOKcomplex80)
         return true;
-    newval->error("CTFE internal error: illegal stack value %s\n", newval->toChars());
-    return false;
-}
 
-bool IsRefValueValid(Expression *newval)
-{
-    assert(newval);
+    // References
+
     if (newval->op == TOKstructliteral)
         assert(((StructLiteralExp *)newval)->ownedByCtfe);
     if (newval->op == TOKarrayliteral)
@@ -6290,7 +6275,8 @@ bool IsRefValueValid(Expression *newval)
     // they may originate from an index or dotvar expression.
     if (newval->type->ty == Tarray || newval->type->ty == Taarray)
         if (newval->op == TOKdotvar || newval->op == TOKindex)
-            return IsStackValueValid(newval); // actually must be null
+            return true; // actually must be null
+
     if (newval->op == TOKslice)
     {
         SliceExp *se = (SliceExp *)newval;
@@ -6301,7 +6287,7 @@ bool IsRefValueValid(Expression *newval)
             assert(((ArrayLiteralExp *)se->e1)->ownedByCtfe);
         return true;
     }
-    newval->error("CTFE internal error: illegal reference value %s\n", newval->toChars());
+    newval->error("CTFE internal error: illegal value %s\n", newval->toChars());
     return false;
 }
 
@@ -6328,26 +6314,8 @@ void VarDeclaration::setValueWithoutChecking(Expression *newval)
     ctfeStack.setValue(this, newval);
 }
 
-void VarDeclaration::createRefValue(Expression *newval)
+void VarDeclaration::setValue(Expression *newval)
 {
-    assert(IsRefValueValid(newval));
-    ctfeStack.setValue(this, newval);
-}
-
-void VarDeclaration::setRefValue(Expression *newval)
-{
-    assert(IsRefValueValid(newval));
-    ctfeStack.setValue(this, newval);
-}
-
-void VarDeclaration::setStackValue(Expression *newval)
-{
-    assert(IsStackValueValid(newval));
-    ctfeStack.setValue(this, newval);
-}
-
-void VarDeclaration::createStackValue(Expression *newval)
-{
-    assert(IsStackValueValid(newval));
+    assert(isCtfeValueValid(newval));
     ctfeStack.setValue(this, newval);
 }

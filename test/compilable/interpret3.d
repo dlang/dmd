@@ -3631,3 +3631,16 @@ struct Foo6995
 }
 
 static assert(Foo6995.index!(27)() == 27);
+
+/**************************************************
+    7043 ref with -inline
+**************************************************/
+
+int bug7043(S)(ref int x) {
+    return x;
+}
+
+static assert( {
+    int i = 416;
+    return bug7043!(char)(i);
+}() == 416 );
