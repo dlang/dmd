@@ -33,6 +33,12 @@ version( Windows )
         extern __gshared void* _tls_callbacks_a;
     }
 
+    extern (C) // rt.minfo
+    {
+        void rt_moduleTlsCtor();
+        void rt_moduleTlsDtor();
+    }
+
 private:
     struct dll_aux
     {
@@ -424,7 +430,7 @@ public:
             if( attach_thread )
                 thread_attachThis();
             if( initTls && !tlsCtorRun ) // avoid duplicate calls
-                _moduleTlsCtor();
+                rt_moduleTlsCtor();
         }
         return true;
     }
@@ -438,7 +444,7 @@ public:
         if( thread_findByAddr( GetCurrentThreadId() ) )
         {
             if( exitTls && tlsCtorRun ) // avoid dtors to be run twice
-                _moduleTlsDtor();
+                rt_moduleTlsDtor();
             if( detach_thread )
                 thread_detachThis();
         }
