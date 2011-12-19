@@ -1580,7 +1580,7 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     else
         buf->writestring(ident->toChars());
     
-	if(hgs->hdrgen != 1)
+	if(isConst() != 0 || hgs->hdrgen != 1)
 	{
 		if (init)
 		{   buf->writestring(" = ");
