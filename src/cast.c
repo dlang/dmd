@@ -1829,7 +1829,7 @@ Lagain:
         t = t1;
         goto Lagain;
     }
-    else if (t1->ty == Tclass || t2->ty == Tclass)
+    else if (t1->ty == Tclass && t2->ty == Tclass)
     {
         if (t1->mod != t2->mod)
         {
@@ -1847,7 +1847,11 @@ Lagain:
             t = t1;
             goto Lagain;
         }
-
+        goto Lcc;
+    }
+    else if (t1->ty == Tclass || t2->ty == Tclass)
+    {
+Lcc:
         while (1)
         {
             int i1 = e2->implicitConvTo(t1);
@@ -1971,17 +1975,6 @@ Lagain:
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct)
     {
-        if (t1->mod != t2->mod)
-        {
-            unsigned char mod = MODmerge(t1->mod, t2->mod);
-            if (!t1->isImmutable() && !t2->isImmutable() && t1->isShared() != t2->isShared())
-                goto Lincompatible;
-            t1 = t1->castMod(mod);
-            t2 = t2->castMod(mod);
-            t = t1;
-            goto Lagain;
-        }
-
         if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
         {
             e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);

@@ -692,6 +692,32 @@ void test6929()
 }
 
 /***************************************************/
+// 7136
+
+void test7136()
+{
+    struct X
+    {
+        Object get() immutable { return null; }
+        alias get this;
+    }
+    immutable(X) x;
+    Object y;
+    static assert( is(typeof(1?x:y) == Object));        // fails
+    static assert(!is(typeof(1?x:y) == const(Object))); // fails
+
+    struct A
+    {
+        int[] get() immutable { return null; }
+        alias get this;
+    }
+    immutable(A) a;
+    int[] b;
+    static assert( is(typeof(1?a:b) == int[]));         // fails
+    static assert(!is(typeof(1?a:b) == const(int[])));  // fails
+}
+
+/***************************************************/
 
 int main()
 {
@@ -719,6 +745,7 @@ int main()
     test6832();
     test6928();
     test6929();
+    test7136();
 
     printf("Success\n");
     return 0;
