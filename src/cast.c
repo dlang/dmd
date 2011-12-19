@@ -1671,13 +1671,16 @@ Lagain:
             t = t2;
         else if (t2n->ty == Tvoid)
             ;
+        else if (t1->implicitConvTo(t2))
+        {
+            goto Lt2;
+        }
+        else if (t2->implicitConvTo(t1))
+        {
+            goto Lt1;
+        }
         else if (t1n->ty == Tfunction && t2n->ty == Tfunction)
         {
-            if (t1->implicitConvTo(t2))
-                goto Lt2;
-            if (t2->implicitConvTo(t1))
-                goto Lt1;
-
             TypeFunction *tf1 = (TypeFunction *)t1n;
             TypeFunction *tf2 = (TypeFunction *)t2n;
             TypeFunction *d = (TypeFunction *)tf1->syntaxCopy();
@@ -1740,7 +1743,19 @@ Lagain:
                 goto Lincompatible;
         }
         else
+        {
+            t1 = t1n->constOf()->pointerTo();
+            t2 = t2n->constOf()->pointerTo();
+            if (t1->implicitConvTo(t2))
+            {
+                goto Lt2;
+            }
+            else if (t2->implicitConvTo(t1))
+            {
+                goto Lt1;
+            }
             goto Lincompatible;
+        }
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
              (e2->op == TOKnull && t2->ty == Tpointer && t2->nextOf()->ty == Tvoid ||

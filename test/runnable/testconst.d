@@ -2166,6 +2166,28 @@ static assert((shared(inout(const(int)[])[])).stringof == "shared(inout(const(in
 static assert((shared(inout(const(immutable(int)[])[])[])).stringof == "shared(inout(const(immutable(int)[])[])[])");
 
 /************************************/
+// 6940
+
+void test6940()
+{
+    immutable(int*)*    x;
+    int**               y;
+    static assert(is(typeof(x) : const(int*)*)); // ok
+    static assert(is(typeof(y) : const(int*)*)); // ok
+    static assert(is(typeof(1?x:y) == const(int*)*));
+
+    immutable(int[])[]  a;
+    int[][]             b;
+    static assert(is(typeof(a) : const(int[])[])); // ok
+    static assert(is(typeof(b) : const(int[])[])); // ok
+    static assert(is(typeof(1?a:b) == const(int[])[]));
+
+    immutable(int)**    v;
+    int**               w;
+    static assert(is(typeof(1?v:w) == const(int*)*));
+}
+
+/************************************/
 
 int main()
 {
@@ -2264,6 +2286,7 @@ int main()
     test6866();
     test6870();
     test6912();
+    test6940();
 
     printf("Success\n");
     return 0;
