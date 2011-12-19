@@ -1824,6 +1824,12 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
                 *pe = (Expression *)o;
                 return;
             }
+            if (o->dyncast() == DYNCAST_TYPE)
+            {
+                *ps = NULL;
+                *pt = (Type *)o;
+                return;
+            }
 
             /* Create a new TupleDeclaration which
              * is a slice [d..d+1] out of the old one.
@@ -1866,7 +1872,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         {   error(loc, "tuple index %ju exceeds %u", d, sd->objects->dim);
             return Type::terror;
         }
-        Object *o = (Object *)sd->objects->data[(size_t)d];
+        Object *o = (*sd->objects)[(size_t)d];
         if (o->dyncast() != DYNCAST_TYPE)
         {   error(loc, "%s is not a type", toChars());
             return Type::terror;
