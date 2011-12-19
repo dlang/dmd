@@ -260,10 +260,7 @@ struct VarDeclaration : Declaration
     bool hasValue();
     void setValueNull();
     void setValueWithoutChecking(Expression *newval);
-    void createRefValue(Expression *newval);
-    void setRefValue(Expression *newval);
-    void setStackValue(Expression *newval);
-    void createStackValue(Expression *newval);
+    void setValue(Expression *newval);
 
 #if DMDV2
     VarDeclaration *rundtor;    // if !NULL, rundtor is tested at runtime to see
