@@ -1654,9 +1654,12 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
 
-    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
+	StorageClassDeclaration::stcToCBuffer(buf, storage_class);
     type->toCBuffer(buf, ident, hgs);
-    bodyToCBuffer(buf, hgs);
+    if(hgs->hdrgen == 1)
+		buf->writestring(";");
+	else
+		bodyToCBuffer(buf, hgs);
 }
 
 VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)

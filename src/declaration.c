@@ -1579,16 +1579,20 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         type->toCBuffer(buf, ident, hgs);
     else
         buf->writestring(ident->toChars());
-    if (init)
-    {   buf->writestring(" = ");
+    
+	if(hgs->hdrgen != 1)
+	{
+		if (init)
+		{   buf->writestring(" = ");
 #if DMDV2
-        ExpInitializer *ie = init->isExpInitializer();
-        if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-            ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
-        else
+			ExpInitializer *ie = init->isExpInitializer();
+			if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
+				((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
+			else
 #endif
-            init->toCBuffer(buf, hgs);
-    }
+				init->toCBuffer(buf, hgs);
+		}
+	}
     buf->writeByte(';');
     buf->writenl();
 }

@@ -55,6 +55,7 @@ struct AttribDeclaration : Dsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJsonBuffer(OutBuffer *buf);
     AttribDeclaration *isAttribDeclaration() { return this; }
+    FuncDeclaration *isFuncDeclaration();
 
     void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
