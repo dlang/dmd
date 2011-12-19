@@ -1331,6 +1331,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
         error("invalid foreach aggregate %s", aggr->toChars());
         return this;
     }
+    if (aggr->type->toBasetype()->ty == Terror)
+        return NULL;
 
     inferApplyArgTypes(op, arguments, aggr);
 
