@@ -2777,8 +2777,8 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     {
         TypeStruct *tp = (TypeStruct *)tparam;
 
-        if (sym != tp->sym)
-            return MATCHnomatch;
+        //printf("\t%d\n", (MATCH) implicitConvTo(tp));
+        return implicitConvTo(tp);
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
