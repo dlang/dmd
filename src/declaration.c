@@ -1570,17 +1570,21 @@ Dsymbol *VarDeclaration::toAlias()
 
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
+	StorageClassDeclaration::stcToCBuffer(buf, storage_class);
 
     /* If changing, be sure and fix CompoundDeclarationStatement::toCBuffer()
      * too.
      */
+
+	int ism = 0;
     if (type)
+	{
         type->toCBuffer(buf, ident, hgs);
+	}
     else
-        buf->writestring(ident->toChars());
+        buf->writestring(ident->toChars());	
     
-	if(isConst() != 0 || hgs->hdrgen != 1)
+	if(isConst() || hgs->inImmutable || hgs->hdrgen != 1)
 	{
 		if (init)
 		{   buf->writestring(" = ");

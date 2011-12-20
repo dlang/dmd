@@ -783,16 +783,19 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                         buf->writestring(v->ident->toChars());
                 }
 
-                if (v->init)
-                {   buf->writestring(" = ");
+				if(v->isConst() || hgs->inImmutable || hgs->hdrgen != 1)
+				{
+					if (v->init)
+					{   buf->writestring(" = ");
 #if DMDV2
-                    ExpInitializer *ie = v->init->isExpInitializer();
-                    if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-                        ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
-                    else
+						ExpInitializer *ie = v->init->isExpInitializer();
+						if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
+							((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
+						else
 #endif
-                        v->init->toCBuffer(buf, hgs);
-                }
+							v->init->toCBuffer(buf, hgs);
+					}
+				}
             }
             else
                 d->toCBuffer(buf, hgs);

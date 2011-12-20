@@ -22,6 +22,7 @@ struct HdrGenState
     int inBinExp;
     int inArrExp;
     int emitInst;
+	int inImmutable;	//HACK inform down-tree symbols they are immutable.
     struct
     {
         int init;

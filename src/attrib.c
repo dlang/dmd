@@ -26,6 +26,7 @@
 #include "module.h"
 #include "parse.h"
 #include "template.h"
+#include "hdrgen.h"
 #if TARGET_NET
  #include "frontend.net/pragma.h"
 #endif
@@ -355,6 +356,7 @@ FuncDeclaration* AttribDeclaration::isFuncDeclaration()
     }
     else
 		return NULL;
+	return NULL;
 }
 
 void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -544,8 +546,12 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 
 void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	if(stc & STCimmutable) hgs->inImmutable++;	//HACK inform down-tree symbols they are immutable.
+
     stcToCBuffer(buf, stc);
-    AttribDeclaration::toCBuffer(buf, hgs);
+	AttribDeclaration::toCBuffer(buf, hgs);
+
+	if(stc & STCimmutable) hgs->inImmutable--;	//Undo the hack.
 }
 
 /********************************* LinkDeclaration ****************************/
@@ -708,7 +714,7 @@ void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT protection)
 
 void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	if(protection == PROTprivate) if(isFuncDeclaration() != NULL) return;
+	//if(protection == PROTprivate) if(isFuncDeclaration() != NULL) return;		//Uncomment this if it is decided that privates should not be in DI files.
     protectionToCBuffer(buf, protection);
     AttribDeclaration::toCBuffer(buf, hgs);
 }
