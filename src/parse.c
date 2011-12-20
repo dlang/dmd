@@ -2730,6 +2730,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
     Dsymbols *a;
     enum TOK tok = TOKreserved;
     enum LINK link = linkage;
+    unsigned structalign = 0;
 
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
@@ -2834,6 +2835,25 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 link = parseLinkage();
                 continue;
 
+            case TOKalign:
+            {
+                nextToken();
+                if (token.value == TOKlparen)
+                {
+                    nextToken();
+                    if (token.value == TOKint32v && token.uns64value > 0)
+                        structalign = (unsigned)token.uns64value;
+                    else
+                    {   error("positive integer expected, not %s", token.toChars());
+                        structalign = 1;
+                    }
+                    nextToken();
+                    check(TOKrparen);
+                }
+                else
+                    structalign = global.structalign;   // default
+                continue;
+            }
             default:
                 break;
         }
@@ -2862,6 +2882,12 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
         if (storage_class)
         {
             s = new StorageClassDeclaration(storage_class, a);
+            a = new Dsymbols();
+            a->push(s);
+        }
+        if (structalign != 0)
+        {
+            s = new AlignDeclaration(structalign, a);
             a = new Dsymbols();
             a->push(s);
         }
@@ -3601,6 +3627,7 @@ Statement *Parser::parseStatement(int flags)
         case TOKconst:
         case TOKauto:
         case TOKextern:
+        case TOKalign:
         case TOKinvariant:
 #if DMDV2
         case TOKimmutable:
