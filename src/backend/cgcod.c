@@ -2512,4 +2512,72 @@ const char *regm_str(regm_t rm)
 
 #endif
 
+/*********************************
+ * Scan down comma-expressions.
+ * Output:
+ *      *pe = first elem down right side that is not an OPcomma
+ * Returns:
+ *      code generated for left branches of comma-expressions
+ */
+
+code *docommas(elem **pe)
+{   elem *e;
+    code *cc;
+    unsigned stackpushsave;
+    int stackcleansave;
+
+    stackpushsave = stackpush;
+    stackcleansave = cgstate.stackclean;
+    cgstate.stackclean = 0;
+    cc = CNIL;
+    e = *pe;
+    while (1)
+    {   elem *eold;
+        regm_t retregs;
+
+        if (configv.addlinenumbers && e->Esrcpos.Slinnum)
+        {       cc = genlinnum(cc,e->Esrcpos);
+                //e->Esrcpos.Slinnum = 0;               // don't do it twice
+        }
+        if (e->Eoper != OPcomma)
+                break;
+        retregs = 0;
+        cc = cat(cc,codelem(e->E1,&retregs,TRUE));
+        eold = e;
+        e = e->E2;
+        freenode(eold);
+    }
+    *pe = e;
+    assert(cgstate.stackclean == 0);
+    cgstate.stackclean = stackcleansave;
+    cc = genstackclean(cc,stackpush - stackpushsave,0);
+    return cc;
+}
+
+/**************************
+ * For elems in regcon that don't match regconsave,
+ * clear the corresponding bit in regcon.cse.mval.
+ * Do same for regcon.immed.
+ */
+
+void andregcon(con_t *pregconsave)
+{
+    regm_t m = ~1;
+    for (int i = 0; i < REGMAX; i++)
+    {   if (pregconsave->cse.value[i] != regcon.cse.value[i])
+            regcon.cse.mval &= m;
+        if (pregconsave->immed.value[i] != regcon.immed.value[i])
+            regcon.immed.mval &= m;
+        m <<= 1;
+        m |= 1;
+    }
+    //printf("regcon.cse.mval = x%x, regconsave->mval = x%x ",regcon.cse.mval,pregconsave->cse.mval);
+    regcon.used |= pregconsave->used;
+    regcon.cse.mval &= pregconsave->cse.mval;
+    regcon.immed.mval &= pregconsave->immed.mval;
+    regcon.params &= pregconsave->params;
+    //printf("regcon.cse.mval&regcon.cse.mops = x%x, regcon.cse.mops = x%x\n",regcon.cse.mval & regcon.cse.mops,regcon.cse.mops);
+    regcon.cse.mops &= regcon.cse.mval;
+}
+
 #endif // !SPP
