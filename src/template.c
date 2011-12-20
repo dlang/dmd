@@ -2257,8 +2257,18 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         // Can't instantiate AssociativeArray!() without a scope
         if (tparam->ty == Taarray && !((TypeAArray*)tparam)->sc)
             ((TypeAArray*)tparam)->sc = sc;
+
+        MATCH m = implicitConvTo(tparam);
+        if (m == MATCHnomatch)
+        {
+            Type *at = aliasthisOf();
+            if (at)
+                m = at->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+        }
+        return m;
+#else
+        return implicitConvTo(tparam);
 #endif
-       return implicitConvTo(tparam);
     }
 
     if (nextOf())
