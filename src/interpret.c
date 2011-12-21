@@ -4601,8 +4601,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (pthis)
     {   // Member function call
+        Expression *oldpthis;
         if (pthis->op == TOKthis)
+        {
             pthis = istate ? istate->localThis : NULL;
+            oldpthis == pthis;
+        }
         else
         {
             if (pthis->op == TOKcomma)
@@ -4610,40 +4614,40 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             if (exceptionOrCantInterpret(pthis))
                 return pthis;
                 // Evaluate 'this'
-            Expression *oldpthis = pthis;
+            oldpthis = pthis;
             if (pthis->op != TOKvar)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
             if (exceptionOrCantInterpret(pthis))
                 return pthis;
-            if (fd->isVirtual())
-            {   // Make a virtual function call.
-                Expression *thisval = pthis;
-                if (pthis->op == TOKvar)
-                {   assert(((VarExp*)thisval)->var->isVarDeclaration());
-                    thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
-                }
-                // Get the function from the vtable of the original class
-                ClassDeclaration *cd;
-                if (thisval && thisval->op == TOKnull)
-                {
-                    error("function call through null class reference %s", pthis->toChars());
-                    return EXP_CANT_INTERPRET;
-                }
-                if (oldpthis->op == TOKsuper)
-                {   assert(oldpthis->type->ty == Tclass);
-                    cd = ((TypeClass *)oldpthis->type)->sym;
-                }
-                else
-                {
-                    assert(thisval && thisval->op == TOKclassreference);
-                    cd = ((ClassReferenceExp *)thisval)->originalClass();
-                }
-                // We can't just use the vtable index to look it up, because
-                // vtables for interfaces don't get populated until the glue layer.
-                fd = cd->findFunc(fd->ident, (TypeFunction *)fd->type);
-
-                assert(fd);
+        }
+        if (fd->isVirtual())
+        {   // Make a virtual function call.
+            Expression *thisval = pthis;
+            if (pthis->op == TOKvar)
+            {   assert(((VarExp*)thisval)->var->isVarDeclaration());
+                thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
             }
+            // Get the function from the vtable of the original class
+            ClassDeclaration *cd;
+            if (thisval && thisval->op == TOKnull)
+            {
+                error("function call through null class reference %s", pthis->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            if (oldpthis->op == TOKsuper)
+            {   assert(oldpthis->type->ty == Tclass);
+                cd = ((TypeClass *)oldpthis->type)->sym;
+            }
+            else
+            {
+                assert(thisval && thisval->op == TOKclassreference);
+                cd = ((ClassReferenceExp *)thisval)->originalClass();
+            }
+            // We can't just use the vtable index to look it up, because
+            // vtables for interfaces don't get populated until the glue layer.
+            fd = cd->findFunc(fd->ident, (TypeFunction *)fd->type);
+
+            assert(fd);
         }
     }
     if (fd && fd->semanticRun >= PASSsemantic3done && fd->semantic3Errors)
