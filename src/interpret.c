@@ -736,7 +736,8 @@ Expression *UnrolledLoopStatement::interpret(InterState *istate)
 // For CTFE only. Returns true if 'e' is TRUE or a non-null pointer.
 int isTrueBool(Expression *e)
 {
-    return e->isBool(TRUE) || (e->type->ty == Tpointer && e->op != TOKnull);
+    return e->isBool(TRUE) || ((e->type->ty == Tpointer || e->type->ty == Tclass)
+        && e->op != TOKnull);
 }
 
 Expression *IfStatement::interpret(InterState *istate)
@@ -2687,6 +2688,22 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
     return new IntegerExp(loc, cmp, type);
 }
 
+Expression *ctfeIdentity(enum TOK op, Type *type, Expression *e1, Expression *e2)
+{
+    if (e1->op == TOKclassreference || e2->op == TOKclassreference)
+    {
+        int cmp = 0;
+        if (e1->op == TOKclassreference && e2->op == TOKclassreference &&
+            ((ClassReferenceExp *)e1)->value == ((ClassReferenceExp *)e2)->value)
+            cmp = 1;
+        if (op == TOKnotidentity || op == TOKnotequal)
+            cmp ^= 1;
+        return new IntegerExp(e1->loc, cmp, type);
+    }
+    return Identity(op, type, e1, e2);
+}
+
+
 Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp)
 {   Expression *e;
     Expression *e1;
@@ -2722,7 +2739,8 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e1->op != TOKnull &&
         e1->op != TOKstring &&
         e1->op != TOKarrayliteral &&
-        e1->op != TOKstructliteral)
+        e1->op != TOKstructliteral &&
+        e1->op != TOKclassreference)
     {
         error("cannot compare %s at compile time", e1->toChars());
         goto Lcant;
@@ -2737,7 +2755,8 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e2->op != TOKnull &&
         e2->op != TOKstring &&
         e2->op != TOKarrayliteral &&
-        e2->op != TOKstructliteral)
+        e2->op != TOKstructliteral &&
+        e1->op != TOKclassreference)
     {
         error("cannot compare %s at compile time", e2->toChars());
         goto Lcant;
@@ -2751,15 +2770,15 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
-#define BIN_INTERPRET2(op) \
+#define BIN_INTERPRET2(op, opfunc) \
 Expression *op##Exp::interpret(InterState *istate, CtfeGoal goal)  \
 {                                                                  \
-    return interpretCommon2(istate, goal, &op);                    \
+    return interpretCommon2(istate, goal, &opfunc);                \
 }
 
-BIN_INTERPRET2(Equal)
-BIN_INTERPRET2(Identity)
-BIN_INTERPRET2(Cmp)
+BIN_INTERPRET2(Equal, Equal)
+BIN_INTERPRET2(Identity, ctfeIdentity)
+BIN_INTERPRET2(Cmp, Cmp)
 
 /* Helper functions for BinExp::interpretAssignCommon
  */
