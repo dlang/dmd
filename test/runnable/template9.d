@@ -591,6 +591,18 @@ void test4413()
 }
 
 /**********************************/
+// 5801
+
+int a5801;
+void bar5801(T = double)(typeof(a5801) i) {}
+void baz5801(T)(typeof(a5801) i, T t) {}
+void test5801()
+{
+    bar5801(2);  // Does not compile.
+    baz5801(3, "baz"); // Does not compile.
+}
+
+/**********************************/
 // 2550
 
 template pow10_2550(long n)
@@ -716,6 +728,7 @@ int main()
     test6994();
     test3467();
     test4413();
+    test5801();
     test10();
     test7037();
     test7124();
