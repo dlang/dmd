@@ -564,6 +564,7 @@ struct FuncDeclaration : Declaration
                                         // 4 semantic3() done
                                         // 5 toObjFile() run
                                         // this function's frame ptr
+    int semantic3Errors;                // !=0 if errors in semantic3
     ForeachStatement *fes;              // if foreach body, this is the foreach
     int introducing;                    // !=0 if 'introducing' function
     Type *tintro;                       // if !=NULL, then this is the type

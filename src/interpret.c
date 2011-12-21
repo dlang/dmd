@@ -736,7 +736,8 @@ Expression *UnrolledLoopStatement::interpret(InterState *istate)
 // For CTFE only. Returns true if 'e' is TRUE or a non-null pointer.
 int isTrueBool(Expression *e)
 {
-    return e->isBool(TRUE) || (e->type->ty == Tpointer && e->op != TOKnull);
+    return e->isBool(TRUE) || ((e->type->ty == Tpointer || e->type->ty == Tclass)
+        && e->op != TOKnull);
 }
 
 Expression *IfStatement::interpret(InterState *istate)
@@ -2687,6 +2688,22 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
     return new IntegerExp(loc, cmp, type);
 }
 
+Expression *ctfeIdentity(enum TOK op, Type *type, Expression *e1, Expression *e2)
+{
+    if (e1->op == TOKclassreference || e2->op == TOKclassreference)
+    {
+        int cmp = 0;
+        if (e1->op == TOKclassreference && e2->op == TOKclassreference &&
+            ((ClassReferenceExp *)e1)->value == ((ClassReferenceExp *)e2)->value)
+            cmp = 1;
+        if (op == TOKnotidentity || op == TOKnotequal)
+            cmp ^= 1;
+        return new IntegerExp(e1->loc, cmp, type);
+    }
+    return Identity(op, type, e1, e2);
+}
+
+
 Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp)
 {   Expression *e;
     Expression *e1;
@@ -2722,7 +2739,8 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e1->op != TOKnull &&
         e1->op != TOKstring &&
         e1->op != TOKarrayliteral &&
-        e1->op != TOKstructliteral)
+        e1->op != TOKstructliteral &&
+        e1->op != TOKclassreference)
     {
         error("cannot compare %s at compile time", e1->toChars());
         goto Lcant;
@@ -2737,7 +2755,8 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e2->op != TOKnull &&
         e2->op != TOKstring &&
         e2->op != TOKarrayliteral &&
-        e2->op != TOKstructliteral)
+        e2->op != TOKstructliteral &&
+        e1->op != TOKclassreference)
     {
         error("cannot compare %s at compile time", e2->toChars());
         goto Lcant;
@@ -2751,15 +2770,15 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
-#define BIN_INTERPRET2(op) \
+#define BIN_INTERPRET2(op, opfunc) \
 Expression *op##Exp::interpret(InterState *istate, CtfeGoal goal)  \
 {                                                                  \
-    return interpretCommon2(istate, goal, &op);                    \
+    return interpretCommon2(istate, goal, &opfunc);                \
 }
 
-BIN_INTERPRET2(Equal)
-BIN_INTERPRET2(Identity)
-BIN_INTERPRET2(Cmp)
+BIN_INTERPRET2(Equal, Equal)
+BIN_INTERPRET2(Identity, ctfeIdentity)
+BIN_INTERPRET2(Cmp, Cmp)
 
 /* Helper functions for BinExp::interpretAssignCommon
  */
@@ -4491,12 +4510,6 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     printf("CallExp::interpret() %s\n", toChars());
 #endif
 
-    if (global.errors)
-    {
-        error("CTFE failed because of previous errors");
-        return EXP_CANT_INTERPRET;
-    }
-
     Expression * pthis = NULL;
     FuncDeclaration *fd = NULL;
     Expression *ecall = e1;
@@ -4588,8 +4601,12 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (pthis)
     {   // Member function call
+        Expression *oldpthis;
         if (pthis->op == TOKthis)
+        {
             pthis = istate ? istate->localThis : NULL;
+            oldpthis == pthis;
+        }
         else
         {
             if (pthis->op == TOKcomma)
@@ -4597,41 +4614,46 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             if (exceptionOrCantInterpret(pthis))
                 return pthis;
                 // Evaluate 'this'
-            Expression *oldpthis = pthis;
+            oldpthis = pthis;
             if (pthis->op != TOKvar)
                 pthis = pthis->interpret(istate, ctfeNeedLvalue);
             if (exceptionOrCantInterpret(pthis))
                 return pthis;
-            if (fd->isVirtual())
-            {   // Make a virtual function call.
-                Expression *thisval = pthis;
-                if (pthis->op == TOKvar)
-                {   assert(((VarExp*)thisval)->var->isVarDeclaration());
-                    thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
-                }
-                // Get the function from the vtable of the original class
-                ClassDeclaration *cd;
-                if (thisval && thisval->op == TOKnull)
-                {
-                    error("function call through null class reference %s", pthis->toChars());
-                    return EXP_CANT_INTERPRET;
-                }
-                if (oldpthis->op == TOKsuper)
-                {   assert(oldpthis->type->ty == Tclass);
-                    cd = ((TypeClass *)oldpthis->type)->sym;
-                }
-                else
-                {
-                    assert(thisval && thisval->op == TOKclassreference);
-                    cd = ((ClassReferenceExp *)thisval)->originalClass();
-                }
-                // We can't just use the vtable index to look it up, because
-                // vtables for interfaces don't get populated until the glue layer.
-                fd = cd->findFunc(fd->ident, (TypeFunction *)fd->type);
-
-                assert(fd);
-            }
         }
+        if (fd->isVirtual())
+        {   // Make a virtual function call.
+            Expression *thisval = pthis;
+            if (pthis->op == TOKvar)
+            {   assert(((VarExp*)thisval)->var->isVarDeclaration());
+                thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
+            }
+            // Get the function from the vtable of the original class
+            ClassDeclaration *cd;
+            if (thisval && thisval->op == TOKnull)
+            {
+                error("function call through null class reference %s", pthis->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            if (oldpthis->op == TOKsuper)
+            {   assert(oldpthis->type->ty == Tclass);
+                cd = ((TypeClass *)oldpthis->type)->sym;
+            }
+            else
+            {
+                assert(thisval && thisval->op == TOKclassreference);
+                cd = ((ClassReferenceExp *)thisval)->originalClass();
+            }
+            // We can't just use the vtable index to look it up, because
+            // vtables for interfaces don't get populated until the glue layer.
+            fd = cd->findFunc(fd->ident, (TypeFunction *)fd->type);
+
+            assert(fd);
+        }
+    }
+    if (fd && fd->semanticRun >= PASSsemantic3done && fd->semantic3Errors)
+    {
+        error("CTFE failed because of previous errors in %s", fd->toChars());
+        return EXP_CANT_INTERPRET;
     }
     // Check for built-in functions
     Expression *eresult = evaluateIfBuiltin(istate, loc, fd, arguments, pthis);
