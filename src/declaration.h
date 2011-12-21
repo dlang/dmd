@@ -557,6 +557,7 @@ struct FuncDeclaration : Declaration
     int inlineNest;                     // !=0 if nested inline
     int isArrayOp;                      // !=0 if array operation
     enum PASS semanticRun;
+    int semantic3Errors;                // !=0 if errors in semantic3
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
     int introducing;                    // !=0 if 'introducing' function

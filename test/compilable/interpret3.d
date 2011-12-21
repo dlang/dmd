@@ -3644,3 +3644,86 @@ static assert( {
     int i = 416;
     return bug7043!(char)(i);
 }() == 416 );
+
+/**************************************************
+    7143 'is' for classes
+**************************************************/
+
+class C7143
+{
+    int x;
+}
+
+int bug7143(int test)
+{
+    C7143 c = new C7143;
+    C7143 d = new C7143;
+    if (test == 1)
+    {
+        if (c)
+            return c.x + 8;
+        return -1;
+    }
+    if (test == 2)
+    {
+        if(c is null)
+            return -1;
+        return c.x + 45;
+    }
+    if (test == 3)
+    {
+        if (c is c)
+            return 58;
+    }
+    if (test == 4)
+    {
+        if (c !is c)
+            return -1;
+        else
+            return 48;
+    }
+    if (test == 6)
+        d = c;
+    if (test == 5 || test == 6)
+    {
+        if (c is d)
+            return 188;
+        else
+            return 48;
+    }
+    return -1;
+}
+
+static assert(bug7143(1) == 8);
+static assert(bug7143(2) == 45);
+static assert(bug7143(3) == 58);
+static assert(bug7143(4) == 48);
+static assert(bug7143(5) == 48);
+static assert(bug7143(6) == 188);
+
+/**************************************************
+    7147 virtual function calls from base class
+**************************************************/
+
+class A7147
+{
+    int foo() { return 0; }
+
+    int callfoo()
+    {
+        return foo();
+    }
+}
+
+class B7147 : A7147
+{
+    override int foo() { return 1; }
+}
+
+int test7147()
+{
+    A7147 a = new B7147;
+    return a.callfoo();
+}
+
+static assert(test7147() == 1);
