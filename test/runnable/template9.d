@@ -620,6 +620,53 @@ template Foo3092(A...)
 static assert(is(Foo3092!(int, "foo") == int));
 
 /**********************************/
+// 7037
+
+struct Foo7037 {}
+struct Bar7037 { Foo7037 f; alias f this; }
+void works7037( T )( T value ) if ( is( T : Foo7037 ) ) {}
+void doesnotwork7037( T : Foo7037 )( T value ) {}
+
+void test7037()
+{
+   Bar7037 b;
+   works7037( b );
+   doesnotwork7037( b );
+}
+
+/**********************************/
+// 7124
+
+template StaticArrayOf(T : E[dim], E, size_t dim)
+{
+    pragma(msg, "T = ", T, ", E = ", E, ", dim = ", dim);
+    alias E[dim] StaticArrayOf;
+}
+
+template DynamicArrayOf(T : E[], E)
+{
+    pragma(msg, "T = ", T, ", E = ", E);
+    alias E[] DynamicArrayOf;
+}
+
+template AssocArrayOf(T : V[K], K, V)
+{
+    pragma(msg, "T = ", T, ", K = ", K, ", V = ", V);
+    alias V[K] AssocArrayOf;
+}
+void test7124()
+{
+    struct SA { int[5] sa; alias sa this; }
+    static assert(is(StaticArrayOf!SA == int[5]));
+
+    struct DA { int[] da; alias da this; }
+    static assert(is(DynamicArrayOf!DA == int[]));
+
+    struct AA { int[string] aa; alias aa this; }
+    static assert(is(AssocArrayOf!AA == int[string]));
+}
+
+/**********************************/
 
 int main()
 {
@@ -648,6 +695,8 @@ int main()
     test6994();
     test3467();
     test10();
+    test7037();
+    test7124();
 
     printf("Success\n");
     return 0;
