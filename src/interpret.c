@@ -4491,12 +4491,6 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     printf("CallExp::interpret() %s\n", toChars());
 #endif
 
-    if (global.errors)
-    {
-        error("CTFE failed because of previous errors");
-        return EXP_CANT_INTERPRET;
-    }
-
     Expression * pthis = NULL;
     FuncDeclaration *fd = NULL;
     Expression *ecall = e1;
@@ -4632,6 +4626,11 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
                 assert(fd);
             }
         }
+    }
+    if (fd && fd->semanticRun >= PASSsemantic3done && fd->semantic3Errors)
+    {
+        error("CTFE failed because of previous errors in %s", fd->toChars());
+        return EXP_CANT_INTERPRET;
     }
     // Check for built-in functions
     Expression *eresult = evaluateIfBuiltin(istate, loc, fd, arguments, pthis);
