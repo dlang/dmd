@@ -635,6 +635,38 @@ void test7037()
 }
 
 /**********************************/
+// 7124
+
+template StaticArrayOf(T : E[dim], E, size_t dim)
+{
+    pragma(msg, "T = ", T, ", E = ", E, ", dim = ", dim);
+    alias E[dim] StaticArrayOf;
+}
+
+template DynamicArrayOf(T : E[], E)
+{
+    pragma(msg, "T = ", T, ", E = ", E);
+    alias E[] DynamicArrayOf;
+}
+
+template AssocArrayOf(T : V[K], K, V)
+{
+    pragma(msg, "T = ", T, ", K = ", K, ", V = ", V);
+    alias V[K] AssocArrayOf;
+}
+void test7124()
+{
+    struct SA { int[5] sa; alias sa this; }
+    static assert(is(StaticArrayOf!SA == int[5]));
+
+    struct DA { int[] da; alias da this; }
+    static assert(is(DynamicArrayOf!DA == int[]));
+
+    struct AA { int[string] aa; alias aa this; }
+    static assert(is(AssocArrayOf!AA == int[string]));
+}
+
+/**********************************/
 
 int main()
 {
@@ -664,6 +696,7 @@ int main()
     test3467();
     test10();
     test7037();
+    test7124();
 
     printf("Success\n");
     return 0;
