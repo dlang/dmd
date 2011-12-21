@@ -3700,3 +3700,30 @@ static assert(bug7143(3) == 58);
 static assert(bug7143(4) == 48);
 static assert(bug7143(5) == 48);
 static assert(bug7143(6) == 188);
+
+/**************************************************
+    7147 virtual function calls from base class
+**************************************************/
+
+class A7147
+{
+    int foo() { return 0; }
+
+    int callfoo()
+    {
+        return foo();
+    }
+}
+
+class B7147 : A7147
+{
+    override int foo() { return 1; }
+}
+
+int test7147()
+{
+    A7147 a = new B7147;
+    return a.callfoo();
+}
+
+static assert(test7147() == 1);
