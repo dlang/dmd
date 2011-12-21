@@ -570,6 +570,27 @@ struct TS6806(size_t n) { pragma(msg, typeof(n)); }
 static assert(is(TS6806!(1u) == TS6806!(1)));
 
 /**********************************/
+// 4413
+
+struct Foo4413
+{
+    alias typeof(this) typeof_this;
+    void bar1(typeof_this other) {}
+    void bar2()(typeof_this other) {}
+    void bar3(typeof(this) other) {}
+    void bar4()(typeof(this) other) {}
+}
+
+void test4413()
+{
+    Foo4413 f;
+    f.bar1(f); // OK
+    f.bar2(f); // OK
+    f.bar3(f); // OK
+    f.bar4(f); // ERR
+}
+
+/**********************************/
 // 2550
 
 template pow10_2550(long n)
@@ -694,6 +715,7 @@ int main()
     test6208b();
     test6994();
     test3467();
+    test4413();
     test10();
     test7037();
     test7124();
