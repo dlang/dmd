@@ -974,7 +974,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         t = t->semantic(loc, sc);
                         bool isSafe = fd ? fd->isSafe() : tf->trust == TRUSTsafe;
                         VarDeclaration *v = new VarDeclaration(loc, t, id,
-                            isSafe ? NULL : new VoidInitializer(loc));
+                            (isSafe && sc->func) ? NULL : new VoidInitializer(loc));
                         v->storage_class |= STCctfe;
                         v->semantic(sc);
                         v->parent = sc->parent;

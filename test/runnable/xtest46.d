@@ -4770,6 +4770,26 @@ void test6056()
 }
 
 /***************************************************/
+// 6356
+
+int f6356()(int a)
+{
+    return a*a;
+}
+
+alias f6356!() g6356;     // comment this out to eliminate the errors
+
+pure nothrow @safe int i6356()
+{
+    return f6356(1);
+}
+
+void test6356()
+{
+    assert(i6356() == 1);
+}
+
+/***************************************************/
 // 7108
 
 static assert(!__traits(hasMember, int, "x"));
@@ -5701,6 +5721,7 @@ int main()
     test2856();
     test3091();
     test6056();
+    test6356();
     test7073();
     test7150();
     test7160();
