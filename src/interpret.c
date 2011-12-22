@@ -2756,7 +2756,7 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e2->op != TOKstring &&
         e2->op != TOKarrayliteral &&
         e2->op != TOKstructliteral &&
-        e1->op != TOKclassreference)
+        e2->op != TOKclassreference)
     {
         error("cannot compare %s at compile time", e2->toChars());
         goto Lcant;
@@ -4605,7 +4605,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         if (pthis->op == TOKthis)
         {
             pthis = istate ? istate->localThis : NULL;
-            oldpthis == pthis;
+            oldpthis = pthis;
         }
         else
         {
