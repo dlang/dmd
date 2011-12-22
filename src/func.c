@@ -68,6 +68,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineNest = 0;
     isArrayOp = 0;
     semanticRun = PASSinit;
+    semantic3Errors = 0;
 #if DMDV1
     nestedFrameRef = 0;
 #endif
@@ -827,6 +828,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (semanticRun >= PASSsemantic3)
         return;
     semanticRun = PASSsemantic3;
+    semantic3Errors = 0;
 
     if (!type || type->ty != Tfunction)
         return;
@@ -1645,7 +1647,10 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (global.gag && global.errors != nerrors)
         semanticRun = PASSsemanticdone; // Ensure errors get reported again
     else
+    {
         semanticRun = PASSsemantic3done;
+        semantic3Errors = global.errors - nerrors;
+    }
     //printf("-FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
     //fflush(stdout);
 }
