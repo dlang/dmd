@@ -1583,8 +1583,8 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	}
     else
         buf->writestring(ident->toChars());	
-    
-	if(isConst() || hgs->inImmutable || hgs->hdrgen != 1)
+
+	if(isConst() || hgs->inImmutable || storage_class & STCimmutable || hgs->hdrgen != 1)
 	{
 		if (init)
 		{   buf->writestring(" = ");

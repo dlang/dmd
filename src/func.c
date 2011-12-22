@@ -1670,6 +1670,7 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	}
 	else
 		bodyToCBuffer(buf, hgs);
+	buf->writenl();
 }
 
 VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
