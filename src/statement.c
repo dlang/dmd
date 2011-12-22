@@ -783,7 +783,7 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                         buf->writestring(v->ident->toChars());
                 }
 
-				if(v->isConst() || hgs->inImmutable || v->storage_class & STCimmutable || v->storage_class & STCmanifest || hgs->hdrgen != 1)
+				if(v->isConst() || hgs->inImmutable || hgs->inFunc || v->storage_class & STCimmutable || v->storage_class & STCmanifest || hgs->hdrgen != 1)
 				{
 					if (v->init)
 					{   buf->writestring(" = ");

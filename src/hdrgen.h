@@ -22,7 +22,8 @@ struct HdrGenState
     int inBinExp;
     int inArrExp;
     int emitInst;
-	int inImmutable;	//HACK inform down-tree symbols they are immutable.
+	int inImmutable;	//HACK to inform down-tree symbols they are immutable.
+	int inFunc;			//HACK to inform down-tree variables they are in a function.
     struct
     {
         int init;
