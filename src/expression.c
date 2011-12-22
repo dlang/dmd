@@ -3821,7 +3821,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
      *    (S tmp = S()),tmp
      * so that the destructor can be hung on tmp.
      */
-    if (sd->dtor)
+    if (sd->dtor && sc->func)
     {
         Identifier *idtmp = Lexer::uniqueId("__sl");
         VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(0, this));

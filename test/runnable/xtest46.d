@@ -3616,6 +3616,30 @@ void test157()
 }
 
 /***************************************************/
+// 6473
+
+struct Eins6473
+{
+    ~this() {}
+}
+
+struct Zwei6473
+{
+    void build(Eins6473 devices = Eins6473())
+    {
+    }
+}
+
+void build(Eins6473 devices = Eins6473())
+{}
+
+void test6473()
+{
+    void build(Eins6473 devices = Eins6473())
+    {}
+}
+
+/***************************************************/
 // 6630
 
 void test6630()
@@ -4416,6 +4440,7 @@ int main()
     test6220();
     test5799();
     test157();
+    test6473();
     test6630();
     test6690();
     test2953();
