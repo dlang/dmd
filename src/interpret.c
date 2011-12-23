@@ -3130,10 +3130,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
         if (originalClass->type->implicitConvTo(to))
             return paintTypeOntoLiteral(to, e);
         else
-        {
-            error(loc, "cannot reinterpret class from %s to %s at compile time", originalClass->toChars(), to->toChars());
-            return EXP_CANT_INTERPRET;
-        }
+            return new NullExp(loc);
     }
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
