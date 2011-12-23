@@ -1287,7 +1287,8 @@ void bar5258(int n, ref Foo5258 fong) {
         fong.x++;
 }
 int bug5258() {
-    bar5258(1, Foo5258());
+    Foo5258 foo5258 = Foo5258();
+    bar5258(1, foo5258);
     return 45;
 }
 static assert(bug5258()==45);
