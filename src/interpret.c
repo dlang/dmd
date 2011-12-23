@@ -5614,7 +5614,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                 if ((type->ty == Tsarray || goal == ctfeNeedLvalue) && (
                     e->op == TOKarrayliteral ||
                     e->op == TOKassocarrayliteral || e->op == TOKstring ||
-                    e->op == TOKslice))
+                    e->op == TOKclassreference || e->op == TOKslice))
                     return e;
                 /* Element is an allocated pointer, which was created in
                  * CastExp.
