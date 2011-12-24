@@ -3130,10 +3130,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
         if (originalClass->type->implicitConvTo(to))
             return paintTypeOntoLiteral(to, e);
         else
-        {
-            error(loc, "cannot reinterpret class from %s to %s at compile time", originalClass->toChars(), to->toChars());
-            return EXP_CANT_INTERPRET;
-        }
+            return new NullExp(loc, to);
     }
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
@@ -5614,7 +5611,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                 if ((type->ty == Tsarray || goal == ctfeNeedLvalue) && (
                     e->op == TOKarrayliteral ||
                     e->op == TOKassocarrayliteral || e->op == TOKstring ||
-                    e->op == TOKslice))
+                    e->op == TOKclassreference || e->op == TOKslice))
                     return e;
                 /* Element is an allocated pointer, which was created in
                  * CastExp.
