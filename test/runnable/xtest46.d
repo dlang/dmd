@@ -3725,6 +3725,32 @@ static assert(typeof(pfunc6596).stringof == "extern (C) int function()");
 static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 
 /***************************************************/
+// 4647
+
+interface Timer
+{
+    final int run() { printf("Timer.run()\n"); return 1; };
+}
+
+interface Application
+{
+    final int run() { printf("Application.run()\n"); return 2; };
+}
+
+class TimedApp : Timer, Application
+{
+}
+
+void test4647()
+{
+    auto app = new TimedApp;
+    assert(app.Timer.run() == 1);       // error, no Timer property
+    assert(app.Application.run() == 2); // error, no Application property
+    assert(app.run() == 1);             // This would call Timer.run() if the two calls
+                                        // above were commented out
+}
+
+/***************************************************/
 // 5696
 
 template Seq5696(T...){ alias T Seq5696; }
@@ -4444,6 +4470,7 @@ int main()
     test6630();
     test6690();
     test2953();
+    test4647();
     test5696();
     test6084();
     test6488();
