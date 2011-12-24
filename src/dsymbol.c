@@ -1261,12 +1261,9 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TupleDeclaration *s)
 Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
-    if (ident == Id::length || ident == Id::dollar)
+    if (ident == Id::dollar)
     {   VarDeclaration **pvar;
         Expression *ce;
-
-        if (ident == Id::length)
-            ::error(loc, "using 'length' inside [ ] is deprecated, use '$' instead");
 
     L1:
 
