@@ -3056,6 +3056,7 @@ auto classtest1(int n)
     if (n==7)
     {   // bad cast -- should fail
         Unrelated u = cast(Unrelated)d;
+        assert(u is null);
     }
     SomeClass e = cast(SomeClass)d;
     d.q = 35;
@@ -3079,8 +3080,8 @@ auto classtest1(int n)
     return 6;
 }
 static assert(classtest1(1));
-static assert(is(typeof(compiles!(classtest1(2)))));
-static assert(!is(typeof(compiles!(classtest1(7)))));
+static assert(classtest1(2));
+static assert(classtest1(7)); // bug 7154
 
 // can't return classes literals outside CTFE
 SomeClass classtest2(int n)
@@ -3727,3 +3728,20 @@ int test7147()
 }
 
 static assert(test7147() == 1);
+
+/**************************************************
+    7158
+**************************************************/
+
+class C7158 {
+    bool b() {return true;}
+}
+struct S7158 {
+    C7158 c;
+}
+
+bool test7158() {
+    S7158 s = S7158(new C7158);
+    return s.c.b;
+}
+static assert(test7158());
