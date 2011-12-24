@@ -425,7 +425,7 @@ void test24()
 
 void test25()
 {
-    ireal x = 4.Li;
+    ireal x = 4.0Li;
     ireal y = 4.0Li;
     ireal z = 4Li;
     creal c = 4L + 0Li;

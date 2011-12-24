@@ -269,7 +269,7 @@ void test9()
     {
 	len9(a[0], a[1], a[2], a[3]);
 
-	float justOne() { return 1.f; }
+	float justOne() { return 1.0f; }
 
 	float dot = justOne();
 	if (dot < 0.f)

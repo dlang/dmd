@@ -2071,7 +2071,10 @@ TOK Lexer::number(Token *t)
                         continue;
                     }
                     if (c == '.' && p[1] != '.')
+                    {   if (isalpha(p[1]) || p[1] == '_')
+                            goto done;
                         goto real;
+                    }
                     else if (c == 'i' || c == 'f' || c == 'F' ||
                              c == 'e' || c == 'E')
                     {
