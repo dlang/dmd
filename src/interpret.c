@@ -3130,7 +3130,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
         if (originalClass->type->implicitConvTo(to))
             return paintTypeOntoLiteral(to, e);
         else
-            return new NullExp(loc);
+            return new NullExp(loc, to);
     }
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
