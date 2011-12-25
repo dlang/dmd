@@ -28,6 +28,7 @@
 #include "mtype.h"
 #include "init.h"
 #include "expression.h"
+#include "statement.h"
 #include "scope.h"
 #include "id.h"
 #include "declaration.h"
@@ -1211,13 +1212,108 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
 }
 
 
+int ForeachStatement::inferAggregate(Scope *sc, Dsymbol** sapply)
+{
+    assert(sapply);
+
+    Identifier *idapply = (op == TOKforeach) ? Id::apply : Id::applyReverse;
+#if DMDV2
+    Identifier *idhead = (op == TOKforeach) ? Id::Fhead : Id::Ftoe;
+    int sliced = 0;
+#endif
+    Type *tab;
+    AggregateDeclaration *ad;
+
+    while (1)
+    {
+        aggr = aggr->semantic(sc);
+        aggr = resolveProperties(sc, aggr);
+        aggr = aggr->optimize(WANTvalue);
+        if (!aggr->type)
+            goto Lerr;
+
+        tab = aggr->type->toBasetype();
+        switch (tab->ty)
+        {
+            case Tarray:
+            case Tsarray:
+            case Ttuple:
+            case Taarray:
+                break;
+
+            case Tclass:
+                ad = ((TypeClass *)tab)->sym;
+                goto Laggr;
+
+            case Tstruct:
+                ad = ((TypeStruct *)tab)->sym;
+                goto Laggr;
+
+            Laggr:
+#if DMDV2
+                if (!sliced)
+                {
+                    *sapply = search_function(ad, idapply);
+                    if (*sapply)
+                    {   // opApply aggregate
+                        break;
+                    }
+
+                    Dsymbol *s = search_function(ad, Id::slice);
+                    if (s)
+                    {   Expression *rinit = new SliceExp(aggr->loc, aggr, NULL, NULL);
+                        rinit = rinit->trySemantic(sc);
+                        if (rinit)                  // if application of [] succeeded
+                        {   aggr = rinit;
+                            sliced = 1;
+                            continue;
+                        }
+                    }
+                }
+
+                if (Dsymbol *shead = search_function(ad, idhead))
+                {   // range aggregate
+                    break;
+                }
+
+                if (ad->aliasthis)
+                {
+                    aggr = new DotIdExp(aggr->loc, aggr, ad->aliasthis->ident);
+                    continue;
+                }
+#else
+                *sapply = search_function(ad, idapply);
+                if (*sapply)
+                {   // opApply aggregate
+                    break;
+                }
+#endif
+                goto Lerr;
+
+            case Tdelegate:
+                break;
+
+            case Terror:
+                break;
+
+            default:
+                goto Lerr;
+        }
+        break;
+    }
+    return 1;
+
+Lerr:
+    return 0;
+}
+
 /*****************************************
  * Given array of arguments and an aggregate type,
  * if any of the argument types are missing, attempt to infer
  * them from the aggregate type.
  */
 
-void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
+void ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *sapply)
 {
     if (!arguments || !arguments->dim)
         return;
@@ -1232,7 +1328,6 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
             break;
     }
 
-    Dsymbol *s;
     AggregateDeclaration *ad;
 
     Parameter *arg = arguments->tdata()[0];
@@ -1278,10 +1373,7 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
             goto Laggr;
 
         Laggr:
-            s = search_function(ad,
-                        (op == TOKforeach_reverse) ? Id::applyReverse
-                                                   : Id::apply);
-            if (s)
+            if (sapply)
                 goto Lapply;                    // prefer opApply
 
             if (arguments->dim == 1)
@@ -1311,15 +1403,15 @@ void inferApplyArgTypes(enum TOK op, Parameters *arguments, Expression *aggr)
              *  int opApply(int delegate(ref Type [, ...]) dg);
              * overload
              */
-            if (s)
+            if (sapply)
             {
-                FuncDeclaration *fd = s->isFuncDeclaration();
+                FuncDeclaration *fd = sapply->isFuncDeclaration();
                 if (fd)
                 {   inferApplyArgTypesX(fd, arguments);
                     break;
                 }
 #if 0
-                TemplateDeclaration *td = s->isTemplateDeclaration();
+                TemplateDeclaration *td = sapply->isTemplateDeclaration();
                 if (td)
                 {   inferApplyArgTypesZ(td, arguments);
                     break;
