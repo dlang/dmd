@@ -6659,6 +6659,7 @@ Expression *DotVarExp::semantic(Scope *sc)
              *  tuple(e1.a, e1.b, e1.c)
              */
             Expressions *exps = new Expressions;
+            Expression *ev = e1;
 
             exps->reserve(tup->objects->dim);
             for (size_t i = 0; i < tup->objects->dim; i++)
@@ -6668,20 +6669,29 @@ Expression *DotVarExp::semantic(Scope *sc)
                     error("%s is not an expression", o->toChars());
                     goto Lerr;
                 }
-                else
-                {
-                    Expression *e = (Expression *)o;
-                    if (e->op != TOKdsymbol)
-                    {   error("%s is not a member", e->toChars());
-                        goto Lerr;
-                    }
-                    else
-                    {   DsymbolExp *ve = (DsymbolExp *)e;
 
-                        e = new DotVarExp(loc, e1, ve->s->isDeclaration());
-                        exps->push(e);
-                    }
+                Expression *e = (Expression *)o;
+                if (e->op != TOKdsymbol)
+                {   error("%s is not a member", e->toChars());
+                    goto Lerr;
                 }
+
+                Dsymbol *s = ((DsymbolExp *)e)->s;
+                if (i == 0 && sc->func && tup->objects->dim > 1 &&
+                    e1->checkSideEffect(2))
+                {
+                    Identifier *id = Lexer::uniqueId("__tup");
+                    ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
+                    VarDeclaration *v = new VarDeclaration(e1->loc, NULL, id, ei);
+                    v->storage_class |= STCctfe | STCref | STCforeach;
+
+                    ev = new VarExp(e->loc, v);
+                    e = new DotVarExp(loc, ev, s->isDeclaration());
+                    e = new CommaExp(e1->loc, new DeclarationExp(e1->loc, v), e);
+                }
+                else
+                    e = new DotVarExp(loc, ev, s->isDeclaration());
+                exps->push(e);
             }
             Expression *e = new TupleExp(loc, exps);
             e = e->semantic(sc);

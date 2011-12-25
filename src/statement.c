@@ -1406,17 +1406,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (func->fes)
         func = func->fes->func;
 
-Lretry:
-    aggr = aggr->semantic(sc);
-    aggr = resolveProperties(sc, aggr);
-    aggr = aggr->optimize(WANTvalue);
-    if (!aggr->type)
+    if (!inferAggregate(sc, &sapply))
     {
         error("invalid foreach aggregate %s", aggr->toChars());
         return this;
     }
 
-    inferApplyArgTypes(op, arguments, aggr);
+    inferApplyArgTypes(sc, sapply);
 
     /* Check for inference errors
      */
@@ -1425,25 +1421,6 @@ Lretry:
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
         error("cannot uniquely infer foreach argument types");
         return this;
-    }
-
-    Expression *prelude = NULL;
-    if (aggr->op == TOKcomma)
-    {
-        Expression **pe = &aggr;
-        while (((CommaExp *)(*pe))->e2->op == TOKcomma)
-            pe = &((CommaExp *)(*pe))->e2;
-        if (pe == &aggr)
-        {
-            prelude = ((CommaExp *)(*pe))->e1;
-            aggr = ((CommaExp *)(*pe))->e2;
-        }
-        else
-        {
-            prelude = aggr;
-            aggr = ((CommaExp *)(*pe))->e2;
-            *pe = ((CommaExp *)(*pe))->e1;
-        }
     }
 
     Type *tab = aggr->type->toBasetype();
@@ -1461,9 +1438,30 @@ Lretry:
         //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
         size_t n;
         TupleExp *te = NULL;
+        Expression *prelude = NULL;
         if (aggr->op == TOKtuple)       // expression tuple
         {   te = (TupleExp *)aggr;
             n = te->exps->dim;
+
+            if (te->exps->dim > 0 && (*te->exps)[0]->op == TOKcomma)
+            {
+                Expression *&e0 = (*te->exps)[0];
+
+                Expression **pe = &e0;
+                while (((CommaExp *)(*pe))->e2->op == TOKcomma)
+                    pe = &((CommaExp *)(*pe))->e2;
+                if (pe == &e0)
+                {
+                    prelude = ((CommaExp *)(*pe))->e1;
+                    e0 = ((CommaExp *)(*pe))->e2;
+                }
+                else
+                {
+                    prelude = e0;
+                    e0 = ((CommaExp *)(*pe))->e2;
+                    *pe = ((CommaExp *)(*pe))->e1;
+                }
+            }
         }
         else if (aggr->op == TOKtype)   // type tuple
         {
@@ -1559,9 +1557,6 @@ Lretry:
     sc->noctor++;
 
 Lagain:
-    Identifier *idapply = (op == TOKforeach_reverse)
-                    ? Id::applyReverse : Id::apply;
-    sapply = NULL;
     switch (tab->ty)
     {
         case Tarray:
@@ -1683,9 +1678,6 @@ Lagain:
             body = new CompoundStatement(loc, ds, body);
 
             s = new ForStatement(loc, forinit, cond, increment, body);
-            if (prelude)
-                s = new CompoundStatement(loc,
-                        new ExpStatement(prelude->loc, prelude), s);
             s = s->semantic(sc);
             break;
         }
@@ -1749,7 +1741,6 @@ Lagain:
 #if DMDV2
             /* Prefer using opApply, if it exists
              */
-            sapply = search_function((AggregateDeclaration *)tab->toDsymbol(sc), idapply);
             if (sapply)
                 goto Lapply;
 
@@ -1777,33 +1768,12 @@ Lagain:
             }
             Dsymbol *shead = search_function(ad, idhead);
             if (!shead)
-            {
-                if (ad->aliasthis)
-                {
-                    Identifier *id = Lexer::uniqueId("__tup");
-                    ExpInitializer *ei = new ExpInitializer(aggr->loc, aggr);
-                    VarDeclaration *vd = new VarDeclaration(loc, NULL, id, ei);
-                    vd->storage_class |= STCctfe | STCref | STCforeach;
-
-                    aggr = new CommaExp(aggr->loc,
-                        new DeclarationExp(loc, vd),
-                        new DotIdExp(aggr->loc,
-                            new VarExp(loc, vd),
-                            ad->aliasthis->ident));
-
-                    goto Lretry;
-                }
                 goto Lapply;
-            }
 
             /* Generate a temporary __r and initialize it with the aggregate.
              */
             Identifier *id = Identifier::generateId("__r");
-            Expression *rinit = new SliceExp(loc, aggr, NULL, NULL);
-            rinit = rinit->trySemantic(sc);
-            if (!rinit)                 // if application of [] failed
-                rinit = aggr;
-            VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, rinit));
+            VarDeclaration *r = new VarDeclaration(loc, NULL, id, new ExpInitializer(loc, aggr));
             Statement *init = new ExpStatement(loc, r);
 
             // !__r.empty
@@ -1895,9 +1865,6 @@ Lagain:
             printf("increment: %s\n", increment->toChars());
             printf("body: %s\n", forbody->toChars());
 #endif
-            if (prelude)
-                s = new CompoundStatement(loc,
-                        new ExpStatement(prelude->loc, prelude), s);
             s = s->semantic(sc);
             break;
 
@@ -2073,8 +2040,7 @@ Lagain:
             {
                 assert(tab->ty == Tstruct || tab->ty == Tclass);
                 Expressions *exps = new Expressions();
-                if (!sapply)
-                    sapply = search_function((AggregateDeclaration *)tab->toDsymbol(sc), idapply);
+                assert(sapply);
 #if 0
                 TemplateDeclaration *td;
                 if (sapply &&
@@ -2084,7 +2050,7 @@ Lagain:
                      */
                     Objects *tiargs = new Objects();
                     tiargs->push(fld);
-                    ec = new DotTemplateInstanceExp(loc, aggr, idapply, tiargs);
+                    ec = new DotTemplateInstanceExp(loc, aggr, sapply->ident, tiargs);
                 }
                 else
 #endif
@@ -2092,7 +2058,7 @@ Lagain:
                     /* Call:
                      *  aggr.apply(flde)
                      */
-                    ec = new DotIdExp(loc, aggr, idapply);
+                    ec = new DotIdExp(loc, aggr, sapply->ident);
                     exps->push(flde);
                 }
                 e = new CallExp(loc, ec, exps);
@@ -2125,9 +2091,6 @@ Lagain:
                 s = new CompoundStatement(loc, a);
                 s = new SwitchStatement(loc, e, s, FALSE);
             }
-            if (prelude)
-                s = new CompoundStatement(loc,
-                        new ExpStatement(prelude->loc, prelude), s);
             s = s->semantic(sc);
             break;
         }
