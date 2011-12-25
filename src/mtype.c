@@ -191,6 +191,8 @@ void Type::init()
     sizeTy[Ttuple] = sizeof(TypeTuple);
     sizeTy[Tslice] = sizeof(TypeSlice);
     sizeTy[Treturn] = sizeof(TypeReturn);
+    sizeTy[Terror] = sizeof(TypeError);
+    sizeTy[Tnull] = sizeof(TypeNull);
 
     mangleChar[Tarray] = 'A';
     mangleChar[Tsarray] = 'G';
@@ -904,6 +906,7 @@ Type *Type::makeConst()
     t->wto = NULL;
     t->swto = NULL;
     t->vtinfo = NULL;
+    t->ctype = NULL;
     //printf("-Type::makeConst() %p, %s\n", t, toChars());
     return t;
 }
@@ -927,6 +930,7 @@ Type *Type::makeInvariant()
     t->wto = NULL;
     t->swto = NULL;
     t->vtinfo = NULL;
+    t->ctype = NULL;
     return t;
 }
 
@@ -949,6 +953,7 @@ Type *Type::makeShared()
     t->wto = NULL;
     t->swto = NULL;
     t->vtinfo = NULL;
+    t->ctype = NULL;
     return t;
 }
 
@@ -971,6 +976,7 @@ Type *Type::makeSharedConst()
     t->wto = NULL;
     t->swto = NULL;
     t->vtinfo = NULL;
+    t->ctype = NULL;
     return t;
 }
 
@@ -993,6 +999,7 @@ Type *Type::makeWild()
     t->wto = NULL;
     t->swto = NULL;
     t->vtinfo = NULL;
+    t->ctype = NULL;
     return t;
 }
 
@@ -1015,6 +1022,7 @@ Type *Type::makeSharedWild()
     t->wto = NULL;
     t->swto = NULL;
     t->vtinfo = NULL;
+    t->ctype = NULL;
     return t;
 }
 
@@ -1035,6 +1043,7 @@ Type *Type::makeMutable()
     t->wto = NULL;
     t->swto = NULL;
     t->vtinfo = NULL;
+    t->ctype = NULL;
     return t;
 }
 
