@@ -930,6 +930,23 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     return s;
 }
 
+Dsymbol *ClassDeclaration::searchBase(Loc loc, Identifier *ident)
+{
+    // Search bases classes in depth-first, left to right order
+
+    for (size_t i = 0; i < baseclasses->dim; i++)
+    {
+        BaseClass *b = (*baseclasses)[i];
+        Dsymbol *cdb = b->type->isClassHandle();
+        if (cdb->ident->equals(ident))
+            return cdb;
+        cdb = ((ClassDeclaration *)cdb)->searchBase(loc, ident);
+        if (cdb)
+            return cdb;
+    }
+    return NULL;
+}
+
 /**********************************************************
  * fd is in the vtbl[] for this class.
  * Return 1 if function is hidden (not findable through search).

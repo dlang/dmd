@@ -7683,14 +7683,10 @@ L1:
     if (!s)
     {
         // See if it's a base class
-        ClassDeclaration *cbase;
-        for (cbase = sym->baseClass; cbase; cbase = cbase->baseClass)
+        if (Dsymbol *cbase = sym->searchBase(e->loc, ident))
         {
-            if (cbase->ident->equals(ident))
-            {
-                e = new DotTypeExp(0, e, cbase);
-                return e;
-            }
+            e = new DotTypeExp(0, e, cbase);
+            return e;
         }
 
         if (ident == Id::classinfo)
