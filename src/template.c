@@ -713,12 +713,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
 #endif
 
-#if DMDV1
         m2 = tp->matchArg(paramscope, ti->tiargs, i, parameters, dedtypes, &sparam);
-#else
-        m2 = tp->matchArg(paramscope, ti->tiargs, i, parameters, dedtypes, &sparam, (flag & 2) ? 1 : 0);
-
-#endif
         //printf("\tm2 = %d\n", m2);
 
         if (m2 == MATCHnomatch)
@@ -753,7 +748,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     }
 
 #if DMDV2
-    if (m && !(m == MATCHexact && flag == 2) && constraint && !(flag & 1))
+    if (m && constraint && !flag)
     {   /* Check to see if constraint is satisfied.
          */
         makeParamNamesVisibleInConstraint(paramscope, fargs);
@@ -1389,7 +1384,7 @@ Lmatch:
                      */
                     Declaration *sparam;
                     dedargs->tdata()[i] = oded;
-                    MATCH m2 = tparam->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam, 0);
+                    MATCH m2 = tparam->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam);
                     //printf("m2 = %d\n", m2);
                     if (!m2)
                         goto Lnomatch;
@@ -3012,6 +3007,8 @@ TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
 
 // type-parameter
 
+Type *TemplateTypeParameter::tdummy = NULL;
+
 TemplateTypeParameter::TemplateTypeParameter(Loc loc, Identifier *ident, Type *specType,
         Type *defaultType)
     : TemplateParameter(loc, ident)
@@ -3095,15 +3092,13 @@ Lnomatch:
  *      parameters[]    template parameters
  *      dedtypes[]      deduced arguments to template instance
  *      *psparam        set to symbol declared and initialized to dedtypes[i]
- *      flags           1: don't do 'toHeadMutable()'
  */
 
 MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
-        Declaration **psparam, int flags)
+        Declaration **psparam)
 {
     //printf("TemplateTypeParameter::matchArg()\n");
-    Type *t;
     Object *oarg;
     MATCH m = MATCHexact;
     Type *ta;
@@ -3121,7 +3116,6 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
             {
                 goto Lnomatch;
             }
-            flags |= 1;         // already deduced, so don't to toHeadMutable()
         }
     }
 
@@ -3133,10 +3127,11 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     }
     //printf("ta is %s\n", ta->toChars());
 
-    t = (Type *)dedtypes->tdata()[i];
-
     if (specType)
     {
+        if (!ta || ta == tdummy)
+            goto Lnomatch;
+
         //printf("\tcalling deduceType(): ta is %s, specType is %s\n", ta->toChars(), specType->toChars());
         MATCH m2 = ta->deduceType(sc, specType, parameters, dedtypes);
         if (m2 == MATCHnomatch)
@@ -3146,37 +3141,29 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
 
         if (m2 < m)
             m = m2;
-        t = (Type *)dedtypes->tdata()[i];
+        if (dedtypes->tdata()[i])
+            ta = (Type *)dedtypes->tdata()[i];
     }
     else
     {
-        // So that matches with specializations are better
-        if (!(flags & 1))
-            m = MATCHconvert;
-
-        /* This is so that:
-         *   template Foo(T), Foo!(const int), => ta == int
-         */
-//      if (!(flags & 1))
-//          ta = ta->toHeadMutable();
-
-        if (t)
+        if (dedtypes->tdata()[i])
         {   // Must match already deduced type
+            Type *t = (Type *)dedtypes->tdata()[i];
 
-            m = MATCHexact;
             if (!t->equals(ta))
             {   //printf("t = %s ta = %s\n", t->toChars(), ta->toChars());
                 goto Lnomatch;
             }
         }
+        else
+        {
+            // So that matches with specializations are better
+            m = MATCHconvert;
+        }
     }
+    dedtypes->tdata()[i] = ta;
 
-    if (!t)
-    {
-        dedtypes->tdata()[i] = ta;
-        t = ta;
-    }
-    *psparam = new AliasDeclaration(loc, ident, t);
+    *psparam = new AliasDeclaration(loc, ident, ta);
     //printf("\tm = %d\n", m);
     return m;
 
@@ -3228,7 +3215,9 @@ void *TemplateTypeParameter::dummyArg()
         t = specType;
     else
     {   // Use this for alias-parameter's too (?)
-        t = new TypeIdentifier(loc, ident);
+        if (!tdummy)
+            tdummy = new TypeIdentifier(loc, ident);
+        t = tdummy;
     }
     return (void *)t;
 }
@@ -3377,10 +3366,9 @@ Lnomatch:
     return 0;
 }
 
-MATCH TemplateAliasParameter::matchArg(Scope *sc,
-        Objects *tiargs, size_t i, TemplateParameters *parameters,
-        Objects *dedtypes,
-        Declaration **psparam, int flags)
+MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
+        size_t i, TemplateParameters *parameters, Objects *dedtypes,
+        Declaration **psparam)
 {
     Object *sa;
     Object *oarg;
@@ -3642,9 +3630,9 @@ Lnomatch:
 }
 
 
-MATCH TemplateValueParameter::matchArg(Scope *sc,
-        Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes,
-        Declaration **psparam, int flags)
+MATCH TemplateValueParameter::matchArg(Scope *sc, Objects *tiargs,
+        size_t i, TemplateParameters *parameters, Objects *dedtypes,
+        Declaration **psparam)
 {
     //printf("TemplateValueParameter::matchArg()\n");
 
@@ -3702,13 +3690,11 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
         e = e->semantic(sc);
         e = e->implicitCastTo(sc, valType);
         e = e->optimize(WANTvalue | WANTinterpret);
-        //e->type = e->type->toHeadMutable();
 
         ei = ei->syntaxCopy();
         ei = ei->semantic(sc);
         ei = ei->implicitCastTo(sc, vt);
         ei = ei->optimize(WANTvalue | WANTinterpret);
-        //ei->type = ei->type->toHeadMutable();
         //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
         //printf("\te : %s, %s\n", e->toChars(), e->type->toChars());
         if (!ei->equals(e))
@@ -3852,10 +3838,9 @@ int TemplateTupleParameter::overloadMatch(TemplateParameter *tp)
     return 0;
 }
 
-MATCH TemplateTupleParameter::matchArg(Scope *sc,
-        Objects *tiargs, size_t i, TemplateParameters *parameters,
-        Objects *dedtypes,
-        Declaration **psparam, int flags)
+MATCH TemplateTupleParameter::matchArg(Scope *sc, Objects *tiargs,
+        size_t i, TemplateParameters *parameters, Objects *dedtypes,
+        Declaration **psparam)
 {
     //printf("TemplateTupleParameter::matchArg()\n");
 
