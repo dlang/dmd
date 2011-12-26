@@ -3397,16 +3397,43 @@ STATIC elem * elbool(elem *e)
        )
         return el_selecte1(e);
     if (OPTIMIZER)
-    {   elem *e1;
-
-        /* Replace bool(x,1) with (x,1),1               */
-        e1 = elscancommas(e->E1);
+    {
+        // Replace bool(x,1) with (x,1),1
+        elem *e1 = elscancommas(e->E1);
         if (cnst(e1) || e1->Eoper == OPrelconst)
-        {   int i;
-
-            i = boolres(e1) != 0;
+        {
+            int i = boolres(e1) != 0;
             e->Eoper = OPcomma;
             e->E2 = el_int(e->Ety,i);
+            e = optelem(e,TRUE);
+        }
+
+        // Replace bool(e & 1) with (unsigned char)(e & 1)
+        else if (e->E1->Eoper == OPand && e->E1->E2->Eoper == OPconst && el_tolong(e->E1->E2) == 1)
+        {   unsigned sz = tysize(e->E1->Ety);
+            tym_t ty = e->Ety;
+            switch (sz)
+            {
+                case 1:
+                    e = el_selecte1(e);
+                    break;
+                case 2:
+                    e->Eoper = OP16_8;
+                    break;
+                case 4:
+                    e->Eoper = OP32_16;
+                    e->Ety = TYushort;
+                    e = el_una(OP16_8, ty, e);
+                    break;
+                case 8:
+                    e->Eoper = OP64_32;
+                    e->Ety = TYulong;
+                    e = el_una(OP32_16, TYushort, e);
+                    e = el_una(OP16_8, ty, e);
+                    break;
+                default:
+                    assert(0);
+            }
             e = optelem(e,TRUE);
         }
     }
