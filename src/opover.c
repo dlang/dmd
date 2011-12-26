@@ -37,7 +37,7 @@
 
 static Dsymbol *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments);
+static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
 
 /******************************** Expression **************************/
@@ -1445,7 +1445,7 @@ static Dsymbol *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *argumen
             Param3 *p = (Param3 *)param;
             TypeFunction *tf = (TypeFunction *)f->type;
 
-            if (!inferApplyArgTypesY(tf, p->arguments))
+            if (!inferApplyArgTypesY(tf, p->arguments, 1))
                 return 0;
 
             p->fd = f;
@@ -1457,6 +1457,8 @@ static Dsymbol *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *argumen
     p.arguments = arguments;
     p.fd = NULL;
     overloadApply(fstart, &Param3::fp, &p);
+    if (p.fd)
+        inferApplyArgTypesY((TypeFunction *)p.fd->type, arguments);
     return p.fd;
 }
 
@@ -1467,7 +1469,7 @@ static Dsymbol *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *argumen
  *      0 no match for this function
  */
 
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
+static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags)
 {   size_t nparams;
     Parameter *p;
 
@@ -1495,17 +1497,11 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments)
         if (arg->type)
         {   if (!arg->type->equals(param->type))
                 goto Lnomatch;
-            continue;
         }
-    }
-  Lmatch:
-    for (size_t u = 0; u < nparams; u++)
-    {
-        Parameter *arg = arguments->tdata()[u];
-        Parameter *param = Parameter::getNth(tf->parameters, u);
-        if (!arg->type)
+        else if (!flags)
             arg->type = param->type;
     }
+  Lmatch:
     return 1;
 
   Lnomatch:

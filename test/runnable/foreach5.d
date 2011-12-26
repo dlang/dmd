@@ -30,6 +30,33 @@ void test1()
 }
 
 /***************************************/
+// 2443
+
+struct S2443
+{
+    int[] arr;
+    int opApply(int delegate(size_t i, ref int v) dg)
+    {
+        int result = 0;
+        foreach (i, ref x; arr)
+        {
+            if ((result = dg(i, x)) != 0)
+                break;
+        }
+        return result;
+    }
+}
+
+void test2443()
+{
+    S2443 s;
+    foreach (i, ref v; s) {}
+    foreach (i,     v; s) {}
+    static assert(!__traits(compiles, { foreach (ref i, ref v; s) {} }));
+    static assert(!__traits(compiles, { foreach (ref i,     v; s) {} }));
+}
+
+/***************************************/
 // 3187
 
 class Collection
@@ -111,6 +138,7 @@ void test7004()
 int main()
 {
     test1();
+    test2443();
     test3187();
     test5605();
     test7004();
