@@ -3436,6 +3436,37 @@ STATIC elem * elbool(elem *e)
             }
             e = optelem(e,TRUE);
         }
+
+        // Replace bool(e % 2) with (unsigned char)(e & 1)
+        else if (e->E1->Eoper == OPmod && e->E1->E2->Eoper == OPconst && el_tolong(e->E1->E2) == 2)
+        {   unsigned sz = tysize(e->E1->Ety);
+            tym_t ty = e->Ety;
+            e->E1->Eoper = OPand;
+            e->E1->E2->EV.Vullong = 1;
+            switch (sz)
+            {
+                case 1:
+                    e = el_selecte1(e);
+                    break;
+                case 2:
+                    e->Eoper = OP16_8;
+                    break;
+                case 4:
+                    e->Eoper = OP32_16;
+                    e->Ety = TYushort;
+                    e = el_una(OP16_8, ty, e);
+                    break;
+                case 8:
+                    e->Eoper = OP64_32;
+                    e->Ety = TYulong;
+                    e = el_una(OP32_16, TYushort, e);
+                    e = el_una(OP16_8, ty, e);
+                    break;
+                default:
+                    assert(0);
+            }
+            e = optelem(e,TRUE);
+        }
     }
     return e;
 }
