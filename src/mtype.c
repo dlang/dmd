@@ -4906,22 +4906,16 @@ L1:
     if (!s)
     {
         // See if it's a base class
-        ClassDeclaration *cbase;
-        for (cbase = sym->baseClass; cbase; cbase = cbase->baseClass)
+        if (Dsymbol *cbase = sym->searchBase(e->loc, ident))
         {
-            if (cbase->ident->equals(ident))
-            {
-                e = new DotTypeExp(0, e, cbase);
-                return e;
-            }
+            e = new DotTypeExp(0, e, cbase);
+            return e;
         }
 
         if (ident == Id::classinfo)
         {
-            Type *t;
-
             assert(ClassDeclaration::classinfo);
-            t = ClassDeclaration::classinfo->type;
+            Type *t = ClassDeclaration::classinfo->type;
             if (e->op == TOKtype || e->op == TOKdottype)
             {
                 /* For type.classinfo, we know the classinfo

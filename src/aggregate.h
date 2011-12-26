@@ -244,6 +244,7 @@ struct ClassDeclaration : AggregateDeclaration
 
     virtual int isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags);
+    Dsymbol *searchBase(Loc, Identifier *ident);
 #if DMDV2
     int isFuncHidden(FuncDeclaration *fd);
 #endif
