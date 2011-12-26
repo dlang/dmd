@@ -35,7 +35,7 @@
 #include "aggregate.h"
 #include "template.h"
 
-static Dsymbol *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments);
+static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
@@ -1328,13 +1328,22 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
                 arg->type = arg->type->semantic(loc, sc);
         }
 
+        Expression *ethis;
+        Type *tab = aggr->type->toBasetype();
+        if (tab->ty == Tclass || tab->ty == Tstruct)
+            ethis = aggr;
+        else
+        {   assert(tab->ty == Tdelegate && aggr->op == TOKdelegate);
+            ethis = ((DelegateExp *)aggr)->e1;
+        }
+
         /* Look for like an
          *  int opApply(int delegate(ref Type [, ...]) dg);
          * overload
          */
         FuncDeclaration *fd = sapply->isFuncDeclaration();
         if (fd)
-        {   sapply = inferApplyArgTypesX(fd, arguments);
+        {   sapply = inferApplyArgTypesX(ethis, fd, arguments);
         }
 #if 0
         TemplateDeclaration *td = sapply->isTemplateDeclaration();
@@ -1433,33 +1442,61 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
     return 1;
 }
 
-static Dsymbol *inferApplyArgTypesX(FuncDeclaration *fstart, Parameters *arguments)
+static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments)
 {
     struct Param3
     {
         Parameters *arguments;
-        FuncDeclaration *fd;
+        int mod;
+        MATCH match;
+        FuncDeclaration *fd_best;
+        FuncDeclaration *fd_ambig;
 
         static int fp(void *param, FuncDeclaration *f)
         {
             Param3 *p = (Param3 *)param;
             TypeFunction *tf = (TypeFunction *)f->type;
+            MATCH m = MATCHexact;
 
+            if (f->isThis())
+            {   if (!MODimplicitConv(p->mod, tf->mod))
+                    m = MATCHnomatch;
+                else if (p->mod != tf->mod)
+                    m = MATCHconst;
+            }
             if (!inferApplyArgTypesY(tf, p->arguments, 1))
-                return 0;
+                m = MATCHnomatch;
 
-            p->fd = f;
-            return 1;
+            if (m > p->match)
+            {   p->fd_best = f;
+                p->fd_ambig = NULL;
+                p->match = m;
+            }
+            else if (m == p->match)
+                p->fd_ambig = f;
+            return 0;
         }
     };
 
     Param3 p;
     p.arguments = arguments;
-    p.fd = NULL;
+    p.mod = ethis->type->mod;
+    p.match = MATCHnomatch;
+    p.fd_best = NULL;
+    p.fd_ambig = NULL;
     overloadApply(fstart, &Param3::fp, &p);
-    if (p.fd)
-        inferApplyArgTypesY((TypeFunction *)p.fd->type, arguments);
-    return p.fd;
+    if (p.fd_best)
+    {
+        inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);
+        if (p.fd_ambig)
+        {   ::error(ethis->loc, "%s.%s matches more than one declaration:\n\t%s(%d):%s\nand:\n\t%s(%d):%s",
+                    ethis->toChars(), fstart->ident->toChars(),
+                    p.fd_best ->loc.filename, p.fd_best ->loc.linnum, p.fd_best ->type->toChars(),
+                    p.fd_ambig->loc.filename, p.fd_ambig->loc.linnum, p.fd_ambig->type->toChars());
+            p.fd_best = NULL;
+        }
+    }
+    return p.fd_best;
 }
 
 /******************************
