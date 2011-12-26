@@ -11,15 +11,15 @@ class Foo
     uint array[2];
 
     int opApply(int delegate(ref uint) dg)
-    {	int result;
-
-	for (int i = 0; i < array.length; i++)
-	{
-	    result = dg(array[i]);
-	    if (result)
-		break;
-	}
-	return result;
+    {
+        int result;
+        for (int i = 0; i < array.length; i++)
+        {
+            result = dg(array[i]);
+            if (result)
+                break;
+        }
+        return result;
     }
 }
 
@@ -36,8 +36,8 @@ void test1()
 
     foreach (uint u; a)
     {
-	i++;
-	u++;
+        i++;
+        u++;
     }
     assert(i == 2);
     assert(a.array[0] == 73);
@@ -56,8 +56,8 @@ void test2()
 
     foreach (ref uint u; a)
     {
-	i++;
-	u++;
+        i++;
+        u++;
     }
     assert(i == 2);
     assert(a.array[0] == 74);
@@ -76,10 +76,10 @@ void test3()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    break;
-	u++;
+        i++;
+        if (i)
+            break;
+        u++;
     }
     assert(i == 1);
     assert(a.array[0] == 73);
@@ -98,10 +98,10 @@ void test4()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i == 1)
-	    continue;
-	u++;
+        i++;
+        if (i == 1)
+            continue;
+        u++;
     }
     assert(i == 2);
     assert(a.array[0] == 73 && a.array[1] == 83);
@@ -120,13 +120,13 @@ void test5()
 Loop:
     while (1)
     {
-	foreach (ref uint u; a)
-	{
-	    i++;
-	    if (i)
-		break Loop;
-	    u++;
-	}
+        foreach (ref uint u; a)
+        {
+            i++;
+            if (i)
+                break Loop;
+            u++;
+        }
     }
     assert(i == 1);
     assert(a.array[0] == 73);
@@ -146,14 +146,14 @@ void test6()
 Loop:
     while (1)
     {
-	foreach (ref uint u; a)
-	{
-	    i++;
-	    if (i == 1)
-		continue Loop;
-	    u++;
-	}
-	break;
+        foreach (ref uint u; a)
+        {
+            i++;
+            if (i == 1)
+                continue Loop;
+            u++;
+        }
+        break;
     }
     assert(i == 3);
     assert(a.array[0] == 74);
@@ -172,10 +172,10 @@ void test7()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    goto Label;
-	u++;
+        i++;
+        if (i)
+            goto Label;
+        u++;
     }
     assert(0);
 Label:
@@ -187,14 +187,14 @@ Label:
 /**************************************************/
 
 void test8_x(Foo a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return;
-	u++;
+        i++;
+        if (i)
+            return;
+        u++;
     }
 }
 
@@ -215,14 +215,14 @@ void test8()
 /**************************************************/
 
 int test9_x(Foo a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return 67;
-	u++;
+        i++;
+        if (i)
+            return 67;
+        u++;
     }
     return 23;
 }
@@ -244,14 +244,14 @@ void test9()
 /**************************************************/
 
 int test10_x(Foo a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return i;
-	u++;
+        i++;
+        if (i)
+            return i;
+        u++;
     }
     return 23;
 }
@@ -287,15 +287,15 @@ void test11()
     int j;
 
     for (int i = 0; i < 25; i += 5) {
-	data[i+0] = data[i+1] = true;
+        data[i+0] = data[i+1] = true;
     }
 
     for (int i = 0; i < 25; i++) {
-	printf("%d ", data[i]);
-	if ((i % 5) < 2)
-	    assert(data[i] == true);
-	else
-	    assert(data[i] == false);
+        printf("%d ", data[i]);
+        if ((i % 5) < 2)
+            assert(data[i] == true);
+        else
+            assert(data[i] == false);
     }
 
     printf("\n%d\n", data[22] = true);
@@ -303,39 +303,39 @@ void test11()
     assert(j == true);
 
     for (int i = 0; i < 25; i += 5) {
-	data[i+1] = data[i+3] = true;
-	j = i % 5;
-	if (j == 0 || j == 1 || j == 3)
-	    assert(data[i] == true);
-	else
-	    assert(data[i] == false);
+        data[i+1] = data[i+3] = true;
+        j = i % 5;
+        if (j == 0 || j == 1 || j == 3)
+            assert(data[i] == true);
+        else
+            assert(data[i] == false);
     }
 
     for (int i = 0; i < 25; i++) {
-	printf("%d ", data[i]);
+        printf("%d ", data[i]);
     }
 
     printf("\n");
 
     int k;
     foreach (bit b; data) {
-	printf("%d ", b);
-	j = k % 5;
-	if (j == 0 || j == 1 || j == 3 || k == 22)
-	    assert(data[k] == true);
-	else
-	    assert(data[k] == false);
-	k++;
+        printf("%d ", b);
+        j = k % 5;
+        if (j == 0 || j == 1 || j == 3 || k == 22)
+            assert(data[k] == true);
+        else
+            assert(data[k] == false);
+        k++;
     }
     printf("\n");
 
     foreach (int l, bit b; data) {
-	printf("%d ", b);
-	j = l % 5;
-	if (j == 0 || j == 1 || j == 3 || l == 22)
-	    assert(data[l] == true);
-	else
-	    assert(data[l] == false);
+        printf("%d ", b);
+        j = l % 5;
+        if (j == 0 || j == 1 || j == 3 || l == 22)
+            assert(data[l] == true);
+        else
+            assert(data[l] == false);
     }
     printf("\n");
 }
@@ -350,27 +350,27 @@ void test12()
     j = 0;
     foreach (dchar d; "hello")
     {
-	printf("d = x%x\n", d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	j++;
+        printf("d = x%x\n", d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        j++;
     }
     assert(j == 5);
 
     j = 0;
     foreach (size_t i, dchar d; "hello")
     {
-	printf("i = %d, d = x%x\n", i, d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	assert(i == j);
-	j++;
+        printf("i = %d, d = x%x\n", i, d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        assert(i == j);
+        j++;
     }
     assert(j == 5);
 }
@@ -384,27 +384,27 @@ void test13()
     j = 0;
     foreach (wchar d; "hello")
     {
-	printf("d = x%x\n", d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	j++;
+        printf("d = x%x\n", d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        j++;
     }
     assert(j == 5);
 
     j = 0;
     foreach (size_t i, wchar d; "hello")
     {
-	printf("i = %d, d = x%x\n", i, d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	assert(i == j);
-	j++;
+        printf("i = %d, d = x%x\n", i, d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        assert(i == j);
+        j++;
     }
     assert(j == 5);
 }
@@ -418,27 +418,27 @@ void test14()
     j = 0;
     foreach (char d; cast(wstring)"hello")
     {
-	printf("d = x%x\n", d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	j++;
+        printf("d = x%x\n", d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        j++;
     }
     assert(j == 5);
 
     j = 0;
     foreach (size_t i, char d; cast(wstring)"hello")
     {
-	printf("i = %d, d = x%x\n", i, d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	assert(i == j);
-	j++;
+        printf("i = %d, d = x%x\n", i, d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        assert(i == j);
+        j++;
     }
     assert(j == 5);
 }
@@ -452,27 +452,27 @@ void test15()
     j = 0;
     foreach (dchar d; cast(wstring)"hello")
     {
-	printf("d = x%x\n", d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	j++;
+        printf("d = x%x\n", d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        j++;
     }
     assert(j == 5);
 
     j = 0;
     foreach (size_t i, dchar d; cast(wstring)"hello")
     {
-	printf("i = %d, d = x%x\n", i, d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	assert(i == j);
-	j++;
+        printf("i = %d, d = x%x\n", i, d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        assert(i == j);
+        j++;
     }
     assert(j == 5);
 }
@@ -486,27 +486,27 @@ void test16()
     j = 0;
     foreach (char d; cast(dstring)"hello")
     {
-	printf("d = x%x\n", d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	j++;
+        printf("d = x%x\n", d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        j++;
     }
     assert(j == 5);
 
     j = 0;
     foreach (size_t i, char d; cast(dstring)"hello")
     {
-	printf("i = %d, d = x%x\n", i, d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	assert(i == j);
-	j++;
+        printf("i = %d, d = x%x\n", i, d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        assert(i == j);
+        j++;
     }
     assert(j == 5);
 }
@@ -520,27 +520,27 @@ void test17()
     j = 0;
     foreach (wchar d; cast(dstring)"hello")
     {
-	printf("d = x%x\n", d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	j++;
+        printf("d = x%x\n", d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        j++;
     }
     assert(j == 5);
 
     j = 0;
     foreach (size_t i, wchar d; cast(dstring)"hello")
     {
-	printf("i = %d, d = x%x\n", i, d);
-	if (j == 0) assert(d == 'h');
-	if (j == 1) assert(d == 'e');
-	if (j == 2) assert(d == 'l');
-	if (j == 3) assert(d == 'l');
-	if (j == 4) assert(d == 'o');
-	assert(i == j);
-	j++;
+        printf("i = %d, d = x%x\n", i, d);
+        if (j == 0) assert(d == 'h');
+        if (j == 1) assert(d == 'e');
+        if (j == 2) assert(d == 'l');
+        if (j == 3) assert(d == 'l');
+        if (j == 4) assert(d == 'o');
+        assert(i == j);
+        j++;
     }
     assert(j == 5);
 }
@@ -549,12 +549,12 @@ void test17()
 
 void test18()
 {
-    string a = "\xE2\x89\xA0";	// \u2260 encoded as 3 UTF-8 bytes
+    string a = "\xE2\x89\xA0";      // \u2260 encoded as 3 UTF-8 bytes
 
     foreach (dchar c; a)
     {
-	printf("a[] = %x\n", c);	// prints 'a[] = 2260'
-	assert(c == 0x2260);
+        printf("a[] = %x\n", c);    // prints 'a[] = 2260'
+        assert(c == 0x2260);
     }
 
     dstring b = "\u2260";
@@ -562,13 +562,13 @@ void test18()
     int i;
     foreach (char c; b)
     {
-	printf("%x, ", c);	// prints e2, 89, a0
-	if (i == 0) assert(c == 0xE2);
-	else if (i == 1) assert(c == 0x89);
-	else if (i == 2) assert(c == 0xA0);
-	else
-	    assert(0);
-	i++;
+        printf("%x, ", c);      // prints e2, 89, a0
+        if (i == 0) assert(c == 0xE2);
+        else if (i == 1) assert(c == 0x89);
+        else if (i == 2) assert(c == 0xA0);
+        else
+            assert(0);
+        i++;
     }
     printf("\n");
 }
@@ -577,16 +577,16 @@ void test18()
 
 void test19()
 {
-	string string = x"F0 9D 83 93";
+    string string = x"F0 9D 83 93";
 
-	int count=0;
-	dchar tmp;
-	foreach(dchar value ; string){
-		tmp=value;
-		count++;
-	}
-	assert(count==1);
-	assert(tmp==0x01D0D3);
+    int count=0;
+    dchar tmp;
+    foreach(dchar value ; string){
+        tmp=value;
+        count++;
+    }
+    assert(count==1);
+    assert(tmp==0x01D0D3);
 }
 
 /**************************************************/
@@ -619,14 +619,14 @@ void foo21(string[] args)
     assert(args.length == 3);
     foreach (i, arg; args)
     {
-	assert(typeid(typeof(i)) == typeid(size_t));
-	assert(typeid(typeof(arg)) == typeid(string));
-	writefln("args[%d] = '%s'", i, arg);
+        assert(typeid(typeof(i)) == typeid(size_t));
+        assert(typeid(typeof(arg)) == typeid(string));
+        writefln("args[%d] = '%s'", i, arg);
     }
     foreach (arg; args)
     {
-	assert(typeid(typeof(arg)) == typeid(string));
-	writefln("args[] = '%s'", arg);
+        assert(typeid(typeof(arg)) == typeid(string));
+        writefln("args[] = '%s'", arg);
     }
 }
 
@@ -652,26 +652,26 @@ void test22()
 
     foreach (key, value; map)
     {
-	assert(typeid(typeof(key)) == typeid(string));
-	assert(typeid(typeof(value)) == typeid(int));
-	writefln("map[%s] = %s", key, value);
+        assert(typeid(typeof(key)) == typeid(string));
+        assert(typeid(typeof(value)) == typeid(int));
+        writefln("map[%s] = %s", key, value);
     }
     foreach (key, int value; map)
     {
-	assert(typeid(typeof(key)) == typeid(string));
-	assert(typeid(typeof(value)) == typeid(int));
-	writefln("map[%s] = %s", key, value);
+        assert(typeid(typeof(key)) == typeid(string));
+        assert(typeid(typeof(value)) == typeid(int));
+        writefln("map[%s] = %s", key, value);
     }
     foreach (string key, value; map)
     {
-	assert(typeid(typeof(key)) == typeid(string));
-	assert(typeid(typeof(value)) == typeid(int));
-	writefln("map[%s] = %s", key, value);
+        assert(typeid(typeof(key)) == typeid(string));
+        assert(typeid(typeof(value)) == typeid(int));
+        writefln("map[%s] = %s", key, value);
     }
     foreach (value; map)
     {
-	assert(typeid(typeof(value)) == typeid(int));
-	writefln("map[] = %s", value);
+        assert(typeid(typeof(value)) == typeid(int));
+        writefln("map[] = %s", value);
     }
 }
 
@@ -682,27 +682,27 @@ class Foo23
     int array[2];
 
     int opApply(int delegate(ref int) dg)
-    {	int result;
-
-	for (int i = 0; i < array.length; i++)
-	{
-	    result = dg(array[i]);
-	    if (result)
-		break;
-	}
-	return result;
+    {
+        int result;
+        for (int i = 0; i < array.length; i++)
+        {
+            result = dg(array[i]);
+            if (result)
+                break;
+        }
+        return result;
     }
 
     int opApply(int delegate(ref size_t, ref int) dg)
-    {	int result;
-
-	for (size_t i = 0; i < array.length; i++)
-	{
-	    result = dg(i, array[i]);
-	    if (result)
-		break;
-	}
-	return result;
+    {
+        int result;
+        for (size_t i = 0; i < array.length; i++)
+        {
+            result = dg(i, array[i]);
+            if (result)
+                break;
+        }
+        return result;
     }
 }
 
@@ -716,11 +716,11 @@ void test23()
 
     foreach (u; a)
     {
-	assert(typeid(typeof(u)) == typeid(int));
-	i++;
-	u++;
-	//writefln("u = %d", u);
-	assert((i == 1) ? u == 74 : u == 83);
+        assert(typeid(typeof(u)) == typeid(int));
+        i++;
+        u++;
+        //writefln("u = %d", u);
+        assert((i == 1) ? u == 74 : u == 83);
     }
     assert(i == 2);
     assert(a.array[0] == 73);
@@ -728,13 +728,13 @@ void test23()
 
     foreach (j, u; a)
     {
-	assert(typeid(typeof(j)) == typeid(size_t));
-	assert(typeid(typeof(u)) == typeid(int));
-	i++;
-	u++;
-	writefln("u = %d", u);
-	assert((i == 3) ? u == 74 : u == 83);
-	assert(j == i - 3);
+        assert(typeid(typeof(j)) == typeid(size_t));
+        assert(typeid(typeof(u)) == typeid(int));
+        i++;
+        u++;
+        writefln("u = %d", u);
+        assert((i == 3) ? u == 74 : u == 83);
+        assert(j == i - 3);
     }
     assert(i == 4);
     assert(a.array[0] == 73);
@@ -743,22 +743,24 @@ void test23()
 
 /**************************************************/
 
-struct Collection24{
-	int opApply(int delegate(ref int) dg){
-		return 0;
-	}
+struct Collection24
+{
+    int opApply(int delegate(ref int) dg){
+        return 0;
+    }
 }
 
-bool foo24(){
-	Collection24 a,b;
-	
-	foreach(int x; a){
-		foreach(int y; b){
-			return false;
-		}
-	}
-	
-	return true;
+bool foo24()
+{
+    Collection24 a,b;
+
+    foreach(int x; a){
+        foreach(int y; b){
+            return false;
+        }
+    }
+
+    return true;
 }
 
 void test24()
@@ -773,11 +775,11 @@ void test25()
     alias void function(string[string]) FN;
     FN fn = function (string[string] aarray)
     {
-	foreach (string s; aarray)
-	{
-	    writeln(s);
-	    assert(s == "b");
-	}
+        foreach (string s; aarray)
+        {
+            writeln(s);
+            assert(s == "b");
+        }
     };
     string[string] aarray;
     aarray["a"] = "b";
@@ -791,15 +793,15 @@ struct Foo26
     uint array[2];
 
     int forward(int delegate(ref uint) dg)
-    {	int result;
-
-	for (int i = 0; i < array.length; i++)
-	{
-	    result = dg(array[i]);
-	    if (result)
-		break;
-	}
-	return result;
+    {
+        int result;
+        for (int i = 0; i < array.length; i++)
+        {
+            result = dg(array[i]);
+            if (result)
+                break;
+        }
+        return result;
     }
 
     int forward(int delegate(ref uint) dg, int x) { return 1; }
@@ -807,16 +809,16 @@ struct Foo26
     int reverse(int delegate(ref uint) dg, int x) { return 1; }
 
     int reverse(int delegate(ref uint) dg)
-    {	int result;
-
-	foreach_reverse (v; array)
-	{
-	    auto u = v;
-	    result = dg(u);
-	    if (result)
-		break;
-	}
-	return result;
+    {
+        int result;
+        foreach_reverse (v; array)
+        {
+            auto u = v;
+            result = dg(u);
+            if (result)
+                break;
+        }
+        return result;
     }
 }
 
@@ -831,9 +833,9 @@ void test26()
 
     foreach (u; &a.forward)
     {
-	writeln(u);
-	i++;
-	u++;
+        writeln(u);
+        i++;
+        u++;
     }
     assert(i == 2);
     assert(a.array[0] == 73);
@@ -841,7 +843,7 @@ void test26()
 
     foreach (uint u; &a.reverse)
     {
-	writeln(u);
+        writeln(u);
     }
 }
 
@@ -868,25 +870,25 @@ void test27()
 
     foreach (e; s)
     {
-	printf("%d\n", e);
-	r ~= cast(char)(e + '0');
+        printf("%d\n", e);
+        r ~= cast(char)(e + '0');
     }
     assert(r == "567");
 
     r = null;
     foreach_reverse (ref e; s)
     {
-	e++;
-	printf("%d\n", e);
-	r ~= cast(char)(e + '0');
+        e++;
+        printf("%d\n", e);
+        r ~= cast(char)(e + '0');
     }
     assert(r == "876");
 
     r = null;
     foreach (e; s)
     {
-	printf("%d\n", e);
-	r ~= cast(char)(e + '0');
+        printf("%d\n", e);
+        r ~= cast(char)(e + '0');
     }
     assert(r == "678");
 }

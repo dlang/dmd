@@ -9,37 +9,37 @@ void test1()
 
     foreach (char c; "abcd")
     {
-	switch (i++)
-	{   case 0:	assert(c == 'a');	break;
-	    case 1:	assert(c == 'b');	break;
-	    case 2:	assert(c == 'c');	break;
-	    case 3:	assert(c == 'd');	break;
-	    default:	assert(0);
-	}
+        switch (i++)
+        {   case 0:     assert(c == 'a');   break;
+            case 1:     assert(c == 'b');   break;
+            case 2:     assert(c == 'c');   break;
+            case 3:     assert(c == 'd');   break;
+            default:    assert(0);
+        }
     }
 
     i = 0;
     foreach (wchar c; "asdf")
     {
-	switch (i++)
-	{   case 0:	assert(c == 'a');	break;
-	    case 1:	assert(c == 's');	break;
-	    case 2:	assert(c == 'd');	break;
-	    case 3:	assert(c == 'f');	break;
-	    default:	assert(0);
-	}
+        switch (i++)
+        {   case 0:     assert(c == 'a');   break;
+            case 1:     assert(c == 's');   break;
+            case 2:     assert(c == 'd');   break;
+            case 3:     assert(c == 'f');   break;
+            default:    assert(0);
+        }
     }
 
     i = 0;
     foreach (dchar c; "bncd")
     {
-	switch (i++)
-	{   case 0:	assert(c == 'b');	break;
-	    case 1:	assert(c == 'n');	break;
-	    case 2:	assert(c == 'c');	break;
-	    case 3:	assert(c == 'd');	break;
-	    default:	assert(0);
-	}
+        switch (i++)
+        {   case 0:     assert(c == 'b');   break;
+            case 1:     assert(c == 'n');   break;
+            case 2:     assert(c == 'c');   break;
+            case 3:     assert(c == 'd');   break;
+            default:    assert(0);
+        }
     }
 }
 
@@ -58,14 +58,14 @@ void test2()
 
     foreach (uint u; a)
     {
-	switch (i++)
-	{   case 0:	assert(u == 16);	break;
-	    case 1:	assert(u == 1);		break;
-	    case 2:	assert(u == 5);		break;
-	    case 3:	assert(u == 8);		break;
-	    case 4:	assert(u == 3);		break;
-	    default:	assert(0);
-	}
+        switch (i++)
+        {   case 0:     assert(u == 16);    break;
+            case 1:     assert(u == 1);     break;
+            case 2:     assert(u == 5);     break;
+            case 3:     assert(u == 8);     break;
+            case 4:     assert(u == 3);     break;
+            default:    assert(0);
+        }
     }
 
     uint[] b = a;
@@ -73,14 +73,14 @@ void test2()
     i = 0;
     foreach (uint u; b)
     {
-	switch (i++)
-	{   case 0:	assert(u == 16);	break;
-	    case 1:	assert(u == 1);		break;
-	    case 2:	assert(u == 5);		break;
-	    case 3:	assert(u == 8);		break;
-	    case 4:	assert(u == 3);		break;
-	    default:	assert(0);
-	}
+        switch (i++)
+        {   case 0:     assert(u == 16);    break;
+            case 1:     assert(u == 1);     break;
+            case 2:     assert(u == 5);     break;
+            case 3:     assert(u == 8);     break;
+            case 4:     assert(u == 3);     break;
+            default:    assert(0);
+        }
     }
 
     test2_x(a);
@@ -92,14 +92,14 @@ void test2_x(uint[5] a)
 
     foreach (uint u; a)
     {
-	switch (i++)
-	{   case 0:	assert(u == 16);	break;
-	    case 1:	assert(u == 1);		break;
-	    case 2:	assert(u == 5);		break;
-	    case 3:	assert(u == 8);		break;
-	    case 4:	assert(u == 3);		break;
-	    default:	assert(0);
-	}
+        switch (i++)
+        {   case 0:     assert(u == 16);    break;
+            case 1:     assert(u == 1);     break;
+            case 2:     assert(u == 5);     break;
+            case 3:     assert(u == 8);     break;
+            case 4:     assert(u == 3);     break;
+            default:    assert(0);
+        }
     }
 }
 
@@ -114,8 +114,8 @@ void test3()
 
     foreach (ref uint u; a)
     {
-	i += u;
-	u++;
+        i += u;
+        u++;
     }
     assert(i == 16);
     assert(a[0] == 17);
@@ -123,8 +123,8 @@ void test3()
 
     foreach (uint u; a)
     {
-	printf("u = %d\n", u);
-	//u++;
+        printf("u = %d\n", u);
+        //u++;
     }
     assert(a[0] == 17);
     assert(a[4] == 1);
@@ -184,19 +184,19 @@ void test6()
 
     foreach (int i, ref long v; a)
     {
-	printf("a[%d] = %lld\n", i, v);
-	b[i] = v;
+        printf("a[%d] = %lld\n", i, v);
+        b[i] = v;
     }
 
     for (uint i = 0; i < 3; i++)
     {
-	assert(b[i] == 21 + i);
+        assert(b[i] == 21 + i);
     }
 
     foreach (ref long v; a)
     {
-	printf("a[] = %lld\n", v);
-	sum += v;
+        printf("a[] = %lld\n", v);
+        sum += v;
     }
     assert(sum == 21 + 22 + 23);
 }
@@ -211,13 +211,13 @@ void test7()
     a["bar"] = 4;
     foreach (string s, uint v; a)
     {
-	printf("a[%.*s] = %d\n", s, v);
-	if (s == "bar")
-	    assert(v == 4);
-	else if (s == "foo")
-	    assert(v == 3);
-	else
-	    assert(0);
+        printf("a[%.*s] = %d\n", s, v);
+        if (s == "bar")
+            assert(v == 4);
+        else if (s == "foo")
+            assert(v == 3);
+        else
+            assert(0);
     }
 }
 
@@ -230,8 +230,8 @@ class Foo8
 
     int opApply(int delegate(ref int a, ref int b, ref int c) dg)
     {
-	int result = dg(x, y, z);
-	return 0;
+        int result = dg(x, y, z);
+        return 0;
     }
 }
 
@@ -243,23 +243,23 @@ void test8()
     f.z = 83;
     foreach (int a, ref int b, int c; f)
     {
-	printf("a = %d, b = %d, c = %d\n", a, b, c);
-	assert(a == 63);
-	assert(b == 47);
-	assert(c == 83);
-	a++;
-	b++;
-	c++;
+        printf("a = %d, b = %d, c = %d\n", a, b, c);
+        assert(a == 63);
+        assert(b == 47);
+        assert(c == 83);
+        a++;
+        b++;
+        c++;
     }
     foreach (int a, ref int b, int c; f)
     {
-	printf("a = %d, b = %d, c = %d\n", a, b, c);
-	assert(a == 63);
-	assert(b == 48);
-	assert(c == 83);
-	a++;
-	b++;
-	c++;
+        printf("a = %d, b = %d, c = %d\n", a, b, c);
+        assert(a == 63);
+        assert(b == 48);
+        assert(c == 83);
+        a++;
+        b++;
+        c++;
     }
 }
 
