@@ -1403,17 +1403,15 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (func->fes)
         func = func->fes->func;
 
-    if (!inferAggregate(sc, &sapply))
+    if (!inferAggregate(sc, sapply))
     {
         error("invalid foreach aggregate %s", aggr->toChars());
         return this;
     }
 
-    inferApplyArgTypes(sc, sapply);
-
     /* Check for inference errors
      */
-    if (dim != arguments->dim)
+    if (!inferApplyArgTypes(sc, sapply))
     {
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
         error("cannot uniquely infer foreach argument types");
