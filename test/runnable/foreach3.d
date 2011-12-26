@@ -6,15 +6,15 @@ struct Foo
     uint array[2];
 
     int opApply(int delegate(ref uint) dg)
-    {	int result;
-
-	for (int i = 0; i < array.length; i++)
-	{
-	    result = dg(array[i]);
-	    if (result)
-		break;
-	}
-	return result;
+    {
+        int result;
+        for (int i = 0; i < array.length; i++)
+        {
+            result = dg(array[i]);
+            if (result)
+                break;
+        }
+        return result;
     }
 }
 
@@ -31,8 +31,8 @@ void test1()
 
     foreach (uint u; a)
     {
-	i++;
-	u++;
+        i++;
+        u++;
     }
     assert(i == 2);
     assert(a.array[0] == 73);
@@ -51,8 +51,8 @@ void test2()
 
     foreach (ref uint u; a)
     {
-	i++;
-	u++;
+        i++;
+        u++;
     }
     assert(i == 2);
     assert(a.array[0] == 74);
@@ -71,10 +71,10 @@ void test3()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    break;
-	u++;
+        i++;
+        if (i)
+            break;
+        u++;
     }
     assert(i == 1);
     assert(a.array[0] == 73);
@@ -93,10 +93,10 @@ void test4()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i == 1)
-	    continue;
-	u++;
+        i++;
+        if (i == 1)
+            continue;
+        u++;
     }
     assert(i == 2);
     assert(a.array[0] == 73 && a.array[1] == 83);
@@ -115,13 +115,13 @@ void test5()
 Loop:
     while (1)
     {
-	foreach (ref uint u; a)
-	{
-	    i++;
-	    if (i)
-		break Loop;
-	    u++;
-	}
+        foreach (ref uint u; a)
+        {
+            i++;
+            if (i)
+                break Loop;
+            u++;
+        }
     }
     assert(i == 1);
     assert(a.array[0] == 73);
@@ -141,14 +141,14 @@ void test6()
 Loop:
     while (1)
     {
-	foreach (ref uint u; a)
-	{
-	    i++;
-	    if (i == 1)
-		continue Loop;
-	    u++;
-	}
-	break;
+        foreach (ref uint u; a)
+        {
+            i++;
+            if (i == 1)
+                continue Loop;
+            u++;
+        }
+        break;
     }
     assert(i == 3);
     assert(a.array[0] == 74);
@@ -167,10 +167,10 @@ void test7()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    goto Label;
-	u++;
+        i++;
+        if (i)
+            goto Label;
+        u++;
     }
     assert(0);
 Label:
@@ -182,14 +182,14 @@ Label:
 /**************************************************/
 
 void test8_x(Foo a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return;
-	u++;
+        i++;
+        if (i)
+            return;
+        u++;
     }
 }
 
@@ -210,14 +210,14 @@ void test8()
 /**************************************************/
 
 int test9_x(Foo a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return 67;
-	u++;
+        i++;
+        if (i)
+            return 67;
+        u++;
     }
     return 23;
 }
@@ -239,14 +239,14 @@ void test9()
 /**************************************************/
 
 int test10_x(Foo a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return i;
-	u++;
+        i++;
+        if (i)
+            return i;
+        u++;
     }
     return 23;
 }

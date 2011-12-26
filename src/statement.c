@@ -1403,17 +1403,15 @@ Statement *ForeachStatement::semantic(Scope *sc)
     if (func->fes)
         func = func->fes->func;
 
-    if (!inferAggregate(sc, &sapply))
+    if (!inferAggregate(sc, sapply))
     {
         error("invalid foreach aggregate %s", aggr->toChars());
         return this;
     }
 
-    inferApplyArgTypes(sc, sapply);
-
     /* Check for inference errors
      */
-    if (dim != arguments->dim)
+    if (!inferApplyArgTypes(sc, sapply))
     {
         //printf("dim = %d, arguments->dim = %d\n", dim, arguments->dim);
         error("cannot uniquely infer foreach argument types");
@@ -1875,7 +1873,6 @@ Lagain:
         {
             Expression *ec;
             Expression *e;
-            Parameter *a;
 
             if (!checkForArgTypes())
             {   body = body->semanticNoScope(sc);
@@ -1896,34 +1893,74 @@ Lagain:
                 sc->func->vresult = v;
             }
 
+            TypeFunction *tfld = NULL;
+            if (sapply)
+            {   FuncDeclaration *fdapply = sapply->isFuncDeclaration();
+                if (fdapply)
+                {   assert(fdapply->type && fdapply->type->ty == Tfunction);
+                    tfld = (TypeFunction *)fdapply->type->semantic(loc, sc);
+                    goto Lget;
+                }
+                else if (tab->ty == Tdelegate)
+                {
+                    tfld = (TypeFunction *)tab->nextOf();
+                Lget:
+                    //printf("tfld = %s\n", tfld->toChars());
+                    if (tfld->parameters->dim == 1)
+                    {
+                        Parameter *p = Parameter::getNth(tfld->parameters, 0);
+                        if (p->type && p->type->ty == Tdelegate)
+                        {   Type *t = p->type->semantic(loc, sc);
+                            assert(t->ty == Tdelegate);
+                            tfld = (TypeFunction *)t->nextOf();
+                        }
+                    }
+                }
+            }
+
             /* Turn body into the function literal:
              *  int delegate(ref T arg) { body }
              */
             Parameters *args = new Parameters();
             for (size_t i = 0; i < dim; i++)
             {   Parameter *arg = arguments->tdata()[i];
+                StorageClass stc = STCref;
                 Identifier *id;
 
                 arg->type = arg->type->semantic(loc, sc);
-                if (arg->storageClass & STCref)
+                if (tfld)
+                {   Parameter *prm = Parameter::getNth(tfld->parameters, i);
+                    //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
+                    stc = prm->storageClass & STCref;
+                    id = arg->ident;    // argument copy is not need.
+                    if ((arg->storageClass & STCref) != stc)
+                    {   if (!stc)
+                            error("foreach: cannot make %s ref", arg->ident->toChars());
+                        goto LcopyArg;
+                    }
+                }
+                else if (arg->storageClass & STCref)
+                {   // default delegate parameters are marked as ref, then
+                    // argument copy is not need.
                     id = arg->ident;
+                }
                 else
                 {   // Make a copy of the ref argument so it isn't
                     // a reference.
-
+                LcopyArg:
                     id = Lexer::uniqueId("__applyArg", i);
+
                     Initializer *ie = new ExpInitializer(0, new IdentifierExp(0, id));
                     VarDeclaration *v = new VarDeclaration(0, arg->type, arg->ident, ie);
                     s = new ExpStatement(0, v);
                     body = new CompoundStatement(loc, s, body);
                 }
-                a = new Parameter(STCref, arg->type, id, NULL);
-                args->push(a);
+                args->push(new Parameter(stc, arg->type, id, NULL));
             }
-            Type *t = new TypeFunction(args, Type::tint32, 0, LINKd);
+            tfld = new TypeFunction(args, Type::tint32, 0, LINKd);
             cases = new Statements();
             gotos = new CompoundStatements();
-            FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, 0, t, TOKdelegate, this);
+            FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, 0, tfld, TOKdelegate, this);
             fld->fbody = body;
             Expression *flde = new FuncExp(loc, fld);
             flde = flde->semantic(sc);

@@ -2398,7 +2398,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     {
         if (tf->mod != tg->mod)
         {
-            if (tg->mod == MODconst)
+            if (MODimplicitConv(tf->mod, tg->mod))
                 match = MATCHconst;
             else
                 return MATCHnomatch;

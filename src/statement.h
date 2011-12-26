@@ -348,8 +348,8 @@ struct ForeachStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkForArgTypes();
-    int inferAggregate(Scope *sc, Dsymbol **sapply);
-    void inferApplyArgTypes(Scope *sc, Dsymbol *sapply);
+    int inferAggregate(Scope *sc, Dsymbol *&sapply);
+    int inferApplyArgTypes(Scope *sc, Dsymbol *&sapply);
     int hasBreak();
     int hasContinue();
     int usesEH();
