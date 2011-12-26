@@ -13,8 +13,8 @@ void test1()
 
     foreach (uint u; a)
     {
-	i++;
-	u++;
+        i++;
+        u++;
     }
     assert(i == 2);
     assert(a["hello"] == 73);
@@ -33,8 +33,8 @@ void test2()
 
     foreach (ref uint u; a)
     {
-	i++;
-	u++;
+        i++;
+        u++;
     }
     assert(i == 2);
     assert(a["hello"] == 74);
@@ -53,10 +53,10 @@ void test3()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    break;
-	u++;
+        i++;
+        if (i)
+            break;
+        u++;
     }
     assert(i == 1);
     assert(a["hello"] == 73);
@@ -75,14 +75,14 @@ void test4()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i == 1)
-	    continue;
-	u++;
+        i++;
+        if (i == 1)
+            continue;
+        u++;
     }
     assert(i == 2);
     assert((a["hello"] == 73 && a["world"] == 83) ||
-	   (a["hello"] == 74 && a["world"] == 82));
+           (a["hello"] == 74 && a["world"] == 82));
 }
 
 /**************************************************/
@@ -98,13 +98,13 @@ void test5()
 Loop:
     while (1)
     {
-	foreach (ref uint u; a)
-	{
-	    i++;
-	    if (i)
-		break Loop;
-	    u++;
-	}
+        foreach (ref uint u; a)
+        {
+            i++;
+            if (i)
+                break Loop;
+            u++;
+        }
     }
     assert(i == 1);
     assert(a["hello"] == 73);
@@ -124,14 +124,14 @@ void test6()
 Loop:
     while (1)
     {
-	foreach (ref uint u; a)
-	{
-	    i++;
-	    if (i == 1)
-		continue Loop;
-	    u++;
-	}
-	break;
+        foreach (ref uint u; a)
+        {
+            i++;
+            if (i == 1)
+                continue Loop;
+            u++;
+        }
+        break;
     }
     assert(i == 3);
     assert(a["hello"] == 74);
@@ -150,10 +150,10 @@ void test7()
 
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    goto Label;
-	u++;
+        i++;
+        if (i)
+            goto Label;
+        u++;
     }
     assert(0);
 Label:
@@ -165,14 +165,14 @@ Label:
 /**************************************************/
 
 void test8_x(uint[char[]] a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return;
-	u++;
+        i++;
+        if (i)
+            return;
+        u++;
     }
 }
 
@@ -193,14 +193,14 @@ void test8()
 /**************************************************/
 
 int test9_x(uint[char[]] a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return 67;
-	u++;
+        i++;
+        if (i)
+            return 67;
+        u++;
     }
     return 23;
 }
@@ -222,14 +222,14 @@ void test9()
 /**************************************************/
 
 int test10_x(uint[char[]] a)
-{   int i;
-
+{
+    int i;
     foreach (ref uint u; a)
     {
-	i++;
-	if (i)
-	    return i;
-	u++;
+        i++;
+        if (i)
+            return i;
+        u++;
     }
     return 23;
 }
