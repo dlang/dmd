@@ -1004,7 +1004,7 @@ void Expression::warning(const char *format, ...)
     }
 }
 
-void Expression::rvalue()
+int Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
     {   error("expression %s is void and has no value", toChars());
@@ -1012,8 +1012,11 @@ void Expression::rvalue()
         dump(0);
         halt();
 #endif
-        type = Type::terror;
+        if (!global.gag)
+            type = Type::terror;
+        return 0;
     }
+    return 1;
 }
 
 Expression *Expression::combine(Expression *e1, Expression *e2)
@@ -1158,7 +1161,8 @@ Expression *Expression::checkIntegral()
 Expression *Expression::checkArithmetic()
 {
     if (!type->isintegral() && !type->isfloating())
-    {   error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
+    {   if (type->toBasetype() != Type::terror)
+            error("'%s' is not of arithmetic type, it is a %s", toChars(), type->toChars());
         return new ErrorExp();
     }
     return this;
@@ -3666,9 +3670,10 @@ void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(td->toChars());
 }
 
-void TemplateExp::rvalue()
+int TemplateExp::rvalue()
 {
     error("template %s has no value", toChars());
+    return 0;
 }
 
 /********************** NewExp **************************************/
@@ -7312,7 +7317,8 @@ Expression *PtrExp::semantic(Scope *sc)
             case Terror:
                 return new ErrorExp();
         }
-        rvalue();
+        if (!rvalue())
+            return new ErrorExp();
     }
     return this;
 }
@@ -8613,7 +8619,8 @@ Expression *AssignExp::semantic(Scope *sc)
         }
     }
 
-    e2->rvalue();
+    if (!e2->rvalue())
+        return new ErrorExp();
 
     if (e1->op == TOKarraylength)
     {
@@ -8875,7 +8882,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb2 = e2->type->toBasetype();
 
-    e2->rvalue();
+    if (!e2->rvalue())
+        return new ErrorExp();
 
     Type *tb1next = tb1->nextOf();
 
