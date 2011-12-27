@@ -1711,6 +1711,19 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         else
             goto Lnomatch;
     }
+    else if (tparam->ty == Ttypeof)
+    {
+        /* Need a loc to go with the semantic routine.
+         */
+        Loc loc;
+        if (parameters->dim)
+        {
+            TemplateParameter *tp = parameters->tdata()[0];
+            loc = tp->loc;
+        }
+
+        tparam = tparam->semantic(loc, sc);
+    }
 
     if (ty != tparam->ty)
     {
@@ -1718,8 +1731,18 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         // Can't instantiate AssociativeArray!() without a scope
         if (tparam->ty == Taarray && !((TypeAArray*)tparam)->sc)
             ((TypeAArray*)tparam)->sc = sc;
+
+        MATCH m = implicitConvTo(tparam);
+        if (m == MATCHnomatch)
+        {
+            Type *at = aliasthisOf();
+            if (at)
+                m = at->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+        }
+        return m;
+#else
+        return implicitConvTo(tparam);
 #endif
-       return implicitConvTo(tparam);
     }
 
     if (nextOf())
@@ -1739,14 +1762,14 @@ Lconst:
 
 #if DMDV2
 MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
-        Objects *dedtypes)
+        Objects *dedtypes, unsigned *wildmatch)
 {
 #if 0
     printf("TypeDArray::deduceType()\n");
     printf("\tthis   = %d, ", ty); print();
     printf("\ttparam = %d, ", tparam->ty); tparam->print();
 #endif
-    return Type::deduceType(sc, tparam, parameters, dedtypes);
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 #endif
 
