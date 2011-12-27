@@ -4283,6 +4283,22 @@ static assert(!__traits(hasMember, int, "x"));
 static assert( __traits(hasMember, int, "init"));
 
 /***************************************************/
+// 7160
+
+class HomeController {
+    static if (false) {
+        mixin(q{ int a; });
+    }
+    void foo() {
+        foreach (m; __traits(derivedMembers, HomeController)) {
+        }
+    }
+}
+
+void test7160()
+{}
+
+/***************************************************/
 // 7168
 
 void test7168()
@@ -4517,6 +4533,7 @@ int main()
     test6868();
     test2856();
     test6056();
+    test7160();
     test7168();
     test7170();
 

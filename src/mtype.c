@@ -8532,8 +8532,7 @@ void Parameter::argsToDecoBuffer(OutBuffer *buf, Parameters *arguments)
 {
     //printf("Parameter::argsToDecoBuffer()\n");
     // Write argument types
-    if (arguments)
-        foreach(arguments, &argsToDecoBufferDg, buf);
+    foreach(arguments, &argsToDecoBufferDg, buf);
 }
 
 /****************************************
@@ -8551,9 +8550,7 @@ static int isTPLDg(void *ctx, size_t n, Parameter *arg)
 int Parameter::isTPL(Parameters *arguments)
 {
     //printf("Parameter::isTPL()\n");
-    if (arguments)
-        return foreach(arguments, &isTPLDg, NULL);
-    return 0;
+    return foreach(arguments, &isTPLDg, NULL);
 }
 
 /****************************************************
@@ -8633,8 +8630,7 @@ static int dimDg(void *ctx, size_t n, Parameter *)
 size_t Parameter::dim(Parameters *args)
 {
     size_t n = 0;
-    if (args)
-        foreach(args, &dimDg, &n);
+    foreach(args, &dimDg, &n);
     return n;
 }
 
@@ -8679,7 +8675,9 @@ Parameter *Parameter::getNth(Parameters *args, size_t nth, size_t *pn)
 
 int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, size_t *pn)
 {
-    assert(args && dg);
+    assert(dg);
+    if (!args)
+        return 0;
 
     size_t n = pn ? *pn : 0; // take over index
     int result = 0;
