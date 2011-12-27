@@ -3495,7 +3495,6 @@ void Parser::checkDanglingElse(Loc elseloc)
 
 Statement *Parser::parseStatement(int flags)
 {   Statement *s;
-    Token *t;
     Condition *condition;
     Statement *ifbody;
     Statement *elsebody;
@@ -3510,10 +3509,10 @@ Statement *Parser::parseStatement(int flags)
     switch (token.value)
     {
         case TOKidentifier:
-            /* A leading identifier can be a declaration, label, or expression.
+        {   /* A leading identifier can be a declaration, label, or expression.
              * The easiest case to check first is label:
              */
-            t = peek(&token);
+            Token *t = peek(&token);
             if (t->value == TOKcolon)
             {   // It's a label
 
@@ -3525,6 +3524,7 @@ Statement *Parser::parseStatement(int flags)
                 break;
             }
             // fallthrough to TOKdot
+        }
         case TOKdot:
         case TOKtypeof:
         case TOKvector:
@@ -3626,6 +3626,7 @@ Statement *Parser::parseStatement(int flags)
         case TOKalias:
         case TOKconst:
         case TOKauto:
+        case TOKabstract:
         case TOKextern:
         case TOKalign:
         case TOKinvariant:
@@ -3696,7 +3697,7 @@ Statement *Parser::parseStatement(int flags)
         }
 
         case TOKmixin:
-        {   t = peek(&token);
+        {   Token *t = peek(&token);
             if (t->value == TOKlparen)
             {   // mixin(string)
                 Expression *e = parseAssignExp();
@@ -4238,6 +4239,10 @@ Statement *Parser::parseStatement(int flags)
         {   Expression *exp;
             Statement *body;
 
+            Token *t = peek(&token);
+            if (skipAttributes(t, &t) && t->value == TOKclass)
+                goto Ldeclaration;
+
             nextToken();
             if (token.value == TOKlparen)
             {
@@ -4366,7 +4371,7 @@ Statement *Parser::parseStatement(int flags)
                         if (!toklist)
                         {
                             // Look ahead to see if it is a label
-                            t = peek(&token);
+                            Token *t = peek(&token);
                             if (t->value == TOKcolon)
                             {   // It's a label
                                 label = token.ident;
