@@ -507,7 +507,7 @@ opover.obj : $(TOTALH) expression.h opover.c
 optimize.obj : $(TOTALH) expression.h optimize.c
 parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c
 scope.obj : $(TOTALH) scope.h scope.c
-statement.obj : $(TOTALH) statement.h statement.c
+statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
 struct.obj : $(TOTALH) identifier.h enum.h struct.c
 traits.obj : $(TOTALH) traits.c
