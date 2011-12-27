@@ -555,7 +555,7 @@ void test16()
 
 void test17()
 {
-    creal z = 1. + 2.i;
+    creal z = 1. + 2.0i;
 
     real r = z.re;
     assert(r == 1.0);
@@ -672,7 +672,7 @@ void test21()
 
 void test22()
 {
-    creal z1 = 1. - 2.i;
+    creal z1 = 1. - 2.0i;
     ireal imag_part = z1.im/1i;
 }
 
