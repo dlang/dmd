@@ -5646,8 +5646,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                     return e;
             if (type->ty == Tpointer && type->nextOf()->ty != Tfunction)
             {
-                assert(e->type == type);
-                return e;
+                return paintTypeOntoLiteral(type, e);
             }
             return e->interpret(istate, goal);
         }
