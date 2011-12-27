@@ -4283,6 +4283,27 @@ static assert(!__traits(hasMember, int, "x"));
 static assert( __traits(hasMember, int, "init"));
 
 /***************************************************/
+// 7168
+
+void test7168()
+{
+    static class X
+    {
+        void foo(){}
+    }
+    static class Y : X
+    {
+        void bar(){}
+    }
+
+    enum ObjectMembers = ["toString","toHash","opCmp","opEquals","Monitor","factory"];
+
+    static assert([__traits(allMembers, X)] == ["foo"]~ObjectMembers);          // pass
+    static assert([__traits(allMembers, Y)] == ["bar", "foo"]~ObjectMembers);   // fail
+    static assert([__traits(allMembers, Y)] != ["bar", "foo"]);                 // fail
+}
+
+/***************************************************/
 // 7170
 
 T to7170(T)(string x) { return 1; }
@@ -4496,6 +4517,7 @@ int main()
     test6868();
     test2856();
     test6056();
+    test7168();
     test7170();
 
     printf("Success\n");
