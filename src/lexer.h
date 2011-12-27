@@ -34,7 +34,7 @@ struct Module;
         =       !       ~       @
         ^^      ^^=
         ++      --
-        .       ->      :       ,
+        .       ->      :       ,       =>
         ?       &&      ||
  */
 
@@ -168,6 +168,7 @@ enum TOK
         TOKat,
         TOKpow,
         TOKpowass,
+        TOKgoesto,
 #endif
 
         TOKMAX

@@ -1146,6 +1146,10 @@ void Lexer::scan(Token *t)
                     else
                         t->value = TOKequal;            // ==
                 }
+                else if (*p == '>')
+                {   p++;
+                    t->value = TOKgoesto;               // =>
+                }
                 else
                     t->value = TOKassign;               // =
                 return;
@@ -3149,6 +3153,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKat]               = "@";
     Token::tochars[TOKpow]              = "^^";
     Token::tochars[TOKpowass]           = "^^=";
+    Token::tochars[TOKgoesto]           = "=>";
 #endif
 
      // For debugging

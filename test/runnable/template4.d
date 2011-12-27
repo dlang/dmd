@@ -888,7 +888,7 @@ void test33() {
     Composer!(double) comp;
     comp += delegate double (double x) { return x/3.0;};
     comp += delegate double (double x) { return x*x;};
-    comp += delegate double (double x) { return x+1.0;};
+    comp += (double x) => x + 1.0;
     writefln("%f", comp(2.0));
 
     // Try function objects
@@ -1022,6 +1022,20 @@ void instantiate4652()
 
 /*********************************************************/
 
+int bar39(alias dg)(int i)
+{
+    return dg(i);
+}
+
+void test39()
+{
+    auto i = bar39!(a => a + 1)(3);
+    if (i != 4)
+	assert(0);
+}
+
+/*********************************************************/
+
 int main()
 {
     test1();
@@ -1062,6 +1076,7 @@ int main()
     test36();
     test37();
     test38();
+    test39();
 
     printf("Success\n");
     return 0;
