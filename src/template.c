@@ -2245,6 +2245,19 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         else
             goto Lnomatch;
     }
+    else if (tparam->ty == Ttypeof)
+    {
+        /* Need a loc to go with the semantic routine.
+         */
+        Loc loc;
+        if (parameters->dim)
+        {
+            TemplateParameter *tp = parameters->tdata()[0];
+            loc = tp->loc;
+        }
+
+        tparam = tparam->semantic(loc, sc);
+    }
 
     if (ty != tparam->ty)
     {
