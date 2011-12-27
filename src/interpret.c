@@ -4384,6 +4384,11 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
             e = e2->interpret(istate);
             if (exceptionOrCantInterpret(e))
                 return e;
+            if (e == EXP_VOID_INTERPRET)
+            {
+                assert(type->ty == Tvoid);
+                return NULL;
+            }
             if (e != EXP_CANT_INTERPRET)
             {
                 if (e->isBool(FALSE))
@@ -4428,6 +4433,11 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
             if (exceptionOrCantInterpret(e))
                 return e;
 
+            if (e == EXP_VOID_INTERPRET)
+            {
+                assert(type->ty == Tvoid);
+                return NULL;
+            }
             if (e != EXP_CANT_INTERPRET)
             {
                 if (e->isBool(FALSE))
