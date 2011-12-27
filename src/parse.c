@@ -5105,6 +5105,21 @@ Expression *Parser::parsePrimaryExp()
                     tempinst->tiargs = parseTemplateArgument();
                 e = new ScopeExp(loc, tempinst);
             }
+            else if (token.value == TOKgoesto)
+            {   // identifier => expression
+                Type *at = new TypeIdentifier(loc, id);
+                Parameter *a = new Parameter(0, at, NULL, NULL);
+                Parameters *arguments = new Parameters();
+                arguments->push(a);
+                TypeFunction *tf = new TypeFunction(arguments, NULL, 0, linkage, 0);
+                FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, TOKdelegate, NULL);
+                check(TOKgoesto);
+                Expression *ae = parseAssignExp();
+                fd->fbody = new ReturnStatement(loc, ae);
+                fd->endloc = loc;
+                e = new FuncExp(loc, fd);
+                break;
+            }
             else
                 e = new IdentifierExp(loc, id);
             break;
@@ -5430,7 +5445,22 @@ Expression *Parser::parsePrimaryExp()
         }
 
         case TOKlparen:
-            if (peekPastParen(&token)->value == TOKlcurly)
+        {   enum TOK past = peekPastParen(&token)->value;
+
+            if (past == TOKgoesto)
+            {   // (arguments) => expression
+                int varargs;
+                Parameters *arguments = parseParameters(&varargs);
+                TypeFunction *tf = new TypeFunction(arguments, NULL, varargs, linkage, 0);
+                FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, TOKdelegate, NULL);
+                check(TOKgoesto);
+                Expression *ae = parseAssignExp();
+                fd->fbody = new ReturnStatement(loc, ae);
+                fd->endloc = loc;
+                e = new FuncExp(loc, fd);
+                break;
+            }
+            else if (past == TOKlcurly)
             {   // (arguments) { statements... }
                 save = TOKdelegate;
                 goto case_delegate;
@@ -5441,6 +5471,7 @@ Expression *Parser::parsePrimaryExp()
             e->parens = 1;
             check(loc, TOKrparen);
             break;
+        }
 
         case TOKlbracket:
         {   /* Parse array literals and associative array literals:
@@ -5498,7 +5529,6 @@ Expression *Parser::parsePrimaryExp()
              */
             Parameters *arguments;
             int varargs;
-            FuncLiteralDeclaration *fd;
             Type *t;
             StorageClass stc = 0;
 
@@ -5525,7 +5555,7 @@ Expression *Parser::parsePrimaryExp()
 
             TypeFunction *tf = new TypeFunction(arguments, t, varargs, linkage, stc);
 
-            fd = new FuncLiteralDeclaration(loc, 0, tf, save, NULL);
+            FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, save, NULL);
             parseContracts(fd);
             e = new FuncExp(loc, fd);
             break;
