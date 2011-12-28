@@ -74,7 +74,7 @@ debug(PROFILING)
 private
 {
     enum USE_CACHE = true;
-    
+
     // The maximum number of recursions of mark() before transitioning to
     // multiple heap traversals to avoid consuming O(D) stack space where
     // D is the depth of the heap graph.
@@ -101,7 +101,7 @@ private
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
 
-    extern (C) void rt_finalize_gc(void* p, bool det = true);
+    extern (C) void rt_finalize_gc(void* p);
 
     version (MULTI_THREADED)
     {
@@ -2459,7 +2459,7 @@ struct Gcx
                     size_t pn = offset / PAGESIZE;
                     Bins   bin = cast(Bins)pool.pagetable[pn];
                     void* base = void;
-                    
+
                     // For the NO_INTERIOR attribute.  This tracks whether
                     // the pointer is an interior pointer or points to the
                     // base address of a block.
@@ -2474,7 +2474,7 @@ struct Gcx
                         // because it's ignored for small object pools anyhow.
                         auto offsetBase = offset & notbinsize[bin];
                         biti = offsetBase >> pool.shiftBy;
-                        base = pool.baseAddr + offsetBase;                        
+                        base = pool.baseAddr + offsetBase;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
                     }
                     else if (bin == B_PAGE)
@@ -2499,7 +2499,7 @@ struct Gcx
                         // Don't mark bits in B_FREE or B_UNCOMMITTED pages
                         continue;
                     }
-                    
+
                     if(pool.nointerior.nbits && !pointsToBase && pool.nointerior.test(biti))
                     {
                         continue;
@@ -2510,8 +2510,8 @@ struct Gcx
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %p\n", p);
                         if (!pool.noscan.test(biti))
-                        {  
-                            if(nRecurse == 0) {    
+                        {
+                            if(nRecurse == 0) {
                                 // Then we've got a really deep heap graph.
                                 // Start marking stuff to be scanned when we
                                 // traverse the heap again next time, to save
@@ -2527,14 +2527,14 @@ struct Gcx
                                 {
                                     mark(base, base + binsize[bin], nRecurse - 1);
                                 }
-                                else 
+                                else
                                 {
                                     auto u = pool.bPageOffsets[pn];
                                     mark(base, base + u * PAGESIZE, nRecurse - 1);
                                 }
                             }
                         }
-                        
+
                         debug (LOGGING) log_parent(sentinel_add(pool.baseAddr + (biti << pool.shiftBy)), sentinel_add(pbot));
                     }
                 }
@@ -2698,7 +2698,7 @@ struct Gcx
                 pool.mark.copy(&pool.freebits);
             }
         }
-        
+
         debug(PROFILING)
         {
             stop = clock();
@@ -2727,7 +2727,7 @@ struct Gcx
                     mark(stackBottom, stackTop);
             }
         }
-        
+
         // Scan roots[]
         debug(COLLECT_PRINTF) printf("\tscan roots[]\n");
         mark(roots, roots + nroots);
@@ -2753,7 +2753,7 @@ struct Gcx
                 pool.oldChanges = pool.newChanges;
                 pool.newChanges = false;
             }
-            
+
             debug(COLLECT_PRINTF) printf("\t\tpass\n");
             anychanges = 0;
             for (n = 0; n < npools; n++)
@@ -2883,25 +2883,25 @@ struct Gcx
                         byte *ptop = p + PAGESIZE;
                         size_t biti = pn * (PAGESIZE/16);
                         size_t bitstride = size / 16;
-                        
+
                         GCBits.wordtype toClear;
                         size_t clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
                         size_t clearIndex;
 
                         for (; p < ptop; p += size, biti += bitstride, clearIndex += bitstride)
                         {
-                            if(clearIndex > GCBits.BITS_PER_WORD - 1) 
+                            if(clearIndex > GCBits.BITS_PER_WORD - 1)
                             {
-                                if(toClear) 
+                                if(toClear)
                                 {
                                     Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
                                     toClear = 0;
                                 }
-                                
+
                                 clearStart = (biti >> GCBits.BITS_SHIFT) + 1;
                                 clearIndex = biti & GCBits.BITS_MASK;
                             }
-                            
+
                             if (!pool.mark.test(biti))
                             {
                                 sentinel_Invariant(sentinel_add(p));
@@ -2920,7 +2920,7 @@ struct Gcx
                                 freed += size;
                             }
                         }
-                        
+
                         if(toClear)
                         {
                             Gcx.clrBitsSmallSweep(pool, clearStart, toClear);
@@ -3073,12 +3073,12 @@ struct Gcx
     }
     body
     {
-        // Calculate the mask and bit offset once and then use it to 
+        // Calculate the mask and bit offset once and then use it to
         // set all of the bits we need to set.
         immutable dataIndex = 1 + (biti >> GCBits.BITS_SHIFT);
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable orWith = GCBits.BITS_1 << bitOffset;
-        
+
         if (mask & BlkAttr.FINALIZE)
         {
             if (!pool.finals.nbits)
@@ -3099,7 +3099,7 @@ struct Gcx
         {
             pool.appendable.data[dataIndex] |= orWith;
         }
-        
+
         if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
         {
             if(!pool.nointerior.nbits)
@@ -3114,7 +3114,7 @@ struct Gcx
      */
     void clrBits(Pool* pool, size_t biti, uint mask)
     in
-    { 
+    {
         assert(pool);
     }
     body
@@ -3122,7 +3122,7 @@ struct Gcx
         immutable dataIndex =  1 + (biti >> GCBits.BITS_SHIFT);
         immutable bitOffset = biti & GCBits.BITS_MASK;
         immutable keep = ~(GCBits.BITS_1 << bitOffset);
-        
+
         if (mask & BlkAttr.FINALIZE && pool.finals.nbits)
             pool.finals.data[dataIndex] &= keep;
         if (mask & BlkAttr.NO_SCAN)
@@ -3135,7 +3135,7 @@ struct Gcx
             pool.nointerior.data[dataIndex] &= keep;
     }
 
-    void clrBitsSmallSweep(Pool* pool, size_t dataIndex, GCBits.wordtype toClear) 
+    void clrBitsSmallSweep(Pool* pool, size_t dataIndex, GCBits.wordtype toClear)
     in
     {
         assert(pool);
@@ -3145,14 +3145,14 @@ struct Gcx
         immutable toKeep = ~toClear;
         if (pool.finals.nbits)
             pool.finals.data[dataIndex] &= toKeep;
-        
+
         pool.noscan.data[dataIndex] &= toKeep;
-        
+
 //        if (pool.nomove.nbits)
 //            pool.nomove.data[dataIndex] &= toKeep;
-        
+
         pool.appendable.data[dataIndex] &= toKeep;
-        
+
         if (pool.nointerior.nbits)
             pool.nointerior.data[dataIndex] &= toKeep;
     }
