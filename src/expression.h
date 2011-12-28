@@ -110,7 +110,7 @@ struct Expression : Object
     virtual void dump(int indent);
     void error(const char *format, ...);
     void warning(const char *format, ...);
-    virtual void rvalue();
+    virtual int rvalue();
 
     static Expression *combine(Expression *e1, Expression *e2);
     static Expressions *arraySyntaxCopy(Expressions *exps);
@@ -515,7 +515,7 @@ struct TypeExp : Expression
     TypeExp(Loc loc, Type *type);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    void rvalue();
+    int rvalue();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
     elem *toElem(IRState *irs);
@@ -537,7 +537,7 @@ struct TemplateExp : Expression
     TemplateDeclaration *td;
 
     TemplateExp(Loc loc, TemplateDeclaration *td);
-    void rvalue();
+    int rvalue();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
