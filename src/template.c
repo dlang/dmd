@@ -1245,7 +1245,9 @@ Lretry:
             /* Remove top const for dynamic array types and pointer types
              */
             if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
-                !argtype->isMutable())
+                !argtype->isMutable() &&
+                (!(fparam->storageClass & STCref) ||
+                 (fparam->storageClass & STCauto) && !farg->isLvalue()))
             {
                 argtype = argtype->mutableOf();
             }
