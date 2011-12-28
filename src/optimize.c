@@ -122,11 +122,11 @@ Expression *StructLiteralExp::optimize(int result)
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (Expression *)elements->data[i];
+        {   Expression *e = (*elements)[i];
             if (!e)
                 continue;
             e = e->optimize(WANTvalue | (result & WANTinterpret));
-            elements->data[i] = (void *)e;
+            (*elements)[i] = e;
         }
     }
     return this;
@@ -325,20 +325,20 @@ Expression *NewExp::optimize(int result)
     if (newargs)
     {
         for (size_t i = 0; i < newargs->dim; i++)
-        {   Expression *e = (Expression *)newargs->data[i];
+        {   Expression *e = newargs->tdata()[i];
 
             e = e->optimize(WANTvalue);
-            newargs->data[i] = (void *)e;
+            newargs->tdata()[i] = e;
         }
     }
 
     if (arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (Expression *)arguments->data[i];
+        {   Expression *e = arguments->tdata()[i];
 
             e = e->optimize(WANTvalue);
-            arguments->data[i] = (void *)e;
+            arguments->tdata()[i] = e;
         }
     }
     return this;
@@ -353,10 +353,10 @@ Expression *CallExp::optimize(int result)
     if (arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (Expression *)arguments->data[i];
+        {   Expression *e = arguments->tdata()[i];
 
             e = e->optimize(WANTvalue);
-            arguments->data[i] = (void *)e;
+            arguments->tdata()[i] = e;
         }
     }
 
@@ -777,8 +777,12 @@ Expression *AndAndExp::optimize(int result)
     e = this;
     if (e1->isBool(FALSE))
     {
-        e = new CommaExp(loc, e1, new IntegerExp(loc, 0, type));
-        e->type = type;
+        if (type->toBasetype()->ty == Tvoid)
+            e = e2;
+        else
+        {   e = new CommaExp(loc, e1, new IntegerExp(loc, 0, type));
+            e->type = type;
+        }
         e = e->optimize(result);
     }
     else
@@ -795,7 +799,11 @@ Expression *AndAndExp::optimize(int result)
                 e = new IntegerExp(loc, n1 && n2, type);
             }
             else if (e1->isBool(TRUE))
-                e = new BoolExp(loc, e2, type);
+            {
+                if (type->toBasetype()->ty == Tvoid)
+                    e = e2;
+                else e = new BoolExp(loc, e2, type);
+            }
         }
     }
     return e;
@@ -826,7 +834,12 @@ Expression *OrOrExp::optimize(int result)
                 e = new IntegerExp(loc, n1 || n2, type);
             }
             else if (e1->isBool(FALSE))
-                e = new BoolExp(loc, e2, type);
+            {
+                if (type->toBasetype()->ty == Tvoid)
+                    e = e2;
+                else
+                    e = new BoolExp(loc, e2, type);
+            }
         }
     }
     return e;
