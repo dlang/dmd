@@ -77,7 +77,7 @@ int pthread_mutexattr_destroy(pthread_mutexattr_t*);
 int pthread_mutexattr_init(pthread_mutexattr_t*);
 int pthread_once(pthread_once_t*, void function());
 int pthread_rwlock_destroy(pthread_rwlock_t*);
-int pthread_rwlock_init(in pthread_rwlock_t*, pthread_rwlockattr_t*);
+int pthread_rwlock_init(pthread_rwlock_t*, in pthread_rwlockattr_t*);
 int pthread_rwlock_rdlock(pthread_rwlock_t*);
 int pthread_rwlock_tryrdlock(pthread_rwlock_t*);
 int pthread_rwlock_trywrlock(pthread_rwlock_t*);
@@ -348,7 +348,7 @@ version( Posix )
     int pthread_mutexattr_init(pthread_mutexattr_t*);
     int pthread_once(pthread_once_t*, void function());
     int pthread_rwlock_destroy(pthread_rwlock_t*);
-    int pthread_rwlock_init(in pthread_rwlock_t*, pthread_rwlockattr_t*);
+    int pthread_rwlock_init(pthread_rwlock_t*, in pthread_rwlockattr_t*);
     int pthread_rwlock_rdlock(pthread_rwlock_t*);
     int pthread_rwlock_tryrdlock(pthread_rwlock_t*);
     int pthread_rwlock_trywrlock(pthread_rwlock_t*);
