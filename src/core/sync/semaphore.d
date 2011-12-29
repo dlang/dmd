@@ -454,14 +454,22 @@ version( unittest )
                 Thread.yield();
             }
 
-            synchronized( synComplete )
             {
-                assert( numComplete == numConsumers );
+                bool cond;
+                synchronized( synComplete )
+                {
+                    cond = numComplete == numConsumers;
+                }
+                assert(cond);
             }
 
-            synchronized( synConsumed )
             {
-                assert( numConsumed == numToProduce );
+                bool cond;
+                synchronized( synConsumed )
+                {
+                    cond = numConsumed == numToProduce;
+                }
+                assert(cond);
             }
 
             assert( !semaphore.tryWait() );

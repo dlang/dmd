@@ -26,6 +26,12 @@ version( Windows )
 
     extern (C) extern __gshared int _tls_index;
 
+    extern (C) // rt.minfo
+    {
+        void rt_moduleTlsCtor();
+        void rt_moduleTlsDtor();
+    }
+
 private:
     ///////////////////////////////////////////////////////////////////
     struct thread_aux
@@ -246,17 +252,17 @@ public:
     }
 
     ///////////////////////////////////////////////////////////////////
-    // run _moduleTlsCtor in the context of the given thread
+    // run rt_moduleTlsCtor in the context of the given thread
     void thread_moduleTlsCtor( uint id )
     {
-        thread_aux.impersonate_thread(id, &_moduleTlsCtor);
+        thread_aux.impersonate_thread(id, &rt_moduleTlsCtor);
     }
 
     ///////////////////////////////////////////////////////////////////
-    // run _moduleTlsDtor in the context of the given thread
+    // run rt_moduleTlsDtor in the context of the given thread
     void thread_moduleTlsDtor( uint id )
     {
-        thread_aux.impersonate_thread(id, &_moduleTlsDtor);
+        thread_aux.impersonate_thread(id, &rt_moduleTlsDtor);
     }
 }
 
