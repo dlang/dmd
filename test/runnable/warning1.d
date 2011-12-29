@@ -98,7 +98,7 @@ int foo5()
 nothrow int foo6()
 {
     int x= 2;
-    try { ; } catch(Exception e) { x=4; throw new Exception("xxx"); } 
+    try { } catch(Exception e) { x=4; throw new Exception("xxx"); } 
     return x;
 }
 

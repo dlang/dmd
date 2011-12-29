@@ -3431,7 +3431,7 @@ Statement *Parser::parseStatement(int flags)
                 Identifier *ident = token.ident;
                 nextToken();
                 nextToken();
-                s = parseStatement(PSsemi);
+                s = parseStatement(PSsemi_ok);
                 s = new LabelStatement(loc, ident, s);
                 break;
             }
@@ -3677,8 +3677,15 @@ Statement *Parser::parseStatement(int flags)
         }
 
         case TOKsemicolon:
-            if (!(flags & PSsemi))
-                error("use '{ }' for an empty statement, not a ';'");
+            if (!(flags & PSsemi_ok))
+            {
+                if (flags & PSsemi)
+                {   if (global.params.warnings)
+                        warning(loc, "use '{ }' for an empty statement, not a ';'");
+                }
+                else
+                    error("use '{ }' for an empty statement, not a ';'");
+            }
             nextToken();
             s = new ExpStatement(loc, (Expression *)NULL);
             break;
