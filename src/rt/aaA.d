@@ -662,7 +662,6 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
     //printf("tivalue = %.*s\n", ti.next.classinfo.name);
     if (length == 0 || valuesize == 0 || keysize == 0)
     {
-        ;
     }
     else
     {
@@ -741,7 +740,6 @@ BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] val
     assert(length == values.length);
     if (length == 0 || valuesize == 0 || keysize == 0)
     {
-        ;
     }
     else
     {

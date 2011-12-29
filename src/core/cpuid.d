@@ -796,7 +796,7 @@ bool hasCPUID()
 void cpuidPPC()
 {
     enum :int  { PPC601, PPC603, PPC603E, PPC604,
-                 PPC604E, PPC620, PPCG3, PPCG4, PPCG5 };
+                 PPC604E, PPC620, PPCG3, PPCG4, PPCG5 }
 
     // TODO:
     // asm { mfpvr; } returns the CPU version but unfortunately it can
