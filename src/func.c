@@ -64,7 +64,8 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     vtblIndex = -1;
     hasReturnExp = 0;
     naked = 0;
-    inlineStatus = ILSuninitialized;
+    inlineStatusExp = ILSuninitialized;
+    inlineStatusStmt = ILSuninitialized;
     inlineNest = 0;
     isArrayOp = 0;
     semanticRun = PASSinit;
@@ -1755,7 +1756,7 @@ int FuncDeclaration::equals(Object *o)
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (fbody &&
-        (!hgs->hdrgen || hgs->tpltMember || canInline(1,1))
+        (!hgs->hdrgen || hgs->tpltMember || canInline(1,1,1))
        )
     {   buf->writenl();
 
