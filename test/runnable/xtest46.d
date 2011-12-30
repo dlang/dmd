@@ -1906,7 +1906,7 @@ void test100()
    /* Testing order of evaluation */
    void delegate(string, string) fun(string) {
       s ~= "b";
-      return delegate void(string, string) { s ~= "e"; };
+      return delegate void(string x, string y) { s ~= "e"; };
    }
    fun(s ~= "a")(s ~= "c", s ~= "d");
    assert(s == "abcde", s);

@@ -665,8 +665,10 @@ struct OverExp : Expression
 struct FuncExp : Expression
 {
     FuncLiteralDeclaration *fd;
+    TemplateDeclaration *td;
+    enum TOK tok;
 
-    FuncExp(Loc loc, FuncLiteralDeclaration *fd);
+    FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

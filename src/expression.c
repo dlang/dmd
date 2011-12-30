@@ -5009,10 +5009,12 @@ void TupleExp::checkEscape()
 
 /******************************** FuncExp *********************************/
 
-FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd)
+FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
         : Expression(loc, TOKfunction, sizeof(FuncExp))
 {
     this->fd = fd;
+    this->td = td;
+    tok = fd->tok;  // save original kind of function/delegate/(infer)
 }
 
 Expression *FuncExp::syntaxCopy()
