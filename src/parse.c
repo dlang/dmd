@@ -3488,7 +3488,7 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKtry:
         {   Statement *body;
-            Array *catches = NULL;
+            Catches *catches = NULL;
             Statement *finalbody = NULL;
 
             nextToken();
@@ -3518,7 +3518,7 @@ Statement *Parser::parseStatement(int flags)
                 handler = parseStatement(0);
                 c = new Catch(loc, t, id, handler);
                 if (!catches)
-                    catches = new Array();
+                    catches = new Catches();
                 catches->push(c);
             }
 

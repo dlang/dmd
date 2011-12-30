@@ -555,7 +555,8 @@ struct FuncDeclaration : Declaration
     int vtblIndex;                      // for member functions, index into vtbl[]
     int naked;                          // !=0 if naked
     int inlineAsm;                      // !=0 if has inline assembler
-    ILS inlineStatus;
+    ILS inlineStatusStmt;
+    ILS inlineStatusExp;
     int inlineNest;                     // !=0 if nested inline
     int isArrayOp;                      // !=0 if array operation
     int semanticRun;                    // 1 semantic() run
@@ -646,8 +647,8 @@ struct FuncDeclaration : Declaration
     virtual int addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void inlineScan();
-    int canInline(int hasthis, int hdrscan = 0);
-    Expression *doInline(InlineScanState *iss, Expression *ethis, Array *arguments);
+    int canInline(int hasthis, int hdrscan, int statementsToo);
+    Expression *expandInline(InlineScanState *iss, Expression *ethis, Expressions *arguments, Statement **ps);
     const char *kind();
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();

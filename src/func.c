@@ -62,7 +62,8 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     vtblIndex = -1;
     hasReturnExp = 0;
     naked = 0;
-    inlineStatus = ILSuninitialized;
+    inlineStatusExp = ILSuninitialized;
+    inlineStatusStmt = ILSuninitialized;
     inlineNest = 0;
     inlineAsm = 0;
     isArrayOp = 0;
@@ -1499,7 +1500,7 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (fbody &&
-        (!hgs->hdrgen || hgs->tpltMember || canInline(1,1))
+        (!hgs->hdrgen || hgs->tpltMember || canInline(1,1,1))
        )
     {   buf->writenl();
 
@@ -1591,7 +1592,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             Statement *s2 = new ExpStatement(loc, e);
 
             Catch *c = new Catch(loc, NULL, NULL, sf);
-            Array *catches = new Array();
+            Catches *catches = new Catches();
             catches->push(c);
             sf = new TryCatchStatement(loc, s2, catches);
         }

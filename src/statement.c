@@ -501,7 +501,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Statement *handler = new ThrowStatement(0, new IdentifierExp(0, id));
                         handler = new CompoundStatement(0, sexception, handler);
 
-                        Array *catches = new Array();
+                        Catches *catches = new Catches();
                         Catch *ctch = new Catch(0, NULL, id, handler);
                         catches->push(ctch);
                         s = new TryCatchStatement(0, body, catches);
@@ -3868,7 +3868,7 @@ int WithStatement::blockExit(bool mustNotThrow)
 
 /******************************** TryCatchStatement ***************************/
 
-TryCatchStatement::TryCatchStatement(Loc loc, Statement *body, Array *catches)
+TryCatchStatement::TryCatchStatement(Loc loc, Statement *body, Catches *catches)
     : Statement(loc)
 {
     this->body = body;
@@ -3877,7 +3877,7 @@ TryCatchStatement::TryCatchStatement(Loc loc, Statement *body, Array *catches)
 
 Statement *TryCatchStatement::syntaxCopy()
 {
-    Array *a = new Array();
+    Catches *a = new Catches();
     a->setDim(catches->dim);
     for (size_t i = 0; i < a->dim; i++)
     {   Catch *c;
