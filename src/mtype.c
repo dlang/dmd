@@ -7302,7 +7302,8 @@ L1:
         return de;
     }
 
-    if (s->isImport() || s->isModule() || s->isPackage())
+    Import *timp = s->isImport();
+    if (timp)
     {
         e = new DsymbolExp(e->loc, s, 0);
         e = e->semantic(sc);
