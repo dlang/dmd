@@ -6,6 +6,7 @@ import core.vararg;
 import core.stdc.stdlib;
 import std.stdio;
 import std.string;
+import std.c.stdlib;
 
 
 /*******************************************/
