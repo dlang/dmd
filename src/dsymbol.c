@@ -779,7 +779,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
-        {   ScopeDsymbol *ss = (*imports)[i];
+        {   Dsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
             // If private import, don't search it
@@ -789,7 +789,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            s2 = ss->search(loc, ident, ss->isImport() ? 1 : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -842,7 +842,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         if (flags & 4)          // if return NULL on ambiguity
                             return NULL;
                         if (!(flags & 2))
-                            ss->multiplyDefined(loc, s, s2);
+                            ScopeDsymbol::multiplyDefined(loc, s, s2);
                         break;
                     }
                 }
@@ -869,7 +869,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     return s;
 }
 
-void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
+void ScopeDsymbol::importScope(Dsymbol *s, enum PROT protection)
 {
     //printf("%s->ScopeDsymbol::importScope(%s, %d)\n", toChars(), s->toChars(), protection);
 
@@ -877,11 +877,11 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
     if (s != this)
     {
         if (!imports)
-            imports = new ScopeDsymbols();
+            imports = new Dsymbols();
         else
         {
             for (size_t i = 0; i < imports->dim; i++)
-            {   ScopeDsymbol *ss = (*imports)[i];
+            {   Dsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])
