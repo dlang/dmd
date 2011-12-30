@@ -4283,6 +4283,16 @@ static assert(!__traits(hasMember, int, "x"));
 static assert( __traits(hasMember, int, "init"));
 
 /***************************************************/
+// 7170
+
+T to7170(T)(string x) { return 1; }
+void test7170()
+{
+//  auto i = to7170!int("1");   // OK
+    auto j = "1".to7170!int();  // NG, Internal error: e2ir.c 683
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4486,6 +4496,7 @@ int main()
     test6868();
     test2856();
     test6056();
+    test7170();
 
     printf("Success\n");
     return 0;

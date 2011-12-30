@@ -7220,9 +7220,9 @@ Lshift:
                  *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
                  */
 #if DMDV2
-                e1 = new DotExp(dotti->loc,
+                e1 = new DotTemplateInstanceExp(dotti->loc,
                                 new IdentifierExp(dotti->loc, Id::empty),
-                                new ScopeExp(dotti->loc, dotti->ti));
+                                dotti->ti->name, dotti->ti->tiargs);
 #else
                 e1 = new ScopeExp(dotti->loc, dotti->ti);
 #endif

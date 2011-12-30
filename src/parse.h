@@ -52,10 +52,11 @@ struct StaticAssert;
 
 enum ParseStatementFlags
 {
-    PSsemi = 1,         // empty ';' statements are allowed
+    PSsemi = 1,         // empty ';' statements are allowed, but deprecated
     PSscope = 2,        // start a new scope
     PScurly = 4,        // { } statement is required
     PScurlyscope = 8,   // { } starts a new scope
+    PSsemi_ok = 0x10,   // empty ';' are really ok
 };
 
 
