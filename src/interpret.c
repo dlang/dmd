@@ -3134,7 +3134,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     }
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
-        error(loc, "cannot cast %s to %s at compile time", r->toChars(), to->toChars());
+        error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
         ((ArrayLiteralExp *)e)->ownedByCtfe = true;
     if (e->op == TOKstring)
