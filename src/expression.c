@@ -5104,6 +5104,55 @@ Expression *FuncExp::semantic(Scope *sc)
     return this;
 }
 
+// used from CallExp::semantic()
+Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
+{
+    assert(!tded);
+    assert(!scope);
+
+    if (!type && td && arguments && arguments->dim)
+    {
+        for (size_t k = 0; k < arguments->dim; k++)
+        {   Expression *checkarg = arguments->tdata()[k];
+            if (checkarg->op == TOKerror)
+                return checkarg;
+        }
+
+        assert(td->parameters && td->parameters->dim);
+        td->semantic(sc);
+
+        TypeFunction *tfl = (TypeFunction *)fd->type;
+        size_t dim = Parameter::dim(tfl->parameters);
+
+        if ((!tfl->varargs && arguments->dim == dim) ||
+            ( tfl->varargs && arguments->dim >= dim))
+        {
+            Objects *tiargs = new Objects();
+            tiargs->reserve(td->parameters->dim);
+
+            for (size_t i = 0; i < td->parameters->dim; i++)
+            {
+                TemplateParameter *tp = (*td->parameters)[i];
+                for (size_t u = 0; u < dim; u++)
+                {   Parameter *p = Parameter::getNth(tfl->parameters, u);
+                    if (p->type->ty == Tident &&
+                        ((TypeIdentifier *)p->type)->ident == tp->ident)
+                    {   Expression *e = (*arguments)[u];
+                        tiargs->push(e->type);
+                        u = dim;    // break inner loop
+                    }
+                }
+            }
+
+            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+            return (new ScopeExp(loc, ti))->semantic(sc);
+        }
+        error("cannot infer function literal type");
+        return new ErrorExp();
+    }
+    return semantic(sc);
+}
+
 Expression *FuncExp::inferType(Scope *sc, Type *to)
 {
     //printf("inferType sc = %p, to = %s\n", sc, to->toChars());
@@ -7362,11 +7411,33 @@ Expression *CallExp::semantic(Scope *sc)
     }
 #endif
 
+    if (e1->op == TOKcomma)
+    {   /* Rewrite (a,b)(args) as (a,(b(args)))
+         */
+        CommaExp *ce = (CommaExp *)e1;
+
+        e1 = ce->e2;
+        e1->type = ce->type;
+        ce->e2 = this;
+        ce->type = NULL;
+        return ce->semantic(sc);
+    }
+
     if (e1->op == TOKdelegate)
     {   DelegateExp *de = (DelegateExp *)e1;
 
         e1 = new DotVarExp(de->loc, de->e1, de->func);
         return semantic(sc);
+    }
+
+    if (e1->op == TOKfunction)
+    {   FuncExp *fe = (FuncExp *)e1;
+
+        arguments = arrayExpressionSemantic(arguments, sc);
+        preFunctionParameters(loc, sc, arguments);
+        e1 = fe->semantic(sc, arguments);
+        if (e1->op == TOKerror)
+        return e1;
     }
 
     Expression *e = resolveUFCS(sc);
@@ -7516,18 +7587,6 @@ Lagain:
             }
         }
 #endif
-    }
-
-    if (e1->op == TOKcomma)
-    {   /* Rewrite (a,b)(args) as (a,(b(args)))
-         */
-        CommaExp *ce = (CommaExp *)e1;
-
-        e1 = ce->e2;
-        e1->type = ce->type;
-        ce->e2 = this;
-        ce->type = NULL;
-        return ce->semantic(sc);
     }
 
     t1 = NULL;

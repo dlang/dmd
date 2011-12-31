@@ -161,6 +161,18 @@ void test4()
 }
 
 /***************************************************/
+// on CallExp::e1
+
+void test5()
+{
+    assert((a => a*2)(10) == 20);
+    assert((    a,        s){ return s~s; }(10, "str") == "strstr");
+    assert((int a,        s){ return s~s; }(10, "str") == "strstr");
+    assert((    a, string s){ return s~s; }(10, "str") == "strstr");
+    assert((int a, string s){ return s~s; }(10, "str") == "strstr");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -168,6 +180,7 @@ int main()
     test2();
     test3();
     test4();
+    test5();
 
     printf("Success\n");
     return 0;
