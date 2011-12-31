@@ -5444,6 +5444,13 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         }
         arg = args->tdata()[u];
         assert(arg);
+
+        if (arg->op == TOKfunction)
+        {   arg = ((FuncExp *)arg)->inferType(NULL, p->type);
+            if (!arg)
+                goto Nomatch;
+        }
+
         //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
 
         // Non-lvalues do not match ref or out parameters

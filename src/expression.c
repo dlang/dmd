@@ -544,6 +544,8 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *arg = (*exps)[i];
 
+            if (arg->op == TOKfunction)
+                continue;
             if (!arg->type)
             {
 #ifdef DEBUG
@@ -811,6 +813,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
         L1:
+            if (arg->op == TOKfunction)
+            {   FuncExp *fe = (FuncExp *)arg;
+                fe->setType(p->type);
+                arg = fe->semantic(sc);
+            }
+
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
                 unsigned mod = arg->type->wildConvTo(p->type);
@@ -5016,6 +5024,7 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
     tded = NULL;
+    scope = NULL;
 }
 
 Expression *FuncExp::syntaxCopy()
@@ -5030,6 +5039,9 @@ Expression *FuncExp::semantic(Scope *sc)
 #endif
     if (!type)
     {
+        // save for later use
+        scope = sc;
+
         //printf("td = %p, tded = %p\n", td, tded);
         if (td)
         {
@@ -5037,8 +5049,8 @@ Expression *FuncExp::semantic(Scope *sc)
             td->semantic(sc);
 
             if (!tded)
-            {
-                assert(0);
+            {   // defer type determination
+                return this;
             }
             else
             {
@@ -5095,6 +5107,12 @@ Expression *FuncExp::semantic(Scope *sc)
 Expression *FuncExp::inferType(Scope *sc, Type *to)
 {
     //printf("inferType sc = %p, to = %s\n", sc, to->toChars());
+    if (!sc)
+    {   // used from TypeFunction::callMatch()
+        assert(scope);
+        sc = scope;
+    }
+
     Expression *e = NULL;
     if (td)
     {   /// Parameter types inference from
@@ -7582,7 +7600,6 @@ Lagain:
     }
 
     arguments = arrayExpressionSemantic(arguments, sc);
-
     preFunctionParameters(loc, sc, arguments);
 
     // If there was an error processing any argument, or the call,

@@ -81,7 +81,7 @@ void test2()
     static assert(!__traits(compiles, { int delegate(int) xdn4 = function int(    a){ return a*2; }; }));
     static assert(!__traits(compiles, { int delegate(int) xdn5 = function    (int a){ return a*2; }; }));
     static assert(!__traits(compiles, { int delegate(int) xdn6 = function int(int a){ return a*2; }; }));
-/+
+
     // auto binding requires explicit parameter types at least
     static assert(!__traits(compiles, { auto afn1 = a => a*2;                           }));
     static assert(!__traits(compiles, { auto afn2 =             (    a){ return a*2; }; }));
@@ -93,7 +93,7 @@ void test2()
     auto afn6 = function int(int a){ return a*2; };     assert(afn6(2) == 4);
     auto adg5 = delegate    (int a){ return a*2; };     assert(adg5(2) == 4);
     auto adg6 = delegate int(int a){ return a*2; };     assert(adg6(2) == 4);
-+/
+
     // partial specialized lambda
     string delegate(int, string) dg =
         (n, string s){
@@ -118,12 +118,56 @@ void test3()
 }
 
 /***************************************************/
+// on function arguments
+
+auto foo4(int delegate(int) dg) { return dg(10); }
+auto foo4(int delegate(int, int) dg) { return dg(10, 20); }
+
+void nbar4fp(void function(int) fp) { }
+void nbar4dg(void delegate(int) dg) { }
+void tbar4fp(T,R)(R function(T) dg) { static assert(is(typeof(dg) == void function(int))); }
+void tbar4dg(T,R)(R delegate(T) dg) { static assert(is(typeof(dg) == void delegate(int))); }
+
+auto nbaz4(void function() fp) { return 1; }
+auto nbaz4(void delegate() dg) { return 2; }
+auto tbaz4(R)(R function() dg) { static assert(is(R == void)); return 1; }
+auto tbaz4(R)(R delegate() dg) { static assert(is(R == void)); return 2; }
+
+auto thoo4(T)(T lambda){ return lambda; }
+
+void test4()
+{
+    int v;
+
+    // parameter type inference + overload resolution
+    assert(foo4((a)   => a * 2) == 20);
+    assert(foo4((a,b) => a * 2 + b) == 40);
+
+    // function/delegate inference
+    //nbar4fp((int x){ });
+    nbar4dg((int x){ });
+    //tbar4fp((int x){ });
+    tbar4dg((int x){ });
+
+    // function/delegate inference + overload resolution
+    //assert(nbaz4({ }) == 1);
+    assert(nbaz4({ v = 1; }) == 2);
+    //assert(tbaz4({ }) == 1);
+    assert(tbaz4({ v = 1; }) == 2);
+
+    // template function deduction
+    //static assert(is(typeof(thoo4({ })) : void function()));
+    static assert(is(typeof(thoo4({ v = 1;  })) : void delegate()));
+}
+
+/***************************************************/
 
 int main()
 {
     test1();
     test2();
     test3();
+    test4();
 
     printf("Success\n");
     return 0;
