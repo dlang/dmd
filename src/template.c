@@ -1228,6 +1228,18 @@ Lretry:
             {
                 argtype = argtype->mutableOf();
             }
+
+            if (farg->op == TOKfunction)
+            {   FuncExp *fe = (FuncExp *)farg;
+                if (fparam->type->ty == Tdelegate &&
+                    argtype && argtype->ty == Tpointer && argtype->nextOf()->ty == Tfunction &&
+                    fe->tok == TOKreserved)
+                {   Type *tdg = new TypeDelegate(argtype->nextOf());
+                    tdg = tdg->semantic(loc, sc);
+                    farg = fe->inferType(sc, tdg);
+                    argtype = farg->type;
+                }
+            }
 #endif
 
             MATCH m;

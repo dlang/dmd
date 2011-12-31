@@ -711,6 +711,17 @@ MATCH DelegateExp::implicitConvTo(Type *t)
     return result;
 }
 
+MATCH FuncExp::implicitConvTo(Type *t)
+{
+    //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
+    if (type && tok == TOKreserved && type->ty == Tpointer)
+    {   // Allow implicit function to delegate conversion
+        if (type->nextOf()->covariant(t->nextOf()) == 1)
+            return t->ty == Tpointer ? MATCHconst : MATCHconvert;
+    }
+    return Expression::implicitConvTo(t);
+}
+
 MATCH OrExp::implicitConvTo(Type *t)
 {
     MATCH result = Expression::implicitConvTo(t);
@@ -1462,6 +1473,22 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
         e->type = t;
     }
     return e;
+}
+
+Expression *FuncExp::castTo(Scope *sc, Type *t)
+{
+    //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
+    if (tok == TOKreserved)
+    {
+        if (type->ty == Tpointer && t->ty == Tdelegate)
+        {
+            Expression *e = copy();
+            e->type = new TypeDelegate(fd->type);
+            e->type = e->type->semantic(loc, sc);
+            return e;
+        }
+    }
+    return Expression::castTo(sc, t);
 }
 
 Expression *CondExp::castTo(Scope *sc, Type *t)

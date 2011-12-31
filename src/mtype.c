@@ -4785,7 +4785,7 @@ int Type::covariant(Type *t)
         goto Lnotcovariant;
 
   {
-            // Return types
+    // Return types
     Type *t1n = t1->next;
     Type *t2n = t2->next;
 
@@ -4815,7 +4815,13 @@ int Type::covariant(Type *t)
             return 3;   // forward references
         }
     }
-    if (t1n->implicitConvTo(t2n))
+    if (t1n->ty == Tstruct && t2n->ty == Tstruct)
+    {
+        if (((TypeStruct *)t1n)->sym == ((TypeStruct *)t2n)->sym &&
+            MODimplicitConv(t1n->mod, t2n->mod))
+            goto Lcovariant;
+    }
+    else if (t1n->ty == t2n->ty && t1n->implicitConvTo(t2n))
         goto Lcovariant;
   }
     goto Lnotcovariant;
@@ -5444,6 +5450,13 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         }
         arg = args->tdata()[u];
         assert(arg);
+
+        if (arg->op == TOKfunction)
+        {   arg = ((FuncExp *)arg)->inferType(NULL, p->type);
+            if (!arg)
+                goto Nomatch;
+        }
+
         //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
 
         // Non-lvalues do not match ref or out parameters
