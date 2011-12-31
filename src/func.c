@@ -2317,6 +2317,11 @@ if (arguments)
         {
             HdrGenState hgs;
 
+            for (size_t i = 0; i < arguments->dim; i++)
+            {   Expression *arg = (*arguments)[i];
+                if (!arg->type) // inference failed
+                    arg->type = Type::terror;
+            }
             argExpTypesToCBuffer(&buf, arguments, &hgs);
             buf.writeByte(')');
             if (ethis)
@@ -3014,6 +3019,8 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
 
     if (fes)
         id = "__foreachbody";
+    else if (tok == TOKreserved)
+        id = "__lambda";
     else if (tok == TOKdelegate)
         id = "__dgliteral";
     else
@@ -3042,7 +3049,7 @@ Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
 int FuncLiteralDeclaration::isNested()
 {
     //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
-    return (tok == TOKdelegate);
+    return (tok != TOKfunction);
 }
 
 int FuncLiteralDeclaration::isVirtual()
@@ -3053,7 +3060,7 @@ int FuncLiteralDeclaration::isVirtual()
 const char *FuncLiteralDeclaration::kind()
 {
     // GCC requires the (char*) casts
-    return (tok == TOKdelegate) ? (char*)"delegate" : (char*)"function";
+    return (tok != TOKfunction) ? (char*)"delegate" : (char*)"function";
 }
 
 void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
