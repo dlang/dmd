@@ -1231,6 +1231,9 @@ Lnomatch:
         StructInitializer *si = init->isStructInitializer();
         ExpInitializer *ei = init->isExpInitializer();
 
+        if (ei && ei->exp->op == TOKfunction && !inferred)
+            ((FuncExp *)ei->exp)->setType(type);
+
         // See if initializer is a NewExp that can be allocated on the stack
         if (ei && isScope() && ei->exp->op == TOKnew)
         {   NewExp *ne = (NewExp *)ei->exp;

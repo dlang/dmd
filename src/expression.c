@@ -5015,6 +5015,7 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->fd = fd;
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
+    tded = NULL;
 }
 
 Expression *FuncExp::syntaxCopy()
@@ -5029,6 +5030,29 @@ Expression *FuncExp::semantic(Scope *sc)
 #endif
     if (!type)
     {
+        //printf("td = %p, tded = %p\n", td, tded);
+        if (td)
+        {
+            assert(td->parameters && td->parameters->dim);
+            td->semantic(sc);
+
+            if (!tded)
+            {
+                assert(0);
+            }
+            else
+            {
+                Expression *e = inferType(sc, tded);
+                if (e)
+                    e = e->semantic(sc);
+                if (!e)
+                {   error("cannot infer function literal type");
+                    e = new ErrorExp();
+                }
+                return e;
+            }
+        }
+
         unsigned olderrors = global.errors;
         fd->semantic(sc);
         //fd->parent = sc->parent;
@@ -5066,6 +5090,68 @@ Expression *FuncExp::semantic(Scope *sc)
         fd->tookAddressOf++;
     }
     return this;
+}
+
+Expression *FuncExp::inferType(Scope *sc, Type *to)
+{
+    //printf("inferType sc = %p, to = %s\n", sc, to->toChars());
+    Expression *e = NULL;
+    if (td)
+    {   /// Parameter types inference from
+        assert(!type || type == Type::tvoid);
+        Type *t = to;
+        if (t->ty == Tdelegate ||
+            t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+        {   t = t->nextOf();
+        }
+        if (t->ty == Tfunction)
+        {
+            TypeFunction *tfv = (TypeFunction *)t;
+            TypeFunction *tfl = (TypeFunction *)fd->type;
+            size_t dim = Parameter::dim(tfl->parameters);
+
+            if (Parameter::dim(tfv->parameters) == dim &&
+                tfv->varargs == tfl->varargs)
+            {
+                Objects *tiargs = new Objects();
+                tiargs->reserve(td->parameters->dim);
+
+                for (size_t i = 0; i < td->parameters->dim; i++)
+                {
+                    TemplateParameter *tp = (*td->parameters)[i];
+                    for (size_t u = 0; u < dim; u++)
+                    {   Parameter *p = Parameter::getNth(tfl->parameters, u);
+                        if (p->type->ty == Tident &&
+                            ((TypeIdentifier *)p->type)->ident == tp->ident)
+                        {   p = Parameter::getNth(tfv->parameters, u);
+                            tiargs->push(p->type);
+                            u = dim;    // break inner loop
+                        }
+                    }
+                }
+
+                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+                e = (new ScopeExp(loc, ti))->semantic(sc);
+            }
+        }
+    }
+    else
+    {
+        assert(type);   // semantic is already done
+        e = this;
+    }
+
+    return e;
+}
+
+void FuncExp::setType(Type *t)
+{
+    assert(t);
+
+    if (t->ty == Tdelegate ||
+        t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+    {   tded = t;
+    }
 }
 
 char *FuncExp::toChars()

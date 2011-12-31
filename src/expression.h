@@ -667,11 +667,14 @@ struct FuncExp : Expression
     FuncLiteralDeclaration *fd;
     TemplateDeclaration *td;
     enum TOK tok;
+    Type *tded;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *inferType(Scope *sc, Type *t);
+    void setType(Type *t);
     void scanForNestedRef(Scope *sc);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
