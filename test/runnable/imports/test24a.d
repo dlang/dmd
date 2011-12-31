@@ -1,3 +1,3 @@
 module imports.test24a;
 
-import std.stdio;
+public import std.stdio;

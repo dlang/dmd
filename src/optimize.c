@@ -842,7 +842,7 @@ Expression *PowExp::optimize(int result)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
-    
+
     // Replace 1 ^^ x or 1.0^^x by (x, 1)
     if ((e1->op == TOKint64 && e1->toInteger() == 1) ||
         (e1->op == TOKfloat64 && e1->toReal() == 1.0))
