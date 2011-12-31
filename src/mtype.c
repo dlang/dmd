@@ -7302,8 +7302,7 @@ L1:
         return de;
     }
 
-    Import *timp = s->isImport();
-    if (timp)
+    if (s->isImport() || s->isModule() || s->isPackage())
     {
         e = new DsymbolExp(e->loc, s, 0);
         e = e->semantic(sc);
@@ -7830,6 +7829,15 @@ L1:
         return de;
     }
 
+#if 0 // shouldn't this be here?
+    if (s->isImport() || s->isModule() || s->isPackage())
+    {
+        e = new DsymbolExp(e->loc, s, 0);
+        e = e->semantic(sc);
+        return e;
+    }
+#endif
+
     OverloadSet *o = s->isOverloadSet();
     if (o)
     {
@@ -7911,7 +7919,6 @@ L1:
     if (d->parent && d->toParent()->isModule())
     {
         // (e, d)
-
         VarExp *ve = new VarExp(e->loc, d, 1);
         e = new CommaExp(e->loc, e, ve);
         e->type = d->type;
