@@ -59,14 +59,14 @@ void test1()
 void test2()
 {
     // explicit typed binding ignite parameter types inference
-    //int function(int) fn1 = a => a*2;                               assert(fn1(2) == 4);
-    //int function(int) fn2 =             (    a){ return a*2; };     assert(fn2(2) == 4);
+    int function(int) fn1 = a => a*2;                               assert(fn1(2) == 4);
+    int function(int) fn2 =             (    a){ return a*2; };     assert(fn2(2) == 4);
     int function(int) fn3 = function    (    a){ return a*2; };     assert(fn3(2) == 4);
     int function(int) fn4 = function int(    a){ return a*2; };     assert(fn4(2) == 4);
     int function(int) fn5 = function    (int a){ return a*2; };     assert(fn5(2) == 4);
     int function(int) fn6 = function int(int a){ return a*2; };     assert(fn6(2) == 4);
-    int delegate(int) dg1 = a => a*2;                               assert(dg1(2) == 4);
-    int delegate(int) dg2 =             (    a){ return a*2; };     assert(dg2(2) == 4);
+    //int delegate(int) dg1 = a => a*2;                               assert(dg1(2) == 4);
+    //int delegate(int) dg2 =             (    a){ return a*2; };     assert(dg2(2) == 4);
     int delegate(int) dg3 = delegate    (    a){ return a*2; };     assert(dg3(2) == 4);
     int delegate(int) dg4 = delegate int(    a){ return a*2; };     assert(dg4(2) == 4);
     int delegate(int) dg5 = delegate    (int a){ return a*2; };     assert(dg5(2) == 4);
@@ -95,13 +95,13 @@ void test2()
     auto adg6 = delegate int(int a){ return a*2; };     assert(adg6(2) == 4);
 
     // partial specialized lambda
-    string delegate(int, string) dg =
-        (n, string s){
-            string r = "";
-            foreach (_; 0..n) r~=s;
-            return r;
-        };
-    assert(dg(2, "str") == "strstr");
+    //string delegate(int, string) dg =
+    //    (n, string s){
+    //        string r = "";
+    //        foreach (_; 0..n) r~=s;
+    //        return r;
+    //    };
+    //assert(dg(2, "str") == "strstr");
 }
 
 /***************************************************/
@@ -140,23 +140,23 @@ void test4()
     int v;
 
     // parameter type inference + overload resolution
-    assert(foo4((a)   => a * 2) == 20);
-    assert(foo4((a,b) => a * 2 + b) == 40);
+    //assert(foo4((a)   => a * 2) == 20);
+    //assert(foo4((a,b) => a * 2 + b) == 40);
 
     // function/delegate inference
-    //nbar4fp((int x){ });
-    nbar4dg((int x){ });
-    //tbar4fp((int x){ });
-    tbar4dg((int x){ });
+    nbar4fp((int x){ });
+    //nbar4dg((int x){ });
+    tbar4fp((int x){ });
+    //tbar4dg((int x){ });
 
     // function/delegate inference + overload resolution
-    //assert(nbaz4({ }) == 1);
+    assert(nbaz4({ }) == 1);
     assert(nbaz4({ v = 1; }) == 2);
     //assert(tbaz4({ }) == 1);
     assert(tbaz4({ v = 1; }) == 2);
 
     // template function deduction
-    //static assert(is(typeof(thoo4({ })) : void function()));
+    static assert(is(typeof(thoo4({ })) : void function()));
     static assert(is(typeof(thoo4({ v = 1;  })) : void delegate()));
 }
 

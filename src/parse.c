@@ -5470,7 +5470,7 @@ Expression *Parser::parsePrimaryExp()
             int varargs = 0;
             Type *tret = NULL;
             StorageClass stc = 0;
-            enum TOK save = TOKdelegate;
+            enum TOK save = TOKreserved;
             Loc loc = this->loc;
 
             switch (token.value)

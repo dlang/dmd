@@ -1099,6 +1099,10 @@ elem *FuncExp::toElem(IRState *irs)
     Symbol *s;
 
     //printf("FuncExp::toElem() %s\n", toChars());
+    if (fd->tok == TOKreserved && type->ty == Tpointer && fd->vthis)
+    {   fd->tok = TOKfunction;
+        fd->vthis = NULL;
+    }
     s = fd->toSymbol();
     e = el_ptr(s);
     if (fd->isNested())

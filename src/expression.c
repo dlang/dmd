@@ -5090,7 +5090,8 @@ Expression *FuncExp::semantic(Scope *sc)
             ((TypeFunction *)fd->type)->next = Type::terror;
 
         // Type is a "delegate to" or "pointer to" the function literal
-        if (fd->isNested())
+        if ((fd->isNested() && fd->tok == TOKdelegate) ||
+            (tok == TOKreserved && tded && tded->ty == Tdelegate))
         {
             type = new TypeDelegate(fd->type);
             type = type->semantic(loc, sc);
