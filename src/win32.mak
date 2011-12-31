@@ -481,7 +481,7 @@ class.obj : $(TOTALH) enum.h class.c
 clone.obj : $(TOTALH) clone.c
 constfold.obj : $(TOTALH) expression.h constfold.c
 cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
-declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c
+declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c expression.h
 delegatize.obj : $(TOTALH) delegatize.c
 doc.obj : $(TOTALH) doc.h doc.c
 enum.obj : $(TOTALH) identifier.h enum.h enum.c

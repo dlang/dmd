@@ -544,6 +544,8 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *arg = (*exps)[i];
 
+            if (arg->op == TOKfunction)
+                continue;
             if (!arg->type)
             {
 #ifdef DEBUG
@@ -811,6 +813,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
         L1:
+            if (arg->op == TOKfunction)
+            {   FuncExp *fe = (FuncExp *)arg;
+                fe->setType(p->type);
+                arg = fe->semantic(sc);
+            }
+
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
                 unsigned mod = arg->type->wildConvTo(p->type);
@@ -5009,10 +5017,14 @@ void TupleExp::checkEscape()
 
 /******************************** FuncExp *********************************/
 
-FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd)
+FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
         : Expression(loc, TOKfunction, sizeof(FuncExp))
 {
     this->fd = fd;
+    this->td = td;
+    tok = fd->tok;  // save original kind of function/delegate/(infer)
+    tded = NULL;
+    scope = NULL;
 }
 
 Expression *FuncExp::syntaxCopy()
@@ -5027,6 +5039,34 @@ Expression *FuncExp::semantic(Scope *sc)
 #endif
     if (!type)
     {
+        // save for later use
+        scope = sc;
+
+        //printf("td = %p, tded = %p\n", td, tded);
+        if (td)
+        {
+            assert(td->parameters && td->parameters->dim);
+            td->semantic(sc);
+
+            if (!tded)
+            {   // defer type determination
+                return this;
+            }
+            else
+            {
+                Expression *e = inferType(sc, tded);
+                if (e)
+                {   e = e->castTo(sc, tded);
+                    e = e->semantic(sc);
+                }
+                if (!e)
+                {   error("cannot infer function literal type");
+                    e = new ErrorExp();
+                }
+                return e;
+            }
+        }
+
         unsigned olderrors = global.errors;
         fd->semantic(sc);
         //fd->parent = sc->parent;
@@ -5052,7 +5092,8 @@ Expression *FuncExp::semantic(Scope *sc)
             ((TypeFunction *)fd->type)->next = Type::terror;
 
         // Type is a "delegate to" or "pointer to" the function literal
-        if (fd->isNested())
+        if ((fd->isNested() && fd->tok == TOKdelegate) ||
+            (tok == TOKreserved && tded && tded->ty == Tdelegate))
         {
             type = new TypeDelegate(fd->type);
             type = type->semantic(loc, sc);
@@ -5064,6 +5105,130 @@ Expression *FuncExp::semantic(Scope *sc)
         fd->tookAddressOf++;
     }
     return this;
+}
+
+// used from CallExp::semantic()
+Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
+{
+    assert(!tded);
+    assert(!scope);
+
+    if (!type && td && arguments && arguments->dim)
+    {
+        for (size_t k = 0; k < arguments->dim; k++)
+        {   Expression *checkarg = arguments->tdata()[k];
+            if (checkarg->op == TOKerror)
+                return checkarg;
+        }
+
+        assert(td->parameters && td->parameters->dim);
+        td->semantic(sc);
+
+        TypeFunction *tfl = (TypeFunction *)fd->type;
+        size_t dim = Parameter::dim(tfl->parameters);
+
+        if ((!tfl->varargs && arguments->dim == dim) ||
+            ( tfl->varargs && arguments->dim >= dim))
+        {
+            Objects *tiargs = new Objects();
+            tiargs->reserve(td->parameters->dim);
+
+            for (size_t i = 0; i < td->parameters->dim; i++)
+            {
+                TemplateParameter *tp = (*td->parameters)[i];
+                for (size_t u = 0; u < dim; u++)
+                {   Parameter *p = Parameter::getNth(tfl->parameters, u);
+                    if (p->type->ty == Tident &&
+                        ((TypeIdentifier *)p->type)->ident == tp->ident)
+                    {   Expression *e = (*arguments)[u];
+                        tiargs->push(e->type);
+                        u = dim;    // break inner loop
+                    }
+                }
+            }
+
+            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+            return (new ScopeExp(loc, ti))->semantic(sc);
+        }
+        error("cannot infer function literal type");
+        return new ErrorExp();
+    }
+    return semantic(sc);
+}
+
+Expression *FuncExp::inferType(Scope *sc, Type *to)
+{
+    //printf("inferType sc = %p, to = %s\n", sc, to->toChars());
+    if (!sc)
+    {   // used from TypeFunction::callMatch()
+        assert(scope);
+        sc = scope;
+    }
+
+    Expression *e = NULL;
+    if (td)
+    {   /// Parameter types inference from
+        assert(!type || type == Type::tvoid);
+        Type *t = to;
+        if (t->ty == Tdelegate ||
+            t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+        {   t = t->nextOf();
+        }
+        if (t->ty == Tfunction)
+        {
+            TypeFunction *tfv = (TypeFunction *)t;
+            TypeFunction *tfl = (TypeFunction *)fd->type;
+            size_t dim = Parameter::dim(tfl->parameters);
+
+            if (Parameter::dim(tfv->parameters) == dim &&
+                tfv->varargs == tfl->varargs)
+            {
+                Objects *tiargs = new Objects();
+                tiargs->reserve(td->parameters->dim);
+
+                for (size_t i = 0; i < td->parameters->dim; i++)
+                {
+                    TemplateParameter *tp = (*td->parameters)[i];
+                    for (size_t u = 0; u < dim; u++)
+                    {   Parameter *p = Parameter::getNth(tfl->parameters, u);
+                        if (p->type->ty == Tident &&
+                            ((TypeIdentifier *)p->type)->ident == tp->ident)
+                        {   p = Parameter::getNth(tfv->parameters, u);
+                            tiargs->push(p->type);
+                            u = dim;    // break inner loop
+                        }
+                    }
+                }
+
+                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+                e = (new ScopeExp(loc, ti))->semantic(sc);
+            }
+        }
+    }
+    else
+    {
+        assert(type);   // semantic is already done
+        e = this;
+    }
+
+    if (e)
+    {   // Check implicit function to delegate conversion
+        if (e->implicitConvTo(to))
+            e = e->castTo(sc, to);
+        else
+            e = NULL;
+    }
+    return e;
+}
+
+void FuncExp::setType(Type *t)
+{
+    assert(t);
+
+    if (t->ty == Tdelegate ||
+        t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+    {   tded = t;
+    }
 }
 
 char *FuncExp::toChars()
@@ -7256,11 +7421,33 @@ Expression *CallExp::semantic(Scope *sc)
     }
 #endif
 
+    if (e1->op == TOKcomma)
+    {   /* Rewrite (a,b)(args) as (a,(b(args)))
+         */
+        CommaExp *ce = (CommaExp *)e1;
+
+        e1 = ce->e2;
+        e1->type = ce->type;
+        ce->e2 = this;
+        ce->type = NULL;
+        return ce->semantic(sc);
+    }
+
     if (e1->op == TOKdelegate)
     {   DelegateExp *de = (DelegateExp *)e1;
 
         e1 = new DotVarExp(de->loc, de->e1, de->func);
         return semantic(sc);
+    }
+
+    if (e1->op == TOKfunction)
+    {   FuncExp *fe = (FuncExp *)e1;
+
+        arguments = arrayExpressionSemantic(arguments, sc);
+        preFunctionParameters(loc, sc, arguments);
+        e1 = fe->semantic(sc, arguments);
+        if (e1->op == TOKerror)
+        return e1;
     }
 
     Expression *e = resolveUFCS(sc);
@@ -7412,18 +7599,6 @@ Lagain:
 #endif
     }
 
-    if (e1->op == TOKcomma)
-    {   /* Rewrite (a,b)(args) as (a,(b(args)))
-         */
-        CommaExp *ce = (CommaExp *)e1;
-
-        e1 = ce->e2;
-        e1->type = ce->type;
-        ce->e2 = this;
-        ce->type = NULL;
-        return ce->semantic(sc);
-    }
-
     t1 = NULL;
     if (e1->type)
         t1 = e1->type->toBasetype();
@@ -7494,7 +7669,6 @@ Lagain:
     }
 
     arguments = arrayExpressionSemantic(arguments, sc);
-
     preFunctionParameters(loc, sc, arguments);
 
     // If there was an error processing any argument, or the call,
