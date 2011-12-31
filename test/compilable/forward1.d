@@ -1,7 +1,7 @@
-// REQUIRED_ARGS: -d
+// REQUIRED_ARGS: -g
 
-// 104
+// 104. fails only with -g
 
 Foofunc f;
-typedef int Foo;
+alias int Foo;
 alias int function(Foo) Foofunc;
