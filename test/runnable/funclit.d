@@ -184,6 +184,27 @@ void test3235()
 }
 
 /***************************************************/
+// 6714
+
+void foo6714x(int function (int, int) a){}
+void bar6714x(int delegate (int, int) a){}
+
+int bar6714y(double delegate(int, int) a){ return 1; }
+int bar6714y(   int delegate(int, int) a){ return 2; }
+
+void test6714()
+{
+    foo6714x((a, b) { return a + b; });
+    bar6714x((a, b) { return a + b; });
+
+    assert(bar6714y((a, b){ return 1.0;  }) == 1);
+    static assert(!__traits(compiles, {
+           bar6714y((a, b){ return 1.0f; });
+    }));
+    assert(bar6714y((a, b){ return a;    }) == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -193,6 +214,7 @@ int main()
     test4();
     test5();
     test3235();
+    test6714();
 
     printf("Success\n");
     return 0;
