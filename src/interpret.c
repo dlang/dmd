@@ -117,6 +117,7 @@ public:
     void pop(VarDeclaration *v)
     {
         assert(!v->isDataseg() || v->isCTFE());
+        assert(!(v->storage_class & (STCref | STCout)));
         int oldid = v->ctfeAdrOnStack;
         v->ctfeAdrOnStack = (size_t)(savedId.tdata()[oldid]);
         if (v->ctfeAdrOnStack == values.dim - 1)
@@ -201,7 +202,7 @@ void printCtfePerformanceStats()
 }
 
 
-Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference = NULL);
+Expression * resolveReferences(Expression *e, Expression *thisval);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
 bool needToCopyLiteral(Expression *expr);
@@ -210,6 +211,7 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
 Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
+Expression *scrubReturnValue(Loc loc, Expression *e);
 
 // CTFE only expressions
 #define TOKclassreference ((TOK)(TOKMAX+1))
@@ -474,6 +476,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         if (thisarg->interpret(istate) == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
     }
+    static bool evaluatingArgs;
     if (arguments)
     {
         dim = arguments->dim;
@@ -485,7 +488,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
          */
         Expressions eargs;
         eargs.setDim(dim);
-
         for (size_t i = 0; i < dim; i++)
         {   Expression *earg = arguments->tdata()[i];
             Parameter *arg = Parameter::getNth(tf->parameters, i);
@@ -498,7 +500,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     return EXP_CANT_INTERPRET;
                 }
                 // Convert all reference arguments into lvalue references
+                evaluatingArgs = true;
                 earg = earg->interpret(istate, ctfeNeedLvalueRef);
+                evaluatingArgs = false;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
             }
@@ -516,7 +520,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                      */
                     earg = ((AddrExp *)earg)->e1;
                 }
+                evaluatingArgs = true;
                 earg = earg->interpret(istate);
+                evaluatingArgs = false;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
             }
@@ -534,11 +540,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         {   Expression *earg = eargs.tdata()[i];
             Parameter *arg = Parameter::getNth(tf->parameters, i);
             VarDeclaration *v = parameters->tdata()[i];
-            ctfeStack.push(v);
 #if LOG
             printf("arg[%d] = %s\n", i, earg->toChars());
 #endif
-            if (arg->storageClass & (STCout | STCref) && earg->op==TOKvar)
+            if (arg->storageClass & (STCout | STCref) && earg->op == TOKvar)
             {
                 VarExp *ve = (VarExp *)earg;
                 VarDeclaration *v2 = ve->var->isVarDeclaration();
@@ -547,10 +552,19 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     error("cannot interpret %s as a ref parameter", ve->toChars());
                     return EXP_CANT_INTERPRET;
                 }
-                v->setValueWithoutChecking(earg);
+                /* The push() isn't a variable we'll use, it's just a place
+                 * to save the old value of v.
+                 * Note that v might be v2! So we need to save v2's index
+                 * before pushing.
+                 */
+                size_t oldadr = v2->ctfeAdrOnStack;
+                ctfeStack.push(v);
+                v->ctfeAdrOnStack = oldadr;
+                assert(v2->hasValue());
             }
             else
             {   // Value parameters and non-trivial references
+                ctfeStack.push(v);
                 v->setValueWithoutChecking(earg);
             }
 #if LOG || LOGASSIGN
@@ -610,13 +624,19 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // If fell off the end of a void function, return void
     if (!e && type->toBasetype()->nextOf()->ty == Tvoid)
         return EXP_VOID_INTERPRET;
-
-    if (e == EXP_CANT_INTERPRET || !exceptionOrCantInterpret(e))
-        return e;
-    if (istate)
-        return e;
-    ((ThrownExceptionExp *)e)->generateUncaughtError();
-    return EXP_CANT_INTERPRET;
+    // If it generated an exception, return it
+    if (exceptionOrCantInterpret(e))
+    {
+        if (istate || e == EXP_CANT_INTERPRET)
+            return e;
+        ((ThrownExceptionExp *)e)->generateUncaughtError();
+        return EXP_CANT_INTERPRET;
+    }
+    if (!istate && !evaluatingArgs)
+    {
+        e = scrubReturnValue(loc, e);
+    }
+    return e;
 }
 
 /******************************** Statement ***************************/
@@ -932,13 +952,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
         e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
-    if (!istate->caller)
-    {
-        e = scrubReturnValue(loc, e);
-        if (e == EXP_CANT_INTERPRET)
-            return e;
-    }
-    else if (needToCopyLiteral(exp))
+    if (needToCopyLiteral(exp))
         e = copyLiteral(e);
 #if LOGASSIGN
     printf("RETURN %s\n", loc.toChars());
@@ -1691,11 +1705,8 @@ Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
 // -------------------------------------------------------------
 // The variable used in a dotvar, index, or slice expression,
 // after 'out', 'ref', and 'this' have been removed.
-// *isReference will be set to true if a reference was removed.
-Expression * resolveReferences(Expression *e, Expression *thisval, bool *isReference /*=NULL */)
+Expression * resolveReferences(Expression *e, Expression *thisval)
 {
-    if (isReference)
-        *isReference = false;
     for(;;)
     {
         if (e->op == TOKthis)
@@ -1705,30 +1716,15 @@ Expression * resolveReferences(Expression *e, Expression *thisval, bool *isRefer
             e = thisval;
             continue;
         }
-        if (e->op == TOKvar) {
-            // Chase down rebinding of out and ref.
+        if (e->op == TOKvar)
+        {
             VarExp *ve = (VarExp *)e;
             VarDeclaration *v = ve->var->isVarDeclaration();
             if (v->type->ty == Tpointer)
                 break;
             if (v->ctfeAdrOnStack == (size_t)-1) // If not on the stack, can't possibly be a ref.
                 break;
-            if (v && v->getValue() && v->getValue()->op == TOKvar) // it's probably a reference
-            {
-                // Make sure it's a real reference.
-                // It's not a reference if v is a struct initialized to
-                // 0 using an __initZ SymbolDeclaration from
-                // TypeStruct::defaultInit()
-                VarExp *ve2 = (VarExp *)v->getValue();
-                if (!ve2->var->isSymbolDeclaration())
-                {
-                    if (isReference)
-                        *isReference = true;
-                    e = v->getValue();
-                    continue;
-                }
-            }
-            else if (v && v->getValue() && (v->getValue()->op == TOKslice))
+            if (v && v->getValue() && (v->getValue()->op == TOKslice))
             {
                 SliceExp *se = (SliceExp *)v->getValue();
                 if (se->e1->op == TOKarrayliteral || se->e1->op == TOKassocarrayliteral || se->e1->op == TOKstring)
@@ -1864,10 +1860,7 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
 #endif
     if (goal == ctfeNeedLvalueRef)
     {
-        // If it is a reference, return the thing it's pointing to.
         VarDeclaration *v = var->isVarDeclaration();
-        if (v && v->hasValue() && (v->storage_class & (STCref | STCout)))
-            return v->getValue();
         if (v && !v->isDataseg() && !v->isCTFE() && !istate)
         {   error("variable %s cannot be referenced at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
@@ -2248,7 +2241,7 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
  * Helper for NewExp
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
  */
-ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
+ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
         Expression *elem, size_t dim)
 {
     Expressions *elements = new Expressions();
@@ -2259,7 +2252,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
             elem  = copyLiteral(elem);
         elements->tdata()[i] = elem;
     }
-    ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+    ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
     ae->type = type;
     ae->ownedByCtfe = true;
     return ae;
@@ -2269,7 +2262,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
  * Helper for NewExp
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
-StringExp *createBlockDuplicatedStringLiteral(Type *type,
+StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
         unsigned value, size_t dim, int sz)
 {
     unsigned char *s;
@@ -2284,7 +2277,7 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
             default:    assert(0);
         }
     }
-    StringExp *se = new StringExp(0, s, dim);
+    StringExp *se = new StringExp(loc, s, dim);
     se->type = type;
     se->sz = sz;
     se->committed = true;
@@ -2294,7 +2287,7 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
 
 // Create an array literal of type 'newtype' with dimensions given by
 // 'arguments'[argnum..$]
-Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
+Expression *recursivelyCreateArrayLiteral(Loc loc, Type *newtype, InterState *istate,
     Expressions *arguments, int argnum)
 {
     Expression *lenExpr = ((arguments->tdata()[argnum]))->interpret(istate);
@@ -2304,7 +2297,7 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
     Type *elemType = ((TypeArray *)newtype)->next;
     if (elemType->ty == Tarray && argnum < arguments->dim - 1)
     {
-        Expression *elem = recursivelyCreateArrayLiteral(elemType, istate,
+        Expression *elem = recursivelyCreateArrayLiteral(loc, elemType, istate,
             arguments, argnum + 1);
         if (exceptionOrCantInterpret(elem))
             return elem;
@@ -2313,7 +2306,7 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
         elements->setDim(len);
         for (size_t i = 0; i < len; i++)
              elements->tdata()[i] = copyLiteral(elem);
-        ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+        ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
         ae->type = newtype;
         ae->ownedByCtfe = true;
         return ae;
@@ -2321,10 +2314,10 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
     assert(argnum == arguments->dim - 1);
     if (elemType->ty == Tchar || elemType->ty == Twchar
         || elemType->ty == Tdchar)
-        return createBlockDuplicatedStringLiteral(newtype,
+        return createBlockDuplicatedStringLiteral(loc, newtype,
             (unsigned)(elemType->defaultInitLiteral()->toInteger()),
             len, elemType->size());
-    return createBlockDuplicatedArrayLiteral(newtype,
+    return createBlockDuplicatedArrayLiteral(loc, newtype,
         elemType->defaultInitLiteral(),
         len);
 }
@@ -2335,7 +2328,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
     printf("NewExp::interpret() %s\n", toChars());
 #endif
     if (newtype->ty == Tarray && arguments)
-        return recursivelyCreateArrayLiteral(newtype, istate, arguments, 0);
+        return recursivelyCreateArrayLiteral(loc, newtype, istate, arguments, 0);
 
     if (newtype->toBasetype()->ty == Tstruct)
     {
@@ -3009,7 +3002,7 @@ Expression *copyLiteral(Expression *e)
                 // Block assignment from inside struct literals
                 TypeSArray *tsa = (TypeSArray *)v->type;
                 uinteger_t length = tsa->dim->toInteger();
-                m = createBlockDuplicatedArrayLiteral(v->type, m, (size_t)length);
+                m = createBlockDuplicatedArrayLiteral(e->loc, v->type, m, (size_t)length);
             }
             else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
                 m = copyLiteral(m);
@@ -3134,7 +3127,7 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     }
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
-        error(loc, "cannot cast %s to %s at compile time", r->toChars(), to->toChars());
+        error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
         ((ArrayLiteralExp *)e)->ownedByCtfe = true;
     if (e->op == TOKstring)
@@ -3641,8 +3634,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         return e2;
     }
 
-    bool destinationIsReference = false;
-    e1 = resolveReferences(e1, istate->localThis, &destinationIsReference);
+    e1 = resolveReferences(e1, istate->localThis);
 
     // Unless we have a simple var assignment, we're
     // only modifying part of the variable. So we need to make sure
