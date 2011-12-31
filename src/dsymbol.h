@@ -248,14 +248,14 @@ struct ScopeDsymbol : Dsymbol
     Dsymbols *members;          // all Dsymbol's in this scope
     DsymbolTable *symtab;       // members[] sorted into table
 
-    ScopeDsymbols *imports;     // imported ScopeDsymbol's
+    Dsymbols *imports;          // imported Dsymbol's
     unsigned char *prots;       // array of PROT, one for each import
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
-    void importScope(ScopeDsymbol *s, enum PROT protection);
+    void importScope(Dsymbol *s, enum PROT protection);
     int isforwardRef();
     void defineRef(Dsymbol *s);
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);

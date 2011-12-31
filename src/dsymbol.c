@@ -759,7 +759,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     {
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
-        {   ScopeDsymbol *ss = (*imports)[i];
+        {   Dsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
             // If private import, don't search it
@@ -798,7 +798,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                          )
                        )
                     {
-                        ss->multiplyDefined(loc, s, s2);
+                        ScopeDsymbol::multiplyDefined(loc, s, s2);
                         break;
                     }
                 }
@@ -807,14 +807,15 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         if (s)
         {
             Declaration *d = s->isDeclaration();
-            if (d && d->protection == PROTprivate && !d->parent->isTemplateMixin())
+            if (d && d->protection == PROTprivate &&
+                !d->parent->isTemplateMixin())
                 error(loc, "%s is private", d->toPrettyChars());
         }
     }
     return s;
 }
 
-void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
+void ScopeDsymbol::importScope(Dsymbol *s, enum PROT protection)
 {
     //printf("%s->ScopeDsymbol::importScope(%s, %d)\n", toChars(), s->toChars(), protection);
 
@@ -822,11 +823,11 @@ void ScopeDsymbol::importScope(ScopeDsymbol *s, enum PROT protection)
     if (s != this)
     {
         if (!imports)
-            imports = new ScopeDsymbols();
+            imports = new Dsymbols();
         else
         {
             for (size_t i = 0; i < imports->dim; i++)
-            {   ScopeDsymbol *ss = (*imports)[i];
+            {   Dsymbol *ss = (*imports)[i];
                 if (ss == s)                    // if already imported
                 {
                     if (protection > prots[i])
