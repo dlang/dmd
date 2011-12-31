@@ -173,6 +173,17 @@ void test5()
 }
 
 /***************************************************/
+// 3235
+
+void test3235()
+{
+    // from TDPL
+    auto f = (int i) {};
+    static if (is(typeof(f) _ == F*, F) && is(F == function))
+    {} else static assert(0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -181,6 +192,7 @@ int main()
     test3();
     test4();
     test5();
+    test3235();
 
     printf("Success\n");
     return 0;
