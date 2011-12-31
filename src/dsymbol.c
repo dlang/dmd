@@ -998,8 +998,7 @@ static int dimDg(void *ctx, size_t n, Dsymbol *)
 size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
-    if (members)
-        foreach(members, &dimDg, &n);
+    foreach(members, &dimDg, &n);
     return n;
 }
 #endif
@@ -1049,7 +1048,9 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 #if DMDV2
 int ScopeDsymbol::foreach(Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
 {
-    assert(members);
+    assert(dg);
+    if (!members)
+        return 0;
 
     size_t n = pn ? *pn : 0; // take over index
     int result = 0;
