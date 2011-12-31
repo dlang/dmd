@@ -211,6 +211,7 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
 Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
+Expression *scrubReturnValue(Loc loc, Expression *e);
 
 // CTFE only expressions
 #define TOKclassreference ((TOK)(TOKMAX+1))
@@ -486,7 +487,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
          */
         Expressions eargs;
         eargs.setDim(dim);
-
         for (size_t i = 0; i < dim; i++)
         {   Expression *earg = arguments->tdata()[i];
             Parameter *arg = Parameter::getNth(tf->parameters, i);
@@ -619,13 +619,19 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // If fell off the end of a void function, return void
     if (!e && type->toBasetype()->nextOf()->ty == Tvoid)
         return EXP_VOID_INTERPRET;
-
-    if (e == EXP_CANT_INTERPRET || !exceptionOrCantInterpret(e))
-        return e;
-    if (istate)
-        return e;
-    ((ThrownExceptionExp *)e)->generateUncaughtError();
-    return EXP_CANT_INTERPRET;
+    // If it generated an exception, return it
+    if (exceptionOrCantInterpret(e))
+    {
+        if (istate || e == EXP_CANT_INTERPRET)
+            return e;
+        ((ThrownExceptionExp *)e)->generateUncaughtError();
+        return EXP_CANT_INTERPRET;
+    }
+    if (!istate)
+    {
+        e = scrubReturnValue(loc, e);
+    }
+    return e;
 }
 
 /******************************** Statement ***************************/
@@ -941,13 +947,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
         e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
-    if (!istate->caller)
-    {
-        e = scrubReturnValue(loc, e);
-        if (e == EXP_CANT_INTERPRET)
-            return e;
-    }
-    else if (needToCopyLiteral(exp))
+    if (needToCopyLiteral(exp))
         e = copyLiteral(e);
 #if LOGASSIGN
     printf("RETURN %s\n", loc.toChars());
