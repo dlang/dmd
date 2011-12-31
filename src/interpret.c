@@ -2236,7 +2236,7 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
  * Helper for NewExp
  * Create an array literal consisting of 'elem' duplicated 'dim' times.
  */
-ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
+ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
         Expression *elem, size_t dim)
 {
     Expressions *elements = new Expressions();
@@ -2247,7 +2247,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
             elem  = copyLiteral(elem);
         elements->tdata()[i] = elem;
     }
-    ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+    ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
     ae->type = type;
     ae->ownedByCtfe = true;
     return ae;
@@ -2257,7 +2257,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Type *type,
  * Helper for NewExp
  * Create a string literal consisting of 'value' duplicated 'dim' times.
  */
-StringExp *createBlockDuplicatedStringLiteral(Type *type,
+StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
         unsigned value, size_t dim, int sz)
 {
     unsigned char *s;
@@ -2272,7 +2272,7 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
             default:    assert(0);
         }
     }
-    StringExp *se = new StringExp(0, s, dim);
+    StringExp *se = new StringExp(loc, s, dim);
     se->type = type;
     se->sz = sz;
     se->committed = true;
@@ -2282,7 +2282,7 @@ StringExp *createBlockDuplicatedStringLiteral(Type *type,
 
 // Create an array literal of type 'newtype' with dimensions given by
 // 'arguments'[argnum..$]
-Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
+Expression *recursivelyCreateArrayLiteral(Loc loc, Type *newtype, InterState *istate,
     Expressions *arguments, int argnum)
 {
     Expression *lenExpr = ((arguments->tdata()[argnum]))->interpret(istate);
@@ -2292,7 +2292,7 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
     Type *elemType = ((TypeArray *)newtype)->next;
     if (elemType->ty == Tarray && argnum < arguments->dim - 1)
     {
-        Expression *elem = recursivelyCreateArrayLiteral(elemType, istate,
+        Expression *elem = recursivelyCreateArrayLiteral(loc, elemType, istate,
             arguments, argnum + 1);
         if (exceptionOrCantInterpret(elem))
             return elem;
@@ -2301,7 +2301,7 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
         elements->setDim(len);
         for (size_t i = 0; i < len; i++)
              elements->tdata()[i] = copyLiteral(elem);
-        ArrayLiteralExp *ae = new ArrayLiteralExp(0, elements);
+        ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
         ae->type = newtype;
         ae->ownedByCtfe = true;
         return ae;
@@ -2309,10 +2309,10 @@ Expression *recursivelyCreateArrayLiteral(Type *newtype, InterState *istate,
     assert(argnum == arguments->dim - 1);
     if (elemType->ty == Tchar || elemType->ty == Twchar
         || elemType->ty == Tdchar)
-        return createBlockDuplicatedStringLiteral(newtype,
+        return createBlockDuplicatedStringLiteral(loc, newtype,
             (unsigned)(elemType->defaultInitLiteral()->toInteger()),
             len, elemType->size());
-    return createBlockDuplicatedArrayLiteral(newtype,
+    return createBlockDuplicatedArrayLiteral(loc, newtype,
         elemType->defaultInitLiteral(),
         len);
 }
@@ -2323,7 +2323,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
     printf("NewExp::interpret() %s\n", toChars());
 #endif
     if (newtype->ty == Tarray && arguments)
-        return recursivelyCreateArrayLiteral(newtype, istate, arguments, 0);
+        return recursivelyCreateArrayLiteral(loc, newtype, istate, arguments, 0);
 
     if (newtype->toBasetype()->ty == Tstruct)
     {
@@ -2997,7 +2997,7 @@ Expression *copyLiteral(Expression *e)
                 // Block assignment from inside struct literals
                 TypeSArray *tsa = (TypeSArray *)v->type;
                 uinteger_t length = tsa->dim->toInteger();
-                m = createBlockDuplicatedArrayLiteral(v->type, m, (size_t)length);
+                m = createBlockDuplicatedArrayLiteral(e->loc, v->type, m, (size_t)length);
             }
             else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
                 m = copyLiteral(m);
