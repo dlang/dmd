@@ -675,6 +675,8 @@ struct FuncExp : Expression
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    MATCH implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
     Expression *inferType(Scope *sc, Type *t);
     void setType(Type *t);
     void scanForNestedRef(Scope *sc);

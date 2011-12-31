@@ -5056,7 +5056,9 @@ Expression *FuncExp::semantic(Scope *sc)
             {
                 Expression *e = inferType(sc, tded);
                 if (e)
+                {   e = e->castTo(sc, tded);
                     e = e->semantic(sc);
+                }
                 if (!e)
                 {   error("cannot infer function literal type");
                     e = new ErrorExp();
@@ -5209,6 +5211,13 @@ Expression *FuncExp::inferType(Scope *sc, Type *to)
         e = this;
     }
 
+    if (e)
+    {   // Check implicit function to delegate conversion
+        if (e->implicitConvTo(to))
+            e = e->castTo(sc, to);
+        else
+            e = NULL;
+    }
     return e;
 }
 
