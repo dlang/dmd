@@ -4649,8 +4649,7 @@ L1:
         return de;
     }
 
-    Import *timp = s->isImport();
-    if (timp)
+    if (s->isImport() || s->isModule() || s->isPackage())
     {
         e = new DsymbolExp(e->loc, s);
         e = e->semantic(sc);
@@ -4859,7 +4858,6 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
     VarDeclaration *v;
     Dsymbol *s;
     DotVarExp *de;
-    Declaration *d;
 
 #if LOGDOTEXP
     printf("TypeClass::dotExp(e='%s', ident='%s')\n", e->toChars(), ident->toChars());
@@ -4886,7 +4884,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        {   VarDeclaration *v = (sym->fields)[i];
             // Don't include hidden 'this' pointer
             if (v->isThisDeclaration())
                 continue;
@@ -5023,9 +5021,8 @@ L1:
 
     TemplateMixin *tm = s->isTemplateMixin();
     if (tm)
-    {   Expression *de;
-
-        de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
+    {
+        Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
         de->type = e->type;
         return de;
     }
@@ -5054,11 +5051,20 @@ L1:
         return de;
     }
 
-    d = s->isDeclaration();
+#if 0 // shouldn't this be here?
+    if (s->isImport() || s->isModule() || s->isPackage())
+    {
+        e = new DsymbolExp(e->loc, s, 0);
+        e = e->semantic(sc);
+        return e;
+    }
+#endif
+
+    Declaration *d = s->isDeclaration();
     if (!d)
     {
         e->error("%s.%s is not a declaration", e->toChars(), ident->toChars());
-        return new IntegerExp(e->loc, 1, Type::tint32);
+        return new ErrorExp();
     }
 
     if (e->op == TOKtype)
@@ -5087,7 +5093,7 @@ L1:
                     {
                         e = new ThisExp(e->loc);
                         e = new DotTypeExp(e->loc, e, cd);
-                        de = new DotVarExp(e->loc, e, d);
+                        DotVarExp *de = new DotVarExp(e->loc, e, d);
                         e = de->semantic(sc);
                         return e;
                     }
@@ -5097,7 +5103,10 @@ L1:
                 }
             }
 
-            de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            /* Rewrite as:
+             *  this.d
+             */
+            DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
             e = de->semantic(sc);
             return e;
         }
@@ -5123,9 +5132,7 @@ L1:
     if (d->parent && d->toParent()->isModule())
     {
         // (e, d)
-        VarExp *ve;
-
-        ve = new VarExp(e->loc, d);
+        VarExp *ve = new VarExp(e->loc, d);
         e = new CommaExp(e->loc, e, ve);
         e->type = d->type;
         return e;
