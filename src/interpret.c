@@ -476,6 +476,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         if (thisarg->interpret(istate) == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
     }
+    static bool evaluatingArgs;
     if (arguments)
     {
         dim = arguments->dim;
@@ -499,7 +500,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     return EXP_CANT_INTERPRET;
                 }
                 // Convert all reference arguments into lvalue references
+                evaluatingArgs = true;
                 earg = earg->interpret(istate, ctfeNeedLvalueRef);
+                evaluatingArgs = false;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
             }
@@ -517,7 +520,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                      */
                     earg = ((AddrExp *)earg)->e1;
                 }
+                evaluatingArgs = true;
                 earg = earg->interpret(istate);
+                evaluatingArgs = false;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
             }
@@ -627,7 +632,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         ((ThrownExceptionExp *)e)->generateUncaughtError();
         return EXP_CANT_INTERPRET;
     }
-    if (!istate)
+    if (!istate && !evaluatingArgs)
     {
         e = scrubReturnValue(loc, e);
     }
