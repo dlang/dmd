@@ -379,13 +379,10 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     if (members)
     {
         Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s))
+        if (Dsymbol::oneMembers(members, &s, ident) && s)
         {
-            if (s && s->ident && s->ident->equals(ident))
-            {
-                onemember = s;
-                s->parent = this;
-            }
+            onemember = s;
+            s->parent = this;
         }
     }
 }
@@ -509,13 +506,10 @@ void TemplateDeclaration::semantic(Scope *sc)
     if (members)
     {
         Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s))
+        if (Dsymbol::oneMembers(members, &s, ident) && s)
         {
-            if (s && s->ident && s->ident->equals(ident))
-            {
-                onemember = s;
-                s->parent = this;
-            }
+            onemember = s;
+            s->parent = this;
         }
     }
 
@@ -4350,16 +4344,13 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (members->dim)
     {
         Dsymbol *s;
-        if (Dsymbol::oneMembers(members, &s) && s)
+        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
         {
             //printf("s->kind = '%s'\n", s->kind());
             //s->print();
             //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
-            if (s->ident && s->ident->equals(tempdecl->ident))
-            {
-                //printf("setting aliasdecl\n");
-                aliasdecl = new AliasDeclaration(loc, s->ident, s);
-            }
+            //printf("setting aliasdecl\n");
+            aliasdecl = new AliasDeclaration(loc, s->ident, s);
         }
     }
 

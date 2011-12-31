@@ -105,7 +105,7 @@ int Dsymbol::oneMember(Dsymbol **ps)
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
 
-int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps)
+int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
 {
     //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);
     Dsymbol *s = NULL;
@@ -125,6 +125,11 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps)
             }
             if (*ps)
             {
+                if (ident)
+                {
+                    if (!(*ps)->ident || !(*ps)->ident->equals(ident))
+                        continue;
+                }
                 if (s)                  // more than one symbol
                 {   *ps = NULL;
                     //printf("\tfalse 2\n");

@@ -474,7 +474,7 @@ access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.c
 aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
 argtypes.obj : $(TOTALH) mtype.h argtypes.c
 arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
-attrib.obj : $(TOTALH) identifier.h declaration.h attrib.h attrib.c
+attrib.obj : $(TOTALH) dsymbol.h identifier.h declaration.h attrib.h attrib.c
 builtin.obj : $(TOTALH) builtin.c
 cast.obj : $(TOTALH) expression.h mtype.h cast.c
 class.obj : $(TOTALH) enum.h class.c
@@ -484,7 +484,7 @@ cond.obj : $(TOTALH) identifier.h declaration.h cond.h cond.c
 declaration.obj : $(TOTALH) identifier.h attrib.h declaration.h declaration.c expression.h
 delegatize.obj : $(TOTALH) delegatize.c
 doc.obj : $(TOTALH) doc.h doc.c
-enum.obj : $(TOTALH) identifier.h enum.h enum.c
+enum.obj : $(TOTALH) dsymbol.h identifier.h enum.h enum.c
 expression.obj : $(TOTALH) expression.h expression.c
 func.obj : $(TOTALH) identifier.h attrib.h declaration.h func.c
 hdrgen.obj : $(TOTALH) hdrgen.h hdrgen.c
