@@ -5401,28 +5401,7 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("AssertExp::interpret() %s\n", toChars());
 #endif
-    if (this->e1->op == TOKthis)
-    {
-        if (istate->localThis)
-        {
-            if (istate->localThis->op == TOKdotvar
-                && ((DotVarExp *)(istate->localThis))->e1->op == TOKthis)
-                return getVarExp(loc, istate, ((DotVarExp*)(istate->localThis))->var, ctfeNeedRvalue);
-            else
-                return istate->localThis->interpret(istate);
-        }
-    }
-    // Deal with pointers (including compiler-inserted assert(&this, "null this"))
-    if (this->e1->type->ty == Tpointer && this->e1->type->nextOf()->ty != Tfunction)
-    {
-        e1 = this->e1->interpret(istate, ctfeNeedLvalue);
-        if (exceptionOrCantInterpret(e1))
-            return e1;
-        if (e1->op != TOKnull)
-            return new IntegerExp(loc, 1, Type::tbool);
-    }
-    else
-        e1 = this->e1->interpret(istate);
+    e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
     if (isTrueBool(e1))
