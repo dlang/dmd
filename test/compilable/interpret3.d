@@ -3809,3 +3809,20 @@ int g7187(int[] r)
 }
 
 static assert(g7187(f7187()));
+
+/**************************************************
+    6933 struct destructors
+**************************************************/
+
+struct Bug6933 {
+    int x = 3;
+    ~this()     { }
+}
+
+int test6933() {
+    Bug6933 q;
+    assert(q.x == 3);
+    return 3;
+}
+
+static assert(test6933());
