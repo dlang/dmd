@@ -389,13 +389,24 @@ Expression *TraitsExp::semantic(Scope *sc)
         ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
 
         ClassDeclaration *cd = sd->isClassDeclaration();
-        if (cd && cd->baseClass && ident == Id::allMembers)
-        {   sd = cd->baseClass; // do again with base class
-            ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
+        if (cd && ident == Id::allMembers)
+        {
+            struct PushBaseMembers
+            {
+                static void dg(ClassDeclaration *cd, Identifiers *idents)
+                {
+                    if (cd->baseClass)
+                    {   ClassDeclaration *cb = cd->baseClass;
+                        ScopeDsymbol::foreach(cb->members, &PushIdentsDg::dg, idents);
+                        dg(cb, idents);
+                    }
+                }
+            };
+            PushBaseMembers::dg(cd, idents);
         }
 
         // Turn Identifiers into StringExps reusing the allocated array
-        ctassert(sizeof(Expressions) == sizeof(Identifiers));
+        assert(sizeof(Expressions) == sizeof(Identifiers));
         Expressions *exps = (Expressions *)idents;
         for (size_t i = 0; i < idents->dim; i++)
         {   Identifier *id = idents->tdata()[i];

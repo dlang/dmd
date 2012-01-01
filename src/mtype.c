@@ -5527,19 +5527,18 @@ Parameters *Parameter::arraySyntaxCopy(Parameters *args)
         a = new Parameters();
         a->setDim(args->dim);
         for (size_t i = 0; i < a->dim; i++)
-        {   Parameter *arg = (Parameter *)args->data[i];
+        {   Parameter *arg = (*args)[i];
 
             arg = arg->syntaxCopy();
-            a->data[i] = (void *)arg;
+            (*a)[i] = arg;
         }
     }
     return a;
 }
 
 char *Parameter::argsTypesToChars(Parameters *args, int varargs)
-{   OutBuffer *buf;
-
-    buf = new OutBuffer();
+{
+    OutBuffer *buf = new OutBuffer();
 
     buf->writeByte('(');
     if (args)
@@ -5549,7 +5548,7 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
         for (size_t i = 0; i < args->dim; i++)
         {   if (i)
                 buf->writeByte(',');
-            Parameter *arg = (Parameter *)args->data[i];
+            Parameter *arg = args->tdata()[i];
             argbuf.reset();
             arg->type->toCBuffer2(&argbuf, &hgs, 0);
             buf->write(&argbuf);
@@ -5614,8 +5613,7 @@ void Parameter::argsToDecoBuffer(OutBuffer *buf, Parameters *arguments)
 {
     //printf("Parameter::argsToDecoBuffer()\n");
     // Write argument types
-    if (arguments)
-        foreach(arguments, &argsToDecoBufferDg, buf);
+    foreach(arguments, &argsToDecoBufferDg, buf);
 }
 
 /****************************************
@@ -5633,9 +5631,7 @@ static int isTPLDg(void *ctx, size_t n, Parameter *arg)
 int Parameter::isTPL(Parameters *arguments)
 {
     //printf("Parameter::isTPL()\n");
-    if (arguments)
-        return foreach(arguments, &isTPLDg, NULL);
-    return 0;
+    return foreach(arguments, &isTPLDg, NULL);
 }
 
 /****************************************************
@@ -5684,6 +5680,7 @@ void Parameter::toDecoBuffer(OutBuffer *buf)
             break;
         default:
 #ifdef DEBUG
+            printf("storageClass = x%llx\n", storageClass & (STCin | STCout | STCref | STClazy));
             halt();
 #endif
             assert(0);
@@ -5704,8 +5701,7 @@ static int dimDg(void *ctx, size_t n, Parameter *)
 size_t Parameter::dim(Parameters *args)
 {
     size_t n = 0;
-    if (args)
-        foreach(args, &dimDg, &n);
+    foreach(args, &dimDg, &n);
     return n;
 }
 
@@ -5750,7 +5746,9 @@ Parameter *Parameter::getNth(Parameters *args, size_t nth, size_t *pn)
 
 int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, size_t *pn)
 {
-    assert(args && dg);
+    assert(dg);
+    if (!args)
+        return 0;
 
     size_t n = pn ? *pn : 0; // take over index
     int result = 0;
