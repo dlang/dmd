@@ -244,6 +244,28 @@ void test6()
 }
 
 /***************************************************/
+// on AssignExp::e2
+
+void test7()
+{
+    int function(int) fp;
+    fp = a => a;
+    fp = (int a) => a;
+    fp = function(int a) => a;
+    fp = function int(int a) => a;
+    static assert(!__traits(compiles, { fp = delegate(int a) => a; }));
+    static assert(!__traits(compiles, { fp = delegate int(int a) => a; }));
+
+    int delegate(int) dg;
+    dg = a => a;
+    dg = (int a) => a;
+    dg = delegate(int a) => a;
+    dg = delegate int(int a) => a;
+    static assert(!__traits(compiles, { dg = function(int a) => a; }));
+    static assert(!__traits(compiles, { dg = function int(int a) => a; }));
+}
+
+/***************************************************/
 // 3235
 
 void test3235()
@@ -296,6 +318,7 @@ int main()
     test4v();
     test5();
     test6();
+    test7();
     test3235();
     test6714();
     test7193();

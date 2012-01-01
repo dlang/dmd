@@ -10088,6 +10088,27 @@ Ltupleassign:
         }
     }
 
+    if (t1->ty == Tdelegate || (t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
+        && e2->op == TOKfunction)
+    {
+        FuncExp *fe = (FuncExp *)e2;
+        if (e2->type == Type::tvoid)
+        {
+            e2 = fe->inferType(sc, t1);
+        }
+        else if (e2->type->ty == Tpointer && e2->type->nextOf()->ty == Tfunction &&
+                 fe->tok == TOKreserved &&
+                 t1->ty == Tdelegate)
+        {
+            if (fe->implicitConvTo(t1))
+                e2 = fe->castTo(sc, t1);
+        }
+        if (!e2)
+        {   error("cannot infer function literal type from %s", t1->toChars());
+            e2 = new ErrorExp();
+        }
+    }
+
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
      */
