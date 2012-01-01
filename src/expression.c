@@ -722,6 +722,15 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->push(arg);
                 nargs++;
             }
+            else if (arg->op == TOKfunction)
+            {   FuncExp *fe = (FuncExp *)arg;
+                Type *pt = p->type;
+                if (tf->varargs == 2 && i + 1 == nparams && pt->nextOf())
+                    pt = pt->nextOf();
+                fe->setType(pt);
+                arg = fe->semantic(sc);
+                arguments->tdata()[i] =  arg;
+            }
 
             if (tf->varargs == 2 && i + 1 == nparams)
             {
@@ -811,12 +820,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
         L1:
-            if (arg->op == TOKfunction)
-            {   FuncExp *fe = (FuncExp *)arg;
-                fe->setType(p->type);
-                arg = fe->semantic(sc);
-            }
-
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
                 unsigned mod = arg->type->wildConvTo(p->type);
@@ -5193,6 +5196,8 @@ Expression *FuncExp::inferType(Scope *sc, Type *to)
                         if (p->type->ty == Tident &&
                             ((TypeIdentifier *)p->type)->ident == tp->ident)
                         {   p = Parameter::getNth(tfv->parameters, u);
+                            if (p->type->ty == Tident)
+                                return NULL;
                             tiargs->push(p->type);
                             u = dim;    // break inner loop
                         }

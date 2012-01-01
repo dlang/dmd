@@ -135,6 +135,10 @@ auto tbaz4(R)(R delegate() dg) { static assert(is(R == void)); return 2; }
 
 auto thoo4(T)(T lambda){ return lambda; }
 
+void tfun4a()(int function(int) a){}
+void tfun4b(T)(T function(T) a){}
+void tfun4c(T)(T f){}
+
 void test4()
 {
     int v;
@@ -158,6 +162,37 @@ void test4()
     // template function deduction
     static assert(is(typeof(thoo4({ })) : void function()));
     static assert(is(typeof(thoo4({ v = 1;  })) : void delegate()));
+
+    tfun4a(a => a);
+    static assert(!__traits(compiles, { tfun4b(a => a); }));
+    static assert(!__traits(compiles, { tfun4c(a => a); }));
+}
+
+void fsvarg4(int function(int)[] a...){}
+void fcvarg4(int dummy, ...){}
+
+void tsvarg4a()(int function(int)[] a...){}
+void tsvarg4b(T)(T function(T)[] a...){}
+void tsvarg4c(T)(T [] a...){}
+void tcvarg4()(int dummy, ...){}
+
+void test4v()
+{
+    fsvarg4(function(int a){ return a; });      // OK
+    fsvarg4(a => a);                            // OK
+
+    fcvarg4(0, function(int a){ return a; });   // OK
+    static assert(!__traits(compiles, { fcvarg4(0, a => a); }));
+
+    tsvarg4a(function(int a){ return a; });     // OK
+    tsvarg4b(function(int a){ return a; });     // OK
+    tsvarg4c(function(int a){ return a; });     // OK
+    tsvarg4a(a => a);
+    static assert(!__traits(compiles, { tsvarg4b(a => a); }));
+    static assert(!__traits(compiles, { tsvarg4c(a => a); }));
+
+    tcvarg4(0, function(int a){ return a; });   // OK
+    static assert(!__traits(compiles, { tcvarg4(0, a => a); }));
 }
 
 /***************************************************/
@@ -222,6 +257,7 @@ int main()
     test2();
     test3();
     test4();
+    test4v();
     test5();
     test3235();
     test6714();
