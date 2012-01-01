@@ -1834,13 +1834,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
     else if (s)
     {   // Struct static initializers, for example
         if (s->dsym->toInitializer() == s->sym)
-        {   Expressions *exps = new Expressions();
-            e = new StructLiteralExp(loc, s->dsym, exps);
-            if (s->dsym->dtor)
-            {
-                error(loc, "CTFE fails for structs with destructors (Bugzilla 6933)");
-                return EXP_CANT_INTERPRET;
-            }
+        {   e = s->dsym->type->defaultInitLiteral();
             e = e->semantic(NULL);
             if (e->op == TOKerror)
                 e = EXP_CANT_INTERPRET;
