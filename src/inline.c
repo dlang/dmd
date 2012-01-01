@@ -291,6 +291,10 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
             return COST_MAX;
         cost += 1;
 
+#if DMDV2
+        if (vd->edtor)                  // if destructor required
+            return COST_MAX;            // needs work to make this work
+#endif
         // Scan initializer (vd->init)
         if (vd->init)
         {
@@ -308,6 +312,9 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
         declaration->isClassDeclaration() ||
         declaration->isFuncDeclaration() ||
         declaration->isTypedefDeclaration() ||
+#if DMDV2
+        declaration->isAttribDeclaration() ||
+#endif
         declaration->isTemplateMixin())
         return COST_MAX;
 
@@ -493,6 +500,7 @@ Statement *ForStatement::doInlineStatement(InlineDoState *ids)
 Expression *Statement::doInline(InlineDoState *ids)
 {
     printf("Statement::doInline()\n%s\n", toChars());
+    fflush(stdout);
     assert(0);
     return NULL;                // default is we can't inline it
 }
@@ -987,6 +995,9 @@ Statement *ExpStatement::inlineScan(InlineScanState *iss)
                 {
                     Statement *s;
                     fd->expandInline(iss, NULL, ce->arguments, &s);
+                    // Need to reevaluate whether parent can now be inlined
+                    // in expressions, as we might have inlined statements
+                    iss->fd->inlineStatusExp = ILSuninitialized;
                     return s;
                 }
             }
@@ -1541,7 +1552,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
         for (size_t i = 0; i < parameters->dim; i++)
         {
             VarDeclaration *v = parameters->tdata()[i];
-            if (/*v->isOut() || v->isRef() ||*/ v->type->toBasetype()->ty == Tsarray)
+            if (v->type->toBasetype()->ty == Tsarray)
                 goto Lno;
         }
     }
@@ -1560,14 +1571,35 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     if (!statementsToo && cost > COST_MAX)
         goto Lno;
 
-    if (!hdrscan)    // Don't scan recursively for header content scan
-        inlineScan();
-
-    if (!hdrscan)    // Don't modify inlineStatus for header content scan
-    {   if (statementsToo)
+    if (!hdrscan)
+    {
+        // Don't modify inlineStatus for header content scan
+        if (statementsToo)
             inlineStatusStmt = ILSyes;
         else
             inlineStatusExp = ILSyes;
+
+        inlineScan();    // Don't scan recursively for header content scan
+
+        if (!statementsToo)
+        {
+            if (inlineStatusExp == ILSuninitialized)
+            {
+                // Need to redo cost computation, as some statements may have been inlined
+                memset(&ics, 0, sizeof(ics));
+                ics.hasthis = hasthis;
+                ics.fd = this;
+                ics.hdrscan = hdrscan;
+                cost = fbody->inlineCost(&ics);
+            #if CANINLINE_LOG
+                printf("cost = %d\n", cost);
+            #endif
+                if (cost > COST_MAX)
+                    goto Lno;
+
+                inlineStatusExp = ILSyes;
+            }
+        }
     }
 #if CANINLINE_LOG
     printf("\t2: yes %s\n", toChars());
@@ -1594,8 +1626,8 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
     Expression *e = NULL;
     Statements *as = NULL;
 
-#if LOG
-    printf("FuncDeclaration::doInline('%s')\n", toChars());
+#if LOG || CANINLINE_LOG
+    printf("FuncDeclaration::expandInline('%s')\n", toChars());
 #endif
 
     memset(&ids, 0, sizeof(ids));
