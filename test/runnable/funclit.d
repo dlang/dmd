@@ -266,6 +266,19 @@ void test7()
 }
 
 /***************************************************/
+// on StructLiteralExp::elements
+
+void test8()
+{
+    struct S
+    {
+        int function(int) fp;
+    }
+    auto s1 = S(a => a);
+    static assert(!__traits(compiles, { auto s2 = S((a, b) => a); }));
+}
+
+/***************************************************/
 // 3235
 
 void test3235()
@@ -319,6 +332,7 @@ int main()
     test5();
     test6();
     test7();
+    test8();
     test3235();
     test6714();
     test7193();

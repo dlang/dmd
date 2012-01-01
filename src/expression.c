@@ -3782,6 +3782,14 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             telem = telem->toBasetype()->nextOf();
         }
 
+        if (e->op == TOKfunction)
+        {   e = ((FuncExp *)e)->inferType(sc, telem);
+            if (!e)
+            {   error("cannot infer function literal type from %s", telem->toChars());
+                e = new ErrorExp();
+            }
+        }
+
         e = e->implicitCastTo(sc, telem);
 
         elements->tdata()[i] = e;
