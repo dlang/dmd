@@ -544,8 +544,6 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *arg = (*exps)[i];
 
-            if (arg->op == TOKfunction)
-                continue;
             if (!arg->type)
             {
 #ifdef DEBUG
@@ -5037,7 +5035,7 @@ Expression *FuncExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("FuncExp::semantic(%s)\n", toChars());
 #endif
-    if (!type)
+    if (!type || type == Type::tvoid)
     {
         // save for later use
         scope = sc;
@@ -5050,6 +5048,7 @@ Expression *FuncExp::semantic(Scope *sc)
 
             if (!tded)
             {   // defer type determination
+                type = Type::tvoid; // temporary type
                 return this;
             }
             else
@@ -5113,7 +5112,7 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
     assert(!tded);
     assert(!scope);
 
-    if (!type && td && arguments && arguments->dim)
+    if ((!type || type == Type::tvoid) && td && arguments && arguments->dim)
     {
         for (size_t k = 0; k < arguments->dim; k++)
         {   Expression *checkarg = arguments->tdata()[k];
@@ -5207,7 +5206,7 @@ Expression *FuncExp::inferType(Scope *sc, Type *to)
     }
     else
     {
-        assert(type);   // semantic is already done
+        assert(type && type != Type::tvoid);   // semantic is already done
         e = this;
     }
 

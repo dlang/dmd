@@ -2317,11 +2317,6 @@ if (arguments)
         {
             HdrGenState hgs;
 
-            for (size_t i = 0; i < arguments->dim; i++)
-            {   Expression *arg = (*arguments)[i];
-                if (!arg->type) // inference failed
-                    arg->type = Type::terror;
-            }
             argExpTypesToCBuffer(&buf, arguments, &hgs);
             buf.writeByte(')');
             if (ethis)

@@ -205,6 +205,16 @@ void test6714()
 }
 
 /***************************************************/
+// 7193
+
+void test7193()
+{
+    static assert(!__traits(compiles, {
+        delete a => a;
+    }));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -215,6 +225,7 @@ int main()
     test5();
     test3235();
     test6714();
+    test7193();
 
     printf("Success\n");
     return 0;
