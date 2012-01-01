@@ -4542,7 +4542,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
     if (!sym->members)
     {
         error(e->loc, "struct %s is forward referenced", sym->toChars());
-        return new IntegerExp(e->loc, 0, Type::tint32);
+        return new ErrorExp();
     }
 
     /* If e.tupleof
@@ -4553,10 +4553,11 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
          * (e.field0, e.field1, e.field2, ...)
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
+        e->type->size();        // do semantic of type
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (VarDeclaration *)sym->fields.data[i];
+        {   VarDeclaration *v = sym->fields[i];
             Expression *fe = new DotVarExp(e->loc, e, v);
             exps->push(fe);
         }
@@ -4618,9 +4619,8 @@ L1:
 
     TemplateMixin *tm = s->isTemplateMixin();
     if (tm)
-    {   Expression *de;
-
-        de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
+    {
+        Expression *de = new DotExp(e->loc, e, new ScopeExp(e->loc, tm));
         de->type = e->type;
         return de;
     }
@@ -4747,7 +4747,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     structelems->setDim(sym->fields.dim);
     for (size_t j = 0; j < structelems->dim; j++)
     {
-        VarDeclaration *vd = (VarDeclaration *)(sym->fields.data[j]);
+        VarDeclaration *vd = sym->fields[j];
         Expression *e;
         if (vd->init)
         {   if (vd->init->isVoidInitializer())
@@ -4757,7 +4757,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         }
         else
             e = vd->type->defaultInitLiteral();
-        structelems->data[j] = e;
+        structelems->tdata()[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
     // Why doesn't the StructLiteralExp constructor do this, when
@@ -4818,6 +4818,7 @@ Type *TypeClass::semantic(Loc loc, Scope *sc)
     //printf("TypeClass::semantic(%s)\n", sym->toChars());
     if (deco)
         return this;
+    //printf("\t%s\n", merge()->deco);
     return merge();
 }
 
@@ -4881,10 +4882,11 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         /* Create a TupleExp
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
+        e->type->size();        // do semantic of type
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = (sym->fields)[i];
+        {   VarDeclaration *v = sym->fields[i];
             // Don't include hidden 'this' pointer
             if (v->isThisDeclaration())
                 continue;
@@ -5172,7 +5174,7 @@ MATCH TypeClass::implicitConvTo(Type *to)
 
     ClassDeclaration *cdto = to->isClassHandle();
     if (cdto && cdto->isBaseOf(sym, NULL))
-    {   //printf("is base\n");
+    {   //printf("'to' is base\n");
         return MATCHconvert;
     }
 
