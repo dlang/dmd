@@ -3543,27 +3543,53 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 Expressions *elements = new Expressions();
                 elements->setDim(newlen);
                 size_t copylen = oldlen < newlen ? oldlen : newlen;
-                if (oldlen !=0)
-                    assert(oldval->op == TOKarrayliteral);
-                ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
-                for (size_t i = 0; i < copylen; i++)
-                    elements->tdata()[i] = ae->elements->tdata()[i];
-                if (elemType->ty == Tstruct || elemType->ty == Tsarray)
-                {   /* If it is an aggregate literal representing a value type,
-                     * we need to create a unique copy for each element
-                     */
-                    for (size_t i = copylen; i < newlen; i++)
-                        elements->tdata()[i] = copyLiteral(defaultElem);
+                if (oldval->op == TOKstring)
+                {
+                    StringExp *oldse = (StringExp *)oldval;
+                    unsigned char *s = (unsigned char *)mem.calloc(newlen + 1, oldse->sz);
+                    memcpy(s, oldse->string, copylen * oldse->sz);
+                    unsigned defaultValue = (unsigned)(defaultElem->toInteger());
+                    for (size_t elemi = copylen; elemi < newlen; ++elemi)
+                    {
+                        switch (oldse->sz)
+                        {
+                            case 1:     s[elemi] = defaultValue; break;
+                            case 2:     ((unsigned short *)s)[elemi] = defaultValue; break;
+                            case 4:     ((unsigned *)s)[elemi] = defaultValue; break;
+                            default:    assert(0);
+                        }
+                    }
+                    StringExp *se = new StringExp(loc, s, newlen);
+                    se->type = t;
+                    se->sz = oldse->sz;
+                    se->committed = oldse->committed;
+                    se->ownedByCtfe = true;
+                    newval = se;
                 }
                 else
                 {
-                    for (size_t i = copylen; i < newlen; i++)
-                        elements->tdata()[i] = defaultElem;
+                    if (oldlen !=0)
+                        assert(oldval->op == TOKarrayliteral);
+                    ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
+                    for (size_t i = 0; i < copylen; i++)
+                        elements->tdata()[i] = ae->elements->tdata()[i];
+                    if (elemType->ty == Tstruct || elemType->ty == Tsarray)
+                    {   /* If it is an aggregate literal representing a value type,
+                         * we need to create a unique copy for each element
+                         */
+                        for (size_t i = copylen; i < newlen; i++)
+                            elements->tdata()[i] = copyLiteral(defaultElem);
+                    }
+                    else
+                    {
+                        for (size_t i = copylen; i < newlen; i++)
+                            elements->tdata()[i] = defaultElem;
+                    }
+                    ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
+                    aae->type = t;
+                    newval = aae;
+                    aae->ownedByCtfe = true;
                 }
-                ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
-                aae->type = t;
-                newval = aae;
-                aae->ownedByCtfe = true;
                 // We have changed it into a reference assignment
                 // Note that returnValue is still the new length.
                 wantRef = true;

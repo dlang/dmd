@@ -754,6 +754,22 @@ static assert(
     return true;
 }());
 
+// 7185 char[].length = n
+
+bool bug7185() {
+    auto arr = new char[2];
+    auto arr2 = new char[2];
+    arr2[] = "ab";
+    arr.length = 1;
+    arr2.length = 7;
+    assert(arr.length == 1);
+    assert(arr2.length == 7);
+    assert(arr2[0..2] == "ab");
+    return true;
+}
+
+static assert(bug7185());
+
 /*******************************************
     6934
 *******************************************/
