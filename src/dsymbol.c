@@ -751,6 +751,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
     // Look in symbols declared in this module
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
+    //printf("\ts = %p, imports = %p, %d\n", s, imports, imports ? imports->dim : 0);
     if (s)
     {
         //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
@@ -769,7 +770,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            s2 = ss->search(loc, ident, ss->isImport() ? 1 : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)

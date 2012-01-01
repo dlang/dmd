@@ -5758,6 +5758,12 @@ Expression *DotIdExp::semantic(Scope *sc)
             (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
         if (s)
         {
+            /* Check for access before resolving aliases because public
+             * aliases to private symbols are public.
+             */
+            if (Declaration *d = s->isDeclaration())
+                accessCheck(loc, sc, 0, d);
+
             s = s->toAlias();
             checkDeprecated(sc, s);
 

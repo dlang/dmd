@@ -676,14 +676,14 @@ void Module::importAll(Scope *prevsc)
      */
     Scope *sc = Scope::createGlobal(this);      // create root scope
 
-    // Add import of "object" if this module isn't "object"
-    if (ident != Id::object)
+    // Add import of "object", even for the "object" module.
+    // If it isn't there, some compiler rewrites, like
+    //    classinst == classinst -> .object.opEquals(classinst, classinst)
+    // would fail inside object.d.
+    if (members->dim == 0 || ((*members)[0])->ident != Id::object)
     {
-        if (members->dim == 0 || ((*members)[0])->ident != Id::object)
-        {
-            Import *im = new Import(0, NULL, Id::object, NULL, 0);
-            members->shift(im);
-        }
+        Import *im = new Import(0, NULL, Id::object, NULL, 0);
+        members->shift(im);
     }
 
     if (!symtab)

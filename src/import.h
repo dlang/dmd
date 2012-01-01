@@ -28,16 +28,14 @@ struct HdrGenState;
 
 struct Import : Dsymbol
 {
-    Identifiers *packages;            // array of Identifier's representing packages
+    Identifiers *packages;      // array of Identifier's representing packages
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import
 
     // Pairs of alias=name to bind into current namespace
-    Array names;
-    Array aliases;
-
-    Array aliasdecls;           // AliasDeclarations for names/aliases
+    Identifiers names;
+    Identifiers aliases;
 
     Module *mod;
     Package *pkg;               // leftmost package/module
@@ -52,11 +50,9 @@ struct Import : Dsymbol
     void importAll(Scope *sc);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    Dsymbol *toAlias();
-    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
-    int overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    char *toChars();
 
     Import *isImport() { return this; }
 };
