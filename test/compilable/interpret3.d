@@ -3801,6 +3801,7 @@ static assert(!S7165().f());
 **************************************************/
 
 int[] f7187() { return [0]; }
+int[] f7187b(int n) { return [0]; }
 
 int g7187(int[] r)
 {
@@ -3809,6 +3810,7 @@ int g7187(int[] r)
 }
 
 static assert(g7187(f7187()));
+static assert(g7187(f7187b(7)));
 
 /**************************************************
     6933 struct destructors

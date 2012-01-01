@@ -476,7 +476,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         if (thisarg->interpret(istate) == EXP_CANT_INTERPRET)
             return EXP_CANT_INTERPRET;
     }
-    static bool evaluatingArgs;
+    static int evaluatingArgs = 0;
     if (arguments)
     {
         dim = arguments->dim;
@@ -500,9 +500,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                     return EXP_CANT_INTERPRET;
                 }
                 // Convert all reference arguments into lvalue references
-                evaluatingArgs = true;
+                ++evaluatingArgs;
                 earg = earg->interpret(istate, ctfeNeedLvalueRef);
-                evaluatingArgs = false;
+                --evaluatingArgs;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
             }
@@ -520,9 +520,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                      */
                     earg = ((AddrExp *)earg)->e1;
                 }
-                evaluatingArgs = true;
+                ++evaluatingArgs;
                 earg = earg->interpret(istate);
-                evaluatingArgs = false;
+                --evaluatingArgs;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
             }
