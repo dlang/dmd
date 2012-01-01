@@ -208,6 +208,42 @@ void test5()
 }
 
 /***************************************************/
+// escape check to nested function symbols
+
+void checkNestedRef(alias dg)(bool isnested)
+{
+    static if (is(typeof(dg) == delegate))
+        enum isNested = true;
+    else static if ((is(typeof(dg) PF == F*, F) && is(F == function)))
+        enum isNested = false;
+    else
+        static assert(0);
+
+    assert(isnested == isNested);
+    dg();
+}
+
+void freeFunc(){}
+
+void test6()
+{
+    static void localFunc(){}
+    void nestedLocalFunc(){}
+
+    checkNestedRef!({  })(false);
+
+    checkNestedRef!({ freeFunc(); })(false);
+    checkNestedRef!({ localFunc(); })(false);
+    checkNestedRef!({ nestedLocalFunc(); })(true);
+    checkNestedRef!({ void inner(){} inner(); })(false);
+
+    checkNestedRef!({ auto f = &freeFunc; })(false);
+    checkNestedRef!({ auto f = &localFunc; })(false);
+    checkNestedRef!({ auto f = &nestedLocalFunc; })(true);
+    checkNestedRef!({ void inner(){} auto f = &inner; })(false);
+}
+
+/***************************************************/
 // 3235
 
 void test3235()
@@ -259,6 +295,7 @@ int main()
     test4();
     test4v();
     test5();
+    test6();
     test3235();
     test6714();
     test7193();

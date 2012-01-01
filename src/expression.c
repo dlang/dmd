@@ -4683,6 +4683,9 @@ Expression *SymOffExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
         v->checkNestedReference(sc, loc);
+    FuncDeclaration *f = var->isFuncDeclaration();
+    if (f)
+        f->checkNestedReference(sc, loc);
     return this;
 }
 
@@ -4773,6 +4776,9 @@ Expression *VarExp::semantic(Scope *sc)
         checkPurity(sc, v, NULL);
 #endif
     }
+    FuncDeclaration *f = var->isFuncDeclaration();
+    if (f)
+        f->checkNestedReference(sc, loc);
 #if 0
     else if ((fd = var->isFuncLiteralDeclaration()) != NULL)
     {   Expression *e;
@@ -8039,6 +8045,7 @@ Lagain:
         checkPurity(sc, f);
         checkSafety(sc, f);
 #endif
+        f->checkNestedReference(sc, loc);
 
         if (f->needThis() && hasThis(sc))
         {
