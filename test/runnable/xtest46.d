@@ -73,7 +73,7 @@ void test4()
         if(!(mask & m)) {
           bool ok = true;
           int dif;
-          foreach(nb; neighbors[k]) 
+          foreach(nb; neighbors[k])
             if((dif=grid[nb]-d)==1 || dif==-1) {
               ok = false; break;
             }
@@ -1515,7 +1515,7 @@ void test80()
 void test81()
 {
     int[3] a = [1, 2, 3];
-    int[3] b = a;       
+    int[3] b = a;
     a[1] = 42;
     assert(b[1] == 2); // b is an independent copy of a
     int[3] fun(int[3] x, int[3] y) {
@@ -1610,10 +1610,10 @@ T1[] find(T1, T2)(T1[] longer, T2[] shorter)
    return longer;
 }
 
-auto max(T...)(T a) 
-      if (T.length == 2 
+auto max(T...)(T a)
+      if (T.length == 2
          && is(typeof(a[1] > a[0] ? a[1] : a[0]))
-       || T.length > 2 
+       || T.length > 2
          && is(typeof(max(max(a[0], a[1]), a[2 .. $])))) {
    static if (T.length == 2) {
       return a[1] > a[0] ? a[1] : a[0];
@@ -2292,7 +2292,7 @@ void test124() {
     Bar124[string] stuff2;
     Bar124 q;
     stuff2["dog"] = q;
-    assert(stuff2["dog"].z == 17);   
+    assert(stuff2["dog"].z == 17);
 }
 
 /***************************************************/
@@ -2307,7 +2307,7 @@ void bug5071(short d, ref short c) {
         auto d2 = d;
         doNothing();
     }
-    auto useless = &closure;    
+    auto useless = &closure;
 }
 
 void test125()
@@ -2376,7 +2376,7 @@ pure nothrow @safe int  bug4915b() { return bug4915a(); }
 void bug4915c()
 {
     pure nothrow @safe int d() { return 0; }
-    int e() pure nothrow @safe { return d(); }    
+    int e() pure nothrow @safe { return d(); }
 }
 
 /***************************************************/
@@ -2427,7 +2427,7 @@ void test129()
     writeln(foo.value);
     assert(foo.value == 13);
 
-    void delegate (int) nothrow dg = &foo.add!(int);    
+    void delegate (int) nothrow dg = &foo.add!(int);
     dg(7);
     assert(foo.value == 20);
 }
@@ -2520,9 +2520,9 @@ struct S132
 // 5343
 
 struct Tuple5343(Specs...)
-{    
+{
     Specs[0] field;
-}    
+}
 
 struct S5343(E)
 {
@@ -2594,8 +2594,8 @@ class A134
 
     B134 b()
     {
-        return _b;        
-    }   
+        return _b;
+    }
 
     alias b this;
 }
@@ -2605,7 +2605,7 @@ void test134()
 
     auto a = new A134;
     B134 b = a; // b is null
-    assert(a._b is b); // fails 
+    assert(a._b is b); // fails
 }
 
 /***************************************************/
@@ -2697,13 +2697,13 @@ struct Size138
             int width;
             int height;
         }
-       
+
         long size;
     }
 }
 
 enum Size138 foo138 = {2 ,5};
-    
+
 Size138 bar138 = foo138;
 
 void test138()
@@ -2797,7 +2797,7 @@ void bug5976()
             k = &b;
         k = &b;
     }
-} 
+}
 
 /***************************************************/
 // 5771
@@ -2891,7 +2891,7 @@ void startsWith(alias pred) ()   if (is(typeof(pred('c', "abc")) : bool))
 void test144()
 {
     startsWith!((a, b) { return a == b; })();
-} 
+}
 
 /***************************************************/
 
@@ -3030,21 +3030,21 @@ void test2540()
 }
 
 /***************************************************/
-// 5659 
- 
-void test149() 
-{ 
-    import std.traits; 
- 
-    char a; 
-    immutable(char) b; 
- 
-    static assert(is(typeof(true ? a : b) == const(char))); 
-    static assert(is(typeof([a, b][0]) == const(char))); 
- 
-    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char))); 
-} 
- 
+// 5659
+
+void test149()
+{
+    import std.traits;
+
+    char a;
+    immutable(char) b;
+
+    static assert(is(typeof(true ? a : b) == const(char)));
+    static assert(is(typeof([a, b][0]) == const(char)));
+
+    static assert(is(CommonType!(typeof(a), typeof(b)) == const(char)));
+}
+
 
 /***************************************************/
 // 1373
@@ -3112,7 +3112,7 @@ class A152 {
     auto coo(int i) const { return i; }
     auto doo(int i) immutable { return i; }
     auto eoo(int i) shared { return i; }
-} 
+}
 
 // 4706
 
@@ -3317,13 +3317,13 @@ void test4963()
     auto x = single() ~ list;
 }
 
-/***************************************************/ 
+/***************************************************/
 
-pure int test4031() 
-{ 
-    static const int x = 8; 
-    return x; 
-} 
+pure int test4031()
+{
+    static const int x = 8;
+    return x;
+}
 
 /***************************************************/
 // 1962
@@ -3334,7 +3334,7 @@ void test1962()
     class C { abstract void x(); }
     assert(C.classinfo.create() is null);
 }
- 
+
 /***************************************************/
 // 6228
 
@@ -3420,26 +3420,26 @@ void test6264()
 }
 
 /***************************************************/
-// 5046 
- 
-void test5046() 
-{ 
-    auto va = S5046!("", int)(); 
-    auto vb = makeS5046!("", int)(); 
-} 
- 
-struct S5046(alias p, T) 
-{ 
-    T s; 
-    T fun() { return s; }   // (10) 
-} 
- 
-S5046!(p, T) makeS5046(alias p, T)() 
-{ 
-    return typeof(return)(); 
-} 
- 
-/***************************************************/ 
+// 5046
+
+void test5046()
+{
+    auto va = S5046!("", int)();
+    auto vb = makeS5046!("", int)();
+}
+
+struct S5046(alias p, T)
+{
+    T s;
+    T fun() { return s; }   // (10)
+}
+
+S5046!(p, T) makeS5046(alias p, T)()
+{
+    return typeof(return)();
+}
+
+/***************************************************/
 // 6335
 
 struct S6335
@@ -3452,7 +3452,7 @@ void test6335()
     S6335 s = S6335(10);
 }
 
-/***************************************************/ 
+/***************************************************/
 
 struct S6295(int N) {
     int[N] x;
@@ -4330,6 +4330,18 @@ void test7170()
 }
 
 /***************************************************/
+// 7196
+
+auto foo7196(int x){return x;}
+auto foo7196(double x){return x;}
+
+void test7196()
+{
+    auto x = (&foo7196)(1);   // ok
+    auto y = (&foo7196)(1.0); // fail
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4536,6 +4548,7 @@ int main()
     test7160();
     test7168();
     test7170();
+    test7196();
 
     printf("Success\n");
     return 0;
