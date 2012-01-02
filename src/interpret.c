@@ -1583,7 +1583,7 @@ Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
  * srcPointee is the genuine type (never void).
  * destPointee may be void.
  */
-bool isSafePointerCast(Type *srcPointee, Type*destPointee)
+bool isSafePointerCast(Type *srcPointee, Type *destPointee)
 {   // It's OK if both are the same (modulo const)
 #if DMDV2
     if (srcPointee->castMod(0) == destPointee->castMod(0))
@@ -2426,6 +2426,21 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
     *ofs = 0;
     if (e->op == TOKaddress)
         e = ((AddrExp *)e)->e1;
+    if (e->op == TOKdotvar)
+    {
+        Expression *ex = ((DotVarExp *)e)->e1;
+        VarDeclaration *v = ((DotVarExp *)e)->var->isVarDeclaration();
+        assert(v);
+        StructLiteralExp *se = ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : (StructLiteralExp *)ex;
+        // We can't use getField, because it makes a copy
+        int i = -1;
+        if (ex->op == TOKclassreference)
+            i = ((ClassReferenceExp *)ex)->getFieldIndex(e->type, v->offset);
+        else
+            i = se->getFieldIndex(e->type, v->offset);
+        assert(i != -1);
+        e = se->elements->tdata()[i];
+    }
     if (e->op == TOKindex)
     {
         IndexExp *ie = (IndexExp *)e;
@@ -2624,10 +2639,12 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
     dinteger_t ofs1, ofs2;
     Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
     Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
+    // Note that type painting can occur with VarExp, so we
+    // must compare the variables being pointed to.
     if (agg1 == agg2 ||
-        (agg1->op == TOKstring && agg2->op == TOKstring &&
-        ((StringExp *)agg1)->string == ((StringExp *)agg2)->string))
-
+        (agg1->op == TOKvar && agg2->op == TOKvar &&
+        ((VarExp *)agg1)->var == ((VarExp *)agg2)->var)
+        )
     {
         dinteger_t cm = ofs1 - ofs2;
         dinteger_t n;
@@ -2648,11 +2665,11 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
         return new IntegerExp(loc, n, type);
     }
     int cmp;
-    if (e1->op == TOKnull)
+    if (agg1->op == TOKnull)
     {
-        cmp = (e2->op == TOKnull);
+        cmp = (agg2->op == TOKnull);
     }
-    else if (e2->op == TOKnull)
+    else if (agg2->op == TOKnull)
     {
         cmp = 0;
     }

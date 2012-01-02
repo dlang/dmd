@@ -1961,6 +1961,37 @@ struct AList
 static assert(AList.checkList()==2);
 
 /**************************************************
+    7194 pointers as struct members
+**************************************************/
+
+struct S7194 { int* p, p2; }
+
+int f7194() {
+    assert(S7194().p == null);
+    assert(!S7194().p);
+    assert(S7194().p == S7194().p2);
+    S7194 s = S7194();
+    assert(!s.p);
+    assert(s.p == null);
+    assert(s.p == s.p2);
+    int x;
+    s.p = &x;
+    s.p2 = s.p;
+    assert(s.p == &x);
+    return 0;
+}
+
+int g7194() {
+    auto s = S7194();
+    assert(s.p);  // should fail
+    return 0;
+}
+
+static assert(f7194() == 0);
+static assert(!is(typeof(compiles!( g7194() ))));
+
+
+/**************************************************
     4065 [CTFE] AA "in" operator doesn't work
 **************************************************/
 
