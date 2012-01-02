@@ -388,12 +388,12 @@ body
  * If key is not in aa[], do nothing.
  */
 
-void _aaDel(AA aa, TypeInfo keyti, ...)
+bool _aaDel(AA aa, TypeInfo keyti, ...)
 {
     return _aaDelX(aa, keyti, cast(void*)(&keyti + 1));
 }
 
-void _aaDelX(AA aa, TypeInfo keyti, void* pkey)
+bool _aaDelX(AA aa, TypeInfo keyti, void* pkey)
 {
     aaA *e;
 
@@ -413,12 +413,13 @@ void _aaDelX(AA aa, TypeInfo keyti, void* pkey)
                     *pe = e.next;
                     aa.a.nodes--;
                     gc_free(e);
-                    break;
+                    return true;
                 }
             }
             pe = &e.next;
         }
     }
+    return false;
 }
 
 
