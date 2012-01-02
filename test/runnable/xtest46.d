@@ -4283,6 +4283,17 @@ static assert(!__traits(hasMember, int, "x"));
 static assert( __traits(hasMember, int, "init"));
 
 /***************************************************/
+// 7073
+
+void test7073()
+{
+    string f(int[] arr...)
+    {
+        return "";
+    }
+}
+
+/***************************************************/
 // 7160
 
 class HomeController {
@@ -4533,6 +4544,7 @@ int main()
     test6868();
     test2856();
     test6056();
+    test7073();
     test7160();
     test7168();
     test7170();
