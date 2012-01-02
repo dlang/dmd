@@ -62,6 +62,8 @@ struct elem;
 
 void initPrecedence();
 
+typedef int (*apply_fp_t)(Expression *, void *);
+
 Expression *resolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
@@ -100,6 +102,7 @@ struct Expression : Object
     Expression(Loc loc, enum TOK op, int size);
     Expression *copy();
     virtual Expression *syntaxCopy();
+    virtual int apply(apply_fp_t fp, void *param);
     virtual Expression *semantic(Scope *sc);
     Expression *trySemantic(Scope *sc);
 
@@ -399,6 +402,7 @@ struct TupleExp : Expression
     TupleExp(Loc loc, Expressions *exps);
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     int equals(Object *o);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -425,6 +429,7 @@ struct ArrayLiteralExp : Expression
     ArrayLiteralExp(Loc loc, Expression *e);
 
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     int isBool(int result);
     elem *toElem(IRState *irs);
@@ -454,6 +459,7 @@ struct AssocArrayLiteralExp : Expression
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
 
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     int isBool(int result);
     elem *toElem(IRState *irs);
@@ -487,6 +493,7 @@ struct StructLiteralExp : Expression
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
@@ -557,6 +564,7 @@ struct NewExp : Expression
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
         Type *newtype, Expressions *arguments);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *optimize(int result);
@@ -583,6 +591,7 @@ struct NewAnonClassExp : Expression
     NewAnonClassExp(Loc loc, Expression *thisexp, Expressions *newargs,
         ClassDeclaration *cd, Expressions *arguments);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -771,6 +780,7 @@ struct UnaExp : Expression
 
     UnaExp(Loc loc, enum TOK op, int size, Expression *e1);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *optimize(int result);
@@ -795,6 +805,7 @@ struct BinExp : Expression
 
     BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *semanticp(Scope *sc);
     int checkSideEffect(int flag);
@@ -965,6 +976,7 @@ struct CallExp : UnaExp
     CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2);
 
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *resolveUFCS(Scope *sc);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
@@ -1121,6 +1133,7 @@ struct SliceExp : UnaExp
 
     SliceExp(Loc loc, Expression *e1, Expression *lwr, Expression *upr);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     void checkEscape();
     void checkEscapeRef();
@@ -1165,6 +1178,7 @@ struct ArrayExp : UnaExp
 
     ArrayExp(Loc loc, Expression *e1, Expressions *arguments);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1419,7 +1433,7 @@ struct PowExp : BinExp
     // For operator overloading
     Identifier *opId();
     Identifier *opId_r();
-    
+
     elem *toElem(IRState *irs);
 };
 #endif
@@ -1625,6 +1639,7 @@ struct CondExp : BinExp
 
     CondExp(Loc loc, Expression *econd, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

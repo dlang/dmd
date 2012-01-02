@@ -85,7 +85,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	json.obj unittests.obj imphint.obj argtypes.obj
+	json.obj unittests.obj imphint.obj argtypes.obj apply.obj
 
 # from C/C++ compiler optimizer and back end
 
@@ -124,7 +124,8 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c intrange.c \
-	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c
+	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
+	apply.c
 
 # From C++ compiler
 
@@ -472,6 +473,7 @@ win32.obj : $(ROOT)\gc\os.h $(ROOT)\gc\win32.c
 
 access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.c
 aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
+apply.obj : $(TOTALH) apply.c
 argtypes.obj : $(TOTALH) mtype.h argtypes.c
 arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
 attrib.obj : $(TOTALH) identifier.h declaration.h attrib.h attrib.c
