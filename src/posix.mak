@@ -83,7 +83,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o
+	imphint.o argtypes.o ti_pvoid.o apply.o
 
 ifeq (OSX,$(TARGET))
     DMD_OBJS += libmach.o machobj.o
@@ -108,7 +108,7 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c \
+	argtypes.c apply.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -190,6 +190,9 @@ access.o: access.c
 	$(CC) -c $(CFLAGS) $<
 
 aliasthis.o: aliasthis.c
+	$(CC) -c $(CFLAGS) $<
+
+apply.o: apply.c
 	$(CC) -c $(CFLAGS) $<
 
 argtypes.o: argtypes.c
@@ -581,6 +584,7 @@ version.o: version.c
 gcov:
 	gcov access.c
 	gcov aliasthis.c
+	gcov apply.c
 	gcov arrayop.c
 	gcov attrib.c
 	gcov builtin.c
