@@ -11891,7 +11891,7 @@ int InExp::isBit()
 RemoveExp::RemoveExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKremove, sizeof(RemoveExp), e1, e2)
 {
-    type = Type::tvoid;
+    type = Type::tboolean;
 }
 
 void RemoveExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
