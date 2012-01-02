@@ -272,6 +272,15 @@ void test7722b()
 }
 
 /*******************************************/
+// 7174
+
+void test7174()
+{
+    @property bool foo7174() { return true; }
+    static if (foo7174) {}
+}
+
+/***************************************************/
 
 int main()
 {
@@ -279,6 +288,7 @@ int main()
     test7722();
     test7722a();
     test7722b();
+    test7174();
 
     printf("Success\n");
     return 0;
