@@ -1506,14 +1506,27 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     elf_getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
     ehtab_entry->Stype->Tmangle = mTYman_c;
     ehsym->Stype->Tmangle = mTYman_c;
+
+    assert(sfunc->Sxtrnnum && sfunc->Sseg);
+    assert(ehsym->Sxtrnnum && ehsym->Sseg);
     if (I64)
-    {   reftoident(seg, buf->size(), sfunc, 0, CFoff | CFoffset64);
-        reftoident(seg, buf->size(), ehsym, 0, CFoff | CFoffset64);
+    {
+        elf_addrel(seg, buf->size(), R_X86_64_64, MAP_SEG2SYMIDX(sfunc->Sseg), sfunc->Soffset);
+        buf->write64(0);
+
+        elf_addrel(seg, buf->size(), R_X86_64_64, MAP_SEG2SYMIDX(ehsym->Sseg), ehsym->Soffset);
+        buf->write64(0);
+
         buf->write64(sfunc->Ssize);
     }
     else
-    {   reftoident(seg, buf->size(), sfunc, 0, CFoff);
-        reftoident(seg, buf->size(), ehsym, 0, CFoff);
+    {
+        elf_addrel(seg, buf->size(), RI_TYPE_SYM32, MAP_SEG2SYMIDX(sfunc->Sseg), 0);
+        buf->write32(sfunc->Soffset);
+
+        elf_addrel(seg, buf->size(), RI_TYPE_SYM32, MAP_SEG2SYMIDX(ehsym->Sseg), 0);
+        buf->write64(ehsym->Soffset);
+
         buf->write32(sfunc->Ssize);
     }
 }
