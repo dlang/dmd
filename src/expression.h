@@ -160,7 +160,7 @@ struct Expression : Object
     virtual int checkSideEffect(int flag);
     virtual int canThrow();
 
-    virtual int inlineCost(InlineCostState *ics);
+    virtual int inlineCost3(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
     virtual Expression *inlineScan(InlineScanState *iss);
     Expression *inlineCopy(Scope *sc);
@@ -304,7 +304,7 @@ struct ThisExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Scope *sc, Expression *e);
 
-    int inlineCost(InlineCostState *ics);
+    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 
@@ -317,7 +317,6 @@ struct SuperExp : ThisExp
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
@@ -391,7 +390,6 @@ struct TupleExp : Expression
     Expression *castTo(Scope *sc, Type *t);
     elem *toElem(IRState *irs);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -419,7 +417,6 @@ struct ArrayLiteralExp : Expression
     Expression *castTo(Scope *sc, Type *t);
     dt_t **toDt(dt_t **pdt);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -445,7 +442,6 @@ struct AssocArrayLiteralExp : Expression
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -478,7 +474,7 @@ struct StructLiteralExp : Expression
     dt_t **toDt(dt_t **pdt);
     Expression *toLvalue(Scope *sc, Expression *e);
 
-    int inlineCost(InlineCostState *ics);
+    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -539,7 +535,7 @@ struct NewExp : Expression
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    //int inlineCost(InlineCostState *ics);
+    //int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
@@ -618,7 +614,6 @@ struct VarExp : Expression
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
@@ -651,7 +646,7 @@ struct FuncExp : Expression
     elem *toElem(IRState *irs);
     dt_t **toDt(dt_t **pdt);
 
-    int inlineCost(InlineCostState *ics);
+    int inlineCost3(InlineCostState *ics);
     //Expression *doInline(InlineDoState *ids);
     //Expression *inlineScan(InlineScanState *iss);
 };
@@ -670,7 +665,7 @@ struct DeclarationExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
-    int inlineCost(InlineCostState *ics);
+    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -740,7 +735,6 @@ struct UnaExp : Expression
     void dump(int indent);
     Expression *interpretCommon(InterState *istate, CtfeGoal goal, Expression *(*fp)(Type *, Expression *));
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 
@@ -777,7 +771,6 @@ struct BinExp : Expression
         Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
     Expression *arrayOp(Scope *sc);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 
@@ -814,12 +807,12 @@ struct AssertExp : UnaExp
 
     AssertExp(Loc loc, Expression *e, Expression *msg = NULL);
     Expression *syntaxCopy();
+    int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 
@@ -882,7 +875,7 @@ struct DelegateExp : UnaExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
 
-    int inlineCost(InlineCostState *ics);
+    int inlineCost3(InlineCostState *ics);
     elem *toElem(IRState *irs);
 };
 
@@ -917,7 +910,7 @@ struct CallExp : UnaExp
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
-    int inlineCost(InlineCostState *ics);
+    int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -1062,7 +1055,6 @@ struct SliceExp : UnaExp
     Expression *buildArrayLoop(Parameters *fparams);
     int canThrow();
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -1093,7 +1085,6 @@ struct ArrayExp : UnaExp
     // For operator overloading
     Identifier *opId();
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -1517,7 +1508,6 @@ struct CondExp : BinExp
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
-    int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 
