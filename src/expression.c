@@ -1682,22 +1682,6 @@ int Expression::isBit()
     return FALSE;
 }
 
-/********************************
- * Can this expression throw an exception?
- * Valid only after semantic() pass.
- *
- * If 'mustNotThrow' is true, generate an error if it throws
- */
-
-int Expression::canThrow(bool mustNotThrow)
-{
-#if DMDV2
-    return FALSE;
-#else
-    return TRUE;
-#endif
-}
-
 /****************************************
  * Resolve __LINE__ and __FILE__ to loc.
  */
@@ -3547,16 +3531,6 @@ int ArrayLiteralExp::isBool(int result)
     return result ? (dim != 0) : (dim == 0);
 }
 
-#if DMDV2
-int ArrayLiteralExp::canThrow(bool mustNotThrow)
-{
-    /* Memory allocation failures throw non-recoverable exceptions, which
-     * we don't need to count as 'throwing'.
-     */
-    return arrayExpressionCanThrow(elements, mustNotThrow);
-}
-#endif
-
 StringExp *ArrayLiteralExp::toString()
 {
     TY telem = type->nextOf()->toBasetype()->ty;
@@ -3673,17 +3647,6 @@ int AssocArrayLiteralExp::isBool(int result)
     size_t dim = keys->dim;
     return result ? (dim != 0) : (dim == 0);
 }
-
-#if DMDV2
-int AssocArrayLiteralExp::canThrow(bool mustNotThrow)
-{
-    /* Memory allocation failures throw non-recoverable exceptions, which
-     * we don't need to count as 'throwing'.
-     */
-    return (arrayExpressionCanThrow(keys,   mustNotThrow) ||
-            arrayExpressionCanThrow(values, mustNotThrow));
-}
-#endif
 
 void AssocArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -3950,13 +3913,6 @@ int StructLiteralExp::checkSideEffect(int flag)
         Expression::checkSideEffect(0);
     return f;
 }
-
-#if DMDV2
-int StructLiteralExp::canThrow(bool mustNotThrow)
-{
-    return arrayExpressionCanThrow(elements, mustNotThrow);
-}
-#endif
 
 void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4525,28 +4481,6 @@ int NewExp::checkSideEffect(int flag)
     return 1;
 }
 
-#if DMDV2
-int NewExp::canThrow(bool mustNotThrow)
-{
-    if (arrayExpressionCanThrow(newargs, mustNotThrow) ||
-        arrayExpressionCanThrow(arguments, mustNotThrow))
-        return 1;
-    if (member)
-    {
-        // See if constructor call can throw
-        Type *t = member->type->toBasetype();
-        if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
-        {
-            if (mustNotThrow)
-                error("constructor %s is not nothrow", member->toChars());
-            return 1;
-        }
-    }
-    // regard storage allocation failures as not recoverable
-    return 0;
-}
-#endif
-
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (thisexp)
@@ -4612,14 +4546,6 @@ int NewAnonClassExp::checkSideEffect(int flag)
 {
     return 1;
 }
-
-#if DMDV2
-int NewAnonClassExp::canThrow(bool mustNotThrow)
-{
-    assert(0);          // should have been lowered by semantic()
-    return 1;
-}
-#endif
 
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5000,13 +4926,6 @@ int TupleExp::checkSideEffect(int flag)
     return f;
 }
 
-#if DMDV2
-int TupleExp::canThrow(bool mustNotThrow)
-{
-    return arrayExpressionCanThrow(exps, mustNotThrow);
-}
-#endif
-
 void TupleExp::checkEscape()
 {
     for (size_t i = 0; i < exps->dim; i++)
@@ -5352,91 +5271,6 @@ int DeclarationExp::checkSideEffect(int flag)
 {
     return 1;
 }
-
-#if DMDV2
-/**************************************
- * Does symbol, when initialized, throw?
- * Mirrors logic in Dsymbol_toElem().
- */
-
-int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
-{
-    AttribDeclaration *ad;
-    VarDeclaration *vd;
-    TemplateMixin *tm;
-    TupleDeclaration *td;
-
-    //printf("Dsymbol_toElem() %s\n", s->toChars());
-    ad = s->isAttribDeclaration();
-    if (ad)
-    {
-        Dsymbols *decl = ad->include(NULL, NULL);
-        if (decl && decl->dim)
-        {
-            for (size_t i = 0; i < decl->dim; i++)
-            {
-                s = decl->tdata()[i];
-                if (Dsymbol_canThrow(s, mustNotThrow))
-                    return 1;
-            }
-        }
-    }
-    else if ((vd = s->isVarDeclaration()) != NULL)
-    {
-        s = s->toAlias();
-        if (s != vd)
-            return Dsymbol_canThrow(s, mustNotThrow);
-        if (vd->storage_class & STCmanifest)
-            ;
-        else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
-            ;
-        else
-        {
-            if (vd->init)
-            {   ExpInitializer *ie = vd->init->isExpInitializer();
-                if (ie && ie->exp->canThrow(mustNotThrow))
-                    return 1;
-            }
-            if (vd->edtor && !vd->noscope)
-                return vd->edtor->canThrow(mustNotThrow);
-        }
-    }
-    else if ((tm = s->isTemplateMixin()) != NULL)
-    {
-        //printf("%s\n", tm->toChars());
-        if (tm->members)
-        {
-            for (size_t i = 0; i < tm->members->dim; i++)
-            {
-                Dsymbol *sm = tm->members->tdata()[i];
-                if (Dsymbol_canThrow(sm, mustNotThrow))
-                    return 1;
-            }
-        }
-    }
-    else if ((td = s->isTupleDeclaration()) != NULL)
-    {
-        for (size_t i = 0; i < td->objects->dim; i++)
-        {   Object *o = td->objects->tdata()[i];
-            if (o->dyncast() == DYNCAST_EXPRESSION)
-            {   Expression *eo = (Expression *)o;
-                if (eo->op == TOKdsymbol)
-                {   DsymbolExp *se = (DsymbolExp *)eo;
-                    if (Dsymbol_canThrow(se->s, mustNotThrow))
-                        return 1;
-                }
-            }
-        }
-    }
-    return 0;
-}
-
-
-int DeclarationExp::canThrow(bool mustNotThrow)
-{
-    return Dsymbol_canThrow(declaration, mustNotThrow);
-}
-#endif
 
 void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5955,13 +5789,6 @@ Expression *UnaExp::semantic(Scope *sc)
     return this;
 }
 
-#if DMDV2
-int UnaExp::canThrow(bool mustNotThrow)
-{
-    return e1->canThrow(mustNotThrow);
-}
-#endif
-
 Expression *UnaExp::resolveLoc(Loc loc, Scope *sc)
 {
     e1 = e1->resolveLoc(loc, sc);
@@ -6102,13 +5929,6 @@ int BinExp::isunsigned()
 {
     return e1->type->isunsigned() || e2->type->isunsigned();
 }
-
-#if DMDV2
-int BinExp::canThrow(bool mustNotThrow)
-{
-    return e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
-}
-#endif
 
 void BinExp::incompatibleTypes()
 {
@@ -6425,16 +6245,6 @@ int AssertExp::checkSideEffect(int flag)
 {
     return 1;
 }
-
-#if DMDV2
-int AssertExp::canThrow(bool mustNotThrow)
-{
-    /* assert()s are non-recoverable errors, so functions that
-     * use them can be considered "nothrow"
-     */
-    return 0; //(global.params.useAssert != 0);
-}
-#endif
 
 void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -8132,36 +7942,6 @@ int CallExp::checkSideEffect(int flag)
 }
 
 #if DMDV2
-int CallExp::canThrow(bool mustNotThrow)
-{
-    //printf("CallExp::canThrow() %s\n", toChars());
-    if (e1->canThrow(mustNotThrow))
-        return 1;
-
-    /* If any of the arguments can throw, then this expression can throw
-     */
-    if (arrayExpressionCanThrow(arguments, mustNotThrow))
-        return 1;
-
-    if (global.errors && !e1->type)
-        return 0;                       // error recovery
-
-    /* If calling a function or delegate that is typed as nothrow,
-     * then this expression cannot throw.
-     * Note that pure functions can throw.
-     */
-    Type *t = e1->type->toBasetype();
-    if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
-        return 0;
-    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-        return 0;
-    if (mustNotThrow)
-        error("%s is not nothrow", e1->toChars());
-    return 1;
-}
-#endif
-
-#if DMDV2
 int CallExp::isLvalue()
 {
 //    if (type->toBasetype()->ty == Tstruct)
@@ -9181,13 +8961,6 @@ void SliceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writestring("length");         // BUG: should be array.length
     }
     buf->writeByte(']');
-}
-
-int SliceExp::canThrow(bool mustNotThrow)
-{
-    return UnaExp::canThrow(mustNotThrow)
-        || (lwr != NULL && lwr->canThrow(mustNotThrow))
-        || (upr != NULL && upr->canThrow(mustNotThrow));
 }
 
 /********************** ArrayLength **************************************/
@@ -12371,13 +12144,6 @@ int CondExp::checkSideEffect(int flag)
         return e2->checkSideEffect(flag);
     }
 }
-
-#if DMDV2
-int CondExp::canThrow(bool mustNotThrow)
-{
-    return econd->canThrow(mustNotThrow) || e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
-}
-#endif
 
 void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {

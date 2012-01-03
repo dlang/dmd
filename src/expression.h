@@ -168,7 +168,7 @@ struct Expression : Object
     virtual int isBool(int result);
     virtual int isBit();
     virtual int checkSideEffect(int flag);
-    virtual int canThrow(bool mustNotThrow);
+    int canThrow(bool mustNotThrow);
 
     virtual int inlineCost3(InlineCostState *ics);
     virtual Expression *doInline(InlineDoState *ids);
@@ -408,7 +408,6 @@ struct TupleExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *castTo(Scope *sc, Type *t);
     elem *toElem(IRState *irs);
-    int canThrow(bool mustNotThrow);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -436,7 +435,6 @@ struct ArrayLiteralExp : Expression
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     dt_t **toDt(dt_t **pdt);
-    int canThrow(bool mustNotThrow);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -462,7 +460,6 @@ struct AssocArrayLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    int canThrow(bool mustNotThrow);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -496,7 +493,6 @@ struct StructLiteralExp : Expression
     dt_t **toDt(dt_t **pdt);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
-    int canThrow(bool mustNotThrow);
     MATCH implicitConvTo(Type *t);
 
     int inlineCost3(InlineCostState *ics);
@@ -560,7 +556,6 @@ struct NewExp : Expression
     elem *toElem(IRState *irs);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int canThrow(bool mustNotThrow);
 
     //int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -583,7 +578,6 @@ struct NewAnonClassExp : Expression
     Expression *semantic(Scope *sc);
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int canThrow(bool mustNotThrow);
 };
 
 #if DMDV2
@@ -696,7 +690,6 @@ struct DeclarationExp : Expression
     int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
-    int canThrow(bool mustNotThrow);
 
     int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -770,7 +763,6 @@ struct UnaExp : Expression
     void dump(int indent);
     Expression *interpretCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *));
-    int canThrow(bool mustNotThrow);
     Expression *resolveLoc(Loc loc, Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
@@ -805,7 +797,6 @@ struct BinExp : Expression
         Expression *(*fp)(TOK, Type *, Expression *, Expression *));
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
-    int canThrow(bool mustNotThrow);
     Expression *arrayOp(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
@@ -860,7 +851,6 @@ struct AssertExp : UnaExp
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     int checkSideEffect(int flag);
-    int canThrow(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Expression *doInline(InlineDoState *ids);
@@ -966,7 +956,6 @@ struct CallExp : UnaExp
     elem *toElem(IRState *irs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
-    int canThrow(bool mustNotThrow);
     Expression *addDtorHook(Scope *sc);
     MATCH implicitConvTo(Type *t);
 
@@ -1126,7 +1115,6 @@ struct SliceExp : UnaExp
     elem *toElem(IRState *irs);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
-    int canThrow(bool mustNotThrow);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -1626,7 +1614,6 @@ struct CondExp : BinExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    int canThrow(bool mustNotThrow);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
