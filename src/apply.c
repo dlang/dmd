@@ -88,6 +88,15 @@ int BinExp::apply(fp_t fp, void *param)
            (*fp)(this, param);
 }
 
+int AssertExp::apply(fp_t fp, void *param)
+{
+    //printf("CallExp::apply(fp_t fp, void *param): %s\n", toChars());
+    return e1->apply(fp, param) ||
+           (msg ? msg->apply(fp, param) : 0) ||
+           (*fp)(this, param);
+}
+
+
 int CallExp::apply(fp_t fp, void *param)
 {
     //printf("CallExp::apply(fp_t fp, void *param): %s\n", toChars());
