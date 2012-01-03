@@ -2454,6 +2454,21 @@ void test6940()
 }
 
 /************************************/
+// 7202
+
+void test7202()
+{
+    void writeln(string s) @system { printf("%.*s\n", s.length, s.ptr); }
+    void delegate() @system x = { writeln("I am @system"); };
+    void delegate() @safe y = {  };
+    auto px = &x;
+    auto py = &y;
+    static assert(!__traits(compiles, px = py)); // accepts-invalid
+    *px = x;
+    y(); // "I am @system" -> no output, OK
+}
+
+/************************************/
 
 int main()
 {
@@ -2558,6 +2573,7 @@ int main()
     test6912();
     test6939();
     test6940();
+    test7202();
 
     printf("Success\n");
     return 0;
