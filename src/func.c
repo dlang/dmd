@@ -2317,11 +2317,6 @@ if (arguments)
         {
             HdrGenState hgs;
 
-            for (size_t i = 0; i < arguments->dim; i++)
-            {   Expression *arg = (*arguments)[i];
-                if (!arg->type) // inference failed
-                    arg->type = Type::terror;
-            }
             argExpTypesToCBuffer(&buf, arguments, &hgs);
             buf.writeByte(')');
             if (ethis)
@@ -2892,6 +2887,36 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
 const char *FuncDeclaration::kind()
 {
     return "function";
+}
+
+void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
+{
+    //printf("FuncDeclaration::checkNestedReference() %s\n", toChars());
+    if (parent && parent != sc->parent && this->isNested() &&
+        this->ident != Id::require && this->ident != Id::ensure)
+    {
+        // The function that this function is in
+        FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+        // The current function
+        FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
+
+        //printf("this = %s in [%s]\n", this->toChars(), this->loc.toChars());
+        //printf("fdv  = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
+        //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
+
+        if (fdv && fdthis && fdv != fdthis)
+        {
+            int lv = fdthis->getLevel(loc, fdv);
+            if (lv == -1)
+                return; // OK
+            if (lv == 0)
+                return; // OK
+
+            // function literal has reference to enclosing scope is delegate
+            if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
+                fld->tok = TOKdelegate;
+        }
+    }
 }
 
 /*******************************

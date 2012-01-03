@@ -2782,7 +2782,7 @@ void test140()
    int foo(int i) { return i; }
 
    int[] arr;
-   auto x = mapx!( function(int a){return foo(a);} )(arr);
+   auto x = mapx!( (int a){return foo(a);} )(arr);
 }
 
 /***************************************************/
