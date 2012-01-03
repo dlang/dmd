@@ -323,6 +323,15 @@ void test7193()
 }
 
 /***************************************************/
+// 7207 : on CastExp
+
+void test7202()
+{
+    auto dg = cast(int function(int))(a => a);
+    assert(dg(10) == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -338,6 +347,7 @@ int main()
     test3235();
     test6714();
     test7193();
+    test7202();
 
     printf("Success\n");
     return 0;

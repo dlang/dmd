@@ -8750,8 +8750,7 @@ Expression *CastExp::syntaxCopy()
 
 
 Expression *CastExp::semantic(Scope *sc)
-{   Expression *e;
-
+{
 #if LOGSEMANTIC
     printf("CastExp::semantic('%s')\n", toChars());
 #endif
@@ -8776,7 +8775,7 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (!to->equals(e1->type))
         {
-            e = op_overload(sc);
+            Expression *e = op_overload(sc);
             if (e)
             {
                 return e->implicitCastTo(sc, to);
@@ -8791,6 +8790,27 @@ Expression *CastExp::semantic(Scope *sc)
 
         Type *t1b = e1->type->toBasetype();
         Type *tob = to->toBasetype();
+
+        if (e1->op == TOKfunction &&
+            (tob->ty == Tdelegate || tob->ty == Tpointer && tob->nextOf()->ty == Tfunction))
+        {
+            FuncExp *fe = (FuncExp *)e1;
+            Expression *e = NULL;
+            if (e1->type == Type::tvoid)
+            {
+                e = fe->inferType(sc, tob);
+            }
+            else if (e1->type->ty == Tpointer && e1->type->nextOf()->ty == Tfunction &&
+                     fe->tok == TOKreserved &&
+                     tob->ty == Tdelegate)
+            {
+                if (fe->implicitConvTo(tob))
+                    e = fe->castTo(sc, tob);
+            }
+            if (e)
+                e1 = e->semantic(sc);
+        }
+
         if (tob->ty == Tstruct &&
             !tob->equals(t1b)
            )
@@ -8802,7 +8822,7 @@ Expression *CastExp::semantic(Scope *sc)
              */
 
             // Rewrite as to.call(e1)
-            e = new TypeExp(loc, to);
+            Expression *e = new TypeExp(loc, to);
             e = new CallExp(loc, e, e1);
             e = e->trySemantic(sc);
             if (e)
@@ -8895,7 +8915,7 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
 Lsafe:
-    e = e1->castTo(sc, to);
+    Expression *e = e1->castTo(sc, to);
     return e;
 }
 
