@@ -1089,8 +1089,9 @@ version( unittest )
         static class Klass {}
         testCAS!(shared Klass)( new shared(Klass) );
 
-        testType!(float)(1.0f);
-        testType!(double)(1.0);
+        // Cannot test for == with .init, because NaN is always !=
+//        testType!(float)(1.0f);
+//        testType!(double)(1.0);
 
         static if( has64BitCAS )
         {
