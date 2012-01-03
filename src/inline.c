@@ -48,6 +48,7 @@ const int STATEMENT_COST_MAX = 250 * 0x1000;
 
 bool tooCostly(int cost) { return ((cost & (STATEMENT_COST - 1)) >= COST_MAX); }
 
+int expressionInlineCost(Expression *e, InlineCostState *ics);
 
 int Statement::inlineCost(InlineCostState *ics)
 {
@@ -59,7 +60,8 @@ int Statement::inlineCost(InlineCostState *ics)
 
 int ExpStatement::inlineCost(InlineCostState *ics)
 {
-    return exp ? exp->inlineCost(ics) : 0;
+    return expressionInlineCost(exp, ics);
+    //return exp ? exp->inlineCost(ics) : 0;
 }
 
 int CompoundStatement::inlineCost(InlineCostState *ics)
@@ -108,7 +110,7 @@ int IfStatement::inlineCost(InlineCostState *ics)
     if (arg)
         return COST_MAX;
 
-    cost = condition->inlineCost(ics);
+    cost = expressionInlineCost(condition, ics);
 
     /* Specifically allow:
      *  if (condition)
@@ -144,7 +146,7 @@ int ReturnStatement::inlineCost(InlineCostState *ics)
     // Can't handle return statements nested in if's
     if (ics->nested)
         return COST_MAX;
-    return exp ? exp->inlineCost(ics) : 0;
+    return expressionInlineCost(exp, ics);
 }
 
 #if DMDV2
@@ -161,9 +163,9 @@ int ForStatement::inlineCost(InlineCostState *ics)
     if (init)
         cost += init->inlineCost(ics);
     if (condition)
-        cost += condition->inlineCost(ics);
+        cost += expressionInlineCost(condition, ics);
     if (increment)
-        cost += increment->inlineCost(ics);
+        cost += expressionInlineCost(increment, ics);
     if (body)
         cost += body->inlineCost(ics);
     //printf("ForStatement: inlineCost = %d\n", cost);
@@ -173,39 +175,37 @@ int ForStatement::inlineCost(InlineCostState *ics)
 
 /* -------------------------- */
 
-int arrayInlineCost(InlineCostState *ics, Expressions *arguments)
-{   int cost = 0;
+struct ICS2
+{
+    int cost;
+    InlineCostState *ics;
+};
 
-    if (arguments)
-    {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (*arguments)[i];
-
-            if (e)
-            {
-                cost += e->inlineCost(ics);
-                if (tooCostly(cost))
-                    break;
-            }
-        }
-    }
-    return cost;
+int lambdaInlineCost(Expression *e, void *param)
+{
+    ICS2 *ics2 = (ICS2 *)param;
+    ics2->cost += e->inlineCost3(ics2->ics);
+    return (ics2->cost >= COST_MAX);
 }
 
-int Expression::inlineCost(InlineCostState *ics)
+int expressionInlineCost(Expression *e, InlineCostState *ics)
+{
+    ICS2 ics2;
+    ics2.cost = 0;
+    ics2.ics = ics;
+    if (e)
+        e->apply(&lambdaInlineCost, &ics2);
+    return ics2.cost;
+}
+
+int Expression::inlineCost3(InlineCostState *ics)
 {
     return 1;
 }
 
-int VarExp::inlineCost(InlineCostState *ics)
+int ThisExp::inlineCost3(InlineCostState *ics)
 {
-    //printf("VarExp::inlineCost() %s\n", toChars());
-    return 1;
-}
-
-int ThisExp::inlineCost(InlineCostState *ics)
-{
-    //printf("ThisExp::inlineCost() %s\n", toChars());
+    //printf("ThisExp::inlineCost3() %s\n", toChars());
     FuncDeclaration *fd = ics->fd;
     if (!fd)
         return COST_MAX;
@@ -215,58 +215,34 @@ int ThisExp::inlineCost(InlineCostState *ics)
     return 1;
 }
 
-int SuperExp::inlineCost(InlineCostState *ics)
+int StructLiteralExp::inlineCost3(InlineCostState *ics)
 {
-    FuncDeclaration *fd = ics->fd;
-    if (!fd)
-        return COST_MAX;
-    if (!ics->hdrscan)
-        if (fd->isNested() || !ics->hasthis)
-            return COST_MAX;
-    return 1;
-}
-
-int TupleExp::inlineCost(InlineCostState *ics)
-{
-    return 1 + arrayInlineCost(ics, exps);
-}
-
-int ArrayLiteralExp::inlineCost(InlineCostState *ics)
-{
-    return 1 + arrayInlineCost(ics, elements);
-}
-
-int AssocArrayLiteralExp::inlineCost(InlineCostState *ics)
-{
-    return 1 + arrayInlineCost(ics, keys) + arrayInlineCost(ics, values);
-}
-
-int StructLiteralExp::inlineCost(InlineCostState *ics)
-{
+    //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
 #if DMDV2
     if (sd->isnested)
         return COST_MAX;
 #endif
-    return 1 + arrayInlineCost(ics, elements);
+    return 1;
 }
 
-int FuncExp::inlineCost(InlineCostState *ics)
+int FuncExp::inlineCost3(InlineCostState *ics)
 {
-    //printf("FuncExp::inlineCost()\n");
+    //printf("FuncExp::inlineCost3()\n");
     // Right now, this makes the function be output to the .obj file twice.
     return COST_MAX;
 }
 
-int DelegateExp::inlineCost(InlineCostState *ics)
+int DelegateExp::inlineCost3(InlineCostState *ics)
 {
+    //printf("DelegateExp::inlineCost3()\n");
     return COST_MAX;
 }
 
-int DeclarationExp::inlineCost(InlineCostState *ics)
+int DeclarationExp::inlineCost3(InlineCostState *ics)
 {   int cost = 0;
     VarDeclaration *vd;
 
-    //printf("DeclarationExp::inlineCost()\n");
+    //printf("DeclarationExp::inlineCost3()\n");
     vd = declaration->isVarDeclaration();
     if (vd)
     {
@@ -302,7 +278,7 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
 
             if (ie)
             {
-                cost += ie->exp->inlineCost(ics);
+                cost += expressionInlineCost(ie->exp, ics);
             }
         }
     }
@@ -318,58 +294,19 @@ int DeclarationExp::inlineCost(InlineCostState *ics)
         declaration->isTemplateMixin())
         return COST_MAX;
 
-    //printf("DeclarationExp::inlineCost('%s')\n", toChars());
+    //printf("DeclarationExp::inlineCost3('%s')\n", toChars());
     return cost;
 }
 
-int UnaExp::inlineCost(InlineCostState *ics)
+int CallExp::inlineCost3(InlineCostState *ics)
 {
-    return 1 + e1->inlineCost(ics);
-}
-
-int AssertExp::inlineCost(InlineCostState *ics)
-{
-    return 1 + e1->inlineCost(ics) + (msg ? msg->inlineCost(ics) : 0);
-}
-
-int BinExp::inlineCost(InlineCostState *ics)
-{
-    return 1 + e1->inlineCost(ics) + e2->inlineCost(ics);
-}
-
-int CallExp::inlineCost(InlineCostState *ics)
-{
+    //printf("CallExp::inlineCost3() %s\n", toChars());
     // Bugzilla 3500: super.func() calls must be devirtualized, and the inliner
     // can't handle that at present.
     if (e1->op == TOKdotvar && ((DotVarExp *)e1)->e1->op == TOKsuper)
         return COST_MAX;
 
-    return 1 + e1->inlineCost(ics) + arrayInlineCost(ics, arguments);
-}
-
-int SliceExp::inlineCost(InlineCostState *ics)
-{   int cost;
-
-    cost = 1 + e1->inlineCost(ics);
-    if (lwr)
-        cost += lwr->inlineCost(ics);
-    if (upr)
-        cost += upr->inlineCost(ics);
-    return cost;
-}
-
-int ArrayExp::inlineCost(InlineCostState *ics)
-{
-    return 1 + e1->inlineCost(ics) + arrayInlineCost(ics, arguments);
-}
-
-
-int CondExp::inlineCost(InlineCostState *ics)
-{
-    return 1 +
-         e1->inlineCost(ics) +
-         e2->inlineCost(ics) +
-         econd->inlineCost(ics);
+    return 1;
 }
 
 
@@ -1811,7 +1748,7 @@ Expression *Expression::inlineCopy(Scope *sc)
 
     memset(&ics, 0, sizeof(ics));
     ics.hdrscan = 1;                    // so DeclarationExp:: will work on 'statics' which are not
-    int cost = inlineCost(&ics);
+    int cost = expressionInlineCost(this, &ics);
     if (cost >= COST_MAX)
     {   error("cannot inline default argument %s", toChars());
         return new ErrorExp();
