@@ -652,6 +652,7 @@ struct FuncDeclaration : Declaration
     const char *kind();
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();
+    void checkNestedReference(Scope *sc, Loc loc);
     int needsClosure();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
