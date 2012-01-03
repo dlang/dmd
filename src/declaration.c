@@ -101,7 +101,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     else
     {
         VarDeclaration *v = isVarDeclaration();
-        if (v && v->canassign == 0)
+        if (v && !(v->flags & VARDECLcanassign))
         {
             const char *p = NULL;
             if (isConst())
@@ -661,17 +661,12 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->hinit = NULL;
     this->loc = loc;
     offset = 0;
-    noscope = 0;
-#if DMDV2
-    isargptr = FALSE;
-#endif
+    flags = 0;
 #if DMDV1
     nestedref = 0;
 #endif
-    ctorinit = 0;
     aliassym = NULL;
     onstack = 0;
-    canassign = 0;
     ctfeAdrOnStack = (size_t)(-1);
 #if DMDV2
     rundtor = NULL;
@@ -1148,7 +1143,7 @@ Lnomatch:
     }
 #endif
 
-    if (type->isscope() && !noscope)
+    if (type->isscope() && !(flags & VARDECLnoscope))
     {
         if (storage_class & (STCfield | STCout | STCref | STCstatic | STCmanifest | STCtls | STCgshared) || !fd)
         {
@@ -1397,9 +1392,9 @@ Lnomatch:
                 }
                 ei->exp = new AssignExp(loc, e1, ei->exp);
                 ei->exp->op = op;
-                canassign++;
+                flags |= VARDECLcanassign;
                 ei->exp = ei->exp->semantic(sc);
-                canassign--;
+                flags &= ~VARDECLcanassign;
                 ei->exp->optimize(WANTvalue);
             }
             else
@@ -1634,7 +1629,7 @@ int VarDeclaration::isImportedSymbol()
 void VarDeclaration::checkCtorConstInit()
 {
 #if 0 /* doesn't work if more than one static ctor */
-    if (ctorinit == 0 && isCtorinit() && !(storage_class & STCfield))
+    if (!(flags & VARDECLctorinit) && isCtorinit() && !(storage_class & STCfield))
         error("missing initializer in static constructor for const variable");
 #endif
 }
@@ -1835,7 +1830,7 @@ int VarDeclaration::needsAutoDtor()
 {
     //printf("VarDeclaration::needsAutoDtor() %s\n", toChars());
 
-    if (noscope || !edtor)
+    if (flags & VARDECLnoscope || !edtor)
         return FALSE;
 
     return TRUE;
@@ -1853,7 +1848,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     //printf("VarDeclaration::callScopeDtor() %s\n", toChars());
 
     // Destruction of STCfield's is handled by buildDtor()
-    if (noscope || storage_class & (STCnodtor | STCref | STCout | STCfield))
+    if (flags & VARDECLnoscope || storage_class & (STCnodtor | STCref | STCout | STCfield))
     {
         return NULL;
     }
@@ -2204,7 +2199,7 @@ TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
 ThisDeclaration::ThisDeclaration(Loc loc, Type *t)
    : VarDeclaration(loc, t, Id::This, NULL)
 {
-    noscope = 1;
+    flags |= VARDECLnoscope;
 }
 
 Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)

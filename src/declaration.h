@@ -239,17 +239,22 @@ struct VarDeclaration : Declaration
 {
     Initializer *init;
     unsigned offset;
-    int noscope;                 // no auto semantics
+
+    unsigned flags;
+#define VARDECLnoscope     1    // no auto semantics
+#define VARDECLctorinit    2    // it has been initialized in a ctor
+#define VARDECLcanassign   4    // it can be assigned to
+#if DMDV2
+#define VARDECLisargptr    8    // if parameter that _argptr points to
+#endif
+
 #if DMDV2
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
-    bool isargptr;              // if parameter that _argptr points to
 #else
     int nestedref;              // referenced by a lexically nested function
 #endif
-    int ctorinit;               // it has been initialized in a ctor
     int onstack;                // 1: it has been allocated on the stack
                                 // 2: on stack, run destructor anyway
-    int canassign;              // it can be assigned to
     Dsymbol *aliassym;          // if redone as alias to another symbol
 
     // When interpreting, these point to the value (NULL if value not determinable)
