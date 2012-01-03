@@ -6355,3 +6355,4 @@ void VarDeclaration::setValue(Expression *newval)
     assert(isCtfeValueValid(newval));
     ctfeStack.setValue(this, newval);
 }
+
