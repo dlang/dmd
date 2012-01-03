@@ -28,6 +28,9 @@
  *      t delegate() { return expr; }
  */
 
+int lambdaSetParent(Expression *e, void *param);
+int lambdaCheckForNestedRef(Expression *e, void *param);
+
 Expression *Expression::toDelegate(Scope *sc, Type *t)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), toChars());
@@ -35,15 +38,12 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
     FuncLiteralDeclaration *fld =
         new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
     Expression *e;
-#if 1
     sc = sc->push();
     sc->parent = fld;           // set current function to be the delegate
     e = this;
-    e->scanForNestedRef(sc);
+    e->apply(&lambdaSetParent, sc);
+    e->apply(&lambdaCheckForNestedRef, sc);
     sc = sc->pop();
-#else
-    e = this->syntaxCopy();
-#endif
     Statement *s;
     if (t->ty == Tvoid)
         s = new ExpStatement(loc, e);
@@ -55,164 +55,86 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
     return e;
 }
 
-/******************************
- * Perform scanForNestedRef() on an array of Expressions.
+/******************************************
+ * Patch the parent of declarations to be the new function literal.
  */
-
-void arrayExpressionScanForNestedRef(Scope *sc, Expressions *a)
+int lambdaSetParent(Expression *e, void *param)
 {
-    //printf("arrayExpressionScanForNestedRef(%p)\n", a);
-    if (a)
+    Scope *sc = (Scope *)param;
+    /* We could use virtual functions instead of a switch,
+     * but it doesn't seem worth the bother.
+     */
+    switch (e->op)
     {
-        for (size_t i = 0; i < a->dim; i++)
-        {   Expression *e = (*a)[i];
-
-            if (e)
-            {
-                e->scanForNestedRef(sc);
-            }
+        case TOKdeclaration:
+        {   DeclarationExp *de = (DeclarationExp *)e;
+            de->declaration->parent = sc->parent;
+            break;
         }
+
+        case TOKindex:
+        {   IndexExp *de = (IndexExp *)e;
+            if (de->lengthVar)
+            {   //printf("lengthVar\n");
+                de->lengthVar->parent = sc->parent;
+            }
+            break;
+        }
+
+        case TOKslice:
+        {   SliceExp *se = (SliceExp *)e;
+            if (se->lengthVar)
+            {   //printf("lengthVar\n");
+                se->lengthVar->parent = sc->parent;
+            }
+            break;
+        }
+
+        default:
+            break;
     }
+     return 0;
 }
 
-void Expression::scanForNestedRef(Scope *sc)
+/*******************************************
+ * Look for references to variables in a scope enclosing the new function literal.
+ */
+int lambdaCheckForNestedRef(Expression *e, void *param)
 {
-    //printf("Expression::scanForNestedRef(%s)\n", toChars());
-}
+    Scope *sc = (Scope *)param;
+    /* We could use virtual functions instead of a switch,
+     * but it doesn't seem worth the bother.
+     */
+    switch (e->op)
+    {
+        case TOKsymoff:
+        {   SymOffExp *se = (SymOffExp *)e;
+            VarDeclaration *v = se->var->isVarDeclaration();
+            if (v)
+                v->checkNestedReference(sc, 0);
+            break;
+        }
 
-void SymOffExp::scanForNestedRef(Scope *sc)
-{
-    //printf("SymOffExp::scanForNestedRef(%s)\n", toChars());
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
-        v->checkNestedReference(sc, 0);
-}
+        case TOKvar:
+        {   VarExp *ve = (VarExp *)e;
+            VarDeclaration *v = ve->var->isVarDeclaration();
+            if (v)
+                v->checkNestedReference(sc, 0);
+            break;
+        }
 
-void VarExp::scanForNestedRef(Scope *sc)
-{
-    //printf("VarExp::scanForNestedRef(%s)\n", toChars());
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
-        v->checkNestedReference(sc, 0);
-}
+        case TOKthis:
+        case TOKsuper:
+        {   ThisExp *te = (ThisExp *)e;
+            VarDeclaration *v = te->var->isVarDeclaration();
+            if (v)
+                v->checkNestedReference(sc, 0);
+            break;
+        }
 
-void ThisExp::scanForNestedRef(Scope *sc)
-{
-    assert(var);
-    var->isVarDeclaration()->checkNestedReference(sc, 0);
-}
-
-void SuperExp::scanForNestedRef(Scope *sc)
-{
-    ThisExp::scanForNestedRef(sc);
-}
-
-void FuncExp::scanForNestedRef(Scope *sc)
-{
-    //printf("FuncExp::scanForNestedRef(%s)\n", toChars());
-    //fd->parent = sc->parent;
-}
-
-void DeclarationExp::scanForNestedRef(Scope *sc)
-{
-    //printf("DeclarationExp::scanForNestedRef() %s\n", toChars());
-    declaration->parent = sc->parent;
-}
-
-void NewExp::scanForNestedRef(Scope *sc)
-{
-    //printf("NewExp::scanForNestedRef(Scope *sc): %s\n", toChars());
-
-    if (thisexp)
-        thisexp->scanForNestedRef(sc);
-    arrayExpressionScanForNestedRef(sc, newargs);
-    arrayExpressionScanForNestedRef(sc, arguments);
-}
-
-void UnaExp::scanForNestedRef(Scope *sc)
-{
-    e1->scanForNestedRef(sc);
-}
-
-void BinExp::scanForNestedRef(Scope *sc)
-{
-    e1->scanForNestedRef(sc);
-    e2->scanForNestedRef(sc);
-}
-
-void CallExp::scanForNestedRef(Scope *sc)
-{
-    //printf("CallExp::scanForNestedRef(Scope *sc): %s\n", toChars());
-    e1->scanForNestedRef(sc);
-    arrayExpressionScanForNestedRef(sc, arguments);
-}
-
-
-void IndexExp::scanForNestedRef(Scope *sc)
-{
-    e1->scanForNestedRef(sc);
-
-    if (lengthVar)
-    {   //printf("lengthVar\n");
-        lengthVar->parent = sc->parent;
+        default:
+            break;
     }
-    e2->scanForNestedRef(sc);
+    return 0;
 }
-
-
-void SliceExp::scanForNestedRef(Scope *sc)
-{
-    e1->scanForNestedRef(sc);
-
-    if (lengthVar)
-    {   //printf("lengthVar\n");
-        lengthVar->parent = sc->parent;
-    }
-    if (lwr)
-        lwr->scanForNestedRef(sc);
-    if (upr)
-        upr->scanForNestedRef(sc);
-}
-
-
-void ArrayLiteralExp::scanForNestedRef(Scope *sc)
-{
-    arrayExpressionScanForNestedRef(sc, elements);
-}
-
-
-void AssocArrayLiteralExp::scanForNestedRef(Scope *sc)
-{
-    arrayExpressionScanForNestedRef(sc, keys);
-    arrayExpressionScanForNestedRef(sc, values);
-}
-
-
-void StructLiteralExp::scanForNestedRef(Scope *sc)
-{
-    arrayExpressionScanForNestedRef(sc, elements);
-}
-
-
-void TupleExp::scanForNestedRef(Scope *sc)
-{
-    arrayExpressionScanForNestedRef(sc, exps);
-}
-
-
-void ArrayExp::scanForNestedRef(Scope *sc)
-{
-    e1->scanForNestedRef(sc);
-    arrayExpressionScanForNestedRef(sc, arguments);
-}
-
-
-void CondExp::scanForNestedRef(Scope *sc)
-{
-    econd->scanForNestedRef(sc);
-    e1->scanForNestedRef(sc);
-    e2->scanForNestedRef(sc);
-}
-
-
 
