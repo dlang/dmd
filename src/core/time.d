@@ -12,7 +12,7 @@
     are a few functions that also allow "nsecs", but very little actually
     has precision greater than hnsecs.
 
-    Copyright: Copyright 2010 - 2011
+    Copyright: Copyright 2010 - 2012
     License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
     Authors:   Jonathan M Davis and Kato Shoichi
     Source:    $(DRUNTIMESRC core/_time.d)
@@ -1371,7 +1371,15 @@ struct TickDuration
                 if(clock_getres(CLOCK_MONOTONIC, &ts) != 0)
                     ticksPerSec = 0;
                 else
-                    ticksPerSec = 1_000_000_000 / ts.tv_nsec;
+                {
+                    //For some reason, on some systems, clock_getres returns
+                    //a resolution which is clearly wrong (it's a millisecond
+                    //or worse, but the time is updated much more frequently
+                    //than that). In such cases, we'll just use nanosecond
+                    //resolution.
+                    ticksPerSec = ts.tv_nsec >= 1000 ? 1_000_000_000
+                                                     : 1_000_000_000 / ts.tv_nsec;
+                }
             }
             else
                 ticksPerSec = 1_000_000;
