@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -inline
+ï»¿// PERMUTE_ARGS: -inline
 
 template compiles(int T)
 {
@@ -2515,7 +2515,7 @@ static assert(bug4021());
 
 bool test3512()
 {
-    string s = "öhai";
+    string s = "Ã¶hai";
     int q = 0;
     foreach (wchar c; s) {
         if (q==2) assert(c=='a');
@@ -2531,7 +2531,7 @@ bool test3512()
         assert(i >= 0 && i < s.length);
 	} // _aApplycd2
 
-    wstring w = "xüm";
+    wstring w = "xÃ¼m";
     foreach (char c; w) {++q; } // _aApplywc1
     assert(q == 10);
     foreach (dchar c; w) { ++q; } // _aApplywd1
@@ -2543,7 +2543,7 @@ bool test3512()
         assert(i >= 0 && i < w.length);
 	} // _aApplywd2
 
-    dstring d = "yäq";
+    dstring d = "yÃ¤q";
     q = 0;
     foreach (char c; d) { ++q; } // _aApplydc1
     assert(q == 4);
@@ -2566,7 +2566,7 @@ bool test3512()
         assert(i >= 0 && i < dr.length);
     } // _aApplyRdw2
     q = 0;
-    wstring w2 = ['x', 'ü', 'm']; // foreach over array literals
+    wstring w2 = ['x', 'Ã¼', 'm']; // foreach over array literals
     foreach_reverse (int n, char c; w2)
     {
         ++q;
