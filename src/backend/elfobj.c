@@ -1525,7 +1525,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
         buf->write32(sfunc->Soffset);
 
         elf_addrel(seg, buf->size(), RI_TYPE_SYM32, MAP_SEG2SYMIDX(ehsym->Sseg), 0);
-        buf->write64(ehsym->Soffset);
+        buf->write32(ehsym->Soffset);
 
         buf->write32(sfunc->Ssize);
     }
