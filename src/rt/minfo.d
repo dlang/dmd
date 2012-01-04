@@ -102,12 +102,6 @@ extern (C) void rt_moduleCtor()
         m.flags = m.flags | MIctordone;
 }
 
-// NOTE: This is to preserve compatibility with the Windows DLL sample.
-extern (C) void _moduleCtor()
-{
-    rt_moduleCtor();
-}
-
 extern (C) void rt_moduleTlsCtor()
 {
     runModuleFuncs!((a) { return a.tlsctor; })(_sortedCtors._tlsctors);
