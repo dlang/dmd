@@ -5444,17 +5444,17 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         {
             if (p->defaultArg)
                 continue;
-            if (varargs == 2 && u + 1 == nparams)
-                goto L1;
-            goto Nomatch;               // not enough arguments
+            goto L1;        // try typesafe variadics
         }
         arg = args->tdata()[u];
         assert(arg);
 
         if (arg->op == TOKfunction)
-        {   arg = ((FuncExp *)arg)->inferType(NULL, p->type);
+        {   FuncExp *fe = (FuncExp *)arg;
+            Type *pt = p->type;
+            arg = ((FuncExp *)arg)->inferType(NULL, pt);
             if (!arg)
-                goto Nomatch;
+                goto L1;    // try typesafe variadics
         }
 
         //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
@@ -5527,6 +5527,14 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                             arg = args->tdata()[u];
                             assert(arg);
 #if 1
+                            if (arg->op == TOKfunction)
+                            {   FuncExp *fe = (FuncExp *)arg;
+                                Type *pt = tb->nextOf();
+                                arg = ((FuncExp *)arg)->inferType(NULL, pt);
+                                if (!arg)
+                                    goto Nomatch;
+                            }
+
                             /* If lazy array of delegates,
                              * convert arg(s) to delegate(s)
                              */

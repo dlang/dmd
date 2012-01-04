@@ -83,7 +83,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o intrange.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o
+	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o
 
 ifeq (OSX,$(TARGET))
     DMD_OBJS += libmach.o machobj.o
@@ -108,7 +108,7 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c intrange.c apply.c \
+	argtypes.c intrange.c apply.c canthrow.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -217,6 +217,9 @@ blockopt.o: $C/blockopt.c
 	$(CC) -c $(MFLAGS) $<
 
 builtin.o: builtin.c
+	$(CC) -c $(CFLAGS) $<
+
+canthrow.o: canthrow.c
 	$(CC) -c $(CFLAGS) $<
 
 cast.o: cast.c
@@ -591,6 +594,7 @@ gcov:
 	gcov arrayop.c
 	gcov attrib.c
 	gcov builtin.c
+	gcov canthrow.c
 	gcov cast.c
 	gcov class.c
 	gcov clone.c

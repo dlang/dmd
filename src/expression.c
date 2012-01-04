@@ -544,8 +544,6 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *arg = (*exps)[i];
 
-            if (arg->op == TOKfunction)
-                continue;
             if (!arg->type)
             {
 #ifdef DEBUG
@@ -724,6 +722,15 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->push(arg);
                 nargs++;
             }
+            else if (arg->op == TOKfunction)
+            {   FuncExp *fe = (FuncExp *)arg;
+                Type *pt = p->type;
+                if (tf->varargs == 2 && i + 1 == nparams && pt->nextOf())
+                    pt = pt->nextOf();
+                fe->setType(pt);
+                arg = fe->semantic(sc);
+                arguments->tdata()[i] =  arg;
+            }
 
             if (tf->varargs == 2 && i + 1 == nparams)
             {
@@ -813,12 +820,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
         L1:
-            if (arg->op == TOKfunction)
-            {   FuncExp *fe = (FuncExp *)arg;
-                fe->setType(p->type);
-                arg = fe->semantic(sc);
-            }
-
             if (!(p->storageClass & STClazy && p->type->ty == Tvoid))
             {
                 unsigned mod = arg->type->wildConvTo(p->type);
@@ -1680,22 +1681,6 @@ int Expression::isBool(int result)
 int Expression::isBit()
 {
     return FALSE;
-}
-
-/********************************
- * Can this expression throw an exception?
- * Valid only after semantic() pass.
- *
- * If 'mustNotThrow' is true, generate an error if it throws
- */
-
-int Expression::canThrow(bool mustNotThrow)
-{
-#if DMDV2
-    return FALSE;
-#else
-    return TRUE;
-#endif
 }
 
 /****************************************
@@ -3547,16 +3532,6 @@ int ArrayLiteralExp::isBool(int result)
     return result ? (dim != 0) : (dim == 0);
 }
 
-#if DMDV2
-int ArrayLiteralExp::canThrow(bool mustNotThrow)
-{
-    /* Memory allocation failures throw non-recoverable exceptions, which
-     * we don't need to count as 'throwing'.
-     */
-    return arrayExpressionCanThrow(elements, mustNotThrow);
-}
-#endif
-
 StringExp *ArrayLiteralExp::toString()
 {
     TY telem = type->nextOf()->toBasetype()->ty;
@@ -3674,17 +3649,6 @@ int AssocArrayLiteralExp::isBool(int result)
     return result ? (dim != 0) : (dim == 0);
 }
 
-#if DMDV2
-int AssocArrayLiteralExp::canThrow(bool mustNotThrow)
-{
-    /* Memory allocation failures throw non-recoverable exceptions, which
-     * we don't need to count as 'throwing'.
-     */
-    return (arrayExpressionCanThrow(keys,   mustNotThrow) ||
-            arrayExpressionCanThrow(values, mustNotThrow));
-}
-#endif
-
 void AssocArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('[');
@@ -3779,6 +3743,14 @@ Expression *StructLiteralExp::semantic(Scope *sc)
              *  T[3][5] = e;
              */
             telem = telem->toBasetype()->nextOf();
+        }
+
+        if (e->op == TOKfunction)
+        {   e = ((FuncExp *)e)->inferType(sc, telem);
+            if (!e)
+            {   error("cannot infer function literal type from %s", telem->toChars());
+                e = new ErrorExp();
+            }
         }
 
         e = e->implicitCastTo(sc, telem);
@@ -3950,13 +3922,6 @@ int StructLiteralExp::checkSideEffect(int flag)
         Expression::checkSideEffect(0);
     return f;
 }
-
-#if DMDV2
-int StructLiteralExp::canThrow(bool mustNotThrow)
-{
-    return arrayExpressionCanThrow(elements, mustNotThrow);
-}
-#endif
 
 void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4525,28 +4490,6 @@ int NewExp::checkSideEffect(int flag)
     return 1;
 }
 
-#if DMDV2
-int NewExp::canThrow(bool mustNotThrow)
-{
-    if (arrayExpressionCanThrow(newargs, mustNotThrow) ||
-        arrayExpressionCanThrow(arguments, mustNotThrow))
-        return 1;
-    if (member)
-    {
-        // See if constructor call can throw
-        Type *t = member->type->toBasetype();
-        if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
-        {
-            if (mustNotThrow)
-                error("constructor %s is not nothrow", member->toChars());
-            return 1;
-        }
-    }
-    // regard storage allocation failures as not recoverable
-    return 0;
-}
-#endif
-
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (thisexp)
@@ -4613,14 +4556,6 @@ int NewAnonClassExp::checkSideEffect(int flag)
     return 1;
 }
 
-#if DMDV2
-int NewAnonClassExp::canThrow(bool mustNotThrow)
-{
-    assert(0);          // should have been lowered by semantic()
-    return 1;
-}
-#endif
-
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (thisexp)
@@ -4682,6 +4617,9 @@ Expression *SymOffExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
         v->checkNestedReference(sc, loc);
+    FuncDeclaration *f = var->isFuncDeclaration();
+    if (f)
+        f->checkNestedReference(sc, loc);
     return this;
 }
 
@@ -4772,6 +4710,9 @@ Expression *VarExp::semantic(Scope *sc)
         checkPurity(sc, v, NULL);
 #endif
     }
+    FuncDeclaration *f = var->isFuncDeclaration();
+    if (f)
+        f->checkNestedReference(sc, loc);
 #if 0
     else if ((fd = var->isFuncLiteralDeclaration()) != NULL)
     {   Expression *e;
@@ -5000,13 +4941,6 @@ int TupleExp::checkSideEffect(int flag)
     return f;
 }
 
-#if DMDV2
-int TupleExp::canThrow(bool mustNotThrow)
-{
-    return arrayExpressionCanThrow(exps, mustNotThrow);
-}
-#endif
-
 void TupleExp::checkEscape()
 {
     for (size_t i = 0; i < exps->dim; i++)
@@ -5037,7 +4971,7 @@ Expression *FuncExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("FuncExp::semantic(%s)\n", toChars());
 #endif
-    if (!type)
+    if (!type || type == Type::tvoid)
     {
         // save for later use
         scope = sc;
@@ -5050,6 +4984,7 @@ Expression *FuncExp::semantic(Scope *sc)
 
             if (!tded)
             {   // defer type determination
+                type = Type::tvoid; // temporary type
                 return this;
             }
             else
@@ -5113,7 +5048,7 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
     assert(!tded);
     assert(!scope);
 
-    if (!type && td && arguments && arguments->dim)
+    if ((!type || type == Type::tvoid) && td && arguments && arguments->dim)
     {
         for (size_t k = 0; k < arguments->dim; k++)
         {   Expression *checkarg = arguments->tdata()[k];
@@ -5194,6 +5129,8 @@ Expression *FuncExp::inferType(Scope *sc, Type *to)
                         if (p->type->ty == Tident &&
                             ((TypeIdentifier *)p->type)->ident == tp->ident)
                         {   p = Parameter::getNth(tfv->parameters, u);
+                            if (p->type->ty == Tident)
+                                return NULL;
                             tiargs->push(p->type);
                             u = dim;    // break inner loop
                         }
@@ -5207,7 +5144,7 @@ Expression *FuncExp::inferType(Scope *sc, Type *to)
     }
     else
     {
-        assert(type);   // semantic is already done
+        assert(type && type != Type::tvoid);   // semantic is already done
         e = this;
     }
 
@@ -5352,91 +5289,6 @@ int DeclarationExp::checkSideEffect(int flag)
 {
     return 1;
 }
-
-#if DMDV2
-/**************************************
- * Does symbol, when initialized, throw?
- * Mirrors logic in Dsymbol_toElem().
- */
-
-int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
-{
-    AttribDeclaration *ad;
-    VarDeclaration *vd;
-    TemplateMixin *tm;
-    TupleDeclaration *td;
-
-    //printf("Dsymbol_toElem() %s\n", s->toChars());
-    ad = s->isAttribDeclaration();
-    if (ad)
-    {
-        Dsymbols *decl = ad->include(NULL, NULL);
-        if (decl && decl->dim)
-        {
-            for (size_t i = 0; i < decl->dim; i++)
-            {
-                s = decl->tdata()[i];
-                if (Dsymbol_canThrow(s, mustNotThrow))
-                    return 1;
-            }
-        }
-    }
-    else if ((vd = s->isVarDeclaration()) != NULL)
-    {
-        s = s->toAlias();
-        if (s != vd)
-            return Dsymbol_canThrow(s, mustNotThrow);
-        if (vd->storage_class & STCmanifest)
-            ;
-        else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
-            ;
-        else
-        {
-            if (vd->init)
-            {   ExpInitializer *ie = vd->init->isExpInitializer();
-                if (ie && ie->exp->canThrow(mustNotThrow))
-                    return 1;
-            }
-            if (vd->edtor && !vd->noscope)
-                return vd->edtor->canThrow(mustNotThrow);
-        }
-    }
-    else if ((tm = s->isTemplateMixin()) != NULL)
-    {
-        //printf("%s\n", tm->toChars());
-        if (tm->members)
-        {
-            for (size_t i = 0; i < tm->members->dim; i++)
-            {
-                Dsymbol *sm = tm->members->tdata()[i];
-                if (Dsymbol_canThrow(sm, mustNotThrow))
-                    return 1;
-            }
-        }
-    }
-    else if ((td = s->isTupleDeclaration()) != NULL)
-    {
-        for (size_t i = 0; i < td->objects->dim; i++)
-        {   Object *o = td->objects->tdata()[i];
-            if (o->dyncast() == DYNCAST_EXPRESSION)
-            {   Expression *eo = (Expression *)o;
-                if (eo->op == TOKdsymbol)
-                {   DsymbolExp *se = (DsymbolExp *)eo;
-                    if (Dsymbol_canThrow(se->s, mustNotThrow))
-                        return 1;
-                }
-            }
-        }
-    }
-    return 0;
-}
-
-
-int DeclarationExp::canThrow(bool mustNotThrow)
-{
-    return Dsymbol_canThrow(declaration, mustNotThrow);
-}
-#endif
 
 void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5955,13 +5807,6 @@ Expression *UnaExp::semantic(Scope *sc)
     return this;
 }
 
-#if DMDV2
-int UnaExp::canThrow(bool mustNotThrow)
-{
-    return e1->canThrow(mustNotThrow);
-}
-#endif
-
 Expression *UnaExp::resolveLoc(Loc loc, Scope *sc)
 {
     e1 = e1->resolveLoc(loc, sc);
@@ -6102,13 +5947,6 @@ int BinExp::isunsigned()
 {
     return e1->type->isunsigned() || e2->type->isunsigned();
 }
-
-#if DMDV2
-int BinExp::canThrow(bool mustNotThrow)
-{
-    return e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
-}
-#endif
 
 void BinExp::incompatibleTypes()
 {
@@ -6425,16 +6263,6 @@ int AssertExp::checkSideEffect(int flag)
 {
     return 1;
 }
-
-#if DMDV2
-int AssertExp::canThrow(bool mustNotThrow)
-{
-    /* assert()s are non-recoverable errors, so functions that
-     * use them can be considered "nothrow"
-     */
-    return 0; //(global.params.useAssert != 0);
-}
-#endif
 
 void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -8035,6 +7863,7 @@ Lagain:
         checkPurity(sc, f);
         checkSafety(sc, f);
 #endif
+        f->checkNestedReference(sc, loc);
 
         if (f->needThis() && hasThis(sc))
         {
@@ -8130,36 +7959,6 @@ int CallExp::checkSideEffect(int flag)
     return 1;
 #endif
 }
-
-#if DMDV2
-int CallExp::canThrow(bool mustNotThrow)
-{
-    //printf("CallExp::canThrow() %s\n", toChars());
-    if (e1->canThrow(mustNotThrow))
-        return 1;
-
-    /* If any of the arguments can throw, then this expression can throw
-     */
-    if (arrayExpressionCanThrow(arguments, mustNotThrow))
-        return 1;
-
-    if (global.errors && !e1->type)
-        return 0;                       // error recovery
-
-    /* If calling a function or delegate that is typed as nothrow,
-     * then this expression cannot throw.
-     * Note that pure functions can throw.
-     */
-    Type *t = e1->type->toBasetype();
-    if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
-        return 0;
-    if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-        return 0;
-    if (mustNotThrow)
-        error("%s is not nothrow", e1->toChars());
-    return 1;
-}
-#endif
 
 #if DMDV2
 int CallExp::isLvalue()
@@ -8731,8 +8530,7 @@ Expression *CastExp::syntaxCopy()
 
 
 Expression *CastExp::semantic(Scope *sc)
-{   Expression *e;
-
+{
 #if LOGSEMANTIC
     printf("CastExp::semantic('%s')\n", toChars());
 #endif
@@ -8757,7 +8555,7 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (!to->equals(e1->type))
         {
-            e = op_overload(sc);
+            Expression *e = op_overload(sc);
             if (e)
             {
                 return e->implicitCastTo(sc, to);
@@ -8772,6 +8570,27 @@ Expression *CastExp::semantic(Scope *sc)
 
         Type *t1b = e1->type->toBasetype();
         Type *tob = to->toBasetype();
+
+        if (e1->op == TOKfunction &&
+            (tob->ty == Tdelegate || tob->ty == Tpointer && tob->nextOf()->ty == Tfunction))
+        {
+            FuncExp *fe = (FuncExp *)e1;
+            Expression *e = NULL;
+            if (e1->type == Type::tvoid)
+            {
+                e = fe->inferType(sc, tob);
+            }
+            else if (e1->type->ty == Tpointer && e1->type->nextOf()->ty == Tfunction &&
+                     fe->tok == TOKreserved &&
+                     tob->ty == Tdelegate)
+            {
+                if (fe->implicitConvTo(tob))
+                    e = fe->castTo(sc, tob);
+            }
+            if (e)
+                e1 = e->semantic(sc);
+        }
+
         if (tob->ty == Tstruct &&
             !tob->equals(t1b)
            )
@@ -8783,7 +8602,7 @@ Expression *CastExp::semantic(Scope *sc)
              */
 
             // Rewrite as to.call(e1)
-            e = new TypeExp(loc, to);
+            Expression *e = new TypeExp(loc, to);
             e = new CallExp(loc, e, e1);
             e = e->trySemantic(sc);
             if (e)
@@ -8876,7 +8695,7 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
 Lsafe:
-    e = e1->castTo(sc, to);
+    Expression *e = e1->castTo(sc, to);
     return e;
 }
 
@@ -9181,13 +9000,6 @@ void SliceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writestring("length");         // BUG: should be array.length
     }
     buf->writeByte(']');
-}
-
-int SliceExp::canThrow(bool mustNotThrow)
-{
-    return UnaExp::canThrow(mustNotThrow)
-        || (lwr != NULL && lwr->canThrow(mustNotThrow))
-        || (upr != NULL && upr->canThrow(mustNotThrow));
 }
 
 /********************** ArrayLength **************************************/
@@ -10074,6 +9886,27 @@ Ltupleassign:
             Expression *e = new CallExp(loc, e1, e2);
             e = e->semantic(sc);
             return e;
+        }
+    }
+
+    if (t1->ty == Tdelegate || (t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
+        && e2->op == TOKfunction)
+    {
+        FuncExp *fe = (FuncExp *)e2;
+        if (e2->type == Type::tvoid)
+        {
+            e2 = fe->inferType(sc, t1);
+        }
+        else if (e2->type->ty == Tpointer && e2->type->nextOf()->ty == Tfunction &&
+                 fe->tok == TOKreserved &&
+                 t1->ty == Tdelegate)
+        {
+            if (fe->implicitConvTo(t1))
+                e2 = fe->castTo(sc, t1);
+        }
+        if (!e2)
+        {   error("cannot infer function literal type from %s", t1->toChars());
+            e2 = new ErrorExp();
         }
     }
 
@@ -12371,13 +12204,6 @@ int CondExp::checkSideEffect(int flag)
         return e2->checkSideEffect(flag);
     }
 }
-
-#if DMDV2
-int CondExp::canThrow(bool mustNotThrow)
-{
-    return econd->canThrow(mustNotThrow) || e1->canThrow(mustNotThrow) || e2->canThrow(mustNotThrow);
-}
-#endif
 
 void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {

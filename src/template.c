@@ -1221,24 +1221,33 @@ Lretry:
                 }
             }
 
+            /* Allow implicit function literals to delegate conversion
+             */
+            if (farg->op == TOKfunction)
+            {   FuncExp *fe = (FuncExp *)farg;
+                Type *tp = fparam->type;
+                if (tp->ty == Tdelegate &&
+                    fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction &&
+                    fe->tok == TOKreserved)
+                {   Type *tdg = new TypeDelegate(fe->type->nextOf());
+                    tdg = tdg->semantic(loc, sc);
+                    farg = fe->inferType(sc, tdg);
+                }
+                else if (fe->type == Type::tvoid)
+                {
+                    farg = fe->inferType(sc, tp);
+                    if (!farg)
+                        goto Lvarargs;
+                }
+                argtype = farg->type;
+            }
+
             /* Remove top const for dynamic array types and pointer types
              */
             if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
                 !argtype->isMutable())
             {
                 argtype = argtype->mutableOf();
-            }
-
-            if (farg->op == TOKfunction)
-            {   FuncExp *fe = (FuncExp *)farg;
-                if (fparam->type->ty == Tdelegate &&
-                    argtype && argtype->ty == Tpointer && argtype->nextOf()->ty == Tfunction &&
-                    fe->tok == TOKreserved)
-                {   Type *tdg = new TypeDelegate(argtype->nextOf());
-                    tdg = tdg->semantic(loc, sc);
-                    farg = fe->inferType(sc, tdg);
-                    argtype = farg->type;
-                }
             }
 #endif
 
@@ -1307,6 +1316,7 @@ Lretry:
             }
         }
 
+    Lvarargs:
         /* The following code for variadic arguments closely
          * matches TypeFunction::callMatch()
          */
@@ -1331,6 +1341,25 @@ Lretry:
                 {
                     Expression *arg = fargs->tdata()[i];
                     assert(arg);
+
+                    if (arg->op == TOKfunction)
+                    {   FuncExp *fe = (FuncExp *)arg;
+                        Type *tp = tb->nextOf();
+                        if (tp->ty == Tdelegate &&
+                            fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction &&
+                            fe->tok == TOKreserved)
+                        {   tp = new TypeDelegate(fe->type->nextOf());
+                            tp = tp->semantic(loc, sc);
+                            arg = fe->inferType(sc, tp);
+                        }
+                        else if (arg->type == Type::tvoid)
+                        {
+                            arg = fe->inferType(sc, tp);
+                            if (!arg)
+                                goto Lnomatch;
+                        }
+                    }
+
                     MATCH m;
                     /* If lazy array of delegates,
                      * convert arg(s) to delegate(s)

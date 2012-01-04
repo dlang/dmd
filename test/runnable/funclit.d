@@ -1,3 +1,5 @@
+import core.vararg;
+
 extern (C) int printf(const char*, ...);
 
 /***************************************************/
@@ -135,6 +137,10 @@ auto tbaz4(R)(R delegate() dg) { static assert(is(R == void)); return 2; }
 
 auto thoo4(T)(T lambda){ return lambda; }
 
+void tfun4a()(int function(int) a){}
+void tfun4b(T)(T function(T) a){}
+void tfun4c(T)(T f){}
+
 void test4()
 {
     int v;
@@ -158,6 +164,37 @@ void test4()
     // template function deduction
     static assert(is(typeof(thoo4({ })) : void function()));
     static assert(is(typeof(thoo4({ v = 1;  })) : void delegate()));
+
+    tfun4a(a => a);
+    static assert(!__traits(compiles, { tfun4b(a => a); }));
+    static assert(!__traits(compiles, { tfun4c(a => a); }));
+}
+
+void fsvarg4(int function(int)[] a...){}
+void fcvarg4(int dummy, ...){}
+
+void tsvarg4a()(int function(int)[] a...){}
+void tsvarg4b(T)(T function(T)[] a...){}
+void tsvarg4c(T)(T [] a...){}
+void tcvarg4()(int dummy, ...){}
+
+void test4v()
+{
+    fsvarg4(function(int a){ return a; });      // OK
+    fsvarg4(a => a);                            // OK
+
+    fcvarg4(0, function(int a){ return a; });   // OK
+    static assert(!__traits(compiles, { fcvarg4(0, a => a); }));
+
+    tsvarg4a(function(int a){ return a; });     // OK
+    tsvarg4b(function(int a){ return a; });     // OK
+    tsvarg4c(function(int a){ return a; });     // OK
+    tsvarg4a(a => a);
+    static assert(!__traits(compiles, { tsvarg4b(a => a); }));
+    static assert(!__traits(compiles, { tsvarg4c(a => a); }));
+
+    tcvarg4(0, function(int a){ return a; });   // OK
+    static assert(!__traits(compiles, { tcvarg4(0, a => a); }));
 }
 
 /***************************************************/
@@ -170,6 +207,77 @@ void test5()
     assert((int a,        s){ return s~s; }(10, "str") == "strstr");
     assert((    a, string s){ return s~s; }(10, "str") == "strstr");
     assert((int a, string s){ return s~s; }(10, "str") == "strstr");
+}
+
+/***************************************************/
+// escape check to nested function symbols
+
+void checkNestedRef(alias dg)(bool isnested)
+{
+    static if (is(typeof(dg) == delegate))
+        enum isNested = true;
+    else static if ((is(typeof(dg) PF == F*, F) && is(F == function)))
+        enum isNested = false;
+    else
+        static assert(0);
+
+    assert(isnested == isNested);
+    dg();
+}
+
+void freeFunc(){}
+
+void test6()
+{
+    static void localFunc(){}
+    void nestedLocalFunc(){}
+
+    checkNestedRef!({  })(false);
+
+    checkNestedRef!({ freeFunc(); })(false);
+    checkNestedRef!({ localFunc(); })(false);
+    checkNestedRef!({ nestedLocalFunc(); })(true);
+    checkNestedRef!({ void inner(){} inner(); })(false);
+
+    checkNestedRef!({ auto f = &freeFunc; })(false);
+    checkNestedRef!({ auto f = &localFunc; })(false);
+    checkNestedRef!({ auto f = &nestedLocalFunc; })(true);
+    checkNestedRef!({ void inner(){} auto f = &inner; })(false);
+}
+
+/***************************************************/
+// on AssignExp::e2
+
+void test7()
+{
+    int function(int) fp;
+    fp = a => a;
+    fp = (int a) => a;
+    fp = function(int a) => a;
+    fp = function int(int a) => a;
+    static assert(!__traits(compiles, { fp = delegate(int a) => a; }));
+    static assert(!__traits(compiles, { fp = delegate int(int a) => a; }));
+
+    int delegate(int) dg;
+    dg = a => a;
+    dg = (int a) => a;
+    dg = delegate(int a) => a;
+    dg = delegate int(int a) => a;
+    static assert(!__traits(compiles, { dg = function(int a) => a; }));
+    static assert(!__traits(compiles, { dg = function int(int a) => a; }));
+}
+
+/***************************************************/
+// on StructLiteralExp::elements
+
+void test8()
+{
+    struct S
+    {
+        int function(int) fp;
+    }
+    auto s1 = S(a => a);
+    static assert(!__traits(compiles, { auto s2 = S((a, b) => a); }));
 }
 
 /***************************************************/
@@ -205,6 +313,25 @@ void test6714()
 }
 
 /***************************************************/
+// 7193
+
+void test7193()
+{
+    static assert(!__traits(compiles, {
+        delete a => a;
+    }));
+}
+
+/***************************************************/
+// 7207 : on CastExp
+
+void test7202()
+{
+    auto dg = cast(int function(int))(a => a);
+    assert(dg(10) == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -212,9 +339,15 @@ int main()
     test2();
     test3();
     test4();
+    test4v();
     test5();
+    test6();
+    test7();
+    test8();
     test3235();
     test6714();
+    test7193();
+    test7202();
 
     printf("Success\n");
     return 0;
