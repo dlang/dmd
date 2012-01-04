@@ -283,21 +283,24 @@ if (I32) assert(tysize[TYnptr] == 4);
         else
             e = el_una(op,tyret,ep);
     }
-    else if (ep)
+    else
     {   /* Do not do "no side effect" calls if a hidden parameter is passed,
          * as the return value is stored through the hidden parameter, which
          * is a side effect.
          */
-        e = el_bin(((fd ? fd->isPure() : tf->purity) == PUREstrong &&
-                   tf->isnothrow && (retmethod != RETstack)) ?
-                   OPcallns : OPcall,tyret,ec,ep);
-        if (tf->varargs)
-            e->Eflags |= EFLAGS_variadic;
-    }
-    else
-    {   e = el_una(((fd ? fd->isPure() : tf->purity) == PUREstrong &&
-                tf->isnothrow && (retmethod != RETstack)) ?
-                OPucallns : OPucall,tyret,ec);
+        //printf("1: fd = %p prity = %d, nothrow = %d, retmethod = %d, use-assert = %d\n",
+        //       fd, (fd ? fd->isPure() : tf->purity), tf->isnothrow, retmethod, global.params.useAssert);
+        //printf("\tfd = %s, tf = %s\n", fd->toChars(), tf->toChars());
+        /* assert() has 'implicit side effect' so disable this optimization.
+         */
+        int ns = ((fd ? fd->isPure() : tf->purity) == PUREstrong &&
+                  tf->isnothrow && (retmethod != RETstack) &&
+                  !global.params.useAssert && global.params.optimize);
+        if (ep)
+            e = el_bin(ns ? OPcallns : OPcall, tyret, ec, ep);
+        else
+            e = el_una(ns ? OPucallns : OPucall, tyret, ec);
+
         if (tf->varargs)
             e->Eflags |= EFLAGS_variadic;
     }
