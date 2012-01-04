@@ -646,7 +646,7 @@ body
     size_t curcapacity = void;
     size_t offset = void;
     size_t arraypad = void;
-    if(info.base !is null && (info.attr & BlkAttr.APPENDABLE))
+    if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         if(info.size <= 256)
         {
@@ -1714,7 +1714,7 @@ byte[] _d_arrayappendcTX(TypeInfo ti, ref byte[] px, size_t n)
 
     // calculate the extent of the array given the base.
     size_t offset = px.ptr - __arrayStart(info);
-    if(info.attr & BlkAttr.APPENDABLE)
+    if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         if(info.size >= PAGESIZE)
         {
