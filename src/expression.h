@@ -168,6 +168,7 @@ struct Expression : Object
     virtual int isBool(int result);
     virtual int isBit();
     virtual int checkSideEffect(int flag);
+    bool hasSideEffect();
     int canThrow(bool mustNotThrow);
 
     virtual int inlineCost3(InlineCostState *ics);
