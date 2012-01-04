@@ -387,11 +387,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym);
 void obj_ehsections();
 void obj_moduleinfo(Symbol *scc);
 int  obj_comdat(Symbol *);
-#if ELFOBJ
 int  obj_comdatsize(Symbol *, targ_size_t symsize);
-#elif MACHOBJ
-    #define obj_comdatsize(s, symsize) obj_comdat(s)
-#endif
 void obj_setcodeseg(int seg,targ_size_t offset);
 int  obj_codeseg(char *name,int suffix);
 seg_data *obj_tlsseg();

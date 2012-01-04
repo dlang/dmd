@@ -284,7 +284,11 @@ void outdata(symbol *s)
 
     if (s->Sclass == SCcomdat)          // if initialized common block
     {
+#if ELFOBJ
         seg = obj_comdatsize(s, datasize);
+#else
+        seg = obj_comdat(s);
+#endif
 #if ELFOBJ || OMFOBJ
         s->Soffset = 0;
 #endif
