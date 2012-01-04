@@ -36,7 +36,7 @@ enum
 }
 
 // Windows: this gets initialized by minit.asm
-// Posix: this gets initialized in _moduleCtor()
+// Posix: this gets initialized in rt_moduleCtor()
 extern (C) __gshared ModuleInfo*[] _moduleinfo_array;
 extern(C) void _minit();
 
@@ -97,6 +97,12 @@ extern (C) void rt_moduleCtor()
     runModuleFuncs!((a) { return a.ictor; })(_moduleinfo_array);
     // sorted module ctors
     runModuleFuncs!((a) { return a.ctor; })(_sortedCtors._ctors);
+}
+
+// NOTE: This is to preserve compatibility with the Windows DLL sample.
+extern (C) void _moduleCtor()
+{
+    rt_moduleCtor();
 }
 
 extern (C) void rt_moduleTlsCtor()
