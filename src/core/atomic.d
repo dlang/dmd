@@ -1038,13 +1038,15 @@ version( unittest )
     {
         T         base;
         shared(T) atom;
+        static if (is(T : real))
+            base = atom = cast(T) 0;
 
         assert( base != val, T.stringof );
         assert( atom == base, T.stringof );
 
-        assert( cas( &atom, base, val ), T.stringof );
+        cas( &atom, base, val ) || assert( 0, T.stringof );
         assert( atom == val, T.stringof );
-        assert( !cas( &atom, base, base ), T.stringof );
+        !cas( &atom, base, base ) || assert( 0, T.stringof );
         assert( atom == val, T.stringof );
     }
 
