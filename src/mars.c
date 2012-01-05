@@ -48,6 +48,12 @@ void obj_end(Library *library, File *objfile);
 
 void printCtfePerformanceStats();
 
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+static char dylib_switch[] = "shared";
+#elif TARGET_OSX
+static char dylib_switch[] = "dylib";
+#endif
+
 Global global;
 
 Global::Global()
@@ -321,7 +327,7 @@ Usage:\n\
   -defaultlib=name  set default library to name\n\
   -deps=filename write module dependencies to filename\n%s"
 #if TARGET_OSX
-"  -dylib         generate dylib\n"
+"  -dylib         generate shared library\n"
 #endif
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
@@ -347,8 +353,11 @@ Usage:\n\
   -profile       profile runtime performance of generated code\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
-  -run srcfile args...   run resulting program, passing args\n\
-  -unittest      compile in unit tests\n\
+  -run srcfile args...   run resulting program, passing args\n"
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+"  -shared        generate shared library\n"
+#endif
+"  -unittest      compile in unit tests\n\
   -v             verbose\n\
   -v1            D language version 1\n\
   -version=level compile in version code >= level\n\
@@ -510,12 +519,10 @@ int main(int argc, char *argv[])
             else if (strcmp(p + 1, "cov") == 0)
                 global.params.cov = 1;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            else if (strcmp(p + 1, dylib_switch) == 0)
+                global.params.dll = 1;
             else if (strcmp(p + 1, "fPIC") == 0)
                 global.params.pic = 1;
-#endif
-#if TARGET_OSX
-            else if (strcmp(p + 1, "dylib") == 0)
-                global.params.dll = 1;
 #endif
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = 1;
@@ -863,6 +870,11 @@ int main(int argc, char *argv[])
 
 #if TARGET_OSX
     global.params.pic = 1;
+#endif
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (global.params.lib && global.params.dll)
+        error("cannot mix -lib and -%s\n", dylib_switch);
 #endif
 
     if (global.params.release)
