@@ -321,7 +321,7 @@ Usage:\n\
   -defaultlib=name  set default library to name\n\
   -deps=filename write module dependencies to filename\n%s"
 #if TARGET_OSX
-"  -dylib         generate dylib\n"
+"  -dylib         generate shared library\n"
 #endif
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
@@ -349,8 +349,11 @@ Usage:\n\
   -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
-  -run srcfile args...   run resulting program, passing args\n\
-  -unittest      compile in unit tests\n\
+  -run srcfile args...   run resulting program, passing args\n"
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+"  -shared        generate shared library\n"
+#endif
+"  -unittest      compile in unit tests\n\
   -v             verbose\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
@@ -517,12 +520,18 @@ int main(int argc, char *argv[])
             else if (strcmp(p + 1, "cov") == 0)
                 global.params.cov = 1;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            else if (strcmp(p + 1, "shared") == 0
+#if TARGET_OSX
+                     || strcmp(p + 1, "dylib") == 0
+#endif
+            )
+            {
+                if (global.params.lib)
+                    error("cannot mix -lib and -shared\n");
+                global.params.dll = 1;
+            }
             else if (strcmp(p + 1, "fPIC") == 0)
                 global.params.pic = 1;
-#endif
-#if TARGET_OSX
-            else if (strcmp(p + 1, "dylib") == 0)
-                global.params.dll = 1;
 #endif
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = 1;
@@ -668,7 +677,11 @@ int main(int argc, char *argv[])
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = 1;
             else if (strcmp(p + 1, "lib") == 0)
+            {
+                if (global.params.dll)
+                    error("cannot mix -lib and -shared\n");
                 global.params.lib = 1;
+            }
             else if (strcmp(p + 1, "nofloat") == 0)
                 global.params.nofloat = 1;
             else if (strcmp(p + 1, "quiet") == 0)
