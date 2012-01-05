@@ -4947,7 +4947,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         }
         if (exceptionOrCantInterpret(e))
             return e;
-        assert(!e->checkSideEffect(0));
+        assert(!e->hasSideEffect());
         e = paintTypeOntoLiteral(type, e);
     }
     else

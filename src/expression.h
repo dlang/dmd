@@ -167,8 +167,9 @@ struct Expression : Object
     virtual int isConst();
     virtual int isBool(int result);
     virtual int isBit();
-    virtual int checkSideEffect(int flag);
     bool hasSideEffect();
+    void discardValue();
+    void useValue();
     int canThrow(bool mustNotThrow);
 
     virtual int inlineCost3(InlineCostState *ics);
@@ -404,7 +405,6 @@ struct TupleExp : Expression
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
-    int checkSideEffect(int flag);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *castTo(Scope *sc, Type *t);
@@ -427,7 +427,6 @@ struct ArrayLiteralExp : Expression
     Expression *semantic(Scope *sc);
     int isBool(int result);
     elem *toElem(IRState *irs);
-    int checkSideEffect(int flag);
     StringExp *toString();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -454,7 +453,6 @@ struct AssocArrayLiteralExp : Expression
     Expression *semantic(Scope *sc);
     int isBool(int result);
     elem *toElem(IRState *irs);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *optimize(int result);
@@ -486,7 +484,6 @@ struct StructLiteralExp : Expression
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     elem *toElem(IRState *irs);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
     Expression *optimize(int result);
@@ -555,7 +552,6 @@ struct NewExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     Expression *optimize(int result);
     elem *toElem(IRState *irs);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     //int inlineCost3(InlineCostState *ics);
@@ -577,7 +573,6 @@ struct NewAnonClassExp : Expression
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
@@ -688,7 +683,6 @@ struct DeclarationExp : Expression
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 
@@ -725,7 +719,6 @@ struct HaltExp : Expression
     HaltExp(Loc loc);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int checkSideEffect(int flag);
 
     elem *toElem(IRState *irs);
 };
@@ -782,7 +775,6 @@ struct BinExp : Expression
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *semanticp(Scope *sc);
-    int checkSideEffect(int flag);
     void checkComplexMulAssign();
     void checkComplexAddAssign();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -851,7 +843,6 @@ struct AssertExp : UnaExp
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Expression *doInline(InlineDoState *ids);
@@ -951,7 +942,6 @@ struct CallExp : UnaExp
     Expression *semantic(Scope *sc);
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
     elem *toElem(IRState *irs);
@@ -1061,7 +1051,6 @@ struct DeleteExp : UnaExp
     DeleteExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *checkToBoolean(Scope *sc);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
 };
@@ -1080,7 +1069,6 @@ struct CastExp : UnaExp
     IntRange getIntRange();
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int checkSideEffect(int flag);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
@@ -1177,7 +1165,6 @@ struct CommaExp : BinExp
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
-    int checkSideEffect(int flag);
     MATCH implicitConvTo(Type *t);
     Expression *addDtorHook(Scope *sc);
     Expression *castTo(Scope *sc, Type *t);
@@ -1509,7 +1496,6 @@ struct OrOrExp : BinExp
     int isBit();
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int checkSideEffect(int flag);
     elem *toElem(IRState *irs);
 };
 
@@ -1521,7 +1507,6 @@ struct AndAndExp : BinExp
     int isBit();
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    int checkSideEffect(int flag);
     elem *toElem(IRState *irs);
 };
 
@@ -1611,7 +1596,6 @@ struct CondExp : BinExp
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean(Scope *sc);
-    int checkSideEffect(int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
