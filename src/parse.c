@@ -3957,6 +3957,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
             case TOKrbracket:
             case TOKassign:
             case TOKcomma:
+            case TOKdotdotdot:
             case TOKsemicolon:
             case TOKlcurly:
             case TOKin:
