@@ -1236,7 +1236,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             e = ale->elements->tdata()[i];
             e->type = type;
-            if (e->checkSideEffect(2))
+            if (e->hasSideEffect())
                 e = EXP_CANT_INTERPRET;
         }
     }
@@ -1254,7 +1254,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             else
             {   e = ale->elements->tdata()[i];
                 e->type = type;
-                if (e->checkSideEffect(2))
+                if (e->hasSideEffect())
                     e = EXP_CANT_INTERPRET;
             }
         }
@@ -1274,7 +1274,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             if (ex->isBool(TRUE))
             {   e = ae->values->tdata()[i];
                 e->type = type;
-                if (e->checkSideEffect(2))
+                if (e->hasSideEffect())
                     e = EXP_CANT_INTERPRET;
                 break;
             }
@@ -1327,7 +1327,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
     }
     else if (e1->op == TOKarrayliteral &&
             lwr->op == TOKint64 && upr->op == TOKint64 &&
-            !e1->checkSideEffect(2))
+            !e1->hasSideEffect())
     {   ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
         uinteger_t ilwr = lwr->toInteger();
         uinteger_t iupr = upr->toInteger();

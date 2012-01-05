@@ -640,7 +640,7 @@ Expression *CommaExp::optimize(int result)
 
     e1 = e1->optimize(result & WANTinterpret);
     e2 = e2->optimize(result);
-    if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64 || !e1->checkSideEffect(2))
+    if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64 || !e1->hasSideEffect())
     {
         e = e2;
         if (e)

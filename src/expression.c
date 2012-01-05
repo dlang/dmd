@@ -3091,7 +3091,7 @@ int ArrayLiteralExp::checkSideEffect(int flag)
     for (size_t i = 0; i < elements->dim; i++)
     {   Expression *e = elements->tdata()[i];
 
-        f |= e->checkSideEffect(2);
+        f |= e->hasSideEffect();
     }
     if (flag == 0 && f == 0)
         Expression::checkSideEffect(0);
@@ -3212,8 +3212,8 @@ int AssocArrayLiteralExp::checkSideEffect(int flag)
     {   Expression *key = (Expression *)keys->data[i];
         Expression *value = (Expression *)values->data[i];
 
-        f |= key->checkSideEffect(2);
-        f |= value->checkSideEffect(2);
+        f |= key->hasSideEffect();
+        f |= value->hasSideEffect();
     }
     if (flag == 0 && f == 0)
         Expression::checkSideEffect(0);
@@ -3476,7 +3476,7 @@ int StructLiteralExp::checkSideEffect(int flag)
         if (!e)
             continue;
 
-        f |= e->checkSideEffect(2);
+        f |= e->hasSideEffect();
     }
     if (flag == 0 && f == 0)
         Expression::checkSideEffect(0);
@@ -4514,7 +4514,7 @@ int TupleExp::checkSideEffect(int flag)
     for (size_t i = 0; i < exps->dim; i++)
     {   Expression *e = (*exps)[i];
 
-        f |= e->checkSideEffect(2);
+        f |= e->hasSideEffect();
     }
     if (flag == 0 && f == 0)
         Expression::checkSideEffect(0);
@@ -8206,7 +8206,7 @@ int CommaExp::isBool(int result)
 int CommaExp::checkSideEffect(int flag)
 {
     if (flag == 2)
-        return e1->checkSideEffect(2) || e2->checkSideEffect(2);
+        return e1->hasSideEffect() || e2->hasSideEffect();
     else
     {
         // Don't check e1 until we cast(void) the a,b code generation
@@ -9892,7 +9892,7 @@ int OrOrExp::checkSideEffect(int flag)
 {
     if (flag == 2)
     {
-        return e1->checkSideEffect(2) || e2->checkSideEffect(2);
+        return e1->hasSideEffect() || e2->hasSideEffect();
     }
     else
     {   e1->checkSideEffect(1);
@@ -9967,7 +9967,7 @@ int AndAndExp::checkSideEffect(int flag)
 {
     if (flag == 2)
     {
-        return e1->checkSideEffect(2) || e2->checkSideEffect(2);
+        return e1->hasSideEffect() || e2->hasSideEffect();
     }
     else
     {
@@ -10425,9 +10425,9 @@ int CondExp::checkSideEffect(int flag)
 {
     if (flag == 2)
     {
-        return econd->checkSideEffect(2) ||
-                e1->checkSideEffect(2) ||
-                e2->checkSideEffect(2);
+        return econd->hasSideEffect() ||
+                e1->hasSideEffect() ||
+                e2->hasSideEffect();
     }
     else
     {

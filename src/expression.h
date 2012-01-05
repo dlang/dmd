@@ -157,6 +157,7 @@ struct Expression : Object
     virtual int isConst();
     virtual int isBool(int result);
     virtual int isBit();
+    bool hasSideEffect();
     virtual int checkSideEffect(int flag);
     virtual int canThrow();
 

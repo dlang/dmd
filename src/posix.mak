@@ -83,7 +83,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o
+	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o
 
 ifeq (OSX,$(TARGET))
     DMD_OBJS += libmach.o machobj.o
@@ -108,7 +108,7 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c apply.c \
+	argtypes.c apply.c sideeffect.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -504,6 +504,9 @@ s2ir.o: s2ir.c $C/rtlsym.h statement.h
 scope.o: scope.c
 	$(CC) -c $(CFLAGS) $<
 
+sideeffect.o: sideeffect.c
+	$(CC) -c $(CFLAGS) $<
+
 speller.o: $(ROOT)/speller.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
@@ -633,6 +636,7 @@ endif
 	gcov parse.c
 	gcov ph.c
 	gcov scope.c
+	gcov sideeffect.c
 	gcov statement.c
 	gcov staticassert.c
 	gcov s2ir.c
