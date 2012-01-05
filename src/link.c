@@ -242,6 +242,9 @@ int runLINK()
     // add the "-dynamiclib" flag
     if (global.params.dll)
         argv.push((char *) "-dynamiclib");
+#elif linux || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+    if (global.params.dll)
+        argv.push((char *) "-shared");
 #endif
 
     // None of that a.out stuff. Use explicit exe file name, or
@@ -369,10 +372,13 @@ int runLINK()
     const char *libname = (global.params.symdebug)
                                 ? global.params.debuglibname
                                 : global.params.defaultlibname;
-    char *buf = (char *)malloc(2 + strlen(libname) + 1);
-    strcpy(buf, "-l");
-    strcpy(buf + 2, libname);
-    argv.push(buf);             // turns into /usr/lib/libphobos2.a
+    if (size_t slen = strlen(libname))
+    {
+        char *buf = (char *)malloc(2 + slen + 1);
+        strcpy(buf, "-l");
+        strcpy(buf + 2, libname);
+        argv.push(buf);             // turns into /usr/lib/libphobos2.a
+    }
 
 //    argv.push((void *)"-ldruntime");
     argv.push((char *)"-lpthread");
