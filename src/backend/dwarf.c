@@ -104,12 +104,18 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 #endif
 }
 
-void dwarf_addreladdr(int seg, targ_size_t offset, int targseg, targ_size_t val)
+void dwarf_appreladdr(int seg, Outbuffer *buf, int targseg, targ_size_t val)
 {
   if (I64)
-    dwarf_addrel64(seg, offset, targseg, val);
+  {
+      dwarf_addrel64(seg, buf->size(), targseg, val);
+      buf->write64(0);
+  }
   else
-    dwarf_addrel(seg, offset, targseg, val);
+  {
+      dwarf_addrel(seg, buf->size(), targseg, 0);
+      buf->write32(val);
+  }
 }
 
 void append_addr(Outbuffer *buf, targ_size_t addr)
@@ -838,8 +844,7 @@ void dwarf_termfile()
             linebuf->writeByte(NPTRSIZE + 1);
             linebuf->writeByte(DW_LNE_set_address);
 
-            dwarf_addreladdr(lineseg,linebuf->size(),seg,0);
-            append_addr(linebuf, 0);
+            dwarf_appreladdr(lineseg,linebuf,seg,0);
 
             // Dwarf2 6.2.2 State machine registers
             unsigned address = 0;       // instruction address
@@ -1175,11 +1180,9 @@ void dwarf_func_term(Symbol *sfunc)
         if (sfunc->Sclass == SCglobal)
             infobuf->writeByte(1);              // DW_AT_external
 
-        dwarf_addreladdr(infoseg,infobuf->size(),seg, 0);
-        append_addr(infobuf,funcoffset); // DW_AT_low_pc
-
-        dwarf_addreladdr(infoseg,infobuf->size(),seg, 0);
-        append_addr(infobuf,funcoffset + sfunc->Ssize); // DW_AT_high_pc
+        // DW_AT_low_pc and DW_AT_high_pc
+        dwarf_appreladdr(infoseg, infobuf, seg, funcoffset);
+        dwarf_appreladdr(infoseg, infobuf, seg, funcoffset + sfunc->Ssize);
 
         dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
         infobuf->write32(debug_loc_buf->size()); // DW_AT_frame_base
@@ -1253,9 +1256,10 @@ void dwarf_func_term(Symbol *sfunc)
         else
         {   // Add entry
             sd->SDaranges_offset = debug_aranges_buf->size();
-            dwarf_addreladdr(debug_aranges_seg,sd->SDaranges_offset,seg,0);
-            append_addr(debug_aranges_buf, 0);                         // address of start of .text segment
-            append_addr(debug_aranges_buf, funcoffset + sfunc->Ssize); // size of .text segment
+            // address of start of .text segment
+            dwarf_appreladdr(debug_aranges_seg, debug_aranges_buf, seg, 0);
+            // size of .text segment
+            append_addr(debug_aranges_buf, funcoffset + sfunc->Ssize);
         }
 
         /* ============= debug_ranges =========================== */
@@ -1263,12 +1267,9 @@ void dwarf_func_term(Symbol *sfunc)
         /* Each function gets written into its own segment,
          * indicate this by adding to the debug_ranges
          */
-        dwarf_addreladdr(debug_ranges_seg, debug_ranges_buf->size(), seg, 0);
-        append_addr(debug_ranges_buf, funcoffset); // start of function
-
-        dwarf_addreladdr(debug_ranges_seg, debug_ranges_buf->size(), seg, 0);
-        append_addr(debug_ranges_buf, funcoffset + sfunc->Ssize); // end of function
-
+        // start of function and end of function
+        dwarf_appreladdr(debug_ranges_seg, debug_ranges_buf, seg, funcoffset);
+        dwarf_appreladdr(debug_ranges_seg, debug_ranges_buf, seg, funcoffset + sfunc->Ssize);
 
         /* ============= debug_loc =========================== */
 
@@ -1279,37 +1280,28 @@ void dwarf_func_term(Symbol *sfunc)
 
         // set the entry for this function in .debug_loc segment
         // after call
-        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-        append_addr(debug_loc_buf, funcoffset + 0);
-
-        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-        append_addr(debug_loc_buf, funcoffset + 1);
+        dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 0);
+        dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 1);
 
         loc_op = ((Poff - REGSIZE) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
         debug_loc_buf->write32(loc_op << 16 | op_size);
 
         // after push EBP
-        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-        append_addr(debug_loc_buf, funcoffset + 1);
-
-        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-        append_addr(debug_loc_buf, funcoffset + 3);
+        dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 1);
+        dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 3);
 
         loc_op = ((Poff) << 8) | (DW_OP_breg0 + dwarf_regno(SP));
         debug_loc_buf->write32(loc_op << 16 | op_size);
 
         // after mov EBP, ESP
-        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-        append_addr(debug_loc_buf, funcoffset + 3);
-
-        dwarf_addreladdr(debug_loc_seg, debug_loc_buf->size(), seg, 0);
-        append_addr(debug_loc_buf, funcoffset + sfunc->Ssize);
+        dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + 3);
+        dwarf_appreladdr(debug_loc_seg, debug_loc_buf, seg, funcoffset + sfunc->Ssize);
 
         loc_op = ((Poff) << 8) | (DW_OP_breg0 + dwarf_regno(BP));
         debug_loc_buf->write32(loc_op << 16 | op_size);
 
-
-        append_addr(debug_loc_buf, 0); // 2 zero addresses to end loc_list
+        // 2 zero addresses to end loc_list
+        append_addr(debug_loc_buf, 0);
         append_addr(debug_loc_buf, 0);
 }
 

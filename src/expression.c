@@ -1533,34 +1533,6 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 }
 #endif
 
-/********************************
- * Check for expressions that have no use.
- * Input:
- *      flag    0 not going to use the result, so issue error message if no
- *                side effects
- *              1 the result of the expression is used, but still check
- *                for useless subexpressions
- *              2 do not issue error messages, just return !=0 if expression
- *                has side effects
- */
-
-int Expression::checkSideEffect(int flag)
-{
-    if (flag == 0)
-    {
-        if (op == TOKerror)
-        {   // Error should have already been printed
-        }
-        else if (op == TOKimport)
-        {
-            error("%s has no effect", toChars());
-        }
-        else
-            error("%s has no effect in expression (%s)",
-                Token::toChars(op), toChars());
-    }
-    return 0;
-}
 
 /*****************************
  * Check that expression can be tested for true or false.
@@ -3513,19 +3485,6 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     return this;
 }
 
-int ArrayLiteralExp::checkSideEffect(int flag)
-{   int f = 0;
-
-    for (size_t i = 0; i < elements->dim; i++)
-    {   Expression *e = elements->tdata()[i];
-
-        f |= e->hasSideEffect();
-    }
-    if (flag == 0 && f == 0)
-        Expression::checkSideEffect(0);
-    return f;
-}
-
 int ArrayLiteralExp::isBool(int result)
 {
     size_t dim = elements ? elements->dim : 0;
@@ -3628,20 +3587,6 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     return this;
 }
 
-int AssocArrayLiteralExp::checkSideEffect(int flag)
-{   int f = 0;
-
-    for (size_t i = 0; i < keys->dim; i++)
-    {   Expression *key = keys->tdata()[i];
-        Expression *value = values->tdata()[i];
-
-        f |= key->hasSideEffect();
-        f |= value->hasSideEffect();
-    }
-    if (flag == 0 && f == 0)
-        Expression::checkSideEffect(0);
-    return f;
-}
 
 int AssocArrayLiteralExp::isBool(int result)
 {
@@ -3907,21 +3852,6 @@ Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-
-int StructLiteralExp::checkSideEffect(int flag)
-{   int f = 0;
-
-    for (size_t i = 0; i < elements->dim; i++)
-    {   Expression *e = elements->tdata()[i];
-        if (!e)
-            continue;
-
-        f |= e->hasSideEffect();
-    }
-    if (flag == 0 && f == 0)
-        Expression::checkSideEffect(0);
-    return f;
-}
 
 void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4485,10 +4415,6 @@ Lerr:
     return new ErrorExp();
 }
 
-int NewExp::checkSideEffect(int flag)
-{
-    return 1;
-}
 
 void NewExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4551,10 +4477,6 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
     return c->semantic(sc);
 }
 
-int NewAnonClassExp::checkSideEffect(int flag)
-{
-    return 1;
-}
 
 void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -4928,18 +4850,6 @@ void TupleExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte(')');
 }
 
-int TupleExp::checkSideEffect(int flag)
-{   int f = 0;
-
-    for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (*exps)[i];
-
-        f |= e->hasSideEffect();
-    }
-    if (flag == 0 && f == 0)
-        Expression::checkSideEffect(0);
-    return f;
-}
 
 void TupleExp::checkEscape()
 {
@@ -5285,10 +5195,6 @@ Expression *DeclarationExp::semantic(Scope *sc)
     return this;
 }
 
-int DeclarationExp::checkSideEffect(int flag)
-{
-    return 1;
-}
 
 void DeclarationExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5429,10 +5335,6 @@ Expression *HaltExp::semantic(Scope *sc)
     return this;
 }
 
-int HaltExp::checkSideEffect(int flag)
-{
-    return 1;
-}
 
 void HaltExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -5868,31 +5770,6 @@ Expression *BinExp::semanticp(Scope *sc)
     return this;
 }
 
-int BinExp::checkSideEffect(int flag)
-{
-    if (op == TOKplusplus ||
-           op == TOKminusminus ||
-           op == TOKassign ||
-           op == TOKconstruct ||
-           op == TOKblit ||
-           op == TOKaddass ||
-           op == TOKminass ||
-           op == TOKcatass ||
-           op == TOKmulass ||
-           op == TOKdivass ||
-           op == TOKmodass ||
-           op == TOKshlass ||
-           op == TOKshrass ||
-           op == TOKushrass ||
-           op == TOKandass ||
-           op == TOKorass ||
-           op == TOKxorass ||
-           op == TOKpowass ||
-           op == TOKin ||
-           op == TOKremove)
-        return 1;
-    return Expression::checkSideEffect(flag);
-}
 
 // generate an error if this is a nonsensical *=,/=, or %=, eg real *= imaginary
 void BinExp::checkComplexMulAssign()
@@ -6259,10 +6136,6 @@ Expression *AssertExp::semantic(Scope *sc)
     return this;
 }
 
-int AssertExp::checkSideEffect(int flag)
-{
-    return 1;
-}
 
 void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -7918,47 +7791,6 @@ Lcheckargs:
     return this;
 }
 
-int CallExp::checkSideEffect(int flag)
-{
-#if DMDV2
-    int result = 1;
-
-    /* Calling a function or delegate that is pure nothrow
-     * has no side effects.
-     */
-    if (e1->type)
-    {
-        Type *t = e1->type->toBasetype();
-        if ((t->ty == Tfunction && ((TypeFunction *)t)->purity > PUREweak &&
-                                   ((TypeFunction *)t)->isnothrow)
-            ||
-            (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
-                                   ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
-           )
-        {
-            result = 0;
-            //if (flag == 0)
-                //warning("pure nothrow function %s has no effect", e1->toChars());
-        }
-        else
-            result = 1;
-    }
-
-    result |= e1->checkSideEffect(1);
-
-    /* If any of the arguments have side effects, this expression does
-     */
-    for (size_t i = 0; i < arguments->dim; i++)
-    {   Expression *e = arguments->tdata()[i];
-
-        result |= e->checkSideEffect(1);
-    }
-
-    return result;
-#else
-    return 1;
-#endif
-}
 
 #if DMDV2
 int CallExp::isLvalue()
@@ -8485,10 +8317,6 @@ Expression *DeleteExp::semantic(Scope *sc)
     return this;
 }
 
-int DeleteExp::checkSideEffect(int flag)
-{
-    return 1;
-}
 
 Expression *DeleteExp::checkToBoolean(Scope *sc)
 {
@@ -8699,17 +8527,6 @@ Lsafe:
     return e;
 }
 
-int CastExp::checkSideEffect(int flag)
-{
-    /* if not:
-     *  cast(void)
-     *  cast(classtype)func()
-     */
-    if (!to->equals(Type::tvoid) &&
-        !(to->ty == Tclass && e1->op == TOKcall && e1->type->ty == Tclass))
-        return Expression::checkSideEffect(flag);
-    return 1;
-}
 
 void CastExp::checkEscape()
 {   Type *tb = type->toBasetype();
@@ -9250,31 +9067,6 @@ int CommaExp::isBool(int result)
     return e2->isBool(result);
 }
 
-int CommaExp::checkSideEffect(int flag)
-{
-    /* Check for compiler-generated code of the form  auto __tmp, e, __tmp;
-     * In such cases, only check e for side effect (it's OK for __tmp to have
-     * no side effect).
-     * See Bugzilla 4231 for discussion
-     */
-    CommaExp* firstComma = this;
-    while (firstComma->e1->op == TOKcomma)
-        firstComma = (CommaExp *)firstComma->e1;
-    if (firstComma->e1->op == TOKdeclaration &&
-        e2->op == TOKvar &&
-        ((DeclarationExp *)firstComma->e1)->declaration == ((VarExp*)e2)->var)
-    {
-        return e1->checkSideEffect(flag);
-    }
-
-    if (flag == 2)
-        return e1->hasSideEffect() || e2->hasSideEffect();
-    else
-    {
-        // Don't check e1 until we cast(void) the a,b code generation
-        return e2->checkSideEffect(flag);
-    }
-}
 
 Expression *CommaExp::addDtorHook(Scope *sc)
 {
@@ -11574,17 +11366,6 @@ int OrOrExp::isBit()
     return TRUE;
 }
 
-int OrOrExp::checkSideEffect(int flag)
-{
-    if (flag == 2)
-    {
-        return e1->hasSideEffect() || e2->hasSideEffect();
-    }
-    else
-    {   e1->checkSideEffect(1);
-        return e2->checkSideEffect(flag);
-    }
-}
 
 /************************************************************/
 
@@ -11649,18 +11430,6 @@ int AndAndExp::isBit()
     return TRUE;
 }
 
-int AndAndExp::checkSideEffect(int flag)
-{
-    if (flag == 2)
-    {
-        return e1->hasSideEffect() || e2->hasSideEffect();
-    }
-    else
-    {
-        e1->checkSideEffect(1);
-        return e2->checkSideEffect(flag);
-    }
-}
 
 /************************************************************/
 
@@ -12189,21 +11958,6 @@ Expression *CondExp::checkToBoolean(Scope *sc)
     return this;
 }
 
-int CondExp::checkSideEffect(int flag)
-{
-    if (flag == 2)
-    {
-        return econd->hasSideEffect() ||
-                e1->hasSideEffect() ||
-                e2->hasSideEffect();
-    }
-    else
-    {
-        econd->checkSideEffect(1);
-        e1->checkSideEffect(flag);
-        return e2->checkSideEffect(flag);
-    }
-}
 
 void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {

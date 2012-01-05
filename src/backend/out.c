@@ -235,9 +235,8 @@ void outdata(symbol *s)
                     }
 #if ELFOBJ || MACHOBJ
                     assert(s->Sseg != UNKNOWN);
-                    if (s->Sclass == SCglobal || s->Sclass == SCstatic)
-                        objpubdef(s->Sseg,s,s->Soffset);        /* do the definition    */
-                                            /* if a pubdef to be done */
+                    if (s->Sclass == SCglobal || s->Sclass == SCstatic) // if a pubdef to be done
+                        objpubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
 #else
                     if (s->Sclass == SCglobal)          /* if a pubdef to be done */
                         objpubdef(s->Sseg,s,s->Soffset);    /* do the definition    */
@@ -285,7 +284,11 @@ void outdata(symbol *s)
 
     if (s->Sclass == SCcomdat)          // if initialized common block
     {
+#if ELFOBJ
+        seg = obj_comdatsize(s, datasize);
+#else
         seg = obj_comdat(s);
+#endif
 #if ELFOBJ || OMFOBJ
         s->Soffset = 0;
 #endif
@@ -371,7 +374,7 @@ void outdata(symbol *s)
         seg = s->Sseg;
     if (s->Sclass == SCglobal || s->Sclass == SCstatic)
     {
-        objpubdef(s->Sseg,s,s->Soffset);        // do the definition
+        objpubdefsize(s->Sseg,s,s->Soffset,datasize); // do the definition
     }
 #else
     s->Sseg = seg;

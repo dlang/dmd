@@ -108,7 +108,7 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c intrange.c apply.c canthrow.c sideffect.c \
+	argtypes.c intrange.c apply.c canthrow.c sideeffect.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
