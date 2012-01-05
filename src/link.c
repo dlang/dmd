@@ -372,7 +372,8 @@ int runLINK()
     const char *libname = (global.params.symdebug)
                                 ? global.params.debuglibname
                                 : global.params.defaultlibname;
-    if (size_t slen = strlen(libname))
+    size_t slen = strlen(libname);
+    if (slen)
     {
         char *buf = (char *)malloc(2 + slen + 1);
         strcpy(buf, "-l");

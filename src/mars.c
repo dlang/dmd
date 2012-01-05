@@ -48,6 +48,12 @@ void obj_end(Library *library, File *objfile);
 
 void printCtfePerformanceStats();
 
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+static char dylib_switch[] = "shared";
+#elif TARGET_OSX
+static char dylib_switch[] = "dylib";
+#endif
+
 Global global;
 
 Global::Global()
@@ -520,16 +526,8 @@ int main(int argc, char *argv[])
             else if (strcmp(p + 1, "cov") == 0)
                 global.params.cov = 1;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            else if (strcmp(p + 1, "shared") == 0
-#if TARGET_OSX
-                     || strcmp(p + 1, "dylib") == 0
-#endif
-            )
-            {
-                if (global.params.lib)
-                    error("cannot mix -lib and -shared\n");
+            else if (strcmp(p + 1, dylib_switch) == 0)
                 global.params.dll = 1;
-            }
             else if (strcmp(p + 1, "fPIC") == 0)
                 global.params.pic = 1;
 #endif
@@ -677,11 +675,7 @@ int main(int argc, char *argv[])
             else if (strcmp(p + 1, "inline") == 0)
                 global.params.useInline = 1;
             else if (strcmp(p + 1, "lib") == 0)
-            {
-                if (global.params.dll)
-                    error("cannot mix -lib and -shared\n");
                 global.params.lib = 1;
-            }
             else if (strcmp(p + 1, "nofloat") == 0)
                 global.params.nofloat = 1;
             else if (strcmp(p + 1, "quiet") == 0)
@@ -885,6 +879,11 @@ int main(int argc, char *argv[])
 
 #if TARGET_OSX
     global.params.pic = 1;
+#endif
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (global.params.lib && global.params.dll)
+        error("cannot mix -lib and -%s\n", dylib_switch);
 #endif
 
     if (global.params.release)
