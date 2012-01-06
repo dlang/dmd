@@ -486,20 +486,21 @@ Statement *CompoundStatement::semantic(Scope *sc)
                          *      catch (Object __o)
                          *      { sexception; throw __o; }
                          */
-                        Statement *body;
                         Statements *a = new Statements();
-
                         for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push((*statements)[j]);
                         }
-                        body = new CompoundStatement(0, a);
+                        Statement *body = new CompoundStatement(0, a);
                         body = new ScopeStatement(0, body);
 
                         Identifier *id = Lexer::uniqueId("__o");
 
-                        Statement *handler = new ThrowStatement(0, new IdentifierExp(0, id));
-                        handler = new CompoundStatement(0, sexception, handler);
+                        Statement *handler = sexception->semantic(sc);
+                        if (sexception->blockExit(FALSE) & BEfallthru)
+                        {   handler = new ThrowStatement(0, new IdentifierExp(0, id));
+                            handler = new CompoundStatement(0, sexception, handler);
+                        }
 
                         Catches *catches = new Catches();
                         Catch *ctch = new Catch(0, NULL, id, handler);
@@ -527,14 +528,12 @@ Statement *CompoundStatement::semantic(Scope *sc)
                          * As:
                          *      s; try { s1; s2; } finally { sfinally; }
                          */
-                        Statement *body;
                         Statements *a = new Statements();
-
                         for (size_t j = i + 1; j < statements->dim; j++)
                         {
                             a->push((*statements)[j]);
                         }
-                        body = new CompoundStatement(0, a);
+                        Statement *body = new CompoundStatement(0, a);
                         s = new TryFinallyStatement(0, body, sfinally);
                         s = s->semantic(sc);
                         statements->setDim(i + 1);
