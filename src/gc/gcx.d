@@ -3078,30 +3078,36 @@ struct Gcx
     }
     body
     {
+        // Calculate the mask and bit offset once and then use it to 
+        // set all of the bits we need to set.
+        immutable dataIndex = 1 + (biti >> GCBits.BITS_SHIFT);
+        immutable bitOffset = biti & GCBits.BITS_MASK;
+        immutable orWith = GCBits.BITS_1 << bitOffset;
+        
         if (mask & BlkAttr.FINALIZE)
         {
             if (!pool.finals.nbits)
                 pool.finals.alloc(pool.mark.nbits);
-            pool.finals.set(biti);
+            pool.finals.data[dataIndex] |= orWith;
         }
         if (mask & BlkAttr.NO_SCAN)
         {
-            pool.noscan.set(biti);
+            pool.noscan.data[dataIndex] |= orWith;
         }
 //        if (mask & BlkAttr.NO_MOVE)
 //        {
 //            if (!pool.nomove.nbits)
 //                pool.nomove.alloc(pool.mark.nbits);
-//            pool.nomove.set(biti);
+//            pool.nomove.data[dataIndex] |= orWith;
 //        }
         if (mask & BlkAttr.APPENDABLE)
         {
-            pool.appendable.set(biti);
+            pool.appendable.data[dataIndex] |= orWith;
         }
         
         if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
         {
-            pool.nointerior.set(biti);
+            pool.nointerior.data[dataIndex] |= orWith;
         }
     }
 
