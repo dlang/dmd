@@ -439,6 +439,15 @@ extern(C) void rt_processGCMarks(void[] tls)
 /**
   Get the cached block info of an interior pointer.  Returns null if the
   interior pointer's block is not cached.
+  
+  NOTE: The base ptr in this struct can be cleared asynchronously by the GC,
+        so any use of the returned BlkInfo should copy it and then check the
+        base ptr of the copy before actually using it.
+        
+  TODO: Change this function so the caller doesn't have to be aware of this
+        issue.  Either return by value and expect the caller to always check
+        the base ptr as an indication of whether the struct is valid, or set
+        the BlkInfo as a side-effect and return a bool to indicate success.
   */
 BlkInfo *__getBlkInfo(void *interior)
 {
@@ -646,7 +655,7 @@ body
     size_t curcapacity = void;
     size_t offset = void;
     size_t arraypad = void;
-    if(info.base !is null && (info.attr & BlkAttr.APPENDABLE))
+    if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         if(info.size <= 256)
         {
@@ -1714,7 +1723,7 @@ byte[] _d_arrayappendcTX(TypeInfo ti, ref byte[] px, size_t n)
 
     // calculate the extent of the array given the base.
     size_t offset = px.ptr - __arrayStart(info);
-    if(info.attr & BlkAttr.APPENDABLE)
+    if(info.base && (info.attr & BlkAttr.APPENDABLE))
     {
         if(info.size >= PAGESIZE)
         {

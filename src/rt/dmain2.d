@@ -84,6 +84,12 @@ extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
 extern (C) void rt_lifetimeInit();
 
+// NOTE: This is to preserve compatibility with the Windows DLL sample.
+extern (C) void _moduleCtor()
+{
+    rt_moduleCtor();
+}
+
 version (OSX)
 {
     // The bottom of the stack
@@ -208,7 +214,6 @@ extern (C)
     {
         onSwitchError(m.name, line);
     }
-
 }
 
 extern (C) void _d_hidden_func()

@@ -1038,13 +1038,15 @@ version( unittest )
     {
         T         base;
         shared(T) atom;
+        static if (is(T : real))
+            base = atom = cast(T) 0;
 
         assert( base != val, T.stringof );
         assert( atom == base, T.stringof );
 
-        assert( cas( &atom, base, val ), T.stringof );
+        cas( &atom, base, val ) || assert( 0, T.stringof );
         assert( atom == val, T.stringof );
-        assert( !cas( &atom, base, base ), T.stringof );
+        !cas( &atom, base, base ) || assert( 0, T.stringof );
         assert( atom == val, T.stringof );
     }
 
@@ -1089,9 +1091,8 @@ version( unittest )
         static class Klass {}
         testCAS!(shared Klass)( new shared(Klass) );
 
-        // Cannot test for == with .init, because NaN is always !=
-//        testType!(float)(1.0f);
-//        testType!(double)(1.0);
+        testType!(float)(1.0f);
+        testType!(double)(1.0);
 
         static if( has64BitCAS )
         {

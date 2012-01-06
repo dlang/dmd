@@ -422,4 +422,5 @@ extern (C) void _d_throwc(Object *h)
             }
         }
     }
+    terminate();
 }
