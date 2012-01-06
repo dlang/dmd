@@ -7280,6 +7280,12 @@ Lagain:
             e1 = new DsymbolExp(loc, se->sds);
             e1 = e1->semantic(sc);
         }
+        else if (e1->op == TOKsymoff && ((SymOffExp *)e1)->hasOverloads)
+        {
+            SymOffExp *se = (SymOffExp *)e1;
+            e1 = new VarExp(se->loc, se->var, 1);
+            e1 = e1->semantic(sc);
+        }
 #if 1   // patch for #540 by Oskar Linde
         else if (e1->op == TOKdotexp)
         {
