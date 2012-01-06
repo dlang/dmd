@@ -3,6 +3,8 @@
 
 extern(C) int printf(const char*, ...);
 
+/******************************************/
+
 class F { }
 int foo()
 {
@@ -10,12 +12,18 @@ int foo()
     return 0;
 }
 
+/******************************************/
+
 int foo2()
 {
-    try {
-    return 0;
-    } finally { }
+    try
+    {
+        return 0;
+    }
+    finally { }
 }
+
+/******************************************/
 
 private int getNthInt(A...)(uint index, A args)
 {
@@ -37,42 +45,44 @@ private int getNthInt(A...)(uint index, A args)
 /******************************************/
 
 class Foo2 {
-  int foo() {
-      synchronized(this){
-          return 8;
-      }
-  }
+    int foo() {
+        synchronized(this){
+            return 8;
+        }
+    }
 }
 
 /******************************************/
 
-void main() {
-        int i=0;
-        printf("This number is zero: ");
-        goto inloop;
-        for(; i<10; i++) {              // this is line 7
-                printf("This number is nonzero: ");
+void mainX()
+{
+    int i=0;
+    printf("This number is zero: ");
+    goto inloop;
+    for(; i<10; i++) {              // this is line 7
+        printf("This number is nonzero: ");
 inloop:
-                printf("%d\n", i);
-        }
+        printf("%d\n", i);
+    }
 }
 
-/*****************************************/
+/******************************************/
 
 string foo3(int bar)
 {
-        switch (bar) {
-                case 1:
-                        return "1";
-                case 2:
-                        return "2";
-                default:
-                        return "3";
-        }
+    switch (bar)
+    {
+        case 1:
+            return "1";
+        case 2:
+            return "2";
+        default:
+            return "3";
+    }
 }
 
 
-/*****************************************/
+/******************************************/
 
 int foo4()
 {
@@ -83,7 +93,7 @@ int foo4()
     }
 }
 
-/*****************************************/
+/******************************************/
 
 int foo5()
 {
@@ -93,16 +103,24 @@ int foo5()
     } while (true);
 }
 
-/*****************************************/
+/******************************************/
 
 nothrow int foo6()
 {
-    int x= 2;
-    try { } catch(Exception e) { x=4; throw new Exception("xxx"); } 
+    int x = 2;
+    try
+    {
+    }
+    catch(Exception e)
+    {
+        x = 4;
+        throw new Exception("xxx");
+    }
     return x;
 }
 
-/*****************************************/
+/******************************************/
+// 6518
 
 template TypeTuple(T...) { alias T TypeTuple; }
 void test6518()
@@ -113,4 +131,19 @@ void test6518()
             case v: break;
         default: assert(0);
     }
+}
+
+/******************************************/
+// 7232
+
+bool test7232()
+{
+    scope(failure) return false;
+    return true;
+}
+
+/******************************************/
+
+void main()
+{
 }
