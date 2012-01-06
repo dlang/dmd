@@ -546,8 +546,11 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
                         Identifier *id = Lexer::uniqueId("__o");
 
-                        Statement *handler = new ThrowStatement(0, new IdentifierExp(0, id));
-                        handler = new CompoundStatement(0, sexception, handler);
+                        Statement *handler = sexception->semantic(sc);
+                        if (sexception->blockExit(FALSE) & BEfallthru)
+                        {   handler = new ThrowStatement(0, new IdentifierExp(0, id));
+                            handler = new CompoundStatement(0, sexception, handler);
+                        }
 
                         Catches *catches = new Catches();
                         Catch *ctch = new Catch(0, NULL, id, handler);
