@@ -321,7 +321,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
         {
             DeclarationExp *de = (DeclarationExp *)(exp);
             VarDeclaration *v = de->declaration->isVarDeclaration();
-            if (v && !v->noscope)
+            if (v && !v->noscope && !v->isDataseg())
             {
                 Expression *e = v->edtor;
                 if (e)
