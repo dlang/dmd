@@ -892,11 +892,15 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
              */
             if (!tf->parameterEscapes(p))
             {
+                Expression *a = arg;
+                if (a->op == TOKcast)
+                    a = ((CastExp *)a)->e1;
+
                 /* Function literals can only appear once, so if this
                  * appearance was scoped, there cannot be any others.
                  */
-                if (arg->op == TOKfunction)
-                {   FuncExp *fe = (FuncExp *)arg;
+                if (a->op == TOKfunction)
+                {   FuncExp *fe = (FuncExp *)a;
                     fe->fd->tookAddressOf = 0;
                 }
 
@@ -904,8 +908,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                  * this doesn't count as taking the address of it.
                  * We only worry about 'escaping' references to the function.
                  */
-                else if (arg->op == TOKdelegate)
-                {   DelegateExp *de = (DelegateExp *)arg;
+                else if (a->op == TOKdelegate)
+                {   DelegateExp *de = (DelegateExp *)a;
                     if (de->e1->op == TOKvar)
                     {   VarExp *ve = (VarExp *)de->e1;
                         FuncDeclaration *f = ve->var->isFuncDeclaration();
