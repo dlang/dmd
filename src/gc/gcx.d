@@ -101,7 +101,7 @@ private
     extern (C) void* rt_stackBottom();
     extern (C) void* rt_stackTop();
 
-    extern (C) void rt_finalize(void* p, bool det = true);
+    extern (C) void rt_finalize_gc(void* p, bool det = true);
 
     version (MULTI_THREADED)
     {
@@ -2836,7 +2836,7 @@ struct Gcx
 
                         sentinel_Invariant(sentinel_add(p));
                         if (pool.finals.nbits && pool.finals.testClear(biti))
-                            rt_finalize(sentinel_add(p), false/*noStack > 0*/);
+                            rt_finalize_gc(sentinel_add(p));
                         clrBits(pool, biti, BlkAttr.ALL_BITS);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
@@ -2893,7 +2893,7 @@ struct Gcx
                             for (; p < ptop; p += size, biti += bitstride)
                             {
                                 if (pool.finals.nbits && pool.finals.testClear(biti))
-                                    rt_finalize(cast(List *)sentinel_add(p), false/*noStack > 0*/);
+                                    rt_finalize_gc(cast(List *)sentinel_add(p));
                                 gcx.clrBits(pool, biti, BlkAttr.ALL_BITS);
 
                                 List *list = cast(List *)p;
@@ -2918,7 +2918,7 @@ struct Gcx
 
                                 pool.freebits.set(biti);
                                 if (pool.finals.nbits && pool.finals.testClear(biti))
-                                    rt_finalize(cast(List *)sentinel_add(p), false/*noStack > 0*/);
+                                    rt_finalize_gc(cast(List *)sentinel_add(p));
                                 clrBits(pool, biti, BlkAttr.ALL_BITS);
 
                                 List *list = cast(List *)p;
