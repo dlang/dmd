@@ -728,11 +728,15 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
              */
             if (!tf->parameterEscapes(p))
             {
+                Expression *a = arg;
+                if (a->op == TOKcast)
+                    a = ((CastExp *)a)->e1;
+
                 /* Function literals can only appear once, so if this
                  * appearance was scoped, there cannot be any others.
                  */
-                if (arg->op == TOKfunction)
-                {   FuncExp *fe = (FuncExp *)arg;
+                if (a->op == TOKfunction)
+                {   FuncExp *fe = (FuncExp *)a;
                     fe->fd->tookAddressOf = 0;
                 }
 
@@ -740,8 +744,8 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
                  * this doesn't count as taking the address of it.
                  * We only worry about 'escaping' references to the function.
                  */
-                else if (arg->op == TOKdelegate)
-                {   DelegateExp *de = (DelegateExp *)arg;
+                else if (a->op == TOKdelegate)
+                {   DelegateExp *de = (DelegateExp *)a;
                     if (de->e1->op == TOKvar)
                     {   VarExp *ve = (VarExp *)de->e1;
                         FuncDeclaration *f = ve->var->isFuncDeclaration();
@@ -6656,6 +6660,14 @@ Lagain:
             e1 = new DsymbolExp(loc, se->sds);
             e1 = e1->semantic(sc);
         }
+#if DMDV2
+        else if (e1->op == TOKsymoff && ((SymOffExp *)e1)->hasOverloads)
+        {
+            SymOffExp *se = (SymOffExp *)e1;
+            e1 = new VarExp(se->loc, se->var, 1);
+            e1 = e1->semantic(sc);
+        }
+#endif
 #if 1   // patch for #540 by Oskar Linde
         else if (e1->op == TOKdotexp)
         {
@@ -6884,6 +6896,7 @@ Lagain:
                 checkDeprecated(sc, f);
 #if DMDV2
                 checkPurity(sc, f);
+                checkSafety(sc, f);
 #endif
                 e1 = new DotVarExp(e1->loc, e1, f);
                 e1 = e1->semantic(sc);
