@@ -454,6 +454,7 @@ IMPORTS=\
 	$(IMPDIR)\core\sys\posix\sys\time.di \
 	$(IMPDIR)\core\sys\posix\sys\types.di \
 	$(IMPDIR)\core\sys\posix\sys\uio.di \
+	$(IMPDIR)\core\sys\posix\sys\un.di \
 	$(IMPDIR)\core\sys\posix\sys\wait.di \
 	\
 	$(IMPDIR)\core\sys\windows\dbghelp.di \
