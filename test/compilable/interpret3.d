@@ -739,6 +739,18 @@ auto bug5852(const(string) s) {
 
 static assert(bug5852("abc")==3);
 
+// 7217
+
+struct S7217 { int[] arr; }
+
+bool f7217() {
+    auto s = S7217();
+    auto t = s.arr;
+    return true;
+}
+
+static assert(f7217());
+
 /*******************************************
     Set array length
 *******************************************/

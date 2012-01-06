@@ -6278,7 +6278,7 @@ bool isCtfeValueValid(Expression *newval)
     {
         if (((DotVarExp *)newval)->e1->op == TOKstructliteral)
         {
-            assert(((StructLiteralExp *)newval)->ownedByCtfe);
+            assert(((StructLiteralExp *)((DotVarExp *)newval)->e1)->ownedByCtfe);
             return true;
         }
     }
