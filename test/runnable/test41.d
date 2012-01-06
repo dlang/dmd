@@ -1,5 +1,5 @@
 // EXTRA_SOURCES: imports/test41a.d
-// PERMUTE_ARGS:
+// PERMUTE_ARGS: -inline -g -O
 
 import imports.test41a;
 import core.exception;

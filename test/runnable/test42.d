@@ -4526,6 +4526,21 @@ struct Point6881
 }
 
 /***************************************************/
+// 7212
+void foo7212(scope int delegate(int a) dg)
+{
+}
+
+void foo7212(bool a)
+{
+}
+
+void test7212()
+{
+    foo7212((int a) => a);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4764,6 +4779,7 @@ int main()
     test7026();
     test6354();
     test7072();
+    test7212();
 
     writefln("Success");
     return 0;

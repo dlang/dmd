@@ -714,7 +714,8 @@ MATCH DelegateExp::implicitConvTo(Type *t)
 MATCH FuncExp::implicitConvTo(Type *t)
 {
     //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
-    if (type && type != Type::tvoid && tok == TOKreserved && type->ty == Tpointer)
+    if (type && type != Type::tvoid && tok == TOKreserved && type->ty == Tpointer
+        && (t->ty == Tpointer || t->ty == Tdelegate))
     {   // Allow implicit function to delegate conversion
         if (type->nextOf()->covariant(t->nextOf()) == 1)
             return t->ty == Tpointer ? MATCHconst : MATCHconvert;

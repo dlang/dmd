@@ -4696,9 +4696,12 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
             case TOKrbracket:
             case TOKassign:
             case TOKcomma:
+            case TOKdotdotdot:
             case TOKsemicolon:
             case TOKlcurly:
             case TOKin:
+            case TOKout:
+            case TOKbody:
                 // The !parens is to disallow unnecessary parentheses
                 if (!parens && (endtok == TOKreserved || endtok == t->value))
                 {   *pt = t;
