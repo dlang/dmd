@@ -25,6 +25,7 @@ module gc.gcx;
 //debug = SENTINEL;             // add underrun/overrrun protection
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
+//debug = PROFILING;            // measure performance of various steps.
 
 /*************** Configuration *********************/
 
@@ -73,6 +74,11 @@ debug(PROFILING)
 private
 {
     enum USE_CACHE = true;
+    
+    // The maximum number of recursions of mark() before transitioning to
+    // multiple heap traversals to avoid consuming O(D) stack space where
+    // D is the depth of the heap graph.
+    enum MAX_MARK_RECURSIONS = 64;
 
     enum BlkAttr : uint
     {
@@ -2416,12 +2422,19 @@ struct Gcx
         return 1;
     }
 
+    /**
+     * Mark overload for initial mark() call.
+     */
+    void mark(void *pbot, void *ptop) {
+        mark(pbot, ptop, MAX_MARK_RECURSIONS);
+    }
 
     /**
      * Search a range of memory values and mark any pointers into the GC pool.
      */
-    void mark(void *pbot, void *ptop)
+    void mark(void *pbot, void *ptop, int nRecurse)
     {
+        //import core.stdc.stdio;printf("nRecurse = %d\n", nRecurse);
         void **p1 = cast(void **)pbot;
         void **p2 = cast(void **)ptop;
         size_t pcache = 0;
@@ -2445,6 +2458,7 @@ struct Gcx
                     size_t biti = void;
                     size_t pn = offset / PAGESIZE;
                     Bins   bin = cast(Bins)pool.pagetable[pn];
+                    void* base;
                     
                     // For the NO_INTERIOR attribute.  This tracks whether
                     // the pointer is an interior pointer or points to the
@@ -2458,15 +2472,17 @@ struct Gcx
                     {
                         // We don't care abou setting pointsToBase correctly
                         // because it's ignored for small object pools anyhow.
-                        auto base = offset & notbinsize[bin];
-                        biti = base >> pool.shiftBy;
+                        auto offsetBase = offset & notbinsize[bin];
+                        biti = offsetBase >> pool.shiftBy;
+                        base = pool.baseAddr + offsetBase;                        
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
                     }
                     else if (bin == B_PAGE)
                     {
-                        auto base = offset & notbinsize[bin];
-                        pointsToBase = offset == base;
-                        biti = base >> pool.shiftBy;
+                        auto offsetBase = offset & notbinsize[bin];
+                        base = pool.baseAddr + offsetBase;
+                        pointsToBase = offsetBase == offset;
+                        biti = offsetBase >> pool.shiftBy;
                         //debug(PRINTF) printf("\t\tbiti = x%x\n", biti);
 
                         pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
@@ -2474,8 +2490,8 @@ struct Gcx
                     else if (bin == B_PAGEPLUS)
                     {
                         pn -= pool.bPageOffsets[pn];
+                        base = pool.baseAddr + (pn * PAGESIZE);
                         biti = pn * (PAGESIZE >> pool.shiftBy);
-
                         pcache = cast(size_t)p & ~cast(size_t)(PAGESIZE-1);
                     }
                     else
@@ -2494,11 +2510,31 @@ struct Gcx
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %p\n", p);
                         if (!pool.noscan.test(biti))
-                        {                            
-                            pool.scan.set(biti);
-                            changes = 1;
-                            pool.newChanges = true;
+                        {  
+                            if(nRecurse == 0) {    
+                                // Then we've got a really deep heap graph.
+                                // Start marking stuff to be scanned when we
+                                // traverse the heap again next time, to save
+                                // stack space.
+                                pool.scan.set(biti);
+                                changes = 1;
+                                pool.newChanges = true;
+                            } else {
+                                // Directly recurse mark() to prevent having
+                                // to traverse the heap O(D) times where D
+                                // is the max depth of the heap graph.
+                                if (bin < B_PAGE)
+                                {
+                                    mark(base, base + binsize[bin], nRecurse - 1);
+                                }
+                                else 
+                                {
+                                    auto u = pool.bPageOffsets[pn];
+                                    mark(base, base + u * PAGESIZE, nRecurse - 1);
+                                }
+                            }
                         }
+                        
                         debug (LOGGING) log_parent(sentinel_add(pool.baseAddr + (biti << pool.shiftBy)), sentinel_add(pbot));
                     }
                 }
@@ -2662,6 +2698,13 @@ struct Gcx
                 pool.mark.copy(&pool.freebits);
             }
         }
+        
+        debug(PROFILING)
+        {
+            stop = clock();
+            prepTime += (stop - start);
+            start = stop;
+        }
 
         version (MULTI_THREADED)
         {
@@ -2684,14 +2727,7 @@ struct Gcx
                     mark(stackBottom, stackTop);
             }
         }
-
-        debug(PROFILING)
-        {
-            stop = clock();
-            prepTime += (stop - start);
-            start = stop;
-        }
-
+        
         // Scan roots[]
         debug(COLLECT_PRINTF) printf("\tscan roots[]\n");
         mark(roots, roots + nroots);
@@ -2707,15 +2743,17 @@ struct Gcx
         //log--;
 
         debug(COLLECT_PRINTF) printf("\tscan heap\n");
+        int nTraversals;
         while (anychanges)
         {
+            //import core.stdc.stdio;  printf("nTraversals = %d\n", ++nTraversals);
             for (n = 0; n < npools; n++)
             {
                 pool = pooltable[n];
                 pool.oldChanges = pool.newChanges;
                 pool.newChanges = false;
             }
-
+            
             debug(COLLECT_PRINTF) printf("\t\tpass\n");
             anychanges = 0;
             for (n = 0; n < npools; n++)
@@ -3073,7 +3111,7 @@ struct Gcx
      */
     void clrBits(Pool* pool, size_t biti, uint mask)
     in
-    {
+    { 
         assert(pool);
     }
     body
