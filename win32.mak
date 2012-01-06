@@ -741,6 +741,9 @@ $(IMPDIR)\core\sys\posix\sys\types.di : src\core\sys\posix\sys\types.d
 $(IMPDIR)\core\sys\posix\sys\uio.di : src\core\sys\posix\sys\uio.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
+$(IMPDIR)\core\sys\posix\sys\un.di : src\core\sys\posix\sys\un.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
 $(IMPDIR)\core\sys\posix\sys\wait.di : src\core\sys\posix\sys\wait.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
