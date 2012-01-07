@@ -121,12 +121,8 @@ extern (C) void rt_moduleDtor()
         m.flags = m.flags & ~MIctordone;
 
     _sortedCtors.free();
-    version (OSX)
-    {}
-    else version (Posix)
-    {
+    version (Posix)
         .free(_moduleinfo_array.ptr);
-    }
     _moduleinfo_array = null;
 }
 
@@ -156,6 +152,12 @@ else version (Posix)
 }
 
 ModuleInfo*[] getModuleInfos()
+out (result)
+{
+    foreach(m; result)
+        assert(m !is null);
+}
+body
 {
     typeof(return) result = void;
 
@@ -167,8 +169,21 @@ ModuleInfo*[] getModuleInfos()
          * are of zero size and are in the two bracketing segments,
          * respectively.
          */
-         size_t length = cast(ModuleInfo**)&_minfo_end - cast(ModuleInfo**)&_minfo_beg;
-         result = (cast(ModuleInfo**)&_minfo_beg)[0 .. length];
+
+        auto p = cast(ModuleInfo**)&_minfo_beg;
+        auto pend = cast(ModuleInfo**)&_minfo_end;
+
+        // Throw out null pointers
+        size_t cnt;
+        for (; p < pend; ++p)
+            if (*p !is null) ++cnt;
+
+        result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
+
+        p = cast(ModuleInfo**)&_minfo_beg;
+        cnt = 0;
+        for (; p < pend; ++p)
+            if (*p !is null) result[cnt++] = *p;
     }
     // all other Posix variants (FreeBSD, Solaris, Linux)
     else version (Posix)
@@ -202,8 +217,6 @@ void runModuleFuncs(alias getfp)(ModuleInfo*[] modules)
 {
     foreach (m; modules)
     {
-        if (m is null)
-            continue;
         if (auto fp = getfp(m))
             (*fp)();
     }
@@ -213,8 +226,6 @@ void runModuleFuncsRev(alias getfp)(ModuleInfo*[] modules)
 {
     foreach_reverse (m; modules)
     {
-        if (m is null)
-            continue;
         if (auto fp = getfp(m))
             (*fp)();
     }
