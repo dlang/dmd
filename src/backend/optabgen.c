@@ -929,15 +929,9 @@ void dotytab()
 /* Repeat everything 4 times to account for the mTYconst and mTYvolatile bits */
 #define T1(arr,mask) for (i=0; i<arraysize(arr); i++) \
                      {  tytab[arr[i]] |= mask; \
-                        tytab[arr[i] + 64] |= mask; \
-                        tytab[arr[i] + 128] |= mask; \
-                        tytab[arr[i] + 192] |= mask; \
                      };
 #define T2(arr,mask) for (i=0; i<arraysize(arr); i++) \
                      {  tytab[arr[i]] |= mask; \
-                        tytab[arr[i] + 64] |= mask; \
-                        tytab[arr[i] + 128] |= mask; \
-                        tytab[arr[i] + 192] |= mask; \
                      };
 
     T1(_ptr,      TYFLptr);
@@ -995,10 +989,6 @@ void dotytab()
 
     for (i = 0; i < arraysize(typetab); i++)
     {   tytouns[typetab[i].ty] = typetab[i].unsty;
-        tytouns[typetab[i].ty | mTYconst] = typetab[i].unsty | mTYconst;
-        tytouns[typetab[i].ty | mTYvolatile] = typetab[i].unsty | mTYvolatile;
-        tytouns[typetab[i].ty | mTYconst | mTYvolatile] =
-                typetab[i].unsty | mTYconst | mTYvolatile;
     }
     fprintf(f,"const tym_t tytouns[] =\n{ ");
     for (i = 0; i < arraysize(tytouns); i++)
@@ -1010,9 +1000,6 @@ void dotytab()
 
     for (i = 0; i < arraysize(typetab); i++)
     {   tysize[typetab[i].ty | 0x00] = typetab[i].size;
-        tysize[typetab[i].ty | 0x40] = typetab[i].size;
-        tysize[typetab[i].ty | 0x80] = typetab[i].size;
-        tysize[typetab[i].ty | 0xC0] = typetab[i].size;
         /*printf("tysize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
     fprintf(f,"signed char tysize[] =\n{ ");
@@ -1044,9 +1031,6 @@ void dotytab()
                 break;
         }
         tysize[typetab[i].ty | 0x00] = sz;
-        tysize[typetab[i].ty | 0x40] = sz;
-        tysize[typetab[i].ty | 0x80] = sz;
-        tysize[typetab[i].ty | 0xC0] = sz;
         /*printf("tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
     }
     fprintf(f,"signed char tyalignsize[] =\n{ ");

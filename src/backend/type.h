@@ -48,28 +48,6 @@ struct TYPE
     tym_t       Tty;            /* mask (TYxxx)                         */
     unsigned short Tflags;      // TFxxxxx
 
-#if !MARS
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define mTYnoret        0x010000        // function has no return
-#define mTYtransu       0x010000        // transparent union
-#else
-#define mTYfar16        0x010000
-#endif
-#define mTYstdcall      0x020000
-#define mTYfastcall     0x040000
-#define mTYinterrupt    0x080000
-#define mTYcdecl        0x100000
-#define mTYpascal       0x200000
-#define mTYsyscall      0x400000
-#define mTYjava         0x800000
-
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-#define mTYTFF          0xFE0000
-#else
-#define mTYTFF          0xFF0000
-#endif
-#endif
-
     mangle_t Tmangle;           // name mangling
 // Return name mangling of type
 #define type_mangle(t)  ((t)->Tmangle)
