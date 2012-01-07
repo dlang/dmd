@@ -1469,9 +1469,7 @@ void objseggrp(targ_size_t codesize,targ_size_t datasize,
     objsegdef(obj.csegattr,codesize,3,4);       // seg _TEXT, class CODE
 
 #if MARS
-    dsegattr = I32
-          ? SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32)
-          : SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE16);
+    dsegattr = SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32);
 #else
     dsegattr = I32
           ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
@@ -1930,9 +1928,13 @@ seg_data *obj_tlsseg()
 
         objrecord(LNAMES,tlssegname,sizeof(tlssegname) - 1);
 
+#if MARS
+        segattr = SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32);
+#else
         segattr = I32
             ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
             : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
+#endif
 
         // Put out beginning segment (.tls)
         objsegdef(segattr,0,obj.lnameidx + 2,obj.lnameidx + 1);
