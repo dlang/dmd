@@ -1705,6 +1705,32 @@ void test59()
 }
 
 /**********************************/
+// 6364
+
+struct Foo6364
+{
+    int state = 1;
+
+    ~this()
+    {
+        state = 0;
+    }
+}
+
+void testfoo6364()
+{
+    static Foo6364 foo;
+    printf("%d\n", foo.state);
+    assert(foo.state == 1);
+}
+
+void test6364()
+{
+    testfoo6364();
+    testfoo6364();
+}
+
+/**********************************/
 // 6499
 
 struct S6499
@@ -1895,6 +1921,7 @@ int main()
     test57();
     test58();
     test59();
+    test6364();
     test6499();
     test60();
     test4316();

@@ -1460,6 +1460,7 @@ unsigned dwarf_typidx(type *t)
     unsigned pvoididx;
     unsigned code;
     type *tnext;
+    type *tbase;
     const char *p;
 
     static unsigned char abbrevTypeBasic[] =
@@ -1877,6 +1878,62 @@ unsigned dwarf_typidx(type *t)
             infobuf->writeByte(0);              // no more siblings
             idxsibling = infobuf->size();
             *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
+            break;
+        }
+
+        // SIMD vector types
+        case TYfloat4:   tbase = tsfloat;  goto Lvector;
+        case TYdouble2:  tbase = tsdouble; goto Lvector;
+        case TYschar16:  tbase = tsschar;  goto Lvector;
+        case TYuchar16:  tbase = tsuchar;  goto Lvector;
+        case TYshort8:   tbase = tsshort;  goto Lvector;
+        case TYushort8:  tbase = tsushort; goto Lvector;
+        case TYlong4:    tbase = tslong;   goto Lvector;
+        case TYulong4:   tbase = tsulong;  goto Lvector;
+        case TYllong2:   tbase = tsllong;  goto Lvector;
+        case TYullong2:  tbase = tsullong; goto Lvector;
+        Lvector:
+        {   static unsigned char abbrevTypeArray[] =
+            {
+                DW_TAG_array_type,
+                1,                      // child (the subrange type)
+                (DW_AT_GNU_vector & 0x7F) | 0x80, DW_AT_GNU_vector >> 7,        DW_FORM_flag,
+                DW_AT_type,             DW_FORM_ref4,
+                DW_AT_sibling,          DW_FORM_ref4,
+                0,                      0,
+            };
+            static unsigned char abbrevTypeBaseTypeSibling[] =
+            {
+                DW_TAG_base_type,
+                0,                      // no children
+                DW_AT_byte_size,        DW_FORM_data1,  // 8
+                DW_AT_encoding,         DW_FORM_data1,  // DW_ATE_unsigned
+                0,                      0,
+            };
+
+            unsigned code2 = dwarf_abbrev_code(abbrevTypeBaseTypeSibling, sizeof(abbrevTypeBaseTypeSibling));
+            unsigned code1 = dwarf_abbrev_code(abbrevTypeArray, sizeof(abbrevTypeArray));
+            unsigned idxbase = dwarf_typidx(tbase);
+            unsigned idxsibling = 0;
+            unsigned siblingoffset;
+
+            idx = infobuf->size();
+
+            infobuf->writeuLEB128(code1);       // DW_TAG_array_type
+            infobuf->writeByte(1);              // DW_AT_GNU_vector
+            infobuf->write32(idxbase);          // DW_AT_type
+            siblingoffset = infobuf->size();
+            infobuf->write32(idxsibling);       // DW_AT_sibling
+
+            idxsibling = infobuf->size();
+            *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
+
+            // Not sure why this is necessary instead of using dwarf_typidx(tsulong), but gcc does it
+            infobuf->writeuLEB128(code2);       // DW_TAG_base_type
+            infobuf->writeByte(8);              // DW_AT_byte_size
+            infobuf->writeByte(DW_ATE_unsigned);        // DT_AT_encoding
+
+            infobuf->writeByte(0);              // no more siblings
             break;
         }
 

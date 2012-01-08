@@ -190,6 +190,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
                     errors = 1;
                     continue;
                 }
+                s = s->toAlias();
 
                 // Find out which field index it is
                 for (fieldi = 0; 1; fieldi++)
@@ -284,6 +285,7 @@ Expression *StructInitializer::toExpression()
                 error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
                 goto Lno;
             }
+            s = s->toAlias();
 
             // Find out which field index it is
             for (fieldi = 0; 1; fieldi++)
