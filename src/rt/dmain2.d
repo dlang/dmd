@@ -90,6 +90,11 @@ extern (C) void _moduleCtor()
     rt_moduleCtor();
 }
 
+extern (C) void _moduleDtor()
+{
+    rt_moduleDtor();
+}
+
 version (OSX)
 {
     // The bottom of the stack
