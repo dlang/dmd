@@ -175,9 +175,7 @@ code *xmmeq(elem *e,regm_t *pretregs)
     if (!(retregs & XMMREGS))
         retregs = XMMREGS;              // pick any XMM reg
 
-    cs.Iop = 0xF20F11;                  // MOVSD xmm_m64,xmm
-    if (sz == 4)
-        cs.Iop = 0xF30F11;              // MOVSS xmm_m32,xmm
+    cs.Iop = xmmstore(tyml);
     regvar = FALSE;
     varregm = 0;
     if (config.flags4 & CFG4optimized)
@@ -418,5 +416,49 @@ code *xmmneg(elem *e,regm_t *pretregs)
     return cat4(cl,c,cg,co);
 }
 
+/*****************************
+ * Get correct load operator based on type.
+ * It is important to use the right one even if the number of bits moved is the same,
+ * as there are performance consequences for using the wrong one.
+ */
+
+unsigned xmmload(tym_t tym)
+{   unsigned op;
+    switch (tybasic(tym))
+    {
+        case TYfloat:
+        case TYifloat:  op = 0xF30F10; break;       // MOVSS
+        case TYdouble:
+        case TYidouble: op = 0xF20F10; break;       // MOVSD
+        case TYfloat4:  op = 0x0F28; break;         // MOVAPS
+        default:
+            printf("tym = x%x\n", tym);
+*(char*)0=0;
+            assert(0);
+    }
+    return op;
+}
+
+/*****************************
+ * Get correct store operator based on type.
+ */
+
+unsigned xmmstore(tym_t tym)
+{   unsigned op;
+    switch (tybasic(tym))
+    {
+        case TYfloat:
+        case TYifloat:  op = 0xF30F11; break;       // MOVSS
+        case TYdouble:
+        case TYidouble:
+        case TYcfloat:  op = 0xF20F11; break;       // MOVSD
+        case TYfloat4:  op = 0x0F29; break;         // MOVAPS
+        default:
+            printf("tym = x%x\n", tym);
+*(char*)0=0;
+            assert(0);
+    }
+    return op;
+}
 
 #endif // !SPP

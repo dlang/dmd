@@ -2747,7 +2747,7 @@ Lcont:
             //assert(refparam);
             if (mask[s->Sreglsw] & XMMREGS)
             {
-                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;  // MOVSS/D xreg,mem
+                unsigned op = xmmload(s->Stype->Tty);  // MOVSS/D xreg,mem
                 unsigned xreg = s->Sreglsw - XMM0;
                 code *c2 = genc1(CNIL,op,modregxrm(2,xreg,BPRM),FLconst,Poff + s->Soffset);
                 if (!hasframe)
@@ -2801,7 +2801,7 @@ Lcont:
             {   // MOV reg,preg
                 if (mask[preg] & XMMREGS)
                 {
-                    unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;      // MOVSS/D xreg,preg
+                    unsigned op = xmmload(s->Stype->Tty);      // MOVSS/D xreg,preg
                     unsigned xreg = s->Sreglsw - XMM0;
                     c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
                 }
@@ -2829,19 +2829,7 @@ Lcont:
                 int op = 0x89;                  // MOV x[EBP],preg
                 if (preg >= XMM0 && preg <= XMM15)
                 {
-                    switch (sz)
-                    {   case 8:
-                            op = 0xF20F11;          // MOVSD x[EBP],preg
-                            break;
-                        case 4:
-                            op = 0xF30F11;          // MOVSS x[EBP],preg
-                            break;
-                        case 16:
-                            op = 0x0F29;            // MOVAPS x[EBP],preg
-                            break;
-                        default:
-                            assert(0);
-                    }
+                    op = xmmstore(s->Stype->Tty);
                 }
                 if (hasframe)
                 {
@@ -3330,11 +3318,10 @@ code* gen_spill_reg(Symbol* s, bool toreg)
 
     if (mask[s->Sreglsw] & XMMREGS)
     {   // Convert to save/restore of XMM register
-        assert(sz == 4 || sz == 8);                         // float or double
         if (toreg)
-            cs.Iop = (sz == 4) ? 0xF30F10 : 0xF20F10;       // MOVSS/D xreg,mem
+            cs.Iop = xmmload(s->Stype->Tty);        // MOVSS/D xreg,mem
         else
-            cs.Iop = (sz == 4) ? 0xF30F11 : 0xF20F11;       // MOVSS/D mem,xreg
+            cs.Iop = xmmstore(s->Stype->Tty);       // MOVSS/D mem,xreg
         c = getlvalue(&cs,e,keepmsk);
         cs.orReg(s->Sreglsw - XMM0);
         c = gen(c,&cs);

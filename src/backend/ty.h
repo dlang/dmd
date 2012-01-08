@@ -108,7 +108,17 @@ enum TYM
     TYvtshape           = 0x32, // virtual function table
 #endif
 
+    // SIMD vector types        // D type
     TYfloat4            = 0x3E, // float[4]
+    TYdouble2           = 0x3F, // double[2]
+    TYschar16           = 0x40, // byte[16]
+    TYuchar16           = 0x41, // ubyte[16]
+    TYshort8            = 0x42, // short[8]
+    TYushort8           = 0x43, // ushort[8]
+    TYlong4             = 0x44, // int[4]
+    TYulong4            = 0x45, // uint[4]
+    TYllong2            = 0x46, // long[2]
+    TYullong2           = 0x47, // ulong[2]
 
 #if MARS
 #define TYaarray        TYnptr
@@ -116,8 +126,11 @@ enum TYM
 #define TYdarray        (I64 ? TYucent : TYullong)
 #endif
 
-    TYMAX               = 0x3F,
+    TYMAX               = 0x48,
 };
+
+#define mTYbasic        0xFF    /* bit mask for basic types     */
+#define tybasic(ty)     ((ty) & mTYbasic)
 
 #if TX86
 // These change depending on memory model
@@ -143,9 +156,6 @@ extern int TYptrdiff, TYsize, TYsize_t;
 #define TYTARG          0x11
 #include "TGty.h"               /* Target types */
 #endif
-
-#define mTYbasic        0x3F    /* bit mask for basic types     */
-#define tybasic(ty)     ((ty) & mTYbasic)
 
 /* Modifiers to basic types     */
 
@@ -201,6 +211,7 @@ extern unsigned tytab[];
 #define TYFLfarfunc     0x100
 #define TYFLpascal      0x200       // callee cleans up stack
 #define TYFLrevparam    0x400       // function parameters are reversed
+#define TYFLxmmreg      0x10000     // can be put in XMM register
 #else
 #define TYFLcallstkc    0x100       // callee cleans up stack
 #define TYFLrevparam    0x200       // function parameters are reversed
@@ -233,7 +244,7 @@ extern unsigned tytab[];
 #define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
 
 // Can go in XMM floating point register
-#define tyxmmreg(ty)    ((tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary)) && tysize(ty) <= 8 || ((ty & 0xFF) == TYfloat4))
+#define tyxmmreg(ty)    (tytab[(ty) & 0xFF] & TYFLxmmreg)
 
 #ifndef tyshort
 /* Types that are chars or shorts       */

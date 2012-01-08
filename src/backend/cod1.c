@@ -3733,7 +3733,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 if (sz == 8)
                     code_orrex(ce, REX_W);
                 assert(sz == 4 || sz == 8);             // float or double
-                unsigned op = (sz == 4) ? 0xF30F10 : 0xF20F10;
+                unsigned op = xmmload(tym);
                 ce = genfltreg(ce,op,reg - XMM0,0);     // MOVSS/MOVSD XMMreg,floatreg
             }
             else
@@ -3849,14 +3849,7 @@ code *loaddata(elem *e,regm_t *pretregs)
 //printf("test2 %s\n", e->EV.sp.Vsym->Sident);
         //e->EV.sp.Vsym->Sflags &= ~GTregcand;
 
-        switch (tym)
-        {   case TYfloat:
-            case TYifloat:  op = 0xF30F10; break;       // MOVSS
-            case TYdouble:
-            case TYidouble: op = 0xF20F10; break;       // MOVSD
-            case TYfloat4:  op = 0x0F28; break;         // MOVAPS
-            default:        assert(0);
-        }
+        op = xmmload(tym);
         if (e->Eoper == OPvar)
         {   symbol *s = e->EV.sp.Vsym;
             if (s->Sfl == FLreg && !(mask[s->Sreglsw] & XMMREGS))
