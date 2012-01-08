@@ -2623,7 +2623,7 @@ code *cdind(elem *e,regm_t *pretregs)
         if (retregs & XMMREGS)
         {
             assert(sz == 4 || sz == 8);         // float or double
-            cs.Iop = (sz == 4) ? 0xF30F10 : 0xF20F10;
+            cs.Iop = xmmload(tym);
             reg -= XMM0;
             goto L2;
         }

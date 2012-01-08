@@ -813,6 +813,8 @@ code *orthxmm(elem *e, regm_t *pretregs);
 code *xmmeq(elem *e, regm_t *pretregs);
 code *xmmopass(elem *e, regm_t *pretregs);
 code *xmmneg(elem *e, regm_t *pretregs);
+unsigned xmmload(tym_t tym);
+unsigned xmmstore(tym_t tym);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);
