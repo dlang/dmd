@@ -2149,6 +2149,18 @@ TypeInfoAssociativeArrayDeclaration::TypeInfoAssociativeArrayDeclaration(Type *t
     type = Type::typeinfoassociativearray->type;
 }
 
+/***************************** TypeInfoVectorDeclaration ***********************/
+
+TypeInfoVectorDeclaration::TypeInfoVectorDeclaration(Type *tinfo)
+    : TypeInfoDeclaration(tinfo, 0)
+{
+    if (!Type::typeinfoarray)
+    {
+        ObjectNotFound(Id::TypeInfo_Vector);
+    }
+    type = Type::typeinfovector->type;
+}
+
 /***************************** TypeInfoEnumDeclaration ***********************/
 
 TypeInfoEnumDeclaration::TypeInfoEnumDeclaration(Type *tinfo)

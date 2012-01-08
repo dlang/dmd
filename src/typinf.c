@@ -200,6 +200,11 @@ TypeInfoDeclaration *TypeClass::getTypeInfoDeclaration()
         return new TypeInfoClassDeclaration(this);
 }
 
+TypeInfoDeclaration *TypeVector::getTypeInfoDeclaration()
+{
+    return new TypeInfoVectorDeclaration(this);
+}
+
 TypeInfoDeclaration *TypeEnum::getTypeInfoDeclaration()
 {
     return new TypeInfoEnumDeclaration(this);
@@ -406,6 +411,20 @@ void TypeInfoStaticArrayDeclaration::toDt(dt_t **pdt)
     dtxoff(pdt, tc->next->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for array of type
 
     dtsize_t(pdt, tc->dim->toInteger());         // length
+}
+
+void TypeInfoVectorDeclaration::toDt(dt_t **pdt)
+{
+    //printf("TypeInfoVectorDeclaration::toDt()\n");
+    dtxoff(pdt, Type::typeinfovector->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfo_Vector
+    dtsize_t(pdt, 0);                        // monitor
+
+    assert(tinfo->ty == Tvector);
+
+    TypeVector *tc = (TypeVector *)tinfo;
+
+    tc->basetype->getTypeInfo(NULL);
+    dtxoff(pdt, tc->basetype->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for equivalent static array
 }
 
 void TypeInfoAssociativeArrayDeclaration::toDt(dt_t **pdt)

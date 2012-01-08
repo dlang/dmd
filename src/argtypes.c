@@ -124,6 +124,11 @@ TypeTuple *TypeBasic::toArgTypes()
     return t;
 }
 
+TypeTuple *TypeVector::toArgTypes()
+{
+    return new TypeTuple(Type::tfloat64);
+}
+
 TypeTuple *TypeSArray::toArgTypes()
 {
 #if DMDV2

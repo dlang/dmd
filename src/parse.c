@@ -231,6 +231,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKsuper:
             case TOKtypeof:
             case TOKdot:
+            case TOKvector:
             Ldeclaration:
                 a = parseDeclarations(STCundefined, NULL);
                 decldefs->append(a);
@@ -814,6 +815,23 @@ TypeQualified *Parser::parseTypeof()
     }
     check(TOKrparen);
     return t;
+}
+#endif
+
+/***********************************
+ * Parse __vector(type).
+ * Current token is on the '__vector'.
+ */
+
+#if DMDV2
+Type *Parser::parseVector()
+{
+    Loc loc = this->loc;
+    nextToken();
+    check(TOKlparen);
+    Type *tb = parseType();
+    check(TOKrparen);
+    return new TypeVector(loc, tb);
 }
 #endif
 
@@ -1933,6 +1951,11 @@ Dsymbol *Parser::parseMixin()
             tqual = parseTypeof();
             check(TOKdot);
         }
+        else if (token.value == TOKvector)
+        {
+            tqual = parseVector();
+            check(TOKdot);
+        }
         if (token.value != TOKidentifier)
         {
             error("identifier expected, not %s", token.toChars());
@@ -2060,6 +2083,10 @@ Objects *Parser::parseTemplateArgument()
     {
         case TOKidentifier:
             ta = new TypeIdentifier(loc, token.ident);
+            goto LabelX;
+
+        case TOKvector:
+            ta = parseVector();
             goto LabelX;
 
         case BASIC_TYPES_X(ta):
@@ -2336,6 +2363,10 @@ Type *Parser::parseBasicType()
             // typeof(expression)
             tid = parseTypeof();
             goto Lident2;
+
+        case TOKvector:
+            t = parseVector();
+            break;
 
         case TOKconst:
             // const(type)
@@ -3409,6 +3440,7 @@ Statement *Parser::parseStatement(int flags)
             // fallthrough to TOKdot
         case TOKdot:
         case TOKtypeof:
+        case TOKvector:
             if (isDeclaration(&token, 2, TOKreserved, NULL))
                 goto Ldeclaration;
             else
@@ -3527,7 +3559,6 @@ Statement *Parser::parseStatement(int flags)
         case TOKgshared:
         case TOKat:
 #endif
-//      case TOKtypeof:
         Ldeclaration:
         {   Dsymbols *a;
 
@@ -4506,6 +4537,7 @@ int Parser::isBasicType(Token **pt)
             goto Ldot;
 
         case TOKtypeof:
+        case TOKvector:
             /* typeof(exp).identifier...
              */
             t = peek(t);
@@ -5265,6 +5297,13 @@ Expression *Parser::parsePrimaryExp()
             break;
         }
 
+        case TOKvector:
+        {
+            t = parseVector();
+            e = new TypeExp(loc, t);
+            break;
+        }
+
         case TOKtypeid:
         {
             nextToken();
@@ -5889,6 +5928,7 @@ Expression *Parser::parseUnaryExp()
                     case TOKfunction:
                     case TOKdelegate:
                     case TOKtypeof:
+                    case TOKvector:
 #if DMDV2
                     case TOKfile:
                     case TOKline:

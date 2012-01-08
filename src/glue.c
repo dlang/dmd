@@ -794,7 +794,7 @@ void FuncDeclaration::toObjFile(int multiobj)
                 }
                 if (xmmcnt <= XMM7)
                 {
-                    if (tyfloating(ty) && tysize(ty) <= 8)
+                    if (tyxmmreg(ty))
                     {
                         sp->Sclass = SCfastpar;
                         sp->Spreg = xmmcnt;
@@ -1055,6 +1055,10 @@ unsigned Type::totym()
 
         case Tnull:
             t = TYnptr;
+            break;
+
+        case Tvector:
+            t = TYfloat4;
             break;
 
         default:

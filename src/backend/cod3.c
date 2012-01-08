@@ -436,6 +436,9 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYcldouble:
             return mST01;
 
+        case TYfloat4:
+            return mXMM0;
+
         default:
 #if DEBUG
             WRTYxx(tym);
@@ -2826,12 +2829,18 @@ Lcont:
                 int op = 0x89;                  // MOV x[EBP],preg
                 if (preg >= XMM0 && preg <= XMM15)
                 {
-                    if (sz == 8)
-                        op = 0xF20F11;          // MOVSD x[EBP],preg
-                    else
-                    {
-                        assert(sz == 4);
-                        op = 0xF30F11;          // MOVSS x[EBP],preg
+                    switch (sz)
+                    {   case 8:
+                            op = 0xF20F11;          // MOVSD x[EBP],preg
+                            break;
+                        case 4:
+                            op = 0xF30F11;          // MOVSS x[EBP],preg
+                            break;
+                        case 16:
+                            op = 0x0F29;            // MOVAPS x[EBP],preg
+                            break;
+                        default:
+                            assert(0);
                     }
                 }
                 if (hasframe)
