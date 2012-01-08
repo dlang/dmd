@@ -312,6 +312,37 @@ class TypeInfo
     }
 }
 
+class TypeInfo_Vector : TypeInfo
+{
+    override string toString() { return "__vector(" ~ base.toString() ~ ")"; }
+
+    override equals_t opEquals(Object o)
+    {
+        TypeInfo_Vector c;
+        return this is o ||
+               ((c = cast(TypeInfo_Vector)o) !is null &&
+                this.base == c.base);
+    }
+
+    override hash_t getHash(in void* p) { return base.getHash(p); }
+    override equals_t equals(in void* p1, in void* p2) { return base.equals(p1, p2); }
+    override int compare(in void* p1, in void* p2) { return base.compare(p1, p2); }
+    @property override size_t tsize() nothrow pure { return base.tsize; }
+    override void swap(void* p1, void* p2) { return base.swap(p1, p2); }
+
+    @property override TypeInfo next() nothrow pure { return base.next; }
+    @property override uint flags() nothrow pure { return base.flags; }
+    override void[] init() nothrow pure { return base.init(); }
+
+    @property override size_t talign() nothrow pure { return 16; }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   return base.argTypes(arg1, arg2);
+    }
+
+    TypeInfo base;
+}
+
 class TypeInfo_Typedef : TypeInfo
 {
     override string toString() { return name; }
@@ -656,7 +687,7 @@ class TypeInfo_Function : TypeInfo
         TypeInfo_Function c;
         return this is o ||
                 ((c = cast(TypeInfo_Function)o) !is null &&
-		 this.deco == c.deco);
+                 this.deco == c.deco);
     }
 
     // BUG: need to add the rest of the functions
@@ -682,7 +713,7 @@ class TypeInfo_Delegate : TypeInfo
         TypeInfo_Delegate c;
         return this is o ||
                 ((c = cast(TypeInfo_Delegate)o) !is null &&
-		 this.deco == c.deco);
+                 this.deco == c.deco);
     }
 
     // BUG: need to add the rest of the functions

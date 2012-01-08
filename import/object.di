@@ -103,6 +103,11 @@ class TypeInfo_Array : TypeInfo
     TypeInfo value;
 }
 
+class TypeInfo_Vector : TypeInfo
+{
+    TypeInfo base;
+}
+
 class TypeInfo_StaticArray : TypeInfo
 {
     TypeInfo value;
