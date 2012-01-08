@@ -3022,6 +3022,7 @@ static Keyword keywords[] =
     {   "__thread",     TOKtls          },
     {   "__gshared",    TOKgshared      },
     {   "__traits",     TOKtraits       },
+    {   "__vector",     TOKvector       },
     {   "__overloadset", TOKoverloadset },
     {   "__FILE__",     TOKfile         },
     {   "__LINE__",     TOKline         },
@@ -3041,9 +3042,7 @@ int Token::isKeyword()
 }
 
 void Lexer::initKeywords()
-{   StringValue *sv;
-    unsigned u;
-    enum TOK v;
+{
     unsigned nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
     stringtable.init();
@@ -3053,13 +3052,12 @@ void Lexer::initKeywords()
 
     cmtable_init();
 
-    for (u = 0; u < nkeywords; u++)
-    {   const char *s;
-
+    for (unsigned u = 0; u < nkeywords; u++)
+    {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-        s = keywords[u].name;
-        v = keywords[u].value;
-        sv = stringtable.insert(s, strlen(s));
+        const char *s = keywords[u].name;
+        enum TOK v = keywords[u].value;
+        StringValue *sv = stringtable.insert(s, strlen(s));
         sv->ptrvalue = (void *) new Identifier(sv->lstring.string,v);
 
         //printf("tochars[%d] = '%s'\n",v, s);

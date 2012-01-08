@@ -266,6 +266,14 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 }
 
 
+void TypeVector::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+{
+    if (!cms->substitute(buf, this))
+    {   buf->writestring("U8__vector");
+        basetype->toCppMangle(buf, cms);
+    }
+}
+
 void TypeSArray::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, this))

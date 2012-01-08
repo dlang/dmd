@@ -99,6 +99,7 @@ ClassDeclaration *Type::typeinfopointer;
 ClassDeclaration *Type::typeinfoarray;
 ClassDeclaration *Type::typeinfostaticarray;
 ClassDeclaration *Type::typeinfoassociativearray;
+ClassDeclaration *Type::typeinfovector;
 ClassDeclaration *Type::typeinfoenum;
 ClassDeclaration *Type::typeinfofunction;
 ClassDeclaration *Type::typeinfodelegate;
@@ -240,6 +241,7 @@ void Type::init()
     mangleChar[Ttuple] = 'B';
     mangleChar[Tslice] = '@';
     mangleChar[Treturn] = '@';
+    mangleChar[Tvector] = '@';
 
     mangleChar[Tnull] = 'n';    // same as TypeNone
 
@@ -3236,6 +3238,133 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 TypeBasic *TypeBasic::isTypeBasic()
 {
     return (TypeBasic *)this;
+}
+
+/* ============================= TypeVector =========================== */
+
+/* The basetype must be one of:
+ *   byte[16],ubyte[16],short[8],ushort[8],int[4],uint[4],long[2],ulong[2],float[4],double[2]
+ */
+TypeVector::TypeVector(Loc loc, Type *basetype)
+        : Type(Tvector)
+{
+    this->basetype = basetype;
+}
+
+Type *TypeVector::syntaxCopy()
+{
+    return this;
+}
+
+Type *TypeVector::semantic(Loc loc, Scope *sc)
+{
+    int errors = global.errors;
+    basetype = basetype->semantic(loc, sc);
+    if (errors != global.errors)
+        return terror;
+    basetype = basetype->toBasetype()->mutableOf();
+    if (basetype->ty != Tsarray || basetype->size() != 16)
+    {   error(loc, "base type of __vector must be a 16 byte static array, not %s", basetype->toChars());
+        return terror;
+    }
+    TypeSArray *t = (TypeSArray *)basetype;
+    TypeBasic *tb = t->nextOf()->isTypeBasic();
+    if (!tb)
+    {   error(loc, "base type of __vector must be a static array of an arithmetic type, not %s", t->toChars());
+        return terror;
+    }
+    return merge();
+}
+
+char *TypeVector::toChars()
+{
+    return Type::toChars();
+}
+
+void TypeVector::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    //printf("TypeVector::toCBuffer2(mod = %d, this->mod = %d)\n", mod, this->mod);
+    if (mod != this->mod)
+    {   toCBuffer3(buf, hgs, mod);
+        return;
+    }
+    buf->writestring("__vector(");
+    basetype->toCBuffer2(buf, hgs, this->mod);
+    buf->writestring(")");
+}
+
+void TypeVector::toDecoBuffer(OutBuffer *buf, int flag)
+{
+    if (flag != mod && flag != 0x100)
+    {
+        MODtoDecoBuffer(buf, mod);
+    }
+    buf->writestring("Nh");
+    basetype->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
+}
+
+d_uns64 TypeVector::size(Loc loc)
+{
+    return 16;
+}
+
+unsigned TypeVector::alignsize()
+{
+    return 16;
+}
+
+Expression *TypeVector::getProperty(Loc loc, Identifier *ident)
+{
+    return basetype->getProperty(loc, ident);
+}
+
+Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident)
+{
+#if LOGDOTEXP
+    printf("TypeVector::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
+#endif
+    return basetype->dotExp(sc, e, ident);
+}
+
+Expression *TypeVector::defaultInit(Loc loc)
+{
+    return basetype->defaultInit(loc);
+}
+
+int TypeVector::isZeroInit(Loc loc)
+{
+    return basetype->isZeroInit(loc);
+}
+
+int TypeVector::isintegral()
+{
+    //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
+    return basetype->nextOf()->isintegral();
+}
+
+int TypeVector::isfloating()
+{
+    return basetype->nextOf()->isfloating();
+}
+
+int TypeVector::isunsigned()
+{
+    return basetype->nextOf()->isunsigned();
+}
+
+int TypeVector::isscalar()
+{
+    return TRUE;        // I should hope so
+}
+
+MATCH TypeVector::implicitConvTo(Type *to)
+{
+    //printf("TypeVector::implicitConvTo(%s) from %s\n", to->toChars(), toChars());
+    if (this == to)
+        return MATCHexact;
+    if (ty == to->ty)
+        return MATCHconvert;
+    return MATCHnomatch;
 }
 
 /***************************** TypeArray *****************************/

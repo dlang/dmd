@@ -783,6 +783,7 @@ void dotytab()
     static tym_t _ptr_nflat[]= { TYsptr,TYcptr,TYf16ptr,TYfptr,TYhptr,TYvptr };
 #endif
     static tym_t _real[]     = { TYfloat,TYdouble,TYdouble_alias,TYldouble,
+                                 TYfloat4,
                                };
     static tym_t _imaginary[] = {
                                  TYifloat,TYidouble,TYildouble,
@@ -874,6 +875,8 @@ void dotytab()
 "complex float",        TYcfloat,       TYcfloat,   TYcfloat,   2*FLOATSIZE, 0x88,0x50,
 "complex double",       TYcdouble,      TYcdouble,  TYcdouble,  2*DOUBLESIZE,0x89,0x51,
 "complex long double",  TYcldouble,     TYcldouble, TYcldouble, 2*LNGDBLSIZE,0x89,0x52,
+
+"float[4]",     TYfloat4,       TYfloat4,  TYfloat4,    16,     0,      0,
 
 "__near *",     TYjhandle,      TYjhandle, TYjhandle,   2,  0x20,       0x100,
 "nullptr_t",    TYnullptr,      TYnullptr, TYptr,       2,  0x20,       0x100,
