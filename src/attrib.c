@@ -370,15 +370,18 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         else
         {
             buf->writenl();
+			hgs->writeIndent(buf);
+			hgs->indentLevel++;
             buf->writeByte('{');
             buf->writenl();
             for (unsigned i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = decl->tdata()[i];
-
-                buf->writestring("    ");
-                s->toCBuffer(buf, hgs);
+				hgs->writeIndent(buf);
+				s->toCBuffer(buf, hgs);
             }
+			hgs->indentLevel--;
+			hgs->writeIndent(buf);
             buf->writeByte('}');
         }
     }
@@ -917,17 +920,20 @@ void AnonDeclaration::semantic(Scope *sc)
 void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf(isunion ? "union" : "struct");
+	hgs->writeIndent(buf);
+	hgs->indentLevel++;
     buf->writestring("\n{\n");
     if (decl)
     {
         for (unsigned i = 0; i < decl->dim; i++)
         {
             Dsymbol *s = decl->tdata()[i];
-
-            //buf->writestring("    ");
-            s->toCBuffer(buf, hgs);
+			hgs->writeIndent(buf);
+			s->toCBuffer(buf, hgs);
         }
     }
+	hgs->indentLevel--;
+	hgs->writeIndent(buf);
     buf->writestring("}\n");
 }
 
@@ -1349,6 +1355,8 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (decl || elsedecl)
     {
         buf->writenl();
+		hgs->writeIndent(buf);
+		hgs->indentLevel++;
         buf->writeByte('{');
         buf->writenl();
         if (decl)
@@ -1356,27 +1364,32 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             for (unsigned i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = decl->tdata()[i];
-
-                buf->writestring("    ");
-                s->toCBuffer(buf, hgs);
+				hgs->writeIndent(buf);
+				s->toCBuffer(buf, hgs);
             }
         }
+		hgs->indentLevel--;
+		hgs->writeIndent(buf);
         buf->writeByte('}');
         if (elsedecl)
         {
             buf->writenl();
+			hgs->writeIndent(buf);
             buf->writestring("else");
             buf->writenl();
+			hgs->writeIndent(buf);
+			hgs->indentLevel++;
             buf->writeByte('{');
             buf->writenl();
             for (unsigned i = 0; i < elsedecl->dim; i++)
             {
                 Dsymbol *s = elsedecl->tdata()[i];
-
-                buf->writestring("    ");
-                s->toCBuffer(buf, hgs);
+				hgs->writeIndent(buf);
+				s->toCBuffer(buf, hgs);
             }
-            buf->writeByte('}');
+ 			hgs->indentLevel--;
+			hgs->writeIndent(buf);
+			buf->writeByte('}');
         }
     }
     else

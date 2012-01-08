@@ -24,6 +24,8 @@ struct HdrGenState
     int emitInst;
 	int inImmutable;	//HACK to inform down-tree symbols they are immutable.
 	int inFunc;			//HACK to inform down-tree variables they are in a function.
+	int indentLevel;	//Used to inform the generator of how many tabs it should generate.
+
     struct
     {
         int init;
@@ -31,6 +33,10 @@ struct HdrGenState
     } FLinit;
 
     HdrGenState() { memset(this, 0, sizeof(HdrGenState)); }
+
+	void writeIndent(OutBuffer *buf)
+	{
+		for(int i=0;i<indentLevel;i++)
+			buf->writestring("\t");
+	}
 };
-
-

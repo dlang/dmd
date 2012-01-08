@@ -113,6 +113,7 @@ const char *StaticAssert::kind()
 
 void StaticAssert::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring(kind());
     buf->writeByte('(');
     exp->toCBuffer(buf, hgs);

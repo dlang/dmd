@@ -22,6 +22,7 @@
 #include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
+#include "hdrgen.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -108,6 +109,7 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
 
 void DebugCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     if (ident)
         buf->printf("debug (%s)", ident->toChars());
     else
@@ -205,6 +207,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
 
 void VersionCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     if (ident)
         buf->printf("version (%s)", ident->toChars());
     else
@@ -264,6 +267,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 
 void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring("static if(");
     exp->toCBuffer(buf, hgs);
     buf->writeByte(')');
@@ -383,6 +387,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 
 void IftypeCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring("iftype(");
     targ->toCBuffer(buf, id, hgs);
     if (tspec)

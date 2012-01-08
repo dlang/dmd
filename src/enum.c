@@ -18,6 +18,7 @@
 #include "expression.h"
 #include "module.h"
 #include "declaration.h"
+#include "hdrgen.h"
 
 /********************************* EnumDeclaration ****************************/
 
@@ -307,6 +308,7 @@ int EnumDeclaration::oneMember(Dsymbol **ps)
 
 void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring("enum ");
     if (ident)
     {   buf->writestring(ident->toChars());
@@ -324,6 +326,8 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         return;
     }
     buf->writenl();
+	hgs->writeIndent(buf);
+	hgs->indentLevel++;
     buf->writeByte('{');
     buf->writenl();
     for (size_t i = 0; i < members->dim; i++)
@@ -331,11 +335,13 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         EnumMember *em = (*members)[i]->isEnumMember();
         if (!em)
             continue;
-        //buf->writestring("    ");
-        em->toCBuffer(buf, hgs);
+		hgs->writeIndent(buf);
+		em->toCBuffer(buf, hgs);
         buf->writeByte(',');
         buf->writenl();
     }
+	hgs->indentLevel--;
+	hgs->writeIndent(buf);
     buf->writeByte('}');
     buf->writenl();
 }

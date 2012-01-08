@@ -26,6 +26,7 @@
 #include "module.h"
 #include "expression.h"
 #include "statement.h"
+#include "hdrgen.h"
 
 /********************************* ClassDeclaration ****************************/
 
@@ -792,15 +793,18 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (members)
     {
         buf->writenl();
+		hgs->writeIndent(buf);
+		hgs->indentLevel++;
         buf->writeByte('{');
         buf->writenl();
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = members->tdata()[i];
-
-            buf->writestring("    ");
-            s->toCBuffer(buf, hgs);
+			hgs->writeIndent(buf);
+			s->toCBuffer(buf, hgs);
         }
+		hgs->indentLevel--;
+		hgs->writeIndent(buf);
         buf->writestring("}");
     }
     else

@@ -17,6 +17,7 @@
 #include "cond.h"
 #include "version.h"
 #include "module.h"
+#include "hdrgen.h"
 
 /* ================================================== */
 
@@ -84,6 +85,7 @@ void DebugSymbol::semantic(Scope *sc)
 
 void DebugSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring("debug = ");
     if (ident)
         buf->writestring(ident->toChars());
@@ -164,6 +166,7 @@ void VersionSymbol::semantic(Scope *sc)
 
 void VersionSymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring("version = ");
     if (ident)
         buf->writestring(ident->toChars());

@@ -31,6 +31,7 @@
 #include "import.h"
 #include "template.h"
 #include "attrib.h"
+#include "hdrgen.h"
 
 /****************************** Dsymbol ******************************/
 
@@ -427,6 +428,7 @@ int Dsymbol::overloadInsert(Dsymbol *s)
 
 void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring(toChars());
 }
 

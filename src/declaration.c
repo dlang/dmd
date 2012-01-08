@@ -613,6 +613,7 @@ Dsymbol *AliasDeclaration::toAlias()
 
 void AliasDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	hgs->writeIndent(buf);
     buf->writestring("alias ");
 #if 0
     if (hgs->hdrgen)
@@ -1573,6 +1574,7 @@ Dsymbol *VarDeclaration::toAlias()
 
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+	//hgs->writeIndent(buf);
 	StorageClassDeclaration::stcToCBuffer(buf, storage_class);
 
     /* If changing, be sure and fix CompoundDeclarationStatement::toCBuffer()
