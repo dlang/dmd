@@ -108,13 +108,15 @@ enum TYM
     TYvtshape           = 0x32, // virtual function table
 #endif
 
+    TYfloat4            = 0x3E, // float[4]
+
 #if MARS
 #define TYaarray        TYnptr
 #define TYdelegate      (I64 ? TYcent : TYllong)
 #define TYdarray        (I64 ? TYucent : TYullong)
 #endif
 
-    TYMAX               = 0x3E,
+    TYMAX               = 0x3F,
 };
 
 #if TX86
@@ -231,7 +233,7 @@ extern unsigned tytab[];
 #define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
 
 // Can go in XMM floating point register
-#define tyxmmreg(ty)    ((tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary)) && tysize(ty) <= 8)
+#define tyxmmreg(ty)    ((tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary)) && tysize(ty) <= 8 || ((ty & 0xFF) == TYfloat4))
 
 #ifndef tyshort
 /* Types that are chars or shorts       */

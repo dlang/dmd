@@ -57,7 +57,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
     elem *e2 = e->E2;
     tym_t ty1 = tybasic(e1->Ety);
     unsigned sz1 = tysize[ty1];
-    assert(sz1 == 4 || sz1 == 8);       // float or double
+    assert(sz1 == 4 || sz1 == 8 || sz1 == 16);       // float or double
     regm_t retregs = *pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
@@ -71,9 +71,15 @@ code *orthxmm(elem *e, regm_t *pretregs)
     switch (e->Eoper)
     {
         case OPadd:
-            op = 0xF20F58;                      // ADDSD
-            if (sz1 == 4)                       // float
-                op = 0xF30F58;                  // ADDSS
+            switch (ty1)
+            {
+                case TYfloat:
+                case TYifloat:  op = 0xF30F58;  break;  // ADDSS
+                case TYdouble:
+                case TYidouble: op = 0xF20F58;  break;  // ADDSD
+                case TYfloat4:  op = 0x000F58;  break;  // ADDPS
+                default:        assert(0);
+            }
             break;
 
         case OPmin:
