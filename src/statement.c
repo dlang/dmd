@@ -298,9 +298,8 @@ void ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexcepti
             DeclarationExp *de = (DeclarationExp *)(exp);
             VarDeclaration *v = de->declaration->isVarDeclaration();
             if (v)
-            {   Expression *e;
-
-                e = v->callScopeDtor(sc);
+            {
+                Expression *e = v->callScopeDtor(sc);
                 if (e)
                 {
                     //printf("dtor is: "); e->print();
