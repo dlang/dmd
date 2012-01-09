@@ -1856,7 +1856,7 @@ unsigned dwarf_typidx(type *t)
             unsigned code2 = (t->Tflags & TFsizeunknown)
                 ? dwarf_abbrev_code(abbrevTypeSubrange2, sizeof(abbrevTypeSubrange2))
                 : dwarf_abbrev_code(abbrevTypeSubrange, sizeof(abbrevTypeSubrange));
-            unsigned idxbase = dwarf_typidx(tsuns);     // should be tssize_t
+            unsigned idxbase = dwarf_typidx(tssize);
             unsigned idxsibling = 0;
             unsigned siblingoffset;
             nextidx = dwarf_typidx(t->Tnext);
@@ -1906,7 +1906,7 @@ unsigned dwarf_typidx(type *t)
             {
                 DW_TAG_base_type,
                 0,                      // no children
-                DW_AT_byte_size,        DW_FORM_data1,  // 8
+                DW_AT_byte_size,        DW_FORM_data1,  // sizeof(tssize_t)
                 DW_AT_encoding,         DW_FORM_data1,  // DW_ATE_unsigned
                 0,                      0,
             };
@@ -1928,9 +1928,9 @@ unsigned dwarf_typidx(type *t)
             idxsibling = infobuf->size();
             *(unsigned *)(infobuf->buf + siblingoffset) = idxsibling;
 
-            // Not sure why this is necessary instead of using dwarf_typidx(tsulong), but gcc does it
+            // Not sure why this is necessary instead of using dwarf_typidx(tssize), but gcc does it
             infobuf->writeuLEB128(code2);       // DW_TAG_base_type
-            infobuf->writeByte(8);              // DW_AT_byte_size
+            infobuf->writeByte(tysize(tssize->Tty));              // DW_AT_byte_size
             infobuf->writeByte(DW_ATE_unsigned);        // DT_AT_encoding
 
             infobuf->writeByte(0);              // no more siblings
