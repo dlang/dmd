@@ -2,22 +2,7 @@
 
 extern(C) int printf(const char*, ...);
 
-int main()
-{
-    testaa();
-    bug1899();
-    printf("Success\n");
-    return 0;
-}
-
-void testaa()
-{
-    size_t i = foo("abc");
-    printf("i = %d\n", i);
-    assert(i == 0);
-
-    foo2();
-}
+/************************************************/
 
 int a[string];
 
@@ -81,7 +66,18 @@ void foo2()
     assert(c.length == 0);
 }
 
-void bug1899() 
+void testaa()
+{
+    size_t i = foo("abc");
+    printf("i = %d\n", i);
+    assert(i == 0);
+
+    foo2();
+}
+
+/************************************************/
+
+void test1899()
 {
     int[3][string] AA;
     int[3] x = [5,4,3];
@@ -89,4 +85,34 @@ void bug1899()
     assert(AA["abc"] == x);
     AA["def"] = [1,2,3];
     assert(AA["def"]==[1,2,3]);
+}
+
+/************************************************/
+
+void foo4523()
+{
+   int[string] aa = ["test":0, "test2":1];
+
+   bool found = aa.remove("test");
+   assert(found);
+   bool notfound = aa.remove("nothing");
+   assert(!notfound);
+}
+
+void test4523()
+{
+    foo4523();
+    static assert({ foo4523(); return true; }());
+}
+
+/************************************************/
+
+int main()
+{
+    testaa();
+    test1899();
+    test4523();
+
+    printf("Success\n");
+    return 0;
 }
