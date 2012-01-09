@@ -200,7 +200,7 @@ void Import::semantic(Scope *sc)
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
             if (!mod->search(loc, (Identifier *)names.data[i], 0))
-                error("%s not found", ((Identifier *)names.data[i])->toChars());
+                error("can't find selected symbol '%s'", ((Identifier *)names.data[i])->toChars());
 
             s->semantic(sc);
         }
