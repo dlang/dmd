@@ -339,7 +339,7 @@ struct ForeachStatement : Statement
     FuncDeclaration *func;      // function we're lexically in
 
     Statements *cases;          // put breaks, continues, gotos and returns here
-    Array *gotos;        // forward referenced goto's go here
+    CompoundStatements *gotos;  // forward referenced goto's go here
 
     ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
@@ -463,8 +463,8 @@ struct SwitchStatement : Statement
 
     DefaultStatement *sdefault;
 
-    Array gotoCases;            // array of unresolved GotoCaseStatement's
-    CaseStatements *cases;      // array of CaseStatement's
+    GotoCaseStatements gotoCases;  // array of unresolved GotoCaseStatement's
+    CaseStatements *cases;         // array of CaseStatement's
     int hasNoDefault;           // !=0 if no default statement
 
     SwitchStatement(Loc loc, Expression *c, Statement *b);
@@ -799,7 +799,7 @@ struct LabelStatement : Statement
     TryFinallyStatement *tf;
     block *lblock;              // back end
 
-    Array *fwdrefs;             // forward references to this LabelStatement
+    Blocks *fwdrefs;            // forward references to this LabelStatement
 
     LabelStatement(Loc loc, Identifier *ident, Statement *statement);
     Statement *syntaxCopy();

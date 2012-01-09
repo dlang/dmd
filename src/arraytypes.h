@@ -61,7 +61,13 @@ typedef ArrayBase<struct StaticDtorDeclaration> StaticDtorDeclarations;
 typedef ArrayBase<struct SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
 typedef ArrayBase<struct Module> Modules;
 typedef ArrayBase<struct CaseStatement> CaseStatements;
+
+typedef ArrayBase<struct CompoundStatement> CompoundStatements;
+
+typedef ArrayBase<struct GotoCaseStatement> GotoCaseStatements;
+
 typedef ArrayBase<struct TemplateInstance> TemplateInstances;
+typedef ArrayBase<struct block> Blocks;
 
 typedef ArrayBase<struct Symbol> Symbols;
 
