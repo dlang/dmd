@@ -867,16 +867,10 @@ void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 
     for (size_t i = 0; i < statements->dim; i++)
-<<<<<<< HEAD
     {   
 		hgs->writeIndent(buf);
 		Statement *s;
-		s = statements->tdata()[i];
-=======
-    {   Statement *s;
-
         s = (*statements)[i];
->>>>>>> upstream/master
         if (s)
             s->toCBuffer(buf, hgs);
     }
