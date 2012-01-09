@@ -382,16 +382,17 @@ void backend_init()
 {
     ph_init();
     block_init();
-    type_init();
 
     if (global.params.is64bit)
     {
         util_set64();
+        type_init();
         cod3_set64();
     }
     else
     {
         util_set32();
+        type_init();
         cod3_set32();
     }
 

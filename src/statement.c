@@ -470,10 +470,10 @@ Statement *CompoundStatement::syntaxCopy()
     Statements *a = new Statements();
     a->setDim(statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s)
             s = s->syntaxCopy();
-        a->tdata()[i] = s;
+        (*a)[i] = s;
     }
     CompoundStatement *cs = new CompoundStatement(loc, a);
     return cs;
@@ -488,7 +488,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 #if 0
     for (size_t i = 0; i < statements->dim; i++)
     {
-        s = statements->tdata()[i];
+        s = (*statements)[i];
         if (s)
             printf("[%d]: %s", i, s->toChars());
     }
@@ -496,7 +496,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
     for (size_t i = 0; i < statements->dim; )
     {
-        s = statements->tdata()[i];
+        s = (*statements)[i];
         if (s)
         {   Statements *a = s->flatten(sc);
 
@@ -507,14 +507,14 @@ Statement *CompoundStatement::semantic(Scope *sc)
                 continue;
             }
             s = s->semantic(sc);
-            statements->tdata()[i] = s;
+            (*statements)[i] = s;
             if (s)
             {
                 Statement *sentry;
                 Statement *sexception;
                 Statement *sfinally;
 
-                statements->tdata()[i] = s->scopeCode(sc, &sentry, &sexception, &sfinally);
+                (*statements)[i] = s->scopeCode(sc, &sentry, &sexception, &sfinally);
                 if (sentry)
                 {
                     sentry = sentry->semantic(sc);
@@ -540,7 +540,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Statements *a = new Statements();
                         for (size_t j = i + 1; j < statements->dim; j++)
                         {
-                            a->push(statements->tdata()[j]);
+                            a->push((*statements)[j]);
                         }
                         Statement *body = new CompoundStatement(0, a);
                         body = new ScopeStatement(0, body);
@@ -582,7 +582,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Statements *a = new Statements();
                         for (size_t j = i + 1; j < statements->dim; j++)
                         {
-                            a->push(statements->tdata()[j]);
+                            a->push((*statements)[j]);
                         }
                         Statement *body = new CompoundStatement(0, a);
                         s = new TryFinallyStatement(0, body, sfinally);
@@ -598,7 +598,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
     }
     if (statements->dim == 1)
     {
-        return statements->tdata()[0];
+        return (*statements)[0];
     }
     return this;
 }
@@ -613,7 +613,7 @@ ReturnStatement *CompoundStatement::isReturnStatement()
     ReturnStatement *rs = NULL;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s)
         {
             rs = s->isReturnStatement();
@@ -629,7 +629,7 @@ Statement *CompoundStatement::last()
     Statement *s = NULL;
 
     for (size_t i = statements->dim; i; --i)
-    {   s = statements->tdata()[i - 1];
+    {   s = (*statements)[i - 1];
         if (s)
         {
             s = s->last();
@@ -643,7 +643,7 @@ Statement *CompoundStatement::last()
 void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s)
             s->toCBuffer(buf, hgs);
     }
@@ -652,7 +652,7 @@ void CompoundStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 int CompoundStatement::usesEH()
 {
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s && s->usesEH())
             return TRUE;
     }
@@ -665,7 +665,7 @@ int CompoundStatement::blockExit(bool mustNotThrow)
     int result = BEfallthru;
     Statement *slast = NULL;
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s)
         {
             //printf("result = x%x\n", result);
@@ -710,7 +710,7 @@ int CompoundStatement::comeFrom()
 
     //printf("CompoundStatement::comeFrom()\n");
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
 
         if (!s)
             continue;
@@ -723,7 +723,7 @@ int CompoundStatement::comeFrom()
 int CompoundStatement::isEmpty()
 {
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s && !s->isEmpty())
             return FALSE;
     }
@@ -744,10 +744,10 @@ Statement *CompoundDeclarationStatement::syntaxCopy()
     Statements *a = new Statements();
     a->setDim(statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s)
             s = s->syntaxCopy();
-        a->tdata()[i] = s;
+        (*a)[i] = s;
     }
     CompoundDeclarationStatement *cs = new CompoundDeclarationStatement(loc, a);
     return cs;
@@ -757,7 +757,7 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     int nwritten = 0;
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         ExpStatement *ds;
         if (s &&
             (ds = s->isExpStatement()) != NULL &&
@@ -824,10 +824,10 @@ Statement *UnrolledLoopStatement::syntaxCopy()
     Statements *a = new Statements();
     a->setDim(statements->dim);
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s)
             s = s->syntaxCopy();
-        a->tdata()[i] = s;
+        (*a)[i] = s;
     }
     UnrolledLoopStatement *cs = new UnrolledLoopStatement(loc, a);
     return cs;
@@ -845,12 +845,12 @@ Statement *UnrolledLoopStatement::semantic(Scope *sc)
 
     for (size_t i = 0; i < statements->dim; i++)
     {
-        Statement *s = statements->tdata()[i];
+        Statement *s = (*statements)[i];
         if (s)
         {
             //printf("[%d]: %s\n", i, s->toChars());
             s = s->semantic(scd);
-            statements->tdata()[i] = s;
+            (*statements)[i] = s;
         }
     }
 
@@ -867,10 +867,16 @@ void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 
     for (size_t i = 0; i < statements->dim; i++)
+<<<<<<< HEAD
     {   
 		hgs->writeIndent(buf);
 		Statement *s;
 		s = statements->tdata()[i];
+=======
+    {   Statement *s;
+
+        s = (*statements)[i];
+>>>>>>> upstream/master
         if (s)
             s->toCBuffer(buf, hgs);
     }
@@ -893,7 +899,7 @@ int UnrolledLoopStatement::hasContinue()
 int UnrolledLoopStatement::usesEH()
 {
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s && s->usesEH())
             return TRUE;
     }
@@ -904,7 +910,7 @@ int UnrolledLoopStatement::blockExit(bool mustNotThrow)
 {
     int result = BEfallthru;
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
         if (s)
         {
             int r = s->blockExit(mustNotThrow);
@@ -920,7 +926,7 @@ int UnrolledLoopStatement::comeFrom()
 
     //printf("UnrolledLoopStatement::comeFrom()\n");
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s = statements->tdata()[i];
+    {   Statement *s = (*statements)[i];
 
         if (!s)
             continue;
@@ -1494,10 +1500,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
             Expression *e;
             Type *t;
             if (te)
-                e = te->exps->tdata()[k];
+                e = (*te->exps)[k];
             else
                 t = Parameter::getNth(tuple->arguments, k)->type;
-            Parameter *arg = arguments->tdata()[0];
+            Parameter *arg = (*arguments)[0];
             Statements *st = new Statements();
 
             if (dim == 2)
@@ -1521,7 +1527,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 var->storage_class |= STCmanifest;
                 DeclarationExp *de = new DeclarationExp(loc, var);
                 st->push(new ExpStatement(loc, de));
-                arg = arguments->tdata()[1];  // value
+                arg = (*arguments)[1];  // value
             }
             // Declare value
             if (arg->storageClass & (STCout | STCref | STClazy))
@@ -1598,7 +1604,7 @@ Lagain:
             {   Parameter *arg;
 
                 int i = (dim == 1) ? 0 : 1;     // index of value
-                arg = arguments->tdata()[i];
+                arg = (*arguments)[i];
                 arg->type = arg->type->semantic(loc, sc);
                 tnv = arg->type->toBasetype();
                 if (tnv->ty != tn->ty &&
@@ -1607,7 +1613,7 @@ Lagain:
                     if (arg->storageClass & STCref)
                         error("foreach: value of UTF conversion cannot be ref");
                     if (dim == 2)
-                    {   arg = arguments->tdata()[0];
+                    {   arg = (*arguments)[0];
                         if (arg->storageClass & STCref)
                             error("foreach: key cannot be ref");
                     }
@@ -1617,7 +1623,7 @@ Lagain:
 
             for (size_t i = 0; i < dim; i++)
             {   // Declare args
-                Parameter *arg = arguments->tdata()[i];
+                Parameter *arg = (*arguments)[i];
                 Type *argtype = arg->type->semantic(loc, sc);
                 VarDeclaration *var;
 
@@ -1813,7 +1819,7 @@ Lagain:
             Statement *makeargs, *forbody;
             if (dim == 1)
             {
-                Parameter *arg = arguments->tdata()[0];
+                Parameter *arg = (*arguments)[0];
                 VarDeclaration *ve = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, einit));
                 ve->storage_class |= STCforeach;
                 ve->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
@@ -1855,8 +1861,8 @@ Lagain:
 
                 for (size_t i = 0; i < dim; i++)
                 {
-                    Parameter *arg = arguments->tdata()[i];
-                    Expression *exp = exps->tdata()[i];
+                    Parameter *arg = (*arguments)[i];
+                    Expression *exp = (*exps)[i];
                 #if 0
                     printf("[%d] arg = %s %s, exp = %s %s\n", i,
                             arg->type ? arg->type->toChars() : "?", arg->ident->toChars(),
@@ -1948,7 +1954,7 @@ Lagain:
              */
             Parameters *args = new Parameters();
             for (size_t i = 0; i < dim; i++)
-            {   Parameter *arg = arguments->tdata()[i];
+            {   Parameter *arg = (*arguments)[i];
                 StorageClass stc = STCref;
                 Identifier *id;
 
@@ -1993,28 +1999,28 @@ Lagain:
 
             // Resolve any forward referenced goto's
             for (size_t i = 0; i < gotos->dim; i++)
-            {   CompoundStatement *cs = gotos->tdata()[i];
-                GotoStatement *gs = (GotoStatement *)cs->statements->tdata()[0];
+            {   CompoundStatement *cs = (*gotos)[i];
+                GotoStatement *gs = (GotoStatement *)(*cs->statements)[0];
 
                 if (!gs->label->statement)
                 {   // 'Promote' it to this scope, and replace with a return
                     cases->push(gs);
                     s = new ReturnStatement(0, new IntegerExp(cases->dim + 1));
-                    cs->statements->tdata()[0] = s;
+                    (*cs->statements)[0] = s;
                 }
             }
 
             if (taa)
             {
                 // Check types
-                Parameter *arg = arguments->tdata()[0];
+                Parameter *arg = (*arguments)[0];
                 if (dim == 2)
                 {
                     if (arg->storageClass & STCref)
                         error("foreach: index cannot be ref");
                     if (!arg->type->equals(taa->index))
                         error("foreach: index must be type %s, not %s", taa->index->toChars(), arg->type->toChars());
-                    arg = arguments->tdata()[1];
+                    arg = (*arguments)[1];
                 }
                 if (!arg->type->equals(taa->nextOf()))
                     error("foreach: value must be type %s, not %s", taa->nextOf()->toChars(), arg->type->toChars());
@@ -2142,7 +2148,7 @@ Lagain:
                 // cases 2...
                 for (size_t i = 0; i < cases->dim; i++)
                 {
-                    s = cases->tdata()[i];
+                    s = (*cases)[i];
                     s = new CaseStatement(0, new IntegerExp(i + 2), s);
                     a->push(s);
                 }
@@ -2171,7 +2177,7 @@ bool ForeachStatement::checkForArgTypes()
 {   bool result = TRUE;
 
     for (size_t i = 0; i < arguments->dim; i++)
-    {   Parameter *arg = arguments->tdata()[i];
+    {   Parameter *arg = (*arguments)[i];
         if (!arg->type)
         {
             error("cannot infer type for %s", arg->ident->toChars());
@@ -2225,7 +2231,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(" (");
     for (size_t i = 0; i < arguments->dim; i++)
     {
-        Parameter *a = arguments->tdata()[i];
+        Parameter *a = (*arguments)[i];
         if (i)
             buf->writestring(", ");
         if (a->storageClass & STCref)
@@ -2789,7 +2795,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
         {
             for (size_t i = 0; i < args->dim; i++)
             {
-                Expression *e = args->tdata()[i];
+                Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
                 e = e->optimize(WANTvalue | WANTinterpret);
@@ -2815,11 +2821,11 @@ Statement *PragmaStatement::semantic(Scope *sc)
             error("string expected for library name");
         else
         {
-            Expression *e = args->tdata()[0];
+            Expression *e = (*args)[0];
 
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
-            args->tdata()[0] = e;
+            (*args)[0] = e;
             StringExp *se = e->toString();
             if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
@@ -2841,10 +2847,10 @@ Statement *PragmaStatement::semantic(Scope *sc)
             error("function name expected for start address");
         else
         {
-            Expression *e = args->tdata()[0];
+            Expression *e = (*args)[0];
             e = e->semantic(sc);
             e = e->optimize(WANTvalue | WANTinterpret);
-            args->tdata()[0] = e;
+            (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
                 error("function name expected for start address, not '%s'", e->toChars());
@@ -3002,7 +3008,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     // Resolve any goto case's with exp
     for (size_t i = 0; i < gotoCases.dim; i++)
     {
-        GotoCaseStatement *gcs = gotoCases.tdata()[i];
+        GotoCaseStatement *gcs = gotoCases[i];
 
         if (!gcs->exp)
         {
@@ -3016,7 +3022,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
                 continue;
             for (size_t j = 0; j < scx->sw->cases->dim; j++)
             {
-                CaseStatement *cs = scx->sw->cases->tdata()[j];
+                CaseStatement *cs = (*scx->sw->cases)[j];
 
                 if (cs->exp->equals(gcs->exp))
                 {
@@ -3072,11 +3078,11 @@ Statement *SwitchStatement::semantic(Scope *sc)
             size_t dim = ed->members->dim;
             for (size_t i = 0; i < dim; i++)
             {
-                EnumMember *em = ed->members->tdata()[i]->isEnumMember();
+                EnumMember *em = (*ed->members)[i]->isEnumMember();
                 if (em)
                 {
                     for (size_t j = 0; j < cases->dim; j++)
-                    {   CaseStatement *cs = cases->tdata()[j];
+                    {   CaseStatement *cs = (*cases)[j];
                         if (cs->exp->equals(em->value))
                             goto L1;
                     }
@@ -3205,7 +3211,7 @@ Statement *CaseStatement::semantic(Scope *sc)
     L1:
         for (size_t i = 0; i < sw->cases->dim; i++)
         {
-            CaseStatement *cs = sw->cases->tdata()[i];
+            CaseStatement *cs = (*sw->cases)[i];
 
             //printf("comparing '%s' with '%s'\n", exp->toChars(), cs->exp->toChars());
             if (cs->exp->equals(exp))
@@ -3219,7 +3225,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         // Resolve any goto case's with no exp to this case statement
         for (size_t i = 0; i < sw->gotoCases.dim; i++)
         {
-            GotoCaseStatement *gcs = sw->gotoCases.tdata()[i];
+            GotoCaseStatement *gcs = sw->gotoCases[i];
 
             if (!gcs->exp)
             {
@@ -4372,9 +4378,9 @@ Statement *TryCatchStatement::syntaxCopy()
     for (size_t i = 0; i < a->dim; i++)
     {   Catch *c;
 
-        c = catches->tdata()[i];
+        c = (*catches)[i];
         c = c->syntaxCopy();
-        a->tdata()[i] = c;
+        (*a)[i] = c;
     }
     TryCatchStatement *s = new TryCatchStatement(loc, body->syntaxCopy(), a);
     return s;
@@ -4387,12 +4393,12 @@ Statement *TryCatchStatement::semantic(Scope *sc)
     /* Even if body is NULL, still do semantic analysis on catches
      */
     for (size_t i = 0; i < catches->dim; i++)
-    {   Catch *c = catches->tdata()[i];
+    {   Catch *c = (*catches)[i];
         c->semantic(sc);
 
         // Determine if current catch 'hides' any previous catches
         for (size_t j = 0; j < i; j++)
-        {   Catch *cj = catches->tdata()[j];
+        {   Catch *cj = (*catches)[j];
             char *si = c->loc.toChars();
             char *sj = cj->loc.toChars();
 
@@ -4426,7 +4432,7 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
     int catchresult = 0;
     for (size_t i = 0; i < catches->dim; i++)
     {
-        Catch *c = catches->tdata()[i];
+        Catch *c = (*catches)[i];
         if (c->type == Type::terror)
             continue;
 
@@ -4457,7 +4463,7 @@ void TryCatchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         body->toCBuffer(buf, hgs);
     for (size_t i = 0; i < catches->dim; i++)
     {
-        Catch *c = catches->tdata()[i];
+        Catch *c = (*catches)[i];
         c->toCBuffer(buf, hgs);
     }
 }
@@ -4806,10 +4812,10 @@ Statements *VolatileStatement::flatten(Scope *sc)
     a = statement ? statement->flatten(sc) : NULL;
     if (a)
     {   for (size_t i = 0; i < a->dim; i++)
-        {   Statement *s = a->tdata()[i];
+        {   Statement *s = (*a)[i];
 
             s = new VolatileStatement(loc, s);
-            a->tdata()[i] = s;
+            (*a)[i] = s;
         }
     }
 
@@ -4868,10 +4874,10 @@ Statements *DebugStatement::flatten(Scope *sc)
     Statements *a = statement ? statement->flatten(sc) : NULL;
     if (a)
     {   for (size_t i = 0; i < a->dim; i++)
-        {   Statement *s = a->tdata()[i];
+        {   Statement *s = (*a)[i];
 
             s = new DebugStatement(loc, s);
-            a->tdata()[i] = s;
+            (*a)[i] = s;
         }
     }
 
@@ -4999,10 +5005,10 @@ Statements *LabelStatement::flatten(Scope *sc)
             {
                 a->push(new ExpStatement(loc, (Expression *)NULL));
             }
-            Statement *s = a->tdata()[0];
+            Statement *s = (*a)[0];
 
             s = new LabelStatement(loc, ident, s);
-            a->tdata()[0] = s;
+            (*a)[0] = s;
         }
     }
 
@@ -5135,8 +5141,8 @@ Statement *ImportStatement::syntaxCopy()
     Dsymbols *m = new Dsymbols();
     m->setDim(imports->dim);
     for (size_t i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = imports->tdata()[i];
-        m->tdata()[i] = s->syntaxCopy(NULL);
+    {   Dsymbol *s = (*imports)[i];
+        (*m)[i] = s->syntaxCopy(NULL);
     }
     return new ImportStatement(loc, m);
 }
@@ -5144,7 +5150,7 @@ Statement *ImportStatement::syntaxCopy()
 Statement *ImportStatement::semantic(Scope *sc)
 {
     for (size_t i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = imports->tdata()[i];
+    {   Dsymbol *s = (*imports)[i];
         s->semantic(sc);
         sc->insert(s);
     }
@@ -5164,7 +5170,7 @@ int ImportStatement::isEmpty()
 void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     for (size_t i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = imports->tdata()[i];
+    {   Dsymbol *s = (*imports)[i];
         s->toCBuffer(buf, hgs);
     }
 }
