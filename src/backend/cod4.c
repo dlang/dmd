@@ -335,11 +335,11 @@ code *cdeq(elem *e,regm_t *pretregs)
   tym_t tyml = tybasic(e1->Ety);              /* type of lvalue               */
   regm_t retregs = *pretregs;
 
-  if (tyfloating(tyml) && config.inline8087)
-  {
-        if (tyxmmreg(tyml) && config.fpxmmregs)
-            return xmmeq(e, pretregs);
+    if (tyxmmreg(tyml) && config.fpxmmregs)
+        return xmmeq(e, pretregs);
 
+    if (tyfloating(tyml) && config.inline8087)
+    {
         if (tycomplex(tyml))
             return complex_eq87(e, pretregs);
 
@@ -353,7 +353,7 @@ code *cdeq(elem *e,regm_t *pretregs)
             return eq87(e,pretregs);
         if (tyml == TYldouble || tyml == TYildouble)
             return eq87(e,pretregs);
-  }
+    }
 
   unsigned sz = tysize[tyml];           // # of bytes to transfer
   assert((int)sz > 0);
@@ -782,11 +782,13 @@ code *cdaddass(elem *e,regm_t *pretregs)
   tyml = tybasic(e1->Ety);              // type of lvalue
   sz = tysize[tyml];
   byte = (sz == 1);                     // 1 for byte operation, else 0
-  if (tyfloating(tyml))
-  {
-        // See if evaluate in XMM registers
-        if (config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass && !(*pretregs & mST0))
-            return xmmopass(e,pretregs);
+
+    // See if evaluate in XMM registers
+    if (config.fpxmmregs && tyxmmreg(tyml) && op != OPnegass && !(*pretregs & mST0))
+        return xmmopass(e,pretregs);
+
+    if (tyfloating(tyml))
+    {
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
       if (op == OPnegass)
             c = cdnegass87(e,pretregs);
@@ -1246,12 +1248,12 @@ code *cdmulass(elem *e,regm_t *pretregs)
     unsigned rex = (I64 && sz == 8) ? REX_W : 0;
     unsigned grex = rex << 16;          // 64 bit operands
 
+    // See if evaluate in XMM registers
+    if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
+        return xmmopass(e,pretregs);
 
     if (tyfloating(tyml))
     {
-        // See if evaluate in XMM registers
-        if (config.fpxmmregs && tyxmmreg(tyml) && op != OPmodass && !(*pretregs & mST0))
-            return xmmopass(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return opass87(e,pretregs);
 #else

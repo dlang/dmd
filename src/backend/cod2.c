@@ -4140,7 +4140,7 @@ code *cdneg(elem *e,regm_t *pretregs)
   if (tyfloating(tyml))
   {     if (tycomplex(tyml))
             return neg_complex87(e, pretregs);
-        if (config.fpxmmregs && tyxmmreg(tyml) && e->Eoper == OPneg && *pretregs & XMMREGS)
+        if (tyxmmreg(tyml) && e->Eoper == OPneg && *pretregs & XMMREGS)
             return xmmneg(e,pretregs);
         if (config.inline8087 &&
             ((*pretregs & (ALLREGS | mBP)) == 0 || e->Eoper == OPsqrt || I64))

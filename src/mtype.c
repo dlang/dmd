@@ -2490,6 +2490,7 @@ TypeBasic::TypeBasic(TY ty)
 #define TFLAGSreal      8
 #define TFLAGSimaginary 0x10
 #define TFLAGScomplex   0x20
+#define TFLAGSvector    0x40    // valid for a SIMD vector type
 
     flags = 0;
     switch (ty)
@@ -2498,43 +2499,43 @@ TypeBasic::TypeBasic(TY ty)
                         break;
 
         case Tint8:     d = Token::toChars(TOKint8);
-                        flags |= TFLAGSintegral;
+                        flags |= TFLAGSintegral | TFLAGSvector;
                         break;
 
         case Tuns8:     d = Token::toChars(TOKuns8);
-                        flags |= TFLAGSintegral | TFLAGSunsigned;
+                        flags |= TFLAGSintegral | TFLAGSunsigned | TFLAGSvector;
                         break;
 
         case Tint16:    d = Token::toChars(TOKint16);
-                        flags |= TFLAGSintegral;
+                        flags |= TFLAGSintegral | TFLAGSvector;
                         break;
 
         case Tuns16:    d = Token::toChars(TOKuns16);
-                        flags |= TFLAGSintegral | TFLAGSunsigned;
+                        flags |= TFLAGSintegral | TFLAGSunsigned | TFLAGSvector;
                         break;
 
         case Tint32:    d = Token::toChars(TOKint32);
-                        flags |= TFLAGSintegral;
+                        flags |= TFLAGSintegral | TFLAGSvector;
                         break;
 
         case Tuns32:    d = Token::toChars(TOKuns32);
-                        flags |= TFLAGSintegral | TFLAGSunsigned;
+                        flags |= TFLAGSintegral | TFLAGSunsigned | TFLAGSvector;
                         break;
 
         case Tfloat32:  d = Token::toChars(TOKfloat32);
-                        flags |= TFLAGSfloating | TFLAGSreal;
+                        flags |= TFLAGSfloating | TFLAGSreal | TFLAGSvector;
                         break;
 
         case Tint64:    d = Token::toChars(TOKint64);
-                        flags |= TFLAGSintegral;
+                        flags |= TFLAGSintegral | TFLAGSvector;
                         break;
 
         case Tuns64:    d = Token::toChars(TOKuns64);
-                        flags |= TFLAGSintegral | TFLAGSunsigned;
+                        flags |= TFLAGSintegral | TFLAGSunsigned | TFLAGSvector;
                         break;
 
         case Tfloat64:  d = Token::toChars(TOKfloat64);
-                        flags |= TFLAGSfloating | TFLAGSreal;
+                        flags |= TFLAGSfloating | TFLAGSreal | TFLAGSvector;
                         break;
 
         case Tfloat80:  d = Token::toChars(TOKfloat80);
@@ -3269,12 +3270,23 @@ Type *TypeVector::semantic(Loc loc, Scope *sc)
     }
     TypeSArray *t = (TypeSArray *)basetype;
     TypeBasic *tb = t->nextOf()->isTypeBasic();
-    if (!tb)
+    if (!tb || !(tb->flags & TFLAGSvector))
     {   error(loc, "base type of __vector must be a static array of an arithmetic type, not %s", t->toChars());
         return terror;
     }
     return merge();
 }
+
+TypeBasic *TypeVector::elementType()
+{
+    assert(basetype->ty == Tsarray);
+    TypeSArray *t = (TypeSArray *)basetype;
+    TypeBasic *tb = t->nextOf()->isTypeBasic();
+    assert(tb);
+    return tb;
+}
+
+
 
 char *TypeVector::toChars()
 {

@@ -1058,8 +1058,25 @@ unsigned Type::totym()
             break;
 
         case Tvector:
-            t = TYfloat4;
+        {   TypeVector *tv = (TypeVector *)this;
+            TypeBasic *tb = tv->elementType();
+            switch (tb->ty)
+            {   case Tint8:     t = TYschar16;  break;
+                case Tuns8:     t = TYuchar16;  break;
+                case Tint16:    t = TYshort8;   break;
+                case Tuns16:    t = TYushort8;  break;
+                case Tint32:    t = TYlong4;    break;
+                case Tuns32:    t = TYulong4;   break;
+                case Tint64:    t = TYllong2;   break;
+                case Tuns64:    t = TYullong2;  break;
+                case Tfloat32:  t = TYfloat4;   break;
+                case Tfloat64:  t = TYdouble2;  break;
+                default:
+                    assert(0);
+                    break;
+            }
             break;
+        }
 
         default:
 #ifdef DEBUG
