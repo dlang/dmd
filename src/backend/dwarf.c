@@ -82,12 +82,16 @@ int dwarf_getsegment(const char *name, int align)
 #endif
 }
 
+// machobj.c
+#define RELaddr 0       // straight address
+#define RELrel  1       // relative to location to be fixed up
+
 void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
 {
 #if ELFOBJ
     elf_addrel(seg, offset, I64 ? R_X86_64_32 : RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    mach_addrel(seg, offset, NULL, targseg, val);
+    mach_addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -98,7 +102,7 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 #if ELFOBJ
     elf_addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    mach_addrel(seg, offset, NULL, targseg, val);
+    mach_addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
