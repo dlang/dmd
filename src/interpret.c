@@ -5715,7 +5715,7 @@ Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
     }
     valuesx->dim = valuesx->dim - removed;
     keysx->dim = keysx->dim - removed;
-    return EXP_VOID_INTERPRET;
+    return new IntegerExp(loc, removed?1:0, Type::tbool);
 }
 
 
