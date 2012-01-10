@@ -6569,8 +6569,8 @@ Expression *DotVarExp::semantic(Scope *sc)
                     v->storage_class |= STCctfe | STCref | STCforeach;
 
                     ev = new VarExp(e->loc, v);
-                    e = new DotVarExp(loc, ev, s->isDeclaration());
-                    e = new CommaExp(e1->loc, new DeclarationExp(e1->loc, v), e);
+                    e = new CommaExp(e1->loc, new DeclarationExp(e1->loc, v), ev);
+                    e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
                     e = new DotVarExp(loc, ev, s->isDeclaration());

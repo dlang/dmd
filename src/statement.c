@@ -1441,24 +1441,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
         {   te = (TupleExp *)aggr;
             n = te->exps->dim;
 
-            if (te->exps->dim > 0 && (*te->exps)[0]->op == TOKcomma)
+            if (te->exps->dim > 0 && (*te->exps)[0]->op == TOKdotvar &&
+            	((DotVarExp *)(*te->exps)[0])->e1->isTemp())
             {
-                Expression *&e0 = (*te->exps)[0];
+                CommaExp *ce = (CommaExp *)((DotVarExp *)(*te->exps)[0])->e1;
 
-                Expression **pe = &e0;
-                while (((CommaExp *)(*pe))->e2->op == TOKcomma)
-                    pe = &((CommaExp *)(*pe))->e2;
-                if (pe == &e0)
-                {
-                    prelude = ((CommaExp *)(*pe))->e1;
-                    e0 = ((CommaExp *)(*pe))->e2;
-                }
-                else
-                {
-                    prelude = e0;
-                    e0 = ((CommaExp *)(*pe))->e2;
-                    *pe = ((CommaExp *)(*pe))->e1;
-                }
+				prelude = ce->e1;
+				((DotVarExp *)(*te->exps)[0])->e1 = ce->e2;
             }
         }
         else if (aggr->op == TOKtype)   // type tuple
