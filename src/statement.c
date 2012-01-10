@@ -1502,7 +1502,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 arg = (*arguments)[1];  // value
             }
             // Declare value
-            if (arg->storageClass & (STCout | STCref | STClazy))
+            if (arg->storageClass & (STCout | STClazy) ||
+                arg->storageClass & STCref && !te)
                 error("no storage class for value %s", arg->ident->toChars());
             Dsymbol *var;
             if (te)
@@ -1516,14 +1517,24 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     s =((ScopeExp *)e)->sds;
 
                 if (s)
+                {
                     var = new AliasDeclaration(loc, arg->ident, s);
+                    if (arg->storageClass & STCref)
+                        error("symbol %s cannot be ref", s->toChars());
+                }
                 else
                 {
                     arg->type = e->type;
                     Initializer *ie = new ExpInitializer(0, e);
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+                    if (arg->storageClass & STCref)
+                        v->storage_class |= STCref | STCforeach;
                     if (e->isConst() || e->op == TOKstring)
-                        v->storage_class |= STCmanifest;
+                    {   if (v->storage_class & STCref)
+                            error("constant value %s cannot be ref", ie->toChars());
+                        else
+                            v->storage_class |= STCmanifest;
+                    }
                     var = v;
                 }
             }

@@ -30,6 +30,31 @@ void test1()
 }
 
 /***************************************/
+// 2411
+
+struct S2411
+{
+    int n;
+    string s;
+}
+
+void test2411()
+{
+    S2411 s;
+    assert(s.n == 0);
+    assert(s.s == "");
+    foreach (i, ref e; s.tupleof)
+    {
+        static if (i == 0)
+            e = 10;
+        static if (i == 1)
+            e = "str";
+    }
+    assert(s.n == 10);
+    assert(s.s == "str");
+}
+
+/***************************************/
 // 2442
 
 template canForeach(T, E)
@@ -218,6 +243,7 @@ void test7004()
 int main()
 {
     test1();
+    test2411();
     test2442();
     test2443();
     test3187();
