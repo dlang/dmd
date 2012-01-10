@@ -66,7 +66,7 @@ struct Dconst
 static Dconst oldd;
 
 #define NDPP    0       // print out debugging info
-#define NOSAHF  I64     // can't use SAHF instruction
+#define NOSAHF  (I64 || config.fpxmmregs)     // can't use SAHF instruction
 
 code *loadComplex(elem *e);
 code *opmod_complex87(elem *e,regm_t *pretregs);
@@ -912,7 +912,7 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
             unsigned mf = (sz == FLOATSIZE) ? MFfloat : MFdouble;
             // MOVD floatreg,XMM?
             unsigned reg = findreg(retregs);
-            c1 = genfltreg(c1,0xF20F11,reg - XMM0,0);
+            c1 = genfltreg(c1,xmmstore(tym),reg - XMM0,0);
             c2 = push87();
             c2 = genfltreg(c2,ESC(mf,1),0,0);                 // FLD float/double ptr fltreg
         }
@@ -927,7 +927,7 @@ code *fixresult87(elem *e,regm_t retregs,regm_t *pretregs)
             // MOVD XMM?,floatreg
             unsigned reg;
             c2 = allocreg(pretregs,&reg,(sz == FLOATSIZE) ? TYfloat : TYdouble);
-            c2 = genfltreg(c2,0xF20F10,reg -XMM0,0);
+            c2 = genfltreg(c2,xmmload(tym),reg -XMM0,0);
         }
         else
             assert(!(*pretregs & mST0) || (retregs & mST0));
