@@ -40,11 +40,29 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
      */
     assert(mask[xreg] & XMMREGS);
     assert(sz == 4 || sz == 8);
-    unsigned reg;
-    code *c = regwithvalue(CNIL,ALLREGS,value,&reg,(sz == 8) ? 64 : 0);
-    c = gen2(c,0x660F6E,modregxrmx(3,xreg-XMM0,reg));     // MOVD/MOVQ xreg,reg
-    if (sz == 8)
-        code_orrex(c, REX_W);
+    code *c;
+    if (I32 && sz == 8)
+    {
+        unsigned r;
+        regm_t rm = ALLREGS;
+        c = allocreg(&rm,&r,TYint);         // allocate scratch register
+        targ_long *p = (targ_long *)&value;
+        c = movregconst(c,r,p[0],0);
+        c = genfltreg(c,0x89,r,0);            // MOV floatreg,r
+        c = movregconst(c,r,p[1],0);
+        c = genfltreg(c,0x89,r,4);            // MOV floatreg+4,r
+
+        unsigned op = xmmload(TYdouble);
+        c = genfltreg(c,op,xreg - XMM0,0);     // MOVSD XMMreg,floatreg
+    }
+    else
+    {
+        unsigned reg;
+        c = regwithvalue(CNIL,ALLREGS,value,&reg,(sz == 8) ? 64 : 0);
+        c = gen2(c,0x660F6E,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
+        if (sz == 8)
+            code_orrex(c, REX_W);
+    }
     return c;
 }
 
@@ -558,6 +576,10 @@ unsigned xmmstore(tym_t tym)
         case TYifloat:  op = 0xF30F11; break;       // MOVSS
         case TYdouble:
         case TYidouble:
+        case TYllong:
+        case TYullong:
+        case TYuint:
+        case TYlong:
         case TYcfloat:  op = 0xF20F11; break;       // MOVSD
 
         case TYfloat4:  op = 0x0F29; break;         // MOVAPS
