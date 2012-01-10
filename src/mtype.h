@@ -425,6 +425,7 @@ struct TypeVector : Type
     int isunsigned();
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
+    TypeBasic *elementType();
     int isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     TypeTuple *toArgTypes();
