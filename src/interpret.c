@@ -952,7 +952,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
         e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
-    if (needToCopyLiteral(exp))
+    if (needToCopyLiteral(e))
         e = copyLiteral(e);
 #if LOGASSIGN
     printf("RETURN %s\n", loc.toChars());

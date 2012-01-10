@@ -3871,6 +3871,22 @@ int g7187(int[] r)
 static assert(g7187(f7187()));
 static assert(g7187(f7187b(7)));
 
+struct S7187 { const(int)[] field; }
+
+const(int)[] f7187c() {
+    auto s = S7187([0]);
+    return s.field;
+}
+
+bool g7187c(const(int)[] r)
+{
+    auto t = r[0..0];
+    return true;
+}
+
+static assert(g7187c(f7187c()));
+
+
 /**************************************************
     6933 struct destructors
 **************************************************/
