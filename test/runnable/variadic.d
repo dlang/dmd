@@ -1364,6 +1364,26 @@ TypeTuple!(int, long) TT6700;
 static assert(bug6700!( (TT6700[1..$]) )==2);
  
 /***************************************/
+// 7263
+
+template TypeTuple7263(T...){ alias T TypeTuple7263; }
+
+struct tuple7263
+{
+    TypeTuple7263!(int, int) field;
+    alias field this;
+}
+
+auto front7263(T)(ref T arr){ return arr[0]; }
+
+void test7263()
+{
+    auto bars = [tuple7263(0, 0), tuple7263(1, 1)];
+    auto spam1 = bars.front7263[1];
+    auto spam2 = bars.front7263[1..2];
+}
+
+/***************************************/
 
 int main()
 {
@@ -1432,6 +1452,7 @@ int main()
     test63();
     test1411();
     test64();
+    test7263();
 
     printf("Success\n");
     return 0;

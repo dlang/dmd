@@ -8735,6 +8735,12 @@ Lagain:
                 {   Expression *e = (*te->exps)[j1 + i];
                     (*exps)[i] = e;
                 }
+                if (j1 > 0 && j2 - j1 > 0 && sc->func && (*te->exps)[0]->op == TOKdotvar)
+                {
+                    Expression *einit = ((DotVarExp *)(*te->exps)[0])->e1->isTemp();
+                    if (einit)
+                        ((DotVarExp *)(*exps)[0])->e1 = einit;
+                }
                 e = new TupleExp(loc, exps);
             }
             else
@@ -9208,7 +9214,15 @@ Expression *IndexExp::semantic(Scope *sc)
             {
 
                 if (e1->op == TOKtuple)
+                {
                     e = (*te->exps)[(size_t)index];
+                    if (sc->func && (*te->exps)[0]->op == TOKdotvar)
+                    {
+                        Expression *einit = ((DotVarExp *)(*te->exps)[0])->e1->isTemp();
+                        if (einit)
+                            ((DotVarExp *)e)->e1 = einit;
+                    }
+                }
                 else
                     e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
             }
