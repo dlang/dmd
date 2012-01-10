@@ -86,6 +86,7 @@ void out_config_init()
         config.flags3 |= CFG3pic;
 #endif
 #if TARGET_OSX
+    config.fpxmmregs = TRUE;
     if (params->is64bit)
     {   config.exe = EX_OSX64;
         config.fpxmmregs = TRUE;

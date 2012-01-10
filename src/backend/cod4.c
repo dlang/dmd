@@ -2523,7 +2523,7 @@ code *cdcnvt(elem *e, regm_t *pretregs)
 
             case OPf_d:
             case OPd_f:
-                if (I64 && *pretregs & XMMREGS)
+                if (config.fpxmmregs && *pretregs & XMMREGS)
                 {
                     c1 = codelem(e->E1,pretregs,FALSE);
                     unsigned reg = findreg(*pretregs) - XMM0;
