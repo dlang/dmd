@@ -151,7 +151,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
                 case TYschar16:
                 case TYuchar16: assert(0);     break;   // PMULB
                 case TYshort8:
-                case TYushort8: op = XMM_PMULW; break;   // PMULW
+                case TYushort8: op = XMM_PMULLW; break;   // PMULLW
                 case TYlong4:
                 case TYulong4:  assert(0);     break;   // PMULD
                 case TYllong2:
