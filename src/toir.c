@@ -500,6 +500,8 @@ int intrinsic_op(char *name)
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
 
+        "4simd4simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+
         "5bitop2btFNaNbxPkkZi",
         "5bitop3bsfFNaNbkZi",
         "5bitop3bsrFNaNbkZi",
@@ -528,6 +530,8 @@ int intrinsic_op(char *name)
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
 
+        "4simd4simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+
         "5bitop2btFNaNbxPmmZi",
         "5bitop3bsfFNaNbmZi",
         "5bitop3bsrFNaNbmZi",
@@ -555,6 +559,8 @@ int intrinsic_op(char *name)
         OPscale,
         OPrndtol,
         OPyl2xp1,
+
+        OPvector,
 
         OPbt,
         OPbsf,
@@ -625,7 +631,7 @@ int intrinsic_op(char *name)
     }
 #ifdef DMDV2
     if (length > 12 &&
-        (name[8] == 'm' || name[8] == 'b') &&
+        (name[8] == 'm' || name[8] == 'b' || name[8] == 's') &&
         !memcmp(name, "_D4core", 7))
     {
         int i = binary(name + 7, I64 ? core_namearray64 : core_namearray, sizeof(core_namearray) / sizeof(char *));

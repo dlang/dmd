@@ -601,4 +601,9 @@ unsigned xmmstore(tym_t tym)
     return op;
 }
 
+code *cdvector(elem *e, regm_t *pretregs)
+{
+    return NULL;
+}
+
 #endif // !SPP

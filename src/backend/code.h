@@ -815,6 +815,7 @@ code *xmmopass(elem *e, regm_t *pretregs);
 code *xmmneg(elem *e, regm_t *pretregs);
 unsigned xmmload(tym_t tym);
 unsigned xmmstore(tym_t tym);
+code *cdvector(elem *e, regm_t *pretregs);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);

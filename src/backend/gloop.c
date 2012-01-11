@@ -986,6 +986,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPucallns:
         case OPstrpar:
         case OPstrctor:
+        case OPvector:
 #if TX86
         case OPvoid:
         case OPstrlen:
