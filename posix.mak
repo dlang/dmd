@@ -58,6 +58,7 @@ MANIFEST= \
 	src/core/math.d \
 	src/core/memory.d \
 	src/core/runtime.d \
+	src/core/simd.d \
 	src/core/thread.d \
 	src/core/threadasm.S \
 	src/core/time.d \
@@ -252,6 +253,7 @@ SRC_D_MODULES = \
 	core/math \
 	core/memory \
 	core/runtime \
+	core/simd \
 	core/thread \
 	core/time \
 	core/vararg \
@@ -379,6 +381,7 @@ DOCS=\
 	$(DOCDIR)/core_math.html \
 	$(DOCDIR)/core_memory.html \
 	$(DOCDIR)/core_runtime.html \
+	$(DOCDIR)/core_simd.html \
 	$(DOCDIR)/core_thread.html \
 	$(DOCDIR)/core_time.html \
 	$(DOCDIR)/core_vararg.html \
@@ -400,6 +403,7 @@ IMPORTS=\
 	$(IMPDIR)/core/math.di \
 	$(IMPDIR)/core/memory.di \
 	$(IMPDIR)/core/runtime.di \
+	$(IMPDIR)/core/simd.di \
 	$(IMPDIR)/core/thread.di \
 	$(IMPDIR)/core/time.di \
 	$(IMPDIR)/core/vararg.di \

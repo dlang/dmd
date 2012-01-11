@@ -37,6 +37,7 @@ MANIFEST= \
 	src\core\math.d \
 	src\core\memory.d \
 	src\core\runtime.d \
+	src\core\simd.d \
 	src\core\thread.d \
 	src\core\threadasm.S \
 	src\core\time.d \
@@ -232,6 +233,7 @@ SRCS= \
 	src\core\math.d \
 	src\core\memory.d \
 	src\core\runtime.d \
+	src\core\simd.d \
 	src\core\thread.d \
 	src\core\time.d \
 	src\core\vararg.d \
@@ -358,6 +360,7 @@ DOCS=\
 	$(DOCDIR)\core_math.html \
 	$(DOCDIR)\core_memory.html \
 	$(DOCDIR)\core_runtime.html \
+	$(DOCDIR)\core_simd.html \
 	$(DOCDIR)\core_thread.html \
 	$(DOCDIR)\core_time.html \
 	$(DOCDIR)\core_vararg.html \
@@ -379,6 +382,7 @@ IMPORTS=\
 	$(IMPDIR)\core\math.di \
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
+	$(IMPDIR)\core\simd.di \
 	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\time.di \
 	$(IMPDIR)\core\vararg.di \
@@ -494,6 +498,9 @@ $(DOCDIR)\core_memory.html : src\core\memory.d
 $(DOCDIR)\core_runtime.html : src\core\runtime.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
+$(DOCDIR)\core_simd.html : src\core\simd.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+
 $(DOCDIR)\core_thread.html : src\core\thread.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
 
@@ -550,6 +557,9 @@ $(IMPDIR)\core\memory.di : src\core\memory.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\runtime.di : src\core\runtime.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\simd.di : src\core\simd.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\thread.di : src\core\thread.d
