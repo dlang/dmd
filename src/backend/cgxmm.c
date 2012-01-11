@@ -603,7 +603,41 @@ unsigned xmmstore(tym_t tym)
 
 code *cdvector(elem *e, regm_t *pretregs)
 {
-    return NULL;
+    /* e should look like:
+     *    vector
+     *      |
+     *    param
+     *    /   \
+     *  param op2
+     *  /   \
+     * op   op1
+     */
+
+    elem *e1 = e->E1;
+    assert(e1->Eoper == OPparam);
+    elem *op2 = e1->E2;
+    e1 = e1->E1;
+    assert(e1->Eoper == OPparam);
+    elem *eop = e1->E1;
+    assert(eop->Eoper == OPconst);
+    elem *op1 = e1->E2;
+
+    tym_t ty1 = tybasic(op1->Ety);
+    unsigned sz1 = tysize[ty1];
+    assert(sz1 == 16);       // float or double
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+    code *c = codelem(op1,&retregs,FALSE); // eval left leaf
+    unsigned reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    code *cr = scodelem(op2, &rretregs, retregs, TRUE);  // eval right leaf
+    unsigned rreg = findreg(rretregs);
+    code *cg = getregs(retregs);
+    unsigned op = el_tolong(eop);
+    code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    co = cat(co,fixresult(e,retregs,pretregs));
+    return cat4(c,cr,cg,co);
 }
 
 #endif // !SPP
