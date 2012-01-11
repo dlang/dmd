@@ -3630,7 +3630,7 @@ static assert({
 }());
 
 /**************************************************
-    6522 opAssign + foreach
+    6522 opAssign + foreach ref
 **************************************************/
 
 struct Foo6522 {
@@ -3648,6 +3648,30 @@ bool foo6522() {
 }
 
 static assert(foo6522());
+
+/**************************************************
+    7245 pointers + foreach ref
+**************************************************/
+
+int bug7245(int testnum) {
+    int[3] arr;
+    arr[0] = 4;
+    arr[1] = 6;
+    arr[2] = 8;
+    int* ptr;
+
+    foreach(i, ref p; arr) {
+        if(i == 1)
+            ptr = &p;
+        if (testnum == 1)
+            p = 5;
+    }
+
+    return *ptr;
+}
+
+static assert(bug7245(0)==6);
+static assert(bug7245(1)==5);
 
 /**************************************************
     6919

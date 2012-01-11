@@ -1820,6 +1820,17 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 error(loc, "variable %s is used before initialization", v->toChars());
             else if (exceptionOrCantInterpret(e))
                 return e;
+            else if (goal == ctfeNeedLvalue && v->isRef() && e->op == TOKindex)
+            {   // If it is a foreach ref, resolve the index into a constant
+                IndexExp *ie = (IndexExp *)e;
+                Expression *w = ie->e2->interpret(istate);
+                if (w != ie->e2)
+                {
+                    e = new IndexExp(ie->loc, ie->e1, w);
+                    e->type = ie->type;
+                }
+                return e;
+            }
             else if ((goal == ctfeNeedLvalue)
                     || e->op == TOKstring || e->op == TOKstructliteral || e->op == TOKarrayliteral
                     || e->op == TOKassocarrayliteral || e->op == TOKslice
