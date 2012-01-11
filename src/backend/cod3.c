@@ -436,7 +436,17 @@ regm_t regmask(tym_t tym, tym_t tyf)
         case TYcldouble:
             return mST01;
 
+        // SIMD vector types
         case TYfloat4:
+        case TYdouble2:
+        case TYschar16:
+        case TYuchar16:
+        case TYshort8:
+        case TYushort8:
+        case TYlong4:
+        case TYulong4:
+        case TYllong2:
+        case TYullong2:
             return mXMM0;
 
         default:
