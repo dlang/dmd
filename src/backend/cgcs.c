@@ -371,7 +371,7 @@ STATIC void ecom(elem **pe)
     case OPstrctor: case OPu16_d: case OPd_u16:
     case OParrow:
     case OPvoid: case OPnullcheck:
-    case OPbsf: case OPbsr: case OPbswap:
+    case OPbsf: case OPbsr: case OPbswap: case OPvector:
     case OPld_u64:
 #if TARGET_SEGMENTED
     case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:

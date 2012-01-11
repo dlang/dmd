@@ -61,6 +61,7 @@ int _unary[] =
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
          OPbsf,OPbsr,OPbswap,
          OPddtor,
+         OPvector,
 #if TARGET_SEGMENTED
          OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
 #endif
@@ -163,7 +164,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
                 OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,
-                OProl,OPror,
+                OProl,OPror,OPvector,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
 #if TARGET_SEGMENTED
@@ -622,6 +623,7 @@ void dotab()
         case OPbts:     X("bts",        elzot,  cdbt);
 
         case OPbswap:   X("bswap",      evalu8, cdbswap);
+        case OPvector:  X("vector",     elzot,  cdvector);
 
         default:
                 printf("opcode hole x%x\n",i);
