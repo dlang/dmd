@@ -146,7 +146,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
-	$C\md5.h $C\md5.c $C\ti_pvoid.c \
+	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h \
 	$C\backend.txt
 
 # From TK
@@ -257,7 +257,7 @@ cgreg.obj : $C\cgreg.c
 cgsched.obj : $C\rtlsym.h $C\cgsched.c
 	$(CC) -c $(MFLAGS) $C\cgsched
 
-cgxmm.obj : $C\cgxmm.c
+cgxmm.obj : $C\xmm.h $C\cgxmm.c
 	$(CC) -c $(MFLAGS) $C\cgxmm
 
 cod1.obj : $C\rtlsym.h $C\cod1.c
