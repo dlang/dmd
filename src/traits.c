@@ -395,10 +395,11 @@ Expression *TraitsExp::semantic(Scope *sc)
             {
                 static void dg(ClassDeclaration *cd, Identifiers *idents)
                 {
-                    if (cd->baseClass)
-                    {   ClassDeclaration *cb = cd->baseClass;
+                    for (size_t i = 0; i < cd->baseclasses->dim; i++)
+                    {   ClassDeclaration *cb = (*cd->baseclasses)[i]->base;
                         ScopeDsymbol::foreach(cb->members, &PushIdentsDg::dg, idents);
-                        dg(cb, idents);
+                        if (cb->baseclasses->dim)
+                            dg(cb, idents);
                     }
                 }
             };
