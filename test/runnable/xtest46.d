@@ -3729,6 +3729,21 @@ void test2953()
 }
 
 /***************************************************/
+// 2997
+
+abstract class B2997 { void foo(); }
+interface I2997 { void bar(); }
+abstract class C2997 : B2997, I2997 {}
+//pragma(msg, __traits(allMembers, C).stringof);
+
+void test2997()
+{
+    enum ObjectMembers = ["toString","toHash","opCmp","opEquals","Monitor","factory"];
+
+    static assert([__traits(allMembers, C2997)] == ["foo"] ~ ObjectMembers ~ ["bar"]);
+}
+
+/***************************************************/
 // 6596
 
 extern (C) int function() pfunc6596;
@@ -4553,6 +4568,7 @@ int main()
     test6630();
     test6690();
     test2953();
+    test2997();
     test4647();
     test5696();
     test6084();
