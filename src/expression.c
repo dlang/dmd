@@ -2989,6 +2989,17 @@ NullExp::NullExp(Loc loc, Type *type)
     this->type = type;
 }
 
+int NullExp::equals(Object *o)
+{
+    if (o && o->dyncast() == DYNCAST_EXPRESSION)
+    {   Expression *e = (Expression *)o;
+
+        if (e->op == TOKnull)
+            return TRUE;
+    }
+    return FALSE;
+}
+
 Expression *NullExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
