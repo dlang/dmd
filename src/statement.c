@@ -2967,6 +2967,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
+                e = resolveProperties(sc, e);
                 if (e->op != TOKerror && e->op != TOKtype)
                     e = e->ctfeInterpret();
                 if (e->op == TOKerror)
@@ -2998,6 +2999,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp *se = e->toString();
@@ -3023,6 +3025,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);

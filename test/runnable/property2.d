@@ -281,6 +281,21 @@ void test7174()
 }
 
 /***************************************************/
+// 7274
+
+@property foo7274(){ return "test"; }
+@property bar7274(){ return "kernel32.lib"; }
+
+pragma(msg, "decl: ", foo7274);   // print "decl: foo", not "decl: test"
+version(Windows) pragma(lib, bar7274); // Error: pragma lib string expected for library name, not 'bar'
+
+void test7274()
+{
+    pragma(msg, "stmt: ", foo7274);  // print "stmt: foo", not "stmt: test"
+    //pragma(lib, bar);   // Error: pragma(lib) not allowed as statement
+}
+
+/***************************************************/
 
 int main()
 {
@@ -289,6 +304,7 @@ int main()
     test7722a();
     test7722b();
     test7174();
+    test7274();
 
     printf("Success\n");
     return 0;

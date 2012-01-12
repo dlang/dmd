@@ -257,7 +257,8 @@ Expression *resolveProperties(Scope *sc, Expression *e)
         goto return_expr;
     }
 
-    if (e->type)
+    if (e->type &&
+        e->op != TOKtype)       // function type is not a property
     {
         Type *t = e->type->toBasetype();
 
@@ -6672,8 +6673,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     }
     else
     {
-        if (e1->op != TOKtype)
-            e1 = resolveProperties(sc, e1);
+        e1 = resolveProperties(sc, e1);
         eleft = NULL;
         eright = e1;
     }
