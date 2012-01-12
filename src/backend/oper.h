@@ -229,6 +229,7 @@ enum OPER
         OPrpair,                // build reversed register pair, E1 is msb, E2 = lsb
         OPframeptr,             // load pointer to base of frame
         OPgot,                  // load pointer to global offset table
+        OPvector,               // SIMD vector operations
 
         // Jupiter operators
         OParray,                // access Jupiter array, left is handle, right is index

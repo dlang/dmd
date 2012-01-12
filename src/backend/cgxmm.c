@@ -60,7 +60,7 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
     {
         unsigned reg;
         c = regwithvalue(CNIL,ALLREGS,value,&reg,(sz == 8) ? 64 : 0);
-        c = gen2(c,XMM_LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
+        c = gen2(c,LODD,modregxrmx(3,xreg-XMM0,reg));     // MOVD xreg,reg
         if (sz == 8)
             code_orrex(c, REX_W);
     }
@@ -93,21 +93,21 @@ code *orthxmm(elem *e, regm_t *pretregs)
             switch (ty1)
             {
                 case TYfloat:
-                case TYifloat:  op = XMM_ADDSS;  break;  // ADDSS
+                case TYifloat:  op = ADDSS;  break;  // ADDSS
                 case TYdouble:
-                case TYidouble: op = XMM_ADDSD;  break;  // ADDSD
+                case TYidouble: op = ADDSD;  break;  // ADDSD
 
                 // SIMD vector types
-                case TYfloat4:  op = XMM_ADDPS;  break;  // ADDPS
-                case TYdouble2: op = XMM_ADDPD;  break;  // ADDPD
+                case TYfloat4:  op = ADDPS;  break;  // ADDPS
+                case TYdouble2: op = ADDPD;  break;  // ADDPD
                 case TYschar16:
-                case TYuchar16: op = XMM_PADDB; break;   // PADDB
+                case TYuchar16: op = PADDB; break;   // PADDB
                 case TYshort8:
-                case TYushort8: op = XMM_PADDW; break;   // PADDW
+                case TYushort8: op = PADDW; break;   // PADDW
                 case TYlong4:
-                case TYulong4:  op = XMM_PADDD; break;   // PADDD
+                case TYulong4:  op = PADDD; break;   // PADDD
                 case TYllong2:
-                case TYullong2: op = XMM_PADDQ; break;   // PADDQ
+                case TYullong2: op = PADDQ; break;   // PADDQ
 
                 default:        assert(0);
             }
@@ -117,21 +117,21 @@ code *orthxmm(elem *e, regm_t *pretregs)
             switch (ty1)
             {
                 case TYfloat:
-                case TYifloat:  op = XMM_SUBSS;  break;  // SUBSS
+                case TYifloat:  op = SUBSS;  break;  // SUBSS
                 case TYdouble:
-                case TYidouble: op = XMM_SUBSD;  break;  // SUBSD
+                case TYidouble: op = SUBSD;  break;  // SUBSD
 
                 // SIMD vector types
-                case TYfloat4:  op = XMM_SUBPS;  break;  // SUBPS
-                case TYdouble2: op = XMM_SUBPD;  break;  // SUBPD
+                case TYfloat4:  op = SUBPS;  break;  // SUBPS
+                case TYdouble2: op = SUBPD;  break;  // SUBPD
                 case TYschar16:
-                case TYuchar16: op = XMM_PSUBB; break;   // PSUBB
+                case TYuchar16: op = PSUBB; break;   // PSUBB
                 case TYshort8:
-                case TYushort8: op = XMM_PSUBW; break;   // PSUBW
+                case TYushort8: op = PSUBW; break;   // PSUBW
                 case TYlong4:
-                case TYulong4:  op = XMM_PSUBD; break;   // PSUBD
+                case TYulong4:  op = PSUBD; break;   // PSUBD
                 case TYllong2:
-                case TYullong2: op = XMM_PSUBQ; break;   // PSUBQ
+                case TYullong2: op = PSUBQ; break;   // PSUBQ
 
                 default:        assert(0);
             }
@@ -141,17 +141,17 @@ code *orthxmm(elem *e, regm_t *pretregs)
             switch (ty1)
             {
                 case TYfloat:
-                case TYifloat:  op = XMM_MULSS;  break;  // MULSS
+                case TYifloat:  op = MULSS;  break;  // MULSS
                 case TYdouble:
-                case TYidouble: op = XMM_MULSD;  break;  // MULSD
+                case TYidouble: op = MULSD;  break;  // MULSD
 
                 // SIMD vector types
-                case TYfloat4:  op = XMM_MULPS;  break;  // MULPS
-                case TYdouble2: op = XMM_MULPD;  break;  // MULPD
+                case TYfloat4:  op = MULPS;  break;  // MULPS
+                case TYdouble2: op = MULPD;  break;  // MULPD
                 case TYschar16:
                 case TYuchar16: assert(0);     break;   // PMULB
                 case TYshort8:
-                case TYushort8: op = XMM_PMULLW; break;   // PMULLW
+                case TYushort8: op = PMULLW; break;   // PMULLW
                 case TYlong4:
                 case TYulong4:  assert(0);     break;   // PMULD
                 case TYllong2:
@@ -165,13 +165,13 @@ code *orthxmm(elem *e, regm_t *pretregs)
             switch (ty1)
             {
                 case TYfloat:
-                case TYifloat:  op = XMM_DIVSS;  break;  // DIVSS
+                case TYifloat:  op = DIVSS;  break;  // DIVSS
                 case TYdouble:
-                case TYidouble: op = XMM_DIVSD;  break;  // DIVSD
+                case TYidouble: op = DIVSD;  break;  // DIVSD
 
                 // SIMD vector types
-                case TYfloat4:  op = XMM_DIVPS;  break;  // DIVPS
-                case TYdouble2: op = XMM_DIVPD;  break;  // DIVPD
+                case TYfloat4:  op = DIVPS;  break;  // DIVPS
+                case TYdouble2: op = DIVPD;  break;  // DIVPD
                 case TYschar16:
                 case TYuchar16: assert(0);     break;   // PDIVB
                 case TYshort8:
@@ -196,7 +196,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
                 case TYlong4:
                 case TYulong4:
                 case TYllong2:
-                case TYullong2: op = XMM_POR; break;   // POR
+                case TYullong2: op = POR; break;   // POR
 
                 default:        assert(0);
             }
@@ -213,7 +213,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
                 case TYlong4:
                 case TYulong4:
                 case TYllong2:
-                case TYullong2: op = XMM_PAND; break;   // PAND
+                case TYullong2: op = PAND; break;   // PAND
 
                 default:        assert(0);
             }
@@ -247,10 +247,10 @@ code *orthxmm(elem *e, regm_t *pretregs)
         case OPnue:
         {   retregs = mPSW;
             if (sz1 == 4)                       // float
-                op = XMM_UCOMISS;
+                op = UCOMISS;
             else
             {   assert(sz1 == 8);
-                op = XMM_UCOMISD;
+                op = UCOMISD;
             }
             code *cc = gen2(CNIL,op,modregxrmx(3,rreg-XMM0,reg-XMM0));
             return cat4(c,cr,cg,cc);
@@ -445,27 +445,27 @@ code *xmmopass(elem *e,regm_t *pretregs)
     switch (e->Eoper)
     {
         case OPaddass:
-            op = XMM_ADDSD;                     // ADDSD
+            op = ADDSD;                     // ADDSD
             if (sz1 == 4)                       // float
-                op = XMM_ADDSS;                 // ADDSS
+                op = ADDSS;                 // ADDSS
             break;
 
         case OPminass:
-            op = XMM_SUBSD;                     // SUBSD
+            op = SUBSD;                     // SUBSD
             if (sz1 == 4)                       // float
-                op = XMM_SUBSS;                 // SUBSS
+                op = SUBSS;                 // SUBSS
             break;
 
         case OPmulass:
-            op = XMM_MULSD;                     // MULSD
+            op = MULSD;                     // MULSD
             if (sz1 == 4)                       // float
-                op = XMM_MULSS;                 // MULSS
+                op = MULSS;                 // MULSS
             break;
 
         case OPdivass:
-            op = XMM_DIVSD;                     // DIVSD
+            op = DIVSD;                     // DIVSD
             if (sz1 == 4)                       // float
-                op = XMM_DIVSS;                 // DIVSS
+                op = DIVSS;                 // DIVSS
             break;
 
         default:
@@ -526,7 +526,7 @@ code *xmmneg(elem *e,regm_t *pretregs)
     code *c = movxmmconst(rreg, sz, signbit, 0);
 
     code *cg = getregs(retregs);
-    unsigned op = (sz == 8) ? XMM_XORPD : XMM_XORPS;       // XORPD/S reg,rreg
+    unsigned op = (sz == 8) ? XORPD : XORPS;       // XORPD/S reg,rreg
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     co = cat(co,fixresult(e,retregs,pretregs));
     return cat4(cl,c,cg,co);
@@ -543,12 +543,12 @@ unsigned xmmload(tym_t tym)
     switch (tybasic(tym))
     {
         case TYfloat:
-        case TYifloat:  op = XMM_LODSS; break;       // MOVSS
+        case TYifloat:  op = LODSS; break;       // MOVSS
         case TYdouble:
-        case TYidouble: op = XMM_LODSD; break;       // MOVSD
+        case TYidouble: op = LODSD; break;       // MOVSD
 
-        case TYfloat4:  op = XMM_LODAPS; break;      // MOVAPS
-        case TYdouble2: op = XMM_LODAPD; break;      // MOVAPD
+        case TYfloat4:  op = LODAPS; break;      // MOVAPS
+        case TYdouble2: op = LODAPD; break;      // MOVAPD
         case TYschar16:
         case TYuchar16:
         case TYshort8:
@@ -556,7 +556,7 @@ unsigned xmmload(tym_t tym)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = XMM_LODDQA; break;      // MOVDQA
+        case TYullong2: op = LODDQA; break;      // MOVDQA
 
         default:
             printf("tym = x%x\n", tym);
@@ -574,17 +574,17 @@ unsigned xmmstore(tym_t tym)
     switch (tybasic(tym))
     {
         case TYfloat:
-        case TYifloat:  op = XMM_STOSS; break;       // MOVSS
+        case TYifloat:  op = STOSS; break;       // MOVSS
         case TYdouble:
         case TYidouble:
         case TYllong:
         case TYullong:
         case TYuint:
         case TYlong:
-        case TYcfloat:  op = XMM_STOSD; break;       // MOVSD
+        case TYcfloat:  op = STOSD; break;       // MOVSD
 
-        case TYfloat4:  op = XMM_STOAPS; break;      // MOVAPS
-        case TYdouble2: op = XMM_STOAPD; break;      // MOVAPD
+        case TYfloat4:  op = STOAPS; break;      // MOVAPS
+        case TYdouble2: op = STOAPD; break;      // MOVAPD
         case TYschar16:
         case TYuchar16:
         case TYshort8:
@@ -592,13 +592,52 @@ unsigned xmmstore(tym_t tym)
         case TYlong4:
         case TYulong4:
         case TYllong2:
-        case TYullong2: op = XMM_STODQA; break;      // MOVDQA
+        case TYullong2: op = STODQA; break;      // MOVDQA
 
         default:
             printf("tym = x%x\n", tym);
             assert(0);
     }
     return op;
+}
+
+code *cdvector(elem *e, regm_t *pretregs)
+{
+    /* e should look like:
+     *    vector
+     *      |
+     *    param
+     *    /   \
+     *  param op2
+     *  /   \
+     * op   op1
+     */
+
+    elem *e1 = e->E1;
+    assert(e1->Eoper == OPparam);
+    elem *op2 = e1->E2;
+    e1 = e1->E1;
+    assert(e1->Eoper == OPparam);
+    elem *eop = e1->E1;
+    assert(eop->Eoper == OPconst);
+    elem *op1 = e1->E2;
+
+    tym_t ty1 = tybasic(op1->Ety);
+    unsigned sz1 = tysize[ty1];
+    assert(sz1 == 16);       // float or double
+    regm_t retregs = *pretregs & XMMREGS;
+    if (!retregs)
+        retregs = XMMREGS;
+    code *c = codelem(op1,&retregs,FALSE); // eval left leaf
+    unsigned reg = findreg(retregs);
+    regm_t rretregs = XMMREGS & ~retregs;
+    code *cr = scodelem(op2, &rretregs, retregs, TRUE);  // eval right leaf
+    unsigned rreg = findreg(rretregs);
+    code *cg = getregs(retregs);
+    unsigned op = el_tolong(eop);
+    code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    co = cat(co,fixresult(e,retregs,pretregs));
+    return cat4(c,cr,cg,co);
 }
 
 #endif // !SPP

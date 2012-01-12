@@ -1061,7 +1061,8 @@ unsigned Type::totym()
         {   TypeVector *tv = (TypeVector *)this;
             TypeBasic *tb = tv->elementType();
             switch (tb->ty)
-            {   case Tint8:     t = TYschar16;  break;
+            {   case Tvoid:
+                case Tint8:     t = TYschar16;  break;
                 case Tuns8:     t = TYuchar16;  break;
                 case Tint16:    t = TYshort8;   break;
                 case Tuns16:    t = TYushort8;  break;

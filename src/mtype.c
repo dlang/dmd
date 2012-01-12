@@ -2496,6 +2496,7 @@ TypeBasic::TypeBasic(TY ty)
     switch (ty)
     {
         case Tvoid:     d = Token::toChars(TOKvoid);
+                        flags |= TFLAGSvector;
                         break;
 
         case Tint8:     d = Token::toChars(TOKint8);
@@ -3254,7 +3255,7 @@ TypeVector::TypeVector(Loc loc, Type *basetype)
 
 Type *TypeVector::syntaxCopy()
 {
-    return this;
+    return new TypeVector(0, basetype->syntaxCopy());
 }
 
 Type *TypeVector::semantic(Loc loc, Scope *sc)

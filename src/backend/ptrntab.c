@@ -115,8 +115,8 @@ OPTABLE0(RSM,     0x0faa,_i64_bit | _I386);
 
 PTRNTAB2 aptb2MOVSD[] =  /* MOVSD */ {
         { 0xa5, _32_bit | _I386 | _modsidi },
-        { 0xF20F10, _r, _xmm, _xmm_m64 },
-        { 0xF20F11, _r, _xmm_m64, _xmm },
+        { LODSD, _r, _xmm, _xmm_m64 },
+        { STOSD, _r, _xmm_m64, _xmm },
 };
 
 //
@@ -995,12 +995,6 @@ PTRNTAB1  aptb1FISTP[] = /* FISTP */ {
         { 0xdf, _7, _fm64 },
         { ASM_END, 0, 0 }
 };
-PTRNTAB1  aptb1FISTTP[] = /* FISTTP (Pentium 4, Prescott) */ {
-        { 0xdf, _1, _m16 },
-        { 0xdb, _1, _m32 },
-        { 0xdd, _1, _fm64 },
-        { ASM_END, 0, 0 }
-};
 PTRNTAB1  aptb1FLD[] = /* FLD */ {
         { 0xd9, _0, _m32 },
         { 0xdd, _0, _fm64 },
@@ -1208,141 +1202,141 @@ PTRNTAB0 aptb0EMMS[] = /* EMMS */       {
 PTRNTAB2 aptb2MOVD[] = /* MOVD */ {
         { 0x0F6E,_r,_mm,_rm32 },
         { 0x0F7E,_r,_rm32,_mm },
-        { 0x660F6E,_r,_xmm,_rm32 },
-        { 0x660F7E,_r,_rm32,_xmm },
+        { LODD,_r,_xmm,_rm32 },
+        { STOD,_r,_rm32,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVQ[] = /* MOVQ */ {
         { 0x0F6F,_r,_mm,_mmm64 },
         { 0x0F7F,_r,_mmm64,_mm },
-        { 0xF30F7E,_r,_xmm,_xmm_m64 },
-        { 0x660FD6,_r,_xmm_m64,_xmm },
+        { LODQ,_r,_xmm,_xmm_m64 },
+        { STOQ,_r,_xmm_m64,_xmm },
         { 0x0F6E,  _r|_64_bit,_mm,  _rm64 },
         { 0x0F7E,  _r|_64_bit,_rm64,_mm   },
-        { 0x660F6E,_r|_64_bit,_xmm, _rm64 },
-        { 0x660F7E,_r|_64_bit,_rm64,_xmm  },
+        { LODD,_r|_64_bit,_xmm, _rm64 },
+        { STOD,_r|_64_bit,_rm64,_xmm  },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PACKSSDW[] = {
         { 0x0F6B, _r,_mm,_mmm64 },
-        { 0x660F6B, _r,_xmm,_xmm_m128 },
+        { PACKSSDW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PACKSSWB[] = {
         { 0x0F63, _r,_mm,_mmm64 },
-        { 0x660F63, _r,_xmm,_xmm_m128 },
+        { PACKSSWB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PACKUSWB[] = {
         { 0x0F67, _r,_mm,_mmm64 },
-        { 0x660F67, _r,_xmm,_xmm_m128 },
+        { PACKUSWB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDB[] = {
         { 0x0FFC, _r,_mm,_mmm64 },
-        { XMM_PADDB, _r,_xmm,_xmm_m128 },
+        { PADDB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDD[] = {
         { 0x0FFE, _r,_mm,_mmm64 },
-        { XMM_PADDD, _r,_xmm,_xmm_m128 },
+        { PADDD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDSB[] = {
         { 0x0FEC, _r,_mm,_mmm64 },
-        { 0x660FEC, _r,_xmm,_xmm_m128 },
+        { PADDSB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDSW[] = {
         { 0x0FED, _r,_mm,_mmm64 },
-        { 0x660FED, _r,_xmm,_xmm_m128 },
+        { PADDSW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDUSB[] = {
         { 0x0FDC, _r,_mm,_mmm64 },
-        { 0x660FDC, _r,_xmm,_xmm_m128 },
+        { PADDUSB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDUSW[] = {
         { 0x0FDD, _r,_mm,_mmm64 },
-        { 0x660FDD, _r,_xmm,_xmm_m128 },
+        { PADDUSW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDW[] = {
         { 0x0FFD, _r,_mm,_mmm64 },
-        { XMM_PADDW, _r,_xmm,_xmm_m128 },
+        { PADDW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PAND[] = {
         { 0x0FDB, _r,_mm,_mmm64 },
-        { XMM_PAND, _r,_xmm,_xmm_m128 },
+        { PAND, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PANDN[] = {
         { 0x0FDF, _r,_mm,_mmm64 },
-        { 0x660FDF, _r,_xmm,_xmm_m128 },
+        { PANDN, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPEQB[] = {
         { 0x0F74, _r,_mm,_mmm64 },
-        { 0x660F74, _r,_xmm,_xmm_m128 },
+        { PCMPEQB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPEQD[] = {
         { 0x0F76, _r,_mm,_mmm64 },
-        { 0x660F76, _r,_xmm,_xmm_m128 },
+        { PCMPEQD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPEQW[] = {
         { 0x0F75, _r,_mm,_mmm64 },
-        { 0x660F75, _r,_xmm,_xmm_m128 },
+        { PCMPEQW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPGTB[] = {
         { 0x0F64, _r,_mm,_mmm64 },
-        { 0x660F64, _r,_xmm,_xmm_m128 },
+        { PCMPGTB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPGTD[] = {
         { 0x0F66, _r,_mm,_mmm64 },
-        { 0x660F66, _r,_xmm,_xmm_m128 },
+        { PCMPGTD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPGTW[] = {
         { 0x0F65, _r,_mm,_mmm64 },
-        { 0x660F65, _r,_xmm,_xmm_m128 },
+        { PCMPGTW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMADDWD[] = {
         { 0x0FF5, _r,_mm,_mmm64 },
-        { 0x660FF5, _r,_xmm,_xmm_m128 },
+        { PMADDWD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSLLW[] = /* PSLLW */ {
         { 0x0FF1, _r,_mm,_mmm64 },
         { 0x0F71, _6,_mm,_imm8 },
-        { 0x660FF1, _r,_xmm,_xmm_m128 },
+        { PSLLW, _r,_xmm,_xmm_m128 },
         { 0x660F71, _6,_xmm,_imm8 },
         { ASM_END }
 };
@@ -1350,7 +1344,7 @@ PTRNTAB2 aptb2PSLLW[] = /* PSLLW */ {
 PTRNTAB2 aptb2PSLLD[] = /* PSLLD */ {
         { 0x0FF2, _r,_mm,_mmm64 },
         { 0x0F72, _6,_mm,_imm8 },
-        { 0x660FF2, _r,_xmm,_xmm_m128 },
+        { PSLLD, _r,_xmm,_xmm_m128 },
         { 0x660F72, _6,_xmm,_imm8 },
         { ASM_END }
 };
@@ -1358,7 +1352,7 @@ PTRNTAB2 aptb2PSLLD[] = /* PSLLD */ {
 PTRNTAB2 aptb2PSLLQ[] = /* PSLLQ */ {
         { 0x0FF3, _r,_mm,_mmm64 },
         { 0x0F73, _6,_mm,_imm8 },
-        { 0x660FF3, _r,_xmm,_xmm_m128 },
+        { PSLLQ, _r,_xmm,_xmm_m128 },
         { 0x660F73, _6,_xmm,_imm8 },
         { ASM_END }
 };
@@ -1366,7 +1360,7 @@ PTRNTAB2 aptb2PSLLQ[] = /* PSLLQ */ {
 PTRNTAB2 aptb2PSRAW[] = /* PSRAW */ {
         { 0x0FE1, _r,_mm,_mmm64 },
         { 0x0F71, _4,_mm,_imm8 },
-        { 0x660FE1, _r,_xmm,_xmm_m128 },
+        { PSRAW, _r,_xmm,_xmm_m128 },
         { 0x660F71, _4,_xmm,_imm8 },
         { ASM_END }
 };
@@ -1374,7 +1368,7 @@ PTRNTAB2 aptb2PSRAW[] = /* PSRAW */ {
 PTRNTAB2 aptb2PSRAD[] = /* PSRAD */ {
         { 0x0FE2, _r,_mm,_mmm64 },
         { 0x0F72, _4,_mm,_imm8 },
-        { 0x660FE2, _r,_xmm,_xmm_m128 },
+        { PSRAD, _r,_xmm,_xmm_m128 },
         { 0x660F72, _4,_xmm,_imm8 },
         { ASM_END }
 };
@@ -1382,7 +1376,7 @@ PTRNTAB2 aptb2PSRAD[] = /* PSRAD */ {
 PTRNTAB2 aptb2PSRLW[] = /* PSRLW */ {
         { 0x0FD1, _r,_mm,_mmm64 },
         { 0x0F71, _2,_mm,_imm8 },
-        { 0x660FD1, _r,_xmm,_xmm_m128 },
+        { PSRLW, _r,_xmm,_xmm_m128 },
         { 0x660F71, _2,_xmm,_imm8 },
         { ASM_END }
 };
@@ -1390,7 +1384,7 @@ PTRNTAB2 aptb2PSRLW[] = /* PSRLW */ {
 PTRNTAB2 aptb2PSRLD[] = /* PSRLD */ {
         { 0x0FD2, _r,_mm,_mmm64 },
         { 0x0F72, _2,_mm,_imm8 },
-        { 0x660FD2, _r,_xmm,_xmm_m128 },
+        { PSRLD, _r,_xmm,_xmm_m128 },
         { 0x660F72, _2,_xmm,_imm8 },
         { ASM_END }
 };
@@ -1398,92 +1392,92 @@ PTRNTAB2 aptb2PSRLD[] = /* PSRLD */ {
 PTRNTAB2 aptb2PSRLQ[] = /* PSRLQ */ {
         { 0x0FD3, _r,_mm,_mmm64 },
         { 0x0F73, _2,_mm,_imm8 },
-        { 0x660FD3, _r,_xmm,_xmm_m128 },
+        { PSRLQ, _r,_xmm,_xmm_m128 },
         { 0x660F73, _2,_xmm,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBB[] = {
         { 0x0FF8, _r,_mm,_mmm64 },
-        { XMM_PSUBB, _r,_xmm,_xmm_m128 },
+        { PSUBB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBD[] = {
         { 0x0FFA, _r,_mm,_mmm64 },
-        { XMM_PSUBD, _r,_xmm,_xmm_m128 },
+        { PSUBD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBSB[] = {
         { 0x0FE8, _r,_mm,_mmm64 },
-        { 0x660FE8, _r,_xmm,_xmm_m128 },
+        { PSUBSB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBSW[] = {
         { 0x0FE9, _r,_mm,_mmm64 },
-        { 0x660FE9, _r,_xmm,_xmm_m128 },
+        { PSUBSW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBUSB[] = {
         { 0x0FD8, _r,_mm,_mmm64 },
-        { 0x660FD8, _r,_xmm,_xmm_m128 },
+        { PSUBUSB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBUSW[] = {
         { 0x0FD9, _r,_mm,_mmm64 },
-        { 0x660FD9, _r,_xmm,_xmm_m128 },
+        { PSUBUSW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBW[] = {
         { 0x0FF9, _r,_mm,_mmm64 },
-        { XMM_PSUBW, _r,_xmm,_xmm_m128 },
+        { PSUBW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKHBW[] = {
         { 0x0F68, _r,_mm,_mmm64 },
-        { 0x660F68, _r,_xmm,_xmm_m128 },
+        { PUNPCKHBW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKHDQ[] = {
         { 0x0F6A, _r,_mm,_mmm64 },
-        { 0x660F6A, _r,_xmm,_xmm_m128 },
+        { PUNPCKHDQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKHWD[] = {
         { 0x0F69, _r,_mm,_mmm64 },
-        { 0x660F69, _r,_xmm,_xmm_m128 },
+        { PUNPCKHWD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKLBW[] = {
         { 0x0F60, _r,_mm,_mmm64 },
-        { 0x660F60, _r,_xmm,_xmm_m128 },
+        { PUNPCKLBW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKLDQ[] = {
         { 0x0F62, _r,_mm,_mmm64 },
-        { 0x660F62, _r,_xmm,_xmm_m128 },
+        { PUNPCKLDQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKLWD[] = {
         { 0x0F61, _r,_mm,_mmm64 },
-        { 0x660F61, _r,_xmm,_xmm_m128 },
+        { PUNPCKLWD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PXOR[] = {
         { 0x0FEF, _r,_mm,_mmm64 },
-        { 0x660FEF, _r,_xmm,_xmm_m128 },
+        { PXOR, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
@@ -1553,426 +1547,426 @@ PTRNTAB1  aptb1CLFLUSH[] = /* CLFLUSH */ {
 };
 
 PTRNTAB2 aptb2ADDPS[] = {
-        { XMM_ADDPS, _r,_xmm,_xmm_m128 },
+        { ADDPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ADDPD[] = {
-        { XMM_ADDPD, _r,_xmm,_xmm_m128 },
+        { ADDPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ADDSD[] = {
-        { XMM_ADDSD, _r,_xmm,_xmm_m64 },
+        { ADDSD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ADDSS[] = {
-        { XMM_ADDSS, _r,_xmm,_xmm_m32 },
+        { ADDSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ANDPD[] = {
-        { 0x660F54, _r,_xmm,_xmm_m128 },
+        { ANDPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ANDPS[] = {
-        { 0x0F54, _r,_xmm,_xmm_m128 },
+        { ANDPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ANDNPD[] = {
-        { 0x660F55, _r,_xmm,_xmm_m128 },
+        { ANDNPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ANDNPS[] = {
-        { 0x0F55, _r,_xmm,_xmm_m128 },
+        { ANDNPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3CMPPS[] = {
-        { 0x0FC2, _r,_xmm,_xmm_m128,_imm8 },
+        { CMPPS, _r,_xmm,_xmm_m128,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3CMPPD[] = {
-        { 0x660FC2, _r,_xmm,_xmm_m128,_imm8 },
+        { CMPPD, _r,_xmm,_xmm_m128,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3CMPSD[] = {
         { 0xa7, _32_bit | _I386 | _modsidi },
-        { 0xF20FC2, _r,_xmm,_xmm_m64,_imm8 },
+        { CMPSD, _r,_xmm,_xmm_m64,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3CMPSS[] = {
-        { 0xF30FC2, _r,_xmm,_xmm_m32,_imm8 },
+        { CMPSS, _r,_xmm,_xmm_m32,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2COMISD[] = {
-        { 0x660F2F, _r,_xmm,_xmm_m64 },
+        { COMISD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2COMISS[] = {
-        { 0x0F2F, _r,_xmm,_xmm_m32 },
+        { COMISS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTDQ2PD[] = {
-        { 0xF30FE6, _r,_xmm,_xmm_m64 },
+        { CVTDQ2PD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTDQ2PS[] = {
-        { 0x0F5B, _r,_xmm,_xmm_m128 },
+        { CVTDQ2PS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPD2DQ[] = {
-        { 0xF20FE6, _r,_xmm,_xmm_m128 },
+        { CVTPD2DQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPD2PI[] = {
-        { 0x660F2D, _r,_mm,_xmm_m128 },
+        { CVTPD2PI, _r,_mm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPD2PS[] = {
-        { 0x660F5A, _r,_xmm,_xmm_m128 },
+        { CVTPD2PS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPI2PD[] = {
-        { 0x660F2A, _r,_xmm,_mmm64 },
+        { CVTPI2PD, _r,_xmm,_mmm64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPI2PS[] = {
-        { 0x0F2A, _r,_xmm,_mmm64 },
+        { CVTPI2PS, _r,_xmm,_mmm64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPS2DQ[] = {
-        { 0x660F5B, _r,_xmm,_xmm_m128 },
+        { CVTPS2DQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPS2PD[] = {
-        { 0x0F5A, _r,_xmm,_xmm_m64 },
+        { CVTPS2PD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTPS2PI[] = {
-        { 0x0F2D, _r,_mm,_xmm_m64 },
+        { CVTPS2PI, _r,_mm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTSD2SI[] = {
-        { 0xF20F2D, _r,_r32,_xmm_m64 },
+        { CVTSD2SI, _r,_r32,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTSD2SS[] = {
-        { 0xF20F5A, _r,_xmm,_xmm_m64 },
+        { CVTSD2SS, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTSI2SD[] = {
-        { 0xF20F2A, _r,_xmm,_rm32 },
+        { CVTSI2SD, _r,_xmm,_rm32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTSI2SS[] = {
-        { 0xF30F2A, _r,_xmm,_rm32 },
+        { CVTSI2SS, _r,_xmm,_rm32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTSS2SD[] = {
-        { 0xF30F5A, _r,_xmm,_xmm_m32 },
+        { CVTSS2SD, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTSS2SI[] = {
-        { 0xF30F2D, _r,_r32,_xmm_m32 },
+        { CVTSS2SI, _r,_r32,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTTPD2PI[] = {
-        { 0x660F2C, _r,_mm,_xmm_m128 },
+        { CVTTPD2PI, _r,_mm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTTPD2DQ[] = {
-        { 0x660FE6, _r,_xmm,_xmm_m128 },
+        { CVTTPD2DQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTTPS2DQ[] = {
-        { 0xF30F5B, _r,_xmm,_xmm_m128 },
+        { CVTTPS2DQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTTPS2PI[] = {
-        { 0x0F2C, _r,_mm,_xmm_m64 },
+        { CVTTPS2PI, _r,_mm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTTSD2SI[] = {
-        { 0xF20F2C, _r,_r32,_xmm_m64 },
+        { CVTTSD2SI, _r,_r32,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2CVTTSS2SI[] = {
-        { 0xF30F2C, _r,_r32,_xmm_m32 },
+        { CVTTSS2SI, _r,_r32,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2DIVPD[] = {
-        { XMM_DIVPD, _r,_xmm,_xmm_m128 },
+        { DIVPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2DIVPS[] = {
-        { XMM_DIVPS, _r,_xmm,_xmm_m128 },
+        { DIVPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2DIVSD[] = {
-        { XMM_DIVSD, _r,_xmm,_xmm_m64 },
+        { DIVSD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2DIVSS[] = {
-        { XMM_DIVSS, _r,_xmm,_xmm_m32 },
+        { DIVSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MASKMOVDQU[] = {
-        { 0x660FF7, _r,_xmm,_xmm },
+        { MASKMOVDQU, _r,_xmm,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MASKMOVQ[] = {
-        { 0x0FF7, _r,_mm,_mm },
+        { MASKMOVQ, _r,_mm,_mm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MAXPD[] = {
-        { 0x660F5F, _r,_xmm,_xmm_m128 },
+        { MAXPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MAXPS[] = {
-        { 0x0F5F, _r,_xmm,_xmm_m128 },
+        { MAXPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MAXSD[] = {
-        { 0xF20F5F, _r,_xmm,_xmm_m64 },
+        { MAXSD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MAXSS[] = {
-        { 0xF30F5F, _r,_xmm,_xmm_m32 },
+        { MAXSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MINPD[] = {
-        { 0x660F5D, _r,_xmm,_xmm_m128 },
+        { MINPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MINPS[] = {
-        { 0x0F5D, _r,_xmm,_xmm_m128 },
+        { MINPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MINSD[] = {
-        { 0xF20F5D, _r,_xmm,_xmm_m64 },
+        { MINSD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MINSS[] = {
-        { 0xF30F5D, _r,_xmm,_xmm_m32 },
+        { MINSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVAPD[] = {
-        { 0x660F28, _r,_xmm,_xmm_m128 },
-        { 0x660F29, _r,_xmm_m128,_xmm },
+        { LODAPD, _r,_xmm,_xmm_m128 },
+        { STOAPD, _r,_xmm_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVAPS[] = {
-        { 0x0F28, _r,_xmm,_xmm_m128 },
-        { 0x0F29, _r,_xmm_m128,_xmm },
+        { LODAPS, _r,_xmm,_xmm_m128 },
+        { STOAPS, _r,_xmm_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVDQA[] = {
-        { 0x660F6F, _r,_xmm,_xmm_m128 },
-        { 0x660F7F, _r,_xmm_m128,_xmm },
+        { LODDQA, _r,_xmm,_xmm_m128 },
+        { STODQA, _r,_xmm_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVDQU[] = {
-        { 0xF30F6F, _r,_xmm,_xmm_m128 },
-        { 0xF30F7F, _r,_xmm_m128,_xmm },
+        { LODDQU, _r,_xmm,_xmm_m128 },
+        { STODQU, _r,_xmm_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVDQ2Q[] = {
-        { 0xF20FD6, _r,_mm,_xmm },
+        { MOVDQ2Q, _r,_mm,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVHLPS[] = {
-        { 0x0F12, _r,_xmm,_xmm },
+        { MOVHLPS, _r,_xmm,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVHPD[] = {
-        { 0x660F16, _r,_xmm,_xmm_m64 },
-        { 0x660F17, _r,_xmm_m64,_xmm },
+        { LODHPD, _r,_xmm,_xmm_m64 },
+        { STOHPD, _r,_xmm_m64,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVHPS[] = {
-        { 0x0F16, _r,_xmm,_xmm_m64 },
-        { 0x0F17, _r,_xmm_m64,_xmm },
+        { LODHPS, _r,_xmm,_xmm_m64 },
+        { STOHPS, _r,_xmm_m64,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVLHPS[] = {
-        { 0x0F16, _r,_xmm,_xmm },
+        { MOVLHPS, _r,_xmm,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVLPD[] = {
-        { 0x660F12, _r,_xmm,_xmm_m64 },
-        { 0x660F13, _r,_xmm_m64,_xmm },
+        { LODLPD, _r,_xmm,_xmm_m64 },
+        { STOLPD, _r,_xmm_m64,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVLPS[] = {
-        { 0x0F12, _r,_xmm,_xmm_m64 },
-        { 0x0F13, _r,_xmm_m64,_xmm },
+        { LODLPS, _r,_xmm,_xmm_m64 },
+        { STOLPS, _r,_xmm_m64,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVMSKPD[] = {
-        { 0x660F50, _r,_r32,_xmm },
+        { MOVMSKPD, _r,_r32,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVMSKPS[] = {
-        { 0x0F50, _r,_r32,_xmm },
+        { MOVMSKPS, _r,_r32,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVNTDQ[] = {
-        { 0x660FE7, _r,_m128,_xmm },
+        { MOVNTDQ, _r,_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVNTI[] = {
-        { 0x0FC3, _r,_m32,_r32 },
+        { MOVNTI, _r,_m32,_r32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVNTPD[] = {
-        { 0x660F2B, _r,_m128,_xmm },
+        { MOVNTPD, _r,_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVNTPS[] = {
-        { 0x0F2B, _r,_m128,_xmm },
+        { MOVNTPS, _r,_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVNTQ[] = {
-        { 0x0FE7, _r,_m64,_mm },
+        { MOVNTQ, _r,_m64,_mm },
         { ASM_END }
 };
 
 /* MOVQ */
 
 PTRNTAB2 aptb2MOVQ2DQ[] = {
-        { 0xF30FD6, _r,_xmm,_mm },
+        { MOVQ2DQ, _r,_xmm,_mm },
         { ASM_END }
 };
 
 /* MOVSD */
 
 PTRNTAB2 aptb2MOVSS[] = {
-        { 0xF30F10, _r,_xmm,_xmm_m32 },
-        { 0xF30F11, _r,_xmm_m32,_xmm },
+        { LODSS, _r,_xmm,_xmm_m32 },
+        { STOSS, _r,_xmm_m32,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVUPD[] = {
-        { 0x660F10, _r,_xmm,_xmm_m128 },
-        { 0x660F11, _r,_xmm_m128,_xmm },
+        { LODUPD, _r,_xmm,_xmm_m128 },
+        { STOUPD, _r,_xmm_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVUPS[] = {
-        { 0x0F10, _r,_xmm,_xmm_m128 },
-        { 0x0F11, _r,_xmm_m128,_xmm },
+        { LODUPS, _r,_xmm,_xmm_m128 },
+        { STOUPS, _r,_xmm_m128,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MULPD[] = {
-        { XMM_MULPD, _r,_xmm,_xmm_m128 },
+        { MULPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MULPS[] = {
-        { XMM_MULPS, _r,_xmm,_xmm_m128 },
+        { MULPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MULSD[] = {
-        { XMM_MULSD, _r,_xmm,_xmm_m64 },
+        { MULSD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MULSS[] = {
-        { XMM_MULSS, _r,_xmm,_xmm_m32 },
+        { MULSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ORPD[] = {
-        { 0x660F56, _r,_xmm,_xmm_m128 },
+        { ORPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2ORPS[] = {
-        { 0x0F56, _r,_xmm,_xmm_m128 },
+        { ORPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PADDQ[] = {
         { 0x0FD4, _r,_mm,_mmm64 },
-        { XMM_PADDQ, _r,_xmm,_xmm_m128 },
+        { PADDQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PAVGB[] = {
         { 0x0FE0, _r,_mm,_mmm64 },
-        { 0x660FE0, _r,_xmm,_xmm_m128 },
+        { PAVGB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PAVGW[] = {
         { 0x0FE3, _r,_mm,_mmm64 },
-        { 0x660FE3, _r,_xmm,_xmm_m128 },
+        { PAVGW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
@@ -1986,249 +1980,249 @@ PTRNTAB3 aptb3PEXTRW[] = {
 
 PTRNTAB3 aptb3PINSRW[] = {
         { 0x0FC4, _r,_mm,_r32m16,_imm8 },
-        { 0x660FC4, _r,_xmm,_r32m16,_imm8 },
+        { PINSRW, _r,_xmm,_r32m16,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMAXSW[] = {
         { 0x0FEE, _r,_mm,_mmm64 },
-        { 0x660FEE, _r,_xmm,_xmm_m128 },
+        { PMAXSW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMAXUB[] = {
         { 0x0FDE, _r,_mm,_mmm64 },
-        { 0x660FDE, _r,_xmm,_xmm_m128 },
+        { PMAXUB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMINSW[] = {
         { 0x0FEA, _r,_mm,_mmm64 },
-        { 0x660FEA, _r,_xmm,_xmm_m128 },
+        { PMINSW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMINUB[] = {
         { 0x0FDA, _r,_mm,_mmm64 },
-        { 0x660FDA, _r,_xmm,_xmm_m128 },
+        { PMINUB, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVMSKB[] = {
         { 0x0FD7, _r,_r32,_mm },
-        { 0x660FD7, _r,_r32,_xmm },
+        { PMOVMSKB, _r,_r32,_xmm },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMULHUW[] = {
         { 0x0FE4, _r,_mm,_mmm64 },
-        { 0x660FE4, _r,_xmm,_xmm_m128 },
+        { PMULHUW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMULHW[] = {
         { 0x0FE5, _r,_mm,_mmm64 },
-        { 0x660FE5, _r,_xmm,_xmm_m128 },
+        { PMULHW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMULLW[] = {
         { 0x0FD5, _r,_mm,_mmm64 },
-        { XMM_PMULLW, _r,_xmm,_xmm_m128 },
+        { PMULLW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMULUDQ[] = {
         { 0x0FF4, _r,_mm,_mmm64 },
-        { 0x660FF4, _r,_xmm,_xmm_m128 },
+        { PMULUDQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2POR[] = {
         { 0x0FEB, _r,_mm,_mmm64 },
-        { XMM_POR, _r,_xmm,_xmm_m128 },
+        { POR, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB1 aptb1PREFETCHNTA[] = {
-        { 0x0F18, _0,_m8 },
+        { PREFETCH, _0,_m8 },
         { ASM_END }
 };
 
 PTRNTAB1 aptb1PREFETCHT0[] = {
-        { 0x0F18, _1,_m8 },
+        { PREFETCH, _1,_m8 },
         { ASM_END }
 };
 
 PTRNTAB1 aptb1PREFETCHT1[] = {
-        { 0x0F18, _2,_m8 },
+        { PREFETCH, _2,_m8 },
         { ASM_END }
 };
 
 PTRNTAB1 aptb1PREFETCHT2[] = {
-        { 0x0F18, _3,_m8 },
+        { PREFETCH, _3,_m8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSADBW[] = {
         { 0x0FF6, _r,_mm,_mmm64 },
-        { 0x660FF6, _r,_xmm,_xmm_m128 },
+        { PSADBW, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PSHUFD[] = {
-        { 0x660F70, _r,_xmm,_xmm_m128,_imm8 },
+        { PSHUFD, _r,_xmm,_xmm_m128,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PSHUFHW[] = {
-        { 0xF30F70, _r,_xmm,_xmm_m128,_imm8 },
+        { PSHUFHW, _r,_xmm,_xmm_m128,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PSHUFLW[] = {
-        { 0xF20F70, _r,_xmm,_xmm_m128,_imm8 },
+        { PSHUFLW, _r,_xmm,_xmm_m128,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PSHUFW[] = {
-        { 0x0F70, _r,_mm,_mmm64,_imm8 },
+        { PSHUFW, _r,_mm,_mmm64,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSLLDQ[] = {
-        { 0x660F73, _7,_xmm,_imm8 },
+        { PSLLDQ, _7,_xmm,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSRLDQ[] = {
-        { 0x660F73, _3,_xmm,_imm8 },
+        { PSRLDQ, _3,_xmm,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PSUBQ[] = {
         { 0x0FFB, _r,_mm,_mmm64 },
-        { XMM_PSUBQ, _r,_xmm,_xmm_m128 },
+        { PSUBQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKHQDQ[] = {
-        { 0x660F6D, _r,_xmm,_xmm_m128 },
+        { PUNPCKHQDQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PUNPCKLQDQ[] = {
-        { 0x660F6C, _r,_xmm,_xmm_m128 },
+        { PUNPCKLQDQ, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2RCPPS[] = {
-        { 0x0F53, _r,_xmm,_xmm_m128 },
+        { RCPPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2RCPSS[] = {
-        { 0xF30F53, _r,_xmm,_xmm_m32 },
+        { RCPSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2RSQRTPS[] = {
-        { 0x0F52, _r,_xmm,_xmm_m128 },
+        { RSQRTPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2RSQRTSS[] = {
-        { 0xF30F52, _r,_xmm,_xmm_m32 },
+        { RSQRTSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3SHUFPD[] = {
-        { 0x660FC6, _r,_xmm,_xmm_m128,_imm8 },
+        { SHUFPD, _r,_xmm,_xmm_m128,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3SHUFPS[] = {
-        { 0x0FC6, _r,_xmm,_xmm_m128,_imm8 },
+        { SHUFPS, _r,_xmm,_xmm_m128,_imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SQRTPD[] = {
-        { 0x660F51, _r,_xmm,_xmm_m128 },
+        { SQRTPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SQRTPS[] = {
-        { 0x0F51, _r,_xmm,_xmm_m128 },
+        { SQRTPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SQRTSD[] = {
-        { 0xF20F51, _r,_xmm,_xmm_m64 },
+        { SQRTSD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SQRTSS[] = {
-        { 0xF30F51, _r,_xmm,_xmm_m32 },
+        { SQRTSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SUBPD[] = {
-        { XMM_SUBPD, _r,_xmm,_xmm_m128 },
+        { SUBPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SUBPS[] = {
-        { XMM_SUBPS, _r,_xmm,_xmm_m128 },
+        { SUBPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SUBSD[] = {
-        { XMM_SUBSD, _r,_xmm,_xmm_m64 },
+        { SUBSD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2SUBSS[] = {
-        { XMM_SUBSS, _r,_xmm,_xmm_m32 },
+        { SUBSS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2UCOMISD[] = {
-        { XMM_UCOMISD, _r,_xmm,_xmm_m64 },
+        { UCOMISD, _r,_xmm,_xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2UCOMISS[] = {
-        { XMM_UCOMISS, _r,_xmm,_xmm_m32 },
+        { UCOMISS, _r,_xmm,_xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2UNPCKHPD[] = {
-        { 0x660F15, _r,_xmm,_xmm_m128 },
+        { UNPCKHPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2UNPCKHPS[] = {
-        { 0x0F15, _r,_xmm,_xmm_m128 },
+        { UNPCKHPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2UNPCKLPD[] = {
-        { 0x660F14, _r,_xmm,_xmm_m128 },
+        { UNPCKLPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2UNPCKLPS[] = {
-        { 0x0F14, _r,_xmm,_xmm_m128 },
+        { UNPCKLPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2XORPD[] = {
-        { XMM_XORPD, _r,_xmm,_xmm_m128 },
+        { XORPD, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2XORPS[] = {
-        { XMM_XORPS, _r,_xmm,_xmm_m128 },
+        { XORPS, _r,_xmm,_xmm_m128 },
         { ASM_END }
 };
 
@@ -2387,61 +2381,68 @@ PTRNTAB2 aptb2PSWAPD[] = {
         MWAIT
  */
 
+PTRNTAB1  aptb1FISTTP[] = /* FISTTP */ {
+        { 0xdf, _1, _m16 },
+        { 0xdb, _1, _m32 },
+        { 0xdd, _1, _fm64 },
+        { ASM_END, 0, 0 }
+};
+
 PTRNTAB0 aptb0MONITOR[] =  /* MONITOR */ {
-        { 0x0f01c8, 0 }
+        { MONITOR, 0 }
 };
 
 PTRNTAB0 aptb0MWAIT[] =  /* MWAIT */ {
-        { 0x0f01c9, 0 }
+        { MWAIT, 0 }
 };
 
 PTRNTAB2 aptb2ADDSUBPD[] = /* ADDSUBPD */ {
-        { 0x660FD0, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { ADDSUBPD, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2ADDSUBPS[] = /* ADDSUBPS */ {
-        { 0xF20FD0, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { ADDSUBPS, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2HADDPD[] = /* HADDPD */ {
-        { 0x660F7C, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { HADDPD, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2HADDPS[] = /* HADDPS */ {
-        { 0xF20F7C, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { HADDPS, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2HSUBPD[] = /* HSUBPD */ {
-        { 0x660F7D, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { HSUBPD, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2HSUBPS[] = /* HSUBPS */ {
-        { 0xF20F7D, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { HSUBPS, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2LDDQU[] = /* LDDQU */ {
-        { 0xF20Ff0, _r,_xmm,_m128 },            // xmm1,mem
+        { LDDQU, _r,_xmm,_m128 },            // xmm1,mem
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2MOVDDUP[] = /* MOVDDUP */ {
-        { 0xF20F12, _r,_xmm,_xmm_m64 },         // xmm1,xmm2/m64
+        { MOVDDUP, _r,_xmm,_xmm_m64 },         // xmm1,xmm2/m64
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2MOVSHDUP[] = /* MOVSHDUP */ {
-        { 0xF30F16, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { MOVSHDUP, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2MOVSLDUP[] = /* MOVSLDUP */ {
-        { 0xF30F12, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
+        { MOVSLDUP, _r,_xmm,_xmm_m128 },        // xmm1,xmm2/m128
         { ASM_END, 0, 0 }
 };
 
@@ -2468,97 +2469,97 @@ psignw
 
 PTRNTAB3 aptb3PALIGNR[] = /* PALIGNR */ {
         { 0x0F3A0F, _r,_mm,_mmm64, _imm8 },
-        { 0x660F3A0F, _r,_xmm,_xmm_m128, _imm8 },
+        { PALIGNR, _r,_xmm,_xmm_m128, _imm8 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PHADDD[] = /* PHADDD */ {
         { 0x0F3802, _r,_mm,_mmm64 },
-        { 0x660F3802, _r,_xmm,_xmm_m128 },
+        { PHADDD, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PHADDW[] = /* PHADDW */ {
         { 0x0F3801, _r,_mm,_mmm64 },
-        { 0x660F3801, _r,_xmm,_xmm_m128 },
+        { PHADDW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PHADDSW[] = /* PHADDSW */ {
         { 0x0F3803, _r,_mm,_mmm64 },
-        { 0x660F3803, _r,_xmm,_xmm_m128 },
+        { PHADDSW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PHSUBD[] = /* PHSUBD */ {
         { 0x0F3806, _r,_mm,_mmm64 },
-        { 0x660F3806, _r,_xmm,_xmm_m128 },
+        { PHSUBD, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PHSUBW[] = /* PHSUBW */ {
         { 0x0F3805, _r,_mm,_mmm64 },
-        { 0x660F3805, _r,_xmm,_xmm_m128 },
+        { PHSUBW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PHSUBSW[] = /* PHSUBSW */ {
         { 0x0F3807, _r,_mm,_mmm64 },
-        { 0x660F3807, _r,_xmm,_xmm_m128 },
+        { PHSUBSW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PMADDUBSW[] = /* PMADDUBSW */ {
         { 0x0F3804, _r,_mm,_mmm64 },
-        { 0x660F3804, _r,_xmm,_xmm_m128 },
+        { PMADDUBSW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PMULHRSW[] = /* PMULHRSW */ {
         { 0x0F380B, _r,_mm,_mmm64 },
-        { 0x660F380B, _r,_xmm,_xmm_m128 },
+        { PMULHRSW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PSHUFB[] = /* PSHUFB */ {
         { 0x0F3800, _r,_mm,_mmm64 },
-        { 0x660F3800, _r,_xmm,_xmm_m128 },
+        { PSHUFB, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PABSB[] = /* PABSB */ {
         { 0x0F381C, _r,_mm,_mmm64 },
-        { 0x660F381C, _r,_xmm,_xmm_m128 },
+        { PABSB, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PABSD[] = /* PABSD */ {
         { 0x0F381E, _r,_mm,_mmm64 },
-        { 0x660F381E, _r,_xmm,_xmm_m128 },
+        { PABSD, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PABSW[] = /* PABSW */ {
         { 0x0F381D, _r,_mm,_mmm64 },
-        { 0x660F381D, _r,_xmm,_xmm_m128 },
+        { PABSW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PSIGNB[] = /* PSIGNB */ {
         { 0x0F3808, _r,_mm,_mmm64 },
-        { 0x660F3808, _r,_xmm,_xmm_m128 },
+        { PSIGNB, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PSIGND[] = /* PSIGND */ {
         { 0x0F380A, _r,_mm,_mmm64 },
-        { 0x660F380A, _r,_xmm,_xmm_m128 },
+        { PSIGND, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
 PTRNTAB2 aptb2PSIGNW[] = /* PSIGNW */ {
         { 0x0F3809, _r,_mm,_mmm64 },
-        { 0x660F3809, _r,_xmm,_xmm_m128 },
+        { PSIGNW, _r,_xmm,_xmm_m128 },
         { ASM_END, 0, 0 }
 };
 
@@ -2618,245 +2619,245 @@ roundss
  */
 
 PTRNTAB3 aptb3BLENDPD[] = /* BLENDPD */ {
-        { 0x660F3A0D, _r, _xmm, _xmm_m128, _imm8 },
+        { BLENDPD, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3BLENDPS[] = /* BLENDPS */ {
-        { 0x660F3A0C, _r, _xmm, _xmm_m128, _imm8 },
+        { BLENDPS, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3BLENDVPD[] = /* BLENDVPD */ {
-        { 0x660F3815, _r, _xmm, _xmm_m128, _xmm0 },
+        { BLENDVPD, _r, _xmm, _xmm_m128, _xmm0 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3BLENDVPS[] = /* BLENDVPS */ {
-        { 0x660F3814, _r, _xmm, _xmm_m128, _xmm0 },
+        { BLENDVPS, _r, _xmm, _xmm_m128, _xmm0 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3DPPD[] = /* DPPD */ {
-        { 0x660F3A41, _r, _xmm, _xmm_m128, _imm8 },
+        { DPPD, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3DPPS[] = /* DPPS */ {
-        { 0x660F3A40, _r, _xmm, _xmm_m128, _imm8 },
+        { DPPS, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3EXTRACTPS[] = /* EXTRACTPS */ {
-        { 0x660F3A17, _r, _rm32, _xmm, _imm8 },
+        { EXTRACTPS, _r, _rm32, _xmm, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3INSERTPS[] = /* INSERTPS */ {
-        { 0x660F3A21, _r, _xmm, _xmm_m32, _imm8 },
+        { INSERTPS, _r, _xmm, _xmm_m32, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2MOVNTDQA[] = /* MOVNTDQA */ {
-        { 0x660F382A, _r, _xmm, _m128 },
+        { MOVNTDQA, _r, _xmm, _m128 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3MPSADBW[] = /* MPSADBW */ {
-        { 0x660F3A42, _r, _xmm, _xmm_m128, _imm8 },
+        { MPSADBW, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PACKUSDW[] = /* PACKUSDW */ {
-        { 0x660F382B, _r, _xmm, _xmm_m128 },
+        { PACKUSDW, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PBLENDVB[] = /* PBLENDVB */ {
-        { 0x660F3810, _r, _xmm, _xmm_m128, _xmm0 },
+        { PBLENDVB, _r, _xmm, _xmm_m128, _xmm0 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PBLENDW[] = /* PBLENDW */ {
-        { 0x660F3A0E, _r, _xmm, _xmm_m128, _imm8 },
+        { PBLENDW, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPEQQ[] = /* PCMPEQQ */ {
-        { 0x660F3829, _r, _xmm, _xmm_m128 },
+        { PCMPEQQ, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PEXTRB[] = /* PEXTRB */ {
-        { 0x660F3A14, _r, _r32, _xmm, _imm8 },
-        { 0x660F3A14, _r, _r64, _xmm, _imm8 },
-        { 0x660F3A14, _r,  _m8, _xmm, _imm8 },
+        { PEXTRB, _r, _r32, _xmm, _imm8 },
+        { PEXTRB, _r, _r64, _xmm, _imm8 },
+        { PEXTRB, _r,  _m8, _xmm, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PEXTRD[] = /* PEXTRD */ {
-        { 0x660F3A16, _r, _rm32, _xmm, _imm8 },
+        { PEXTRD, _r, _rm32, _xmm, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PEXTRQ[] = /* PEXTRQ */ {
-        { 0x660F3A16, _r|_64_bit, _rm64, _xmm, _imm8 },
+        { PEXTRQ, _r|_64_bit, _rm64, _xmm, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PHMINPOSUW[] = /* PHMINPOSUW  */ {
-        { 0x660F3841, _r, _xmm, _xmm_m128 },
+        { PHMINPOSUW, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PINSRB[] = /* PINSRB */ {
-        { 0x660F3A20, _r, _xmm, _r32, _imm8 },
-        { 0x660F3A20, _r, _xmm, _rm8, _imm8 },
+        { PINSRB, _r, _xmm, _r32, _imm8 },
+        { PINSRB, _r, _xmm, _rm8, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PINSRD[] = /* PINSRD */ {
-        { 0x660F3A22, _r, _xmm, _rm32, _imm8 },
+        { PINSRD, _r, _xmm, _rm32, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PINSRQ[] = /* PINSRQ */ {
-        { 0x660F3A22, _r|_64_bit, _xmm, _rm64, _imm8 },
+        { PINSRQ, _r|_64_bit, _xmm, _rm64, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMAXSB[] = /* PMAXSB */ {
-        { 0x660F383C, _r, _xmm, _xmm_m128 },
+        { PMAXSB, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMAXSD[] = /* PMAXSD */ {
-        { 0x660F383D, _r, _xmm, _xmm_m128 },
+        { PMAXSD, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMAXUD[] = /* PMAXUD */ {
-        { 0x660F383F, _r, _xmm, _xmm_m128 },
+        { PMAXUD, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMAXUW[] = /* PMAXUW */ {
-        { 0x660F383E, _r, _xmm, _xmm_m128 },
+        { PMAXUW, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMINSB[] = /* PMINSB */ {
-        { 0x660F3838, _r, _xmm, _xmm_m128 },
+        { PMINSB, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMINSD[] = /* PMINSD */ {
-        { 0x660F3839, _r, _xmm, _xmm_m128 },
+        { PMINSD, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMINUD[] = /* PMINUD */ {
-        { 0x660F383B, _r, _xmm, _xmm_m128 },
+        { PMINUD, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMINUW[] = /* PMINUW */ {
-        { 0x660F383A, _r, _xmm, _xmm_m128 },
+        { PMINUW, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVSXBW[] = /* PMOVSXBW */ {
-        { 0x660F3820, _r, _xmm, _xmm_m64 },
+        { PMOVSXBW, _r, _xmm, _xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVSXBD[] = /* PMOVSXBD */ {
-        { 0x660F3821, _r, _xmm, _xmm_m32 },
+        { PMOVSXBD, _r, _xmm, _xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVSXBQ[] = /* PMOVSXBQ */ {
-        { 0x660F3822, _r, _xmm, _xmm_m16 },
+        { PMOVSXBQ, _r, _xmm, _xmm_m16 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVSXWD[] = /* PMOVSXWD */ {
-        { 0x660F3823, _r, _xmm, _xmm_m64 },
+        { PMOVSXWD, _r, _xmm, _xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVSXWQ[] = /* PMOVSXWQ */ {
-        { 0x660F3824, _r, _xmm, _xmm_m32 },
+        { PMOVSXWQ, _r, _xmm, _xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVSXDQ[] = /* PMOVSXDQ */ {
-        { 0x660F3825, _r, _xmm, _xmm_m64 },
+        { PMOVSXDQ, _r, _xmm, _xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVZXBW[] = /* PMOVZXBW */ {
-        { 0x660F3830, _r, _xmm, _xmm_m64 },
+        { PMOVZXBW, _r, _xmm, _xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVZXBD[] = /* PMOVZXBD */ {
-        { 0x660F3831, _r, _xmm, _xmm_m32 },
+        { PMOVZXBD, _r, _xmm, _xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVZXBQ[] = /* PMOVZXBQ */ {
-        { 0x660F3832, _r, _xmm, _xmm_m16 },
+        { PMOVZXBQ, _r, _xmm, _xmm_m16 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVZXWD[] = /* PMOVZXWD */ {
-        { 0x660F3833, _r, _xmm, _xmm_m64 },
+        { PMOVZXWD, _r, _xmm, _xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVZXWQ[] = /* PMOVZXWQ */ {
-        { 0x660F3834, _r, _xmm, _xmm_m32 },
+        { PMOVZXWQ, _r, _xmm, _xmm_m32 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMOVZXDQ[] = /* PMOVZXDQ */ {
-        { 0x660F3835, _r, _xmm, _xmm_m64 },
+        { PMOVZXDQ, _r, _xmm, _xmm_m64 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMULDQ[] = /* PMULDQ */ {
-        { 0x660F3828, _r, _xmm, _xmm_m128 },
+        { PMULDQ, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PMULLD[] = /* PMULLD */ {
-        { 0x660F3840, _r, _xmm, _xmm_m128 },
+        { PMULLD, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PTEST[] = /* PTEST */ {
-        { 0x660F3817, _r, _xmm, _xmm_m128 },
+        { PTEST, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3ROUNDPD[] = /* ROUNDPD */ {
-        { 0x660F3A09, _r, _xmm, _xmm_m128, _imm8 },
+        { ROUNDPD, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3ROUNDPS[] = /* ROUNDPS */ {
-        { 0x660F3A08, _r, _xmm, _xmm_m128, _imm8 },
+        { ROUNDPS, _r, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3ROUNDSD[] = /* ROUNDSD */ {
-        { 0x660F3A0B, _r, _xmm, _xmm_m64, _imm8 },
+        { ROUNDSD, _r, _xmm, _xmm_m64, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3ROUNDSS[] = /* ROUNDSS */ {
-        { 0x660F3A0A, _r, _xmm, _xmm_m32, _imm8 },
+        { ROUNDSS, _r, _xmm, _xmm_m32, _imm8 },
         { ASM_END }
 };
 
@@ -2882,34 +2883,34 @@ PTRNTAB2 aptb2CRC32[] = /* CRC32 */ {
 };
 
 PTRNTAB3 aptb3PCMPESTRI [] = /* PCMPESTRI */ {
-        { 0x660F3A61, _r|_modcx  , _xmm, _xmm_m128, _imm8 },
+        { PCMPESTRI, _r|_modcx  , _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PCMPESTRM [] = /* PCMPESTRM */ {
-        { 0x660F3A60, _r|_modxmm0, _xmm, _xmm_m128, _imm8 },
+        { PCMPESTRM, _r|_modxmm0, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PCMPISTRI [] = /* PCMPISTRI */ {
-        { 0x660F3A63, _r|_modcx  , _xmm, _xmm_m128, _imm8 },
+        { PCMPISTRI, _r|_modcx  , _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB3 aptb3PCMPISTRM [] = /* PCMPISTRM */ {
-        { 0x660F3A62, _r|_modxmm0, _xmm, _xmm_m128, _imm8 },
+        { PCMPISTRM, _r|_modxmm0, _xmm, _xmm_m128, _imm8 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2PCMPGTQ [] = /* PCMPGTQ */ {
-        { 0x660F3837, _r, _xmm, _xmm_m128 },
+        { PCMPGTQ, _r, _xmm, _xmm_m128 },
         { ASM_END }
 };
 
 PTRNTAB2 aptb2POPCNT [] = /* POPCNT */ {
-        { 0xF30FB8, _r|_16_bit, _r16, _rm16 },
-        { 0xF30FB8, _r|_32_bit, _r32, _rm32 },
-        { 0xF30FB8, _r|_64_bit, _r64, _rm64 },
+        { POPCNT, _r|_16_bit, _r16, _rm16 },
+        { POPCNT, _r|_32_bit, _r32, _rm32 },
+        { POPCNT, _r|_64_bit, _r64, _rm64 },
         { ASM_END }
 };
 
