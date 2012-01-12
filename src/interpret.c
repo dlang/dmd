@@ -3816,8 +3816,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     if (!wantRef && e1->op == TOKdotvar)
     {
         // Strip of all of the leading dotvars, unless we started with a call
+        // or a ref parameter
         // (in which case, we already have the lvalue).
-        if (this->e1->op != TOKcall)
+        if (this->e1->op != TOKcall && !(this->e1->op==TOKvar
+            && ((VarExp*)this->e1)->var->storage_class & (STCref | STCout)))
             e1 = e1->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(e1))
             return e1;

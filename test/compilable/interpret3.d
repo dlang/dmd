@@ -3752,6 +3752,37 @@ int bug6037outer(){
 static assert(bug6037outer() == 401);
 
 /**************************************************
+    7266 dotvar ref parameters
+**************************************************/
+
+struct S7266 { int a; }
+
+bool bug7266()
+{
+    S7266 s;
+    s.a = 4;
+    bar7266(s.a);
+    assert(s.a == 5);
+    out7266(s.a);
+    assert(s.a == 7);
+    return true;
+}
+
+void bar7266(ref int b)
+{
+    b = 5;
+    assert(b == 5);
+}
+
+void out7266(out int b)
+{
+    b = 7;
+    assert(b == 7);
+}
+
+static assert( bug7266());
+
+/**************************************************
     7143 'is' for classes
 **************************************************/
 
