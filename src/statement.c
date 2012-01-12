@@ -3355,6 +3355,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 
     //printf("CaseStatement::semantic() %s\n", toChars());
     exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
     if (sw)
     {
         exp = exp->implicitCastTo(sc, sw->condition->type);
@@ -3481,10 +3482,12 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
         error("case ranges not allowed in final switch");
 
     first = first->semantic(sc);
+    first = resolveProperties(sc, first);
     first = first->implicitCastTo(sc, sw->condition->type);
     first = first->ctfeInterpret();
 
     last = last->semantic(sc);
+    last = resolveProperties(sc, last);
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->ctfeInterpret();
 

@@ -296,6 +296,23 @@ void test7274()
 }
 
 /***************************************************/
+// 7275
+
+void test7275()
+{
+    @property int bar1() { return 0; }
+    @property int bar2() { return 1; }
+    @property int bar3() { return 2; }
+
+    switch (0){
+        case bar1:  break;
+        case bar2: ..
+        case bar3:  break;
+        default:    break;
+    }
+}
+
+/*****************************************/
 
 int main()
 {
@@ -305,6 +322,7 @@ int main()
     test7722b();
     test7174();
     test7274();
+    test7275();
 
     printf("Success\n");
     return 0;
