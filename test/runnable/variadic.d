@@ -1143,7 +1143,7 @@ template Filter52()
 static assert(Filter52!().FilteredFoos.length == 1);
 
 void test52()
-{    
+{
 }
 
 /***************************************/
@@ -1344,14 +1344,81 @@ void test1411()
 }
 
 /***************************************/
-// Bugzilla 4444 
- 
-void test64() 
-{ 
-    alias TypeTuple!(1) index; 
-    auto arr = new int[4]; 
-    auto x = arr[index];    // error 
-} 
+// Bugzilla 4444
+
+void test4444()
+{
+    alias TypeTuple!(1) index;
+    auto arr = new int[4];
+    auto x = arr[index];    // error
+}
+
+/***************************************/
+// 4940
+
+template Tuple4940(T...)
+{
+    alias T Tuple4940;
+}
+
+struct S4940
+{
+    Tuple4940!(int, int) x;
+    this(int) { }
+}
+
+void test4940()
+{
+    auto w = S4940(0).x;
+}
+
+//----
+
+struct S4940add
+{
+    string s;
+    long x;
+}
+
+ref S4940add get4940add(ref S4940add s){ return s; }
+
+void test4940add()
+{
+    S4940add s;
+    get4940add(s).tupleof[1] = 20;
+    assert(s.x == 20);
+}
+
+/***************************************/
+// 6530
+
+struct S6530
+{
+    int a, b, c;
+}
+
+struct HasPostblit6530
+{
+    this(this) {}  // Bug goes away without this.
+}
+
+auto toRandomAccessTuple6530(T...)(T input, HasPostblit6530 hasPostblit)
+{
+    return S6530(1, 2, 3);
+}
+
+void doStuff6530(T...)(T args)
+{
+    HasPostblit6530 hasPostblit;
+
+    // Bug goes away without the .tupleof.
+    auto foo = toRandomAccessTuple6530(args, hasPostblit).tupleof;
+}
+
+void test6530()
+{
+    doStuff6530(1, 2, 3);
+}
 
 /***************************************/
 // 6700
@@ -1362,7 +1429,31 @@ template bug6700(TList ...) {
 TypeTuple!(int, long) TT6700;
 
 static assert(bug6700!( (TT6700[1..$]) )==2);
- 
+
+/***************************************/
+// 7233
+
+struct Foo7233 { int x, y; }
+Foo7233[] front7233(Foo7233[][] a)
+{
+    return a[0];
+}
+
+class Bar7233 { int x, y; }
+Bar7233[] front7233(Bar7233[][] a)
+{
+    return a[0];
+}
+
+void test7233()
+{
+    Foo7233[][] b1 = [[Foo7233()]];
+    auto xy1 = b1.front7233[0].tupleof;
+
+    Bar7233[][] b2 = [[new Bar7233()]];
+    auto xy2 = b2.front7233[0].tupleof;
+}
+
 /***************************************/
 // 7263
 
@@ -1451,7 +1542,11 @@ int main()
     test62();
     test63();
     test1411();
-    test64();
+    test4444();
+    test4940();
+    test4940add();
+    test6530();
+    test7233();
     test7263();
 
     printf("Success\n");

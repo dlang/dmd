@@ -1328,6 +1328,13 @@ Lnomatch:
                                      * variable with a bit copy of the default
                                      * initializer
                                      */
+
+                                    /* Remove ref if this declaration is ref binding.
+                                     * ref Type __self = (__ctmp = 0, __ctmp).this(...);
+                                     * ->  Type __self = (__self = 0, __self.this(...));
+                                     */
+                                    storage_class &= ~(STCref | STCforeach | STCparameter);
+
                                     Expression *e;
                                     if (sd->zeroInit == 1)
                                     {
