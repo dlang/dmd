@@ -212,6 +212,7 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *scrubReturnValue(Loc loc, Expression *e);
+bool isAssocArray(Type *t);
 
 // CTFE only expressions
 #define TOKclassreference ((TOK)(TOKMAX+1))
@@ -3357,7 +3358,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
     bool wantRef = false;
     if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
-        (e1->type->toBasetype()->ty == Tarray || e1->type->toBasetype()->ty == Taarray)
+        (e1->type->toBasetype()->ty == Tarray || isAssocArray(e1->type))
          //  e = *x is never a reference, because *x is always a value
          && this->e2->op != TOKstar
         )
@@ -3392,16 +3393,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     {
         wantRef = true;
     }
-    /* This happens inside compiler-generated foreach statements.
-     * It's another case where we need a reference
-     * Note that a similar case, where e2 = 'this', occurs in
-     * construction of a struct with an invariant().
-     */
-    if (op==TOKconstruct && this->e1->op==TOKvar && this->e2->op != TOKthis
-        && this->e2->op != TOKcomma
-        && ((VarExp*)this->e1)->var->storage_class & STCref)
-        wantRef = true;
-
     if (fp)
     {
         while (e1->op == TOKcast)
@@ -5232,18 +5223,19 @@ Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
-#if DMDV2
 // Return true if t is an AA, or AssociativeArray!(key, value)
 bool isAssocArray(Type *t)
 {
     t = t->toBasetype();
     if (t->ty == Taarray)
         return true;
+#if DMDV2
     if (t->ty != Tstruct)
         return false;
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
     if (sym->ident == Id::AssociativeArray)
         return true;
+#endif
     return false;
 }
 
@@ -5253,14 +5245,18 @@ TypeAArray *toBuiltinAAType(Type *t)
     t = t->toBasetype();
     if (t->ty == Taarray)
         return (TypeAArray *)t;
+#if DMDV2
     assert(t->ty == Tstruct);
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
     assert(sym->ident == Id::AssociativeArray);
     TemplateInstance *tinst = sym->parent->isTemplateInstance();
     assert(tinst);
     return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
-}
+#else
+    assert(0);
+    return NULL;
 #endif
+}
 
 Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e;
