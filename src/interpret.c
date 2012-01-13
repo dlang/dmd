@@ -4006,10 +4006,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (exceptionOrCantInterpret(aggregate))
                 return aggregate;
             // The array could be an index of an AA. Resolve it if so.
-            if (aggregate->op == TOKindex)
+            if (aggregate->op == TOKindex &&
+                ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
             {
                 IndexExp *ix = (IndexExp *)aggregate;
-                aggregate = Index(ix->type, ix->e1, ix->e2);
+                aggregate = findKeyInAA((AssocArrayLiteralExp *)ix->e1, ix->e2);
+                if (!aggregate)
+                {
+                    error("key %s not found in associative array %s",
+                        ix->e2->toChars(), ix->e1->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
+                if (exceptionOrCantInterpret(aggregate))
+                    return aggregate;
             }
         }
         if (aggregate->op == TOKvar)
@@ -4171,10 +4180,19 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (exceptionOrCantInterpret(aggregate))
                 return aggregate;
             // The array could be an index of an AA. Resolve it if so.
-            if (aggregate->op == TOKindex)
+            if (aggregate->op == TOKindex &&
+                ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
             {
-                IndexExp *ie = (IndexExp *)aggregate;
-                aggregate = Index(ie->type, ie->e1, ie->e2);
+                IndexExp *ix = (IndexExp *)aggregate;
+                aggregate = findKeyInAA((AssocArrayLiteralExp *)ix->e1, ix->e2);
+                if (!aggregate)
+                {
+                    error("key %s not found in associative array %s",
+                        ix->e2->toChars(), ix->e1->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
+                if (exceptionOrCantInterpret(aggregate))
+                    return aggregate;
             }
         }
         if (aggregate->op == TOKvar)
@@ -4883,6 +4901,34 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
     return NULL;
 }
 
+/* Same as for constfold.Index, except that it only works for static arrays,
+ * dynamic arrays, and strings. We know that e1 is an
+ * interpreted CTFE expression, so it cannot have side-effects.
+ */
+Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
+{   //printf("ctfeIndex(e1 = %s)\n", e1->toChars());
+    assert(e1->type);
+    if (e1->op == TOKstring)
+    {   StringExp *es1 = (StringExp *)e1;
+        if (indx >= es1->len)
+        {
+            error(loc, "string index %ju is out of bounds [0 .. %zu]", indx, es1->len);
+            return EXP_CANT_INTERPRET;
+        }
+        else
+            return new IntegerExp(loc, es1->charAt(indx), type);
+    }
+    assert(e1->op == TOKarrayliteral);
+    ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
+    if (indx >= ale->elements->dim)
+    {
+        error(loc, "array index %ju is out of bounds %s[0 .. %u]", indx, e1->toChars(), ale->elements->dim);
+        return EXP_CANT_INTERPRET;
+    }
+    Expression *e = ale->elements->tdata()[indx];
+    return paintTypeOntoLiteral(type, e);
+}
+
 Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 {
     Expression *e1 = NULL;
@@ -4917,7 +4963,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
                 indx+ofs, len);
             return EXP_CANT_INTERPRET;
         }
-        return Index(type, agg, new IntegerExp(loc, indx+ofs, Type::tsize_t));
+        return ctfeIndex(loc, type, agg, indx+ofs);
     }
     e1 = this->e1;
     if (!(e1->op == TOKarrayliteral && ((ArrayLiteralExp *)e1)->ownedByCtfe))
@@ -4986,22 +5032,21 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
                 e2->toChars(), this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
-        if (exceptionOrCantInterpret(e))
-            return e;
-        assert(!e->hasSideEffect());
-        e = paintTypeOntoLiteral(type, e);
     }
     else
     {
-        e = Index(type, e1, e2);
+        if (e2->op != TOKint64)
+        {
+            e1->error("CTFE internal error: non-integral index [%s]", this->e2->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        e = ctfeIndex(loc, type, e1, e2->toInteger());
     }
-    if (e == EXP_CANT_INTERPRET)
-    {
-        error("%s cannot be interpreted at compile time", toChars());
+    if (exceptionOrCantInterpret(e))
         return e;
-    }
     if (goal == ctfeNeedRvalue && (e->op == TOKslice || e->op == TOKdotvar))
         e = e->interpret(istate);
+    e = paintTypeOntoLiteral(type, e);
     return e;
 }
 
@@ -5545,7 +5590,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                             toChars(), len);
                         return EXP_CANT_INTERPRET;
                     }
-                    e = Index(type, ie->e1, ie->e2);
+                    e = ctfeIndex(loc, type, ie->e1, indx);
                     if (isGenuineIndex)
                     {
                         if (e->op == TOKindex)
