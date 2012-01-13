@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -27,6 +27,7 @@
 #include        "code.h"
 #include        "global.h"
 #include        "type.h"
+#include        "xmm.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -1348,8 +1349,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
              * the opcode. The only way to deal with this is to prevent enregistering
              * such variables.
              */
-            if (tyfloating(ty) && !(s->Sregm & XMMREGS) ||
-                !tyfloating(ty) && (s->Sregm & XMMREGS))
+            if (tyxmmreg(ty) && !(s->Sregm & XMMREGS) ||
+                !tyxmmreg(ty) && (s->Sregm & XMMREGS))
                 cgreg_unregister(s->Sregm);
 
             if (
@@ -3889,7 +3890,7 @@ code *loaddata(elem *e,regm_t *pretregs)
         if (e->Eoper == OPvar)
         {   symbol *s = e->EV.sp.Vsym;
             if (s->Sfl == FLreg && !(mask[s->Sreglsw] & XMMREGS))
-            {   op = 0x660F6E;          // MOVD/MOVQ
+            {   op = LODD;          // MOVD/MOVQ
                 /* getlvalue() will unwind this and unregister s; could use a better solution */
             }
         }

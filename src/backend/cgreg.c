@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -101,7 +101,7 @@ void cgreg_init()
             case SCfastpar:
                 // Do not put parameters in registers if they are not used
                 // more than twice (otherwise we have a net loss).
-                if (s->Sweight <= 2)
+                if (s->Sweight <= 2 && !tyxmmreg(s->ty()))
                 {
                     #ifdef DEBUG
                     if (debugr)
@@ -803,7 +803,7 @@ int cgreg_assign(Symbol *retsym)
         if (!(s->Sflags & GTregcand) ||
             s->Sflags & SFLspill ||
             // Keep trying to reassign retsym into AX
-            (s->Sfl == FLreg && !(s == retsym && s->Sregm != mAX))
+            (s->Sfl == FLreg && !(s == retsym && s->Sregm != mAX && s->Sregm != mXMM0))
            )
         {
             #ifdef DEBUG
@@ -834,7 +834,7 @@ int cgreg_assign(Symbol *retsym)
         // Select sequence of registers to try to map s onto
         char *pseq;                     // sequence to try for LSW
         char *pseqmsw = NULL;           // sequence to try for MSW, NULL if none
-        if (tyfloating(ty))
+        if (tyxmmreg(ty))
         {
             static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
             pseq = sequence;

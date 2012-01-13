@@ -1330,6 +1330,7 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     return toLvalue(sc, e);
 }
 
+
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
  * lifetime of the stack frame.
@@ -5829,14 +5830,16 @@ int BinExp::isunsigned()
     return e1->type->isunsigned() || e2->type->isunsigned();
 }
 
-void BinExp::incompatibleTypes()
+Expression *BinExp::incompatibleTypes()
 {
     if (e1->type->toBasetype() != Type::terror &&
         e2->type->toBasetype() != Type::terror
        )
-        error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+    {   error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
              e1->toChars(), Token::toChars(op), e2->toChars(),
              e1->type->toChars(), e2->type->toChars());
+        return new ErrorExp();
+    }
 }
 
 /********************** BinAssignExp **************************************/
@@ -10604,15 +10607,18 @@ Expression *AddExp::semantic(Scope *sc)
             e = scaleFactor(sc);
         else if (tb1->ty == Tpointer && tb2->ty == Tpointer)
         {
-            incompatibleTypes();
-            type = e1->type;
-            e = this;
+            return incompatibleTypes();
         }
         else
         {
             typeCombine(sc);
-            if ((e1->type->isreal() && e2->type->isimaginary()) ||
-                (e1->type->isimaginary() && e2->type->isreal()))
+            Type *tb1 = e1->type->toBasetype();
+            if (tb1->ty == Tvector && !tb1->isscalar())
+            {
+                return incompatibleTypes();
+            }
+            if ((tb1->isreal() && e2->type->isimaginary()) ||
+                (tb1->isimaginary() && e2->type->isreal()))
             {
                 switch (type->toBasetype()->ty)
                 {
@@ -10651,8 +10657,6 @@ MinExp::MinExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *MinExp::semantic(Scope *sc)
 {   Expression *e;
-    Type *t1;
-    Type *t2;
 
 #if LOGSEMANTIC
     printf("MinExp::semantic('%s')\n", toChars());
@@ -10667,8 +10671,8 @@ Expression *MinExp::semantic(Scope *sc)
         return e;
 
     e = this;
-    t1 = e1->type->toBasetype();
-    t2 = e2->type->toBasetype();
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
     if (t1->ty == Tpointer)
     {
         if (t2->ty == Tpointer)
@@ -10709,6 +10713,10 @@ Expression *MinExp::semantic(Scope *sc)
         typeCombine(sc);
         t1 = e1->type->toBasetype();
         t2 = e2->type->toBasetype();
+        if (t1->ty == Tvector && !t1->isscalar())
+        {
+            return incompatibleTypes();
+        }
         if ((t1->isreal() && t2->isimaginary()) ||
             (t1->isimaginary() && t2->isreal()))
         {
@@ -10921,6 +10929,12 @@ Expression *MulExp::semantic(Scope *sc)
             type = t1;  // t1 is complex
         }
     }
+    else if (type->toBasetype()->ty == Tvector &&
+             ((TypeVector *)type->toBasetype())->elementType()->size(loc) != 2)
+    {   // Only short[8] and ushort[8] work with multiply
+        incompatibleTypes();
+        return new ErrorExp();
+    }
     return this;
 }
 
@@ -10988,6 +11002,10 @@ Expression *DivExp::semantic(Scope *sc)
             type = t1;  // t1 is complex
         }
     }
+    else if (type->toBasetype()->ty == Tvector)
+    {   incompatibleTypes();
+        return new ErrorExp();
+    }
     return this;
 }
 
@@ -11014,6 +11032,10 @@ Expression *ModExp::semantic(Scope *sc)
         e1->checkArithmetic();
     if (!e2->isArrayOperand())
         e2->checkArithmetic();
+    if (type->toBasetype()->ty == Tvector)
+    {   incompatibleTypes();
+        return new ErrorExp();
+    }
     if (type->isfloating())
     {   type = e1->type;
         if (e2->type->iscomplex())
@@ -11023,6 +11045,8 @@ Expression *ModExp::semantic(Scope *sc)
     }
     return this;
 }
+
+/************************************************************/
 
 PowExp::PowExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKpow, sizeof(PowExp), e1, e2)
@@ -11136,8 +11160,7 @@ Expression *PowExp::semantic(Scope *sc)
         e = e->semantic(sc);
         return e;
     }
-    incompatibleTypes();
-    return new ErrorExp();
+    return incompatibleTypes();
 }
 
 /************************************************************/
@@ -11158,6 +11181,9 @@ Expression *ShlExp::semantic(Scope *sc)
             return e;
         e1 = e1->checkIntegral();
         e2 = e2->checkIntegral();
+        if (e1->type->toBasetype()->ty == Tvector ||
+            e2->type->toBasetype()->ty == Tvector)
+            return incompatibleTypes();
         e1 = e1->integralPromotions(sc);
         e2 = e2->castTo(sc, Type::tshiftcnt);
         type = e1->type;
@@ -11182,6 +11208,9 @@ Expression *ShrExp::semantic(Scope *sc)
             return e;
         e1 = e1->checkIntegral();
         e2 = e2->checkIntegral();
+        if (e1->type->toBasetype()->ty == Tvector ||
+            e2->type->toBasetype()->ty == Tvector)
+            return incompatibleTypes();
         e1 = e1->integralPromotions(sc);
         e2 = e2->castTo(sc, Type::tshiftcnt);
         type = e1->type;
@@ -11206,6 +11235,9 @@ Expression *UshrExp::semantic(Scope *sc)
             return e;
         e1 = e1->checkIntegral();
         e2 = e2->checkIntegral();
+        if (e1->type->toBasetype()->ty == Tvector ||
+            e2->type->toBasetype()->ty == Tvector)
+            return incompatibleTypes();
         e1 = e1->integralPromotions(sc);
         e2 = e2->castTo(sc, Type::tshiftcnt);
         type = e1->type;
@@ -11568,7 +11600,9 @@ Expression *CmpExp::semantic(Scope *sc)
     Expression *eb1 = e1;
     Expression *eb2 = e2;
 
-    typeCombine(sc);
+    e = typeCombine(sc);
+    if (e->op == TOKerror)
+        return e;
 
 #if 0
     // For integer comparisons, ensure the combined type can hold both arguments.
@@ -11622,6 +11656,8 @@ Expression *CmpExp::semantic(Scope *sc)
         e = new ErrorExp();
     }
 #endif
+    else if (t1->ty == Tvector)
+        return incompatibleTypes();
     else
     {   if (!e1->rvalue() || !e2->rvalue())
             return new ErrorExp();
@@ -11760,6 +11796,9 @@ Expression *EqualExp::semantic(Scope *sc)
     }
 
     e = typeCombine(sc);
+    if (e->op == TOKerror)
+        return e;
+
     type = Type::tboolean;
 
     // Special handling for array comparisons
@@ -11772,6 +11811,10 @@ Expression *EqualExp::semantic(Scope *sc)
             e2 = e2->castTo(sc, Type::tcomplex80);
         }
     }
+
+    if (e1->type->toBasetype()->ty == Tvector)
+        return incompatibleTypes();
+
     return e;
 }
 
@@ -11796,13 +11839,21 @@ Expression *IdentityExp::semantic(Scope *sc)
 
     BinExp::semanticp(sc);
     type = Type::tboolean;
-    typeCombine(sc);
+
+    Expression *e = typeCombine(sc);
+    if (e->op == TOKerror)
+        return e;
+
     if (e1->type != e2->type && e1->type->isfloating() && e2->type->isfloating())
     {
         // Cast both to complex
         e1 = e1->castTo(sc, Type::tcomplex80);
         e2 = e2->castTo(sc, Type::tcomplex80);
     }
+
+    if (e1->type->toBasetype()->ty == Tvector)
+        return incompatibleTypes();
+
     return this;
 }
 

@@ -3287,7 +3287,10 @@ TypeBasic *TypeVector::elementType()
     return tb;
 }
 
-
+int TypeVector::checkBoolean()
+{
+    return FALSE;
+}
 
 char *TypeVector::toChars()
 {
@@ -3367,7 +3370,7 @@ int TypeVector::isunsigned()
 
 int TypeVector::isscalar()
 {
-    return TRUE;        // I should hope so
+    return basetype->nextOf()->isscalar();
 }
 
 MATCH TypeVector::implicitConvTo(Type *to)
