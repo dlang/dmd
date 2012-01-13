@@ -539,6 +539,7 @@ struct FuncDeclaration : Declaration
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
     LabelDsymbol *returnLabel;          // where the return goes
+    Scope *scout;                       // out contract scope for vresult->semantic
 
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
@@ -653,6 +654,7 @@ struct FuncDeclaration : Declaration
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();
     int needsClosure();
+    void buildResultVar();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
     Parameters *getParameters(int *pvarargs);
