@@ -4421,6 +4421,38 @@ void test6189() {
   assert(quad == [p0, p1, p2]);
 }
 
+struct IPoint
+{
+    int x, y;
+}
+
+void calcCoeffs(uint half, IPoint pos, ref FPoint[2] pts, uint=0)
+{
+    pos.x &= ~(half - 1);
+    pos.y &= ~(half - 1);
+    immutable float xo = pos.x;
+    immutable float yo = pos.y;
+
+    pts[0].x -= xo;
+    pts[0].y -= yo;
+    pts[1].x -= xo;
+    pts[1].y -= yo;
+}
+
+void test6189b()
+{
+    auto pos = IPoint(2, 2);
+    FPoint[2] pts;
+    pts[0] = pts[1] = FPoint(3, 3);
+    auto f = &calcCoeffs;
+    f(2, pos, pts);
+
+    assert(pts[0].x == 1);
+    assert(pts[0].y == 1);
+    assert(pts[1].x == 1);
+    assert(pts[1].y == 1);
+}
+
 /***************************************************/
 // 6997
 
@@ -4775,6 +4807,7 @@ int main()
     test6665();
     test5364();
     test6189();
+    test6189b();
     test6997();
     test7026();
     test6354();
