@@ -178,6 +178,8 @@ code *cdorth(elem *e,regm_t *pretregs)
                                                        : CLIBdsub);
 #endif
   }
+  if (tyxmmreg(ty1))
+        return orthxmm(e,pretregs);
   tym_t ty2 = tybasic(e2->Ety);
   int e2oper = e2->Eoper;
   tym_t ty = tybasic(e->Ety);
@@ -872,6 +874,9 @@ code *cdmul(elem *e,regm_t *pretregs)
         return opdouble(e,pretregs,(oper == OPmul) ? CLIBdmul : CLIBddiv);
 #endif
     }
+
+    if (tyxmmreg(tyml))
+        return orthxmm(e,pretregs);
 
     opunslng = I16 ? OPu16_32 : OPu32_64;
     switch (oper)

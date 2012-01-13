@@ -28,6 +28,8 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+unsigned xmmoperator(tym_t tym, unsigned oper);
+
 /*******************************************
  * Move constant value into xmm register xreg.
  */
@@ -74,9 +76,6 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
 code *orthxmm(elem *e, regm_t *pretregs)
 {   elem *e1 = e->E1;
     elem *e2 = e->E2;
-    tym_t ty1 = tybasic(e1->Ety);
-    unsigned sz1 = tysize[ty1];
-    assert(sz1 == 4 || sz1 == 8 || sz1 == 16);       // float or double
     regm_t retregs = *pretregs & XMMREGS;
     if (!retregs)
         retregs = XMMREGS;
@@ -84,186 +83,25 @@ code *orthxmm(elem *e, regm_t *pretregs)
     unsigned reg = findreg(retregs);
     regm_t rretregs = XMMREGS & ~retregs;
     code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
+
+    unsigned op = xmmoperator(e1->Ety, e->Eoper);
     unsigned rreg = findreg(rretregs);
-    code *cg = getregs(retregs);
-    unsigned op;
-    switch (e->Eoper)
+
+    code *cg;
+    if (OTrel(e->Eoper))
     {
-        case OPadd:
-            switch (ty1)
-            {
-                case TYfloat:
-                case TYifloat:  op = ADDSS;  break;  // ADDSS
-                case TYdouble:
-                case TYidouble: op = ADDSD;  break;  // ADDSD
-
-                // SIMD vector types
-                case TYfloat4:  op = ADDPS;  break;  // ADDPS
-                case TYdouble2: op = ADDPD;  break;  // ADDPD
-                case TYschar16:
-                case TYuchar16: op = PADDB; break;   // PADDB
-                case TYshort8:
-                case TYushort8: op = PADDW; break;   // PADDW
-                case TYlong4:
-                case TYulong4:  op = PADDD; break;   // PADDD
-                case TYllong2:
-                case TYullong2: op = PADDQ; break;   // PADDQ
-
-                default:        assert(0);
-            }
-            break;
-
-        case OPmin:
-            switch (ty1)
-            {
-                case TYfloat:
-                case TYifloat:  op = SUBSS;  break;  // SUBSS
-                case TYdouble:
-                case TYidouble: op = SUBSD;  break;  // SUBSD
-
-                // SIMD vector types
-                case TYfloat4:  op = SUBPS;  break;  // SUBPS
-                case TYdouble2: op = SUBPD;  break;  // SUBPD
-                case TYschar16:
-                case TYuchar16: op = PSUBB; break;   // PSUBB
-                case TYshort8:
-                case TYushort8: op = PSUBW; break;   // PSUBW
-                case TYlong4:
-                case TYulong4:  op = PSUBD; break;   // PSUBD
-                case TYllong2:
-                case TYullong2: op = PSUBQ; break;   // PSUBQ
-
-                default:        assert(0);
-            }
-            break;
-
-        case OPmul:
-            switch (ty1)
-            {
-                case TYfloat:
-                case TYifloat:  op = MULSS;  break;  // MULSS
-                case TYdouble:
-                case TYidouble: op = MULSD;  break;  // MULSD
-
-                // SIMD vector types
-                case TYfloat4:  op = MULPS;  break;  // MULPS
-                case TYdouble2: op = MULPD;  break;  // MULPD
-                case TYschar16:
-                case TYuchar16: assert(0);     break;   // PMULB
-                case TYshort8:
-                case TYushort8: op = PMULLW; break;   // PMULLW
-                case TYlong4:
-                case TYulong4:  assert(0);     break;   // PMULD
-                case TYllong2:
-                case TYullong2: assert(0);     break;   // PMULQ
-
-                default:        assert(0);
-            }
-            break;
-
-        case OPdiv:
-            switch (ty1)
-            {
-                case TYfloat:
-                case TYifloat:  op = DIVSS;  break;  // DIVSS
-                case TYdouble:
-                case TYidouble: op = DIVSD;  break;  // DIVSD
-
-                // SIMD vector types
-                case TYfloat4:  op = DIVPS;  break;  // DIVPS
-                case TYdouble2: op = DIVPD;  break;  // DIVPD
-                case TYschar16:
-                case TYuchar16: assert(0);     break;   // PDIVB
-                case TYshort8:
-                case TYushort8: assert(0);     break;   // PDIVW
-                case TYlong4:
-                case TYulong4:  assert(0);     break;   // PDIVD
-                case TYllong2:
-                case TYullong2: assert(0);     break;   // PDIVQ
-
-                default:        assert(0);
-            }
-            break;
-
-        case OPor:
-            switch (ty1)
-            {
-                // SIMD vector types
-                case TYschar16:
-                case TYuchar16:
-                case TYshort8:
-                case TYushort8:
-                case TYlong4:
-                case TYulong4:
-                case TYllong2:
-                case TYullong2: op = POR; break;   // POR
-
-                default:        assert(0);
-            }
-            break;
-
-        case OPand:
-            switch (ty1)
-            {
-                // SIMD vector types
-                case TYschar16:
-                case TYuchar16:
-                case TYshort8:
-                case TYushort8:
-                case TYlong4:
-                case TYulong4:
-                case TYllong2:
-                case TYullong2: op = PAND; break;   // PAND
-
-                default:        assert(0);
-            }
-            break;
-
-        case OPlt:
-        case OPle:
-        case OPgt:
-        case OPge:
-        case OPne:
-        case OPeqeq:
-        case OPunord:        /* !<>=         */
-        case OPlg:           /* <>           */
-        case OPleg:          /* <>=          */
-        case OPule:          /* !>           */
-        case OPul:           /* !>=          */
-        case OPuge:          /* !<           */
-        case OPug:           /* !<=          */
-        case OPue:           /* !<>          */
-        case OPngt:
-        case OPnge:
-        case OPnlt:
-        case OPnle:
-        case OPord:
-        case OPnlg:
-        case OPnleg:
-        case OPnule:
-        case OPnul:
-        case OPnuge:
-        case OPnug:
-        case OPnue:
-        {   retregs = mPSW;
-            if (sz1 == 4)                       // float
-                op = UCOMISS;
-            else
-            {   assert(sz1 == 8);
-                op = UCOMISD;
-            }
-            code *cc = gen2(CNIL,op,modregxrmx(3,rreg-XMM0,reg-XMM0));
-            return cat4(c,cr,cg,cc);
-        }
-
-        default:
-#ifdef DEBUG
-            elem_print(e);
-#endif
-            assert(0);
+        retregs = mPSW;
+        cg = NULL;
+        code *cc = gen2(CNIL,op,modregxrmx(3,rreg-XMM0,reg-XMM0));
+        return cat4(c,cr,cg,cc);
     }
+    else
+        cg = getregs(retregs);
+
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
-    co = cat(co,fixresult(e,retregs,pretregs));
+    if (retregs != *pretregs)
+        co = cat(co,fixresult(e,retregs,pretregs));
+
     return cat4(c,cr,cg,co);
 }
 
@@ -391,7 +229,7 @@ Lp:
 }
 
 /********************************
- * Generate code for += -= *= /=
+ * Generate code for op=
  */
 
 code *xmmopass(elem *e,regm_t *pretregs)
@@ -441,41 +279,12 @@ code *xmmopass(elem *e,regm_t *pretregs)
         cg = gen(cg,&cs);
     }
 
-    unsigned op;
-    switch (e->Eoper)
-    {
-        case OPaddass:
-            op = ADDSD;                     // ADDSD
-            if (sz1 == 4)                       // float
-                op = ADDSS;                 // ADDSS
-            break;
-
-        case OPminass:
-            op = SUBSD;                     // SUBSD
-            if (sz1 == 4)                       // float
-                op = SUBSS;                 // SUBSS
-            break;
-
-        case OPmulass:
-            op = MULSD;                     // MULSD
-            if (sz1 == 4)                       // float
-                op = MULSS;                 // MULSS
-            break;
-
-        case OPdivass:
-            op = DIVSD;                     // DIVSD
-            if (sz1 == 4)                       // float
-                op = DIVSS;                 // DIVSS
-            break;
-
-        default:
-            assert(0);
-    }
+    unsigned op = xmmoperator(e1->Ety, e->Eoper);
     code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
 
     if (!regvar)
     {
-        cs.Iop ^= 1;                            // reverse operand order of MOVS[SD]
+        cs.Iop = xmmstore(ty1);           // reverse operand order of MOVS[SD]
         gen(co,&cs);
     }
 
@@ -596,6 +405,199 @@ unsigned xmmstore(tym_t tym)
 
         default:
             printf("tym = x%x\n", tym);
+            assert(0);
+    }
+    return op;
+}
+
+/************************************
+ * Get correct XMM operator based on type and operator.
+ */
+
+unsigned xmmoperator(tym_t tym, unsigned oper)
+{
+    tym = tybasic(tym);
+    unsigned op;
+    switch (oper)
+    {
+        case OPadd:
+        case OPaddass:
+            switch (tym)
+            {
+                case TYfloat:
+                case TYifloat:  op = ADDSS;  break;
+                case TYdouble:
+                case TYidouble: op = ADDSD;  break;
+
+                // SIMD vector types
+                case TYfloat4:  op = ADDPS;  break;
+                case TYdouble2: op = ADDPD;  break;
+                case TYschar16:
+                case TYuchar16: op = PADDB;  break;
+                case TYshort8:
+                case TYushort8: op = PADDW;  break;
+                case TYlong4:
+                case TYulong4:  op = PADDD;  break;
+                case TYllong2:
+                case TYullong2: op = PADDQ;  break;
+
+                default:        assert(0);
+            }
+            break;
+
+        case OPmin:
+        case OPminass:
+            switch (tym)
+            {
+                case TYfloat:
+                case TYifloat:  op = SUBSS;  break;
+                case TYdouble:
+                case TYidouble: op = SUBSD;  break;
+
+                // SIMD vector types
+                case TYfloat4:  op = SUBPS;  break;
+                case TYdouble2: op = SUBPD;  break;
+                case TYschar16:
+                case TYuchar16: op = PSUBB;  break;
+                case TYshort8:
+                case TYushort8: op = PSUBW;  break;
+                case TYlong4:
+                case TYulong4:  op = PSUBD;  break;
+                case TYllong2:
+                case TYullong2: op = PSUBQ;  break;
+
+                default:        assert(0);
+            }
+            break;
+
+        case OPmul:
+        case OPmulass:
+            switch (tym)
+            {
+                case TYfloat:
+                case TYifloat:  op = MULSS;  break;
+                case TYdouble:
+                case TYidouble: op = MULSD;  break;
+
+                // SIMD vector types
+                case TYfloat4:  op = MULPS;  break;
+                case TYdouble2: op = MULPD;  break;
+                case TYshort8:
+                case TYushort8: op = PMULLW; break;
+
+                default:        assert(0);
+            }
+            break;
+
+        case OPdiv:
+        case OPdivass:
+            switch (tym)
+            {
+                case TYfloat:
+                case TYifloat:  op = DIVSS;  break;
+                case TYdouble:
+                case TYidouble: op = DIVSD;  break;
+
+                // SIMD vector types
+                case TYfloat4:  op = DIVPS;  break;
+                case TYdouble2: op = DIVPD;  break;
+
+                default:        assert(0);
+            }
+            break;
+
+        case OPor:
+        case OPorass:
+            switch (tym)
+            {
+                // SIMD vector types
+                case TYschar16:
+                case TYuchar16:
+                case TYshort8:
+                case TYushort8:
+                case TYlong4:
+                case TYulong4:
+                case TYllong2:
+                case TYullong2: op = POR; break;
+
+                default:        assert(0);
+            }
+            break;
+
+        case OPand:
+        case OPandass:
+            switch (tym)
+            {
+                // SIMD vector types
+                case TYschar16:
+                case TYuchar16:
+                case TYshort8:
+                case TYushort8:
+                case TYlong4:
+                case TYulong4:
+                case TYllong2:
+                case TYullong2: op = PAND; break;
+
+                default:        assert(0);
+            }
+            break;
+
+        case OPxor:
+        case OPxorass:
+            switch (tym)
+            {
+                // SIMD vector types
+                case TYschar16:
+                case TYuchar16:
+                case TYshort8:
+                case TYushort8:
+                case TYlong4:
+                case TYulong4:
+                case TYllong2:
+                case TYullong2: op = PXOR; break;
+
+                default:        assert(0);
+            }
+            break;
+
+        case OPlt:
+        case OPle:
+        case OPgt:
+        case OPge:
+        case OPne:
+        case OPeqeq:
+        case OPunord:        /* !<>=         */
+        case OPlg:           /* <>           */
+        case OPleg:          /* <>=          */
+        case OPule:          /* !>           */
+        case OPul:           /* !>=          */
+        case OPuge:          /* !<           */
+        case OPug:           /* !<=          */
+        case OPue:           /* !<>          */
+        case OPngt:
+        case OPnge:
+        case OPnlt:
+        case OPnle:
+        case OPord:
+        case OPnlg:
+        case OPnleg:
+        case OPnule:
+        case OPnul:
+        case OPnuge:
+        case OPnug:
+        case OPnue:
+            switch (tym)
+            {
+                case TYfloat:
+                case TYifloat:  op = UCOMISS;  break;
+                case TYdouble:
+                case TYidouble: op = UCOMISD;  break;
+
+                default:        assert(0);
+            }
+            break;
+
+        default:
             assert(0);
     }
     return op;
