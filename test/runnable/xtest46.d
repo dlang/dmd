@@ -4380,6 +4380,23 @@ void test7196()
 }
 
 /***************************************************/
+// 7285
+
+int[2] spam7285()
+{
+    int[2] ab;
+    if (true)
+        return (true) ? ab : [0, 0]; // Error
+    else
+        return (true) ? [0, 0] : ab; // OK
+}
+
+void test7285()
+{
+    auto sa = spam7285();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4590,6 +4607,7 @@ int main()
     test7168();
     test7170();
     test7196();
+    test7285();
 
     printf("Success\n");
     return 0;
