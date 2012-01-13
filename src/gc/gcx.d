@@ -25,7 +25,7 @@ module gc.gcx;
 //debug = SENTINEL;             // add underrun/overrrun protection
 //debug = PTRCHECK;             // more pointer checking
 //debug = PTRCHECK2;            // thorough but slow pointer checking
-//debug = PROFILING;            // measure performance of various steps.
+debug = PROFILING;            // measure performance of various steps.
 
 /*************** Configuration *********************/
 
@@ -2908,7 +2908,7 @@ struct Gcx
 
                                 pool.freebits.set(biti);
                                 if (pool.finals.nbits && pool.finals.test(biti))
-                                    rt_finalize_gc(cast(List *)sentinel_add(p));
+                                    rt_finalize_gc(sentinel_add(p));
                                 toClear |= GCBits.BITS_1 << clearIndex;
 
                                 List *list = cast(List *)p;

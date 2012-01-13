@@ -1154,7 +1154,7 @@ extern (C) void rt_finalize(void* p, bool det = true)
 {
     debug(PRINTF) printf("rt_finalize(p = %p)\n", p);
 
-    if (p) // not necessary if called from gc
+    if (p) 
     {
         ClassInfo** pc = cast(ClassInfo**)p;
 
@@ -1203,32 +1203,28 @@ extern (C) void rt_finalize_gc(void* p)
     debug(PRINTF) printf("rt_finalize_gc(p = %p)\n", p);
 
     ClassInfo** pc = cast(ClassInfo**)p;
+    ClassInfo c = **pc;
 
-    if (*pc)
+    try
     {
-        ClassInfo c = **pc;
-
-        try
+        if (collectHandler is null || collectHandler(cast(Object)p))
         {
-            if (collectHandler is null || collectHandler(cast(Object)p))
+            do
             {
-                do
+                if (c.destructor)
                 {
-                    if (c.destructor)
-                    {
-                        fp_t fp = cast(fp_t)c.destructor;
-                        (*fp)(cast(Object)p); // call destructor
-                    }
-                    c = c.base;
-                } while (c);
-            }
-            if ((cast(void**)p)[1]) // if monitor is not null
-                _d_monitordelete(cast(Object)p, false);
+                    fp_t fp = cast(fp_t)c.destructor;
+                    (*fp)(cast(Object)p); // call destructor
+                }
+                c = c.base;
+            } while (c);
         }
-        catch (Throwable e)
-        {
-            onFinalizeError(**pc, e);
-        }
+        if ((cast(void**)p)[1]) // if monitor is not null
+            _d_monitordelete(cast(Object)p, false);
+    }
+    catch (Throwable e)
+    {
+        onFinalizeError(**pc, e);
     }
 }
 
