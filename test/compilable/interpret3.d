@@ -2002,6 +2002,19 @@ int g7194() {
 static assert(f7194() == 0);
 static assert(!is(typeof(compiles!( g7194() ))));
 
+/**************************************************
+    7248 recursive struct pointers in array
+**************************************************/
+struct S7248 { S7248* ptr; }
+
+bool bug7248() {
+    S7248[2] sarr;
+    sarr[0].ptr = &sarr[1];
+    sarr[0].ptr = null;
+    S7248* t = sarr[0].ptr;
+    return true;
+}
+static assert(bug7248());
 
 /**************************************************
     4065 [CTFE] AA "in" operator doesn't work
