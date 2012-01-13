@@ -2830,6 +2830,7 @@ Lcont:
 #endif
 
     // Do register argument to register variable moves.
+    SYMIDX pushed = -1;
     while (1)
     {
         size_t cnt=0, defer=0;
@@ -2866,10 +2867,75 @@ Lcont:
                     code_orrex(c, REX_W);
             }
         }
-        if (defer)
-            assert(defer < cnt); // no cyclic register moves
-        else
+
+        if (!defer && pushed == -1) // done
             break;
+        else if (defer == cnt)
+        {
+            // This is bad and means there is a cyclic dependency of register moves.
+            // Should be avoided by register allocation. Temporarily push a register to solve it.
+            assert(pushed == -1);
+            symbol *s;
+            for (si = 0; si < globsym.top; si++)
+            {   s = globsym.tab[si];
+                if (s->Sclass != SCfastpar || s->Sfl != FLreg ||
+                    s->Spreg == s->Sreglsw || s->Sflags & SFLprologue)
+                    continue;
+
+                pushed = si;
+                break;
+            }
+            assert(pushed != -1);
+
+            s = globsym.tab[pushed];
+            unsigned reg = s->Spreg;
+            if (mask[s->Spreg] & XMMREGS)
+            {
+                unsigned sz = type_size(s->Stype);
+                code *c2 = genc2(CNIL, 0x83, modregrm(3,5,SP), sz); // SUB SP,sz
+                if (I64)
+                    c2->Irex |= REX_W;
+                c = cat(c, c2);
+                unsigned op = xmmstore(s->Stype->Tty);      // MOVSS/D [SP],xreg
+                c = gen2sib(c,op,modregxrm(0,reg-XMM0,4),modregrm(0,4,SP));
+            }
+            else
+            {
+                code *c2 = gen1(NULL, 0x50 + (reg & 0x7));       // PUSH reg
+                if (I64 && reg & 8)
+                    c2->Irex |= REX_B;
+                c = cat(c, c2);
+            }
+            s->Sflags |= SFLprologue;
+            usedregs &= ~mask[reg];
+        }
+        else if (pushed != -1 && !(usedregs & mask[globsym.tab[pushed]->Sreglsw]))
+        {   // pop temporary into variable register
+            symbol *s = globsym.tab[pushed];
+            unsigned reg = s->Sreglsw;
+            if (mask[s->Spreg] & XMMREGS)
+            {
+                unsigned sz = type_size(s->Stype);
+                unsigned op = xmmload(s->Stype->Tty);      // MOVSS/D xreg,[SP]
+                c = gen2sib(c,op,modregxrm(0,reg-XMM0,4),modregrm(0,4,SP));
+                code *c2 = genc2(CNIL, 0x83, modregrm(3,0,SP), sz); // ADD SP,sz
+                if (I64)
+                    c2->Irex |= REX_W;
+                c = cat(c, c2);
+            }
+            else
+            {
+                code *c2 = gen1(NULL, 0x58 + (reg & 0x7));       // POP reg
+                if (I64 && reg & 8)
+                    c2->Irex |= REX_B;
+                c = cat(c, c2);
+            }
+
+            usedregs |= mask[reg];
+            pushed = -1;
+            if (!defer) // done
+                break;
+        }
     }
 
     for (si = 0; si < globsym.top; si++)
