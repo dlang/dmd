@@ -3167,6 +3167,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     Scope *scx = sc;
     int implicit0 = 0;
+    Expression *eorg = NULL;
 
     if (fd->fes)
         fd = fd->fes->func;             // fd is now function enclosing foreach
@@ -3232,10 +3233,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
-        if (fd->returnLabel && tbret->ty != Tvoid)
-        {
-        }
-        else if (fd->inferRetType)
+        if (fd->inferRetType)
         {
             Type *tfret = fd->type->nextOf();
             if (tfret)
@@ -3253,11 +3251,17 @@ Statement *ReturnStatement::semantic(Scope *sc)
                     tbret = tret->toBasetype();
                 }
             }
+            if (fd->returnLabel)
+                eorg = exp;
         }
         else if (tbret->ty != Tvoid)
         {
             if (fd->tintro)
                 exp = exp->implicitCastTo(sc, fd->type->nextOf());
+
+            // eorg isn't casted to tret (== fd->tintro->nextOf())
+            if (fd->returnLabel)
+                eorg = exp->copy();
             exp = exp->implicitCastTo(sc, tret);
         }
     }
@@ -3343,7 +3347,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             assert(fd->vresult);
             VarExp *v = new VarExp(0, fd->vresult);
 
-            exp = new AssignExp(loc, v, exp);
+            assert(eorg);
+            exp = new AssignExp(loc, v, eorg);
             exp->op = TOKconstruct;
             exp = exp->semantic(sc);
         }
