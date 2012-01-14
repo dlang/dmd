@@ -3571,6 +3571,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     Scope *scx = sc;
     int implicit0 = 0;
+    Expression *eorg = NULL;
 
     if (fd->fes)
         fd = fd->fes->func;             // fd is now function enclosing foreach
@@ -3647,10 +3648,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
-        if (fd->returnLabel && tbret->ty != Tvoid)
-        {
-        }
-        else if (fd->inferRetType)
+        if (fd->inferRetType)
         {   TypeFunction *tf = (TypeFunction *)fd->type;
             assert(tf->ty == Tfunction);
             Type *tfret = tf->nextOf();
@@ -3711,6 +3709,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
                     tbret = tret->toBasetype();
                 }
             }
+            if (fd->returnLabel)
+                eorg = exp;
         }
         else if (tbret->ty != Tvoid)
         {
@@ -3720,10 +3720,14 @@ Statement *ReturnStatement::semantic(Scope *sc)
             {
                 exp = exp->castTo(sc, exp->type->invariantOf());
             }
-
             if (fd->tintro)
                 exp = exp->implicitCastTo(sc, fd->type->nextOf());
+
+            // eorg isn't casted to tret (== fd->tintro->nextOf())
+            if (fd->returnLabel)
+                eorg = exp->copy();
             exp = exp->implicitCastTo(sc, tret);
+
             if (!((TypeFunction *)fd->type)->isref)
                 exp = exp->optimize(WANTvalue);
         }
@@ -3827,7 +3831,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             assert(fd->vresult);
             VarExp *v = new VarExp(0, fd->vresult);
 
-            exp = new ConstructExp(loc, v, exp);
+            assert(eorg);
+            exp = new ConstructExp(loc, v, eorg);
             exp = exp->semantic(sc);
         }
     }

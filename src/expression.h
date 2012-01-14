@@ -782,7 +782,7 @@ struct BinExp : Expression
     Expression *typeCombine(Scope *sc);
     Expression *optimize(int result);
     int isunsigned();
-    void incompatibleTypes();
+    Expression *incompatibleTypes();
     void dump(int indent);
     Expression *interpretCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *));
