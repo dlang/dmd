@@ -246,6 +246,9 @@ extern unsigned tytab[];
 // Can go in XMM floating point register
 #define tyxmmreg(ty)    (tytab[(ty) & 0xFF] & TYFLxmmreg)
 
+// Is a vector type
+#define tyvector(ty)    (tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2)
+
 #ifndef tyshort
 /* Types that are chars or shorts       */
 #define tyshort(ty)     (tytab[(ty) & 0xFF] & TYFLshort)

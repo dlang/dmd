@@ -1272,9 +1272,8 @@ elem *ThisExp::toElem(IRState *irs)
  */
 
 elem *IntegerExp::toElem(IRState *irs)
-{   elem *e;
-
-    e = el_long(type->totym(), value);
+{
+    elem *e = el_long(type->totym(), value);
     el_setLoc(e,loc);
     return e;
 }
@@ -3689,6 +3688,62 @@ elem *DeleteExp::toElem(IRState *irs)
 
   Lret:
     el_setLoc(e,loc);
+    return e;
+}
+
+elem *VectorExp::toElem(IRState *irs)
+{
+#if 0
+    printf("VectorExp::toElem()\n");
+    print();
+    printf("\tfrom: %s\n", e1->type->toChars());
+    printf("\tto  : %s\n", to->toChars());
+#endif
+
+    dinteger_t d;
+    real_t r;
+    if (e1->type->isfloating())
+        r = e1->toReal();
+    else if (e1->type->isintegral())
+        d = e1->toInteger();
+    else
+        assert(0);
+    elem *e = el_calloc();
+    e->Eoper = OPconst;
+    e->Ety = type->totym();
+    switch (tybasic(e->Ety))
+    {
+        case TYfloat4:
+                        for (size_t i = 0; i < 4; i++)
+                            ((targ_float *)&e->EV.Vcent)[i] = r;
+                        break;
+        case TYdouble2:
+                        ((targ_double *)&e->EV.Vcent.lsw)[0] = r;
+                        ((targ_double *)&e->EV.Vcent.msw)[0] = r;
+                        break;
+        case TYschar16:
+        case TYuchar16:
+                        for (size_t i = 0; i < 16; i++)
+                            ((targ_uchar *)&e->EV.Vcent)[i] = d;
+                        break;
+        case TYshort8:
+        case TYushort8:
+                        for (size_t i = 0; i < 8; i++)
+                            ((targ_ushort *)&e->EV.Vcent)[i] = d;
+                        break;
+        case TYlong4:
+        case TYulong4:
+                        for (size_t i = 0; i < 4; i++)
+                            ((targ_ulong *)&e->EV.Vcent)[i] = d;
+                        break;
+        case TYllong2:
+        case TYullong2: e->EV.Vcent.lsw = d;
+                        e->EV.Vcent.msw = d;
+                        break;
+        default:
+            assert(0);
+    }
+    el_setLoc(e, loc);
     return e;
 }
 

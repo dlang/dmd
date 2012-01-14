@@ -837,6 +837,7 @@ void dotytab()
 #if TX86
     static tym_t _xmmreg[] = {
                                  TYfloat,TYdouble,TYifloat,TYidouble,
+                                 TYfloat4,TYdouble2,
                                  TYschar16,TYuchar16,TYshort8,TYushort8,
                                  TYlong4,TYulong4,TYllong2,TYullong2,
                              };

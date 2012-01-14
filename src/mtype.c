@@ -3184,10 +3184,18 @@ MATCH TypeBasic::implicitConvTo(Type *to)
         return MATCHnomatch;
     if (to->ty == Tbool)
         return MATCHnomatch;
-    if (!to->isTypeBasic())
+
+    TypeBasic *tob;
+    if (to->ty == Tvector)
+    {
+        TypeVector *tv = (TypeVector *)to;
+        tob = tv->elementType();
+    }
+    else
+        tob = to->isTypeBasic();
+    if (!tob)
         return MATCHnomatch;
 
-    TypeBasic *tob = (TypeBasic *)to;
     if (flags & TFLAGSintegral)
     {
         // Disallow implicit conversion of integers to imaginary or complex
@@ -3196,7 +3204,7 @@ MATCH TypeBasic::implicitConvTo(Type *to)
 
 #if DMDV2
         // If converting from integral to integral
-        if (1 && tob->flags & TFLAGSintegral)
+        if (tob->flags & TFLAGSintegral)
         {   d_uns64 sz = size(0);
             d_uns64 tosz = tob->size(0);
 

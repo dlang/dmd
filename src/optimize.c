@@ -262,6 +262,7 @@ Expression *TypeExp::optimize(int result)
 
 Expression *UnaExp::optimize(int result)
 {
+    //printf("UnaExp::optimize() %s\n", toChars());
     e1 = e1->optimize(result);
     return this;
 }
