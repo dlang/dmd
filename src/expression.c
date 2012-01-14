@@ -5840,6 +5840,7 @@ Expression *BinExp::incompatibleTypes()
              e1->type->toChars(), e2->type->toChars());
         return new ErrorExp();
     }
+    return this;
 }
 
 /********************** BinAssignExp **************************************/
