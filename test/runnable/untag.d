@@ -1,7 +1,7 @@
 #!/home/aalexandre/dmd2/linux/bin/rdmd
 // PERMUTE_ARGS:
 
-import std.algorithm, std.contracts, std.conv, std.ctype,
+import std.algorithm, std.ascii, std.contracts, std.conv, std.ctype,
     std.file, std.getopt, std.path, std.range, std.stdio,
     std.string, std.traits;
 
@@ -129,7 +129,7 @@ void untag(string txt, string filename) {
 
 void writeParagraph(string sentence) {
     static bool isSeparator(dchar a) {
-        return !(isalpha(a) /*|| a == '.'*/);
+        return !(isAlpha(a) /*|| a == '.'*/);
     }
 
     foreach (string cand; std.algorithm.splitter(sentence, ' ')) {
