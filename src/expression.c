@@ -5841,6 +5841,7 @@ Expression *BinExp::incompatibleTypes()
              e1->type->toChars(), e2->type->toChars());
         return new ErrorExp();
     }
+    return this;
 }
 
 /********************** BinAssignExp **************************************/
@@ -5882,9 +5883,14 @@ Expression *BinAssignExp::commonSemanticAssign(Scope *sc)
         e1->checkArithmetic();
         e2->checkArithmetic();
 
-        if (op == TOKmodass && e2->type->iscomplex())
-        {   error("cannot perform modulo complex arithmetic");
-            return new ErrorExp();
+        if (op == TOKmodass)
+        {
+            if (e2->type->iscomplex())
+            {   error("cannot perform modulo complex arithmetic");
+                return new ErrorExp();
+            }
+            else if (type->toBasetype()->ty == Tvector)
+                return incompatibleTypes();
         }
     }
     return this;
@@ -8465,6 +8471,12 @@ Expression *CastExp::semantic(Scope *sc)
                 return new ErrorExp();
             }
         }
+
+        // Look for casting to a vector type
+        if (tob->ty == Tvector && t1b->ty != Tvector)
+        {
+            return new VectorExp(loc, e1, to);
+        }
     }
     else if (!to)
     {   error("cannot cast tuple");
@@ -8574,6 +8586,49 @@ void CastExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     expToCBuffer(buf, hgs, e1, precedence[op]);
 }
 
+
+/************************************************************/
+
+VectorExp::VectorExp(Loc loc, Expression *e, Type *t)
+        : UnaExp(loc, TOKvector, sizeof(VectorExp), e)
+{
+    assert(t->ty == Tvector);
+    to = t;
+    dim = ~0;
+}
+
+Expression *VectorExp::syntaxCopy()
+{
+    return new VectorExp(loc, e1->syntaxCopy(), to->syntaxCopy());
+}
+
+Expression *VectorExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("VectorExp::semantic('%s')\n", toChars());
+#endif
+
+    if (type)
+        return this;
+    e1 = e1->semantic(sc);
+    type = to->semantic(loc, sc);
+    if (e1->op == TOKerror || type->ty == Terror)
+        return e1;
+    Type *tb = type->toBasetype();
+    assert(tb->ty == Tvector);
+    TypeVector *tv = (TypeVector *)tb;
+    Type *te = tv->elementType();
+    dim = tv->size(loc) / te->size(loc);
+    return this;
+}
+
+void VectorExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("cast(");
+    to->toCBuffer(buf, NULL, hgs);
+    buf->writeByte(')');
+    expToCBuffer(buf, hgs, e1, precedence[op]);
+}
 
 /************************************************************/
 
@@ -9886,7 +9941,17 @@ Ltupleassign:
             e1 = e1->modifiableLvalue(sc, e1old);
     }
 
-    Type *t2 = e2->type;
+    Type *t2 = e2->type->toBasetype();
+#if 0
+    if (t1->ty == Tvector && t2->ty != Tvector &&
+        e2->implicitConvTo(((TypeVector *)t1)->basetype->nextOf())
+       )
+    {   // memset
+        ismemset = 1;   // make it easy for back end to tell what this is
+        e2 = e2->implicitCastTo(sc, ((TypeVector *)t1)->basetype->nextOf());
+    }
+    else
+#endif
     if (e1->op == TOKslice &&
         t1->nextOf() &&
         e2->implicitConvTo(t1->nextOf())
@@ -9907,8 +9972,8 @@ Ltupleassign:
         }
         //error("cannot assign to static array %s", e1->toChars());
     }
-    else if (e1->op == TOKslice && t2->toBasetype()->ty == Tarray &&
-        t2->toBasetype()->nextOf()->implicitConvTo(t1->nextOf()))
+    else if (e1->op == TOKslice && t2->ty == Tarray &&
+        t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
         e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
@@ -10242,11 +10307,9 @@ Expression *MulAssignExp::semantic(Scope *sc)
     e2->checkArithmetic();
     checkComplexMulAssign();
     if (e2->type->isfloating())
-    {   Type *t1;
-        Type *t2;
-
-        t1 = e1->type;
-        t2 = e2->type;
+    {
+        Type *t1 = e1->type;
+        Type *t2 = e2->type;
         if (t1->isreal())
         {
             if (t2->isimaginary() || t2->iscomplex())
@@ -10269,6 +10332,11 @@ Expression *MulAssignExp::semantic(Scope *sc)
                 e2 = e2->castTo(sc, t2);
             }
         }
+    }
+    else if (type->toBasetype()->ty == Tvector &&
+             ((TypeVector *)type->toBasetype())->elementType()->size(loc) != 2)
+    {   // Only short[8] and ushort[8] work with multiply
+        return incompatibleTypes();
     }
     return this;
 }
@@ -10314,10 +10382,8 @@ Expression *DivAssignExp::semantic(Scope *sc)
     e2->checkArithmetic();
     checkComplexMulAssign();
     if (e2->type->isimaginary())
-    {   Type *t1;
-        Type *t2;
-
-        t1 = e1->type;
+    {
+        Type *t1 = e1->type;
         if (t1->isreal())
         {   // x/iv = i(-x/v)
             // Therefore, the result is 0
@@ -10328,7 +10394,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
             return e;
         }
         else if (t1->isimaginary())
-        {   Expression *e;
+        {   Type *t2;
 
             switch (t1->ty)
             {
@@ -10339,11 +10405,13 @@ Expression *DivAssignExp::semantic(Scope *sc)
                     assert(0);
             }
             e2 = e2->castTo(sc, t2);
-            e = new AssignExp(loc, e1, e2);
+            Expression *e = new AssignExp(loc, e1, e2);
             e->type = t1;
             return e;
         }
     }
+    else if (type->toBasetype()->ty == Tvector)
+        return incompatibleTypes();
     return this;
 }
 
@@ -10395,6 +10463,8 @@ Expression *ShlAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
+    if (e1->type->toBasetype()->ty == Tvector || e2->type->toBasetype()->ty == Tvector)
+        return incompatibleTypes();
     typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
@@ -10427,6 +10497,8 @@ Expression *ShrAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
+    if (e1->type->toBasetype()->ty == Tvector || e2->type->toBasetype()->ty == Tvector)
+        return incompatibleTypes();
     typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
@@ -10459,6 +10531,8 @@ Expression *UshrAssignExp::semantic(Scope *sc)
     e1->checkScalar();
     e1->checkNoBool();
     type = e1->type;
+    if (e1->type->toBasetype()->ty == Tvector || e2->type->toBasetype()->ty == Tvector)
+        return incompatibleTypes();
     typeCombine(sc);
     e1->checkIntegral();
     e2 = e2->checkIntegral();
@@ -10565,10 +10639,11 @@ Expression *PowAssignExp::semantic(Scope *sc)
             e = new CommaExp(loc, de, e);
         }
         e = e->semantic(sc);
+        if (e->type->toBasetype()->ty == Tvector)
+            return incompatibleTypes();
         return e;
     }
-    incompatibleTypes();
-    return new ErrorExp();
+    return incompatibleTypes();
 }
 
 
@@ -10934,8 +11009,7 @@ Expression *MulExp::semantic(Scope *sc)
     else if (type->toBasetype()->ty == Tvector &&
              ((TypeVector *)type->toBasetype())->elementType()->size(loc) != 2)
     {   // Only short[8] and ushort[8] work with multiply
-        incompatibleTypes();
-        return new ErrorExp();
+        return incompatibleTypes();
     }
     return this;
 }

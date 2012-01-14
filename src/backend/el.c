@@ -1869,6 +1869,7 @@ elem *el_convfloat(elem *e)
         default:
             assert(0);
     }
+
 #if 0
     printf("%gL+%gLi\n", (double)e->EV.Vcldouble.re, (double)e->EV.Vcldouble.im);
     printf("el_convfloat() %g %g sz=%d\n", e->EV.Vcdouble.re, e->EV.Vcdouble.im, sz);
@@ -1877,6 +1878,46 @@ unsigned short *p = (unsigned short *)&e->EV.Vcldouble;
 for (int i = 0; i < sz/2; i++) printf("%04x ", p[i]);
 printf("\n");
 #endif
+
+    symbol *s  = out_readonly_sym(ty, p, sz);
+    el_free(e);
+    e = el_var(s);
+    e->Ety = ty;
+    if (e->Eoper == OPvar)
+        e->Ety |= mTYconst;
+    //printf("s: %s %d:x%x\n", s->Sident, s->Sseg, s->Soffset);
+#endif
+    return e;
+}
+
+/************************************
+ * Convert vector constant to a read-only symbol.
+ * Needed iff vector code can't load immediate constants.
+ */
+
+elem *el_convxmm(elem *e)
+{
+    unsigned char buffer[16];
+
+#if TX86
+    // Do not convert if the constants can be loaded with the special XMM instructions
+#if 0
+    if (loadconst(e))
+        return e;
+#endif
+
+    changes++;
+    tym_t ty = e->Ety;
+    int sz = tysize(ty);
+    assert(sz <= sizeof(buffer));
+    void *p = &e->EV.Vcent;
+
+#if 0
+printf("el_convxmm(): sz = %d\n", sz);
+for (size i = 0; i < sz; i++) printf("%02x ", ((unsigned char *)p)[i]);
+printf("\n");
+#endif
+
     symbol *s  = out_readonly_sym(ty, p, sz);
     el_free(e);
     e = el_var(s);
@@ -2027,7 +2068,9 @@ elem *el_convert(elem *e)
 
         case OPconst:
 #if TX86
-            if (tyfloating(e->Ety) && config.inline8087)
+            if (tyvector(e->Ety))
+                e = el_convxmm(e);
+            else if (tyfloating(e->Ety) && config.inline8087)
                 e = el_convfloat(e);
 #endif
             break;
@@ -3123,6 +3166,19 @@ void elem_print(elem *e)
 
                     case TYcldouble:
                         dbg_printf("%gL+%gLi ", (double)e->EV.Vcldouble.re, (double)e->EV.Vcldouble.im);
+                        break;
+
+                    case TYfloat4:
+                    case TYdouble2:
+                    case TYschar16:
+                    case TYuchar16:
+                    case TYshort8:
+                    case TYushort8:
+                    case TYlong4:
+                    case TYulong4:
+                    case TYllong2:
+                    case TYullong2:
+                        dbg_printf("%llxLL+%llxLL ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
                         break;
 
 #if !MARS

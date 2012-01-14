@@ -6604,6 +6604,7 @@ void initPrecedence()
     precedence[TOKcast] = PREC_unary;
 
 #if DMDV2
+    precedence[TOKvector] = PREC_unary;
     precedence[TOKpow] = PREC_pow;
 #endif
 

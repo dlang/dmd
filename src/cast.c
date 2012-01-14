@@ -209,6 +209,12 @@ MATCH IntegerExp::implicitConvTo(Type *t)
     if (m == MATCHnomatch && t->ty == Tenum)
         goto Lno;
 
+    if (t->ty == Tvector)
+    {   TypeVector *tv = (TypeVector *)t;
+        TypeBasic *tb = tv->elementType();
+        toty = tb->ty;
+    }
+
     switch (ty)
     {
         case Tbool:
@@ -866,6 +872,12 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                     return e2;
                 }
              L1: ;
+            }
+            else if (tb->ty == Tvector && typeb->ty != Tvector)
+            {
+                e = new VectorExp(loc, e, tb);
+                e = e->semantic(sc);
+                return e;
             }
             e = new CastExp(loc, e, tb);
         }
