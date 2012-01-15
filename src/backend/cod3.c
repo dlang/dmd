@@ -2272,16 +2272,6 @@ Lagain:
 #endif
     Aoff = -align(0,-Aoff + Aoffset);
 
-    if (Aalign > REGSIZE)
-    {
-        // Adjust Aoff so that it is Aalign byte aligned, assuming that
-        // before function parameters were pushed the stack was
-        // Aalign byte aligned
-        int sz = Poffset + -Aoff + Poff + (needframe ? 0 : REGSIZE);
-        if (sz & (Aalign - 1))
-            Aoff -= sz - (sz & (Aalign - 1));
-    }
-
     regsave.off = Aoff - align(0,regsave.top);
     Foffset = floatreg ? (config.fpxmmregs ? 16 : DOUBLESIZE) : 0;
     Foff = regsave.off - align(0,Foffset);
@@ -2290,6 +2280,28 @@ Lagain:
     CSoff = AAoff - align(0,cstop * REGSIZE);
     NDPoff = CSoff - align(0,NDP::savetop * NDPSAVESIZE);
     Toff = NDPoff - align(0,Toffset);
+
+    if (Foffset > Aalign)
+        Aalign = Foffset;
+    if (Aalign > REGSIZE)
+    {
+        // Adjust Aoff so that it is Aalign byte aligned, assuming that
+        // before function parameters were pushed the stack was
+        // Aalign byte aligned
+        targ_size_t psize = (Poffset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+        int sz = psize + -Aoff + Poff + (needframe ? 0 : REGSIZE);
+        if (sz & (Aalign - 1))
+        {   int adj = Aalign - (sz & (Aalign - 1));
+            Aoff -= adj;
+            regsave.off -= adj;
+            Foff -= adj;
+            AAoff -= adj;
+            CSoff -= adj;
+            NDPoff -= adj;
+            Toff -= adj;
+        }
+    }
+
     localsize = -Toff;
 
     regm_t topush = fregsaved & ~mfuncreg;     // mask of registers that need saving
