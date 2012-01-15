@@ -180,7 +180,7 @@ struct Dsymbol : Object
     virtual enum PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual int oneMember(Dsymbol **ps);
-    static int oneMembers(Dsymbols *members, Dsymbol **ps);
+    static int oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
     virtual int hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }

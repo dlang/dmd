@@ -1,4 +1,3 @@
-
 import std.stdio;
 import std.conv;
 import std.c.stdlib;
@@ -12,7 +11,7 @@ int q;
 
 int main(string[] args)
 {
-    int startime, endtime;
+    long startime, endtime;
     int i;
 
     if (args.length == 2)

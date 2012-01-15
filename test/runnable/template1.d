@@ -1460,7 +1460,7 @@ void test60()
             assert(thing1.sizeof == 12);
 	assert(thing2.sizeof == 8);
 
-	C60!(int /*,A60*/ ).C60	container1;
+	C60!(int /*,A60*/ )	container1;
 
 	printf("container1.sizeof: %u\n", container1.sizeof);
 	assert(container1.sizeof == (void*).sizeof);
