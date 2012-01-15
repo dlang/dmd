@@ -1831,10 +1831,14 @@ Lagain:
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) && t1->implicitConvTo(t2))
     {
+        if (t1->ty == Tsarray && e2->op == TOKarrayliteral)
+            goto Lt1;
         goto Lt2;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
     {
+        if (t2->ty == Tsarray && e1->op == TOKarrayliteral)
+            goto Lt2;
         goto Lt1;
     }
     /* If one is mutable and the other invariant, then retry
