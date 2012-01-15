@@ -56,7 +56,7 @@ private:
         }
 
         alias extern(Windows)
-        void* fnRtlAllocateHeap(void* HeapHandle, uint Flags, uint Size);
+        void* fnRtlAllocateHeap(void* HeapHandle, uint Flags, size_t Size);
 
         // find a code sequence and return the address after the sequence
         static void* findCodeSequence( void* adr, int len, ref ubyte[] pattern )
@@ -197,7 +197,7 @@ private:
                 void** peb = cast(void**) teb[12];
                 void* heap = peb[6];
 
-                int sz = tlsend - tlsstart;
+                auto sz = tlsend - tlsstart;
                 void* tlsdata = cast(void*) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, sz );
                 if( !tlsdata )
                     return false;
@@ -420,7 +420,7 @@ public:
     // to be called from DllMain with reason DLL_THREAD_ATTACH
     bool dll_thread_attach( bool attach_thread = true, bool initTls = true )
     {
-        // if the OS has not prepared TLS for us, don't attach to the thread 
+        // if the OS has not prepared TLS for us, don't attach to the thread
 	//  (happened when running under x64 OS)
         if( !GetTlsDataAddress( GetCurrentThreadId() ) )
             return false;
