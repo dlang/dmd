@@ -232,6 +232,129 @@ Lp:
 }
 
 /********************************
+ * Generate code for conversion using SSE2 instructions.
+ *
+ *      OPs32_d
+ *      OPs64_d (64-bit only)
+ *      OPu32_d (64-bit only)
+ *      OPd_f
+ *      OPf_d
+ *      OPd_s32
+ *      OPd_s64 (64-bit only)
+ *
+ */
+
+code *xmmcnvt(elem *e,regm_t *pretregs)
+{
+    code *c;
+    unsigned op=0, regs;
+    tym_t ty;
+    unsigned char rex = 0;
+    bool zx = false; // zero extend uint
+
+    /* There are no ops for integer <-> float/real conversions
+     * but there are instructions for them. In order to use these
+     * try to fuse chained conversions. Be careful not to loose
+     * precision for real to long.
+     */
+    elem *e1 = e->E1;
+    switch (e->Eoper)
+    {
+    case OPd_f:
+        switch (e1->Eoper)
+        {
+        case OPs32_d:              goto Litof;
+        case OPs64_d: rex = REX_W; goto Litof;
+        case OPu32_d: rex = REX_W; zx = true; goto Litof;
+        Litof:
+            // directly use si2ss
+            regs = ALLREGS;
+            e1 = e1->E1;
+            op = CVTSI2SS;
+            break;
+        default:
+            regs = XMMREGS;
+            op = CVTSD2SS;
+            break;
+        }
+        ty = TYfloat;
+        break;
+
+    case OPs32_d:              goto Litod;
+    case OPs64_d: rex = REX_W; goto Litod;
+    case OPu32_d: rex = REX_W; zx = true; goto Litod;
+    Litod:
+        regs = ALLREGS;
+        op = CVTSI2SD;
+        ty = TYdouble;
+        break;
+
+    case OPd_s32: ty = TYint;  goto Ldtoi;
+    case OPd_s64: ty = TYlong; rex = REX_W; goto Ldtoi;
+    Ldtoi:
+        regs = XMMREGS;
+        switch (e1->Eoper)
+        {
+        case OPf_d:
+            e1 = e1->E1;
+            op = CVTTSS2SI;
+            break;
+        case OPld_d:
+            if (e->Eoper == OPd_s64)
+                return cnvt87(e,pretregs); // precision
+            /* FALL-THROUGH */
+        default:
+            op = CVTTSD2SI;
+            break;
+        }
+        break;
+
+    case OPf_d:
+        regs = XMMREGS;
+        op = CVTSS2SD;
+        ty = TYdouble;
+        break;
+    }
+    assert(op);
+
+    c = codelem(e1, &regs, FALSE);
+    unsigned reg = findreg(regs);
+    if (reg >= XMM0)
+        reg -= XMM0;
+    else if (zx)
+    {   assert(I64);
+        c = cat(c,getregs(regs));
+        c = genregs(c,0x89,reg,reg); // MOV reg,reg to zero upper 32-bit
+        code_orflag(c,CFvolatile);
+    }
+
+    unsigned retregs = *pretregs;
+    if (tyxmmreg(ty)) // target is XMM
+    {   if (!(*pretregs & XMMREGS))
+            retregs = XMMREGS;
+    }
+    else              // source is XMM
+    {   assert(regs & XMMREGS);
+        if (!(retregs & ALLREGS))
+            retregs = ALLREGS;
+    }
+
+    unsigned rreg;
+    c = cat(c,allocreg(&retregs,&rreg,ty));
+    if (rreg >= XMM0)
+        rreg -= XMM0;
+
+    c = gen2(c, op, modregxrmx(3,rreg,reg));
+    assert(I64 || !rex);
+    if (rex)
+        code_orrex(c, rex);
+
+    if (*pretregs != retregs)
+        c = cat(c,fixresult(e,retregs,pretregs));
+    return c;
+}
+
+/********************************
  * Generate code for op=
  */
 
