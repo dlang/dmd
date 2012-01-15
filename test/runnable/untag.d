@@ -1,7 +1,7 @@
 #!/home/aalexandre/dmd2/linux/bin/rdmd
 // PERMUTE_ARGS:
 
-import std.algorithm, std.ascii, std.contracts, std.conv, std.ctype,
+import std.algorithm, std.ascii, std.conv, std.exception,
     std.file, std.getopt, std.path, std.range, std.stdio,
     std.string, std.traits;
 
@@ -133,7 +133,7 @@ void writeParagraph(string sentence) {
     }
 
     foreach (string cand; std.algorithm.splitter(sentence, ' ')) {
-        cand = tolower(cand);
+        cand = toLower(cand);
     }
 }
 
