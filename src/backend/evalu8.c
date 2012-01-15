@@ -612,14 +612,14 @@ elem * evalu8(elem *e)
 
     //printf("evalu8(): "); elem_print(e);
     elem_debug(e1);
-    if (e1->Eoper == OPconst)
+    if (e1->Eoper == OPconst && !tyvector(e1->Ety))
     {
         tym2 = 0;
         e2 = NULL;
         if (EBIN(e))
         {   e2 = e->E2;
             elem_debug(e2);
-            if (e2->Eoper == OPconst)
+            if (e2->Eoper == OPconst && !tyvector(e2->Ety))
             {
                 i2 = l2 = el_tolong(e2);
                 d2 = el_toldouble(e2);

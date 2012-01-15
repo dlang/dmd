@@ -10408,7 +10408,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
             return e;
         }
     }
-    else if (type->toBasetype()->ty == Tvector)
+    else if (type->toBasetype()->ty == Tvector && !e1->type->isfloating())
         return incompatibleTypes();
     return this;
 }

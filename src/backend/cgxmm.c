@@ -49,7 +49,10 @@ code *movxmmconst(unsigned xreg, unsigned sz, targ_size_t value, regm_t flags)
         unsigned r;
         regm_t rm = ALLREGS;
         c = allocreg(&rm,&r,TYint);         // allocate scratch register
-        targ_long *p = (targ_long *)&value;
+        union { targ_size_t s; targ_long l[2]; } u;
+        u.l[1] = 0;
+        u.s = value;
+        targ_long *p = &u.l[0];
         c = movregconst(c,r,p[0],0);
         c = genfltreg(c,0x89,r,0);            // MOV floatreg,r
         c = movregconst(c,r,p[1],0);

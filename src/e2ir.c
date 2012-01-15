@@ -1866,13 +1866,30 @@ elem *NewExp::toElem(IRState *irs)
 
 elem *NegExp::toElem(IRState *irs)
 {
-    elem *e = el_una(OPneg, type->totym(), e1->toElem(irs));
-
+    elem *e = e1->toElem(irs);
     Type *tb1 = e1->type->toBasetype();
-    if (tb1->ty == Tarray || tb1->ty == Tsarray)
+    switch (tb1->ty)
     {
-        error("Array operation %s not implemented", toChars());
-        e = el_long(type->totym(), 0);  // error recovery
+        case Tarray:
+        case Tsarray:
+            error("Array operation %s not implemented", toChars());
+            e = el_long(type->totym(), 0);  // error recovery
+            break;
+
+        case Tvector:
+        {   // rewrite (-e) as (0-e)
+            elem *ez = el_calloc();
+            ez->Eoper = OPconst;
+            ez->Ety = e->Ety;
+            ez->EV.Vcent.lsw = 0;
+            ez->EV.Vcent.msw = 0;
+            e = el_bin(OPmin, type->totym(), ez, e);
+            break;
+        }
+
+        default:
+            e = el_una(OPneg, type->totym(), e);
+            break;
     }
 
     el_setLoc(e,loc);
@@ -1883,14 +1900,34 @@ elem *NegExp::toElem(IRState *irs)
  */
 
 elem *ComExp::toElem(IRState *irs)
-{   elem *e;
-
+{
     elem *e1 = this->e1->toElem(irs);
+    Type *tb1 = this->e1->type->toBasetype();
     tym_t ty = type->totym();
-    if (this->e1->type->toBasetype()->ty == Tbool)
-        e = el_bin(OPxor, ty, e1, el_long(ty, 1));
-    else
-        e = el_una(OPcom,ty,e1);
+
+    elem *e;
+    switch (tb1->ty)
+    {
+        case Tbool:
+            e = el_bin(OPxor, ty, e1, el_long(ty, 1));
+            break;
+
+        case Tvector:
+        {   // rewrite (~e) as (e^~0)
+            elem *ec = el_calloc();
+            ec->Eoper = OPconst;
+            ec->Ety = e1->Ety;
+            ec->EV.Vcent.lsw = ~0LL;
+            ec->EV.Vcent.msw = ~0LL;
+            e = el_bin(OPxor, ty, e1, ec);
+            break;
+        }
+
+        default:
+            e = el_una(OPcom,ty,e1);
+            break;
+    }
+
     el_setLoc(e,loc);
     return e;
 }
