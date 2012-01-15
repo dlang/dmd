@@ -44,6 +44,7 @@ alias Vector!(ushort[8]) ushort8;       ///
 alias Vector!(int[4])    int4;          ///
 alias Vector!(uint[4])   uint4;         ///
 alias Vector!(long[2])   long2;         ///
+alias Vector!(ulong[2])  ulong2;        ///
 
 /** XMM opcodes that conform to the following:
  *
