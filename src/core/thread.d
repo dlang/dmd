@@ -1553,7 +1553,7 @@ private:
       }
       else
       {
-        static assert( "Architecture not supported." );
+        static assert(false, "Architecture not supported." );
       }
     }
     else version( OSX )
@@ -1569,7 +1569,7 @@ private:
       }
       else
       {
-        static assert( "Architecture not supported." );
+        static assert(false, "Architecture not supported." );
       }
     }
 
@@ -2275,7 +2275,7 @@ extern (C) void thread_suspendAll()
             }
             else
             {
-                static assert( "Architecture not supported." );
+                static assert(false, "Architecture not supported." );
             }
         }
         else version( OSX )
@@ -2339,7 +2339,7 @@ extern (C) void thread_suspendAll()
             }
             else
             {
-                static assert( "Architecture not supported." );
+                static assert(false, "Architecture not supported." );
             }
         }
         else version( Posix )
