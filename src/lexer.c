@@ -121,11 +121,11 @@ const char *Token::toChars()
             break;
 
         case TOKint64v:
-            sprintf(buffer,"%jdL",int64value);
+            sprintf(buffer,"%jdL",(intmax_t)int64value);
             break;
 
         case TOKuns64v:
-            sprintf(buffer,"%juUL",uns64value);
+            sprintf(buffer,"%juUL",(uintmax_t)uns64value);
             break;
 
 #if IN_GCC
@@ -1146,6 +1146,12 @@ void Lexer::scan(Token *t)
                     else
                         t->value = TOKequal;            // ==
                 }
+#if DMDV2
+                else if (*p == '>')
+                {   p++;
+                    t->value = TOKgoesto;               // =>
+                }
+#endif
                 else
                     t->value = TOKassign;               // =
                 return;
@@ -2071,7 +2077,13 @@ TOK Lexer::number(Token *t)
                         continue;
                     }
                     if (c == '.' && p[1] != '.')
+                    {
+#if DMDV2
+                        if (isalpha(p[1]) || p[1] == '_')
+                            goto done;
+#endif
                         goto real;
+                    }
                     else if (c == 'i' || c == 'f' || c == 'F' ||
                              c == 'e' || c == 'E')
                     {
@@ -3015,6 +3027,7 @@ static Keyword keywords[] =
     {   "__thread",     TOKtls          },
     {   "__gshared",    TOKgshared      },
     {   "__traits",     TOKtraits       },
+    {   "__vector",     TOKvector       },
     {   "__overloadset", TOKoverloadset },
     {   "__FILE__",     TOKfile         },
     {   "__LINE__",     TOKline         },
@@ -3034,9 +3047,7 @@ int Token::isKeyword()
 }
 
 void Lexer::initKeywords()
-{   StringValue *sv;
-    unsigned u;
-    enum TOK v;
+{
     unsigned nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
     stringtable.init();
@@ -3046,13 +3057,12 @@ void Lexer::initKeywords()
 
     cmtable_init();
 
-    for (u = 0; u < nkeywords; u++)
-    {   const char *s;
-
+    for (unsigned u = 0; u < nkeywords; u++)
+    {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
-        s = keywords[u].name;
-        v = keywords[u].value;
-        sv = stringtable.insert(s, strlen(s));
+        const char *s = keywords[u].name;
+        enum TOK v = keywords[u].value;
+        StringValue *sv = stringtable.insert(s, strlen(s));
         sv->ptrvalue = (void *) new Identifier(sv->lstring.string,v);
 
         //printf("tochars[%d] = '%s'\n",v, s);
@@ -3149,6 +3159,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKat]               = "@";
     Token::tochars[TOKpow]              = "^^";
     Token::tochars[TOKpowass]           = "^^=";
+    Token::tochars[TOKgoesto]           = "=>";
 #endif
 
      // For debugging
