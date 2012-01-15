@@ -811,6 +811,7 @@ void cod5_noprol();
 code *movxmmconst(unsigned reg, unsigned sz, targ_size_t value, regm_t flags);
 code *orthxmm(elem *e, regm_t *pretregs);
 code *xmmeq(elem *e, regm_t *pretregs);
+code *xmmcnvt(elem *e,regm_t *pretregs);
 code *xmmopass(elem *e, regm_t *pretregs);
 code *xmmneg(elem *e, regm_t *pretregs);
 unsigned xmmload(tym_t tym);
