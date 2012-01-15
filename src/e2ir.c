@@ -3907,6 +3907,12 @@ elem *CastExp::toElem(IRState *irs)
         goto Lret;
     }
 
+    if (fty == Tvector && tty == Tsarray)
+    {
+        if (tfrom->size() == t->size())
+            goto Lret;
+    }
+
     ftym = tybasic(e->Ety);
     ttym = tybasic(t->totym());
     if (ftym == ttym)

@@ -177,6 +177,7 @@ HINT boolres(elem *e)
                         b = e->EV.Vcfloat.re != 0 || e->EV.Vcfloat.im != 0;
                     break;
                 case TYcdouble:
+                case TYdouble2:
                     if (isnan(e->EV.Vcdouble.re) || isnan(e->EV.Vcdouble.im))
                         b = 1;
                     else
@@ -201,8 +202,29 @@ HINT boolres(elem *e)
 
                 case TYcent:
                 case TYucent:
+                case TYschar16:
+                case TYuchar16:
+                case TYshort8:
+                case TYushort8:
+                case TYlong4:
+                case TYulong4:
+                case TYllong2:
+                case TYullong2:
                     b = e->EV.Vcent.lsw || e->EV.Vcent.msw;
                     break;
+
+                case TYfloat4:
+                {   b = 0;
+                    targ_float *pf = (targ_float *)&e->EV.Vcent;
+                    for (size_t i = 0; i < 4; i++)
+                    {
+                        if (isnan(pf[i]) || pf[i] != 0)
+                        {   b = 1;
+                            break;
+                        }
+                    }
+                    break;
+                }
 
                 default:
 #ifdef DEBUG
