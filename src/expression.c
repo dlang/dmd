@@ -2644,6 +2644,8 @@ Lagain:
             {   error("cannot make expression out of initializer for %s", v->toChars());
                 return new ErrorExp();
             }
+            e = e->copy();
+            e->loc = loc;   // for better error message
             e = e->semantic(sc);
             return e;
         }
