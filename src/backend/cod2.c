@@ -169,7 +169,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   ty1 = tybasic(e1->Ety);
   if (tyfloating(ty1))
   {
-        if (*pretregs & XMMREGS)
+        if (*pretregs & XMMREGS || tyvector(ty1))
             return orthxmm(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
