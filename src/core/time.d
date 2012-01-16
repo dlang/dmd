@@ -1754,7 +1754,8 @@ struct TickDuration
 
         t1 = curr;
         t1 *= 2.0;
-        assertApprox(t1, t2 - TickDuration(1), t2 + TickDuration(1));
+        immutable tol = TickDuration(cast(long)(abs(t1.length) * double.epsilon * 2.0));
+        assertApprox(t1, t2 - tol, t2 + tol);
 
         t1 = curr;
         t1 *= 2.1;
@@ -1800,11 +1801,12 @@ struct TickDuration
         immutable t1 = curr;
         TickDuration t2 = curr + curr;
         t2 /= 2;
-        assertApprox(t1, t2 - TickDuration(1), t2 + TickDuration(1));
+        assert(t1 == t2);
 
         t2 = curr + curr;
         t2 /= 2.0;
-        assertApprox(t1, t2 - TickDuration(1), t2 + TickDuration(1));
+        immutable tol = TickDuration(cast(long)(abs(t2.length) * double.epsilon / 2.0));
+        assertApprox(t1, t2 - tol, t2 + tol);
 
         t2 = curr + curr;
         t2 /= 2.1;
@@ -1847,7 +1849,8 @@ struct TickDuration
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
             assert(t1 * 2 == t2);
-            assertApprox(t1 * 2.0, t2 - TickDuration(1), t2 + TickDuration(1));
+            immutable tol = TickDuration(cast(long)(abs(t1.length) * double.epsilon * 2.0));
+            assertApprox(t1 * 2.0, t2 - tol, t2 + tol);
             assert(t1 * 2.1 > t2);
         }
     }
@@ -1885,7 +1888,8 @@ struct TickDuration
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
             assert(t2 / 2 == t1);
-            assertApprox(t2 / 2.0, t1 - TickDuration(1), t1 + TickDuration(1));
+            immutable tol = TickDuration(cast(long)(abs(t2.length) * double.epsilon / 2.0));
+            assertApprox(t2 / 2.0, t1 - tol, t1 + tol);
             assert(t2 / 2.1 < t1);
 
             _assertThrown!TimeException(t2 / 0);
@@ -3245,4 +3249,9 @@ version(unittest) void assertApprox()(long actual,
         throw new AssertError(msg ~ ": lower: " ~ numToString(actual), __FILE__, line);
     if(actual > upper)
         throw new AssertError(msg ~ ": upper: " ~ numToString(actual), __FILE__, line);
+}
+
+version(unittest) long abs(long val)
+{
+    return val & long.max;
 }
