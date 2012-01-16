@@ -177,6 +177,7 @@ HINT boolres(elem *e)
                         b = e->EV.Vcfloat.re != 0 || e->EV.Vcfloat.im != 0;
                     break;
                 case TYcdouble:
+                case TYdouble2:
                     if (isnan(e->EV.Vcdouble.re) || isnan(e->EV.Vcdouble.im))
                         b = 1;
                     else
@@ -201,8 +202,29 @@ HINT boolres(elem *e)
 
                 case TYcent:
                 case TYucent:
+                case TYschar16:
+                case TYuchar16:
+                case TYshort8:
+                case TYushort8:
+                case TYlong4:
+                case TYulong4:
+                case TYllong2:
+                case TYullong2:
                     b = e->EV.Vcent.lsw || e->EV.Vcent.msw;
                     break;
+
+                case TYfloat4:
+                {   b = 0;
+                    targ_float *pf = (targ_float *)&e->EV.Vcent;
+                    for (size_t i = 0; i < 4; i++)
+                    {
+                        if (isnan(pf[i]) || pf[i] != 0)
+                        {   b = 1;
+                            break;
+                        }
+                    }
+                    break;
+                }
 
                 default:
 #ifdef DEBUG
@@ -590,14 +612,14 @@ elem * evalu8(elem *e)
 
     //printf("evalu8(): "); elem_print(e);
     elem_debug(e1);
-    if (e1->Eoper == OPconst)
+    if (e1->Eoper == OPconst && !tyvector(e1->Ety))
     {
         tym2 = 0;
         e2 = NULL;
         if (EBIN(e))
         {   e2 = e->E2;
             elem_debug(e2);
-            if (e2->Eoper == OPconst)
+            if (e2->Eoper == OPconst && !tyvector(e2->Ety))
             {
                 i2 = l2 = el_tolong(e2);
                 d2 = el_toldouble(e2);

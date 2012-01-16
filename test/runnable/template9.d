@@ -591,6 +591,24 @@ void test4413()
 }
 
 /**********************************/
+// 4675
+
+template isNumeric(T)
+{
+    enum bool test1 = is(T : long);     // should be hidden
+    enum bool test2 = is(T : real);     // should be hidden
+    enum bool isNumeric = test1 || test2;
+}
+void test4675()
+{
+    static assert( isNumeric!int);
+    static assert(!isNumeric!string);
+    static assert(!__traits(compiles, isNumeric!int.test1));   // should be an error
+    static assert(!__traits(compiles, isNumeric!int.test2));   // should be an error
+    static assert(!__traits(compiles, isNumeric!int.isNumeric));
+}
+
+/**********************************/
 // 5801
 
 int a5801;

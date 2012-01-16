@@ -53,6 +53,7 @@ Msgtable msgtable[] =
     { "length" },
     { "remove" },
     { "ptr" },
+    { "array" },
     { "funcptr" },
     { "dollar", "__dollar" },
     { "ctfe", "__ctfe" },

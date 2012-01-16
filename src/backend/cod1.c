@@ -2439,7 +2439,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 }
                 if (xmmcnt <= XMM7)
                 {
-                    if (tyfloating(ty) && tysize(ty) <= 8 && !tycomplex(ty))
+                    if (tyxmmreg(ty))
                     {
                         parameters[i].reg = xmmcnt;
                         xmmcnt++;
@@ -3456,7 +3456,19 @@ code *params(elem *e,unsigned stackalign)
         break;
   }
   retregs = tybyte(tym) ? BYTEREGS : allregs;
-  if (tyfloating(tym))
+  if (tyvector(tym))
+  {
+        retregs = XMMREGS;
+        c = cat(c,codelem(e,&retregs,FALSE));
+        stackpush += sz;
+        c = genadjesp(c,sz);
+        c = genc2(c,0x81,grex | modregrm(3,5,SP),sz);      // SUB SP,sz
+        unsigned op = xmmstore(tym);
+        unsigned r = findreg(retregs);
+        c = gen2sib(c,op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
+        goto ret;
+  }
+  else if (tyfloating(tym))
   {     if (config.inline8087)
         {   code *c1,*c2;
             unsigned op;

@@ -1831,10 +1831,14 @@ Lagain:
     }
     else if ((t1->ty == Tsarray || t1->ty == Tarray) && t1->implicitConvTo(t2))
     {
+        if (t1->ty == Tsarray && e2->op == TOKarrayliteral)
+            goto Lt1;
         goto Lt2;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
     {
+        if (t2->ty == Tsarray && e1->op == TOKarrayliteral)
+            goto Lt2;
         goto Lt1;
     }
     /* If one is mutable and the other invariant, then retry
@@ -2058,6 +2062,20 @@ Lcc:
         t = t2->nextOf()->arrayOf();
         e1 = e1->castTo(sc, t);
         e2 = e2->castTo(sc, t);
+    }
+    else if (t1->ty == Tvector && t2->ty != Tvector &&
+             e2->implicitConvTo(t1))
+    {
+        e2 = e2->castTo(sc, t1);
+        t2 = t1;
+        goto Lagain;
+    }
+    else if (t2->ty == Tvector && t1->ty != Tvector &&
+             e1->implicitConvTo(t2))
+    {
+        e1 = e1->castTo(sc, t2);
+        t1 = t2;
+        goto Lagain;
     }
     else if (t1->isintegral() && t2->isintegral())
     {

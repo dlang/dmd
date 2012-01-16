@@ -2645,6 +2645,8 @@ Lagain:
             {   error("cannot make expression out of initializer for %s", v->toChars());
                 return new ErrorExp();
             }
+            e = e->copy();
+            e->loc = loc;   // for better error message
             e = e->semantic(sc);
             return e;
         }
@@ -10410,7 +10412,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
             return e;
         }
     }
-    else if (type->toBasetype()->ty == Tvector)
+    else if (type->toBasetype()->ty == Tvector && !e1->type->isfloating())
         return incompatibleTypes();
     return this;
 }

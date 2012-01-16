@@ -3347,7 +3347,12 @@ Expression *TypeVector::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeVector::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
-    return basetype->dotExp(sc, e, ident);
+    if (ident == Id::array)
+    {
+        e = e->castTo(sc, basetype);
+        return e;
+    }
+    return basetype->dotExp(sc, e->castTo(sc, basetype), ident);
 }
 
 Expression *TypeVector::defaultInit(Loc loc)

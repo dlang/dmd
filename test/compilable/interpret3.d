@@ -2002,6 +2002,19 @@ int g7194() {
 static assert(f7194() == 0);
 static assert(!is(typeof(compiles!( g7194() ))));
 
+/**************************************************
+    7248 recursive struct pointers in array
+**************************************************/
+struct S7248 { S7248* ptr; }
+
+bool bug7248() {
+    S7248[2] sarr;
+    sarr[0].ptr = &sarr[1];
+    sarr[0].ptr = null;
+    S7248* t = sarr[0].ptr;
+    return true;
+}
+static assert(bug7248());
 
 /**************************************************
     4065 [CTFE] AA "in" operator doesn't work
@@ -3630,7 +3643,7 @@ static assert({
 }());
 
 /**************************************************
-    6522 opAssign + foreach
+    6522 opAssign + foreach ref
 **************************************************/
 
 struct Foo6522 {
@@ -3648,6 +3661,30 @@ bool foo6522() {
 }
 
 static assert(foo6522());
+
+/**************************************************
+    7245 pointers + foreach ref
+**************************************************/
+
+int bug7245(int testnum) {
+    int[3] arr;
+    arr[0] = 4;
+    arr[1] = 6;
+    arr[2] = 8;
+    int* ptr;
+
+    foreach(i, ref p; arr) {
+        if(i == 1)
+            ptr = &p;
+        if (testnum == 1)
+            p = 5;
+    }
+
+    return *ptr;
+}
+
+static assert(bug7245(0)==6);
+static assert(bug7245(1)==5);
 
 /**************************************************
     6919
@@ -3726,6 +3763,37 @@ int bug6037outer(){
     return 401;
 }
 static assert(bug6037outer() == 401);
+
+/**************************************************
+    7266 dotvar ref parameters
+**************************************************/
+
+struct S7266 { int a; }
+
+bool bug7266()
+{
+    S7266 s;
+    s.a = 4;
+    bar7266(s.a);
+    assert(s.a == 5);
+    out7266(s.a);
+    assert(s.a == 7);
+    return true;
+}
+
+void bar7266(ref int b)
+{
+    b = 5;
+    assert(b == 5);
+}
+
+void out7266(out int b)
+{
+    b = 7;
+    assert(b == 7);
+}
+
+static assert( bug7266());
 
 /**************************************************
     7143 'is' for classes
@@ -3870,6 +3938,22 @@ int g7187(int[] r)
 
 static assert(g7187(f7187()));
 static assert(g7187(f7187b(7)));
+
+struct S7187 { const(int)[] field; }
+
+const(int)[] f7187c() {
+    auto s = S7187([0]);
+    return s.field;
+}
+
+bool g7187c(const(int)[] r)
+{
+    auto t = r[0..0];
+    return true;
+}
+
+static assert(g7187c(f7187c()));
+
 
 /**************************************************
     6933 struct destructors

@@ -958,6 +958,7 @@ int main(int argc, char *argv[])
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition::addPredefinedGlobalIdent("X86_64");
         VersionCondition::addPredefinedGlobalIdent("D_LP64");
+        VersionCondition::addPredefinedGlobalIdent("D_SIMD");
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win64");
 #endif
@@ -967,6 +968,9 @@ int main(int argc, char *argv[])
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm");
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86");
         VersionCondition::addPredefinedGlobalIdent("X86");
+#if TARGET_OSX
+        VersionCondition::addPredefinedGlobalIdent("D_SIMD");
+#endif
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win32");
 #endif

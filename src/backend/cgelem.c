@@ -1274,7 +1274,7 @@ STATIC elem * elbitwise(elem *e)
                 break;
 #endif
         }
-        if (OPTIMIZER)
+        if (OPTIMIZER && sz < 16)
         {   targ_ullong ul = el_tolong(e2);
 
             if (e->Eoper == OPor && op == OPand && e1->E2->Eoper == OPconst)

@@ -387,7 +387,8 @@ STATIC void ecom(elem **pe)
       tym == TYvoid ||
       e->Ety & mTYvolatile
 #if TX86
-    // don't CSE doubles if inline 8087 code (code generator can't handle it)
+      || tyxmmreg(tym)
+      // don't CSE doubles if inline 8087 code (code generator can't handle it)
       || (tyfloating(tym) && config.inline8087)
 #endif
      )

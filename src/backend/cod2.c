@@ -169,7 +169,7 @@ code *cdorth(elem *e,regm_t *pretregs)
   ty1 = tybasic(e1->Ety);
   if (tyfloating(ty1))
   {
-        if (*pretregs & XMMREGS)
+        if (*pretregs & XMMREGS || tyvector(ty1))
             return orthxmm(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
@@ -2627,7 +2627,7 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         if (retregs & XMMREGS)
         {
-            assert(sz == 4 || sz == 8);         // float or double
+            assert(sz == 4 || sz == 8 || sz == 16); // float, double or vector
             cs.Iop = xmmload(tym);
             reg -= XMM0;
             goto L2;
