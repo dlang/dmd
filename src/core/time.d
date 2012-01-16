@@ -3232,7 +3232,12 @@ version(unittest) void assertApprox(D, E)(D actual,
                                           size_t line = __LINE__)
     if(is(D : const TickDuration) && is(E : const TickDuration))
 {
-    assertApprox(actual.length, lower.length, upper.length, msg, line);
+    if(actual.length < lower.length || actual.length > upper.length)
+    {
+        throw new AssertError(msg ~ ": [" ~ numToString(lower.length) ~ "] [" ~
+                              numToString(actual.length) ~ "] [" ~
+                              numToString(upper.length) ~ "]", __FILE__, line);
+    }
 }
 
 version(unittest) void assertApprox()(long actual,
