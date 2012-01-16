@@ -1216,7 +1216,7 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
 {
     Identifier *idapply = (op == TOKforeach) ? Id::apply : Id::applyReverse;
 #if DMDV2
-    Identifier *idhead = (op == TOKforeach) ? Id::Fhead : Id::Ftoe;
+    Identifier *idhead = (op == TOKforeach) ? Id::Ffront : Id::Fback;
     int sliced = 0;
 #endif
     Type *tab;
@@ -1412,7 +1412,7 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
                 {
                     /* Look for a head() or rear() overload
                      */
-                    Identifier *id = (op == TOKforeach) ? Id::Fhead : Id::Ftoe;
+                    Identifier *id = (op == TOKforeach) ? Id::Ffront : Id::Fback;
                     Dsymbol *s = search_function(ad, id);
                     FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
                     if (!fd)
