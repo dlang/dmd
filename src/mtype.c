@@ -2445,11 +2445,29 @@ Type *TypeNext::makeMutable()
 }
 
 MATCH TypeNext::constConv(Type *to)
-{   MATCH m = Type::constConv(to);
+{
+    //printf("TypeNext::constConv from = %s, to = %s\n", toChars(), to->toChars());
+    if (equals(to))
+        return MATCHexact;
 
-    if (m == MATCHconst &&
-        next->constConv(((TypeNext *)to)->next) == MATCHnomatch)
-        m = MATCHnomatch;
+    if (!(ty == to->ty && MODimplicitConv(mod, to->mod)))
+        return MATCHnomatch;
+
+    Type *tn = to->nextOf();
+    if (!(tn && next->ty == tn->ty))
+        return MATCHnomatch;
+
+    MATCH m;
+    if (to->isConst())  // whole tail const conversion
+    {   // Recursive shared level check
+        m = next->constConv(tn);
+        if (m == MATCHexact)
+            m = MATCHconst;
+    }
+    else
+    {   //printf("\tnext => %s, to->next => %s\n", next->toChars(), tn->toChars());
+        m = next->equals(tn) ? MATCHconst : MATCHnomatch;
+    }
     return m;
 }
 
@@ -3881,21 +3899,27 @@ MATCH TypeSArray::implicitConvTo(Type *to)
         return MATCHnomatch;
     }
     if (to->ty == Tarray)
-    {   int offset = 0;
+    {
         TypeDArray *ta = (TypeDArray *)to;
 
         if (!MODimplicitConv(next->mod, ta->next->mod))
             return MATCHnomatch;
 
-        if (next->equals(ta->next) ||
-//          next->implicitConvTo(ta->next) >= MATCHconst ||
-            next->constConv(ta->next) != MATCHnomatch ||
-            (ta->next->isBaseOf(next, &offset) && offset == 0 &&
-             !ta->next->isMutable()) ||
-            ta->next->ty == Tvoid)
+        /* Allow conversion to void[]
+         */
+        if (ta->next->ty == Tvoid)
+        {
             return MATCHconvert;
+        }
+
+        MATCH m = next->constConv(ta->next);
+        if (m != MATCHnomatch)
+        {
+            return MATCHconvert;
+        }
         return MATCHnomatch;
     }
+
     if (to->ty == Tsarray)
     {
         if (this == to)
@@ -4124,7 +4148,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
     }
 
     if (to->ty == Tarray)
-    {   int offset = 0;
+    {
         TypeDArray *ta = (TypeDArray *)to;
 
         if (!MODimplicitConv(next->mod, ta->next->mod))
@@ -4151,23 +4175,6 @@ MATCH TypeDArray::implicitConvTo(Type *to)
                 m = MATCHconst;
             return m;
         }
-
-#if 0
-        /* Allow conversions of T[][] to const(T)[][]
-         */
-        if (mod == ta->mod && next->ty == Tarray && ta->next->ty == Tarray)
-        {
-            m = next->implicitConvTo(ta->next);
-            if (m == MATCHconst)
-                return m;
-        }
-#endif
-
-        /* Conversion of array of derived to array of const(base)
-         */
-        if (ta->next->isBaseOf(next, &offset) && offset == 0 &&
-            !ta->next->isMutable())
-            return MATCHconvert;
     }
     return Type::implicitConvTo(to);
 }
@@ -4577,8 +4584,7 @@ MATCH TypeAArray::constConv(Type *to)
         // Pick the worst match
         return mkey < mindex ? mkey : mindex;
     }
-    else
-        return Type::constConv(to);
+    return Type::constConv(to);
 }
 
 /***************************** TypePointer *****************************/
@@ -4668,7 +4674,8 @@ MATCH TypePointer::implicitConvTo(Type *to)
         return MATCHnomatch;
     }
     else if (to->ty == Tpointer)
-    {   TypePointer *tp = (TypePointer *)to;
+    {
+        TypePointer *tp = (TypePointer *)to;
         assert(tp->next);
 
         if (!MODimplicitConv(next->mod, tp->next->mod))
@@ -4695,12 +4702,6 @@ MATCH TypePointer::implicitConvTo(Type *to)
                 m = MATCHconst;
             return m;
         }
-
-        /* Conversion of ptr to derived to ptr to base
-         */
-        int offset = 0;
-        if (tp->next->isBaseOf(next, &offset) && offset == 0)
-            return MATCHconvert;
     }
     return MATCHnomatch;
 }
@@ -5559,7 +5560,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
-    bool wildmatch = FALSE;
+    unsigned wildmatch = 0;
 
     if (ethis)
     {   Type *t = ethis->type;
@@ -5577,6 +5578,17 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             else
                 return MATCHnomatch;
         }
+        if (isWild())
+        {
+            if (t->isWild())
+                wildmatch |= MODwild;
+            else if (t->isConst())
+                wildmatch |= MODconst;
+            else if (t->isImmutable())
+                wildmatch |= MODimmutable;
+            else
+                wildmatch |= MODmutable;
+        }
     }
 
     size_t nparams = Parameter::dim(parameters);
@@ -5590,9 +5602,40 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         match = MATCHconvert;           // match ... with a "conversion" match level
     }
 
+    for (size_t u = 0; u < nargs; u++)
+    {
+        if (u >= nparams)
+            break;
+        Parameter *p = Parameter::getNth(parameters, u);
+        Expression *arg = args->tdata()[u];
+        assert(arg);
+
+        if (!(p->storageClass & STClazy && p->type->ty == Tvoid && arg->type->ty != Tvoid))
+        {
+            unsigned mod = arg->type->wildConvTo(p->type);
+            if (mod)
+            {
+                wildmatch |= mod;
+            }
+        }
+    }
+    if (wildmatch)
+    {   /* Calculate wild matching modifier
+         */
+        if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
+            wildmatch = MODconst;
+        else if (wildmatch & MODimmutable)
+            wildmatch = MODimmutable;
+        else if (wildmatch & MODwild)
+            wildmatch = MODwild;
+        else
+        {   assert(wildmatch & MODmutable);
+            wildmatch = MODmutable;
+        }
+    }
+
     for (size_t u = 0; u < nparams; u++)
     {   MATCH m;
-        Expression *arg;
 
         // BUG: what about out and ref?
 
@@ -5604,7 +5647,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                 continue;
             goto L1;        // try typesafe variadics
         }
-        arg = args->tdata()[u];
+        {
+        Expression *arg = args->tdata()[u];
         assert(arg);
 
         if (arg->op == TOKfunction)
@@ -5617,6 +5661,9 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
 
         //printf("arg: %s, type: %s\n", arg->toChars(), arg->type->toChars());
 
+        Type *targ = arg->type;
+        Type *tprm = wildmatch ? p->type->substWildTo(wildmatch) : p->type;
+
         // Non-lvalues do not match ref or out parameters
         if (p->storageClass & (STCref | STCout))
         {   if (!arg->isLvalue())
@@ -5628,32 +5675,31 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             /* Don't allow static arrays to be passed to mutable references
              * to static arrays if the argument cannot be modified.
              */
-            Type *targb = arg->type->toBasetype();
-            Type *tparb = p->type->toBasetype();
+            Type *targb = targ->toBasetype();
+            Type *tprmb = tprm->toBasetype();
             //printf("%s\n", targb->toChars());
-            //printf("%s\n", tparb->toChars());
-            if (targb->nextOf() && tparb->ty == Tsarray &&
-                !MODimplicitConv(targb->nextOf()->mod, tparb->nextOf()->mod))
+            //printf("%s\n", tprmb->toChars());
+            if (targb->nextOf() && tprmb->ty == Tsarray &&
+                !MODimplicitConv(targb->nextOf()->mod, tprmb->nextOf()->mod))
+                goto Nomatch;
+
+            // ref variable behaves like head-const reference
+            if (arg->op != TOKstring && !targb->constConv(tprmb))
                 goto Nomatch;
         }
 
-        if (p->storageClass & STClazy && p->type->ty == Tvoid &&
-                arg->type->ty != Tvoid)
+        if (p->storageClass & STClazy && tprm->ty == Tvoid && targ->ty != Tvoid)
             m = MATCHconvert;
         else
         {
-            //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), arg->type->toChars(), p->type->toChars());
+            //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
             if (flag)
                 // for partial ordering, value is an irrelevant mockup, just look at the type
-                m = arg->type->implicitConvTo(p->type);
+                m = targ->implicitConvTo(tprm);
             else
-                m = arg->implicitConvTo(p->type);
+                m = arg->implicitConvTo(tprm);
             //printf("match %d\n", m);
-            if (m == MATCHnomatch && arg->type->wildConvTo(p->type))
-            {
-                wildmatch = TRUE;       // mod matched to wild
-                m = MATCHconst;
-            }
+        }
         }
 
         /* prefer matching the element type rather than the array
@@ -5682,7 +5728,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                     {   TypeArray *ta = (TypeArray *)tb;
                         for (; u < nargs; u++)
                         {
-                            arg = args->tdata()[u];
+                            Expression *arg = args->tdata()[u];
                             assert(arg);
 #if 1
                             if (arg->op == TOKfunction)
@@ -8166,6 +8212,13 @@ MATCH TypeClass::constConv(Type *to)
     if (ty == to->ty && sym == ((TypeClass *)to)->sym &&
         MODimplicitConv(mod, to->mod))
         return MATCHconst;
+
+    /* Conversion derived to const(base)
+     */
+    int offset = 0;
+    if (to->isBaseOf(this, &offset) && offset == 0 && !to->isMutable())
+        return MATCHconvert;
+
     return MATCHnomatch;
 }
 

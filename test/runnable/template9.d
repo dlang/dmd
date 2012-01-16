@@ -644,6 +644,21 @@ void foo10(T)(T prm)
     pragma(msg, T);
     static assert(is(T == const(int)[]));
 }
+void boo10(T)(ref T val)        // ref paramter doesn't remove top const
+{
+    pragma(msg, T);
+    static assert(is(T == const(int[])));
+}
+void goo10(T)(auto ref T val)   // auto ref with lvalue doesn't
+{
+    pragma(msg, T);
+    static assert(is(T == const(int[])));
+}
+void hoo10(T)(auto ref T val)   // auto ref with rvalue does
+{
+    pragma(msg, T);
+    static assert(is(T == const(int)[]));
+}
 void bar10(T)(T prm)
 {
     pragma(msg, T);
@@ -654,6 +669,9 @@ void test10()
     const a = [1,2,3];
     static assert(is(typeof(a) == const(int[])));
     foo10(a);
+    boo10(a);
+    goo10(a);
+    hoo10(cast(const(int[]))[1,2,3]);
 
     int n;
     const p = &n;
