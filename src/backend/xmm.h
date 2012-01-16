@@ -299,4 +299,7 @@ enum
 // POPCNT and LZCNT (have their own CPUID bits)
     POPCNT     = 0xF30FB8,
     // LZCNT
+
+// AVX
+    XGETBV = 0x0F01D0,
 };
