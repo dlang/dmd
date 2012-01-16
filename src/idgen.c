@@ -238,19 +238,12 @@ Msgtable msgtable[] =
     { "apply", "opApply" },
     { "applyReverse", "opApplyReverse" },
 
-#if 1
+    // Ranges
     { "Fempty", "empty" },
-    { "Fhead", "front" },
-    { "Ftoe", "back" },
-    { "Fnext", "popFront" },
-    { "Fretreat", "popBack" },
-#else
-    { "Fempty", "empty" },
-    { "Fhead", "head" },
-    { "Ftoe", "toe" },
-    { "Fnext", "next" },
-    { "Fretreat", "retreat" },
-#endif
+    { "Ffront", "front" },
+    { "Fback", "back" },
+    { "FpopFront", "popFront" },
+    { "FpopBack", "popBack" },
 
     { "adDup", "_adDupT" },
     { "adReverse", "_adReverse" },

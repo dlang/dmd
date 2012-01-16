@@ -1768,12 +1768,12 @@ Lagain:
             Identifier *idhead;
             Identifier *idnext;
             if (op == TOKforeach)
-            {   idhead = Id::Fhead;
-                idnext = Id::Fnext;
+            {   idhead = Id::Ffront;
+                idnext = Id::FpopFront;
             }
             else
-            {   idhead = Id::Ftoe;
-                idnext = Id::Fretreat;
+            {   idhead = Id::Fback;
+                idnext = Id::FpopBack;
             }
             Dsymbol *shead = search_function(ad, idhead);
             if (!shead)
