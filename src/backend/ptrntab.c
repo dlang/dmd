@@ -2938,6 +2938,7 @@ getsec
  */
 
 
+OPTABLE0(XGETBV,   XGETBV, _modaxdx);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -3639,6 +3640,7 @@ getsec
         X("wrmsr",      0,              aptb0WRMSR ) \
         X("xadd",       2,              (P) aptb2XADD ) \
         X("xchg",       2,              (P) aptb2XCHG ) \
+        X("xgetbv",     0,              aptb0XGETBV ) \
         X("xlat",       ITopt | 1,      (P) aptb1XLAT ) \
         X("xlatb",      0,              aptb0XLATB ) \
         X("xor",        2,              (P) aptb2XOR ) \
