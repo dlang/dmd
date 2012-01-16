@@ -126,6 +126,7 @@ struct _iobuf
     align (1):
     version( Windows )
     {
+        align:
         char* _ptr;
         int   _cnt;
         char* _base;
@@ -133,7 +134,7 @@ struct _iobuf
         int   _file;
         int   _charbuf;
         int   _bufsiz;
-        int   __tmpnum;
+        char* __tmpnum;
     }
     else version( linux )
     {
