@@ -2524,16 +2524,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             case OPf_d:
             case OPd_f:
                 if (config.fpxmmregs && *pretregs & XMMREGS)
-                {
-                    c1 = codelem(e->E1,pretregs,FALSE);
-                    unsigned reg = findreg(*pretregs) - XMM0;
-                    if (e->Eoper == OPf_d)
-                        c1 = gen2(c1, 0xF30F5A, modregxrmx(3,reg,reg));
-                    else
-                        // CVTSD2SS XMMreg,XMMreg
-                        c1 = gen2(c1, 0xF20F5A, modregxrmx(3,reg,reg));
-                    return c1;
-                }
+                    return xmmcnvt(e, pretregs);
+
                 /* if won't do us much good to transfer back and        */
                 /* forth between 8088 registers and 8087 registers      */
                 if (OTcall(e->E1->Eoper) && !(*pretregs & allregs))
@@ -2551,42 +2543,23 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                 }
                 if (tycomplex(e->E1->Ety))
                     goto Lcomplex;
-                /* FALL-THROUGH */
+                goto Lload87;
+
             case OPs64_d:
+                if (!I64)
+                    goto Lload87;
+                /* FALL-THROUGH */
             case OPs32_d:
-                if (I64 && *pretregs & XMMREGS)
-                {
-                LXMMint2double:
-                    unsigned retregs = ALLREGS;
-
-                    c1 = codelem(e->E1, &retregs, FALSE);
-                    unsigned reg = findreg(retregs);
-
-                    if (e->Eoper == OPu32_d)
-                    {   // MOV reg,reg to zero upper 32 bits
-                        c1 = genregs(c1,0x89,reg,reg);
-                    }
-
-                    unsigned xreg;
-                    retregs = XMMREGS & *pretregs;
-                    c1 = cat(c1,allocreg(&retregs,&xreg,TYdouble));
-                    xreg = findreg(retregs);
-
-                    // CVTSI2SD xreg,reg
-                    c2 = gen2(NULL, 0xF20F2A, modregxrmx(3,xreg-XMM0,reg));
-                    if (e->Eoper == OPs64_d || e->Eoper == OPu32_d)
-                        c2->Irex |= REX_W;
-                    *pretregs = mask[xreg];
-                    return cat(c1, c2);
-                }
+                if (config.fpxmmregs && *pretregs & XMMREGS)
+                    return xmmcnvt(e, pretregs);
                 /* FALL-THROUGH */
             case OPs16_d:
             case OPu16_d:
+            Lload87:
                 return load87(e,0,pretregs,NULL,-1);
             case OPu32_d:
-                // load as 64-bit signed value
-                if (I64 && *pretregs & XMMREGS)
-                    goto LXMMint2double;
+                if (I64 && config.fpxmmregs && *pretregs & XMMREGS)
+                    return xmmcnvt(e,pretregs);
                 else if (!I16)
                 {
                     unsigned retregs = ALLREGS;
@@ -2604,10 +2577,17 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     return cat(c1, c2);
                 }
                 break;
-            case OPd_s16:
-            case OPd_s32:
-            case OPd_u16:
             case OPd_s64:
+                if (!I64)
+                    goto Lcnvt87;
+                /* FALL-THROUGH */
+            case OPd_s32:
+                if (config.fpxmmregs)
+                    return xmmcnvt(e,pretregs);
+                /* FALL-THROUGH */
+            case OPd_s16:
+            case OPd_u16:
+            Lcnvt87:
                 return cnvt87(e,pretregs);
             case OPd_u32:               // use subroutine, not 8087
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS

@@ -261,22 +261,24 @@ code *xmmcnvt(elem *e,regm_t *pretregs)
     switch (e->Eoper)
     {
     case OPd_f:
-        switch (e1->Eoper)
-        {
-        case OPs32_d:              goto Litof;
-        case OPs64_d: rex = REX_W; goto Litof;
-        case OPu32_d: rex = REX_W; zx = true; goto Litof;
-        Litof:
-            // directly use si2ss
-            regs = ALLREGS;
-            e1 = e1->E1;
-            op = CVTSI2SS;
-            break;
-        default:
-            regs = XMMREGS;
+        if (e1->Eoper == OPs32_d)
+            ;
+        else if (I64 && e1->Eoper == OPs64_d)
+            rex = REX_W;
+        else if (I64 && e1->Eoper == OPu32_d)
+        {   rex = REX_W;
+            zx = true;
+        }
+        else
+        {   regs = XMMREGS;
             op = CVTSD2SS;
+            ty = TYfloat;
             break;
         }
+        // directly use si2ss
+        regs = ALLREGS;
+        e1 = e1->E1;
+        op = CVTSI2SS;
         ty = TYfloat;
         break;
 
