@@ -1894,6 +1894,252 @@ void test88()
 }
 
 /************************************/
+// 4251
+
+void test4251a()
+{
+    alias int T;
+
+    static assert(!is( immutable(T)** : const(T)** ));  // NG, tail difference
+    static assert( is( immutable(T)** : const(T**) ));  // OK, tail to const
+
+    static assert( is(           T *** :           T *** ));    // OK, tail is same
+    static assert(!is(           T *** :     const(T)*** ));
+    static assert(!is(           T *** :     const(T*)** ));
+    static assert( is(           T *** :     const(T**)* ));    // OK, tail to const
+    static assert( is(           T *** :     const(T***) ));    // OK, tail to const
+    static assert(!is(           T *** : immutable(T)*** ));
+    static assert(!is(           T *** : immutable(T*)** ));
+    static assert(!is(           T *** : immutable(T**)* ));
+    static assert(!is(           T *** : immutable(T***) ));
+
+    static assert(!is(     const(T)*** :           T *** ));
+    static assert( is(     const(T)*** :     const(T)*** ));    // OK, tail is same
+    static assert(!is(     const(T)*** :     const(T*)** ));
+    static assert( is(     const(T)*** :     const(T**)* ));    // OK, tail to const
+    static assert( is(     const(T)*** :     const(T***) ));    // OK, tail to const
+    static assert(!is(     const(T)*** : immutable(T)*** ));
+    static assert(!is(     const(T)*** : immutable(T*)** ));
+    static assert(!is(     const(T)*** : immutable(T**)* ));
+    static assert(!is(     const(T)*** : immutable(T***) ));
+
+    static assert(!is(     const(T*)** :           T *** ));
+    static assert(!is(     const(T*)** :     const(T)*** ));
+    static assert( is(     const(T*)** :     const(T*)** ));    // OK, tail is same
+    static assert( is(     const(T*)** :     const(T**)* ));    // OK, tail to const
+    static assert( is(     const(T*)** :     const(T***) ));    // OK, tail to const
+    static assert(!is(     const(T*)** : immutable(T)*** ));
+    static assert(!is(     const(T*)** : immutable(T*)** ));
+    static assert(!is(     const(T*)** : immutable(T**)* ));
+    static assert(!is(     const(T*)** : immutable(T***) ));
+
+    static assert(!is(     const(T**)* :           T *** ));
+    static assert(!is(     const(T**)* :     const(T)*** ));
+    static assert(!is(     const(T**)* :     const(T*)** ));
+    static assert( is(     const(T**)* :     const(T**)* ));    // OK, tail is same
+    static assert( is(     const(T**)* :     const(T***) ));    // OK, tail is same
+    static assert(!is(     const(T**)* : immutable(T)*** ));
+    static assert(!is(     const(T**)* : immutable(T*)** ));
+    static assert(!is(     const(T**)* : immutable(T**)* ));
+    static assert(!is(     const(T**)* : immutable(T***) ));
+
+    static assert(!is(     const(T***) :           T *** ));
+    static assert(!is(     const(T***) :     const(T)*** ));
+    static assert(!is(     const(T***) :     const(T*)** ));
+    static assert( is(     const(T***) :     const(T**)* ));    // OK, tail is same
+    static assert( is(     const(T***) :     const(T***) ));    // OK, tail is same
+    static assert(!is(     const(T***) :           T *** ));
+    static assert(!is(     const(T***) : immutable(T)*** ));
+    static assert(!is(     const(T***) : immutable(T*)** ));
+    static assert(!is(     const(T***) : immutable(T**)* ));
+    static assert(!is(     const(T***) : immutable(T***) ));
+
+    static assert(!is( immutable(T)*** :           T *** ));
+    static assert(!is( immutable(T)*** :     const(T)*** ));
+    static assert(!is( immutable(T)*** :     const(T*)** ));
+    static assert( is( immutable(T)*** :     const(T**)* ));    // OK, tail to const
+    static assert( is( immutable(T)*** :     const(T***) ));    // OK, tail to const
+    static assert( is( immutable(T)*** : immutable(T)*** ));    // OK, tail is same
+    static assert(!is( immutable(T)*** : immutable(T*)** ));
+    static assert(!is( immutable(T)*** : immutable(T**)* ));
+    static assert(!is( immutable(T)*** : immutable(T***) ));
+
+    static assert(!is( immutable(T*)** :           T *** ));
+    static assert(!is( immutable(T*)** :     const(T)*** ));
+    static assert(!is( immutable(T*)** :     const(T*)** ));
+    static assert( is( immutable(T*)** :     const(T**)* ));    // OK, tail to const
+    static assert( is( immutable(T*)** :     const(T***) ));    // OK, tail to const
+    static assert(!is( immutable(T*)** : immutable(T)*** ));
+    static assert( is( immutable(T*)** : immutable(T*)** ));    // OK, tail is same
+    static assert(!is( immutable(T*)** : immutable(T**)* ));
+    static assert(!is( immutable(T*)** : immutable(T***) ));
+
+    static assert(!is( immutable(T**)* :           T *** ));
+    static assert(!is( immutable(T**)* :     const(T)*** ));
+    static assert(!is( immutable(T**)* :     const(T*)** ));
+    static assert( is( immutable(T**)* :     const(T**)* ));    // OK, tail to const
+    static assert( is( immutable(T**)* :     const(T***) ));    // OK, tail to const
+    static assert(!is( immutable(T**)* : immutable(T)*** ));
+    static assert(!is( immutable(T**)* : immutable(T*)** ));
+    static assert( is( immutable(T**)* : immutable(T**)* ));    // OK, tail is same
+    static assert( is( immutable(T**)* : immutable(T***) ));    // OK, tail is same
+
+    static assert(!is( immutable(T***) :           T *** ));
+    static assert(!is( immutable(T***) :     const(T)*** ));
+    static assert(!is( immutable(T***) :     const(T*)** ));
+    static assert( is( immutable(T***) :     const(T**)* ));    // OK, tail to const
+    static assert( is( immutable(T***) :     const(T***) ));    // OK, tail to const
+    static assert(!is( immutable(T***) : immutable(T)*** ));
+    static assert(!is( immutable(T***) : immutable(T*)** ));
+    static assert( is( immutable(T***) : immutable(T**)* ));    // OK, tail is same
+    static assert( is( immutable(T***) : immutable(T***) ));    // OK, tail is same
+
+    static assert( is( immutable(int)** : const(immutable(int)*)* ));   // OK, tail to const
+
+    // shared level should be same
+    static assert(!is( shared(T)*** :        const(T***)  ));   // NG, tail to const but shared level is different
+    static assert( is( shared(T***) : shared(const(T***)) ));   // OK, tail to const and shared level is same
+
+    // head qualifier difference is ignored
+    static assert(is( shared(int)* : shared(int*) ));
+    static assert(is( inout (int)* : inout (int*) ));
+
+    //
+    static assert(!is( T** : T*** ));
+    static assert(!is( T[]** : T*** ));
+}
+
+void test4251b()
+{
+    class C {}
+    class D : C {}
+
+    static assert(!is( C[]* : const(C)[]* ));
+    static assert( is( C[]* : const(C[])* ));
+
+    // derived class to const(base class) in tail
+    static assert( is( D[]  : const(C)[] ));
+    static assert( is( D[]* : const(C[])* ));
+
+    static assert( is( D*  : const(C)* ));
+    static assert( is( D** : const(C*)* ));
+
+    // derived class to const(base interface) in tail
+    interface I {}
+    class X : I {}
+    static assert(!is( X[] : const(I)[] ));
+
+    // interface to const(base interface) in tail
+    interface J {}
+    interface K : I, J {}
+    static assert( is( K[] : const(I)[] )); // OK, runtime offset is same
+    static assert(!is( K[] : const(J)[] )); // NG, runtime offset is different
+}
+
+/************************************/
+// 5493
+
+void test5493()
+{
+    // non template function
+    void pifun(immutable(char)[]* a) {}
+    void rifun(ref immutable(char)[] a) {}
+
+    void pcfun(const(char)[]* a) {}
+    void rcfun(ref const(char)[] a) {}
+
+    immutable char[] buf1 = "hello";
+    static assert(!__traits(compiles, pifun(buf1)));
+    static assert(!__traits(compiles, pcfun(buf1)));
+    static assert(!__traits(compiles, rifun(buf1)));
+    static assert(!__traits(compiles, rcfun(buf1)));
+
+    immutable char[5] buf2 = "hello";
+    static assert(!__traits(compiles, pifun(buf2)));
+    static assert(!__traits(compiles, pcfun(buf2)));
+    static assert(!__traits(compiles, rifun(buf2)));
+    static assert(!__traits(compiles, rcfun(buf2)));
+
+    const char[] buf3 = "hello";
+    static assert(!__traits(compiles, pcfun(buf3)));
+    static assert(!__traits(compiles, rcfun(buf3)));
+
+    const char[5] buf4 = "hello";
+    static assert(!__traits(compiles, pcfun(buf4)));
+    static assert(!__traits(compiles, rcfun(buf4)));
+
+    // template function
+    void pmesswith(T)(const(T)[]* ts, const(T) t)
+    {
+        *ts ~= t;
+    }
+    void rmesswith(T)(ref const(T)[] ts, const(T) t)
+    {
+        ts ~= t;
+    }
+    class C
+    {
+        int x;
+        this(int i) { x = i; }
+    }
+    C[] cs;
+    immutable C ci = new immutable(C)(6);
+    assert (ci.x == 6);
+    static assert(!__traits(compiles, pmesswith(&cs,ci)));
+    static assert(!__traits(compiles, rmesswith(cs,ci)));
+    //cs[$-1].x = 14;
+    //assert (ci.x == 14); //whoops.
+}
+
+/************************************/
+// 5493 + inout
+
+void test5493inout()
+{
+    int m;
+    const(int) c;
+    immutable(int) i;
+
+    inout(int) ptrfoo(inout(int)** a, inout(int)* b)
+    {
+        *a = b;
+        return 0;   // dummy
+    }
+    inout(int) reffoo(ref inout(int)* a, inout(int)* b)
+    {
+        a = b;
+        return 0;   // dummy
+    }
+
+    // wild matching: inout == mutable
+    int* pm;
+                                      ptrfoo(&pm, &m);    assert(pm == &m);
+    static assert(!__traits(compiles, ptrfoo(&pm, &c)));
+    static assert(!__traits(compiles, ptrfoo(&pm, &i)));
+                                      reffoo( pm, &m);    assert(pm == &m);
+    static assert(!__traits(compiles, reffoo( pm, &c)));
+    static assert(!__traits(compiles, reffoo( pm, &i)));
+
+    // wild matching: inout == const
+    const(int)* pc;
+    ptrfoo(&pc, &m);    assert(pc == &m);
+    ptrfoo(&pc, &c);    assert(pc == &c);
+    ptrfoo(&pc, &i);    assert(pc == &i);
+    reffoo( pc, &m);    assert(pc == &m);
+    reffoo( pc, &c);    assert(pc == &c);
+    reffoo( pc, &i);    assert(pc == &i);
+
+    // wild matching: inout == immutable
+    immutable(int)* pi;
+    static assert(!__traits(compiles, ptrfoo(&pi, &m)));
+    static assert(!__traits(compiles, ptrfoo(&pi, &c)));
+                                      ptrfoo(&pi, &i);    assert(pi == &i);
+    static assert(!__traits(compiles, reffoo( pi, &m)));
+    static assert(!__traits(compiles, reffoo( pi, &c)));
+                                      reffoo( pi, &i);    assert(pi == &i);
+}
+
+/************************************/
 // 6782
 
 struct Tuple6782(T...)
@@ -2208,6 +2454,21 @@ void test6940()
 }
 
 /************************************/
+// 7202
+
+void test7202()
+{
+    void writeln(string s) @system { printf("%.*s\n", s.length, s.ptr); }
+    void delegate() @system x = { writeln("I am @system"); };
+    void delegate() @safe y = {  };
+    auto px = &x;
+    auto py = &y;
+    static assert(!__traits(compiles, px = py)); // accepts-invalid
+    *px = x;
+    y(); // "I am @system" -> no output, OK
+}
+
+/************************************/
 
 int main()
 {
@@ -2300,6 +2561,10 @@ int main()
     test1961b();
     test1961c();
     test88();
+    test4251a();
+    test4251b();
+    test5493();
+    test5493inout();
     test6782();
     test6864();
     test6865();
@@ -2308,6 +2573,7 @@ int main()
     test6912();
     test6939();
     test6940();
+    test7202();
 
     printf("Success\n");
     return 0;
