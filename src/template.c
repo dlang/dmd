@@ -1239,7 +1239,9 @@ Lretry:
             /* Remove top const for dynamic array types and pointer types
              */
             if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
-                !argtype->isMutable())
+                !argtype->isMutable() &&
+                (!(fparam->storageClass & STCref) ||
+                 (fparam->storageClass & STCauto) && !farg->isLvalue()))
             {
                 argtype = argtype->mutableOf();
             }
@@ -1798,7 +1800,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     ti = new TemplateInstance(loc, td_best, tdargs);
     ti->semantic(sc, fargs);
     fd_best = ti->toAlias()->isFuncDeclaration();
-    if (!fd_best)
+    if (!fd_best || !((TypeFunction*)fd_best->type)->callMatch(ethis, fargs, flags))
         goto Lerror;
     return fd_best;
 

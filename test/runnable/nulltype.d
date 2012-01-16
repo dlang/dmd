@@ -78,9 +78,31 @@ static assert(is(typeof(h5899) R == return) && is(R == int[]));
 pragma(msg, typeof(h5899));
 
 /**********************************************/
+// 7278
 
-void main()
+struct Foo7278(string s)
+{
+    string var;
+    void func()
+    {
+        string local = var;
+    }
+}
+
+void test7278()
+{
+    Foo7278!null a;
+    Foo7278!null b;
+}
+
+/**********************************************/
+
+int main()
 {
     test1();
     test2();
+    test7278();
+
+    printf("Success\n");
+    return 0;
 }

@@ -1146,10 +1146,12 @@ void Lexer::scan(Token *t)
                     else
                         t->value = TOKequal;            // ==
                 }
+#if DMDV2
                 else if (*p == '>')
                 {   p++;
                     t->value = TOKgoesto;               // =>
                 }
+#endif
                 else
                     t->value = TOKassign;               // =
                 return;
@@ -2075,8 +2077,11 @@ TOK Lexer::number(Token *t)
                         continue;
                     }
                     if (c == '.' && p[1] != '.')
-                    {   if (isalpha(p[1]) || p[1] == '_')
+                    {
+#if DMDV2
+                        if (isalpha(p[1]) || p[1] == '_')
                             goto done;
+#endif
                         goto real;
                     }
                     else if (c == 'i' || c == 'f' || c == 'F' ||

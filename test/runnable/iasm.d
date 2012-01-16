@@ -2257,6 +2257,7 @@ void test23()
 	0xDD, 0x4D, 0xE0,    	// fisttp	long64 ptr -010h[EBP]
 	0x0F, 0x01, 0xC8,    	// monitor
 	0x0F, 0x01, 0xC9,    	// mwait
+	0x0F, 0x01, 0xD0,    	// xgetbv
 
 	0x66, 0x0F, 0xD0, 0xCA,    	// addsubpd	XMM1,XMM2
 	0x66, 0x0F, 0xD0, 0x4D, 0xE8, 	// addsubpd	XMM1,-010h[EBP]
@@ -2296,6 +2297,7 @@ void test23()
 
 	monitor				;
 	mwait				;
+	xgetbv				;
 
 	addsubpd	XMM1,XMM2	;
 	addsubpd	XMM1,m128[EBP]	;
