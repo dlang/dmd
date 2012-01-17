@@ -4542,6 +4542,19 @@ void test7212()
 
 /***************************************************/
 
+void test242()
+{
+    foreach(v; long.max / 4 .. long.max / 4 + 1)
+    {
+        immutable long t1 = v;
+        long t2 = t1 + t1;
+        t2 *= 1.0;
+        assert(t2 > long.max / 4);
+    }
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4780,6 +4793,7 @@ int main()
     test6354();
     test7072();
     test7212();
+    test242();
 
     writefln("Success");
     return 0;
