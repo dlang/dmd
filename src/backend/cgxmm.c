@@ -14,6 +14,8 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
+#include        <stdlib.h>
+
 #include        "cc.h"
 #include        "oper.h"
 #include        "el.h"
@@ -742,6 +744,11 @@ code *cdvector(elem *e, regm_t *pretregs)
      *  /   \
      * op   op1
      */
+
+    if (!config.fpxmmregs)
+    {   printf("SIMD operations not supported on this platform\n");
+        exit(1);
+    }
 
     elem *e1 = e->E1;
     assert(e1->Eoper == OPparam);
