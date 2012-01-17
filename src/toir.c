@@ -500,7 +500,7 @@ int intrinsic_op(char *name)
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
 
-        "4simd4simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
 
         "5bitop2btFNaNbxPkkZi",
         "5bitop3bsfFNaNbkZi",
@@ -530,7 +530,7 @@ int intrinsic_op(char *name)
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
 
-        "4simd4simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
 
         "5bitop2btFNaNbxPmmZi",
         "5bitop3bsfFNaNbmZi",
