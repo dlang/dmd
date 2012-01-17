@@ -18,13 +18,17 @@ module core.sync.mutex;
 
 public import core.sync.exception;
 
-version( Win32 )
+version( Windows )
 {
     private import core.sys.windows.windows;
 }
 else version( Posix )
 {
     private import core.sys.posix.pthread;
+}
+else
+{
+    static assert(false, "Platform not supported");
 }
 
 
@@ -56,7 +60,7 @@ class Mutex :
      */
     this()
     {
-        version( Win32 )
+        version( Windows )
         {
             InitializeCriticalSection( &m_hndl );
         }
@@ -99,7 +103,7 @@ class Mutex :
 
     ~this()
     {
-        version( Win32 )
+        version( Windows )
         {
             DeleteCriticalSection( &m_hndl );
         }
@@ -126,7 +130,7 @@ class Mutex :
      */
     void lock()
     {
-        version( Win32 )
+        version( Windows )
         {
             EnterCriticalSection( &m_hndl );
         }
@@ -148,7 +152,7 @@ class Mutex :
      */
     void unlock()
     {
-        version( Win32 )
+        version( Windows )
         {
             LeaveCriticalSection( &m_hndl );
         }
@@ -174,7 +178,7 @@ class Mutex :
      */
     bool tryLock()
     {
-        version( Win32 )
+        version( Windows )
         {
             return TryEnterCriticalSection( &m_hndl ) != 0;
         }
@@ -186,7 +190,7 @@ class Mutex :
 
 
 private:
-    version( Win32 )
+    version( Windows )
     {
         CRITICAL_SECTION    m_hndl;
     }
