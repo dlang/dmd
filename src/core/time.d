@@ -1744,6 +1744,7 @@ struct TickDuration
         length *= value;
     }
 
+    version(none)
     unittest
     {
         immutable curr = TickDuration.currSystemTick;
@@ -1795,6 +1796,7 @@ struct TickDuration
         length /= value;
     }
 
+    version(none)
     unittest
     {
         immutable curr = TickDuration.currSystemTick;
@@ -1842,6 +1844,7 @@ struct TickDuration
         return TickDuration(cast(long)(length * value));
     }
 
+    version(none)
     unittest
     {
         foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
@@ -1881,6 +1884,7 @@ struct TickDuration
         return TickDuration(cast(long)(length / value));
     }
 
+    version(none)
     unittest
     {
         foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
@@ -3256,6 +3260,7 @@ version(unittest) void assertApprox()(long actual,
         throw new AssertError(msg ~ ": upper: " ~ numToString(actual), __FILE__, line);
 }
 
+version(none)
 version(unittest) long abs(long val)
 {
     return val & long.max;
