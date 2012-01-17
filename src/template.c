@@ -14,6 +14,7 @@
 #include <assert.h>
 
 #include "root.h"
+#include "aav.h"
 #include "rmem.h"
 #include "stringtable.h"
 
@@ -2924,7 +2925,7 @@ Object *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
 
 // value-parameter
 
-Expression *TemplateValueParameter::edummy = NULL;
+AA *TemplateValueParameter::edummies = NULL;
 
 TemplateValueParameter::TemplateValueParameter(Loc loc, Identifier *ident, Type *valType,
         Expression *specValue, Expression *defaultValue)
@@ -3035,14 +3036,14 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
     Object *oarg;
 
     if (i < tiargs->dim)
-        oarg = (Object *)tiargs->data[i];
+        oarg = tiargs->tdata()[i];
     else
     {   // Get default argument instead
         oarg = defaultArg(loc, sc);
         if (!oarg)
         {   assert(i < dedtypes->dim);
             // It might have already been deduced
-            oarg = (Object *)dedtypes->data[i];
+            oarg = dedtypes->tdata()[i];
             if (!oarg)
                 goto Lnomatch;
         }
@@ -3056,7 +3057,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
     if (specValue)
     {
-        if (!ei || ei == edummy)
+        if (!ei || _aaGetRvalue(edummies, ei->type) == ei)
             goto Lnomatch;
 
         Expression *e = specValue;
@@ -3141,9 +3142,10 @@ void *TemplateValueParameter::dummyArg()
     if (!e)
     {
         // Create a dummy value
-        if (!edummy)
-            edummy = valType->defaultInit();
-        e = edummy;
+        Expression **pe = (Expression **)_aaGet(&edummies, valType);
+        if (!*pe)
+            *pe = valType->defaultInit();
+        e = *pe;
     }
     return (void *)e;
 }
