@@ -4554,6 +4554,73 @@ void test242()
 }
 
 /***************************************************/
+// 7290
+
+version (D_InlineAsm_X86)
+{
+    enum GP_BP = "EBP";
+    version = ASM_X86;
+}
+else version (D_InlineAsm_X86_64)
+{
+    enum GP_BP = "RBP";
+    version = ASM_X86;
+}
+
+int foo7290a(alias dg)()
+{
+    assert(dg(5) == 7);
+
+    version (ASM_X86)
+    {
+        void* p;
+        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
+        assert(p < dg.ptr);
+    }
+}
+
+int foo7290b(scope int delegate(int a) dg)
+{
+    assert(dg(5) == 7);
+
+    version (ASM_X86)
+    {
+        void* p;
+        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
+        assert(p < dg.ptr);
+    }
+}
+
+int foo7290c(int delegate(int a) dg)
+{
+    assert(dg(5) == 7);
+
+    version (ASM_X86)
+    {
+        void* p;
+        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
+        assert(p < dg.ptr);
+    }
+}
+
+void test7290()
+{
+    int add = 2;
+    scope dg = (int a) => a + add;
+
+    version (ASM_X86)
+    {
+        void* p;
+        mixin(`asm { mov p, ` ~ GP_BP ~ `; }`);
+        assert(dg.ptr <= p);
+    }
+
+    foo7290a!dg();
+    foo7290b(dg);
+    foo7290c(dg);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4794,6 +4861,7 @@ int main()
     test7072();
     test7212();
     test242();
+    test7290();
 
     writefln("Success");
     return 0;
