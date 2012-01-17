@@ -551,7 +551,7 @@ void test2j()
 float4 test3()
 {
     float4 a;
-    a = simd(XMM.PXOR, a, a);
+    a = __simd(XMM.PXOR, a, a);
     return a;
 }
 
