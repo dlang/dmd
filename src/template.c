@@ -14,6 +14,7 @@
 #include <assert.h>
 
 #include "root.h"
+#include "aav.h"
 #include "rmem.h"
 #include "stringtable.h"
 
@@ -3587,7 +3588,7 @@ Object *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
 
 // value-parameter
 
-Expression *TemplateValueParameter::edummy = NULL;
+AA *TemplateValueParameter::edummies = NULL;
 
 TemplateValueParameter::TemplateValueParameter(Loc loc, Identifier *ident, Type *valType,
         Expression *specValue, Expression *defaultValue)
@@ -3737,7 +3738,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, Objects *tiargs,
 
     if (specValue)
     {
-        if (!ei || ei == edummy)
+        if (!ei || _aaGetRvalue(edummies, ei->type) == ei)
             goto Lnomatch;
 
         Expression *e = specValue;
@@ -3820,9 +3821,10 @@ void *TemplateValueParameter::dummyArg()
     if (!e)
     {
         // Create a dummy value
-        if (!edummy)
-            edummy = valType->defaultInit();
-        e = edummy;
+        Expression **pe = (Expression **)_aaGet(&edummies, valType);
+        if (!*pe)
+            *pe = valType->defaultInit();
+        e = *pe;
     }
     return (void *)e;
 }
