@@ -2120,6 +2120,8 @@ code *cdshift(elem *e,regm_t *pretregs)
                         cs.Iop = 0x8D;
                         code_newreg(&cs,resreg);
                         cs.Iflags = 0;
+                        if (I64 && sz == 8)
+                            cs.Irex |= REX_W;
                         cg = gen(NULL,&cs);             // LEA resreg,[reg * ss]
                         freenode(e1);
                         freenode(e2);
@@ -2627,7 +2629,7 @@ code *cdind(elem *e,regm_t *pretregs)
         }
         if (retregs & XMMREGS)
         {
-            assert(sz == 4 || sz == 8);         // float or double
+            assert(sz == 4 || sz == 8 || sz == 16); // float, double or vector
             cs.Iop = xmmload(tym);
             reg -= XMM0;
             goto L2;
