@@ -1744,7 +1744,6 @@ struct TickDuration
         length *= value;
     }
 
-    version(none)
     unittest
     {
         immutable curr = TickDuration.currSystemTick;
@@ -1755,7 +1754,7 @@ struct TickDuration
 
         t1 = curr;
         t1 *= 2.0;
-        immutable tol = TickDuration(cast(long)(abs(t1.length) * double.epsilon * 2.0));
+        immutable tol = TickDuration(cast(long)(_abs(t1.length) * double.epsilon * 2.0));
         assertApprox(t1, t2 - tol, t2 + tol);
 
         t1 = curr;
@@ -1796,7 +1795,6 @@ struct TickDuration
         length /= value;
     }
 
-    version(none)
     unittest
     {
         immutable curr = TickDuration.currSystemTick;
@@ -1807,7 +1805,7 @@ struct TickDuration
 
         t2 = curr + curr;
         t2 /= 2.0;
-        immutable tol = TickDuration(cast(long)(abs(t2.length) * double.epsilon / 2.0));
+        immutable tol = TickDuration(cast(long)(_abs(t2.length) * double.epsilon / 2.0));
         assertApprox(t1, t2 - tol, t2 + tol);
 
         t2 = curr + curr;
@@ -1844,7 +1842,6 @@ struct TickDuration
         return TickDuration(cast(long)(length * value));
     }
 
-    version(none)
     unittest
     {
         foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
@@ -1852,7 +1849,7 @@ struct TickDuration
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
             assert(t1 * 2 == t2);
-            immutable tol = TickDuration(cast(long)(abs(t1.length) * double.epsilon * 2.0));
+            immutable tol = TickDuration(cast(long)(_abs(t1.length) * double.epsilon * 2.0));
             assertApprox(t1 * 2.0, t2 - tol, t2 + tol);
             assert(t1 * 2.1 > t2);
         }
@@ -1884,7 +1881,6 @@ struct TickDuration
         return TickDuration(cast(long)(length / value));
     }
 
-    version(none)
     unittest
     {
         foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
@@ -1892,7 +1888,7 @@ struct TickDuration
             T t1 = TickDuration.currSystemTick;
             T t2 = t1 + t1;
             assert(t2 / 2 == t1);
-            immutable tol = TickDuration(cast(long)(abs(t2.length) * double.epsilon / 2.0));
+            immutable tol = TickDuration(cast(long)(_abs(t2.length) * double.epsilon / 2.0));
             assertApprox(t2 / 2.0, t1 - tol, t1 + tol);
             assert(t2 / 2.1 < t1);
 
@@ -3260,8 +3256,7 @@ version(unittest) void assertApprox()(long actual,
         throw new AssertError(msg ~ ": upper: " ~ numToString(actual), __FILE__, line);
 }
 
-version(none)
-version(unittest) long abs(long val)
+version(unittest) long _abs(long val)
 {
     return val & long.max;
 }
