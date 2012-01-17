@@ -31,10 +31,10 @@ private
 
     extern (C) void* gc_malloc( size_t sz, uint ba = 0 );
     extern (C) void  gc_free( void* p );
-    
+
     // Convenience function to make sure the NO_INTERIOR gets set on the
     // aaA arrays.
-    aaA*[] newaaA(size_t len) 
+    aaA*[] newaaA(size_t len)
     {
         auto ptr = cast(aaA**) gc_malloc(
             len * (aaA*).sizeof, BlkAttr.NO_INTERIOR);
@@ -595,54 +595,54 @@ unittest
 extern (D) alias int delegate(void *) dg_t;
 
 int _aaApply(AA aa, size_t keysize, dg_t dg)
-{   int result;
+{
+    if (!aa.a)
+    {
+        return 0;
+    }
 
+    immutable alignsize = aligntsize(keysize);
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
 
-    auto alignsize = aligntsize(keysize);
-
-    if (aa.a)
+    foreach (e; aa.a.b)
     {
-    Loop:
-        foreach (e; aa.a.b)
+        while (e)
         {
-            while (e)
-            {
-                result = dg(cast(void *)(e + 1) + alignsize);
-                if (result)
-                    break Loop;
-                e = e.next;
-            }
+            auto result = dg(cast(void *)(e + 1) + alignsize);
+            if (result)
+                return result;
+            e = e.next;
         }
     }
-    return result;
+    return 0;
 }
 
 // dg is D, but _aaApply2() is C
 extern (D) alias int delegate(void *, void *) dg2_t;
 
 int _aaApply2(AA aa, size_t keysize, dg2_t dg)
-{   int result;
+{
+    if (!aa.a)
+    {
+        return 0;
+    }
 
     //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
 
-    auto alignsize = aligntsize(keysize);
+    immutable alignsize = aligntsize(keysize);
 
-    if (aa.a)
+    foreach (e; aa.a.b)
     {
-    Loop:
-        foreach (e; aa.a.b)
+        while (e)
         {
-            while (e)
-            {
-                result = dg(cast(void *)(e + 1), cast(void *)(e + 1) + alignsize);
-                if (result)
-                    break Loop;
-                e = e.next;
-            }
+            auto result = dg(e + 1, cast(void *)(e + 1) + alignsize);
+            if (result)
+                return result;
+            e = e.next;
         }
     }
-    return result;
+
+    return 0;
 }
 
 

@@ -2017,7 +2017,75 @@ extern (C)
 
 struct AssociativeArray(Key, Value)
 {
-    void* p;
+private:
+    // Duplicates of the stuff found in druntime/src/rt/aaA.d
+    struct Slot
+    {
+        Slot *next;
+        hash_t hash;
+        Key key;
+        Value value;
+    }
+
+    struct Hashtable
+    {
+        Slot*[] b;
+        size_t nodes;
+        TypeInfo keyti;
+        Slot*[4] binit;
+    }
+
+    void* p; // really Hashtable*
+
+    struct Range
+    {
+        // State
+        Slot*[] slots;
+        Slot* current;
+
+        this(void * aa)
+        {
+            auto pImpl = cast(Hashtable*) aa;
+            slots = pImpl.b;
+            nextSlot();
+        }
+
+        void nextSlot()
+        {
+            foreach (i, slot; slots)
+            {
+                if (!slot) continue;
+                current = slot;
+                slots = slots.ptr[i .. slots.length];
+                break;
+            }
+        }
+
+    public:
+        @property bool empty() const
+        {
+            return current is null;
+        }
+
+        @property ref inout(Slot) front() inout
+        {
+            assert(current);
+            return *current;
+        }
+
+        void popFront()
+        {
+            assert(current);
+            current = current.next;
+            if (!current)
+            {
+                slots = slots[1 .. $];
+                nextSlot();
+            }
+        }
+    }
+
+public:
 
     @property size_t length() { return _aaLen(p); }
 
@@ -2049,27 +2117,6 @@ struct AssociativeArray(Key, Value)
         return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
     }
 
-    int delegate(int delegate(ref Key) dg) byKey()
-    {
-        // Discard the Value part and just do the Key
-        int foo(int delegate(ref Key) dg)
-        {
-            int byKeydg(ref Key key, ref Value value)
-            {
-                return dg(key);
-            }
-
-        return _aaApply2(p, Key.sizeof, cast(_dg2_t)&byKeydg);
-        }
-
-        return &foo;
-    }
-
-    int delegate(int delegate(ref Value) dg) byValue()
-    {
-        return &opApply;
-    }
-
     Value get(Key key, lazy Value defaultValue)
     {
         auto p = key in *cast(Value[Key]*)(&p);
@@ -2086,6 +2133,50 @@ struct AssociativeArray(Key, Value)
             }
             return result;
         }
+
+    @property auto byKey()
+    {
+        static struct Result
+        {
+            Range state;
+
+            this(void* p)
+            {
+                state = Range(p);
+            }
+
+            @property ref Key front()
+            {
+                return state.front.key;
+            }
+
+            alias state this;
+        }
+
+        return Result(p);
+    }
+
+    @property auto byValue()
+    {
+        static struct Result
+        {
+            Range state;
+
+            this(void* p)
+            {
+                state = Range(p);
+            }
+
+            @property ref Value front()
+            {
+                return state.front.value;
+            }
+
+            alias state this;
+        }
+
+        return Result(p);
+    }
 }
 
 unittest
@@ -2093,6 +2184,18 @@ unittest
     auto a = [ 1:"one", 2:"two", 3:"three" ];
     auto b = a.dup;
     assert(b == [ 1:"one", 2:"two", 3:"three" ]);
+
+    int[] c;
+    foreach (k; a.byKey)
+    {
+        c ~= k;
+    }
+
+    assert(c.length == 3);
+    c.sort;
+    assert(c[0] == 1);
+    assert(c[1] == 2);
+    assert(c[2] == 3);
 }
 unittest
 {
