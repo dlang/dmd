@@ -2120,6 +2120,8 @@ code *cdshift(elem *e,regm_t *pretregs)
                         cs.Iop = 0x8D;
                         code_newreg(&cs,resreg);
                         cs.Iflags = 0;
+                        if (I64 && sz == 8)
+                            cs.Irex |= REX_W;
                         cg = gen(NULL,&cs);             // LEA resreg,[reg * ss]
                         freenode(e1);
                         freenode(e2);
