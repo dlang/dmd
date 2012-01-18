@@ -33,8 +33,8 @@ UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport -property
 CFLAGS=-m$(MODEL) -O
 
 OBJDIR=obj/$(MODEL)
-DRUNTIME_BASE=druntime
-DRUNTIME=lib/lib$(DRUNTIME_BASE)-$(OS)$(MODEL).a
+DRUNTIME_BASE=druntime-$(OS)$(MODEL)
+DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 
 DOCFMT=
 
