@@ -355,7 +355,18 @@ void showCtfeExpr(Expression *e, int level = 0)
         if (v && v->getValue())
             showCtfeExpr(v->getValue(), level + 1);
     }
-    else printf("VALUE %p: %s\n", e, e->toChars());
+    else if (isPointer(e->type))
+    {
+        // This is potentially recursive. We mustn't try to print the thing we're pointing to.
+        if (e->op == TOKindex)
+            printf("POINTER %p into %p [%s]\n", e, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2->toChars());
+        else if (e->op == TOKdotvar)
+            printf("POINTER %p to %p .%s\n", e, ((DotVarExp *)e)->e1, ((DotVarExp *)e)->var->toChars());
+        else
+            printf("POINTER %p: %s\n", e, e->toChars());
+    }
+    else
+        printf("VALUE %p: %s\n", e, e->toChars());
 
     if (elements)
     {
