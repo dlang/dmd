@@ -425,6 +425,7 @@ Statement *ImportStatement::doInlineStatement(InlineDoState *ids)
 
 Statement *ForStatement::doInlineStatement(InlineDoState *ids)
 {
+    //printf("ForStatement::doInlineStatement()\n");
     Statement *init = this->init ? this->init->doInlineStatement(ids) : NULL;
     Expression *condition = this->condition ? this->condition->doInline(ids) : NULL;
     Expression *increment = this->increment ? this->increment->doInline(ids) : NULL;
@@ -932,9 +933,6 @@ Statement *ExpStatement::inlineScan(InlineScanState *iss)
                 {
                     Statement *s;
                     fd->expandInline(iss, NULL, ce->arguments, &s);
-                    // Need to reevaluate whether parent can now be inlined
-                    // in expressions, as we might have inlined statements
-                    iss->fd->inlineStatusExp = ILSuninitialized;
                     return s;
                 }
             }
@@ -1413,6 +1411,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
         return 0;
     }
 
+#if 1
     switch (statementsToo ? inlineStatusStmt : inlineStatusExp)
     {
         case ILSyes:
@@ -1433,6 +1432,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
         default:
             assert(0);
     }
+#endif
 
     if (type)
     {   assert(type->ty == Tfunction);
@@ -1495,7 +1495,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     ics.hdrscan = hdrscan;
     cost = fbody->inlineCost(&ics);
 #if CANINLINE_LOG
-    printf("cost = %d\n", cost);
+    printf("cost = %d for %s\n", cost, toChars());
 #endif
     if (tooCostly(cost))
         goto Lno;
@@ -1512,24 +1512,26 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 
         inlineScan();    // Don't scan recursively for header content scan
 
-        if (!statementsToo)
+        if (inlineStatusExp == ILSuninitialized)
         {
-            if (inlineStatusExp == ILSuninitialized)
-            {
-                // Need to redo cost computation, as some statements may have been inlined
-                memset(&ics, 0, sizeof(ics));
-                ics.hasthis = hasthis;
-                ics.fd = this;
-                ics.hdrscan = hdrscan;
-                cost = fbody->inlineCost(&ics);
-            #if CANINLINE_LOG
-                printf("cost = %d\n", cost);
-            #endif
-                if (cost > COST_MAX)
-                    goto Lno;
+            // Need to redo cost computation, as some statements or expressions have been inlined
+            memset(&ics, 0, sizeof(ics));
+            ics.hasthis = hasthis;
+            ics.fd = this;
+            ics.hdrscan = hdrscan;
+            cost = fbody->inlineCost(&ics);
+        #if CANINLINE_LOG
+            printf("recomputed cost = %d for %s\n", cost, toChars());
+        #endif
+            if (tooCostly(cost))
+                goto Lno;
+            if (!statementsToo && cost > COST_MAX)
+                goto Lno;
 
+            if (statementsToo)
+                inlineStatusStmt = ILSyes;
+            else
                 inlineStatusExp = ILSyes;
-            }
         }
     }
 #if CANINLINE_LOG
@@ -1729,6 +1731,9 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
         //fprintf(stderr, "CallExp::inlineScan: e = "); e->print();
     }
 
+    // Need to reevaluate whether parent can now be inlined
+    // in expressions, as we might have inlined statements
+    iss->fd->inlineStatusExp = ILSuninitialized;
     return e;
 }
 
