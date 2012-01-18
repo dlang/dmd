@@ -2182,6 +2182,19 @@ public:
 
 unittest
 {
+    int[int] a;
+    foreach (i; a.byKey)
+    {
+        assert(false);
+    }
+    foreach (i; a.byValue)
+    {
+        assert(false);
+    }
+}
+
+unittest
+{
     auto a = [ 1:"one", 2:"two", 3:"three" ];
     auto b = a.dup;
     assert(b == [ 1:"one", 2:"two", 3:"three" ]);
