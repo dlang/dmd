@@ -32,9 +32,9 @@ UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport -property
 
 CFLAGS=-m$(MODEL) -O
 
-OBJDIR=obj
+OBJDIR=obj/$(MODEL)
 DRUNTIME_BASE=druntime
-DRUNTIME=lib/lib$(DRUNTIME_BASE).a
+DRUNTIME=lib/lib$(DRUNTIME_BASE)-$(OS)$(MODEL).a
 
 DOCFMT=
 
@@ -572,6 +572,5 @@ install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
 
 clean:
-	rm -f $(DOCS) $(DRUNTIME)
-	rm -rf $(OBJDIR) import/core
+	rm -rf obj lib import/core doc
 
