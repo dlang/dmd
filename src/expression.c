@@ -4707,7 +4707,7 @@ void VarExp::checkEscape()
     if (v)
     {   Type *tb = v->type->toBasetype();
         // if reference type
-        if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass)
+        if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass || tb->ty == Tdelegate)
         {
             if (v->isScope() && !v->noscope)
                 error("escaping reference to scope local %s", v->toChars());
