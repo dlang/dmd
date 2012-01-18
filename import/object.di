@@ -400,6 +400,7 @@ private:
 
         this(void * aa)
         {
+            if (!aa) return;
             auto pImpl = cast(Hashtable*) aa;
             slots = pImpl.b;
             nextSlot();
