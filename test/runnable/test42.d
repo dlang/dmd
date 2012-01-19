@@ -3995,7 +3995,8 @@ float parse(ref string p)
 void test230()
 {
     float f;
-    f = parse( "123e+2" );
+    string s = "123e+2";
+    f = parse( s );
     //printf("f = %g\n", f);
     assert( f == 123e+2f );
 }

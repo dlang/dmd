@@ -3299,6 +3299,40 @@ static assert(!is(typeof(Bar4258.init += 1)));
 static assert(!is(typeof(1 + Baz4258.init)));
 
 /***************************************************/
+// 4539
+
+void test4539()
+{
+    static assert(!__traits(compiles, "hello" = "red"));
+
+    void foo1(ref string s){}
+    void foo2(ref const char[10] s){}
+    void foo3(ref char[5] s){}
+
+    void foo4(ref const char[5] s)
+    {
+        assert(s[0] == 'h');
+        assert(s[4] == 'o');
+    }
+    void foo5(ref const ubyte[5] s)
+    {
+        assert(s[0] == 0xc3);
+        assert(s[4] == 0x61);
+    }
+
+    static assert(!__traits(compiles, foo1("hello")));
+    static assert(!__traits(compiles, foo2("hello")));
+    static assert(!__traits(compiles, foo3("hello")));
+
+    // same as test68, 69, 70
+    foo4("hello");
+    foo5(cast(ubyte[5])x"c3fcd3d761");
+
+    //import std.conv;
+    //static assert(!__traits(compiles, parse!int("10") == 10));
+}
+
+/***************************************************/
 // 1471
 
 void test1471()
@@ -4566,6 +4600,7 @@ int main()
     test155();
     test156();
     test4258();
+    test4539();
     test4963();
     test4031();
     test6230();
