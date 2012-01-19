@@ -431,16 +431,18 @@ struct code
     union {
         unsigned _Iop;
         struct {
+#pragma pack(1)
             unsigned char  op;
-            unsigned   pp : 2;
-            unsigned    l : 1;
-            unsigned vvvv : 4;
-            unsigned    w : 1;
-            unsigned mmmm : 5;
-            unsigned    b : 1;
-            unsigned    x : 1;
-            unsigned    r : 1;
+            unsigned short   pp : 2;
+            unsigned short    l : 1;
+            unsigned short vvvv : 4;
+            unsigned short    w : 1;
+            unsigned short mmmm : 5;
+            unsigned short    b : 1;
+            unsigned short    x : 1;
+            unsigned short    r : 1;
             unsigned char pfx; // always 0xC4
+#pragma pack()
         } _Ivex;
     } _OP;
 
