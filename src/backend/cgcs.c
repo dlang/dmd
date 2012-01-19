@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -261,7 +261,6 @@ STATIC void ecom(elem **pe)
 #if TX86
     case OPinp:                 /* never CSE the I/O instruction itself */
 #endif
-    case OPdctor:
         ecom(&e->E1);
         /* FALL-THROUGH */
     case OPasm:
@@ -270,6 +269,7 @@ STATIC void ecom(elem **pe)
     case OPgot:
     case OPctor:
     case OPdtor:
+    case OPdctor:
     case OPmark:
         return;
 
