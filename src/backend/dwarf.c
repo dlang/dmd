@@ -697,7 +697,7 @@ void dwarf_initfile(const char *filename)
 
     debug_pubnames_buf->write32(0);             // unit_length
     debug_pubnames_buf->writeWord(2);           // version
-    dwarf_addrel(seg,debug_pubnames_buf->size(),lineseg);
+    dwarf_addrel(seg,debug_pubnames_buf->size(),infoseg);
     debug_pubnames_buf->write32(0);             // debug_info_offset
     debug_pubnames_buf->write32(0);             // debug_info_length
 
