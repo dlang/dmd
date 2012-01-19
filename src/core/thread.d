@@ -2539,8 +2539,8 @@ enum ScanType
     tls,
 }
 
-alias void delegate( void*, void* ) ScanAllThreadsFn;
-alias void delegate( ScanType, void*, void* ) NewScanAllThreadsFn;
+alias scope void delegate( void*, void* ) ScanAllThreadsFn;
+alias scope void delegate( ScanType, void*, void* ) NewScanAllThreadsFn;
 
 /**
  * The main entry point for garbage collection.  The supplied delegate
