@@ -1860,6 +1860,25 @@ struct A4316
 
 /**********************************/
 
+struct F6177
+{
+    ~this()    {}
+}
+
+struct G6177
+{
+    this(F6177[] p...) {}
+}
+
+void test6177()
+{
+    F6177 c;
+    auto g = G6177(c);
+}
+
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -1925,6 +1944,7 @@ int main()
     test6499();
     test60();
     test4316();
+    test6177();
 
     printf("Success\n");
     return 0;
