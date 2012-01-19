@@ -669,6 +669,12 @@ void Module::importAll(Scope *prevsc)
     if (scope)
         return;                 // already done
 
+    if (isDocFile)
+    {
+        error("is a Ddoc file, cannot import it");
+        return;
+    }
+
     /* Note that modules get their own scope, from scratch.
      * This is so regardless of where in the syntax a module
      * gets imported, it is unaffected by context.
