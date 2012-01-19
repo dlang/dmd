@@ -418,6 +418,23 @@ static REG regtab64[] =
 "XMM13", 13,    _xmm,
 "XMM14", 14,    _xmm,
 "XMM15", 15,    _xmm,
+
+"YMM0",   0,    _ymm,
+"YMM1",   1,    _ymm,
+"YMM2",   2,    _ymm,
+"YMM3",   3,    _ymm,
+"YMM4",   4,    _ymm,
+"YMM5",   5,    _ymm,
+"YMM6",   6,    _ymm,
+"YMM7",   7,    _ymm,
+"YMM8",   8,    _ymm,
+"YMM9",   9,    _ymm,
+"YMM10", 10,    _ymm,
+"YMM11", 11,    _ymm,
+"YMM12", 12,    _ymm,
+"YMM13", 13,    _ymm,
+"YMM14", 14,    _ymm,
+"YMM15", 15,    _ymm,
 };
 
 typedef enum {
@@ -552,8 +569,8 @@ STATIC void asm_chktok(enum TOK toknum,unsigned errnum)
 /*******************************
  */
 
-STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
-        unsigned *pusNumops)
+STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2,
+        OPND *popnd3, OPND *popnd4, unsigned *pusNumops)
 {
         unsigned usNumops;
         unsigned usActual;
@@ -561,10 +578,11 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
         opflag_t opflags1 = 0 ;
         opflag_t opflags2 = 0;
         opflag_t opflags3 = 0;
+        opflag_t opflags4 = 0;
         char    bFake = FALSE;
         char    bInvalid64bit = FALSE;
 
-        unsigned char   bMatch1, bMatch2, bMatch3, bRetry = FALSE;
+        unsigned char   bMatch1, bMatch2, bMatch3, bMatch4, bRetry = FALSE;
 
         // How many arguments are there?  the parser is strictly left to right
         // so this should work.
@@ -584,7 +602,13 @@ STATIC PTRNTAB asm_classify(OP *pop, OPND *popnd1, OPND *popnd2, OPND *popnd3,
                 else
                 {
                     popnd3->usFlags = opflags3 = asm_determine_operand_flags(popnd3);
-                    usNumops = 3;
+                    if (!popnd4)
+                        usNumops = 3;
+                    else
+                    {
+                        popnd4->usFlags = opflags4 = asm_determine_operand_flags(popnd4);
+                        usNumops = 4;
+                    }
                 }
             }
         }
@@ -903,6 +927,96 @@ TYPE_SIZE_ERROR:
                 ptbRet.pptb3 = table3;
                 goto RETURN_IT;
             }
+            case 4:
+            {
+                PTRNTAB4 *table4;
+                for (table4 = pop->ptb.pptb4;
+                     table4->usOpcode != ASM_END;
+                     table4++)
+                {
+                        bMatch1 = asm_match_flags(opflags1, table4->usOp1);
+                        bMatch2 = asm_match_flags(opflags2, table4->usOp2);
+                        bMatch3 = asm_match_flags(opflags3, table4->usOp3);
+                        bMatch4 = asm_match_flags(opflags4, table4->usOp4);
+                        if (bMatch1 && bMatch2 && bMatch3 && bMatch4)
+                            goto Lfound4;
+                        if (asmstate.ucItype == ITopt)
+                        {
+                            switch (usNumops)
+                            {
+                                case 0:
+                                        if (!table4->usOp1)
+                                            goto Lfound3;
+                                        break;
+                                case 1:
+                                        if (bMatch1 && !table4->usOp2)
+                                            goto Lfound3;
+                                        break;
+                                case 2:
+                                        if (bMatch1 && bMatch2 && !table4->usOp3)
+                                            goto Lfound3;
+                                        break;
+                                case 3:
+                                        if (bMatch1 && bMatch2 && bMatch3 && !table4->usOp4)
+                                            goto Lfound3;
+                                        break;
+                                case 4:
+                                        break;
+                                default:
+                                        goto PARAM_ERROR;
+                            }
+                        }
+                }
+            Lfound4:
+                if (table4->usOpcode == ASM_END)
+                {
+#ifdef DEBUG
+                    if (debuga)
+                    {   printf("\t%s\t", asm_opstr(pop));
+                        if (popnd1)
+                                asm_output_popnd(popnd1);
+                        if (popnd2) {
+                                printf(",");
+                                asm_output_popnd(popnd2);
+                        }
+                        if (popnd3) {
+                                printf(",");
+                                asm_output_popnd(popnd3);
+                        }
+                        if (popnd4) {
+                                printf(",");
+                                asm_output_popnd(popnd4);
+                        }
+                        printf("\n");
+
+                        printf("OPCODE mismatch = ");
+                        if (popnd1)
+                            asm_output_flags(popnd1->usFlags);
+                        else
+                            printf("NONE");
+                        printf( " Op2 = ");
+                        if (popnd2)
+                            asm_output_flags(popnd2->usFlags);
+                        else
+                            printf("NONE");
+                        printf( " Op3 = ");
+                        if (popnd3)
+                            asm_output_flags(popnd3->usFlags);
+                        else
+                            printf("NONE");
+                        printf( " Op4 = ");
+                        if (popnd4)
+                            asm_output_flags(popnd4->usFlags);
+                        else
+                            printf("NONE");
+                        printf("\n");
+                    }
+#endif
+                    goto TYPE_SIZE_ERROR;
+                }
+                ptbRet.pptb4 = table4;
+                goto RETURN_IT;
+            }
         }
 RETURN_IT:
         if (bRetry && !bFake)
@@ -1164,7 +1278,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
 STATIC code *asm_emit(Loc loc,
         unsigned usNumops, PTRNTAB ptb,
         OP *pop,
-        OPND *popnd1, OPND *popnd2, OPND *popnd3)
+        OPND *popnd1, OPND *popnd2, OPND *popnd3, OPND *popnd4)
 {
 #ifdef DEBUG
         unsigned char auchOpcode[16];
@@ -1283,6 +1397,11 @@ L386_WARNING2:
                 }
                 break;
 
+            // vex adds 4 operand instructions, but already provides
+            // encoded operation size
+            case 4:
+                break;
+
             // 3 and 2 are the same because the third operand is always
             // an immediate and does not affect operation size
             case 3:
@@ -1398,12 +1517,155 @@ L386_WARNING2:
         unsigned usOpcode = ptb.pptb0->usOpcode;
 
         pc->Iop = usOpcode;
-        if ((usOpcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
+        if (pc->Ivex.pfx == 0xC4)
+        {
+#ifdef DEBUG
+            unsigned oIdx = usIdx;
+#endif
+            // vvvv
+	    switch (pc->Ivex.vvvv)
+	    {
+	    case VEX_NOO:
+                pc->Ivex.vvvv = 0xF; // not used
+
+                if ((aoptyTable1 == _m || aoptyTable1 == _rm) &&
+                    aoptyTable2 == _reg)
+                    asm_make_modrm_byte(
+#ifdef DEBUG
+                        auchOpcode, &usIdx,
+#endif
+                        pc,
+                        ptb.pptb1->usFlags,
+                        popnd1, popnd2);
+	        else
+                if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
+                    asm_make_modrm_byte(
+#ifdef DEBUG
+                        auchOpcode, &usIdx,
+#endif
+                        pc,
+                        ptb.pptb1->usFlags,
+                        popnd2, popnd1);
+	        else
+                    assert(!usNumops); // no operands
+
+                if (usNumops == 3)
+                {
+                    popndTmp = popnd3;
+                    aoptyTmp = ASM_GET_aopty(ptb.pptb3->usOp3);
+                    uSizemaskTmp = ASM_GET_uSizemask(ptb.pptb3->usOp3);
+                    assert(aoptyTmp == _imm);
+                }
+	        break;
+
+	    case VEX_NDD:
+                pc->Ivex.vvvv = ~popnd1->base->val;
+
+	        asm_make_modrm_byte(
+#ifdef DEBUG
+                    auchOpcode, &usIdx,
+#endif
+                    pc,
+                    ptb.pptb1->usFlags,
+                    popnd2, NULL);
+
+                if (usNumops == 3)
+                {
+                    popndTmp = popnd3;
+                    aoptyTmp = ASM_GET_aopty(ptb.pptb3->usOp3);
+                    uSizemaskTmp = ASM_GET_uSizemask(ptb.pptb3->usOp3);
+                    assert(aoptyTmp == _imm);
+                }
+	        break;
+
+	    case VEX_DDS:
+                assert(usNumops == 3);
+                pc->Ivex.vvvv = ~popnd2->base->val;
+
+                asm_make_modrm_byte(
+#ifdef DEBUG
+                    auchOpcode, &usIdx,
+#endif
+                    pc,
+                    ptb.pptb1->usFlags,
+                    popnd3, popnd1);
+	        break;
+
+	    case VEX_NDS:
+                pc->Ivex.vvvv = ~popnd2->base->val;
+
+                if (aoptyTable1 == _m || aoptyTable1 == _rm)
+                    asm_make_modrm_byte(
+#ifdef DEBUG
+                        auchOpcode, &usIdx,
+#endif
+                        pc,
+                        ptb.pptb1->usFlags,
+                        popnd1, popnd3);
+                else
+                    asm_make_modrm_byte(
+#ifdef DEBUG
+                        auchOpcode, &usIdx,
+#endif
+                        pc,
+                        ptb.pptb1->usFlags,
+                        popnd3, popnd1);
+
+                if (usNumops == 4)
+                {
+                    popndTmp = popnd4;
+                    aoptyTmp = ASM_GET_aopty(ptb.pptb4->usOp4);
+                    uSizemaskTmp = ASM_GET_uSizemask(ptb.pptb4->usOp4);
+                    assert(aoptyTmp == _imm);
+                }
+	        break;
+
+	    default:
+	        assert(0);
+	    }
+
+            // REX
+            // REX_W is solely taken from WO/W1/WIG
+            // pc->Ivex.w = !!(pc->Irex & REX_W);
+            pc->Ivex.b =  !(pc->Irex & REX_B);
+            pc->Ivex.x =  !(pc->Irex & REX_X);
+            pc->Ivex.r =  !(pc->Irex & REX_R);
+
+            /* Check if a 3-byte vex is needed.
+             */
+            if (pc->Ivex.w || !pc->Ivex.x || !pc->Ivex.b || pc->Ivex.mmmm > 0x1)
+            {
+#ifdef DEBUG
+                memmove(&auchOpcode[oIdx+3], &auchOpcode[oIdx], usIdx-oIdx);
+                usIdx = oIdx;
+#endif
+                emit(0xC4);
+                emit(VEX3_B1(pc->Ivex));
+                emit(VEX3_B2(pc->Ivex));
+                pc->Iflags |= CFvex3;
+            }
+            else
+            {
+#ifdef DEBUG
+                memmove(&auchOpcode[oIdx+2], &auchOpcode[oIdx], usIdx-oIdx);
+                usIdx = oIdx;
+#endif
+                emit(0xC5);
+                emit(VEX2_B1(pc->Ivex));
+            }
+            pc->Iflags |= CFvex;
+            emit(pc->Ivex.op);
+            if (popndTmp)
+                goto L1;
+            goto L2;
+        }
+        else if ((usOpcode & 0xFFFD00) == 0x0F3800)    // SSSE3, SSE4
         {   emit(0xFF);
             emit(0xFD);
             emit(0x00);
             goto L3;
         }
+
         switch (usOpcode & 0xFF0000)
         {
             case 0:
@@ -2806,6 +3068,14 @@ STATIC unsigned char asm_match_flags(opflag_t usOp, opflag_t usTable)
         usTable == _xmm_m128)
     {
         if (usOp == _xmm || usOp == (_xmm|_xmm0))
+            goto Lmatch;
+        if (aoptyOp == _m && (bSizematch || uSizemaskOp == _anysize))
+            goto Lmatch;
+    }
+
+    if (usTable == _ymm_m256)
+    {
+        if (usOp == _ymm)
             goto Lmatch;
         if (aoptyOp == _m && (bSizematch || uSizemaskOp == _anysize))
             goto Lmatch;
@@ -4391,7 +4661,7 @@ Statement *AsmStatement::semantic(Scope *sc)
 #endif
 
     OP *o;
-    OPND *o1 = NULL,*o2 = NULL, *o3 = NULL;
+    OPND *o1 = NULL,*o2 = NULL, *o3 = NULL, *o4 = NULL;
     PTRNTAB ptb;
     unsigned usNumops;
     unsigned char uchPrefix = 0;
@@ -4491,7 +4761,7 @@ Statement *AsmStatement::semantic(Scope *sc)
         Lopcode:
             asmstate.ucItype = o->usNumops & ITMASK;
             asm_token();
-            if (o->usNumops > 3)
+            if (o->usNumops > 4)
             {
                 switch (asmstate.ucItype)
                 {
@@ -4516,10 +4786,15 @@ Statement *AsmStatement::semantic(Scope *sc)
                 asm_token();
                 o3 = asm_cond_exp();
             }
+            if (tok_value == TOKcomma)
+            {
+                asm_token();
+                o4 = asm_cond_exp();
+            }
             // match opcode and operands in ptrntab to verify legal inst and
             // generate
 
-            ptb = asm_classify(o, o1, o2, o3, &usNumops);
+            ptb = asm_classify(o, o1, o2, o3, o4, &usNumops);
             assert(ptb.pptb0);
 
             //
@@ -4540,7 +4815,7 @@ Statement *AsmStatement::semantic(Scope *sc)
                     // Re-classify the opcode because the first classification
                     // assumed 2 operands.
 
-                    ptb = asm_classify(o, o1, o2, o3, &usNumops);
+                    ptb = asm_classify(o, o1, o2, o3, o4, &usNumops);
             }
 #if 0
             else
@@ -4551,7 +4826,7 @@ Statement *AsmStatement::semantic(Scope *sc)
                     usNumops = 1;
             }
 #endif
-            asmcode = asm_emit(loc, usNumops, ptb, o, o1, o2, o3);
+            asmcode = asm_emit(loc, usNumops, ptb, o, o1, o2, o3, o4);
             break;
 
         default:
