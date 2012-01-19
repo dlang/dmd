@@ -65,9 +65,11 @@ enum
         DW_TAG_shared_type              = 0x40,
 
         // D programming language extensions
+#ifdef USE_DWARF_D_EXTENSIONS
         DW_TAG_darray_type              = 0x41,
         DW_TAG_aarray_type              = 0x42,
         DW_TAG_delegate_type            = 0x43,
+#endif
 
         DW_TAG_lo_user                  = 0x4080,
         DW_TAG_hi_user                  = 0xFFFF,

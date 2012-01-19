@@ -248,6 +248,39 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
 }
 
 /************************************
+ * Size for vex encoded instruction.
+ */
+
+unsigned char vex_inssize(code *c)
+{
+    assert(c->Iflags & CFvex);
+    unsigned char ins;
+    if (c->Iflags & CFvex3)
+    {
+        switch (c->Ivex.mmmm)
+        {
+        case 0: // no prefix
+        case 1: // 0F
+            ins = inssize2[c->Ivex.op] + 2;
+            break;
+        case 2: // 0F 38
+            ins = inssize2[0x38] + 1;
+            break;
+        case 3: // 0F 3A
+            ins = inssize2[0x3A] + 1;
+            break;
+        default:
+            assert(0);
+        }
+    }
+    else
+    {
+        ins = inssize2[c->Ivex.op] + 1;
+    }
+    return ins;
+}
+
+/************************************
  * Determine if there is a modregrm byte for code.
  */
 
@@ -3852,7 +3885,9 @@ void assignaddrc(code *c)
         if (code_next(c) && code_next(code_next(c)) == c)
             assert(0);
 #endif
-        if ((c->Iop & 0xFFFD00) == 0x0F3800)
+        if (c->Iflags & CFvex)
+            ins = vex_inssize(c);
+        else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
         else if ((c->Iop & 0xFF00) == 0x0F00)
             ins = inssize2[c->Iop & 0xFF];
@@ -4237,7 +4272,9 @@ void pinholeopt(code *c,block *b)
   {
     L1:
         op = c->Iop;
-        if ((op & 0xFFFD00) == 0x0F3800)
+        if (c->Iflags & CFvex)
+            ins = vex_inssize(c);
+        else if ((op & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(op >> 8) & 0xFF];
         else if ((op & 0xFF00) == 0x0F00)
             ins = inssize2[op & 0xFF];
@@ -4625,7 +4662,7 @@ void pinholeopt(code *c,block *b)
                 c->IEVpointer1 = 0;
             }
         }
-        else
+        else if (!(c->Iflags & CFvex))
         {
             switch (op)
             {
@@ -4866,7 +4903,13 @@ unsigned calccodsize(code *c)
 #endif
     iflags = c->Iflags;
     op = c->Iop;
-    if ((op & 0xFF00) == 0x0F00 || (op & 0xFFFD00) == 0x0F3800)
+    if (iflags & CFvex)
+    {
+        ins = vex_inssize(c);
+        size = ins & 7;
+        goto Lmodrm;
+    }
+    else if ((op & 0xFF00) == 0x0F00 || (op & 0xFFFD00) == 0x0F3800)
         op = 0x0F;
     else
         op &= 0xFF;
@@ -4979,6 +5022,7 @@ unsigned calccodsize(code *c)
         }
     }
 
+Lmodrm:
     if ((op & ~0x0F) == 0x70)
     {   if (iflags & CFjmp16)           // if long branch
             size += I16 ? 3 : 4;        // + 3(4) bytes for JMP
@@ -5021,7 +5065,7 @@ unsigned calccodsize(code *c)
     }
 
 Lret:
-    if (c->Irex)
+    if (!(iflags & CFvex) && c->Irex)
     {   size++;
         if (c->Irex & REX_W && (op & ~7) == 0xB8)
             size += 4;
@@ -5184,8 +5228,8 @@ unsigned codout(code *c)
         ins = inssize[op & 0xFF];
         switch (op & 0xFF)
         {   case ESCAPE:
-                /* Check for SSE4 opcode pmaxuw xmm1,xmm2/m128 */
-                if(op == 0x660F383E) break;
+                /* Check for SSE4 opcode v/pmaxuw xmm1,xmm2/m128 */
+                if(op == 0x660F383E || c->Iflags & CFvex) break;
 
                 switch (op & 0xFFFF00)
                 {   case ESClinnum:
@@ -5303,6 +5347,25 @@ unsigned codout(code *c)
             }
         }
 
+        if (flags & CFvex)
+        {
+            if (flags & CFvex3)
+            {
+                GEN(0xC4);
+                GEN(VEX3_B1(c->Ivex));
+                GEN(VEX3_B2(c->Ivex));
+                GEN(c->Ivex.op);
+            }
+            else
+            {
+                GEN(0xC5);
+                GEN(VEX2_B1(c->Ivex));
+                GEN(c->Ivex.op);
+            }
+            ins = vex_inssize(c);
+            goto Lmodrm;
+        }
+
         if (op > 0xFF)
         {
             if ((op & 0xFFFD00) == 0x0F3800)
@@ -5361,6 +5424,7 @@ unsigned codout(code *c)
                 GEN(c->Irex | REX);
             GEN(op);
         }
+  Lmodrm:
         if (ins & M)            /* if modregrm byte             */
         {
             rm = c->Irm;
@@ -5900,7 +5964,9 @@ void code_hydrate(code **pc)
     while (*pc)
     {
         c = (code *) ph_hydrate(pc);
-        if ((c->Iop & 0xFFFD00) == 0x0F3800)
+        if (c->Iflags & CFvex)
+            ins = vex_inssize(c);
+        else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
         else if ((c->Iop & 0xFF00) == 0x0F00)
             ins = inssize2[c->Iop & 0xFF];
@@ -6072,7 +6138,9 @@ void code_dehydrate(code **pc)
     {
         ph_dehydrate(pc);
 
-        if ((c->Iop & 0xFFFD00) == 0x0F3800)
+        if (c->Iflags & CFvex)
+            ins = vex_inssize(c);
+        else if ((c->Iop & 0xFFFD00) == 0x0F3800)
             ins = inssize2[(c->Iop >> 8) & 0xFF];
         else if ((c->Iop & 0xFF00) == 0x0F00)
             ins = inssize2[c->Iop & 0xFF];
@@ -6242,6 +6310,7 @@ void WRcodlst(code *c)
 void code::print()
 {
     unsigned char ins;
+    unsigned char rexb;
     code *c = this;
 
     if (c == CNIL)
@@ -6250,7 +6319,9 @@ void code::print()
     }
 
     unsigned op = c->Iop;
-    if ((c->Iop & 0xFFFD00) == 0x0F3800)
+    if (c->Iflags & CFvex)
+        ins = vex_inssize(c);
+    else if ((c->Iop & 0xFFFD00) == 0x0F3800)
         ins = inssize2[(op >> 8) & 0xFF];
     else if ((c->Iop & 0xFF00) == 0x0F00)
         ins = inssize2[op & 0xFF];
@@ -6258,19 +6329,42 @@ void code::print()
         ins = inssize[op & 0xFF];
 
     printf("code %p: nxt=%p ",c,code_next(c));
-    if (c->Irex)
-    {   printf("rex=%x ", c->Irex);
-        if (c->Irex & REX_W)
+
+    if (c->Iflags & CFvex)
+    {
+        if (c->Iflags & CFvex3)
+        {   printf("vex=0xC4");
+            printf(" 0x%02X", VEX3_B1(c->Ivex));
+            printf(" 0x%02X", VEX3_B2(c->Ivex));
+            rexb =
+                ( c->Ivex.w ? REX_W : 0) |
+                (!c->Ivex.r ? REX_R : 0) |
+                (!c->Ivex.x ? REX_X : 0) |
+                (!c->Ivex.b ? REX_B : 0);
+        }
+        else
+        {   printf("vex=0xC5");
+            printf(" 0x%02X", VEX2_B1(c->Ivex));
+            rexb = !c->Ivex.r ? REX_R : 0;
+        }
+        printf(" ");
+    }
+    else
+        rexb = c->Irex;
+
+    if (rexb)
+    {   printf("rex=0x%02X ", c->Irex);
+        if (rexb & REX_W)
             printf("W");
-        if (c->Irex & REX_R)
+        if (rexb & REX_R)
             printf("R");
-        if (c->Irex & REX_X)
+        if (rexb & REX_X)
             printf("X");
-        if (c->Irex & REX_B)
+        if (rexb & REX_B)
             printf("B");
         printf(" ");
     }
-    printf("op=%02x",op);
+    printf("op=0x%02X",op);
 
   if ((op & 0xFF) == ESCAPE)
   {     if ((op & 0xFF00) == ESClinnum)
@@ -6283,7 +6377,7 @@ void code::print()
         printf(" flg=%x",c->Iflags);
   if (ins & M)
   {     unsigned rm = c->Irm;
-        printf(" rm=%02x=%d,%d,%d",rm,(rm>>6)&3,(rm>>3)&7,rm&7);
+        printf(" rm=0x%02X=%d,%d,%d",rm,(rm>>6)&3,(rm>>3)&7,rm&7);
         if (!I16 && issib(rm))
         {   unsigned char sib = c->Isib;
             printf(" sib=%02x=%d,%d,%d",sib,(sib>>6)&3,(sib>>3)&7,sib&7);
