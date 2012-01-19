@@ -47,7 +47,8 @@ else
     LDFLAGS=-lm -lstdc++ -lpthread
 endif
 
-CC=g++ -m$(MODEL) $(TARGET_CFLAGS)
+HOST_CC=g++
+CC=$(HOST_CC) -m$(MODEL) $(TARGET_CFLAGS)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -81,9 +82,9 @@ DMD_OBJS = \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o clone.o aliasthis.o intrange.o \
+	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o sideeffect.o
+	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o
 
 ifeq (OSX,$(TARGET))
     DMD_OBJS += libmach.o machobj.o
@@ -99,7 +100,7 @@ SRC = win32.mak posix.mak \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h intrange.h \
+	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
 	utf.h utf.c staticassert.h staticassert.c unialpha.c \
@@ -108,7 +109,7 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c intrange.c apply.c canthrow.c sideeffect.c \
+	argtypes.c apply.c sideeffect.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -142,7 +143,7 @@ SRC = win32.mak posix.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(ENVP) g++ -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
+	$(ENVP) $(HOST_CC) -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -218,9 +219,6 @@ blockopt.o: $C/blockopt.c
 	$(CC) -c $(MFLAGS) $<
 
 builtin.o: builtin.c
-	$(CC) -c $(CFLAGS) $<
-
-canthrow.o: canthrow.c
 	$(CC) -c $(CFLAGS) $<
 
 cast.o: cast.c
@@ -418,9 +416,6 @@ inline.o: inline.c
 interpret.o: interpret.c
 	$(CC) -c $(CFLAGS) $<
 
-intrange.o: intrange.h intrange.c
-	$(CC) -c $(CFLAGS) intrange.c
-
 json.o: json.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -598,7 +593,6 @@ gcov:
 	gcov arrayop.c
 	gcov attrib.c
 	gcov builtin.c
-	gcov canthrow.c
 	gcov cast.c
 	gcov class.c
 	gcov clone.c
@@ -661,7 +655,6 @@ endif
 	gcov utf.c
 	gcov util.c
 	gcov version.c
-	gcov intrange.c
 
 #	gcov hdrgen.c
 #	gcov tocvdebug.c
