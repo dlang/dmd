@@ -275,6 +275,30 @@ extern regm_t BYTEREGS;
 #define REX_X   2               // high bit of sib index reg
 #define REX_B   1               // high bit of rm field, sib base reg, or opcode reg
 
+#define VEX2_B1(ivex)                           \
+    (                                           \
+        ivex.r    << 7 |                        \
+        ivex.vvvv << 3 |                        \
+        ivex.l    << 2 |                        \
+        ivex.pp                                 \
+    )
+
+#define VEX3_B1(ivex)                           \
+    (                                           \
+        ivex.r    << 7 |                        \
+        ivex.x    << 6 |                        \
+        ivex.b    << 5 |                        \
+        ivex.mmmm                               \
+    )
+
+#define VEX3_B2(ivex)                           \
+    (                                           \
+        ivex.w    << 7 |                        \
+        ivex.vvvv << 3 |                        \
+        ivex.l    << 2 |                        \
+        ivex.pp                                 \
+    )
+
 /**********************
  * C library routines.
  * See callclib().
@@ -398,12 +422,29 @@ struct code
 #define CFoffset64  0x40000     // offset is 64 bits
 #define CFpc32      0x80000     // I64: PC relative 32 bit fixup
 
+#define CFvex       0x100000    // vex prefix
+#define CFvex3      0x200000    // 3 byte vex prefix
+
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
-    /* The op code can be 1 to 3 bytes
-     */
-    unsigned Iop;
+    union {
+        unsigned _Iop;
+        struct {
+#pragma pack(1)
+            unsigned char  op;
+            unsigned short   pp : 2;
+            unsigned short    l : 1;
+            unsigned short vvvv : 4;
+            unsigned short    w : 1;
+            unsigned short mmmm : 5;
+            unsigned short    b : 1;
+            unsigned short    x : 1;
+            unsigned short    r : 1;
+            unsigned char pfx; // always 0xC4
+#pragma pack()
+        } _Ivex;
+    } _OP;
 
     /* The _EA is the "effective address" for the instruction, and consists of the modregrm byte,
      * the sib byte, and the REX prefix byte. The 16 bit code generator just used the modregrm,
@@ -419,8 +460,10 @@ struct code
         } _ea;
     } _EA;
 
-#define Iea _EA._Iea
-#define Irm _EA._ea._Irm
+#define Iop  _OP._Iop
+#define Ivex _OP._Ivex
+#define Iea  _EA._Iea
+#define Irm  _EA._ea._Irm
 #define Isib _EA._ea._Isib
 #define Irex _EA._ea._Irex
 
