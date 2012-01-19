@@ -2580,7 +2580,7 @@ void test28()
 		movq MM0, A;
 		movq b, MM0;
 	}
-	
+
 	for(size_t i = 0; i < A.length; i++)
 	{
 		if(A[i] != b[i])
@@ -4803,6 +4803,1593 @@ L1:
     }
 }
 
+/* ======================= AVX ======================= */
+
+void test61()
+{
+    ubyte* p;
+    static ubyte data[] =
+    [
+        0x0F, 0x01, 0xD0,                         // xgetbv
+        0x0F, 0x01, 0xD1,                         // xsetbv
+        0x0F, 0xAE, 0x28,                         // xrstor     [RAX]
+        0x48, 0x0F, 0xAE, 0x28,                   // xrstor64   [RAX]
+        0x0F, 0xAE, 0x20,                         // xsave      [RAX]
+        0x48, 0x0F, 0xAE, 0x20,                   // xsave64    [RAX]
+        0x0F, 0xAE, 0x30,                         // xsaveopt   [RAX]
+        0x48, 0x0F, 0xAE, 0x30,                   // xsaveopt64 [RAX]
+        0xC5, 0xF8, 0xAE, 0x10,                   // vldmxcsr   [RAX]
+        0xC5, 0xF8, 0xAE, 0x18,                   // vstmxcsr   [RAX]
+
+        0xC5, 0xF2, 0x58, 0xC2,                   // vaddss  XMM0,  XMM1,  XMM2;
+        0xC5, 0x83, 0x58, 0x00,                   // vaddsd  XMM0, XMM15, [RAX];
+        0xC5, 0x78, 0x58, 0xE0,                   // vaddps XMM12,  XMM0,  XMM0;
+        0xC4, 0x41, 0x39, 0x58, 0xC0,             // vaddpd  XMM8,  XMM8,  XMM8;
+
+        0xC5, 0xF2, 0x5C, 0xC2,                   // vsubss  XMM0,  XMM1,  XMM2;
+        0xC5, 0x83, 0x5C, 0x00,                   // vsubsd  XMM0, XMM1, [RAX];
+        0xC5, 0x78, 0x5C, 0xE0,                   // vsubps XMM12,  XMM0,  XMM0;
+        0xC4, 0x41, 0x39, 0x5C, 0xC0,             // vsubpd  XMM8,  XMM8,  XMM8;
+
+        0xC5, 0xF3, 0xD0, 0xC2,                   // vaddsubps XMM0, XMM1, XMM2;
+        0xC5, 0xF7, 0xD0, 0xC2,                   // vaddsubps YMM0, YMM1, YMM2;
+
+        0xC5, 0x75, 0xD0, 0xC2,                   // vaddsubpd  YMM8,  YMM1, YMM2;
+        0xC5, 0x05, 0xD0, 0x78, 0x40,             // vaddsubpd YMM15, YMM15, 64[RAX];
+
+        0xC4, 0xE3, 0x7D, 0x40, 0xC0, 0x00,       // vdpps YMM0, YMM0, YMM0, 0
+        0xC4, 0xE3, 0x79, 0x41, 0xC0, 0x88,       // vdppd XMM0, XMM0, XMM0, 0x88
+
+        0xC5, 0xBD, 0x7C, 0x07,                   // vhaddpd YMM0, YMM8, [RDI];
+        0xC5, 0xBB, 0x7C, 0xC1,                   // vhaddps XMM0, XMM8, XMM1;
+
+        0xC5, 0xFD, 0x5F, 0xC1,                   // vmaxpd YMM0, YMM0, YMM1;
+        0xC5, 0xF9, 0x5F, 0x00,                   // vmaxpd XMM0, XMM0, [RAX];
+
+        0xC5, 0xFC, 0x5F, 0xC1,                   // vmaxps YMM0, YMM0, YMM1;
+        0xC5, 0xF8, 0x5F, 0x00,                   // vmaxps XMM0, XMM0, [RAX];
+
+        0xC5, 0xFB, 0x5F, 0x00,                   // vmaxsd XMM0, XMM0, [RAX];
+
+        0xC5, 0xFA, 0x5F, 0x00,                   // vmaxss XMM0, XMM0, [RAX];
+
+        0xC5, 0xFD, 0x5D, 0xC1,                   // vminpd YMM0, YMM0, YMM1;
+        0xC5, 0xF9, 0x5D, 0x00,                   // vminpd XMM0, XMM0, [RAX];
+
+        0xC5, 0xFC, 0x5D, 0xC1,                   // vminps YMM0, YMM0, YMM1;
+        0xC5, 0xF8, 0x5D, 0x00,                   // vminps XMM0, XMM0, [RAX];
+
+        0xC5, 0xFB, 0x5D, 0x00,                   // vminsd XMM0, XMM0, [RAX];
+
+        0xC5, 0xFA, 0x5D, 0x00,                   // vminss XMM0, XMM0, [RAX];
+
+        0xC5, 0xF9, 0x50, 0xC0,                   // vmovmskpd EAX, XMM0;
+        0xC5, 0xFD, 0x50, 0xF8,                   // vmovmskpd EDI, YMM0;
+
+        0xC4, 0xC1, 0x7C, 0x50, 0xC7,             // vmovmskps EAX, YMM15;
+        0xC5, 0x7C, 0x50, 0xC0,                   // vmovmskps R8D, YMM0;
+
+        0xC5, 0xF9, 0xD7, 0xC0,                   // vpmovmskb EAX, XMM0;
+
+        0xC4, 0xE3, 0x71, 0x42, 0xC2, 0x00,       // vmpsadbw XMM0, XMM1, XMM2, 0x00;
+        0xC4, 0x43, 0x31, 0x42, 0xC2, 0xFF,       // vmpsadbw XMM8, XMM9, XMM10, 0xFF;
+        0xC4, 0xE2, 0x79, 0x1C, 0x00,             // vpabsb XMM0, [RAX];
+        0xC4, 0xC2, 0x79, 0x1D, 0xCF,             // vpabsw XMM1, XMM15;
+        0xC4, 0xE2, 0x79, 0x1E, 0x0B,             // vpabsd XMM1, [RBX];
+
+        0xC5, 0xF9, 0xFC, 0x00,                   // vpaddb XMM0, XMM0, [RAX];
+        0xC4, 0x41, 0x39, 0xFD, 0xC7,             // vpaddw XMM8, XMM8, XMM15;
+        0xC5, 0x39, 0xFE, 0x03,                   // vpaddd XMM8, XMM8, [RBX];
+        0xC5, 0xF9, 0xD4, 0xC0,                   // vpaddq XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0xF8, 0x00,                   // vpsubb XMM0, XMM0, [RAX];
+        0xC4, 0x41, 0x39, 0xF9, 0xC7,             // vpsubw XMM8, XMM8, XMM15;
+        0xC5, 0x39, 0xFA, 0x03,                   // vpsubd XMM8, XMM8, [RBX];
+        0xC5, 0xF9, 0xFB, 0xC0,                   // vpsubq XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0xEC, 0xC0,                   // vpaddsb XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xED, 0xC0,                   // vpaddsw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xDC, 0xC0,                   // vpaddusb XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xDD, 0xC0,                   // vpaddusw XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0xE8, 0xC0,                   // vpsubsb XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xE9, 0xC0,                   // vpsubsw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xD8, 0xC0,                   // vpsubusb XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xD9, 0xC0,                   // vpsubusw XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0xE0, 0xC0,                   // vpavgb XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xE3, 0xC0,                   // vpavgw XMM0, XMM0, XMM0;
+        0xC4, 0xE3, 0x79, 0x44, 0x44, 0x88, 0x40, 0x00, // vpclmulqdq XMM0, XMM0, 64[RAX + 4 * RCX], 0;
+        0xC4, 0xE2, 0x79, 0x01, 0xC0,             // vphaddw XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x02, 0xC0,             // vphaddd XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x05, 0xC0,             // vphsubw XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x06, 0xC0,             // vphsubd XMM0, XMM0, XMM0;
+
+        0xC4, 0xE2, 0x79, 0x03, 0xC0,             // vphaddsw XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x07, 0xC0,             // vphsubsw XMM0, XMM0, XMM0;
+
+        0xC4, 0xE2, 0x79, 0x41, 0xC0,             // vphminposuw XMM0, XMM0;
+
+        0xC5, 0xF9, 0xF5, 0xC0,                   // vpmaddwd XMM0, XMM0, XMM0;
+
+        0xC4, 0xE2, 0x79, 0x04, 0xC0,             // vpmaddubsw XMM0, XMM0, XMM0;
+
+        0xC4, 0xE2, 0x79, 0x3C, 0xC0,             // vpmaxsb XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x3D, 0xC0,             // vpmaxsd XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xEE, 0xC0,                   // vpmaxsw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xDE, 0xC0,                   // vpmaxub XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x3F, 0xC0,             // vpmaxud XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x3E, 0xC0,             // vpmaxuw XMM0, XMM0, XMM0;
+
+        0xC4, 0xE2, 0x79, 0x38, 0xC0,             // vpminsb XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x39, 0xC0,             // vpminsd XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xEA, 0xC0,                   // vpminsw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xDA, 0xC0,                   // vpminub XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x3B, 0xC0,             // vpminud XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x3A, 0xC0,             // vpminuw XMM0, XMM0, XMM0;
+
+        0xC4, 0xE2, 0x79, 0x0B, 0xC0,             // vpmulhrsw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xE4, 0xC0,                   // vpmulhuw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xE5, 0xC0,                   // vpmulhw XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x40, 0xC0,             // vpmulld XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xD5, 0xC0,                   // vpmullw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0xF4, 0xC0,                   // vpmuludq XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0xF6, 0xC0,                   // vpsadbw XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x08, 0xC0,             // vpsignb XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x09, 0xC0,             // vpsignw XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x0A, 0xC0,             // vpsignd XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0x73, 0xF8, 0x00,             // vpslldq XMM0, XMM0, 0;
+
+        0xC5, 0xF9, 0x71, 0xF0, 0x00,             // vpsllw  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xF1, 0xC0,                   // vpsllw  XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x72, 0xF0, 0x00,             // vpslld  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xF2, 0xC0,                   // vpslld  XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x73, 0xF0, 0x00,             // vpsllq  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xF3, 0xC0,                   // vpsllq  XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0x71, 0xE0, 0x00,             // vpsraw  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xE1, 0xC0,                   // vpsraw  XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x72, 0xE0, 0x00,             // vpsrad  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xE2, 0xC0,                   // vpsrad  XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0x73, 0xD8, 0x00,             // vpsrldq  XMM0, XMM0, 0;
+
+        0xC5, 0xF9, 0x71, 0xD0, 0x00,             // vpsrlw  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xD1, 0xC0,                   // vpsrlw  XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x72, 0xD0, 0x00,             // vpsrld  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xD2, 0xC0,                   // vpsrld  XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x73, 0xD0, 0x00,             // vpsrlq  XMM0, XMM0, 0;
+        0xC5, 0xF9, 0xD3, 0xC0,                   // vpsrlq  XMM0, XMM0, XMM0;
+
+        0xC5, 0xF8, 0x53, 0xC1,                   // vrcpps XMM0, XMM1;
+        0xC5, 0xFC, 0x53, 0xC1,                   // vrcpps YMM0, YMM1;
+        0xC5, 0xFA, 0x53, 0xC1,                   // vrcpss XMM0, XMM0, XMM1;
+
+        0xC4, 0xE3, 0x79, 0x09, 0xC0, 0x00,       // vroundpd XMM0, XMM0, 0;
+        0xC4, 0xE3, 0x7D, 0x09, 0xC0, 0x00,       // vroundpd YMM0, YMM0, 0;
+        0xC4, 0xE3, 0x79, 0x08, 0xC0, 0x00,       // vroundps XMM0, XMM0, 0;
+        0xC4, 0xE3, 0x7D, 0x08, 0xC0, 0x00,       // vroundps YMM0, YMM0, 0;
+
+        0xC4, 0xE3, 0x79, 0x0B, 0xC0, 0x00,       // vroundsd XMM0, XMM0, XMM0, 0;
+        0xC4, 0xE3, 0x79, 0x0A, 0xC0, 0x00,       // vroundss XMM0, XMM0, XMM0, 0;
+
+        0xC5, 0xF9, 0x51, 0xC0,                   // vsqrtpd XMM0, XMM0;
+        0xC5, 0xFD, 0x51, 0xC0,                   // vsqrtpd YMM0, YMM0;
+        0xC5, 0xF8, 0x51, 0xC0,                   // vsqrtps XMM0, XMM0;
+        0xC5, 0xFC, 0x51, 0xC0,                   // vsqrtps YMM0, YMM0;
+
+        0xC5, 0xFB, 0x51, 0xC0,                   // vsqrtsd XMM0, XMM0, XMM0;
+        0xC5, 0xFA, 0x51, 0xC0,                   // vsqrtss XMM0, XMM0, XMM0;
+
+        0xC5, 0xFC, 0x77,                         // vzeroall
+        0xC5, 0xF8, 0x77,                         // vzeroupper
+
+        0xC5, 0xF9, 0xC2, 0xC0, 0x00,             // vcmppd XMM0, XMM0, XMM0, 0;
+        0xC5, 0xFD, 0xC2, 0xC0, 0x00,             // vcmppd YMM0, YMM0, YMM0, 0;
+        0xC5, 0xF8, 0xC2, 0xC0, 0x00,             // vcmpps XMM0, XMM0, XMM0, 0;
+        0xC5, 0xFC, 0xC2, 0xC0, 0x00,             // vcmpps YMM0, YMM0, YMM0, 0;
+
+        0xC5, 0xFB, 0xC2, 0xC0, 0x00,             // vcmpsd XMM0, XMM0, XMM0, 0;
+        0xC5, 0xFA, 0xC2, 0xC0, 0x00,             // vcmpss XMM0, XMM0, XMM0, 0;
+
+        0xC5, 0xF9, 0x2F, 0xC0,                   // vcomisd XMM0, XMM0;
+        0xC5, 0xF8, 0x2F, 0xC0,                   // vcomiss XMM0, XMM0;
+
+        0xC5, 0xF9, 0x74, 0xC0,                   // vpcmpeqb XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x75, 0xC0,                   // vpcmpeqw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x76, 0xC0,                   // vpcmpeqd XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x29, 0xC0,             // vpcmpeqq XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0x64, 0xC0,                   // vpcmpgtb XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x65, 0xC0,                   // vpcmpgtw XMM0, XMM0, XMM0;
+        0xC5, 0xF9, 0x66, 0xC0,                   // vpcmpgtd XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x37, 0xC0,             // vpcmpgtq XMM0, XMM0, XMM0;
+
+        0xC4, 0xE3, 0x79, 0x61, 0xC0, 0x00,       // vpcmpestri XMM0, XMM0, 0;
+        0xC4, 0xE3, 0x79, 0x60, 0xC0, 0x00,       // vpcmpestrm XMM0, XMM0, 0;
+        0xC4, 0xE3, 0x79, 0x63, 0xC0, 0x00,       // vpcmpistri XMM0, XMM0, 0;
+        0xC4, 0xE3, 0x79, 0x62, 0xC0, 0x00,       // vpcmpistrm XMM0, XMM0, 0;
+
+        0xC5, 0xFA, 0xE6, 0xC0,                   // vcvtdq2pd XMM0, XMM0;
+        0xC5, 0xFE, 0xE6, 0xC0,                   // vcvtdq2pd YMM0, XMM0;
+        0xC5, 0xFE, 0xE6, 0x00,                   // vcvtdq2pd YMM0, [RAX];
+
+        0xC5, 0xF8, 0x5B, 0xC0,                   // vcvtdq2ps XMM0, XMM0;
+        0xC5, 0xFC, 0x5B, 0xC0,                   // vcvtdq2ps YMM0, YMM0;
+        0xC5, 0xFC, 0x5B, 0x00,                   // vcvtdq2ps YMM0, [RAX];
+
+        0xC5, 0xFB, 0xE6, 0xC0,                   // vcvtpd2dq XMM0, XMM0;
+        0xC5, 0xFF, 0xE6, 0xC0,                   // vcvtpd2dq XMM0, YMM0;
+        0xC5, 0xFB, 0xE6, 0x00,                   // vcvtpd2dq XMM0, [RAX];
+
+        0xC5, 0xF9, 0x5A, 0xC0,                   // vcvtpd2ps XMM0, XMM0;
+        0xC5, 0xFD, 0x5A, 0xC0,                   // vcvtpd2ps XMM0, YMM0;
+        0xC5, 0xF9, 0x5A, 0x00,                   // vcvtpd2ps XMM0, [RAX];
+
+        0xC5, 0xF9, 0x5B, 0xC0,                   // vcvtps2dq XMM0, XMM0;
+        0xC5, 0xFD, 0x5B, 0xC0,                   // vcvtps2dq YMM0, YMM0;
+        0xC5, 0xFD, 0x5B, 0x00,                   // vcvtps2dq YMM0, [RAX];
+
+        0xC5, 0xF8, 0x5A, 0xC0,                   // vcvtps2pd XMM0, XMM0;
+        0xC5, 0xFC, 0x5A, 0xC0,                   // vcvtps2pd YMM0, XMM0;
+        0xC5, 0xFC, 0x5A, 0x00,                   // vcvtps2pd YMM0, [RAX];
+
+        0xC5, 0xFB, 0x2D, 0xC0,                   // vcvtsd2si EAX, XMM0;
+        0xC4, 0xE1, 0xFB, 0x2D, 0xC0,             // vcvtsd2si RAX, XMM0;
+        0xC4, 0xE1, 0xFB, 0x2D, 0x00,             // vcvtsd2si RAX, [RAX];
+
+        0xC5, 0xFB, 0x5A, 0xC0,                   // vcvtsd2ss XMM0, XMM0, XMM0;
+        0xC5, 0xFB, 0x5A, 0x00,                   // vcvtsd2ss XMM0, XMM0, [RAX];
+
+        0xC5, 0xFB, 0x2A, 0xC0,                   // vcvtsi2sd XMM0, XMM0, EAX;
+        0xC4, 0xE1, 0xFB, 0x2A, 0xC0,             // vcvtsi2sd XMM0, XMM0, RAX;
+        0xC5, 0xFB, 0x2A, 0x00,                   // vcvtsi2sd XMM0, XMM0, [RAX];
+
+        0xC5, 0xFA, 0x2A, 0xC0,                   // vcvtsi2ss XMM0, XMM0, EAX;
+        0xC4, 0xE1, 0xFA, 0x2A, 0xC0,             // vcvtsi2ss XMM0, XMM0, RAX;
+        0xC5, 0xFA, 0x2A, 0x00,                   // vcvtsi2ss XMM0, XMM0, [RAX];
+
+        0xC5, 0xFB, 0x2A, 0xC0,                   // vcvtsi2sd XMM0, XMM0, EAX;
+        0xC4, 0xE1, 0xFB, 0x2A, 0xC0,             // vcvtsi2sd XMM0, XMM0, RAX;
+        0xC5, 0xFB, 0x2A, 0x00,                   // vcvtsi2sd XMM0, XMM0, [RAX];
+
+        0xC5, 0xFA, 0x2D, 0xC0,                   // vcvtss2si EAX, XMM0;
+        0xC4, 0xE1, 0xFA, 0x2D, 0xC0,             // vcvtss2si RAX, XMM0;
+        0xC4, 0xE1, 0xFA, 0x2D, 0x00,             // vcvtss2si RAX, [RAX];
+
+        0xC5, 0xF9, 0xE6, 0xC0,                   // vcvttpd2dq XMM0, XMM0;
+        0xC5, 0xFD, 0xE6, 0xC0,                   // vcvttpd2dq XMM0, YMM0;
+        0xC5, 0xF9, 0xE6, 0x00,                   // vcvttpd2dq XMM0, [RAX];
+
+        0xC5, 0xFA, 0x5B, 0xC0,                   // vcvttps2dq XMM0, XMM0;
+        0xC5, 0xFE, 0x5B, 0xC0,                   // vcvttps2dq YMM0, YMM0;
+        0xC5, 0xFE, 0x5B, 0x00,                   // vcvttps2dq YMM0, [RAX];
+
+        0xC5, 0xFB, 0x2C, 0xC0,                   // vcvttsd2si EAX, XMM0;
+        0xC4, 0xE1, 0xFB, 0x2C, 0xC0,             // vcvttsd2si RAX, XMM0;
+        0xC4, 0xE1, 0xFB, 0x2C, 0x00,             // vcvttsd2si RAX, [RAX];
+
+        0xC5, 0xFA, 0x2C, 0xC0,                   // vcvttss2si EAX, XMM0;
+        0xC4, 0xE1, 0xFA, 0x2C, 0xC0,             // vcvttss2si RAX, XMM0;
+        0xC4, 0xE1, 0xFA, 0x2C, 0x00,             // vcvttss2si RAX, [RAX];
+
+        0xC4, 0xE2, 0x79, 0x18, 0x00,             // vbroadcastss XMM0, [RAX];
+        0xC4, 0xE2, 0x7D, 0x18, 0x00,             // vbroadcastss YMM0, [RAX];
+        0xC4, 0xE2, 0x7D, 0x19, 0x00,             // vbroadcastsd YMM0, [RAX];
+        0xC4, 0xE2, 0x7D, 0x1A, 0x00,             // vbroadcastf128 YMM0, [RAX];
+
+        0xC4, 0xE3, 0x7D, 0x19, 0xC0, 0x00,       // vextractf128 XMM0, YMM0, 0;
+        0xC4, 0xE3, 0x7D, 0x19, 0x00, 0x00,       // vextractf128 [RAX], YMM0, 0;
+
+        0xC4, 0xE3, 0x79, 0x17, 0xC0, 0x00,       // vextractps EAX, XMM0, 0;
+        0xC4, 0xE3, 0x79, 0x17, 0x00, 0x00,       // vextractps [RAX], XMM0, 0;
+
+        0xC4, 0xE3, 0x7D, 0x18, 0xC0, 0x00,       // vinsertf128 YMM0, YMM0, XMM0, 0;
+        0xC4, 0xE3, 0x7D, 0x18, 0x00, 0x00,       // vinsertf128 YMM0, YMM0, [RAX], 0;
+
+        0xC4, 0xE3, 0x79, 0x21, 0xC0, 0x00,       // vinsertps XMM0, XMM0, XMM0, 0;
+        0xC4, 0xE3, 0x79, 0x21, 0x00, 0x00,       // vinsertps XMM0, XMM0, [RAX], 0;
+
+        0xC4, 0xE3, 0x79, 0x20, 0xC0, 0x00,       // vpinsrb XMM0, XMM0,   EAX, 0;
+        0xC4, 0xE3, 0x79, 0x20, 0x00, 0x00,       // vpinsrb XMM0, XMM0, [RAX], 0;
+        0xC5, 0xF9, 0xC4, 0xC0, 0x00,             // vpinsrw XMM0, XMM0,   EAX, 0;
+        0xC5, 0xF9, 0xC4, 0x00, 0x00,             // vpinsrw XMM0, XMM0, [RAX], 0;
+        0xC4, 0xE3, 0x79, 0x22, 0xC0, 0x00,       // vpinsrd XMM0, XMM0,   EAX, 0;
+        0xC4, 0xE3, 0x79, 0x22, 0x00, 0x00,       // vpinsrd XMM0, XMM0, [RAX], 0;
+        0xC4, 0xE3, 0xF9, 0x22, 0xC0, 0x00,       // vpinsrq XMM0, XMM0,   RAX, 0;
+        0xC4, 0xE3, 0xF9, 0x22, 0x00, 0x00,       // vpinsrq XMM0, XMM0, [RAX], 0;
+
+        0xC5, 0xFB, 0xF0, 0x00,                   // vlddqu XMM0, [RAX];
+        0xC5, 0xFF, 0xF0, 0x00,                   // vlddqu YMM0, [RAX];
+
+        0xC5, 0xF9, 0xF7, 0xC0,                   // vmaskmovdqu XMM0, XMM0;
+
+        0xC4, 0xE2, 0x79, 0x2C, 0x00,             // vmaskmovps XMM0, XMM0, [RAX];
+        0xC4, 0xE2, 0x79, 0x2E, 0x00,             // vmaskmovps [RAX], XMM0, XMM0;
+        0xC4, 0xE2, 0x7D, 0x2C, 0x00,             // vmaskmovps YMM0, YMM0, [RAX];
+        0xC4, 0xE2, 0x7D, 0x2E, 0x00,             // vmaskmovps [RAX], YMM0, YMM0;
+        0xC4, 0xE2, 0x79, 0x2D, 0x00,             // vmaskmovpd XMM0, XMM0, [RAX];
+        0xC4, 0xE2, 0x79, 0x2F, 0x00,             // vmaskmovpd [RAX], XMM0, XMM0;
+        0xC4, 0xE2, 0x7D, 0x2D, 0x00,             // vmaskmovpd YMM0, YMM0, [RAX];
+        0xC4, 0xE2, 0x7D, 0x2F, 0x00,             // vmaskmovpd [RAX], YMM0, YMM0;
+
+        0xC5, 0xFD, 0x28, 0x00,                   // vmovapd YMM0, [RAX];
+        0xC5, 0x7D, 0x28, 0x00,                   // vmovapd YMM8, [RAX];
+        0xC5, 0x7D, 0x28, 0x47, 0x40,             // vmovapd YMM8, 64[RDI];
+        0xC5, 0xFD, 0x29, 0x00,                   // vmovapd [RAX], YMM0;
+        0xC5, 0x7D, 0x29, 0x00,                   // vmovapd [RAX], YMM8;
+        0xC5, 0x7D, 0x29, 0x47, 0x40,             // vmovapd 64[RDI], YMM8;
+
+        0xC5, 0xFC, 0x28, 0x00,                   // vmovaps YMM0, [RAX];
+        0xC5, 0x7C, 0x28, 0x00,                   // vmovaps YMM8, [RAX];
+        0xC5, 0x7C, 0x28, 0x47, 0x40,             // vmovaps YMM8, 64[RDI];
+        0xC5, 0xFC, 0x29, 0x00,                   // vmovaps [RAX], YMM0;
+        0xC5, 0x7C, 0x29, 0x00,                   // vmovaps [RAX], YMM8;
+        0xC5, 0x7C, 0x29, 0x47, 0x40,             // vmovaps 64[RDI], YMM8;
+
+        0xC5, 0xFD, 0x10, 0x00,                   // vmovupd YMM0, [RAX];
+        0xC5, 0x7D, 0x10, 0x00,                   // vmovupd YMM8, [RAX];
+        0xC5, 0x7D, 0x10, 0x47, 0x40,             // vmovupd YMM8, 64[RDI];
+        0xC5, 0xFD, 0x11, 0x00,                   // vmovupd [RAX], YMM0;
+        0xC5, 0x7D, 0x11, 0x00,                   // vmovupd [RAX], YMM8;
+        0xC5, 0x7D, 0x11, 0x47, 0x40,             // vmovupd 64[RDI], YMM8;
+
+        0xC5, 0xFC, 0x10, 0x00,                   // vmovups YMM0, [RAX];
+        0xC5, 0x7C, 0x10, 0x00,                   // vmovups YMM8, [RAX];
+        0xC5, 0x7C, 0x10, 0x47, 0x40,             // vmovups YMM8, 64[RDI];
+        0xC5, 0xFC, 0x11, 0x00,                   // vmovups [RAX], YMM0;
+        0xC5, 0x7C, 0x11, 0x00,                   // vmovups [RAX], YMM8;
+        0xC5, 0x7C, 0x11, 0x47, 0x40,             // vmovups 64[RDI], YMM8;
+
+        0xC5, 0xF9, 0x6E, 0xC0,                   // vmovd XMM0, EAX;
+        0xC5, 0xF9, 0x6E, 0x00,                   // vmovd XMM0, [RAX];
+        0xC5, 0xF9, 0x7E, 0xC0,                   // vmovd EAX, XMM0;
+        0xC5, 0xF9, 0x7E, 0x00,                   // vmovd [RAX], XMM0;
+
+        0xC4, 0xE1, 0xF9, 0x6E, 0xC0,             // vmovq XMM0, RAX;
+        0xC4, 0xE1, 0xF9, 0x6E, 0x00,             // vmovq XMM0, [RAX];
+        0xC4, 0xE1, 0xF9, 0x7E, 0xC0,             // vmovq RAX, XMM0;
+        0xC4, 0xE1, 0xF9, 0x7E, 0x00,             // vmovq [RAX], XMM0;
+
+        0xC5, 0xF9, 0x6F, 0xC0,                   // vmovdqa XMM0, XMM0;
+        0xC5, 0xF9, 0x6F, 0x00,                   // vmovdqa XMM0, [RAX];
+        0xC5, 0xFD, 0x6F, 0xC0,                   // vmovdqa YMM0, YMM0;
+        0xC5, 0xFD, 0x6F, 0x00,                   // vmovdqa YMM0, [RAX];
+        0xC5, 0xF9, 0x6F, 0xC0,                   // vmovdqa XMM0, XMM0;
+        0xC5, 0xF9, 0x7F, 0x00,                   // vmovdqa [RAX], XMM0;
+        0xC5, 0xFD, 0x6F, 0xC0,                   // vmovdqa YMM0, YMM0;
+        0xC5, 0xFD, 0x7F, 0x00,                   // vmovdqa [RAX],YMM0;
+
+        0xC5, 0xFA, 0x6F, 0xC0,                   // vmovdqu XMM0, XMM0;
+        0xC5, 0xFA, 0x6F, 0x00,                   // vmovdqu XMM0, [RAX];
+        0xC5, 0xFE, 0x6F, 0xC0,                   // vmovdqu YMM0, YMM0;
+        0xC5, 0xFE, 0x6F, 0x00,                   // vmovdqu YMM0, [RAX];
+        0xC5, 0xFA, 0x6F, 0xC0,                   // vmovdqu XMM0, XMM0;
+        0xC5, 0xFA, 0x7F, 0x00,                   // vmovdqu [RAX], XMM0;
+        0xC5, 0xFE, 0x6F, 0xC0,                   // vmovdqu YMM0, YMM0;
+        0xC5, 0xFE, 0x7F, 0x00,                   // vmovdqu [RAX],YMM0;
+
+        0xC5, 0xF8, 0x12, 0xC0,                   // vmovlhps XMM0, XMM0, XMM0;
+        0xC5, 0xF8, 0x16, 0xC0,                   // vmovhlps XMM0, XMM0, XMM0;
+
+        0xC5, 0xF9, 0x16, 0x00,                   // vmovhpd XMM0, XMM0, [RAX];
+        0xC5, 0xF9, 0x17, 0x00,                   // vmovhpd [RAX], XMM0;
+        0xC5, 0xF8, 0x16, 0x00,                   // vmovhps XMM0, XMM0, [RAX];
+        0xC5, 0xF8, 0x17, 0x00,                   // vmovhps [RAX], XMM0;
+
+        0xC5, 0xF9, 0x12, 0x00,                   // vmovlpd XMM0, XMM0, [RAX];
+        0xC5, 0xF9, 0x13, 0x00,                   // vmovlpd [RAX], XMM0;
+        0xC5, 0xF8, 0x12, 0x00,                   // vmovlps XMM0, XMM0, [RAX];
+        0xC5, 0xF8, 0x13, 0x00,                   // vmovlps [RAX], XMM0;
+
+        0xC5, 0xF9, 0xE7, 0x00,                   // vmovntdq [RAX], XMM0;
+        0xC5, 0x7D, 0xE7, 0x00,                   // vmovntdq [RAX], YMM8;
+        0xC5, 0xF9, 0x2B, 0x00,                   // vmovntpd [RAX], XMM0;
+        0xC5, 0x7D, 0x2B, 0x00,                   // vmovntpd [RAX], YMM8;
+        0xC5, 0xF8, 0x2B, 0x00,                   // vmovntps [RAX], XMM0;
+        0xC5, 0x7C, 0x2B, 0x00,                   // vmovntps [RAX], YMM8;
+
+        0xC4, 0xE2, 0x79, 0x2A, 0x00,             // vmovntdqa XMM0, [RAX];
+
+        0xC5, 0xFB, 0x10, 0xC0,                   // vmovsd XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x3B, 0x10, 0xC0,             // vmovsd XMM8, XMM8, XMM8;
+        0xC5, 0xFB, 0x11, 0x00,                   // vmovsd [RAX], XMM0;
+        0xC4, 0x41, 0x7B, 0x11, 0x00,             // vmovsd [R8], XMM8;
+
+        0xC5, 0xFA, 0x10, 0xC0,                   // vmovss XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x3A, 0x10, 0xC0,             // vmovss XMM8, XMM8, XMM8;
+        0xC5, 0xFA, 0x11, 0x00,                   // vmovss [RAX], XMM0;
+        0xC4, 0x41, 0x7A, 0x11, 0x00,             // vmovss [R8], XMM8;
+
+        0xC5, 0x7A, 0x16, 0xC1,                   // vmovshdup XMM8, XMM1;
+        0xC4, 0xC1, 0x7E, 0x16, 0xC0,             // vmovshdup YMM0, YMM8;
+        0xC5, 0xFE, 0x16, 0x00,                   // vmovshdup YMM0, [RAX];
+        0xC5, 0x7A, 0x12, 0xC1,                   // vmovsldup XMM8, XMM1;
+        0xC4, 0xC1, 0x7E, 0x12, 0xC0,             // vmovsldup YMM0, YMM8;
+        0xC5, 0xFE, 0x12, 0x00,                   // vmovsldup YMM0, [RAX];
+
+        0xC5, 0xF1, 0x67, 0xC2,                   // vpackuswb XMM0, XMM1, XMM2;
+        0xC5, 0xB9, 0x67, 0x00,                   // vpackuswb XMM0, XMM8, [RAX];
+        0xC4, 0xE2, 0x71, 0x2B, 0xC2,             // vpackusdw XMM0, XMM1, XMM2;
+        0xC4, 0xE2, 0x39, 0x2B, 0x00,             // vpackusdw XMM0, XMM8, [RAX];
+        0xC5, 0xF1, 0x63, 0xC2,                   // vpacksswb XMM0, XMM1, XMM2;
+        0xC5, 0xB9, 0x63, 0x00,                   // vpacksswb XMM0, XMM8, [RAX];
+        0xC5, 0xF1, 0x6B, 0xC2,                   // vpackssdw XMM0, XMM1, XMM2;
+        0xC5, 0xB9, 0x6B, 0x00,                   // vpackssdw XMM0, XMM8, [RAX];
+
+        0xC4, 0xE3, 0x71, 0x0F, 0xC2, 0xFF,       // vpalignr XMM0, XMM1, XMM2, 0xFF;
+        0xC4, 0x63, 0x39, 0x0F, 0x08, 0x10,       // vpalignr XMM9, XMM8, [RAX], 0x10;
+        0xC4, 0xE3, 0x79, 0x14, 0xC0, 0x00,       // vpextrb EAX, XMM0, 0x0;
+        0xC4, 0x43, 0x79, 0x14, 0xCA, 0x0F,       // vpextrb R10, XMM9, 0xF;
+        0xC4, 0x43, 0x79, 0x14, 0x0A, 0x0F,       // vpextrb [R10], XMM9, 0xF;
+        0xC4, 0xE3, 0x79, 0x16, 0xC0, 0x00,       // vpextrd EAX, XMM0, 0x0;
+        0xC4, 0x43, 0x79, 0x16, 0xC8, 0x0F,       // vpextrd R8D, XMM9, 0xF;
+        0xC4, 0x43, 0x79, 0x16, 0x0A, 0x0F,       // vpextrd [R10], XMM9, 0xF;
+        0xC4, 0xE3, 0xF9, 0x16, 0xC0, 0x00,       // vpextrq RAX, XMM0, 0x0;
+        0xC4, 0x43, 0xF9, 0x16, 0xCA, 0x0F,       // vpextrq R10, XMM9, 0xF;
+        0xC4, 0x43, 0xF9, 0x16, 0x0A, 0x0F,       // vpextrq [R10], XMM9, 0xF;
+        0xC5, 0xF9, 0xC5, 0xC0, 0x00,             // vpextrw EAX, XMM0, 0x0;
+        0xC4, 0x41, 0x79, 0xC5, 0xD1, 0x0F,       // vpextrw R10, XMM9, 0xF;
+        0xC4, 0x43, 0x79, 0x15, 0x0A, 0x0F,       // vpextrw [R10], XMM9, 0xF;
+
+        0xC4, 0xE2, 0x79, 0x20, 0xC0,             // vpmovsxbw XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x20, 0x00,             // vpmovsxbw XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x21, 0xC0,             // vpmovsxbd XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x21, 0x00,             // vpmovsxbd XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x22, 0xC0,             // vpmovsxbq XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x22, 0x00,             // vpmovsxbq XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x23, 0xC0,             // vpmovsxwd XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x23, 0x00,             // vpmovsxwd XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x24, 0xC0,             // vpmovsxwq XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x24, 0x00,             // vpmovsxwq XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x25, 0xC0,             // vpmovsxdq XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x25, 0x00,             // vpmovsxdq XMM8, [R8];
+
+        0xC4, 0xE2, 0x79, 0x30, 0xC0,             // vpmovzxbw XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x30, 0x00,             // vpmovzxbw XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x31, 0xC0,             // vpmovzxbd XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x31, 0x00,             // vpmovzxbd XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x32, 0xC0,             // vpmovzxbq XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x32, 0x00,             // vpmovzxbq XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x33, 0xC0,             // vpmovzxwd XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x33, 0x00,             // vpmovzxwd XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x34, 0xC0,             // vpmovzxwq XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x34, 0x00,             // vpmovzxwq XMM8, [R8];
+        0xC4, 0xE2, 0x79, 0x35, 0xC0,             // vpmovzxdq XMM0, XMM0;
+        0xC4, 0x42, 0x79, 0x35, 0x00,             // vpmovzxdq XMM8, [R8];
+
+        0xC5, 0xF9, 0x54, 0xC0,                   // vandpd  XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x39, 0x54, 0x08,             // vandpd  XMM9, XMM8, [R8];
+        0xC5, 0xF8, 0x54, 0xC0,                   // vandps  XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x38, 0x54, 0x08,             // vandps  XMM9, XMM8, [R8];
+        0xC5, 0xF9, 0x55, 0xC0,                   // vandnpd XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x39, 0x55, 0x08,             // vandnpd XMM9, XMM8, [R8];
+        0xC5, 0xF8, 0x55, 0xC0,                   // vandnps XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x38, 0x55, 0x08,             // vandnps XMM9, XMM8, [R8];
+        0xC5, 0xF9, 0x56, 0xC0,                   // vorpd   XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x39, 0x56, 0x08,             // vorpd   XMM9, XMM8, [R8];
+        0xC5, 0xF8, 0x56, 0xC0,                   // vorps   XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x38, 0x56, 0x08,             // vorps   XMM9, XMM8, [R8];
+        0xC5, 0xF9, 0xDB, 0xC0,                   // vpand   XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x39, 0xDB, 0x08,             // vpand   XMM9, XMM8, [R8];
+        0xC5, 0xF9, 0xDF, 0xC0,                   // vpandn  XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x39, 0xDF, 0x08,             // vpandn  XMM9, XMM8, [R8];
+
+        0xC5, 0xF9, 0xEB, 0xC0,                   // vpor XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x39, 0xEB, 0x0A,             // vpor XMM9, XMM8, [R10];
+        0xC5, 0xF9, 0xEF, 0xC0,                   // vpxor XMM0, XMM0, XMM0;
+        0xC4, 0x41, 0x39, 0xEF, 0x0A,             // vpxor XMM9, XMM8, [R10];
+
+        0xC4, 0xE2, 0x79, 0x17, 0xC0,             // vptest XMM0, XMM0;
+        0xC4, 0x62, 0x79, 0x17, 0x00,             // vptest XMM8, [RAX];
+        0xC4, 0x42, 0x7D, 0x17, 0xC0,             // vptest YMM8, YMM8;
+        0xC4, 0xC2, 0x7D, 0x17, 0x00,             // vptest YMM0, [R8];
+
+        0xC5, 0xF9, 0x2E, 0xC0,                   // vucomisd XMM0, XMM0;
+        0xC5, 0x79, 0x2E, 0x00,                   // vucomisd XMM8, [RAX]
+        0xC5, 0xF8, 0x2E, 0xC0,                   // vucomiss YMM8, YMM8;
+        0xC5, 0x78, 0x2E, 0x00,                   // vucomiss YMM0, [R8];
+
+        0xC5, 0xB9, 0x57, 0xC0,                   // vxorpd XMM0, XMM8, XMM0;
+        0xC5, 0x79, 0x57, 0x00,                   // vxorpd XMM8, XMM0, [RAX];
+        0xC5, 0xBD, 0x57, 0xC0,                   // vxorpd YMM0, YMM8, YMM0;
+        0xC5, 0x7D, 0x57, 0x00,                   // vxorpd YMM8, YMM0, [RAX];
+        0xC5, 0xB8, 0x57, 0xC0,                   // vxorps XMM0, XMM8, XMM0;
+        0xC5, 0x78, 0x57, 0x00,                   // vxorps XMM8, XMM0, [RAX];
+        0xC5, 0xBC, 0x57, 0xC0,                   // vxorps YMM0, YMM8, YMM0;
+        0xC5, 0x7C, 0x57, 0x00,                   // vxorps YMM8, YMM0, [RAX];
+
+        0xC4, 0xE3, 0x71, 0x0D, 0xC2, 0x00,       // vblendpd XMM0, XMM1, XMM2, 0x00;
+        0xC4, 0x63, 0x39, 0x0D, 0x08, 0xFF,       // vblendpd XMM9, XMM8, [RAX], 0xFF;
+        0xC4, 0xE3, 0x75, 0x0D, 0xC2, 0x00,       // vblendpd YMM0, YMM1, YMM2, 0x00;
+        0xC4, 0x63, 0x3D, 0x0D, 0x08, 0xFF,       // vblendpd YMM9, YMM8, [RAX], 0xFF;
+        0xC4, 0xE3, 0x71, 0x0C, 0xC2, 0x00,       // vblendps XMM0, XMM1, XMM2, 0x00;
+        0xC4, 0x63, 0x39, 0x0C, 0x08, 0xFF,       // vblendps XMM9, XMM8, [RAX], 0xFF;
+        0xC4, 0xE3, 0x75, 0x0C, 0xC2, 0x00,       // vblendps YMM0, YMM1, YMM2, 0x00;
+        0xC4, 0x63, 0x3D, 0x0C, 0x08, 0xFF,       // vblendps YMM9, YMM8, [RAX], 0xFF;
+        0xC4, 0xE3, 0x71, 0x4B, 0xC2, 0x00,       // vblendvpd XMM0, XMM1, XMM2, 0x00;
+        0xC4, 0x63, 0x39, 0x4B, 0x08, 0xff,       // vblendvpd XMM9, XMM8, [RAX], 0xFF;
+        0xC4, 0xE3, 0x75, 0x4B, 0xC2, 0x00,       // vblendvpd YMM0, YMM1, YMM2, 0x00;
+        0xC4, 0x63, 0x3D, 0x4B, 0x08, 0xff,       // vblendvpd YMM9, YMM8, [RAX], 0xFF;
+        0xC4, 0xE3, 0x71, 0x4A, 0xC2, 0x00,       // vblendvps XMM0, XMM1, XMM2, 0x00;
+        0xC4, 0x63, 0x39, 0x4A, 0x08, 0xff,       // vblendvps XMM9, XMM8, [RAX], 0xFF;
+        0xC4, 0xE3, 0x75, 0x4A, 0xC2, 0x00,       // vblendvps YMM0, YMM1, YMM2, 0x00;
+        0xC4, 0x63, 0x3D, 0x4A, 0x08, 0xff,       // vblendvps YMM9, YMM8, [RAX], 0xFF;
+
+        0xC5, 0x7B, 0x12, 0xC0,                   // vmovddup XMM8, XMM0;
+        0xC5, 0xFB, 0x12, 0x00,                   // vmovddup XMM0, [RAX];
+        0xC4, 0xC1, 0x7F, 0x12, 0xC0,             // vmovddup YMM0, YMM8;
+        0xC4, 0xC1, 0x7F, 0x12, 0x02,             // vmovddup YMM0, [R10];
+
+        0xC4, 0xE3, 0x39, 0x4C, 0xC0, 0x00,       // vpblendvb XMM0, XMM8, XMM0, 0x00;
+        0xC4, 0x63, 0x79, 0x4C, 0x00, 0x00,       // vpblendvb XMM8, XMM0, [RAX], 0x00;
+        0xC4, 0x43, 0x79, 0x4C, 0x02, 0x00,       // vpblendvb XMM8, XMM0, [R10], 0x00;
+        0xC4, 0xE3, 0x39, 0x0E, 0xC0, 0x00,       // vpblendw XMM0, XMM8, XMM0, 0x00;
+        0xC4, 0x63, 0x79, 0x0E, 0x00, 0x00,       // vpblendw XMM8, XMM0, [RAX], 0x00;
+        0xC4, 0x43, 0x79, 0x0E, 0x02, 0x00,       // vpblendw XMM8, XMM0, [R10], 0x00;
+
+        0xC4, 0xE2, 0x71, 0x0D, 0xC2,             // vpermilpd XMM0, XMM1, XMM2;
+        0xC4, 0xE2, 0x71, 0x0D, 0x00,             // vpermilpd XMM0, XMM1, [RAX];
+        0xC4, 0xE3, 0x79, 0x05, 0xC1, 0x00,       // vpermilpd XMM0, XMM1, 0x00;
+        0xC4, 0xE3, 0x79, 0x05, 0x00, 0x00,       // vpermilpd XMM0, [RAX], 0x00;
+        0xC4, 0xE2, 0x71, 0x0C, 0xC2,             // vpermilps XMM0, XMM1, XMM2;
+        0xC4, 0xE2, 0x71, 0x0C, 0x00,             // vpermilps XMM0, XMM1, [RAX];
+        0xC4, 0xE3, 0x79, 0x04, 0xC1, 0x00,       // vpermilps XMM0, XMM1, 0x00;
+        0xC4, 0xE3, 0x79, 0x04, 0x00, 0x00,       // vpermilps XMM0, [RAX], 0x00;
+
+        0xC4, 0xE3, 0x75, 0x06, 0xC2, 0x00,       // vperm2f128 YMM0, YMM1, YMM2, 0x00;
+        0xC4, 0xE3, 0x75, 0x06, 0x00, 0x00,       // vperm2f128 YMM0, YMM1, [RAX], 0x00;
+        0xC4, 0x43, 0x35, 0x06, 0x02, 0x00,       // vperm2f128 YMM8, YMM9, [R10], 0x00;
+        0xC4, 0xE2, 0x79, 0x00, 0xC0,             // vpshufb XMM0, XMM0, XMM0;
+        0xC4, 0x42, 0x39, 0x00, 0x08,             // vpshufb XMM9, XMM8, [R8];
+        0xC5, 0xF9, 0x70, 0xC0, 0x00,             // vpshufd XMM0, XMM0, 0x0;
+        0xC4, 0x41, 0x79, 0x70, 0x00, 0x00,       // vpshufd XMM8, [R8], 0x0;
+        0xC5, 0xFA, 0x70, 0xC0, 0x00,             // vpshufhw XMM0, XMM0, 0x0;
+        0xC4, 0x41, 0x7A, 0x70, 0x00, 0x00,       // vpshufhw XMM8, [R8], 0x0;
+        0xC5, 0xFB, 0x70, 0xC0, 0x00,             // vpshuflw XMM0, XMM0, 0x0;
+        0xC4, 0x41, 0x7B, 0x70, 0x00, 0x00,       // vpshuflw XMM8, [R8], 0x0;
+
+        0xC5, 0xF1, 0x68, 0xC2,                   // vpunpckhbw XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x68, 0x00,             // vpunpckhbw XMM8, XMM8, [R8];
+        0xC5, 0xF1, 0x69, 0xC2,                   // vpunpckhwd XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x69, 0x00,             // vpunpckhwd XMM8, XMM8, [R8];
+        0xC5, 0xF1, 0x6A, 0xC2,                   // vpunpckhdq XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x6A, 0x00,             // vpunpckhdq XMM8, XMM8, [R8];
+        0xC5, 0xF1, 0x6D, 0xC2,                   // vpunpckhqdq XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x6D, 0x00,             // vpunpckhqdq XMM8, XMM8, [R8];
+
+        0xC5, 0xF1, 0x60, 0xC2,                   // vpunpcklbw XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x60, 0x00,             // vpunpcklbw XMM8, XMM8, [R8];
+        0xC5, 0xF1, 0x61, 0xC2,                   // vpunpcklwd XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x61, 0x00,             // vpunpcklwd XMM8, XMM8, [R8];
+        0xC5, 0xF1, 0x62, 0xC2,                   // vpunpckldq XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x62, 0x00,             // vpunpckldq XMM8, XMM8, [R8];
+        0xC5, 0xF1, 0x6C, 0xC2,                   // vpunpcklqdq XMM0, XMM1, XMM2;
+        0xC4, 0x41, 0x39, 0x6C, 0x00,             // vpunpcklqdq XMM8, XMM8, [R8];
+
+        0xC5, 0xF9, 0xC6, 0xC0, 0x00,             // vshufpd XMM0, XMM0, XMM0, 0x00;
+        0xC4, 0xC1, 0x39, 0xC6, 0x00, 0x00,       // vshufpd XMM0, XMM8, [R8], 0x00;
+        0xC4, 0x41, 0x7D, 0xC6, 0xC0, 0x00,       // vshufpd YMM8, YMM0, YMM8, 0x00;
+        0xC5, 0x7D, 0xC6, 0x00, 0x00,             // vshufpd YMM8, YMM0, [RAX], 0x00;
+        0xC5, 0xF8, 0xC6, 0xC0, 0x00,             // vshufps XMM0, XMM0, XMM0, 0x00;
+        0xC4, 0xC1, 0x38, 0xC6, 0x00, 0x00,       // vshufps XMM0, XMM8, [R8], 0x00;
+        0xC4, 0x41, 0x7C, 0xC6, 0xC0, 0x00,       // vshufps YMM8, YMM0, YMM8, 0x00;
+        0xC5, 0x7C, 0xC6, 0x00, 0x00,             // vshufps YMM8, YMM0, [RAX], 0x00;
+
+        0xC5, 0xF9, 0x15, 0xC0,                   // vunpckhpd XMM0, XMM0, XMM0;
+        0xC5, 0x39, 0x15, 0x00,                   // vunpckhpd XMM8, XMM8, [RAX];
+        0xC4, 0x41, 0x7D, 0x15, 0x00,             // vunpckhpd YMM8, YMM0, [R8];
+        0xC4, 0xC1, 0x3D, 0x15, 0x00,             // vunpckhpd YMM0, YMM8, [R8];
+        0xC5, 0xF8, 0x15, 0xC0,                   // vunpckhps XMM0, XMM0, XMM0;
+        0xC5, 0x38, 0x15, 0x00,                   // vunpckhps XMM8, XMM8, [RAX];
+        0xC4, 0x41, 0x7C, 0x15, 0x00,             // vunpckhps YMM8, YMM0, [R8];
+        0xC4, 0xC1, 0x3C, 0x15, 0x00,             // vunpckhps YMM0, YMM8, [R8];
+        0xC5, 0xF9, 0x14, 0xC0,                   // vunpcklpd XMM0, XMM0, XMM0;
+        0xC5, 0x39, 0x14, 0x00,                   // vunpcklpd XMM8, XMM8, [RAX];
+        0xC4, 0x41, 0x7D, 0x14, 0x00,             // vunpcklpd YMM8, YMM0, [R8];
+        0xC4, 0xC1, 0x3D, 0x14, 0x00,             // vunpcklpd YMM0, YMM8, [R8];
+        0xC5, 0xF8, 0x14, 0xC0,                   // vunpcklps XMM0, XMM0, XMM0;
+        0xC5, 0x38, 0x14, 0x00,                   // vunpcklps XMM8, XMM8, [RAX];
+        0xC4, 0x41, 0x7C, 0x14, 0x00,             // vunpcklps YMM8, YMM0, [R8];
+        0xC4, 0xC1, 0x3C, 0x14, 0x00,             // vunpcklps YMM0, YMM8, [R8];
+
+        /* AES */
+        0x66, 0x0F, 0x38, 0xDC, 0xC0,             // aesenc XMM0, XMM0;
+        0x66, 0x0F, 0x38, 0xDC, 0x00,             // aesenc XMM0, [RAX];
+        0xC4, 0xE2, 0x79, 0xDC, 0xC0,             // vaesenc XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0xDC, 0x00,             // vaesenc XMM0, XMM0, [RAX];
+        0x66, 0x0F, 0x38, 0xDD, 0xC0,             // aesenclast XMM0, XMM0;
+        0x66, 0x0F, 0x38, 0xDD, 0x00,             // aesenclast XMM0, [RAX];
+        0xC4, 0xE2, 0x79, 0xDD, 0xC0,             // vaesenclast XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0xDD, 0x00,             // vaesenclast XMM0, XMM0, [RAX];
+
+        0x66, 0x0F, 0x38, 0xDE, 0xC0,             // aesdec XMM0, XMM0;
+        0x66, 0x0F, 0x38, 0xDE, 0x00,             // aesdec XMM0, [RAX];
+        0xC4, 0xE2, 0x79, 0xDE, 0xC0,             // vaesdec XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0xDE, 0x00,             // vaesdec XMM0, XMM0, [RAX];
+        0x66, 0x0F, 0x38, 0xDF, 0xC0,             // aesdeclast XMM0, XMM0;
+        0x66, 0x0F, 0x38, 0xDF, 0x00,             // aesdeclast XMM0, [RAX];
+        0xC4, 0xE2, 0x79, 0xDF, 0xC0,             // vaesdeclast XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0xDF, 0x00,             // vaesdeclast XMM0, XMM0, [RAX];
+
+        0x66, 0x0F, 0x38, 0xDB, 0xC0,             // aesimc XMM0, XMM0;
+        0x66, 0x0F, 0x38, 0xDB, 0x00,             // aesimc XMM0, [RAX];
+        0xC4, 0xE2, 0x79, 0xDB, 0xC0,             // vaesimc XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0xDB, 0x00,             // vaesimc XMM0, [RAX];
+
+        0x66, 0x0F, 0x3A, 0xDF, 0xC0, 0x00,       // aeskeygenassist XMM0, XMM0, 0x0;
+        0x66, 0x0F, 0x3A, 0xDF, 0x00, 0x00,       // aeskeygenassist XMM0, [RAX], 0x0;
+        0xC4, 0xE3, 0x79, 0xDF, 0xC0, 0x00,       // vaeskeygenassist XMM0, XMM0, 0x0;
+        0xC4, 0xE3, 0x79, 0xDF, 0x00, 0x00,       // vaeskeygenassist XMM0, [RAX], 0x0;
+
+        /* FSGSBASE */
+        0xf3, 0x48, 0x0f, 0xae, 0xc0,             // rdfsbase RAX;
+        0xf3, 0x49, 0x0f, 0xae, 0xc7,             // rdfsbase R15;
+        0xf3, 0x48, 0x0f, 0xae, 0xc8,             // rdgsbase RAX;
+        0xf3, 0x49, 0x0f, 0xae, 0xcf,             // rdgsbase R15;
+
+        0xf3, 0x48, 0x0f, 0xae, 0xd0,             // wrfsbase RAX;
+        0xf3, 0x49, 0x0f, 0xae, 0xd7,             // wrfsbase R15;
+        0xf3, 0x48, 0x0f, 0xae, 0xd8,             // wrgsbase RAX;
+        0xf3, 0x49, 0x0f, 0xae, 0xdf,             // wrgsbase R15;
+
+        /* RDRAND */
+        0x66, 0x0f, 0xc7, 0xf0,                   // rdrand    AX;
+        0x0f, 0xc7, 0xf0,                         // rdrand   EAX;
+        0x48, 0x0f, 0xc7, 0xf0,                   // rdrand   RAX;
+
+        0x66, 0x41, 0x0f, 0xc7, 0xf7,             // rdrand  R15W;
+        0x41, 0x0f, 0xc7, 0xf7,                   // rdrand  R15D;
+        0x49, 0x0f, 0xc7, 0xf7,                   // rdrand   R15;
+
+        /* FP16C */
+        0xc4, 0xe2, 0x79, 0x13, 0xc0,             // vcvtph2ps XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0x13, 0x00,             // vcvtph2ps XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0x13, 0xc0,             // vcvtph2ps YMM0, XMM0;
+        0xc4, 0x42, 0x7d, 0x13, 0x00,             // vcvtph2ps YMM8, [R8];
+
+        0xc4, 0xe3, 0x79, 0x13, 0xc0, 0x00,       // vcvtps2ph XMM0,  XMM0, 0x0;
+        0xc4, 0xe3, 0x79, 0x13, 0x00, 0x00,       // vcvtps2ph [RAX], XMM0, 0x0;
+        0xc4, 0xe3, 0x7d, 0x13, 0xc0, 0x00,       // vcvtps2ph XMM0,  YMM0, 0x0;
+        0xc4, 0x43, 0x7d, 0x13, 0x00, 0x00,       // vcvtps2ph [R8],  YMM8, 0x0;
+
+        /* FMA */
+        0xc4, 0xe2, 0xf9, 0x98, 0xc0,             // vfmadd132pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0x98, 0x00,             // vfmadd132pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0x98, 0xc0,             // vfmadd132pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0x98, 0x00,             // vfmadd132pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0x98, 0xc0,             // vfmadd132ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0x98, 0x00,             // vfmadd132ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0x98, 0xc0,             // vfmadd132ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0x98, 0x00,             // vfmadd132ps YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0xf9, 0x99, 0xc0,             // vfmadd132sd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0x99, 0x00,             // vfmadd132sd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x79, 0x99, 0xc0,             // vfmadd132ss XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0x99, 0x00,             // vfmadd132ss XMM0, XMM0, [RAX];
+
+        0xc4, 0xe2, 0xf9, 0xA8, 0xc0,             // vfmadd213pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xA8, 0x00,             // vfmadd213pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xA8, 0xc0,             // vfmadd213pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xA8, 0x00,             // vfmadd213pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xA8, 0xc0,             // vfmadd213ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xA8, 0x00,             // vfmadd213ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xA8, 0xc0,             // vfmadd213ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xA8, 0x00,             // vfmadd213ps YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0xf9, 0xA9, 0xc0,             // vfmadd213sd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xA9, 0x00,             // vfmadd213sd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x79, 0xA9, 0xc0,             // vfmadd213ss XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xA9, 0x00,             // vfmadd213ss XMM0, XMM0, [RAX];
+
+        0xc4, 0xe2, 0xf9, 0xB8, 0xc0,             // vfmadd231pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xB8, 0x00,             // vfmadd231pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xB8, 0xc0,             // vfmadd231pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xB8, 0x00,             // vfmadd231pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xB8, 0xc0,             // vfmadd231ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xB8, 0x00,             // vfmadd231ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xB8, 0xc0,             // vfmadd231ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xB8, 0x00,             // vfmadd231ps YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0xf9, 0xB9, 0xc0,             // vfmadd231sd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xB9, 0x00,             // vfmadd231sd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x79, 0xB9, 0xc0,             // vfmadd231ss XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xB9, 0x00,             // vfmadd231ss XMM0, XMM0, [RAX];
+
+        0xc4, 0xe2, 0xf9, 0x96, 0xc0,             // vfmaddsub132pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0x96, 0x00,             // vfmaddsub132pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0x96, 0xc0,             // vfmaddsub132pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0x96, 0x00,             // vfmaddsub132pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0x96, 0xc0,             // vfmaddsub132ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0x96, 0x00,             // vfmaddsub132ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0x96, 0xc0,             // vfmaddsub132ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0x96, 0x00,             // vfmaddsub132ps YMM8, YMM8, [R8];
+
+        0xc4, 0xe2, 0xf9, 0xA6, 0xc0,             // vfmaddsub213pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xA6, 0x00,             // vfmaddsub213pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xA6, 0xc0,             // vfmaddsub213pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xA6, 0x00,             // vfmaddsub213pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xA6, 0xc0,             // vfmaddsub213ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xA6, 0x00,             // vfmaddsub213ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xA6, 0xc0,             // vfmaddsub213ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xA6, 0x00,             // vfmaddsub213ps YMM8, YMM8, [R8];
+
+        0xc4, 0xe2, 0xf9, 0xB6, 0xc0,             // vfmaddsub231pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xB6, 0x00,             // vfmaddsub231pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xB6, 0xc0,             // vfmaddsub231pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xB6, 0x00,             // vfmaddsub231pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xB6, 0xc0,             // vfmaddsub231ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xB6, 0x00,             // vfmaddsub231ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xB6, 0xc0,             // vfmaddsub231ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xB6, 0x00,             // vfmaddsub231ps YMM8, YMM8, [R8];
+
+        0xc4, 0xe2, 0xf9, 0x97, 0xc0,             // vfmsubadd132pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0x97, 0x00,             // vfmsubadd132pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0x97, 0xc0,             // vfmsubadd132pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0x97, 0x00,             // vfmsubadd132pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0x97, 0xc0,             // vfmsubadd132ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0x97, 0x00,             // vfmsubadd132ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0x97, 0xc0,             // vfmsubadd132ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0x97, 0x00,             // vfmsubadd132ps YMM8, YMM8, [R8];
+
+        0xc4, 0xe2, 0xf9, 0xA7, 0xc0,             // vfmsubadd213pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xA7, 0x00,             // vfmsubadd213pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xA7, 0xc0,             // vfmsubadd213pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xA7, 0x00,             // vfmsubadd213pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xA7, 0xc0,             // vfmsubadd213ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xA7, 0x00,             // vfmsubadd213ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xA7, 0xc0,             // vfmsubadd213ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xA7, 0x00,             // vfmsubadd213ps YMM8, YMM8, [R8];
+
+        0xc4, 0xe2, 0xf9, 0xB7, 0xc0,             // vfmsubadd231pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xB7, 0x00,             // vfmsubadd231pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xB7, 0xc0,             // vfmsubadd231pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xB7, 0x00,             // vfmsubadd231pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xB7, 0xc0,             // vfmsubadd231ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xB7, 0x00,             // vfmsubadd231ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xB7, 0xc0,             // vfmsubadd231ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xB7, 0x00,             // vfmsubadd231ps YMM8, YMM8, [R8];
+
+        0xc4, 0xe2, 0xf9, 0x9A, 0xc0,             // vfmsub132pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0x9A, 0x00,             // vfmsub132pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0x9A, 0xc0,             // vfmsub132pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0x9A, 0x00,             // vfmsub132pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0x9A, 0xc0,             // vfmsub132ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0x9A, 0x00,             // vfmsub132ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0x9A, 0xc0,             // vfmsub132ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0x9A, 0x00,             // vfmsub132ps YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0xf9, 0x9B, 0xc0,             // vfmsub132sd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0x9B, 0x00,             // vfmsub132sd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x79, 0x9B, 0xc0,             // vfmsub132ss XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0x9B, 0x00,             // vfmsub132ss XMM0, XMM0, [RAX];
+
+        0xc4, 0xe2, 0xf9, 0xAA, 0xc0,             // vfmsub213pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xAA, 0x00,             // vfmsub213pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xAA, 0xc0,             // vfmsub213pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xAA, 0x00,             // vfmsub213pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xAA, 0xc0,             // vfmsub213ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xAA, 0x00,             // vfmsub213ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xAA, 0xc0,             // vfmsub213ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xAA, 0x00,             // vfmsub213ps YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0xf9, 0xAB, 0xc0,             // vfmsub213sd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xAB, 0x00,             // vfmsub213sd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x79, 0xAB, 0xc0,             // vfmsub213ss XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xAB, 0x00,             // vfmsub213ss XMM0, XMM0, [RAX];
+
+        0xc4, 0xe2, 0xf9, 0xBA, 0xc0,             // vfmsub231pd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xBA, 0x00,             // vfmsub231pd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0xfd, 0xBA, 0xc0,             // vfmsub231pd YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0xbd, 0xBA, 0x00,             // vfmsub231pd YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0x79, 0xBA, 0xc0,             // vfmsub231ps XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xBA, 0x00,             // vfmsub231ps XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x7d, 0xBA, 0xc0,             // vfmsub231ps YMM0, YMM0, YMM0;
+        0xc4, 0x42, 0x3d, 0xBA, 0x00,             // vfmsub231ps YMM8, YMM8, [R8];
+        0xc4, 0xe2, 0xf9, 0xBB, 0xc0,             // vfmsub231sd XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0xf9, 0xBB, 0x00,             // vfmsub231sd XMM0, XMM0, [RAX];
+        0xc4, 0xe2, 0x79, 0xBB, 0xc0,             // vfmsub231ss XMM0, XMM0, XMM0;
+        0xc4, 0xe2, 0x79, 0xBB, 0x00,             // vfmsub231ss XMM0, XMM0, [RAX];
+
+        // 0x58, // pop RAX
+    ];
+
+    asm
+    {
+        call  L1;
+
+        xgetbv;
+        xsetbv;
+        xrstor     [RAX];
+        xrstor64   [RAX];
+        xsave      [RAX];
+        xsave64    [RAX];
+        xsaveopt   [RAX];
+        xsaveopt64 [RAX];
+        vldmxcsr   [RAX];
+        vstmxcsr   [RAX];
+
+        vaddss  XMM0,  XMM1,  XMM2;
+        vaddsd  XMM0, XMM15, [RAX];
+        vaddps XMM12,  XMM0,  XMM0;
+        vaddpd  XMM8,  XMM8,  XMM8;
+
+        vsubss  XMM0,  XMM1,  XMM2;
+        vsubsd  XMM0, XMM15, [RAX];
+        vsubps XMM12,  XMM0,  XMM0;
+        vsubpd  XMM8,  XMM8,  XMM8;
+
+        vaddsubps XMM0, XMM1, XMM2;
+        vaddsubps YMM0, YMM1, YMM2;
+
+        vaddsubpd  YMM8,  YMM1,    YMM2;
+        vaddsubpd YMM15, YMM15, 64[RAX];
+
+        vdpps YMM0, YMM0, YMM0, 0;
+        vdppd XMM0, XMM0, XMM0, 0x88;
+
+        vhaddpd YMM0, YMM8, [RDI];
+        vhaddps XMM0, XMM8, XMM1;
+
+        vmaxpd YMM0, YMM0, YMM1;
+        vmaxpd XMM0, XMM0, [RAX];
+
+        vmaxps YMM0, YMM0, YMM1;
+        vmaxps XMM0, XMM0, [RAX];
+
+        vmaxsd XMM0, XMM0, [RAX];
+
+        vmaxss XMM0, XMM0, [RAX];
+
+        vminpd YMM0, YMM0, YMM1;
+        vminpd XMM0, XMM0, [RAX];
+
+        vminps YMM0, YMM0, YMM1;
+        vminps XMM0, XMM0, [RAX];
+
+        vminsd XMM0, XMM0, [RAX];
+
+        vminss XMM0, XMM0, [RAX];
+
+        vmovmskpd EAX, XMM0;
+        vmovmskpd EDI, YMM0;
+
+        vmovmskps EAX, YMM15;
+        vmovmskps R8D, YMM0;
+
+        vpmovmskb EAX, XMM0;
+
+        vmpsadbw XMM0, XMM1, XMM2, 0x00;
+        vmpsadbw XMM8, XMM9, XMM10, 0xFF;
+
+        vpabsb XMM0, [RAX];
+        vpabsw XMM1, XMM15;
+        vpabsd XMM1, [RBX];
+
+        vpaddb XMM0, XMM0, [RAX];
+        vpaddw XMM8, XMM8, XMM15;
+        vpaddd XMM8, XMM8, [RBX];
+        vpaddq XMM0, XMM0, XMM0;
+
+        vpsubb XMM0, XMM0, [RAX];
+        vpsubw XMM8, XMM8, XMM15;
+        vpsubd XMM8, XMM8, [RBX];
+        vpsubq XMM0, XMM0, XMM0;
+
+        vpaddsb XMM0, XMM0, XMM0;
+        vpaddsw XMM0, XMM0, XMM0;
+        vpaddusb XMM0, XMM0, XMM0;
+        vpaddusw XMM0, XMM0, XMM0;
+
+        vpsubsb XMM0, XMM0, XMM0;
+        vpsubsw XMM0, XMM0, XMM0;
+        vpsubusb XMM0, XMM0, XMM0;
+        vpsubusw XMM0, XMM0, XMM0;
+
+        vpavgb XMM0, XMM0, XMM0;
+        vpavgw XMM0, XMM0, XMM0;
+
+        vpclmulqdq XMM0, XMM0, 64[RAX + 4 * RCX], 0;
+
+        vphaddw XMM0, XMM0, XMM0;
+        vphaddd XMM0, XMM0, XMM0;
+        vphsubw XMM0, XMM0, XMM0;
+        vphsubd XMM0, XMM0, XMM0;
+
+        vphaddsw XMM0, XMM0, XMM0;
+        vphsubsw XMM0, XMM0, XMM0;
+
+        vphminposuw XMM0, XMM0;
+
+        vpmaddwd XMM0, XMM0, XMM0;
+
+        vpmaddubsw XMM0, XMM0, XMM0;
+
+        vpmaxsb XMM0, XMM0, XMM0;
+        vpmaxsd XMM0, XMM0, XMM0;
+        vpmaxsw XMM0, XMM0, XMM0;
+        vpmaxub XMM0, XMM0, XMM0;
+        vpmaxud XMM0, XMM0, XMM0;
+        vpmaxuw XMM0, XMM0, XMM0;
+
+        vpminsb XMM0, XMM0, XMM0;
+        vpminsd XMM0, XMM0, XMM0;
+        vpminsw XMM0, XMM0, XMM0;
+        vpminub XMM0, XMM0, XMM0;
+        vpminud XMM0, XMM0, XMM0;
+        vpminuw XMM0, XMM0, XMM0;
+
+        vpmulhrsw XMM0, XMM0, XMM0;
+        vpmulhuw XMM0, XMM0, XMM0;
+        vpmulhw XMM0, XMM0, XMM0;
+        vpmulld XMM0, XMM0, XMM0;
+        vpmullw XMM0, XMM0, XMM0;
+        vpmuludq XMM0, XMM0, XMM0;
+
+        vpsadbw XMM0, XMM0, XMM0;
+        vpsignb XMM0, XMM0, XMM0;
+        vpsignw XMM0, XMM0, XMM0;
+        vpsignd XMM0, XMM0, XMM0;
+
+        vpslldq XMM0, XMM0, 0;
+        vpsllw  XMM0, XMM0, 0;
+        vpsllw  XMM0, XMM0, XMM0;
+        vpslld  XMM0, XMM0, 0;
+        vpslld  XMM0, XMM0, XMM0;
+        vpsllq  XMM0, XMM0, 0;
+        vpsllq  XMM0, XMM0, XMM0;
+
+        vpsraw  XMM0, XMM0, 0;
+        vpsraw  XMM0, XMM0, XMM0;
+        vpsrad  XMM0, XMM0, 0;
+        vpsrad  XMM0, XMM0, XMM0;
+
+        vpsrldq  XMM0, XMM0, 0;
+
+        vpsrlw  XMM0, XMM0, 0;
+        vpsrlw  XMM0, XMM0, XMM0;
+        vpsrld  XMM0, XMM0, 0;
+        vpsrld  XMM0, XMM0, XMM0;
+        vpsrlq  XMM0, XMM0, 0;
+        vpsrlq  XMM0, XMM0, XMM0;
+
+        vrcpps XMM0, XMM1;
+        vrcpps YMM0, YMM1;
+        vrcpss XMM0, XMM0, XMM1;
+
+        vroundpd XMM0, XMM0, 0;
+        vroundpd YMM0, YMM0, 0;
+        vroundps XMM0, XMM0, 0;
+        vroundps YMM0, YMM0, 0;
+
+        vroundsd XMM0, XMM0, XMM0, 0;
+        vroundss XMM0, XMM0, XMM0, 0;
+
+        vsqrtpd XMM0, XMM0;
+        vsqrtpd YMM0, YMM0;
+        vsqrtps XMM0, XMM0;
+        vsqrtps YMM0, YMM0;
+
+        vsqrtsd XMM0, XMM0, XMM0;
+        vsqrtss XMM0, XMM0, XMM0;
+
+        vzeroall;
+        vzeroupper;
+
+        vcmppd XMM0, XMM0, XMM0, 0;
+        vcmppd YMM0, YMM0, YMM0, 0;
+        vcmpps XMM0, XMM0, XMM0, 0;
+        vcmpps YMM0, YMM0, YMM0, 0;
+
+        vcmpsd XMM0, XMM0, XMM0, 0;
+        vcmpss XMM0, XMM0, XMM0, 0;
+
+        vcomisd XMM0, XMM0;
+        vcomiss XMM0, XMM0;
+
+        vpcmpeqb XMM0, XMM0, XMM0;
+        vpcmpeqw XMM0, XMM0, XMM0;
+        vpcmpeqd XMM0, XMM0, XMM0;
+        vpcmpeqq XMM0, XMM0, XMM0;
+
+        vpcmpgtb XMM0, XMM0, XMM0;
+        vpcmpgtw XMM0, XMM0, XMM0;
+        vpcmpgtd XMM0, XMM0, XMM0;
+        vpcmpgtq XMM0, XMM0, XMM0;
+
+        vpcmpestri XMM0, XMM0, 0;
+        vpcmpestrm XMM0, XMM0, 0;
+        vpcmpistri XMM0, XMM0, 0;
+        vpcmpistrm XMM0, XMM0, 0;
+
+        vcvtdq2pd XMM0, XMM0;
+        vcvtdq2pd YMM0, XMM0;
+        vcvtdq2pd YMM0, [RAX];
+
+        vcvtdq2ps XMM0, XMM0;
+        vcvtdq2ps YMM0, YMM0;
+        vcvtdq2ps YMM0, [RAX];
+
+        vcvtpd2dq XMM0, XMM0;
+        vcvtpd2dq XMM0, YMM0;
+        vcvtpd2dq XMM0, [RAX];
+
+        vcvtpd2ps XMM0, XMM0;
+        vcvtpd2ps XMM0, YMM0;
+        vcvtpd2ps XMM0, [RAX];
+
+        vcvtps2dq XMM0, XMM0;
+        vcvtps2dq YMM0, YMM0;
+        vcvtps2dq YMM0, [RAX];
+
+        vcvtps2pd XMM0, XMM0;
+        vcvtps2pd YMM0, XMM0;
+        vcvtps2pd YMM0, [RAX];
+
+        vcvtsd2si EAX, XMM0;
+        vcvtsd2si RAX, XMM0;
+        vcvtsd2si RAX, [RAX];
+
+        vcvtsd2ss XMM0, XMM0, XMM0;
+        vcvtsd2ss XMM0, XMM0, [RAX];
+
+        vcvtsi2sd XMM0, XMM0, EAX;
+        vcvtsi2sd XMM0, XMM0, RAX;
+        vcvtsi2sd XMM0, XMM0, [RAX];
+
+        vcvtsi2ss XMM0, XMM0, EAX;
+        vcvtsi2ss XMM0, XMM0, RAX;
+        vcvtsi2ss XMM0, XMM0, [RAX];
+
+        vcvtsi2sd XMM0, XMM0, EAX;
+        vcvtsi2sd XMM0, XMM0, RAX;
+        vcvtsi2sd XMM0, XMM0, [RAX];
+
+        vcvtss2si EAX, XMM0;
+        vcvtss2si RAX, XMM0;
+        vcvtss2si RAX, [RAX];
+
+        vcvttpd2dq XMM0, XMM0;
+        vcvttpd2dq XMM0, YMM0;
+        vcvttpd2dq XMM0, [RAX];
+
+        vcvttps2dq XMM0, XMM0;
+        vcvttps2dq YMM0, YMM0;
+        vcvttps2dq YMM0, [RAX];
+
+        vcvttsd2si EAX, XMM0;
+        vcvttsd2si RAX, XMM0;
+        vcvttsd2si RAX, [RAX];
+
+        vcvttss2si EAX, XMM0;
+        vcvttss2si RAX, XMM0;
+        vcvttss2si RAX, [RAX];
+
+        vbroadcastss XMM0, [RAX];
+        vbroadcastss YMM0, [RAX];
+        vbroadcastsd YMM0, [RAX];
+        vbroadcastf128 YMM0, [RAX];
+
+        vextractf128 XMM0, YMM0, 0;
+        vextractf128 [RAX], YMM0, 0;
+
+        vextractps EAX, XMM0, 0;
+        vextractps [RAX], XMM0, 0;
+
+        vinsertf128 YMM0, YMM0, XMM0, 0;
+        vinsertf128 YMM0, YMM0, [RAX], 0;
+
+        vinsertps XMM0, XMM0, XMM0, 0;
+        vinsertps XMM0, XMM0, [RAX], 0;
+
+        vpinsrb XMM0, XMM0,   EAX, 0;
+        vpinsrb XMM0, XMM0, [RAX], 0;
+        vpinsrw XMM0, XMM0,   EAX, 0;
+        vpinsrw XMM0, XMM0, [RAX], 0;
+        vpinsrd XMM0, XMM0,   EAX, 0;
+        vpinsrd XMM0, XMM0, [RAX], 0;
+        vpinsrq XMM0, XMM0,   RAX, 0;
+        vpinsrq XMM0, XMM0, [RAX], 0;
+
+        vlddqu XMM0, [RAX];
+        vlddqu YMM0, [RAX];
+
+        vmaskmovdqu XMM0, XMM0;
+
+        vmaskmovps XMM0, XMM0, [RAX];
+        vmaskmovps [RAX], XMM0, XMM0;
+        vmaskmovps YMM0, YMM0, [RAX];
+        vmaskmovps [RAX], YMM0, YMM0;
+        vmaskmovpd XMM0, XMM0, [RAX];
+        vmaskmovpd [RAX], XMM0, XMM0;
+        vmaskmovpd YMM0, YMM0, [RAX];
+        vmaskmovpd [RAX], YMM0, YMM0;
+
+        vmovapd YMM0, [RAX];
+        vmovapd YMM8, [RAX];
+        vmovapd YMM8, 64[RDI];
+        vmovapd [RAX], YMM0;
+        vmovapd [RAX], YMM8;
+        vmovapd 64[RDI], YMM8;
+
+        vmovaps YMM0, [RAX];
+        vmovaps YMM8, [RAX];
+        vmovaps YMM8, 64[RDI];
+        vmovaps [RAX], YMM0;
+        vmovaps [RAX], YMM8;
+        vmovaps 64[RDI], YMM8;
+
+        vmovupd YMM0, [RAX];
+        vmovupd YMM8, [RAX];
+        vmovupd YMM8, 64[RDI];
+        vmovupd [RAX], YMM0;
+        vmovupd [RAX], YMM8;
+        vmovupd 64[RDI], YMM8;
+
+        vmovups YMM0, [RAX];
+        vmovups YMM8, [RAX];
+        vmovups YMM8, 64[RDI];
+        vmovups [RAX], YMM0;
+        vmovups [RAX], YMM8;
+        vmovups 64[RDI], YMM8;
+
+        vmovd XMM0, EAX;
+        vmovd XMM0, [RAX];
+        vmovd EAX, XMM0;
+        vmovd [RAX], XMM0;
+
+        vmovq XMM0, RAX;
+        vmovq XMM0, [RAX];
+        vmovq RAX, XMM0;
+        vmovq [RAX], XMM0;
+
+        vmovdqa XMM0, XMM0;
+        vmovdqa XMM0, [RAX];
+        vmovdqa YMM0, YMM0;
+        vmovdqa YMM0, [RAX];
+        vmovdqa XMM0, XMM0;
+        vmovdqa [RAX], XMM0;
+        vmovdqa YMM0, YMM0;
+        vmovdqa [RAX],YMM0;
+
+        vmovdqu XMM0, XMM0;
+        vmovdqu XMM0, [RAX];
+        vmovdqu YMM0, YMM0;
+        vmovdqu YMM0, [RAX];
+        vmovdqu XMM0, XMM0;
+        vmovdqu [RAX], XMM0;
+        vmovdqu YMM0, YMM0;
+        vmovdqu [RAX],YMM0;
+
+        vmovlhps XMM0, XMM0, XMM0;
+        vmovhlps XMM0, XMM0, XMM0;
+
+        vmovhpd XMM0, XMM0, [RAX];
+        vmovhpd [RAX], XMM0;
+        vmovhps XMM0, XMM0, [RAX];
+        vmovhps [RAX], XMM0;
+
+        vmovlpd XMM0, XMM0, [RAX];
+        vmovlpd [RAX], XMM0;
+        vmovlps XMM0, XMM0, [RAX];
+        vmovlps [RAX], XMM0;
+
+        vmovntdq [RAX], XMM0;
+        vmovntdq [RAX], YMM8;
+        vmovntpd [RAX], XMM0;
+        vmovntpd [RAX], YMM8;
+        vmovntps [RAX], XMM0;
+        vmovntps [RAX], YMM8;
+
+        vmovntdqa XMM0, [RAX];
+
+        vmovsd XMM0, XMM0, XMM0;
+        vmovsd XMM8, XMM8, XMM8;
+        vmovsd [RAX], XMM0;
+        vmovsd [R8], XMM8;
+
+        vmovss XMM0, XMM0, XMM0;
+        vmovss XMM8, XMM8, XMM8;
+        vmovss [RAX], XMM0;
+        vmovss [R8], XMM8;
+
+        vmovshdup XMM8, XMM1;
+        vmovshdup YMM0, YMM8;
+        vmovshdup YMM0, [RAX];
+        vmovsldup XMM8, XMM1;
+        vmovsldup YMM0, YMM8;
+        vmovsldup YMM0, [RAX];
+
+        vpackuswb XMM0, XMM1, XMM2;
+        vpackuswb XMM0, XMM8, [RAX];
+        vpackusdw XMM0, XMM1, XMM2;
+        vpackusdw XMM0, XMM8, [RAX];
+        vpacksswb XMM0, XMM1, XMM2;
+        vpacksswb XMM0, XMM8, [RAX];
+        vpackssdw XMM0, XMM1, XMM2;
+        vpackssdw XMM0, XMM8, [RAX];
+
+        vpalignr XMM0, XMM1, XMM2, 0xFF;
+        vpalignr XMM9, XMM8, [RAX], 0x10;
+
+        vpextrb EAX, XMM0, 0x0;
+        vpextrb R10, XMM9, 0xF;
+        vpextrb [R10], XMM9, 0xF;
+        vpextrd EAX, XMM0, 0x0;
+        vpextrd R8D, XMM9, 0xF;
+        vpextrd [R10], XMM9, 0xF;
+        vpextrq RAX, XMM0, 0x0;
+        vpextrq R10, XMM9, 0xF;
+        vpextrq [R10], XMM9, 0xF;
+        vpextrw EAX, XMM0, 0x0;
+        vpextrw R10, XMM9, 0xF;
+        vpextrw [R10], XMM9, 0xF;
+
+        vpmovsxbw XMM0, XMM0;
+        vpmovsxbw XMM8, [R8];
+        vpmovsxbd XMM0, XMM0;
+        vpmovsxbd XMM8, [R8];
+        vpmovsxbq XMM0, XMM0;
+        vpmovsxbq XMM8, [R8];
+        vpmovsxwd XMM0, XMM0;
+        vpmovsxwd XMM8, [R8];
+        vpmovsxwq XMM0, XMM0;
+        vpmovsxwq XMM8, [R8];
+        vpmovsxdq XMM0, XMM0;
+        vpmovsxdq XMM8, [R8];
+
+        vpmovzxbw XMM0, XMM0;
+        vpmovzxbw XMM8, [R8];
+        vpmovzxbd XMM0, XMM0;
+        vpmovzxbd XMM8, [R8];
+        vpmovzxbq XMM0, XMM0;
+        vpmovzxbq XMM8, [R8];
+        vpmovzxwd XMM0, XMM0;
+        vpmovzxwd XMM8, [R8];
+        vpmovzxwq XMM0, XMM0;
+        vpmovzxwq XMM8, [R8];
+        vpmovzxdq XMM0, XMM0;
+        vpmovzxdq XMM8, [R8];
+
+        vandpd XMM0, XMM0, XMM0;
+        vandpd XMM9, XMM8, [R8];
+        vandps XMM0, XMM0, XMM0;
+        vandps XMM9, XMM8, [R8];
+        vandnpd XMM0, XMM0, XMM0;
+        vandnpd XMM9, XMM8, [R8];
+        vandnps XMM0, XMM0, XMM0;
+        vandnps XMM9, XMM8, [R8];
+        vorpd XMM0, XMM0, XMM0;
+        vorpd XMM9, XMM8, [R8];
+        vorps XMM0, XMM0, XMM0;
+        vorps XMM9, XMM8, [R8];
+        vpand XMM0, XMM0, XMM0;
+        vpand XMM9, XMM8, [R8];
+        vpandn XMM0, XMM0, XMM0;
+        vpandn XMM9, XMM8, [R8];
+
+        vpor XMM0, XMM0, XMM0;
+        vpor XMM9, XMM8, [R10];
+        vpxor XMM0, XMM0, XMM0;
+        vpxor XMM9, XMM8, [R10];
+
+        vptest XMM0, XMM0;
+        vptest XMM8, [RAX];
+        vptest YMM8, YMM8;
+        vptest YMM0, [R8];
+
+        vucomisd XMM0, XMM0;
+        vucomisd XMM8, [RAX];
+        vucomiss XMM0, XMM0;
+        vucomiss XMM8, [RAX];
+
+        vxorpd XMM0, XMM8, XMM0;
+        vxorpd XMM8, XMM0, [RAX];
+        vxorpd YMM0, YMM8, YMM0;
+        vxorpd YMM8, YMM0, [RAX];
+        vxorps XMM0, XMM8, XMM0;
+        vxorps XMM8, XMM0, [RAX];
+        vxorps YMM0, YMM8, YMM0;
+        vxorps YMM8, YMM0, [RAX];
+
+        vblendpd XMM0, XMM1, XMM2, 0x00;
+        vblendpd XMM9, XMM8, [RAX], 0xFF;
+        vblendpd YMM0, YMM1, YMM2, 0x00;
+        vblendpd YMM9, YMM8, [RAX], 0xFF;
+        vblendps XMM0, XMM1, XMM2, 0x00;
+        vblendps XMM9, XMM8, [RAX], 0xFF;
+        vblendps YMM0, YMM1, YMM2, 0x00;
+        vblendps YMM9, YMM8, [RAX], 0xFF;
+        vblendvpd XMM0, XMM1, XMM2, 0x00;
+        vblendvpd XMM9, XMM8, [RAX], 0xFF;
+        vblendvpd YMM0, YMM1, YMM2, 0x00;
+        vblendvpd YMM9, YMM8, [RAX], 0xFF;
+        vblendvps XMM0, XMM1, XMM2, 0x00;
+        vblendvps XMM9, XMM8, [RAX], 0xFF;
+        vblendvps YMM0, YMM1, YMM2, 0x00;
+        vblendvps YMM9, YMM8, [RAX], 0xFF;
+
+        vmovddup XMM8, XMM0;
+        vmovddup XMM0, [RAX];
+        vmovddup YMM0, YMM8;
+        vmovddup YMM0, [R10];
+
+        vpblendvb XMM0, XMM8, XMM0, 0x00;
+        vpblendvb XMM8, XMM0, [RAX], 0x00;
+        vpblendvb XMM8, XMM0, [R10], 0x00;
+        vpblendw XMM0, XMM8, XMM0, 0x00;
+        vpblendw XMM8, XMM0, [RAX], 0x00;
+        vpblendw XMM8, XMM0, [R10], 0x00;
+
+        vpermilpd XMM0, XMM1, XMM2;
+        vpermilpd XMM0, XMM1, [RAX];
+        vpermilpd XMM0, XMM1, 0x00;
+        vpermilpd XMM0, [RAX], 0x00;
+        vpermilps XMM0, XMM1, XMM2;
+        vpermilps XMM0, XMM1, [RAX];
+        vpermilps XMM0, XMM1, 0x00;
+        vpermilps XMM0, [RAX], 0x00;
+
+        vperm2f128 YMM0, YMM1, YMM2, 0x00;
+        vperm2f128 YMM0, YMM1, [RAX], 0x00;
+        vperm2f128 YMM8, YMM9, [R10], 0x00;
+
+        vpshufb XMM0, XMM0, XMM0;
+        vpshufb XMM9, XMM8, [R8];
+        vpshufd XMM0, XMM0, 0x0;
+        vpshufd XMM8, [R8], 0x0;
+        vpshufhw XMM0, XMM0, 0x0;
+        vpshufhw XMM8, [R8], 0x0;
+        vpshuflw XMM0, XMM0, 0x0;
+        vpshuflw XMM8, [R8], 0x0;
+
+        vpunpckhbw XMM0, XMM1, XMM2;
+        vpunpckhbw XMM8, XMM8, [R8];
+        vpunpckhwd XMM0, XMM1, XMM2;
+        vpunpckhwd XMM8, XMM8, [R8];
+        vpunpckhdq XMM0, XMM1, XMM2;
+        vpunpckhdq XMM8, XMM8, [R8];
+        vpunpckhqdq XMM0, XMM1, XMM2;
+        vpunpckhqdq XMM8, XMM8, [R8];
+
+        vpunpcklbw XMM0, XMM1, XMM2;
+        vpunpcklbw XMM8, XMM8, [R8];
+        vpunpcklwd XMM0, XMM1, XMM2;
+        vpunpcklwd XMM8, XMM8, [R8];
+        vpunpckldq XMM0, XMM1, XMM2;
+        vpunpckldq XMM8, XMM8, [R8];
+        vpunpcklqdq XMM0, XMM1, XMM2;
+        vpunpcklqdq XMM8, XMM8, [R8];
+
+        vshufpd XMM0, XMM0, XMM0, 0x00;
+        vshufpd XMM0, XMM8, [R8], 0x00;
+        vshufpd YMM8, YMM0, YMM8, 0x00;
+        vshufpd YMM8, YMM0, [RAX], 0x00;
+        vshufps XMM0, XMM0, XMM0, 0x00;
+        vshufps XMM0, XMM8, [R8], 0x00;
+        vshufps YMM8, YMM0, YMM8, 0x00;
+        vshufps YMM8, YMM0, [RAX], 0x00;
+
+        vunpckhpd XMM0, XMM0, XMM0;
+        vunpckhpd XMM8, XMM8, [RAX];
+        vunpckhpd YMM8, YMM0, [R8];
+        vunpckhpd YMM0, YMM8, [R8];
+        vunpckhps XMM0, XMM0, XMM0;
+        vunpckhps XMM8, XMM8, [RAX];
+        vunpckhps YMM8, YMM0, [R8];
+        vunpckhps YMM0, YMM8, [R8];
+        vunpcklpd XMM0, XMM0, XMM0;
+        vunpcklpd XMM8, XMM8, [RAX];
+        vunpcklpd YMM8, YMM0, [R8];
+        vunpcklpd YMM0, YMM8, [R8];
+        vunpcklps XMM0, XMM0, XMM0;
+        vunpcklps XMM8, XMM8, [RAX];
+        vunpcklps YMM8, YMM0, [R8];
+        vunpcklps YMM0, YMM8, [R8];
+
+        /* AES */
+        aesenc XMM0, XMM0;
+        aesenc XMM0, [RAX];
+        vaesenc XMM0, XMM0, XMM0;
+        vaesenc XMM0, XMM0, [RAX];
+        aesenclast XMM0, XMM0;
+        aesenclast XMM0, [RAX];
+        vaesenclast XMM0, XMM0, XMM0;
+        vaesenclast XMM0, XMM0, [RAX];
+
+        aesdec XMM0, XMM0;
+        aesdec XMM0, [RAX];
+        vaesdec XMM0, XMM0, XMM0;
+        vaesdec XMM0, XMM0, [RAX];
+        aesdeclast XMM0, XMM0;
+        aesdeclast XMM0, [RAX];
+        vaesdeclast XMM0, XMM0, XMM0;
+        vaesdeclast XMM0, XMM0, [RAX];
+
+        aesimc XMM0, XMM0;
+        aesimc XMM0, [RAX];
+        vaesimc XMM0, XMM0;
+        vaesimc XMM0, [RAX];
+
+        aeskeygenassist XMM0, XMM0, 0x0;
+        aeskeygenassist XMM0, [RAX], 0x0;
+        vaeskeygenassist XMM0, XMM0, 0x0;
+        vaeskeygenassist XMM0, [RAX], 0x0;
+
+        /* FSGSBASE */
+        rdfsbase RAX;
+        rdfsbase R15;
+        rdgsbase RAX;
+        rdgsbase R15;
+
+        wrfsbase RAX;
+        wrfsbase R15;
+        wrgsbase RAX;
+        wrgsbase R15;
+
+        /* RDRAND */
+        rdrand    AX;
+        rdrand   EAX;
+        rdrand   RAX;
+
+        rdrand  R15W;
+        rdrand  R15D;
+        rdrand   R15;
+
+        /* FP16C */
+        vcvtph2ps XMM0, XMM0;
+        vcvtph2ps XMM0, [RAX];
+        vcvtph2ps YMM0, XMM0;
+        vcvtph2ps YMM8, [R8];
+
+        vcvtps2ph XMM0,  XMM0, 0x0;
+        vcvtps2ph [RAX], XMM0, 0x0;
+        vcvtps2ph XMM0,  YMM0, 0x0;
+        vcvtps2ph [R8],  YMM8, 0x0;
+
+        /* FMA */
+        vfmadd132pd XMM0, XMM0, XMM0;
+        vfmadd132pd XMM0, XMM0, [RAX];
+        vfmadd132pd YMM0, YMM0, YMM0;
+        vfmadd132pd YMM8, YMM8, [R8];
+        vfmadd132ps XMM0, XMM0, XMM0;
+        vfmadd132ps XMM0, XMM0, [RAX];
+        vfmadd132ps YMM0, YMM0, YMM0;
+        vfmadd132ps YMM8, YMM8, [R8];
+        vfmadd132sd XMM0, XMM0, XMM0;
+        vfmadd132sd XMM0, XMM0, [RAX];
+        vfmadd132ss XMM0, XMM0, XMM0;
+        vfmadd132ss XMM0, XMM0, [RAX];
+
+        vfmadd213pd XMM0, XMM0, XMM0;
+        vfmadd213pd XMM0, XMM0, [RAX];
+        vfmadd213pd YMM0, YMM0, YMM0;
+        vfmadd213pd YMM8, YMM8, [R8];
+        vfmadd213ps XMM0, XMM0, XMM0;
+        vfmadd213ps XMM0, XMM0, [RAX];
+        vfmadd213ps YMM0, YMM0, YMM0;
+        vfmadd213ps YMM8, YMM8, [R8];
+        vfmadd213sd XMM0, XMM0, XMM0;
+        vfmadd213sd XMM0, XMM0, [RAX];
+        vfmadd213ss XMM0, XMM0, XMM0;
+        vfmadd213ss XMM0, XMM0, [RAX];
+
+        vfmadd231pd XMM0, XMM0, XMM0;
+        vfmadd231pd XMM0, XMM0, [RAX];
+        vfmadd231pd YMM0, YMM0, YMM0;
+        vfmadd231pd YMM8, YMM8, [R8];
+        vfmadd231ps XMM0, XMM0, XMM0;
+        vfmadd231ps XMM0, XMM0, [RAX];
+        vfmadd231ps YMM0, YMM0, YMM0;
+        vfmadd231ps YMM8, YMM8, [R8];
+        vfmadd231sd XMM0, XMM0, XMM0;
+        vfmadd231sd XMM0, XMM0, [RAX];
+        vfmadd231ss XMM0, XMM0, XMM0;
+        vfmadd231ss XMM0, XMM0, [RAX];
+
+        vfmaddsub132pd XMM0, XMM0, XMM0;
+        vfmaddsub132pd XMM0, XMM0, [RAX];
+        vfmaddsub132pd YMM0, YMM0, YMM0;
+        vfmaddsub132pd YMM8, YMM8, [R8];
+        vfmaddsub132ps XMM0, XMM0, XMM0;
+        vfmaddsub132ps XMM0, XMM0, [RAX];
+        vfmaddsub132ps YMM0, YMM0, YMM0;
+        vfmaddsub132ps YMM8, YMM8, [R8];
+
+        vfmaddsub213pd XMM0, XMM0, XMM0;
+        vfmaddsub213pd XMM0, XMM0, [RAX];
+        vfmaddsub213pd YMM0, YMM0, YMM0;
+        vfmaddsub213pd YMM8, YMM8, [R8];
+        vfmaddsub213ps XMM0, XMM0, XMM0;
+        vfmaddsub213ps XMM0, XMM0, [RAX];
+        vfmaddsub213ps YMM0, YMM0, YMM0;
+        vfmaddsub213ps YMM8, YMM8, [R8];
+
+        vfmaddsub231pd XMM0, XMM0, XMM0;
+        vfmaddsub231pd XMM0, XMM0, [RAX];
+        vfmaddsub231pd YMM0, YMM0, YMM0;
+        vfmaddsub231pd YMM8, YMM8, [R8];
+        vfmaddsub231ps XMM0, XMM0, XMM0;
+        vfmaddsub231ps XMM0, XMM0, [RAX];
+        vfmaddsub231ps YMM0, YMM0, YMM0;
+        vfmaddsub231ps YMM8, YMM8, [R8];
+
+        vfmsubadd132pd XMM0, XMM0, XMM0;
+        vfmsubadd132pd XMM0, XMM0, [RAX];
+        vfmsubadd132pd YMM0, YMM0, YMM0;
+        vfmsubadd132pd YMM8, YMM8, [R8];
+        vfmsubadd132ps XMM0, XMM0, XMM0;
+        vfmsubadd132ps XMM0, XMM0, [RAX];
+        vfmsubadd132ps YMM0, YMM0, YMM0;
+        vfmsubadd132ps YMM8, YMM8, [R8];
+
+        vfmsubadd213pd XMM0, XMM0, XMM0;
+        vfmsubadd213pd XMM0, XMM0, [RAX];
+        vfmsubadd213pd YMM0, YMM0, YMM0;
+        vfmsubadd213pd YMM8, YMM8, [R8];
+        vfmsubadd213ps XMM0, XMM0, XMM0;
+        vfmsubadd213ps XMM0, XMM0, [RAX];
+        vfmsubadd213ps YMM0, YMM0, YMM0;
+        vfmsubadd213ps YMM8, YMM8, [R8];
+
+        vfmsubadd231pd XMM0, XMM0, XMM0;
+        vfmsubadd231pd XMM0, XMM0, [RAX];
+        vfmsubadd231pd YMM0, YMM0, YMM0;
+        vfmsubadd231pd YMM8, YMM8, [R8];
+        vfmsubadd231ps XMM0, XMM0, XMM0;
+        vfmsubadd231ps XMM0, XMM0, [RAX];
+        vfmsubadd231ps YMM0, YMM0, YMM0;
+        vfmsubadd231ps YMM8, YMM8, [R8];
+
+        vfmsub132pd XMM0, XMM0, XMM0;
+        vfmsub132pd XMM0, XMM0, [RAX];
+        vfmsub132pd YMM0, YMM0, YMM0;
+        vfmsub132pd YMM8, YMM8, [R8];
+        vfmsub132ps XMM0, XMM0, XMM0;
+        vfmsub132ps XMM0, XMM0, [RAX];
+        vfmsub132ps YMM0, YMM0, YMM0;
+        vfmsub132ps YMM8, YMM8, [R8];
+        vfmsub132sd XMM0, XMM0, XMM0;
+        vfmsub132sd XMM0, XMM0, [RAX];
+        vfmsub132ss XMM0, XMM0, XMM0;
+        vfmsub132ss XMM0, XMM0, [RAX];
+
+        vfmsub213pd XMM0, XMM0, XMM0;
+        vfmsub213pd XMM0, XMM0, [RAX];
+        vfmsub213pd YMM0, YMM0, YMM0;
+        vfmsub213pd YMM8, YMM8, [R8];
+        vfmsub213ps XMM0, XMM0, XMM0;
+        vfmsub213ps XMM0, XMM0, [RAX];
+        vfmsub213ps YMM0, YMM0, YMM0;
+        vfmsub213ps YMM8, YMM8, [R8];
+        vfmsub213sd XMM0, XMM0, XMM0;
+        vfmsub213sd XMM0, XMM0, [RAX];
+        vfmsub213ss XMM0, XMM0, XMM0;
+        vfmsub213ss XMM0, XMM0, [RAX];
+
+        vfmsub231pd XMM0, XMM0, XMM0;
+        vfmsub231pd XMM0, XMM0, [RAX];
+        vfmsub231pd YMM0, YMM0, YMM0;
+        vfmsub231pd YMM8, YMM8, [R8];
+        vfmsub231ps XMM0, XMM0, XMM0;
+        vfmsub231ps XMM0, XMM0, [RAX];
+        vfmsub231ps YMM0, YMM0, YMM0;
+        vfmsub231ps YMM8, YMM8, [R8];
+        vfmsub231sd XMM0, XMM0, XMM0;
+        vfmsub231sd XMM0, XMM0, [RAX];
+        vfmsub231ss XMM0, XMM0, XMM0;
+        vfmsub231ss XMM0, XMM0, [RAX];
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (i,b; data)
+    {
+        // printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+    assert(p[data.length] == 0x58); // pop RAX
+}
+
+
 void test2941()
 {
     ubyte *p;
@@ -4894,6 +6481,7 @@ int main()
     test58();
     test59();
     test60();
+    test61();
     test2941();
 
     printf("Success\n");

@@ -72,6 +72,75 @@
 #define _modcxr11       0xe000  // Instruction modifies CX and R11
 #define _modxmm0        0xf000  // Instruction modifies XMM0
 
+// translates opcode into equivalent vex encoding
+#define VEX_128_W0(op)            (_VEX(op)|_VEX_NOO)
+#define VEX_128_W1(op)            (_VEX(op)|_VEX_NOO|_VEX_W)
+#define VEX_128_WIG(op)            VEX_128_W0(op)
+#define VEX_256_W0(op)            (_VEX(op)|_VEX_NOO|_VEX_L)
+#define VEX_256_W1(op)            (_VEX(op)|_VEX_NOO|_VEX_W|_VEX_L)
+#define VEX_256_WIG(op)            VEX_256_W0(op)
+#define VEX_NDS_128_W0(op)        (_VEX(op)|_VEX_NDS)
+#define VEX_NDS_128_W1(op)        (_VEX(op)|_VEX_NDS|_VEX_W)
+#define VEX_NDS_128_WIG(op)        VEX_NDS_128_W0(op)
+#define VEX_NDS_256_W0(op)        (_VEX(op)|_VEX_NDS|_VEX_L)
+#define VEX_NDS_256_W1(op)        (_VEX(op)|_VEX_NDS|_VEX_W|_VEX_L)
+#define VEX_NDS_256_WIG(op)        VEX_NDS_256_W0(op)
+#define VEX_NDD_128_W0(op)        (_VEX(op)|_VEX_NDD)
+#define VEX_NDD_128_W1(op)        (_VEX(op)|_VEX_NDD|_VEX_W)
+#define VEX_NDD_128_WIG(op)        VEX_NDD_128_W0(op)
+#define VEX_NDD_256_W0(op)        (_VEX(op)|_VEX_NDD|_VEX_L)
+#define VEX_NDD_256_W1(op)        (_VEX(op)|_VEX_NDD|_VEX_W|_VEX_L)
+#define VEX_NDD_256_WIG(op)        VEX_NDD_256_W0(op)
+#define VEX_DDS_128_W0(op)        (_VEX(op)|_VEX_DDS)
+#define VEX_DDS_128_W1(op)        (_VEX(op)|_VEX_DDS|_VEX_W)
+#define VEX_DDS_128_WIG(op)        VEX_DDS_128_W0(op)
+#define VEX_DDS_256_W0(op)        (_VEX(op)|_VEX_DDS|_VEX_L)
+#define VEX_DDS_256_W1(op)        (_VEX(op)|_VEX_DDS|_VEX_W|_VEX_L)
+#define VEX_DDS_256_WIG(op)        VEX_DDS_256_W0(op)
+
+#define _VEX_W   0x8000
+/* Don't encode LIG/LZ use 128 for these.
+ */
+#define _VEX_L   0x0400
+/* Encode nds, ndd, dds in the vvvv field, it gets
+ * overwritten with the actual register later.
+ */
+#define  VEX_NOO 0 // neither of nds, ndd, dds
+#define  VEX_NDS 1
+#define  VEX_NDD 2
+#define  VEX_DDS 3
+#define _VEX_NOO  (  VEX_NOO << 11)
+#define _VEX_NDS  (  VEX_NDS << 11)
+#define _VEX_NDD  (  VEX_NDD << 11)
+#define _VEX_DDS  (  VEX_DDS << 11)
+
+#define _VEX(op) (0xC4 << 24 | _VEX_MM(op >> 8) | (op & 0xFF))
+
+#define _VEX_MM(op)                                                     \
+    (                                                                   \
+        ((op) & 0x00FF) == 0x000F ? (0x1 << 16 | _VEX_PP((op) >>  8)) : \
+        ((op) & 0xFFFF) == 0x0F38 ? (0x2 << 16 | _VEX_PP((op) >> 16)) : \
+        ((op) & 0xFFFF) == 0x0F3A ? (0x3 << 16 | _VEX_PP((op) >> 16)) : \
+        _VEX_ASSERT0                                                    \
+    )
+
+#define _VEX_PP(op)                                     \
+    (                                                   \
+        (op) == 0x00 ? 0x00 << 8 :                      \
+        (op) == 0x66 ? 0x01 << 8 :                      \
+        (op) == 0xF3 ? 0x02 << 8 :                      \
+        (op) == 0xF2 ? 0x03 << 8 :                      \
+        _VEX_ASSERT0                                    \
+    )
+
+// avoid dynamic initialization of the asm tables
+#if DEBUG
+    #define _VEX_ASSERT0 (assert(0))
+#else
+    #define _VEX_ASSERT0 (0)
+#endif
+
+
 /////////////////////////////////////////////////
 // Operand flags - usOp1, usOp2, usOp3
 //
@@ -90,11 +159,14 @@ typedef unsigned opflag_t;
 #define _m48    CONSTRUCT_FLAGS( _48, _m, _normal, 0 )
 #define _m64    CONSTRUCT_FLAGS( _64, _m, _normal, 0 )
 #define _m128   CONSTRUCT_FLAGS( _anysize, _m, _normal, 0 )
+#define _m256   CONSTRUCT_FLAGS( _anysize, _m, _normal, 0 )
 #define _rm8    CONSTRUCT_FLAGS(_8, _rm, _normal, 0 )
 #define _rm16   CONSTRUCT_FLAGS(_16, _rm, _normal, 0 )
 #define _rm32   CONSTRUCT_FLAGS(_32, _rm, _normal, 0)
 #define _rm64   CONSTRUCT_FLAGS(_64, _rm, _normal, 0)
+#define _r32m8  CONSTRUCT_FLAGS(_32|_8, _rm, _normal, 0)
 #define _r32m16 CONSTRUCT_FLAGS(_32|_16, _rm, _normal, 0)
+#define _regm8  CONSTRUCT_FLAGS(_64|_32|_8, _rm, _normal, 0)
 #define _imm8   CONSTRUCT_FLAGS(_8, _imm, _normal, 0 )
 #define _imm16  CONSTRUCT_FLAGS(_16, _imm, _normal, 0)
 #define _imm32  CONSTRUCT_FLAGS(_32, _imm, _normal, 0)
@@ -121,10 +193,11 @@ typedef unsigned opflag_t;
 #define _mmm64  CONSTRUCT_FLAGS( _64, _m, 0, _f64)
 #define _mmm128 CONSTRUCT_FLAGS( 0, _m, 0, _f128)
 
-#define _xmm_m16 CONSTRUCT_FLAGS( _16, _m, _rspecial, 0)
-#define _xmm_m32 CONSTRUCT_FLAGS( _32, _m, _rspecial, 0)
-#define _xmm_m64 CONSTRUCT_FLAGS( _anysize, _m, _rspecial, 0)
-#define _xmm_m128 CONSTRUCT_FLAGS( _anysize, _m, _rspecial, 0)
+#define _xmm_m16  CONSTRUCT_FLAGS( _16,      _m, _rspecial, ASM_GET_uRegmask(_xmm))
+#define _xmm_m32  CONSTRUCT_FLAGS( _32,      _m, _rspecial, ASM_GET_uRegmask(_xmm))
+#define _xmm_m64  CONSTRUCT_FLAGS( _anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm))
+#define _xmm_m128 CONSTRUCT_FLAGS( _anysize, _m, _rspecial, ASM_GET_uRegmask(_xmm))
+#define _ymm_m256 CONSTRUCT_FLAGS( _anysize, _m, _rspecial, ASM_GET_uRegmask(_ymm))
 
 #define _moffs8 (_rel8)
 #define _moffs16 (_rel16 )
@@ -231,6 +304,7 @@ enum ASM_MODIFIERS {
 #define _mm     CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x08 ) // MMn register (0-7)
 #define _xmm    CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x10 ) // XMMn register (0-7)
 #define _xmm0   CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x20 ) // XMM0 register
+#define _ymm    CONSTRUCT_FLAGS( 0, 0, _rspecial, 0x40 ) // YMMn register (0-15)
 
 //
 // Default register values
@@ -304,6 +378,15 @@ int asm_state(int iFlags);
 
 void asm_process_fixup( block **ppblockLabels );
 
+typedef struct _PTRNTAB4 {
+        unsigned usOpcode;
+        unsigned usFlags;
+        opflag_t usOp1;
+        opflag_t usOp2;
+        opflag_t usOp3;
+        opflag_t usOp4;
+} PTRNTAB4, * PPTRNTAB4, ** PPPTRNTAB4;
+
 typedef struct _PTRNTAB3 {
         unsigned usOpcode;
         unsigned usFlags;
@@ -336,6 +419,7 @@ typedef union _PTRNTAB {
         PTRNTAB1        *pptb1;
         PTRNTAB2        *pptb2;
         PTRNTAB3        *pptb3;
+        PTRNTAB4        *pptb4;
 } PTRNTAB, * PPTRNTAB, ** PPPTRNTAB;
 
 typedef struct
