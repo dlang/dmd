@@ -5347,6 +5347,9 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         X("unpckhps",       2,              (P) aptb2UNPCKHPS )             \
         X("unpcklpd",       2,              (P) aptb2UNPCKLPD )             \
         X("unpcklps",       2,              (P) aptb2UNPCKLPS )             \
+
+
+#define OPCODETABLE3 \
         X("vaddpd",         3,              (P) aptb3VADDPD )               \
         X("vaddps",         3,              (P) aptb3VADDPS )               \
         X("vaddsd",         3,              (P) aptb3VADDSD )               \
@@ -5667,6 +5670,7 @@ static const char *opcodestr[] =
     #define X(a,b,c)    a,
         OPCODETABLE1
         OPCODETABLE2
+        OPCODETABLE3
     #undef X
 };
 
@@ -5675,6 +5679,7 @@ static OP optab[] =
     #define X(a,b,c)    b,c,
         OPCODETABLE1
         OPCODETABLE2
+        OPCODETABLE3
     #undef X
 };
 
