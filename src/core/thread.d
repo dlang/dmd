@@ -118,8 +118,8 @@ private
     }
 
 
-    alias scope void delegate() gc_atom;
-    extern (C) void function(gc_atom) gc_atomic;
+    alias void delegate() gc_atom;
+    extern (C) void function(scope gc_atom) gc_atomic;
 }
 
 
@@ -2539,8 +2539,8 @@ enum ScanType
     tls,
 }
 
-alias scope void delegate( void*, void* ) ScanAllThreadsFn;
-alias scope void delegate( ScanType, void*, void* ) NewScanAllThreadsFn;
+alias void delegate(void*, void*) ScanAllThreadsFn;
+alias void delegate(ScanType, void*, void*) NewScanAllThreadsFn;
 
 /**
  * The main entry point for garbage collection.  The supplied delegate
@@ -2553,7 +2553,7 @@ alias scope void delegate( ScanType, void*, void* ) NewScanAllThreadsFn;
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAll( NewScanAllThreadsFn scan, void* curStackTop = null )
+extern (C) void thread_scanAll( scope NewScanAllThreadsFn scan, void* curStackTop = null )
 in
 {
     assert( suspendDepth > 0 );
@@ -2627,19 +2627,19 @@ body
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAll( ScanAllThreadsFn scan, void* curStackTop = null )
+extern (C) void thread_scanAll( scope ScanAllThreadsFn scan, void* curStackTop = null )
 in
 {
     assert( suspendDepth > 0 );
 }
 body
 {
-    auto dg = (ScanType type, void* p1, void* p2)
+    void op( ScanType type, void* p1, void* p2 )
     {
         scan(p1, p2);
     };
 
-    thread_scanAll(dg, curStackTop);
+    thread_scanAll(&op, curStackTop);
 }
 
 /**
