@@ -2616,6 +2616,8 @@ body
     }
 }
 
+version(none)
+{
 /**
  * The main entry point for garbage collection.  The supplied delegate
  * will be passed ranges representing both stack and register values.
@@ -2640,6 +2642,7 @@ body
     }
 
     thread_scanAll(&op, curStackTop);
+}
 }
 
 /**
