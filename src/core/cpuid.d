@@ -141,6 +141,26 @@ public:
     bool sse42()        {return (miscfeatures&SSE42_BIT)!=0;}
     /// Is SSE4a supported?
     bool sse4a()        {return (amdmiscfeatures&SSE4A_BIT)!=0;}
+    /// Is AES supported
+    bool aes()          {return (miscfeatures&AES_BIT)!=0;}
+    /// Is pclmulqdq supported
+    bool hasPclmulqdq() {return (miscfeatures&PCLMULQDQ_BIT)!=0;}
+    /// Is rdrand supported
+    bool hasRdrand()    {return (miscfeatures&RDRAND_BIT)!=0;}
+    /// Is AVX supported
+    bool avx()
+    {
+        enum mask = XF_SSE_BIT|XF_YMM_BIT;
+        return (xfeatures & mask) == mask && (miscfeatures&AVX_BIT)!=0;
+    }
+    /// Is VEX-Encoded AES supported
+    bool vaes()         {return avx() && aes();}
+    /// Is vpclmulqdq supported
+    bool hasVpclmulqdq(){return avx() && hasPclmulqdq(); }
+    /// Is FMA supported
+    bool fma()          {return avx() && (miscfeatures&FMA_BIT)!=0;}
+    /// Is FP16C supported
+    bool fp16c()        {return avx() && (miscfeatures&FP16C_BIT)!=0;}
     /// Is AMD 3DNOW supported?
     bool amd3dnow()     {return (amdfeatures&AMD_3DNOW_BIT)!=0;}
     /// Is AMD 3DNOW Ext supported?
@@ -234,6 +254,7 @@ private:
     uint miscfeatures = 0; // sse3, etc.
     uint amdfeatures = 0;  // 3DNow!, mmxext, etc
     uint amdmiscfeatures = 0; // sse4a, sse5, svm, etc
+    ulong xfeatures = 0;   // XFEATURES_ENABLED_MASK
     uint maxCores = 1;
     uint maxThreads = 1;
     // Note that this may indicate multi-core rather than hyperthreading.
@@ -259,38 +280,27 @@ private:
     enum : uint
     {
         SSE3_BIT = 1,
-            PCLMULQDQ_BIT = 1<<1, // from AVX
+        PCLMULQDQ_BIT = 1<<1, // from AVX
         MWAIT_BIT = 1<<3,
         SSSE3_BIT = 1<<9,
-            FMA_BIT = 1<<12,     // from AVX
+        FMA_BIT = 1<<12,     // from AVX
         CMPXCHG16B_BIT = 1<<13,
         SSE41_BIT = 1<<19,
         SSE42_BIT = 1<<20,
         POPCNT_BIT = 1<<23,
-            AES_BIT = 1<<25, // AES instructions from AVX
-            OSXSAVE_BIT = 1<<27, // Used for AVX
-            AVX_BIT = 1<<28
+        AES_BIT = 1<<25, // AES instructions from AVX
+        OSXSAVE_BIT = 1<<27, // Used for AVX
+        AVX_BIT = 1<<28,
+        FP16C_BIT = 1<<29,
+        RDRAND_BIT = 1<<30,
     }
-/+
-version(X86_64) {
-    bool hasAVXinHardware() {
-        // This only indicates hardware support, not OS support.
-        return (miscfeatures&AVX_BIT) && (miscfeatures&OSXSAVE_BIT);
+    // feature flags XFEATURES_ENABLED_MASK
+    enum : ulong
+    {
+        XF_FP_BIT  = 0x1,
+        XF_SSE_BIT = 0x2,
+        XF_YMM_BIT = 0x4,
     }
-    // Is AVX supported (in both hardware & OS)?
-    bool Avx() {
-        if (!hasAVXinHardware()) return false;
-        // Check for OS support
-        uint xfeatures;
-        asm {mov ECX, 0; xgetbv; mov xfeatures, EAX; }
-        return (xfeatures&0x6)==6;
-    }
-    bool hasAvxFma() {
-        if (!AVX()) return false;
-        return (features&FMA_BIT)!=0;
-    }
-}
-+/
     // AMD feature flags CPUID80000001_EDX
     enum : uint
     {
@@ -588,6 +598,17 @@ void cpuidX86()
     }
     features = d;
     miscfeatures = c;
+
+    if (miscfeatures & OSXSAVE_BIT)
+    {
+        asm {
+            mov ECX, 0;
+            xgetbv;
+            mov d, EDX;
+            mov a, EAX;
+        }
+        xfeatures = cast(ulong)d << 32 | a;
+    }
     amdfeatures = 0;
     amdmiscfeatures = 0;
     if (max_extended_cpuid >= 0x8000_0001) {
