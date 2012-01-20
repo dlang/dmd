@@ -105,7 +105,7 @@ private
         extern (C) void thread_processGCMarks();
 
         alias void delegate(void*, void*) scanFn;
-        extern (C) void thread_scanAll(scanFn fn, void* curStackTop = null);
+        extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
     }
 
     extern (C) void onOutOfMemoryError();
