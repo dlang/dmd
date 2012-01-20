@@ -4730,9 +4730,8 @@ Expression *Parser::parsePostExp(Expression *e)
                         {
                             nextToken();
                             while (1)
-                            {   Expression *arg;
-
-                                arg = parseAssignExp();
+                            {
+                                Expression *arg = parseAssignExp();
                                 arguments->push(arg);
                                 if (token.value == TOKrbracket)
                                     break;
@@ -5368,7 +5367,7 @@ Expressions *Parser::parseArguments()
         nextToken();
         if (token.value != endtok)
         {
-            while (1)
+            while (token.value != TOKeof)
             {
                 arg = parseAssignExp();
                 arguments->push(arg);
