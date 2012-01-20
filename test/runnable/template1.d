@@ -1437,7 +1437,7 @@ template B60(T, U = short)
 template C60(T, U = A60)
 {
 	class C60
-		: public U
+		: U
 	{}
 
 	class C2
