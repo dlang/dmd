@@ -118,8 +118,8 @@ unsigned extractArgN(unsigned char *p, unsigned end, unsigned char **pmarg, unsi
 
   Largstart:
 #if 1
-    // Skip first space, if any, to find the start of the macro argument
-    if (v < end && isspace(p[v]))
+    // Skip first blank, if any, to find the start of the macro argument
+    if (v < end && isblank(p[v]))
         v++;
 #else
     // Skip past spaces to find the start of the macro argument
