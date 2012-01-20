@@ -1525,6 +1525,11 @@ EnumDeclaration *Parser::parseEnum()
             }
             addComment(em, comment);
             comment = token.blockComment;
+
+            if (token.value == TOKeof)
+            {   error("premature end of file");
+                break;
+            }
         }
         nextToken();
     }
@@ -6412,7 +6417,7 @@ Expressions *Parser::parseArguments()
 
     {
         nextToken();
-        while (token.value != endtok)
+        while (token.value != endtok && token.value != TOKeof)
         {
                 arg = parseAssignExp();
                 arguments->push(arg);
