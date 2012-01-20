@@ -1296,36 +1296,49 @@ Dsymbol *Parser::parseAggregate()
 
 BaseClasses *Parser::parseBaseClasses()
 {
-    enum PROT protection = PROTpublic;
     BaseClasses *baseclasses = new BaseClasses();
 
     for (; 1; nextToken())
     {
+        bool prot = false;
+        enum PROT protection = PROTpublic;
         switch (token.value)
         {
-            case TOKidentifier:
-                break;
             case TOKprivate:
+                prot = true;
                 protection = PROTprivate;
-                continue;
+                nextToken();
+                break;
             case TOKpackage:
+                prot = true;
                 protection = PROTpackage;
-                continue;
+                nextToken();
+                break;
             case TOKprotected:
+                prot = true;
                 protection = PROTprotected;
-                continue;
+                nextToken();
+                break;
             case TOKpublic:
+                prot = true;
                 protection = PROTpublic;
-                continue;
-            default:
-                error("base classes expected instead of %s", token.toChars());
-                return NULL;
+                nextToken();
+                break;
         }
-        BaseClass *b = new BaseClass(parseBasicType(), protection);
-        baseclasses->push(b);
-        if (token.value != TOKcomma)
-            break;
-        protection = PROTpublic;
+        //if (prot && !global.params.useDeprecated)
+            //error("use of base class protection is deprecated");
+        if (token.value == TOKidentifier)
+        {
+            BaseClass *b = new BaseClass(parseBasicType(), protection);
+            baseclasses->push(b);
+            if (token.value != TOKcomma)
+                break;
+        }
+        else
+        {
+            error("base classes expected instead of %s", token.toChars());
+            return NULL;
+        }
     }
     return baseclasses;
 }
