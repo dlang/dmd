@@ -2775,6 +2775,31 @@ class TimeException : Exception
 }
 
 
+
+/++
+    Returns the absolute value of a duration.
+  +/
+Duration abs(Duration duration)
+{
+    return Duration(_abs(duration._hnsecs));
+}
+
+/++ Ditto +/
+TickDuration abs(TickDuration duration)
+{
+    return TickDuration(_abs(duration.length));
+}
+
+unittest
+{
+    assert(abs(dur!"msecs"(5)) == dur!"msecs"(5));
+    assert(abs(dur!"msecs"(-5)) == dur!"msecs"(5));
+
+    assert(abs(TickDuration(17)) == TickDuration(17));
+    assert(abs(TickDuration(-17)) == TickDuration(17));
+}
+
+
 //==============================================================================
 // Private Section.
 //
@@ -3045,6 +3070,15 @@ unittest
 
 
 /++
+    Local version of abs, since std.math.abs is in Phobos, not druntime.
+  +/
+long _abs(long val)
+{
+    return val >= 0 ? val : -val;
+}
+
+
+/++
     Unfortunately, $(D snprintf) is not pure, so here's a way to convert
     a number to a string which is.
   +/
@@ -3254,9 +3288,4 @@ version(unittest) void assertApprox()(long actual,
         throw new AssertError(msg ~ ": lower: " ~ numToString(actual), __FILE__, line);
     if(actual > upper)
         throw new AssertError(msg ~ ": upper: " ~ numToString(actual), __FILE__, line);
-}
-
-version(unittest) long _abs(long val)
-{
-    return val & long.max;
 }
