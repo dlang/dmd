@@ -627,7 +627,7 @@ void dwarf_initfile(const char *filename)
         debuginfo.address_size = 8;
 
     infobuf->write(&debuginfo, sizeof(debuginfo));
-#if !MACHOBJ
+#if ELFOBJ
     dwarf_addrel(infoseg,6,abbrevseg);
 #endif
 
@@ -679,12 +679,12 @@ void dwarf_initfile(const char *filename)
     append_addr(infobuf, 0);               // DW_AT_low_pc
     append_addr(infobuf, 0);               // DW_AT_entry_pc
 
-#if !MACHOBJ
+#if ELFOBJ
     dwarf_addrel(infoseg,infobuf->size(),debug_ranges_seg);
 #endif
     infobuf->write32(0);                        // DW_AT_ranges
 
-#if !MACHOBJ
+#if ELFOBJ
     dwarf_addrel(infoseg,infobuf->size(),lineseg);
 #endif
     infobuf->write32(0);                        // DW_AT_stmt_list
@@ -700,7 +700,7 @@ void dwarf_initfile(const char *filename)
 
     debug_pubnames_buf->write32(0);             // unit_length
     debug_pubnames_buf->writeWord(2);           // version
-#if !MACHOBJ
+#if ELFOBJ
     dwarf_addrel(seg,debug_pubnames_buf->size(),infoseg);
 #endif
     debug_pubnames_buf->write32(0);             // debug_info_offset
@@ -715,7 +715,7 @@ void dwarf_initfile(const char *filename)
 
     debug_aranges_buf->write32(0);              // unit_length
     debug_aranges_buf->writeWord(2);            // version
-#if !MACHOBJ
+#if ELFOBJ
     dwarf_addrel(debug_aranges_seg,debug_aranges_buf->size(),infoseg);
 #endif
     debug_aranges_buf->write32(0);              // debug_info_offset
@@ -1040,7 +1040,7 @@ void dwarf_func_term(Symbol *sfunc)
         debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
         debug_frame_buf->write(&cfa_buf);
 
-#if !MACHOBJ
+#if ELFOBJ
         dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
 #endif
         dwarf_addrel64(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg,0);
@@ -1082,7 +1082,7 @@ void dwarf_func_term(Symbol *sfunc)
         debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
         debug_frame_buf->write(&cfa_buf);
 
-#if !MACHOBJ
+#if ELFOBJ
         dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
 #endif
         dwarf_addrel(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg);
@@ -1201,7 +1201,7 @@ void dwarf_func_term(Symbol *sfunc)
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset);
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset + sfunc->Ssize);
 
-#if !MACHOBJ
+#if ELFOBJ
         dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
 #endif
         infobuf->write32(debug_loc_buf->size()); // DW_AT_frame_base
