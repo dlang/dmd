@@ -2637,7 +2637,7 @@ body
     void op( ScanType type, void* p1, void* p2 )
     {
         scan(p1, p2);
-    };
+    }
 
     thread_scanAll(&op, curStackTop);
 }
