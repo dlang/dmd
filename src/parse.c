@@ -1663,26 +1663,33 @@ BaseClasses *Parser::parseBaseClasses()
 
     for (; 1; nextToken())
     {
+        bool prot = false;
         enum PROT protection = PROTpublic;
         switch (token.value)
         {
             case TOKprivate:
+                prot = true;
                 protection = PROTprivate;
                 nextToken();
                 break;
             case TOKpackage:
+                prot = true;
                 protection = PROTpackage;
                 nextToken();
                 break;
             case TOKprotected:
+                prot = true;
                 protection = PROTprotected;
                 nextToken();
                 break;
             case TOKpublic:
+                prot = true;
                 protection = PROTpublic;
                 nextToken();
                 break;
         }
+        if (prot && !global.params.useDeprecated)
+            error("use of base class protection is deprecated");
         if (token.value == TOKidentifier)
         {
             BaseClass *b = new BaseClass(parseBasicType(), protection);
