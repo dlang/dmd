@@ -262,7 +262,38 @@ struct ClassReferenceExp : Expression
         }
         return -1;
     }
+    // Return index of the field, or -1 if not found
+    // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
+    int findFieldIndexByName(VarDeclaration *v)
+    {
+        ClassDeclaration *cd = originalClass();
+        size_t fieldsSoFar = 0;
+        for (size_t j = 0; j < value->elements->dim; j++)
+        {   while (j - fieldsSoFar >= cd->fields.dim)
+            {   fieldsSoFar += cd->fields.dim;
+                cd = cd->baseClass;
+            }
+            Dsymbol *s = cd->fields.tdata()[j - fieldsSoFar];
+            VarDeclaration *v2 = s->isVarDeclaration();
+            if (v == v2)
+            {   return value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+            }
+        }
+        return -1;
+    }
 };
+
+// Return index of the field, or -1 if not found
+// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
+int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
+{
+    for (int i = 0; i < sd->fields.dim; ++i)
+    {
+        if (sd->fields.tdata()[i] == v)
+            return i;
+    }
+    return -1;
+}
 
 // Fake class which holds the thrown exception. Used for implementing exception handling.
 struct ThrownExceptionExp : Expression
@@ -5705,9 +5736,9 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             // We can't use getField, because it makes a copy
             int i = -1;
             if (ex->op == TOKclassreference)
-                i = ((ClassReferenceExp *)ex)->getFieldIndex(type, v->offset);
+                i = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
             else
-                i = se->getFieldIndex(type, v->offset);
+                i = findFieldIndexByName(se->sd, v);
             if (i == -1)
             {
                 error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
@@ -5748,6 +5779,13 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if ( isPointer(type) )
             {
                 return paintTypeOntoLiteral(type, e);
+            }
+            if (e->op == TOKvar)
+            {   // Don't typepaint twice, since that might cause an erroneous copy
+                e = getVarExp(loc, istate, ((VarExp *)e)->var, goal);
+                if (e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
+                    e = paintTypeOntoLiteral(type, e);
+                return e;
             }
             return e->interpret(istate, goal);
         }
