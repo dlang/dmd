@@ -213,6 +213,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *scrubReturnValue(Loc loc, Expression *e);
 bool isAssocArray(Type *t);
+bool isPointer(Type *t);
 
 // CTFE only expressions
 #define TOKclassreference ((TOK)(TOKMAX+1))
@@ -261,7 +262,38 @@ struct ClassReferenceExp : Expression
         }
         return -1;
     }
+    // Return index of the field, or -1 if not found
+    // Same as getFieldIndex, but checks for a direct match with the VarDeclaration
+    int findFieldIndexByName(VarDeclaration *v)
+    {
+        ClassDeclaration *cd = originalClass();
+        size_t fieldsSoFar = 0;
+        for (size_t j = 0; j < value->elements->dim; j++)
+        {   while (j - fieldsSoFar >= cd->fields.dim)
+            {   fieldsSoFar += cd->fields.dim;
+                cd = cd->baseClass;
+            }
+            Dsymbol *s = cd->fields.tdata()[j - fieldsSoFar];
+            VarDeclaration *v2 = s->isVarDeclaration();
+            if (v == v2)
+            {   return value->elements->dim - fieldsSoFar - cd->fields.dim + (j-fieldsSoFar);
+            }
+        }
+        return -1;
+    }
 };
+
+// Return index of the field, or -1 if not found
+// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
+int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
+{
+    for (int i = 0; i < sd->fields.dim; ++i)
+    {
+        if (sd->fields.tdata()[i] == v)
+            return i;
+    }
+    return -1;
+}
 
 // Fake class which holds the thrown exception. Used for implementing exception handling.
 struct ThrownExceptionExp : Expression
@@ -354,7 +386,18 @@ void showCtfeExpr(Expression *e, int level = 0)
         if (v && v->getValue())
             showCtfeExpr(v->getValue(), level + 1);
     }
-    else printf("VALUE %p: %s\n", e, e->toChars());
+    else if (isPointer(e->type))
+    {
+        // This is potentially recursive. We mustn't try to print the thing we're pointing to.
+        if (e->op == TOKindex)
+            printf("POINTER %p into %p [%s]\n", e, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2->toChars());
+        else if (e->op == TOKdotvar)
+            printf("POINTER %p to %p .%s\n", e, ((DotVarExp *)e)->e1, ((DotVarExp *)e)->var->toChars());
+        else
+            printf("POINTER %p: %s\n", e, e->toChars());
+    }
+    else
+        printf("VALUE %p: %s\n", e, e->toChars());
 
     if (elements)
     {
@@ -458,6 +501,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         error("C-style variadic functions are not yet implemented in CTFE");
         return EXP_CANT_INTERPRET;
     }
+
+    // Nested functions always inherit the 'this' pointer from the parent,
+    // except for delegates. (Note that the 'this' pointer may be null).
+    // Func literals report isNested() even if they are in global scope,
+    // so we need to check that the parent is a function.
+    if (isNested() && toParent2()->isFuncDeclaration() && !thisarg && istate)
+        thisarg = istate->localThis;
 
     InterState istatex;
     istatex.caller = istate;
@@ -947,7 +997,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
     // We need to treat pointers specially, because TOKsymoff can be used to
     // return a value OR a pointer
     Expression *e;
-    if ((exp->type->ty == Tpointer && exp->type->nextOf()->ty != Tfunction))
+    if ( isPointer(exp->type) )
         e = exp->interpret(istate, ctfeNeedLvalue);
     else
         e = exp->interpret(istate);
@@ -3050,7 +3100,7 @@ Expression *copyLiteral(Expression *e)
         r->type = e->type;
         return r;
     }
-    else if (e->type->ty == Tpointer && e->type->nextOf()->ty != Tfunction)
+    else if ( isPointer(e->type) )
     {   // For pointers, we only do a shallow copy.
         Expression *r;
         if (e->op == TOKaddress)
@@ -3129,7 +3179,12 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
         e = aae;
     }
     else
+    {   // Can't type paint from struct to struct*; this needs another
+        // level of indirection
+        if (lit->op == TOKstructliteral && isPointer(type) )
+            lit->error("CTFE internal error painting %s", type->toChars());
         e = copyLiteral(lit);
+    }
     e->type = type;
     return e;
 }
@@ -3454,7 +3509,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         // return a value OR a pointer
         assert(e1);
         assert(e1->type);
-        if ((e1->type->ty == Tpointer && e1->type->nextOf()->ty != Tfunction) && (e2->op == TOKsymoff || e2->op==TOKaddress || e2->op==TOKvar))
+        if ( isPointer(e1->type) && (e2->op == TOKsymoff || e2->op==TOKaddress || e2->op==TOKvar))
             newval = this->e2->interpret(istate, ctfeNeedLvalue);
         else
             newval = this->e2->interpret(istate);
@@ -4109,7 +4164,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         // Set the $ variable
         Expression *oldval = sexp->e1;
         bool assignmentToSlicedPointer = false;
-        if (oldval->type->toBasetype()->ty == Tpointer && oldval->type->toBasetype()->nextOf()->ty != Tfunction)
+        if (isPointer(oldval->type))
         {   // Slicing a pointer
             oldval = oldval->interpret(istate, ctfeNeedLvalue);
             dinteger_t ofs;
@@ -4215,7 +4270,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
             aggregate = sexpold->e1;
         }
-        if (aggregate->type->toBasetype()->ty == Tpointer && aggregate->type->toBasetype()->nextOf()->ty != Tfunction)
+        if ( isPointer(aggregate->type) )
         {   // Slicing a pointer --> change the bounds
             aggregate = sexp->e1->interpret(istate, ctfeNeedLvalue);
             dinteger_t ofs;
@@ -4825,7 +4880,7 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
     printf("CondExp::interpret() %s\n", toChars());
 #endif
     Expression *e;
-    if (econd->type->ty == Tpointer && econd->type->nextOf()->ty != Tfunction)
+    if ( isPointer(econd->type) )
     {
         e = econd->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(e))
@@ -5270,6 +5325,14 @@ Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
+
+// Return true if t is a pointer (not a function pointer)
+bool isPointer(Type *t)
+{
+    Type * tb = t->toBasetype();
+    return tb->ty == Tpointer && tb->nextOf()->ty != Tfunction;
+}
+
 // Return true if t is an AA, or AssociativeArray!(key, value)
 bool isAssocArray(Type *t)
 {
@@ -5476,7 +5539,7 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
     e1 = this->e1->interpret(istate);
 #else
     // Deal with pointers (including compiler-inserted assert(&this, "null this"))
-    if (this->e1->type->ty == Tpointer && this->e1->type->nextOf()->ty != Tfunction)
+    if ( isPointer(this->e1->type) )
     {
         e1 = this->e1->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(e1))
@@ -5680,9 +5743,9 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             // We can't use getField, because it makes a copy
             int i = -1;
             if (ex->op == TOKclassreference)
-                i = ((ClassReferenceExp *)ex)->getFieldIndex(type, v->offset);
+                i = ((ClassReferenceExp *)ex)->findFieldIndexByName(v);
             else
-                i = se->getFieldIndex(type, v->offset);
+                i = findFieldIndexByName(se->sd, v);
             if (i == -1)
             {
                 error("couldn't find field %s of type %s in %s", v->toChars(), type->toChars(), se->toChars());
@@ -5704,7 +5767,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                  */
                 if (goal == ctfeNeedLvalue && e->op == TOKindex &&
                     e->type == type &&
-                    (type->ty == Tpointer && type->nextOf()->ty != Tfunction))
+                    isPointer(type) )
                     return e;
                 // ...Otherwise, just return the (simplified) dotvar expression
                 e = new DotVarExp(loc, ex, v);
@@ -5720,9 +5783,16 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
                 e->op == TOKassocarrayliteral || e->op == TOKstring)
                     return e;
-            if (type->ty == Tpointer && type->nextOf()->ty != Tfunction)
+            if ( isPointer(type) )
             {
                 return paintTypeOntoLiteral(type, e);
+            }
+            if (e->op == TOKvar)
+            {   // Don't typepaint twice, since that might cause an erroneous copy
+                e = getVarExp(loc, istate, ((VarExp *)e)->var, goal);
+                if (e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
+                    e = paintTypeOntoLiteral(type, e);
+                return e;
             }
             return e->interpret(istate, goal);
         }
@@ -6298,7 +6368,7 @@ bool isCtfeValueValid(Expression *newval)
 #if DMDV2
         newval->type->ty == Tnull ||
 #endif
-        newval->type->ty == Tpointer && newval->type->nextOf()->ty != Tfunction)
+        isPointer(newval->type) )
     {
         if (newval->op == TOKaddress || newval->op == TOKnull ||
             newval->op == TOKstring)
