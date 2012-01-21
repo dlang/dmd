@@ -353,8 +353,10 @@ Symbol * symbol_copy(Symbol *s);
 Symbol * symbol_searchlist(symlist_t sl, const char *vident);
 
 
+#if TX86
 // cg87.c
 void cg87_reset();
+#endif
 
 unsigned char loadconst(elem *e, int im);
 
