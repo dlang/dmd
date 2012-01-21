@@ -2105,7 +2105,7 @@ version( Windows )
 
 /**
  * Deregisters the calling thread from use with the runtime.  If this routine
- * is called for a thread which is already registered, the result is undefined.
+ * is called for a thread which is not registered, the result is undefined.
  */
 extern (C) void thread_detachThis()
 {
