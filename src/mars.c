@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -88,7 +88,7 @@ Global::Global()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2011 by Digital Mars";
+    copyright = "Copyright (c) 1999-2012 by Digital Mars";
     written = "written by Walter Bright"
 #if TARGET_NET
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
@@ -332,8 +332,12 @@ Usage:\n\
   -inline        do function inlining\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
-  -lib           generate library rather than object files\n\
-  -man           open web browser on manual page\n\
+  -lib           generate library rather than object files\n"
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+"  -m32           generate 32 bit code\n\
+  -m64           generate 64 bit code\n"
+#endif
+"  -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
   -nofloat       do not emit reference to floating point\n\
   -O             optimize\n\
@@ -780,35 +784,35 @@ int main(int argc, char *argv[])
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-windows.html");
 #else
-                browse("http://www.digitalmars.com/d/2.0/dmd-windows.html");
+                browse("http://www.dlang.org/dmd-windows.html");
 #endif
 #endif
 #if linux
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-linux.html");
 #else
-                browse("http://www.digitalmars.com/d/2.0/dmd-linux.html");
+                browse("http://www.dlang.org/dmd-linux.html");
 #endif
 #endif
 #if __APPLE__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-osx.html");
 #else
-                browse("http://www.digitalmars.com/d/2.0/dmd-osx.html");
+                browse("http://www.dlang.org/dmd-osx.html");
 #endif
 #endif
 #if __FreeBSD__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-freebsd.html");
 #else
-                browse("http://www.digitalmars.com/d/2.0/dmd-freebsd.html");
+                browse("http://www.dlang.org/dmd-freebsd.html");
 #endif
 #endif
 #if __OpenBSD__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-openbsd.html");
 #else
-                browse("http://www.digitalmars.com/d/2.0/dmd-openbsd.html");
+                browse("http://www.dlang.org/dmd-openbsd.html");
 #endif
 #endif
                 exit(EXIT_SUCCESS);
