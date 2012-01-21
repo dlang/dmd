@@ -2886,6 +2886,13 @@ L2:
         {   Declaration *v;
             Initializer *init = NULL;
 
+            /* Aliases can no longer have multiple declarators, storage classes,
+             * linkages, or auto declarations.
+             * These never made any sense, anyway.
+             * The code below needs to be fixed to reject them.
+             * The grammar has already been fixed to preclude them.
+             */
+
             if (token.value == TOKassign)
             {
                 nextToken();
