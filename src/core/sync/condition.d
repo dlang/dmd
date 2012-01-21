@@ -20,7 +20,7 @@ public import core.sync.exception;
 public import core.sync.mutex;
 public import core.time;
 
-version( Win32 )
+version( Windows )
 {
     private import core.sync.semaphore;
     private import core.sys.windows.windows;
@@ -31,6 +31,10 @@ else version( Posix )
     private import core.stdc.errno;
     private import core.sys.posix.pthread;
     private import core.sys.posix.time;
+}
+else
+{
+    static assert(false, "Platform not supported");
 }
 
 
@@ -68,7 +72,7 @@ class Condition
      */
     this( Mutex m )
     {
-        version( Win32 )
+        version( Windows )
         {
             m_blockLock = CreateSemaphoreA( null, 1, 1, null );
             if( m_blockLock == m_blockLock.init )
@@ -96,7 +100,7 @@ class Condition
 
     ~this()
     {
-        version( Win32 )
+        version( Windows )
         {
             BOOL rc = CloseHandle( m_blockLock );
             assert( rc, "Unable to destroy condition" );
@@ -125,7 +129,7 @@ class Condition
      */
     void wait()
     {
-        version( Win32 )
+        version( Windows )
         {
             timedWait( INFINITE );
         }
@@ -161,7 +165,7 @@ class Condition
     }
     body
     {
-        version( Win32 )
+        version( Windows )
         {
             auto maxWaitMillis = dur!("msecs")( uint.max - 1 );
 
@@ -229,7 +233,7 @@ class Condition
      */
     void notify()
     {
-        version( Win32 )
+        version( Windows )
         {
             notify( false );
         }
@@ -250,7 +254,7 @@ class Condition
      */
     void notifyAll()
     {
-        version( Win32 )
+        version( Windows )
         {
             notify( true );
         }
@@ -264,7 +268,7 @@ class Condition
 
 
 private:
-    version( Win32 )
+    version( Windows )
     {
         bool timedWait( DWORD timeout )
         {
