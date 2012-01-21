@@ -502,6 +502,13 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         return EXP_CANT_INTERPRET;
     }
 
+    // Nested functions always inherit the 'this' pointer from the parent,
+    // except for delegates. (Note that the 'this' pointer may be null).
+    // Func literals report isNested() even if they are in global scope,
+    // so we need to check that the parent is a function.
+    if (isNested() && toParent2()->isFuncDeclaration() && !thisarg && istate)
+        thisarg = istate->localThis;
+
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = this;
