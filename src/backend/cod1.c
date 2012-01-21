@@ -1515,9 +1515,9 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
   regm_t scrregm;
 
 #ifdef DEBUG
-  if (!(regm & (mBP | ALLREGS)))
-        printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",
-            regm_str(regm),tym,saveflag);
+  //if (!(regm & (mBP | ALLREGS)))
+  //      printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",
+  //          regm_str(regm),tym,saveflag);
 #endif
   assert(regm & (XMMREGS | mBP | ALLREGS));
   tym = tybasic(tym);
