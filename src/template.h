@@ -353,6 +353,7 @@ struct TemplateMixin : TemplateInstance
     int oneMember(Dsymbol **ps);
     int hasPointers();
     char *toChars();
+    void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toObjFile(int multiobj);                       // compile to .obj file
