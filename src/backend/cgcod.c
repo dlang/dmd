@@ -130,25 +130,15 @@ void codgen()
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
     functy = tybasic(funcsym_p->ty());
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    if (0 && config.flags3 & CFG3pic)
-    {
-        ALLREGS = ALLREGS_INIT_PIC;
-        BYTEREGS = BYTEREGS_INIT_PIC;
-    }
-    else
-    {
-        regm_t value = BYTEREGS_INIT;
-        ALLREGS = ALLREGS_INIT;
-        BYTEREGS = value;
-    }
+    regm_t value = BYTEREGS_INIT;
+    ALLREGS = ALLREGS_INIT;
+    BYTEREGS = value;
     if (I64)
     {   ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
         BYTEREGS = ALLREGS;
     }
 #endif
     allregs = ALLREGS;
-    if (0 && config.flags3 & CFG3pic)
-        allregs &= ~mBX;
     pass = PASSinit;
 
 tryagain:
@@ -172,7 +162,9 @@ tryagain:
     retsym = NULL;
 
     regsave.reset();
+#if TX86
     memset(_8087elems,0,sizeof(_8087elems));
+#endif
 
     usednteh = 0;
 #if (MARS) && TARGET_WINDOS
@@ -189,16 +181,13 @@ tryagain:
 #endif
 
     floatreg = FALSE;
+#if TX86
     assert(stackused == 0);             /* nobody in 8087 stack         */
+#endif
     cstop = 0;                          /* no entries in table yet      */
     memset(&regcon,0,sizeof(regcon));
     regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
-#if 0 && TARGET_LINUX
-    if (!(allregs & mBX))
-        msavereg = mBX;
-    else
-#endif
-        msavereg = 0;
+    msavereg = 0;
     nretblocks = 0;
     mfuncreg = fregsaved;               // so we can see which are used
                                         // (bit is cleared each time
@@ -331,17 +320,7 @@ tryagain:
             startoffset = coffset + calcblksize(cprolog) - funcoffset;
             b->Bcode = cat(cprolog,b->Bcode);
         }
-        if (config.flags4 & CFG4speed &&
-            config.target_cpu >= TARGET_Pentium &&
-            b->BC != BCasm
-           )
-        {   regm_t scratch;
-
-            scratch = allregs & ~(b->Bregcon.used | b->Bregcon.params | mfuncreg);
-            scratch &= ~(b->Bregcon.immed.mval | b->Bregcon.cse.mval);
-            cgsched_pentium(&b->Bcode,scratch);
-            //printf("after schedule:\n"); WRcodlst(b->Bcode);
-        }
+        cgsched_block(b);
         b->Bsize = calcblksize(b->Bcode);       // calculate block size
         if (b->Balign)
         {   targ_size_t u = b->Balign - 1;
@@ -566,6 +545,7 @@ tryagain:
 
     util_free(csextab);
     csextab = NULL;
+#if TX86
 #ifdef DEBUG
     if (stackused != 0)
           printf("stackused = %d\n",stackused);
@@ -577,6 +557,7 @@ tryagain:
     NDP::save = NULL;
     NDP::savetop = 0;
     NDP::savemax = 0;
+#endif
 }
 
 
@@ -833,15 +814,6 @@ STATIC void blcodgen(block *bl)
                     if (regcon.immed.value[i] != bp->Bregcon.immed.value[i])
                         regcon.immed.mval &= ~mask[i];
                 }
-#if 0
-            if ((regcon.cse.mval &= bp->Bregcon.cse.mval) != 0)
-                // Actual values must match, too
-                for (i = 0; i < REGMAX; i++)
-                {
-                    if (regcon.cse.value[i] != bp->Bregcon.cse.value[i])
-                        regcon.cse.mval &= ~mask[i];
-                }
-#endif
         }
     }
     regcon.cse.mops &= regcon.cse.mval;
@@ -1383,8 +1355,6 @@ L3:
                 }
             }
         }
-        if (0 && r & ~fregsaved)
-            r &= ~fregsaved;
 
         if (size <= REGSIZE || retregs & XMMREGS)
         {
@@ -2312,17 +2282,9 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   oldmfuncreg = mfuncreg;       /* remember old one                     */
   mfuncreg = (mBP | mES | ALLREGS) & ~regcon.mvar;
   stackpushsave = stackpush;
-#if 0
-  if (keepmsk)
-        stackpush++;            /* assume we'll have to save stuff on stack */
-#endif
   calledafuncsave = calledafunc;
   calledafunc = 0;
   c = codelem(e,pretregs,constflag);    /* generate code for the elem   */
-#if 0
-  if (keepmsk)
-        stackpush--;
-#endif
 
   tosave = keepmsk & ~msavereg; /* registers to save                    */
   if (tosave)
@@ -2393,29 +2355,11 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 assert(j < 8);
             }
             else                        /* else use stack               */
-#if 0
-            {   int push,pop;
-
-                stackchanged = 1;
-                adjesp += REGSIZE;
-                if (i == ES)
-                {       push = 0x06;
-                        pop = 0x07;
-                }
-                else
-                {       push = 0x50 + i;
-                        pop = push | 8;
-                }
-                cs1 = gen1(cs1,push);                   /* PUSH i       */
-                cs2 = cat(gen1(CNIL,pop),cs2);          /* POP i        */
-            }
-#else
             {
                 stackchanged = 1;
                 adjesp += REGSIZE;
                 gensaverestore2(mask[i], &cs1, &cs2);
             }
-#endif
             cs3 = cat(getregs(mi),cs3);
             tosave &= ~mi;
         }
