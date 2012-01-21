@@ -433,7 +433,6 @@ int Dsymbol::overloadInsert(Dsymbol *s)
 
 void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring(toChars());
 }
 

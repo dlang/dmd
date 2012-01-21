@@ -1307,7 +1307,6 @@ StringExp *Expression::toString()
 
 void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring(Token::toChars(op));
 }
 
@@ -6191,7 +6190,6 @@ Expression *AssertExp::semantic(Scope *sc)
 
 void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring("assert(");
     expToCBuffer(buf, hgs, e1, PREC_assign);
     if (msg)

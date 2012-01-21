@@ -1766,15 +1766,12 @@ int FuncDeclaration::equals(Object *o)
 
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (fbody &&
-        (!hgs->hdrgen || hgs->tpltMember || canInline(1,1,1))
-       )
+    if (fbody && (!hgs->hdrgen || hgs->tpltMember))
     {   buf->writenl();
 
         // in{}
         if (frequire)
         {   
-			hgs->writeIndent(buf);
 			buf->writestring("in");
             buf->writenl();
             frequire->toCBuffer(buf, hgs);
@@ -1783,7 +1780,6 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         // out{}
         if (fensure)
         {   
-			hgs->writeIndent(buf);
 			buf->writestring("out");
             if (outId)
             {   buf->writebyte('(');
@@ -1796,23 +1792,21 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
         if (frequire || fensure)
         {   
-			hgs->writeIndent(buf);
 			buf->writestring("body");
             buf->writenl();
         }
 
-		hgs->writeIndent(buf);
-		hgs->indentLevel++;
         buf->writebyte('{');
+		buf->level++;
         buf->writenl();
         fbody->toCBuffer(buf, hgs);
-		hgs->indentLevel--;
-		hgs->writeIndent(buf);
-        buf->writebyte('}');
+		buf->level--;
+		buf->writebyte('}');
         buf->writenl();
     }
     else
-    {   buf->writeByte(';');
+    {   
+		buf->writeByte(';');
         buf->writenl();
     }
 }
@@ -3111,7 +3105,6 @@ const char *FuncLiteralDeclaration::kind()
 
 void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring(kind());
     buf->writeByte(' ');
     type->toCBuffer(buf, NULL, hgs);
@@ -3309,7 +3302,6 @@ int PostBlitDeclaration::isVirtual()
 
 void PostBlitDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring("this(this)");
     bodyToCBuffer(buf, hgs);
 }
@@ -3400,7 +3392,6 @@ int DtorDeclaration::isVirtual()
 
 void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring("~this()");
     bodyToCBuffer(buf, hgs);
 }
@@ -3506,7 +3497,6 @@ void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen)
     {   
-		hgs->writeIndent(buf);
 		buf->writestring("static this();");
         buf->writenl();
         return;
@@ -3531,7 +3521,6 @@ Dsymbol *SharedStaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void SharedStaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring("shared ");
     StaticCtorDeclaration::toCBuffer(buf, hgs);
 }
@@ -3663,7 +3652,6 @@ void SharedStaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (!hgs->hdrgen)
     {
-		hgs->writeIndent(buf);
         buf->writestring("shared ");
         StaticDtorDeclaration::toCBuffer(buf, hgs);
     }
@@ -3819,9 +3807,8 @@ int UnitTestDeclaration::addPostInvariant()
 
 void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	//TODO: Remove this before opening pull. FOR TESTING ONLY!
-    //if (hgs->hdrgen)
-    //    return;
+    if (hgs->hdrgen)
+        return;
     buf->writestring("unittest");
     bodyToCBuffer(buf, hgs);
 }

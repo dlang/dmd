@@ -308,7 +308,6 @@ int EnumDeclaration::oneMember(Dsymbol **ps)
 
 void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring("enum ");
     if (ident)
     {   buf->writestring(ident->toChars());
@@ -326,23 +325,20 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         return;
     }
     buf->writenl();
-	hgs->writeIndent(buf);
-	hgs->indentLevel++;
     buf->writeByte('{');
+	buf->level++;
     buf->writenl();
     for (size_t i = 0; i < members->dim; i++)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
         if (!em)
             continue;
-		hgs->writeIndent(buf);
 		em->toCBuffer(buf, hgs);
         buf->writeByte(',');
         buf->writenl();
     }
-	hgs->indentLevel--;
-	hgs->writeIndent(buf);
-    buf->writeByte('}');
+	buf->level--;
+	buf->writeByte('}');
     buf->writenl();
 }
 

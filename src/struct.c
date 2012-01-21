@@ -651,7 +651,6 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->printf("%s ", kind());
     if (!isAnonymous())
         buf->writestring(toChars());
@@ -662,19 +661,16 @@ void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         return;
     }
     buf->writenl();
-	hgs->writeIndent(buf);
-	hgs->indentLevel++;
     buf->writeByte('{');
+	buf->level++;
     buf->writenl();
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = members->tdata()[i];
-		hgs->writeIndent(buf);
 		s->toCBuffer(buf, hgs);
     }
-	hgs->indentLevel--;
-	hgs->writeIndent(buf);
-    buf->writeByte('}');
+	buf->level--;
+	buf->writeByte('}');
     buf->writenl();
 }
 

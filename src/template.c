@@ -1944,19 +1944,16 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         hgs->tpltMember++;
         buf->writenl();
-		hgs->writeIndent(buf);
-		hgs->indentLevel++;
         buf->writebyte('{');
+		buf->level++;
         buf->writenl();
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = members->tdata()[i];
-			hgs->writeIndent(buf);
             s->toCBuffer(buf, hgs);
         }
-		hgs->indentLevel--;
-		hgs->writeIndent(buf);
-        buf->writebyte('}');
+		buf->level--;
+		buf->writebyte('}');
         buf->writenl();
         hgs->tpltMember--;
     }
@@ -5911,7 +5908,6 @@ char *TemplateMixin::toChars()
 
 void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	hgs->writeIndent(buf);
     buf->writestring("mixin ");
 
     for (size_t i = 0; i < idents->dim; i++)

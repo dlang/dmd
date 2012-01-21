@@ -793,19 +793,16 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (members)
     {
         buf->writenl();
-		hgs->writeIndent(buf);
-		hgs->indentLevel++;
-        buf->writeByte('{');
+		buf->writeByte('{');
+		buf->level++;
         buf->writenl();
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = members->tdata()[i];
-			hgs->writeIndent(buf);
 			s->toCBuffer(buf, hgs);
         }
-		hgs->indentLevel--;
-		hgs->writeIndent(buf);
-        buf->writestring("}");
+		buf->level--;
+		buf->writestring("}");
     }
     else
         buf->writeByte(';');

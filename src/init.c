@@ -387,12 +387,10 @@ Lno:
 void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("StructInitializer::toCBuffer()\n");
-	hgs->writeIndent(buf);
-	hgs->indentLevel++;
     buf->writebyte('{');
+	buf->level++;
     for (size_t i = 0; i < field.dim; i++)
     {
-		hgs->writeIndent(buf);
         if (i > 0)
             buf->writebyte(',');
         Identifier *id = field.tdata()[i];
@@ -405,9 +403,8 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
-	hgs->indentLevel--;
-	hgs->writeIndent(buf);
-    buf->writebyte('}');
+	buf->level--;
+	buf->writebyte('}');
 }
 
 /********************************** ArrayInitializer ************************************/
