@@ -1525,6 +1525,11 @@ EnumDeclaration *Parser::parseEnum()
             }
             addComment(em, comment);
             comment = token.blockComment;
+
+            if (token.value == TOKeof)
+            {   error("premature end of file");
+                break;
+            }
         }
         nextToken();
     }
@@ -1658,26 +1663,33 @@ BaseClasses *Parser::parseBaseClasses()
 
     for (; 1; nextToken())
     {
+        bool prot = false;
         enum PROT protection = PROTpublic;
         switch (token.value)
         {
             case TOKprivate:
+                prot = true;
                 protection = PROTprivate;
                 nextToken();
                 break;
             case TOKpackage:
+                prot = true;
                 protection = PROTpackage;
                 nextToken();
                 break;
             case TOKprotected:
+                prot = true;
                 protection = PROTprotected;
                 nextToken();
                 break;
             case TOKpublic:
+                prot = true;
                 protection = PROTpublic;
                 nextToken();
                 break;
         }
+        if (prot && !global.params.useDeprecated)
+            error("use of base class protection is deprecated");
         if (token.value == TOKidentifier)
         {
             BaseClass *b = new BaseClass(parseBasicType(), protection);
@@ -2874,6 +2886,13 @@ L2:
         {   Declaration *v;
             Initializer *init = NULL;
 
+            /* Aliases can no longer have multiple declarators, storage classes,
+             * linkages, or auto declarations.
+             * These never made any sense, anyway.
+             * The code below needs to be fixed to reject them.
+             * The grammar has already been fixed to preclude them.
+             */
+
             if (token.value == TOKassign)
             {
                 nextToken();
@@ -3871,13 +3890,13 @@ Statement *Parser::parseStatement(int flags)
             else if (token.value == TOKidentifier)
             {
                 Token *t = peek(&token);
-                if (t->value == TOKcomma || t->value == TOKsemicolon)
+                if (t->value == TOKsemicolon)
                 {
                     arg = new Parameter(0, NULL, token.ident, NULL);
                     nextToken();
                     nextToken();
-                    if (1 || !global.params.useDeprecated)
-                        error("if (v; e) is deprecated, use if (auto v = e)");
+                    if (!global.params.useDeprecated)
+                        error("if (v%s e) is deprecated, use if (auto v = e)", t->toChars());
                 }
             }
 
@@ -6412,7 +6431,7 @@ Expressions *Parser::parseArguments()
 
     {
         nextToken();
-        while (token.value != endtok)
+        while (token.value != endtok && token.value != TOKeof)
         {
                 arg = parseAssignExp();
                 arguments->push(arg);

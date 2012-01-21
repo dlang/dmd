@@ -1036,11 +1036,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPc_r:     case OPc_i:
         case OParraylength:
         case OPnullcheck:
-#if TX86
         case OPu16_32:
-#else
-        case OPunslng:
-#endif
         case OPu16_d:   case OPd_u16:
         case OPs8_16:   case OP16_8:
         case OPd_u32:   case OPu32_d:
