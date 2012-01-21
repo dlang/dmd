@@ -3890,13 +3890,13 @@ Statement *Parser::parseStatement(int flags)
             else if (token.value == TOKidentifier)
             {
                 Token *t = peek(&token);
-                if (t->value == TOKcomma || t->value == TOKsemicolon)
+                if (t->value == TOKsemicolon)
                 {
                     arg = new Parameter(0, NULL, token.ident, NULL);
                     nextToken();
                     nextToken();
-                    if (1 || !global.params.useDeprecated)
-                        error("if (v; e) is deprecated, use if (auto v = e)");
+                    if (!global.params.useDeprecated)
+                        error("if (v%s e) is deprecated, use if (auto v = e)", t->toChars());
                 }
             }
 
