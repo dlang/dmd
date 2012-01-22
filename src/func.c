@@ -2678,6 +2678,21 @@ int FuncDeclaration::isVirtual()
         !(p->isInterfaceDeclaration() && isFinal());
 }
 
+// Determine if a function is pedantically virtual
+
+int FuncDeclaration::isVirtualMethod()
+{
+    //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
+    if (!isVirtual())
+        return 0;
+    // If it's a final method, and does not override anything, then it is not virtual
+    if (isFinal() && foverrides.dim == 0)
+    {
+        return 0;
+    }
+    return 1;
+}
+
 int FuncDeclaration::isFinal()
 {
     ClassDeclaration *cd;

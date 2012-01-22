@@ -668,6 +668,42 @@ static assert(!__traits(compiles, { return Foo7027.a; }));
 
 /********************************************************/
 
+interface AA
+{
+     int YYY();
+}
+
+class CC : AA
+{
+    final int YYY() { return 4; }
+}
+
+static assert(__traits(isVirtualMethod, CC.YYY));
+static assert(__traits(getVirtualMethods, CC, "YYY").length == 1);
+
+class DD
+{
+    final int YYY() { return 4; }
+}
+
+static assert(__traits(isVirtualMethod, DD.YYY) == false);
+static assert(__traits(getVirtualMethods, DD, "YYY").length == 0);
+
+class EE
+{
+     int YYY() { return 0; }
+}
+
+class FF : EE
+{
+    final int YYY() { return 4; }
+}
+
+static assert(__traits(isVirtualMethod, FF.YYY));
+static assert(__traits(getVirtualMethods, FF, "YYY").length == 1);
+
+/********************************************************/
+
 int main()
 {
     test1();

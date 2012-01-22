@@ -648,6 +648,7 @@ struct FuncDeclaration : Declaration
     bool setUnsafe();
     virtual int isNested();
     int needThis();
+    int isVirtualMethod();
     virtual int isVirtual();
     virtual int isFinal();
     virtual int addPreInvariant();
