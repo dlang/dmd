@@ -136,6 +136,11 @@ int AggregateDeclaration::isDeprecated()
     return isdeprecated;
 }
 
+int AggregateDeclaration::isExport()
+{
+    return protection == PROTexport;
+}
+
 /****************************
  * Do byte or word alignment as necessary.
  * Align sizes of 0, as we may not know array sizes yet.
