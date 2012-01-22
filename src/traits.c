@@ -57,6 +57,9 @@ static int fptraits(void *param, FuncDeclaration *f)
     if (p->ident == Id::getVirtualFunctions && !f->isVirtual())
         return 0;
 
+    if (p->ident == Id::getVirtualMethods && !f->isVirtualMethod())
+        return 0;
+
     Expression *e;
 
     if (p->e1->op == TOKdotvar)
@@ -156,6 +159,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
     }
+    else if (ident == Id::isVirtualMethod)
+    {
+        FuncDeclaration *f;
+        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtualMethod())
+    }
     else if (ident == Id::isFinalFunction)
     {
         FuncDeclaration *f;
@@ -218,6 +226,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     else if (ident == Id::hasMember ||
              ident == Id::getMember ||
              ident == Id::getOverloads ||
+             ident == Id::getVirtualMethods ||
              ident == Id::getVirtualFunctions)
     {
         if (dim != 2)
@@ -287,6 +296,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             return e;
         }
         else if (ident == Id::getVirtualFunctions ||
+                 ident == Id::getVirtualMethods ||
                  ident == Id::getOverloads)
         {
             unsigned errors = global.errors;

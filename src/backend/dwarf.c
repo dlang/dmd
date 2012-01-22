@@ -82,12 +82,16 @@ int dwarf_getsegment(const char *name, int align)
 #endif
 }
 
+// machobj.c
+#define RELaddr 0       // straight address
+#define RELrel  1       // relative to location to be fixed up
+
 void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
 {
 #if ELFOBJ
     elf_addrel(seg, offset, I64 ? R_X86_64_32 : RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    mach_addrel(seg, offset, NULL, targseg, val);
+    mach_addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -98,7 +102,7 @@ void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 #if ELFOBJ
     elf_addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    mach_addrel(seg, offset, NULL, targseg, val);
+    mach_addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -487,7 +491,7 @@ void dwarf_initfile(const char *filename)
         unsigned char code_alignment_factor;
         unsigned char data_alignment_factor;
         unsigned char return_address_register;
-        unsigned char opcodes[7];
+        unsigned char opcodes[11];
     };
     #pragma pack()
     static DebugFrameHeader debugFrameHeader =
@@ -501,12 +505,14 @@ void dwarf_initfile(const char *filename)
       {
         DW_CFA_def_cfa, 4,4,    // r4,4 [r7,8]
         DW_CFA_offset   +8,1,   // r8,1 [r16,1]
-        DW_CFA_nop,
-        DW_CFA_nop,
+        DW_CFA_nop, DW_CFA_nop,
+        DW_CFA_nop, DW_CFA_nop, // 64 padding
+        DW_CFA_nop, DW_CFA_nop, // 64 padding
       }
     };
     if (I64)
-    {   debugFrameHeader.data_alignment_factor = 0x78;          // (-8)
+    {   debugFrameHeader.length = 20;
+        debugFrameHeader.data_alignment_factor = 0x78;          // (-8)
         debugFrameHeader.return_address_register = 16;
         debugFrameHeader.opcodes[1] = 7;                        // RSP
         debugFrameHeader.opcodes[2] = 8;
@@ -621,8 +627,7 @@ void dwarf_initfile(const char *filename)
         debuginfo.address_size = 8;
 
     infobuf->write(&debuginfo, sizeof(debuginfo));
-#if !MACHOBJ
-    // Contrary to the DWARF spec, OS X complains if the offset is included
+#if ELFOBJ
     dwarf_addrel(infoseg,6,abbrevseg);
 #endif
 
@@ -674,10 +679,14 @@ void dwarf_initfile(const char *filename)
     append_addr(infobuf, 0);               // DW_AT_low_pc
     append_addr(infobuf, 0);               // DW_AT_entry_pc
 
+#if ELFOBJ
     dwarf_addrel(infoseg,infobuf->size(),debug_ranges_seg);
+#endif
     infobuf->write32(0);                        // DW_AT_ranges
 
+#if ELFOBJ
     dwarf_addrel(infoseg,infobuf->size(),lineseg);
+#endif
     infobuf->write32(0);                        // DW_AT_stmt_list
 
     memset(typidx_tab, 0, sizeof(typidx_tab));
@@ -691,7 +700,9 @@ void dwarf_initfile(const char *filename)
 
     debug_pubnames_buf->write32(0);             // unit_length
     debug_pubnames_buf->writeWord(2);           // version
-    dwarf_addrel(seg,debug_pubnames_buf->size(),lineseg);
+#if ELFOBJ
+    dwarf_addrel(seg,debug_pubnames_buf->size(),infoseg);
+#endif
     debug_pubnames_buf->write32(0);             // debug_info_offset
     debug_pubnames_buf->write32(0);             // debug_info_length
 
@@ -704,7 +715,9 @@ void dwarf_initfile(const char *filename)
 
     debug_aranges_buf->write32(0);              // unit_length
     debug_aranges_buf->writeWord(2);            // version
+#if ELFOBJ
     dwarf_addrel(debug_aranges_seg,debug_aranges_buf->size(),infoseg);
+#endif
     debug_aranges_buf->write32(0);              // debug_info_offset
     debug_aranges_buf->writeByte(I64 ? 8 : 4);  // address_size
     debug_aranges_buf->writeByte(0);            // segment_size
@@ -1027,7 +1040,9 @@ void dwarf_func_term(Symbol *sfunc)
         debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
         debug_frame_buf->write(&cfa_buf);
 
+#if ELFOBJ
         dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
+#endif
         dwarf_addrel64(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg,0);
     }
     else
@@ -1067,7 +1082,9 @@ void dwarf_func_term(Symbol *sfunc)
         debug_frame_buf->writen(&debugFrameFDE,sizeof(debugFrameFDE));
         debug_frame_buf->write(&cfa_buf);
 
+#if ELFOBJ
         dwarf_addrel(dfseg,debug_frame_buf_offset + 4,dfseg);
+#endif
         dwarf_addrel(dfseg,debug_frame_buf_offset + 8,sfunc->Sseg);
     }
 
@@ -1184,7 +1201,9 @@ void dwarf_func_term(Symbol *sfunc)
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset);
         dwarf_appreladdr(infoseg, infobuf, seg, funcoffset + sfunc->Ssize);
 
+#if ELFOBJ
         dwarf_addrel(infoseg,infobuf->size(),debug_loc_seg, 0);
+#endif
         infobuf->write32(debug_loc_buf->size()); // DW_AT_frame_base
 
         if (haveparameters)
