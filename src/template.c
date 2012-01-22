@@ -1945,8 +1945,8 @@ void TemplateDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         hgs->tpltMember++;
         buf->writenl();
         buf->writebyte('{');
-		buf->level++;
         buf->writenl();
+		buf->level++;
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = members->tdata()[i];

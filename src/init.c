@@ -388,7 +388,6 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("StructInitializer::toCBuffer()\n");
     buf->writebyte('{');
-	buf->level++;
     for (size_t i = 0; i < field.dim; i++)
     {
         if (i > 0)
@@ -403,7 +402,6 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
-	buf->level--;
 	buf->writebyte('}');
 }
 

@@ -1561,7 +1561,7 @@ Type *Type::merge()
 
         //if (next)
             //next = next->merge();
-        toDecoBuffer(&buf);
+        this->toDecoBuffer(&buf);
         sv = stringtable.update((char *)buf.data, buf.offset);
         if (sv->ptrvalue)
         {   t = (Type *) sv->ptrvalue;

@@ -326,8 +326,8 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     buf->writenl();
     buf->writeByte('{');
-	buf->level++;
     buf->writenl();
+	buf->level++;
     for (size_t i = 0; i < members->dim; i++)
     {
         EnumMember *em = (*members)[i]->isEnumMember();

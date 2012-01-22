@@ -1797,8 +1797,8 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
 
         buf->writebyte('{');
-		buf->level++;
         buf->writenl();
+		buf->level++;
         fbody->toCBuffer(buf, hgs);
 		buf->level--;
 		buf->writebyte('}');
