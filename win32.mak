@@ -40,6 +40,7 @@ MANIFEST= \
 	src\core\runtime.d \
 	src\core\simd.d \
 	src\core\thread.d \
+	src\core\thread.di \
 	src\core\threadasm.S \
 	src\core\time.d \
 	src\core\vararg.d \
@@ -504,7 +505,7 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 $(DOCDIR)\core_simd.html : src\core\simd.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core_thread.html : src\core\thread.d
+$(DOCDIR)\core_thread.html : src\core\thread.di
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_time.html : src\core\time.d
@@ -565,7 +566,7 @@ $(IMPDIR)\core\runtime.di : src\core\runtime.d
 $(IMPDIR)\core\simd.di : src\core\simd.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\thread.di : src\core\thread.d
+$(IMPDIR)\core\thread.di : src\core\thread.di
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\time.di : src\core\time.d
