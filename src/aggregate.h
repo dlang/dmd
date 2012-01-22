@@ -89,6 +89,7 @@ struct AggregateDeclaration : ScopeDsymbol
     int isDeprecated();         // is aggregate deprecated?
     FuncDeclaration *buildDtor(Scope *sc);
     int isNested();
+    int isExport();
 
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
