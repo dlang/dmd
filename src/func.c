@@ -119,6 +119,7 @@ void FuncDeclaration::semantic(Scope *sc)
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
     Dsymbol *pd;
+    bool doesoverride;
 
 #if 0
     printf("FuncDeclaration::semantic(sc = %p, this = %p, '%s', linkage = %d)\n", sc, this, toPrettyChars(), sc->linkage);
@@ -440,6 +441,7 @@ void FuncDeclaration::semantic(Scope *sc)
         vi = cd->baseClass ? findVtblIndex((Dsymbols*)&cd->baseClass->vtbl, cd->baseClass->vtbl.dim)
                            : -1;
 
+        doesoverride = FALSE;
         switch (vi)
         {
             case -1:
@@ -489,6 +491,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
 
+                doesoverride = TRUE;
 #if DMDV2
                 if (!isOverride())
                     warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
@@ -616,7 +619,7 @@ void FuncDeclaration::semantic(Scope *sc)
             }
         }
 
-        if (introducing && isOverride())
+        if (!doesoverride && isOverride())
         {
             error("does not override any function");
         }
