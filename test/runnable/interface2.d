@@ -940,7 +940,7 @@ interface I2524
 
 class C2524 : I2524
 {
-  final override void foo();
+  final override void foo() { }
 }
 
 /*******************************************************/
