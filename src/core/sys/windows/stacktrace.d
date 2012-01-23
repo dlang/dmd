@@ -213,7 +213,7 @@ private
     +/
 
 
-    __gshared invariant bool initialized;
+    __gshared immutable bool initialized;
 }
 
 
