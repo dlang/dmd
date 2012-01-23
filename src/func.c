@@ -462,8 +462,9 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 if (isFinal())
                 {
-                    if (isOverride())
-                        error("is marked as override, but does not override any function");
+                    // Don't check here, as it may override an interface function
+                    //if (isOverride())
+                        //error("is marked as override, but does not override any function");
                     cd->vtblFinal.push(this);
                 }
                 else
@@ -568,6 +569,14 @@ void FuncDeclaration::semantic(Scope *sc)
                     /* Remember which functions this overrides
                      */
                     foverrides.push(fdv);
+
+#if DMDV2
+                    /* Should we really require 'override' when implementing
+                     * an interface function?
+                     */
+                    //if (!isOverride())
+                        //warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+#endif
 
                     if (fdv->tintro)
                         ti = fdv->tintro;
