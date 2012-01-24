@@ -736,6 +736,20 @@ void test7124()
 }
 
 /**********************************/
+// 7359
+
+bool foo7359(T)(T[] a ...)
+{
+    return true;
+}
+
+void test7359()
+{
+    assert(foo7359(1,1,1,1,1,1));               // OK
+    assert(foo7359("abc","abc","abc","abc"));   // NG
+}
+
+/**********************************/
 
 int main()
 {
@@ -768,6 +782,7 @@ int main()
     test10();
     test7037();
     test7124();
+    test7359();
 
     printf("Success\n");
     return 0;
