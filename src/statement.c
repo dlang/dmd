@@ -691,7 +691,6 @@ int CompoundStatement::blockExit(bool mustNotThrow)
             if (!(result & BEfallthru) && !s->comeFrom())
             {
                 if (s->blockExit(mustNotThrow) != BEhalt && !s->isEmpty())
-printf("%s\n", s->toChars()),
                     s->warning("statement is not reachable");
             }
             else
