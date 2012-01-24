@@ -1379,7 +1379,7 @@ Expression::Expression(Loc loc, enum TOK op, int size)
     this->loc = loc;
     this->op = op;
     this->size = size;
-    this->parens = 0;
+    this->parens = false;
     type = NULL;
 }
 
@@ -4001,7 +4001,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->sinit = NULL;
     this->sym = NULL;
     this->soffset = 0;
-    this->fillHoles = 1;
+    this->fillHoles = true;
     this->ownedByCtfe = false;
     this->ctorinit = 0;
     //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
@@ -4461,7 +4461,7 @@ NewExp::NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
     this->arguments = arguments;
     member = NULL;
     allocator = NULL;
-    onstack = 0;
+    onstack = false;
 }
 
 Expression *NewExp::syntaxCopy()
@@ -9794,7 +9794,7 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
 {
     //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
-    modifiable = 0;     // assume it is an rvalue
+    modifiable = false;     // assume it is an rvalue
 }
 
 Expression *IndexExp::syntaxCopy()
@@ -9983,7 +9983,7 @@ int IndexExp::checkModifiable(Scope *sc, int flag)
 Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("IndexExp::modifiableLvalue(%s)\n", toChars());
-    modifiable = 1;
+    modifiable = true;
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
     {   TypeAArray *taa = (TypeAArray *)t1;
@@ -10132,7 +10132,7 @@ void PreExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 AssignExp::AssignExp(Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, TOKassign, sizeof(AssignExp), e1, e2)
 {
-    ismemset = 0;
+    ismemset = false;
 }
 
 Expression *AssignExp::semantic(Scope *sc)
@@ -10674,7 +10674,7 @@ Ltupleassign:
         e2->implicitConvTo(t1->nextOf())
        )
     {   // memset
-        ismemset = 1;   // make it easy for back end to tell what this is
+        ismemset = true;   // make it easy for back end to tell what this is
         e2 = e2->implicitCastTo(sc, t1->nextOf());
     }
     else if (t1->ty == Tsarray)

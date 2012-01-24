@@ -183,10 +183,9 @@ struct Declaration : Dsymbol
 
 struct TupleDeclaration : Declaration
 {
-    Objects *objects;
-    int isexp;                  // 1: expression tuple
-
-    TypeTuple *tupletype;       // !=NULL if this is a type tuple
+    Objects* objects;
+    TypeTuple* tupletype;       // !=NULL if this is a type tuple
+    bool isexp;                 // 1: expression tuple
 
     TupleDeclaration(Loc loc, Identifier *ident, Objects *objects);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -234,7 +233,9 @@ struct AliasDeclaration : Declaration
 {
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
-    int inSemantic;
+    Type* htype;
+    Dsymbol* haliassym;
+    bool inSemantic;
 
     AliasDeclaration(Loc loc, Identifier *ident, Type *type);
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
@@ -245,9 +246,6 @@ struct AliasDeclaration : Declaration
     Type *getType();
     Dsymbol *toAlias();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    Type *htype;
-    Dsymbol *haliassym;
-
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
@@ -590,8 +588,8 @@ struct FuncDeclaration : Declaration
     bool naked;                         // !=0 if naked
     ILS inlineStatusStmt;
     ILS inlineStatusExp;
-    int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // !=0 if array operation
+    short inlineNest;                   // !=0 if nested inline
     enum PASS semanticRun;
     int semantic3Errors;                // !=0 if errors in semantic3
                                         // this function's frame ptr
@@ -600,7 +598,7 @@ struct FuncDeclaration : Declaration
     Type *tintro;                       // if !=NULL, then this is the type
                                         // of the 'introducing' function
                                         // this one is overriding
-    int inferRetType;                   // !=0 if return type is to be inferred
+    bool inferRetType;                  // !=0 if return type is to be inferred
     StorageClass storage_class2;        // storage class for template onemember's
 
     // Things that should really go into Scope
@@ -631,7 +629,7 @@ struct FuncDeclaration : Declaration
                                         // called this one
     FuncDeclarations deferred;          // toObjFile() these functions after this one
 
-    unsigned flags;
+    uint8_t flags;
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
     #define FUNCFLAGsafetyInprocess 2   // working on determining safety
     #define FUNCFLAGnothrowInprocess 4  // working on determining nothrow

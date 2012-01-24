@@ -2594,7 +2594,7 @@ void TypeNext::transitive()
 TypeBasic::TypeBasic(TY ty)
         : Type(ty)
 {   const char *d;
-    unsigned flags;
+    uint8_t flags;
 
 #define TFLAGSintegral  1
 #define TFLAGSfloating  2

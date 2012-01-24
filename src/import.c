@@ -221,7 +221,7 @@ void Import::semantic(Scope *sc)
 
         if (mod->needmoduleinfo)
         {   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
-            sc->module->needmoduleinfo = 1;
+            sc->module->needmoduleinfo = true;
         }
 
         sc = sc->push(mod);
@@ -335,7 +335,7 @@ void Import::semantic2(Scope *sc)
         mod->semantic2();
         if (mod->needmoduleinfo)
         {   //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
-            sc->module->needmoduleinfo = 1;
+            sc->module->needmoduleinfo = true;
         }
     }
 }

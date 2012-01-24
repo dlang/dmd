@@ -3147,8 +3147,8 @@ SwitchStatement::SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFi
     sdefault = NULL;
     tf = NULL;
     cases = NULL;
-    hasNoDefault = 0;
-    hasVars = 0;
+    hasNoDefault = false;
+    hasVars = false;
 }
 
 Statement *SwitchStatement::syntaxCopy()
@@ -3267,7 +3267,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
 #endif
 
     if (!sc->sw->sdefault && (!isFinal || needswitcherror || global.params.useAssert))
-    {   hasNoDefault = 1;
+    {   hasNoDefault = true;
 
         if (!isFinal)
            deprecation("non-final switch statement without a default is deprecated");
@@ -3390,7 +3390,7 @@ Statement *CaseStatement::semantic(Scope *sc)
             {   /* Flag that we need to do special code generation
                  * for this, i.e. generate a sequence of if-then-else
                  */
-                sw->hasVars = 1;
+                sw->hasVars = true;
                 if (sw->isFinal)
                     error("case variables not allowed in final switch statements");
                 goto L1;
@@ -5319,8 +5319,8 @@ AsmStatement::AsmStatement(Loc loc, Token *tokens)
     this->tokens = tokens;
     asmcode = NULL;
     asmalign = 0;
-    refparam = FALSE;
-    naked = FALSE;
+    refparam = false;
+    naked = false;
     regs = 0;
 }
 
@@ -5328,8 +5328,6 @@ Statement *AsmStatement::syntaxCopy()
 {
     return new AsmStatement(loc, tokens);
 }
-
-
 
 int AsmStatement::comeFrom()
 {

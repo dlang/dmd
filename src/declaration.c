@@ -1342,7 +1342,7 @@ Lnomatch:
             if (ei->exp->op == TOKnew)
             {   NewExp *ne = (NewExp *)ei->exp;
                 if (!(ne->newargs && ne->newargs->dim))
-                {   ne->onstack = 1;
+                {   ne->onstack = true;
                     onstack = 1;
                     if (type->isBaseOf(ne->newtype->semantic(loc, sc), NULL))
                         onstack = 2;

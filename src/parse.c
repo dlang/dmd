@@ -5770,7 +5770,7 @@ Expression *Parser::parsePrimaryExp()
             // ( expression )
             nextToken();
             e = parseExpression();
-            e->parens = 1;
+            e->parens = true;
             check(loc, TOKrparen);
             break;
         }

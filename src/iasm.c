@@ -2412,7 +2412,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
     if (v)
     {
         if (v->isParameter())
-            asmstate.statement->refparam = TRUE;
+            asmstate.statement->refparam = true;
 
         v->checkNestedReference(asmstate.sc, asmstate.loc);
 #if 0

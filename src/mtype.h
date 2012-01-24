@@ -115,7 +115,7 @@ extern int Tptrdiff_t;
 struct Type : Object
 {
     TY ty;
-    unsigned char mod;  // modifiers MODxxxx
+    uint8_t mod;  // modifiers MODxxxx
         /* pick this order of numbers so switch statements work better
          */
         #define MODconst     1  // type is const
@@ -386,7 +386,7 @@ struct TypeNext : Type
 struct TypeBasic : Type
 {
     const char *dstring;
-    unsigned flags;
+    uint8_t flags;
 
     TypeBasic(TY ty);
     const char *kind();
@@ -639,7 +639,7 @@ struct TypeFunction : TypeNext
     // .next is the return type
 
     Parameters *parameters;     // function parameters
-    int varargs;        // 1: T t, ...) style for variable number of arguments
+    uint8_t varargs;    // 1: T t, ...) style for variable number of arguments
                         // 2: T t ...) style for variable number of arguments
     bool isnothrow;     // true: nothrow
     bool isproperty;    // can be called without parentheses

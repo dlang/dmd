@@ -810,7 +810,7 @@ void ReturnStatement::toIR(IRState *irs)
                 memcpy(save, se, sizeof(StructLiteralExp));
                 se->sym = irs->shidden;
                 se->soffset = 0;
-                se->fillHoles = 1;
+                se->fillHoles = true;
                 e = exp->toElemDtor(irs);
                 memcpy(se, save, sizeof(StructLiteralExp));
 

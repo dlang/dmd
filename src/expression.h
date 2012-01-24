@@ -102,10 +102,10 @@ enum CtfeGoal
 struct Expression : Object
 {
     Loc loc;                    // file location
+    Type* type;                 // !=NULL means that semantic() has been run
     enum TOK op;                // handy to minimize use of dynamic_cast
-    Type *type;                 // !=NULL means that semantic() has been run
-    unsigned char size;         // # of bytes in Expression so we can copy() it
-    unsigned char parens;       // if this is a parenthesized expression
+    uint8_t size;               // # of bytes in Expression so we can copy() it
+    bool parens;                // if this is a parenthesized expression
 
     Expression(Loc loc, enum TOK op, int size);
     Expression *copy();
@@ -358,7 +358,7 @@ struct SuperExp : ThisExp
 
 struct NullExp : Expression
 {
-    unsigned char committed;    // !=0 if type is committed
+    bool committed;    // !=0 if type is committed
 
     NullExp(Loc loc, Type *t = NULL);
     int equals(Object *o);
@@ -379,9 +379,9 @@ struct StringExp : Expression
 {
     void *string;       // char, wchar, or dchar data
     size_t len;         // number of chars, wchars, or dchars
-    unsigned char sz;   // 1: char, 2: wchar, 4: dchar
-    unsigned char committed;    // !=0 if type is committed
-    unsigned char postfix;      // 'c', 'w', 'd'
+    uint8_t sz;         // 1: char, 2: wchar, 4: dchar
+    bool committed;     // !=0 if type is committed
+    uint8_t postfix;    // 'c', 'w', 'd'
     bool ownedByCtfe;   // true = created in CTFE
 
     StringExp(Loc loc, char *s);
@@ -494,7 +494,7 @@ struct StructLiteralExp : Expression
     Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
     Symbol *sym;                // back end symbol to initialize with literal
     size_t soffset;             // offset from start of s
-    int fillHoles;              // fill alignment 'holes' with zero
+    bool fillHoles;             // fill alignment 'holes' with zero
     bool ownedByCtfe;           // true = created in CTFE
     int ctorinit;
 
@@ -562,7 +562,7 @@ struct NewExp : Expression
 
     CtorDeclaration *member;    // constructor function
     NewDeclaration *allocator;  // allocator function
-    int onstack;                // allocate on stack
+    bool onstack;               // allocate on stack
 
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
         Type *newtype, Expressions *arguments);
@@ -1215,7 +1215,7 @@ struct CommaExp : BinExp
 struct IndexExp : BinExp
 {
     VarDeclaration *lengthVar;
-    int modifiable;
+    bool modifiable;
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
@@ -1254,7 +1254,8 @@ struct PreExp : UnaExp
 };
 
 struct AssignExp : BinExp
-{   int ismemset;       // !=0 if setting the contents of an array
+{
+    bool ismemset;       // !=0 if setting the contents of an array
 
     AssignExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);

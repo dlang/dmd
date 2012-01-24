@@ -83,6 +83,7 @@ enum BE
 struct Statement : Object
 {
     Loc loc;
+    bool incontract;
 
     Statement(Loc loc);
     virtual Statement *syntaxCopy();
@@ -485,14 +486,14 @@ struct SwitchStatement : Statement
 {
     Expression *condition;
     Statement *body;
-    bool isFinal;
 
     DefaultStatement *sdefault;
     TryFinallyStatement *tf;
     GotoCaseStatements gotoCases;  // array of unresolved GotoCaseStatement's
     CaseStatements *cases;         // array of CaseStatement's
-    int hasNoDefault;           // !=0 if no default statement
-    int hasVars;                // !=0 if has variable case values
+    bool isFinal;
+    bool hasNoDefault;          // !=0 if no default statement
+    bool hasVars;               // !=0 if has variable case values
 
     SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFinal);
     Statement *syntaxCopy();
@@ -872,8 +873,8 @@ struct AsmStatement : Statement
     code *asmcode;
     unsigned asmalign;          // alignment of this statement
     unsigned regs;              // mask of registers modified (must match regm_t in back end)
-    unsigned char refparam;     // !=0 if function parameter is referenced
-    unsigned char naked;        // !=0 if function is to be naked
+    bool refparam;              // !=0 if function parameter is referenced
+    bool naked;                 // !=0 if function is to be naked
 
     AsmStatement(Loc loc, Token *tokens);
     Statement *syntaxCopy();
