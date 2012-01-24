@@ -1248,6 +1248,9 @@ Lretry:
             }
 #endif
 
+            if (fvarargs == 2 && i + 1 == nfparams && i + 1 < nfargs)
+                goto Lvarargs;
+
             MATCH m;
             m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes,
                 tf->hasWild() ? &wildmatch : NULL);
