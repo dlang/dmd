@@ -435,6 +435,7 @@ void AliasDeclaration::semantic(Scope *sc)
 #endif
 
     storage_class |= sc->stc & STCdeprecated;
+    protection = sc->protection;
 
     // Given:
     //  alias foo.bar.abc def;
