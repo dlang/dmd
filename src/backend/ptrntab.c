@@ -734,6 +734,7 @@ PTRNTAB2  aptb2XADD[] = /* XADD */ {                    // 486 only instruction
         { 0x0fc0,       _r | _I386|_mod2, _rm8, _r8 },
         { 0x0fc1,       _r | _I386|_16_bit|_mod2, _rm16, _r16 },
         { 0x0fc1,       _r | _I386|_32_bit|_mod2, _rm32, _r32 },
+        { 0x0fc1,       _r | _64_bit|_mod2, _rm64, _r64 },
         { ASM_END }
 };
 PTRNTAB2  aptb2XCHG[] = /* XCHG */ {

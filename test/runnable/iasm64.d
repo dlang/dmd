@@ -6416,6 +6416,38 @@ L1:
 }
 
 /****************************************************/
+
+void testxadd()
+{   int x;
+    ubyte* p;
+    static ubyte data[] =
+    [
+	0x0F, 0xC0, 0x10,
+	0x66, 0x0F, 0xC1, 0x10,
+	0x0F, 0xC1, 0x10,
+	0x48, 0x0F, 0xC1, 0x10,
+    ];
+
+    asm
+    {
+        call	L1			;
+
+        xadd byte ptr [RAX],DL;
+        xadd word ptr [RAX],DX;
+        xadd dword ptr [RAX],EDX;
+        xadd qword ptr [RAX],RDX;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
 /****************************************************/
 
 int main()
@@ -6483,6 +6515,7 @@ int main()
     test60();
     test61();
     test2941();
+    testxadd();
 
     printf("Success\n");
     return 0;
