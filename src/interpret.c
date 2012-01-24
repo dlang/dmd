@@ -1235,12 +1235,14 @@ Expression *DoStatement::interpret(InterState *istate)
             return e;
         }
         if (e == EXP_CONTINUE_INTERPRET)
+        {
             if (!istate->gotoTarget || istate->gotoTarget == this)
             {
                 goto Lcontinue;
             }
             else // else continue at a higher level
                 return e;
+        }
         if (e)
             return e;
     }
