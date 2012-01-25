@@ -2369,6 +2369,21 @@ int FuncDeclaration::isVirtual()
         toParent()->isClassDeclaration();
 }
 
+// Determine if a function is pedantically virtual
+
+int FuncDeclaration::isVirtualMethod()
+{
+    //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
+    if (!isVirtual())
+        return 0;
+    // If it's a final method, and does not override anything, then it is not virtual
+    if (isFinal() && foverrides.dim == 0)
+    {
+        return 0;
+    }
+    return 1;
+}
+
 int FuncDeclaration::isFinal()
 {
     ClassDeclaration *cd;
@@ -2538,6 +2553,43 @@ Lyes:
     return 1;
 }
 #endif
+
+/***********************************************
+ * Determine if function's variables are referenced by a function
+ * nested within it.
+ */
+
+int FuncDeclaration::hasNestedFrameRefs()
+{
+#if DMDV2
+    if (closureVars.dim)
+#else
+    if (nestedFrameRef)
+#endif
+        return 1;
+
+    /* If a virtual method has contracts, assume its variables are referenced
+     * by those contracts, even if they aren't. Because they might be referenced
+     * by the overridden or overriding function's contracts.
+     * This can happen because frequire and fensure are implemented as nested functions,
+     * and they can be called directly by an overriding function and the overriding function's
+     * context had better match, or Bugzilla 7337 will bite.
+     */
+    if ((fdrequire || fdensure) && isVirtualMethod())
+        return 1;
+
+    if (foverrides.dim && isVirtualMethod())
+    {
+        for (size_t i = 0; i < foverrides.dim; i++)
+        {
+            FuncDeclaration *fdv = foverrides.tdata()[i];
+            if (fdv->hasNestedFrameRefs())
+                return 1;
+        }
+    }
+
+    return 0;
+}
 
 /*********************************************
  * Return the function's parameter list, and whether

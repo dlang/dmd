@@ -641,6 +641,7 @@ struct FuncDeclaration : Declaration
     int isTrusted();
     virtual int isNested();
     int needThis();
+    int isVirtualMethod();
     virtual int isVirtual();
     virtual int isFinal();
     virtual int addPreInvariant();
@@ -653,6 +654,7 @@ struct FuncDeclaration : Declaration
     void toDocBuffer(OutBuffer *buf);
     FuncDeclaration *isUnique();
     int needsClosure();
+    int hasNestedFrameRefs();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
     Parameters *getParameters(int *pvarargs);
