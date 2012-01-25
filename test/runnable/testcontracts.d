@@ -242,6 +242,27 @@ void test6()
 +/
 
 /*******************************************/
+// 7117
+class Sad7117
+{
+    void func ( int n )
+    out
+    {
+        assert ( n == 23);
+    }
+    body
+    {
+        assert ( n == 23);
+    }
+}
+
+void test7117()
+{
+    auto c = new Sad7117;
+    c.func(23);
+}
+
+/*******************************************/
 // 7218
 
 void test7218()
@@ -262,6 +283,7 @@ int main()
     test4();
     test5();
 //    test6();
+    test7117();
     test7218();
 
     printf("Success\n");

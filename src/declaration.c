@@ -1671,12 +1671,9 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
         // The current function
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
-        if (fdv && fdthis && fdv != fdthis && fdthis->ident != Id::ensure)
+        // BUG: The __ensure condition is not correct. See bugs 7117 and 6859.
+        if (fdv && fdthis && fdv != fdthis && !(fdthis->ident == Id::ensure && ident == Id::This))
         {
-            /* __ensure is always called directly,
-             * so it never becomes closure.
-             */
-
             if (loc.filename)
                 fdthis->getLevel(loc, fdv);
 
