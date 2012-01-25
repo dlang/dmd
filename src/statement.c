@@ -4858,7 +4858,7 @@ Statements *DebugStatement::flatten(Scope *sc)
 
 void DebugStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (statement)
+	if (statement)
     {
         statement->toCBuffer(buf, hgs);
     }
