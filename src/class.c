@@ -297,8 +297,8 @@ void ClassDeclaration::semantic(Scope *sc)
         isdeprecated = 1;
     }
 
-    if (sc->linkage == LINKcpp)
-        error("cannot create C++ classes");
+    //if (sc->linkage == LINKcpp)
+    //    error("cannot create C++ classes");
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )

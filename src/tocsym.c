@@ -356,6 +356,8 @@ Symbol *FuncDeclaration::toSymbol()
             func_t *f = s->Sfunc;
             if (isVirtual())
                 f->Fflags |= Fvirtual;
+            else if (forceNonVirtual || isCtorDeclaration())
+                ;
             else if (isMember2())
                 f->Fflags |= Fstatic;
             f->Fstartline.Slinnum = loc.linnum;
@@ -412,6 +414,17 @@ Symbol *FuncDeclaration::toSymbol()
                         ::type *tc = cd->type->toCtype();
                         s->Sscope = tc->Tnext->Ttag;
                     }
+                    StructDeclaration *sd = parent->isStructDeclaration();
+                    if (sd)
+                    {
+                        ::type *tc = sd->type->toCtype();
+                        s->Sscope = tc->Ttag;
+                    }
+
+                    if (isCtorDeclaration())
+                        s->Sfunc->Fflags |= Fctor;
+                    if (isDtorDeclaration())
+                        s->Sfunc->Fflags |= Fdtor;
                     break;
                 }
                 default:
