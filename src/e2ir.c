@@ -93,6 +93,8 @@ elem *callfunc(Loc loc,
     printf("ec: "); elem_print(ec);
     if (fd)
         printf("fd = '%s'\n", fd->toChars());
+    if (ehidden)
+    {   printf("ehidden: "); elem_print(ehidden); }
 #endif
 
     t = t->toBasetype();
@@ -248,7 +250,6 @@ if (I32) assert(tysize[TYnptr] == 4);
     {
         assert(!ethis);
         ethis = getEthis(0, irs, fd);
-
     }
 
     ep = el_param(ep, ethis);
