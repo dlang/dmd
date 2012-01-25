@@ -298,11 +298,11 @@ void EnumDeclaration::semantic(Scope *sc)
     //members->print();
 }
 
-int EnumDeclaration::oneMember(Dsymbol **ps)
+int EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     if (isAnonymous())
-        return Dsymbol::oneMembers(members, ps);
-    return Dsymbol::oneMember(ps);
+        return Dsymbol::oneMembers(members, ps, ident);
+    return Dsymbol::oneMember(ps, ident);
 }
 
 void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

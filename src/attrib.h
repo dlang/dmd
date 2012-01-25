@@ -47,7 +47,7 @@ struct AttribDeclaration : Dsymbol
     void addComment(unsigned char *comment);
     void emitComment(Scope *sc);
     const char *kind();
-    int oneMember(Dsymbol **ps);
+    int oneMember(Dsymbol **ps, Identifier *ident);
     int hasPointers();
     bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
@@ -68,7 +68,7 @@ struct StorageClassDeclaration: AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
-    int oneMember(Dsymbol **ps);
+    int oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
@@ -132,7 +132,7 @@ struct PragmaDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setScope(Scope *sc);
-    int oneMember(Dsymbol **ps);
+    int oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -145,7 +145,7 @@ struct ConditionalDeclaration : AttribDeclaration
 
     ConditionalDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    int oneMember(Dsymbol **ps);
+    int oneMember(Dsymbol **ps, Identifier *ident);
     void emitComment(Scope *sc);
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);

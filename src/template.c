@@ -4492,6 +4492,27 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         }
     }
 
+    /* ConditionalDeclaration may introduce eponymous declaration,
+     * so we should find it once again after semantic.
+     */
+    if (members->dim)
+    {
+        Dsymbol *s;
+        if (Dsymbol::oneMembers(members, &s, tempdecl->ident) && s)
+        {
+            if (!aliasdecl || aliasdecl->toAlias() != s)
+            {
+                //printf("s->kind = '%s'\n", s->kind());
+                //s->print();
+                //printf("'%s', '%s'\n", s->ident->toChars(), tempdecl->ident->toChars());
+                //printf("setting aliasdecl 2\n");
+                aliasdecl = new AliasDeclaration(loc, s->ident, s);
+            }
+        }
+        else if (aliasdecl)
+            aliasdecl = NULL;
+    }
+
     /* The problem is when to parse the initializer for a variable.
      * Perhaps VarDeclaration::semantic() should do it like it does
      * for initializers inside a function.
@@ -5499,7 +5520,7 @@ const char *TemplateInstance::kind()
     return "template instance";
 }
 
-int TemplateInstance::oneMember(Dsymbol **ps)
+int TemplateInstance::oneMember(Dsymbol **ps, Identifier *ident)
 {
     *ps = NULL;
     return TRUE;
@@ -5901,9 +5922,9 @@ const char *TemplateMixin::kind()
     return "mixin";
 }
 
-int TemplateMixin::oneMember(Dsymbol **ps)
+int TemplateMixin::oneMember(Dsymbol **ps, Identifier *ident)
 {
-    return Dsymbol::oneMember(ps);
+    return Dsymbol::oneMember(ps, ident);
 }
 
 int TemplateMixin::hasPointers()
