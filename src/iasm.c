@@ -51,6 +51,7 @@
 #include        "oper.h"
 #include        "code.h"
 #include        "iasm.h"
+#include        "xmm.h"
 
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
@@ -1523,9 +1524,9 @@ L386_WARNING2:
             unsigned oIdx = usIdx;
 #endif
             // vvvv
-	    switch (pc->Ivex.vvvv)
-	    {
-	    case VEX_NOO:
+            switch (pc->Ivex.vvvv)
+            {
+            case VEX_NOO:
                 pc->Ivex.vvvv = 0xF; // not used
 
                 if ((aoptyTable1 == _m || aoptyTable1 == _rm) &&
@@ -1537,7 +1538,7 @@ L386_WARNING2:
                         pc,
                         ptb.pptb1->usFlags,
                         popnd1, popnd2);
-	        else
+                else
                 if (usNumops == 2 || usNumops == 3 && aoptyTable3 == _imm)
                     asm_make_modrm_byte(
 #ifdef DEBUG
@@ -1546,7 +1547,7 @@ L386_WARNING2:
                         pc,
                         ptb.pptb1->usFlags,
                         popnd2, popnd1);
-	        else
+                else
                     assert(!usNumops); // no operands
 
                 if (usNumops == 3)
@@ -1556,12 +1557,12 @@ L386_WARNING2:
                     uSizemaskTmp = ASM_GET_uSizemask(ptb.pptb3->usOp3);
                     assert(aoptyTmp == _imm);
                 }
-	        break;
+                break;
 
-	    case VEX_NDD:
+            case VEX_NDD:
                 pc->Ivex.vvvv = ~popnd1->base->val;
 
-	        asm_make_modrm_byte(
+                asm_make_modrm_byte(
 #ifdef DEBUG
                     auchOpcode, &usIdx,
 #endif
@@ -1576,9 +1577,9 @@ L386_WARNING2:
                     uSizemaskTmp = ASM_GET_uSizemask(ptb.pptb3->usOp3);
                     assert(aoptyTmp == _imm);
                 }
-	        break;
+                break;
 
-	    case VEX_DDS:
+            case VEX_DDS:
                 assert(usNumops == 3);
                 pc->Ivex.vvvv = ~popnd2->base->val;
 
@@ -1589,9 +1590,9 @@ L386_WARNING2:
                     pc,
                     ptb.pptb1->usFlags,
                     popnd3, popnd1);
-	        break;
+                break;
 
-	    case VEX_NDS:
+            case VEX_NDS:
                 pc->Ivex.vvvv = ~popnd2->base->val;
 
                 if (aoptyTable1 == _m || aoptyTable1 == _rm)
@@ -1618,11 +1619,11 @@ L386_WARNING2:
                     uSizemaskTmp = ASM_GET_uSizemask(ptb.pptb4->usOp4);
                     assert(aoptyTmp == _imm);
                 }
-	        break;
+                break;
 
-	    default:
-	        assert(0);
-	    }
+            default:
+                assert(0);
+            }
 
             // REX
             // REX_W is solely taken from WO/W1/WIG
@@ -1949,6 +1950,7 @@ printf("usOpcode = %x\n", usOpcode);
                                  ptb.pptb0->usOpcode == 0x660F50 ||
                                  ptb.pptb0->usOpcode == 0x0F50 ||
                                  ptb.pptb0->usOpcode == 0x660FD7 ||
+                                 ptb.pptb0->usOpcode == MOVDQ2Q ||
                                  ptb.pptb0->usOpcode == 0x0FD7)
                         {
                             asm_make_modrm_byte(
