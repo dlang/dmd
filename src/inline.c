@@ -1463,11 +1463,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 #endif
         isSynchronized() ||
         isImportedSymbol() ||
-#if DMDV2
-        closureVars.dim ||      // no nested references to this frame
-#else
-        nestedFrameRef ||       // no nested references to this frame
-#endif
+        hasNestedFrameRefs() ||      // no nested references to this frame
         (isVirtual() && !isFinal())
        ))
     {

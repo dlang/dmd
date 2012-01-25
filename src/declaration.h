@@ -662,6 +662,7 @@ struct FuncDeclaration : Declaration
     FuncDeclaration *isUnique();
     void checkNestedReference(Scope *sc, Loc loc);
     int needsClosure();
+    int hasNestedFrameRefs();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
     Parameters *getParameters(int *pvarargs);

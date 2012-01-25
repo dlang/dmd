@@ -117,11 +117,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
              * adding this frame into the linked list of stack
              * frames.
              */
-#if DMDV2
-            if (thisfd->closureVars.dim)
-#else
-            if (thisfd->nestedFrameRef)
-#endif
+            if (thisfd->hasNestedFrameRefs())
             {   /* Local variables are referenced, can't skip.
                  * Address of 'this' gives the 'this' for the nested
                  * function
@@ -134,11 +130,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
              * use NULL if no references to the current function's frame
              */
             ethis = el_long(TYnptr, 0);
-#if DMDV2
-            if (thisfd->closureVars.dim)
-#else
-            if (thisfd->nestedFrameRef)
-#endif
+            if (thisfd->hasNestedFrameRefs())
             {   /* OPframeptr is an operator that gets the frame pointer
                  * for the current function, i.e. for the x86 it gets
                  * the value of EBP
@@ -175,11 +167,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                     if (thisfd->isNested())
                     {
                         FuncDeclaration *p = s->toParent2()->isFuncDeclaration();
-#if DMDV2
-                        if (!p || p->closureVars.dim)
-#else
-                        if (!p || p->nestedFrameRef)
-#endif
+                        if (!p || p->hasNestedFrameRefs())
                             ethis = el_una(OPind, TYnptr, ethis);
                     }
                     else if (thisfd->vthis)
@@ -221,11 +209,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                          * nested references are skipped in the linked list
                          * of frames.
                          */
-#if DMDV2
-                        if (s->toParent2()->isFuncDeclaration()->closureVars.dim)
-#else
-                        if (s->toParent2()->isFuncDeclaration()->nestedFrameRef)
-#endif
+                        if (s->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
                             ethis = el_una(OPind, TYnptr, ethis);
                         break;
                     }
@@ -235,11 +219,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
                          * nested references are skipped in the linked list
                          * of frames.
                          */
-#if DMDV2
-                        if (s->toParent2()->isFuncDeclaration()->closureVars.dim)
-#else
-                        if (s->toParent2()->isFuncDeclaration()->nestedFrameRef)
-#endif
+                        if (s->toParent2()->isFuncDeclaration()->hasNestedFrameRefs())
                             ethis = el_una(OPind, TYnptr, ethis);
                     }
                 }
@@ -281,11 +261,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
             ethis = el_var(irs->sclosure);
         else if (irs->sthis)
         {
-#if DMDV2
-            if (thisfd->closureVars.dim)
-#else
-            if (thisfd->nestedFrameRef)
-#endif
+            if (thisfd->hasNestedFrameRefs())
             {
                 ethis = el_ptr(irs->sthis);
             }
@@ -295,11 +271,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
         else
         {
             ethis = el_long(TYnptr, 0);
-#if DMDV2
-            if (thisfd->closureVars.dim)
-#else
-            if (thisfd->nestedFrameRef)
-#endif
+            if (thisfd->hasNestedFrameRefs())
             {
                 ethis->Eoper = OPframeptr;
             }

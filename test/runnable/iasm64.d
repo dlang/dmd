@@ -837,7 +837,7 @@ void test13()
 	0xF3,0x0F,0x6F,0xCA,		// movdqu	XMM1,XMM2
 	0xF3,0x0F,0x6F,0x55,0xE0,	// movdqu	XMM2,-020h[RBP]
 	0xF3,0x0F,0x7F,0x65,0xE0,	// movdqu	-020h[RBP],XMM4
-	0xF2,0x0F,0xD6,0xE3,		// movdq2q	MM4,XMM3
+	0xF2,0x0F,0xD6,0xDC,		// movdq2q	MM4,XMM3
 	0x0F,0x12,0xDC,			// movhlps	XMM4,XMM3
 0x66,	0x0F,0x16,0x55,0xD8,		// movhpd	XMM2,-028h[RBP]
 0x66,	0x0F,0x17,0x7D,0xD8,		// movhpd	-028h[RBP],XMM7
@@ -6416,6 +6416,38 @@ L1:
 }
 
 /****************************************************/
+
+void testxadd()
+{   int x;
+    ubyte* p;
+    static ubyte data[] =
+    [
+	0x0F, 0xC0, 0x10,
+	0x66, 0x0F, 0xC1, 0x10,
+	0x0F, 0xC1, 0x10,
+	0x48, 0x0F, 0xC1, 0x10,
+    ];
+
+    asm
+    {
+        call	L1			;
+
+        xadd byte ptr [RAX],DL;
+        xadd word ptr [RAX],DX;
+        xadd dword ptr [RAX],EDX;
+        xadd qword ptr [RAX],RDX;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (i,b; data)
+    {
+        //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+}
+
 /****************************************************/
 
 int main()
@@ -6483,6 +6515,7 @@ int main()
     test60();
     test61();
     test2941();
+    testxadd();
 
     printf("Success\n");
     return 0;
