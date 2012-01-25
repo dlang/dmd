@@ -3042,6 +3042,25 @@ void test2540()
 }
 
 /***************************************************/
+// 7295
+
+struct S7295
+{
+    int member;
+    @property ref int refCountedPayload() { return member; }
+    alias refCountedPayload this;
+}
+
+void foo7295(S)(immutable S t, int qq) pure { }
+void foo7295(S)(S s) pure { }
+
+void bar7295() pure
+{
+    S7295 b;
+    foo7295(b);
+}
+
+/***************************************************/
 // 5659
 
 void test149()
