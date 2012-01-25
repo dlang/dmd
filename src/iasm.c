@@ -51,6 +51,7 @@
 #include        "oper.h"
 #include        "code.h"
 #include        "iasm.h"
+#include        "xmm.h"
 
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
@@ -1949,6 +1950,7 @@ printf("usOpcode = %x\n", usOpcode);
                                  ptb.pptb0->usOpcode == 0x660F50 ||
                                  ptb.pptb0->usOpcode == 0x0F50 ||
                                  ptb.pptb0->usOpcode == 0x660FD7 ||
+                                 ptb.pptb0->usOpcode == MOVDQ2Q ||
                                  ptb.pptb0->usOpcode == 0x0FD7)
                         {
                             asm_make_modrm_byte(
