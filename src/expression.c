@@ -7475,9 +7475,7 @@ Lagain:
                 arguments = new Expressions();
             f = td->deduceFunctionTemplate(sc, loc, targsi, ue->e1, arguments);
             if (!f)
-            {   type = Type::terror;
-                return this;
-            }
+                return new ErrorExp();
             ad = td->toParent()->isAggregateDeclaration();
         }
         if (f->needThis())
