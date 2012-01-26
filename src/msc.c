@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -53,6 +53,7 @@ void out_config_init()
     config.inline8087 = 1;
     config.memmodel = 0;
     config.flags |= CFGuchar;   // make sure TYchar is unsigned
+    tytab[TYchar] |= TYFLuns;
 #if TARGET_WINDOS
     if (params->is64bit)
         config.exe = EX_WIN64;
@@ -202,7 +203,7 @@ void util_set32()
     tyequiv[TYint] = TYlong;
     tyequiv[TYuint] = TYulong;
 
-    for (int i = 0; i < 0x100; i += 0x40)
+    for (int i = 0; i < 1; ++i)
     {   tysize[TYenum + i] = LONGSIZE;
         tysize[TYint  + i] = LONGSIZE;
         tysize[TYuint + i] = LONGSIZE;
@@ -211,7 +212,7 @@ void util_set32()
         tysize[TYnref + i] = LONGSIZE;
     }
 
-    for (int i = 0; i < 0x100; i += 0x40)
+    for (int i = 0; i < 1; ++i)
     {   tyalignsize[TYenum + i] = LONGSIZE;
         tyalignsize[TYint  + i] = LONGSIZE;
         tyalignsize[TYuint + i] = LONGSIZE;
@@ -234,7 +235,7 @@ void util_set64()
     tyequiv[TYint] = TYlong;
     tyequiv[TYuint] = TYulong;
 
-    for (int i = 0; i < 0x100; i += 0x40)
+    for (int i = 0; i < 1; ++i)
     {   tysize[TYenum + i] = LONGSIZE;
         tysize[TYint  + i] = LONGSIZE;
         tysize[TYuint + i] = LONGSIZE;
