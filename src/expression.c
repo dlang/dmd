@@ -211,6 +211,50 @@ Lno:
 Expression *resolveProperties(Scope *sc, Expression *e)
 {
     //printf("resolveProperties(%s)\n", e->toChars());
+
+    TemplateDeclaration *td;
+    Objects *targsi;
+    Expression *ethis;
+    if (e->op == TOKdotti)
+    {
+        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e;
+        td     = dti->getTempdecl(sc);
+                 dti->ti->semanticTiargs(sc);
+        targsi = dti->ti->tiargs;
+        ethis  = dti->e1;
+        goto L1;
+    }
+    else if (e->op == TOKdottd)
+    {
+        DotTemplateExp *dte = (DotTemplateExp *)e;
+        td     = dte->td;
+        targsi = NULL;
+        ethis  = dte->e1;
+        goto L1;
+    }
+    else if (e->op == TOKtemplate)
+    {
+        td     = ((TemplateExp *)e)->td;
+        targsi = NULL;
+        ethis  = NULL;
+    L1:
+        assert(td);
+        unsigned errors = global.startGagging();
+        FuncDeclaration *fd = td->deduceFunctionTemplate(sc, e->loc, targsi, ethis, NULL, 1);
+        if (global.endGagging(errors))
+            fd = NULL;  // eat "is not a function template" error
+        if (fd && fd->type)
+        {   assert(fd->type->ty == Tfunction);
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            if (!tf->isproperty && global.params.enforcePropertySyntax)
+                error(e->loc, "not a property %s", e->toChars());
+
+            e = new CallExp(e->loc, e);
+            e = e->semantic(sc);
+        }
+        return e;
+    }
+
     if (e->type)
     {
         Type *t = e->type->toBasetype();
@@ -221,7 +265,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
             if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
                 global.params.enforcePropertySyntax)
             {
-                error(e->loc, "not a property %s\n", e->toChars());
+                error(e->loc, "not a property %s", e->toChars());
             }
 #endif
             e = new CallExp(e->loc, e);
@@ -246,11 +290,6 @@ Expression *resolveProperties(Scope *sc, Expression *e)
             return new ErrorExp();
         }
 
-    }
-    else if (e->op == TOKdottd)
-    {
-        e = new CallExp(e->loc, e);
-        e = e->semantic(sc);
     }
     return e;
 }
@@ -543,16 +582,6 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
 
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *arg = (*exps)[i];
-
-            if (!arg->type)
-            {
-#ifdef DEBUG
-                if (!global.gag)
-                    printf("1: \n");
-#endif
-                arg->error("%s is not an expression", arg->toChars());
-                arg = new ErrorExp();
-            }
 
             arg = resolveProperties(sc, arg);
             (*exps)[i] =  arg;
@@ -2788,7 +2817,11 @@ Lagain:
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
-        e = new TemplateExp(loc, td);
+        Dsymbol *p = td->toParent2();
+        if (hasThis(sc) && p && p->isAggregateDeclaration())
+            e = new DotTemplateExp(loc, new ThisExp(loc), td);
+        else
+            e = new TemplateExp(loc, td);
         e = e->semantic(sc);
         return e;
     }
@@ -3705,10 +3738,6 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (!e)
             continue;
 
-        if (!e->type)
-        {   error("%s has no value", e->toChars());
-            return new ErrorExp();
-        }
         e = resolveProperties(sc, e);
         if (i >= nfields)
         {   error("more initializers than fields of %s", sd->toChars());
@@ -5788,18 +5817,7 @@ Expression *BinExp::semantic(Scope *sc)
     printf("BinExp::semantic('%s')\n", toChars());
 #endif
     e1 = e1->semantic(sc);
-    if (!e1->type &&
-        !(op == TOKassign && e1->op == TOKdottd))       // a.template = e2
-    {
-        error("%s has no value", e1->toChars());
-        return new ErrorExp();
-    }
     e2 = e2->semantic(sc);
-    if (!e2->type)
-    {
-        error("%s has no value", e2->toChars());
-        return new ErrorExp();
-    }
     if (e1->op == TOKerror || e2->op == TOKerror)
         return new ErrorExp();
     return this;
@@ -6837,8 +6855,8 @@ L1:
         ti->tempdecl = td;
         if (ti->needsTypeInference(sc))
         {
-            e = new CallExp(loc, this);
-            return e->semantic(sc);
+            e1 = eleft;                 // save result of semantic()
+            return this;
         }
         else
             ti->semantic(sc);
@@ -9226,16 +9244,11 @@ Expression *IndexExp::semantic(Scope *sc)
     }
 
     e2 = e2->semantic(sc);
-    if (!e2->type)
-    {
-        error("%s has no value", e2->toChars());
-        goto Lerr;
-    }
-    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
-        e2 = ((TupleExp *)e2)->exps->tdata()[0];
     e2 = resolveProperties(sc, e2);
     if (e2->type == Type::terror)
         goto Lerr;
+    if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
+        e2 = ((TupleExp *)e2)->exps->tdata()[0];
 
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
         sc = sc->pop();
@@ -9680,18 +9693,118 @@ Expression *AssignExp::semantic(Scope *sc)
         }
     }
 
+    {
     Expression *e = BinExp::semantic(sc);
     if (e->op == TOKerror)
-        return e;
-
-    if (e1->op == TOKdottd)
-    {   // Rewrite a.b=e2, when b is a template, as a.b(e2)
-        Expression *e = new CallExp(loc, e1, e2);
-        e = e->semantic(sc);
         return e;
     }
 
     e2 = resolveProperties(sc, e2);
+
+    /* We have f = value.
+     * Could mean:
+     *      f(value)
+     * or:
+     *      f() = value
+     */
+    TemplateDeclaration *td;
+    Objects *targsi;
+    FuncDeclaration *fd;
+    Expression *ethis;
+    if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+        td     = dti->getTempdecl(sc);
+                 dti->ti->semanticTiargs(sc);
+        targsi = dti->ti->tiargs;
+        ethis  = dti->e1;
+        goto L3;
+    }
+    else if (e1->op == TOKdottd)
+    {
+        DotTemplateExp *dte = (DotTemplateExp *)e1;
+        td     = dte->td;
+        targsi = NULL;
+        ethis  = dte->e1;
+        goto L3;
+    }
+    else if (e1->op == TOKtemplate)
+    {
+        td     = ((TemplateExp *)e1)->td;
+        targsi = NULL;
+        ethis  = NULL;
+    L3:
+    {
+        assert(td);
+        Expressions a;
+        a.push(e2);
+
+        fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, &a, 1);
+        if (fd && fd->type)
+            goto Lsetter;
+
+        fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, NULL, 1);
+        if (fd && fd->type)
+            goto Lgetter;
+    }
+        goto Leprop;
+    }
+    else if (e1->op == TOKdotvar && e1->type->toBasetype()->ty == Tfunction)
+    {
+        DotVarExp *dve = (DotVarExp *)e1;
+        fd    = dve->var->isFuncDeclaration();
+        ethis = dve->e1;
+        goto L4;
+    }
+    else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
+    {
+        fd = ((VarExp *)e1)->var->isFuncDeclaration();
+        ethis = NULL;
+    L4:
+    {
+        assert(fd);
+        FuncDeclaration *f = fd;
+        Expressions a;
+        a.push(e2);
+
+        fd = f->overloadResolve(loc, ethis, &a, 1);
+        if (fd && fd->type)
+            goto Lsetter;
+
+        fd = f->overloadResolve(loc, ethis, NULL, 1);
+        if (fd && fd->type)
+            goto Lgetter;
+
+        goto Leprop;
+    }
+
+        Expression *e;
+        TypeFunction *tf;
+
+    Lsetter:
+        assert(fd->type->ty == Tfunction);
+        tf = (TypeFunction *)fd->type;
+        if (!tf->isproperty && global.params.enforcePropertySyntax)
+            goto Leprop;
+        e = new CallExp(loc, e1, e2);
+        return e->semantic(sc);
+
+    Lgetter:
+        assert(fd->type->ty == Tfunction);
+        tf = (TypeFunction *)fd->type;
+        if (!tf->isref)
+            goto Leprop;
+        if (!tf->isproperty && global.params.enforcePropertySyntax)
+            goto Leprop;
+        e = new CallExp(loc, e1);
+        e = new AssignExp(loc, e, e2);
+        return e->semantic(sc);
+
+    Leprop:
+        ::error(e1->loc, "not a property %s", e1->toChars());
+        return new ErrorExp();
+    }
+
     assert(e1->type);
 
     /* Rewrite tuple assignment as a tuple of assignments.
@@ -9776,28 +9889,6 @@ Ltupleassign:
     }
 
     Type *t1 = e1->type->toBasetype();
-
-    if (t1->ty == Tfunction)
-    {   /* We have f=value.
-         * Could mean:
-         *      f() = value
-         * or:
-         *      f(value)
-         */
-        TypeFunction *tf = (TypeFunction *)t1;
-        if (tf->isref)
-        {
-            // Rewrite e1 = e2 to e1() = e2
-            e1 = resolveProperties(sc, e1);
-        }
-        else
-        {
-            // Rewrite f=value to f(value)
-            Expression *e = new CallExp(loc, e1, e2);
-            e = e->semantic(sc);
-            return e;
-        }
-    }
 
     if (t1->ty == Tdelegate || (t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
         && e2->op == TOKfunction)

@@ -520,6 +520,42 @@ struct T6805
 static assert(is(T6805.xxx.Type == int));
 
 /**********************************/
+// 6738
+
+struct Foo6738
+{
+    int _val = 10;
+
+    @property int val()() { return _val; }
+    int get() { return val; }  // fail
+}
+
+void test6738()
+{
+    Foo6738 foo;
+    auto x = foo.val;  // ok
+    assert(x == 10);
+    assert(foo.get() == 10);
+}
+
+/**********************************/
+// 6780
+
+@property int foo6780()(){ return 10; }
+
+int g6780;
+@property void bar6780()(int n){ g6780 = n; }
+
+void test6780()
+{
+    auto n = foo6780;
+    assert(n == 10);
+
+    bar6780 = 10;
+    assert(g6780 == 10);
+}
+
+/**********************************/
 // 6994
 
 struct Foo6994
@@ -775,6 +811,8 @@ int main()
     test2778get();
     test6208a();
     test6208b();
+    test6738();
+    test6780();
     test6994();
     test3467();
     test4413();
