@@ -4316,23 +4316,21 @@ Statement *Parser::parseStatement(int flags)
             break;
 
         case TOKasm:
-        {   Statements *statements;
-            Identifier *label;
-            Loc labelloc;
-            Token *toklist;
-            Token **ptoklist;
-
+        {
             // Parse the asm block into a sequence of AsmStatements,
             // each AsmStatement is one instruction.
             // Separate out labels.
             // Defer parsing of AsmStatements until semantic processing.
 
+            Loc labelloc;
+
             nextToken();
             check(TOKlcurly);
-            toklist = NULL;
-            ptoklist = &toklist;
-            label = NULL;
-            statements = new Statements();
+            Token *toklist = NULL;
+            Token **ptoklist = &toklist;
+            Identifier *label = NULL;
+            Statements *statements = new Statements();
+            size_t nestlevel = 0;
             while (1)
             {
                 switch (token.value)
@@ -4353,7 +4351,17 @@ Statement *Parser::parseStatement(int flags)
                         }
                         goto Ldefault;
 
+                    case TOKlcurly:
+                        ++nestlevel;
+                        goto Ldefault;
+
                     case TOKrcurly:
+                        if (nestlevel > 0)
+                        {
+                            --nestlevel;
+                            goto Ldefault;
+                        }
+
                         if (toklist || label)
                         {
                             error("asm statements must end in ';'");
@@ -4361,6 +4369,9 @@ Statement *Parser::parseStatement(int flags)
                         break;
 
                     case TOKsemicolon:
+                        if (nestlevel != 0)
+                            error("mismatched number of curly brackets");
+
                         s = NULL;
                         if (toklist || label)
                         {   // Create AsmStatement from list of tokens we've saved
@@ -4379,7 +4390,7 @@ Statement *Parser::parseStatement(int flags)
                     case TOKeof:
                         /* { */
                         error("matching '}' expected, not end of file");
-                        break;
+                        goto Lerror;
 
                     default:
                     Ldefault:
