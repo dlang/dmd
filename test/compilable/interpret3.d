@@ -4017,3 +4017,16 @@ int test6933() {
 }
 
 static assert(test6933());
+
+/**************************************************
+    7197
+**************************************************/
+
+int foo7197(int[] x...) {
+    return 1;
+}
+template bar7197(y...) {
+    enum int bar7197 = foo7197(y);
+}
+enum int bug7197 = 7;
+static assert(bar7197!(bug7197));
