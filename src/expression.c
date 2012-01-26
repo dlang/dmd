@@ -221,7 +221,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
             if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
                 global.params.enforcePropertySyntax)
             {
-                error(e->loc, "not a property %s\n", e->toChars());
+                error(e->loc, "not a property %s", e->toChars());
             }
 #endif
             e = new CallExp(e->loc, e);
@@ -9680,18 +9680,84 @@ Expression *AssignExp::semantic(Scope *sc)
         }
     }
 
+    {
     Expression *e = BinExp::semantic(sc);
     if (e->op == TOKerror)
-        return e;
-
-    if (e1->op == TOKdottd)
-    {   // Rewrite a.b=e2, when b is a template, as a.b(e2)
-        Expression *e = new CallExp(loc, e1, e2);
-        e = e->semantic(sc);
         return e;
     }
 
     e2 = resolveProperties(sc, e2);
+
+    /* We have f = value.
+     * Could mean:
+     *      f(value)
+     * or:
+     *      f() = value
+     */
+    FuncDeclaration *fd;
+    Expression *ethis;
+    if (e1->op == TOKdottd)
+    {
+        Expression *e = new CallExp(loc, e1, e2);
+        e = e->semantic(sc);
+        return e;
+    }
+    else if (e1->op == TOKdotvar && e1->type->toBasetype()->ty == Tfunction)
+    {
+        DotVarExp *dve = (DotVarExp *)e1;
+        fd    = dve->var->isFuncDeclaration();
+        ethis = dve->e1;
+        goto L4;
+    }
+    else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
+    {
+        fd = ((VarExp *)e1)->var->isFuncDeclaration();
+        ethis = NULL;
+    L4:
+    {
+        assert(fd);
+        FuncDeclaration *f = fd;
+        Expressions a;
+        a.push(e2);
+
+        fd = f->overloadResolve(loc, ethis, &a, 1);
+        if (fd && fd->type)
+            goto Lsetter;
+
+        fd = f->overloadResolve(loc, ethis, NULL, 1);
+        if (fd && fd->type)
+            goto Lgetter;
+
+        goto Leprop;
+    }
+
+        Expression *e;
+        TypeFunction *tf;
+
+    Lsetter:
+        assert(fd->type->ty == Tfunction);
+        tf = (TypeFunction *)fd->type;
+        if (!tf->isproperty && global.params.enforcePropertySyntax)
+            goto Leprop;
+        e = new CallExp(loc, e1, e2);
+        return e->semantic(sc);
+
+    Lgetter:
+        assert(fd->type->ty == Tfunction);
+        tf = (TypeFunction *)fd->type;
+        if (!tf->isref)
+            goto Leprop;
+        if (!tf->isproperty && global.params.enforcePropertySyntax)
+            goto Leprop;
+        e = new CallExp(loc, e1);
+        e = new AssignExp(loc, e, e2);
+        return e->semantic(sc);
+
+    Leprop:
+        ::error(e1->loc, "not a property %s", e1->toChars());
+        return new ErrorExp();
+    }
+
     assert(e1->type);
 
     /* Rewrite tuple assignment as a tuple of assignments.
@@ -9776,28 +9842,6 @@ Ltupleassign:
     }
 
     Type *t1 = e1->type->toBasetype();
-
-    if (t1->ty == Tfunction)
-    {   /* We have f=value.
-         * Could mean:
-         *      f() = value
-         * or:
-         *      f(value)
-         */
-        TypeFunction *tf = (TypeFunction *)t1;
-        if (tf->isref)
-        {
-            // Rewrite e1 = e2 to e1() = e2
-            e1 = resolveProperties(sc, e1);
-        }
-        else
-        {
-            // Rewrite f=value to f(value)
-            Expression *e = new CallExp(loc, e1, e2);
-            e = e->semantic(sc);
-            return e;
-        }
-    }
 
     if (t1->ty == Tdelegate || (t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
         && e2->op == TOKfunction)
