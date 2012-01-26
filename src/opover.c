@@ -385,6 +385,7 @@ Expression *ArrayExp::op_overload(Scope *sc)
                 currentDimension = i;   // Dimension for $, if required
 
                 x = x->semantic(sc);
+                x = resolveProperties(sc, x);
                 if (!x->type)
                     error("%s has no value", x->toChars());
                 if (lengthVar)
