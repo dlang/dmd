@@ -100,3 +100,14 @@ int bug6096()
     if (c6096) return 0;
     return 1;
 }
+
+/**************************************************
+    5796
+**************************************************/
+
+template A(B) {
+    pragma(msg, "missing ;")
+    enum X = 0;
+}
+
+static assert(!is(typeof(A!(int))));
