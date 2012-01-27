@@ -48,6 +48,7 @@ void slist_add(Symbol *s);
 void slist_reset();
 
 Classsym *fake_classsym(Identifier *id);
+Symbol *findCppParent(Declaration *d);
 
 /********************************* SymbolDeclaration ****************************/
 
@@ -164,6 +165,33 @@ Symbol *Dsymbol::toImport(Symbol *sym)
 /*************************************
  */
 
+Symbol *findCppParent(Declaration *d)
+{
+    Dsymbol *parent = d->toParent();
+    ClassDeclaration *cd = parent->isClassDeclaration();
+    TemplateInstance *ti = NULL;
+    Symbol *s = NULL;
+    if (cd)
+    {
+        ::type *tc = cd->type->toCtype();
+        s = tc->Tnext->Ttag;
+        ti = cd->toParent()->isTemplateInstance();
+    }
+    StructDeclaration *sd = parent->isStructDeclaration();
+    if (sd)
+    {
+        ::type *tc = sd->type->toCtype();
+        s = tc->Ttag;
+        ti = sd->toParent()->isTemplateInstance();
+    }
+    if (ti)
+        s = ti->toSymbol();
+    return s;
+}
+
+/*************************************
+ */
+
 Symbol *VarDeclaration::toSymbol()
 {
     //printf("VarDeclaration::toSymbol(%s)\n", toChars());
@@ -274,24 +302,7 @@ Symbol *VarDeclaration::toSymbol()
                 m = mTYman_cpp;
 
                 s->Sflags |= SFLpublic;
-                Dsymbol *parent = toParent();
-                ClassDeclaration *cd = parent->isClassDeclaration();
-                TemplateInstance *ti = NULL;
-                if (cd)
-                {
-                    ::type *tc = cd->type->toCtype();
-                    s->Sscope = tc->Tnext->Ttag;
-                    ti = cd->toParent()->isTemplateInstance();
-                }
-                StructDeclaration *sd = parent->isStructDeclaration();
-                if (sd)
-                {
-                    ::type *tc = sd->type->toCtype();
-                    s->Sscope = tc->Ttag;
-                    ti = sd->toParent()->isTemplateInstance();
-                }
-                if (ti)
-                    s->Sscope = ti->toSymbol();
+                s->Sscope = findCppParent(this);
                 break;
             }
             default:
@@ -429,24 +440,7 @@ Symbol *FuncDeclaration::toSymbol()
                         t->Tty = TYmfunc;
 #endif
                     s->Sflags |= SFLpublic;
-                    Dsymbol *parent = toParent();
-                    ClassDeclaration *cd = parent->isClassDeclaration();
-                    TemplateInstance *ti = NULL;
-                    if (cd)
-                    {
-                        ::type *tc = cd->type->toCtype();
-                        s->Sscope = tc->Tnext->Ttag;
-                        ti = cd->toParent()->isTemplateInstance();
-                    }
-                    StructDeclaration *sd = parent->isStructDeclaration();
-                    if (sd)
-                    {
-                        ::type *tc = sd->type->toCtype();
-                        s->Sscope = tc->Ttag;
-                        ti = sd->toParent()->isTemplateInstance();
-                    }
-                    if (ti)
-                        s->Sscope = ti->toSymbol();
+                    s->Sscope = findCppParent(this);
 
                     if (isCtorDeclaration())
                         s->Sfunc->Fflags |= Fctor;
