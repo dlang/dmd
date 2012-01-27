@@ -634,9 +634,6 @@ Expression *CommaExp::optimize(int result)
         e = interpret(NULL);
         return (e == EXP_CANT_INTERPRET) ?  this : e;
     }
-    // Don't constant fold if it is a compiler-generated temporary.
-    if (e1->op == TOKdeclaration)
-       return this;
 
     e1 = e1->optimize(result & WANTinterpret);
     e2 = e2->optimize(result);
