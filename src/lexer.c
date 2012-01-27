@@ -847,7 +847,7 @@ void Lexer::scan(Token *t)
                                         t->value = TOKcomment;
                                         return;
                                     }
-                                    if (doDocComment && t->ptr[2] == '/')
+                                    if (doDocComment && (t->ptr[2] == '/' || t->ptr[2] == '!')) // '///' or '//!'
                                         getDocComment(t, lastLine == linnum);
                                     p = end;
                                     t->value = TOKeof;
@@ -871,7 +871,7 @@ void Lexer::scan(Token *t)
                             t->value = TOKcomment;
                             return;
                         }
-                        if (doDocComment && t->ptr[2] == '/')
+                        if (doDocComment && (t->ptr[2] == '/' || t->ptr[2] == '!')) // '///' or '//!'
                             getDocComment(t, lastLine == linnum);
 
                         p++;
@@ -2719,7 +2719,7 @@ unsigned Lexer::decodeUTF()
 
 void Lexer::getDocComment(Token *t, unsigned lineComment)
 {
-    /* ct tells us which kind of comment it is: '/', '*', or '+'
+    /* ct tells us which kind of comment it is: '!', '/', '*', or '+'
      */
     unsigned char ct = t->ptr[2];
 
@@ -2741,7 +2741,7 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 
     /* Remove trailing row of ****'s or ++++'s
      */
-    if (ct != '/')
+    if (ct != '/' && ct != '!')
     {
         for (; q < qend; qend--)
         {
