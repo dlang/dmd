@@ -29,6 +29,7 @@
 #include "lexer.h"
 #include "dsymbol.h"
 #include "id.h"
+#include "template.h"
 
 #include "rmem.h"
 
@@ -270,6 +271,22 @@ Symbol *VarDeclaration::toSymbol()
 
             case LINKcpp:
                 m = mTYman_cpp;
+
+                s->Sflags |= SFLpublic;
+
+                Dsymbol *parent = toParent();
+                ClassDeclaration *cd = parent->isClassDeclaration();
+                if (cd)
+                {
+                    ::type *tc = cd->type->toCtype();
+                    s->Sscope = tc->Tnext->Ttag;
+                }
+                StructDeclaration *sd = parent->isStructDeclaration();
+                if (sd)
+                {
+                    ::type *tc = sd->type->toCtype();
+                    s->Sscope = tc->Ttag;
+                }
                 break;
 
             default:
@@ -409,17 +426,22 @@ Symbol *FuncDeclaration::toSymbol()
                     s->Sflags |= SFLpublic;
                     Dsymbol *parent = toParent();
                     ClassDeclaration *cd = parent->isClassDeclaration();
+                    TemplateInstance *ti = NULL;
                     if (cd)
                     {
                         ::type *tc = cd->type->toCtype();
                         s->Sscope = tc->Tnext->Ttag;
+                        ti = cd->toParent()->isTemplateInstance();
                     }
                     StructDeclaration *sd = parent->isStructDeclaration();
                     if (sd)
                     {
                         ::type *tc = sd->type->toCtype();
                         s->Sscope = tc->Ttag;
+                        ti = sd->toParent()->isTemplateInstance();
                     }
+                    if (ti)
+                        s->Sscope = ti->toSymbol();
 
                     if (isCtorDeclaration())
                         s->Sfunc->Fflags |= Fctor;
@@ -584,6 +606,52 @@ Symbol *Module::toSymbol()
         s->Sflags |= SFLnodebug;
         csym = s;
         slist_add(s);
+    }
+    return csym;
+}
+
+/*************************************
+ * Symbol for c++ mangling of templates
+ */
+Symbol *TemplateInstance::toSymbol()
+{
+    if (!csym)
+    {
+        TYPE *t;
+        Symbol *scc;
+
+        scc = symbol_calloc(name->toChars());
+        scc->Sclass = SCtemplate;
+        scc->Stemplate = ((template_t *) mem_fcalloc(sizeof(template_t)));
+
+        param_t *paramtypes = NULL;
+        if (tiargs->dim)
+        {
+            for (size_t i = 0; i < tiargs->dim; i++)
+            {
+                Object *o = tiargs->tdata()[i];
+                Type *ta = isType(o);
+                Expression *ea = isExpression(o);
+                Dsymbol *sa = isDsymbol(o);
+                if (ta)
+                {
+                    param_append_type(&paramtypes, ta->toCtype());
+                }
+                else
+                {
+                    //Only template type parameters are currently supported when linking with c++
+                    assert(0);
+                }
+            }
+        }
+        scc->Stemplate->TMptpl = paramtypes;
+
+        t = type_alloc_template(scc);
+        t->Tmangle = mTYman_cpp;
+        t->Tcount++;
+        scc->Stype = t;
+        slist_add(scc);
+        csym = scc;
     }
     return csym;
 }

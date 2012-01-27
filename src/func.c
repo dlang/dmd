@@ -493,6 +493,12 @@ void FuncDeclaration::semantic(Scope *sc)
             default:
             {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl.tdata()[vi];
                 // This function is covariant with fdv
+
+                if (linkage == LINKcpp && isFinal() && fdv->isFinal())
+                {
+                    forceNonVirtual = 1;
+                    goto Ldone;
+                }
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
 
