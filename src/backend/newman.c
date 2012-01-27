@@ -504,14 +504,16 @@ char *cpp_mangle(symbol *s)
     else
     {
         MangleInuse m;
-
+//__asm int 3;
         mangle.znamei = 0;
         mangle.argi = 0;
         mangle.np = mangle.buf;
         mangle.buf[BUFIDMAX + 1] = 0x55;
+        static int x = 0;
+        //if (!strcmp(s->Sident, "buildArrayIdent")) __asm int 3;
         cpp_decorated_name(s);
         *mangle.np = 0;                 // 0-terminate cpp_name[]
-        //dbg_printf("cpp_mangle() = '%s'\n", mangle.buf);
+        //printf("cpp_mangle() = '%s' %d\n", mangle.buf, x++);
         assert(strlen(mangle.buf) <= BUFIDMAX);
         assert(mangle.buf[BUFIDMAX + 1] == 0x55);
         return mangle.buf;
@@ -584,7 +586,7 @@ STATIC int cpp_protection(symbol *s)
  * Create mangled name for template instantiation.
  */
 
-#if SCPP
+#if SCPP || MARS
 
 char *template_mangle(symbol *s,param_t *arglist)
 {
@@ -693,12 +695,14 @@ char *template_mangle(symbol *s,param_t *arglist)
                     else
                         CHAR('S');
                     if (e->EV.ss.Voffset)
-                        synerr(EM_const_init);          // constant initializer expected
+                        assert(0);
+                        //synerr(EM_const_init);          // constant initializer expected
                     cpp_string(e->EV.ss.Vstring,e->EV.ss.Vstrlen);
                     break;
                 case OPrelconst:
                     if (e->EV.sp.Voffset)
-                        synerr(EM_const_init);          // constant initializer expected
+                        assert(0);
+                        //synerr(EM_const_init);          // constant initializer expected
                     s = e->EV.sp.Vsym;
                     if (NEWTEMPMANGLE)
                     {   STR("$1");
@@ -729,7 +733,7 @@ char *template_mangle(symbol *s,param_t *arglist)
                     if (!errcnt)
                         elem_print(e);
 #endif
-                    synerr(EM_const_init);              // constant initializer expected
+                    //synerr(EM_const_init);              // constant initializer expected
                     assert(errcnt);
 #endif
                     break;
@@ -1051,7 +1055,22 @@ STATIC void cpp_basic_data_type(type *t)
                 goto Ldefault;
             break;
 #endif
-
+#if MARS
+        case TYtemplate:
+            CHAR('V');
+            Mangle save = mangle;
+            Symbol *s = ((typetemp_t *)t)->Tsym;
+            char *p = template_mangle(s, s->Stemplate->TMptpl);
+            int len = mangle.np - mangle.buf;
+            char *q = (char *)malloc(len + 1);
+            memcpy(q, p, len);
+            q[len] = '\0';
+            //printf("%d\t%s\n", len, q);
+            mangle = save;
+            cpp_zname(q);
+            CHAR('@');
+            break;
+#endif
         default:
         Ldefault:
             if (tyfunc(t->Tty))
@@ -1544,6 +1563,23 @@ STATIC void cpp_scope(symbol *s)
 
             case SCstruct:
                 cpp_zname(symbol_ident(s));
+                break;
+
+            case SCtemplate:
+                Mangle save = mangle;
+                char *q;
+                int len;
+
+                p = template_mangle(s, s->Stemplate->TMptpl);
+                len = mangle.np - mangle.buf;
+                q = (char *)malloc(len + 1);
+                memcpy(q, p, len);
+                q[len] = '\0';
+                //printf("%d\t%s\n", len, q);
+                //printf("\t%*s\n", mangle.np - mangle.buf, mangle.buf);
+                mangle = save;
+                //printf("\t%*s\n", mangle.np - mangle.buf, mangle.buf);
+                cpp_zname(q);
                 break;
 
             default:

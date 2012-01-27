@@ -269,7 +269,7 @@ type *type_alloc(tym_t ty)
  * Allocate a TYtemplate.
  */
 
-#if !MARS
+#if 1 || !MARS
 type *type_alloc_template(symbol *s)
 {   type *t;
 
@@ -1439,6 +1439,8 @@ static int paramlstmatch(param_t *p1,param_t *p2)
  *      !=0 if types match.
  */
 
+int matchtemplate(type *t1, type *t2, tym_t t1ty, tym_t t2ty);
+
 int typematch(type *t1,type *t2,int relax)
 { tym_t t1ty, t2ty;
   tym_t tym;
@@ -1472,8 +1474,17 @@ int typematch(type *t1,type *t2,int relax)
             (!tyfunc(t1ty) ||
              ((t1->Tflags & TFfixed) == (t2->Tflags & TFfixed) &&
                  paramlstmatch(t1->Tparamtypes,t2->Tparamtypes) ))
+                 &&
+
+            matchtemplate(t1, t2, t1ty, t2ty)
          ;
 }
+
+int matchtemplate(type *t1, type *t2, tym_t t1ty, tym_t t2ty)
+{
+    return tybasic(t1ty) != TYtemplate || ((typetemp_t *)t1)->Tsym == ((typetemp_t *)t2)->Tsym;
+}
+
 
 #endif
 

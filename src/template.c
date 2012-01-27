@@ -4008,6 +4008,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->isnested = NULL;
     this->errors = 0;
     this->speculative = 0;
+    this->csym = NULL;
 }
 
 /*****************

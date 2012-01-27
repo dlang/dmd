@@ -2145,10 +2145,13 @@ size_t obj_mangle(Symbol *s,char *dest)
         size_t len2;
 
         // Attempt to compress the name
-        name2 = id_compress(name, len);
+        if (type_mangle(s->Stype) == mTYman_cpp)
+            name2 = strdup(name);
+        else
+            name2 = id_compress(name, len);
         len2  = strlen(name2);
 #if MARS
-        if (len2 > LIBIDMAX)            // still too long
+        if (len2 > LIBIDMAX && type_mangle(s->Stype) != mTYman_cpp)            // still too long
         {
             /* Form md5 digest of the name and store it in the
              * last 32 bytes of the name.
