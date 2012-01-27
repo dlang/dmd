@@ -866,7 +866,7 @@ code *cdmul(elem *e,regm_t *pretregs)
 
     if (tyfloating(tyml))
     {
-        if (*pretregs & XMMREGS && oper != OPmod)
+        if (*pretregs & XMMREGS && oper != OPmod && tyxmmreg(tyml))
             return orthxmm(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         return orth87(e,pretregs);
