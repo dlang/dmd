@@ -270,25 +270,30 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKcpp:
+            {
                 m = mTYman_cpp;
 
                 s->Sflags |= SFLpublic;
-
                 Dsymbol *parent = toParent();
                 ClassDeclaration *cd = parent->isClassDeclaration();
+                TemplateInstance *ti = NULL;
                 if (cd)
                 {
                     ::type *tc = cd->type->toCtype();
                     s->Sscope = tc->Tnext->Ttag;
+                    ti = cd->toParent()->isTemplateInstance();
                 }
                 StructDeclaration *sd = parent->isStructDeclaration();
                 if (sd)
                 {
                     ::type *tc = sd->type->toCtype();
                     s->Sscope = tc->Ttag;
+                    ti = sd->toParent()->isTemplateInstance();
                 }
+                if (ti)
+                    s->Sscope = ti->toSymbol();
                 break;
-
+            }
             default:
                 printf("linkage = %d\n", linkage);
                 assert(0);
