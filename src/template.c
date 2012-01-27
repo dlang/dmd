@@ -1287,12 +1287,17 @@ Lretry:
                     ad = ((TypeStruct *)tba)->sym;
             Lad:
                     if (ad->aliasthis)
-                    {
+                    {   /* If a semantic error occurs while doing alias this,
+                         * eg purity(bug 7295), just regard it as not a match.
+                         */
+                        unsigned olderrors = global.startGagging();
                         Expression *e = new DotIdExp(farg->loc, farg, ad->aliasthis->ident);
                         e = e->semantic(sc);
                         e = resolveProperties(sc, e);
-                        farg = e;
-                        goto Lretry;
+                        if (!global.endGagging(olderrors))
+                        {   farg = e;
+                            goto Lretry;
+                        }
                     }
                 }
             }
