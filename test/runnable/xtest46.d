@@ -4416,6 +4416,15 @@ void test7285()
 }
 
 /***************************************************/
+// 7321
+
+void test7321()
+{
+    static assert(is(typeof((){})==void function()pure nothrow @safe));         // ok
+    static assert(is(typeof((){return;})==void function()pure nothrow @safe));  // fail
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4627,6 +4636,7 @@ int main()
     test7170();
     test7196();
     test7285();
+    test7321();
 
     printf("Success\n");
     return 0;
