@@ -121,10 +121,9 @@ struct Declaration : Dsymbol
     Type *type;
     Type *originalType;         // before semantic analysis
     StorageClass storage_class;
+    int inuse;                  // used to detect cycles
     enum PROT protection;
     enum LINK linkage;
-    int inuse;                  // used to detect cycles
-
 #ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
 #endif
@@ -251,19 +250,19 @@ struct VarDeclaration : Declaration
 {
     Initializer *init;
     unsigned offset;
-    int noscope;                 // no auto semantics
 #if DMDV2
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
-    bool isargptr;              // if parameter that _argptr points to
+    bool isargptr;               // if parameter that _argptr points to
 #else
-    int nestedref;              // referenced by a lexically nested function
+    bool nestedref;              // referenced by a lexically nested function
 #endif
     structalign_t alignment;
-    int ctorinit;               // it has been initialized in a ctor
-    int onstack;                // 1: it has been allocated on the stack
-                                // 2: on stack, run destructor anyway
-    int canassign;              // it can be assigned to
-    Dsymbol *aliassym;          // if redone as alias to another symbol
+    bool noscope;                // no auto semantics
+    bool ctorinit;               // it has been initialized in a ctor
+    uint8_t onstack;             // 1: it has been allocated on the stack
+                                 // 2: on stack, run destructor anyway
+    int canassign;               // it can be assigned to
+    Dsymbol* aliassym;           // if redone as alias to another symbol
 
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated

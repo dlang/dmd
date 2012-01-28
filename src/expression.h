@@ -369,7 +369,7 @@ struct NullExp : Expression
 
 struct StringExp : Expression
 {
-    void *string;       // char, wchar, or dchar data
+    void* string;       // char, wchar, or dchar data
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
@@ -740,10 +740,10 @@ struct IsExp : Expression
      */
     Type *targ;
     Identifier *id;     // can be NULL
-    enum TOK tok;       // ':' or '=='
     Type *tspec;        // can be NULL
-    enum TOK tok2;      // 'struct', 'union', 'typedef', etc.
     TemplateParameters *parameters;
+    enum TOK tok;       // ':' or '=='
+    enum TOK tok2;      // 'struct', 'union', 'typedef', etc.
 
     IsExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec,
         enum TOK tok2, TemplateParameters *parameters);
