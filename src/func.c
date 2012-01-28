@@ -486,7 +486,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 return;
 
             default:
-            {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl.tdata()[vi];
+            {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl[vi];
                 // This function is covariant with fdv
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
@@ -501,11 +501,16 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (fdc->toParent() == parent)
                 {
                     // If both are mixins, then error.
-                    // If either is not, the one that is not overrides
-                    // the other.
-                    if (fdc->parent->isClassDeclaration())
+                    // If either is not, the one that is not overrides the other.
+
+                    if (this->parent->isClassDeclaration() && fdc->parent->isClassDeclaration())
+                        error("multiple overrides of same function");
+
+                    // if (this is mixin) && (fdc is not mixin) then fdc overrides
+                    else if (!this->parent->isClassDeclaration() && fdc->parent->isClassDeclaration())
                         break;
-                    if (!this->parent->isClassDeclaration()
+
+                    else if (!this->parent->isClassDeclaration() // if both are mixins then error
 #if !BREAKABI
                         && !isDtorDeclaration()
 #endif
@@ -515,7 +520,7 @@ void FuncDeclaration::semantic(Scope *sc)
                         )
                         error("multiple overrides of same function");
                 }
-                cd->vtbl.tdata()[vi] = this;
+                cd->vtbl[vi] = this;
                 vtblIndex = vi;
 
                 /* Remember which functions this overrides
@@ -2675,15 +2680,16 @@ int FuncDeclaration::isImportedSymbol()
 
 int FuncDeclaration::isVirtual()
 {
+    Dsymbol *p = toParent();
 #if 0
     printf("FuncDeclaration::isVirtual(%s)\n", toChars());
     printf("isMember:%p isStatic:%d private:%d ctor:%d !Dlinkage:%d\n", isMember(), isStatic(), protection == PROTprivate, isCtorDeclaration(), linkage != LINKd);
     printf("result is %d\n",
         isMember() &&
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
-        toParent()->isClassDeclaration());
+        p->isClassDeclaration() &&
+        !(p->isInterfaceDeclaration() && isFinal()));
 #endif
-    Dsymbol *p = toParent();
     return isMember() &&
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
         p->isClassDeclaration() &&
