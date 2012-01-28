@@ -5888,6 +5888,8 @@ int TemplateMixin::oneMember(Dsymbol **ps)
 int TemplateMixin::hasPointers()
 {
     //printf("TemplateMixin::hasPointers() %s\n", toChars());
+    if (! members) return 0;
+
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = members->tdata()[i];
