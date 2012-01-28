@@ -4280,7 +4280,7 @@ Statement *Parser::parseStatement(int flags)
             s = parseStatement(PSsemi | PScurlyscope);
 #if DMDV2
             if (!global.params.useDeprecated)
-                error("volatile statements deprecated; used synchronized statements instead");
+                error("volatile statements deprecated; use synchronized statements instead");
 #endif
             s = new VolatileStatement(loc, s);
             break;
