@@ -5655,17 +5655,13 @@ Expression *IsExp::semantic(Scope *sc)
             /* Declare trailing parameters
              */
             for (size_t i = 1; i < parameters->dim; i++)
-            {   TemplateParameter *tp = parameters->tdata()[i];
+            {   TemplateParameter *tp = (*parameters)[i];
                 Declaration *s = NULL;
 
                 m = tp->matchArg(sc, &tiargs, i, parameters, &dedtypes, &s);
                 if (m == MATCHnomatch)
                     goto Lno;
                 s->semantic(sc);
-#if 0
-                Type *o = dedtypes.tdata()[i];
-                Dsymbol *s = TemplateDeclaration::declareParameter(loc, sc, tp, o);
-#endif
                 if (sc->sd)
                     s->addMember(sc, sc->sd, 1);
                 else if (!sc->insert(s))
@@ -5708,9 +5704,17 @@ Expression *IsExp::semantic(Scope *sc)
 Lyes:
     if (id)
     {
-        Dsymbol *s = new AliasDeclaration(loc, id, tded);
+        Dsymbol *s;
+        Tuple *tup = isTuple(tded);
+        if (tup)
+            s = new TupleDeclaration(loc, id, &(tup->objects));
+        else
+            s = new AliasDeclaration(loc, id, tded);
         s->semantic(sc);
-        if (!sc->insert(s))
+        /* The reason for the !tup is unclear. It fails Phobos unittests if it is not there.
+         * More investigation is needed.
+         */
+        if (!tup && !sc->insert(s))
             error("declaration %s is already defined", s->toChars());
         if (sc->sd)
             s->addMember(sc, sc->sd, 1);
