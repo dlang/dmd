@@ -3678,7 +3678,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
         {
             ((TypeFunction *)fd->type)->next = Type::tvoid;
-            fd->type = fd->type->semantic(loc, sc);
+            //fd->type = fd->type->semantic(loc, sc);   // Remove with7321, same as 6902
             if (!fd->tintro)
             {   tret = Type::tvoid;
                 tbret = tret;
