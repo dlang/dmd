@@ -5888,17 +5888,17 @@ int TemplateMixin::oneMember(Dsymbol **ps)
 int TemplateMixin::hasPointers()
 {
     //printf("TemplateMixin::hasPointers() %s\n", toChars());
-    if (! members) return 0;
 
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = members->tdata()[i];
-        //printf(" s = %s %s\n", s->kind(), s->toChars());
-        if (s->hasPointers())
+    if (members)
+        for (size_t i = 0; i < members->dim; i++)
         {
-            return 1;
+            Dsymbol *s = (*members)[i];
+            //printf(" s = %s %s\n", s->kind(), s->toChars());
+            if (s->hasPointers())
+            {
+                return 1;
+            }
         }
-    }
     return 0;
 }
 
