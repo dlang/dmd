@@ -377,7 +377,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 return;
 
             default:
-            {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl.data[vi];
+            {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl[vi];
                 // This function is covariant with fdv
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
@@ -391,11 +391,13 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (fdc->toParent() == parent)
                 {
                     // If both are mixins, then error.
-                    // If either is not, the one that is not overrides
-                    // the other.
-                    if (fdc->parent->isClassDeclaration())
+                    // If either is not, the one that is not overrides the other.
+
+                    // if (this is mixin) && (fdc is not mixin) then fdc overrides
+                    if (!this->parent->isClassDeclaration() && fdc->parent->isClassDeclaration())
                         break;
-                    if (!this->parent->isClassDeclaration()
+
+                    if (!this->parent->isClassDeclaration() // if both are mixins then error
 #if !BREAKABI
                         && !isDtorDeclaration()
 #endif
