@@ -3276,7 +3276,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
         {
             fd->type->next = Type::tvoid;
-            fd->type = fd->type->semantic(loc, sc);
+            //fd->type = fd->type->semantic(loc, sc);
             if (!fd->tintro)
             {   tret = Type::tvoid;
                 tbret = tret;
