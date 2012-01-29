@@ -2050,8 +2050,9 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             tiargs->push(se);
             e = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             ((DotTemplateInstanceExp *)e)->ti->tempdecl = td;
+            //return e;
+            e = e->semantic(sc);
             return e;
-            //return e->semantic(sc);
         }
 
         /* See if we should forward to the alias this.
@@ -6141,13 +6142,9 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     for (; i < idents.dim; i++)
                     {
                         id = idents.tdata()[i];
-                        //printf("e: '%s', id: '%s', type = %p\n", e->toChars(), id->toChars(), e->type);
-                        if (id == Id::offsetof || !e->type)
-                        {   e = new DotIdExp(e->loc, e, id);
-                            e = e->semantic(sc);
-                        }
-                        else
-                            e = e->type->dotExp(sc, e, id);
+                        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
+                        e = new DotIdExp(e->loc, e, id);
+                        e = e->semantic(sc);
                     }
                     if (e->op == TOKtype)
                         *pt = e->type;
