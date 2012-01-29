@@ -3379,13 +3379,22 @@ int StringExp::isBool(int result)
 #if DMDV2
 int StringExp::isLvalue()
 {
-    return 1;
+    /* string literal is rvalue in default, but
+     * conversion to reference of static array is only allowed.
+     */
+    return 0;
 }
 #endif
 
 Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 {
     //printf("StringExp::toLvalue(%s)\n", toChars());
+    return this;
+}
+
+Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    error("Cannot modify '%s'", toChars());
     return this;
 }
 
