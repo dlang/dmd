@@ -941,7 +941,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                 Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
                 t = t->semantic(loc, sc);
                 if (t == Type::terror)
+                {
                     error("must import core.vararg to use variadic functions");
+                    return;
+                }
                 else
                 {
                     v_argsave = new VarDeclaration(loc, t, Id::va_argsave, NULL);
