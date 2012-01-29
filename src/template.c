@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -3462,6 +3462,11 @@ void TemplateInstance::semantic(Scope *sc)
          * (if we havetempdecl, then tiargs is already evaluated)
          */
         semanticTiargs(sc);
+        if (arrayObjectIsError(tiargs))
+        {   inst = this;
+            //printf("error return %p, %d\n", tempdecl, global.errors);
+            return;             // error recovery
+        }
 
         tempdecl = findTemplateDeclaration(sc);
         if (tempdecl)
@@ -4350,6 +4355,8 @@ Identifier *TemplateInstance::genIdent()
             {   ea->error("tuple is not a valid template value argument");
                 continue;
             }
+            if (ea->op == TOKerror)
+                continue;
 #if 1
             /* Use deco that matches what it would be for a function parameter
              */
@@ -4887,7 +4894,7 @@ void TemplateMixin::semantic(Scope *sc)
 
     // Run semantic on each argument, place results in tiargs[]
     semanticTiargs(sc);
-    if (errors)
+    if (errors || arrayObjectIsError(tiargs))
         return;
 
     tempdecl = findBestMatch(sc);
