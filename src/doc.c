@@ -1116,7 +1116,7 @@ void DocComment::parseSections(unsigned char *comment)
                     goto L1;
                 if (*p == '\n')
                 {   p++;
-                    if (*p == '\n' && !summary && !namelen)
+                    if (*p == '\n' && !summary && !namelen && !inCode)
                     {
                         pend = p;
                         p++;
