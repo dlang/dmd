@@ -350,6 +350,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\apply.c"
+				>
+			</File>
+			<File
 				RelativePath=".\argtypes.c"
 				>
 			</File>
@@ -371,6 +375,10 @@
 			</File>
 			<File
 				RelativePath=".\builtin.c"
+				>
+			</File>
+			<File
+				RelativePath=".\canthrow.c"
 				>
 			</File>
 			<File
@@ -643,6 +651,10 @@
 			</File>
 			<File
 				RelativePath=".\scope.h"
+				>
+			</File>
+			<File
+				RelativePath=".\sideeffect.c"
 				>
 			</File>
 			<File

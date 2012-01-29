@@ -10,7 +10,7 @@
 
 // 80 bit floating point value implementation for Microsoft compiler
 
-#ifdef _MSC_VER
+#if _MSC_VER
 #include "longdouble.h"
 
 #include "assert.h"
@@ -571,8 +571,6 @@ int ld_sprint(char* str, int fmt, longdouble x)
     return len;
 }
 
-#endif // _MSC_VER
-
 //////////////////////////////////////////////////////////////
 
 #if UNITTEST
@@ -632,5 +630,7 @@ static bool unittest()
 
 static bool runUnittest = unittest();
 
-#endif
+#endif // UNITTEST
+
+#endif // _MSC_VER
 
