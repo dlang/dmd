@@ -6644,7 +6644,15 @@ Lagain:
     }
     else
     {
+            static int nest;
+            if (++nest > 500)
+            {
+                error("recursive evaluation of %s", toChars());
+                --nest;
+                return new ErrorExp();
+            }
         UnaExp::semantic(sc);
+        --nest;
 
         /* Look for e1 being a lazy parameter
          */
