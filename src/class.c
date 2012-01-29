@@ -689,13 +689,10 @@ void ClassDeclaration::semantic(Scope *sc)
 //    if (dtor && dtor->toParent() != this)
 //      dtor = NULL;
 
-//    inv = (InvariantDeclaration *)search(Id::classInvariant, 0);
-//    if (inv && inv->toParent() != this)
-//      inv = NULL;
-
     // Can be in base class
     aggNew    = (NewDeclaration *)search(0, Id::classNew, 0);
     aggDelete = (DeleteDeclaration *)search(0, Id::classDelete, 0);
+    combineInvariants(sc);
 
     // If this class has no constructor, but base class does, create
     // a constructor:
