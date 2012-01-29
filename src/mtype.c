@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1284,6 +1284,13 @@ Type *Type::aliasthisOf()
             }
             return t;
         }
+        EnumDeclaration *ed = ad->aliasthis->isEnumDeclaration();
+        if (ed)
+        {
+            Type *t = ed->type;
+            return t;
+        }
+        //printf("%s\n", ad->aliasthis->kind());
     }
     return NULL;
 }
@@ -7804,7 +7811,10 @@ unsigned TypeStruct::wildConvTo(Type *tprm)
         return Type::wildConvTo(tprm);
 
     if (sym->aliasthis)
-        return aliasthisOf()->wildConvTo(tprm);
+    {   Type *t = aliasthisOf();
+        assert(t);
+        return t->wildConvTo(tprm);
+    }
 
     return 0;
 }
