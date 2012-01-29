@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -227,7 +227,7 @@ void Module::gendocfile()
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles->dim; i++)
         {
-            FileName f((char *)global.params.ddocfiles->data[i], 0);
+            FileName f(global.params.ddocfiles->tdata()[i], 0);
             File file(&f);
             file.readv();
             // BUG: convert file contents to UTF-8 before use
@@ -532,7 +532,7 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = (*members)[i];
             //printf("\ts = '%s'\n", s->toChars());
             s->emitComment(sc);
         }
@@ -704,7 +704,7 @@ void EnumDeclaration::emitComment(Scope *sc)
         {
             for (size_t i = 0; i < members->dim; i++)
             {
-                Dsymbol *s = (Dsymbol *)members->data[i];
+                Dsymbol *s = (*members)[i];
                 s->emitComment(sc);
             }
             return;
@@ -962,7 +962,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
         }
         int any = 0;
         for (size_t i = 0; i < baseclasses->dim; i++)
-        {   BaseClass *bc = (BaseClass *)baseclasses->data[i];
+        {   BaseClass *bc = (*baseclasses)[i];
 
             if (bc->protection == PROTprivate)
                 continue;
@@ -1116,7 +1116,7 @@ void DocComment::parseSections(unsigned char *comment)
                     goto L1;
                 if (*p == '\n')
                 {   p++;
-                    if (*p == '\n' && !summary && !namelen)
+                    if (*p == '\n' && !summary && !namelen && !inCode)
                     {
                         pend = p;
                         p++;
