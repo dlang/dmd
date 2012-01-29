@@ -727,7 +727,8 @@ void AlignDeclaration::setScope(Scope *sc)
     //printf("\tAlignDeclaration::setScope '%s'\n",toChars());
     if (decl)
     {
-        setScopeNewSc(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, salign);
+        unsigned sa = salign ? salign : global.structalign;
+        setScopeNewSc(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, sa);
     }
 }
 
@@ -736,14 +737,18 @@ void AlignDeclaration::semantic(Scope *sc)
     //printf("\tAlignDeclaration::semantic '%s'\n",toChars());
     if (decl)
     {
-        semanticNewSc(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, salign);
+        unsigned sa = salign ? salign : global.structalign;
+        semanticNewSc(sc, sc->stc, sc->linkage, sc->protection, sc->explicitProtection, sa);
     }
 }
 
 
 void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("align (%d)", salign);
+    if (salign)
+        buf->printf("align (%d)", salign);
+    else
+        buf->printf("align");
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
