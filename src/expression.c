@@ -7227,7 +7227,7 @@ Expression *CallExp::semantic(Scope *sc)
         preFunctionParameters(loc, sc, arguments);
         e1 = fe->semantic(sc, arguments);
         if (e1->op == TOKerror)
-        return e1;
+            return e1;
     }
 
     Expression *e = resolveUFCS(sc);
@@ -7330,8 +7330,17 @@ Lagain:
             }
         }
         else
+        {
+            static int nest;
+            if (++nest > 500)
+            {
+                error("recursive evaluation of %s", toChars());
+                --nest;
+                return new ErrorExp();
+            }
             UnaExp::semantic(sc);
-
+            --nest;
+        }
 
         /* Look for e1 being a lazy parameter
          */
