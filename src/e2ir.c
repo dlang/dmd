@@ -1972,7 +1972,7 @@ elem *AssertExp::toElem(IRState *irs)
         symbol *ts = NULL;
         elem *einv = NULL;
 
-        InvariantDeclaration *inv = (InvariantDeclaration *)(void *)1;
+        FuncDeclaration *inv = (InvariantDeclaration *)(void *)1;
 
         // If e1 is a class object, call the class invariant on it
         if (global.params.useInvariants && t1->ty == Tclass &&
@@ -1989,7 +1989,7 @@ elem *AssertExp::toElem(IRState *irs)
         else if (global.params.useInvariants &&
             t1->ty == Tpointer &&
             t1->nextOf()->ty == Tstruct &&
-            (inv = ((TypeStruct *)t1->nextOf())->sym->inv) != NULL)
+            (inv = ((TypeStruct *)t1->nextOf())->sym->superInv) != NULL)
         {
             ts = symbol_genauto(t1->toCtype());
             einv = callfunc(loc, irs, 1, inv->type->nextOf(), el_var(ts), e1->type, inv, inv->type, NULL, NULL);

@@ -332,8 +332,9 @@ void FuncDeclaration::semantic(Scope *sc)
             error("special member functions not allowed for %ss", sd->kind());
         }
 
-        if (!sd->inv)
-            sd->inv = isInvariantDeclaration();
+        InvariantDeclaration *inv = isInvariantDeclaration();
+        if (inv)
+            sd->addInvariant(inv);
 
         if (!sd->aggNew)
             sd->aggNew = isNewDeclaration();
@@ -408,7 +409,7 @@ void FuncDeclaration::semantic(Scope *sc)
         inv = isInvariantDeclaration();
         if (inv)
         {
-            cd->inv = inv;
+            cd->addInvariant(inv);
         }
 
         if (isNewDeclaration())
@@ -1172,7 +1173,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (isCtorDeclaration())
                 {
                     // Call invariant directly only if it exists
-                    InvariantDeclaration *inv = ad->inv;
+                    FuncDeclaration *inv = ad->superInv;
                     ClassDeclaration *cd = ad->isClassDeclaration();
 
                     while (!inv && cd)
@@ -1180,7 +1181,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         cd = cd->baseClass;
                         if (!cd)
                             break;
-                        inv = cd->inv;
+                        inv = cd->superInv;
                     }
                     if (inv)
                     {
@@ -1498,7 +1499,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (isDtorDeclaration())
                 {
                     // Call invariant directly only if it exists
-                    InvariantDeclaration *inv = ad->inv;
+                    FuncDeclaration *inv = ad->superInv;
                     ClassDeclaration *cd = ad->isClassDeclaration();
 
                     while (!inv && cd)
@@ -1506,7 +1507,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         cd = cd->baseClass;
                         if (!cd)
                             break;
-                        inv = cd->inv;
+                        inv = cd->superInv;
                     }
                     if (inv)
                     {
@@ -2687,6 +2688,7 @@ int FuncDeclaration::isVirtual()
     return isMember() &&
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
         p->isClassDeclaration() &&
+        !(p->isAggregateDeclaration() && ((AggregateDeclaration *)p)->superInv == this) &&
         !(p->isInterfaceDeclaration() && isFinal());
 }
 
@@ -2851,6 +2853,7 @@ int FuncDeclaration::addPreInvariant()
 {
     AggregateDeclaration *ad = isThis();
     return (ad &&
+            ad->superInv != this &&
             //ad->isClassDeclaration() &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
@@ -2863,6 +2866,7 @@ int FuncDeclaration::addPostInvariant()
     AggregateDeclaration *ad = isThis();
     return (ad &&
             ad->inv &&
+            ad->superInv != this &&
             //ad->isClassDeclaration() &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
@@ -3708,9 +3712,15 @@ void SharedStaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* InvariantDeclaration ****************************/
 
-InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::classInvariant, STCundefined, NULL)
+Identifier *invariantId()
 {
+    return Lexer::uniqueId("__invariant_");
+}
+
+InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc)
+    : FuncDeclaration(loc, endloc, invariantId(), STCundefined, NULL)
+{
+    next = NULL;
 }
 
 Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
@@ -3734,11 +3744,7 @@ void InvariantDeclaration::semantic(Scope *sc)
         error("invariants are only for struct/union/class definitions");
         return;
     }
-    else if (ad->inv && ad->inv != this && semanticRun < PASSsemantic)
-    {
-        error("more than one invariant for %s", ad->toChars());
-    }
-    ad->inv = this;
+    ad->addInvariant(this);
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 

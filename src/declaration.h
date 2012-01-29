@@ -826,6 +826,8 @@ struct SharedStaticDtorDeclaration : StaticDtorDeclaration
 
 struct InvariantDeclaration : FuncDeclaration
 {
+    InvariantDeclaration *next;
+
     InvariantDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);

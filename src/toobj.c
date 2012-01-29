@@ -542,8 +542,8 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);
 
     // invariant
-    if (inv)
-        dtxoff(&dt, inv->toSymbol(), 0, TYnptr);
+    if (superInv)
+        dtxoff(&dt, superInv->toSymbol(), 0, TYnptr);
     else
         dtsize_t(&dt, 0);
 

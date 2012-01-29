@@ -58,7 +58,8 @@ struct AggregateDeclaration : ScopeDsymbol
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
 #endif
     // Special member functions
-    InvariantDeclaration *inv;          // invariant
+    InvariantDeclaration *inv;          // linked list of invariants
+    FuncDeclaration *superInv;          // function to call all invariants
     NewDeclaration *aggNew;             // allocator
     DeleteDeclaration *aggDelete;       // deallocator
 
@@ -91,6 +92,8 @@ struct AggregateDeclaration : ScopeDsymbol
     FuncDeclaration *buildDtor(Scope *sc);
     int isNested();
     int isExport();
+    void addInvariant(InvariantDeclaration *inv);
+    void combineInvariants(Scope *sc);
 
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
