@@ -105,7 +105,7 @@ private
         extern (C) void thread_processGCMarks();
 
         alias void delegate(void*, void*) scanFn;
-        extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
+        extern (C) void thread_scanAll(scanFn fn, void* curStackTop = null);
     }
 
     extern (C) void onOutOfMemoryError();
@@ -1472,7 +1472,7 @@ struct Gcx
     debug (THREADINVARIANT)
     {
         pthread_t self;
-        void thread_Invariant()
+        void thread_Invariant() const
         {
             if (self != pthread_self())
                 printf("thread_Invariant(): gcx = %p, self = %x, pthread_self() = %x\n", &this, self, pthread_self());
@@ -1481,7 +1481,7 @@ struct Gcx
     }
     else
     {
-        void thread_Invariant() { }
+        void thread_Invariant() const { }
     }
 
     void *cached_size_key;
@@ -1564,7 +1564,7 @@ struct Gcx
     }
 
 
-    void Invariant() { }
+    void Invariant() const { }
 
 
     invariant()
@@ -1572,13 +1572,12 @@ struct Gcx
         if (inited)
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
-            size_t i;
 
             // Assure we're called on the right thread
             debug (THREADINVARIANT) assert(self == pthread_self());
 
-            for (i = 0; i < npools; i++)
-            {   Pool *pool = pooltable[i];
+            for (size_t i = 0; i < npools; i++)
+            {   auto pool = pooltable[i];
 
                 pool.Invariant();
                 if (i == 0)
@@ -1606,7 +1605,7 @@ struct Gcx
                 assert(rangedim != 0);
                 assert(nranges <= rangedim);
 
-                for (i = 0; i < nranges; i++)
+                for (size_t i = 0; i < nranges; i++)
                 {
                     assert(ranges[i].pbot);
                     assert(ranges[i].ptop);
@@ -1614,9 +1613,9 @@ struct Gcx
                 }
             }
 
-            for (i = 0; i < B_PAGE; i++)
+            for (size_t i = 0; i < B_PAGE; i++)
             {
-                for (List *list = bucket[i]; list; list = list.next)
+                for (auto list = cast(List*)bucket[i]; list; list = list.next)
                 {
                 }
             }
@@ -2445,7 +2444,7 @@ struct Gcx
                     size_t biti = void;
                     size_t pn = offset / PAGESIZE;
                     Bins   bin = cast(Bins)pool.pagetable[pn];
-                    
+
                     // For the NO_INTERIOR attribute.  This tracks whether
                     // the pointer is an interior pointer or points to the
                     // base address of a block.
@@ -2483,7 +2482,7 @@ struct Gcx
                         // Don't mark bits in B_FREE or B_UNCOMMITTED pages
                         continue;
                     }
-                    
+
                     if(pool.isLargeObject && !pointsToBase && pool.nointerior.test(biti))
                     {
                         continue;
@@ -2494,7 +2493,7 @@ struct Gcx
                     {
                         //if (log) debug(PRINTF) printf("\t\tmarking %p\n", p);
                         if (!pool.noscan.test(biti))
-                        {                            
+                        {
                             pool.scan.set(biti);
                             changes = 1;
                             pool.newChanges = true;
@@ -3060,7 +3059,7 @@ struct Gcx
         {
             pool.appendable.set(biti);
         }
-        
+
         if (pool.isLargeObject && (mask & BlkAttr.NO_INTERIOR))
         {
             pool.nointerior.set(biti);
@@ -3281,7 +3280,7 @@ struct Pool
         // pagetable already keeps track of what's free for the large object
         // pool.  nointerior is only worth the overhead for the large object
         // pool.
-        if(isLargeObject) 
+        if(isLargeObject)
         {
             nointerior.alloc(nbits);
         }
@@ -3357,7 +3356,7 @@ struct Pool
     }
 
 
-    void Invariant() {}
+    void Invariant() const {}
 
 
     invariant()
@@ -3546,12 +3545,12 @@ struct Pool
     /**
      * Used for sorting pooltable[]
      */
-    int opCmp(Pool *p2)
+    int opCmp(const Pool *p2) const
     {
         if (baseAddr < p2.baseAddr)
             return -1;
         else
-        return cast(int)(baseAddr > p2.baseAddr);
+            return cast(int)(baseAddr > p2.baseAddr);
     }
 }
 
@@ -3579,7 +3578,7 @@ version (SENTINEL)
     }
 
 
-    void sentinel_Invariant(void *p)
+    void sentinel_Invariant(const void *p)
     {
         assert(*sentinel_pre(p) == SENTINEL_PRE);
         assert(*sentinel_post(p) == SENTINEL_POST);
@@ -3607,7 +3606,7 @@ else
     }
 
 
-    void sentinel_Invariant(void *p)
+    void sentinel_Invariant(const void *p)
     {
     }
 
