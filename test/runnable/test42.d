@@ -4631,6 +4631,26 @@ void test7367()
 } 
 
 /***************************************************/
+// 7375
+
+class A7375 {}
+class B7375(int i) : A7375 {}
+class C7375(int i) : B7375!i {}
+
+template DerivedAlias(int i)
+{
+    alias B7375!i DerivedAlias;
+}
+
+alias DerivedAlias!22 X7375;
+
+void test7375()
+{
+    A7375 foo = new C7375!11();
+    assert(cast(B7375!22)foo is null);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4873,6 +4893,7 @@ int main()
     test242();
     test7290();
     test7367();
+    test7375();
 
     writefln("Success");
     return 0;
