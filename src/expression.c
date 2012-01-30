@@ -10159,6 +10159,13 @@ Ltupleassign:
         return arrayOp(sc);
     }
 
+    if (e1->op == TOKvar &&
+        (((VarExp *)e1)->var->storage_class & STCscope) &&
+        op == TOKassign)
+    {
+        error("cannot rebind scope variables");
+    }
+
     type = e1->type;
     assert(type);
     return this;
