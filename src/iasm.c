@@ -171,11 +171,11 @@ struct ASM_STATE
 #define ITSIZE          0x0F    // mask for size
 
         Loc loc;
-        unsigned char bInit;
+        bool bInit;
         LabelDsymbol *psDollar;
         Dsymbol *psLocalsize;
         jmp_buf env;
-        unsigned char bReturnax;
+        bool bReturnax;
         AsmStatement *statement;
         Scope *sc;
 };
@@ -449,10 +449,11 @@ typedef struct opnd
         REG *pregDisp1;         // if [register1]
         REG *pregDisp2;
         REG *segreg;            // if segment override
-        char indirect;          // if had a '*' or '->'
-        char bOffset;           // if 'offset' keyword
-        char bSeg;              // if 'segment' keyword
-        char bPtr;              // if 'ptr' keyword
+// TODO: indirect is never used
+//      char indirect;          // if had a '*' or '->'
+        bool bOffset;           // if 'offset' keyword
+        bool bSeg;              // if 'segment' keyword
+        bool bPtr;              // if 'ptr' keyword
         unsigned uchMultiplier; // register multiplier; valid values are 0,1,2,4,8
         opflag_t usFlags;
         Dsymbol *s;
@@ -4162,7 +4163,7 @@ STATIC OPND *asm_una_exp()
         OPND *o1;
         Type *ptype;
         ASM_JUMPTYPE ajt = ASM_JUMPTYPE_UNSPECIFIED;
-        char bPtr = 0;
+        bool bPtr = false;
 
         switch ((int)tok_value)
         {
@@ -4304,7 +4305,7 @@ JUMP_REF2:
                 case ASMTKword:
                     ptype = Type::tint16;
 TYPE_REF:
-                    bPtr = 1;
+                    bPtr = true;
                     asm_token();
                     asm_chktok((enum TOK) ASMTKptr, EM_ptr_exp);
                     o1 = asm_cond_exp();
@@ -4626,7 +4627,7 @@ void iasm_term()
     {
         asmstate.psDollar = NULL;
         asmstate.psLocalsize = NULL;
-        asmstate.bInit = 0;
+        asmstate.bInit = false;
     }
 }
 

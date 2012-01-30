@@ -806,7 +806,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 #if 0 && TARGET_LINUX
     case FLgot:
     case FLgotoff:
-        gotref = 1;
+        gotref = true;
         pcs->IEVsym1 = s;
         pcs->IEVoffset1 = e->EV.sp.Voffset;
         if (e->Eoper == OPvar && fl == FLgot)
@@ -1005,7 +1005,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 #if 0 && TARGET_LINUX
                     if (e12->EV.sp.Vsym->Sfl == FLgot || e12->EV.sp.Vsym->Sfl == FLgotoff)
                     {
-                        gotref = 1;
+                        gotref = true;
 #if 1
                         reg = findreg(idxregs & (ALLREGS | mBP));
                         pcs->Irm = modregrm(2,0,4);
@@ -1044,9 +1044,9 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 pcs->Irm = getaddrmode(idxregs) ^ t;
             }
             if (f == FLpara)
-                refparam = TRUE;
+                refparam = true;
             else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
-                reflocal = TRUE;
+                reflocal = true;
 #if TARGET_SEGMENTED
             else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
                 pcs->Iflags |= CFcs;
@@ -1265,7 +1265,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         break;
 #endif
     case FLfltreg:
-        reflocal = TRUE;
+        reflocal = true;
         pcs->Irm = modregrm(2,0,BPRM);
         pcs->IEV1.Vint = 0;
         break;
@@ -1275,7 +1275,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         if (s->Sclass == SCshadowreg)
             goto Lauto;
     Lpara:
-        refparam = TRUE;
+        refparam = true;
         pcs->Irm = modregrm(2,0,BPRM);
         goto L2;
 
@@ -1318,7 +1318,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         if (s->Sclass == SCshadowreg)
             goto Lpara;
     case FLbprel:
-        reflocal = TRUE;
+        reflocal = true;
         pcs->Irm = modregrm(2,0,BPRM);
         goto L2;
     case FLextern:
@@ -1397,8 +1397,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             if (
                 s->Sclass == SCregpar ||
                 s->Sclass == SCparameter)
-            {   refparam = TRUE;
-                reflocal = TRUE;        // kludge to set up prolog
+            {   refparam = true;
+                reflocal = true;        // kludge to set up prolog
             }
             pcs->Irm = modregrm(3,0,s->Sreglsw & 7);
             if (s->Sreglsw & 8)
@@ -2297,7 +2297,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
         if (nalign)
             c = cod3_stackadj(c, -nalign);
-        calledafunc = 1;
+        calledafunc = true;
 
 #if SCPP & TX86
         if (I16 &&                                   // bug in Optlink for weak references
@@ -2912,13 +2912,13 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     symbol *s;
 
     //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d)\n",e,regm_str(*pretregs),numpara,numalign);
-    calledafunc = 1;
+    calledafunc = true;
     /* Determine if we need frame for function prolog/epilog    */
 #if TARGET_WINDOS
     if (config.memmodel == Vmodel)
     {
         if (tyfarfunc(funcsym_p->ty()))
-            needframe = TRUE;
+            needframe = true;
     }
 #endif
     e1 = e->E1;
@@ -3055,8 +3055,8 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
              LF1:
                 reg = findregmsw(retregs);
                 lsreg = findreglsw(retregs);
-                floatreg = TRUE;                /* use float register   */
-                reflocal = TRUE;
+                floatreg = true;                /* use float register   */
+                reflocal = true;
                 ce = genc1(ce,0x89,             /* MOV floatreg+2,reg   */
                         modregrm(2,reg,BPRM),FLfltreg,REGSIZE);
                 genc1(ce,0x89,                  /* MOV floatreg,lsreg   */
@@ -3243,7 +3243,7 @@ code *params(elem *e,unsigned stackalign)
 
   //printf("params(e = %p, stackalign = %d)\n", e, stackalign);
   cp = NULL;
-  stackchanged = 1;
+  stackchanged = true;
   assert(e);
   while (e->Eoper == OPparam)           /* if more params               */
   {
@@ -4236,7 +4236,7 @@ code *loaddata(elem *e,regm_t *pretregs)
 
             assert(0);
             /* Note that we allocreg(DOUBLEREGS) needlessly     */
-            stackchanged = 1;
+            stackchanged = true;
             i = DOUBLESIZE - REGSIZE;
             do
             {   c = cat(c,loadea(e,&cs,0xFF,6,i,0,0)); /* PUSH EA+i     */
@@ -4266,7 +4266,7 @@ code *loaddata(elem *e,regm_t *pretregs)
         {   int i;
 
             /* Note that we allocreg(DOUBLEREGS) needlessly     */
-            stackchanged = 1;
+            stackchanged = true;
             i = sz - REGSIZE;
             do
             {   c = cat(c,loadea(e,&cs,0xFF,6,i,0,0)); /* PUSH EA+i     */

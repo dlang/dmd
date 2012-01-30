@@ -533,8 +533,8 @@ code *comsub87(elem *e,regm_t *pretregs)
 
 code * genfltreg(code *c,unsigned opcode,unsigned reg,targ_size_t offset)
 {
-        floatreg = TRUE;
-        reflocal = TRUE;
+        floatreg = true;
+        reflocal = true;
         if ((opcode & ~7) == 0xD8)
             c = genfwait(c);
         return genc1(c,opcode,modregxrm(2,reg,BPRM),FLfltreg,offset);

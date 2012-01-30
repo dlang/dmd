@@ -68,20 +68,20 @@ regm_t ALLREGS = ALLREGS_INIT;
 
 unsigned stackpush;
 
-int stackchanged;               /* set to !=0 if any use of the stack
+bool stackchanged;              /* set to !=0 if any use of the stack
                                    other than accessing parameters. Used
                                    to see if we can address parameters
                                    with ESP rather than EBP.
                                  */
-int refparam;           // !=0 if we referenced any parameters
-int reflocal;           // !=0 if we referenced any locals
+bool refparam;          // !=0 if we referenced any parameters
+bool reflocal;          // !=0 if we referenced any locals
 bool anyiasm;           // !=0 if any inline assembler
-char calledafunc;       // !=0 if we called a function
-char needframe;         // if TRUE, then we will need the frame
+bool calledafunc;       // !=0 if we called a function
+bool needframe;         // if TRUE, then we will need the frame
                         // pointer (BP for the 8088)
-char usedalloca;        // if TRUE, then alloca() was called
-char gotref;            // !=0 if the GOTsym was referenced
-unsigned usednteh;              // if !=0, then used NT exception handling
+char usedalloca;        // if TRUE, then alloca() was called. used values are 0,1,2
+bool gotref;            // !=0 if the GOTsym was referenced
+unsigned usednteh;      // EH flags. if !=0, then used NT exception handling
 
 /* Register contents    */
 con_t regcon;
@@ -152,14 +152,14 @@ tryagain:
     lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
 
     // if no parameters, assume we don't need a stack frame
-    needframe = 0;
+    needframe = false;
     usedalloca = 0;
-    gotref = 0;
-    stackchanged = 0;
+    gotref = false;
+    stackchanged = false;
     stackpush = 0;
-    refparam = 0;
-    anyiasm = 0;
-    calledafunc = 0;
+    refparam = false;
+    anyiasm = false;
+    calledafunc = false;
     cgstate.stackclean = 1;
     retsym = NULL;
 
@@ -199,7 +199,7 @@ tryagain:
         if (b->Belem)
             resetEcomsub(b->Belem);     // reset all the Ecomsubs
         if (b->BC == BCasm)
-            anyiasm = 1;                // we have inline assembler
+            anyiasm = true;             // we have inline assembler
         if (b->BC == BCret || b->BC == BCretexp)
             nretblocks++;
     }
@@ -1190,7 +1190,7 @@ STATIC void blcodgen(block *bl)
 {
     code *c;
     list_t bpl;
-    int refparamsave;
+    bool refparamsave;
     regm_t mfuncregsave = mfuncreg;
     char *sflsave = NULL;
     int anyspill;
@@ -1289,9 +1289,9 @@ STATIC void blcodgen(block *bl)
     }
 
     regsave.idx = 0;
-    reflocal = 0;
+    reflocal = false;
     refparamsave = refparam;
-    refparam = 0;
+    refparam = false;
     assert((regcon.cse.mops & regcon.cse.mval) == regcon.cse.mops);
 
     outblkexitcode(bl, c, anyspill, sflsave, &retsym, mfuncregsave);
@@ -1633,8 +1633,8 @@ int isregvar(elem *e,regm_t *pregm,unsigned *preg)
         switch (s->Sfl)
         {   case FLreg:
                 if (s->Sclass == SCparameter)
-                {   refparam = TRUE;
-                    reflocal = TRUE;
+                {   refparam = true;
+                    reflocal = true;
                 }
                 reg = s->Sreglsw;
                 regm = s->Sregm;
@@ -1995,7 +1995,7 @@ STATIC code * cse_save(regm_t ms)
             else
             {
                 c = cat(c, gensavereg(reg, i));
-                reflocal = TRUE;
+                reflocal = true;
             }
         }
     }
@@ -2266,7 +2266,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                     }
                     else
                     {
-                        reflocal = TRUE;
+                        reflocal = true;
                         csextab[i].flags |= CSEload;
                         if (*pretregs == mPSW)  /* if result in CCs only */
                         {                       // CMP cs[BP],0
@@ -2412,7 +2412,7 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
         //printf("csextab[%d] = %p, regm = %s\n", i, csextab[i].e, regm_str(csextab[i].regm));
         if (csextab[i].e == e && csextab[i].regm & regm)
         {
-                reflocal = TRUE;
+                reflocal = true;
                 csextab[i].flags |= CSEload;    /* it was loaded        */
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask[reg];
@@ -2587,7 +2587,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   regm_t oldmfuncreg,oldregcon,oldregimmed,overlap,tosave,touse;
   int adjesp;
   unsigned stackpushsave;
-  char calledafuncsave;
+  bool calledafuncsave;
 
 #ifdef DEBUG
     if (debugw)
@@ -2627,7 +2627,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~regcon.mvar;
   stackpushsave = stackpush;
   calledafuncsave = calledafunc;
-  calledafunc = 0;
+  calledafunc = false;
   c = codelem(e,pretregs,constflag);    /* generate code for the elem   */
 
   tosave = keepmsk & ~msavereg; /* registers to save                    */
@@ -2703,7 +2703,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 unsigned size = gensaverestore2(mask[i], &cs1, &cs2);
                 if (size)
                 {
-                    stackchanged = 1;
+                    stackchanged = true;
                     adjesp += size;
                 }
             }

@@ -2634,7 +2634,7 @@ code *cdind(elem *e,regm_t *pretregs)
             cs.Iop = 0xFF;
             cs.Irm |= modregrm(0,6,0);
             cs.IEVoffset1 += 8 - REGSIZE;
-            stackchanged = 1;
+            stackchanged = true;
             i = 8 - REGSIZE;
             do
             {
@@ -3111,7 +3111,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
         POP     DS
     */
 
-    stackchanged = 1;
+    stackchanged = true;
     retregs = mDI;
     ty2 = tybasic(e->E2->Ety);
     if (!tyreg(ty2))
@@ -4075,7 +4075,7 @@ code *getoffset(elem *e,unsigned reg)
         cs.IEVoffset2 = e->EV.sp.Voffset;
     L3:
         if (reg == STACK)
-        {   stackchanged = 1;
+        {   stackchanged = true;
             cs.Iop = 0x68;              /* PUSH immed16                 */
             c = genadjesp(NULL,REGSIZE);
         }
@@ -4112,7 +4112,7 @@ code *getoffset(elem *e,unsigned reg)
     case FLgot:
     case FLgotoff:
         {
-        gotref = 1;
+        gotref = true;
         symbol *s = e->EV.sp.Vsym;
         // When using 8B (MOV), indicating that rm is used
         // rm operands are always placed in IEV1 not IEV2
@@ -4137,10 +4137,10 @@ code *getoffset(elem *e,unsigned reg)
     case FLfast:
     case FLbprel:
     case FLfltreg:
-        reflocal = TRUE;
+        reflocal = true;
         goto L2;
     case FLpara:
-        refparam = TRUE;
+        refparam = true;
     L2:
         if (reg == STACK)
         {   regm_t retregs = ALLREGS;
@@ -4154,7 +4154,7 @@ code *getoffset(elem *e,unsigned reg)
             if (reg & 8)
                 code_orrex(c, REX_B);
             c = genadjesp(c,REGSIZE);
-            stackchanged = 1;
+            stackchanged = true;
         }
         else
         {   c = loadea(e,&cs,0x8D,reg,0,0,0);   /* LEA reg,EA           */
@@ -4398,7 +4398,7 @@ code *cdpost(elem *e,regm_t *pretregs)
         idxregs = idxregm(&cs);         // mask of index regs used
         cs.Iop = 0x8B;                  /* MOV DOUBLEREGS,EA            */
         c2 = fltregs(&cs,tyml);
-        stackchanged = 1;
+        stackchanged = true;
         stackpushsave = stackpush;
         if (sz == 8)
         {
