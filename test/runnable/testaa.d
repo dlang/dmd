@@ -819,8 +819,8 @@ struct TickDuration {
 }
 
 void test7365() {
-  TickDuration[Object] aa;
-  aa.keys;
+//  TickDuration[Object] aa;
+//  aa.keys;
 }
 
 /************************************************/
