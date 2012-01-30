@@ -424,7 +424,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
         file.readv();
         buf = file.buffer;
         buflen = file.len;
-        file.ref = 1;
+        file.ref = true;
     }
 
     unsigned g_page_size;

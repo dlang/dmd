@@ -938,7 +938,7 @@ void FileName::free(const char *str)
 
 File::File(const FileName *n)
 {
-    ref = 0;
+    ref = false;
     buffer = NULL;
     len = 0;
     touchtime = NULL;
@@ -947,7 +947,7 @@ File::File(const FileName *n)
 
 File::File(const char *n)
 {
-    ref = 0;
+    ref = false;
     buffer = NULL;
     len = 0;
     touchtime = NULL;
@@ -958,7 +958,7 @@ File::~File()
 {
     if (buffer)
     {
-        if (ref == 0)
+        if (!ref)
             mem.free(buffer);
 #if _WIN32
         else if (ref == 2)
@@ -1000,7 +1000,7 @@ int File::read()
 
     if (!ref)
         ::free(buffer);
-    ref = 0;       // we own the buffer now
+    ref = false;       // we own the buffer now
 
     //printf("\tfile opened\n");
     if (fstat(fd, &buf))

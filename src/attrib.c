@@ -811,7 +811,7 @@ AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Dsymbols *decl)
     this->loc = loc;
     this->alignment = 0;
     this->isunion = isunion;
-    this->sem = 0;
+    this->sem = false;
 }
 
 Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)

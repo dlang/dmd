@@ -601,7 +601,7 @@ void ClassDeclaration::semantic(Scope *sc)
     //sc->stc |= storage_class & STC_TYPECTOR;
     sc->stc &= STCsafe | STCtrusted | STCsystem;
     sc->parent = this;
-    sc->inunion = 0;
+    sc->inunion = false;
 
     if (isCOMclass())
     {

@@ -176,7 +176,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         if (dtor)
         {
             tmp = new VarDeclaration(0, type, idtmp, new VoidInitializer(0));
-            tmp->noscope = 1;
+            tmp->noscope = true;
             tmp->storage_class |= STCctfe;
             e = new DeclarationExp(0, tmp);
             ec = new AssignExp(0,

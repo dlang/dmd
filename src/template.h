@@ -59,12 +59,11 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
 
-    enum PASS semanticRun;              // 1 semantic() run
+    Dsymbol* onemember;         // if !=NULL then one member of this template
 
-    Dsymbol *onemember;         // if !=NULL then one member of this template
-
-    int literal;                // this template declaration is a literal
-    int ismixin;                // template declaration is only to be used as a mixin
+    enum PASS semanticRun;      // 1 semantic() run
+    bool literal;               // this template declaration is a literal
+    bool ismixin;               // template declaration is only to be used as a mixin
     enum PROT protection;
 
     struct Previous
@@ -75,7 +74,7 @@ struct TemplateDeclaration : ScopeDsymbol
     Previous *previous;         // threaded list of previous instantiation attempts on stack
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-        Expression *constraint, Dsymbols *decldefs, int ismixin);
+        Expression *constraint, Dsymbols *decldefs, bool ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     bool overloadInsert(Dsymbol *s);
@@ -293,11 +292,11 @@ struct TemplateInstance : ScopeDsymbol
                                         // sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
     enum PASS semanticRun;    // has semantic() been done?
-    int semantictiargsdone;     // has semanticTiargs() been done?
+    bool speculative;   // 1 if only instantiated with errors gagged
+    bool semantictiargsdone;    // has semanticTiargs() been done?
+    bool havetempdecl;  // 1 if used second constructor
     int nest;           // for recursion detection
-    int havetempdecl;   // 1 if used second constructor
     Dsymbol *isnested;  // if referencing local symbols, this is the context
-    int speculative;    // 1 if only instantiated with errors gagged
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol

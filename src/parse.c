@@ -55,8 +55,8 @@
 // Support D1 inout
 #define D1INOUT         0
 
-Parser::Parser(Module *module, unsigned char *base, size_t length, int doDocComment)
-    : Lexer(module, base, 0, length, doDocComment, 0)
+Parser::Parser(Module *module, unsigned char *base, size_t length, bool doDocComment)
+    : Lexer(module, base, 0, length, doDocComment, false)
 {
     //printf("Parser::Parser()\n");
     md = NULL;
@@ -129,7 +129,7 @@ Dsymbols *Parser::parseModule()
         }
     }
 
-    decldefs = parseDeclDefs(0);
+    decldefs = parseDeclDefs(false);
     if (token.value != TOKeof)
     {   error(loc, "unrecognized declaration");
         goto Lerr;
@@ -143,7 +143,7 @@ Lerr:
     return new Dsymbols();
 }
 
-Dsymbols *Parser::parseDeclDefs(int once)
+Dsymbols *Parser::parseDeclDefs(bool once)
 {   Dsymbol *s;
     Dsymbols *decldefs;
     Dsymbols *a;
@@ -188,7 +188,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 break;
 
             case TOKtemplate:
-                s = (Dsymbol *)parseTemplateDeclaration(0);
+                s = (Dsymbol *)parseTemplateDeclaration(false);
                 break;
 
             case TOKmixin:
@@ -208,7 +208,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     case TOKtemplate:
                         // mixin template
                         nextToken();
-                        s = (Dsymbol *)parseTemplateDeclaration(1);
+                        s = (Dsymbol *)parseTemplateDeclaration(true);
                         break;
 
                     default:
@@ -856,7 +856,7 @@ Dsymbols *Parser::parseBlock()
             lookingForElse = 0;
 
             nextToken();
-            a = parseDeclDefs(0);
+            a = parseDeclDefs(false);
             if (token.value != TOKrcurly)
             {   /* { */
                 error("matching '}' expected, not %s", token.toChars());
@@ -872,12 +872,12 @@ Dsymbols *Parser::parseBlock()
 #if 0
             a = NULL;
 #else
-            a = parseDeclDefs(0);       // grab declarations up to closing curly bracket
+            a = parseDeclDefs(false);    // grab declarations up to closing curly bracket
 #endif
             break;
 
         default:
-            a = parseDeclDefs(1);
+            a = parseDeclDefs(true);
             break;
     }
     return a;
@@ -1363,7 +1363,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
 {
     Parameters *arguments = new Parameters();
     int varargs = 0;
-    int hasdefault = 0;
+    bool hasdefault = false;
 
     check(TOKlparen);
     while (1)
@@ -1451,7 +1451,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                     if (token.value == TOKassign)       // = defaultArg
                     {   nextToken();
                         ae = parseDefaultInitExp();
-                        hasdefault = 1;
+                        hasdefault = true;
                     }
                     else
                     {   if (hasdefault)
@@ -1501,7 +1501,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                     if (token.value == TOKassign)       // = defaultArg
                     {   nextToken();
                         ae = parseDefaultInitExp();
-                        hasdefault = 1;
+                        hasdefault = true;
                     }
                     else
                     {   if (hasdefault)
@@ -1727,7 +1727,7 @@ Dsymbol *Parser::parseAggregate()
     {
         //printf("aggregate definition\n");
         nextToken();
-        Dsymbols *decl = parseDeclDefs(0);
+        Dsymbols *decl = parseDeclDefs(false);
         if (token.value != TOKrcurly)
             error("} expected following member declarations in aggregate");
         nextToken();
@@ -1829,7 +1829,7 @@ Expression *Parser::parseConstraint()
  * Parse a TemplateDeclaration.
  */
 
-TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
+TemplateDeclaration *Parser::parseTemplateDeclaration(bool ismixin)
 {
     TemplateDeclaration *tempdecl;
     Identifier *id;
@@ -1858,7 +1858,7 @@ TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
     else
     {
         nextToken();
-        decldefs = parseDeclDefs(0);
+        decldefs = parseDeclDefs(false);
         if (token.value != TOKrcurly)
         {   error("template member expected");
             goto Lerr;
@@ -1892,7 +1892,8 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
 
     // Get array of TemplateParameters
     if (flag || token.value != TOKrparen)
-    {   int isvariadic = 0;
+    {
+        bool isvariadic = false;
 
         while (token.value != TOKrparen)
         {   TemplateParameter *tp;
@@ -1970,7 +1971,7 @@ TemplateParameters *Parser::parseTemplateParameterList(int flag)
             {   // ident...
                 if (isvariadic)
                     error("variadic template parameter must be last");
-                isvariadic = 1;
+                isvariadic = true;
                 tp_ident = token.ident;
                 nextToken();
                 nextToken();
@@ -5906,7 +5907,7 @@ Expression *Parser::parsePrimaryExp()
                 Dsymbols *decldefs = new Dsymbols();
                 decldefs->push(fd);
                 td = new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, 0);
-                td->literal = 1;    // it's a template 'literal'
+                td->literal = true;    // it's a template 'literal'
             }
 
             e = new FuncExp(loc, fd, td);
@@ -6769,7 +6770,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
         else
         {
             nextToken();
-            Dsymbols *decl = parseDeclDefs(0);
+            Dsymbols *decl = parseDeclDefs(false);
             if (token.value != TOKrcurly)
                 error("class member expected");
             nextToken();

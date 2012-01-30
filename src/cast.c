@@ -1168,7 +1168,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
      * will result in a copy.
      * The this->string member is considered immutable.
      */
-    int copied = 0;
+    bool copied = false;
 
     //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
 
@@ -1182,7 +1182,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (!committed)
     {   se = (StringExp *)copy();
         se->committed = 1;
-        copied = 1;
+        copied = true;
     }
 
     if (type == t)
@@ -1200,7 +1200,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     {
         if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         se->type = t;
         return se;
@@ -1221,14 +1221,14 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
     {   if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         goto Lcast;
     }
     if (typeb->ty != Tsarray && typeb->ty != Tarray && typeb->ty != Tpointer)
     {   if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         goto Lcast;
     }
@@ -1237,7 +1237,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     {
         if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         if (tb->ty == Tsarray)
             goto L2;    // handle possible change in static array dimension
@@ -1342,7 +1342,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         L1:
             if (!copied)
             {   se = (StringExp *)copy();
-                copied = 1;
+                copied = true;
             }
             se->string = buffer.extractData();
             se->len = newlen;

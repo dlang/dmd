@@ -244,7 +244,7 @@ OutBuffer Lexer::stringbuffer;
 
 Lexer::Lexer(Module *mod,
         unsigned char *base, size_t begoffset, size_t endoffset,
-        int doDocComment, int commentToken)
+        bool doDocComment, bool commentToken)
     : loc(mod, 1)
 {
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -255,7 +255,7 @@ Lexer::Lexer(Module *mod,
     p = base + begoffset;
     this->mod = mod;
     this->doDocComment = doDocComment;
-    this->anyToken = 0;
+    this->anyToken = false;
     this->commentToken = commentToken;
     //initKeywords();
 
@@ -628,7 +628,7 @@ void Lexer::scan(Token *t)
                 }
                 t->ident = id;
                 t->value = (enum TOK) id->value;
-                anyToken = 1;
+                anyToken = true;
                 if (*t->ptr == '_')     // if special identifier token
                 {
                     static char date[11+1];

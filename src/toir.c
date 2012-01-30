@@ -755,7 +755,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
              */
             if (nrvo_can && nrvo_var == v)
             {
-                nrvo_can = 0;
+                nrvo_can = false;
             }
         }
         // offset is now the size of the closure

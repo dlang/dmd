@@ -127,8 +127,8 @@ struct AlignDeclaration : AttribDeclaration
 struct AnonDeclaration : AttribDeclaration
 {
     bool isunion;
+    bool sem;                   // 1 if successful semantic()
     structalign_t alignment;
-    int sem;                    // 1 if successful semantic()
 
     AnonDeclaration(Loc loc, int isunion, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);

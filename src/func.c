@@ -61,18 +61,18 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     overnext = NULL;
     vtblIndex = -1;
     hasReturnExp = 0;
-    naked = 0;
+    naked = false;
     inlineStatusExp = ILSuninitialized;
     inlineStatusStmt = ILSuninitialized;
     inlineNest = 0;
-    isArrayOp = 0;
+    isArrayOp = false;
     semanticRun = PASSinit;
     semantic3Errors = 0;
 #if DMDV1
     nestedFrameRef = 0;
 #endif
     fes = NULL;
-    introducing = 0;
+    introducing = false;
     tintro = NULL;
     /* The type given for "infer the return type" is a TypeFunction with
      * NULL for the return type.
@@ -80,7 +80,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inferRetType = (type && type->nextOf() == NULL);
     storage_class2 = 0;
     hasReturnExp = 0;
-    nrvo_can = 1;
+    nrvo_can = true;
     nrvo_var = NULL;
     shidden = NULL;
 #if DMDV2
@@ -469,7 +469,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 {
                     // Append to end of vtbl[]
                     //printf("\tintroducing function\n");
-                    introducing = 1;
+                    introducing = true;
                     vi = cd->vtbl.dim;
                     cd->vtbl.push(this);
                     vtblIndex = vi;
@@ -1057,7 +1057,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     assert(arg->ident);
                     TupleDeclaration *v = new TupleDeclaration(loc, arg->ident, exps);
                     //printf("declaring tuple %s\n", v->toChars());
-                    v->isexp = 1;
+                    v->isexp = true;
                     if (!sc2->insert(v))
                         error("parameter %s.%s is already defined", toChars(), v->toChars());
                     localsymtab->insert(v);
@@ -1170,12 +1170,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 for (size_t i = 0; i < ad->fields.dim; i++)
                 {   VarDeclaration *v = ad->fields[i];
 
-                    v->ctorinit = 0;
+                    v->ctorinit = false;
                 }
             }
 
             if (!inferRetType && f->retStyle() != RETstack)
-                nrvo_can = 0;
+                nrvo_can = false;
 
             fbody = fbody->semantic(sc2);
             if (!fbody)
@@ -1245,7 +1245,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     for (size_t i = 0; i < ad->fields.dim; i++)
                     {   VarDeclaration *v = ad->fields[i];
 
-                        if (v->ctorinit == 0)
+                        if (!v->ctorinit)
                         {
                             /* Current bugs in the flow analysis:
                              * 1. union members should not produce error messages even if
@@ -1919,7 +1919,7 @@ void FuncDeclaration::buildResultVar()
         outId = Id::result;         // provide a default
 
     VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
-    v->noscope = 1;
+    v->noscope = true;
     v->storage_class |= STCresult;
 #if DMDV2
     if (!isVirtual())
@@ -2095,8 +2095,9 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
  * Return !=0 if it does.
  */
 
-int FuncDeclaration::overrides(FuncDeclaration *fd)
-{   int result = 0;
+bool FuncDeclaration::overrides(FuncDeclaration *fd)
+{
+    bool result = false;
 
     if (fd->ident == ident)
     {
@@ -2106,7 +2107,7 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
             ClassDeclaration *cd2 = fd->toParent()->isClassDeclaration();
 
             if (cd1 && cd2 && cd2->isBaseOf(cd1, NULL))
-                result = 1;
+                result = true;
         }
     }
     return result;
@@ -3658,7 +3659,7 @@ void CtorDeclaration::semantic(Scope *sc)
     type = type->semantic(loc, sc);
 
     if (ad && ad->isStructDeclaration())
-        ((TypeFunction *)type)->isref = 1;
+        ((TypeFunction *)type)->isref = true;
 
     FuncDeclaration::semantic(sc);
 
@@ -4280,7 +4281,7 @@ void UnitTestDeclaration::semantic(Scope *sc)
     if (m)
     {
         //printf("module3 %s needs moduleinfo\n", m->toChars());
-        m->needmoduleinfo = 1;
+        m->needmoduleinfo = true;
     }
 #endif
 }

@@ -377,7 +377,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
 #endif
                     *sfinally = new DtorExpStatement(loc, e, v);
                 }
-                v->noscope = 1;         // don't add in dtor again
+                v->noscope = true;      // don't add in dtor again
             }
         }
     }
@@ -2722,7 +2722,7 @@ Statement *IfStatement::semantic(Scope *sc)
             Statement *sdtor = new ExpStatement(loc, match->edtor);
             sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
             ifbody = new CompoundStatement(loc, sdtor, ifbody);
-            match->noscope = 1;
+            match->noscope = true;
        }
     }
     else
@@ -3778,7 +3778,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     // main() returns 0, even if it returns void
     if (!exp && (!tbret || tbret->ty == Tvoid) && fd->isMain())
-    {   implicit0 = 1;
+    {   implicit0 = true;
         exp = new IntegerExp(0);
     }
 
@@ -3798,7 +3798,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     }
 
     if (!exp)
-        fd->nrvo_can = 0;
+        fd->nrvo_can = false;
 
     if (exp)
     {
@@ -3829,22 +3829,22 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
             if (((TypeFunction *)fd->type)->isref)
                 // Function returns a reference
-                fd->nrvo_can = 0;
+                fd->nrvo_can = false;
             else if (!v || v->isOut() || v->isRef())
-                fd->nrvo_can = 0;
+                fd->nrvo_can = false;
             else if (fd->nrvo_var == NULL)
             {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
                 {   //printf("Setting nrvo to %s\n", v->toChars());
                     fd->nrvo_var = v;
                 }
                 else
-                    fd->nrvo_can = 0;
+                    fd->nrvo_can = false;
             }
             else if (fd->nrvo_var != v)
-                fd->nrvo_can = 0;
+                fd->nrvo_can = false;
         }
         else
-            fd->nrvo_can = 0;
+            fd->nrvo_can = false;
 
         if (!fd->nrvo_can &&
             exp->isLvalue() && !((TypeFunction *)fd->type)->isref)
@@ -4000,7 +4000,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 if (!fd->outId)
                     fd->outId = Id::result;
                 VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
-                v->noscope = 1;
+                v->noscope = true;
                 v->storage_class |= STCresult;
                 if (((TypeFunction *)fd->type)->isref)
                     v->storage_class |= STCref | STCforeach;

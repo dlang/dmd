@@ -808,7 +808,7 @@ void valueNoDtor(Expression *e)
                     {   VarExp *ve = (VarExp *)comma->e2;
                         VarDeclaration *ctmp = ve->var->isVarDeclaration();
                         if (ctmp)
-                            ctmp->noscope = 1;
+                            ctmp->noscope = true;
                     }
                 }
             }
@@ -841,7 +841,7 @@ int checkPostblit(Loc loc, Type *t)
  * Call copy constructor for struct value argument.
  */
 #if DMDV2
-Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
+Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, bool noscope)
 {
     if (e->op == TOKarrayliteral)
     {
@@ -941,7 +941,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             wildmatch |= MODmutable;
     }
 
-    int done = 0;
+    bool done = false;
     for (size_t i = 0; i < n; i++)
     {
         Expression *arg;
@@ -1074,7 +1074,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->setDim(i + 1);
                 (*arguments)[i] =  arg;
                 nargs = i + 1;
-                done = 1;
+                done = true;
             }
 
         L1:
@@ -1172,7 +1172,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     else
                     {   /* Not transferring it, so call the copy constructor
                          */
-                        arg = callCpCtor(loc, sc, arg, 1);
+                        arg = callCpCtor(loc, sc, arg, true);
                     }
                 }
 #endif
@@ -1259,7 +1259,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct)
             {
-                arg = callCpCtor(loc, sc, arg, 1);
+                arg = callCpCtor(loc, sc, arg, true);
             }
 #endif
 
@@ -3474,7 +3474,7 @@ Expression *StringExp::semantic(Scope *sc)
                 sz = 4;
                 //type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
                 type = new TypeDArray(Type::tdchar->invariantOf());
-                committed = 1;
+                committed = true;
                 break;
 
             case 'w':
@@ -3498,11 +3498,11 @@ Expression *StringExp::semantic(Scope *sc)
                 sz = 2;
                 //type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
                 type = new TypeDArray(Type::twchar->invariantOf());
-                committed = 1;
+                committed = true;
                 break;
 
             case 'c':
-                committed = 1;
+                committed = true;
             default:
                 //type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
                 type = new TypeDArray(Type::tchar->invariantOf());
@@ -4084,7 +4084,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
         if (v->offset < offset)
         {   e = NULL;
-            sd->hasUnions = 1;
+            sd->hasUnions = true;
         }
         else
         {
@@ -6514,7 +6514,7 @@ Expression *FileExp::semantic(Scope *sc)
         }
         else
         {
-            f.ref = 1;
+            f.ref = true;
             se = new StringExp(loc, f.buffer, f.len);
         }
     }
@@ -7146,7 +7146,7 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
             (!e1 || e1->op == TOKthis)
            )
         {
-            var->ctorinit = 1;
+            var->ctorinit = true;
             //printf("setting ctorinit\n");
             return TRUE;
         }
@@ -10499,12 +10499,12 @@ Ltupleassign:
     }
 
     // Determine if this is an initialization of a reference
-    int refinit = 0;
+    bool refinit = false;
     if (op == TOKconstruct && e1->op == TOKvar)
     {   VarExp *ve = (VarExp *)e1;
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (v->storage_class & (STCout | STCref))
-            refinit = 1;
+            refinit = true;
     }
 
     /* If it is an assignment from a 'foreign' type,
@@ -11592,11 +11592,11 @@ Expression *PowExp::semantic(Scope *sc)
             return e;
         }
 
-        static int importMathChecked = 0;
+        static bool importMathChecked = false;
         static bool importMath = false;
         if (!importMathChecked)
         {
-            importMathChecked = 1;
+            importMathChecked = true;
             for (size_t i = 0; i < Module::amodules.dim; i++)
             {   Module *mi = Module::amodules[i];
                 //printf("\t[%d] %s\n", i, mi->toChars());

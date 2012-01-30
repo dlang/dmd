@@ -390,7 +390,7 @@ Object *objectSyntaxCopy(Object *o)
 /* ======================== TemplateDeclaration ============================= */
 
 TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
-        TemplateParameters *parameters, Expression *constraint, Dsymbols *decldefs, int ismixin)
+        TemplateParameters *parameters, Expression *constraint, Dsymbols *decldefs, bool ismixin)
     : ScopeDsymbol(id)
 {
 #if LOG
@@ -418,7 +418,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->overroot = NULL;
     this->semanticRun = PASSinit;
     this->onemember = NULL;
-    this->literal = 0;
+    this->literal = false;
     this->ismixin = ismixin;
     this->previous = NULL;
 
@@ -521,7 +521,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = sc->parent;
     Scope *paramscope = sc->push(paramsym);
-    paramscope->parameterSpecialization = 1;
+    paramscope->parameterSpecialization = true;
     paramscope->stc = 0;
 
     if (!parent)
@@ -1028,7 +1028,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
     paramscope->stc = 0;
 
     TemplateTupleParameter *tp = isVariadic();
-    int tp_is_declared = 0;
+    bool tp_is_declared = false;
 
 #if 0
     for (size_t i = 0; i < dedargs->dim; i++)
@@ -1067,7 +1067,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                 t->objects[i] = (*targsi)[n + i];
             }
             declareParameter(paramscope, tp, t);
-            tp_is_declared = 1;
+            tp_is_declared = true;
         }
         else
             n = nargsi;
@@ -4626,12 +4626,12 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semanticRun = PASSinit;
-    this->semantictiargsdone = 0;
+    this->semantictiargsdone = false;
     this->withsym = NULL;
     this->nest = 0;
-    this->havetempdecl = 0;
+    this->havetempdecl = false;
     this->isnested = NULL;
-    this->speculative = 0;
+    this->speculative = false;
 }
 
 /*****************
@@ -4654,12 +4654,12 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->argsym = NULL;
     this->aliasdecl = NULL;
     this->semanticRun = PASSinit;
-    this->semantictiargsdone = 1;
+    this->semantictiargsdone = true;
     this->withsym = NULL;
     this->nest = 0;
-    this->havetempdecl = 1;
+    this->havetempdecl = true;
     this->isnested = NULL;
-    this->speculative = 0;
+    this->speculative = false;
 
     assert((size_t)tempdecl->scope > 0x10000);
 }
@@ -4946,7 +4946,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                 goto L1;
             // It had succeeded, mark it is a non-speculative instantiation,
             // and reuse it.
-            inst->speculative = 0;
+            inst->speculative = false;
         }
 
 #if LOG
@@ -4968,7 +4968,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     inst = this;
     // Mark as speculative if we are instantiated from inside is(typeof())
     if (global.gag && sc->speculative)
-        speculative = 1;
+        speculative = true;
 
     size_t tempdecl_instance_idx = tempdecl->instances.dim;
     tempdecl->instances.push(this);
@@ -5239,7 +5239,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
     if (semantictiargsdone)
         return;
-    semantictiargsdone = 1;
+    semantictiargsdone = true;
     semanticTiargs(loc, sc, tiargs, 0);
 }
 

@@ -8024,7 +8024,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
         }
         e = new TupleExp(e->loc, exps);
         sc = sc->push();
-        sc->noaccesscheck = 1;
+        sc->noaccesscheck = true;
         e = e->semantic(sc);
         sc->pop();
         return e;
@@ -8559,7 +8559,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         }
         e = new TupleExp(e->loc, exps);
         sc = sc->push();
-        sc->noaccesscheck = 1;
+        sc->noaccesscheck = true;
         e = e->semantic(sc);
         sc->pop();
         return e;

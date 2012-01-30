@@ -69,14 +69,14 @@ Scope::Scope()
     this->stc = 0;
     this->depmsg = NULL;
     this->offset = 0;
-    this->inunion = 0;
-    this->nofree = 0;
+    this->inunion = false;
+    this->nofree = false;
     this->noctor = 0;
-    this->noaccesscheck = 0;
+    this->noaccesscheck = false;
     this->mustsemantic = 0;
     this->intypeof = 0;
     this->speculative = 0;
-    this->parameterSpecialization = 0;
+    this->parameterSpecialization = false;
     this->callSuper = 0;
     this->flags = 0;
     this->lastdc = NULL;
@@ -119,7 +119,7 @@ Scope::Scope(Scope *enclosing)
     this->stc = enclosing->stc;
     this->offset = 0;
     this->inunion = enclosing->inunion;
-    this->nofree = 0;
+    this->nofree = false;
     this->noctor = enclosing->noctor;
     this->noaccesscheck = enclosing->noaccesscheck;
     this->mustsemantic = enclosing->mustsemantic;
@@ -377,7 +377,7 @@ void Scope::setNoFree()
     for (sc = this; sc; sc = sc->enclosing)
     {
         //printf("\tsc = %p\n", sc);
-        sc->nofree = 1;
+        sc->nofree = true;
 
         assert(!(flags & SCOPEfree));
         //assert(sc != sc->enclosing);

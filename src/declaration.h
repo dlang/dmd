@@ -651,7 +651,7 @@ struct FuncDeclaration : Declaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
-    int overrides(FuncDeclaration *fd);
+    bool overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);

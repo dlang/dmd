@@ -49,11 +49,11 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *handle;               // 'this' type
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
-    int hasUnions;              // set if aggregate has overlapping fields
     VarDeclarations fields;     // VarDeclaration fields
     enum Sizeok sizeok;         // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;          // !=0 if deprecated
+    bool hasUnions;             // set if aggregate has overlapping fields
 
 #if DMDV2
     bool isnested;              // !=0 if is nested

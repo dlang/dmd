@@ -36,7 +36,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
-    hasUnions = 0;
+    hasUnions = false;
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
@@ -446,7 +446,7 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     if (isUnionDeclaration())
-        sc2->inunion = 1;
+        sc2->inunion = true;
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
@@ -822,7 +822,7 @@ const char *StructDeclaration::kind()
 UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
     : StructDeclaration(loc, id)
 {
-    hasUnions = 1;
+    hasUnions = true;
 }
 
 Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)

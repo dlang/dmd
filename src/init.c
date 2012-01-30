@@ -448,7 +448,7 @@ ArrayInitializer::ArrayInitializer(Loc loc)
 {
     dim = 0;
     type = NULL;
-    sem = 0;
+    sem = false;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
@@ -489,7 +489,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
     if (sem)                            // if semantic() already run
         return this;
-    sem = 1;
+    sem = true;
     type = t;
     Initializer *aa = NULL;
     t = t->toBasetype();

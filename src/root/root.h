@@ -130,9 +130,9 @@ struct FileName : String
 
 struct File : Object
 {
-    int ref;                    // != 0 if this is a reference to someone else's buffer
-    unsigned char *buffer;      // data for our file
+    bool ref;                   // != 0 if this is a reference to someone else's buffer
     size_t len;                 // amount of data in buffer[]
+    unsigned char *buffer;      // data for our file
     void *touchtime;            // system time to use for file
 
     FileName *name;             // name of our file

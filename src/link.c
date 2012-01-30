@@ -411,7 +411,7 @@ int runLINK()
             lnkfilename = FileName::forceExt(global.params.exefile, "lnk");
             File flnk(lnkfilename);
             flnk.setbuffer(p, plen);
-            flnk.ref = 1;
+            flnk.ref = true;
             if (flnk.write())
                 error(0, "error writing file %s", lnkfilename);
             if (strlen(lnkfilename) < plen)

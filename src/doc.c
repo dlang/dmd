@@ -337,7 +337,7 @@ void Module::gendocfile()
     // Transfer image to file
     assert(docfile);
     docfile->setbuffer(buf.data, buf.offset);
-    docfile->ref = 1;
+    docfile->ref = true;
     FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #else
@@ -360,7 +360,7 @@ void Module::gendocfile()
 
     // Transfer image to file
     docfile->setbuffer(buf2.data, buf2.offset);
-    docfile->ref = 1;
+    docfile->ref = true;
     FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #endif

@@ -62,16 +62,16 @@ enum ParseStatementFlags
 
 struct Parser : Lexer
 {
-    ModuleDeclaration *md;
     enum LINK linkage;
+    ModuleDeclaration *md;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
 
-    Parser(Module *module, unsigned char *base, size_t length, int doDocComment);
+    Parser(Module *module, unsigned char *base, size_t length, bool doDocComment);
 
     Dsymbols *parseModule();
-    Dsymbols *parseDeclDefs(int once);
+    Dsymbols *parseDeclDefs(bool once);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
     Dsymbols *parseBlock();
     void composeStorageClass(StorageClass stc);
@@ -79,7 +79,7 @@ struct Parser : Lexer
     StorageClass parsePostfix();
     StorageClass parseTypeCtor();
     Expression *parseConstraint();
-    TemplateDeclaration *parseTemplateDeclaration(int ismixin);
+    TemplateDeclaration *parseTemplateDeclaration(bool ismixin);
     TemplateParameters *parseTemplateParameterList(int flag = 0);
     Dsymbol *parseMixin();
     Objects *parseTemplateArgumentList();

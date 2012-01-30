@@ -178,7 +178,7 @@ TupleDeclaration::TupleDeclaration(Loc loc, Identifier *id, Objects *objects)
     this->loc = loc;
     this->type = NULL;
     this->objects = objects;
-    this->isexp = 0;
+    this->isexp = false;
     this->tupletype = NULL;
 }
 
@@ -221,7 +221,7 @@ Type *TupleDeclaration::getType()
         Parameters *args = new Parameters();
         args->setDim(objects->dim);
         OutBuffer buf;
-        int hasdeco = 1;
+        bool hasdeco = true;
         for (size_t i = 0; i < types->dim; i++)
         {   Type *t = (*types)[i];
 
@@ -236,7 +236,7 @@ Type *TupleDeclaration::getType()
 #endif
             (*args)[i] = arg;
             if (!t->deco)
-                hasdeco = 0;
+                hasdeco = false;
         }
 
         tupletype = new TypeTuple(args);
@@ -417,7 +417,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->htype = NULL;
     this->haliassym = NULL;
     this->overnext = NULL;
-    this->inSemantic = 0;
+    this->inSemantic = false;
     assert(type);
 }
 
@@ -432,7 +432,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->htype = NULL;
     this->haliassym = NULL;
     this->overnext = NULL;
-    this->inSemantic = 0;
+    this->inSemantic = false;
     assert(s);
 }
 
@@ -477,7 +477,7 @@ void AliasDeclaration::semantic(Scope *sc)
             aliassym->semantic(sc);
         return;
     }
-    this->inSemantic = 1;
+    this->inSemantic = true;
 
 #if DMDV1   // don't really know why this is here
     if (storage_class & STCconst)
@@ -552,7 +552,7 @@ void AliasDeclaration::semantic(Scope *sc)
     }
     if (overnext)
         ScopeDsymbol::multiplyDefined(0, overnext, this);
-    this->inSemantic = 0;
+    this->inSemantic = false;
 
     if (global.gag && errors != global.errors)
         type = savedtype;
@@ -606,13 +606,13 @@ void AliasDeclaration::semantic(Scope *sc)
             type = savedtype;
             overnext = savedovernext;
             aliassym = NULL;
-            inSemantic = 0;
+            inSemantic = false;
             return;
         }
     }
     //printf("setting aliassym %s to %s %s\n", toChars(), s->kind(), s->toChars());
     aliassym = s;
-    this->inSemantic = 0;
+    this->inSemantic = false;
 }
 
 bool AliasDeclaration::overloadInsert(Dsymbol *s)
@@ -729,15 +729,15 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
     this->hinit = NULL;
     this->loc = loc;
     offset = 0;
-    noscope = 0;
+    noscope = false;
 #if DMDV2
     isargptr = false;
 #endif
 #if DMDV1
     nestedref = 0;
 #endif
+    ctorinit = false;
     alignment = 0;
-    ctorinit = 0;
     aliassym = NULL;
     onstack = 0;
     canassign = 0;
@@ -824,7 +824,7 @@ void VarDeclaration::semantic(Scope *sc)
 
     /* If auto type inference, do the inference
      */
-    int inferred = 0;
+    bool inferred = false;
     if (!type)
     {   inuse++;
 
@@ -852,7 +852,7 @@ void VarDeclaration::semantic(Scope *sc)
 //      type = type->semantic(loc, sc);
 
         inuse--;
-        inferred = 1;
+        inferred = true;
 
         if (init->isArrayInitializer() && type->toBasetype()->ty == Tsarray)
         {   // Prefer array literals to give a T[] type rather than a T[dim]
@@ -1092,7 +1092,7 @@ Lnomatch:
         }
         TupleDeclaration *v2 = new TupleDeclaration(loc, ident, exps);
         v2->parent = this->parent;
-        v2->isexp = 1;
+        v2->isexp = true;
         aliassym = v2;
         return;
     }
@@ -1905,7 +1905,7 @@ bool VarDeclaration::isImportedSymbol()
 void VarDeclaration::checkCtorConstInit()
 {
 #if 0 /* doesn't work if more than one static ctor */
-    if (ctorinit == 0 && isCtorinit() && !(storage_class & STCfield))
+    if (ctorinit == false && isCtorinit() && !(storage_class & STCfield))
         error("missing initializer in static constructor for const variable");
 #endif
 }
@@ -2509,7 +2509,7 @@ TypeInfoTupleDeclaration::TypeInfoTupleDeclaration(Type *tinfo)
 ThisDeclaration::ThisDeclaration(Loc loc, Type *t)
    : VarDeclaration(loc, t, Id::This, NULL)
 {
-    noscope = 1;
+    noscope = true;
 }
 
 Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)

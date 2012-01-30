@@ -276,13 +276,13 @@ struct Lexer
     unsigned char *p;           // current character
     Token token;
     Module *mod;
-    int doDocComment;           // collect doc comment information
-    int anyToken;               // !=0 means seen at least one token
-    int commentToken;           // !=0 means comments are TOKcomment's
+    bool doDocComment;          // collect doc comment information
+    bool anyToken;              // !=0 means seen at least one token
+    bool commentToken;          // !=0 means comments are TOKcomment's
 
     Lexer(Module *mod,
         unsigned char *base, size_t begoffset, size_t endoffset,
-        int doDocComment, int commentToken);
+        bool doDocComment, bool commentToken);
 
     static void initKeywords();
     static Identifier *idPool(const char *s);
