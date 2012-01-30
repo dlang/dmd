@@ -54,7 +54,7 @@ void test2()
 class MyClass3
 {
 
-	private int g() { 
+	private int g() const { 
 		return 1;
 	}
 

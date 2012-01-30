@@ -124,6 +124,32 @@ enum E8 : real { a, b }
 
 /***********************************/
 
+struct S7379 
+{
+
+    enum ENUM
+    {
+        M1,
+        M2,
+        M3
+    }
+    alias ENUM this;
+}
+
+class C7379
+{
+    this(S7379 test)
+    {
+    }
+
+    this(string test)
+    {
+        this(S7379());
+    }
+}
+
+/***********************************/
+
 int main()
 {
     test1();

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1116,7 +1116,7 @@ void DocComment::parseSections(unsigned char *comment)
                     goto L1;
                 if (*p == '\n')
                 {   p++;
-                    if (*p == '\n' && !summary && !namelen)
+                    if (*p == '\n' && !summary && !namelen && !inCode)
                     {
                         pend = p;
                         p++;

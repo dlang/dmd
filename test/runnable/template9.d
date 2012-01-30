@@ -1,5 +1,7 @@
 // PERMUTE_ARGS:
 
+// Note: compiling this overflows the stack if dmd is build with DEBUG
+
 module breaker;
 
 import std.c.stdio;
@@ -784,6 +786,14 @@ void test7359()
     assert(foo7359(1,1,1,1,1,1));               // OK
     assert(foo7359("abc","abc","abc","abc"));   // NG
 }
+
+/**********************************/
+
+struct S4371(T ...) { }
+
+alias S4371!("hi!") t;
+
+static if (is(t U == S4371!(U))) { }
 
 /**********************************/
 

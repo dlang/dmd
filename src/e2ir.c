@@ -92,7 +92,7 @@ elem *callfunc(Loc loc,
         directcall, tret->toChars(), ec, fd);
     printf("ec: "); elem_print(ec);
     if (fd)
-        printf("fd = '%s'\n", fd->toChars());
+        printf("fd = '%s', vtblIndex = %d, isVirtual() = %d\n", fd->toChars(), fd->vtblIndex, fd->isVirtual());
     if (ehidden)
     {   printf("ehidden: "); elem_print(ehidden); }
 #endif
@@ -238,6 +238,7 @@ elem *callfunc(Loc loc,
             ev = el_same(&ethis);
             ev = el_una(OPind, TYnptr, ev);
             vindex = fd->vtblIndex;
+            assert((int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
 if (I32) assert(tysize[TYnptr] == 4);
