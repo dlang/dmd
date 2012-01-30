@@ -58,9 +58,7 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
 
-    Import *si;
-
-    si = new Import(loc, packages, id, aliasId, isstatic);
+    Import *si = new Import(loc, packages, id, aliasId, isstatic);
 
     for (size_t i = 0; i < names.dim; i++)
     {
@@ -186,6 +184,13 @@ void Import::semantic(Scope *sc)
         if (mod->needmoduleinfo)
         {   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
+        }
+
+        if (aliasId)
+        {
+            AliasDeclaration *ad = new AliasDeclaration(loc, aliasId, mod);
+            sc->insert(ad);
+            ad->semantic(sc);
         }
     }
 
