@@ -8693,10 +8693,20 @@ Expression *AssignExp::semantic(Scope *sc)
          e2->op == TOKmul || e2->op == TOKdiv ||
          e2->op == TOKmod || e2->op == TOKxor ||
          e2->op == TOKand || e2->op == TOKor  ||
+#if DMDV2
+         e2->op == TOKpow ||
+#endif
          e2->op == TOKtilde || e2->op == TOKneg))
     {
         type = e1->type;
         return arrayOp(sc);
+    }
+
+    if (e1->op == TOKvar &&
+        (((VarExp *)e1)->var->storage_class & STCscope) &&
+        op == TOKassign)
+    {
+        error("cannot rebind scope variables");
     }
 
     type = e1->type;
@@ -8711,7 +8721,7 @@ Expression *AssignExp::checkToBoolean()
     // are usually mistakes.
 
     error("assignment cannot be used as a condition, perhaps == was meant?");
-    return this;
+    return new ErrorExp();
 }
 
 /************************************************************/
