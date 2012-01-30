@@ -326,17 +326,22 @@ enum ASM_MODIFIERS {
 
 //////////////////////////////////////////////////////////////////
 
-#define ITprefix        0x10    // special prefix
-#define ITjump          0x20    // jump instructions CALL, Jxx and LOOPxx
-#define ITimmed         0x30    // value of an immediate operand controls
+// instruction type
+typedef unsigned char IT;
+enum // IT
+{
+    ITprefix      = 0x10,    // special prefix
+    ITjump        = 0x20,    // jump instructions CALL, Jxx and LOOPxx
+    ITimmed       = 0x30,    // value of an immediate operand controls
                                 // code generation
-#define ITopt           0x40    // not all operands are required
-#define ITshift         0x50    // rotate and shift instructions
-#define ITfloat         0x60    // floating point coprocessor instructions
-#define ITdata          0x70    // DB, DW, DD, DQ, DT pseudo-ops
-#define ITaddr          0x80    // DA (define addresss) pseudo-op
-#define ITMASK          0xF0
-#define ITSIZE          0x0F    // mask for size
+    ITopt         = 0x40,    // not all operands are required
+    ITshift       = 0x50,    // rotate and shift instructions
+    ITfloat       = 0x60,    // floating point coprocessor instructions
+    ITdata        = 0x70,    // DB, DW, DD, DQ, DT pseudo-ops
+    ITaddr        = 0x80,    // DA (define addresss) pseudo-op
+    ITMASK        = 0xF0,
+    ITSIZE        = 0x0F,    // mask for size
+};
 
 enum OP_DB
 {
