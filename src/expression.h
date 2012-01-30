@@ -1070,6 +1070,7 @@ struct CastExp : UnaExp
 {
     // Possible to cast to one type while painting to another type
     Type *to;                   // type to cast to
+    // TODO: this should be type MOD, but mtype.h #includes expression.h before defining MOD
     unsigned mod;               // MODxxxxx
 
     CastExp(Loc loc, Expression *e, Type *t);

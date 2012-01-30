@@ -108,18 +108,22 @@ typedef unsigned char TY;       // ENUMTY
 extern int Tsize_t;
 extern int Tptrdiff_t;
 
+enum MODFlags
+{
+    /* pick this order of numbers so switch statements work better
+     */
+    MODconst     = 1,  // type is const
+    MODimmutable = 4,  // type is immutable
+    MODshared    = 2,  // type is shared
+    MODwild      = 8,  // type is wild
+    MODmutable   = 0x10,       // type is mutable (only used in wildcard matching)
+};
+typedef uint8_t MOD;
 
 struct Type : Object
 {
     TY ty;
-    unsigned char mod;  // modifiers MODxxxx
-        /* pick this order of numbers so switch statements work better
-         */
-        #define MODconst     1  // type is const
-        #define MODimmutable 4  // type is immutable
-        #define MODshared    2  // type is shared
-        #define MODwild      8  // type is wild
-        #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
+    MOD mod;  // modifiers MODxxxx
     char *deco;
 
     /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
@@ -237,8 +241,8 @@ struct Type : Object
     Type *merge();
     Type *merge2();
     virtual void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
-    virtual void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
-    void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
+    virtual void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
+    void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     void modToBuffer(OutBuffer *buf);
 #if CPP_MANGLE
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -274,8 +278,8 @@ struct Type : Object
     void fixTo(Type *t);
     void check();
     Type *addSTC(StorageClass stc);
-    Type *castMod(unsigned mod);
-    Type *addMod(unsigned mod);
+    Type *castMod(MOD mod);
+    Type *addMod(MOD mod);
     virtual Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
@@ -294,7 +298,7 @@ struct Type : Object
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
     virtual unsigned wildConvTo(Type *tprm);
-    Type *substWildTo(unsigned mod);
+    Type *substWildTo(MOD mod);
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident);
@@ -384,7 +388,7 @@ struct TypeBasic : Type
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     char *toChars();
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -417,7 +421,7 @@ struct TypeVector : Type
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     char *toChars();
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
 #if CPP_MANGLE
@@ -454,7 +458,7 @@ struct TypeSArray : TypeArray
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
     int isZeroInit(Loc loc);
@@ -490,7 +494,7 @@ struct TypeDArray : TypeArray
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
     int isZeroInit(Loc loc);
@@ -524,7 +528,7 @@ struct TypeAArray : TypeArray
     StructDeclaration *getImpl();
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
@@ -553,7 +557,7 @@ struct TypePointer : TypeNext
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     int isscalar();
@@ -575,7 +579,7 @@ struct TypeReference : TypeNext
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
@@ -632,8 +636,8 @@ struct TypeFunction : TypeNext
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
-    void attributesToCBuffer(OutBuffer *buf, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
+    void attributesToCBuffer(OutBuffer *buf, MOD mod);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
@@ -663,7 +667,7 @@ struct TypeDelegate : TypeNext
     d_uns64 size(Loc loc);
     unsigned alignsize();
     MATCH implicitConvTo(Type *to);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
     int checkBoolean();
@@ -700,7 +704,7 @@ struct TypeIdentifier : TypeQualified
     Type *syntaxCopy();
     //char *toChars();
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
@@ -719,7 +723,7 @@ struct TypeInstance : TypeQualified
     Type *syntaxCopy();
     //char *toChars();
     //void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
@@ -735,7 +739,7 @@ struct TypeTypeof : TypeQualified
     TypeTypeof(Loc loc, Expression *exp);
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
 };
@@ -746,7 +750,7 @@ struct TypeReturn : TypeQualified
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
 };
 
 struct TypeStruct : Type
@@ -761,7 +765,7 @@ struct TypeStruct : Type
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
@@ -799,7 +803,7 @@ struct TypeEnum : Type
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *getProperty(Loc loc, Identifier *ident);
     int isintegral();
@@ -840,7 +844,7 @@ struct TypeTypedef : Type
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident);
@@ -886,7 +890,7 @@ struct TypeClass : Type
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     ClassDeclaration *isClassHandle();
     int isBaseOf(Type *t, int *poffset);
@@ -925,7 +929,7 @@ struct TypeTuple : Type
     Type *semantic(Loc loc, Scope *sc);
     int equals(Object *o);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *defaultInit(Loc loc);
@@ -941,7 +945,7 @@ struct TypeSlice : TypeNext
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
-    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod);
 };
 
 struct TypeNull : Type
@@ -999,9 +1003,9 @@ extern int Tptrdiff_t;
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
-void MODtoBuffer(OutBuffer *buf, unsigned char mod);
-int MODimplicitConv(unsigned char modfrom, unsigned char modto);
-int MODmethodConv(unsigned char modfrom, unsigned char modto);
-int MODmerge(unsigned char mod1, unsigned char mod2);
+void MODtoBuffer(OutBuffer* buf, MOD mod);
+bool MODimplicitConv(MOD modfrom, MOD modto);
+bool MODmethodConv(MOD modfrom, MOD modto);
+MOD MODmerge(MOD mod1, MOD mod2);
 
 #endif /* DMD_MTYPE_H */

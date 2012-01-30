@@ -859,7 +859,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
     unsigned n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
-    unsigned wildmatch = 0;
+    MOD wildmatch = 0;
     if (ethis && tf->isWild())
     {
         Type *t = ethis->type;
