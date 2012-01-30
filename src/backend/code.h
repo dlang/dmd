@@ -651,10 +651,13 @@ extern  targ_size_t localgotoffset;
 #endif
 
 /* cgcod.c */
-extern int pass;
-#define PASSinit        0       // initial pass through code generator
-#define PASSreg         1       // register assignment pass
-#define PASSfinal       2       // final pass
+enum CGPASS
+{
+    CGPASSinit       = 0,      // initial pass through code generator
+    CGPASSreg        = 1,      // register assignment pass
+    CGPASSfinal      = 2       // final pass
+};
+extern CGPASS pass;
 
 extern  int dfoidx;
 extern  struct CSE *csextab;

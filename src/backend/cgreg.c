@@ -714,8 +714,8 @@ void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
 
 void cgreg_unregister(regm_t conflict)
 {
-    if (pass == PASSfinal)
-        pass = PASSreg;                         // have to codegen at least one more time
+    if (pass == CGPASSfinal)
+        pass = CGPASSreg;                         // have to codegen at least one more time
     for (int i = 0; i < globsym.top; i++)
     {   symbol *s = globsym.tab[i];
         if (s->Sfl == FLreg && s->Sregm & conflict)
