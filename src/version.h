@@ -28,7 +28,7 @@ struct DebugSymbol : Dsymbol
     DebugSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    bool addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
@@ -42,7 +42,7 @@ struct VersionSymbol : Dsymbol
     VersionSymbol(Loc loc, unsigned level);
     Dsymbol *syntaxCopy(Dsymbol *);
 
-    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    bool addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();

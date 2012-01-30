@@ -154,7 +154,7 @@ Type *Type::syntaxCopy()
     return this;
 }
 
-int Type::equals(Object *o)
+bool Type::equals(Object *o)
 {   Type *t;
 
     t = (Type *)o;
@@ -164,10 +164,10 @@ int Type::equals(Object *o)
           deco != NULL))                         // and semantic() has been run
     {
         //printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
-        return 1;
+        return true;
     }
     //if (deco && t && t->deco) printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
-    return 0;
+    return false;
 }
 
 char Type::needThisPrefix()
@@ -1356,10 +1356,10 @@ Type *Type::toBasetype()
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto
  */
-int MODimplicitConv(unsigned char modfrom, unsigned char modto)
+bool MODimplicitConv(unsigned char modfrom, unsigned char modto)
 {
     if (modfrom == modto)
-        return 1;
+        return true;
 
     //printf("MODimplicitConv(from = %x, to = %x)\n", modfrom, modto);
     #define X(m, n) (((m) << 4) | (n))
@@ -1371,10 +1371,10 @@ int MODimplicitConv(unsigned char modfrom, unsigned char modto)
         case X(MODimmutable, MODconst | MODshared):
         case X(MODshared,    MODconst | MODshared):
         case X(MODwild | MODshared,    MODconst | MODshared):
-            return 1;
+            return true;
 
         default:
-            return 0;
+            return false;
     }
     #undef X
 }
@@ -1707,39 +1707,39 @@ Type *Type::merge2()
     return t;
 }
 
-int Type::isintegral()
+bool Type::isintegral()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isfloating()
+bool Type::isfloating()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isreal()
+bool Type::isreal()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isimaginary()
+bool Type::isimaginary()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::iscomplex()
+bool Type::iscomplex()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isscalar()
+bool Type::isscalar()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isunsigned()
+bool Type::isunsigned()
 {
-    return FALSE;
+    return false;
 }
 
 ClassDeclaration *Type::isClassHandle()
@@ -1747,14 +1747,14 @@ ClassDeclaration *Type::isClassHandle()
     return NULL;
 }
 
-int Type::isscope()
+bool Type::isscope()
 {
-    return FALSE;
+    return false;
 }
 
-int Type::isString()
+bool Type::isString()
 {
-    return FALSE;
+    return false;
 }
 
 /**************************
@@ -1765,23 +1765,23 @@ int Type::isString()
  *      a = b;
  * ?
  */
-int Type::isAssignable()
+bool Type::isAssignable()
 {
-    return TRUE;
+    return true;
 }
 
-int Type::checkBoolean()
+bool Type::checkBoolean()
 {
     return isscalar();
 }
 
 /********************************
- * TRUE if when type goes out of scope, it needs a destructor applied.
+ * true if when type goes out of scope, it needs a destructor applied.
  * Only applies to value types, not ref types.
  */
 int Type::needsDestruction()
 {
-    return FALSE;
+    return false;
 }
 
 /*********************************
@@ -1826,14 +1826,14 @@ Expression *Type::defaultInitLiteral(Loc loc)
     return defaultInit(loc);
 }
 
-int Type::isZeroInit(Loc loc)
+bool Type::isZeroInit(Loc loc)
 {
-    return 0;           // assume not
+    return false;           // assume not
 }
 
-int Type::isBaseOf(Type *t, int *poffset)
+bool Type::isBaseOf(Type *t, int *poffset)
 {
-    return 0;           // assume not
+    return false;           // assume not
 }
 
 /********************************
@@ -2267,10 +2267,10 @@ Expression *Type::toExpression()
  * be scanned by the GC during a collection cycle.
  */
 
-int Type::hasPointers()
+bool Type::hasPointers()
 {
     //printf("Type::hasPointers() %s, %d\n", toChars(), ty);
-    return FALSE;
+    return false;
 }
 
 /*************************************
@@ -3230,7 +3230,7 @@ Expression *TypeBasic::defaultInit(Loc loc)
     return new IntegerExp(loc, value, this);
 }
 
-int TypeBasic::isZeroInit(Loc loc)
+bool TypeBasic::isZeroInit(Loc loc)
 {
     switch (ty)
     {
@@ -3246,43 +3246,43 @@ int TypeBasic::isZeroInit(Loc loc)
         case Tcomplex32:
         case Tcomplex64:
         case Tcomplex80:
-            return 0;           // no
+            return false;           // no
     }
-    return 1;                   // yes
+    return true;                   // yes
 }
 
-int TypeBasic::isintegral()
+bool TypeBasic::isintegral()
 {
     //printf("TypeBasic::isintegral('%s') x%x\n", toChars(), flags);
     return flags & TFLAGSintegral;
 }
 
-int TypeBasic::isfloating()
+bool TypeBasic::isfloating()
 {
     return flags & TFLAGSfloating;
 }
 
-int TypeBasic::isreal()
+bool TypeBasic::isreal()
 {
     return flags & TFLAGSreal;
 }
 
-int TypeBasic::isimaginary()
+bool TypeBasic::isimaginary()
 {
     return flags & TFLAGSimaginary;
 }
 
-int TypeBasic::iscomplex()
+bool TypeBasic::iscomplex()
 {
     return flags & TFLAGScomplex;
 }
 
-int TypeBasic::isunsigned()
+bool TypeBasic::isunsigned()
 {
     return flags & TFLAGSunsigned;
 }
 
-int TypeBasic::isscalar()
+bool TypeBasic::isscalar()
 {
     return flags & (TFLAGSintegral | TFLAGSfloating);
 }
@@ -3444,9 +3444,9 @@ TypeBasic *TypeVector::elementType()
     return tb;
 }
 
-int TypeVector::checkBoolean()
+bool TypeVector::checkBoolean()
 {
-    return FALSE;
+    return false;
 }
 
 char *TypeVector::toChars()
@@ -3509,28 +3509,28 @@ Expression *TypeVector::defaultInit(Loc loc)
     return basetype->defaultInit(loc);
 }
 
-int TypeVector::isZeroInit(Loc loc)
+bool TypeVector::isZeroInit(Loc loc)
 {
     return basetype->isZeroInit(loc);
 }
 
-int TypeVector::isintegral()
+bool TypeVector::isintegral()
 {
     //printf("TypeVector::isintegral('%s') x%x\n", toChars(), flags);
     return basetype->nextOf()->isintegral();
 }
 
-int TypeVector::isfloating()
+bool TypeVector::isfloating()
 {
     return basetype->nextOf()->isfloating();
 }
 
-int TypeVector::isunsigned()
+bool TypeVector::isunsigned()
 {
     return basetype->nextOf()->isunsigned();
 }
 
-int TypeVector::isscalar()
+bool TypeVector::isscalar()
 {
     return basetype->nextOf()->isscalar();
 }
@@ -4025,7 +4025,7 @@ structalign_t TypeSArray::alignment()
     return next->alignment();
 }
 
-int TypeSArray::isString()
+bool TypeSArray::isString()
 {
     TY nty = next->toBasetype()->ty;
     return nty == Tchar || nty == Twchar || nty == Tdchar;
@@ -4116,7 +4116,7 @@ Expression *TypeSArray::defaultInit(Loc loc)
     return next->defaultInit(loc);
 }
 
-int TypeSArray::isZeroInit(Loc loc)
+bool TypeSArray::isZeroInit(Loc loc)
 {
     return next->isZeroInit(loc);
 }
@@ -4162,18 +4162,18 @@ Expression *TypeSArray::toExpression()
     return e;
 }
 
-int TypeSArray::hasPointers()
+bool TypeSArray::hasPointers()
 {
     /* Don't want to do this, because:
      *    struct S { T* array[0]; }
      * may be a variable length struct.
      */
     //if (dim->toInteger() == 0)
-        //return FALSE;
+        //return false;
 
     if (next->ty == Tvoid)
         // Arrays of void contain arbitrary data, which may include pointers
-        return TRUE;
+        return true;
     else
         return next->hasPointers();
 }
@@ -4320,7 +4320,7 @@ Expression *TypeDArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return e;
 }
 
-int TypeDArray::isString()
+bool TypeDArray::isString()
 {
     TY nty = next->toBasetype()->ty;
     return nty == Tchar || nty == Twchar || nty == Tdchar;
@@ -4388,19 +4388,19 @@ Expression *TypeDArray::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeDArray::isZeroInit(Loc loc)
+bool TypeDArray::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypeDArray::checkBoolean()
+bool TypeDArray::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
-int TypeDArray::hasPointers()
+bool TypeDArray::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -4725,14 +4725,14 @@ Expression *TypeAArray::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeAArray::isZeroInit(Loc loc)
+bool TypeAArray::isZeroInit(Loc loc)
 {
-    return TRUE;
+    return true;
 }
 
-int TypeAArray::checkBoolean()
+bool TypeAArray::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypeAArray::toExpression()
@@ -4751,9 +4751,9 @@ Expression *TypeAArray::toExpression()
     return NULL;
 }
 
-int TypeAArray::hasPointers()
+bool TypeAArray::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 MATCH TypeAArray::implicitConvTo(Type *to)
@@ -4968,9 +4968,9 @@ MATCH TypePointer::constConv(Type *to)
     return TypeNext::constConv(to);
 }
 
-int TypePointer::isscalar()
+bool TypePointer::isscalar()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypePointer::defaultInit(Loc loc)
@@ -4981,14 +4981,14 @@ Expression *TypePointer::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypePointer::isZeroInit(Loc loc)
+bool TypePointer::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypePointer::hasPointers()
+bool TypePointer::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -5062,9 +5062,9 @@ Expression *TypeReference::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeReference::isZeroInit(Loc loc)
+bool TypeReference::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
 
@@ -5567,9 +5567,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (sc->stc & STCpure)
         tf->purity = PUREfwdref;
     if (sc->stc & STCnothrow)
-        tf->isnothrow = TRUE;
+        tf->isnothrow = true;
     if (sc->stc & STCref)
-        tf->isref = TRUE;
+        tf->isref = true;
 
     if (sc->stc & STCsafe)
         tf->trust = TRUSTsafe;
@@ -5579,7 +5579,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->trust = TRUSTtrusted;
 
     if (sc->stc & STCproperty)
-        tf->isproperty = TRUE;
+        tf->isproperty = true;
 
     tf->linkage = sc->linkage;
 
@@ -5599,7 +5599,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
         }
 
-    bool wildreturn = FALSE;
+    bool wildreturn = false;
     if (tf->next)
     {
         sc = sc->push();
@@ -5617,13 +5617,13 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         if (tf->next->isscope() && !(sc->flags & SCOPEctor))
             error(loc, "functions cannot return scope %s", tf->next->toChars());
         if (tf->next->toBasetype()->ty == Tvoid)
-            tf->isref = FALSE;                  // rewrite "ref void" as just "void"
+            tf->isref = false;                  // rewrite "ref void" as just "void"
         if (tf->next->hasWild() &&
             !(tf->next->ty == Tpointer && tf->next->nextOf()->ty == Tfunction || tf->next->ty == Tdelegate))
-            wildreturn = TRUE;
+            wildreturn = true;
     }
 
-    bool wildparams = FALSE;
+    bool wildparams = false;
     if (tf->parameters)
     {
         /* Create a scope for evaluating the default arguments for the parameters
@@ -5664,7 +5664,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (t->hasWild() &&
                 !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
             {
-                wildparams = TRUE;
+                wildparams = true;
                 //if (tf->next && !wildreturn)
                 //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
             }
@@ -5751,7 +5751,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         argsc->pop();
     }
     if (tf->isWild())
-        wildparams = TRUE;
+        wildparams = true;
 
     if (wildreturn && !wildparams)
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
@@ -6220,7 +6220,7 @@ Type *TypeFunction::reliesOnTident(TemplateParameters *tparams)
 }
 
 /********************************************
- * Return TRUE if there are lazy parameters.
+ * Return true if there are lazy parameters.
  */
 bool TypeFunction::hasLazyParameters()
 {
@@ -6228,9 +6228,9 @@ bool TypeFunction::hasLazyParameters()
     for (size_t i = 0; i < dim; i++)
     {   Parameter *fparam = Parameter::getNth(parameters, i);
         if (fparam->storageClass & STClazy)
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 /***************************
@@ -6248,7 +6248,7 @@ bool TypeFunction::parameterEscapes(Parameter *p)
      * escaping.
      */
     if (p->storageClass & (STCscope | STClazy))
-        return FALSE;
+        return false;
 
     /* If haven't inferred the return type yet, assume it escapes
      */
@@ -6264,13 +6264,13 @@ bool TypeFunction::parameterEscapes(Parameter *p)
         {   /* The result has no references, so p could not be escaping
              * that way.
              */
-            return FALSE;
+            return false;
         }
     }
 
     /* Assume it escapes in the absence of better information.
      */
-    return TRUE;
+    return true;
 }
 
 Expression *TypeFunction::defaultInit(Loc loc)
@@ -6406,14 +6406,14 @@ Expression *TypeDelegate::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeDelegate::isZeroInit(Loc loc)
+bool TypeDelegate::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypeDelegate::checkBoolean()
+bool TypeDelegate::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
 Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -6452,9 +6452,9 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return e;
 }
 
-int TypeDelegate::hasPointers()
+bool TypeDelegate::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -7493,47 +7493,47 @@ Lfwd:
     return new ErrorExp();
 }
 
-int TypeEnum::isintegral()
+bool TypeEnum::isintegral()
 {
     return sym->memtype->isintegral();
 }
 
-int TypeEnum::isfloating()
+bool TypeEnum::isfloating()
 {
     return sym->memtype->isfloating();
 }
 
-int TypeEnum::isreal()
+bool TypeEnum::isreal()
 {
     return sym->memtype->isreal();
 }
 
-int TypeEnum::isimaginary()
+bool TypeEnum::isimaginary()
 {
     return sym->memtype->isimaginary();
 }
 
-int TypeEnum::iscomplex()
+bool TypeEnum::iscomplex()
 {
     return sym->memtype->iscomplex();
 }
 
-int TypeEnum::isunsigned()
+bool TypeEnum::isunsigned()
 {
     return sym->memtype->isunsigned();
 }
 
-int TypeEnum::isscalar()
+bool TypeEnum::isscalar()
 {
     return sym->memtype->isscalar();
 }
 
-int TypeEnum::isAssignable()
+bool TypeEnum::isAssignable()
 {
     return sym->memtype->isAssignable();
 }
 
-int TypeEnum::checkBoolean()
+bool TypeEnum::checkBoolean()
 {
     return sym->memtype->checkBoolean();
 }
@@ -7590,7 +7590,7 @@ Expression *TypeEnum::defaultInit(Loc loc)
     return e;
 }
 
-int TypeEnum::isZeroInit(Loc loc)
+bool TypeEnum::isZeroInit(Loc loc)
 {
     if (!sym->defaultval && sym->scope)
     {   // Enum is forward referenced. We need to resolve the whole thing.
@@ -7599,12 +7599,12 @@ int TypeEnum::isZeroInit(Loc loc)
     if (!sym->defaultval)
     {
         error(loc, "enum %s is forward referenced", sym->toChars());
-        return 0;
+        return false;
     }
-    return sym->defaultval->isBool(FALSE);
+    return sym->defaultval->isBool(false);
 }
 
-int TypeEnum::hasPointers()
+bool TypeEnum::hasPointers()
 {
     return toBasetype()->hasPointers();
 }
@@ -7712,7 +7712,7 @@ Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident)
     return sym->basetype->getProperty(loc, ident);
 }
 
-int TypeTypedef::isintegral()
+bool TypeTypedef::isintegral()
 {
     //printf("TypeTypedef::isintegral()\n");
     //printf("sym = '%s'\n", sym->toChars());
@@ -7720,42 +7720,42 @@ int TypeTypedef::isintegral()
     return sym->basetype->isintegral();
 }
 
-int TypeTypedef::isfloating()
+bool TypeTypedef::isfloating()
 {
     return sym->basetype->isfloating();
 }
 
-int TypeTypedef::isreal()
+bool TypeTypedef::isreal()
 {
     return sym->basetype->isreal();
 }
 
-int TypeTypedef::isimaginary()
+bool TypeTypedef::isimaginary()
 {
     return sym->basetype->isimaginary();
 }
 
-int TypeTypedef::iscomplex()
+bool TypeTypedef::iscomplex()
 {
     return sym->basetype->iscomplex();
 }
 
-int TypeTypedef::isunsigned()
+bool TypeTypedef::isunsigned()
 {
     return sym->basetype->isunsigned();
 }
 
-int TypeTypedef::isscalar()
+bool TypeTypedef::isscalar()
 {
     return sym->basetype->isscalar();
 }
 
-int TypeTypedef::isAssignable()
+bool TypeTypedef::isAssignable()
 {
     return sym->basetype->isAssignable();
 }
 
-int TypeTypedef::checkBoolean()
+bool TypeTypedef::checkBoolean()
 {
     return sym->basetype->checkBoolean();
 }
@@ -7861,16 +7861,16 @@ Expression *TypeTypedef::defaultInitLiteral(Loc loc)
     return e;
 }
 
-int TypeTypedef::isZeroInit(Loc loc)
+bool TypeTypedef::isZeroInit(Loc loc)
 {
     if (sym->init)
     {
         if (sym->init->isVoidInitializer())
-            return 1;           // initialize voids to 0
+            return true;           // initialize voids to 0
         Expression *e = sym->init->toExpression();
-        if (e && e->isBool(FALSE))
-            return 1;
-        return 0;               // assume not
+        if (e && e->isBool(false))
+            return true;
+        return false;               // assume not
     }
     if (sym->inuse)
     {
@@ -7883,7 +7883,7 @@ int TypeTypedef::isZeroInit(Loc loc)
     return result;
 }
 
-int TypeTypedef::hasPointers()
+bool TypeTypedef::hasPointers()
 {
     return toBasetype()->hasPointers();
 }
@@ -8262,14 +8262,14 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 }
 
 
-int TypeStruct::isZeroInit(Loc loc)
+bool TypeStruct::isZeroInit(Loc loc)
 {
     return sym->zeroInit;
 }
 
-int TypeStruct::checkBoolean()
+bool TypeStruct::checkBoolean()
 {
-    return FALSE;
+    return false;
 }
 
 int TypeStruct::needsDestruction()
@@ -8292,9 +8292,9 @@ bool TypeStruct::needsNested()
     return false;
 }
 
-int TypeStruct::isAssignable()
+bool TypeStruct::isAssignable()
 {
-    int assignable = TRUE;
+    bool assignable = true;
     unsigned offset;
 
     /* If any of the fields are const or invariant,
@@ -8317,7 +8317,7 @@ int TypeStruct::isAssignable()
         else
         {
             if (!assignable)
-                return FALSE;
+                return false;
         }
         assignable = v->type->isMutable() && v->type->isAssignable();
         offset = v->offset;
@@ -8327,7 +8327,7 @@ int TypeStruct::isAssignable()
     return assignable;
 }
 
-int TypeStruct::hasPointers()
+bool TypeStruct::hasPointers()
 {
     // Probably should cache this information in sym rather than recompute
     StructDeclaration *s = sym;
@@ -8338,9 +8338,9 @@ int TypeStruct::hasPointers()
         Dsymbol *sm = s->fields[i];
         Declaration *d = sm->isDeclaration();
         if (d->storage_class & STCref || d->hasPointers())
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 MATCH TypeStruct::implicitConvTo(Type *to)
@@ -8872,21 +8872,21 @@ ClassDeclaration *TypeClass::isClassHandle()
     return sym;
 }
 
-int TypeClass::isscope()
+bool TypeClass::isscope()
 {
     return sym->isscope;
 }
 
-int TypeClass::isBaseOf(Type *t, int *poffset)
+bool TypeClass::isBaseOf(Type *t, int *poffset)
 {
     if (t && t->ty == Tclass)
     {   ClassDeclaration *cd;
 
         cd   = ((TypeClass *)t)->sym;
         if (sym->isBaseOf(cd, poffset))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 MATCH TypeClass::implicitConvTo(Type *to)
@@ -8968,19 +8968,19 @@ Expression *TypeClass::defaultInit(Loc loc)
     return new NullExp(loc, this);
 }
 
-int TypeClass::isZeroInit(Loc loc)
+bool TypeClass::isZeroInit(Loc loc)
 {
-    return 1;
+    return true;
 }
 
-int TypeClass::checkBoolean()
+bool TypeClass::checkBoolean()
 {
-    return TRUE;
+    return true;
 }
 
-int TypeClass::hasPointers()
+bool TypeClass::hasPointers()
 {
-    return TRUE;
+    return true;
 }
 
 /***************************** TypeTuple *****************************/
@@ -9077,14 +9077,14 @@ Type *TypeTuple::semantic(Loc loc, Scope *sc)
     return this;
 }
 
-int TypeTuple::equals(Object *o)
+bool TypeTuple::equals(Object *o)
 {   Type *t;
 
     t = (Type *)o;
     //printf("TypeTuple::equals(%s, %s)\n", toChars(), t->toChars());
     if (this == t)
     {
-        return 1;
+        return true;
     }
     if (t->ty == Ttuple)
     {   TypeTuple *tt = (TypeTuple *)t;
@@ -9096,12 +9096,12 @@ int TypeTuple::equals(Object *o)
                 Parameter *arg2 = (*tt->arguments)[i];
 
                 if (!arg1->type->equals(arg2->type))
-                    return 0;
+                    return false;
             }
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 Type *TypeTuple::reliesOnTident(TemplateParameters *tparams)

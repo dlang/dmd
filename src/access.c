@@ -256,13 +256,13 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
  * Determine if this is the same or friend of cd.
  */
 
-int AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
+bool AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
 {
 #if LOG
     printf("AggregateDeclaration::isFriendOf(this = '%s', cd = '%s')\n", toChars(), cd ? cd->toChars() : "null");
 #endif
     if (this == cd)
-        return 1;
+        return true;
 
     // Friends if both are in the same module
     //if (toParent() == cd->toParent())
@@ -271,13 +271,13 @@ int AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
 #if LOG
         printf("\tin same module\n");
 #endif
-        return 1;
+        return true;
     }
 
 #if LOG
     printf("\tnot friend\n");
 #endif
-    return 0;
+    return false;
 }
 
 /****************************************
@@ -319,7 +319,7 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
  * Determine if smember has access to private members of this declaration.
  */
 
-int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
+bool AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 {
     if (smember)
     {   AggregateDeclaration *cd = NULL;
@@ -337,7 +337,7 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 #if LOG
             printf("\tyes 1\n");
 #endif
-            return 1;           // so we get private access
+            return true;           // so we get private access
         }
 
         // If both are members of the same module, grant access
@@ -353,20 +353,20 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 #if LOG
             printf("\tyes 2\n");
 #endif
-            return 1;
+            return true;
         }
         if (!cd && getAccessModule() == smember->getAccessModule())
         {
 #if LOG
             printf("\tyes 3\n");
 #endif
-            return 1;
+            return true;
         }
     }
 #if LOG
     printf("\tno\n");
 #endif
-    return 0;
+    return false;
 }
 
 /****************************************

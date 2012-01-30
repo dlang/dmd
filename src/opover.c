@@ -38,7 +38,7 @@
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
+static bool inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
 static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
 
 /******************************** Expression **************************/
@@ -49,9 +49,9 @@ static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc lo
  * to fit operator overload.
  */
 
-int Expression::isCommutative()
+bool Expression::isCommutative()
 {
-    return FALSE;       // default is no reverse
+    return false;       // default is no reverse
 }
 
 /***********************************
@@ -91,14 +91,14 @@ Identifier *PostExp::opId() { return (op == TOKplusplus)
                                 ? Id::postinc
                                 : Id::postdec; }
 
-int AddExp::isCommutative()  { return TRUE; }
+bool AddExp::isCommutative()  { return true; }
 Identifier *AddExp::opId()   { return Id::add; }
 Identifier *AddExp::opId_r() { return Id::add_r; }
 
 Identifier *MinExp::opId()   { return Id::sub; }
 Identifier *MinExp::opId_r() { return Id::sub_r; }
 
-int MulExp::isCommutative()  { return TRUE; }
+bool MulExp::isCommutative()  { return true; }
 Identifier *MulExp::opId()   { return Id::mul; }
 Identifier *MulExp::opId_r() { return Id::mul_r; }
 
@@ -122,15 +122,15 @@ Identifier *ShrExp::opId_r() { return Id::shr_r; }
 Identifier *UshrExp::opId()   { return Id::ushr; }
 Identifier *UshrExp::opId_r() { return Id::ushr_r; }
 
-int AndExp::isCommutative()  { return TRUE; }
+bool AndExp::isCommutative()  { return true; }
 Identifier *AndExp::opId()   { return Id::iand; }
 Identifier *AndExp::opId_r() { return Id::iand_r; }
 
-int OrExp::isCommutative()  { return TRUE; }
+bool OrExp::isCommutative()  { return true; }
 Identifier *OrExp::opId()   { return Id::ior; }
 Identifier *OrExp::opId_r() { return Id::ior_r; }
 
-int XorExp::isCommutative()  { return TRUE; }
+bool XorExp::isCommutative()  { return true; }
 Identifier *XorExp::opId()   { return Id::ixor; }
 Identifier *XorExp::opId_r() { return Id::ixor_r; }
 
@@ -152,10 +152,10 @@ Identifier *UshrAssignExp::opId()  { return Id::ushrass; }
 Identifier * CatAssignExp::opId()  { return Id::catass;  }
 Identifier * PowAssignExp::opId()  { return Id::powass;  }
 
-int EqualExp::isCommutative()  { return TRUE; }
+bool EqualExp::isCommutative()  { return true; }
 Identifier *EqualExp::opId()   { return Id::eq; }
 
-int CmpExp::isCommutative()  { return TRUE; }
+bool CmpExp::isCommutative()  { return true; }
 Identifier *CmpExp::opId()   { return Id::cmp; }
 
 Identifier *ArrayExp::opId()    { return Id::index; }
@@ -1536,7 +1536,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
  *      0 no match for this function
  */
 
-static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags)
+static bool inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags)
 {   size_t nparams;
     Parameter *p;
 
@@ -1572,10 +1572,10 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
         }
     }
   Lmatch:
-    return 1;
+    return true;
 
   Lnomatch:
-    return 0;
+    return false;
 }
 
 /*******************************************

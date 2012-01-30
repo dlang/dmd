@@ -108,7 +108,7 @@ struct Match
 
 void overloadResolveX(Match *m, FuncDeclaration *f,
         Expression *ethis, Expressions *arguments);
-int overloadApply(FuncDeclaration *fstart,
+bool overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param);
 
@@ -151,28 +151,28 @@ struct Declaration : Dsymbol
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     char *mangle(bool isv = false);
-    int isStatic() { return storage_class & STCstatic; }
-    virtual int isDelete();
-    virtual int isDataseg();
-    virtual int isThreadlocal();
-    virtual int isCodeseg();
-    int isCtorinit()     { return storage_class & STCctorinit; }
-    int isFinal()        { return storage_class & STCfinal; }
-    int isAbstract()     { return storage_class & STCabstract; }
-    int isConst()        { return storage_class & STCconst; }
-    int isImmutable()    { return storage_class & STCimmutable; }
-    int isWild()         { return storage_class & STCwild; }
-    int isAuto()         { return storage_class & STCauto; }
-    int isScope()        { return storage_class & STCscope; }
-    int isSynchronized() { return storage_class & STCsynchronized; }
-    int isParameter()    { return storage_class & STCparameter; }
-    int isDeprecated()   { return storage_class & STCdeprecated; }
-    int isOverride()     { return storage_class & STCoverride; }
+    bool isStatic() { return storage_class & STCstatic; }
+    virtual bool isDelete();
+    virtual bool isDataseg();
+    virtual bool isThreadlocal();
+    virtual bool isCodeseg();
+    bool isCtorinit()     { return storage_class & STCctorinit; }
+    bool isFinal()        { return storage_class & STCfinal; }
+    bool isAbstract()     { return storage_class & STCabstract; }
+    bool isConst()        { return storage_class & STCconst; }
+    bool isImmutable()    { return storage_class & STCimmutable; }
+    bool isWild()         { return storage_class & STCwild; }
+    bool isAuto()         { return storage_class & STCauto; }
+    bool isScope()        { return storage_class & STCscope; }
+    bool isSynchronized() { return storage_class & STCsynchronized; }
+    bool isParameter()    { return storage_class & STCparameter; }
+    bool isDeprecated()   { return storage_class & STCdeprecated; }
+    bool isOverride()     { return storage_class & STCoverride; }
     StorageClass isResult()       { return storage_class & STCresult; }
 
-    int isIn()    { return storage_class & STCin; }
-    int isOut()   { return storage_class & STCout; }
-    int isRef()   { return storage_class & STCref; }
+    bool isIn()    { return storage_class & STCin; }
+    bool isOut()   { return storage_class & STCout; }
+    bool isRef()   { return storage_class & STCref; }
 
     enum PROT prot();
 
@@ -191,7 +191,7 @@ struct TupleDeclaration : Declaration
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind();
     Type *getType();
-    int needThis();
+    bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
 };
@@ -241,7 +241,7 @@ struct AliasDeclaration : Declaration
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     const char *kind();
     Type *getType();
     Dsymbol *toAlias();
@@ -299,15 +299,15 @@ struct VarDeclaration : Declaration
     Type *htype;
     Initializer *hinit;
     AggregateDeclaration *isThis();
-    int needThis();
-    int isImportedSymbol();
-    int isDataseg();
-    int isThreadlocal();
-    int isCTFE();
-    int hasPointers();
+    bool needThis();
+    bool isImportedSymbol();
+    bool isDataseg();
+    bool isThreadlocal();
+    bool isCTFE();
+    bool hasPointers();
 #if DMDV2
-    int canTakeAddressOf();
-    int needsAutoDtor();
+    bool canTakeAddressOf();
+    bool needsAutoDtor();
 #endif
     Expression *callScopeDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
@@ -646,14 +646,14 @@ struct FuncDeclaration : Declaration
     bool functionSemantic3();
     // called from semantic3
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
-    int equals(Object *o);
+    bool equals(Object *o);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
     MATCH leastAsSpecialized(FuncDeclaration *g);
@@ -665,40 +665,40 @@ struct FuncDeclaration : Declaration
     void appendState(Statement *s);
     char *mangle(bool isv = false);
     const char *toPrettyChars();
-    int isMain();
-    int isWinMain();
-    int isDllMain();
+    bool isMain();
+    bool isWinMain();
+    bool isDllMain();
     enum BUILTIN isBuiltin();
-    int isExport();
-    int isImportedSymbol();
-    int isAbstract();
-    int isCodeseg();
-    int isOverloadable();
+    bool isExport();
+    bool isImportedSymbol();
+    bool isAbstract();
+    bool isCodeseg();
+    bool isOverloadable();
     int hasOverloads();
     enum PURE isPure();
     enum PURE isPureBypassingInference();
     bool setImpure();
-    int isSafe();
+    bool isSafe();
     bool isSafeBypassingInference();
-    int isTrusted();
+    bool isTrusted();
     bool setUnsafe();
-    virtual int isNested();
-    int needThis();
-    int isVirtualMethod();
-    virtual int isVirtual();
-    virtual int isFinal();
-    virtual int addPreInvariant();
-    virtual int addPostInvariant();
+    virtual bool isNested();
+    bool needThis();
+    bool isVirtualMethod();
+    virtual bool isVirtual();
+    virtual bool isFinal();
+    virtual bool addPreInvariant();
+    virtual bool addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void inlineScan();
-    int canInline(int hasthis, int hdrscan, int statementsToo);
+    bool canInline(int hasthis, int hdrscan, int statementsToo);
     Expression *expandInline(InlineScanState *iss, Expression *ethis, Expressions *arguments, Statement **ps);
     const char *kind();
     void toDocBuffer(OutBuffer *buf, Scope *sc);
     FuncDeclaration *isUnique();
     void checkNestedReference(Scope *sc, Loc loc);
-    int needsClosure();
-    int hasNestedFrameRefs();
+    bool needsClosure();
+    bool hasNestedFrameRefs();
     void buildResultVar();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
@@ -750,8 +750,8 @@ struct FuncLiteralDeclaration : FuncDeclaration
         ForeachStatement *fes);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    int isNested();
-    int isVirtual();
+    bool isNested();
+    bool isVirtual();
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
@@ -764,9 +764,9 @@ struct CtorDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     const char *kind();
     char *toChars();
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
     bool isImplicit;  // implicitly generated ctor
 
     CtorDeclaration *isCtorDeclaration() { return this; }
@@ -780,10 +780,10 @@ struct PostBlitDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
-    int overloadInsert(Dsymbol *s);
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
+    bool overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
@@ -799,10 +799,10 @@ struct DtorDeclaration : FuncDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     char *toChars();
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
-    int overloadInsert(Dsymbol *s);
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
+    bool overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
@@ -815,9 +815,9 @@ struct StaticCtorDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
     bool hasStaticCtorOrDtor();
     void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -844,10 +844,10 @@ struct StaticDtorDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isVirtual();
+    bool isVirtual();
     bool hasStaticCtorOrDtor();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -870,9 +870,9 @@ struct InvariantDeclaration : FuncDeclaration
     InvariantDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
     void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -885,9 +885,9 @@ struct UnitTestDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
@@ -902,9 +902,9 @@ struct NewDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
 
     NewDeclaration *isNewDeclaration() { return this; }
 };
@@ -918,10 +918,10 @@ struct DeleteDeclaration : FuncDeclaration
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
-    int isDelete();
-    int isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool isDelete();
+    bool isVirtual();
+    bool addPreInvariant();
+    bool addPostInvariant();
     DeleteDeclaration *isDeleteDeclaration() { return this; }
 };
 

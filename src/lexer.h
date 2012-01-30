@@ -257,7 +257,7 @@ struct Token
     static void *operator new(size_t sz);
 
     Token() : next(NULL) {}
-    int isKeyword();
+    bool isKeyword();
     void print();
     const char *toChars();
     static const char *toChars(enum TOK);
@@ -315,7 +315,7 @@ struct Lexer
     unsigned decodeUTF();
     void getDocComment(Token *t, unsigned lineComment);
 
-    static int isValidIdentifier(char *p);
+    static bool isValidIdentifier(char *p);
     static unsigned char *combineComments(unsigned char *c1, unsigned char *c2);
 
     Loc tokenLoc();

@@ -31,8 +31,8 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     minval = NULL;
     defaultval = NULL;
     sinit = NULL;
-    isdeprecated = 0;
-    isdone = 0;
+    isdeprecated = false;
+    isdone = false;
     objFileDone = 0;
 }
 
@@ -120,7 +120,7 @@ void EnumDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
 
     if (sc->stc & STCdeprecated)
-        isdeprecated = 1;
+        isdeprecated = true;
     userAttributes = sc->userAttributes;
 
     parent = sc->parent;
@@ -159,7 +159,7 @@ void EnumDeclaration::semantic(Scope *sc)
 #endif
     }
 
-    isdone = 1;
+    isdone = true;
     Module::dprogress++;
 
     type = type->semantic(loc, sc);
@@ -171,7 +171,7 @@ void EnumDeclaration::semantic(Scope *sc)
     }
     if (members->dim == 0)
         error("enum %s must have at least one member", toChars());
-    int first = 1;
+    bool first = true;
     Expression *elast = NULL;
     for (size_t i = 0; i < members->dim; i++)
     {
@@ -317,7 +317,7 @@ void EnumDeclaration::semantic(Scope *sc)
                     maxval = e;
             }
         }
-        first = 0;
+        first = false;
     }
     //printf("defaultval = %lld\n", defaultval);
 
@@ -327,7 +327,7 @@ void EnumDeclaration::semantic(Scope *sc)
     //members->print();
 }
 
-int EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     if (isAnonymous())
         return Dsymbol::oneMembers(members, ps, ident);
@@ -380,7 +380,7 @@ const char *EnumDeclaration::kind()
     return "enum";
 }
 
-int EnumDeclaration::isDeprecated()
+bool EnumDeclaration::isDeprecated()
 {
     return isdeprecated;
 }

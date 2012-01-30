@@ -23,7 +23,7 @@
 #include "scope.h"
 #include "attrib.h"
 
-int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow);
+bool Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow);
 int lambdaCanThrow(Expression *e, void *param);
 
 /********************************************
@@ -40,11 +40,11 @@ struct CanThrow
     bool mustnot;
 };
 
-int Expression::canThrow(bool mustNotThrow)
+bool Expression::canThrow(bool mustNotThrow)
 {
     //printf("Expression::canThrow(%d) %s\n", mustNotThrow, toChars());
     CanThrow ct;
-    ct.can = FALSE;
+    ct.can = false;
     ct.mustnot = mustNotThrow;
     apply(&lambdaCanThrow, &ct);
     return ct.can;
@@ -80,7 +80,7 @@ int lambdaCanThrow(Expression *e, void *param)
             {
                 if (pct->mustnot)
                     e->error("%s is not nothrow", ce->e1->toChars());
-                pct->can = TRUE;
+                pct->can = true;
             }
             break;
         }
@@ -95,7 +95,7 @@ int lambdaCanThrow(Expression *e, void *param)
                 {
                     if (pct->mustnot)
                         e->error("constructor %s is not nothrow", ne->member->toChars());
-                    pct->can = TRUE;
+                    pct->can = true;
                 }
             }
             // regard storage allocation failures as not recoverable
@@ -117,7 +117,7 @@ int lambdaCanThrow(Expression *e, void *param)
  * Mirrors logic in Dsymbol_toElem().
  */
 
-int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
+bool Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
 {
     AttribDeclaration *ad;
     VarDeclaration *vd;
@@ -135,7 +135,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
             {
                 s = (*decl)[i];
                 if (Dsymbol_canThrow(s, mustNotThrow))
-                    return 1;
+                    return true;
             }
         }
     }
@@ -153,7 +153,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
             if (vd->init)
             {   ExpInitializer *ie = vd->init->isExpInitializer();
                 if (ie && ie->exp->canThrow(mustNotThrow))
-                    return 1;
+                    return true;
             }
             if (vd->edtor && !vd->noscope)
                 return vd->edtor->canThrow(mustNotThrow);
@@ -168,7 +168,7 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
             {
                 Dsymbol *sm = (*tm->members)[i];
                 if (Dsymbol_canThrow(sm, mustNotThrow))
-                    return 1;
+                    return true;
             }
         }
     }
@@ -181,10 +181,10 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
                 if (eo->op == TOKdsymbol)
                 {   DsymbolExp *se = (DsymbolExp *)eo;
                     if (Dsymbol_canThrow(se->s, mustNotThrow))
-                        return 1;
+                        return true;
                 }
             }
         }
     }
-    return 0;
+    return false;
 }

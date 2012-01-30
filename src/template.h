@@ -78,7 +78,7 @@ struct TemplateDeclaration : ScopeDsymbol
         Expression *constraint, Dsymbols *decldefs, int ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool hasStaticCtorOrDtor();
     const char *kind();
@@ -99,7 +99,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
-    int isOverloadable();
+    bool isOverloadable();
 
     void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
 };
@@ -143,7 +143,7 @@ struct TemplateParameter
 
     /* If TemplateParameter's match as far as overloading goes.
      */
-    virtual int overloadMatch(TemplateParameter *) = 0;
+    virtual bool overloadMatch(TemplateParameter *) = 0;
 
     /* Match actual argument against parameter.
      */
@@ -174,7 +174,7 @@ struct TemplateTypeParameter : TemplateParameter
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
-    int overloadMatch(TemplateParameter *);
+    bool overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
@@ -216,7 +216,7 @@ struct TemplateValueParameter : TemplateParameter
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
-    int overloadMatch(TemplateParameter *);
+    bool overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
@@ -243,7 +243,7 @@ struct TemplateAliasParameter : TemplateParameter
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
-    int overloadMatch(TemplateParameter *);
+    bool overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
@@ -264,7 +264,7 @@ struct TemplateTupleParameter : TemplateParameter
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
-    int overloadMatch(TemplateParameter *);
+    bool overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
@@ -317,8 +317,8 @@ struct TemplateInstance : ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
-    int needsTypeInference(Scope *sc);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
+    bool needsTypeInference(Scope *sc);
     char *toChars();
     char *mangle(bool isv = false);
     void printInstantiationTrace();
@@ -331,7 +331,7 @@ struct TemplateInstance : ScopeDsymbol
     TemplateDeclaration *findTemplateDeclaration(Scope *sc);
     TemplateDeclaration *findBestMatch(Scope *sc, Expressions *fargs);
     void declareParameters(Scope *sc);
-    int hasNestedArgs(Objects *tiargs);
+    bool hasNestedArgs(Objects *tiargs);
     Identifier *genIdent(Objects *args);
     void expandMembers(Scope *sc);
     void tryExpandMembers(Scope *sc);
@@ -353,9 +353,9 @@ struct TemplateMixin : TemplateInstance
     void semantic3(Scope *sc);
     void inlineScan();
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
-    int hasPointers();
+    bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -371,8 +371,8 @@ Dsymbol *isDsymbol(Object *o);
 Type *isType(Object *o);
 Tuple *isTuple(Object *o);
 Parameter *isParameter(Object *o);
-int arrayObjectIsError(Objects *args);
-int isError(Object *o);
+bool arrayObjectIsError(Objects *args);
+bool isError(Object *o);
 Type *getType(Object *o);
 Dsymbol *getDsymbol(Object *o);
 

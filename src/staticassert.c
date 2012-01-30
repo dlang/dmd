@@ -40,9 +40,9 @@ Dsymbol *StaticAssert::syntaxCopy(Dsymbol *s)
     return sa;
 }
 
-int StaticAssert::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+bool StaticAssert::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    return 0;           // we didn't add anything
+    return false;           // we didn't add anything
 }
 
 void StaticAssert::semantic(Scope *sc)
@@ -70,7 +70,7 @@ void StaticAssert::semantic2(Scope *sc)
     {
         errorSupplemental(loc, "while evaluating: static assert(%s)", exp->toChars());
     }
-    else if (e->isBool(FALSE))
+    else if (e->isBool(false))
     {
         if (msg)
         {   HdrGenState hgs;
@@ -95,17 +95,17 @@ void StaticAssert::semantic2(Scope *sc)
         if (!global.gag)
               fatal();
     }
-    else if (!e->isBool(TRUE))
+    else if (!e->isBool(true))
     {
         error("(%s) is not evaluatable at compile time", exp->toChars());
     }
 }
 
-int StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
+bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("StaticAssert::oneMember())\n");
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 void StaticAssert::inlineScan()

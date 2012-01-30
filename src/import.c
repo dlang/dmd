@@ -351,9 +351,9 @@ Dsymbol *Import::toAlias()
  * Add import to sd's symbol table.
  */
 
-int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+bool Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    int result = 0;
+    bool result = false;
 
     if (names.dim == 0)
         return Dsymbol::addMember(sc, sd, memnum);
@@ -395,7 +395,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     return pkg->search(loc, ident, flags);
 }
 
-int Import::overloadInsert(Dsymbol *s)
+bool Import::overloadInsert(Dsymbol *s)
 {
     /* Allow multiple imports with the same package base, but disallow
      * alias collisions (Bugzilla 5412).

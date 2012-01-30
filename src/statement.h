@@ -104,8 +104,8 @@ struct Statement : Object
     virtual bool hasContinue();
     virtual bool usesEH();
     virtual int blockExit(bool mustNotThrow);
-    virtual int comeFrom();
-    virtual int isEmpty();
+    virtual bool comeFrom();
+    virtual bool isEmpty();
     virtual Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
@@ -148,7 +148,7 @@ struct ExpStatement : Statement
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     int blockExit(bool mustNotThrow);
-    int isEmpty();
+    bool isEmpty();
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
 
     int inlineCost(InlineCostState *ics);
@@ -197,8 +197,8 @@ struct CompoundStatement : Statement
     Statement *semantic(Scope *sc);
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
-    int isEmpty();
+    bool comeFrom();
+    bool isEmpty();
     Statements *flatten(Scope *sc);
     ReturnStatement *isReturnStatement();
     Expression *interpret(InterState *istate);
@@ -235,7 +235,7 @@ struct UnrolledLoopStatement : Statement
     bool hasContinue();
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -260,8 +260,8 @@ struct ScopeStatement : Statement
     bool hasContinue();
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
-    int isEmpty();
+    bool comeFrom();
+    bool isEmpty();
     Expression *interpret(InterState *istate);
 
     int inlineCost(InlineCostState *ics);
@@ -284,7 +284,7 @@ struct WhileStatement : Statement
     bool hasContinue();
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -305,7 +305,7 @@ struct DoStatement : Statement
     bool hasContinue();
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -337,7 +337,7 @@ struct ForStatement : Statement
     bool hasContinue();
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -373,7 +373,7 @@ struct ForeachStatement : Statement
     bool hasContinue();
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -401,7 +401,7 @@ struct ForeachRangeStatement : Statement
     bool hasContinue();
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -523,7 +523,7 @@ struct CaseStatement : Statement
     int compare(Object *obj);
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     CaseStatement *isCaseStatement() { return this; }
@@ -561,7 +561,7 @@ struct DefaultStatement : Statement
     Statement *semantic(Scope *sc);
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     DefaultStatement *isDefaultStatement() { return this; }
@@ -849,7 +849,7 @@ struct LabelStatement : Statement
     Statements *flatten(Scope *sc);
     bool usesEH();
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -880,7 +880,7 @@ struct AsmStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    int comeFrom();
+    bool comeFrom();
     Expression *interpret(InterState *istate);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -900,7 +900,7 @@ struct ImportStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
-    int isEmpty();
+    bool isEmpty();
     Expression *interpret(InterState *istate);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

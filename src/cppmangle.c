@@ -44,7 +44,7 @@ struct CppMangleState
     static Voids components;
 
     int substitute(OutBuffer *buf, void *p);
-    int exist(void *p);
+    bool exist(void *p);
     void store(void *p);
 };
 
@@ -85,16 +85,16 @@ int CppMangleState::substitute(OutBuffer *buf, void *p)
     return 0;
 }
 
-int CppMangleState::exist(void *p)
+bool CppMangleState::exist(void *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
         if (p == components[i])
         {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 void CppMangleState::store(void *p)

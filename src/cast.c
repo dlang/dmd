@@ -2026,7 +2026,7 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
  *      0       failed
  */
 
-int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
+bool typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
     //e->dump(0);
@@ -2524,7 +2524,7 @@ Lcc:
     else
     {
      Lincompatible:
-        return 0;
+        return false;
     }
 Lret:
     if (!*pt)
@@ -2538,7 +2538,7 @@ Lret:
     printf("\ttype = %s\n", t->toChars());
 #endif
     //dump(0);
-    return 1;
+    return true;
 
 
 Lt1:

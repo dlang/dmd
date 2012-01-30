@@ -432,7 +432,7 @@ Token *Lexer::peekPastParen(Token *tk)
  *      0       invalid
  */
 
-int Lexer::isValidIdentifier(char *p)
+bool Lexer::isValidIdentifier(char *p)
 {
     size_t len;
     size_t idx;
@@ -455,10 +455,10 @@ int Lexer::isValidIdentifier(char *p)
         if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
             goto Linvalid;
     }
-    return 1;
+    return true;
 
 Linvalid:
-    return 0;
+    return false;
 }
 
 /****************************
@@ -2934,14 +2934,14 @@ static Keyword keywords[] =
 #endif
 };
 
-int Token::isKeyword()
+bool Token::isKeyword()
 {
     for (size_t u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
     {
         if (keywords[u].value == value)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 void Lexer::initKeywords()

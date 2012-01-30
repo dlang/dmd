@@ -55,9 +55,9 @@ struct Import : Dsymbol
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     Dsymbol *toAlias();
-    int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
+    bool addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
 

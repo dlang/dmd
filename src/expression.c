@@ -507,17 +507,17 @@ Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc)
  */
 
 #if DMDV2
-int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
+bool arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow)
 {
     if (exps)
     {
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e = (*exps)[i];
             if (e && e->canThrow(mustNotThrow))
-                return 1;
+                return true;
         }
     }
-    return 0;
+    return false;
 }
 #endif
 
@@ -1498,7 +1498,7 @@ void Expression::deprecation(const char *format, ...)
     }
 }
 
-int Expression::rvalue()
+bool Expression::rvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
     {   error("expression %s is void and has no value", toChars());
@@ -1508,9 +1508,9 @@ int Expression::rvalue()
 #endif
         if (!global.gag)
             type = Type::terror;
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
 Expression *Expression::combine(Expression *e1, Expression *e2)
@@ -1582,9 +1582,9 @@ void Expression::toMangleBuffer(OutBuffer *buf)
  * Return !=0 if expression is an lvalue.
  */
 
-int Expression::isLvalue()
+bool Expression::isLvalue()
 {
-    return 0;
+    return false;
 }
 
 /*******************************
@@ -1827,7 +1827,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
              * Therefore, this function and all its immediately enclosing
              * functions must be pure.
              */
-            bool msg = FALSE;
+            bool msg = false;
             for (Dsymbol *s = sc->func; s; s = s->toParent2())
             {
                 FuncDeclaration *ff = s->isFuncDeclaration();
@@ -1836,7 +1836,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
                 if (ff->setImpure() && !msg)
                 {   error("pure function '%s' cannot access mutable static data '%s'",
                         sc->func->toPrettyChars(), v->toChars());
-                    msg = TRUE;                     // only need the innermost message
+                    msg = true;                     // only need the innermost message
                 }
             }
         }
@@ -1991,21 +1991,21 @@ Expression *Expression::deref()
 }
 
 /********************************
- * Does this expression statically evaluate to a boolean TRUE or FALSE?
+ * Does this expression statically evaluate to a boolean true or false?
  */
 
-int Expression::isBool(int result)
+bool Expression::isBool(int result)
 {
-    return FALSE;
+    return false;
 }
 
 /********************************
  * Does this expression result in either a 1 or a 0?
  */
 
-int Expression::isBit()
+bool Expression::isBit()
 {
-    return FALSE;
+    return false;
 }
 
 /****************************************
@@ -2108,15 +2108,15 @@ IntegerExp::IntegerExp(dinteger_t value)
     this->value = value;
 }
 
-int IntegerExp::equals(Object *o)
+bool IntegerExp::equals(Object *o)
 {   IntegerExp *ne;
 
     if (this == o ||
         (((Expression *)o)->op == TOKint64 &&
          ((ne = (IntegerExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
          value == ne->value))
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 char *IntegerExp::toChars()
@@ -2206,9 +2206,9 @@ complex_t IntegerExp::toComplex()
     return toReal();
 }
 
-int IntegerExp::isBool(int result)
+bool IntegerExp::isBool(int result)
 {
-    int r = toInteger() != 0;
+	bool r = toInteger() != 0;
     return result ? r : !r;
 }
 
@@ -2468,7 +2468,7 @@ complex_t RealExp::toComplex()
  * Regard +0 and -0 as different.
  */
 
-int RealEquals(real_t x1, real_t x2)
+bool RealEquals(real_t x1, real_t x2)
 {
     return (Port::isNan(x1) && Port::isNan(x2)) ||
         /* In some cases, the REALPAD bytes get garbage in them,
@@ -2477,7 +2477,7 @@ int RealEquals(real_t x1, real_t x2)
         memcmp(&x1, &x2, REALSIZE - REALPAD) == 0;
 }
 
-int RealExp::equals(Object *o)
+bool RealExp::equals(Object *o)
 {   RealExp *ne;
 
     if (this == o ||
@@ -2486,8 +2486,8 @@ int RealExp::equals(Object *o)
          RealEquals(value, ne->value)
         )
        )
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 Expression *RealExp::semantic(Scope *sc)
@@ -2499,7 +2499,7 @@ Expression *RealExp::semantic(Scope *sc)
     return this;
 }
 
-int RealExp::isBool(int result)
+bool RealExp::isBool(int result)
 {
 #ifdef IN_GCC
     return result ? (! value.isZero()) : (value.isZero());
@@ -2677,7 +2677,7 @@ complex_t ComplexExp::toComplex()
     return value;
 }
 
-int ComplexExp::equals(Object *o)
+bool ComplexExp::equals(Object *o)
 {   ComplexExp *ne;
 
     if (this == o ||
@@ -2687,8 +2687,8 @@ int ComplexExp::equals(Object *o)
          RealEquals(cimagl(value), cimagl(ne->value))
         )
        )
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 Expression *ComplexExp::semantic(Scope *sc)
@@ -2700,7 +2700,7 @@ Expression *ComplexExp::semantic(Scope *sc)
     return this;
 }
 
-int ComplexExp::isBool(int result)
+bool ComplexExp::isBool(int result)
 {
     if (result)
         return (bool)(value);
@@ -2875,9 +2875,9 @@ void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-int IdentifierExp::isLvalue()
+bool IdentifierExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
@@ -3128,9 +3128,9 @@ void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-int DsymbolExp::isLvalue()
+bool DsymbolExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
@@ -3203,9 +3203,9 @@ Lerr:
     return new ErrorExp();
 }
 
-int ThisExp::isBool(int result)
+bool ThisExp::isBool(int result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3214,9 +3214,9 @@ void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 }
 
 
-int ThisExp::isLvalue()
+bool ThisExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
@@ -3336,15 +3336,15 @@ NullExp::NullExp(Loc loc, Type *type)
     this->type = type;
 }
 
-int NullExp::equals(Object *o)
+bool NullExp::equals(Object *o)
 {
     if (o && o->dyncast() == DYNCAST_EXPRESSION)
     {   Expression *e = (Expression *)o;
 
         if (e->op == TOKnull)
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 Expression *NullExp::semantic(Scope *sc)
@@ -3358,9 +3358,9 @@ Expression *NullExp::semantic(Scope *sc)
     return this;
 }
 
-int NullExp::isBool(int result)
+bool NullExp::isBool(int result)
 {
-    return result ? FALSE : TRUE;
+    return result ? false : true;
 }
 
 StringExp *NullExp::toString()
@@ -3427,7 +3427,7 @@ Expression *StringExp::syntaxCopy()
 }
 #endif
 
-int StringExp::equals(Object *o)
+bool StringExp::equals(Object *o)
 {
     //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
     if (o && o->dyncast() == DYNCAST_EXPRESSION)
@@ -3438,7 +3438,7 @@ int StringExp::equals(Object *o)
             return compare(o) == 0;
         }
     }
-    return FALSE;
+    return false;
 }
 
 Expression *StringExp::semantic(Scope *sc)
@@ -3643,18 +3643,18 @@ int StringExp::compare(Object *obj)
     return (int)(len1 - len2);
 }
 
-int StringExp::isBool(int result)
+bool StringExp::isBool(int result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 
-int StringExp::isLvalue()
+bool StringExp::isLvalue()
 {
     /* string literal is rvalue in default, but
      * conversion to reference of static array is only allowed.
      */
-    return 0;
+    return false;
 }
 
 Expression *StringExp::toLvalue(Scope *sc, Expression *e)
@@ -3844,7 +3844,7 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     return this;
 }
 
-int ArrayLiteralExp::isBool(int result)
+bool ArrayLiteralExp::isBool(int result)
 {
     size_t dim = elements ? elements->dim : 0;
     return result ? (dim != 0) : (dim == 0);
@@ -3951,7 +3951,7 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
 }
 
 
-int AssocArrayLiteralExp::isBool(int result)
+bool AssocArrayLiteralExp::isBool(int result)
 {
     size_t dim = keys->dim;
     return result ? (dim != 0) : (dim == 0);
@@ -4312,10 +4312,10 @@ Expression *TypeExp::semantic(Scope *sc)
     return e;
 }
 
-int TypeExp::rvalue()
+bool TypeExp::rvalue()
 {
     error("type %s has no value", toChars());
-    return 0;
+    return false;
 }
 
 void TypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4441,10 +4441,10 @@ void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(td->toChars());
 }
 
-int TemplateExp::rvalue()
+bool TemplateExp::rvalue()
 {
     error("template %s has no value", toChars());
-    return 0;
+    return false;
 }
 
 /********************** NewExp **************************************/
@@ -4937,9 +4937,9 @@ Expression *SymOffExp::semantic(Scope *sc)
     return this;
 }
 
-int SymOffExp::isBool(int result)
+bool SymOffExp::isBool(int result)
 {
-    return result ? TRUE : FALSE;
+    return result ? true : false;
 }
 
 void SymOffExp::checkEscape()
@@ -4977,15 +4977,15 @@ VarExp::VarExp(Loc loc, Declaration *var, int hasOverloads)
     this->type = var->type;
 }
 
-int VarExp::equals(Object *o)
+bool VarExp::equals(Object *o)
 {   VarExp *ne;
 
     if (this == o ||
         (((Expression *)o)->op == TOKvar &&
          ((ne = (VarExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
          var == ne->var))
-        return 1;
-    return 0;
+        return true;
+    return false;
 }
 
 Expression *VarExp::semantic(Scope *sc)
@@ -5063,11 +5063,11 @@ void VarExp::checkEscapeRef()
     }
 }
 
-int VarExp::isLvalue()
+bool VarExp::isLvalue()
 {
     if (var->storage_class & (STClazy | STCtemp))
-        return 0;
-    return 1;
+        return false;
+    return true;
 }
 
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
@@ -5123,9 +5123,9 @@ OverExp::OverExp(OverloadSet *s)
     type = Type::tvoid;
 }
 
-int OverExp::isLvalue()
+bool OverExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *OverExp::toLvalue(Scope *sc, Expression *e)
@@ -5181,25 +5181,25 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
     }
 }
 
-int TupleExp::equals(Object *o)
+bool TupleExp::equals(Object *o)
 {
     if (this == o)
-        return 1;
+        return true;
     if (((Expression *)o)->op == TOKtuple)
     {
         TupleExp *te = (TupleExp *)o;
         if (exps->dim != te->exps->dim)
-            return 0;
+            return false;
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e1 = (*exps)[i];
             Expression *e2 = (*te->exps)[i];
 
             if (!e1->equals(e2))
-                return 0;
+                return false;
         }
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 Expression *TupleExp::syntaxCopy()
@@ -5906,8 +5906,8 @@ Expression *IsExp::semantic(Scope *sc)
     }
     else if (id && tspec)
     {
-        /* Evaluate to TRUE if targ matches tspec.
-         * If TRUE, declare id as an alias for the specialized type.
+        /* Evaluate to true if targ matches tspec.
+         * If true, declare id as an alias for the specialized type.
          */
 
         assert(parameters && parameters->dim);
@@ -5955,14 +5955,14 @@ Expression *IsExp::semantic(Scope *sc)
     }
     else if (id)
     {
-        /* Declare id as an alias for type targ. Evaluate to TRUE
+        /* Declare id as an alias for type targ. Evaluate to true
          */
         tded = targ;
         goto Lyes;
     }
     else if (tspec)
     {
-        /* Evaluate to TRUE if targ matches tspec
+        /* Evaluate to true if targ matches tspec
          * is(targ == tspec)
          * is(targ : tspec)
          */
@@ -6245,7 +6245,7 @@ void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     expToCBuffer(buf, hgs, e2, (enum PREC)(precedence[op] + 1));
 }
 
-int BinExp::isunsigned()
+bool BinExp::isunsigned()
 {
     return e1->type->isunsigned() || e2->type->isunsigned();
 }
@@ -6364,9 +6364,9 @@ Expression *BinAssignExp::semantic(Scope *sc)
 }
 
 #if DMDV2
-int BinAssignExp::isLvalue()
+bool BinAssignExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *BinAssignExp::toLvalue(Scope *sc, Expression *ex)
@@ -6563,7 +6563,7 @@ Expression *AssertExp::semantic(Scope *sc)
         msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
         msg = msg->optimize(WANTvalue);
     }
-    if (e1->isBool(FALSE))
+    if (e1->isBool(false))
     {
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();
         if (fd)
@@ -7115,9 +7115,9 @@ Lerr:
     return new ErrorExp();
 }
 
-int DotVarExp::isLvalue()
+bool DotVarExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
@@ -8390,7 +8390,7 @@ Lagain:
 
 
 
-int CallExp::isLvalue()
+bool CallExp::isLvalue()
 {
     Type *tb = e1->type->toBasetype();
     if (tb->ty == Tdelegate || tb->ty == Tpointer)
@@ -8399,10 +8399,10 @@ int CallExp::isLvalue()
     {
         if (e1->op == TOKdotvar)
             if (((DotVarExp *)e1)->var->isCtorDeclaration())
-                return 0;
-        return 1;               // function returns a reference
+                return false;
+        return true;               // function returns a reference
     }
-    return 0;
+    return false;
 }
 
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
@@ -8682,9 +8682,9 @@ void PtrExp::checkEscapeRef()
     e1->checkEscape();
 }
 
-int PtrExp::isLvalue()
+bool PtrExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
@@ -8812,9 +8812,9 @@ Expression *NotExp::semantic(Scope *sc)
     return this;
 }
 
-int NotExp::isBit()
+bool NotExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -8839,9 +8839,9 @@ Expression *BoolExp::semantic(Scope *sc)
     return this;
 }
 
-int BoolExp::isBit()
+bool BoolExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 /************************************************************/
@@ -9472,9 +9472,9 @@ void SliceExp::checkEscapeRef()
     e1->checkEscapeRef();
 }
 
-int SliceExp::isLvalue()
+bool SliceExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
@@ -9500,7 +9500,7 @@ Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int SliceExp::isBool(int result)
+bool SliceExp::isBool(int result)
 {
     return e1->isBool(result);
 }
@@ -9664,11 +9664,11 @@ Lerr:
 }
 
 
-int ArrayExp::isLvalue()
+bool ArrayExp::isLvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
-        return 0;
-    return 1;
+        return false;
+    return true;
 }
 
 Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
@@ -9751,7 +9751,7 @@ void CommaExp::checkEscapeRef()
     e2->checkEscapeRef();
 }
 
-int CommaExp::isLvalue()
+bool CommaExp::isLvalue()
 {
     return e2->isLvalue();
 }
@@ -9773,7 +9773,7 @@ Expression *CommaExp::modifiableLvalue(Scope *sc, Expression *e)
     return this;
 }
 
-int CommaExp::isBool(int result)
+bool CommaExp::isBool(int result)
 {
     return e2->isBool(result);
 }
@@ -9957,9 +9957,9 @@ Lerr:
     return new ErrorExp();
 }
 
-int IndexExp::isLvalue()
+bool IndexExp::isLvalue()
 {
-    return 1;
+    return true;
 }
 
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
@@ -11845,7 +11845,7 @@ Expression *OrOrExp::semantic(Scope *sc)
         /* If in static if, don't evaluate e2 if we don't have to.
          */
         e1 = e1->optimize(WANTflags);
-        if (e1->isBool(TRUE))
+        if (e1->isBool(true))
         {
             return new IntegerExp(loc, 1, Type::tboolean);
         }
@@ -11880,9 +11880,9 @@ Expression *OrOrExp::checkToBoolean(Scope *sc)
     return this;
 }
 
-int OrOrExp::isBit()
+bool OrOrExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -11909,7 +11909,7 @@ Expression *AndAndExp::semantic(Scope *sc)
         /* If in static if, don't evaluate e2 if we don't have to.
          */
         e1 = e1->optimize(WANTflags);
-        if (e1->isBool(FALSE))
+        if (e1->isBool(false))
         {
             return new IntegerExp(loc, 0, Type::tboolean);
         }
@@ -11944,9 +11944,9 @@ Expression *AndAndExp::checkToBoolean(Scope *sc)
     return this;
 }
 
-int AndAndExp::isBit()
+bool AndAndExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -11998,9 +11998,9 @@ Expression *InExp::semantic(Scope *sc)
     return this;
 }
 
-int InExp::isBit()
+bool InExp::isBit()
 {
-    return FALSE;
+    return false;
 }
 
 
@@ -12122,9 +12122,9 @@ Expression *CmpExp::semantic(Scope *sc)
     return e;
 }
 
-int CmpExp::isBit()
+bool CmpExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -12148,17 +12148,17 @@ int needDirectEq(Type *t1, Type *t2)
          (t2n->ty == Tchar || t2n->ty == Twchar || t2n->ty == Tdchar)) ||
         (t1n->ty == Tvoid || t2n->ty == Tvoid))
     {
-        return FALSE;
+        return false;
     }
 
     if (t1n->constOf() != t2n->constOf())
-        return TRUE;
+        return true;
 
     Type *t = t1n;
     while (t->toBasetype()->nextOf())
         t = t->nextOf()->toBasetype();
     if (t->ty != Tstruct)
-        return FALSE;
+        return false;
 
     return ((TypeStruct *)t)->sym->xeq == StructDeclaration::xerreq;
 }
@@ -12273,9 +12273,9 @@ Expression *EqualExp::semantic(Scope *sc)
     return e;
 }
 
-int EqualExp::isBit()
+bool EqualExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -12312,9 +12312,9 @@ Expression *IdentityExp::semantic(Scope *sc)
     return this;
 }
 
-int IdentityExp::isBit()
+bool IdentityExp::isBit()
 {
-    return TRUE;
+    return true;
 }
 
 
@@ -12399,7 +12399,7 @@ Expression *CondExp::semantic(Scope *sc)
     return this;
 }
 
-int CondExp::isLvalue()
+bool CondExp::isLvalue()
 {
     return e1->isLvalue() && e2->isLvalue();
 }

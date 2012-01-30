@@ -94,10 +94,10 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *getType();
     int firstFieldInUnion(int indx); // first field in union that includes indx
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
-    int isDeprecated();         // is aggregate deprecated?
+    bool isDeprecated();         // is aggregate deprecated?
     FuncDeclaration *buildDtor(Scope *sc);
-    int isNested();
-    int isExport();
+    bool isNested();
+    bool isExport();
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
@@ -109,8 +109,8 @@ struct AggregateDeclaration : ScopeDsymbol
 
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);   // determine access to smember
-    int isFriendOf(AggregateDeclaration *cd);
-    int hasPrivateAccess(Dsymbol *smember);     // does smember have private access to members of this class?
+    bool isFriendOf(AggregateDeclaration *cd);
+    bool hasPrivateAccess(Dsymbol *smember);     // does smember have private access to members of this class?
     void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
 
     enum PROT prot();
@@ -156,8 +156,8 @@ struct StructDeclaration : AggregateDeclaration
     Expression *cloneMembers();
 #endif
 #if DMDV2
-    int needOpAssign();
-    int needOpEquals();
+    bool needOpAssign();
+    bool needOpEquals();
     FuncDeclaration *buildOpAssign(Scope *sc);
     FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
@@ -203,7 +203,7 @@ struct BaseClass
     BaseClass();
     BaseClass(Type *type, enum PROT protection);
 
-    int fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
+    bool fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
     void copyBaseInterfaces(BaseClasses *);
 };
 
@@ -258,28 +258,28 @@ struct ClassDeclaration : AggregateDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    int isBaseOf2(ClassDeclaration *cd);
+    bool isBaseOf2(ClassDeclaration *cd);
 
     #define OFFSET_RUNTIME 0x76543210
-    virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
+    virtual bool isBaseOf(ClassDeclaration *cd, int *poffset);
 
-    virtual int isBaseInfoComplete();
+    virtual bool isBaseInfoComplete();
     Dsymbol *search(Loc, Identifier *ident, int flags);
     Dsymbol *searchBase(Loc, Identifier *ident);
 #if DMDV2
-    int isFuncHidden(FuncDeclaration *fd);
+    bool isFuncHidden(FuncDeclaration *fd);
 #endif
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
 #if DMDV1
     int isNested();
 #endif
-    int isCOMclass();
-    virtual int isCOMinterface();
+    bool isCOMclass();
+    virtual bool isCOMinterface();
 #if DMDV2
-    virtual int isCPPinterface();
+    virtual bool isCPPinterface();
 #endif
-    int isAbstract();
+    bool isAbstract();
     virtual int vtblOffset();
     const char *kind();
     char *mangle(bool isv = false);
@@ -311,15 +311,15 @@ struct InterfaceDeclaration : ClassDeclaration
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    int isBaseOf(ClassDeclaration *cd, int *poffset);
-    int isBaseOf(BaseClass *bc, int *poffset);
+    bool isBaseOf(ClassDeclaration *cd, int *poffset);
+    bool isBaseOf(BaseClass *bc, int *poffset);
     const char *kind();
-    int isBaseInfoComplete();
+    bool isBaseInfoComplete();
     int vtblOffset();
 #if DMDV2
-    int isCPPinterface();
+    bool isCPPinterface();
 #endif
-    virtual int isCOMinterface();
+    virtual bool isCOMinterface();
 
     void toObjFile(int multiobj);                       // compile to .obj file
     Symbol *toSymbol();

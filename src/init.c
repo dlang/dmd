@@ -717,14 +717,14 @@ Lno:
     return new ErrorExp();
 }
 
-int ArrayInitializer::isAssociativeArray()
+bool ArrayInitializer::isAssociativeArray()
 {
     for (size_t i = 0; i < value.dim; i++)
     {
         if (index[i])
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 Type *ArrayInitializer::inferType(Scope *sc)

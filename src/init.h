@@ -100,7 +100,7 @@ struct ArrayInitializer : Initializer
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    int isAssociativeArray();
+    bool isAssociativeArray();
     Type *inferType(Scope *sc);
     Expression *toExpression();
     Expression *toAssocArrayLiteral();
