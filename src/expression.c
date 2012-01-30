@@ -8847,6 +8847,12 @@ Expression *CastExp::semantic(Scope *sc)
         {
             return new VectorExp(loc, e1, to);
         }
+
+        if (tob->isintegral() && t1b->ty == Tarray &&
+            !global.params.useDeprecated)
+        {
+            error("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
+        }
     }
     else if (!to)
     {   error("cannot cast tuple");
