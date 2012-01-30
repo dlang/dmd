@@ -312,6 +312,37 @@ class TypeInfo
     }
 }
 
+class TypeInfo_Vector : TypeInfo
+{
+    override string toString() { return "__vector(" ~ base.toString() ~ ")"; }
+
+    override equals_t opEquals(Object o)
+    {
+        TypeInfo_Vector c;
+        return this is o ||
+               ((c = cast(TypeInfo_Vector)o) !is null &&
+                this.base == c.base);
+    }
+
+    override hash_t getHash(in void* p) { return base.getHash(p); }
+    override equals_t equals(in void* p1, in void* p2) { return base.equals(p1, p2); }
+    override int compare(in void* p1, in void* p2) { return base.compare(p1, p2); }
+    @property override size_t tsize() nothrow pure { return base.tsize; }
+    override void swap(void* p1, void* p2) { return base.swap(p1, p2); }
+
+    @property override TypeInfo next() nothrow pure { return base.next; }
+    @property override uint flags() nothrow pure { return base.flags; }
+    override void[] init() nothrow pure { return base.init(); }
+
+    @property override size_t talign() nothrow pure { return 16; }
+
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
+    {   return base.argTypes(arg1, arg2);
+    }
+
+    TypeInfo base;
+}
+
 class TypeInfo_Typedef : TypeInfo
 {
     override string toString() { return name; }
@@ -656,7 +687,7 @@ class TypeInfo_Function : TypeInfo
         TypeInfo_Function c;
         return this is o ||
                 ((c = cast(TypeInfo_Function)o) !is null &&
-		 this.deco == c.deco);
+                 this.deco == c.deco);
     }
 
     // BUG: need to add the rest of the functions
@@ -682,7 +713,7 @@ class TypeInfo_Delegate : TypeInfo
         TypeInfo_Delegate c;
         return this is o ||
                 ((c = cast(TypeInfo_Delegate)o) !is null &&
-		 this.deco == c.deco);
+                 this.deco == c.deco);
     }
 
     // BUG: need to add the rest of the functions
@@ -1986,7 +2017,76 @@ extern (C)
 
 struct AssociativeArray(Key, Value)
 {
-    void* p;
+private:
+    // Duplicates of the stuff found in druntime/src/rt/aaA.d
+    struct Slot
+    {
+        Slot *next;
+        hash_t hash;
+        Key key;
+        Value value;
+    }
+
+    struct Hashtable
+    {
+        Slot*[] b;
+        size_t nodes;
+        TypeInfo keyti;
+        Slot*[4] binit;
+    }
+
+    void* p; // really Hashtable*
+
+    struct Range
+    {
+        // State
+        Slot*[] slots;
+        Slot* current;
+
+        this(void * aa)
+        {
+            if (!aa) return;
+            auto pImpl = cast(Hashtable*) aa;
+            slots = pImpl.b;
+            nextSlot();
+        }
+
+        void nextSlot()
+        {
+            foreach (i, slot; slots)
+            {
+                if (!slot) continue;
+                current = slot;
+                slots = slots.ptr[i .. slots.length];
+                break;
+            }
+        }
+
+    public:
+        @property bool empty() const
+        {
+            return current is null;
+        }
+
+        @property ref inout(Slot) front() inout
+        {
+            assert(current);
+            return *current;
+        }
+
+        void popFront()
+        {
+            assert(current);
+            current = current.next;
+            if (!current)
+            {
+                slots = slots[1 .. $];
+                nextSlot();
+            }
+        }
+    }
+
+public:
 
     @property size_t length() { return _aaLen(p); }
 
@@ -2018,27 +2118,6 @@ struct AssociativeArray(Key, Value)
         return _aaApply(p, Key.sizeof, cast(_dg_t)dg);
     }
 
-    int delegate(int delegate(ref Key) dg) byKey()
-    {
-        // Discard the Value part and just do the Key
-        int foo(int delegate(ref Key) dg)
-        {
-            int byKeydg(ref Key key, ref Value value)
-            {
-                return dg(key);
-            }
-
-        return _aaApply2(p, Key.sizeof, cast(_dg2_t)&byKeydg);
-        }
-
-        return &foo;
-    }
-
-    int delegate(int delegate(ref Value) dg) byValue()
-    {
-        return &opApply;
-    }
-
     Value get(Key key, lazy Value defaultValue)
     {
         auto p = key in *cast(Value[Key]*)(&p);
@@ -2055,6 +2134,63 @@ struct AssociativeArray(Key, Value)
             }
             return result;
         }
+
+    @property auto byKey()
+    {
+        static struct Result
+        {
+            Range state;
+
+            this(void* p)
+            {
+                state = Range(p);
+            }
+
+            @property ref Key front()
+            {
+                return state.front.key;
+            }
+
+            alias state this;
+        }
+
+        return Result(p);
+    }
+
+    @property auto byValue()
+    {
+        static struct Result
+        {
+            Range state;
+
+            this(void* p)
+            {
+                state = Range(p);
+            }
+
+            @property ref Value front()
+            {
+                return state.front.value;
+            }
+
+            alias state this;
+        }
+
+        return Result(p);
+    }
+}
+
+unittest
+{
+    int[int] a;
+    foreach (i; a.byKey)
+    {
+        assert(false);
+    }
+    foreach (i; a.byValue)
+    {
+        assert(false);
+    }
 }
 
 unittest
@@ -2062,6 +2198,18 @@ unittest
     auto a = [ 1:"one", 2:"two", 3:"three" ];
     auto b = a.dup;
     assert(b == [ 1:"one", 2:"two", 3:"three" ]);
+
+    int[] c;
+    foreach (k; a.byKey)
+    {
+        c ~= k;
+    }
+
+    assert(c.length == 3);
+    c.sort;
+    assert(c[0] == 1);
+    assert(c[1] == 2);
+    assert(c[2] == 3);
 }
 unittest
 {

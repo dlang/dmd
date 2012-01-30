@@ -18,7 +18,7 @@ module core.sync.semaphore;
 public import core.sync.exception;
 public import core.time;
 
-version( Win32 )
+version( Windows )
 {
     private import core.sys.windows.windows;
 }
@@ -35,6 +35,10 @@ else version( Posix )
     private import core.stdc.errno;
     private import core.sys.posix.pthread;
     private import core.sys.posix.semaphore;
+}
+else
+{
+    static assert(false, "Platform not supported");
 }
 
 
@@ -71,7 +75,7 @@ class Semaphore
      */
     this( uint count = 0 )
     {
-        version( Win32 )
+        version( Windows )
         {
             m_hndl = CreateSemaphoreA( null, count, int.max, null );
             if( m_hndl == m_hndl.init )
@@ -94,7 +98,7 @@ class Semaphore
 
     ~this()
     {
-        version( Win32 )
+        version( Windows )
         {
             BOOL rc = CloseHandle( m_hndl );
             assert( rc, "Unable to destroy semaphore" );
@@ -126,7 +130,7 @@ class Semaphore
      */
     void wait()
     {
-        version( Win32 )
+        version( Windows )
         {
             DWORD rc = WaitForSingleObject( m_hndl, INFINITE );
             if( rc != WAIT_OBJECT_0 )
@@ -182,7 +186,7 @@ class Semaphore
     }
     body
     {
-        version( Win32 )
+        version( Windows )
         {
             auto maxWaitMillis = dur!("msecs")( uint.max - 1 );
 
@@ -298,7 +302,7 @@ class Semaphore
      */
     void notify()
     {
-        version( Win32 )
+        version( Windows )
         {
             if( !ReleaseSemaphore( m_hndl, 1, null ) )
                 throw new SyncException( "Unable to notify semaphore" );
@@ -330,7 +334,7 @@ class Semaphore
      */
     bool tryWait()
     {
-        version( Win32 )
+        version( Windows )
         {
             switch( WaitForSingleObject( m_hndl, 0 ) )
             {
@@ -362,7 +366,7 @@ class Semaphore
 
 
 private:
-    version( Win32 )
+    version( Windows )
     {
         HANDLE  m_hndl;
     }
@@ -444,7 +448,7 @@ version( unittest )
                 Thread.yield();
             }
 
-            for( int i = numConsumers * 10000; i > 0; --i )
+            for( int i = numConsumers * 100_000; i > 0; --i )
             {
                 synchronized( synComplete )
                 {

@@ -27,7 +27,7 @@ struct Array
 
 private TypeInfo tiglobal;
 
-extern (C) int cmp(void* p1, void* p2)
+extern (C) int cmp(in void* p1, in void* p2)
 {
     return tiglobal.compare(p1, p2);
 }
