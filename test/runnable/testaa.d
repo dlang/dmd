@@ -810,6 +810,20 @@ void test36() {
 }
 
 /************************************************/
+// 7365
+
+struct TickDuration {
+  bool opEquals(ref const TickDuration rhs) const {
+    return true;
+  }
+}
+
+void test7365() {
+  TickDuration[Object] aa;
+  aa.keys;
+}
+
+/************************************************/
 
 int main()
 {
@@ -848,6 +862,7 @@ printf("before test 32\n");   test32();
     test34();
     test35();
     test36();
+    test7365();
 
     printf("Success\n");
     return 0;
