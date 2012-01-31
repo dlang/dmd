@@ -8273,8 +8273,10 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
         UnaExp::semantic(sc);
+        Expression *olde1 = e1;
         if (e1->type == Type::terror)
             return new ErrorExp();
+        int wasCond = e1->op == TOKquestion;
         e1 = e1->toLvalue(sc, NULL);
         if (e1->op == TOKerror)
             return e1;
@@ -8375,6 +8377,24 @@ Expression *AddrExp::semantic(Scope *sc)
                     return e;
                 }
             }
+        }
+        else if (wasCond)
+        {
+            /* a ? b : c was transformed to *(a ? &b : &c), but we still
+             * need to do safety checks
+             */
+            assert(e1->op == TOKstar);
+            PtrExp *pe = (PtrExp *)e1;
+            assert(pe->e1->op == TOKquestion);
+            CondExp *ce = (CondExp *)pe->e1;
+            assert(ce->e1->op == TOKaddress);
+            assert(ce->e2->op == TOKaddress);
+
+            // Re-run semantic on the address expressions only
+            ce->e1->type = NULL;
+            ce->e1 = ce->e1->semantic(sc);
+            ce->e2->type = NULL;
+            ce->e2 = ce->e2->semantic(sc);
         }
         return optimize(WANTvalue);
     }
