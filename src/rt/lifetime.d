@@ -1154,7 +1154,7 @@ extern (C) void rt_finalize(void* p, bool det = true)
 {
     debug(PRINTF) printf("rt_finalize(p = %p)\n", p);
 
-    if (p) // not necessary if called from gc
+    if (p) 
     {
         ClassInfo** pc = cast(ClassInfo**)p;
 
@@ -1189,6 +1189,45 @@ extern (C) void rt_finalize(void* p, bool det = true)
             {
                 *pc = null; // zero vptr
             }
+        }
+    }
+}
+
+/**
+ * An optimized version of rt_finalize that assumes it's being called from
+ * the garbage collector and avoids wasting time on things that are
+ * irrelevant in this case.
+ */
+extern (C) void rt_finalize_gc(void* p)
+{
+    debug(PRINTF) printf("rt_finalize_gc(p = %p)\n", p);
+
+    ClassInfo** pc = cast(ClassInfo**)p;
+    
+    if (*pc) 
+    {
+        ClassInfo c = **pc;
+
+        try
+        {
+            if (collectHandler is null || collectHandler(cast(Object)p))
+            {
+                do
+                {
+                    if (c.destructor)
+                    {
+                        fp_t fp = cast(fp_t)c.destructor;
+                        (*fp)(cast(Object)p); // call destructor
+                    }
+                    c = c.base;
+                } while (c);
+            }
+            if ((cast(void**)p)[1]) // if monitor is not null
+                _d_monitordelete(cast(Object)p, false);
+        }
+        catch (Throwable e)
+        {
+            onFinalizeError(**pc, e);
         }
     }
 }
