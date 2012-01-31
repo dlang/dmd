@@ -45,6 +45,7 @@ class Object
     static Object factory(string classname);
 }
 
+bool opEquals(const Object lhs, const Object rhs);
 bool opEquals(Object lhs, Object rhs);
 //bool opEquals(TypeInfo lhs, TypeInfo rhs);
 

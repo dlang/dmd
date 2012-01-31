@@ -150,6 +150,12 @@ class Object
 /************************
  * Returns true if lhs and rhs are equal.
  */
+bool opEquals(const Object lhs, const Object rhs)
+{
+    // A hack for the moment.
+    return opEquals(cast()lhs, cast()rhs);
+}
+
 bool opEquals(Object lhs, Object rhs)
 {
     // If aliased to the same object or both null => equal
