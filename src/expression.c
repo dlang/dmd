@@ -12224,8 +12224,8 @@ Expression *CondExp::syntaxCopy()
 Expression *CondExp::semantic(Scope *sc)
 {   Type *t1;
     Type *t2;
-    unsigned cs0;
-    unsigned cs1;
+    CSX cs0;
+    CSX cs1;
 
 #if LOGSEMANTIC
     printf("CondExp::semantic('%s')\n", toChars());

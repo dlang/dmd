@@ -2695,8 +2695,8 @@ Statement *IfStatement::syntaxCopy()
 Statement *IfStatement::semantic(Scope *sc)
 {
     // Evaluate at runtime
-    unsigned cs0 = sc->callSuper;
-    unsigned cs1;
+    CSX cs0 = sc->callSuper;
+    CSX cs1;
 
     Scope *scd;
     if (arg)

@@ -188,7 +188,7 @@ Scope *Scope::pop()
     return enc;
 }
 
-void Scope::mergeCallSuper(Loc loc, unsigned cs)
+void Scope::mergeCallSuper(Loc loc, CSX cs)
 {
     // This does a primitive flow analysis to support the restrictions
     // regarding when and how constructors can appear.
@@ -196,9 +196,7 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
     // The two paths are callSuper and cs; the result is merged into callSuper.
 
     if (cs != callSuper)
-    {   int a;
-        int b;
-
+    {
         callSuper |= cs & (CSXany_ctor | CSXlabel);
         if (cs & CSXreturn)
         {
@@ -209,8 +207,8 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
         }
         else
         {
-            a = (cs        & (CSXthis_ctor | CSXsuper_ctor)) != 0;
-            b = (callSuper & (CSXthis_ctor | CSXsuper_ctor)) != 0;
+            bool a = cs        & (CSXthis_ctor | CSXsuper_ctor);
+            bool b = callSuper & (CSXthis_ctor | CSXsuper_ctor);
             if (a != b)
                 error(loc, "one path skips constructor");
             callSuper |= cs;
