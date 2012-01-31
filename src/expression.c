@@ -8478,6 +8478,12 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (!to->equals(e1->type))
         {
+            if (e1->type->ty == Tvoid)
+            {
+                error("cannot cast from void to %s", to->toChars());
+                return new ErrorExp();
+            }
+
             Expression *e = op_overload(sc);
             if (e)
             {
