@@ -448,7 +448,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (isUnionDeclaration())
         sc2->inunion = true;
     sc2->protection = PROTpublic;
-    sc2->explicitProtection = 0;
+    sc2->explicitProtection = false;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttributes = NULL;
 

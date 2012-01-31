@@ -82,7 +82,7 @@ struct Scope
     enum LINK linkage;          // linkage for external functions
 
     enum PROT protection;       // protection for class members
-    int explicitProtection;     // set if in an explicit protection attribute
+    bool explicitProtection;    // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class
     char *depmsg;               // customized deprecation message

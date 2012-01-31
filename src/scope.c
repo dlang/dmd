@@ -65,7 +65,7 @@ Scope::Scope()
     this->slabel = NULL;
     this->linkage = LINKd;
     this->protection = PROTpublic;
-    this->explicitProtection = 0;
+    this->explicitProtection = false;
     this->stc = 0;
     this->depmsg = NULL;
     this->offset = 0;

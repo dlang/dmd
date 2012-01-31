@@ -614,7 +614,7 @@ void ClassDeclaration::semantic(Scope *sc)
             sc->linkage = LINKc;
     }
     sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
+    sc->explicitProtection = false;
     sc->structalign = STRUCTALIGN_DEFAULT;
     if (baseClass)
     {   sc->offset = baseClass->structsize;
@@ -1421,7 +1421,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         sc->linkage = LINKcpp;
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
+    sc->explicitProtection = false;
 //    structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
     sc->userAttributes = NULL;

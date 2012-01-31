@@ -36,10 +36,10 @@ struct AttribDeclaration : Dsymbol
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void setScopeNewSc(Scope *sc,
-        StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+        StorageClass newstc, enum LINK linkage, enum PROT protection, bool explictProtection,
         structalign_t structalign);
     void semanticNewSc(Scope *sc,
-        StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+        StorageClass newstc, enum LINK linkage, enum PROT protection, bool explictProtection,
         structalign_t structalign);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);

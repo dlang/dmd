@@ -900,7 +900,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         STC_TYPECTOR | STCfinal | STCtls | STCgshared | STCref |
                         STCproperty | STCsafe | STCtrusted | STCsystem);
         sc2->protection = PROTpublic;
-        sc2->explicitProtection = 0;
+        sc2->explicitProtection = false;
         sc2->structalign = STRUCTALIGN_DEFAULT;
         sc2->flags = sc->flags & ~SCOPEcontract;
         sc2->tf = NULL;

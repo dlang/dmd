@@ -80,7 +80,7 @@ bool AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 }
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, enum LINK linkage, enum PROT protection, bool explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -115,7 +115,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 }
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, enum LINK linkage, enum PROT protection, bool explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -712,14 +712,13 @@ void ProtDeclaration::setScope(Scope *sc)
 void ProtDeclaration::importAll(Scope *sc)
 {
     Scope *newsc = sc;
-    if (sc->protection != protection ||
-       sc->explicitProtection != 1)
+    if (sc->protection != protection || !sc->explicitProtection)
     {
        // create new one for changes
        newsc = new Scope(*sc);
        newsc->flags &= ~SCOPEfree;
        newsc->protection = protection;
-       newsc->explicitProtection = 1;
+       newsc->explicitProtection = true;
     }
 
     for (size_t i = 0; i < decl->dim; i++)
