@@ -52,6 +52,16 @@ enum // CSX
     CSXany_ctor    = 0x40    // either this() or super() was called
 };
 
+typedef uint8_t SCOPE;
+enum // SCOPE
+{
+    SCOPEctor         = 1,   // constructor type
+    SCOPEstaticif     = 2,   // inside static if
+    SCOPEfree         = 4,   // is on free list
+    SCOPEstaticassert = 8,   // inside static assert
+    SCOPEdebug        = 0x10,// inside debug conditional
+};
+
 struct Scope
 {
     Scope *enclosing;           // enclosing Scope
@@ -94,12 +104,7 @@ struct Scope
 
     StorageClass stc;           // storage class
 
-    unsigned flags;
-#define SCOPEctor       1       // constructor type
-#define SCOPEstaticif   2       // inside static if
-#define SCOPEfree       4       // is on free list
-#define SCOPEstaticassert 8     // inside static assert
-#define SCOPEdebug      0x10    // inside debug conditional
+    SCOPE flags;
 
 #ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
