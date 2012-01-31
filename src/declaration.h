@@ -140,7 +140,7 @@ struct Declaration : Dsymbol
     unsigned size(Loc loc);
     void checkModify(Loc loc, Scope *sc, Type *t);
 
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, SYMFIND flags);
 
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);

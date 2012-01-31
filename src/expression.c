@@ -6697,7 +6697,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
          * the current module should have access to its own imports.
          */
         Dsymbol *s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
+            (ie->sds->isModule() && ie->sds != sc->module) ? SYMFINDnoprivatemembers : 0);
         if (s)
         {
             /* Check for access before resolving aliases because public
@@ -7514,7 +7514,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
         {   TypeAArray *taa = (TypeAArray *)t;
             assert(taa->ty == Taarray);
             StructDeclaration *sd = taa->getImpl();
-            Dsymbol *s = sd->search(0, ident, 2);
+            Dsymbol *s = sd->search(0, ident, SYMFINDnoerrmsgs);
             if (s)
                 return NULL;
             goto Lshift;

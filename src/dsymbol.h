@@ -111,6 +111,16 @@ enum PASS
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
 
+// flags for the search methods of Dsymbol and descendants
+typedef uint8_t SYMFIND;
+enum
+{
+//  SYMFINDnone              = 0,
+    SYMFINDnoprivatemembers  = 1, // don't find private members
+    SYMFINDnoerrmsgs         = 2, // don't give error messages
+    SYMFINDnullifambiguous   = 4  // return NULL if ambiguous
+};
+
 struct Dsymbol : Object
 {
     Identifier *ident;
@@ -156,7 +166,7 @@ struct Dsymbol : Object
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
     virtual void inlineScan();
-    virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    virtual Dsymbol *search(Loc loc, Identifier *ident, SYMFIND flags);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, Identifier *id);
     virtual int overloadInsert(Dsymbol *s);
@@ -266,7 +276,7 @@ struct ScopeDsymbol : Dsymbol
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, SYMFIND flags);
     void importScope(Dsymbol *s, enum PROT protection);
     int isforwardRef();
     void defineRef(Dsymbol *s);
@@ -295,7 +305,7 @@ struct WithScopeSymbol : ScopeDsymbol
     WithStatement *withstate;
 
     WithScopeSymbol(WithStatement *withstate);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, SYMFIND flags);
 
     WithScopeSymbol *isWithScopeSymbol() { return this; }
 };
@@ -312,7 +322,7 @@ struct ArrayScopeSymbol : ScopeDsymbol
     ArrayScopeSymbol(Scope *sc, Expression *e);
     ArrayScopeSymbol(Scope *sc, TypeTuple *t);
     ArrayScopeSymbol(Scope *sc, TupleDeclaration *td);
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, SYMFIND flags);
 
     ArrayScopeSymbol *isArrayScopeSymbol() { return this; }
 };

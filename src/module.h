@@ -79,7 +79,7 @@ struct Module : Package
     int insearch;
     Identifier *searchCacheIdent;
     Dsymbol *searchCacheSymbol; // cached value of search
-    int searchCacheFlags;       // cached flags
+    SYMFIND searchCacheFlags;   // cached flags
 
     int semanticstarted;        // has semantic() been started?
     int semanticRun;            // has semantic() been done?
@@ -137,7 +137,7 @@ struct Module : Package
     void gensymfile();
     void gendocfile();
     int needModuleInfo();
-    Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, SYMFIND flags);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     void addDeferredSemantic(Dsymbol *s);

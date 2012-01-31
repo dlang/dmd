@@ -55,7 +55,7 @@ struct EnumDeclaration : ScopeDsymbol
     Type *getType();
     const char *kind();
 #if DMDV2
-    Dsymbol *search(Loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc, Identifier *ident, SYMFIND flags);
 #endif
     int isDeprecated();                 // is Dsymbol deprecated?
 

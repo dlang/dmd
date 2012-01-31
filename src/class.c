@@ -909,7 +909,7 @@ int ClassDeclaration::isBaseInfoComplete()
     return 1;
 }
 
-Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     Dsymbol *s;
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
@@ -992,7 +992,7 @@ int isf(void *param, FuncDeclaration *fd)
 int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 {
     //printf("ClassDeclaration::isFuncHidden(class = %s, fd = %s)\n", toChars(), fd->toChars());
-    Dsymbol *s = search(0, fd->ident, 4|2);
+    Dsymbol *s = search(0, fd->ident, SYMFINDnullifambiguous | SYMFINDnoerrmsgs);
     if (!s)
     {   //printf("not found\n");
         /* Because, due to a hack, if there are multiple definitions

@@ -685,7 +685,7 @@ void StructDeclaration::semantic(Scope *sc)
     }
 }
 
-Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     //printf("%s.StructDeclaration::search('%s')\n", toChars(), ident->toChars());
 

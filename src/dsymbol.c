@@ -372,7 +372,7 @@ void Dsymbol::inlineScan()
  *      NULL if not found
  */
 
-Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     //printf("Dsymbol::search(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     return NULL;
@@ -398,7 +398,7 @@ void *symbol_search_fp(void *arg, const char *seed)
 
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return s->search(0, id, 4|2);
+    return s->search(0, id, SYMFINDnullifambiguous | SYMFINDnoerrmsgs);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -814,7 +814,7 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     return sd;
 }
 
-Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
@@ -836,13 +836,13 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             Dsymbol *s2;
 
             // If private import, don't search it
-            if (flags & 1 && prots[i] == PROTprivate)
+            if (flags & SYMFINDnoprivatemembers && prots[i] == PROTprivate)
                 continue;
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            s2 = ss->search(loc, ident, ss->isModule() ? SYMFINDnoprivatemembers : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -896,9 +896,9 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         Lcontinue:
                             continue;
                         }
-                        if (flags & 4)          // if return NULL on ambiguity
+                        if (flags & SYMFINDnullifambiguous)    // if return NULL on ambiguity
                             return NULL;
-                        if (!(flags & 2))
+                        if (!(flags & SYMFINDnoerrmsgs))
                             ScopeDsymbol::multiplyDefined(loc, s, s2);
                         break;
                     }
@@ -919,7 +919,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             Declaration *d = s->isDeclaration();
             if (d && d->protection == PROTprivate &&
                 !d->parent->isTemplateMixin() &&
-                !(flags & 2))
+                !(flags & SYMFINDnoerrmsgs))
                 error(loc, "%s is private", d->toPrettyChars());
         }
     }
@@ -1180,10 +1180,10 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
     this->withstate = withstate;
 }
 
-Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     // Acts as proxy to the with class declaration
-    return withstate->exp->type->toDsymbol(NULL)->search(loc, ident, 0);
+    return withstate->exp->type->toDsymbol(NULL)->search(loc, ident, 0); //TODO why 0 instead of flags here?
 }
 
 /****************************** ArrayScopeSymbol ******************************/
@@ -1216,7 +1216,7 @@ ArrayScopeSymbol::ArrayScopeSymbol(Scope *sc, TupleDeclaration *s)
     this->sc = sc;
 }
 
-Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     //printf("ArrayScopeSymbol::search('%s', flags = %d)\n", ident->toChars(), flags);
     if (ident == Id::length || ident == Id::dollar)
