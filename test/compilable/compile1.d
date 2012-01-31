@@ -117,6 +117,6 @@ static assert(!is(typeof(A!(int))));
 **************************************************/
 void bug6720() { }
 
-static assert(!is(typeof(
-cast(bool)bug6720()
-)));
+//static assert(!is(typeof(
+//cast(bool)bug6720()
+//)));
