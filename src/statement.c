@@ -1511,6 +1511,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     if (arg->storageClass & STCref)
                         error("symbol %s cannot be ref", s->toChars());
                 }
+                else if (e->op == TOKtype)
+                {
+                    var = new AliasDeclaration(loc, arg->ident, e->type);
+                }
                 else
                 {
                     arg->type = e->type;
