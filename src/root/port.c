@@ -347,7 +347,7 @@ char *Port::strupr(char *s)
 #include <assert.h>
 
 static double zero = 0;
-double Port::nan = NAN;
+double Port::nan = copysign(NAN, 1.0);
 double Port::infinity = 1 / zero;
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
@@ -362,14 +362,7 @@ static PortInitializer portinitializer;
 
 PortInitializer::PortInitializer()
 {
-    // gcc nan's have the sign bit set by default, so turn it off
-    // Need the volatile to prevent gcc from doing incorrect
-    // constant folding.
-    volatile long double foo;
-    foo = NAN;
-    if (signbit(foo))   // signbit sometimes, not always, set
-        foo = -foo;     // turn off sign bit
-    Port::nan = foo;
+    assert(!signbit(Port::nan));
 
 #if __FreeBSD__ && __i386__
     // LDBL_MAX comes out as infinity. Fix.
