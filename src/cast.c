@@ -215,6 +215,7 @@ MATCH IntegerExp::implicitConvTo(Type *t)
 
     TY ty = type->toBasetype()->ty;
     TY toty = t->toBasetype()->ty;
+    TY oldty = ty;
 
     if (m == MATCHnomatch && t->ty == Tenum)
         goto Lno;
@@ -282,6 +283,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             goto Lyes;
 
         case Tchar:
+            if ((oldty == Twchar || oldty == Tdchar) && value > 0x7F)
+                goto Lno;
         case Tuns8:
             //printf("value = %llu %llu\n", (dinteger_t)(unsigned char)value, value);
             if ((unsigned char)value != value)
@@ -293,6 +296,9 @@ MATCH IntegerExp::implicitConvTo(Type *t)
                 goto Lno;
             goto Lyes;
 
+        case Twchar:
+            if (oldty == Tdchar && value > 0xD7FF && value < 0xE000)
+                goto Lno;
         case Tuns16:
             if ((unsigned short)value != value)
                 goto Lno;
@@ -316,11 +322,6 @@ MATCH IntegerExp::implicitConvTo(Type *t)
 
         case Tdchar:
             if (value > 0x10FFFFUL)
-                goto Lno;
-            goto Lyes;
-
-        case Twchar:
-            if ((unsigned short)value != value)
                 goto Lno;
             goto Lyes;
 
