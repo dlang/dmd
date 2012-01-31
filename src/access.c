@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -91,7 +91,7 @@ enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
                     break;
 
                 case PROTprivate:
-                    access = PROTnone;  // private members of base class not accessible
+                    access_ret = PROTnone;  // private members of base class not accessible
                     break;
 
                 case PROTpackage:
