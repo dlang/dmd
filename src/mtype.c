@@ -7167,7 +7167,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
 #endif
     {
         Scope *sc2 = sc->push();
-        sc2->intypeof++;
+        sc2->intypeof = true;
         sc2->speculative = true;
         sc2->flags |= sc->flags & SCOPEstaticif;
         unsigned oldspecgag = global.speculativeGag;

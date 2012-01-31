@@ -65,8 +65,8 @@ struct Scope
     bool parameterSpecialization; // if in template parameter specialization
     bool noaccesscheck;         // don't do access checks
     bool speculative;           // in __traits(compiles) or typeof(exp)
+    bool intypeof;              // in typeof(exp)
     int noctor;                 // count if constructor calls aren't allowed
-    int intypeof;               // in typeof(exp)
     int mustsemantic;           // cannot defer semantic()
 
     unsigned callSuper;         // primitive flow analysis for constructors
