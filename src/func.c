@@ -1823,6 +1823,22 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 Statement *FuncDeclaration::mergeFrequire(Statement *sf)
 {
+    /* If a base function and its override both have an IN contract, then
+     * only one of them needs to succeed. This is done by generating:
+     *
+     * void derived.in() {
+     *  try {
+     *    base.in();
+     *  }
+     *  catch () {
+     *    ... body of derived.in() ...
+     *  }
+     * }
+     *
+     * So if base.in() doesn't throw, derived.in() need not be executed, and the contract is valid.
+     * If base.in() throws, then derived.in()'s body is executed.
+     */
+
     /* Implementing this is done by having the overriding function call
      * nested functions (the fdrequire functions) nested inside the overridden
      * function. This requires that the stack layout of the calling function's
@@ -1868,6 +1884,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
             Statement *s2 = new ExpStatement(loc, e);
 
             Catch *c = new Catch(loc, NULL, NULL, sf);
+            c->internalCatch = true;
             Catches *catches = new Catches();
             catches->push(c);
             sf = new TryCatchStatement(loc, s2, catches);

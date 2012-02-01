@@ -4418,6 +4418,7 @@ Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
     this->ident = id;
     this->handler = handler;
     var = NULL;
+    internalCatch = false;
 }
 
 Catch *Catch::syntaxCopy()
@@ -4426,6 +4427,7 @@ Catch *Catch::syntaxCopy()
         (type ? type->syntaxCopy() : NULL),
         ident,
         (handler ? handler->syntaxCopy() : NULL));
+    c->internalCatch = internalCatch;
     return c;
 }
 
@@ -4464,6 +4466,7 @@ void Catch::semantic(Scope *sc)
     }
     else if (sc->func &&
         !sc->intypeof &&
+        !internalCatch &&
         cd != ClassDeclaration::exception &&
         !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
         sc->func->setUnsafe())
