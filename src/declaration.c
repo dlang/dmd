@@ -525,7 +525,7 @@ void AliasDeclaration::semantic(Scope *sc)
             if (overnext)
             {
                 FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
-                if (!fa->overloadInsert(overnext))
+                if (!fa->overloadInsert(overnext, OVERcheck | OVERupdate))
                     ScopeDsymbol::multiplyDefined(0, f, overnext);
                 overnext = NULL;
                 s = fa;
@@ -553,7 +553,7 @@ void AliasDeclaration::semantic(Scope *sc)
     this->inSemantic = 0;
 }
 
-int AliasDeclaration::overloadInsert(Dsymbol *s)
+int AliasDeclaration::overloadInsert(Dsymbol *s, int flags)
 {
     /* Don't know yet what the aliased symbol is, so assume it can
      * be overloaded and check later for correctness.
@@ -568,7 +568,7 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
         {
             FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
             aliassym = fa;
-            return fa->overloadInsert(s);
+            return fa->overloadInsert(s, flags);
         }
     }
 
@@ -583,7 +583,7 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
     }
     else
     {
-        return overnext->overloadInsert(s);
+        return overnext->overloadInsert(s, flags);
     }
 }
 

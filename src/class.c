@@ -694,6 +694,15 @@ void ClassDeclaration::semantic(Scope *sc)
 
     //printf("\tsemantic('%s') successful\n", toChars());
 
+    for (size_t i = 0; i < members_dim; i++)
+    {
+        Dsymbol *s = members->tdata()[i];
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (f && f->overnext)
+            if (!f->overnext->overloadInsert(f, OVERcheck))
+                multiplyDefined(0, f, f->overnext);
+    }
+
     //members->print();
 
     /* Look for special member functions.

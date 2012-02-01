@@ -497,6 +497,15 @@ void StructDeclaration::semantic(Scope *sc)
         return;
     }
 
+    for (size_t i = 0; i < members_dim; i++)
+    {
+        Dsymbol *s = members->tdata()[i];
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (f && f->overnext)
+            if (!f->overnext->overloadInsert(f, OVERcheck))
+                multiplyDefined(0, f, f->overnext);
+    }
+
     Module::dprogress++;
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());

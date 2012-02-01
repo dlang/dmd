@@ -224,7 +224,7 @@ struct AliasDeclaration : Declaration
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int overloadInsert(Dsymbol *s);
+    int overloadInsert(Dsymbol *s, int flags);
     const char *kind();
     Type *getType();
     Dsymbol *toAlias();
@@ -629,7 +629,7 @@ struct FuncDeclaration : Declaration
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
-    int overloadInsert(Dsymbol *s);
+    int overloadInsert(Dsymbol *s, int flags);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
     MATCH leastAsSpecialized(FuncDeclaration *g);
@@ -756,7 +756,7 @@ struct PostBlitDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-    int overloadInsert(Dsymbol *s);
+    int overloadInsert(Dsymbol *s, int flags);
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
 
@@ -776,7 +776,7 @@ struct DtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-    int overloadInsert(Dsymbol *s);
+    int overloadInsert(Dsymbol *s, int flags);
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
 

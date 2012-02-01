@@ -466,7 +466,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
     return sm;
 }
 
-int Dsymbol::overloadInsert(Dsymbol *s)
+int Dsymbol::overloadInsert(Dsymbol *s, int)
 {
     //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
     return FALSE;
@@ -580,7 +580,10 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
             Dsymbol *s2;
 
             s2 = sd->symtab->lookup(ident);
-            if (!s2->overloadInsert(this))
+            int flags = OVERupdate;
+            if (!sd->isAggregateDeclaration())
+                flags |= OVERcheck;
+            if (!s2->overloadInsert(this, flags))
             {
                 sd->multiplyDefined(0, this, s2);
             }

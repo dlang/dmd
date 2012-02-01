@@ -546,7 +546,7 @@ const char *TemplateDeclaration::kind()
  * Return !=0 if successful; i.e. no conflict.
  */
 
-int TemplateDeclaration::overloadInsert(Dsymbol *s)
+int TemplateDeclaration::overloadInsert(Dsymbol *s, int flags)
 {
     TemplateDeclaration **pf;
     TemplateDeclaration *f;

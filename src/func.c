@@ -2064,7 +2064,7 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
  * Return !=0 if successful; i.e. no conflict.
  */
 
-int FuncDeclaration::overloadInsert(Dsymbol *s)
+int FuncDeclaration::overloadInsert(Dsymbol *s, int flags)
 {
     FuncDeclaration *f;
     AliasDeclaration *a;
@@ -2074,13 +2074,14 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     if (a)
     {
         if (overnext)
-            return overnext->overloadInsert(a);
+            return overnext->overloadInsert(a, flags);
         if (!a->aliassym && a->type->ty != Tident && a->type->ty != Tinstance)
         {
             //printf("\ta = '%s'\n", a->type->toChars());
             return FALSE;
         }
-        overnext = a;
+        if (flags & OVERupdate)
+            overnext = a;
         //printf("\ttrue: no conflict\n");
         return TRUE;
     }
@@ -2088,29 +2089,27 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
     if (!f)
         return FALSE;
 
-#if 0
-    /* Disable this check because:
-     *  const void foo();
-     * semantic() isn't run yet on foo(), so the const hasn't been
-     * applied yet.
-     */
-    if (type)
-    {   printf("type = %s\n", type->toChars());
-        printf("f->type = %s\n", f->type->toChars());
-    }
-    if (type && f->type &&      // can be NULL for overloaded constructors
-        f->type->covariant(type) &&
-        f->type->mod == type->mod &&
-        !isFuncAliasDeclaration())
+    if (flags & OVERcheck)
     {
-        //printf("\tfalse: conflict %s\n", kind());
-        return FALSE;
+        /* Functions in the overload set will already
+         * have had semantic run on them
+         */
+        if (type && f->type &&      // can be NULL for overloaded constructors
+            !isFuncAliasDeclaration() &&
+            TypeFunction::overloadConflict((TypeFunction *)type, (TypeFunction *)f->type))
+        {
+            //printf("\tfalse: conflict %s\n", kind());
+
+            ScopeDsymbol *p = parent->isScopeDsymbol();
+            assert(p);
+            p->multiplyDefined(0, s, this);
+        }
     }
-#endif
 
     if (overnext)
-        return overnext->overloadInsert(f);
-    overnext = f;
+        return overnext->overloadInsert(f, flags);
+    if (flags & OVERupdate)
+        overnext = f;
     //printf("\ttrue: no conflict\n");
     return TRUE;
 }
@@ -3448,7 +3447,7 @@ void PostBlitDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int PostBlitDeclaration::overloadInsert(Dsymbol *s)
+int PostBlitDeclaration::overloadInsert(Dsymbol *s, int)
 {
     return FALSE;       // cannot overload postblits
 }
@@ -3525,7 +3524,7 @@ void DtorDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int DtorDeclaration::overloadInsert(Dsymbol *s)
+int DtorDeclaration::overloadInsert(Dsymbol *s, int)
 {
     return FALSE;       // cannot overload destructors
 }
