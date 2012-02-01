@@ -189,7 +189,13 @@ void Import::semantic(Scope *sc)
         if (aliasId)
         {
             AliasDeclaration *ad = new AliasDeclaration(loc, aliasId, mod);
-            sc->insert(ad);
+            for (Scope *sc2 = sc; sc2; sc2 = sc2->enclosing)
+            {   if (sc2->scopesym)
+                {   ad->addMember(sc, sc2->scopesym, 1);
+                    break;
+                }
+            }
+            ad->protection = prot;
             ad->semantic(sc);
         }
     }
@@ -289,8 +295,8 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     {
         for (size_t i = 0; i < names.dim; i++)
         {
-            Identifier *name = (Identifier *)names[i];
-            Identifier *alias = (Identifier *)aliases[i];
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
 
             if (!alias)
                 alias = name;
