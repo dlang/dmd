@@ -301,7 +301,7 @@ struct Type : Object
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident);
     virtual unsigned memalign(unsigned salign);
     virtual Expression *defaultInit(Loc loc = 0);
-    virtual Expression *defaultInitLiteral(Loc loc = 0);
+    virtual Expression *defaultInitLiteral(Loc loc);
     virtual int isZeroInit(Loc loc = 0);                // if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);

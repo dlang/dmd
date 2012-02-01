@@ -1896,7 +1896,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
     else if (s)
     {   // Struct static initializers, for example
         if (s->dsym->toInitializer() == s->sym)
-        {   e = s->dsym->type->defaultInitLiteral();
+        {   e = s->dsym->type->defaultInitLiteral(loc);
             e = e->semantic(NULL);
             if (e->op == TOKerror)
                 e = EXP_CANT_INTERPRET;
@@ -2371,10 +2371,10 @@ Expression *recursivelyCreateArrayLiteral(Loc loc, Type *newtype, InterState *is
     if (elemType->ty == Tchar || elemType->ty == Twchar
         || elemType->ty == Tdchar)
         return createBlockDuplicatedStringLiteral(loc, newtype,
-            (unsigned)(elemType->defaultInitLiteral()->toInteger()),
+            (unsigned)(elemType->defaultInitLiteral(loc)->toInteger()),
             len, elemType->size());
     return createBlockDuplicatedArrayLiteral(loc, newtype,
-        elemType->defaultInitLiteral(),
+        elemType->defaultInitLiteral(loc),
         len);
 }
 
@@ -2388,7 +2388,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
 
     if (newtype->toBasetype()->ty == Tstruct)
     {
-        Expression *se = newtype->defaultInitLiteral();
+        Expression *se = newtype->defaultInitLiteral(loc);
 #if DMDV2
         if (member)
         {
@@ -2425,7 +2425,7 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                 Dsymbol *s = c->fields.tdata()[i];
                 VarDeclaration *v = s->isVarDeclaration();
                 assert(v);
-                Expression *m = v->init ? v->init->toExpression() : v->type->defaultInitLiteral();
+                Expression *m = v->init ? v->init->toExpression() : v->type->defaultInitLiteral(loc);
                 if (exceptionOrCantInterpret(m))
                     return m;
                 elems->tdata()[fieldsSoFar+i] = copyLiteral(m);
@@ -3612,7 +3612,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 Type *elemType= NULL;
                 elemType = ((TypeArray *)t)->next;
                 assert(elemType);
-                Expression *defaultElem = elemType->defaultInitLiteral();
+                Expression *defaultElem = elemType->defaultInitLiteral(loc);
 
                 Expressions *elements = new Expressions();
                 elements->setDim(newlen);
@@ -3734,7 +3734,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // only modifying part of the variable. So we need to make sure
     // that the parent variable exists.
     if (e1->op != TOKvar && ultimateVar && !ultimateVar->getValue())
-        ultimateVar->setValue(copyLiteral(ultimateVar->type->defaultInitLiteral()));
+        ultimateVar->setValue(copyLiteral(ultimateVar->type->defaultInitLiteral(loc)));
 
     // ---------------------------------------
     //      Deal with reference assignment
@@ -4837,7 +4837,7 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
         ctfeStack.push(v);
         if (!v->init && !v->getValue())
         {
-            v->setValue(copyLiteral(v->type->defaultInitLiteral()));
+            v->setValue(copyLiteral(v->type->defaultInitLiteral(loc)));
         }
         if (!v->getValue()) {
             Expression *newval = v->init->toExpression();
