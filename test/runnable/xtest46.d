@@ -1109,6 +1109,17 @@ void test62()
 
 /***************************************************/
 
+void test3927()
+{
+    int[] array;
+    assert(array.length++ == 0);
+    assert(array.length == 1);
+    assert(array.length-- == 1);
+    assert(array.length == 0);
+}
+
+/***************************************************/
+
 void test63()
 {
     int[3] b;
@@ -4569,7 +4580,7 @@ int main()
     test103();
     test104();
     test105();
-
+    test3927();
     test107();
 
     test109();
