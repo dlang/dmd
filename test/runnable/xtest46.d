@@ -4349,6 +4349,17 @@ class Bar6848 : Foo6848
 }
 
 /***************************************************/
+
+version(none)
+{
+    cent issue785;
+    ucent issue785;
+}
+
+static assert(!is(cent) && !is(ucent));
+static assert(!__traits(compiles, { cent x; }));
+
+/***************************************************/
 // 6847
 
 template True6847(T)
