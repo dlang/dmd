@@ -3644,6 +3644,15 @@ ref const(Foo6529) func6529(const(Foo6529)[] arr){ return arr[0]; }
 
 /***************************************************/
 
+void test783()
+{
+    const arr = [ 1,2,3 ];
+    const i = 2;
+    auto jhk = new int[arr[i]]; // "need size of rightmost array, not type arr[i]"
+}
+
+/***************************************************/
+
 template X157(alias x)
 {
     alias x X157;
