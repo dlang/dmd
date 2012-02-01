@@ -3272,7 +3272,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     }
 #endif
 
-    if (!sc->sw->sdefault && (!isFinal || needswitcherror))
+    if (!sc->sw->sdefault && (!isFinal || needswitcherror || global.params.useAssert))
     {   hasNoDefault = 1;
 
         if (!isFinal)
