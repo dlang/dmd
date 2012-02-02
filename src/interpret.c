@@ -905,6 +905,73 @@ Expression *ctfeEqual(enum TOK op, Type *type, Expression *e1, Expression *e2)
     return Equal(op, type, e1, e2);
 }
 
+Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
+{
+    Loc loc = e1->loc;
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
+    Expression *e;
+    if (e2->op == TOKstring && e1->op == TOKarrayliteral &&
+        t1->nextOf()->isintegral())
+    {
+        // [chars] ~ string => string (only valid for CTFE)
+        StringExp *es1 = (StringExp *)e2;
+        ArrayLiteralExp *es2 = (ArrayLiteralExp *)e1;
+        size_t len = es1->len + es2->elements->dim;
+        int sz = es1->sz;
+
+        void *s = mem.malloc((len + 1) * sz);
+        memcpy((char *)s + sz * es2->elements->dim, es1->string, es1->len * sz);
+        for (size_t i = 0; i < es2->elements->dim; i++)
+        {   Expression *es2e = es2->elements->tdata()[i];
+            if (es2e->op != TOKint64)
+                return EXP_CANT_INTERPRET;
+            dinteger_t v = es2e->toInteger();
+            memcpy((unsigned char *)s + i * sz, &v, sz);
+        }
+
+        // Add terminating 0
+        memset((unsigned char *)s + len * sz, 0, sz);
+
+        StringExp *es = new StringExp(loc, s, len);
+        es->sz = sz;
+        es->committed = 0;
+        es->type = type;
+        e = es;
+        return e;
+    }
+    else if (e1->op == TOKstring && e2->op == TOKarrayliteral &&
+        t2->nextOf()->isintegral())
+    {
+        // string ~ [chars] => string (only valid for CTFE)
+        // Concatenate the strings
+        StringExp *es1 = (StringExp *)e1;
+        ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+        size_t len = es1->len + es2->elements->dim;
+        int sz = es1->sz;
+
+        void *s = mem.malloc((len + 1) * sz);
+        memcpy(s, es1->string, es1->len * sz);
+        for (size_t i = 0; i < es2->elements->dim; i++)
+        {   Expression *es2e = es2->elements->tdata()[i];
+            if (es2e->op != TOKint64)
+                return EXP_CANT_INTERPRET;
+            dinteger_t v = es2e->toInteger();
+            memcpy((unsigned char *)s + (es1->len + i) * sz, &v, sz);
+        }
+
+        // Add terminating 0
+        memset((unsigned char *)s + len * sz, 0, sz);
+
+        StringExp *es = new StringExp(loc, s, len);
+        es->sz = sz;
+        es->committed = 0; //es1->committed;
+        es->type = type;
+        e = es;
+        return e;
+    }
+    return Cat(type, e1, e2);
+}
 
 void scrubArray(Loc loc, Expressions *elems);
 
@@ -3213,66 +3280,6 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     return r;
 }
 
-
-/* Set a slice of char array literal 'existingAE' from a string 'newval'.
- * existingAE[firstIndex..firstIndex+newval.length] = newval.
- */
-void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, int firstIndex)
-{
-    size_t newlen =  newval->len;
-    size_t sz = newval->sz;
-    unsigned char *s = (unsigned char *)newval->string;
-    Type *elemType = existingAE->type->nextOf();
-    for (size_t j = 0; j < newlen; j++)
-    {
-        dinteger_t val;
-        switch (sz)
-        {
-            case 1: val = s[j]; break;
-            case 2: val = ((unsigned short *)s)[j]; break;
-            case 4: val = ((unsigned *)s)[j]; break;
-            default:
-                assert(0);
-                break;
-        }
-        existingAE->elements->tdata()[j+firstIndex]
-            = new IntegerExp(newval->loc, val, elemType);
-    }
-}
-
-/* Set a slice of string 'existingSE' from a char array literal 'newae'.
- *   existingSE[firstIndex..firstIndex+newae.length] = newae.
- */
-void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, int firstIndex)
-{
-    unsigned char *s = (unsigned char *)existingSE->string;
-    for (size_t j = 0; j < newae->elements->dim; j++)
-    {
-        unsigned value = (unsigned)(newae->elements->tdata()[j]->toInteger());
-        switch (existingSE->sz)
-        {
-            case 1: s[j+firstIndex] = value; break;
-            case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
-            case 4: ((unsigned *)s)[j+firstIndex] = value; break;
-            default:
-                assert(0);
-                break;
-        }
-    }
-}
-
-/* Set a slice of string 'existingSE' from a string 'newstr'.
- *   existingSE[firstIndex..firstIndex+newstr.length] = newstr.
- */
-void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, int firstIndex)
-{
-    unsigned char *s = (unsigned char *)existingSE->string;
-    size_t sz = existingSE->sz;
-    assert(sz == newstr->sz);
-    memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
-}
-
-
 /* Set dest = src, where both dest and src are container value literals
  * (ie, struct literals, or static arrays (can be an array literal or a string)
  * Assignment is recursively in-place.
@@ -4425,15 +4432,17 @@ Expression *AssignExp::interpret(InterState *istate, CtfeGoal goal)
     return interpretAssignCommon(istate, goal, NULL);
 }
 
-#define BIN_ASSIGN_INTERPRET(op) \
+#define BIN_ASSIGN_INTERPRET_CTFE(op, ctfeOp) \
 Expression *op##AssignExp::interpret(InterState *istate, CtfeGoal goal) \
 {                                                                       \
-    return interpretAssignCommon(istate, goal, &op);                    \
+    return interpretAssignCommon(istate, goal, &ctfeOp);                    \
 }
+
+#define BIN_ASSIGN_INTERPRET(op) BIN_ASSIGN_INTERPRET_CTFE(op, op)
 
 BIN_ASSIGN_INTERPRET(Add)
 BIN_ASSIGN_INTERPRET(Min)
-BIN_ASSIGN_INTERPRET(Cat)
+BIN_ASSIGN_INTERPRET_CTFE(Cat, ctfeCat)
 BIN_ASSIGN_INTERPRET(Mul)
 BIN_ASSIGN_INTERPRET(Div)
 BIN_ASSIGN_INTERPRET(Mod)
@@ -5306,7 +5315,7 @@ Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
         return e2;
     if (e2->op == TOKslice)
         e2 = resolveSlice(e2);
-    e = Cat(type, e1, e2);
+    e = ctfeCat(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
     // We know we still own it, because we interpreted both e1 and e2
