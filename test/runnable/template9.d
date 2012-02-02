@@ -796,6 +796,17 @@ alias S4371!("hi!") t;
 static if (is(t U == S4371!(U))) { }
 
 /**********************************/
+// 7416
+
+void t7416(alias a)() if(is(typeof(a())))
+{}
+
+void test7416() {
+    void f() {}
+    alias t7416!f x;
+}
+
+/**********************************/
 
 int main()
 {
@@ -831,6 +842,7 @@ int main()
     test7037();
     test7124();
     test7359();
+    test7416();
 
     printf("Success\n");
     return 0;

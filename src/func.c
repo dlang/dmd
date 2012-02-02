@@ -2598,7 +2598,7 @@ AggregateDeclaration *FuncDeclaration::isMember2()
  *      >0      decrease nesting by number
  */
 
-int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
+int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
 {   int level;
     Dsymbol *s;
     Dsymbol *fdparent;
@@ -2635,7 +2635,9 @@ int FuncDeclaration::getLevel(Loc loc, FuncDeclaration *fd)
     return level;
 
 Lerr:
-    error(loc, "cannot access frame of function %s", fd->toPrettyChars());
+    // Don't give error if in template constraint
+    if (!((sc->flags & SCOPEstaticif) && parent->isTemplateDeclaration()))
+        error(loc, "cannot access frame of function %s", fd->toPrettyChars());
     return 1;
 }
 
@@ -2974,7 +2976,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 
         if (fdv && fdthis && fdv != fdthis)
         {
-            int lv = fdthis->getLevel(loc, fdv);
+            int lv = fdthis->getLevel(loc, sc, fdv);
             if (lv == -1)
                 return; // OK
             if (lv == 0)

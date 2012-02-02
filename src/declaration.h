@@ -626,7 +626,7 @@ struct FuncDeclaration : Declaration
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
     AggregateDeclaration *isMember2();
-    int getLevel(Loc loc, FuncDeclaration *fd); // lexical nesting level difference
+    int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
     char *mangle();
