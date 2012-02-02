@@ -33,6 +33,7 @@ struct InterfaceDeclaration;
 struct TypeInfoClassDeclaration;
 struct VarDeclaration;
 struct dt_t;
+struct TypeAArray;
 
 
 struct AggregateDeclaration : ScopeDsymbol
@@ -134,6 +135,7 @@ struct StructDeclaration : AggregateDeclaration
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
     static FuncDeclaration *xerreq;      // object.xopEquals
+    TypeAArray *isAA;
 #endif
 
     StructDeclaration(Loc loc, Identifier *id);

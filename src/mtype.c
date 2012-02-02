@@ -4370,6 +4370,7 @@ StructDeclaration *TypeAArray::getImpl()
         ti->semantic2(sc);
         ti->semantic3(sc);
         impl = ti->toAlias()->isStructDeclaration();
+        impl->isAA = this;
 #ifdef DEBUG
         if (!impl)
         {   Dsymbol *s = ti->toAlias();

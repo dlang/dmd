@@ -996,6 +996,20 @@ void test54()
 
 /***************************************************/
 
+void test5590()
+{
+    auto a = [5 : "hello"].values;
+    auto b = [5 : "hello"].keys;
+    auto c = [5 : "hello"].length;
+    auto d = [5 : "hello"].rehash;
+    assert(a == ["hello"]);
+    assert(b == [5]);
+    assert(c == 1);
+    assert(d == [5 : "hello"]);
+}
+
+/***************************************************/
+
 class Foo55
 {
 	synchronized void noop1() { }
@@ -4501,6 +4515,7 @@ int main()
     test37();
     test38();
     test39();
+    test5590();
     test40();
     test41();
     test42();
