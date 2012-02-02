@@ -715,6 +715,7 @@ struct Catch : Object
     Identifier *ident;
     VarDeclaration *var;
     Statement *handler;
+    bool internalCatch;
 
     Catch(Loc loc, Type *t, Identifier *id, Statement *handler);
     Catch *syntaxCopy();

@@ -4746,7 +4746,7 @@ void VarExp::checkEscape()
         // if reference type
         if (tb->ty == Tarray || tb->ty == Tsarray || tb->ty == Tclass || tb->ty == Tdelegate)
         {
-            if (v->isScope() && !v->noscope)
+            if (v->isScope() && (!v->noscope || tb->ty == Tclass))
                 error("escaping reference to scope local %s", v->toChars());
             else if (v->storage_class & STCvariadic)
                 error("escaping reference to variadic parameter %s", v->toChars());
