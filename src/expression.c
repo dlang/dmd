@@ -770,6 +770,18 @@ void valueNoDtor(Expression *e)
 #if DMDV2
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 {
+    if (e->op == TOKarrayliteral)
+    {
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+        for (size_t i = 0; i < ae->elements->dim; i++)
+        {
+            ae->elements->tdata()[i] =
+                callCpCtor(loc, sc, ae->elements->tdata()[i], noscope);
+        }
+        e = ae->semantic(sc);
+        return e;
+    }
+
     Type *tb = e->type->toBasetype();
     Type *tv = tb;
     while (tv->ty == Tsarray)
@@ -1082,7 +1094,11 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
             Type *tb = arg->type->toBasetype();
-            if (tb->ty == Tsarray)
+            if (arg->op == TOKarrayliteral)
+            {
+                arg = callCpCtor(loc, sc, arg, 1);
+            }
+            else if (tb->ty == Tsarray)
             {
 #if !SARRAYVALUE
                 // Convert static arrays to pointers
@@ -10461,6 +10477,11 @@ Ltupleassign:
     e2 = e2->inferType(t1);
     if (!e2->rvalue())
         return new ErrorExp();
+
+    if (e2->op == TOKarrayliteral)
+    {
+        e2 = callCpCtor(loc, sc, e2, 1);
+    }
 
     if (e1->op == TOKarraylength)
     {

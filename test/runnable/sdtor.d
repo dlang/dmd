@@ -1878,6 +1878,37 @@ void test6177()
 
 
 /**********************************/
+// 6470
+
+struct S6470
+{
+    static int spblit;
+
+    this(this){ ++spblit; }
+}
+
+void test6470()
+{
+    S6470[] a1;
+    S6470[] a2;
+    a1.length = 3;
+    a2.length = 3;
+    a1[] = a2[];
+    assert(S6470.spblit == 3);
+
+    S6470 s;
+
+    S6470[] a3;
+    a3.length = 3;
+    a3 = [s, s, s];
+    assert(S6470.spblit == 6);
+
+    void func(S6470[] a){}
+    func([s, s, s]);
+    assert(S6470.spblit == 9);
+}
+
+/**********************************/
 // 6636
 
 struct S6636
@@ -2025,6 +2056,7 @@ int main()
     test60();
     test4316();
     test6177();
+    test6470();
     test6636();
     test6637();
     test7353();
