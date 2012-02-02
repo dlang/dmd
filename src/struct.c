@@ -311,6 +311,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     postblit = NULL;
 
     xeq = NULL;
+    isAA = NULL;
 #endif
 
     // For forward references

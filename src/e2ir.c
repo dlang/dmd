@@ -4837,11 +4837,17 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
     //printf("AssocArrayLiteralExp::toElem() %s\n", toChars());
     size_t dim = keys->dim;
     elem *e;
+    Type *isstruct = NULL;
 
     // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
     // Prefer this to avoid the varargs fiasco in 64 bit code
     Type *t = type->toBasetype()->mutableOf();
-    assert(t->ty == Taarray);
+    if (t->ty == Tstruct)
+    {
+        isstruct = t;
+        t = ((TypeStruct *)t)->sym->isAA;
+    }
+    assert(t && t->ty == Taarray);
     TypeAArray *ta = (TypeAArray *)t;
 
     symbol *skeys;
@@ -4861,6 +4867,14 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 
     e = el_combine(evalues, e);
     e = el_combine(ekeys, e);
+
+    if (isstruct)
+    {
+        Symbol *stmp = symbol_genauto(TYnptr);
+        elem *eeq = el_bin(OPeq, TYnptr, el_var(stmp), e);
+        e = el_bin(OPcomma, TYnptr, eeq, el_ptr(stmp));
+        type = t;
+    }
 
     return e;
 }
