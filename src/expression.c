@@ -10410,6 +10410,21 @@ Ltupleassign:
 
     if (t1->ty == Tsarray && !refinit)
     {
+        Type *t2 = e2->type->toBasetype();
+
+        if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
+        {   // static array assignment should check their lengths
+            TypeSArray *tsa1 = (TypeSArray *)t1;
+            TypeSArray *tsa2 = (TypeSArray *)t2;
+            uinteger_t dim1 = tsa1->dim->toInteger();
+            uinteger_t dim2 = tsa2->dim->toInteger();
+            if (dim1 != dim2)
+            {
+                error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                return new ErrorExp();
+            }
+        }
+
         if (e1->op == TOKindex &&
             ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
@@ -10421,7 +10436,6 @@ Ltupleassign:
         }
         else
         {
-            Type *t2 = e2->type->toBasetype();
             // Convert e2 to e2[], unless e2-> e1[0]
             if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
             {
