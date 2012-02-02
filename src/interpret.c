@@ -3448,6 +3448,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     {
         wantRef = true;
     }
+    // If it is a construction of a ref variable, it is a ref assignment
+    if (op == TOKconstruct && this->e1->op==TOKvar
+        && ((VarExp*)this->e1)->var->storage_class & STCref)
+    {
+         wantRef = true;
+    }
+
     if (fp)
     {
         while (e1->op == TOKcast)
@@ -3712,20 +3719,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     {   // Can't modify global or static data
         error("%s cannot be modified at compile time", ultimateVar->toChars());
         return EXP_CANT_INTERPRET;
-    }
-
-    // This happens inside compiler-generated foreach statements.
-    if (op==TOKconstruct && this->e1->op==TOKvar &&
-        this->e2->op == TOKindex
-        && ((VarExp*)this->e1)->var->storage_class & STCref)
-    {
-        VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
-#if (LOGASSIGN)
-        printf("FOREACH ASSIGN %s=%s\n", v->toChars(), e2->toChars());
-#endif
-        v->setValueNull();
-        v->setValue(e2);
-        return e2;
     }
 
     e1 = resolveReferences(e1, istate->localThis);
@@ -4784,8 +4777,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         {
             if (e->op == TOKslice)
                 e= resolveSlice(e);
-            e = expType(type, e);
-            e = copyLiteral(e);
+            e = paintTypeOntoLiteral(type, copyLiteral(e));
         }
         return e;
     }
