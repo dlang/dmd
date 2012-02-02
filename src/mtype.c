@@ -6492,7 +6492,9 @@ void TypeInstance::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymb
     //printf("TypeInstance::resolve(sc = %p, idents = '%s')\n", sc, id->toChars());
     s = tempinst;
     if (s)
+    {   //printf("s = %s\n", s->toChars());
         s->semantic(sc);
+    }
     resolveHelper(loc, sc, s, NULL, pe, pt, ps);
     if (*pt)
         *pt = (*pt)->addMod(mod);
@@ -6659,6 +6661,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
     {
         Scope *sc2 = sc->push();
         sc2->intypeof++;
+        sc2->flags |= sc->flags & SCOPEstaticif;
         exp = exp->semantic(sc2);
 #if DMDV2
         if (exp->type && exp->type->ty == Tfunction &&

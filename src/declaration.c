@@ -1678,7 +1678,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
              */
 
             if (loc.filename)
-                fdthis->getLevel(loc, fdv);
+                fdthis->getLevel(loc, sc, fdv);
 
             for (size_t i = 0; i < nestedrefs.dim; i++)
             {   FuncDeclaration *f = nestedrefs.tdata()[i];
