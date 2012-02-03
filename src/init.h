@@ -114,6 +114,7 @@ struct ArrayInitializer : Initializer
 struct ExpInitializer : Initializer
 {
     Expression *exp;
+    int expandTuples;
 
     ExpInitializer(Loc loc, Expression *exp);
     Initializer *syntaxCopy();
