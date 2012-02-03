@@ -2184,6 +2184,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 #if JHANDLE
                 case TYjhandle:
 #endif
+                case TYref:
                 case TYnptr:
 #if TARGET_SEGMENTED
                 case TYsptr:

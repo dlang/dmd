@@ -1501,6 +1501,14 @@ unsigned dwarf_typidx(type *t)
         DW_AT_decl_line,        DW_FORM_data2,
         0,                      0,
     };
+    static unsigned char abbrevTypeReference[] =
+    {
+        DW_TAG_reference_type,
+        0,                      // no children
+        DW_AT_byte_size,        DW_FORM_data1,
+        DW_AT_type,             DW_FORM_ref4,
+        0,                      0,
+    };
     static unsigned char abbrevTypePointer[] =
     {
         DW_TAG_pointer_type,
@@ -1631,9 +1639,15 @@ unsigned dwarf_typidx(type *t)
     {
         Lnptr:
             nextidx = dwarf_typidx(t->Tnext);
-            code = nextidx
-                ? dwarf_abbrev_code(abbrevTypePointer, sizeof(abbrevTypePointer))
-                : dwarf_abbrev_code(abbrevTypePointerVoid, sizeof(abbrevTypePointerVoid));
+            if (nextidx)
+            {
+                if (tybasic(t->Tty) == TYnref || tybasic(t->Tty) == TYref)
+                    code = dwarf_abbrev_code(abbrevTypeReference, sizeof(abbrevTypeReference));
+                else
+                    code = dwarf_abbrev_code(abbrevTypePointer, sizeof(abbrevTypePointer));
+            }
+            else
+                code = dwarf_abbrev_code(abbrevTypePointerVoid, sizeof(abbrevTypePointerVoid));
             idx = infobuf->size();
             infobuf->writeuLEB128(code);        // abbreviation code
             infobuf->writeByte(tysize(t->Tty)); // DW_AT_byte_size
