@@ -831,6 +831,18 @@ void test44()
 
 /***************************************************/
 
+void test2006()
+{
+    string [][] aas = [];
+    assert(aas.length == 0);
+    aas ~= cast (string []) [];
+    assert(aas.length == 1);
+    aas = aas ~ cast (string []) [];
+    assert(aas.length == 2);
+}
+
+/***************************************************/
+
 class A45
 {
   int x;
@@ -5240,6 +5252,7 @@ int main()
     test3559();
     test84();
     test85();
+    test2006();
     test86();
     test87();
     test5554();
