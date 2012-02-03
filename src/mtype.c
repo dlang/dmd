@@ -4515,7 +4515,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         FuncDeclaration *fd;
         Expressions *arguments;
 
-        fd = FuncDeclaration::genCfunc(Type::tint64, Id::aaRehash);
+        fd = FuncDeclaration::genCfunc(Type::tindex, Id::aaRehash);
         ec = new VarExp(0, fd);
         arguments = new Expressions();
         arguments->push(e->addressOf(sc));

@@ -836,6 +836,60 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
             }
         }
     }
+    else if (e1->op == TOKassocarrayliteral && e2->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *es1 = (AssocArrayLiteralExp *)e1;
+        AssocArrayLiteralExp *es2 = (AssocArrayLiteralExp *)e2;
+
+        int dim = es1->keys->dim;
+        if (es2->keys->dim != dim)
+            cmp = 0;
+        else
+        {
+            bool *used = (bool *)malloc(sizeof(bool) * dim);
+            size_t i, j;
+            for(i = 0; i < dim; ++i)
+                used[i] = false;
+
+            for(i = 0; i < dim; ++i)
+            {
+                Expression *k1 = (*es1->keys)[i];
+                Expression *v1 = (*es1->values)[i];
+
+                for(j = 0; j < dim; ++j)
+                {
+                    if (used[j])
+                        continue;
+                    Expression *k2 = (*es2->keys)[j];
+                    Expression *v2 = (*es2->values)[j];
+
+                    Expression *ke = Equal(TOKequal, Type::tint32, k1, k2);
+                    if (ke == EXP_CANT_INTERPRET)
+                    {
+                        cmp = 2;
+                        goto Laadone;
+                    }
+                    cmp = ke->toInteger();
+                    if (cmp == 0)
+                        continue;
+                    used[j] = true;
+                    Expression *ve = Equal(TOKequal, Type::tint32, v1, v2);
+                    if (ve == EXP_CANT_INTERPRET)
+                    {
+                        cmp = 2;
+                        goto Laadone;
+                    }
+                    cmp = ve->toInteger();
+                    if (cmp == 0)
+                        goto Laadone;
+                }
+            }
+        Laadone:
+            free(used);
+            if (cmp == 2)
+                return EXP_CANT_INTERPRET;
+        }
+    }
     else if (e1->op == TOKarrayliteral && e2->op == TOKstring)
     {   // Swap operands and use common code
         Expression *etmp = e1;
