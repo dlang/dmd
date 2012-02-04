@@ -463,17 +463,11 @@ Statement *CompoundStatement::semantic(Scope *sc)
                     statements->data[i] = sentry;
                 }
                 if (sexception)
+                    sexception = sexception->semantic(sc);
+                if (sexception)
                 {
                     if (i + 1 == statements->dim && !sfinally)
                     {
-#if 1
-                        sexception = sexception->semantic(sc);
-#else
-                        statements->push(sexception);
-                        if (sfinally)
-                            // Assume sexception does not throw
-                            statements->push(sfinally);
-#endif
                     }
                     else
                     {
@@ -495,7 +489,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
                         Identifier *id = Lexer::uniqueId("__o");
 
-                        Statement *handler = sexception->semantic(sc);
+                        Statement *handler = sexception;
                         if (sexception->blockExit(FALSE) & BEfallthru)
                         {   handler = new ThrowStatement(0, new IdentifierExp(0, id));
                             handler = new CompoundStatement(0, sexception, handler);
