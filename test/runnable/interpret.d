@@ -2776,6 +2776,18 @@ static assert(!is(typeof(Compileable!(
     }(3)
 ))));
 
+// 6504 regression
+void test6504()
+{
+    for (int i = 0; i<3; ++i)
+    {
+        char[] x2 = "xxx" ~ ['c'];
+        assert(x2[1] == 'x');
+        x2[1] = 'q';
+    }
+}
+
+
 int main()
 {
     test1();
@@ -2881,6 +2893,7 @@ int main()
     test101();
     test102();
     test103();
+    test6504();
 
     writefln("Success");
     return 0;
