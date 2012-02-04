@@ -247,8 +247,9 @@ Expression *resolveProperties(Scope *sc, Expression *e)
         {   assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
             if (!tf->isproperty && global.params.enforcePropertySyntax)
-                error(e->loc, "not a property %s", e->toChars());
-
+            {   error(e->loc, "not a property %s", e->toChars());
+                return new ErrorExp();
+            }
             e = new CallExp(e->loc, e);
             e = e->semantic(sc);
         }
@@ -261,13 +262,12 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 
         if (t->ty == Tfunction || e->op == TOKoverloadset)
         {
-#if 1
             if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
                 global.params.enforcePropertySyntax)
             {
                 error(e->loc, "not a property %s", e->toChars());
+                return new ErrorExp();
             }
-#endif
             e = new CallExp(e->loc, e);
             e = e->semantic(sc);
         }
@@ -702,7 +702,9 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     size_t nparams = Parameter::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
-        error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
+    {   error(loc, "expected %zu arguments, not %zu for non-variadic function type %s", nparams, nargs, tf->toChars());
+        return Type::terror;
+    }
 
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf->next && fd->inferRetType)
@@ -753,7 +755,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     if (tf->varargs == 2 && i + 1 == nparams)
                         goto L2;
                     error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
-                    return tf->next;
+                    return Type::terror;
                 }
                 arg = p->defaultArg;
                 arg = arg->inlineCopy(sc);
@@ -782,7 +784,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         goto L2;
                     else if (nargs != nparams)
                     {   error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
-                        return tf->next;
+                        return Type::terror;
                     }
                     goto L1;
                 }
@@ -850,7 +852,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     default:
                         if (!arg)
                         {   error(loc, "not enough arguments");
-                            return tf->next;
+                            return Type::terror;
                         }
                         break;
                 }
@@ -1024,7 +1026,9 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
             // Do not allow types that need destructors
             if (arg->type->needsDestruction())
-                arg->error("cannot pass types that need destruction as variadic arguments");
+            {   arg->error("cannot pass types that need destruction as variadic arguments");
+                arg = new ErrorExp();
+            }
 
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
@@ -1052,7 +1056,9 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     se->hasOverloads &&
 #endif
                     !se->var->isFuncDeclaration()->isUnique())
-                    arg->error("function %s is overloaded", arg->toChars());
+                {   arg->error("function %s is overloaded", arg->toChars());
+                    arg = new ErrorExp();
+                }
             }
             arg->rvalue();
         }
@@ -1369,7 +1375,7 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
     else if (!loc.filename)
         loc = e->loc;
     error("%s is not an lvalue", e->toChars());
-    return this;
+    return new ErrorExp();
 }
 
 Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
@@ -1379,7 +1385,9 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     // See if this expression is a modifiable lvalue (i.e. not const)
 #if DMDV2
     if (type && (!type->isMutable() || !type->isAssignable()))
-        error("%s is not mutable", e->toChars());
+    {   error("%s is not mutable", e->toChars());
+        return new ErrorExp();
+    }
 #endif
     return toLvalue(sc, e);
 }
@@ -1953,7 +1961,7 @@ Expression *IntegerExp::toLvalue(Scope *sc, Expression *e)
     else if (!loc.filename)
         loc = e->loc;
     e->error("constant %s is not an lvalue", e->toChars());
-    return this;
+    return new ErrorExp();
 }
 
 void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2492,6 +2500,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
                     s != s2)
                 {
                     error("with symbol %s is shadowing local symbol %s", s->toPrettyChars(), s2->toPrettyChars());
+                    return new ErrorExp();
                 }
             }
 #endif
@@ -3395,7 +3404,7 @@ Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     error("Cannot modify '%s'", toChars());
-    return this;
+    return new ErrorExp();
 }
 
 unsigned StringExp::charAt(size_t i)
@@ -3565,7 +3574,9 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     /* Disallow array literals of type void being used.
      */
     if (elements->dim > 0 && t0->ty == Tvoid)
-        error("%s of type %s has no value", toChars(), type->toChars());
+    {   error("%s of type %s has no value", toChars(), type->toChars());
+        return new ErrorExp();
+    }
 
     return this;
 }
@@ -4217,8 +4228,9 @@ Lagain:
         }
 
         if (cd->noDefaultCtor && (!arguments || !arguments->dim))
-            error("default construction is disabled for type %s", cd->toChars());
-
+        {   error("default construction is disabled for type %s", cd->toChars());
+            goto Lerr;
+        }
         checkDeprecated(sc, cd);
         if (cd->isNested())
         {   /* We need a 'this' pointer for the nested class.
@@ -4382,8 +4394,9 @@ Lagain:
         TypeFunction *tf;
 
         if (sd->noDefaultCtor && (!arguments || !arguments->dim))
-            error("default construction is disabled for type %s", sd->toChars());
-
+        {   error("default construction is disabled for type %s", sd->toChars());
+            goto Lerr;
+        }
         FuncDeclaration *f = NULL;
         if (sd->ctor)
             f = resolveFuncCall(sc, loc, sd->ctor, NULL, NULL, arguments, 0);
@@ -4912,7 +4925,7 @@ Expression *TupleExp::semantic(Scope *sc)
         e = e->semantic(sc);
         if (!e->type)
         {   error("%s has no value", e->toChars());
-            e = new ErrorExp();
+            return new ErrorExp();
         }
         (*exps)[i] = e;
     }
@@ -5222,7 +5235,9 @@ Expression *DeclarationExp::semantic(Scope *sc)
     if (s->ident)
     {
         if (!sc->insert(s))
-            error("declaration %s is already defined", s->toPrettyChars());
+        {   error("declaration %s is already defined", s->toPrettyChars());
+            return new ErrorExp();
+        }
         else if (sc->func)
         {   VarDeclaration *v = s->isVarDeclaration();
             if ( (s->isFuncDeclaration() || s->isTypedefDeclaration() ||
@@ -5232,6 +5247,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
             {
                 error("declaration %s is already defined in another scope in %s",
                     s->toPrettyChars(), sc->func->toChars());
+                return new ErrorExp();
             }
             else if (!global.params.useDeprecated)
             {   // Disallow shadowing
@@ -5244,6 +5260,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                         s != s2)
                     {
                         error("shadowing declaration %s is deprecated", s->toPrettyChars());
+                        return new ErrorExp();
                     }
                 }
             }
