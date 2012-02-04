@@ -1582,4 +1582,11 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2);
 
 Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
 
+// Const-folding functions used by CTFE
+
+void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, int firstIndex);
+void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, int firstIndex);
+void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, int firstIndex);
+
+
 #endif /* DMD_EXPRESSION_H */
