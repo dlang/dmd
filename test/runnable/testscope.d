@@ -232,6 +232,15 @@ T readMessageEnd() {
 
 /********************************************/
 
+void test7435() {
+  scope(failure)
+    debug printf("error\n");
+
+  printf("do something\n");
+}
+
+/********************************************/
+
 void main()
 {
     test1();
@@ -244,6 +253,7 @@ void main()
     test8();
     test9();
     test10();
+    test7435();
 
     printf("Success\n");
 }

@@ -521,10 +521,11 @@ Statement *CompoundStatement::semantic(Scope *sc)
                     i++;
                 }
                 if (sexception)
+                    sexception = sexception->semantic(sc);
+                if (sexception)
                 {
                     if (i + 1 == statements->dim && !sfinally)
                     {
-                        sexception = sexception->semantic(sc);
                     }
                     else
                     {
@@ -546,7 +547,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
 
                         Identifier *id = Lexer::uniqueId("__o");
 
-                        Statement *handler = sexception->semantic(sc);
+                        Statement *handler = sexception;
                         if (sexception->blockExit(FALSE) & BEfallthru)
                         {   handler = new ThrowStatement(0, new IdentifierExp(0, id));
                             handler = new CompoundStatement(0, sexception, handler);
