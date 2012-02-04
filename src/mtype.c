@@ -4059,8 +4059,9 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
         case Tnone:
         case Ttuple:
             error(loc, "can't have array of %s", tbn->toChars());
-            tn = next = tint32;
-            break;
+        case Terror:
+            return Type::terror;
+
         case Tstruct:
         {   TypeStruct *ts = (TypeStruct *)tbn;
             if (0 && ts->sym->isnested)
@@ -4301,6 +4302,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         case Tnone:
         case Ttuple:
             error(loc, "can't have associative array key of %s", index->toBasetype()->toChars());
+        case Terror:
             return Type::terror;
     }
     next = next->semantic(loc,sc);
@@ -4312,6 +4314,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         case Tvoid:
         case Tnone:
             error(loc, "can't have associative array of %s", next->toChars());
+        case Terror:
             return Type::terror;
     }
     if (next->isscope())
@@ -4624,8 +4627,8 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     {
         case Ttuple:
             error(loc, "can't have pointer to %s", n->toChars());
-            n = tint32;
-            break;
+        case Terror:
+            return Type::terror;
     }
     if (n != next)
     {
@@ -7540,7 +7543,7 @@ L1:
     if (td)
     {
         e = new DotTemplateExp(e->loc, e, td);
-        e->semantic(sc);
+        e = e->semantic(sc);
         return e;
     }
 
@@ -8087,7 +8090,7 @@ L1:
     if (td)
     {
         e = new DotTemplateExp(e->loc, e, td);
-        e->semantic(sc);
+        e = e->semantic(sc);
         return e;
     }
 
