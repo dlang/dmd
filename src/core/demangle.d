@@ -740,10 +740,10 @@ private struct Demangle
         case 'H': // TypeAssocArray (H Type Type)
             next();
             // skip t1
-            auto t = parseType();
+            auto tx = parseType();
             parseType();
             put( "[" );
-            put( t );
+            put( tx );
             put( "]" );
             pad( name );
             return dst[beg .. len];

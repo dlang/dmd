@@ -48,7 +48,7 @@ structures.  The default value is optimized for a high cost for compares. */
 extern (C) void[] _adSort(Array a, TypeInfo ti)
 {
   byte*[40] stackbuf = void;    // initial stack buffer
-  auto stack = stackbuf[0..length];    // stack
+  auto stack = stackbuf[0..$];    // stack
   auto sp = stack.ptr;                 // stack pointer
 
   auto width = ti.tsize();
