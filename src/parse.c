@@ -4010,7 +4010,7 @@ Statement *Parser::parseStatement(int flags)
                     arg = new Parameter(0, NULL, token.ident, NULL);
                     nextToken();
                     nextToken();
-                    deprecation("if (v%s e) is deprecated, use if (auto v = e)", t->toChars());
+                    error("if (v; e) is deprecated, use if (auto v = e)");
                 }
             }
 
