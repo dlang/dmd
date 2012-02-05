@@ -4665,6 +4665,63 @@ void test6504()
     }
 }
 
+struct S7424a
+{
+    @property inout(int) g()() inout { return 7424; }
+    void test1()
+    {
+        int f = g;
+        assert(f == 7424);
+        assert(g == 7424);
+    }
+    void test2() const
+    {
+        int f = g;
+        assert(f == 7424);
+        assert(g == 7424);
+    }
+    void test3() immutable
+    {
+        int f = g;
+        assert(f == 7424);
+        assert(g == 7424);
+    }
+}
+struct S7425
+{
+    inout(T) g(T)(T x) inout
+    {
+        return x;
+    }
+    void test1()
+    {
+        int f = g(2);
+        assert(f == 2);
+    }
+    void test2() const
+    {
+        double y = g(4.5);
+        assert(y == 4.5);
+    }
+}
+void test7424()
+{
+    S7424a s1;
+    s1.test1();
+    s1.test2();
+
+    immutable(S7424a) s2;
+    s2.test2();
+    s2.test3();
+
+    const(S7424a) s3;
+    s3.test2();
+
+    S7425 s4;
+    s4.test1();
+    s4.test2();
+}
+
 /***************************************************/
 
 int main()
@@ -4910,6 +4967,7 @@ int main()
     test7367();
     test7375();
     test6504();
+    test7424();
 
     writefln("Success");
     return 0;

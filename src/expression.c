@@ -253,7 +253,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
             e = new CallExp(e->loc, e);
             e = e->semantic(sc);
         }
-        return e;
+        goto return_expr;
     }
 
     if (e->type)
@@ -290,6 +290,13 @@ Expression *resolveProperties(Scope *sc, Expression *e)
             return new ErrorExp();
         }
 
+    }
+
+return_expr:
+    if (!e->type)
+    {
+        error(e->loc, "cannot resolve type for %s", e->toChars());
+        e->type = new TypeError();
     }
     return e;
 }
