@@ -1317,6 +1317,15 @@ enum
     THREAD_PRIORITY_IDLE =            THREAD_BASE_PRIORITY_IDLE,
 }
 
+enum : DWORD
+{
+    MAX_COMPUTERNAME_LENGTH = 15,
+}
+
+export BOOL GetComputerNameA(LPSTR lpBuffer, LPDWORD nSize);
+export BOOL GetComputerNameW(LPWSTR lpBuffer, LPDWORD nSize);
+export BOOL SetComputerNameA(LPCSTR lpComputerName);
+export BOOL SetComputerNameW(LPCWSTR lpComputerName);
 export BOOL GetUserNameA(LPSTR lpBuffer, LPDWORD lpnSize);
 export BOOL GetUserNameW(LPWSTR lpBuffer, LPDWORD lpnSize);
 export HANDLE GetCurrentThread();
