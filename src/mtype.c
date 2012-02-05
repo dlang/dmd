@@ -1939,11 +1939,6 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     {
         e = new IntegerExp(loc, size(loc), Type::tsize_t);
     }
-    else if (ident == Id::size)
-    {
-        error(loc, ".size property should be replaced with .sizeof");
-        e = new ErrorExp();
-    }
     else if (ident == Id::__xalignof)
     {
         e = new IntegerExp(loc, alignsize(), Type::tsize_t);
