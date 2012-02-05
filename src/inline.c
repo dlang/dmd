@@ -190,6 +190,7 @@ int lambdaInlineCost(Expression *e, void *param)
 
 int expressionInlineCost(Expression *e, InlineCostState *ics)
 {
+    //printf("expressionInlineCost()\n");
     ICS2 ics2;
     ics2.cost = 0;
     ics2.ics = ics;
@@ -205,6 +206,7 @@ int Expression::inlineCost3(InlineCostState *ics)
 
 int VarExp::inlineCost3(InlineCostState *ics)
 {
+    //printf("VarExp::inlineCost3() %s\n", toChars());
     Type *tb = type->toBasetype();
     if (tb->ty == Tstruct)
     {
@@ -220,6 +222,9 @@ int VarExp::inlineCost3(InlineCostState *ics)
              */
             return COST_MAX;
     }
+    FuncDeclaration *fd = var->isFuncDeclaration();
+    if (fd && fd->isNested())
+        return COST_MAX;
     return 1;
 }
 
