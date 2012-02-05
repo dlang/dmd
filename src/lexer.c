@@ -578,7 +578,7 @@ void Lexer::scan(Token *t)
                 t->postfix = 0;
                 t->value = TOKstring;
 #if DMDV2
-                deprecation("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
+                error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
 #endif
                 return;
             }
