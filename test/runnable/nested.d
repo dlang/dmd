@@ -1509,6 +1509,41 @@ void test4401()
 
 /*******************************************/
 
+alias void delegate() dg_t;
+
+void Y(dg_t delegate (dg_t) y)
+{
+    struct F { void delegate(F) f; };
+
+  version (all)
+  { // generates error
+    (dg_t delegate(F) a){return a(F((F b){return y(a(b))();})); }
+    ((F b){return (){return b.f(b);};});
+  }
+  else
+  {
+    auto abc(dg_t delegate(F) a)
+    {
+	return a(F((F b){return y(a(b))();}));
+    }
+
+    abc((F b){return (){return b.f(b);};});
+  }
+}
+
+
+void test7428(){
+    dg_t foo(dg_t self)
+    {
+	void bar() { self(); }
+	return &bar;
+    }
+
+    Y(&foo);
+} 
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -1567,6 +1602,7 @@ int main()
     test54();
     test55();
     test4401();
+    test7428();
 
     printf("Success\n");
     return 0;

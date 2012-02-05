@@ -1677,30 +1677,45 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
              * so it never becomes closure.
              */
 
+            //printf("\tfdv = %s\n", fdv->toChars());
+            //printf("\tfdthis = %s\n", fdthis->toChars());
+
             if (loc.filename)
                 fdthis->getLevel(loc, sc, fdv);
 
-            for (size_t i = 0; i < nestedrefs.dim; i++)
-            {   FuncDeclaration *f = nestedrefs.tdata()[i];
-                if (f == fdthis)
-                    goto L1;
+            // Function literals from fdthis to fdv must be delegates
+            for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
+            {
+                // function literal has reference to enclosing scope is delegate
+                if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+                {
+                    fld->tok = TOKdelegate;
+                }
             }
 
-            // function literal has reference to enclosing scope is delegate
-            if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
-                fld->tok = TOKdelegate;
-
-            nestedrefs.push(fdthis);
-          L1: ;
-
-
-            for (size_t i = 0; i < fdv->closureVars.dim; i++)
-            {   Dsymbol *s = fdv->closureVars.tdata()[i];
-                if (s == this)
-                    goto L2;
+            // Add fdthis to nestedrefs[] if not already there
+            for (size_t i = 0; 1; i++)
+            {
+                if (i == nestedrefs.dim)
+                {
+                    nestedrefs.push(fdthis);
+                    break;
+                }
+                if (nestedrefs[i] == fdthis)
+                    break;
             }
-            fdv->closureVars.push(this);
-          L2: ;
+
+            // Add this to fdv->closureVars[] if not already there
+            for (size_t i = 0; 1; i++)
+            {
+                if (i == fdv->closureVars.dim)
+                {
+                    fdv->closureVars.push(this);
+                    break;
+                }
+                if (fdv->closureVars[i] == this)
+                    break;
+            }
 
             //printf("fdthis is %s\n", fdthis->toChars());
             //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());

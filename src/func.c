@@ -2967,6 +2967,8 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
             if (lv == 0)
                 return; // OK
 
+            // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
+
             // function literal has reference to enclosing scope is delegate
             if (FuncLiteralDeclaration *fld = fdthis->isFuncLiteralDeclaration())
                 fld->tok = TOKdelegate;
