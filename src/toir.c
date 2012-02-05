@@ -144,7 +144,7 @@ elem *getEthis(Loc loc, IRState *irs, Dsymbol *fd)
     {
         if (!irs->sthis)                // if no frame pointer for this function
         {
-            fd->error(loc, "is a nested function and cannot be accessed from %s", irs->getFunc()->toChars());
+            fd->error(loc, "is a nested function and cannot be accessed from %s", irs->getFunc()->toPrettyChars());
             ethis = el_long(TYnptr, 0); // error recovery
         }
         else

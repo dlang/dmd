@@ -1544,6 +1544,22 @@ void test7428(){
 
 /*******************************************/
 
+struct S4841(alias pred)
+{
+    void unused_func();
+}
+
+void abc4841() {
+   int w;
+   S4841!(w) m;   
+}
+
+void test4841() {
+   abc4841();
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -1603,6 +1619,7 @@ int main()
     test55();
     test4401();
     test7428();
+    test4841();
 
     printf("Success\n");
     return 0;
