@@ -8985,7 +8985,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
-            deprecation("delete aa[key] deprecated, use aa.remove(key)");
+            error("delete aa[key] deprecated, use aa.remove(key)");
     }
 
     return this;
