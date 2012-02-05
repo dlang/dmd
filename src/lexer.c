@@ -2406,7 +2406,7 @@ done:
     if (*p == 'i' || *p == 'I')
     {
         if (*p == 'I')
-            deprecation("'I' suffix is deprecated, use 'i' instead");
+            error("'I' suffix is deprecated, use 'i' instead");
         p++;
         switch (result)
         {
