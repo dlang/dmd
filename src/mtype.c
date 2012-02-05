@@ -2851,8 +2851,8 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                                // For backwards compatibility - eventually, deprecate
-                                goto Lmin_normal;
+                warning(loc, "min property is deprecated, use min_normal instead");
+                goto Lmin_normal;
         }
     }
     else if (ident == Id::min_normal)
