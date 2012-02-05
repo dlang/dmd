@@ -777,8 +777,7 @@ struct BinExp : Expression
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
     Expression *semanticp(Scope *sc);
-    void checkComplexMulAssign();
-    void checkComplexAddAssign();
+    Expression *checkComplexOpAssign(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *scaleFactor(Scope *sc);
     Expression *typeCombine(Scope *sc);
@@ -810,8 +809,7 @@ struct BinAssignExp : BinExp
     {
     }
 
-    Expression *commonSemanticAssign(Scope *sc);
-    Expression *commonSemanticAssignIntegral(Scope *sc);
+    Expression *semantic(Scope *sc);
 
     Expression *op_overload(Scope *sc);
 
@@ -1247,7 +1245,7 @@ struct ConstructExp : AssignExp
 struct op##AssignExp : BinAssignExp                             \
 {                                                               \
     op##AssignExp(Loc loc, Expression *e1, Expression *e2);     \
-    Expression *semantic(Scope *sc);                            \
+    S(Expression *semantic(Scope *sc);)                          \
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);                  \
     X(void buildArrayIdent(OutBuffer *buf, Expressions *arguments);) \
     X(Expression *buildArrayLoop(Parameters *fparams);)         \
@@ -1258,6 +1256,7 @@ struct op##AssignExp : BinAssignExp                             \
 };
 
 #define X(a) a
+#define S(a)
 ASSIGNEXP(Add)
 ASSIGNEXP(Min)
 ASSIGNEXP(Mul)
@@ -1266,17 +1265,28 @@ ASSIGNEXP(Mod)
 ASSIGNEXP(And)
 ASSIGNEXP(Or)
 ASSIGNEXP(Xor)
+#undef S
+
 #if DMDV2
+#define S(a) a
 ASSIGNEXP(Pow)
+#undef S
 #endif
+
+#undef S
 #undef X
 
 #define X(a)
 
+#define S(a)
 ASSIGNEXP(Shl)
 ASSIGNEXP(Shr)
 ASSIGNEXP(Ushr)
+#undef S
+
+#define S(a) a
 ASSIGNEXP(Cat)
+#undef S
 
 #undef X
 #undef ASSIGNEXP
