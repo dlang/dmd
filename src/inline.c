@@ -203,6 +203,26 @@ int Expression::inlineCost3(InlineCostState *ics)
     return 1;
 }
 
+int VarExp::inlineCost3(InlineCostState *ics)
+{
+    Type *tb = type->toBasetype();
+    if (tb->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+        if (sd->isnested)
+            /* An inner struct will be nested inside another function hierarchy than where
+             * we're inlining into, so don't inline it.
+             * At least not until we figure out how to 'move' the struct to be nested
+             * locally. Example:
+             *   struct S(alias pred) { void unused_func(); }
+             *   void abc() { int w; S!(w) m; }
+             *   void bar() { abc(); }
+             */
+            return COST_MAX;
+    }
+    return 1;
+}
+
 int ThisExp::inlineCost3(InlineCostState *ics)
 {
     //printf("ThisExp::inlineCost3() %s\n", toChars());
