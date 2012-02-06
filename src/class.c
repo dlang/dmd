@@ -907,7 +907,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     if (!s)
     {
         // Search bases classes in depth-first, left to right order
-
+        OverloadSet *a = NULL;
         for (size_t i = 0; i < baseclasses->dim; i++)
         {
             BaseClass *b = baseclasses->tdata()[i];
@@ -918,13 +918,45 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
                     error("base %s is forward referenced", b->base->ident->toChars());
                 else
                 {
-                    s = b->base->search(loc, ident, flags);
-                    if (s == this)      // happens if s is nested in this and derives from this
-                        s = NULL;
-                    else if (s)
+                    Dsymbol *f = b->base->search(loc, ident, flags);
+                    if (f == this)      // happens if s is nested in this and derives from this
+                        ;
+                    else if (f && !s)
+                        s = f;
+                    else if (f && s)
+                    {
+                        if (f->isOverloadable() && (a || s->isOverloadable()))
+                        {
+                            if (!a)
+                                a = new OverloadSet();
+                            /* Don't add to a[] if f is alias of previous sym
+                             */
+                            for (size_t j = 0; j < a->a.dim; j++)
+                            {   Dsymbol *s3 = a->a[j];
+                                if (f->toAlias() == s3->toAlias())
+                                {
+                                    if (s3->isDeprecated())
+                                        a->a[j] = f;
+                                    goto Lcontinue;
+                                }
+                            }
+                            a->push(f);
+                        Lcontinue:
+                            continue;
+                        }
+                        else if (flags & 4)
+                            return NULL;
+                        else if (!(flags & 2))
+                            ::error(loc, "%s matches both %s and %s", ident->toChars(), s->toPrettyChars(), f->toPrettyChars());
                         break;
+                    }
                 }
             }
+        }
+        if (a)
+        {
+            a->push(s);
+            s = a;
         }
     }
     return s;

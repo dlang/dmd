@@ -3826,8 +3826,7 @@ void test4647()
     auto app = new TimedApp;
     assert(app.Timer.run() == 1);       // error, no Timer property
     assert(app.Application.run() == 2); // error, no Application property
-    assert(app.run() == 1);             // This would call Timer.run() if the two calls
-                                        // above were commented out
+    //assert(app.run() == 1);           // ambiguous
 }
 
 /***************************************************/
