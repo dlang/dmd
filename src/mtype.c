@@ -7475,7 +7475,9 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
          * (e.field0, e.field1, e.field2, ...)
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
-        e->type->size();        // do semantic of type
+        assert(e->type->ty == Tstruct);
+        AggregateDeclaration *aggregate_decl = ((TypeStruct *)e->type)->sym;
+        aggregate_decl->semantic(aggregate_decl->scope); // do semantic of type
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
 
@@ -7948,7 +7950,9 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         /* Create a TupleExp
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
-        e->type->size();        // do semantic of type
+        assert(e->type->ty == Tclass);
+        AggregateDeclaration *aggregate_decl = ((TypeClass *)e->type)->sym;
+        aggregate_decl->semantic(aggregate_decl->scope); // do semantic of type
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
 
