@@ -1337,6 +1337,31 @@ int MODimplicitConv(unsigned char modfrom, unsigned char modto)
 }
 
 /***************************
+ * Return !=0 if a method of type '() modfrom' can call a method of type '() modto'.
+ */
+int MODmethodConv(unsigned char modfrom, unsigned char modto)
+{
+    if (MODimplicitConv(modfrom, modto))
+        return 1;
+
+    #define X(m, n) (((m) << 4) | (n))
+    switch (X(modfrom, modto))
+    {
+        case X(0, MODwild):
+        case X(MODimmutable, MODwild):
+        case X(MODconst, MODwild):
+        case X(MODshared, MODshared|MODwild):
+        case X(MODshared|MODimmutable, MODshared|MODwild):
+        case X(MODshared|MODconst, MODshared|MODwild):
+            return 1;
+
+        default:
+            return 0;
+    }
+    #undef X
+}
+
+/***************************
  * Merge mod bits to form common mod.
  */
 int MODmerge(unsigned char mod1, unsigned char mod2)

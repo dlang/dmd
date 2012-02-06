@@ -1167,7 +1167,7 @@ L2:
                 mod &= ~STCwild;
             if (tthis->mod != mod)
             {
-                if (!MODimplicitConv(tthis->mod, mod))
+                if (!MODmethodConv(tthis->mod, mod))
                     goto Lnomatch;
                 if (MATCHconst < match)
                     match = MATCHconst;
