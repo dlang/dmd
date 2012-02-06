@@ -1560,6 +1560,27 @@ void test4841() {
 
 /*******************************************/
 
+
+void index7199()
+{
+    void find()
+    {
+	bool hay()
+	{
+	    return true;
+	}
+    }
+
+    find();
+}
+
+void test7199()
+{
+    index7199();
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -1620,6 +1641,7 @@ int main()
     test4401();
     test7428();
     test4841();
+    test7199();
 
     printf("Success\n");
     return 0;

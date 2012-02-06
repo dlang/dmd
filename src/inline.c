@@ -190,6 +190,8 @@ int lambdaInlineCost(Expression *e, void *param)
 
 int expressionInlineCost(Expression *e, InlineCostState *ics)
 {
+    //printf("expressionInlineCost()\n");
+    //e->dump(0);
     ICS2 ics2;
     ics2.cost = 0;
     ics2.ics = ics;
@@ -205,6 +207,7 @@ int Expression::inlineCost3(InlineCostState *ics)
 
 int VarExp::inlineCost3(InlineCostState *ics)
 {
+    //printf("VarExp::inlineCost3() %s\n", toChars());
     Type *tb = type->toBasetype();
     if (tb->ty == Tstruct)
     {
@@ -220,6 +223,9 @@ int VarExp::inlineCost3(InlineCostState *ics)
              */
             return COST_MAX;
     }
+    FuncDeclaration *fd = var->isFuncDeclaration();
+    if (fd && fd->isNested())           // see Bugzilla 7199 for test case
+        return COST_MAX;
     return 1;
 }
 
@@ -344,6 +350,7 @@ struct InlineDoState
     Dsymbols from;      // old Dsymbols
     Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol *parent;    // new parent
+    FuncDeclaration *fd; // function being inlined (old parent)
 };
 
 /* -------------------------------------------------------------------- */
@@ -639,6 +646,12 @@ Expression *VarExp::doInline(InlineDoState *ids)
             return ve;
         }
     }
+    if (ids->fd && var == ids->fd->vthis)
+    {   VarExp *ve = new VarExp(loc, ids->vthis);
+        ve->type = type;
+        return ve;
+    }
+
     return this;
 }
 
@@ -1581,6 +1594,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
 
     memset(&ids, 0, sizeof(ids));
     ids.parent = iss->fd;
+    ids.fd = this;
 
     if (ps)
         as = new Statements();

@@ -142,6 +142,48 @@ void test7()
 }
 
 /************************************/
+// Bugzilla 4825
+
+int a8() {
+    int r;
+    return r;
+}
+
+int b8() {
+    return a8();
+}
+
+void test8() {
+    void d() {
+        auto e = b8();
+    }
+    static const int f = b8();
+}
+
+/************************************/
+// 7261
+
+struct AbstractTask
+{
+    ubyte taskStatus;
+}
+
+struct Task
+{
+    AbstractTask base;
+    alias base this;
+
+    void opAssign(Task rhs)
+    {
+    }
+
+    ~this()
+    {
+        if (taskStatus != 3) { }
+    }
+}
+
+/************************************/
 
 int main()
 {
@@ -152,6 +194,7 @@ int main()
     test5();
     test6();
     test7();
+    test8();
 
     printf("Success\n");
     return 0;
