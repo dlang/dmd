@@ -465,7 +465,7 @@ EXCEPTION_DISPOSITION _d_framehandler(
                         }
                         else
                         {   // Non-D exception. It will become an Error.
-                            masterClassInfo = Error.typeinfo;
+                            masterClassInfo = typeid(Error);
                             master = er;
                         }
                         // End the loop if this was the original exception
