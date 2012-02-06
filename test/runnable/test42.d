@@ -4667,6 +4667,19 @@ void test6504()
 
 /***************************************************/
 
+struct Logger {
+    static bool info()() {
+	return false;
+    }
+}
+
+void test7422() {
+    if (Logger.info()) {
+    }
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -4910,6 +4923,7 @@ int main()
     test7367();
     test7375();
     test6504();
+    test7422();
 
     writefln("Success");
     return 0;

@@ -2518,7 +2518,6 @@ Statement *IfStatement::semantic(Scope *sc)
     else
     {
         condition = condition->semantic(sc);
-        assert(condition->type);
         condition = condition->addDtorHook(sc);
         condition = resolveProperties(sc, condition);
         scd = sc->push();
