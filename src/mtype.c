@@ -5001,6 +5001,8 @@ int Type::covariant(Type *t)
 
         // If t1n is forward referenced:
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
+//        if (cd->scope)
+//            cd->semantic(NULL);
 #if 0
         if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
 #else
@@ -8276,9 +8278,14 @@ MATCH TypeClass::implicitConvTo(Type *to)
         return m;
 
     ClassDeclaration *cdto = to->isClassHandle();
-    if (cdto && cdto->isBaseOf(sym, NULL))
-    {   //printf("'to' is base\n");
-        return MATCHconvert;
+    if (cdto)
+    {
+        if (cdto->scope)
+            cdto->semantic(NULL);
+        if (cdto->isBaseOf(sym, NULL))
+        {   //printf("'to' is base\n");
+            return MATCHconvert;
+        }
     }
 
     if (global.params.Dversion == 1)

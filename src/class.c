@@ -1377,6 +1377,22 @@ void InterfaceDeclaration::semantic(Scope *sc)
     structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
     inuse++;
+
+    /* Set scope so if there are forward references, we still might be able to
+     * resolve individual members like enums.
+     */
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = (*members)[i];
+        /* There are problems doing this in the general case because
+         * Scope keeps track of things like 'offset'
+         */
+        if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
+        {
+            //printf("setScope %s %s\n", s->kind(), s->toChars());
+            s->setScope(sc);
+        }
+    }
+
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = members->tdata()[i];
