@@ -1,6 +1,7 @@
+enum bool WWW = is(typeof(A.x));
 
-int[2] d;
-static if(is(typeof(Xg.init))) {}
-alias d[1] Xg;
+class A {
+    B blah;
+    void foo(B b){} 
+}
 
-void main() {}
