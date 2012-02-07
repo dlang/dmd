@@ -661,8 +661,6 @@ void ClassDeclaration::semantic(Scope *sc)
     if (sizeok == 2)            // failed due to forward references
     {   // semantic() failed due to forward references
         // Unwind what we did, and defer it for later
-        sizeok = 0;
-        symtab = NULL;
 
         fields.setDim(0);
         structsize = 0;
