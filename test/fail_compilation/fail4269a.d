@@ -1,4 +1,7 @@
-static if(is(typeof(X5.init))) {}
-typedef Y X5;
+enum bool WWW = is(typeof(A.x));
 
-void main() {}
+interface A {
+    B blah;
+    void foo(B b){} 
+}
+

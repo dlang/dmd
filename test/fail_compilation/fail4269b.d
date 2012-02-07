@@ -1,5 +1,7 @@
+enum bool WWW = is(typeof(A.x));
 
-static if(is(typeof(X16))) {}
-alias X16 X16;
+struct A {
+    B blah;
+    void foo(B b){} 
+}
 
-void main() {}

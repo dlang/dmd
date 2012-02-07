@@ -40,7 +40,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     hasUnions = 0;
     sizeok = 0;                 // size not determined yet
     deferred = NULL;
-    isdeprecated = 0;
+    isdeprecated = false;
     inv = NULL;
     aggNew = NULL;
     aggDelete = NULL;
@@ -358,6 +358,8 @@ void StructDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
+    int errors = global.gaggedErrors;
+
     unsigned dprogress_save = Module::dprogress;
 
     parent = sc->parent;
@@ -371,7 +373,7 @@ void StructDeclaration::semantic(Scope *sc)
     protection = sc->protection;
     storage_class |= sc->stc;
     if (sc->stc & STCdeprecated)
-        isdeprecated = 1;
+        isdeprecated = true;
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
         error("structs, unions cannot be abstract");
@@ -609,7 +611,13 @@ void StructDeclaration::semantic(Scope *sc)
         semantic2(sc);
         semantic3(sc);
     }
-    if (deferred)
+
+    if (global.gag && global.gaggedErrors != errors)
+    {   // The type is no good, yet the error messages were gagged.
+        type = Type::terror;
+    }
+
+    if (deferred && !global.gag)
     {
         deferred->semantic2(sc);
         deferred->semantic3(sc);

@@ -292,9 +292,11 @@ void ClassDeclaration::semantic(Scope *sc)
     methods.setDim(0);
 #endif
 
+    int errors = global.gaggedErrors;
+
     if (sc->stc & STCdeprecated)
     {
-        isdeprecated = 1;
+        isdeprecated = true;
     }
 
     if (sc->linkage == LINKcpp)
@@ -303,9 +305,7 @@ void ClassDeclaration::semantic(Scope *sc)
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {   BaseClass *b = baseclasses->tdata()[i];
-//printf("test1 %s %s\n", toChars(), b->type->toChars());
         b->type = b->type->semantic(loc, sc);
-//printf("test2\n");
         Type *tb = b->type->toBasetype();
 
         if (tb->ty == Ttuple)
@@ -345,7 +345,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 if (!isDeprecated())
                 {
                     // Deriving from deprecated class makes this one deprecated too
-                    isdeprecated = 1;
+                    isdeprecated = true;
 
                     tc->checkDeprecated(loc, sc);
                 }
@@ -418,7 +418,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 if (!isDeprecated())
                 {
                     // Deriving from deprecated class makes this one deprecated too
-                    isdeprecated = 1;
+                    isdeprecated = true;
 
                     tc->checkDeprecated(loc, sc);
                 }
@@ -653,9 +653,17 @@ void ClassDeclaration::semantic(Scope *sc)
         s->semantic(sc);
     }
 
-    if (sizeok == 2)
-    {   // semantic() failed because of forward references.
+    if (global.gag && global.gaggedErrors != errors)
+    {   // The type is no good, yet the error messages were gagged.
+        type = Type::terror;
+    }
+
+    if (sizeok == 2)            // failed due to forward references
+    {   // semantic() failed due to forward references
         // Unwind what we did, and defer it for later
+        sizeok = 0;
+        symtab = NULL;
+
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
@@ -764,7 +772,7 @@ void ClassDeclaration::semantic(Scope *sc)
 #endif
     //printf("-ClassDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
-    if (deferred)
+    if (deferred && !global.gag)
     {
         deferred->semantic2(sc);
         deferred->semantic3(sc);
@@ -1221,9 +1229,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
+    int errors = global.gaggedErrors;
+
     if (sc->stc & STCdeprecated)
     {
-        isdeprecated = 1;
+        isdeprecated = true;
     }
 
     // Expand any tuples in baseclasses[]
@@ -1374,6 +1384,12 @@ void InterfaceDeclaration::semantic(Scope *sc)
         Dsymbol *s = members->tdata()[i];
         s->semantic(sc);
     }
+
+    if (global.gag && global.gaggedErrors != errors)
+    {   // The type is no good, yet the error messages were gagged.
+        type = Type::terror;
+    }
+
     inuse--;
     //members->print();
     sc->pop();
