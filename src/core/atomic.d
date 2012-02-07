@@ -52,7 +52,7 @@ version( AsmX86 )
 }
 
 
-version( D_Ddoc )
+version( CoreDdoc )
 {
     /**
      * Performs the binary operation 'op' on val using 'mod' as the modifier.
