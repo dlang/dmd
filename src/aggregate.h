@@ -143,6 +143,7 @@ struct StructDeclaration : AggregateDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     const char *kind();
+    void finalizeSize();
 #if DMDV1
     Expression *cloneMembers();
 #endif

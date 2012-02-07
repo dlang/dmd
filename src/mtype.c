@@ -7948,7 +7948,18 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         /* Create a TupleExp
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
-        e->type->size();        // do semantic of type
+
+        /* If this is called in the middle of a class declaration,
+         *  class Inner {
+         *    int x;
+         *    alias typeof(Inner.tupleof) T;
+         *    int y;
+         *  }
+         * then Inner.y will be omitted from the tuple.
+         */
+        // Detect that error, and at least try to run semantic() on it if we can
+        sym->size(e->loc);
+
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
 
