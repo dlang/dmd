@@ -5328,13 +5328,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     /* If the parent is @safe, then this function defaults to safe
      * too.
+     * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
+     * to be inferred first.
      */
     if (tf->trust == TRUSTdefault)
         for (Dsymbol *p = sc->func; p; p = p->toParent2())
         {   FuncDeclaration *fd = p->isFuncDeclaration();
             if (fd)
             {
-                if (fd->isSafe())
+                if (fd->isSafeBypassingInference())
                     tf->trust = TRUSTsafe;              // default to @safe
                 break;
             }
