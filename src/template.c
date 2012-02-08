@@ -434,9 +434,11 @@ void TemplateDeclaration::semantic(Scope *sc)
         return;         // semantic() already run
     semanticRun = 1;
 
+#ifdef ASSOCIATIVEARRAY
     if (sc->module && sc->module->ident == Id::object && ident == Id::AssociativeArray)
     {   Type::associativearray = this;
     }
+#endif
 
     if (sc->func)
     {
@@ -4104,7 +4106,11 @@ void TemplateInstance::semantic(Scope *sc)
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
     //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
+#ifdef ASSOCIATIVEARRAY
     if (global.errors && name != Id::AssociativeArray)
+#else
+    if (global.errors)
+#endif
     {
         //printf("not instantiating %s due to %d errors\n", toChars(), global.errors);
         if (!global.gag)

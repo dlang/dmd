@@ -1726,8 +1726,12 @@ Lagain:
 #if SARRAYVALUE
             /* This only works if Key or Value is a static array.
              */
+#ifdef ASSOCIATIVEARRAY
             tab = taa->getImpl()->type;
             goto Lagain;
+#else
+            goto Lapply;
+#endif
 #else
             if (op == TOKforeach_reverse)
             {

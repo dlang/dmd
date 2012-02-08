@@ -65,7 +65,9 @@ Msgtable msgtable[] =
     { "typeinfo" },
     { "outer" },
     { "Exception" },
+#ifdef ASSOCIATIVEARRAY
     { "AssociativeArray" },
+#endif
     { "Throwable" },
     { "Error" },
     { "withSym", "__withSym" },

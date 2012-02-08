@@ -5340,12 +5340,14 @@ bool isAssocArray(Type *t)
     t = t->toBasetype();
     if (t->ty == Taarray)
         return true;
+#ifdef ASSOCIATIVEARRAY
 #if DMDV2
     if (t->ty != Tstruct)
         return false;
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
     if (sym->ident == Id::AssociativeArray)
         return true;
+#endif
 #endif
     return false;
 }
@@ -5357,12 +5359,17 @@ TypeAArray *toBuiltinAAType(Type *t)
     if (t->ty == Taarray)
         return (TypeAArray *)t;
 #if DMDV2
+#ifdef ASSOCIATIVEARRAY
     assert(t->ty == Tstruct);
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
     assert(sym->ident == Id::AssociativeArray);
     TemplateInstance *tinst = sym->parent->isTemplateInstance();
     assert(tinst);
     return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
+#else
+    assert(0);
+    return NULL;
+#endif
 #else
     assert(0);
     return NULL;
