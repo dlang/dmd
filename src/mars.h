@@ -262,6 +262,12 @@ struct Global
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
 
+    /* Gagging can either be speculative (is(typeof()), etc)
+     * or because of forward references
+     */
+    unsigned speculativeGag; // == gag means gagging is for is(typeof);
+    bool isSpeculativeGagging();
+
     // Start gagging. Return the current number of gagged errors
     unsigned startGagging();
 

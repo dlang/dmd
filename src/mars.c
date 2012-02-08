@@ -117,6 +117,11 @@ bool Global::endGagging(unsigned oldGagged)
     return anyErrs;
 }
 
+bool Global::isSpeculativeGagging()
+{
+    return gag && gag == speculativeGag;
+}
+
 
 char *Loc::toChars()
 {

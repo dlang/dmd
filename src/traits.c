@@ -451,6 +451,8 @@ Expression *TraitsExp::semantic(Scope *sc)
             Expression *e;
 
             unsigned errors = global.startGagging();
+            unsigned oldspec = global.speculativeGag;
+            global.speculativeGag = global.gag;
 
             Type *t = isType(o);
             if (t)
@@ -471,6 +473,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                 }
             }
 
+            global.speculativeGag = oldspec;
             if (global.endGagging(errors))
             {
                 goto Lfalse;
