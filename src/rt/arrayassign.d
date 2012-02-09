@@ -48,7 +48,7 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
     if (element_size > buf.sizeof)
         tmp = alloca(element_size)[0 .. element_size];
     else
-        tmp = buf;
+        tmp = buf[];
 
 
     if (to.ptr <= from.ptr)
@@ -140,7 +140,7 @@ extern (C) void* _d_arraysetassign(void* p, void* value, int count, TypeInfo ti)
         tmp = alloca(element_size)[0 .. element_size];
     }
     else
-        tmp = buf;
+        tmp = buf[];
 
     foreach (i; 0 .. count)
     {
