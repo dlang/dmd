@@ -434,6 +434,9 @@ void FuncDeclaration::semantic(Scope *sc)
             //printf("\tnot virtual\n");
             goto Ldone;
         }
+        // Suppress further errors if the return type is an error
+        if (type->nextOf() == Type::terror)
+            goto Ldone;
 
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
