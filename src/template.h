@@ -317,7 +317,7 @@ struct TemplateInstance : ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
-    int oneMember(Dsymbol **ps);
+    int oneMember(Dsymbol **ps, Identifier *ident);
     int needsTypeInference(Scope *sc);
     char *toChars();
     char *mangle();
@@ -350,7 +350,7 @@ struct TemplateMixin : TemplateInstance
     void semantic3(Scope *sc);
     void inlineScan();
     const char *kind();
-    int oneMember(Dsymbol **ps);
+    int oneMember(Dsymbol **ps, Identifier *ident);
     int hasPointers();
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
