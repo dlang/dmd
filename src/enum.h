@@ -47,7 +47,7 @@ struct EnumDeclaration : ScopeDsymbol
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic0(Scope *sc);
     void semantic(Scope *sc);
-    int oneMember(Dsymbol **ps);
+    int oneMember(Dsymbol **ps, Identifier *ident = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *getType();
     const char *kind();

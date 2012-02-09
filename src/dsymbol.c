@@ -94,7 +94,7 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
  *      TRUE,  *ps = symbol: The one and only one symbol
  */
 
-int Dsymbol::oneMember(Dsymbol **ps)
+int Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("Dsymbol::oneMember()\n");
     *ps = this;
@@ -115,7 +115,7 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *sx = (*members)[i];
 
-            int x = sx->oneMember(ps);
+            int x = sx->oneMember(ps, ident);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
             if (!x)
             {

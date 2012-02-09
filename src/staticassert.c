@@ -91,7 +91,7 @@ void StaticAssert::semantic2(Scope *sc)
     }
 }
 
-int StaticAssert::oneMember(Dsymbol **ps)
+int StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("StaticAssert::oneMember())\n");
     *ps = NULL;
