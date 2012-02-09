@@ -7512,6 +7512,21 @@ Lagain:
     if (e1->op == TOKerror)
         return e1;
 
+    // If there was an error processing any template argument,
+    // return an error without trying to resolve the template.
+    if (targsi && targsi->dim)
+    {
+        for (size_t k = 0; k < targsi->dim; k++)
+        {   Object *o = targsi->tdata()[k];
+            Expression *checkarg = isExpression(o);
+            Type *txx = isType(o);
+            if (checkarg && checkarg->op == TOKerror)
+                return checkarg;
+            if (txx && txx == Type::terror)
+                return new ErrorExp();
+        }
+    }
+
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
         e1->op == TOKdottd)
     {
