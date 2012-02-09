@@ -923,21 +923,26 @@ Expression *EqualExp::op_overload(Scope *sc)
     Type *t1 = e1->type->toBasetype();
     Type *t2 = e2->type->toBasetype();
     if (t1->ty == Tclass && t2->ty == Tclass)
-    {
-        /* Rewrite as:
-         *      .object.opEquals(cast(Object)e1, cast(Object)e2)
-         * The explicit cast is necessary for interfaces,
-         * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
-         */
-        Expression *e1x = e1; //new CastExp(loc, e1, ClassDeclaration::object->getType());
-        Expression *e2x = e2; //new CastExp(loc, e2, ClassDeclaration::object->getType());
+    {   ClassDeclaration *cd1 = t1->isClassHandle();
+        ClassDeclaration *cd2 = t2->isClassHandle();
 
-        Expression *e = new IdentifierExp(loc, Id::empty);
-        e = new DotIdExp(loc, e, Id::object);
-        e = new DotIdExp(loc, e, Id::eq);
-        e = new CallExp(loc, e, e1x, e2x);
-        e = e->semantic(sc);
-        return e;
+        if (!(cd1->isCPPinterface() || cd2->isCPPinterface()))
+        {
+            /* Rewrite as:
+             *      .object.opEquals(cast(Object)e1, cast(Object)e2)
+             * The explicit cast is necessary for interfaces,
+             * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
+             */
+            Expression *e1x = new CastExp(loc, e1, ClassDeclaration::object->getType());
+            Expression *e2x = new CastExp(loc, e2, ClassDeclaration::object->getType());
+
+            Expression *e = new IdentifierExp(loc, Id::empty);
+            e = new DotIdExp(loc, e, Id::object);
+            e = new DotIdExp(loc, e, Id::eq);
+            e = new CallExp(loc, e, e1x, e2x);
+            e = e->semantic(sc);
+            return e;
+        }
     }
 
     return compare_overload(sc, Id::eq);
