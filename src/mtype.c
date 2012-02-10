@@ -5310,6 +5310,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             tf->parameters->tdata()[i] = cpy;
         }
     }
+    int hasErrors = 0;
 
     if (sc->stc & STCpure)
         tf->purity = PUREfwdref;
@@ -5368,6 +5369,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         if (tf->next->hasWild() &&
             !(tf->next->ty == Tpointer && tf->next->nextOf()->ty == Tfunction || tf->next->ty == Tdelegate))
             wildreturn = TRUE;
+        if (tf->next->ty == Terror)
+            hasErrors = 1;
     }
 
     bool wildparams = FALSE;
@@ -5387,6 +5390,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
             tf->inuse++;
             fparam->type = fparam->type->semantic(loc, argsc);
+            if (fparam->type->ty == Terror)
+                hasErrors = 1;
             if (tf->inuse == 1) tf->inuse--;
 
             fparam->type = fparam->type->addStorageClass(fparam->storageClass);
@@ -5476,6 +5481,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
             // Remove redundant storage classes for type, they are already applied
             fparam->storageClass &= ~(STC_TYPECTOR | STCin);
+            if (fparam->type->ty == Terror)
+                hasErrors = 1;
+            if (fparam->defaultArg && fparam->defaultArg->op == TOKerror)
+                hasErrors = 1;
         }
         argsc->pop();
     }
@@ -5501,6 +5510,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
         error(loc, "variadic functions with non-D linkage must have at least one parameter");
+
+    if (hasErrors)
+        return Type::terror;
 
     /* Don't return merge(), because arg identifiers and default args
      * can be different
