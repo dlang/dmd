@@ -131,6 +131,7 @@ struct Dsymbol : Object
     void verror(Loc loc, const char *format, va_list ap);
     void checkDeprecated(Loc loc, Scope *sc);
     Module *getModule();
+    Module *getAccessModule();
     Dsymbol *pastMixin();
     Dsymbol *toParent();
     Dsymbol *toParent2();
