@@ -252,7 +252,8 @@ void FuncDeclaration::semantic(Scope *sc)
     storage_class &= ~STCref;
     if (type->ty != Tfunction)
     {
-        error("%s must be a function instead of %s", toChars(), type->toChars());
+        if (type->ty != Terror)
+            error("%s must be a function instead of %s", toChars(), type->toChars());
         return;
     }
     f = (TypeFunction *)(type);
