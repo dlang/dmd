@@ -788,6 +788,30 @@ void test7359()
 }
 
 /**********************************/
+// 7363
+
+template t7363()
+{
+   enum e = 0;
+   static if (true)
+       enum t7363 = 0;
+}
+static assert(!__traits(compiles, t7363!().t7363 == 0)); // Assertion fails
+static assert(t7363!() == 0); // Error: void has no value
+
+template u7363()
+{
+   static if (true)
+   {
+       enum e = 0;
+       enum u73631 = 0;
+   }
+   alias u73631 u7363;
+}
+static assert(!__traits(compiles, u7363!().u7363 == 0)); // Assertion fails
+static assert(u7363!() == 0); // Error: void has no value
+
+/**********************************/
 
 struct S4371(T ...) { }
 
