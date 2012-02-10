@@ -43,7 +43,7 @@ void test3()
     char[3] p;
     const(char)[] q;
 
-    q = p;
+    q = p[];
 }
 
 /************************************/
@@ -119,7 +119,7 @@ void foo11(in char[] a1)
 {
     char[3] c;
     char[] a2 = c[];
-    a2[0..2] = a1;
+    a2[0..2] = a1[];
     a2[0..2] = 'c';
 
     const char b = 'b';
