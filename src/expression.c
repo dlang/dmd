@@ -7518,11 +7518,7 @@ Lagain:
     {
         for (size_t k = 0; k < targsi->dim; k++)
         {   Object *o = targsi->tdata()[k];
-            Expression *checkarg = isExpression(o);
-            Type *txx = isType(o);
-            if (checkarg && checkarg->op == TOKerror)
-                return checkarg;
-            if (txx && txx == Type::terror)
+            if (isError(o))
                 return new ErrorExp();
         }
     }
