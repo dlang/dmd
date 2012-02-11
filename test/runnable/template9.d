@@ -529,6 +529,8 @@ void test6208c()
 
         inout(int) war(V)(inout V v)            { return 1; }
         inout(int) war(Args...)(inout Args args){ return 2; }
+
+        inout(int) waz(Args...)(inout Args args){ return 0; }   // wild deduction test
     }
 
     S s;
@@ -539,6 +541,7 @@ void test6208c()
     assert(s.bar(nm) == 1);
     assert(s.baz(nm) == 2);
     assert(s.war(nm) == 1);
+    static assert(is(typeof(s.waz(nm)) == int));
 
     const int nc = 10;
     assert(s.foo(nc) == 1);
@@ -546,6 +549,7 @@ void test6208c()
     assert(s.bar(nc) == 1);
     assert(s.baz(nc) == 1);
     assert(s.war(nc) == 1);
+    static assert(is(typeof(s.waz(nc)) == const(int)));
 
     immutable int ni = 10;
     assert(s.foo(ni) == 1);
@@ -553,6 +557,17 @@ void test6208c()
     assert(s.bar(ni) == 1);
     assert(s.baz(ni) == 2);
     assert(s.war(ni) == 1);
+    static assert(is(typeof(s.waz(ni)) == immutable(int)));
+
+    static assert(is(typeof(s.waz(nm, nm)) == int));
+    static assert(is(typeof(s.waz(nm, nc)) == const(int)));
+    static assert(is(typeof(s.waz(nm, ni)) == const(int)));
+    static assert(is(typeof(s.waz(nc, nm)) == const(int)));
+    static assert(is(typeof(s.waz(nc, nc)) == const(int)));
+    static assert(is(typeof(s.waz(nc, ni)) == const(int)));
+    static assert(is(typeof(s.waz(ni, nm)) == const(int)));
+    static assert(is(typeof(s.waz(ni, nc)) == const(int)));
+    static assert(is(typeof(s.waz(ni, ni)) == immutable(int)));
 }
 
 /**********************************/

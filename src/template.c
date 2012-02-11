@@ -1102,11 +1102,39 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                 t->objects.setDim(tuple_dim);
                 for (size_t i = 0; i < tuple_dim; i++)
                 {   Expression *farg = fargs->tdata()[fptupindex + i];
+                    unsigned mod = farg->type->mod;
                     Type *tt;
                     MATCH m;
 
                     #define X(U,T)  ((U) << 4) | (T)
-                    switch (X(tid->mod, farg->type->mod))
+                    if (tid->mod & MODwild)
+                    {
+                        switch (X(tid->mod, mod))
+                        {
+                            case X(MODwild,              MODwild):
+                            case X(MODwild | MODshared,  MODwild | MODshared):
+                            case X(MODwild,              0):
+                            case X(MODwild,              MODconst):
+                            case X(MODwild,              MODimmutable):
+                            case X(MODwild | MODshared,  MODshared):
+                            case X(MODwild | MODshared,  MODconst | MODshared):
+
+                                if (mod & MODwild)
+                                    wildmatch |= MODwild;
+                                else if (mod == 0)
+                                    wildmatch |= MODmutable;
+                                else
+                                    wildmatch |= (mod & ~MODshared);
+                                tt = farg->type->mutableOf();
+                                m = MATCHconst;
+                                goto Lx;
+
+                            default:
+                                break;
+                        }
+                    }
+
+                    switch (X(tid->mod, mod))
                     {
                         case X(0, 0):
                         case X(0, MODconst):
@@ -1233,6 +1261,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                     }
                     #undef X
 
+                Lx:
                     if (m == MATCHnomatch)
                         goto Lnomatch;
                     if (m < match)
