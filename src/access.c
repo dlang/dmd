@@ -265,7 +265,7 @@ int AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
 
     // Friends if both are in the same module
     //if (toParent() == cd->toParent())
-    if (cd && getModule() == cd->getModule())
+    if (cd && getAccessModule() == cd->getAccessModule())
     {
 #if LOG
         printf("\tin same module\n");
@@ -354,7 +354,7 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 #endif
             return 1;
         }
-        if (!cd && getModule() == smember->getModule())
+        if (!cd && getAccessModule() == smember->getAccessModule())
         {
 #if LOG
             printf("\tyes 3\n");
@@ -381,38 +381,32 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
     }
     else
     {
-        //printf("accessCheck(%s)\n", d->toChars());
+        printf("accessCheck(%s)\n", d->toPrettyChars());
     }
 #endif
     if (!e)
     {
-        if (d->prot() == PROTprivate && d->getModule() != sc->module ||
+        if (d->prot() == PROTprivate && d->getAccessModule() != sc->module ||
             d->prot() == PROTpackage && !hasPackageAccess(sc, d))
-
-            error(loc, "%s %s.%s is not accessible from %s",
-                d->kind(), d->getModule()->toChars(), d->toChars(), sc->module->toChars());
+        {
+            error(loc, "%s %s is not accessible from module %s",
+                d->kind(), d->toPrettyChars(), sc->module->toChars());
+        }
     }
     else if (e->type->ty == Tclass)
     {   // Do access check
-        ClassDeclaration *cd;
-
-        cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
-#if 1
+        ClassDeclaration *cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
         if (e->op == TOKsuper)
-        {   ClassDeclaration *cd2;
-
-            cd2 = sc->func->toParent()->isClassDeclaration();
+        {
+            ClassDeclaration *cd2 = sc->func->toParent()->isClassDeclaration();
             if (cd2)
                 cd = cd2;
         }
-#endif
         cd->accessCheck(loc, sc, d);
     }
     else if (e->type->ty == Tstruct)
     {   // Do access check
-        StructDeclaration *cd;
-
-        cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
+        StructDeclaration *cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
         cd->accessCheck(loc, sc, d);
     }
 }
