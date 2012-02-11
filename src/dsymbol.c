@@ -828,11 +828,13 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             {
                 if (s->toAlias() == s2->toAlias())
                 {
-                    /* After following aliases, we found the same symbol,
-                     * so it's not an ambiguity.
-                     * But if one alias is deprecated, prefer the other.
+                    /* After following aliases, we found the same
+                     * symbol, so it's not an ambiguity.  But if one
+                     * alias is deprecated or less accessible, prefer
+                     * the other.
                      */
-                    if (s->isDeprecated())
+                    if (s->isDeprecated() ||
+                        s2->prot() > s->prot() && s2->prot() != PROTnone)
                         s = s2;
                 }
                 else
@@ -862,7 +864,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                             {   Dsymbol *s3 = a->a[j];
                                 if (s2->toAlias() == s3->toAlias())
                                 {
-                                    if (s3->isDeprecated())
+                                    if (s3->isDeprecated() ||
+                                        s2->prot() > s3->prot() && s2->prot() != PROTnone)
                                         a->a[j] = s2;
                                     goto Lcontinue;
                                 }
