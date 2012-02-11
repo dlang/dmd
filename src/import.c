@@ -27,7 +27,7 @@
 
 Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
         int isstatic)
-    : Dsymbol(id)
+    : Dsymbol(NULL)
 {
     assert(id);
     this->loc = loc;
@@ -38,11 +38,16 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     pkg = NULL;
     mod = NULL;
 
+    // Set symbol name (bracketed)
+    // import [cstdio] = std.stdio;
     if (aliasId)
         this->ident = aliasId;
-    // Kludge to change Import identifier to first package
+    // import [std].stdio;
     else if (packages && packages->dim)
         this->ident = packages->tdata()[0];
+    // import [foo];
+    else
+        this->ident = id;
 }
 
 void Import::addAlias(Identifier *name, Identifier *alias)
