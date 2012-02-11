@@ -35,8 +35,9 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     this->id = id;
     this->aliasId = aliasId;
     this->isstatic = isstatic;
-    pkg = NULL;
-    mod = NULL;
+    this->protection = PROTprivate; // default to private
+    this->pkg = NULL;
+    this->mod = NULL;
 
     // Set symbol name (bracketed)
     // import [cstdio] = std.stdio;
@@ -67,6 +68,10 @@ const char *Import::kind()
     return isstatic ? (char *)"static import" : (char *)"import";
 }
 
+enum PROT Import::prot()
+{
+    return protection;
+}
 
 Dsymbol *Import::syntaxCopy(Dsymbol *s)
 {
@@ -148,12 +153,9 @@ void Import::importAll(Scope *sc)
 
        if (!isstatic && !aliasId && !names.dim)
        {
-           /* Default to private importing
-            */
-           enum PROT prot = sc->protection;
-           if (!sc->explicitProtection)
-               prot = PROTprivate;
-           sc->scopesym->importScope(mod, prot);
+           if (sc->explicitProtection)
+               protection = sc->protection;
+           sc->scopesym->importScope(mod, protection);
        }
     }
 }
@@ -186,16 +188,13 @@ void Import::semantic(Scope *sc)
 
         if (!isstatic && !aliasId && !names.dim)
         {
-            /* Default to private importing
-             */
-            enum PROT prot = sc->protection;
-            if (!sc->explicitProtection)
-                prot = PROTprivate;
+            if (sc->explicitProtection)
+                protection = sc->protection;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
                 if (scd->scopesym)
                 {
-                    scd->scopesym->importScope(mod, prot);
+                    scd->scopesym->importScope(mod, protection);
                     break;
                 }
             }
@@ -209,6 +208,10 @@ void Import::semantic(Scope *sc)
         }
 
         sc = sc->push(mod);
+        /* BUG: Protection checks can't be enabled yet. The issue is
+         * that Dsymbol::search errors before overload resolution.
+         */
+        // sc->protection = protection;
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {   Dsymbol *s = aliasdecls.tdata()[i];
 
