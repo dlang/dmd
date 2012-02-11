@@ -58,11 +58,13 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
 
-    Import *si = new Import(loc, packages, id, aliasId, isstatic);
+    Import *si;
+
+    si = new Import(loc, packages, id, aliasId, isstatic);
 
     for (size_t i = 0; i < names.dim; i++)
     {
-        si->addAlias(names[i], aliases[i]);
+        si->addAlias(names.tdata()[i], aliases.tdata()[i]);
     }
 
     return si;
@@ -185,13 +187,6 @@ void Import::semantic(Scope *sc)
         {   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
         }
-
-        if (aliasId)
-        {
-            AliasDeclaration *ad = new AliasDeclaration(loc, aliasId, mod);
-            sc->insert(ad);
-            ad->semantic(sc);
-        }
     }
 
     if (global.params.moduleDeps != NULL)
@@ -225,7 +220,7 @@ void Import::semantic(Scope *sc)
         {
             for (size_t i = 0; i < packages->dim; i++)
             {
-                Identifier *pid = (*packages)[i];
+                Identifier *pid = packages->tdata()[i];
                 ob->printf("%s.", pid->toChars());
             }
         }
@@ -245,8 +240,8 @@ void Import::semantic(Scope *sc)
             else
                 ob->writebyte(',');
 
-            Identifier *name = names[i];
-            Identifier *alias = aliases[i];
+            Identifier *name = names.tdata()[i];
+            Identifier *alias = aliases.tdata()[i];
 
             if (!alias)
             {
@@ -258,7 +253,7 @@ void Import::semantic(Scope *sc)
         }
 
         if (aliasId)
-            ob->printf(" -> %s", aliasId->toChars());
+                ob->printf(" -> %s", aliasId->toChars());
 
         ob->writenl();
     }
@@ -289,8 +284,8 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     {
         for (size_t i = 0; i < names.dim; i++)
         {
-            Identifier *name = (Identifier *)names[i];
-            Identifier *alias = (Identifier *)aliases[i];
+            Identifier *name = (Identifier *)names.data[i];
+            Identifier *alias = (Identifier *)aliases.data[i];
 
             if (!alias)
                 alias = name;
@@ -298,7 +293,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
             if (alias->equals(ident))
                 return mod->search(loc, name, flags);
         }
-
+        
         // What should happen when renamed and selective imports are mixed?
         // This makes the whole module available with the renamed id.
         if (aliasId && aliasId->equals(ident))
@@ -346,7 +341,7 @@ void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (packages && packages->dim)
     {
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = (*packages)[i];
+        {   Identifier *pid = packages->tdata()[i];
 
             buf->printf("%s.", pid->toChars());
         }
