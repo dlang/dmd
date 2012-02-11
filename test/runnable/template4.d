@@ -1062,6 +1062,39 @@ void test6701()
 }
 
 /*********************************************************/
+// 7469
+
+struct Foo7469a(int x) { }
+struct Foo7469b(int x) { }
+struct Foo7469c(alias v) { }
+struct Foo7469d(T...) { }
+struct Foo7469e(int a, T...) { }
+struct Foo7469f(T, int k=1) { }
+struct Foo7469g(T, int k=1) { }
+
+void test7469()
+{
+version (OSX)
+{}
+else version (Posix)
+{
+    static assert(Foo7469a!(3 ).mangleof == "S9template416__T8Foo7469aVi3Z8Foo7469a");
+    static assert(Foo7469a!(3u).mangleof == "S9template416__T8Foo7469aVi3Z8Foo7469a");
+    static assert(Foo7469b!(3u).mangleof == "S9template416__T8Foo7469bVi3Z8Foo7469b");
+    static assert(Foo7469b!(3 ).mangleof == "S9template416__T8Foo7469bVi3Z8Foo7469b");
+    static assert(Foo7469c!(3 ).mangleof == "S9template416__T8Foo7469cVi3Z8Foo7469c");
+    static assert(Foo7469c!(3u).mangleof == "S9template416__T8Foo7469cVk3Z8Foo7469c");
+    static assert(Foo7469d!(3 ).mangleof == "S9template416__T8Foo7469dVi3Z8Foo7469d");
+    static assert(Foo7469d!(3u).mangleof == "S9template416__T8Foo7469dVk3Z8Foo7469d");
+    static assert(Foo7469e!(3u, 5u).mangleof == "S9template419__T8Foo7469eVi3Vk5Z8Foo7469e");
+    static assert(Foo7469f!(int, 1).mangleof == "S9template418__T8Foo7469fTiVi1Z8Foo7469f");
+    static assert(Foo7469f!(int).mangleof    == "S9template418__T8Foo7469fTiVi1Z8Foo7469f");
+    static assert(Foo7469g!(int).mangleof    == "S9template418__T8Foo7469gTiVi1Z8Foo7469g");
+    static assert(Foo7469g!(int, 1).mangleof == "S9template418__T8Foo7469gTiVi1Z8Foo7469g");
+}
+}
+
+/*********************************************************/
 
 int main()
 {
@@ -1105,6 +1138,7 @@ int main()
     test38();
     test39();
     test6701();
+    test7469();
 
     printf("Success\n");
     return 0;
