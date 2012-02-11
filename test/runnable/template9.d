@@ -497,8 +497,6 @@ void test6208a()
     assert(xm.f!int(0) == 1);   // ditto
 }
 
-/**********************************/
-
 void test6208b()
 {
     void foo(T)(const T value) if (!is(T == int)) {}
@@ -507,6 +505,69 @@ void test6208b()
     const int cn;
     static assert(!__traits(compiles, foo(mn)));    // OK -> OK
     static assert(!__traits(compiles, foo(cn)));    // NG -> OK
+}
+
+void test6208c()
+{
+    struct S
+    {
+        // Original test case.
+        int foo(V)(in V v)                         { return 1; }
+        int foo(Args...)(auto ref const Args args) { return 2; }
+
+        // Reduced test cases
+
+        int hoo(V)(const V v)             { return 1; }  // typeof(10) : const V       -> MATCHconst
+        int hoo(Args...)(const Args args) { return 2; }  // typeof(10) : const Args[0] -> MATCHconst
+        // If deduction matching level is same, tuple parameter is less specialized than others.
+
+        int bar(V)(V v)                   { return 1; }  // typeof(10) : V             -> MATCHexact
+        int bar(Args...)(const Args args) { return 2; }  // typeof(10) : const Args[0] -> MATCHconst
+
+        int baz(V)(const V v)             { return 1; }  // typeof(10) : const V -> MATCHconst
+        int baz(Args...)(Args args)       { return 2; }  // typeof(10) : Args[0] -> MATCHexact
+
+        inout(int) war(V)(inout V v)            { return 1; }
+        inout(int) war(Args...)(inout Args args){ return 2; }
+
+        inout(int) waz(Args...)(inout Args args){ return 0; }   // wild deduction test
+    }
+
+    S s;
+
+    int nm = 10;
+    assert(s.foo(nm) == 1);
+    assert(s.hoo(nm) == 1);
+    assert(s.bar(nm) == 1);
+    assert(s.baz(nm) == 2);
+    assert(s.war(nm) == 1);
+    static assert(is(typeof(s.waz(nm)) == int));
+
+    const int nc = 10;
+    assert(s.foo(nc) == 1);
+    assert(s.hoo(nc) == 1);
+    assert(s.bar(nc) == 1);
+    assert(s.baz(nc) == 1);
+    assert(s.war(nc) == 1);
+    static assert(is(typeof(s.waz(nc)) == const(int)));
+
+    immutable int ni = 10;
+    assert(s.foo(ni) == 1);
+    assert(s.hoo(ni) == 1);
+    assert(s.bar(ni) == 1);
+    assert(s.baz(ni) == 2);
+    assert(s.war(ni) == 1);
+    static assert(is(typeof(s.waz(ni)) == immutable(int)));
+
+    static assert(is(typeof(s.waz(nm, nm)) == int));
+    static assert(is(typeof(s.waz(nm, nc)) == const(int)));
+    static assert(is(typeof(s.waz(nm, ni)) == const(int)));
+    static assert(is(typeof(s.waz(nc, nm)) == const(int)));
+    static assert(is(typeof(s.waz(nc, nc)) == const(int)));
+    static assert(is(typeof(s.waz(nc, ni)) == const(int)));
+    static assert(is(typeof(s.waz(ni, nm)) == const(int)));
+    static assert(is(typeof(s.waz(ni, nc)) == const(int)));
+    static assert(is(typeof(s.waz(ni, ni)) == immutable(int)));
 }
 
 /**********************************/
@@ -856,6 +917,7 @@ int main()
     test2778get();
     test6208a();
     test6208b();
+    test6208c();
     test6738();
     test6780();
     test6994();
