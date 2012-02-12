@@ -870,7 +870,7 @@ Type *ExpInitializer::inferType(Scope *sc)
     // Give error for overloaded function addresses
     if (exp->op == TOKdelegate)
     {   DelegateExp *se = (DelegateExp *)exp;
-        if (
+        if (se->hasOverloads &&
             se->func->isFuncDeclaration() &&
             !se->func->isFuncDeclaration()->isUnique())
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());

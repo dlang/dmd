@@ -8244,7 +8244,7 @@ L1:
         return e;
     }
 
-    DotVarExp *de = new DotVarExp(e->loc, e, d);
+    DotVarExp *de = new DotVarExp(e->loc, e, d, d->hasOverloads());
     return de->semantic(sc);
 }
 

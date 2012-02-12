@@ -640,6 +640,7 @@ struct FuncDeclaration : Declaration
     int isAbstract();
     int isCodeseg();
     int isOverloadable();
+    int hasOverloads();
     enum PURE isPure();
     enum PURE isPureBypassingInference();
     bool setImpure();

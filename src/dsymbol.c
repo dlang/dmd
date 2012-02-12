@@ -490,6 +490,11 @@ int Dsymbol::isOverloadable()
 {
     return 0;
 }
+
+int Dsymbol::hasOverloads()
+{
+    return 0;
+}
 #endif
 
 LabelDsymbol *Dsymbol::isLabel()                // is this a LabelDsymbol()?
