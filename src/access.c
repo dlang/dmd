@@ -289,24 +289,27 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
     printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
 #endif
 
-    for (; s; s = s->parent)
-    {
-        if (s->isPackage() && !s->isModule())
-            break;
-    }
+    s = s->getAccessModule();
+
 #if LOG
     if (s)
         printf("\tthis is in package '%s'\n", s->toChars());
 #endif
 
-    if (s && s == sc->module->parent)
+    if (s && s->parent == sc->module->parent)
     {
 #if LOG
         printf("\ts is in same package as sc\n");
 #endif
         return 1;
     }
-
+    else if (s == sc->module)
+    {
+#if LOG
+        printf("\ts is same module as sc\n");
+#endif
+        return 1;
+    }
 
 #if LOG
     printf("\tno package access\n");
@@ -372,7 +375,7 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
  * Check access to d for expression e.d
  */
 
-void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
+void accessCheck(Loc loc, Scope *sc, Expression *e, Dsymbol *s)
 {
 #if LOG
     if (e)
@@ -386,12 +389,11 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 #endif
     if (!e)
     {
-        if (d->prot() == PROTprivate && d->getAccessModule() != sc->module ||
-            d->prot() == PROTpackage && !hasPackageAccess(sc, d))
-        {
+        if ((s->prot() == PROTprivate || s->prot() == PROTpackage && !hasPackageAccess(sc, s)) &&
+            s->getAccessModule() != sc->module)
+
             error(loc, "%s %s is not accessible from module %s",
-                d->kind(), d->toPrettyChars(), sc->module->toChars());
-        }
+                  s->kind(), s->toPrettyChars(), sc->module->toChars());
     }
     else if (e->type->ty == Tclass)
     {   // Do access check
@@ -402,11 +404,11 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
             if (cd2)
                 cd = cd2;
         }
-        cd->accessCheck(loc, sc, d);
+        cd->accessCheck(loc, sc, s);
     }
     else if (e->type->ty == Tstruct)
     {   // Do access check
         StructDeclaration *cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
-        cd->accessCheck(loc, sc, d);
+        cd->accessCheck(loc, sc, s);
     }
 }

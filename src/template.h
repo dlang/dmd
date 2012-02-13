@@ -58,6 +58,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *overroot;      // first in overnext list
 
     int semanticRun;                    // 1 semantic() run
+    enum PROT protection;
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
@@ -79,6 +80,7 @@ struct TemplateDeclaration : ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool hasStaticCtorOrDtor();
     const char *kind();
+    enum PROT prot();
     char *toChars();
 
     void emitComment(Scope *sc);
@@ -298,6 +300,7 @@ struct TemplateInstance : ScopeDsymbol
     Dsymbol *isnested;  // if referencing local symbols, this is the context
     int errors;         // 1 if compiled with errors
     int speculative;    // 1 if only instantiated with errors gagged
+
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol
@@ -328,7 +331,7 @@ struct TemplateInstance : ScopeDsymbol
     // Internal
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     void semanticTiargs(Scope *sc);
-    TemplateDeclaration *findTemplateDeclaration(Scope *sc);
+    TemplateDeclaration *findTemplateDeclaration(Scope *sc, int *paliasaccess);
     TemplateDeclaration *findBestMatch(Scope *sc, Expressions *fargs);
     void declareParameters(Scope *sc);
     int hasNestedArgs(Objects *tiargs);
