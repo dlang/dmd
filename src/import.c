@@ -211,7 +211,11 @@ void Import::semantic(Scope *sc)
         /* BUG: Protection checks can't be enabled yet. The issue is
          * that Dsymbol::search errors before overload resolution.
          */
-        // sc->protection = protection;
+#if 0
+        sc->protection = protection;
+#else
+        sc->protection = PROTpublic;
+#endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {   Dsymbol *s = aliasdecls.tdata()[i];
 
