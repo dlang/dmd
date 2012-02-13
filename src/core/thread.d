@@ -3750,12 +3750,67 @@ private:
         {
             version( StackGrowsDown ) {} else static assert( false );
 
+            // On Windows Server 2008 and 2008 R2, an exploit mitigation
+            // technique known as SEHOP is activated by default. To avoid
+            // hijacking of the exception handler chain, the presence of a
+            // Windows-internal handler (ntdll.dll!FinalExceptionHandler) at
+            // its end is tested by RaiseException. If it is not present, all
+            // handlers are disregarded, and the program is thus aborted
+            // (see http://blogs.technet.com/b/srd/archive/2009/02/02/
+            // preventing-the-exploitation-of-seh-overwrites-with-sehop.aspx).
+            // For new threads, this handler is installed by Windows immediately
+            // after creation. To make exception handling work in fibers, we
+            // have to insert it for our new stacks manually as well.
+            //
+            // To do this, we first determine the handler by traversing the SEH
+            // chain of the current thread until its end, and then construct a
+            // registration block for the last handler on the newly created
+            // thread. We then continue to push all the initial register values
+            // for the first context switch as for the other implementations.
+            //
+            // Note that this handler is never actually invoked, as we install
+            // our own one on top of it in the fiber entry point function.
+            // Thus, it should not have any effects on OSes not implementing
+            // exception chain verification.
+
+            alias void function() fp_t; // Actual signature not relevant.
+            static struct EXCEPTION_REGISTRATION
+            {
+                EXCEPTION_REGISTRATION* next; // sehChainEnd if last one.
+                fp_t handler;
+            }
+            enum sehChainEnd = cast(EXCEPTION_REGISTRATION*) 0xFFFFFFFF;
+
+            __gshared static fp_t finalHandler = null;
+            if ( finalHandler is null )
+            {
+                static EXCEPTION_REGISTRATION* fs0()
+                {
+                    asm
+                    {
+                        naked;
+                        mov EAX, FS:[0];
+                        ret;
+                    }
+                }
+                auto reg = fs0();
+                while ( reg.next != sehChainEnd ) reg = reg.next;
+
+                // Benign races are okay here, just to avoid re-lookup on every
+                // fiber creation.
+                finalHandler = reg.handler;
+            }
+
+            pstack -= EXCEPTION_REGISTRATION.sizeof;
+            *(cast(EXCEPTION_REGISTRATION*)pstack) =
+                EXCEPTION_REGISTRATION( sehChainEnd, finalHandler );
+
             push( cast(size_t) &fiber_entryPoint );                 // EIP
-            push( cast(size_t) m_ctxt.bstack );                     // EBP
+            push( cast(size_t) m_ctxt.bstack - EXCEPTION_REGISTRATION.sizeof ); // EBP
             push( 0x00000000 );                                     // EDI
             push( 0x00000000 );                                     // ESI
             push( 0x00000000 );                                     // EBX
-            push( 0xFFFFFFFF );                                     // FS:[0]
+            push( cast(size_t) m_ctxt.bstack - EXCEPTION_REGISTRATION.sizeof ); // FS:[0]
             push( cast(size_t) m_ctxt.bstack );                     // FS:[4]
             push( cast(size_t) m_ctxt.bstack - m_size );            // FS:[8]
             push( 0x00000000 );                                     // EAX
