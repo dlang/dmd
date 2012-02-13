@@ -4119,6 +4119,24 @@ unittest
     }
 }
 
+// Test exception handling inside fibers.
+unittest
+{
+    enum MSG = "Test message.";
+    string caughtMsg;
+    (new Fiber({
+        try
+        {
+            throw new Exception(MSG);
+        }
+        catch (Exception e)
+        {
+            caughtMsg = e.msg;
+        }
+    })).call();
+    assert(caughtMsg == MSG);
+}
+
 version( AsmX86_64_Posix )
 {
     unittest
