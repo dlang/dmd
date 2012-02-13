@@ -3748,22 +3748,16 @@ private:
 
         version( AsmX86_Windows )
         {
+            version( StackGrowsDown ) {} else static assert( false );
+
             push( cast(size_t) &fiber_entryPoint );                 // EIP
             push( cast(size_t) m_ctxt.bstack );                     // EBP
             push( 0x00000000 );                                     // EDI
             push( 0x00000000 );                                     // ESI
             push( 0x00000000 );                                     // EBX
             push( 0xFFFFFFFF );                                     // FS:[0]
-            version( StackGrowsDown )
-            {
-                push( cast(size_t) m_ctxt.bstack );                 // FS:[4]
-                push( cast(size_t) m_ctxt.bstack - m_size );        // FS:[8]
-            }
-            else
-            {
-                push( cast(size_t) m_ctxt.bstack );                 // FS:[4]
-                push( cast(size_t) m_ctxt.bstack + m_size );        // FS:[8]
-            }
+            push( cast(size_t) m_ctxt.bstack );                     // FS:[4]
+            push( cast(size_t) m_ctxt.bstack - m_size );            // FS:[8]
             push( 0x00000000 );                                     // EAX
         }
         else version( AsmX86_64_Windows )
