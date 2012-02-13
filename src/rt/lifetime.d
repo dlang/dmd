@@ -1929,10 +1929,17 @@ out (result)
     auto sizeelem = ti.next.tsize();            // array element size
     debug(PRINTF) printf("_d_arraycatT(%d,%p ~ %d,%p sizeelem = %d => %d,%p)\n", x.length, x.ptr, y.length, y.ptr, sizeelem, result.length, result.ptr);
     assert(result.length == x.length + y.length);
-    for (size_t i = 0; i < x.length * sizeelem; i++)
-        assert((cast(byte*)result)[i] == (cast(byte*)x)[i]);
-    for (size_t i = 0; i < y.length * sizeelem; i++)
-        assert((cast(byte*)result)[x.length * sizeelem + i] == (cast(byte*)y)[i]);
+
+    // If a postblit is involved, the contents of result might rightly differ
+    // from the bitwise concatenation of x and y.
+    auto pb = &ti.next.postblit;
+    if (pb.funcptr is &TypeInfo.postblit)
+    {
+        for (size_t i = 0; i < x.length * sizeelem; i++)
+            assert((cast(byte*)result)[i] == (cast(byte*)x)[i]);
+        for (size_t i = 0; i < y.length * sizeelem; i++)
+            assert((cast(byte*)result)[x.length * sizeelem + i] == (cast(byte*)y)[i]);
+    }
 
     size_t cap = gc_sizeOf(result.ptr);
     assert(!cap || cap > result.length * sizeelem);
