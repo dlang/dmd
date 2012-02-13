@@ -43,6 +43,7 @@ private import gc.gcalloc;
 private import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 private import core.stdc.string;
 private import core.bitop;
+private import core.sync.mutex;
 
 version (GNU) import gcc.builtins;
 
@@ -57,7 +58,7 @@ debug(PRINTF) void printFreeInfo(Pool* pool)
         if(pool.pagetable[i] >= B_FREE) nReallyFree++;
     }
 
-    printf("Pool %p:  %d really free, %d supposedly be free\n", pool, nReallyFree, pool.freepages);
+    printf("Pool %p:  %d really free, %d supposedly free\n", pool, nReallyFree, pool.freepages);
 }
 
 debug(PROFILING)
@@ -230,11 +231,11 @@ debug (LOGGING)
 /* ============================ GC =============================== */
 
 
-class GCLock { }                // just a dummy so we can get a global lock
-
-
 const uint GCVERSION = 1;       // increment every time we change interface
                                 // to GC.
+                              
+// This just makes Mutex final to de-virtualize member function calls.
+final class GCMutex : Mutex {}
 
 class GC
 {
@@ -245,12 +246,17 @@ class GC
     uint gcversion = GCVERSION;
 
     Gcx *gcx;                   // implementation
-    __gshared ClassInfo gcLock;    // global lock
-
+    
+    // We can't allocate a Mutex on the GC heap because we are the GC.
+    // Store it in the static data segment instead.
+    __gshared GCMutex gcLock;    // global lock
+    __gshared byte[__traits(classInstanceSize, GCMutex)] mutexStorage;
 
     void initialize()
     {
-        gcLock = GCLock.classinfo;
+        mutexStorage[] = GCMutex.classinfo.init[];
+        gcLock = cast(GCMutex) mutexStorage.ptr;
+        gcLock.__ctor();
         gcx = cast(Gcx*)cstdlib.calloc(1, Gcx.sizeof);
         if (!gcx)
             onOutOfMemoryError();
@@ -295,8 +301,10 @@ class GC
             assert(gcx.disabled > 0);
             gcx.disabled--;
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             assert(gcx.disabled > 0);
             gcx.disabled--;
         }
@@ -312,8 +320,10 @@ class GC
         {
             gcx.disabled++;
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             gcx.disabled++;
         }
     }
@@ -347,8 +357,10 @@ class GC
         {
             return go();
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return go();
         }
     }
@@ -383,8 +395,10 @@ class GC
         {
             return go();
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return go();
         }
     }
@@ -419,8 +433,10 @@ class GC
         {
             return go();
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return go();
         }
     }
@@ -441,8 +457,9 @@ class GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        synchronized (gcLock)
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return mallocNoSync(size, bits, alloc_size);
         }
     }
@@ -552,8 +569,9 @@ class GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        synchronized (gcLock)
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return callocNoSync(size, bits, alloc_size);
         }
     }
@@ -581,8 +599,9 @@ class GC
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
-        synchronized (gcLock)
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return reallocNoSync(p, size, bits, alloc_size);
         }
     }
@@ -661,8 +680,9 @@ class GC
 
                     if (newsz < psz)
                     {   // Shrink in place
-                        synchronized (gcLock)
                         {
+                            gcLock.lock();
+                            scope(exit) gcLock.unlock();
                             debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
                             pool.freePages(pagenum + newsz, psz - newsz);
                             pool.updateOffsets(pagenum);
@@ -674,8 +694,9 @@ class GC
                     else if (pagenum + newsz <= pool.npages)
                     {
                         // Attempt to expand in place
-                        synchronized (gcLock)
                         {
+                            gcLock.lock();
+                            scope(exit) gcLock.unlock();
                             for (size_t i = pagenum + psz; 1;)
                             {
                                 if (i == pagenum + newsz)
@@ -757,8 +778,10 @@ class GC
         {
             return extendNoSync(p, minsize, maxsize);
         }
-        else synchronized (gcLock)
+        else
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return extendNoSync(p, minsize, maxsize);
         }
     }
@@ -850,8 +873,10 @@ class GC
         {
             return reserveNoSync(size);
         }
-        else synchronized (gcLock)
+        else
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return reserveNoSync(size);
         }
     }
@@ -886,8 +911,10 @@ class GC
         {
             return freeNoSync(p);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return freeNoSync(p);
         }
     }
@@ -961,8 +988,10 @@ class GC
         {
             return addrOfNoSync(p);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return addrOfNoSync(p);
         }
     }
@@ -997,8 +1026,10 @@ class GC
         {
             return sizeOfNoSync(p);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return sizeOfNoSync(p);
         }
     }
@@ -1055,8 +1086,10 @@ class GC
         {
             return queryNoSync(p);
         }
-        else synchronized (gcLock)
+        else
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return queryNoSync(p);
         }
     }
@@ -1090,8 +1123,10 @@ class GC
         {
             checkNoSync(p);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             checkNoSync(p);
         }
     }
@@ -1178,8 +1213,10 @@ class GC
         {
             gcx.addRoot(p);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             gcx.addRoot(p);
         }
     }
@@ -1199,8 +1236,10 @@ class GC
         {
             gcx.removeRoot(p);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             gcx.removeRoot(p);
         }
     }
@@ -1215,8 +1254,10 @@ class GC
         {
             return &gcx.rootIter;
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return &gcx.rootIter;
         }
     }
@@ -1237,8 +1278,10 @@ class GC
         {
             gcx.addRange(p, p + sz);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             gcx.addRange(p, p + sz);
         }
         //debug(PRINTF) printf("-GC.addRange()\n");
@@ -1259,8 +1302,10 @@ class GC
         {
             gcx.removeRange(p);
         }
-        else synchronized (gcLock)
+        else
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             gcx.removeRange(p);
         }
     }
@@ -1275,8 +1320,10 @@ class GC
         {
             return &gcx.rangeIter;
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             return &gcx.rangeIter;
         }
     }
@@ -1293,8 +1340,9 @@ class GC
 
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.
-        synchronized (gcLock)
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             result = gcx.fullcollectshell();
         }
 
@@ -1331,8 +1379,9 @@ class GC
     {
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.
-        synchronized (gcLock)
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             gcx.noStack++;
             gcx.fullcollectshell();
             gcx.noStack--;
@@ -1349,8 +1398,10 @@ class GC
         {
             gcx.minimize();
         }
-        else synchronized (gcLock)
+        else
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             gcx.minimize();
         }
     }
@@ -1366,8 +1417,10 @@ class GC
         {
             getStatsNoSync(stats);
         }
-        else synchronized (gcLock)
+        else 
         {
+            gcLock.lock();
+            scope(exit) gcLock.unlock();
             getStatsNoSync(stats);
         }
     }
