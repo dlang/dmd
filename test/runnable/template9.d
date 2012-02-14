@@ -585,6 +585,8 @@ static assert(is(T6805.xxx.Type == int));
 /**********************************/
 // 6738
 
+version (none)
+{
 struct Foo6738
 {
     int _val = 10;
@@ -599,6 +601,25 @@ void test6738()
     auto x = foo.val;  // ok
     assert(x == 10);
     assert(foo.get() == 10);
+}
+}
+else
+    void test6738() { }
+
+/**********************************/
+// 7498
+
+template IndexMixin(){
+    void insert(T)(T value){  }
+}
+
+class MultiIndexContainer{
+    mixin IndexMixin!() index0;
+    class Index0{
+        void baburk(){
+            this.outer.index0.insert(1);
+        }
+    }
 }
 
 /**********************************/

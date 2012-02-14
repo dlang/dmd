@@ -2833,10 +2833,12 @@ Lagain:
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
+#if 0 // This was the fix for Bugzilla 6738, but it breaks 7498
         Dsymbol *p = td->toParent2();
         if (hasThis(sc) && p && p->isAggregateDeclaration())
             e = new DotTemplateExp(loc, new ThisExp(loc), td);
         else
+#endif
             e = new TemplateExp(loc, td);
         e = e->semantic(sc);
         return e;
