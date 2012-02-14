@@ -2726,6 +2726,21 @@ void test138()
 
 /***************************************************/
 
+void test3822()
+{
+    import core.stdc.stdlib;
+    int i = 0;
+    void* ptr;
+    while(i++ != 2)
+    {
+        auto p = alloca(2);
+        assert(p != ptr);
+        ptr = p;
+    }
+}
+
+/***************************************************/
+
 // 5939, 5940
 
 template map(fun...)
@@ -4581,6 +4596,7 @@ int main()
     test115();
     test116();
     test117();
+    test3822();
     test118();
     test5081();
 
