@@ -585,8 +585,6 @@ static assert(is(T6805.xxx.Type == int));
 /**********************************/
 // 6738
 
-version (none)
-{
 struct Foo6738
 {
     int _val = 10;
@@ -602,9 +600,6 @@ void test6738()
     assert(x == 10);
     assert(foo.get() == 10);
 }
-}
-else
-    void test6738() { }
 
 /**********************************/
 // 7498
