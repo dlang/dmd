@@ -29,6 +29,7 @@ MODEL=32
 
 DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport -property
 UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport -property
+DDOCFLAGS=-m$(MODEL) -c -w -d -o- -Isrc -Iimport
 
 CFLAGS=-m$(MODEL) -O
 
@@ -498,13 +499,13 @@ SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
 doc: $(DOCS)
 
 $(DOCDIR)/object.html : src/object_.d
-	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
 
 $(DOCDIR)/core_%.html : src/core/%.d
-	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
 
 $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
-	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $<
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
 
 ######################## Header .di file generation ##############################
 
