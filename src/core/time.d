@@ -1635,7 +1635,7 @@ struct TickDuration
         )
 
         Params:
-            rhs = The $(D TickDuration to add to or subtract from this
+            rhs = The $(D TickDuration) to add to or subtract from this
                   $(D TickDuration).
       +/
     TickDuration opBinary(string op)(TickDuration rhs) @safe const pure nothrow
@@ -1925,7 +1925,7 @@ struct TickDuration
         $(D clock_gettime) is unavailable, then Posix systems use
         $(D gettimeofday) (the decision is made when $(D TickDuration) is
         compiled), which unfortunately, is not monotonic, but if
-        $(D mach_absolute_time) and $(D clock_gettime() aren't available, then
+        $(D mach_absolute_time) and $(D clock_gettime) aren't available, then
         $(D gettimeofday) is the the best that there is.
 
         $(RED Warning):
