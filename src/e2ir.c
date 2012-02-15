@@ -4428,6 +4428,9 @@ Lagain:
                 fty = Tcomplex64;
                 goto Lagain;
 
+        case X(Tnull, Tarray):
+            goto Lzero;
+
         /* ============================= */
 
         default:
