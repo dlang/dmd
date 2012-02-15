@@ -3534,6 +3534,18 @@ void test6295() {
 
 /***************************************************/
 
+template TT4536(T...) { alias T TT4536; }
+
+void test4536()
+{
+    auto x = TT4536!(int, long, [1, 2]).init;
+    assert(x[0] is int.init);
+    assert(x[1] is long.init);
+    assert(x[2] is [1, 2].init);
+}
+
+/***************************************************/
+
 struct S6284 {
     int a;
 }
@@ -4556,6 +4568,7 @@ int main()
     test90();
     test91();
     test92();
+    test4536();
     test93();
     test94();
     test95();
