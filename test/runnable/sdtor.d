@@ -1878,6 +1878,45 @@ void test6177()
 
 
 /**********************************/
+// 7353
+
+struct S7353
+{
+    static uint ci = 0;
+    uint i;
+
+    this(int x) { i = ci++; /*writeln("new: ", i);*/ }
+    this(this)  { i = ci++; /*writeln("copy ", i);*/ }
+    ~this()     {           /*writeln("del ", i);*/ }
+
+    S7353 save1() // produces 2 copies in total
+    {
+        S7353 s = this;
+        return s;
+    }
+    auto save2() // produces 3 copies in total
+    {
+        S7353 s = this;
+        return s;
+        pragma(msg, typeof(return));
+    }
+}
+void test7353()
+{
+    {
+        auto s = S7353(1), t = S7353(1);
+        t = s.save1();
+        assert(S7353.ci == 3);
+    }
+    S7353.ci = 0; //writeln("-");
+    {
+        auto s = S7353(1), t = S7353(1);
+        t = s.save2();
+        assert(S7353.ci == 3);
+    }
+}
+
+/**********************************/
 
 int main()
 {
@@ -1945,6 +1984,7 @@ int main()
     test60();
     test4316();
     test6177();
+    test7353();
 
     printf("Success\n");
     return 0;
