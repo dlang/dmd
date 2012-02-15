@@ -1048,9 +1048,6 @@ unsigned Type::totym()
 
         case Tident:
         case Ttypeof:
-#ifdef DEBUG
-            printf("ty = %d, '%s'\n", ty, toChars());
-#endif
             error(0, "forward reference of %s", toChars());
             t = TYint;
             break;

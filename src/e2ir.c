@@ -3377,7 +3377,7 @@ elem *CondExp::toElem(IRState *irs)
 
 elem *TypeExp::toElem(IRState *irs)
 {
-#ifdef DEBUG
+#if 0
     printf("TypeExp::toElem()\n");
 #endif
     error("type %s is not an expression", toChars());

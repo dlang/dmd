@@ -5282,7 +5282,8 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             else
             {
 #ifdef DEBUG
-                printf("ta = %d, %s\n", ta->ty, ta->toChars());
+                if (!global.errors)
+                    printf("ta = %d, %s\n", ta->ty, ta->toChars());
 #endif
                 assert(global.errors);
             }
