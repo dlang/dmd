@@ -33,15 +33,16 @@ char *mangle(Declaration *sthis)
     OutBuffer buf;
     char *id;
     Dsymbol *s;
+    FuncDeclaration *fd = NULL;
 
     //printf("::mangle(%s)\n", sthis->toChars());
-    s = sthis;
+    s = sthis->parent;
     do
     {
         //printf("mangle: s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
         if (s->ident)
         {
-            FuncDeclaration *fd = s->isFuncDeclaration();
+            fd = s->isFuncDeclaration();
             if (s != sthis && fd)
             {
                 id = mangle(fd);
@@ -65,9 +66,16 @@ char *mangle(Declaration *sthis)
 
 //    buf.prependstring("_D");
 L1:
+    if (fd && fd->localstaticsymtab->lookup(sthis->ident))
+        id = Identifier::generateId(sthis->ident->toChars())->toChars();
+    else
+        id = sthis->ident->toChars();
+
+    buf.printf("%d%s", strlen(id), id);
+
     //printf("deco = '%s'\n", sthis->type->deco ? sthis->type->deco : "null");
     //printf("sthis->type = %s\n", sthis->type->toChars());
-    FuncDeclaration *fd = sthis->isFuncDeclaration();
+    fd = sthis->isFuncDeclaration();
     if (fd && (fd->needThis() || fd->isNested()))
         buf.writeByte(Type::needThisPrefix());
     if (sthis->type->deco)
@@ -254,14 +262,25 @@ char *Dsymbol::mangle()
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
-    id = ident ? ident->toChars() : toChars();
+    FuncDeclaration *fd = NULL;
     if (parent)
     {
         char *p = parent->mangle();
         if (p[0] == '_' && p[1] == 'D')
             p += 2;
         buf.writestring(p);
+        fd = parent->isFuncDeclaration();
     }
+    if (ident)
+    {
+        if (fd && fd->localstaticsymtab->lookup(ident))
+            id = Identifier::generateId(ident->toChars())->toChars();
+        else
+            id = ident->toChars();
+    }
+    else
+        id = toChars();
+
     buf.printf("%zu%s", strlen(id), id);
     id = buf.toChars();
     buf.data = NULL;

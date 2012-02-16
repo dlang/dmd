@@ -1557,6 +1557,13 @@ Ldtor:
 
 void VarDeclaration::semantic2(Scope *sc)
 {
+    if (isStatic() && this->parent && this->parent->isFuncDeclaration())
+    {
+        FuncDeclaration* fd = this->parent->isFuncDeclaration();
+        if (!fd->localstaticsymtab->lookup(ident))
+            fd->localstaticsymtab->insert(this);
+    }
+
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
     if (init && !toParent()->isFuncDeclaration())
     {   inuse++;

@@ -52,6 +52,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     fensure = NULL;
     fbody = NULL;
     localsymtab = NULL;
+    localstaticsymtab = NULL;
     vthis = NULL;
     v_arguments = NULL;
 #if IN_GCC
@@ -890,6 +891,7 @@ void FuncDeclaration::semantic3(Scope *sc)
          * solely to diagnose name collisions.
          */
         localsymtab = new DsymbolTable();
+        localstaticsymtab = new DsymbolTable();
 
         // Establish function scope
         ScopeDsymbol *ss = new ScopeDsymbol();
