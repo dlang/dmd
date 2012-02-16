@@ -6,7 +6,7 @@
 #   http://www.digitalmars.com/ctg/sc.html
 # This makefile is designed to be used with Digital Mars make.exe
 #   http://www.digitalmars.com/ctg/make.html
-# which should be in \dm\bin or in \dmd\windows\bin 
+# which should be in \dm\bin or in \dmd\windows\bin
 
 D=
 DMDSVN=\svnproj\dmd\trunk\src
@@ -81,7 +81,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj aliasthis.obj intrange.obj \
+	interpret.obj traits.obj aliasthis.obj intrange.obj assertpred.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
@@ -126,7 +126,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c intrange.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
-	apply.c canthrow.c sideeffect.c
+	apply.c canthrow.c sideeffect.c assertpred.c
 
 # From C++ compiler
 
@@ -478,6 +478,7 @@ aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
 apply.obj : $(TOTALH) apply.c
 argtypes.obj : $(TOTALH) mtype.h argtypes.c
 arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
+assertpred.obj : $(TOTALH) expression.h assertpred.c
 attrib.obj : $(TOTALH) dsymbol.h identifier.h declaration.h attrib.h attrib.c
 builtin.obj : $(TOTALH) builtin.c
 canthrow.obj : $(TOTALH) canthrow.c
@@ -554,31 +555,31 @@ tolf:
 install: detab install2
 
 install2:
-	copy dmd.exe $(DIR)\windows\bin\ 
-	copy phobos\phobos.lib $(DIR)\windows\lib 
-	$(CP) $(SRCS) $(DIR)\src\dmd\ 
-	$(CP) $(ROOTSRC) $(DIR)\src\dmd\root\ 
-	$(CP) $(TKSRC) $(DIR)\src\dmd\tk\  
-	$(CP) $(BACKSRC) $(DIR)\src\dmd\backend\  
-	$(CP) $(MAKEFILES) $(DIR)\src\dmd\  
-	copy gpl.txt $(DIR)\src\dmd\ 
-	copy readme.txt $(DIR)\src\dmd\ 
-	copy artistic.txt $(DIR)\src\dmd\ 
-	copy backendlicense.txt $(DIR)\src\dmd\ 
+	copy dmd.exe $(DIR)\windows\bin\
+	copy phobos\phobos.lib $(DIR)\windows\lib
+	$(CP) $(SRCS) $(DIR)\src\dmd\
+	$(CP) $(ROOTSRC) $(DIR)\src\dmd\root\
+	$(CP) $(TKSRC) $(DIR)\src\dmd\tk\
+	$(CP) $(BACKSRC) $(DIR)\src\dmd\backend\
+	$(CP) $(MAKEFILES) $(DIR)\src\dmd\
+	copy gpl.txt $(DIR)\src\dmd\
+	copy readme.txt $(DIR)\src\dmd\
+	copy artistic.txt $(DIR)\src\dmd\
+	copy backendlicense.txt $(DIR)\src\dmd\
 
 ################### Write to SVN ################
 
 svn:	detab tolf svn2
 
 svn2:
-	$(CP) $(SRCS) $(DMDSVN)\ 
-	$(CP) $(ROOTSRC) $(DMDSVN)\root\ 
-	$(CP) $(TKSRC) $(DMDSVN)\tk\  
-	$(CP) $(BACKSRC) $(DMDSVN)\backend\  
-	$(CP) $(MAKEFILES) $(DMDSVN)\  
-	copy gpl.txt $(DMDSVN)\ 
-	copy readme.txt $(DMDSVN)\ 
-	copy artistic.txt $(DMDSVN)\ 
-	copy backendlicense.txt $(DMDSVN)\ 
+	$(CP) $(SRCS) $(DMDSVN)\
+	$(CP) $(ROOTSRC) $(DMDSVN)\root\
+	$(CP) $(TKSRC) $(DMDSVN)\tk\
+	$(CP) $(BACKSRC) $(DMDSVN)\backend\
+	$(CP) $(MAKEFILES) $(DMDSVN)\
+	copy gpl.txt $(DMDSVN)\
+	copy readme.txt $(DMDSVN)\
+	copy artistic.txt $(DMDSVN)\
+	copy backendlicense.txt $(DMDSVN)\
 
 ###################################

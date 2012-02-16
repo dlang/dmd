@@ -6292,6 +6292,12 @@ Expression *AssertExp::semantic(Scope *sc)
         msg = msg->implicitCastTo(sc, Type::tchar->constOf()->arrayOf());
         msg = msg->optimize(WANTvalue);
     }
+    else
+    {
+        Expression* transformed_expr = transformToAssertPred(this, sc);
+        if (transformed_expr)
+            return transformed_expr->semantic(sc);
+    }
     if (e1->isBool(FALSE))
     {
         FuncDeclaration *fd = sc->parent->isFuncDeclaration();

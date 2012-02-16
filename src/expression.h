@@ -47,6 +47,7 @@ struct Symbol;          // back end symbol
 struct OverloadSet;
 struct Initializer;
 struct StringExp;
+struct AssertExp;
 
 enum TOK;
 
@@ -82,6 +83,7 @@ void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
 #if DMDV2
 Expression *resolveAliasThis(Scope *sc, Expression *e);
 #endif
+Expression* transformToAssertPred(AssertExp* assert_exp, Scope *sc);
 
 /* Interpreter: what form of return value expression is required?
  */

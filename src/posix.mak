@@ -82,7 +82,7 @@ DMD_OBJS = \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
 	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o clone.o aliasthis.o intrange.o \
+	builtin.o clone.o aliasthis.o intrange.o assertpred.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o sideeffect.o
 
@@ -109,7 +109,7 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c intrange.c apply.c canthrow.c sideeffect.c \
+	argtypes.c intrange.c apply.c canthrow.c sideeffect.c assertpred.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -203,6 +203,9 @@ argtypes.o: argtypes.c
 
 array.o: $(ROOT)/array.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
+
+assertpred.o: assertpred.c expression.h
+	$(CC) -c $(CFLAGS) $<
 
 arrayop.o: arrayop.c
 	$(CC) -c $(CFLAGS) $<
@@ -664,6 +667,7 @@ endif
 	gcov util.c
 	gcov version.c
 	gcov intrange.c
+	gcov assertpred.c
 
 #	gcov hdrgen.c
 #	gcov tocvdebug.c

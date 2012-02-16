@@ -258,6 +258,7 @@ Msgtable msgtable[] =
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
     { "_ArrayEq" },
+    { "unittest_toString", "__unittest_toString" },
 
     // For pragma's
     { "GNU_asm" },
