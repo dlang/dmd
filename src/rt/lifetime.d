@@ -439,11 +439,11 @@ extern(C) void rt_processGCMarks(void[] tls)
 /**
   Get the cached block info of an interior pointer.  Returns null if the
   interior pointer's block is not cached.
-  
+
   NOTE: The base ptr in this struct can be cleared asynchronously by the GC,
         so any use of the returned BlkInfo should copy it and then check the
         base ptr of the copy before actually using it.
-        
+
   TODO: Change this function so the caller doesn't have to be aware of this
         issue.  Either return by value and expect the caller to always check
         the base ptr as an indication of whether the struct is valid, or set
@@ -879,8 +879,8 @@ extern (C) void[] _d_newarrayiT(TypeInfo ti, size_t length)
         else if (isize == int.sizeof)
         {
             int init = *cast(int*)q;
-            size /= int.sizeof;
-            for (size_t u = 0; u < size; u++)
+            auto len = size / int.sizeof;
+            for (size_t u = 0; u < len; u++)
             {
                 (cast(int*)arrstart)[u] = init;
             }
@@ -1154,7 +1154,7 @@ extern (C) void rt_finalize(void* p, bool det = true)
 {
     debug(PRINTF) printf("rt_finalize(p = %p)\n", p);
 
-    if (p) 
+    if (p)
     {
         ClassInfo** pc = cast(ClassInfo**)p;
 
@@ -1203,8 +1203,8 @@ extern (C) void rt_finalize_gc(void* p)
     debug(PRINTF) printf("rt_finalize_gc(p = %p)\n", p);
 
     ClassInfo** pc = cast(ClassInfo**)p;
-    
-    if (*pc) 
+
+    if (*pc)
     {
         ClassInfo c = **pc;
 
