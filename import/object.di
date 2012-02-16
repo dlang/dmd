@@ -616,3 +616,32 @@ bool _xopEquals(in void* ptr, in void* ptr);
 
 void __ctfeWriteln(T...)(auto ref T) {}
 
+version (unittest)
+{
+    string __unittest_toString(T)(T value)
+    {
+        static if (is(T == string))
+        {
+            return `"` ~ value ~ `"`;   // TODO: Escape internal double-quotes.
+        }
+        else
+        {
+            enum phobos_impl = q{
+                import std.conv;
+                return to!string(value);
+            };
+            enum tango_impl = q{
+                import tango.util.Convert;
+                return to!string(value);
+            };
+
+            static if (__traits(compiles, { mixin(phobos_impl); }))
+                mixin(phobos_impl);
+            else static if (__traits(compiles, { mixin(tango_impl); }))
+                mixin(tango_impl);
+            else
+                return T.stringof;
+        }
+    }
+}
+
