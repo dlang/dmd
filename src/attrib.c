@@ -667,22 +667,12 @@ void ProtDeclaration::semantic(Scope *sc)
     }
 }
 
-void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT protection)
+void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT prot)
 {
     const char *p;
 
-    switch (protection)
-    {
-        case PROTprivate:       p = "private";          break;
-        case PROTpackage:       p = "package";          break;
-        case PROTprotected:     p = "protected";        break;
-        case PROTpublic:        p = "public";           break;
-        case PROTexport:        p = "export";           break;
-        default:
-            assert(0);
-            break;
-    }
-    buf->writestring(p);
+    assert(prot != PROTundefined);
+    buf->writestring(protectionToChars(prot));
     buf->writeByte(' ');
 }
 
