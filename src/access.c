@@ -412,3 +412,13 @@ void accessCheck(Loc loc, Scope *sc, Dsymbol *s, bool overloads)
         error(loc, "%s %s is not accessible from module %s",
               s->kind(), s->toPrettyChars(), sc->module->toChars());
 }
+
+enum PROT moduleVisibility(Module *from, Module *to)
+{
+    if (from == to)
+        return PROTprivate;
+    else if (from && to && from->parent && from->parent == to->parent)
+        return PROTpackage;
+    else
+        return PROTpublic;
+}

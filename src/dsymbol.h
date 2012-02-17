@@ -262,6 +262,7 @@ struct ScopeDsymbol : Dsymbol
     ScopeDsymbol(Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *searchImports(Loc loc, Identifier *ident, int flags, enum PROT visibility);
     void importScope(Dsymbol *s, enum PROT protection);
     int isforwardRef();
     void defineRef(Dsymbol *s);

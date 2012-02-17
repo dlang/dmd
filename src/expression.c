@@ -6418,12 +6418,15 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     {
         ScopeExp *ie = (ScopeExp *)eright;
 
-        /* Disable access to another module's private imports.
-         * The check for 'is sds our current module' is because
-         * the current module should have access to its own imports.
+        /* Restrict access to another module's symbols.
          */
-        Dsymbol *s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
+        Dsymbol *s;
+        if (Module *m = ie->sds->isModule())
+        {   enum PROT visibility = moduleVisibility(sc->module, m);
+            s = m->search(loc, ident, 0, visibility);
+        }
+        else
+            s = ie->sds->search(loc, ident, 0);
         if (s)
         {
             /* Check for access before resolving aliases because public
