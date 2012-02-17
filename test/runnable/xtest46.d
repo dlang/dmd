@@ -4460,6 +4460,25 @@ void test7321()
 
 /***************************************************/
 
+class A158
+{
+    pure void foo1() { }
+    const void foo2() { }
+    nothrow void foo3() { }
+    @safe void foo4() { }
+}
+
+class B158 : A158
+{
+    override void foo1() { }
+    override void foo2() { }
+    override void foo3() { }
+    override void foo4() { }
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
