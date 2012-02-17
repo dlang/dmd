@@ -898,7 +898,12 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     if (scope && !symtab)
     {   Scope *sc = scope;
         sc->mustsemantic++;
+        // If speculatively gagged, ungag now.
+        unsigned oldgag = global.gag;
+        if (global.isSpeculativeGagging())
+            global.gag = 0;
         semantic(sc);
+        global.gag = oldgag;
         sc->mustsemantic--;
     }
 

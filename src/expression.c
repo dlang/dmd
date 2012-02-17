@@ -2719,7 +2719,13 @@ Lagain:
     {   //printf("'%s' is a function\n", f->toChars());
 
         if (!f->originalType && f->scope)       // semantic not yet run
+        {
+            unsigned oldgag = global.gag;
+            if (global.isSpeculativeGagging() && !f->isSpeculative())
+                global.gag = 0;
             f->semantic(f->scope);
+            global.gag = oldgag;
+        }
 
         // if inferring return type, sematic3 needs to be run
         if (f->inferRetType && f->scope && f->type && !f->type->nextOf())
