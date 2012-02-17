@@ -361,8 +361,15 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 
 int Import::overloadInsert(Dsymbol *s)
 {
-    // Allow multiple imports of the same name
-    return s->isImport() != NULL;
+    /* Allow multiple imports with the same package base, but disallow
+     * alias collisions (Bugzilla 5412).
+     */
+    assert(ident && ident == s->ident);
+    Import *imp;
+    if (!aliasId && (imp = s->isImport()) && !imp->aliasId)
+        return TRUE;
+    else
+        return FALSE;
 }
 
 void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
