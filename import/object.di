@@ -31,7 +31,7 @@ alias immutable(dchar)[] dstring;
 class Object
 {
     string   toString();
-    hash_t   toHash();
+    hash_t   toHash() @trusted;
     int      opCmp(Object o);
     equals_t opEquals(Object o);
     equals_t opEquals(Object lhs, Object rhs);
@@ -66,7 +66,7 @@ struct OffsetTypeInfo
 
 class TypeInfo
 {
-    hash_t   getHash(in void* p);
+    hash_t   getHash(in void* p) @safe;
     equals_t equals(in void* p1, in void* p2);
     int      compare(in void* p1, in void* p2);
     @property size_t   tsize() nothrow pure const @safe;
@@ -79,7 +79,7 @@ class TypeInfo
     void destroy(void* p);
     void postblit(void* p);
     @property size_t talign() nothrow pure const @safe;
-    version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2);
+    version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow;
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -173,6 +173,8 @@ class TypeInfo_Struct : TypeInfo
     string name;
     void[] m_init;
 
+  @safe pure nothrow
+  {
     uint function(in void*)               xtoHash;
     equals_t function(in void*, in void*) xopEquals;
     int function(in void*, in void*)      xopCmp;
@@ -181,6 +183,7 @@ class TypeInfo_Struct : TypeInfo
     uint m_flags;
 
     const(MemberInfo[]) function(in char[]) xgetMembers;
+  }
     void function(void*)                    xdtor;
     void function(void*)                    xpostblit;
 
