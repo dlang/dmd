@@ -2481,6 +2481,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
     {   Expression *e;
         WithScopeSymbol *withsym;
 
+        accessCheck(loc, sc, s, true);
+
         /* See if the symbol was a member of an enclosing 'with'
          */
         withsym = scopesym->isWithScopeSymbol();
@@ -4723,12 +4725,6 @@ Expression *VarExp::semantic(Scope *sc)
     if (type && !type->deco)
         type = type->semantic(loc, sc);
 
-    /* Fix for 1161 doesn't work because it causes protection
-     * problems when instantiating imported templates passing private
-     * variables as alias template parameters.
-     */
-    //accessCheck(loc, sc, NULL, var);
-
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
@@ -6433,8 +6429,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             /* Check for access before resolving aliases because public
              * aliases to private symbols are public.
              */
-            if (Declaration *d = s->isDeclaration())
-                accessCheck(loc, sc, 0, d);
+            accessCheck(loc, sc, s, true);
 
             s = s->toAlias();
             checkDeprecated(sc, s);
@@ -7705,7 +7700,7 @@ Lagain:
                 }
 
                 f = resolveFuncCall(sc, loc, cd->baseClass->ctor, NULL, NULL, arguments, 0);
-                accessCheck(loc, sc, NULL, f);
+                accessCheck(loc, sc, f, false);
                 checkDeprecated(sc, f);
 #if DMDV2
                 checkPurity(sc, f);
@@ -7893,7 +7888,8 @@ Lagain:
             goto Lagain;
         }
 
-        accessCheck(loc, sc, NULL, f);
+        // BUG: this doesn't work with public aliases, see Bugzilla 4533
+        accessCheck(loc, sc, f, false);
 
         ethis = NULL;
 

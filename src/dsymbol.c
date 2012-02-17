@@ -696,6 +696,11 @@ enum PROT Dsymbol::prot()
     return PROTpublic;
 }
 
+enum PROT Dsymbol::overprot()
+{
+    return prot();
+}
+
 /*************************************
  * Do syntax copy of an array of Dsymbol's.
  */
@@ -890,15 +895,6 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
         {   assert(s);
             a->push(s);
             s = a;
-        }
-
-        if (s)
-        {
-            Declaration *d = s->isDeclaration();
-            if (d && d->protection == PROTprivate &&
-                !d->parent->isTemplateMixin() &&
-                !(flags & 2))
-                error(loc, "%s is private", d->toPrettyChars());
         }
     }
     return s;

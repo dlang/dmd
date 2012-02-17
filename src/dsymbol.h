@@ -179,6 +179,7 @@ struct Dsymbol : Object
     virtual char *mangle();
     virtual int needThis();                     // need a 'this' pointer?
     virtual enum PROT prot();
+    virtual enum PROT overprot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual int oneMember(Dsymbol **ps, Identifier *ident);
     static int oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
