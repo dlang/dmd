@@ -223,7 +223,7 @@ struct Type : Object
     virtual Type *syntaxCopy();
     int equals(Object *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
-    int covariant(Type *t);
+    int covariant(Type *t, StorageClass *pstc = NULL);
     char *toChars();
     static char needThisPrefix();
     static void init();
@@ -275,7 +275,7 @@ struct Type : Object
     Type *addSTC(StorageClass stc);
     Type *castMod(unsigned mod);
     Type *addMod(unsigned mod);
-    Type *addStorageClass(StorageClass stc);
+    virtual Type *addStorageClass(StorageClass stc);
     Type *pointerTo();
     Type *referenceTo();
     Type *arrayOf();
@@ -633,6 +633,7 @@ struct TypeFunction : TypeNext
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
     bool parameterEscapes(Parameter *p);
+    Type *addStorageClass(StorageClass stc);
 
     int callMatch(Expression *ethis, Expressions *toargs, int flag = 0);
     type *toCtype();

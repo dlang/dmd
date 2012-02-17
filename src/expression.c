@@ -1547,7 +1547,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
                     break;
                 if (ff->setImpure() && !msg)
                 {   error("pure function '%s' cannot access mutable static data '%s'",
-                        sc->func->toChars(), v->toChars());
+                        sc->func->toPrettyChars(), v->toChars());
                     msg = TRUE;                     // only need the innermost message
                 }
             }

@@ -4910,9 +4910,10 @@ Type *TypeFunction::syntaxCopy()
  *      2       arguments match as far as overloading goes,
  *              but types are not covariant
  *      3       cannot determine covariance because of forward references
+ *      *pstc   STCxxxx which would make it covariant
  */
 
-int Type::covariant(Type *t)
+int Type::covariant(Type *t, StorageClass *pstc)
 {
 #if 0
     printf("Type::covariant(t = %s) %s\n", t->toChars(), toChars());
@@ -4920,6 +4921,10 @@ int Type::covariant(Type *t)
 //    printf("ty = %d\n", next->ty);
     printf("mod = %x, %x\n", mod, t->mod);
 #endif
+
+    if (pstc)
+        *pstc = 0;
+    StorageClass stc = 0;
 
     int inoutmismatch = 0;
 
@@ -5024,35 +5029,39 @@ int Type::covariant(Type *t)
     goto Lnotcovariant;
 
 Lcovariant:
+    if (t1->isref != t2->isref)
+        goto Lnotcovariant;
+
     /* Can convert mutable to const
      */
     if (!MODimplicitConv(t2->mod, t1->mod))
-        goto Lnotcovariant;
-#if 0
-    if (t1->mod != t2->mod)
     {
-        if (!(t1->mod & MODconst) && (t2->mod & MODconst))
-            goto Lnotcovariant;
-        if (!(t1->mod & MODshared) && (t2->mod & MODshared))
+        // If adding 'const' will make it covariant
+        if (MODimplicitConv(t2->mod, MODmerge(t1->mod, MODconst)))
+            stc |= STCconst;
+        else
             goto Lnotcovariant;
     }
-#endif
 
     /* Can convert pure to impure, and nothrow to throw
      */
     if (!t1->purity && t2->purity)
-        goto Lnotcovariant;
+        stc |= STCpure;
 
     if (!t1->isnothrow && t2->isnothrow)
-        goto Lnotcovariant;
-
-    if (t1->isref != t2->isref)
-        goto Lnotcovariant;
+        stc |= STCnothrow;
 
     /* Can convert safe/trusted to system
      */
     if (t1->trust <= TRUSTsystem && t2->trust >= TRUSTtrusted)
+        // Should we infer trusted or safe? Go with safe.
+        stc |= STCsafe;
+
+    if (stc)
+    {   if (pstc)
+            *pstc = stc;
         goto Lnotcovariant;
+    }
 
     //printf("\tcovaraint: 1\n");
     return 1;
@@ -5906,6 +5915,36 @@ Expression *TypeFunction::defaultInit(Loc loc)
 {
     error(loc, "function does not have a default initializer");
     return new ErrorExp();
+}
+
+Type *TypeFunction::addStorageClass(StorageClass stc)
+{
+    TypeFunction *t = (TypeFunction *)Type::addStorageClass(stc);
+    if ((stc & STCpure && !t->purity) ||
+        (stc & STCnothrow && !t->isnothrow) ||
+        (stc & STCsafe && t->trust < TRUSTtrusted))
+    {
+        // Klunky to change these
+        TypeFunction *tf = new TypeFunction(t->parameters, t->next, t->varargs, t->linkage, 0);
+        tf->mod = t->mod;
+        tf->fargs = fargs;
+        tf->purity = t->purity;
+        tf->isnothrow = t->isnothrow;
+        tf->isproperty = t->isproperty;
+        tf->isref = t->isref;
+        tf->trust = t->trust;
+
+        if (stc & STCpure)
+            tf->purity = PUREfwdref;
+        if (stc & STCnothrow)
+            tf->isnothrow = true;
+        if (stc & STCsafe)
+            tf->trust = TRUSTsafe;
+
+        tf->deco = tf->merge()->deco;
+        t = tf;
+    }
+    return t;
 }
 
 /***************************** TypeDelegate *****************************/

@@ -1998,6 +1998,8 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
 int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 {
     FuncDeclaration *mismatch = NULL;
+    StorageClass mismatchstc = 0;
+    int mismatchvi = -1;
     int bestvi = -1;
     for (int vi = 0; vi < dim; vi++)
     {
@@ -2007,7 +2009,8 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
             if (type->equals(fdv->type))        // if exact match
                 return vi;                      // no need to look further
 
-            int cov = type->covariant(fdv->type);
+            StorageClass stc = 0;
+            int cov = type->covariant(fdv->type, &stc);
             //printf("\tbaseclass cov = %d\n", cov);
             switch (cov)
             {
@@ -2019,6 +2022,8 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
                     break;              // keep looking for an exact match
 
                 case 2:
+                    mismatchvi = vi;
+                    mismatchstc = stc;
                     mismatch = fdv;     // overrides, but is not covariant
                     break;              // keep looking for an exact match
 
@@ -2035,8 +2040,15 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
         //type->print();
         //mismatch->type->print();
         //printf("%s %s\n", type->deco, mismatch->type->deco);
-        error("of type %s overrides but is not covariant with %s of type %s",
-            type->toChars(), mismatch->toPrettyChars(), mismatch->type->toChars());
+        //printf("stc = %llx\n", mismatchstc);
+        if (mismatchstc)
+        {   // Fix it by modifying the type to add the storage classes
+            type = type->addStorageClass(mismatchstc);
+            bestvi = mismatchvi;
+        }
+        else
+            error("of type %s overrides but is not covariant with %s of type %s",
+                type->toChars(), mismatch->toPrettyChars(), mismatch->type->toChars());
     }
     return bestvi;
 }
