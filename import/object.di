@@ -69,16 +69,16 @@ class TypeInfo
     hash_t   getHash(in void* p);
     equals_t equals(in void* p1, in void* p2);
     int      compare(in void* p1, in void* p2);
-    @property size_t   tsize() nothrow pure;
+    @property size_t   tsize() nothrow pure const @safe;
     void     swap(void* p1, void* p2);
     @property TypeInfo next() nothrow pure;
-    void[]   init() nothrow pure; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    @property uint     flags() nothrow pure;
+    const(void)[]   init() nothrow pure const @safe; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
+    @property uint     flags() nothrow pure const @safe;
     // 1:    // has possible pointers into GC memory
     OffsetTypeInfo[] offTi();
     void destroy(void* p);
     void postblit(void* p);
-    @property size_t talign() nothrow pure;
+    @property size_t talign() nothrow pure const @safe;
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2);
 }
 
@@ -134,8 +134,8 @@ class TypeInfo_Delegate : TypeInfo
 
 class TypeInfo_Class : TypeInfo
 {
-    @property TypeInfo_Class info() nothrow pure { return this; }
-    @property TypeInfo typeinfo() nothrow pure { return this; }
+    @property auto info() @safe nothrow pure { return this; }
+    @property auto typeinfo() @safe nothrow pure { return this; }
 
     byte[]      init;   // class static initializer
     string      name;   // class name

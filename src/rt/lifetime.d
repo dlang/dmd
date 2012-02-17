@@ -1423,9 +1423,9 @@ in
 body
 {
     byte* newdata;
-    size_t sizeelem = ti.next.tsize();
-    void[] initializer = ti.next.init();
-    size_t initsize = initializer.length;
+    auto sizeelem = ti.next.tsize();
+    auto initializer = ti.next.init();
+    auto initsize = initializer.length;
 
     assert(sizeelem);
     assert(initsize);

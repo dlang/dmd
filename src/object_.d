@@ -272,7 +272,7 @@ class TypeInfo
     int compare(in void* p1, in void* p2) { return 0; }
 
     /// Returns size of the type.
-    @property size_t tsize() nothrow pure { return 0; }
+    @property size_t tsize() nothrow pure const @safe { return 0; }
 
     /// Swaps two instances of the type.
     void swap(void* p1, void* p2)
@@ -293,10 +293,10 @@ class TypeInfo
     /// Return default initializer.  If the type should be initialized to all zeros,
     /// an array with a null ptr and a length equal to the type size will be returned.
     // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
-    void[] init() nothrow pure { return null; }
+    const(void)[] init() nothrow pure const @safe { return null; }
 
     /// Get flags for type: 1 means GC should scan for pointers
-    @property uint flags() nothrow pure { return 0; }
+    @property uint flags() nothrow pure const @safe { return 0; }
 
     /// Get type information on the contents of the type; null if not available
     OffsetTypeInfo[] offTi() { return null; }
@@ -307,7 +307,7 @@ class TypeInfo
 
 
     /// Return alignment of type
-    @property size_t talign() nothrow pure { return tsize; }
+    @property size_t talign() nothrow pure const @safe { return tsize; }
 
     /** Return internal info on arguments fitting into 8byte.
      * See X86-64 ABI 3.2.3
@@ -338,7 +338,7 @@ class TypeInfo_Vector : TypeInfo
 
     @property override TypeInfo next() nothrow pure { return base.next; }
     @property override uint flags() nothrow pure { return base.flags; }
-    override void[] init() nothrow pure { return base.init(); }
+    override const(void)[] init() nothrow pure { return base.init(); }
 
     @property override size_t talign() nothrow pure { return 16; }
 
@@ -370,7 +370,7 @@ class TypeInfo_Typedef : TypeInfo
 
     @property override TypeInfo next() nothrow pure { return base.next; }
     @property override uint flags() nothrow pure { return base.flags; }
-    override void[] init() nothrow pure { return m_init.length ? m_init : base.init(); }
+    override const(void)[] init() nothrow pure const @safe { return m_init.length ? m_init : base.init(); }
 
     @property override size_t talign() nothrow pure { return base.talign; }
 
@@ -600,7 +600,7 @@ class TypeInfo_StaticArray : TypeInfo
             delete pbuffer;
     }
 
-    override void[] init() nothrow pure { return value.init(); }
+    override const(void)[] init() nothrow pure { return value.init(); }
     @property override TypeInfo next() nothrow pure { return value; }
     @property override uint flags() nothrow pure { return value.flags(); }
 
@@ -812,8 +812,8 @@ class TypeInfo_Class : TypeInfo
         return m_offTi;
     }
 
-    @property TypeInfo_Class info() nothrow pure { return this; }
-    @property TypeInfo typeinfo() nothrow pure { return this; }
+    @property auto info() @safe nothrow pure { return this; }
+    @property auto typeinfo() @safe nothrow pure { return this; }
 
     byte[]      init;           /** class static initializer
                                  * (init.length gives size in bytes of class)
@@ -1019,7 +1019,7 @@ class TypeInfo_Struct : TypeInfo
         return init().length;
     }
 
-    override void[] init() nothrow pure { return m_init; }
+    override const(void)[] init() nothrow pure const @safe { return m_init; }
 
     @property override uint flags() nothrow pure { return m_flags; }
 
@@ -1191,7 +1191,7 @@ class TypeInfo_Const : TypeInfo
 
     @property override TypeInfo next() nothrow pure { return base.next; }
     @property override uint flags() nothrow pure { return base.flags; }
-    override void[] init() nothrow pure { return base.init(); }
+    override const(void)[] init() nothrow pure { return base.init(); }
 
     @property override size_t talign() nothrow pure { return base.talign(); }
 
