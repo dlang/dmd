@@ -6476,10 +6476,6 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
     }
     else
     {
-#ifdef DEBUG
-        if (!global.gag)
-            printf("1: ");
-#endif
         if (s)
         {
             s->error(loc, "is used as a type");
@@ -6922,9 +6918,6 @@ unsigned TypeEnum::alignsize()
 {
     if (!sym->memtype)
     {
-#ifdef DEBUG
-        printf("1: ");
-#endif
         error(0, "enum %s is forward referenced", sym->toChars());
         return 4;
     }
@@ -6951,9 +6944,6 @@ Type *TypeEnum::toBasetype()
     }
     if (!sym->memtype)
     {
-#ifdef DEBUG
-        printf("2: ");
-#endif
         error(sym->loc, "enum %s is forward referenced", sym->toChars());
         return tint32;
     }
@@ -7138,9 +7128,6 @@ int TypeEnum::isZeroInit(Loc loc)
     }
     if (!sym->defaultval)
     {
-#ifdef DEBUG
-        printf("3: ");
-#endif
         error(loc, "enum %s is forward referenced", sym->toChars());
         return 0;
     }

@@ -4427,9 +4427,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     else
     {
         error("%s cannot be evaluated at compile time", toChars());
-#ifdef DEBUG
-        dump(0);
-#endif
     }
     return returnValue;
 }
