@@ -19,5 +19,10 @@ private import rt.typeinfo.ti_double;
 
 class TypeInfo_p : TypeInfo_d
 {
-    override string toString() { return "idouble"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "idouble"; }
 }

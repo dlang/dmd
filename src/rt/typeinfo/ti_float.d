@@ -17,12 +17,9 @@ module rt.typeinfo.ti_float;
 
 class TypeInfo_f : TypeInfo
 {
-    override string toString() { return "float"; }
-
-    override hash_t getHash(in void* p)
-    {
-        return *cast(uint *)p;
-    }
+    @trusted:
+    pure:
+    nothrow:
 
     static equals_t _equals(float f1, float f2)
     {
@@ -42,6 +39,15 @@ class TypeInfo_f : TypeInfo
             return 1;
         }
         return (d1 == d2) ? 0 : ((d1 < d2) ? -1 : 1);
+    }
+
+    const:
+
+    override string toString() const pure nothrow @safe { return "float"; }
+
+    override hash_t getHash(in void* p)
+    {
+        return *cast(uint *)p;
     }
 
     override equals_t equals(in void* p1, in void* p2)

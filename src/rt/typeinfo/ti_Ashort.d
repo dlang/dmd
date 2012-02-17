@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_As : TypeInfo
 {
-    override string toString() { return "short[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "short[]"; }
 
     override hash_t getHash(in void* p)
     {   short[] s = *cast(short[]*)p;
@@ -89,7 +94,12 @@ class TypeInfo_As : TypeInfo
 
 class TypeInfo_At : TypeInfo_As
 {
-    override string toString() { return "ushort[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "ushort[]"; }
 
     override int compare(in void* p1, in void* p2)
     {
@@ -122,7 +132,12 @@ class TypeInfo_At : TypeInfo_As
 
 class TypeInfo_Au : TypeInfo_At
 {
-    override string toString() { return "wchar[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "wchar[]"; }
 
     @property override TypeInfo next() nothrow pure
     {

@@ -17,6 +17,11 @@ module rt.typeinfo.ti_ptr;
 
 class TypeInfo_P : TypeInfo
 {
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
     override hash_t getHash(in void* p)
     {
         return cast(uint)*cast(void* *)p;

@@ -19,12 +19,9 @@ private import rt.util.hash;
 
 class TypeInfo_c : TypeInfo
 {
-    override string toString() { return "creal"; }
-
-    override hash_t getHash(in void* p)
-    {
-        return hashOf(p, creal.sizeof);
-    }
+    @trusted:
+    pure:
+    nothrow:
 
     static equals_t _equals(creal f1, creal f2)
     {
@@ -45,6 +42,15 @@ class TypeInfo_c : TypeInfo
         else
             result = 0;
         return result;
+    }
+
+    const:
+
+    override string toString() const pure nothrow @safe { return "creal"; }
+
+    override hash_t getHash(in void* p)
+    {
+        return hashOf(p, creal.sizeof);
     }
 
     override equals_t equals(in void* p1, in void* p2)

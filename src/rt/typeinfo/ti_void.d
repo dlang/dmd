@@ -17,7 +17,12 @@ module rt.typeinfo.ti_void;
 
 class TypeInfo_v : TypeInfo
 {
-    override string toString() { return "void"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "void"; }
 
     override hash_t getHash(in void* p)
     {

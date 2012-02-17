@@ -17,7 +17,12 @@ module rt.typeinfo.ti_short;
 
 class TypeInfo_s : TypeInfo
 {
-    override string toString() { return "short"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "short"; }
 
     override hash_t getHash(in void* p)
     {

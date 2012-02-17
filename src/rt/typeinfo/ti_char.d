@@ -17,7 +17,12 @@ module rt.typeinfo.ti_char;
 
 class TypeInfo_a : TypeInfo
 {
-    override string toString() { return "char"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "char"; }
 
     override hash_t getHash(in void* p)
     {

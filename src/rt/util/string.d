@@ -15,6 +15,10 @@ module rt.util.string;
 
 private import core.stdc.string;
 
+@trusted:
+pure:
+nothrow:
+
 // This should be renamed to uintToString()
 char[] intToString( char[] buf, uint val )
 {

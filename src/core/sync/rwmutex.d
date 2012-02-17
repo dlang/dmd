@@ -183,7 +183,7 @@ class ReadWriteMutex
         /**
          * Acquires a read lock on the enclosing mutex.
          */
-        void lock()
+        @trusted void lock()
         {
             synchronized( m_commonMutex )
             {
@@ -200,7 +200,7 @@ class ReadWriteMutex
         /**
          * Releases a read lock on the enclosing mutex.
          */
-        void unlock()
+        @trusted void unlock()
         {
             synchronized( m_commonMutex )
             {
@@ -286,7 +286,7 @@ class ReadWriteMutex
         /**
          * Acquires a write lock on the enclosing mutex.
          */
-        void lock()
+        @trusted void lock()
         {
             synchronized( m_commonMutex )
             {
@@ -303,7 +303,7 @@ class ReadWriteMutex
         /**
          * Releases a write lock on the enclosing mutex.
          */
-        void unlock()
+        @trusted void unlock()
         {
             synchronized( m_commonMutex )
             {

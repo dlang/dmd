@@ -19,7 +19,12 @@ private import rt.util.hash;
 
 class TypeInfo_m : TypeInfo
 {
-    override string toString() { return "ulong"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "ulong"; }
 
     override hash_t getHash(in void* p)
     {

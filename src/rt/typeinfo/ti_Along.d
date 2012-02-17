@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_Al : TypeInfo
 {
-    override string toString() { return "long[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "long[]"; }
 
     override hash_t getHash(in void* p)
     {   long[] s = *cast(long[]*)p;
@@ -91,7 +96,12 @@ class TypeInfo_Al : TypeInfo
 
 class TypeInfo_Am : TypeInfo_Al
 {
-    override string toString() { return "ulong[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "ulong[]"; }
 
     override int compare(in void* p1, in void* p2)
     {

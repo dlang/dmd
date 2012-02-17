@@ -17,7 +17,12 @@ module rt.typeinfo.ti_ubyte;
 
 class TypeInfo_h : TypeInfo
 {
-    override string toString() { return "ubyte"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "ubyte"; }
 
     override hash_t getHash(in void* p)
     {
@@ -51,5 +56,10 @@ class TypeInfo_h : TypeInfo
 
 class TypeInfo_b : TypeInfo_h
 {
-    override string toString() { return "bool"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "bool"; }
 }

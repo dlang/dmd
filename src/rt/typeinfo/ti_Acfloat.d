@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_Aq : TypeInfo
 {
-    override string toString() { return "cfloat[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "cfloat[]"; }
 
     override hash_t getHash(in void* p)
     {   cfloat[] s = *cast(cfloat[]*)p;

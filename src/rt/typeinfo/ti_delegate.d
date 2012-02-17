@@ -21,6 +21,11 @@ alias void delegate(int) dg;
 
 class TypeInfo_D : TypeInfo
 {
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
     override hash_t getHash(in void* p)
     {
         return hashOf(p, dg.sizeof);

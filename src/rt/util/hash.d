@@ -22,6 +22,7 @@ version( AnyX86 )
     version = HasUnalignedOps;
 
 
+@trusted pure nothrow
 hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
 {
     /*
@@ -32,14 +33,14 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
      */
     version( HasUnalignedOps )
     {
-        static uint get16bits( const (ubyte)* x )
+        static uint get16bits( const (ubyte)* x ) pure nothrow
         {
             return *cast(ushort*) x;
         }
     }
     else
     {
-        static uint get16bits( const (ubyte)* x )
+        static uint get16bits( const (ubyte)* x ) pure nothrow
         {
             return ((cast(uint) x[1]) << 8) + (cast(uint) x[0]);
         }

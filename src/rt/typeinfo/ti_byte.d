@@ -17,7 +17,12 @@ module rt.typeinfo.ti_byte;
 
 class TypeInfo_g : TypeInfo
 {
-    override string toString() { return "byte"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "byte"; }
 
     override hash_t getHash(in void* p)
     {

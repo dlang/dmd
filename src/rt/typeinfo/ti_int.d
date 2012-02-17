@@ -17,7 +17,12 @@ module rt.typeinfo.ti_int;
 
 class TypeInfo_i : TypeInfo
 {
-    override string toString() { return "int"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "int"; }
 
     override hash_t getHash(in void* p)
     {

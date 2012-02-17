@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_Ai : TypeInfo
 {
-    override string toString() { return "int[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "int[]"; }
 
     override hash_t getHash(in void* p)
     {   int[] s = *cast(int[]*)p;
@@ -100,7 +105,12 @@ unittest
 
 class TypeInfo_Ak : TypeInfo_Ai
 {
-    override string toString() { return "uint[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "uint[]"; }
 
     override int compare(in void* p1, in void* p2)
     {
@@ -133,7 +143,12 @@ class TypeInfo_Ak : TypeInfo_Ai
 
 class TypeInfo_Aw : TypeInfo_Ak
 {
-    override string toString() { return "dchar[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "dchar[]"; }
 
     @property override TypeInfo next() nothrow pure
     {

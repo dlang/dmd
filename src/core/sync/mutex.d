@@ -128,7 +128,7 @@ class Mutex :
      * Throws:
      *  SyncException on error.
      */
-    void lock()
+    @trusted void lock()
     {
         version( Windows )
         {
@@ -150,7 +150,7 @@ class Mutex :
      * Throws:
      *  SyncException on error.
      */
-    void unlock()
+    @trusted void unlock()
     {
         version( Windows )
         {

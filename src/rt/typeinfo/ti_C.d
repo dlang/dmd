@@ -17,6 +17,11 @@ module rt.typeinfo.ti_C;
 
 class TypeInfo_C : TypeInfo
 {
+    @trusted:
+    const:
+    //pure:
+    //nothrow:
+
     override hash_t getHash(in void* p)
     {
         Object o = *cast(Object*)p;

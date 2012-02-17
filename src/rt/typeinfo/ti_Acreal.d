@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_Ac : TypeInfo
 {
-    override string toString() { return "creal[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "creal[]"; }
 
     override hash_t getHash(in void* p)
     {   creal[] s = *cast(creal[]*)p;

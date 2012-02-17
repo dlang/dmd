@@ -249,7 +249,7 @@ public:
     }
 
 
-    override string toString()
+    @safe override string toString() const pure nothrow
     {
         string result;
 
@@ -272,8 +272,8 @@ private:
             return traceNoSync();
         }
     }
-    
-    
+
+
     static char[][] traceNoSync()
     {
         auto         dbghelp  = DbgHelp.get();

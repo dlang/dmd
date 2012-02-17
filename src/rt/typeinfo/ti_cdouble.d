@@ -19,12 +19,9 @@ private import rt.util.hash;
 
 class TypeInfo_r : TypeInfo
 {
-    override string toString() { return "cdouble"; }
-
-    override hash_t getHash(in void* p)
-    {
-        return hashOf(p, cdouble.sizeof);
-    }
+    @trusted:
+    pure:
+    nothrow:
 
     static equals_t _equals(cdouble f1, cdouble f2)
     {
@@ -45,6 +42,15 @@ class TypeInfo_r : TypeInfo
         else
             result = 0;
         return result;
+    }
+
+  const:
+
+    override string toString() const pure nothrow @safe { return "cdouble"; }
+
+    override hash_t getHash(in void* p)
+    {
+        return hashOf(p, cdouble.sizeof);
     }
 
     override equals_t equals(in void* p1, in void* p2)

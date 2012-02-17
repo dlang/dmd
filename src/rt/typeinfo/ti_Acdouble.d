@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_Ar : TypeInfo
 {
-    override string toString() { return "cdouble[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "cdouble[]"; }
 
     override hash_t getHash(in void* p)
     {   cdouble[] s = *cast(cdouble[]*)p;

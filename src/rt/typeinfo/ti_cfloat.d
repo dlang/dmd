@@ -19,12 +19,9 @@ private import rt.util.hash;
 
 class TypeInfo_q : TypeInfo
 {
-    override string toString() { return "cfloat"; }
-
-    override hash_t getHash(in void* p)
-    {
-        return hashOf(p, cfloat.sizeof);
-    }
+    @trusted:
+    pure:
+    nothrow:
 
     static equals_t _equals(cfloat f1, cfloat f2)
     {
@@ -45,6 +42,15 @@ class TypeInfo_q : TypeInfo
         else
             result = 0;
         return result;
+    }
+
+    const:
+
+    override string toString() const pure nothrow @safe { return "cfloat"; }
+
+    override hash_t getHash(in void* p)
+    {
+        return hashOf(p, cfloat.sizeof);
     }
 
     override equals_t equals(in void* p1, in void* p2)

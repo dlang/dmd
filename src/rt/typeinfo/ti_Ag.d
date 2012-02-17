@@ -21,7 +21,12 @@ private import rt.util.string;
 
 class TypeInfo_Ag : TypeInfo
 {
-    override string toString() { return "byte[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "byte[]"; }
 
     override hash_t getHash(in void* p)
     {   byte[] s = *cast(byte[]*)p;
@@ -91,7 +96,12 @@ class TypeInfo_Ag : TypeInfo
 
 class TypeInfo_Ah : TypeInfo_Ag
 {
-    override string toString() { return "ubyte[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "ubyte[]"; }
 
     override int compare(in void* p1, in void* p2)
     {
@@ -111,7 +121,12 @@ class TypeInfo_Ah : TypeInfo_Ag
 
 class TypeInfo_Av : TypeInfo_Ah
 {
-    override string toString() { return "void[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "void[]"; }
 
     @property override TypeInfo next() nothrow pure
     {
@@ -123,7 +138,12 @@ class TypeInfo_Av : TypeInfo_Ah
 
 class TypeInfo_Ab : TypeInfo_Ah
 {
-    override string toString() { return "bool[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "bool[]"; }
 
     @property override TypeInfo next() nothrow pure
     {
@@ -135,7 +155,12 @@ class TypeInfo_Ab : TypeInfo_Ah
 
 class TypeInfo_Aa : TypeInfo_Ag
 {
-    override string toString() { return "char[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "char[]"; }
 
     override hash_t getHash(in void* p)
     {   char[] s = *cast(char[]*)p;
@@ -196,7 +221,12 @@ else
 
 class TypeInfo_Aya : TypeInfo_Aa
 {
-    override string toString() { return "immutable(char)[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "immutable(char)[]"; }
 
     @property override TypeInfo next() nothrow pure
     {

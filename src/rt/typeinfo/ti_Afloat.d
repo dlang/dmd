@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_Af : TypeInfo
 {
-    override string toString() { return "float[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "float[]"; }
 
     override hash_t getHash(in void* p)
     {   float[] s = *cast(float[]*)p;
@@ -96,7 +101,12 @@ class TypeInfo_Af : TypeInfo
 
 class TypeInfo_Ao : TypeInfo_Af
 {
-    override string toString() { return "ifloat[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "ifloat[]"; }
 
     @property override TypeInfo next() nothrow pure
     {

@@ -17,6 +17,11 @@ module rt.typeinfo.ti_wchar;
 
 class TypeInfo_u : TypeInfo
 {
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
     override string toString() { return "wchar"; }
 
     override hash_t getHash(in void* p)
@@ -34,7 +39,7 @@ class TypeInfo_u : TypeInfo
         return *cast(wchar *)p1 - *cast(wchar *)p2;
     }
 
-    @property override size_t tsize() nothrow pure
+    @property override size_t tsize()
     {
         return wchar.sizeof;
     }
@@ -48,7 +53,7 @@ class TypeInfo_u : TypeInfo
         *cast(wchar *)p2 = t;
     }
 
-    override void[] init() nothrow pure
+    override void[] init()
     {   static immutable wchar c;
 
         return (cast(wchar *)&c)[0 .. 1];

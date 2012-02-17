@@ -19,5 +19,10 @@ private import rt.typeinfo.ti_real;
 
 class TypeInfo_j : TypeInfo_e
 {
-    override string toString() { return "ireal"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "ireal"; }
 }

@@ -20,7 +20,12 @@ private import rt.util.hash;
 
 class TypeInfo_Ad : TypeInfo
 {
-    override string toString() { return "double[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "double[]"; }
 
     override hash_t getHash(in void* p)
     {   double[] s = *cast(double[]*)p;
@@ -96,7 +101,12 @@ class TypeInfo_Ad : TypeInfo
 
 class TypeInfo_Ap : TypeInfo_Ad
 {
-    override string toString() { return "idouble[]"; }
+    @trusted:
+    const:
+    pure:
+    nothrow:
+
+    override string toString() const pure nothrow @safe { return "idouble[]"; }
 
     @property override TypeInfo next() nothrow pure
     {
