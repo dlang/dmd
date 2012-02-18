@@ -233,11 +233,12 @@ void Import::semantic(Scope *sc)
 #else
         sc->protection = PROTpublic;
 #endif
+        enum PROT visibility = moduleVisibility(getAccessModule(), mod);
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {   Dsymbol *s = aliasdecls[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (mod->search(loc, names[i], 0))
+            if (mod->search(loc, names[i], 0, visibility))
                 s->semantic(sc);
             else
             {
