@@ -2454,37 +2454,7 @@ elem *IdentityExp::toElem(IRState *irs)
 
     //printf("IdentityExp::toElem() %s\n", toChars());
 
-    if (t1->ty == Tcomplex80 && REALPAD != 0)
-    {
-        /* creal has padding in the middle on some platforms,
-         * so do identity comparison on real and imaginary parts
-         * separately.
-         */
-        symbol *s1 = symbol_genauto(t1->toCtype());
-        symbol *s2 = symbol_genauto(t2->toCtype());
-        elem *el1 = e1->toElem(irs);
-        elem *el2 = e2->toElem(irs);
-        elem *ed1 = el_bin(OPeq, TYcldouble, el_var(s1), el1);
-        elem *ed2 = el_bin(OPeq, TYcldouble, el_var(s2), el2);
-
-        elem *e1a = addressElem(ed1, Type::tcomplex80);
-        elem *e2a = addressElem(ed2, Type::tcomplex80);
-        elem *ecount1 = el_long(TYsize_t, REALSIZE - REALPAD);
-        elem *ec1 = el_bin(OPmemcmp, TYint, el_param(e1a, e2a), ecount1);
-        ec1 = el_bin(eop, TYint, ec1, el_long(TYint, 0));
-
-        e1a = el_bin(OPadd, e1a->Ety, addressElem(el_var(s1), Type::tcomplex80), el_long(TYsize_t, REALSIZE));
-        e2a = el_bin(OPadd, e2a->Ety, addressElem(el_var(s2), Type::tcomplex80), el_long(TYsize_t, REALSIZE));
-        elem *ecount2 = el_long(TYsize_t, REALSIZE - REALPAD);
-        elem *ec2 = el_bin(OPmemcmp, TYint, el_param(e1a, e2a ), ecount2);
-        ec2 = el_bin(eop, TYint, ec2, el_long(TYint, 0));
-
-        enum OPER xop = (op == TOKidentity) ? OPandand : OPoror;
-
-        e = el_bin(xop, TYint, ec1, ec2);
-        el_setLoc(e,loc);
-    }
-    else if (t1->ty == Tstruct || t1->isfloating())
+    if (t1->ty == Tstruct || t1->isfloating())
     {   // Do bit compare of struct's
         elem *es1;
         elem *es2;
@@ -2497,10 +2467,7 @@ elem *IdentityExp::toElem(IRState *irs)
         es2 = addressElem(es2, e2->type);
         //es2 = el_una(OPaddr, TYnptr, es2);
         e = el_param(es1, es2);
-        if (t1->ty == Tfloat80 || t1->ty == Timaginary80)
-            ecount = el_long(TYsize_t, t1->size() - REALPAD);
-        else
-            ecount = el_long(TYsize_t, t1->size());
+        ecount = el_long(TYsize_t, t1->size());
         e = el_bin(OPmemcmp, TYint, e, ecount);
         e = el_bin(eop, TYint, e, el_long(TYint, 0));
         el_setLoc(e,loc);
