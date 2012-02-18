@@ -149,10 +149,6 @@ void JsonString(OutBuffer *buf, const char *s)
                 buf->writestring("\\\\");
                 break;
 
-            case '/':
-                buf->writestring("\\/");
-                break;
-
             case '\b':
                 buf->writestring("\\b");
                 break;
