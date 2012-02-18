@@ -239,6 +239,37 @@ void test7004()
 }
 
 /***************************************/
+// 7406
+
+template TypeTuple7406(T...)
+{
+    alias T TypeTuple7406;
+}
+
+template foobar7406(T)
+{
+    enum foobar = 2;
+}
+
+void test7406()
+{
+    foreach (sym; TypeTuple7406!(int, double))     // OK
+        pragma(msg, sym.stringof);
+
+    foreach (sym; TypeTuple7406!(foobar7406))      // OK
+        pragma(msg, sym.stringof);
+
+    foreach (sym; TypeTuple7406!(test7406))        // OK
+        pragma(msg, sym.stringof);
+
+    foreach (sym; TypeTuple7406!(int, foobar7406)) // Error: type int has no value
+        pragma(msg, sym.stringof);
+
+    foreach (sym; TypeTuple7406!(int, test7406))   // Error: type int has no value
+        pragma(msg, sym.stringof);
+}
+
+/***************************************/
 
 int main()
 {
@@ -249,6 +280,7 @@ int main()
     test3187();
     test5605();
     test7004();
+    test7406();
 
     printf("Success\n");
     return 0;

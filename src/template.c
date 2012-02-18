@@ -3832,7 +3832,10 @@ void TemplateValueParameter::semantic(Scope *sc)
     bool wasSame = (sparam->type == valType);
     sparam->semantic(sc);
     if (sparam->type == Type::terror && wasSame)
-    {   // If sparam has a type error, avoid duplicate errors
+    {   /* If sparam has a type error, avoid duplicate errors
+         * The simple solution of leaving that function if sparam->type == Type::terror
+         * doesn't quite work because it causes failures in xtest46 for bug 6295
+         */
         valType = Type::terror;
         return;
     }
@@ -3893,8 +3896,8 @@ Lnomatch:
 }
 
 
-MATCH TemplateValueParameter::matchArg(Scope *sc, Objects *tiargs,
-        size_t i, TemplateParameters *parameters, Objects *dedtypes,
+MATCH TemplateValueParameter::matchArg(Scope *sc,
+        Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
     //printf("TemplateValueParameter::matchArg()\n");
