@@ -382,6 +382,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->overnext = NULL;
     this->overroot = NULL;
     this->semanticRun = 0;
+    this->protection = PROTpublic;
     this->onemember = NULL;
     this->literal = 0;
     this->ismixin = ismixin;
@@ -481,7 +482,9 @@ void TemplateDeclaration::semantic(Scope *sc)
     Scope *paramscope = sc->push(paramsym);
     paramscope->parameterSpecialization = 1;
     paramscope->stc = 0;
+    paramscope->protection = PROTpublic;
 
+    protection = sc->protection;
     if (!parent)
         parent = sc->parent;
 
@@ -538,6 +541,23 @@ const char *TemplateDeclaration::kind()
     return (onemember && onemember->isAggregateDeclaration())
                 ? onemember->kind()
                 : (char *)"template";
+}
+
+enum PROT TemplateDeclaration::overprot()
+{
+    enum PROT result = prot();
+    for (TemplateDeclaration *td = overnext; td; td = td->overnext)
+    {
+        enum PROT nprot = td->prot();
+        if (nprot > result) // take looser one
+            result = nprot;
+    }
+    return result;
+}
+
+enum PROT TemplateDeclaration::prot()
+{
+    return protection;
 }
 
 /**********************************
@@ -709,6 +729,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
     paramscope->stc = 0;
+    paramscope->protection = PROTpublic;
 
     // Attempt type deduction
     m = MATCHexact;
@@ -976,6 +997,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
     paramscope->stc = 0;
+    paramscope->protection = PROTpublic;
 
     TemplateTupleParameter *tp = isVariadic();
     int tp_is_declared = 0;
@@ -1761,11 +1783,11 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
     Dsymbol *sa = isDsymbol(o);
     Tuple *va = isTuple(o);
 
-    Dsymbol *s;
+    Declaration *d;
 
     // See if tp->ident already exists with a matching definition
     Dsymbol *scopesym;
-    s = sc->search(loc, tp->ident, &scopesym);
+    Dsymbol *s = sc->search(loc, tp->ident, &scopesym);
     if (s && scopesym == sc->scopesym)
     {
         TupleDeclaration *td = s->isTupleDeclaration();
@@ -1782,12 +1804,12 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
     if (targ)
     {
         //printf("type %s\n", targ->toChars());
-        s = new AliasDeclaration(0, tp->ident, targ);
+        d = new AliasDeclaration(0, tp->ident, targ);
     }
     else if (sa)
     {
         //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
-        s = new AliasDeclaration(0, tp->ident, sa);
+        d = new AliasDeclaration(0, tp->ident, sa);
     }
     else if (ea)
     {
@@ -1797,14 +1819,13 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
 
         Type *t = tvp ? tvp->valType : NULL;
 
-        VarDeclaration *v = new VarDeclaration(loc, t, tp->ident, init);
-        v->storage_class = STCmanifest;
-        s = v;
+        d = new VarDeclaration(loc, t, tp->ident, init);
+        d->storage_class = STCmanifest;
     }
     else if (va)
     {
         //printf("\ttuple\n");
-        s = new TupleDeclaration(loc, tp->ident, &va->objects);
+        d = new TupleDeclaration(loc, tp->ident, &va->objects);
     }
     else
     {
@@ -1813,9 +1834,14 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
 #endif
         assert(0);
     }
-    if (!sc->insert(s))
+    /* Loose protection so that private symbols can be arguments to a
+     * template in a different module. This works because public
+     * aliases to private symbols are public.
+     */
+    d->protection = sc->protection;
+    if (!sc->insert(d))
         error("declaration %s is already defined", tp->ident->toChars());
-    s->semantic(sc);
+    d->semantic(sc);
 }
 
 /**************************************
@@ -4318,6 +4344,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
     printf("\tdo semantic\n");
 #endif
+    bool hasAccess = false;
     if (havetempdecl)
     {
         assert((size_t)tempdecl->scope > 0x10000);
@@ -4342,7 +4369,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             return;             // error recovery
         }
         unsigned errs = global.errors;
-        tempdecl = findTemplateDeclaration(sc);
+        tempdecl = findTemplateDeclaration(sc, &hasAccess);
         if (tempdecl)
             tempdecl = findBestMatch(sc, fargs);
         if (!tempdecl || (errs != global.errors))
@@ -4351,6 +4378,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             return;             // error recovery
         }
     }
+    if (!hasAccess)
+        accessCheck(loc, sc, tempdecl, false);
 
     // If tempdecl is a mixin, disallow it
     if (tempdecl->ismixin)
@@ -4551,6 +4580,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // Declare each template parameter as an alias for the argument type
     Scope *paramscope = scope->push();
     paramscope->stc = 0;
+    paramscope->protection = PROTpublic;
     declareParameters(paramscope);
     paramscope->pop();
 
@@ -4612,6 +4642,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     sc2 = scope->push(this);
     //printf("isnested = %d, sc->parent = %s\n", isnested, sc->parent->toChars());
     sc2->parent = /*isnested ? sc->parent :*/ this;
+    sc2->protection = PROTpublic;
     sc2->tinst = this;
 
 #if WINDOWS_SEH
@@ -4920,7 +4951,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
  * Find template declaration corresponding to template instance.
  */
 
-TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
+TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc, bool *pHasAccess)
 {
     //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
     if (!tempdecl)
@@ -4938,12 +4969,23 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
         if (!s)
         {
             s = sc->search_correct(id);
-            if (s)
-                error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
+            if (s) // Bug: should only suggest templates
+                error("template '%s' is not defined, did you mean %s %s?", id->toChars(), s->protChars(), s->toPrettyChars());
             else
                 error("template '%s' is not defined", id->toChars());
             return NULL;
         }
+
+        AliasDeclaration *ad = s->isAliasDeclaration();
+        if (ad && !ad->inSemantic) // resolve aliases, but not eponymous recursions
+        {
+            accessCheck(loc, sc, s, true);
+            s = s->toAlias();
+            if (pHasAccess)
+                *pHasAccess = true;
+        }
+        else if (pHasAccess)
+            *pHasAccess = false;
 
         /* If an OverloadSet, look for a unique member that is a template declaration
          */
@@ -4951,7 +4993,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
         if (os)
         {   s = NULL;
             for (size_t i = 0; i < os->a.dim; i++)
-            {   Dsymbol *s2 = os->a.tdata()[i];
+            {   Dsymbol *s2 = os->a.tdata()[i]->toAlias();
                 if (s2->isTemplateDeclaration())
                 {
                     if (s)
@@ -4991,8 +5033,6 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
                 s = tempdecl;
             }
         }
-
-        s = s->toAlias();
 
         /* It should be a TemplateDeclaration, not some other symbol
          */
@@ -5417,7 +5457,7 @@ int TemplateInstance::needsTypeInference(Scope *sc)
 {
     //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
     if (!tempdecl)
-        tempdecl = findTemplateDeclaration(sc);
+        tempdecl = findTemplateDeclaration(sc, NULL);
     int multipleMatches = FALSE;
     for (TemplateDeclaration *td = tempdecl; td; td = td->overnext)
     {
@@ -5793,7 +5833,10 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     // Follow qualifications to find the TemplateDeclaration
-    if (!tempdecl)
+    bool hasAccess;
+    if (tempdecl)
+        hasAccess = true;
+    else
     {   Dsymbol *s;
         size_t i;
         Identifier *id;
@@ -5837,7 +5880,16 @@ void TemplateMixin::semantic(Scope *sc)
             inst = this;
             return;
         }
-        tempdecl = s->toAlias()->isTemplateDeclaration();
+        AliasDeclaration *ad = s->isAliasDeclaration();
+        if (ad && !ad->inSemantic) // resolve aliases, but not eponymous recursions
+        {
+            accessCheck(loc, sc, s, true);
+            s = s->toAlias();
+            hasAccess = true;
+        }
+        else
+            hasAccess = false;
+        tempdecl = s->isTemplateDeclaration();
         if (!tempdecl)
         {
             error("%s isn't a template", s->toChars());
@@ -5884,6 +5936,8 @@ void TemplateMixin::semantic(Scope *sc)
     {   inst = this;
         return;         // error recovery
     }
+    if (!hasAccess)
+        accessCheck(loc, sc, tempdecl, false);
 
     if (!ident)
         ident = genIdent(tiargs);

@@ -82,6 +82,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     searchCacheIdent = NULL;
     searchCacheSymbol = NULL;
     searchCacheFlags = 0;
+    searchCacheVisibility = PROTundefined;
     semanticstarted = 0;
     semanticRun = 0;
     decldefs = NULL;
@@ -931,6 +932,11 @@ int Module::needModuleInfo()
 
 Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
 {
+    search(loc, ident, flags, PROTprivate);
+}
+
+Dsymbol *Module::search(Loc loc, Identifier *ident, int flags, enum PROT visibility)
+{
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.
      * This is done with the cache.
@@ -940,7 +946,8 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     if (insearch)
         s = NULL;
-    else if (searchCacheIdent == ident && searchCacheFlags == flags)
+    else if (searchCacheIdent == ident && searchCacheFlags == flags &&
+             searchCacheVisibility == visibility)
     {
         s = searchCacheSymbol;
         //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n", toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
@@ -948,12 +955,19 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     else
     {
         insearch = 1;
-        s = ScopeDsymbol::search(loc, ident, flags);
+        s = symtab ? symtab->lookup(ident) : NULL;
+        // restrict visibility of top level symbols based on access
+        enum PROT prot;
+        if (s && (prot = s->overprot()) && prot < visibility && !(flags & 1))
+            s = NULL;
+        if (!s)
+            s = ScopeDsymbol::searchImports(loc, ident, flags, visibility);
         insearch = 0;
 
         searchCacheIdent = ident;
         searchCacheSymbol = s;
         searchCacheFlags = flags;
+        searchCacheVisibility = visibility;
     }
     return s;
 }

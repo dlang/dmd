@@ -2481,6 +2481,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
     {   Expression *e;
         WithScopeSymbol *withsym;
 
+        accessCheck(loc, sc, s, true);
+
         /* See if the symbol was a member of an enclosing 'with'
          */
         withsym = scopesym->isWithScopeSymbol();
@@ -2576,7 +2578,8 @@ Expression *IdentifierExp::semantic(Scope *sc)
     {
         s = sc->search_correct(ident);
         if (s)
-            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+            error("undefined identifier %s, did you mean %s %s %s?",
+                  ident->toChars(), s->protChars(), s->kind(), s->toPrettyChars());
         else
             error("undefined identifier %s", ident->toChars());
     }
@@ -4723,12 +4726,6 @@ Expression *VarExp::semantic(Scope *sc)
     if (type && !type->deco)
         type = type->semantic(loc, sc);
 
-    /* Fix for 1161 doesn't work because it causes protection
-     * problems when instantiating imported templates passing private
-     * variables as alias template parameters.
-     */
-    //accessCheck(loc, sc, NULL, var);
-
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
@@ -6422,19 +6419,21 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     {
         ScopeExp *ie = (ScopeExp *)eright;
 
-        /* Disable access to another module's private imports.
-         * The check for 'is sds our current module' is because
-         * the current module should have access to its own imports.
+        /* Restrict access to another module's symbols.
          */
-        Dsymbol *s = ie->sds->search(loc, ident,
-            (ie->sds->isModule() && ie->sds != sc->module) ? 1 : 0);
+        Dsymbol *s;
+        if (Module *m = ie->sds->isModule())
+        {   enum PROT visibility = moduleVisibility(sc->module, m);
+            s = m->search(loc, ident, 0, visibility);
+        }
+        else
+            s = ie->sds->search(loc, ident, 0);
         if (s)
         {
             /* Check for access before resolving aliases because public
              * aliases to private symbols are public.
              */
-            if (Declaration *d = s->isDeclaration())
-                accessCheck(loc, sc, 0, d);
+            accessCheck(loc, sc, s, true);
 
             s = s->toAlias();
             checkDeprecated(sc, s);
@@ -7705,7 +7704,7 @@ Lagain:
                 }
 
                 f = resolveFuncCall(sc, loc, cd->baseClass->ctor, NULL, NULL, arguments, 0);
-                accessCheck(loc, sc, NULL, f);
+                accessCheck(loc, sc, f, false);
                 checkDeprecated(sc, f);
 #if DMDV2
                 checkPurity(sc, f);
@@ -7893,7 +7892,8 @@ Lagain:
             goto Lagain;
         }
 
-        accessCheck(loc, sc, NULL, f);
+        // BUG: this doesn't work with public aliases, see Bugzilla 4533
+        accessCheck(loc, sc, f, false);
 
         ethis = NULL;
 
