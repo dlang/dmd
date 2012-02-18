@@ -288,15 +288,24 @@ void Module::gendocfile()
 
     // if I did the character encoding right here, I think we'd be in business
     OutBuffer bufEncoded;
-    bufEncoded.reserve(buf.offset);
-    for(unsigned where = 0; where < buf.offset; where++)
+    if(escapetable != NULL)
     {
-        unsigned char c = buf.data[where];
-        const char* replacement = escapetable->strings[c];
-	if (replacement == NULL)
-	    bufEncoded.writeByte(c);
-	else
-	    bufEncoded.writestring(replacement);
+        bufEncoded.reserve(buf.offset);
+        for(unsigned where = 0; where < buf.offset; where++)
+        {
+            unsigned char c = buf.data[where];
+            const char* replacement = escapetable->strings[c];
+            if (replacement == NULL)
+                bufEncoded.writeByte(c);
+            else
+                bufEncoded.writestring(replacement);
+        }
+    }
+    else
+    {
+        bufEncoded.reserve(buf.offset);
+        for(unsigned where = 0; where < buf.offset; where++)
+        	bufEncoded.writeByte(buf.data[where]);
     }
 
     // printf("BODY= '%.*s'\n", bufEncoded.offset, bufEncoded.data);
@@ -1527,6 +1536,9 @@ void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, u
     }
     unsigned char *p = textstart;
     unsigned char *pend = p + textlen;
+
+    // By default, set null everywhere so no character is escaped.
+    memset(escapetable, 0, sizeof(*escapetable));
 
     while (1)
     {
