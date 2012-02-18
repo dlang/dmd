@@ -58,6 +58,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *overroot;      // first in overnext list
 
     int semanticRun;                    // 1 semantic() run
+    bool errors;                        // this template is not correct
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 

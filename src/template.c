@@ -386,6 +386,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->literal = 0;
     this->ismixin = ismixin;
     this->previous = NULL;
+    this->errors = false;
 
     // Compute in advance for Ddoc's use
     if (members)
@@ -490,7 +491,7 @@ void TemplateDeclaration::semantic(Scope *sc)
         origParameters->setDim(parameters->dim);
         for (size_t i = 0; i < parameters->dim; i++)
         {
-            TemplateParameter *tp = parameters->tdata()[i];
+            TemplateParameter *tp = (*parameters)[i];
             origParameters->tdata()[i] = tp->syntaxCopy();
         }
     }
@@ -504,11 +505,13 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     for (size_t i = 0; i < parameters->dim; i++)
     {
-        TemplateParameter *tp = parameters->tdata()[i];
+        TemplateParameter *tp = (*parameters)[i];
 
         tp->semantic(paramscope);
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
-            error("template tuple parameter must be last one");
+        {   error("template tuple parameter must be last one");
+            errors = true;
+        }
     }
 
     paramscope->pop();
@@ -681,6 +684,9 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             ti->tiargs->tdata()[0]);
 #endif
     dedtypes->zero();
+
+    if (errors)
+        return MATCHnomatch;
 
     size_t parameters_dim = parameters->dim;
     int variadic = isVariadic() != NULL;
@@ -961,6 +967,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
 
     dedtypes.setDim(parameters->dim);
     dedtypes.zero();
+
+    if (errors)
+        return MATCHnomatch;
 
     // Set up scope for parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
