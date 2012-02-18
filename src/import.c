@@ -152,12 +152,10 @@ void Import::importAll(Scope *sc)
        load(sc);
        mod->importAll(0);
 
+       if (sc->explicitProtection)
+           protection = sc->protection;
        if (!isstatic && !aliasId && !names.dim)
-       {
-           if (sc->explicitProtection)
-               protection = sc->protection;
            sc->scopesym->importScope(mod, protection);
-       }
     }
 }
 
@@ -188,10 +186,10 @@ void Import::semantic(Scope *sc)
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
 
+        if (sc->explicitProtection)
+            protection = sc->protection;
         if (!isstatic && !aliasId && !names.dim)
         {
-            if (sc->explicitProtection)
-                protection = sc->protection;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
                 if (scd->scopesym)
@@ -210,14 +208,7 @@ void Import::semantic(Scope *sc)
         }
 
         sc = sc->push(mod);
-        /* BUG: Protection checks can't be enabled yet. The issue is
-         * that Dsymbol::search errors before overload resolution.
-         */
-#if 0
         sc->protection = protection;
-#else
-        sc->protection = PROTpublic;
-#endif
         enum PROT visibility = moduleVisibility(getAccessModule(), mod);
         for (size_t i = 0; i < aliasdecls.dim; i++)
         {   Dsymbol *s = aliasdecls[i];
