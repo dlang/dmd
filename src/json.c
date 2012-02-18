@@ -227,7 +227,6 @@ void JsonObjectEnd(OutBuffer *buf)
 }
 
 
-
 // Json object property functions
 
 void JsonPropertyStart(OutBuffer *buf, const char *name)
@@ -414,8 +413,8 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
 
     JsonObjectStart(buf);
 
-    JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
+    JsonProperty(buf, Pname, ident->toChars());
+    JsonProperty(buf, Pkind, "template");
 
     if (prot())
         JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
@@ -425,6 +424,81 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
 
     if (loc.linnum)
         JsonProperty(buf, Pline, loc.linnum);
+
+    JsonPropertyStart(buf, "parameters");
+    JsonArrayStart(buf);
+    for (size_t i = 0; i < parameters->dim; i++)
+    {   TemplateParameter *s = (*parameters)[i];
+        JsonObjectStart(buf);
+
+        JsonProperty(buf, Pname, s->ident->toChars());
+
+        TemplateTypeParameter *type = s->isTemplateTypeParameter();
+        if (type)
+        {
+            JsonProperty(buf, Pkind, "type");
+
+            if (type->specType)
+                JsonProperty(buf, "specType", type->specType->toChars());
+            
+            if (type->defaultType)
+                JsonProperty(buf, "defaultType", type->defaultType->toChars());
+        }
+
+        TemplateValueParameter *value = s->isTemplateValueParameter();
+        if (value)
+        {
+            JsonProperty(buf, Pkind, "value");
+
+            if (value->valType)
+                JsonProperty(buf, "valType", value->valType->toChars());
+            
+            if (value->specValue)
+                JsonProperty(buf, "specValue", value->specValue->toChars());
+            
+            if (value->defaultValue)
+                JsonProperty(buf, "defaultValue", value->defaultValue->toChars());
+        }
+
+        TemplateAliasParameter *alias = s->isTemplateAliasParameter();
+        if (alias)
+        {
+            JsonProperty(buf, Pkind, "alias");
+
+            if (alias->specType)
+                JsonProperty(buf, "specType", alias->specType->toChars());
+            
+            if (alias->specAlias)
+                JsonProperty(buf, "specAlias", alias->specAlias->toChars());
+            
+            if (alias->defaultAlias)
+                JsonProperty(buf, "defaultAlias", alias->defaultAlias->toChars());
+        }
+
+        TemplateTupleParameter *tuple = s->isTemplateTupleParameter();
+        if (tuple)
+        {
+            JsonProperty(buf, Pkind, "tuple");
+        }
+
+#if DMDV2
+        TemplateThisParameter *thisp = s->isTemplateThisParameter();
+        if (thisp)
+        {
+            JsonProperty(buf, Pkind, "this");
+
+            if (type->specType)
+                JsonProperty(buf, "specType", type->specType->toChars());
+            
+            if (type->defaultType)
+                JsonProperty(buf, "defaultType", type->defaultType->toChars());
+        }
+#endif
+
+        JsonObjectEnd(buf);
+    }
+    JsonRemoveComma(buf);
+    JsonArrayEnd(buf);
 
     JsonPropertyStart(buf, Pmembers);
     JsonArrayStart(buf);
