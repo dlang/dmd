@@ -20,7 +20,7 @@ void test1()
 {
   Foo foo = new Foo;
   int i = foo.myCast!(int)(1.0);
-} 
+}
 
 /***************************************************/
 
@@ -404,13 +404,13 @@ void test24()
 
 /***************************************************/
 
-void test25()   
-{   
-    int[10] arrayA = [0,1,2,3,4,5,6,7,8,9];   
-    foreach(int i; arrayA)   
-    {   
-        writeln(i);   
-    }   
+void test25()
+{
+    int[10] arrayA = [0,1,2,3,4,5,6,7,8,9];
+    foreach(int i; arrayA)
+    {
+        writeln(i);
+    }
 }
 
 /************************************/
@@ -802,14 +802,14 @@ void test54()
 	printf("%.*s\n", d.length, d.ptr);
 	string foo() {assert(d!="");return d;}
 	func54(&foo);
-	func54(delegate string() {assert(d!="");return d;});             
+	func54(delegate string() {assert(d!="");return d;});
     }
 }
 
 /***************************************************/
 // bug 1767
 
-class DebugInfo 
+class DebugInfo
 {
     alias int CVHeaderType ;
     enum anon:CVHeaderType{ CV_NONE, CV_DOS, CV_NT, CV_DBG }
@@ -927,7 +927,7 @@ void test62()
    int foo() { return 0; }
    int bar() { return 0; }
 
-   auto t1 = typeid(typeof(foo));   
+   auto t1 = typeid(typeof(foo));
    auto t2 = typeid(typeof(bar));
 
    t1.tsize();
@@ -1095,7 +1095,7 @@ void test71()
 "When dealing with complex template tuples, it's very easy to overflow the
 maximum symbol length allowed by OPTLINK.  This is, simply put, a damn shame,
 because it prevents otherwise completely legal code from compiling and linking
-with DMDWin, whereas it works perfectly fine when using DMDNix or GDC.  
+with DMDWin, whereas it works perfectly fine when using DMDNix or GDC.
 I know that this is neither a simple nor a small issue to fix: either the
 ancient, nearly-immutable OPTLINK would have to be modified, or DMDWin would
 have to be changed to output a more reasonable format, in which case a new
@@ -1263,7 +1263,7 @@ class Foo78
   {
     T x;                   // Compiles, but is implicitly static
     void func(T t)   // Ok, non-static member template function
-    { assert(t == 2); assert(this.bar == 42); }    
+    { assert(t == 2); assert(this.bar == 42); }
   }
   int bar = 42;
 }
@@ -1772,7 +1772,7 @@ void test108()
 
     foreach (char c; foo.byLine)
     {
-    } 
+    }
 }
 
 /***************************************************/
@@ -1898,7 +1898,7 @@ void test118()
     int foo(real x)
     {
 	real y = -x*-x;
-	return cast(int)y;  
+	return cast(int)y;
     }
 
     auto i = foo(4.0);
@@ -1942,7 +1942,7 @@ void test120()
 void test121()
 {
     static assert(null is null);
-}   
+}
 
 /***************************************************/
 
@@ -2149,12 +2149,12 @@ public struct foo134
 {
     public this(real aleft)
     {
-    } 
+    }
 }
 
 class bar134
 {
-    final void fun(foo134 arg = foo134(0.)) { } 
+    final void fun(foo134 arg = foo134(0.)) { }
 }
 
 /***************************************************/
@@ -2164,7 +2164,7 @@ void test135()
     char[char[3]] ac;
     char[3] c = "abc";
     ac["abc"]='a';
-    assert(ac[c]=='a');    
+    assert(ac[c]=='a');
 
     char[dchar[3]] ad;
     dchar[3] d = "abc"d;
@@ -2214,7 +2214,7 @@ long test138(int y)
 
 void test139()
 {
-   auto famousNamedConstants = 
+   auto famousNamedConstants =
     [ "pi" : 3.14, "e" : 2.71, "moving sofa" : 2.22 ];
 
     assert(famousNamedConstants["e"]==2.71);
@@ -2237,7 +2237,7 @@ class Foo141 {
     Foo141 next;
     void start()
     in { assert (!next); } body
-    { 
+    {
         void* p = cast(void*)this;
     }
 }
@@ -2393,7 +2393,7 @@ void test151()
 void bug3521(int *a){
     int c = 0;
     *a = 0;
-    if ( *a || (*a != (c = 200)) ) 
+    if ( *a || (*a != (c = 200)) )
        crash(c);
 }
 
@@ -2561,7 +2561,7 @@ class C161
         uint m;
     }
 
-    enum 
+    enum
     {
         E = 0
     }
@@ -2652,9 +2652,9 @@ static assert(!y168!(int));
 /***************************************************/
 
 void test169()
-{    
-    int AssociativeArray;        
-    int[int] foo;    
+{
+    int AssociativeArray;
+    int[int] foo;
     foreach (x; foo)    {    }
 }
 
@@ -2704,7 +2704,7 @@ struct Foo172
 const char[][ 89 ] ENUM_NAME = [ 1:"N0" ];
 
 void test173()
-{    
+{
     switch(`Hi`.dup) {
         case ENUM_NAME[1]:
 	default:
@@ -2752,7 +2752,7 @@ Foo176 getFoo(Foo176 irrelevant)
     if ( p.x > p.x )
         return irrelevant;
     else
-        return p;        
+        return p;
 }
 
 void test176()
@@ -2767,9 +2767,9 @@ int test177()
     long[1] c = [0]; // must be long
 
     int [1] d = [1];
-    int k = 0;    
-    if (!d[0]) 
-       k = 1;       
+    int k = 0;
+    if (!d[0])
+       k = 1;
     k = d[0] + k + k;
 
     if (c[0]) assert(c[0]);
@@ -2892,7 +2892,7 @@ template isQObjectType(T)
 template QTypeInfo(T)
 {
     static if (!isQObjectType!T)
-    {       
+    {
         enum size = T.sizeof;
     }
 }
@@ -3107,13 +3107,13 @@ const T195 x195 = 0;
 
 union A196 {
     double[2] a;
-    double[2] b;        
+    double[2] b;
 }
 
 union B196 {
 public:
      double[2] a;
-     double[2] b;        
+     double[2] b;
 }
 
 static assert(A196.sizeof == B196.sizeof);
@@ -3243,7 +3243,7 @@ import core.vararg;
 
 void foo202(int x, ...) {
     printf("%d arguments\n", _arguments.length);
-    for (int i = 0; i < _arguments.length; i++) {   
+    for (int i = 0; i < _arguments.length; i++) {
         int j = va_arg!(int)(_argptr);
         printf("\t%d\n", j);
 	assert(j == i + 2);
@@ -3252,7 +3252,7 @@ void foo202(int x, ...) {
 
 void fooRef202(ref int x, ...) {
     printf("%d arguments\n", _arguments.length);
-    for (int i = 0; i < _arguments.length; i++) {   
+    for (int i = 0; i < _arguments.length; i++) {
         int j = va_arg!(int)(_argptr);
         printf("\t%d\n", j);
 	assert(j == i + 2);
@@ -3374,7 +3374,7 @@ static if (is(bug4302!())) {}
 template tough4302()
 {
   template bar()
-  { 
+  {
      template far()
      {
          static assert(0);
@@ -3410,7 +3410,7 @@ const int * foo209 = null;
 
 void test210()
 {
-    ulong a = 1; 
+    ulong a = 1;
     a = cast(ulong)(a * 2.0L);
 }
 
@@ -3500,7 +3500,7 @@ void bug5218w(wchar [3] s) {}
 void bug5218d(dchar [3] s) {}
 
 void test217()
-{    
+{
     bug5218c("abc");
     bug5218w("abc"w);
     bug5218d("abc"d);
@@ -3514,7 +3514,7 @@ void test218()
     char[char[3]] ac;
     char[3] c = "abc";
     ac["abc"]='a';
-    assert(ac[c]=='a');    
+    assert(ac[c]=='a');
 
     char[dchar[3]] ad;
     dchar[3] d = "abc"d;
@@ -3774,7 +3774,7 @@ public final class A3681 {
 /***************************************************/
 
 int bug4389()
-{    
+{
     string s;
     dchar c = '\u2348';
     s ~= c;
@@ -3806,7 +3806,7 @@ int ice4389()
     dchar c = '\u2348';
     s ~= c;
     s = s ~ "xxx";
-   return 1; 
+   return 1;
 }
 
 static assert(ice4389());
@@ -3818,7 +3818,7 @@ string ice4390()
     dchar c = '`';
     s ~= c;
     s ~= c;
-   return s; 
+   return s;
 }
 
 static assert(mixin(ice4390()) == ``);
@@ -4003,31 +4003,31 @@ void test230()
 
 /***************************************************/
 
-class Bug4033 {} 
- 
-class Template4033(T) { 
-    static assert(is(T : Bug4033)); 
-} 
+class Bug4033 {}
 
-alias Template4033!(Z4033) Bla; 
- 
-class Z4033 : Bug4033 { } 
+class Template4033(T) {
+    static assert(is(T : Bug4033));
+}
+
+alias Template4033!(Z4033) Bla;
+
+class Z4033 : Bug4033 { }
 
 /***************************************************/
 
-struct Bug4322 { 
-    int[1] a = void; 
-} 
+struct Bug4322 {
+    int[1] a = void;
+}
 
-void bug4322() { 
-    Bug4322 f = Bug4322(); 
-    Bug4322 g = Bug4322.init; 
+void bug4322() {
+    Bug4322 f = Bug4322();
+    Bug4322 g = Bug4322.init;
 }
 
 /***************************************************/
 
 bool bug5672(long v)
-{    
+{
     return  (v & 1) == 1;
     return  (v & 1) == 1;
 }
@@ -4036,7 +4036,7 @@ bool bug5672(long v)
 
 void bug5717()
 {
-    string s, s2; 
+    string s, s2;
     s = "Привет";
     for (int i=0; i<s.length; i++)
         s2 ~= s[i];
@@ -4067,8 +4067,8 @@ void test231() {
 // 4140
 
 const A232 = [1,2,3];
-const B232 = A232[1..A232.length]; 
-const C232 = A232[1..$]; 
+const B232 = A232[1..A232.length];
+const C232 = A232[1..$];
 
 void test232()
 {
@@ -4122,7 +4122,7 @@ int space() { return 4001; }
 
 void oddity4001()
 {
-    const int bowie = space();    
+    const int bowie = space();
     static assert(space() == 4001); // OK
     static assert(bowie == 4001);   // doesn't compile
 }
@@ -4510,7 +4510,7 @@ struct S7072
 
 void test7072() {
    auto s = S7072( null );
-} 
+}
 
 /***************************************************/
 
@@ -4628,7 +4628,7 @@ void test7367()
     char a = '\x00';
     char b = '\xFF';
     assert(a < b);
-} 
+}
 
 /***************************************************/
 // 7375
@@ -4735,6 +4735,49 @@ struct Logger {
 void test7422() {
     if (Logger.info()) {
     }
+}
+
+/***************************************************/
+
+void test7504() pure nothrow @safe
+{
+    auto n = null;
+    char[] k = n;
+    assert(k.ptr == null);
+    assert(k.length == 0);
+
+    double[] l;
+    l = n;
+    assert(l.ptr == null);
+    assert(l.length == 0);
+
+    immutable(int[]) m = n;
+    assert(m.ptr == null);
+    assert(m.length == 0);
+
+    const(float)[] o;
+    o = n;
+    assert(o.ptr == null);
+    assert(o.length == 0);
+
+    auto c = create7504(null, null);
+    assert(c.k.ptr == null);
+    assert(c.k.length == 0);
+    assert(c.l.ptr == null);
+    assert(c.l.length == 0);
+}
+
+class C7504
+{
+    int[] k;
+    string l;
+}
+
+C7504 create7504(T...)(T input)
+{
+    auto obj = new C7504;
+    obj.tupleof = input;
+    return obj;
 }
 
 /***************************************************/
@@ -4984,6 +5027,7 @@ int main()
     test6504();
     test7422();
     test7424();
+    test7504();
 
     writefln("Success");
     return 0;
