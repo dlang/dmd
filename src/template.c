@@ -2830,14 +2830,14 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
     //printf("TemplateAliasParameter::matchArg()\n");
 
     if (i < tiargs->dim)
-        oarg = (Object *)tiargs->data[i];
+        oarg = tiargs->tdata()[i];
     else
     {   // Get default argument instead
         oarg = defaultArg(loc, sc);
         if (!oarg)
         {   assert(i < dedtypes->dim);
             // It might have already been deduced
-            oarg = (Object *)dedtypes->data[i];
+            oarg = dedtypes->tdata()[i];
             if (!oarg)
                 goto Lnomatch;
         }
@@ -2976,7 +2976,13 @@ void TemplateValueParameter::declareParameter(Scope *sc)
 
 void TemplateValueParameter::semantic(Scope *sc)
 {
+    bool wasSame = (sparam->type == valType);
     sparam->semantic(sc);
+    if (sparam->type == Type::terror && wasSame)
+    {   // If sparam has a type error, avoid duplicate errors
+        valType = Type::terror;
+        return;
+    }
     valType = valType->semantic(loc, sc);
     if (!(valType->isintegral() || valType->isfloating() || valType->isString()) &&
         valType->ty != Tident)
