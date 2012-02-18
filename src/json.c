@@ -47,20 +47,21 @@ const char Pprotection[] = "protection";
 const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
 
 void JsonRemoveComma(OutBuffer *buf);
+void JsonArrayStart(OutBuffer *buf);
+void JsonArrayEnd(OutBuffer *buf);
 
 void json_generate(Modules *modules)
 {   OutBuffer buf;
 
-    buf.writestring("[\n");
+    JsonArrayStart(&buf);
     for (size_t i = 0; i < modules->dim; i++)
     {   Module *m = (*modules)[i];
         if (global.params.verbose)
             printf("json gen %s\n", m->toChars());
         m->toJsonBuffer(&buf);
-        buf.writestring(",\n");
     }
+    JsonArrayEnd(&buf);
     JsonRemoveComma(&buf);
-    buf.writestring("]\n");
 
     // Write buf to file
     char *arg = global.params.xfilename;
@@ -92,6 +93,30 @@ void json_generate(Modules *modules)
     jsonfile->writev();
 }
 
+
+// Json helper functions
+
+// TODO: better solution than global variable?
+static int indentLevel = 0;
+
+void JsonIndent(OutBuffer *buf)
+{
+    if (buf->offset >= 1 && 
+        buf->data[buf->offset - 1] == '\n')
+        for (int i = 0; i < indentLevel; i++)
+            buf->writestring("\t");
+}
+
+void JsonRemoveComma(OutBuffer *buf)
+{
+    if (buf->offset >= 2 &&
+        buf->data[buf->offset - 2] == ',' &&
+        buf->data[buf->offset - 1] == '\n')
+        buf->offset -= 2;
+}
+
+
+// Json value functions
 
 /*********************************
  * Encode string into buf, and wrap it in double quotes.
@@ -148,29 +173,89 @@ void JsonString(OutBuffer *buf, const char *s)
     buf->writeByte('\"');
 }
 
-void JsonProperty(OutBuffer *buf, const char *name, const char *value)
+void JsonInt(OutBuffer *buf, int value)
 {
+    buf->printf("%d", value);
+}
+
+
+// Json array functions
+
+void JsonArrayStart(OutBuffer *buf)
+{
+    JsonIndent(buf);
+    buf->writestring("[\n");
+    indentLevel++;
+}
+
+void JsonArrayEnd(OutBuffer *buf)
+{
+    indentLevel--;
+    if (buf->offset >= 2 &&
+        buf->data[buf->offset - 2] == '[' &&
+        buf->data[buf->offset - 1] == '\n')
+        buf->offset -= 1;
+    else
+    {
+        JsonRemoveComma(buf);
+        buf->writestring("\n");
+        JsonIndent(buf);
+    }
+    buf->writestring("],\n");
+}
+
+
+// Json object functions
+
+void JsonObjectStart(OutBuffer *buf)
+{
+    JsonIndent(buf);
+    buf->writestring("{\n");
+    indentLevel++;
+}
+
+void JsonObjectEnd(OutBuffer *buf)
+{
+    indentLevel--;
+    if (buf->offset >= 2 &&
+        buf->data[buf->offset - 2] == '{' &&
+        buf->data[buf->offset - 1] == '\n')
+        buf->offset -= 1;
+    else
+    {
+        JsonRemoveComma(buf);
+        buf->writestring("\n");
+        JsonIndent(buf);
+    }
+    buf->writestring("},\n");
+}
+
+
+
+// Json object property functions
+
+void JsonPropertyStart(OutBuffer *buf, const char *name)
+{
+    JsonIndent(buf);
     JsonString(buf, name);
     buf->writestring(" : ");
+}
+
+void JsonProperty(OutBuffer *buf, const char *name, const char *value)
+{
+    JsonPropertyStart(buf, name);
     JsonString(buf, value);
     buf->writestring(",\n");
 }
 
 void JsonProperty(OutBuffer *buf, const char *name, int value)
 {
-    JsonString(buf, name);
-    buf->writestring(" : ");
-    buf->printf("%d", value);
+    JsonPropertyStart(buf, name);
+    JsonInt(buf, value);
     buf->writestring(",\n");
 }
 
-void JsonRemoveComma(OutBuffer *buf)
-{
-    if (buf->offset >= 2 &&
-        buf->data[buf->offset - 2] == ',' &&
-        buf->data[buf->offset - 1] == '\n')
-        buf->offset -= 2;
-}
+
 
 void Dsymbol::toJsonBuffer(OutBuffer *buf)
 {
@@ -178,7 +263,7 @@ void Dsymbol::toJsonBuffer(OutBuffer *buf)
 
 void Module::toJsonBuffer(OutBuffer *buf)
 {
-    buf->writestring("{\n");
+    JsonObjectStart(buf);
 
     if (md)
         JsonProperty(buf, Pname, md->toChars());
@@ -190,23 +275,17 @@ void Module::toJsonBuffer(OutBuffer *buf)
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
 
-    JsonString(buf, Pmembers);
-    buf->writestring(" : [\n");
+    JsonPropertyStart(buf, Pmembers);
+    JsonArrayStart(buf);
 
-    size_t offset = buf->offset;
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
-        if (offset != buf->offset)
-        {   buf->writestring(",\n");
-            offset = buf->offset;
-        }
         s->toJsonBuffer(buf);
     }
 
-    JsonRemoveComma(buf);
-    buf->writestring("]\n");
+    JsonArrayEnd(buf);
 
-    buf->writestring("}\n");
+    JsonObjectEnd(buf);
 }
 
 void AttribDeclaration::toJsonBuffer(OutBuffer *buf)
@@ -217,14 +296,9 @@ void AttribDeclaration::toJsonBuffer(OutBuffer *buf)
 
     if (d)
     {
-        size_t offset = buf->offset;
         for (unsigned i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
             //printf("AttribDeclaration::toJsonBuffer %s\n", s->toChars());
-            if (offset != buf->offset)
-            {   buf->writestring(",\n");
-                offset = buf->offset;
-            }
             s->toJsonBuffer(buf);
         }
         JsonRemoveComma(buf);
@@ -257,7 +331,7 @@ void PostBlitDeclaration::toJsonBuffer(OutBuffer *buf)   { }
 void Declaration::toJsonBuffer(OutBuffer *buf)
 {
     //printf("Declaration::toJsonBuffer()\n");
-    buf->writestring("{\n");
+    JsonObjectStart(buf);
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
@@ -280,14 +354,13 @@ void Declaration::toJsonBuffer(OutBuffer *buf)
         JsonProperty(buf, "base", td->basetype->toChars());
     }
 
-    JsonRemoveComma(buf);
-    buf->writestring("}\n");
+    JsonObjectEnd(buf);
 }
 
 void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
 {
     //printf("AggregateDeclaration::toJsonBuffer()\n");
-    buf->writestring("{\n");
+    JsonObjectStart(buf);
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
@@ -310,48 +383,38 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
         }
         if (cd->interfaces_dim)
         {
-            JsonString(buf, "interfaces");
-            buf->writestring(" : [\n");
-            size_t offset = buf->offset;
+            JsonPropertyStart(buf, "interfaces");
+            JsonArrayStart(buf);
             for (size_t i = 0; i < cd->interfaces_dim; i++)
             {   BaseClass *b = cd->interfaces[i];
-                if (offset != buf->offset)
-                {   buf->writestring(",\n");
-                    offset = buf->offset;
-                }
                 JsonString(buf, b->base->toChars());
+                buf->writestring(",\n");
             }
-            JsonRemoveComma(buf);
-            buf->writestring("],\n");
+            JsonArrayEnd(buf);
         }
     }
 
     if (members)
     {
-        JsonString(buf, Pmembers);
-        buf->writestring(" : [\n");
-        size_t offset = buf->offset;
+        JsonPropertyStart(buf, Pmembers);
+        JsonArrayStart(buf);
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
-            if (offset != buf->offset)
-            {   buf->writestring(",\n");
-                offset = buf->offset;
-            }
             s->toJsonBuffer(buf);
         }
         JsonRemoveComma(buf);
-        buf->writestring("]\n");
+        JsonArrayEnd(buf);
     }
     JsonRemoveComma(buf);
 
-    buf->writestring("}\n");
+    JsonObjectEnd(buf);
 }
 
 void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
 {
     //printf("TemplateDeclaration::toJsonBuffer()\n");
 
-    buf->writestring("{\n");
+    JsonObjectStart(buf);
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
@@ -365,21 +428,16 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
     if (loc.linnum)
         JsonProperty(buf, Pline, loc.linnum);
 
-    JsonString(buf, Pmembers);
-    buf->writestring(" : [\n");
-    size_t offset = buf->offset;
+    JsonPropertyStart(buf, Pmembers);
+    JsonArrayStart(buf);
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
-        if (offset != buf->offset)
-        {   buf->writestring(",\n");
-            offset = buf->offset;
-        }
         s->toJsonBuffer(buf);
     }
     JsonRemoveComma(buf);
-    buf->writestring("]\n");
+    JsonArrayEnd(buf);
 
-    buf->writestring("}\n");
+    JsonObjectEnd(buf);
 }
 
 void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
@@ -393,14 +451,12 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
             {
                 Dsymbol *s = (*members)[i];
                 s->toJsonBuffer(buf);
-                buf->writestring(",\n");
             }
-            JsonRemoveComma(buf);
         }
         return;
     }
 
-    buf->writestring("{\n");
+    JsonObjectStart(buf);
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
@@ -419,29 +475,24 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
 
     if (members)
     {
-        JsonString(buf, Pmembers);
-        buf->writestring(" : [\n");
-        size_t offset = buf->offset;
+        JsonPropertyStart(buf, Pmembers);
+        JsonArrayStart(buf);
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
-            if (offset != buf->offset)
-            {   buf->writestring(",\n");
-                offset = buf->offset;
-            }
             s->toJsonBuffer(buf);
         }
         JsonRemoveComma(buf);
-        buf->writestring("]\n");
+        JsonArrayEnd(buf);
     }
     JsonRemoveComma(buf);
 
-    buf->writestring("}\n");
+    JsonObjectEnd(buf);
 }
 
 void EnumMember::toJsonBuffer(OutBuffer *buf)
 {
     //printf("EnumMember::toJsonBuffer()\n");
-    buf->writestring("{\n");
+    JsonObjectStart(buf);
 
     JsonProperty(buf, Pname, toChars());
     JsonProperty(buf, Pkind, kind());
@@ -456,7 +507,7 @@ void EnumMember::toJsonBuffer(OutBuffer *buf)
         JsonProperty(buf, Pline, loc.linnum);
 
     JsonRemoveComma(buf);
-    buf->writestring("}\n");
+    JsonObjectEnd(buf);
 }
 
 
