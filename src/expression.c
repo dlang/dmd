@@ -2631,6 +2631,8 @@ DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s, int hasOverloads)
     this->hasOverloads = hasOverloads;
 }
 
+AggregateDeclaration *isAggregate(Type *t);
+
 Expression *DsymbolExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -2831,12 +2833,14 @@ Lagain:
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
-#if 0 // This was the fix for Bugzilla 6738, but it breaks 7498
         Dsymbol *p = td->toParent2();
-        if (hasThis(sc) && p && p->isAggregateDeclaration())
+        FuncDeclaration *fdthis = hasThis(sc);
+        AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
+        if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad)
+        {
             e = new DotTemplateExp(loc, new ThisExp(loc), td);
+        }
         else
-#endif
             e = new TemplateExp(loc, td);
         e = e->semantic(sc);
         return e;
@@ -7288,7 +7292,10 @@ Expression *CallExp::semantic(Scope *sc)
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
+            unsigned olderrors = global.errors;
             ti->semanticTiargs(sc);
+            if (olderrors != global.errors)
+                return new ErrorExp();
             if (ti->needsTypeInference(sc))
             {
                 /* Go with partial explicit specialization

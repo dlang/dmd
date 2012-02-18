@@ -386,6 +386,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->literal = 0;
     this->ismixin = ismixin;
     this->previous = NULL;
+    this->errors = false;
 
     // Compute in advance for Ddoc's use
     if (members)
@@ -490,7 +491,7 @@ void TemplateDeclaration::semantic(Scope *sc)
         origParameters->setDim(parameters->dim);
         for (size_t i = 0; i < parameters->dim; i++)
         {
-            TemplateParameter *tp = parameters->tdata()[i];
+            TemplateParameter *tp = (*parameters)[i];
             origParameters->tdata()[i] = tp->syntaxCopy();
         }
     }
@@ -504,11 +505,13 @@ void TemplateDeclaration::semantic(Scope *sc)
 
     for (size_t i = 0; i < parameters->dim; i++)
     {
-        TemplateParameter *tp = parameters->tdata()[i];
+        TemplateParameter *tp = (*parameters)[i];
 
         tp->semantic(paramscope);
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
-            error("template tuple parameter must be last one");
+        {   error("template tuple parameter must be last one");
+            errors = true;
+        }
     }
 
     paramscope->pop();
@@ -681,6 +684,9 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             ti->tiargs->tdata()[0]);
 #endif
     dedtypes->zero();
+
+    if (errors)
+        return MATCHnomatch;
 
     size_t parameters_dim = parameters->dim;
     int variadic = isVariadic() != NULL;
@@ -961,6 +967,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
 
     dedtypes.setDim(parameters->dim);
     dedtypes.zero();
+
+    if (errors)
+        return MATCHnomatch;
 
     // Set up scope for parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
@@ -4274,18 +4283,6 @@ void TemplateInstance::semantic(Scope *sc)
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
     //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
-    if (global.errors && name != Id::AssociativeArray)
-    {
-        //printf("not instantiating %s due to %d errors\n", toChars(), global.errors);
-        if (!global.gag)
-        {
-            /* Trying to soldier on rarely generates useful messages
-             * at this point.
-             */
-            fatal();
-        }
-//        return;
-    }
 #if LOG
     printf("\n+TemplateInstance::semantic('%s', this=%p)\n", toChars(), this);
 #endif
@@ -4337,11 +4334,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
-
+        unsigned errs = global.errors;
         tempdecl = findTemplateDeclaration(sc);
         if (tempdecl)
             tempdecl = findBestMatch(sc, fargs);
-        if (!tempdecl || global.errors)
+        if (!tempdecl || (errs != global.errors))
         {   inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
@@ -5318,8 +5315,9 @@ Identifier *TemplateInstance::genIdent(Objects *args)
                 continue;
             }
             // Now that we know it is not an alias, we MUST obtain a value
+            unsigned olderr = global.errors;
             ea = ea->optimize(WANTvalue | WANTinterpret);
-            if (ea->op == TOKerror)
+            if (ea->op == TOKerror || olderr != global.errors)
                 continue;
 #if 1
             /* Use deco that matches what it would be for a function parameter
