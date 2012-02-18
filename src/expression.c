@@ -2578,8 +2578,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
     {
         s = sc->search_correct(ident);
         if (s)
-            error("undefined identifier %s, did you mean %s %s %s?",
-                  ident->toChars(), s->protChars(), s->kind(), s->toPrettyChars());
+            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
         else
             error("undefined identifier %s", ident->toChars());
     }

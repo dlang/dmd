@@ -413,12 +413,6 @@ void accessCheck(Loc loc, Scope *sc, Dsymbol *s, bool overloads)
               s->kind(), s->toPrettyChars(), sc->module->toChars());
 }
 
-const char *protectionToChars(enum PROT prot)
-{
-    static const char *names[] = {"", "none", "private", "package", "protected", "public", "export"};
-    return names[prot];
-}
-
 enum PROT moduleVisibility(Module *from, Module *to)
 {
     if (from == to)

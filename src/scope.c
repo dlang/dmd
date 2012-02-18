@@ -217,7 +217,7 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
     }
 }
 
-Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
+Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
 {   Dsymbol *s;
     Scope *sc;
 
@@ -249,7 +249,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flag
         if (sc->scopesym)
         {
             //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-            s = sc->scopesym->search(loc, ident, flags);
+            s = sc->scopesym->search(loc, ident, 0);
             if (s)
             {
                 if ((global.params.warnings ||
@@ -386,7 +386,7 @@ void *scope_search_fp(void *arg, const char *seed)
 
     Scope *sc = (Scope *)arg;
     Module::clearCache();
-    Dsymbol *s = sc->search(0, id, NULL, 1|2);
+    Dsymbol *s = sc->search(0, id, NULL);
     return s;
 }
 
@@ -395,8 +395,5 @@ Dsymbol *Scope::search_correct(Identifier *ident)
     if (global.gag)
         return NULL;            // don't do it for speculative compiles; too time consuming
 
-    Dsymbol *s = search(0, ident, NULL, 1|2);
-    if (!s)
-        s = (Dsymbol *)speller(ident->toChars(), &scope_search_fp, this, idchars);
-    return s;
+    return (Dsymbol *)speller(ident->toChars(), &scope_search_fp, this, idchars);
 }

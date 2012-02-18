@@ -96,9 +96,6 @@ enum PROT
     PROTexport,
 };
 
-// access.c
-const char *protectionToChars(enum PROT prot);
-
 /* State of symbol in winding its way through the passes of the compiler
  */
 enum PASS
@@ -183,7 +180,6 @@ struct Dsymbol : Object
     virtual int needThis();                     // need a 'this' pointer?
     virtual enum PROT prot();
     virtual enum PROT overprot();
-    const char *protChars() { return protectionToChars(prot()); }
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual int oneMember(Dsymbol **ps, Identifier *ident);
     static int oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);

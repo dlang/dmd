@@ -6339,7 +6339,7 @@ L1:
             Identifier *id = new Identifier(p, TOKidentifier);
             s = sc->search_correct(id);
             if (s)
-                error(loc, "undefined identifier %s, did you mean %s %s %s?", p, s->protChars(), s->kind(), s->toPrettyChars());
+                error(loc, "undefined identifier %s, did you mean %s %s?", p, s->kind(), s->toChars());
             else
                 error(loc, "undefined identifier %s", p);
         }
