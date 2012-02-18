@@ -5080,10 +5080,29 @@ Statement *ImportStatement::syntaxCopy()
 
 Statement *ImportStatement::semantic(Scope *sc)
 {
+    ScopeDsymbol *sds;
+    bool hasMembers;
+    for (Scope *sc2 = sc; sc2; sc2 = sc2->enclosing)
+    {   if (sc2->scopesym)
+        {
+            sds = sc2->scopesym;
+            hasMembers = !!sds->symtab;
+            if (!sds->symtab)
+                sds->symtab = new DsymbolTable();
+            break;
+        }
+    }
+
+    /* BUG: Fails to detect symbol collisions of multiple selective
+     * imports (test/fail_compilation/fail357d.d). This is because at
+     * the time we add the second alias as overnext to the first one
+     * semantic on the first one was already run.
+     *
+     */
     for (size_t i = 0; i < imports->dim; i++)
     {   Dsymbol *s = (*imports)[i];
+        hasMembers |= s->addMember(sc, sds, hasMembers);
         s->semantic(sc);
-        sc->insert(s);
     }
     return this;
 }

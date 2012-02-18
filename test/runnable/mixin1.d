@@ -554,7 +554,6 @@ void test23()
 template T24()
 {
    void foo24() { return cast(void)0; }
-   alias foo24 foo24;
 }
 
 mixin T24;

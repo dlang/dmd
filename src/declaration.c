@@ -274,6 +274,7 @@ void TypedefDeclaration::semantic(Scope *sc)
     if (sem == SemanticStart)
     {   sem = SemanticIn;
         parent = sc->parent;
+        protection = sc->protection;
         int errors = global.errors;
         Type *savedbasetype = basetype;
         basetype = basetype->semantic(loc, sc);
@@ -560,7 +561,7 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
      */
 
     //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
-    if (aliassym) // see test/test56.d
+    if (aliassym) // see test/runnable/test61.d
     {
         Dsymbol *a = aliassym->toAlias();
         FuncDeclaration *f = a->isFuncDeclaration();

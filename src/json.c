@@ -44,7 +44,6 @@ const char Ptype[] = "type";
 const char Pcomment[] = "comment";
 const char Pmembers[] = "members";
 const char Pprotection[] = "protection";
-const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
 
 void JsonRemoveComma(OutBuffer *buf);
 
@@ -263,7 +262,7 @@ void Declaration::toJsonBuffer(OutBuffer *buf)
     JsonProperty(buf, Pkind, kind());
 
     if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+        JsonProperty(buf, Pprotection, protectionToChars(prot()));
 
     if (type)
         JsonProperty(buf, Ptype, type->toChars());
@@ -293,7 +292,7 @@ void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
     JsonProperty(buf, Pkind, kind());
 
     if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+        JsonProperty(buf, Pprotection, protectionToChars(prot()));
 
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
@@ -357,7 +356,7 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
     JsonProperty(buf, Pkind, kind());
 
     if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+        JsonProperty(buf, Pprotection, protectionToChars(prot()));
 
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
@@ -406,7 +405,7 @@ void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
     JsonProperty(buf, Pkind, kind());
 
     if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+        JsonProperty(buf, Pprotection, protectionToChars(prot()));
 
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
@@ -447,7 +446,7 @@ void EnumMember::toJsonBuffer(OutBuffer *buf)
     JsonProperty(buf, Pkind, kind());
 
     if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+        JsonProperty(buf, Pprotection, protectionToChars(prot()));
 
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);

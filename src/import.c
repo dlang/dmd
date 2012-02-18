@@ -151,12 +151,10 @@ void Import::importAll(Scope *sc)
        load(sc);
        mod->importAll(0);
 
+       if (sc->explicitProtection)
+           protection = sc->protection;
        if (!isstatic && !aliasId && !names.dim)
-       {
-           if (sc->explicitProtection)
-               protection = sc->protection;
            sc->scopesym->importScope(mod, protection);
-       }
     }
 }
 
@@ -186,10 +184,10 @@ void Import::semantic(Scope *sc)
         //printf("%s imports %s\n", sc->module->toChars(), mod->toChars());
         sc->module->aimports.push(mod);
 
+        if (sc->explicitProtection)
+            protection = sc->protection;
         if (!isstatic && !aliasId && !names.dim)
         {
-            if (sc->explicitProtection)
-                protection = sc->protection;
             for (Scope *scd = sc; scd; scd = scd->enclosing)
             {
                 if (scd->scopesym)
@@ -208,22 +206,24 @@ void Import::semantic(Scope *sc)
         }
 
         sc = sc->push(mod);
-        /* BUG: Protection checks can't be enabled yet. The issue is
-         * that Dsymbol::search errors before overload resolution.
-         */
-#if 0
+
         sc->protection = protection;
-#else
-        sc->protection = PROTpublic;
-#endif
+        enum PROT visibility = moduleVisibility(getAccessModule(), mod);
         for (size_t i = 0; i < aliasdecls.dim; i++)
-        {   Dsymbol *s = aliasdecls.tdata()[i];
+        {   Dsymbol *s = aliasdecls[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (!mod->search(loc, names.tdata()[i], 0))
-                error("%s not found", (names.tdata()[i])->toChars());
-
-            s->semantic(sc);
+            if (mod->search(loc, names[i], 0, visibility))
+                s->semantic(sc);
+            else
+            {
+                s = mod->search_correct(names[i]);
+                if (s)
+                    mod->error(loc, "import %s not found, did you mean %s %s %s?",
+                          names[i]->toChars(), s->protChars(), s->kind(), s->toPrettyChars());
+                else
+                    mod->error(loc, "import %s not found", names[i]->toChars());
+            }
         }
         sc = sc->pop();
     }
@@ -367,8 +367,15 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
 
 int Import::overloadInsert(Dsymbol *s)
 {
-    // Allow multiple imports of the same name
-    return s->isImport() != NULL;
+    /* Allow multiple imports with the same package base, but disallow
+     * alias collisions (Bugzilla 5412).
+     */
+    assert(ident && ident == s->ident);
+    Import *imp;
+    if (!aliasId && (imp = s->isImport()) && !imp->aliasId)
+        return TRUE;
+    else
+        return FALSE;
 }
 
 void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
