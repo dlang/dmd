@@ -288,12 +288,27 @@ void Module::gendocfile()
         emitMemberComments(sc);
     }
 
-    //printf("BODY= '%.*s'\n", buf.offset, buf.data);
-    Macro::define(&macrotable, (unsigned char *)"BODY", 4, buf.data, buf.offset);
+    // if I did the character encoding right here, I think we'd be in business
+    OutBuffer bufEncoded;
+    bufEncoded.reserve(buf.offset);
+    for(unsigned where = 0; where < buf.offset; where++)
+    {
+        unsigned char c = buf.data[where];
+        const char* replacement = escapetable->strings[c];
+	if (replacement == NULL)
+	    bufEncoded.writeByte(c);
+	else
+	    bufEncoded.writestring(replacement);
+    }
+
+    // printf("BODY= '%.*s'\n", bufEncoded.offset, bufEncoded.data);
+    // printf("BODY= '%.*s'\n", buf.offset, buf.data);
+    Macro::define(&macrotable, (unsigned char *)"BODY", 4, bufEncoded.data, bufEncoded.offset);
 
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
     unsigned end = buf2.offset;
+
     macrotable->expand(&buf2, 0, &end, NULL, 0);
 
 #if 1
