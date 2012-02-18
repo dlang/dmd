@@ -6575,7 +6575,11 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     else if ((t1b->ty == Tarray || t1b->ty == Tsarray ||
              t1b->ty == Taarray) &&
              ident != Id::sort && ident != Id::reverse &&
+#ifdef ASSOCIATIVEARRAY
              ident != Id::dup && ident != Id::idup)
+#else
+             (ident != Id::dup || t1b->ty == Taarray) && ident != Id::idup)
+#endif
     {   /* If ident is not a valid property, rewrite:
          *   e1.ident
          * as:
@@ -7176,6 +7180,7 @@ Lagain:
             {
                 return NULL;
             }
+#ifdef ASSOCIATIVEARRAY
             else
             {   TypeAArray *taa = (TypeAArray *)tthis;
                 assert(taa->ty == Taarray);
@@ -7185,6 +7190,9 @@ Lagain:
                     return NULL;
                 goto Lshift;
             }
+#else
+            goto Lshift;
+#endif
         }
         else if (tthis->ty == Tarray || tthis->ty == Tsarray)
         {

@@ -3805,11 +3805,13 @@ elem *CastExp::toElem(IRState *irs)
     Type *tfrom = e1->type->toBasetype();
     Type *t = to->toBasetype();         // skip over typedef's
 
+#ifdef ASSOCIATIVEARRAY
 #if DMDV2
     if (tfrom->ty == Taarray)
         tfrom = ((TypeAArray*)tfrom)->getImpl()->type;
     if (t->ty == Taarray)
         t = ((TypeAArray*)t)->getImpl()->type;
+#endif
 #endif
 
     if (t->equals(tfrom))

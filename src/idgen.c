@@ -65,7 +65,9 @@ Msgtable msgtable[] =
     { "typeinfo" },
     { "outer" },
     { "Exception" },
+#ifdef ASSOCIATIVEARRAY
     { "AssociativeArray" },
+#endif
     { "Throwable" },
     { "Error" },
     { "withSym", "__withSym" },
@@ -253,6 +255,8 @@ Msgtable msgtable[] =
     { "aaKeys", "_aaKeys" },
     { "aaValues", "_aaValues" },
     { "aaRehash", "_aaRehash" },
+    { "aaApply", "_aaApply" },
+    { "aaApply2", "_aaApply2" },
     { "monitorenter", "_d_monitorenter" },
     { "monitorexit", "_d_monitorexit" },
     { "criticalenter", "_d_criticalenter" },

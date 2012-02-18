@@ -509,13 +509,17 @@ struct TypeAArray : TypeArray
     Loc loc;
     Scope *sc;
 
+#ifdef ASSOCIATIVEARRAY
     StructDeclaration *impl;    // implementation
+#endif
 
     TypeAArray(Type *t, Type *index);
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
+#ifdef ASSOCIATIVEARRAY
     StructDeclaration *getImpl();
+#endif
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);

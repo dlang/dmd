@@ -444,8 +444,10 @@ void TypeInfoAssociativeArrayDeclaration::toDt(dt_t **pdt)
     dtxoff(pdt, tc->index->vtinfo->toSymbol(), 0, TYnptr); // TypeInfo for array of type
 
 #if DMDV2
+#ifdef ASSOCIATIVEARRAY
     tc->getImpl()->type->getTypeInfo(NULL);
     dtxoff(pdt, tc->getImpl()->type->vtinfo->toSymbol(), 0, TYnptr);    // impl
+#endif
 #endif
 }
 

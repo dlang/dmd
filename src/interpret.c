@@ -2872,6 +2872,7 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e1->op != TOKnull &&
         e1->op != TOKstring &&
         e1->op != TOKarrayliteral &&
+        e1->op != TOKassocarrayliteral &&
         e1->op != TOKstructliteral &&
         e1->op != TOKclassreference)
     {
@@ -2888,6 +2889,7 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e2->op != TOKnull &&
         e2->op != TOKstring &&
         e2->op != TOKarrayliteral &&
+        e2->op != TOKassocarrayliteral &&
         e2->op != TOKstructliteral &&
         e2->op != TOKclassreference)
     {
@@ -5344,12 +5346,14 @@ bool isAssocArray(Type *t)
     t = t->toBasetype();
     if (t->ty == Taarray)
         return true;
+#ifdef ASSOCIATIVEARRAY
 #if DMDV2
     if (t->ty != Tstruct)
         return false;
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
     if (sym->ident == Id::AssociativeArray)
         return true;
+#endif
 #endif
     return false;
 }
@@ -5361,12 +5365,17 @@ TypeAArray *toBuiltinAAType(Type *t)
     if (t->ty == Taarray)
         return (TypeAArray *)t;
 #if DMDV2
+#ifdef ASSOCIATIVEARRAY
     assert(t->ty == Tstruct);
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
     assert(sym->ident == Id::AssociativeArray);
     TemplateInstance *tinst = sym->parent->isTemplateInstance();
     assert(tinst);
     return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
+#else
+    assert(0);
+    return NULL;
+#endif
 #else
     assert(0);
     return NULL;
@@ -6231,20 +6240,9 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
 {
     Expression *e = NULL;
     int nargs = arguments ? arguments->dim : 0;
-#if DMDV2
-    if (pthis && isAssocArray(pthis->type))
-    {
-        if (fd->ident == Id::length &&  nargs==0)
-            return interpret_length(istate, pthis);
-        else if (fd->ident == Id::keys && nargs==0)
-            return interpret_keys(istate, pthis, returnedArrayElementType(fd));
-        else if (fd->ident == Id::values && nargs==0)
-            return interpret_values(istate, pthis, returnedArrayElementType(fd));
-        else if (fd->ident == Id::rehash && nargs==0)
-            return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
-    }
     if (!pthis)
     {
+#if DMDV2
         enum BUILTIN b = fd->isBuiltin();
         if (b)
         {   Expressions args;
@@ -6261,44 +6259,23 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             if (!e)
                 e = EXP_CANT_INTERPRET;
         }
-    }
-    /* Horrid hack to retrieve the builtin AA functions after they've been
-     * mashed by the inliner.
-     */
-    if (!pthis)
-    {
-        Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
-        // Check for the first parameter being a templatized AA. Hack: we assume that
-        // template AA.var is always the AA data itself.
-        Expression *firstdotvar = (firstarg && firstarg->op == TOKdotvar)
-                ?  ((DotVarExp *)firstarg)->e1 : NULL;
-        if (nargs==3 && isAssocArray(firstarg->type) && !strcmp(fd->ident->string, "_aaApply"))
-            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-        if (nargs==3 && isAssocArray(firstarg->type) &&!strcmp(fd->ident->string, "_aaApply2"))
-            return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-        if (firstdotvar && isAssocArray(firstdotvar->type))
-        {   if (fd->ident == Id::aaLen && nargs == 1)
-                return interpret_length(istate, firstdotvar->interpret(istate));
-            else if (fd->ident == Id::aaKeys && nargs == 2)
+
+        {
+            Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
+            if (firstarg && firstarg->type->toBasetype()->ty == Tpointer &&
+                firstarg->type->nextOf()->toBasetype()->ty == Taarray)
             {
-                Expression *trueAA = firstdotvar->interpret(istate);
-                return interpret_keys(istate, trueAA, toBuiltinAAType(trueAA->type)->index);
-            }
-            else if (fd->ident == Id::aaValues && nargs == 3)
-            {
-                Expression *trueAA = firstdotvar->interpret(istate);
-                return interpret_values(istate, trueAA, toBuiltinAAType(trueAA->type)->nextOf());
-            }
-            else if (fd->ident == Id::aaRehash && nargs == 2)
-            {
-                return firstdotvar->interpret(istate, ctfeNeedLvalue);
+                if ((nargs == 2 && fd->ident == Id::aaRehash) ||
+                    fd->ident == Id::rehash)
+                {
+                    e = new PtrExp(0, firstarg);
+                    e->type = firstarg->type->toBasetype()->nextOf();
+                    e = e->interpret(istate, ctfeNeedRvalue);
+                    return e;
+                }
             }
         }
-    }
 #endif
-#if DMDV1
-    if (!pthis)
-    {
         Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
         if (firstarg && firstarg->type->toBasetype()->ty == Taarray)
         {
@@ -6311,13 +6288,12 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                 return interpret_values(istate, firstarg, firstAAtype->nextOf());
             else if (nargs==2 && fd->ident == Id::aaRehash)
                 return firstarg->interpret(istate, ctfeNeedLvalue); //no-op
-            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply"))
+            else if (nargs==3 && fd->ident == Id::aaApply)
                 return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-            else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply2"))
+            else if (nargs==3 && fd->ident == Id::aaApply2)
                 return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
         }
     }
-#endif
 #if DMDV2
     if (pthis && !fd->fbody && fd->isCtorDeclaration() && fd->parent && fd->parent->parent && fd->parent->parent->ident == Id::object)
     {

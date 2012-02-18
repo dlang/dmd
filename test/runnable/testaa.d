@@ -771,13 +771,13 @@ static assert(!is( ICE3996!(Bug3996) ));
 
 /************************************************/
 
-void bug4826c(T)(int[int] value, T x) {}
+/*void bug4826c(T)(int[int] value, T x) {}
 
 void test34()
 {
    AssociativeArray!(int, int) z;
    bug4826c(z,1);
-}
+}*/
 
 /************************************************/
 // 5131
@@ -859,7 +859,7 @@ printf("before test 30\n");   test30();
 printf("before test 31\n");   test31();
 printf("before test 32\n");   test32();
 
-    test34();
+    //test34();
     test35();
     test36();
     test7365();

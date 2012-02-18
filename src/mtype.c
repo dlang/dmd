@@ -2332,10 +2332,12 @@ Type *TypeNext::makeConst()
         else
             t->next = next->constOf();
     }
+#ifdef ASSOCIATIVEARRAY
     if (ty == Taarray)
     {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
     }
+#endif
     //printf("TypeNext::makeConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2353,10 +2355,12 @@ Type *TypeNext::makeInvariant()
         !next->isImmutable())
     {   t->next = next->invariantOf();
     }
+#ifdef ASSOCIATIVEARRAY
     if (ty == Taarray)
     {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
     }
+#endif
     return t;
 }
 
@@ -2379,10 +2383,12 @@ Type *TypeNext::makeShared()
         else
             t->next = next->sharedOf();
     }
+#ifdef ASSOCIATIVEARRAY
     if (ty == Taarray)
     {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
     }
+#endif
     //printf("TypeNext::makeShared() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2401,10 +2407,12 @@ Type *TypeNext::makeSharedConst()
     {
         t->next = next->sharedConstOf();
     }
+#ifdef ASSOCIATIVEARRAY
     if (ty == Taarray)
     {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
     }
+#endif
     //printf("TypeNext::makeSharedConst() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2426,10 +2434,12 @@ Type *TypeNext::makeWild()
         else
             t->next = next->wildOf();
     }
+#ifdef ASSOCIATIVEARRAY
     if (ty == Taarray)
     {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
     }
+#endif
     //printf("TypeNext::makeWild() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2451,10 +2461,12 @@ Type *TypeNext::makeSharedWild()
         else
             t->next = next->sharedWildOf();
     }
+#ifdef ASSOCIATIVEARRAY
     if (ty == Taarray)
     {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
     }
+#endif
     //printf("TypeNext::makeSharedWild() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -2469,10 +2481,12 @@ Type *TypeNext::makeMutable()
     {
         t->next = next->mutableOf();
     }
+#ifdef ASSOCIATIVEARRAY
     if (ty == Taarray)
     {
         ((TypeAArray *)t)->impl = NULL;         // lazily recompute it
     }
+#endif
     //printf("TypeNext::makeMutable() returns %p, %s\n", t, t->toChars());
     return t;
 }
@@ -4243,7 +4257,9 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     : TypeArray(Taarray, t)
 {
     this->index = index;
+#ifdef ASSOCIATIVEARRAY
     this->impl = NULL;
+#endif
     this->loc = 0;
     this->sc = NULL;
 }
@@ -4349,6 +4365,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
     return merge();
 }
 
+#ifdef ASSOCIATIVEARRAY
 StructDeclaration *TypeAArray::getImpl()
 {
     // Do it lazily
@@ -4408,6 +4425,7 @@ StructDeclaration *TypeAArray::getImpl()
     }
     return impl;
 }
+#endif
 
 void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
@@ -4443,7 +4461,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 #if LOGDOTEXP
     printf("TypeAArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
-#if 0
+#ifndef ASSOCIATIVEARRAY
     if (ident == Id::length)
     {
         Expression *ec;
@@ -4497,7 +4515,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         FuncDeclaration *fd;
         Expressions *arguments;
 
-        fd = FuncDeclaration::genCfunc(Type::tint64, Id::aaRehash);
+        fd = FuncDeclaration::genCfunc(Type::tindex, Id::aaRehash);
         ec = new VarExp(0, fd);
         arguments = new Expressions();
         arguments->push(e->addressOf(sc));
@@ -4506,7 +4524,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         e->type = this;
     }
     else
-#endif
+#else
     if (ident != Id::__sizeof &&
         ident != Id::__xalignof &&
         ident != Id::init &&
@@ -4518,6 +4536,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         e = e->type->dotExp(sc, e, ident);
     }
     else
+#endif
         e = Type::dotExp(sc, e, ident);
     return e;
 }
@@ -4597,6 +4616,7 @@ MATCH TypeAArray::implicitConvTo(Type *to)
             return m;
         }
     }
+#ifdef ASSOCIATIVEARRAY
     else if (to->ty == Tstruct && ((TypeStruct *)to)->sym->ident == Id::AssociativeArray)
     {
         int errs = global.startGagging();
@@ -4607,6 +4627,7 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         }
         return from->implicitConvTo(to);
     }
+#endif
     return Type::implicitConvTo(to);
 }
 
@@ -7814,6 +7835,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 {   MATCH m;
 
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
+#ifdef ASSOCIATIVEARRAY
     if (to->ty == Taarray)
     {
         /* If there is an error instantiating AssociativeArray!(), it shouldn't
@@ -7826,6 +7848,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
             return MATCHnomatch;
         }
     }
+#endif
 
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
     {   m = MATCHexact;         // exact match
