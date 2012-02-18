@@ -339,7 +339,7 @@ void Dsymbol::inlineScan()
 /*********************************************
  * Search for ident as member of s.
  * Input:
- *      flags:  1       don't restrict visibility
+ *      flags:  1       don't find private members
  *              2       don't give error messages
  *              4       return NULL if ambiguous
  * Returns:
@@ -806,49 +806,27 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     // Look in symbols declared in this module
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
     //printf("\ts = %p, imports = %p, %d\n", s, imports, imports ? imports->dim : 0);
-    if (!s)
-        s = searchImports(loc, ident, flags, PROTprivate);
-    return s;
-}
-
-/* Search the imports for symbol ident.
- * Parameter:
- *      loc, ident, flags - as Dsymbol::search
- *      access            - restricts the visibility if != PROTundefined
- * Returns:
- *      NULL if not found
- */
-Dsymbol *ScopeDsymbol::searchImports(Loc loc, Identifier *ident, int flags, enum PROT visibility)
-{
-    Dsymbol *s = NULL;
-    if (imports)
+    if (s)
+    {
+        //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
+    }
+    else if (imports)
     {
         OverloadSet *a = NULL;
-        Module *thisModule = NULL;
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
         {   Dsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
-            // If restricted import, don't search it
-            if (!(flags & 1) && prots[i] < visibility)
+            // If private import, don't search it
+            if (flags & 1 && prots[i] == PROTprivate)
                 continue;
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
-            Module *m;
-            if (!(flags & 1) && (m = ss->isModule()))
-            {
-                if (!thisModule)
-                    thisModule = getAccessModule();
-                enum PROT mvisibility = moduleVisibility(thisModule, m);
-                if (mvisibility < visibility) // restrict visibility
-                    mvisibility = visibility;
-                s2 = m->search(loc, ident, flags, mvisibility);
-            }
-            else
-                s2 = ss->search(loc, ident, flags);
-
+            /* Don't find private members if ss is a module
+             */
+            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
