@@ -7292,7 +7292,10 @@ Expression *CallExp::semantic(Scope *sc)
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
+            unsigned olderrors = global.errors;
             ti->semanticTiargs(sc);
+            if (olderrors != global.errors)
+                return new ErrorExp();
             if (ti->needsTypeInference(sc))
             {
                 /* Go with partial explicit specialization
