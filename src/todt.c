@@ -267,9 +267,6 @@ dt_t *ArrayInitializer::toDt()
             }
             else if (dim > tadim)
             {
-#ifdef DEBUG
-                printf("1: ");
-#endif
                 error(loc, "too many initializers, %d, for array[%d]", dim, tadim);
             }
             break;
@@ -424,7 +421,7 @@ dt_t *ExpInitializer::toDt()
 
 dt_t **Expression::toDt(dt_t **pdt)
 {
-#ifdef DEBUG
+#if 0
     printf("Expression::toDt() %d\n", op);
     dump(0);
 #endif
@@ -735,7 +732,7 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
         var->needThis() ||
         var->isThreadlocal())
     {
-#ifdef DEBUG
+#if 0
         printf("SymOffExp::toDt()\n");
 #endif
         error("non-constant expression %s", toChars());
@@ -771,7 +768,7 @@ dt_t **VarExp::toDt(dt_t **pdt)
         sd->dsym->toDt(pdt);
         return pdt;
     }
-#ifdef DEBUG
+#if 0
     printf("VarExp::toDt(), kind = %s\n", var->kind());
 #endif
     error("non-constant expression %s", toChars());

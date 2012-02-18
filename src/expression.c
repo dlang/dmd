@@ -1355,9 +1355,6 @@ void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
     error("expression %s is not a valid template value argument", toChars());
-#ifdef DEBUG
-dump(0);
-#endif
 }
 
 /***************************************
@@ -1619,6 +1616,7 @@ Expression *Expression::checkToBoolean(Scope *sc)
 #ifdef DEBUG
     if (!type)
         dump(0);
+    assert(type);
 #endif
 
     // Structs can be converted to bool using opCast(bool)()
@@ -5930,9 +5928,18 @@ Expression *BinExp::incompatibleTypes()
     if (e1->type->toBasetype() != Type::terror &&
         e2->type->toBasetype() != Type::terror
        )
-    {   error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
-             e1->toChars(), Token::toChars(op), e2->toChars(),
-             e1->type->toChars(), e2->type->toChars());
+    {
+        if (e1->op == TOKtype || e2->op == TOKtype)
+        {
+            error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
+                e1->toChars(), Token::toChars(op), e2->toChars(), Token::toChars(op));
+        }
+        else
+        {
+            error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
+                 e1->toChars(), Token::toChars(op), e2->toChars(),
+                 e1->type->toChars(), e2->type->toChars());
+        }
         return new ErrorExp();
     }
     return this;
