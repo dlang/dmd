@@ -65,8 +65,7 @@ void initPrecedence();
 typedef int (*apply_fp_t)(Expression *, void *);
 
 Expression *resolveProperties(Scope *sc, Expression *e);
-void accessCheck(Loc loc, Scope *sc, Expression *e, Dsymbol *s);
-void accessCheck(Loc loc, Scope *sc, Dsymbol *s, bool overloads);
+void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
 void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs);

@@ -274,7 +274,6 @@ void TypedefDeclaration::semantic(Scope *sc)
     if (sem == SemanticStart)
     {   sem = SemanticIn;
         parent = sc->parent;
-        protection = sc->protection;
         int errors = global.errors;
         Type *savedbasetype = basetype;
         basetype = basetype->semantic(loc, sc);

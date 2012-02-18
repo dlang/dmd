@@ -6166,10 +6166,10 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     {
         //printf("\t1: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         s->checkDeprecated(loc, sc);            // check for deprecated aliases
+        s = s->toAlias();
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         for (size_t i = 0; i < idents.dim; i++)
         {
-            s = s->toAlias();
             Identifier *id = idents.tdata()[i];
             Dsymbol *sm = s->searchX(loc, sc, id);
             //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
@@ -6224,7 +6224,6 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     e = t->dotExp(sc, e, id);
                     i++;
                 L3:
-                    accessCheck(loc, sc, s, true);
                     for (; i < idents.dim; i++)
                     {
                         id = idents.tdata()[i];
@@ -6246,10 +6245,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 return;
             }
         L2:
-            s = sm;
+            s = sm->toAlias();
         }
-        accessCheck(loc, sc, s, true);
-        s = s->toAlias();
 
         v = s->isVarDeclaration();
         if (v)
@@ -7561,7 +7558,6 @@ L1:
     }
     if (!s->isFuncDeclaration())        // because of overloading
         s->checkDeprecated(e->loc, sc);
-    accessCheck(e->loc, sc, s, true);
     s = s->toAlias();
 
     v = s->isVarDeclaration();
@@ -8120,7 +8116,6 @@ L1:
     }
     if (!s->isFuncDeclaration())        // because of overloading
         s->checkDeprecated(e->loc, sc);
-    accessCheck(e->loc, sc, s, true);
     s = s->toAlias();
     v = s->isVarDeclaration();
     if (v && !v->isDataseg())

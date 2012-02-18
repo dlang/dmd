@@ -289,27 +289,24 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
     printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
 #endif
 
-    s = s->getAccessModule();
-
+    for (; s; s = s->parent)
+    {
+        if (s->isPackage() && !s->isModule())
+            break;
+    }
 #if LOG
     if (s)
         printf("\tthis is in package '%s'\n", s->toChars());
 #endif
 
-    if (s && s->parent == sc->module->parent)
+    if (s && s == sc->module->parent)
     {
 #if LOG
         printf("\ts is in same package as sc\n");
 #endif
         return 1;
     }
-    else if (s == sc->module)
-    {
-#if LOG
-        printf("\ts is same module as sc\n");
-#endif
-        return 1;
-    }
+
 
 #if LOG
     printf("\tno package access\n");
@@ -375,14 +372,28 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
  * Check access to d for expression e.d
  */
 
-void accessCheck(Loc loc, Scope *sc, Expression *e, Dsymbol *s)
+void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 {
-    assert(e);
 #if LOG
-    printf("accessCheck(%s . %s)\n", e->toChars(), s->toChars());
-    printf("\te->type = %s\n", e->type->toChars());
+    if (e)
+    {   printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
+        printf("\te->type = %s\n", e->type->toChars());
+    }
+    else
+    {
+        printf("accessCheck(%s)\n", d->toPrettyChars());
+    }
 #endif
-    if (e->type->ty == Tclass)
+    if (!e)
+    {
+        if (d->prot() == PROTprivate && d->getAccessModule() != sc->module ||
+            d->prot() == PROTpackage && !hasPackageAccess(sc, d))
+        {
+            error(loc, "%s %s is not accessible from module %s",
+                d->kind(), d->toPrettyChars(), sc->module->toChars());
+        }
+    }
+    else if (e->type->ty == Tclass)
     {   // Do access check
         ClassDeclaration *cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
         if (e->op == TOKsuper)
@@ -391,24 +402,11 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Dsymbol *s)
             if (cd2)
                 cd = cd2;
         }
-        cd->accessCheck(loc, sc, s);
+        cd->accessCheck(loc, sc, d);
     }
     else if (e->type->ty == Tstruct)
     {   // Do access check
         StructDeclaration *cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
-        cd->accessCheck(loc, sc, s);
+        cd->accessCheck(loc, sc, d);
     }
-}
-
-void accessCheck(Loc loc, Scope *sc, Dsymbol *s, bool overloads)
-{
-#if LOG
-    printf("accessCheck(%s)\n", s->toPrettyChars());
-#endif
-    enum PROT prot = overloads ? s->overprot() : s->prot();
-    if ((prot == PROTprivate || prot == PROTpackage && !hasPackageAccess(sc, s)) &&
-        s->getAccessModule() != sc->module)
-
-        error(loc, "%s %s is not accessible from module %s",
-              s->kind(), s->toPrettyChars(), sc->module->toChars());
 }

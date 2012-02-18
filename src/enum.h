@@ -42,7 +42,6 @@ struct EnumDeclaration : ScopeDsymbol
     int isdeprecated;
     int isdone;                 // 0: not done
                                 // 1: semantic() successfully completed
-    enum PROT protection;
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -52,7 +51,6 @@ struct EnumDeclaration : ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Type *getType();
     const char *kind();
-    enum PROT prot();
 #if DMDV2
     Dsymbol *search(Loc, Identifier *ident, int flags);
 #endif

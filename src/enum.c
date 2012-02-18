@@ -33,7 +33,6 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     sinit = NULL;
     isdeprecated = 0;
     isdone = 0;
-    protection = PROTpublic;
 }
 
 Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
@@ -114,7 +113,7 @@ void EnumDeclaration::semantic(Scope *sc)
 
     if (sc->stc & STCdeprecated)
         isdeprecated = 1;
-    protection = sc->protection;
+
     parent = sc->parent;
 
     /* The separate, and distinct, cases are:
@@ -349,11 +348,6 @@ Type *EnumDeclaration::getType()
 const char *EnumDeclaration::kind()
 {
     return "enum";
-}
-
-enum PROT EnumDeclaration::prot()
-{
-    return protection;
 }
 
 int EnumDeclaration::isDeprecated()
