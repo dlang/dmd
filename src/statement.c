@@ -3718,6 +3718,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         return s->semantic(sc);
     }
 #endif
+Lbody:
     if (body)
         body = body->semantic(sc);
     return this;
