@@ -1411,7 +1411,13 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     s =((ScopeExp *)e)->sds;
 
                 if (s)
+                {
                     var = new AliasDeclaration(loc, arg->ident, s);
+                }
+                else if (e->op == TOKtype)
+                {
+                    var = new AliasDeclaration(loc, arg->ident, e->type);
+                }
                 else
                 {
                     arg->type = e->type;
