@@ -313,11 +313,12 @@ void ClassDeclaration::semantic(Scope *sc)
         BaseClass *b;
         Type *tb;
 
-        b = (BaseClass *)baseclasses->data[0];
+        b = baseclasses->tdata()[0];
         //b->type = b->type->semantic(loc, sc);
         tb = b->type->toBasetype();
         if (tb->ty != Tclass)
-        {   error("base type must be class or interface, not %s", b->type->toChars());
+        {   if (b->type != Type::terror)
+                error("base type must be class or interface, not %s", b->type->toChars());
             baseclasses->remove(0);
         }
         else
@@ -382,7 +383,7 @@ void ClassDeclaration::semantic(Scope *sc)
         BaseClass *b;
         Type *tb;
 
-        b = (BaseClass *)baseclasses->data[i];
+        b = baseclasses->tdata()[i];
         b->type = b->type->semantic(loc, sc);
         tb = b->type->toBasetype();
         if (tb->ty == Tclass)
@@ -390,7 +391,7 @@ void ClassDeclaration::semantic(Scope *sc)
         else
             tc = NULL;
         if (!tc || !tc->sym->isInterfaceDeclaration())
-        {
+        {   if (b->type != Type::terror)
             error("base type must be interface, not %s", b->type->toChars());
             baseclasses->remove(i);
             continue;
@@ -729,7 +730,7 @@ void ClassDeclaration::semantic(Scope *sc)
     // Fill in base class vtbl[]s
     for (i = 0; i < vtblInterfaces->dim; i++)
     {
-        BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+        BaseClass *b = vtblInterfaces->tdata()[i];
 
         //b->fillVtbl(this, &b->vtbl, 1);
     }
@@ -748,7 +749,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
     for (size_t i = 0; i < baseclasses->dim; i++)
     {
-        BaseClass *b = (BaseClass *)baseclasses->data[i];
+        BaseClass *b = baseclasses->tdata()[i];
 
         if (i)
             buf->writeByte(',');
@@ -762,7 +763,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = members->tdata()[i];
 
             buf->writestring("    ");
             s->toCBuffer(buf, hgs);
@@ -797,7 +798,7 @@ int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
         return 0;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-    {   BaseClass *b = (BaseClass *)cd->baseclasses->data[i];
+    {   BaseClass *b = cd->baseclasses->tdata()[i];
 
         if (b->base == this || isBaseOf2(b->base))
             return 1;
@@ -843,7 +844,7 @@ int ClassDeclaration::isBaseInfoComplete()
     if (!baseClass)
         return ident == Id::Object;
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+    {   BaseClass *b = baseclasses->tdata()[i];
         if (!b->base || !b->base->isBaseInfoComplete())
             return 0;
     }
@@ -876,7 +877,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
 
         for (size_t i = 0; i < baseclasses->dim; i++)
         {
-            BaseClass *b = (BaseClass *)baseclasses->data[i];
+            BaseClass *b = baseclasses->tdata()[i];
 
             if (b->base)
             {
@@ -1206,7 +1207,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         BaseClass *b;
         Type *tb;
 
-        b = (BaseClass *)baseclasses->data[i];
+        b = baseclasses->tdata()[i];
         b->type = b->type->semantic(loc, sc);
         tb = b->type->toBasetype();
         if (tb->ty == Tclass)
@@ -1214,7 +1215,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         else
             tc = NULL;
         if (!tc || !tc->sym->isInterfaceDeclaration())
-        {
+        {   if (b->type != Type::terror)
             error("base type must be interface, not %s", b->type->toChars());
             baseclasses->remove(i);
             continue;
@@ -1224,7 +1225,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             // Check for duplicate interfaces
             for (size_t j = 0; j < i; j++)
             {
-                BaseClass *b2 = (BaseClass *)baseclasses->data[j];
+                BaseClass *b2 = baseclasses->tdata()[j];
                 if (b2->base == tc->sym)
                     error("inherits from duplicate interface %s", b2->base->toChars());
             }

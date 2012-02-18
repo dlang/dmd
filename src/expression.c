@@ -6781,6 +6781,17 @@ Lagain:
     arrayExpressionSemantic(arguments, sc);
     preFunctionParameters(loc, sc, arguments);
 
+    // If there was an error processing any template argument,
+    // return an error without trying to resolve the template.
+    if (targsi && targsi->dim)
+    {
+        for (size_t k = 0; k < targsi->dim; k++)
+        {   Object *o = targsi->tdata()[k];
+            if (isError(o))
+                return new ErrorExp();
+        }
+    }
+
     if (e1->op == TOKdotvar && t1->ty == Tfunction ||
         e1->op == TOKdottd)
     {

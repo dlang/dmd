@@ -271,7 +271,7 @@ void FuncDeclaration::semantic(Scope *sc)
         (pd = toParent2()) != NULL &&
         (id = pd->isInterfaceDeclaration()) != NULL)
     {
-        error("template member function not allowed in interface %s", id->toChars());
+        error("template member functions are not allowed in interface %s", id->toChars());
     }
 
     cd = parent->isClassDeclaration();
@@ -327,6 +327,9 @@ void FuncDeclaration::semantic(Scope *sc)
             //printf("\tnot virtual\n");
             goto Ldone;
         }
+        // Suppress further errors if the return type is an error
+        if (type->nextOf() == Type::terror)
+            goto Ldone;
 
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
