@@ -352,11 +352,21 @@ Dsymbol *Dsymbol::search(Loc loc, Identifier *ident, int flags)
 
 void *symbol_search_fp(void *arg, const char *seed)
 {
+    /* If not in the lexer's string table, it certainly isn't in the symbol table.
+     * Doing this first is a lot faster.
+     */
+    size_t len = strlen(seed);
+    if (!len)
+        return NULL;
+    StringValue *sv = Lexer::stringtable.lookup(seed, len);
+    if (!sv)
+        return NULL;
+    Identifier *id = (Identifier *)sv->ptrvalue;
+    assert(id);
+
     Dsymbol *s = (Dsymbol *)arg;
-    Identifier id(seed, 0);
     Module::clearCache();
-    s = s->search(0, &id, 4|2);
-    return s;
+    return s->search(0, id, 4|2);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -619,19 +629,16 @@ void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 
 Module *Dsymbol::getModule()
 {
-    Module *m;
-    Dsymbol *s;
-
     //printf("Dsymbol::getModule()\n");
     TemplateDeclaration *td = getFuncTemplateDecl(this);
     if (td)
         return td->getModule();
 
-    s = this;
+    Dsymbol *s = this;
     while (s)
     {
-        //printf("\ts = '%s'\n", s->toChars());
-        m = s->isModule();
+        //printf("\ts = %s '%s'\n", s->kind(), s->toPrettyChars());
+        Module *m = s->isModule();
         if (m)
             return m;
         s = s->parent;
