@@ -1355,9 +1355,6 @@ void Expression::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void Expression::toMangleBuffer(OutBuffer *buf)
 {
     error("expression %s is not a valid template value argument", toChars());
-#ifdef DEBUG
-dump(0);
-#endif
 }
 
 /***************************************
@@ -1619,6 +1616,7 @@ Expression *Expression::checkToBoolean(Scope *sc)
 #ifdef DEBUG
     if (!type)
         dump(0);
+    assert(type);
 #endif
 
     // Structs can be converted to bool using opCast(bool)()
