@@ -38,8 +38,6 @@
 struct Escape
 {
     const char *strings[256];
-
-    static const char *escapeChar(unsigned c);
 };
 
 struct Section
@@ -1818,73 +1816,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                 iLineStart = i + 1;
                 break;
 
-            case '<':
-                leadingBlank = 0;
-                if (inCode)
-                    break;
-                p = &buf->data[i];
-
-                // Skip over comments
-                if (p[1] == '!' && p[2] == '-' && p[3] == '-')
-                {   unsigned j = i + 4;
-                    p += 4;
-                    while (1)
-                    {
-                        if (j == buf->offset)
-                            goto L1;
-                        if (p[0] == '-' && p[1] == '-' && p[2] == '>')
-                        {
-                            i = j + 2;  // place on closing '>'
-                            break;
-                        }
-                        j++;
-                        p++;
-                    }
-                    break;
-                }
-
-                // Skip over HTML tag
-                if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
-                {   unsigned j = i + 2;
-                    p += 2;
-                    while (1)
-                    {
-                        if (j == buf->offset)
-                            goto L1;
-                        if (p[0] == '>')
-                        {
-                            i = j;      // place on closing '>'
-                            break;
-                        }
-                        j++;
-                        p++;
-                    }
-                    break;
-                }
-
             L1:
-                // Replace '<' with '&lt;' character entity
-                se = Escape::escapeChar('<');
-                if (se)
-                {   size_t len = strlen(se);
-                    buf->remove(i, 1);
-                    i = buf->insert(i, se, len);
-                    i--;        // point to ';'
-                }
-                break;
-
-            case '>':
-                leadingBlank = 0;
-                if (inCode)
-                    break;
-                // Replace '>' with '&gt;' character entity
-                se = Escape::escapeChar('>');
-                if (se)
-                {   size_t len = strlen(se);
-                    buf->remove(i, 1);
-                    i = buf->insert(i, se, len);
-                    i--;        // point to ';'
-                }
                 break;
 
             case '&':
@@ -1894,14 +1826,6 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                 p = &buf->data[i];
                 if (p[1] == '#' || isalpha(p[1]))
                     break;                      // already a character entity
-                // Replace '&' with '&amp;' character entity
-                se = Escape::escapeChar('&');
-                if (se)
-                {   size_t len = strlen(se);
-                    buf->remove(i, 1);
-                    i = buf->insert(i, se, len);
-                    i--;        // point to ';'
-                }
                 break;
 
             case '-':
@@ -2044,15 +1968,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
     {   unsigned char c = buf->data[i];
         const char *se;
 
-        se = Escape::escapeChar(c);
-        if (se)
-        {
-            size_t len = strlen(se);
-            buf->remove(i, 1);
-            i = buf->insert(i, se, len);
-            i--;                // point to ';'
-        }
-        else if (isIdStart(&buf->data[i]))
+        if (isIdStart(&buf->data[i]))
         {   unsigned j;
 
             j = skippastident(buf, i);
@@ -2084,10 +2000,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 void highlightCode3(OutBuffer *buf, unsigned char *p, unsigned char *pend)
 {
     for (; p < pend; p++)
-    {   const char *s = Escape::escapeChar(*p);
-        if (s)
-            buf->writestring(s);
-        else
+    {
             buf->writeByte(*p);
     }
 }
@@ -2161,31 +2074,6 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
     buf->setsize(offset);
     buf->write(&res);
     global.errors = errorsave;
-}
-
-/***************************************
- * Find character string to replace c with.
- */
-
-const char *Escape::escapeChar(unsigned c)
-{   const char *s;
-
-    switch (c)
-    {
-        case '<':
-            s = "&lt;";
-            break;
-        case '>':
-            s = "&gt;";
-            break;
-        case '&':
-            s = "&amp;";
-            break;
-        default:
-            s = NULL;
-            break;
-    }
-    return s;
 }
 
 /****************************************
