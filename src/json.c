@@ -263,6 +263,8 @@ void Module::toJsonBuffer(OutBuffer *buf)
 
     if (md)
         JsonProperty(buf, Pname, md->toChars());
+    else
+        JsonProperty(buf, Pname, toPrettyChars());
 
     JsonProperty(buf, Pkind, kind());
 
