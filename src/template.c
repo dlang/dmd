@@ -3827,7 +3827,13 @@ void TemplateValueParameter::declareParameter(Scope *sc)
 
 void TemplateValueParameter::semantic(Scope *sc)
 {
+    bool wasSame = (sparam->type == valType);
     sparam->semantic(sc);
+    if (sparam->type == Type::terror && wasSame)
+    {   // If sparam has a type error, avoid duplicate errors
+        valType = Type::terror;
+        return;
+    }
     valType = valType->semantic(loc, sc);
     if (!(valType->isintegral() || valType->isfloating() || valType->isString()) &&
         valType->ty != Tident)
