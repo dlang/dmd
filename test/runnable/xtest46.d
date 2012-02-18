@@ -435,79 +435,6 @@ void test21()
 
 /***************************************************/
 
-template TT3632(T...) { alias T TT3632; }
-
-void test3632()
-{
-    __gshared static int global;
-    if (!__ctfe)
-    { // defeat optimizer/constfolding
-        asm { mov global, 1; }
-    }
-
-    int test(T)()
-    {
-        static struct W
-        {
-            T f;
-            this(T g) { if (__ctfe || global) f = g; }
-        }
-        auto nan = W(T.nan);
-        auto nan2 = W(T.nan);
-        auto init = W(T.init);
-        auto init2 = W(T.init);
-        auto zero = W(cast(T)0);
-        auto zero2 = W(cast(T)0);
-        auto nzero2 = W(-cast(T)0);
-
-        assert(!(nan == nan2));
-        assert(!(nan == init2));
-        assert(!(init == init2));
-        assert( (zero == zero2));
-        assert( (zero == nzero2));
-
-        assert(!(nan.f == nan2.f));
-        assert(!(nan.f == init2.f));
-        assert(!(init.f == init2.f));
-        assert( (zero.f == zero2.f));
-        assert( (zero.f == nzero2.f));
-
-        assert( (nan is nan2));
-        assert(!(nan is init2));
-        assert( (init is init2));
-        assert( (zero is zero2));
-        assert(!(zero is nzero2));
-
-        assert( (nan.f is nan2.f));
-        assert(!(nan.f is init2.f));
-        assert( (init.f is init2.f));
-        assert( (zero.f is zero2.f));
-        assert(!(zero.f is nzero2.f));
-
-        assert(!(nan !is nan2));
-        assert( (nan !is init2));
-        assert(!(init !is init2));
-        assert(!(zero !is zero2));
-        assert( (zero !is nzero2));
-
-        assert(!(nan.f !is nan2.f));
-        assert( (nan.f !is init2.f));
-        assert(!(init.f !is init2.f));
-        assert(!(zero.f !is zero2.f));
-        assert( (zero.f !is nzero2.f));
-
-        return 1;
-    }
-
-    foreach(T; TT3632!(float, double, real, ifloat, idouble, ireal, cfloat, cdouble, creal))
-    {
-        auto x = test!T();
-        enum y = test!T();
-    }
-}
-
-/***************************************************/
-
 void test22()
 {
     immutable uint x, y;
@@ -4691,7 +4618,6 @@ int main()
     test129();
     test130();
     test131();
-    test3632();
     test132();
     test133();
     test134();

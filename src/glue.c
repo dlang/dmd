@@ -674,6 +674,12 @@ void FuncDeclaration::toObjFile(int multiobj)
         irs.shidden = shidden;
         this->shidden = shidden;
     }
+    else
+    {   // Register return style cannot make nrvo.
+        // Auto functions keep the nrvo_can flag up to here,
+        // so we should eliminate it before entering backend.
+        nrvo_can = 0;
+    }
 
     if (vthis)
     {
