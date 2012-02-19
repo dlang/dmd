@@ -1450,7 +1450,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb)
+    if (tb != typeb || hasOverloads)
     {
         // Look for delegates to functions where the functions are overloaded.
         FuncDeclaration *f;

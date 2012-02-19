@@ -172,6 +172,7 @@ struct Dsymbol : Object
     virtual int isDeprecated();                 // is Dsymbol deprecated?
 #if DMDV2
     virtual int isOverloadable();
+    virtual int hasOverloads();
 #endif
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
