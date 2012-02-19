@@ -5380,7 +5380,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
 
     bool wildparams = FALSE;
-    bool wildsubparams = FALSE;
     if (tf->parameters)
     {
         /* Create a scope for evaluating the default arguments for the parameters
@@ -5425,8 +5424,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 if (tf->next && !wildreturn)
                     error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
             }
-            else if (!wildsubparams && t->hasWild())
-                wildsubparams = TRUE;
 
             if (fparam->defaultArg)
             {
@@ -5493,8 +5490,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     if (wildreturn && !wildparams)
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
-    if (wildsubparams && wildparams)
-        error(loc, "inout must be all or none on top level for %s", toChars());
 
     if (tf->next)
         tf->deco = tf->merge()->deco;
