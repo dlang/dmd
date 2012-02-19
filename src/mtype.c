@@ -8564,12 +8564,32 @@ Expression *TypeTuple::getProperty(Loc loc, Identifier *ident)
     {
         e = new IntegerExp(loc, arguments->dim, Type::tsize_t);
     }
+    else if (ident == Id::init)
+    {
+        e = defaultInitLiteral(loc);
+    }
     else
     {
         error(loc, "no property '%s' for tuple '%s'", ident->toChars(), toChars());
         e = new ErrorExp();
     }
     return e;
+}
+
+Expression *TypeTuple::defaultInit(Loc loc)
+{
+    Expressions *exps = new Expressions();
+    exps->setDim(arguments->dim);
+    for (size_t i = 0; i < arguments->dim; i++)
+    {
+        Parameter *p = (*arguments)[i];
+        assert(p->type);
+        Expression *e = p->type->defaultInitLiteral(loc);
+        if (e->op == TOKerror)
+            return e;
+        (*exps)[i] = e;
+    }
+    return new TupleExp(loc, exps);
 }
 
 /***************************** TypeSlice *****************************/
