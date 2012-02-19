@@ -209,4 +209,43 @@ unittest {
     }
 }
 
+unittest {
+    function() pure nothrow {
+        bool assertCaught = false;
+        int f = 3;
+        try {
+            function(int f) pure nothrow @safe {
+                assert(f == 5);
+            }(f);
+        } catch (AssertError e) {
+            function(in AssertError e) pure nothrow @safe {
+                assert(e.msg == "3 == 5  is unexpected");
+            }(e);
+            assertCaught = true;
+        } finally {
+            assert(assertCaught);
+        }
+    }();
+}
+
+struct SS {
+    string d;
+    bool opEquals(const ref SS other) const pure nothrow @safe { return d == other.d; }
+    this(this) @system {}
+}
+
+unittest {
+    bool assertCaught = false;
+    auto a = SS("4");
+    auto b = a;
+    b.d = "t";
+    try {
+        assert(a == b);
+    } catch (AssertError e) {
+        assertCaught = true;
+    } finally {
+        assert(assertCaught);
+    }
+}
+
 
