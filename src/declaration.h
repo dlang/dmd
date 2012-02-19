@@ -119,6 +119,10 @@ struct Declaration : Dsymbol
     enum LINK linkage;
     int inuse;                  // used to detect cycles
 
+#if IN_GCC
+    Expressions *attributes;    // GCC decl/type attributes
+#endif
+
     enum Semantic sem;
 
     Declaration(Identifier *id);
@@ -523,6 +527,9 @@ enum BUILTIN
     BUILTINbsr,                 // core.bitop.bsr
     BUILTINbsf,                 // core.bitop.bsf
     BUILTINbswap,               // core.bitop.bswap
+#if IN_GCC
+    BUILTINgcc,                 // GCC builtin
+#endif
 };
 
 Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments);

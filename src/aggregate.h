@@ -74,7 +74,8 @@ struct AggregateDeclaration : ScopeDsymbol
     FuncDeclaration *dtor;      // aggregate destructor
 
 #ifdef IN_GCC
-    Array methods;              // flat list of all methods for debug information
+    Expressions *attributes;    // GCC decl/type attributes
+    FuncDeclarations methods;   // flat list of all methods for debug information
 #endif
 
     AggregateDeclaration(Loc loc, Identifier *id);

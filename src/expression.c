@@ -2153,7 +2153,7 @@ char *RealExp::toChars()
 dinteger_t RealExp::toInteger()
 {
 #ifdef IN_GCC
-    return toReal().toInt();
+    return (sinteger_t) toReal().toInt();
 #else
     return (sinteger_t) toReal();
 #endif
