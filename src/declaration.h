@@ -651,6 +651,7 @@ struct FuncDeclaration : Declaration
     enum PURE isPureBypassingInference();
     bool setImpure();
     int isSafe();
+    bool isSafeBypassingInference();
     int isTrusted();
     bool setUnsafe();
     virtual int isNested();

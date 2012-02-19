@@ -2841,6 +2841,14 @@ int FuncDeclaration::isSafe()
     return ((TypeFunction *)type)->trust == TRUSTsafe;
 }
 
+bool FuncDeclaration::isSafeBypassingInference()
+{
+    if (flags & FUNCFLAGsafetyInprocess)
+        return false;
+    else
+        return isSafe();
+}
+
 int FuncDeclaration::isTrusted()
 {
     assert(type->ty == Tfunction);
