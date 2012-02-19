@@ -372,7 +372,7 @@ int Import::overloadInsert(Dsymbol *s)
      */
     assert(ident && ident == s->ident);
     Import *imp;
-    if (!aliasId && (imp = s->isImport()) && !imp->aliasId)
+    if (!aliasId && (imp = s->isImport()) != NULL && !imp->aliasId)
         return TRUE;
     else
         return FALSE;
