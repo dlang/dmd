@@ -4261,6 +4261,13 @@ Statement *WithStatement::semantic(Scope *sc)
         }
         else if (t->ty == Tstruct)
         {
+            if (!exp->isLvalue())
+            {
+                init = new ExpInitializer(loc, exp);
+                wthis = new VarDeclaration(loc, exp->type, Lexer::uniqueId("__withtmp"), init);
+                exp = new CommaExp(loc, new DeclarationExp(loc, wthis), new VarExp(loc, wthis));
+                exp = exp->semantic(sc);
+            }
             Expression *e = exp->addressOf(sc);
             init = new ExpInitializer(loc, e);
             wthis = new VarDeclaration(loc, e->type, Id::withSym, init);
