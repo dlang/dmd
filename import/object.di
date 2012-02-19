@@ -617,5 +617,6 @@ bool _ArrayEq(T1, T2)(T1[] a1, T2[] a2)
 
 bool _xopEquals(in void* ptr, in void* ptr);
 
-void __ctfeWriteln(T...)(auto ref T) {}
+void __ctfeWrite(T...)(auto ref T) {}
+void __ctfeWriteln(T...)(auto ref T values) { __ctfeWrite(values, "\n"); }
 
