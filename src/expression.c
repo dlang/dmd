@@ -7676,8 +7676,8 @@ Lagain:
         // Base class constructor call
         ClassDeclaration *cd = NULL;
 
-        if (sc->func)
-            cd = sc->func->toParent()->isClassDeclaration();
+        if (sc->func && sc->func->isThis())
+            cd = sc->func->isThis()->isClassDeclaration();
         if (!cd || !cd->baseClass || !sc->func->isCtorDeclaration())
         {
             error("super class constructor call must be in a constructor");
@@ -7722,8 +7722,8 @@ Lagain:
         // same class constructor call
         AggregateDeclaration *cd = NULL;
 
-        if (sc->func)
-            cd = sc->func->toParent()->isAggregateDeclaration();
+        if (sc->func && sc->func->isThis())
+            cd = sc->func->isThis()->isAggregateDeclaration();
         if (!cd || !sc->func->isCtorDeclaration())
         {
             error("constructor call must be in a constructor");
