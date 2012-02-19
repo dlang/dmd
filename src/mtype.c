@@ -4865,6 +4865,7 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     this->purity = PUREimpure;
     this->isproperty = false;
     this->isref = false;
+    this->iswild = false;
     this->fargs = NULL;
 
     if (stc & STCpure)
@@ -5421,8 +5422,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
             {
                 wildparams = TRUE;
-                if (tf->next && !wildreturn)
-                    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
+                //if (tf->next && !wildreturn)
+                //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
             }
 
             if (fparam->defaultArg)
@@ -5490,6 +5491,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     if (wildreturn && !wildparams)
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
+    tf->iswild = wildparams;
 
     if (tf->next)
         tf->deco = tf->merge()->deco;
