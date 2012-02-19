@@ -3243,10 +3243,13 @@ elem *CallExp::toElem(IRState *irs)
     {
         fd = ((VarExp *)e1)->var->isFuncDeclaration();
 
+#if 0 // This optimization is not valid if alloca can be called
+      // multiple times within the same function, eg in a loop
+      // see issue 3822
         if (fd && fd->ident == Id::alloca &&
             !fd->fbody && fd->linkage == LINKc &&
             arguments && arguments->dim == 1)
-        {   Expression *arg = (Expression *)arguments->data[0];
+        {   Expression *arg = arguments->tdata()[0];
             arg = arg->optimize(WANTvalue);
             if (arg->isConst() && arg->type->isintegral())
             {   dinteger_t sz = arg->toInteger();
@@ -3269,6 +3272,7 @@ elem *CallExp::toElem(IRState *irs)
                 }
             }
         }
+#endif
 
         ec = e1->toElem(irs);
     }
