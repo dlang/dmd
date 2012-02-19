@@ -92,6 +92,10 @@ struct Scope
 
     AnonymousAggregateDeclaration *anonAgg;     // for temporary analysis
 
+#if IN_GCC
+    Expressions *attributes;    // GCC decl/type attributes
+#endif
+
     DocComment *lastdc;         // documentation comment for last symbol at this scope
     unsigned lastoffset;        // offset in docbuf of where to insert next dec
     OutBuffer *docbuf;          // buffer for documentation output

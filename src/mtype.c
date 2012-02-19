@@ -81,6 +81,10 @@ int REALALIGNSIZE = 4;
 int REALSIZE = 10;
 int REALPAD = 0;
 int REALALIGNSIZE = 2;
+#elif IN_GCC
+int REALSIZE = 0;
+int REALPAD = 0;
+int REALALIGNSIZE = 0;
 #else
 #error "fix this"
 #endif

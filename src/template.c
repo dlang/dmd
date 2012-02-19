@@ -5783,7 +5783,9 @@ void TemplateMixin::semantic(Scope *sc)
 #if LOG
     printf("\tdo semantic\n");
 #endif
+#ifndef IN_GCC
     util_progress();
+#endif
 
     Scope *scx = NULL;
     if (scope)
