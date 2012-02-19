@@ -9473,6 +9473,13 @@ Expression *PostExp::semantic(Scope *sc)
         if (e)
             return e;
 
+        if (e1->op == TOKslice)
+        {
+            const char *s = op == TOKplusplus ? "increment" : "decrement";
+            error("cannot post-%s array slice '%s', use pre-%s instead", s, e1->toChars(), s);
+            return new ErrorExp();
+        }
+
         e1 = e1->modifiableLvalue(sc, e1);
 
         Type *t1 = e1->type->toBasetype();
