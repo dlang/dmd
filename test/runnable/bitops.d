@@ -1,7 +1,7 @@
 // PERMUTE_ARGS:
 
 import std.c.stdio;
-import std.intrinsic;
+import core.bitop;
 
 /*****************************************************/
 

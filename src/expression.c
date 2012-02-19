@@ -5251,16 +5251,16 @@ Expression *DeclarationExp::semantic(Scope *sc)
         }
         else if (sc->func)
         {   VarDeclaration *v = s->isVarDeclaration();
-            if ( (s->isFuncDeclaration() || s->isTypedefDeclaration() ||
+            if (s->isFuncDeclaration() || s->isTypedefDeclaration() ||
                 s->isAggregateDeclaration() || s->isEnumDeclaration() ||
-                s->isInterfaceDeclaration()) &&
-                !sc->func->localsymtab->insert(s))
+                s->isInterfaceDeclaration())
             {
-                error("declaration %s is already defined in another scope in %s",
-                    s->toPrettyChars(), sc->func->toChars());
-                return new ErrorExp();
+                if (!sc->func->localstaticsymtab->lookup(s->ident))
+                {
+                    sc->func->localstaticsymtab->insert(s);
+                }
             }
-            else if (!global.params.useDeprecated)
+            if (!global.params.useDeprecated)
             {   // Disallow shadowing
 
                 for (Scope *scx = sc->enclosing; scx && scx->func == sc->func; scx = scx->enclosing)

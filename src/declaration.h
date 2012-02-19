@@ -548,6 +548,11 @@ struct FuncDeclaration : Declaration
 
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
+
+    DsymbolTable *localstaticsymtab;    // used to prevent static symbols in
+                                        // different scopes from having the same
+                                        // name mangled (rename variable)
+
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
 #if IN_GCC
