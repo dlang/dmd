@@ -3452,6 +3452,17 @@ void test6228()
 
 /***************************************************/
 
+int test7544()
+{
+    try { throw new Exception(""); }
+    catch (Exception e) static assert(1);
+    return 1;
+}
+
+static assert(test7544());
+
+/***************************************************/
+
 struct S6230 {
     int p;
     int q() const pure {
