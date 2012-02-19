@@ -1148,7 +1148,7 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
  * Print expressions to stdmsg, used by pragma(msg).
  */
 
-void printExpressionsToStdmsg(Loc loc, Expressions *args, Scope *sc)
+void printExpressionsToStdmsg(Loc loc, Expressions *args, Scope *sc, bool printNewLine)
 {
     for (size_t i = 0; i < args->dim; i++)
     {
@@ -1169,7 +1169,8 @@ void printExpressionsToStdmsg(Loc loc, Expressions *args, Scope *sc)
         else
             fprintf(stdmsg, "%s", e->toChars());
     }
-    fprintf(stdmsg, "\n");
+    if (printNewLine)
+        fprintf(stdmsg, "\n");
 }
 
 /******************************** Expression **************************/

@@ -1,7 +1,7 @@
 // EXTRA_SOURCES: extra-files/ddoc3.ddoc
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddoc3-postscript.sh
+// POST_SCRIPT: compilable/extra-files/diff-postscript.sh ddoc3.html
 
 /**
  * Summary
@@ -42,7 +42,7 @@
  *	$(TROW 4, 5, 6)
  *	)
  *
- * $(D_CODE 
+ * $(D_CODE
       $(B pragma)( $(I name) );
       $(B pragma)( $(I name) , $(I option) [ $(I option) ] );
       $(U $(LPAREN))

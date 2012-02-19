@@ -6247,6 +6247,8 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     return eresult;
 }
 
+
+
 /* If this is a built-in function, return the interpreted result,
  * Otherwise, return NULL.
  */
@@ -6270,8 +6272,8 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     if (!pthis)
     {
         enum BUILTIN b = fd->isBuiltin();
-        bool isCTFEWriteln = fd->ident == Id::ctfeWriteln;
-        if (b || isCTFEWriteln)
+        bool isCTFEWrite = fd->ident == Id::ctfeWrite;
+        if (b || isCTFEWrite)
         {   Expressions args;
             args.setDim(nargs);
             for (size_t i = 0; i < args.dim; i++)
@@ -6282,9 +6284,9 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                     return earg;
                 args.tdata()[i] = earg;
             }
-            if (isCTFEWriteln)
+            if (isCTFEWrite)
             {
-                printExpressionsToStdmsg(loc, &args, NULL);
+                printExpressionsToStdmsg(loc, &args, NULL, /*printNewLine*/false);
                 e = EXP_VOID_INTERPRET;
             }
             else

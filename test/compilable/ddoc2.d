@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddoc2-postscript.sh
+// POST_SCRIPT: compilable/extra-files/diff-postscript.sh ddoc2.html
 
 /**
  * Summary
