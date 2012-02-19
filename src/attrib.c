@@ -1046,7 +1046,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             if (e && ((StringExp *)e)->sz == 1)
                 s = ((StringExp *)e);
             else
-                error("second argument of GNU_asm must be a char string");
+                error("second argument of GNU_asm must be a character string");
 
             if (d && s)
                 d->c_ident = Lexer::idPool((char*) s->string);

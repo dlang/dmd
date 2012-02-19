@@ -42,6 +42,9 @@ struct EnumDeclaration : ScopeDsymbol
     int isdeprecated;
     int isdone;                 // 0: not done
                                 // 1: semantic() successfully completed
+#if IN_GCC
+    Expressions *attributes;    // GCC decl/type attributes
+#endif
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);

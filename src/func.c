@@ -307,13 +307,6 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 #endif
 
-#ifdef IN_GCC
-    {
-        AggregateDeclaration *ad = parent->isAggregateDeclaration();
-        if (ad)
-            ad->methods.push(this);
-    }
-#endif
     sd = parent->isStructDeclaration();
     if (sd)
     {
@@ -928,6 +921,9 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else
                 assert(!isNested() || sc->intypeof);    // can't be both member and nested
+#if IN_GCC
+            ad->methods.push(this);
+#endif
         }
         vthis = declareThis(sc2, ad);
 
@@ -939,6 +935,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 #else
             Type *t;
 
+#ifndef IN_GCC
             if (global.params.is64bit)
             {   // Declare save area for varargs registers
                 Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
@@ -956,6 +953,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     v_argsave->parent = this;
                 }
             }
+#endif
 
             if (f->linkage == LINKd)
             {   // Declare _arguments[]
