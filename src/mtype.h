@@ -612,6 +612,7 @@ struct TypeFunction : TypeNext
     enum LINK linkage;  // calling convention
     enum TRUST trust;   // level of trust
     enum PURE purity;   // PURExxxx
+    bool iswild;        // is inout function
     Expressions *fargs; // function arguments
 
     int inuse;
