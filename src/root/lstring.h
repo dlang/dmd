@@ -19,8 +19,10 @@ struct Lstring
 {
     unsigned length;
 
+#ifndef IN_GCC
     // Disable warning about nonstandard extension
     #pragma warning (disable : 4200)
+#endif
     dchar string[];
 
     static Lstring zero;        // 0 length string
