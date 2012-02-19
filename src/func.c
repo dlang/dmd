@@ -2959,21 +2959,6 @@ const char *FuncDeclaration::kind()
     return "function";
 }
 
-static int maxProt(void *arg, FuncDeclaration *f)
-{
-    enum PROT nprot = f->prot();
-    if (nprot > *(enum PROT*)arg) // take looser one
-        *(enum PROT*)arg = nprot;
-    return 0;
-}
-
-enum PROT FuncDeclaration::overprot()
-{
-    enum PROT result = prot();
-    overloadApply(this, &maxProt, &result);
-    return result;
-}
-
 void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
     //printf("FuncDeclaration::checkNestedReference() %s\n", toChars());
