@@ -2784,6 +2784,11 @@ int FuncDeclaration::isOverloadable()
     return 1;                   // functions can be overloaded
 }
 
+int FuncDeclaration::hasOverloads()
+{
+    return overnext != NULL;
+}
+
 enum PURE FuncDeclaration::isPure()
 {
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());

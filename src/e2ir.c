@@ -3460,8 +3460,7 @@ elem *DelegateExp::toElem(IRState *irs)
             ep = el_una(OPind, TYnptr, ep);
             vindex = func->vtblIndex;
 
-            if ((int)vindex < 0)
-                error("Internal compiler error: malformed delegate. See Bugzilla 4860");
+            assert((int)vindex >= 0);
 
             // Build *(ep + vindex * 4)
             ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * PTRSIZE));
