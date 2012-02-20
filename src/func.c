@@ -609,9 +609,14 @@ void FuncDeclaration::semantic(Scope *sc)
                     }
                     if (ti)
                     {
-                        if (tintro && !tintro->equals(ti))
+                        if (tintro)
                         {
-                            error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
+                            if (!tintro->nextOf()->equals(ti->nextOf()) &&
+                                !tintro->nextOf()->isBaseOf(ti->nextOf(), NULL) &&
+                                !ti->nextOf()->isBaseOf(tintro->nextOf(), NULL))
+                            {
+                                error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
+                            }
                         }
                         tintro = ti;
                     }
