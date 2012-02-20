@@ -3836,6 +3836,16 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
     }
 
+    if (exp && exp->op == TOKquestion)
+    {
+        // Re-write as if (cond) return a; else return b;
+        CondExp *ce = (CondExp *)exp;
+        ReturnStatement *ra = new ReturnStatement(loc, ce->e1);
+        ReturnStatement *rb = new ReturnStatement(loc, ce->e2);
+        IfStatement *is = new IfStatement(loc, NULL, ce->econd, ra, rb);
+        return is->semantic(sc);
+    }
+
     return this;
 }
 
