@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -4756,8 +4756,8 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
                 e = vd->init->toExpression();
         }
         else
-            e = vd->type->defaultInitLiteral();
-        structelems->tdata()[j] = e;
+            e = vd->type->defaultInitLiteral(loc);
+        (*structelems)[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
     // Why doesn't the StructLiteralExp constructor do this, when
