@@ -1127,7 +1127,7 @@ Lnomatch:
         {
             if (func->fes)
                 func = func->fes->func;
-            if (!func->type->hasWild())
+            if (!((TypeFunction *)func->type)->iswild)
             {
                 error("inout variables can only be declared inside inout functions");
             }

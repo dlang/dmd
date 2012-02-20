@@ -2525,6 +2525,19 @@ struct S131
 }
 
 /***************************************************/
+
+struct S7545
+{
+    uint id;
+    alias id this;
+}
+
+void test7545()
+{
+    auto id = 0 ? S7545() : -1;
+}
+
+/***************************************************/
 // 5020
 
 void test132()
@@ -2972,6 +2985,82 @@ void test147()
     xc.f();     // prints "X.f const"
     xc.g();     // prints "X.g const"
     xc += 10;   // should print "X+= const" (2)
+}
+
+
+/***************************************************/
+
+void test3559()
+{
+    static class A
+    {
+        int foo(int a)   { return 0; }
+        int foo(float a) { return 1; }
+
+        int bar(float a) { return 1; }
+        int bar(int a) { return 0; }
+    }
+
+    static class B : A
+    {
+        int foo(float a) { return 2; }
+        alias A.foo foo;
+
+        alias A.bar bar;
+        int bar(float a) { return 2; }
+    }
+
+    {
+        auto x = new A;
+        auto f1 = cast(int delegate(int))&x.foo;
+        auto f2 = cast(int delegate(float))&x.foo;
+        int delegate(int) f3 = &x.foo;
+        int delegate(float) f4 = &x.foo;
+
+        assert(f1(0) == 0);
+        assert(f2(0) == 1);
+        assert(f3(0) == 0);
+        assert(f4(0) == 1);
+    }
+
+    {
+        auto x = new B;
+        auto f1 = cast(int delegate(int))&x.foo;
+        auto f2 = cast(int delegate(float))&x.foo;
+        int delegate(int) f3 = &x.foo;
+        int delegate(float) f4 = &x.foo;
+
+        assert(f1(0) == 0);
+        assert(f2(0) == 2);
+        assert(f3(0) == 0);
+        assert(f4(0) == 2);
+    }
+
+    {
+        auto x = new A;
+        auto f1 = cast(int delegate(int))&x.bar;
+        auto f2 = cast(int delegate(float))&x.bar;
+        int delegate(int) f3 = &x.bar;
+        int delegate(float) f4 = &x.bar;
+
+        assert(f1(0) == 0);
+        assert(f2(0) == 1);
+        assert(f3(0) == 0);
+        assert(f4(0) == 1);
+    }
+
+    {
+        auto x = new B;
+        auto f1 = cast(int delegate(int))&x.bar;
+        auto f2 = cast(int delegate(float))&x.bar;
+        int delegate(int) f3 = &x.bar;
+        int delegate(float) f4 = &x.bar;
+
+        assert(f1(0) == 0);
+        assert(f2(0) == 2);
+        assert(f3(0) == 0);
+        assert(f4(0) == 2);
+    }
 }
 
 
@@ -3436,6 +3525,17 @@ void test6228()
     const(int)  temp;
     auto x = (*ptr) ^^ temp;
 }
+
+/***************************************************/
+
+int test7544()
+{
+    try { throw new Exception(""); }
+    catch (Exception e) static assert(1);
+    return 1;
+}
+
+static assert(test7544());
 
 /***************************************************/
 
@@ -4604,11 +4704,13 @@ int main()
     test81();
     test82();
     test83();
+    test3559();
     test84();
     test85();
     test86();
     test87();
     test88();
+    test7545();
     test89();
     test90();
     test91();

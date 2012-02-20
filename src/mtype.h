@@ -612,6 +612,7 @@ struct TypeFunction : TypeNext
     enum LINK linkage;  // calling convention
     enum TRUST trust;   // level of trust
     enum PURE purity;   // PURExxxx
+    bool iswild;        // is inout function
     Expressions *fargs; // function arguments
 
     int inuse;
@@ -981,6 +982,7 @@ struct Parameter : Object
 extern int PTRSIZE;
 extern int REALSIZE;
 extern int REALPAD;
+extern int REALALIGNSIZE;
 extern int Tsize_t;
 extern int Tptrdiff_t;
 

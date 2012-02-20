@@ -152,10 +152,10 @@ typedef char dchar;
 struct Dchar
 {
     static dchar *inc(dchar *p) { return p + 1; }
-    static dchar *dec(dchar *pstart, dchar *p) { return p - 1; }
+    static dchar *dec(dchar *pstart, dchar *p) { (void)pstart; return p - 1; }
     static int len(const dchar *p) { return strlen(p); }
     static int get(dchar *p) { return *p & 0xFF; }
-    static int getprev(dchar *pstart, dchar *p) { return p[-1] & 0xFF; }
+    static int getprev(dchar *pstart, dchar *p) { (void)pstart; return p[-1] & 0xFF; }
     static dchar *put(dchar *p, unsigned c) { *p = c; return p + 1; }
     static int cmp(dchar *s1, dchar *s2) { return strcmp(s1, s2); }
     static int memcmp(const dchar *s1, const dchar *s2, int nchars) { return ::memcmp(s1, s2, nchars); }

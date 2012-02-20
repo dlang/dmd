@@ -1450,7 +1450,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb)
+    if (tb != typeb || hasOverloads)
     {
         // Look for delegates to functions where the functions are overloaded.
         FuncDeclaration *f;
@@ -1655,6 +1655,7 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
 #endif
     assert(t2);
 
+Lagain:
     Type *t1b = t1->toBasetype();
     Type *t2b = t2->toBasetype();
 
@@ -1694,7 +1695,6 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     t1 = t1b;
     t2 = t2b;
 
-Lagain:
     if (t1 == t2)
     {
     }

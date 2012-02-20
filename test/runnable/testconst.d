@@ -1268,7 +1268,7 @@ void test79()
 
 /************************************/
 
-inout(int) test80(inout(int) _ = 0)
+void test80(inout(int) _ = 0)
 {
     char x;
     inout(char) y = x;
@@ -1321,13 +1321,11 @@ inout(int) test80(inout(int) _ = 0)
     static assert(!__traits(compiles, sw = sc));
     static assert(!__traits(compiles, sw = w));
     sw = sw;
-
-    return 0;
 }
 
 /************************************/
 
-inout(int) test81(inout(int) _ = 0)
+void test81(inout(int) _ = 0)
 {
     const(char)* c;
     immutable(char)* i;
@@ -1364,14 +1362,12 @@ inout(int) test81(inout(int) _ = 0)
     static assert(!__traits(compiles, w = s));
     static assert(!__traits(compiles, w = sc));
     w = w;
-
-    return 0;
 }
 
 /************************************/
 
 
-inout(int) test82(inout(int) _ = 0)
+void test82(inout(int) _ = 0)
 {
     const(immutable(char)*) c;
     pragma(msg, typeof(c));
@@ -1465,20 +1461,16 @@ inout(int) test82(inout(int) _ = 0)
     static assert(typeof(s).stringof == "inout(shared(char**)***)");
     pragma(msg, typeof(***s));
     static assert(typeof(***s).stringof == "shared(inout(char**))");
-
-    return 0;
 }
 
 /************************************/
 
-inout(int) test83(inout(int) _ = 0)
+void test83(inout(int) _ = 0)
 {
-    static assert(!__traits(compiles, typeid(int* function(inout int))));
+    static assert( __traits(compiles, typeid(int* function(inout int))));
     static assert(!__traits(compiles, typeid(inout(int*) function(int))));
     static assert(!__traits(compiles, typeid(inout(int*) function())));
     inout(int*) function(inout(int)) fp;
-
-    return 0;
 }
 
 /************************************/
@@ -2454,6 +2446,40 @@ void test6940()
 }
 
 /************************************/
+// 7105
+
+void copy(inout(int)** tgt, inout(int)* src){ *tgt = src; }
+
+void test7105()
+{
+    int* pm;
+    int m;
+    copy(&pm, &m);
+    assert(pm == &m);
+
+    const(int)* pc;
+    const(int) c;
+    copy(&pc, &c);
+    assert(pc == &c);
+
+    immutable(int)* pi;
+    immutable(int) i;
+    copy(&pi, &i);
+    assert(pi == &i);
+
+    static assert(!__traits(compiles, copy(&pm, &c)));
+    static assert(!__traits(compiles, copy(&pm, &i)));
+
+    copy(&pc, &m);
+    assert(pc == &m);
+    copy(&pc, &i);
+    assert(pc == &i);
+
+    static assert(!__traits(compiles, copy(&pi, &m)));
+    static assert(!__traits(compiles, copy(&pi, &c)));
+}
+
+/************************************/
 // 7202
 
 void test7202()
@@ -2573,6 +2599,7 @@ int main()
     test6912();
     test6939();
     test6940();
+    test7105();
     test7202();
 
     printf("Success\n");

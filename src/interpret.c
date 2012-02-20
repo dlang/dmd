@@ -1475,25 +1475,25 @@ Expression *TryCatchStatement::interpret(InterState *istate)
     ThrownExceptionExp *ex = (ThrownExceptionExp *)e;
     Type *extype = ex->thrown->originalClass()->type;
     // Search for an appropriate catch clause.
-        for (size_t i = 0; i < catches->dim; i++)
-        {
+    for (size_t i = 0; i < catches->dim; i++)
+    {
 #if DMDV1
-            Catch *ca = (Catch *)catches->data[i];
+        Catch *ca = (Catch *)catches->data[i];
 #else
-            Catch *ca = catches->tdata()[i];
+        Catch *ca = catches->tdata()[i];
 #endif
-            Type *catype = ca->type;
+        Type *catype = ca->type;
 
-            if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
-            {   // Execute the handler
+        if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
+        {   // Execute the handler
             if (ca->var)
             {
                 ctfeStack.push(ca->var);
                 ca->var->setValue(ex->thrown);
             }
-            return ca->handler->interpret(istate);
-            }
+            return ca->handler ? ca->handler->interpret(istate) : NULL;
         }
+    }
     return e;
 }
 

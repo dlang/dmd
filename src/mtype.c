@@ -81,6 +81,10 @@ int REALALIGNSIZE = 4;
 int REALSIZE = 10;
 int REALPAD = 0;
 int REALALIGNSIZE = 2;
+#elif IN_GCC
+int REALSIZE = 0;
+int REALPAD = 0;
+int REALALIGNSIZE = 0;
 #else
 #error "fix this"
 #endif
@@ -4865,6 +4869,7 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     this->purity = PUREimpure;
     this->isproperty = false;
     this->isref = false;
+    this->iswild = false;
     this->fargs = NULL;
 
     if (stc & STCpure)
@@ -5337,13 +5342,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     /* If the parent is @safe, then this function defaults to safe
      * too.
+     * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
+     * to be inferred first.
      */
     if (tf->trust == TRUSTdefault)
         for (Dsymbol *p = sc->func; p; p = p->toParent2())
         {   FuncDeclaration *fd = p->isFuncDeclaration();
             if (fd)
             {
-                if (fd->isSafe())
+                if (fd->isSafeBypassingInference())
                     tf->trust = TRUSTsafe;              // default to @safe
                 break;
             }
@@ -5380,7 +5387,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     }
 
     bool wildparams = FALSE;
-    bool wildsubparams = FALSE;
     if (tf->parameters)
     {
         /* Create a scope for evaluating the default arguments for the parameters
@@ -5422,11 +5428,9 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
             {
                 wildparams = TRUE;
-                if (tf->next && !wildreturn)
-                    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
+                //if (tf->next && !wildreturn)
+                //    error(loc, "inout on parameter means inout must be on return type as well (if from D1 code, replace with 'ref')");
             }
-            else if (!wildsubparams && t->hasWild())
-                wildsubparams = TRUE;
 
             if (fparam->defaultArg)
             {
@@ -5493,8 +5497,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
     if (wildreturn && !wildparams)
         error(loc, "inout on return means inout must be on a parameter as well for %s", toChars());
-    if (wildsubparams && wildparams)
-        error(loc, "inout must be all or none on top level for %s", toChars());
+    tf->iswild = wildparams;
 
     if (tf->next)
         tf->deco = tf->merge()->deco;
@@ -8270,7 +8273,7 @@ L1:
         return e;
     }
 
-    DotVarExp *de = new DotVarExp(e->loc, e, d);
+    DotVarExp *de = new DotVarExp(e->loc, e, d, d->hasOverloads());
     return de->semantic(sc);
 }
 
