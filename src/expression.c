@@ -2690,6 +2690,7 @@ Lagain:
     if (em)
     {
         e = em->value;
+        e->loc = loc;
         e = e->semantic(sc);
         return e;
     }
