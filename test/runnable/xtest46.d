@@ -1729,6 +1729,27 @@ void test90( )
 
 /***************************************************/
 
+struct A7439(int r, int c)
+{
+    alias r R;
+    alias c C;
+    alias float[R * C] Data;
+    Data _data;
+    alias _data this;
+
+    this(Data ar){ _data = ar; }
+
+    pure ref float opIndex(size_t rr, size_t cc){ return _data[cc + rr * C]; }
+}
+
+void test7439()
+{
+    A7439!(2, 2) a = A7439!(2, 2)([8, 3, 2, 9]);
+    a[0,0] -= a[0,0] * 2.0;
+}
+
+/***************************************************/
+
 void foo91(uint line = __LINE__) { printf("%d\n", line); }
 
 void test91()
