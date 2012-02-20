@@ -8175,7 +8175,7 @@ Expression *AddrExp::semantic(Scope *sc)
                      * mark here that we took its address because castTo()
                      * may not be called with an exact match.
                      */
-                    f->toParent2()->isFuncDeclaration())
+                    f->isNested())
                     f->tookAddressOf++;
                 if (f->isNested())
                 {
