@@ -4039,6 +4039,11 @@ PTRNTAB2 aptb2PMULDQ[] = /* PMULDQ */ {
         { ASM_END }
 };
 
+PTRNTAB3 aptb3VPMULDQ[] = /* VPMULDQ */ {
+        { VEX_NDS_128_WIG(PMULDQ), _r, _xmm, _xmm, _xmm_m128 },
+        { ASM_END }
+};
+
 PTRNTAB2 aptb2PMULLD[] = /* PMULLD */ {
         { PMULLD, _r, _xmm, _xmm_m128 },
         { ASM_END }
@@ -5573,6 +5578,7 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         X("vpmovzxdq",      2,              (P) aptb2VPMOVZXDQ )            \
         X("vpmovzxwd",      2,              (P) aptb2VPMOVZXWD )            \
         X("vpmovzxwq",      2,              (P) aptb2VPMOVZXWQ )            \
+        X("vpmuldq",        3,              (P) aptb3VPMULDQ )              \
         X("vpmulhrsw",      3,              (P) aptb3VPMULHRSW )            \
         X("vpmulhuw",       3,              (P) aptb3VPMULHUW )             \
         X("vpmulhw",        3,              (P) aptb3VPMULHW )              \

@@ -4934,6 +4934,7 @@ void test61()
         0xC4, 0xE2, 0x79, 0x40, 0xC0,             // vpmulld XMM0, XMM0, XMM0;
         0xC5, 0xF9, 0xD5, 0xC0,                   // vpmullw XMM0, XMM0, XMM0;
         0xC5, 0xF9, 0xF4, 0xC0,                   // vpmuludq XMM0, XMM0, XMM0;
+        0xC4, 0xE2, 0x79, 0x28, 0xC0,             // vpmuldq XMM0, XMM0, XMM0;
 
         0xC5, 0xF9, 0xF6, 0xC0,                   // vpsadbw XMM0, XMM0, XMM0;
         0xC4, 0xE2, 0x79, 0x08, 0xC0,             // vpsignb XMM0, XMM0, XMM0;
@@ -5722,6 +5723,7 @@ void test61()
         vpmulld XMM0, XMM0, XMM0;
         vpmullw XMM0, XMM0, XMM0;
         vpmuludq XMM0, XMM0, XMM0;
+        vpmuldq XMM0, XMM0, XMM0;
 
         vpsadbw XMM0, XMM0, XMM0;
         vpsignb XMM0, XMM0, XMM0;
