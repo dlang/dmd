@@ -8993,6 +8993,8 @@ MulAssignExp::MulAssignExp(Loc loc, Expression *e1, Expression *e2)
 Expression *MulAssignExp::semantic(Scope *sc)
 {   Expression *e;
 
+    if (type)
+        return this;
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
 
@@ -9068,6 +9070,8 @@ DivAssignExp::DivAssignExp(Loc loc, Expression *e1, Expression *e2)
 Expression *DivAssignExp::semantic(Scope *sc)
 {   Expression *e;
 
+    if (type)
+        return this;
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
 
@@ -9144,6 +9148,8 @@ ModAssignExp::ModAssignExp(Loc loc, Expression *e1, Expression *e2)
 
 Expression *ModAssignExp::semantic(Scope *sc)
 {
+    if (type)
+        return this;
     BinExp::semantic(sc);
     checkComplexMulAssign();
     return commonSemanticAssign(sc);
@@ -9160,6 +9166,8 @@ Expression *ShlAssignExp::semantic(Scope *sc)
 {   Expression *e;
 
     //printf("ShlAssignExp::semantic()\n");
+    if (type)
+        return this;
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
 
@@ -9188,6 +9196,8 @@ ShrAssignExp::ShrAssignExp(Loc loc, Expression *e1, Expression *e2)
 Expression *ShrAssignExp::semantic(Scope *sc)
 {   Expression *e;
 
+    if (type)
+        return this;
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
 
@@ -9216,6 +9226,8 @@ UshrAssignExp::UshrAssignExp(Loc loc, Expression *e1, Expression *e2)
 Expression *UshrAssignExp::semantic(Scope *sc)
 {   Expression *e;
 
+    if (type)
+        return this;
     BinExp::semantic(sc);
     e2 = resolveProperties(sc, e2);
 
