@@ -143,7 +143,11 @@ public:
     }
     void saveGlobalConstant(VarDeclaration *v, Expression *e)
     {
-        assert(v->isDataseg() && !v->isCTFE());
+#if DMDV2
+        assert( v->init && (v->isConst() || v->isImmutable()) && !v->isCTFE());
+#else
+        assert( v->init && v->isConst() && !v->isCTFE());
+#endif
         v->ctfeAdrOnStack = globalValues.dim;
         globalValues.push(e);
     }
@@ -1903,10 +1907,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             if (e && e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
             {
                 e = copyLiteral(e);
-                if (v->isDataseg())
-                    ctfeStack.saveGlobalConstant(v, e);
-                else
-                    v->setValueWithoutChecking(e);
+                ctfeStack.saveGlobalConstant(v, e);
             }
         }
         else if (v->isCTFE() && !v->hasValue())
