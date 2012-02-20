@@ -4068,3 +4068,16 @@ template bar7197(y...) {
 }
 enum int bug7197 = 7;
 static assert(bar7197!(bug7197));
+
+/**************************************************
+    7536
+**************************************************/
+
+bool bug7536(string expr) {
+    return true;
+}
+
+void vop() {
+    const string x7536 = "x";
+    static assert(bug7536(x7536));
+}
