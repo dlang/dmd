@@ -4949,7 +4949,7 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
         Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, e2);
         if (ex == EXP_CANT_INTERPRET)
         {
-            error("cannot evaluate %s==%s at compile time",
+            e2->error("cannot evaluate %s==%s at compile time",
                 ekey->toChars(), e2->toChars());
             return ex;
         }
@@ -6017,7 +6017,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     else if (str->op == TOKarrayliteral)
         ale = (ArrayLiteralExp *)str;
     else
-    {   error("CTFE internal error: cannot foreach %s", str->toChars());
+    {   str->error("CTFE internal error: cannot foreach %s", str->toChars());
         return EXP_CANT_INTERPRET;
     }
     Expressions args;

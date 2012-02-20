@@ -203,7 +203,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
                 {
                     if (sc1->scopesym == ti1)
                     {
-                        error("recursive template expansion for template argument %s", t1->toChars());
+                        tempdecl->error("recursive template expansion for template argument %s", t1->toChars());
                         return 1;       // fake a match
                     }
                 }

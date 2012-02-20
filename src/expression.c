@@ -506,7 +506,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
         e = resolveProperties(sc, e);
         if (!e->type)
-        {   error("%s has no value", e->toChars());
+        {   e->error("%s has no value", e->toChars());
             e = new ErrorExp();
         }
 
