@@ -867,6 +867,7 @@ struct DotTemplateInstanceExp : UnaExp
 struct DelegateExp : UnaExp
 {
     FuncDeclaration *func;
+    int hasOverloads;
 
     DelegateExp(Loc loc, Expression *e, FuncDeclaration *func);
     Expression *semantic(Scope *sc);

@@ -6407,6 +6407,7 @@ DelegateExp::DelegateExp(Loc loc, Expression *e, FuncDeclaration *f)
         : UnaExp(loc, TOKdelegate, sizeof(DelegateExp), e)
 {
     this->func = f;
+    this->hasOverloads = 0;
 }
 
 Expression *DelegateExp::semantic(Scope *sc)

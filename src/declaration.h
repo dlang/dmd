@@ -636,6 +636,7 @@ struct FuncDeclaration : Declaration
     int isAbstract();
     int isCodeseg();
     int isOverloadable();
+    int hasOverloads();
     int isPure();
     int isSafe();
     int isTrusted();

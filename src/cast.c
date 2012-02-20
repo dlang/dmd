@@ -1166,17 +1166,16 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
 
 Expression *DelegateExp::castTo(Scope *sc, Type *t)
 {
-    Type *tb;
 #if 0
     printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    Expression *e = this;
     static char msg[] = "cannot form delegate due to covariant return type";
 
-    tb = t->toBasetype();
+    Expression *e = this;
+    Type *tb = t->toBasetype();
     type = type->toBasetype();
-    if (tb != type)
+    if (tb != type || hasOverloads)
     {
         // Look for delegates to functions where the functions are overloaded.
         FuncDeclaration *f;
