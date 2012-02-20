@@ -7736,7 +7736,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
                 e = vd->init->toExpression();
         }
         else
-            e = vd->type->defaultInitLiteral();
+            e = vd->type->defaultInitLiteral(loc);
         structelems->tdata()[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
