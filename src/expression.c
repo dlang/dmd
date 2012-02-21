@@ -3587,8 +3587,9 @@ Expression *ScopeExp::semantic(Scope *sc)
 #endif
 Lagain:
     ti = sds->isTemplateInstance();
-    if (ti && !global.errors)
+    if (ti && !ti->errors)
     {
+        unsigned olderrs = global.errors;
         if (!ti->semanticRun)
             ti->semantic(sc);
         if (ti->inst)
@@ -3618,7 +3619,7 @@ Lagain:
             }
             //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         }
-        if (global.errors)
+        if (olderrs != global.errors)
             return new ErrorExp();
     }
     else
@@ -6195,8 +6196,8 @@ L1:
         return e;
     if (e->op == TOKdottd)
     {
-        if (global.errors)
-            return new ErrorExp();      // TemplateInstance::semantic() will fail anyway
+        if (ti->errors)
+            return new ErrorExp();
         DotTemplateExp *dte = (DotTemplateExp *)e;
         TemplateDeclaration *td = dte->td;
         eleft = dte->e1;
@@ -6204,8 +6205,8 @@ L1:
 #if DMDV2
         if (ti->needsTypeInference(sc))
         {
-            e = new CallExp(loc, this);
-            return e->semantic(sc);
+            e1 = eleft;                 // save result of semantic()
+            return this;
         }
         else
 #endif
