@@ -2505,7 +2505,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
             e->type = p->type;
         }
         else
-            e = p->type->defaultInitLiteral();
+            e = p->type->defaultInit();
         args.tdata()[u] = e;
     }
 
