@@ -3384,6 +3384,26 @@ ref func2521_7() {
 }
 
 /***************************************************/
+
+void test5554()
+{
+    class MA { }
+    class MB : MA { }
+    class MC : MB { }
+
+    class A { abstract MA foo(); }
+    interface I { MB foo(); }
+    class B : A
+    {
+        MC foo() { return null; }
+    }
+    class C : B, I
+    {
+        override MC foo() { return null; }
+    }
+}
+
+/***************************************************/
 // 5962
 
 struct S156
@@ -4730,6 +4750,7 @@ int main()
     test85();
     test86();
     test87();
+    test5554();
     test88();
     test7545();
     test89();
