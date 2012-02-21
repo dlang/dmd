@@ -2617,13 +2617,13 @@ Expression *Expression::integralPromotions(Scope *sc)
 
 /***********************************
  * See if both types are arrays that can be compared
- * for equality. Return !=0 if so.
+ * for equality. Return true if so.
  * If they are arrays, but incompatible, issue error.
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
 
-int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
+bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
 {
     t1 = t1->toBasetype();
     t2 = t2->toBasetype();
@@ -2637,9 +2637,9 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
         {
             error(loc, "array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
         }
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 /***********************************
@@ -2648,7 +2648,7 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
+bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
 {
     t1 = t1->toBasetype();
     t2 = t2->toBasetype();
@@ -2658,9 +2658,9 @@ int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
     {
         if (t1->nextOf()->implicitConvTo(t2->nextOf()) >= MATCHconst ||
             t2->nextOf()->implicitConvTo(t1->nextOf()) >= MATCHconst)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 

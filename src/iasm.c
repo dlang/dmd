@@ -2194,25 +2194,25 @@ STATIC opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
 /*******************************
  */
 
-STATIC int asm_isint(OPND *o)
+static bool asm_isint(OPND *o)
 {
     if (!o || o->base || o->s)
-        return 0;
+        return false;
     //return o->disp != 0;
-    return 1;
+    return true;
 }
 
-STATIC int asm_isNonZeroInt(OPND *o)
+static bool asm_isNonZeroInt(OPND *o)
 {
     if (!o || o->base || o->s)
-        return 0;
+        return false;
     return o->disp != 0;
 }
 
 /*******************************
  */
 
-STATIC int asm_is_fpreg(char *szReg)
+static bool asm_is_fpreg(char *szReg)
 {
 #if 1
         return(szReg[2] == '\0' && szReg[0] == 'S' &&

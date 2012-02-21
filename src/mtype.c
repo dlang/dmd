@@ -1382,10 +1382,10 @@ bool MODimplicitConv(unsigned char modfrom, unsigned char modto)
 /***************************
  * Return !=0 if a method of type '() modfrom' can call a method of type '() modto'.
  */
-int MODmethodConv(unsigned char modfrom, unsigned char modto)
+bool MODmethodConv(unsigned char modfrom, unsigned char modto)
 {
     if (MODimplicitConv(modfrom, modto))
-        return 1;
+        return true;
 
     #define X(m, n) (((m) << 4) | (n))
     switch (X(modfrom, modto))
@@ -1396,10 +1396,10 @@ int MODmethodConv(unsigned char modfrom, unsigned char modto)
         case X(MODshared, MODshared|MODwild):
         case X(MODshared|MODimmutable, MODshared|MODwild):
         case X(MODshared|MODconst, MODshared|MODwild):
-            return 1;
+            return true;
 
         default:
-            return 0;
+            return false;
     }
     #undef X
 }

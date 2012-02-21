@@ -32,7 +32,7 @@
 /* Code to do access checks
  */
 
-int hasPackageAccess(Scope *sc, Dsymbol *s);
+static bool hasPackageAccess(Scope* sc, Dsymbol* s);
 
 /****************************************
  * Return PROT access for Dsymbol smember in this declaration.
@@ -284,7 +284,7 @@ bool AggregateDeclaration::isFriendOf(AggregateDeclaration *cd)
  * Determine if scope sc has package level access to s.
  */
 
-int hasPackageAccess(Scope *sc, Dsymbol *s)
+static bool hasPackageAccess(Scope* sc, Dsymbol* s)
 {
 #if LOG
     printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
@@ -305,14 +305,14 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
 #if LOG
         printf("\ts is in same package as sc\n");
 #endif
-        return 1;
+        return true;
     }
 
 
 #if LOG
     printf("\tno package access\n");
 #endif
-    return 0;
+    return false;
 }
 
 /**********************************

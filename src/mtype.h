@@ -1060,12 +1060,12 @@ extern int REALALIGNSIZE;
 extern int Tsize_t;
 extern int Tptrdiff_t;
 
-int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
-int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
+bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, unsigned char mod);
 char *MODtoChars(unsigned char mod);
 bool MODimplicitConv(unsigned char modfrom, unsigned char modto);
-int MODmethodConv(unsigned char modfrom, unsigned char modto);
+bool MODmethodConv(unsigned char modfrom, unsigned char modto);
 int MODmerge(unsigned char mod1, unsigned char mod2);
 void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs);
 
