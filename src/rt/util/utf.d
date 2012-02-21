@@ -757,7 +757,7 @@ wptr toUTF16z(in char[] s)
             encode(r, c);
         }
     }
-    r ~= "\000";
+    r ~= '\000';
     return r.ptr;
 }
 
