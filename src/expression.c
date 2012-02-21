@@ -6898,8 +6898,8 @@ L1:
         return e;
     if (e->op == TOKdottd)
     {
-        if (global.errors)
-            return new ErrorExp();      // TemplateInstance::semantic() will fail anyway
+        if (ti->errors)
+            return new ErrorExp();
         DotTemplateExp *dte = (DotTemplateExp *)e;
         TemplateDeclaration *td = dte->td;
         eleft = dte->e1;
