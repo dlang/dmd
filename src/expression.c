@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -2185,6 +2185,7 @@ Lagain:
     if (em)
     {
         e = em->value->copy();
+        e->loc = loc;
         e = e->semantic(sc);
         return e;
     }
@@ -2197,8 +2198,8 @@ Lagain:
                 v->semantic(v->scope);
             type = v->type;
             if (!v->type)
-            {   error("forward reference of %s", v->toChars());
-                type = Type::terror;
+            {   error("forward reference of %s %s", v->kind(), v->toChars());
+                return new ErrorExp();
             }
         }
         if (v->isConst() && type->toBasetype()->ty != Tsarray)
@@ -2208,8 +2209,7 @@ Lagain:
                 if (v->inuse)
                 {
                     error("circular reference to '%s'", v->toChars());
-                    type = Type::tint32;
-                    return this;
+                    return new ErrorExp();
                 }
                 ExpInitializer *ei = v->init->isExpInitializer();
                 if (ei)
