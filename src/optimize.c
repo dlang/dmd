@@ -572,7 +572,11 @@ Expression *CastExp::optimize(int result)
 #define X 0
 
     Expression *e1old = e1;
+    unsigned olderrs = global.errors;
     e1 = e1->optimize(result);
+    if (olderrs != global.errors) // Suppress duplicate error messages
+        return this;
+
     e1 = fromConstInitializer(result, e1);
 
     if (e1 == e1old &&
@@ -950,9 +954,13 @@ Expression *EqualExp::optimize(int result)
 {   Expression *e;
 
     //printf("EqualExp::optimize(result = %x) %s\n", result, toChars());
+    unsigned olderrs = global.errors;
     e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
     e = this;
+
+    if (olderrs != global.errors) // Suppress duplicate error messages
+        return this;
 
     Expression *e1 = fromConstInitializer(result, this->e1);
     Expression *e2 = fromConstInitializer(result, this->e2);
@@ -1008,9 +1016,13 @@ Expression *IndexExp::optimize(int result)
 {   Expression *e;
 
     //printf("IndexExp::optimize(result = %d) %s\n", result, toChars());
+    unsigned olderrs = global.errors;
     Expression *e1 = this->e1->optimize(
         WANTvalue | (result & (WANTinterpret| WANTexpand)));
-    e1 = fromConstInitializer(result, e1);
+
+    if (olderrs == global.errors) // Suppress duplicate error messages
+        e1 = fromConstInitializer(result, e1);
+
     if (this->e1->op == TOKvar)
     {   VarExp *ve = (VarExp *)this->e1;
         if (ve->var->storage_class & STCmanifest)
@@ -1036,6 +1048,7 @@ Expression *SliceExp::optimize(int result)
 
     //printf("SliceExp::optimize(result = %d) %s\n", result, toChars());
     e = this;
+    unsigned olderrs = global.errors;
     e1 = e1->optimize(WANTvalue | (result & (WANTinterpret|WANTexpand)));
     if (!lwr)
     {   if (e1->op == TOKstring)
@@ -1046,7 +1059,8 @@ Expression *SliceExp::optimize(int result)
         }
         return e;
     }
-    e1 = fromConstInitializer(result, e1);
+    if (olderrs == global.errors) // Suppress duplicate error messages
+        e1 = fromConstInitializer(result, e1);
     // We might know $ now
     setLengthVarIfKnown(lengthVar, e1);
     lwr = lwr->optimize(WANTvalue | (result & WANTinterpret));
@@ -1138,8 +1152,12 @@ Expression *CmpExp::optimize(int result)
 {   Expression *e;
 
     //printf("CmpExp::optimize() %s\n", toChars());
+    unsigned olderrs = global.errors;
     e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
+
+    if (olderrs != global.errors) // Suppress duplicate error messages
+        return this;
 
     Expression *e1 = fromConstInitializer(result, this->e1);
     Expression *e2 = fromConstInitializer(result, this->e2);
