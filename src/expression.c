@@ -3944,19 +3944,6 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     return -1;
 }
 
-#if DMDV2
-int StructLiteralExp::isLvalue()
-{
-    return 1;
-}
-#endif
-
-Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
-{
-    return this;
-}
-
-
 void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(sd->toChars());
@@ -8017,11 +8004,14 @@ Lcheckargs:
 #if DMDV2
 int CallExp::isLvalue()
 {
-//    if (type->toBasetype()->ty == Tstruct)
-//      return 1;
     Type *tb = e1->type->toBasetype();
     if (tb->ty == Tfunction && ((TypeFunction *)tb)->isref)
+    {
+        if (e1->op == TOKdotvar)
+            if (((DotVarExp *)e1)->var->isCtorDeclaration())
+                return 0;
         return 1;               // function returns a reference
+    }
     return 0;
 }
 #endif
