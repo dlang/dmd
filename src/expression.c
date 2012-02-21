@@ -4055,8 +4055,9 @@ Expression *ScopeExp::semantic(Scope *sc)
 #endif
 Lagain:
     ti = sds->isTemplateInstance();
-    if (ti && !global.errors)
+    if (ti && !ti->errors)
     {
+        unsigned olderrs = global.errors;
         if (!ti->semanticRun)
             ti->semantic(sc);
         if (ti->inst)
@@ -4086,7 +4087,7 @@ Lagain:
             }
             //printf("sds = %s, '%s'\n", sds->kind(), sds->toChars());
         }
-        if (global.errors)
+        if (olderrs != global.errors)
             return new ErrorExp();
     }
     else
