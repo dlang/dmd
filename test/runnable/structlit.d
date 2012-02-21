@@ -367,6 +367,63 @@ void test5885()
 }
 
 /********************************************/
+// 5889
+
+struct S5889a { int n; }
+struct S5889b { this(int n){} }
+
+bool isLvalue(S)(auto ref S s){ return __traits(isRef, s); }
+
+int foo(ref S5889a s) { return 1; }
+int foo(    S5889a s) { return 2; }
+int foo(ref S5889b s) { return 1; }
+int foo(    S5889b s) { return 2; }
+
+int goo(ref const(S5889a) s) { return 1; }
+int goo(    const(S5889a) s) { return 2; }
+int goo(ref const(S5889b) s) { return 1; }
+int goo(    const(S5889b) s) { return 2; }
+
+int too(S)(ref S s) { return 1; }
+int too(S)(    S s) { return 2; }
+
+S makeRvalue(S)(){ S s; return s; }
+
+void test5889()
+{
+    S5889a sa;
+    S5889b sb;
+
+    assert( isLvalue(sa));
+    assert( isLvalue(sb));
+    assert(!isLvalue(S5889a(0)));
+    assert(!isLvalue(S5889b(0)));
+    assert(!isLvalue(makeRvalue!S5889a()));
+    assert(!isLvalue(makeRvalue!S5889b()));
+
+    assert(foo(sa) == 1);
+    assert(foo(sb) == 1);
+    assert(foo(S5889a(0)) == 2);
+    assert(foo(S5889b(0)) == 2);
+    assert(foo(makeRvalue!S5889a()) == 2);
+    assert(foo(makeRvalue!S5889b()) == 2);
+
+    assert(goo(sa) == 1);
+    assert(goo(sb) == 1);
+    assert(goo(S5889a(0)) == 2);
+    assert(goo(S5889b(0)) == 2);
+    assert(goo(makeRvalue!S5889a()) == 2);
+    assert(goo(makeRvalue!S5889b()) == 2);
+
+    assert(too(sa) == 1);
+    assert(too(sb) == 1);
+    assert(too(S5889a(0)) == 2);
+    assert(too(S5889b(0)) == 2);
+    assert(too(makeRvalue!S5889a()) == 2);
+    assert(too(makeRvalue!S5889b()) == 2);
+}
+
+/********************************************/
 
 int main()
 {
@@ -385,6 +442,7 @@ int main()
     test13();
     test3198and1914();
     test5885();
+    test5889();
 
     printf("Success\n");
     return 0;
