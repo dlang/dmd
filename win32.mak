@@ -8,6 +8,7 @@ IMPDIR=import
 
 DFLAGS=-O -release -inline -nofloat -w -d -Isrc -Iimport -property
 UDFLAGS=-O -release -nofloat -w -d -Isrc -Iimport -property
+DDOCFLAGS=-c -w -d -o- -Isrc -Iimport
 
 CFLAGS=
 
@@ -474,64 +475,64 @@ IMPORTS=\
 doc: $(DOCS)
 
 $(DOCDIR)\object.html : src\object_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_atomic.html : src\core\atomic.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_bitop.html : src\core\bitop.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_cpuid.html : src\core\cpuid.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_demangle.html : src\core\demangle.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_exception.html : src\core\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_math.html : src\core\math.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_memory.html : src\core\memory.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_runtime.html : src\core\runtime.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_simd.html : src\core\simd.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_thread.html : src\core\thread.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_time.html : src\core\time.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_vararg.html : src\core\vararg.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_sync_barrier.html : src\core\sync\barrier.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_sync_condition.html : src\core\sync\condition.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_sync_config.html : src\core\sync\config.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_sync_exception.html : src\core\sync\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_sync_mutex.html : src\core\sync\mutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_sync_rwmutex.html : src\core\sync\rwmutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Df$@ $(DOCFMT) $**
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 ######################## Header .di file generation ##############################
 
