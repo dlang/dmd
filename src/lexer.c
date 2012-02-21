@@ -1224,9 +1224,21 @@ void Lexer::scan(Token *t)
 #undef DOUBLE
 
             case '#':
+            {
                 p++;
-                pragma();
-                continue;
+                Token *n = peek(&token);
+                if (n->value == TOKidentifier && n->ident == Id::line)
+                {
+                    nextToken();
+                    poundLine();
+                    continue;
+                }
+                else
+                {
+                    t->value = TOKpound;
+                    return;
+                }
+            }
 
             default:
             {   unsigned c = *p;
@@ -2562,21 +2574,16 @@ done:
 }
 
 /*********************************************
- * Do pragma.
- * Currently, the only pragma supported is:
+ * parse:
  *      #line linnum [filespec]
  */
 
-void Lexer::pragma()
+void Lexer::poundLine()
 {
     Token tok;
     int linnum;
     char *filespec = NULL;
     Loc loc = this->loc;
-
-    scan(&tok);
-    if (tok.value != TOKidentifier || tok.ident != Id::line)
-        goto Lerr;
 
     scan(&tok);
     if (tok.value == TOKint32v || tok.value == TOKint64v)
@@ -3160,6 +3167,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKpow]              = "^^";
     Token::tochars[TOKpowass]           = "^^=";
     Token::tochars[TOKgoesto]           = "=>";
+    Token::tochars[TOKpound]            = "#";
 #endif
 
      // For debugging

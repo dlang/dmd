@@ -170,6 +170,7 @@ enum TOK
         TOKpowass,
         TOKgoesto,
         TOKvector,
+        TOKpound,
 #endif
 
         TOKMAX
@@ -305,7 +306,7 @@ struct Lexer
     void error(const char *format, ...);
     void error(Loc loc, const char *format, ...);
     void verror(Loc loc, const char *format, va_list ap);
-    void pragma();
+    void poundLine();
     unsigned decodeUTF();
     void getDocComment(Token *t, unsigned lineComment);
 
