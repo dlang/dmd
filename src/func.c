@@ -461,12 +461,20 @@ void FuncDeclaration::semantic(Scope *sc)
                     return;
 
                 default:
-                {   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl.data[vi];
+                {   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl.tdata()[vi];
                     Type *ti = NULL;
 
                     /* Remember which functions this overrides
                      */
                     foverrides.push(fdv);
+
+#if DMDV2
+                    /* Should we really require 'override' when implementing
+                     * an interface function?
+                     */
+                    //if (!isOverride())
+                        //warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+#endif
 
                     if (fdv->tintro)
                         ti = fdv->tintro;
@@ -492,9 +500,14 @@ void FuncDeclaration::semantic(Scope *sc)
                     }
                     if (ti)
                     {
-                        if (tintro && !tintro->equals(ti))
+                        if (tintro)
+                        {
+                            if (!tintro->nextOf()->equals(ti->nextOf()) &&
+                                !tintro->nextOf()->isBaseOf(ti->nextOf(), NULL) &&
+                                !ti->nextOf()->isBaseOf(tintro->nextOf(), NULL))
                         {
                             error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
+                        }
                         }
                         tintro = ti;
                     }
@@ -569,7 +582,7 @@ void FuncDeclaration::semantic(Scope *sc)
         if (f->varargs)
         {
         Lmainerr:
-            error("parameters must be main() or main(char[][] args)");
+            error("parameters must be main() or main(string[] args)");
         }
     }
 
