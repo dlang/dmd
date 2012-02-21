@@ -6,7 +6,10 @@ int #line 10
 x;
 
 static assert(__LINE__ == 12);
-static assert(__FILE__ == "compilable/line.d");
+version(Windows)
+    static assert(__FILE__ == "compilable\\line.d");
+else
+    static assert(__FILE__ == "compilable/line.d");
 
 #line 100 "newfile.d"
 
