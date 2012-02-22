@@ -724,6 +724,22 @@ void test4675()
 }
 
 /**********************************/
+// 5525
+
+template foo5525(T)
+{
+    T foo5525(T t)      { return t; }
+    T foo5525(T t, T u) { return t + u; }
+}
+
+void test5525()
+{
+    alias foo5525!int f;
+    assert(f(1) == 1);
+    assert(f(1, 2) == 3);
+}
+
+/**********************************/
 // 5801
 
 int a5801;
@@ -939,6 +955,7 @@ int main()
     test6994();
     test3467();
     test4413();
+    test5525();
     test5801();
     test10();
     test7037();
