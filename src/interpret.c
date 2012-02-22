@@ -460,7 +460,8 @@ void showCtfeExpr(Expression *e, int level = 0)
  *      arguments  function arguments
  *      thisarg    'this', if a needThis() function, NULL if not.
  *
- * Return result expression if successful, EXP_CANT_INTERPRET if not.
+ * Return result expression if successful, EXP_CANT_INTERPRET if not,
+ * or EXP_VOID_INTERPRET if function returned void.
  */
 
 Expression *FuncDeclaration::interpret(InterState *istate, Expressions *arguments, Expression *thisarg)
@@ -4807,6 +4808,10 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         if (!global.gag)
             showCtfeBackTrace(istate, this, fd);
     }
+    else if (eresult == EXP_VOID_INTERPRET)
+        ;
+    else
+        eresult->loc = loc;
     return eresult;
 }
 
