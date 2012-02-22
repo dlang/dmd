@@ -583,7 +583,7 @@ void dotab()
         case OPu64_128: X("u64_128",    evalu8, cdshtlng);
         case OPs64_128: X("s64_128",    evalu8, cdshtlng);
         case OP128_64:  X("128_64",     el64_32, cdlngsht);
-        case OPmsw:     X("msw",        evalu8, cdmsw);
+        case OPmsw:     X("msw",        elmsw, cdmsw);
 
         case OPd_s64:   X("d_s64",      evalu8, cdcnvt);
         case OPs64_d:   X("s64_d",      evalu8, cdcnvt);

@@ -459,6 +459,7 @@ typedef unsigned        targ_uns;
 #define WCHARSIZE       2       // 2 for WIN32, 4 for linux/OSX/FreeBSD/OpenBSD/Solaris
 #define LONGSIZE        4
 #define LLONGSIZE       8
+#define CENTSIZE        16
 #define FLOATSIZE       4
 #define DOUBLESIZE      8
 #if TARGET_OSX

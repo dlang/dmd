@@ -3854,6 +3854,82 @@ STATIC elem * elshr(elem *e)
 }
 
 /***********************************
+ * Handle OPmsw.
+ */
+
+elem *elmsw(elem *e)
+{
+#if TX86
+    tym_t ty = e->Ety;
+    elem *e1 = e->E1;
+
+    if (OPTIMIZER &&
+        tyintegral(e1->Ety) &&
+        tyintegral(ty) &&
+        tysize(e1->Ety) == LLONGSIZE &&
+        tysize(ty) == LONGSIZE)
+    {
+        // Replace (int)(msw (long)x) with (int)*(&x+4)
+        if (e1->Eoper == OPvar)
+        {
+            e1->EV.sp.Voffset += LONGSIZE;      // address high dword in longlong
+            if (I64)
+                // Cannot independently address high word of register
+                e1->EV.sp.Vsym->Sflags &= ~GTregcand;
+            e1->Ety = ty;
+            e = optelem(e1,TRUE);
+        }
+        // Replace (int)(msw (long)*x) with (int)*(&*x+4)
+        else if (e1->Eoper == OPind)
+        {
+            e1 = el_una(OPind,ty,
+                el_bin(OPadd,e1->E1->Ety,
+                    el_una(OPaddr,e1->E1->Ety,e1),
+                    el_int(TYint,LONGSIZE)));
+            e = optelem(e1,TRUE);
+        }
+        else
+        {
+            e = evalu8(e);
+        }
+    }
+    else if (OPTIMIZER && I64 &&
+        tyintegral(e1->Ety) &&
+        tyintegral(ty) &&
+        tysize(e1->Ety) == CENTSIZE &&
+        tysize(ty) == LLONGSIZE)
+    {
+        // Replace (long)(msw (cent)x) with (long)*(&x+8)
+        if (e1->Eoper == OPvar)
+        {
+            e1->EV.sp.Voffset += LLONGSIZE;      // address high dword in longlong
+            e1->Ety = ty;
+            e = optelem(e1,TRUE);
+        }
+        // Replace (long)(msw (cent)*x) with (long)*(&*x+8)
+        else if (e1->Eoper == OPind)
+        {
+            e1 = el_una(OPind,ty,
+                el_bin(OPadd,e1->E1->Ety,
+                    el_una(OPaddr,e1->E1->Ety,e1),
+                    el_int(TYint,LLONGSIZE)));
+            e = optelem(e1,TRUE);
+        }
+        else
+        {
+            e = evalu8(e);
+        }
+    }
+    else
+    {
+        e = evalu8(e);
+    }
+
+#endif
+    return e;
+}
+
+/***********************************
  * Handle OPpair, OPrpair.
  */
 
