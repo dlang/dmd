@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -782,8 +782,12 @@ struct BinExp : Expression
 
 struct BinAssignExp : BinExp
 {
-    BinAssignExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2);
-    int checkSideEffect(int flag);
+    BinAssignExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2)
+        : BinExp(loc, op, size, e1, e2)
+    {
+    }
+
+    Expression *semantic(Scope *sc);
 };
 
 /****************************************************************/
@@ -1163,10 +1167,10 @@ struct ConstructExp : AssignExp
 };
 
 #define ASSIGNEXP(op)   \
-struct op##AssignExp : BinExp                                   \
+struct op##AssignExp : BinAssignExp                             \
 {                                                               \
     op##AssignExp(Loc loc, Expression *e1, Expression *e2);     \
-    Expression *semantic(Scope *sc);                            \
+    S(Expression *semantic(Scope *sc);)                          \
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);                  \
     X(void buildArrayIdent(OutBuffer *buf, Expressions *arguments);) \
     X(Expression *buildArrayLoop(Parameters *fparams);)         \
@@ -1177,6 +1181,7 @@ struct op##AssignExp : BinExp                                   \
 };
 
 #define X(a) a
+#define S(a) a
 ASSIGNEXP(Add)
 ASSIGNEXP(Min)
 ASSIGNEXP(Mul)
@@ -1185,15 +1190,28 @@ ASSIGNEXP(Mod)
 ASSIGNEXP(And)
 ASSIGNEXP(Or)
 ASSIGNEXP(Xor)
+#undef S
+
+#if DMDV2
+#define S(a) a
+ASSIGNEXP(Pow)
+#undef S
+#endif
+
 #undef X
 
 #define X(a)
+#define S(a)
 
 ASSIGNEXP(Shl)
 ASSIGNEXP(Shr)
 ASSIGNEXP(Ushr)
+#undef S
+
+#define S(a) a
 ASSIGNEXP(Cat)
 
+#undef S
 #undef X
 #undef ASSIGNEXP
 

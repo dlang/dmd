@@ -5428,6 +5428,32 @@ void BinExp::incompatibleTypes()
 
 /************************************************************/
 
+Expression *BinAssignExp::semantic(Scope *sc)
+{   Expression *e;
+
+    //printf("BinAssignExp::semantic()\n");
+    if (type)
+        return this;
+    BinExp::semantic(sc);
+    e2 = resolveProperties(sc, e2);
+
+    e = op_overload(sc);
+    if (e)
+        return e;
+
+    e1 = e1->modifiableLvalue(sc, e1);
+    e1->checkScalar();
+    e1->checkNoBool();
+    type = e1->type;
+    typeCombine(sc);
+    e1->checkIntegral();
+    e2 = e2->checkIntegral();
+    e2 = e2->castTo(sc, Type::tshiftcnt);
+    return this;
+}
+
+/************************************************************/
+
 CompileExp::CompileExp(Loc loc, Expression *e)
         : UnaExp(loc, TOKmixin, sizeof(CompileExp), e)
 {
@@ -8748,7 +8774,7 @@ ConstructExp::ConstructExp(Loc loc, Expression *e1, Expression *e2)
 /************************************************************/
 
 AddAssignExp::AddAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKaddass, sizeof(AddAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKaddass, sizeof(AddAssignExp), e1, e2)
 {
 }
 
@@ -8856,7 +8882,7 @@ Expression *AddAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 MinAssignExp::MinAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKminass, sizeof(MinAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKminass, sizeof(MinAssignExp), e1, e2)
 {
 }
 
@@ -8907,7 +8933,7 @@ Expression *MinAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 CatAssignExp::CatAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKcatass, sizeof(CatAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKcatass, sizeof(CatAssignExp), e1, e2)
 {
 }
 
@@ -8987,7 +9013,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 MulAssignExp::MulAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKmulass, sizeof(MulAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKmulass, sizeof(MulAssignExp), e1, e2)
 {
 }
 
@@ -9064,7 +9090,7 @@ Expression *MulAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 DivAssignExp::DivAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKdivass, sizeof(DivAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKdivass, sizeof(DivAssignExp), e1, e2)
 {
 }
 
@@ -9143,7 +9169,7 @@ Expression *DivAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 ModAssignExp::ModAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKmodass, sizeof(ModAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKmodass, sizeof(ModAssignExp), e1, e2)
 {
 }
 
@@ -9159,98 +9185,28 @@ Expression *ModAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 ShlAssignExp::ShlAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKshlass, sizeof(ShlAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKshlass, sizeof(ShlAssignExp), e1, e2)
 {
-}
-
-Expression *ShlAssignExp::semantic(Scope *sc)
-{   Expression *e;
-
-    //printf("ShlAssignExp::semantic()\n");
-    if (type)
-        return this;
-    BinExp::semantic(sc);
-    e2 = resolveProperties(sc, e2);
-
-    e = op_overload(sc);
-    if (e)
-        return e;
-
-    e1 = e1->modifiableLvalue(sc, e1);
-    e1->checkScalar();
-    e1->checkNoBool();
-    type = e1->type;
-    typeCombine(sc);
-    e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    e2 = e2->castTo(sc, Type::tshiftcnt);
-    return this;
 }
 
 /************************************************************/
 
 ShrAssignExp::ShrAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKshrass, sizeof(ShrAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKshrass, sizeof(ShrAssignExp), e1, e2)
 {
-}
-
-Expression *ShrAssignExp::semantic(Scope *sc)
-{   Expression *e;
-
-    if (type)
-        return this;
-    BinExp::semantic(sc);
-    e2 = resolveProperties(sc, e2);
-
-    e = op_overload(sc);
-    if (e)
-        return e;
-
-    e1 = e1->modifiableLvalue(sc, e1);
-    e1->checkScalar();
-    e1->checkNoBool();
-    type = e1->type;
-    typeCombine(sc);
-    e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    e2 = e2->castTo(sc, Type::tshiftcnt);
-    return this;
 }
 
 /************************************************************/
 
 UshrAssignExp::UshrAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKushrass, sizeof(UshrAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKushrass, sizeof(UshrAssignExp), e1, e2)
 {
-}
-
-Expression *UshrAssignExp::semantic(Scope *sc)
-{   Expression *e;
-
-    if (type)
-        return this;
-    BinExp::semantic(sc);
-    e2 = resolveProperties(sc, e2);
-
-    e = op_overload(sc);
-    if (e)
-        return e;
-
-    e1 = e1->modifiableLvalue(sc, e1);
-    e1->checkScalar();
-    e1->checkNoBool();
-    type = e1->type;
-    typeCombine(sc);
-    e1->checkIntegral();
-    e2 = e2->checkIntegral();
-    e2 = e2->castTo(sc, Type::tshiftcnt);
-    return this;
 }
 
 /************************************************************/
 
 AndAssignExp::AndAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKandass, sizeof(AndAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKandass, sizeof(AndAssignExp), e1, e2)
 {
 }
 
@@ -9262,7 +9218,7 @@ Expression *AndAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 OrAssignExp::OrAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKorass, sizeof(OrAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKorass, sizeof(OrAssignExp), e1, e2)
 {
 }
 
@@ -9274,7 +9230,7 @@ Expression *OrAssignExp::semantic(Scope *sc)
 /************************************************************/
 
 XorAssignExp::XorAssignExp(Loc loc, Expression *e1, Expression *e2)
-        : BinExp(loc, TOKxorass, sizeof(XorAssignExp), e1, e2)
+        : BinAssignExp(loc, TOKxorass, sizeof(XorAssignExp), e1, e2)
 {
 }
 
