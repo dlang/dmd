@@ -503,7 +503,7 @@ void AliasDeclaration::semantic(Scope *sc)
         ScopeDsymbol::multiplyDefined(0, this, overnext);
     this->inSemantic = 0;
 
-    if (errors != global.errors)
+    if (global.gag && errors != global.errors)
         type = savedtype;
     return;
 
@@ -539,7 +539,7 @@ void AliasDeclaration::semantic(Scope *sc)
             assert(global.errors);
             s = NULL;
         }
-        if (errors != global.errors)
+        if (global.gag && errors != global.errors)
         {
             type = savedtype;
             overnext = savedovernext;

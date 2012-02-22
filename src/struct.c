@@ -472,7 +472,12 @@ void StructDeclaration::semantic(Scope *sc)
             if (sizeok == 0 && s->isAliasDeclaration())
                 finalizeSize();
         }
+        // Ungag errors when not speculative
+        unsigned oldgag = global.gag;
+        if (global.isSpeculativeGagging() && !isSpeculative())
+            global.gag = 0;
         s->semantic(sc2);
+        global.gag = oldgag;
     }
 
     if (sizeok == 2)
