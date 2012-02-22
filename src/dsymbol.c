@@ -132,12 +132,15 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                     if (!(*ps)->ident || !(*ps)->ident->equals(ident))
                         continue;
                 }
-                if (s)                  // more than one symbol
+                if (!s)
+                    s = *ps;
+                else if (s->isOverloadable() && (*ps)->isOverloadable())
+                    ;   // keep head of overload set
+                else                    // more than one symbol
                 {   *ps = NULL;
                     //printf("\tfalse 2\n");
                     return FALSE;
                 }
-                s = *ps;
             }
         }
     }
