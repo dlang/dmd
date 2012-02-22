@@ -386,7 +386,6 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->literal = 0;
     this->ismixin = ismixin;
     this->previous = NULL;
-    this->errors = false;
 
     // Compute in advance for Ddoc's use
     if (members)
@@ -4218,7 +4217,6 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->nest = 0;
     this->havetempdecl = 0;
     this->isnested = NULL;
-    this->errors = 0;
     this->speculative = 0;
 }
 
@@ -4247,7 +4245,6 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->nest = 0;
     this->havetempdecl = 1;
     this->isnested = NULL;
-    this->errors = 0;
     this->speculative = 0;
 
     assert((size_t)tempdecl->scope > 0x10000);

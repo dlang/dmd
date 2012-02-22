@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -46,6 +46,7 @@ Dsymbol::Dsymbol()
     this->loc = 0;
     this->comment = NULL;
     this->scope = NULL;
+    this->errors = false;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -59,6 +60,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->loc = 0;
     this->comment = NULL;
     this->scope = NULL;
+    this->errors = false;
 }
 
 int Dsymbol::equals(Object *o)
