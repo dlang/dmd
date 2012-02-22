@@ -117,6 +117,7 @@ struct Dsymbol : Object
     unsigned char *comment;     // documentation comment for this Dsymbol
     Loc loc;                    // where defined
     Scope *scope;               // !=NULL means context to use for semantic()
+    bool errors;                // this symbol failed to pass semantic()
 
     Dsymbol();
     Dsymbol(Identifier *);

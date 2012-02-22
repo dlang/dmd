@@ -45,6 +45,7 @@ Dsymbol::Dsymbol()
     this->loc = 0;
     this->comment = NULL;
     this->scope = NULL;
+    this->errors = false;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -58,6 +59,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->loc = 0;
     this->comment = NULL;
     this->scope = NULL;
+    this->errors = false;
 }
 
 int Dsymbol::equals(Object *o)
