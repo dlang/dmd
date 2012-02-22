@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -395,8 +395,13 @@ void StructDeclaration::semantic(Scope *sc)
 
     for (size_t i = 0; i < members_dim; i++)
     {
-        Dsymbol *s = members->tdata()[i];
+        Dsymbol *s = (*members)[i];
+        // Ungag errors when not speculative
+        unsigned oldgag = global.gag;
+        if (global.isSpeculativeGagging() && !isSpeculative())
+            global.gag = 0;
         s->semantic(sc2);
+        global.gag = oldgag;
 #if 0
         if (sizeok == 2)
         {   //printf("forward reference\n");

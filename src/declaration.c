@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -541,7 +541,7 @@ void AliasDeclaration::semantic(Scope *sc)
         ScopeDsymbol::multiplyDefined(0, this, overnext);
     this->inSemantic = 0;
 
-    if (errors != global.errors)
+    if (global.gag && errors != global.errors)
         type = savedtype;
     return;
 
@@ -577,7 +577,7 @@ void AliasDeclaration::semantic(Scope *sc)
             assert(global.errors);
             s = NULL;
         }
-        if (errors != global.errors)
+        if (global.gag && errors != global.errors)
         {
             type = savedtype;
             overnext = savedovernext;

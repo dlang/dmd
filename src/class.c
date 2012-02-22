@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -859,7 +859,12 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     if (scope && !symtab)
     {   Scope *sc = scope;
         sc->mustsemantic++;
+        // If speculatively gagged, ungag now.
+        unsigned oldgag = global.gag;
+        if (global.isSpeculativeGagging())
+            global.gag = 0;
         semantic(sc);
+        global.gag = oldgag;
         sc->mustsemantic--;
     }
 

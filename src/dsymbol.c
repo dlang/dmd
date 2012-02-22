@@ -270,6 +270,23 @@ TemplateInstance *Dsymbol::inTemplateInstance()
     return NULL;
 }
 
+// Check if this function is a member of a template which has only been
+// instantiated speculatively, eg from inside is(typeof()).
+// Return the speculative template instance it is part of,
+// or NULL if not speculative.
+TemplateInstance *Dsymbol::isSpeculative()
+{
+    Dsymbol * par = parent;
+    while (par)
+    {
+        TemplateInstance *ti = par->isTemplateInstance();
+        if (ti && ti->speculative)
+            return ti;
+        par = par->toParent();
+    }
+    return NULL;
+}
+
 int Dsymbol::isAnonymous()
 {
     return ident ? 0 : 1;
