@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9572,10 +9572,11 @@ Expression *PostExp::semantic(Scope *sc)
             return new ErrorExp();
         }
 
-        e1 = e1->modifiableLvalue(sc, e1);
+        if (e1->op != TOKarraylength)
+            e1 = e1->modifiableLvalue(sc, e1);
 
         Type *t1 = e1->type->toBasetype();
-        if (t1->ty == Tclass || t1->ty == Tstruct)
+        if (t1->ty == Tclass || t1->ty == Tstruct || e1->op == TOKarraylength)
         {   /* Check for operator overloading,
              * but rewrite in terms of ++e instead of e++
              */
@@ -9583,7 +9584,7 @@ Expression *PostExp::semantic(Scope *sc)
             /* If e1 is not trivial, take a reference to it
              */
             Expression *de = NULL;
-            if (e1->op != TOKvar)
+            if (e1->op != TOKvar && e1->op != TOKarraylength)
             {
                 // ref v = e1;
                 Identifier *id = Lexer::uniqueId("__postref");
