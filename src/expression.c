@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -670,23 +670,6 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 }
 #endif
 
-// Check if this function is a member of a template which has only been
-// instantiated speculatively, eg from inside is(typeof()).
-// Return the speculative template instance it is part of,
-// or NULL if not speculative.
-TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd)
-{
-    Dsymbol * par = fd->parent;
-    while (par)
-    {
-        TemplateInstance *ti = par->isTemplateInstance();
-        if (ti && ti->speculative)
-            return ti;
-        par = par->toParent();
-    }
-    return NULL;
-}
-
 /****************************************
  * Now that we know the exact type of the function we're calling,
  * the arguments[] need to be adjusted:
@@ -716,7 +699,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf->next && fd->inferRetType)
     {
-        TemplateInstance *spec = isSpeculativeFunction(fd);
+        TemplateInstance *spec = fd->isSpeculative();
         int olderrs = global.errors;
         fd->semantic3(fd->scope);
         // Update the template instantiation with the number
@@ -2737,12 +2720,18 @@ Lagain:
     {   //printf("'%s' is a function\n", f->toChars());
 
         if (!f->originalType && f->scope)       // semantic not yet run
+        {
+            unsigned oldgag = global.gag;
+            if (global.isSpeculativeGagging() && !f->isSpeculative())
+                global.gag = 0;
             f->semantic(f->scope);
+            global.gag = oldgag;
+        }
 
         // if inferring return type, sematic3 needs to be run
         if (f->inferRetType && f->scope && f->type && !f->type->nextOf())
         {
-            TemplateInstance *spec = isSpeculativeFunction(f);
+            TemplateInstance *spec = f->isSpeculative();
             int olderrs = global.errors;
             f->semantic3(f->scope);
             // Update the template instantiation with the number
@@ -9572,10 +9561,11 @@ Expression *PostExp::semantic(Scope *sc)
             return new ErrorExp();
         }
 
-        e1 = e1->modifiableLvalue(sc, e1);
+        if (e1->op != TOKarraylength)
+            e1 = e1->modifiableLvalue(sc, e1);
 
         Type *t1 = e1->type->toBasetype();
-        if (t1->ty == Tclass || t1->ty == Tstruct)
+        if (t1->ty == Tclass || t1->ty == Tstruct || e1->op == TOKarraylength)
         {   /* Check for operator overloading,
              * but rewrite in terms of ++e instead of e++
              */
@@ -9583,7 +9573,7 @@ Expression *PostExp::semantic(Scope *sc)
             /* If e1 is not trivial, take a reference to it
              */
             Expression *de = NULL;
-            if (e1->op != TOKvar)
+            if (e1->op != TOKvar && e1->op != TOKarraylength)
             {
                 // ref v = e1;
                 Identifier *id = Lexer::uniqueId("__postref");

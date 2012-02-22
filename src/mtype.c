@@ -6730,7 +6730,12 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
         Scope *sc2 = sc->push();
         sc2->intypeof++;
         sc2->flags |= sc->flags & SCOPEstaticif;
+        unsigned oldspecgag = global.speculativeGag;
+        if (global.gag)
+            global.speculativeGag = global.gag;
         exp = exp->semantic(sc2);
+        global.speculativeGag = oldspecgag;
+
 #if DMDV2
         if (exp->type && exp->type->ty == Tfunction &&
             ((TypeFunction *)exp->type)->isproperty)

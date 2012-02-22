@@ -27,7 +27,6 @@
 #include "attrib.h" // for AttribDeclaration
 
 #include "template.h"
-TemplateInstance *isSpeculativeFunction(FuncDeclaration *fd);
 
 
 #define LOG     0
@@ -480,7 +479,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
          */
         int olderrors = global.errors;
         int oldgag = global.gag;
-        TemplateInstance *spec = isSpeculativeFunction(this);
+        TemplateInstance *spec = isSpeculative();
         if (global.gag && !spec)
             global.gag = 0;
         semantic3(scope);
