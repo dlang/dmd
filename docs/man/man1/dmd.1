@@ -1,4 +1,4 @@
-.TH DMD 1 "2009-07-27" "Digital Mars" "Digital Mars D"
+.TH DMD 1 "2011-02-22" "Digital Mars" "Digital Mars D"
 .SH NAME
 dmd \- Digital Mars D2.x Compiler
 .SH SYNOPSIS
@@ -54,6 +54,8 @@ Add symbolic debug info.
 .IP -gc
 Add symbolic debug info in C format (for older
 \fBgdb\fR's.)
+.IP -gs
+Always emit stack frame.
 .IP -H
 Generate D interface file.
 .IP -Hd\fIdir\fR
@@ -91,6 +93,8 @@ to the linker, for example, -M
 Generate a library rather than object files
 .IP -man
 Open web browser on manual page
+.IP -map
+Generate linker .map file
 .IP -nofloat
 Do not emit reference to floating point
 .IP -O
@@ -114,6 +118,8 @@ name.
 will leave it on.
 .IP -profile
 Profile the runtime performance of the generated code
+.IP -property
+Enforce property syntax
 .IP -quiet
 Suppress non-essential compiler messages
 .IP -release
@@ -124,8 +130,6 @@ Compile, link, and run the program
 with the rest of the command line, \fI args...\fR, as the
 arguments to the program. No .o or executable file is left
 behind.
-.IP -safe
-safe memory model
 .IP -unittest
 Compile in unittest code
 .IP -v
@@ -142,6 +146,15 @@ List all variables poing into thread local storage
 Enable warnings
 .IP -wi
 Enable informational warnings
+.IP -m32
+Compile to 32 bit code.
+.IP -m64
+Compile to 64 bit code.
+.IP -X
+Generate JSON file.
+.IP -Xf\fIfilename\fR
+Write JSON file to 
+.I filename
 .SH LINKING
 Linking is done directly by the
 .B dmd
