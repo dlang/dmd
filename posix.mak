@@ -61,6 +61,7 @@ MANIFEST= \
 	src/core/runtime.d \
 	src/core/simd.d \
 	src/core/thread.d \
+	src/core/thread.di \
 	src/core/threadasm.S \
 	src/core/time.d \
 	src/core/vararg.d \
@@ -501,6 +502,9 @@ doc: $(DOCS)
 $(DOCDIR)/object.html : src/object_.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
 
+$(DOCDIR)/core_%.html : src/core/%.di
+	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
+
 $(DOCDIR)/core_%.html : src/core/%.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
 
@@ -513,6 +517,9 @@ import: $(IMPORTS)
 
 $(IMPDIR)/core/sys/windows/%.di : src/core/sys/windows/%.d
 	$(DMD) -m32 -c -d -o- -Isrc -Iimport -Hf$@ $<
+
+$(IMPDIR)/core/%.di : src/core/%.di
+	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
 
 $(IMPDIR)/core/%.di : src/core/%.d
 	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
