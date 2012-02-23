@@ -581,6 +581,15 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
                 --evaluatingArgs;
                 if (earg == EXP_CANT_INTERPRET)
                     return earg;
+                /* Struct literals are passed by value, but we don't need to
+                 * copy them if they are passed as const
+                 */
+                if (earg->op == TOKstructliteral
+#if DMDV2
+                    && !(arg->storageClass & (STCconst | STCimmutable))
+#endif
+                )
+                    earg = copyLiteral(earg);
             }
             if (earg->op == TOKthrownexception)
             {
