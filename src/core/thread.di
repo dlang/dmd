@@ -427,18 +427,18 @@ private:
     // These must be kept in sync with core/thread.d
     version (D_LP64)
     {
-        version (Windows)      enum ThreadSize = 304;
-        else version (OSX)     enum ThreadSize = 312;
-        else version (Posix)   enum ThreadSize = 176;
+        version (Windows)      enum ThreadSize = 312;
+        else version (OSX)     enum ThreadSize = 320;
+        else version (Posix)   enum ThreadSize = 184;
         else static assert(0, "Platform not supported.");
     }
     else
     {
         static assert((void*).sizeof == 4); // 32-bit
 
-        version (Windows)      enum ThreadSize = 124;
-        else version (OSX)     enum ThreadSize = 124;
-        else version (Posix)   enum ThreadSize =  88;
+        version (Windows)      enum ThreadSize = 128;
+        else version (OSX)     enum ThreadSize = 128;
+        else version (Posix)   enum ThreadSize =  92;
         else static assert(0, "Platform not supported.");
     }
 
@@ -612,22 +612,21 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan, void* curSt
 extern (C) void thread_scanAll( scope ScanAllThreadsFn scan, void* curStackTop = null );
 
 
+alias bool delegate( void* addr ) HasMarks;
+
 /**
  * This routine allows the runtime to process any special per-thread handling
  * for the GC.  This is needed for taking into account any memory that is
  * referenced by non-scanned pointers but is about to be freed.  That currently
  * means the array append cache.
  *
+ * Params:
+ *  hasMarks = The probe function. It should return true for pointers into marked memory blocks.
+ *
  * In:
  *  This routine must be called just prior to resuming all threads.
  */
-extern(C) void thread_processGCMarks();
-
-
-/**
- *
- */
-void[] thread_getTLSBlock();
+extern(C) void thread_processGCMarks( scope HasMarks hasMarks );
 
 
 /**

@@ -17,6 +17,7 @@ module core.thread;
 
 
 public import core.time; // for Duration
+static import rt.tlsgc;
 
 
 // this should be true for most architectures
@@ -103,7 +104,6 @@ private
     extern (C) void* rt_stackTop();
     extern (C) void  rt_moduleTlsCtor();
     extern (C) void  rt_moduleTlsDtor();
-    extern (C) void  rt_processGCMarks(void[]);
 
 
     void* getStackBottom()
@@ -183,6 +183,7 @@ version( Windows )
                 Thread.remove( obj );
             }
             Thread.add( &obj.m_main );
+            obj.m_tlsgcdata = rt.tlsgc.init();
 
             // NOTE: No GC allocations may occur until the stack pointers have
             //       been set and Thread.getThis returns a valid reference to
@@ -386,6 +387,7 @@ else version( Posix )
                 obj.m_isRunning = false;
             }
             Thread.add( &obj.m_main );
+            obj.m_tlsgcdata = rt.tlsgc.init();
 
             static extern (C) void thread_cleanupHandler( void* arg )
             {
@@ -1540,6 +1542,7 @@ private:
     Context*            m_curr;
     bool                m_lock;
     void[]              m_tls;  // spans implicit thread local storage
+    rt.tlsgc.Data*      m_tlsgcdata;
 
     version( Windows )
     {
@@ -1827,11 +1830,11 @@ private:
 version (D_LP64)
 {
     version (Windows)
-        static assert(__traits(classInstanceSize, Thread) == 304);
-    else version (OSX)
         static assert(__traits(classInstanceSize, Thread) == 312);
+    else version (OSX)
+        static assert(__traits(classInstanceSize, Thread) == 320);
     else version (Posix)
-        static assert(__traits(classInstanceSize, Thread) == 176);
+        static assert(__traits(classInstanceSize, Thread) == 184);
     else
             static assert(0, "Platform not supported.");
 }
@@ -1840,11 +1843,11 @@ else
     static assert((void*).sizeof == 4); // 32-bit
 
     version (Windows)
-        static assert(__traits(classInstanceSize, Thread) == 124);
+        static assert(__traits(classInstanceSize, Thread) == 128);
     else version (OSX)
-        static assert(__traits(classInstanceSize, Thread) == 124);
+        static assert(__traits(classInstanceSize, Thread) == 128);
     else version (Posix)
-        static assert(__traits(classInstanceSize, Thread) ==  88);
+        static assert(__traits(classInstanceSize, Thread) ==  92);
     else
         static assert(0, "Platform not supported.");
 }
@@ -1996,6 +1999,7 @@ extern (C) Thread thread_attachThis()
     Thread.add( thisContext );
     if( Thread.sm_main !is null )
         multiThreadedFlag = true;
+    thisThread.m_tlsgcdata = rt.tlsgc.init();
     return thisThread;
 }
 
@@ -2107,6 +2111,7 @@ version( Windows )
         Thread.add( thisContext );
         if( Thread.sm_main !is null )
             multiThreadedFlag = true;
+        thisThread.m_tlsgcdata = rt.tlsgc.init();
         return thisThread;
     }
 
@@ -2638,6 +2643,9 @@ body
             // would make portability annoying because it only makes sense on Windows.
             scan( ScanType.stack, t.m_reg.ptr, t.m_reg.ptr + t.m_reg.length );
         }
+
+        scope dg = (void* p1, void* p2) => scan(ScanType.tls, p1, p2);
+        rt.tlsgc.scan(t.m_tlsgcdata, dg);
     }
 }
 
@@ -2673,37 +2681,21 @@ body
  * referenced by non-scanned pointers but is about to be freed.  That currently
  * means the array append cache.
  *
+ * Params:
+ *  hasMarks = The probe function. It should return true for pointers into marked memory blocks.
+ *
  * In:
  *  This routine must be called just prior to resuming all threads.
  */
-extern(C) void thread_processGCMarks()
+extern(C) void thread_processGCMarks(scope rt.tlsgc.HasMarks dg)
 {
     for( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
-        rt_processGCMarks(t.m_tls);
-    }
-}
-
-
-/**
- *
- */
-void[] thread_getTLSBlock()
-{
-    version(OSX)
-    {
-        // TLS lives in the thread object.
-        auto t = Thread.getThis();
-        return t.m_tls;
-    }
-    else version(FreeBSD)
-    {
-        return (cast(void*)&_tlsstart)[0..(&_tlsend)-(&_tlsstart)];
-    }
-    else
-    {
-
-        return (cast(void*)&_tlsstart)[0..(&_tlsend)-(&_tlsstart)];
+        /* Can be null if collection was triggered between adding a
+         * thread and calling rt.tlsgc.init.
+         */
+        if (t.m_tlsgcdata !is null)
+            rt.tlsgc.processGCMarks(t.m_tlsgcdata, dg);
     }
 }
 

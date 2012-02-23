@@ -109,7 +109,8 @@ private
         extern (C) bool thread_needLock();
         extern (C) void thread_suspendAll();
         extern (C) void thread_resumeAll();
-        extern (C) void thread_processGCMarks();
+        alias bool delegate(void*) HasMarks;
+        extern (C) void thread_processGCMarks(scope HasMarks hasMarks);
 
         alias void delegate(void*, void*) scanFn;
         extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
@@ -1374,18 +1375,6 @@ class GC
 
         gcx.log_collect();
         return result;
-    }
-
-    /**
-     * Returns true if the pointer is being collected.  Should only be called
-     * with the base pointer of the block.
-     *
-     * Warning! This should only be called while the world is stopped inside
-     * the fullcollect function.
-     */
-    bool isCollecting(void *p)
-    {
-        return gcx.isCollecting(p);
     }
 
 
@@ -2871,7 +2860,7 @@ struct Gcx
             }
         }
 
-        thread_processGCMarks();
+        thread_processGCMarks(&hasMarks);
         thread_resumeAll();
 
         debug(PROFILING)
@@ -3076,28 +3065,32 @@ struct Gcx
     }
 
     /**
-     * Returns true if the pointer is being collected.  Should only be called
-     * with the base pointer of the block.
+     * Returns true if the addr lies within a marked block.
      *
      * Warning! This should only be called while the world is stopped inside
      * the fullcollect function.
      */
-    bool isCollecting(void *p)
+    bool hasMarks(void *addr)
     {
         // first, we find the Pool this block is in, then check to see if the
         // mark bit is clear.
-        auto pool = findPool(p);
+        auto pool = findPool(addr);
         if(pool)
         {
-            auto offset = cast(size_t)(p - pool.baseAddr);
+            auto offset = cast(size_t)(addr - pool.baseAddr);
             auto pn = offset / PAGESIZE;
             auto bins = cast(Bins)pool.pagetable[pn];
+            size_t biti = void;
             if(bins <= B_PAGE)
             {
-                assert(p == cast(void*)((cast(size_t)p) & notbinsize[bins]));
-                // return true if the block is not marked.
-                return !(pool.mark.test(offset >> pool.shiftBy));
+                biti = (offset & notbinsize[bins]) >> pool.shiftBy;
             }
+            else
+            {
+                pn -= pool.bPageOffsets[pn];
+                biti = pn * (PAGESIZE >> pool.shiftBy);
+            }
+            return !!pool.mark.test(biti);
         }
         return false; // not collecting or pointer is a valid argument.
     }

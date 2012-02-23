@@ -20,8 +20,8 @@ private
     import core.stdc.string;
     import core.stdc.stdarg;
     import core.bitop;
-    import core.thread : thread_getTLSBlock;
     debug(PRINTF) import core.stdc.stdio;
+    static import rt.tlsgc;
 }
 
 private
@@ -391,13 +391,6 @@ else
     return __blkcache_storage;
 }
 
-static __gshared size_t __blkcache_offset;
-extern(C) void rt_lifetimeInit()
-{
-    void[] tls = thread_getTLSBlock();
-    __blkcache_offset = (cast(void *)&__blkcache_storage) - tls.ptr;
-}
-
 // called when thread is exiting.
 static ~this()
 {
@@ -411,13 +404,12 @@ static ~this()
 
 
 // we expect this to be called with the lock in place
-extern(C) void rt_processGCMarks(void[] tls)
+void processGCMarks(BlkInfo* cache, scope rt.tlsgc.HasMarks hasMarks)
 {
     // called after the mark routine to eliminate block cache data when it
     // might be ready to sweep
 
     debug(PRINTF) printf("processing GC Marks, %x\n", tls.ptr);
-    auto cache = *cast(BlkInfo **)(tls.ptr + __blkcache_offset);
     if(cache)
     {
         debug(PRINTF) foreach(i; 0 .. N_CACHE_BLOCKS)
@@ -427,7 +419,7 @@ extern(C) void rt_processGCMarks(void[] tls)
         auto cache_end = cache + N_CACHE_BLOCKS;
         for(;cache < cache_end; ++cache)
         {
-            if(cache.base != null && gc_isCollecting(cache.base))
+            if(cache.base != null && !hasMarks(cache.base))
             {
                 debug(PRINTF) printf("clearing cache entry at %x\n", cache.base);
                 cache.base = null; // clear that data.
