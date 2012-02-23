@@ -342,7 +342,9 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         printf("%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
     }
 
-    m->read(loc);
+    if (!m->read(loc))
+        return NULL;
+
     m->parse();
 
 #ifdef IN_GCC
@@ -352,7 +354,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     return m;
 }
 
-void Module::read(Loc loc)
+bool Module::read(Loc loc)
 {
     //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
     if (srcfile->read())
@@ -370,9 +372,11 @@ void Module::read(Loc loc)
             }
             else
                 fprintf(stdmsg, "Specify path to file '%s' with -I switch\n", srcfile->toChars());
+            fatal();
         }
-        fatal();
+        return false;
     }
+    return true;
 }
 
 inline unsigned readwordLE(unsigned short *p)
