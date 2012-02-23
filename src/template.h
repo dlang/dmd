@@ -182,8 +182,6 @@ struct TemplateThisParameter : TemplateTypeParameter
     /* Syntax:
      *  this ident : specType = defaultType
      */
-    Type *specType;     // type parameter: if !=NULL, this is the type specialization
-    Type *defaultType;
 
     TemplateThisParameter(Loc loc, Identifier *ident, Type *specType, Type *defaultType);
 
