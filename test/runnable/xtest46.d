@@ -4668,6 +4668,31 @@ class B158 : A158
 
 
 /***************************************************/
+// 7562
+
+static struct MyInt
+{
+    private int value;
+    mixin ProxyOf!value;
+}
+mixin template ProxyOf(alias a)
+{
+    template X1(){}
+    template X2(){}
+    template X3(){}
+    template X4(){}
+    template X5(){}
+    template X6(){}
+    template X7(){}
+    template X8(){}
+    template X9(){}
+    template X10(){}
+
+    void test1(this X)(){}
+    void test2(this Y)(){}
+}
+
+/***************************************************/
 
 int main()
 {
