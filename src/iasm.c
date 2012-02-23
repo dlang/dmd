@@ -638,6 +638,11 @@ RETRY:
                 if (I64 && (pop->ptb.pptb0->usFlags & _i64_bit))
                     asmerr( EM_invalid_64bit_opcode, asm_opstr(pop));  // illegal opcode in 64bit mode
 
+                if ((asmstate.ucItype == ITopt ||
+                     asmstate.ucItype == ITfloat) &&
+                    usNumops != 0)
+                    goto PARAM_ERROR;
+
                 ptbRet = pop->ptb;
 
                 goto RETURN_IT;
@@ -674,16 +679,23 @@ RETRY:
                                                  0)) &&
                                 popnd1->disp == table1->usFlags)
                             break;
-                        if ((asmstate.ucItype == ITopt ||
-                             asmstate.ucItype == ITfloat) &&
-                            !usNumops &&
-                            !table1->usOp1)
+                        if (asmstate.ucItype == ITopt ||
+                            asmstate.ucItype == ITfloat)
                         {
-                            if (usNumops > 1)
-                                goto PARAM_ERROR;
-                            break;
+                                switch (usNumops)
+                                {
+                                    case 0:
+                                        if (!table1->usOp1)
+                                            goto Lfound1;
+                                        break;
+                                    case 1:
+                                        break;
+                                    default:
+                                        goto PARAM_ERROR;
+                                }
                         }
                 }
+            Lfound1:
                 if (table1->usOpcode == ASM_END)
                 {
 #ifdef DEBUG
