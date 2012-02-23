@@ -3864,8 +3864,6 @@ elem *elmsw(elem *e)
     elem *e1 = e->E1;
 
     if (OPTIMIZER &&
-        tyintegral(e1->Ety) &&
-        tyintegral(ty) &&
         tysize(e1->Ety) == LLONGSIZE &&
         tysize(ty) == LONGSIZE)
     {
@@ -3894,8 +3892,6 @@ elem *elmsw(elem *e)
         }
     }
     else if (OPTIMIZER && I64 &&
-        tyintegral(e1->Ety) &&
-        tyintegral(ty) &&
         tysize(e1->Ety) == CENTSIZE &&
         tysize(ty) == LLONGSIZE)
     {
