@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -92,10 +92,13 @@ void Import::load(Scope *sc)
     {
         // Load module
         mod = Module::load(loc, packages, id);
+        if (mod)
+        {
         dst->insert(id, mod);           // id may be different from mod->ident,
                                         // if so then insert alias
         if (!mod->importedFrom)
             mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
+    }
     }
     if (!pkg)
         pkg = mod;
@@ -146,7 +149,8 @@ void Import::semantic(Scope *sc)
     // Load if not already done so
     if (!mod)
     {   load(sc);
-        mod->importAll(0);
+        if (mod)
+            mod->importAll(0);
     }
 
     if (mod)
