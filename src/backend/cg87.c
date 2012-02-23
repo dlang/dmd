@@ -2302,7 +2302,7 @@ code *opass87(elem *e,regm_t *pretregs)
         retregs = mST0;
         cr = codelem(e->E2,&retregs,FALSE);     // evaluate rvalue
         note87(e->E2,0,0);
-        cl = getlvalue(&cs,e->E1,0);
+        cl = getlvalue(&cs,e->E1,e->Eoper==OPmodass?mAX:0);
         cl = cat(cl,makesure87(e->E2,0,0,0));
         cs.Iflags |= ADDFWAIT() ? CFwait : 0;
         if (I32)
