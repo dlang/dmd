@@ -36,6 +36,7 @@ version (Windows)
     extern (Windows) wchar_t*   GetCommandLineW();
     extern (Windows) wchar_t**  CommandLineToArgvW(wchar_t*, int*);
     extern (Windows) export int WideCharToMultiByte(uint, uint, wchar_t*, int, char*, int, char*, int);
+    extern (Windows) int        IsDebuggerPresent();
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
 }
 
@@ -417,6 +418,12 @@ extern (C) int main(int argc, char** argv)
     _d_args = cast(string[]) args;
 
     bool trapExceptions = rt_trapExceptions;
+
+    version (Windows)
+    {
+        if (IsDebuggerPresent())
+            trapExceptions = false;
+    }
 
     void tryExec(scope void delegate() dg)
     {
