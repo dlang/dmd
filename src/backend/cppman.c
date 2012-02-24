@@ -624,7 +624,7 @@ char *template_mangle(symbol *s,param_t *arglist)
                             }
                             p = (char *)&d;
 //                          ni = tysize[TYdouble];
-                            ni = sizeof(long double); // just until new unmangler is in
+                            ni = sizeof(longdouble); // just until new unmangler is in
                         L1:
                             a[1] = 0;
                             n = cpp_catname(n,a);

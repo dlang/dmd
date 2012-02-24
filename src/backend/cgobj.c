@@ -1129,7 +1129,7 @@ void obj_user(const char *p)
 STATIC void obj_defaultlib()
 {
     char library[4];            // default library
-    static const char model[MEMMODELS] = "SMCLV";
+    static const char model[MEMMODELS+1] = "SMCLV";
 
 #if MARS
     memcpy(library,"SM?",4);
@@ -1264,7 +1264,7 @@ void obj_theadr(const char *modname)
 
 void obj_compiler()
 {
-    static const char compiler[] = "\0\xDBDigital Mars C/C++"
+    static const char compiler[] = "\0\xDB" "Digital Mars C/C++"
         VERSION
         ;       // compiled by ...
 
@@ -1292,7 +1292,7 @@ STATIC void objheader(char *csegname)
   int texti = 8;                                // index of _TEXT
 
   static char comment[] = {0,0x9D,'0','?','O'}; // memory model
-  static char model[MEMMODELS] = "smclv";
+  static char model[MEMMODELS+1] = "smclv";
   static char exten[] = {0,0xA1,1,'C','V'};     // extended format
   static char pmdeb[] = {0x80,0xA1,1,'H','L','L',0};    // IBM PM debug format
 
@@ -1606,7 +1606,7 @@ void obj_funcptr(Symbol *s)
 {
     // We need to always put out the segments in triples, so that the
     // linker will put them in the correct order.
-    static char lnames[4][5+4+5] =
+    static char lnames[4][5+4+5+1] =
     {   "\03XIB\02XI\03XIE",            // near constructor
         "\03XCB\02XC\03XCE",            // near destructor
         "\04XIFB\03XIF\04XIFE",         // far constructor
@@ -2137,7 +2137,7 @@ size_t obj_mangle(Symbol *s,char *dest)
 
     // Use as max length the max length lib.exe can handle
     // Use 5 as length of _ + @nnn
-    #define LIBIDMAX ((512 - 0x25 - 3 - 4) - 5)
+//    #define LIBIDMAX ((512 - 0x25 - 3 - 4) - 5)
 #define LIBIDMAX 128
     if (len > LIBIDMAX)
     //if (len > IDMAX)
@@ -2954,7 +2954,7 @@ unsigned obj_bytes(int seg,targ_size_t offset,unsigned nbytes, void *p)
         while (nbytes)
         {   obj_byte(seg,offset,*(char *)p);
             offset++;
-            ((char *)p)++;
+            p = ((char *)p) + 1;
             nbytes--;
             lr = SegData[seg]->ledata;
             if (lr->i + nbytes <= LEDATAMAX)

@@ -373,7 +373,7 @@ Usage:\n\
 
 extern signed char tyalignsize[];
 
-#if _WIN32
+#if _WIN32 && __DMC__
 extern "C"
 {
     extern int _xi_a;
@@ -381,11 +381,11 @@ extern "C"
 }
 #endif
 
-int main(int argc, char *argv[])
+int tryMain(int argc, char *argv[])
 {
     mem.init();                         // initialize storage allocator
     mem.setStackBottom(&argv);
-#if _WIN32
+#if _WIN32 && __DMC__
     mem.addroots((char *)&_xi_a, (char *)&_end);
 #endif
 
@@ -446,6 +446,7 @@ int main(int argc, char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
+    global.params.is64bit = 0;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos2";
@@ -1056,10 +1057,10 @@ int main(int argc, char *argv[])
 
 #if _WIN32
         // Convert / to \ so linker will work
-        for (size_t i = 0; p[i]; i++)
+        for (size_t j = 0; p[j]; j++)
         {
-            if (p[i] == '/')
-                p[i] = '\\';
+            if (p[j] == '/')
+                p[j] = '\\';
         }
 #endif
 
@@ -1170,10 +1171,6 @@ int main(int argc, char *argv[])
         }
     }
 
-#if WINDOWS_SEH
-  __try
-  {
-#endif
     // Read files
 #define ASYNCREAD 1
 #if ASYNCREAD
@@ -1431,14 +1428,6 @@ int main(int argc, char *argv[])
     if (global.params.lib && !global.errors)
         library->write();
 
-#if WINDOWS_SEH
-  }
-  __except (__ehfilter(GetExceptionInformation()))
-  {
-    printf("Stack overflow\n");
-    fatal();
-  }
-#endif
     backend_term();
     if (global.errors)
         fatal();
@@ -1476,6 +1465,24 @@ int main(int argc, char *argv[])
     return status;
 }
 
+int main(int argc, char *argv[])
+{
+    int status = -1;
+#if WINDOWS_SEH
+  __try
+  {
+#endif
+    status = tryMain(argc, argv);
+#if WINDOWS_SEH
+  }
+  __except (__ehfilter(GetExceptionInformation()))
+  {
+    printf("Stack overflow\n");
+    fatal();
+  }
+#endif
+    return status;
+}
 
 
 /***********************************
@@ -1589,7 +1596,7 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep)
     //printf("%x\n", ep->ExceptionRecord->ExceptionCode);
     if (ep->ExceptionRecord->ExceptionCode == STATUS_STACK_OVERFLOW)
     {
-#ifndef DEBUG
+#if 1 //ndef DEBUG
         return EXCEPTION_EXECUTE_HANDLER;
 #endif
     }

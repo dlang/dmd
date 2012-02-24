@@ -9,8 +9,8 @@
 Complex_ld Complex_ld::div(Complex_ld &x, Complex_ld &y)
 {
     Complex_ld q;
-    long double r;
-    long double den;
+    longdouble r;
+    longdouble den;
 
     if (fabs(y.re) < fabs(y.im))
     {
@@ -38,9 +38,9 @@ Complex_ld Complex_ld::mul(Complex_ld &x, Complex_ld &y)
     return p;
 }
 
-long double Complex_ld::abs(Complex_ld &z)
+longdouble Complex_ld::abs(Complex_ld &z)
 {
-    long double x,y,ans,temp;
+    longdouble x,y,ans,temp;
 
     x = fabs(z.re);
     y = fabs(z.im);
@@ -64,7 +64,7 @@ long double Complex_ld::abs(Complex_ld &z)
 Complex_ld Complex_ld::sqrtc(Complex_ld &z)
 {
     Complex_ld c;
-    long double x,y,w,r;
+    longdouble x,y,w,r;
 
     if (z.re == 0 && z.im == 0)
     {
@@ -104,8 +104,8 @@ Complex_ld Complex_ld::sqrtc(Complex_ld &z)
 Complex_d Complex_d::div(Complex_d &x, Complex_d &y)
 {
     Complex_d q;
-    long double r;
-    long double den;
+    longdouble r;
+    longdouble den;
 
     if (fabs(y.re) < fabs(y.im))
     {
@@ -133,9 +133,9 @@ Complex_d Complex_d::mul(Complex_d &x, Complex_d &y)
     return p;
 }
 
-long double Complex_d::abs(Complex_d &z)
+longdouble Complex_d::abs(Complex_d &z)
 {
-    long double x,y,ans,temp;
+    longdouble x,y,ans,temp;
 
     x = fabs(z.re);
     y = fabs(z.im);
@@ -159,7 +159,7 @@ long double Complex_d::abs(Complex_d &z)
 Complex_d Complex_d::sqrtc(Complex_d &z)
 {
     Complex_d c;
-    long double x,y,w,r;
+    longdouble x,y,w,r;
 
     if (z.re == 0 && z.im == 0)
     {
@@ -199,8 +199,8 @@ Complex_d Complex_d::sqrtc(Complex_d &z)
 Complex_f Complex_f::div(Complex_f &x, Complex_f &y)
 {
     Complex_f q;
-    long double r;
-    long double den;
+    longdouble r;
+    longdouble den;
 
     if (fabs(y.re) < fabs(y.im))
     {
@@ -228,9 +228,9 @@ Complex_f Complex_f::mul(Complex_f &x, Complex_f &y)
     return p;
 }
 
-long double Complex_f::abs(Complex_f &z)
+longdouble Complex_f::abs(Complex_f &z)
 {
-    long double x,y,ans,temp;
+    longdouble x,y,ans,temp;
 
     x = fabs(z.re);
     y = fabs(z.im);
@@ -254,7 +254,7 @@ long double Complex_f::abs(Complex_f &z)
 Complex_f Complex_f::sqrtc(Complex_f &z)
 {
     Complex_f c;
-    long double x,y,w,r;
+    longdouble x,y,w,r;
 
     if (z.re == 0 && z.im == 0)
     {

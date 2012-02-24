@@ -663,7 +663,7 @@ __body
         {0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2};
     static double dval[7] =
         {0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2};
-    static long double ldval[7] =
+    static longdouble ldval[7] =
 #if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #define M_PIl           0x1.921fb54442d1846ap+1L        // 3.14159 fldpi
 #define M_LOG2T_L       0x1.a934f0979a3715fcp+1L        // 3.32193 fldl2t
@@ -676,6 +676,8 @@ __body
         #define M_LOG2T_L       LOG2T
         #define M_LOG2_L        LOG2
         {0.0,1.0,M_PIl,M_LOG2T_L,M_LOG2El,M_LOG2_L,M_LN2l};
+#elif _MSC_VER
+        { ld_zero, ld_one, ld_pi, ld_log2t, ld_log2e, ld_log2, ld_ln2 };
 #else
         {0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L};
 #endif
@@ -689,7 +691,7 @@ __body
     int sz;
     int zero;
     void *p;
-    static char zeros[sizeof(long double)];
+    static char zeros[sizeof(longdouble)];
 
     if (im == 0)
     {

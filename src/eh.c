@@ -31,6 +31,10 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+#if _MSC_VER
+#include        <alloca.h>
+#endif
+
 /* If we do our own EH tables and stack walking scheme
  * (Otherwise use NT Structured Exception Handling)
  */
@@ -103,6 +107,8 @@ void except_fillInEHTable(symbol *s)
  */
 #if OUREH
 #define GUARD_SIZE      (I64 ? 3*8 : 5*4)     // sizeof(Guard)
+#elif _WIN64
+#define GUARD_SIZE      (I64 ? 3*8 : 3*4)     // sizeof(Guard) depends on target
 #else
 #define GUARD_SIZE      (sizeof(Guard))
 #endif

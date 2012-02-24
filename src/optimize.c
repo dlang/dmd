@@ -381,7 +381,7 @@ Expression *AddrExp::optimize(int result)
                 TypeSArray *ts = (TypeSArray *)ve->type;
                 dinteger_t dim = ts->dim->toInteger();
                 if (index < 0 || index >= dim)
-                    error("array index %jd is out of bounds [0..%jd]", index, dim);
+                    error("array index %lld is out of bounds [0..%lld]", index, dim);
                 e = new SymOffExp(loc, ve->var, index * ts->nextOf()->size());
                 e->type = type;
                 return e;
@@ -679,7 +679,7 @@ Expression *BinExp::optimize(int result)
             dinteger_t i2 = e2->toInteger();
             d_uns64 sz = e1->type->size() * 8;
             if (i2 < 0 || i2 >= sz)
-            {   error("shift assign by %jd is outside the range 0..%zu", i2, sz - 1);
+            {   error("shift assign by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
                 e2 = new IntegerExp(0);
             }
         }
@@ -774,7 +774,7 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
         dinteger_t i2 = e->e2->toInteger();
         d_uns64 sz = e->e1->type->size() * 8;
         if (i2 < 0 || i2 >= sz)
-        {   e->error("shift by %jd is outside the range 0..%zu", i2, sz - 1);
+        {   e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
             e->e2 = new IntegerExp(0);
         }
         if (e->e1->isConst() == 1)
@@ -863,7 +863,7 @@ Expression *PowExp::optimize(int result)
         if (e1->type->isintegral())
             e = new IntegerExp(loc, 1, e1->type);
         else
-            e = new RealExp(loc, 1.0, e1->type);
+            e = new RealExp(loc, ldouble(1.0), e1->type);
 
         e = new CommaExp(loc, e1, e);
     }
@@ -876,7 +876,7 @@ Expression *PowExp::optimize(int result)
     // Replace x ^^ -1.0 by (1.0 / x)
     else if ((e2->op == TOKfloat64 && e2->toReal() == -1.0))
     {
-        e = new DivExp(loc, new RealExp(loc, 1.0, e2->type), e1);
+        e = new DivExp(loc, new RealExp(loc, ldouble(1.0), e2->type), e1);
     }
     // All other negative integral powers are illegal
     else if ((e1->type->isintegral()) && (e2->op == TOKint64) && (sinteger_t)e2->toInteger() < 0)
