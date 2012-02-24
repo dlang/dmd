@@ -65,15 +65,10 @@ version( linux )
     uint32_t ntohl(uint32_t);
     uint16_t ntohs(uint16_t);
 
-    int          inet_aton(in char*, in_addr*);
-    in_addr_t    inet_addr(in char*);
-    in_addr_t    inet_network(in char*);
-    char*        inet_ntoa(in_addr);
-    const(char)* inet_ntop(int, in void*, char*, socklen_t);
-    int          inet_pton(int, in char*, void*);
-    in_addr      inet_makeaddr(in_addr_t, in_addr_t);
-    in_addr_t    inet_lnaof(in_addr);
-    in_addr_t    inet_netof(in_addr);
+    in_addr_t inet_addr(in char*);
+    char*     inet_ntoa(in_addr);
+    char*     inet_ntop(int, in void*, char*, socklen_t);
+    int       inet_pton(int, in char*, void*);
 }
 else version( OSX )
 {
@@ -92,15 +87,10 @@ else version( OSX )
     uint32_t ntohl(uint32_t);
     uint16_t ntohs(uint16_t);
 
-    int          inet_aton(in char*, in_addr*);
-    in_addr_t    inet_addr(in char*);
-    in_addr_t    inet_network(in char*);
-    char*        inet_ntoa(in_addr);
-    const(char)* inet_ntop(int, in void*, char*, socklen_t);
-    int          inet_pton(int, in char*, void*);
-    in_addr      inet_makeaddr(in_addr_t, in_addr_t);
-    in_addr_t    inet_lnaof(in_addr);
-    in_addr_t    inet_netof(in_addr);
+    in_addr_t inet_addr(in char*);
+    char*     inet_ntoa(in_addr);
+    char*     inet_ntop(int, in void*, char*, socklen_t);
+    int       inet_pton(int, in char*, void*);
 }
 else version( FreeBSD )
 {
@@ -119,16 +109,10 @@ else version( FreeBSD )
     uint32_t ntohl(uint32_t);
     uint16_t ntohs(uint16_t);
 
-    int          inet_aton(in char*, in_addr*);
-    in_addr_t    inet_addr(in char*);
-    in_addr_t    inet_network(in char*);
-    char*        inet_ntoa(in_addr);
-    char*        inet_ntoa_r(in_addr, char*, socklen_t);
-    const(char)* inet_ntop(int, in void*, char*, socklen_t);
-    int          inet_pton(int, in char*, void*);
-    in_addr      inet_makeaddr(in_addr_t, in_addr_t);
-    in_addr_t    inet_lnaof(in_addr);
-    in_addr_t    inet_netof(in_addr);
+    in_addr_t       inet_addr(in char*);
+    char*           inet_ntoa(in_addr);
+    const(char)*    inet_ntop(int, in void*, char*, socklen_t);
+    int             inet_pton(int, in char*, void*);
 }
 
 //
