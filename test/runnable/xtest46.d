@@ -3726,10 +3726,16 @@ void test4155()
             auto f = getnan!T();
             if (!__ctfe) // force f into memory
                 asm { nop; };
+
             assert(!(T.nan == 0), T.stringof);
             assert(!(f == 0), T.stringof);
             assert(!(getnan!T == 0), T.stringof);
             assert(!(getnanu!T == 0), T.stringof);
+
+            assert((T.nan != 0), T.stringof);
+            assert((f != 0), T.stringof);
+            assert((getnan!T != 0), T.stringof);
+            assert((getnanu!T != 0), T.stringof);
         }
         return 1;
     }

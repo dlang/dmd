@@ -1743,28 +1743,16 @@ elem * evalu8(elem *e)
             switch (tybasic(tym))
             {
                 case TYcfloat:
-                    if (isnan(e1->EV.Vcfloat.re) || isnan(e1->EV.Vcfloat.im) ||
-                        isnan(e2->EV.Vcfloat.re) || isnan(e2->EV.Vcfloat.im))
-                        i ^= 1;
-                    else
-                        i ^= (int)((e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
-                                   (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im));
+                    i ^= (int)((e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
+                               (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im));
                     break;
                 case TYcdouble:
-                    if (isnan(e1->EV.Vcdouble.re) || isnan(e1->EV.Vcdouble.im) ||
-                        isnan(e2->EV.Vcdouble.re) || isnan(e2->EV.Vcdouble.im))
-                        i ^= 1;
-                    else
-                        i ^= (int)((e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
-                                   (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im));
+                    i ^= (int)((e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
+                               (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im));
                     break;
                 case TYcldouble:
-                    if (isnan(e1->EV.Vcldouble.re) || isnan(e1->EV.Vcldouble.im) ||
-                        isnan(e2->EV.Vcldouble.re) || isnan(e2->EV.Vcldouble.im))
-                        i ^= 1;
-                    else
-                        i ^= (int)((e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
-                                   (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im));
+                    i ^= (int)((e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
+                               (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im));
                     break;
                 default:
                     i ^= (int)(d1 == d2);
