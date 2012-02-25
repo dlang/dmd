@@ -3289,7 +3289,7 @@ class Fiber
      * D function.
      *
      * Params:
-     *  fn = The thread function.
+     *  fn = The fiber function.
      *  sz = The stack size for this fiber.
      *
      * In:
@@ -3302,11 +3302,8 @@ class Fiber
     }
     body
     {
-        m_fn    = fn;
-        m_call  = Call.FN;
-        m_state = State.HOLD;
         allocStack( sz );
-        initStack();
+        reset( fn );
     }
 
 
@@ -3315,7 +3312,7 @@ class Fiber
      * D function.
      *
      * Params:
-     *  dg = The thread function.
+     *  dg = The fiber function.
      *  sz = The stack size for this fiber.
      *
      * In:
@@ -3328,11 +3325,8 @@ class Fiber
     }
     body
     {
-        m_dg    = dg;
-        m_call  = Call.DG;
-        m_state = State.HOLD;
         allocStack( sz );
-        initStack();
+        reset( dg );
     }
 
 
@@ -3430,6 +3424,10 @@ class Fiber
      * classes, for example, may not be cleaned up properly if a fiber is reset
      * before it has terminated.
      *
+     * Params:
+     *  fn = The fiber function.
+     *  dg = The fiber function.
+     *
      * In:
      *  This fiber must be in state TERM.
      */
@@ -3446,6 +3444,21 @@ class Fiber
         m_unhandled = null;
     }
 
+    /// ditto
+    final void reset( void function() fn )
+    {
+        reset();
+        m_fn    = fn;
+        m_call  = Call.FN;
+    }
+
+    /// ditto
+    final void reset( void delegate() dg )
+    {
+        reset();
+        m_dg    = dg;
+        m_call  = Call.DG;
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // General Properties
@@ -4278,6 +4291,48 @@ unittest
     {
         assert( t.msg == MSG );
     }
+}
+
+
+// Test Fiber resetting
+unittest
+{
+    static string method;
+
+    static void foo()
+    {
+        method = "foo";
+    }
+
+    void bar()
+    {
+        method = "bar";
+    }
+
+    static void expect(Fiber fib, string s)
+    {
+        assert(fib.state == Fiber.State.HOLD);
+        fib.call();
+        assert(fib.state == Fiber.State.TERM);
+        assert(method == s); method = null;
+    }
+    auto fib = new Fiber(&foo);
+    expect(fib, "foo");
+
+    fib.reset();
+    expect(fib, "foo");
+
+    fib.reset(&foo);
+    expect(fib, "foo");
+
+    fib.reset(&bar);
+    expect(fib, "bar");
+
+    fib.reset(function void(){method = "function";});
+    expect(fib, "function");
+
+    fib.reset(delegate void(){method = "delegate";});
+    expect(fib, "delegate");
 }
 
 

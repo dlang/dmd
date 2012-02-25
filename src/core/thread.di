@@ -820,7 +820,7 @@ class Fiber
      * D function.
      *
      * Params:
-     *  fn = The thread function.
+     *  fn = The fiber function.
      *  sz = The stack size for this fiber.
      *
      * In:
@@ -834,7 +834,7 @@ class Fiber
      * D function.
      *
      * Params:
-     *  dg = The thread function.
+     *  dg = The fiber function.
      *  sz = The stack size for this fiber.
      *
      * In:
@@ -883,11 +883,20 @@ class Fiber
      * classes, for example, may not be cleaned up properly if a fiber is reset
      * before it has terminated.
      *
+     * Params:
+     *  fn = The fiber function.
+     *  dg = The fiber function.
+     *
      * In:
      *  This fiber must be in state TERM.
      */
     final void reset();
 
+    /// ditto
+    final void reset( void function() fn );
+
+    /// ditto
+    final void reset( void delegate() dg );
 
     ///////////////////////////////////////////////////////////////////////////
     // General Properties
