@@ -50,7 +50,7 @@ void vec_clearextrabits (vec_t v);
 void vec_print (vec_t v);
 void vec_println (vec_t v);
 
-#if _M_I86 && __INTSIZE == 4
+#if _M_I86 && __INTSIZE == 4 && __SC__
 #define vec_setclear(b,vs,vc)   {       \
         __asm   mov     EAX,b           \
         __asm   mov     ECX,vs          \

@@ -4284,6 +4284,93 @@ void TemplateInstance::semantic(Scope *sc)
     semantic(sc, NULL);
 }
 
+void TemplateInstance::expandMembers(Scope *sc2)
+{
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = (*members)[i];
+        s->setScope(sc2);
+    }
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        Dsymbol *s = members->tdata()[i];
+        //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
+        //printf("test: isnested = %d, sc2->parent = %s\n", isnested, sc2->parent->toChars());
+//      if (isnested)
+//          s->parent = sc->parent;
+        //printf("test3: isnested = %d, s->parent = %s\n", isnested, s->parent->toChars());
+        s->semantic(sc2);
+        //printf("test4: isnested = %d, s->parent = %s\n", isnested, s->parent->toChars());
+        sc2->module->runDeferredSemantic();
+    }
+}
+
+void TemplateInstance::tryExpandMembers(Scope *sc2)
+{
+    static int nest;
+    // extracted to a function to allow windows SEH to work without destructors in the same function
+    //printf("%d\n", nest);
+    if (++nest > 500)
+    {
+        global.gag = 0;                 // ensure error message gets printed
+        error("recursive expansion");
+        fatal();
+    }
+
+#if WINDOWS_SEH
+    if(nest == 1)
+    {
+        // do not catch at every nesting level, because generating the output error might cause more stack 
+        //  errors in the __except block otherwise
+        __try
+        {
+            expandMembers(sc2);
+        }
+        __except (__ehfilter(GetExceptionInformation()))
+        {
+            global.gag = 0;                     // ensure error message gets printed
+            error("recursive expansion");
+            fatal();
+        }
+    }
+    else
+#endif
+        expandMembers(sc2);
+    nest--;
+}
+
+void TemplateInstance::trySemantic3(Scope *sc2)
+{
+    // extracted to a function to allow windows SEH to work without destructors in the same function
+    static int nest;
+    if (++nest > 300)
+    {
+        global.gag = 0;            // ensure error message gets printed
+        error("recursive expansion");
+        fatal();
+    }
+#if WINDOWS_SEH
+    if(nest == 1)
+    {
+        // do not catch at every nesting level, because generating the output error might cause more stack 
+        //  errors in the __except block otherwise
+        __try
+        {
+            semantic3(sc2);
+        }
+        __except (__ehfilter(GetExceptionInformation()))
+        {
+            global.gag = 0;            // ensure error message gets printed
+            error("recursive expansion");
+            fatal();
+        }
+    }
+    else
+#endif
+        semantic3(sc2);
+
+    --nest;
+}
+
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
     //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
@@ -4611,46 +4698,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     sc2->parent = /*isnested ? sc->parent :*/ this;
     sc2->tinst = this;
 
-#if WINDOWS_SEH
-  __try
-  {
-#endif
-    static int nest;
-    //printf("%d\n", nest);
-    if (++nest > 500)
-    {
-        global.gag = 0;                 // ensure error message gets printed
-        error("recursive expansion");
-        fatal();
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-        s->setScope(sc2);
-    }
-
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = members->tdata()[i];
-        //printf("\t[%d] semantic on '%s' %p kind %s in '%s'\n", i, s->toChars(), s, s->kind(), this->toChars());
-        //printf("test: isnested = %d, sc2->parent = %s\n", isnested, sc2->parent->toChars());
-//      if (isnested)
-//          s->parent = sc->parent;
-        //printf("test3: isnested = %d, s->parent = %s\n", isnested, s->parent->toChars());
-        s->semantic(sc2);
-        //printf("test4: isnested = %d, s->parent = %s\n", isnested, s->parent->toChars());
-        sc2->module->runDeferredSemantic();
-    }
-    --nest;
-#if WINDOWS_SEH
-  }
-  __except (__ehfilter(GetExceptionInformation()))
-  {
-    global.gag = 0;                     // ensure error message gets printed
-    error("recursive expansion");
-    fatal();
-  }
-#endif
+    tryExpandMembers(sc2);
 
     /* If any of the instantiation members didn't get semantic() run
      * on them due to forward references, we cannot run semantic2()
@@ -4704,28 +4752,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     if (sc->func || dosemantic3)
     {
-#if WINDOWS_SEH
-        __try
-        {
-#endif
-            static int nest;
-            if (++nest > 300)
-            {
-                global.gag = 0;            // ensure error message gets printed
-                error("recursive expansion");
-                fatal();
-            }
-            semantic3(sc2);
-            --nest;
-#if WINDOWS_SEH
-        }
-        __except (__ehfilter(GetExceptionInformation()))
-        {
-            global.gag = 0;            // ensure error message gets printed
-            error("recursive expansion");
-            fatal();
-        }
-#endif
+        trySemantic3(sc2);
     }
 
   Laftersemantic:
@@ -5269,7 +5296,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
 
     //printf("TemplateInstance::genIdent('%s')\n", tempdecl->ident->toChars());
     char *id = tempdecl->ident->toChars();
-    buf.printf("__T%zu%s", strlen(id), id);
+    buf.printf("__T%llu%s", (ulonglong)strlen(id), id);
     for (size_t i = 0; i < args->dim; i++)
     {   Object *o = args->tdata()[i];
         Type *ta = isType(o);
@@ -5366,7 +5393,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
              * Unfortunately, fixing this ambiguity will break existing binary
              * compatibility and the demanglers, so we'll leave it as is.
              */
-            buf.printf("%zu%s", strlen(p), p);
+            buf.printf("%llu%s", (ulonglong)strlen(p), p);
         }
         else if (va)
         {

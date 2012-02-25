@@ -240,7 +240,7 @@ One and only one of these macros must be set by the makefile:
 
 #if __GNUC__
 #define LONGLONG        1
-#elif __SC__ < 0x700 || _MSC_VER
+#elif __SC__ > 0 && __SC__ < 0x700
 #define LONGLONG        0
 #else
 #define LONGLONG        1               // add in code to support 64 bit integral types
@@ -251,6 +251,8 @@ One and only one of these macros must be set by the makefile:
 #else
 #define LDOUBLE         (config.exe == EX_NT)   // support true long doubles
 #endif
+
+#include "longdouble.h"
 
 // Precompiled header variations
 #define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
@@ -444,7 +446,7 @@ typedef unsigned long long      targ_ullong;
 #endif
 typedef float           targ_float;
 typedef double          targ_double;
-typedef long double     targ_ldouble;
+typedef longdouble      targ_ldouble;
 
 // Extract most significant register from constant
 #define MSREG(p)        ((REGSIZE == 2) ? (p) >> 16 : ((sizeof(targ_llong) == 8) ? (p) >> 32 : 0))
@@ -483,7 +485,8 @@ typedef unsigned        targ_uns;
 #define FPTRSIZE        tysize[TYfptr]
 #define REGMASK         0xFFFF
 
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
+// targ_llong is also used to store host pointers, so it should have at least their size
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX || _WIN64
 typedef targ_llong      targ_ptrdiff_t; /* ptrdiff_t for target machine  */
 typedef targ_ullong     targ_size_t;    /* size_t for the target machine */
 #else

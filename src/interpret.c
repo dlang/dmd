@@ -2672,7 +2672,7 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     }
     if (indx < 0 || indx > len)
     {
-        error(loc, "cannot assign pointer to index %jd inside memory block [0..%jd]", indx, len);
+        error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
         return EXP_CANT_INTERPRET;
     }
 
@@ -4275,7 +4275,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             firstIndex = lowerbound + sexpold->lwr->toInteger();
             if (hi > sexpold->upr->toInteger())
             {
-                error("slice [%d..%d] exceeds array bounds [0..%jd]",
+                error("slice [%d..%d] exceeds array bounds [0..%lld]",
                     lowerbound, upperbound,
                     sexpold->upr->toInteger() - sexpold->lwr->toInteger());
                 return EXP_CANT_INTERPRET;
@@ -4296,7 +4296,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             firstIndex = lowerbound + ofs;
             if (firstIndex < 0 || hi > dim)
             {
-                error("slice [%jd..%jd] exceeds memory block bounds [0..%d]",
+                error("slice [lld..%lld] exceeds memory block bounds [0..%lld]",
                     firstIndex, hi,  dim);
                 return EXP_CANT_INTERPRET;
             }
@@ -5033,7 +5033,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         Type *pointee = ((TypePointer *)agg->type)->next;
         if ((indx + ofs) < 0 || (indx+ofs) > len)
         {
-            error("pointer index [%jd] exceeds allocated memory block [0..%jd]",
+            error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
                 indx+ofs, len);
             return EXP_CANT_INTERPRET;
         }
@@ -5078,7 +5078,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 
         if (indx > iup - ilo)
         {
-            error("index %ju exceeds array length %ju", indx, iup - ilo);
+            error("index %llu exceeds array length %llu", indx, iup - ilo);
             return EXP_CANT_INTERPRET;
         }
         indx += ilo;
@@ -5179,7 +5179,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         Type *pointee = ((TypePointer *)agg->type)->next;
         if ((ilwr + ofs) < 0 || (iupr+ofs) > (len + 1) || iupr < ilwr)
         {
-            error("pointer slice [%jd..%jd] exceeds allocated memory block [0..%jd]",
+            error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
                 ilwr+ofs, iupr+ofs, len);
             return EXP_CANT_INTERPRET;
         }
@@ -5243,7 +5243,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (ilwr== 0 && iupr == 0)
             return e1;
-        e1->error("slice [%ju..%ju] is out of bounds", ilwr, iupr);
+        e1->error("slice [%llu..%llu] is out of bounds", ilwr, iupr);
         return EXP_CANT_INTERPRET;
     }
     if (e1->op == TOKslice)
@@ -5255,7 +5255,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         uinteger_t up1 = se->upr->toInteger();
         if (ilwr > iupr || iupr > up1 - lo1)
         {
-            error("slice[%ju..%ju] exceeds array bounds[%ju..%ju]",
+            error("slice[%llu..%llu] exceeds array bounds[%llu..%llu]",
                 ilwr, iupr, lo1, up1);
             return EXP_CANT_INTERPRET;
         }
@@ -5272,7 +5272,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (iupr < ilwr || ilwr < 0 || iupr > dollar)
         {
-            error("slice [%jd..%jd] exceeds array bounds [0..%jd]",
+            error("slice [%lld..%lld] exceeds array bounds [0..%lld]",
                 ilwr, iupr, dollar);
             return EXP_CANT_INTERPRET;
         }
@@ -5674,7 +5674,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                     assert(indx >=0 && indx <= len); // invalid pointer
                     if (indx == len)
                     {
-                        error("dereference of pointer %s one past end of memory block limits [0..%jd]",
+                        error("dereference of pointer %s one past end of memory block limits [0..%lld]",
                             toChars(), len);
                         return EXP_CANT_INTERPRET;
                     }

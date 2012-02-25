@@ -277,7 +277,7 @@ void TypeVector::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 void TypeSArray::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     if (!cms->substitute(buf, this))
-    {   buf->printf("A%ju_", dim ? dim->toInteger() : 0);
+    {   buf->printf("A%llu_", dim ? dim->toInteger() : 0);
         next->toCppMangle(buf, cms);
     }
 }

@@ -271,7 +271,7 @@ Msgtable msgtable[] =
     { "getmembers", "getMembers" },
 
     // Special functions
-    { "alloca" },
+    { "__alloca", "alloca" }, // has to be mapped because alloca is #defined if _MSC_VER
     { "main" },
     { "WinMain" },
     { "DllMain" },

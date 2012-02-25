@@ -16,12 +16,14 @@
 
 struct complex_t
 {
-    long double re;
-    long double im;
+    longdouble re;
+    longdouble im;
 
     complex_t() { this->re = 0; this->im = 0; }
-    complex_t(long double re) { this->re = re; this->im = 0; }
-    complex_t(long double re, long double im) { this->re = re; this->im = im; }
+    complex_t(longdouble re) { this->re = re; this->im = 0; }
+    complex_t(double re) { this->re = re; this->im = 0; }
+    complex_t(longdouble re, longdouble im) { this->re = re; this->im = im; }
+    complex_t(double re, double im) { this->re = re; this->im = im; }
 
     complex_t operator + (complex_t y) { complex_t r; r.re = re + y.re; r.im = im + y.im; return r; }
     complex_t operator - (complex_t y) { complex_t r; r.re = re - y.re; r.im = im - y.im; return r; }
@@ -30,9 +32,9 @@ struct complex_t
 
     complex_t operator / (complex_t y)
     {
-        long double abs_y_re = y.re < 0 ? -y.re : y.re;
-        long double abs_y_im = y.im < 0 ? -y.im : y.im;
-        long double r, den;
+        longdouble abs_y_re = y.re < 0 ? -y.re : y.re;
+        longdouble abs_y_im = y.im < 0 ? -y.im : y.im;
+        longdouble r, den;
 
         if (abs_y_re < abs_y_im)
         {
@@ -56,17 +58,17 @@ struct complex_t
     int operator != (complex_t y) { return re != y.re || im != y.im; }
 };
 
-inline complex_t operator * (long double x, complex_t y) { return complex_t(x) * y; }
-inline complex_t operator * (complex_t x, long double y) { return x * complex_t(y); }
-inline complex_t operator / (complex_t x, long double y) { return x / complex_t(y); }
+inline complex_t operator * (longdouble x, complex_t y) { return complex_t(x) * y; }
+inline complex_t operator * (complex_t x, longdouble y) { return x * complex_t(y); }
+inline complex_t operator / (complex_t x, longdouble y) { return x / complex_t(y); }
 
 
-inline long double creall(complex_t x)
+inline longdouble creall(complex_t x)
 {
     return x.re;
 }
 
-inline long double cimagl(complex_t x)
+inline longdouble cimagl(complex_t x)
 {
     return x.im;
 }
