@@ -3,7 +3,11 @@
 #ifndef BCOMPLEX_H
 #define BCOMPLEX_H 1
 
+#if _MSC_VER
 #include "longdouble.h"
+#else
+typedef long double longdouble;
+#endif
 
 // Avoid interfering with system <complex.h> and other
 // such; roll our own for reliable bootstrapping

@@ -2037,7 +2037,11 @@ void shrinkLongDoubleConstantIfPossible(elem *e)
          * Use 'volatile' to prevent optimizer from folding away the conversions,
          * and thereby missing the truncation in the conversion to double.
          */
+#if _MSC_VER
         volatile_longdouble v = e->EV.Vldouble;
+#else
+        volatile long double v = e->EV.Vldouble;
+#endif
         volatile double vDouble;
 
         *(&vDouble) = v;
@@ -3143,9 +3147,13 @@ void elem_print(elem *e)
                         break;
                     case TYldouble:
                     {
+#if _MSC_VER
                         char buffer[3 + 3 * sizeof(targ_ldouble) + 1];
                         ld_sprint(buffer, 'g', e->EV.Vldouble);
                         dbg_printf("%s ", buffer);
+#else
+                        dbg_printf("%Lg ", e->EV.Vldouble);
+#endif
                         break;
                     }
                     case TYifloat:

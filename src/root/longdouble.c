@@ -60,9 +60,9 @@ extern "C"
 {
 
 double ld_read(const longdouble* pthis)
-{ 
+{
     double res;
-    __asm 
+    __asm
     {
         mov eax, pthis
         fld tbyte ptr [eax]
@@ -79,7 +79,7 @@ long long ld_readll(const longdouble* pthis)
 #else
     longdouble* pthis = this;
     long long res;
-    __asm 
+    __asm
     {
         mov eax, pthis
         fld tbyte ptr [eax]
@@ -111,7 +111,7 @@ unsigned long long ld_readull(const longdouble* pthis)
     longdouble* pthis = this;
     long long res; // cannot use unsigned, VC will not generate "fistp qword"
     longdouble twoPow63 = { 1ULL << 63, 0x3fff + 63, 0 };
-    __asm 
+    __asm
     {
         mov eax, pthis
         fld tbyte ptr [eax]
@@ -126,25 +126,25 @@ unsigned long long ld_readull(const longdouble* pthis)
 #endif
 }
 
-void ld_set(longdouble* pthis, double d) 
-{ 
-    __asm 
-    { 
+void ld_set(longdouble* pthis, double d)
+{
+    __asm
+    {
         mov eax, pthis
         fld d
         fstp tbyte ptr [eax]
     }
 }
-void ld_setll(longdouble* pthis, long long d) 
+void ld_setll(longdouble* pthis, long long d)
 {
-    __asm 
-    { 
+    __asm
+    {
         fild qword ptr d
         mov eax, pthis
         fstp tbyte ptr [eax]
     }
 }
-void ld_setull(longdouble* pthis, unsigned long long d) 
+void ld_setull(longdouble* pthis, unsigned long long d)
 {
     d ^= (1LL << 63);
     longdouble twoPow63 = { 1ULL << 63, 0x3fff + 63, 0 };
@@ -179,7 +179,7 @@ longdouble ldexpl(longdouble ld, int exp)
 }
 
 ///////////////////////////////////////////////////////////////////////
-longdouble operator+(longdouble ld1, longdouble ld2) 
+longdouble operator+(longdouble ld1, longdouble ld2)
 {
 #ifdef _WIN64
     return ld_add(ld1, ld2);
@@ -248,7 +248,7 @@ longdouble operator/(longdouble ld1, longdouble ld2)
 }
 
 bool operator< (longdouble x, longdouble y)
-{ 
+{
 #ifdef _WIN64
     return ld_cmpb(x, y);
 #else
@@ -311,7 +311,7 @@ bool operator> (longdouble x, longdouble y)
 #endif
 }
 bool operator>=(longdouble x, longdouble y)
-{ 
+{
 #ifdef _WIN64
     return ld_cmpae(x, y);
 #else
@@ -353,7 +353,7 @@ bool operator==(longdouble x, longdouble y)
 #endif
 }
 bool operator!=(longdouble x, longdouble y)
-{ 
+{
 #ifdef _WIN64
     return ld_cmpne(x, y);
 #else
@@ -418,7 +418,7 @@ longdouble sinl (longdouble ld)
 #endif
 }
 longdouble cosl (longdouble ld)
-{ 
+{
 #ifdef _WIN64
     return ld_cos(ld);
 #else

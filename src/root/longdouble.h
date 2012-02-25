@@ -90,7 +90,7 @@ struct longdouble
     void set(unsigned long      d) { ld_set(this, d); }
     void set(unsigned long long d) { ld_setull(this, d); }
     void set(bool               d) { ld_set(this, d); }
-    
+
     operator float             () { return ld_read(this); }
     operator double            () { return ld_read(this); }
 
@@ -116,7 +116,7 @@ typedef longdouble volatile_longdouble;
 
 inline longdouble ldouble(unsigned long long mantissa, int exp, int sign = 0)
 {
-    longdouble d; 
+    longdouble d;
     d.mantissa = mantissa;
     d.exponent = exp;
     d.sign = sign;
@@ -219,7 +219,7 @@ extern longdouble ld_snan;
 // CLASS numeric_limits<longdouble>
 template<> class _CRTIMP2_PURE std::numeric_limits<longdouble>
 : public _Num_float_base
-{	// limits for type long double
+{       // limits for type long double
 public:
     typedef longdouble _Ty;
 

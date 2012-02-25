@@ -137,6 +137,7 @@ SRC = win32.mak posix.mak \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
+	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
 	$(ROOT)/speller.h $(ROOT)/speller.c
 
 

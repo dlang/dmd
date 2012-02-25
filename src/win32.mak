@@ -36,8 +36,8 @@ LFLAGS=
 
 LINKN=$(SCROOT)\bin\link /de
 
-CFLAGS=-I$(ROOT) -I$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp
-MFLAGS=-I$C -I$(TK) -I$(ROOT) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
+CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
 
 # Makerules:
 .c.obj:
@@ -97,7 +97,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	debug.obj code.obj cg87.obj cgxmm.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
-	ti_pvoid.obj strtold.obj
+	ti_pvoid.obj
 
 # from ROOT
 
@@ -106,7 +106,7 @@ GCOBJS=rmem.obj
 
 ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj root.obj port.obj \
 	stringtable.obj dchar.obj response.obj async.obj speller.obj aav.obj \
-	longdouble.obj $(GCOBJS)
+	$(GCOBJS)
 
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
@@ -164,7 +164,7 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c \
-	$(ROOT)\longdouble.c $(ROOT)\longdouble.h \
+	$(ROOT)\longdouble.h $(ROOT)\longdouble.c \
 	$(ROOT)\dmgcmem.c $(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
 	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 	$(ROOT)\gc\win32.c
@@ -174,7 +174,7 @@ MAKEFILES=win32.mak posix.mak
 #########################################
 
 $(TARGET).exe : $(OBJS) win32.mak
-	$(CC) -o$(TARGET).exe $(OBJS) -cpp -mn -Ar $(LFLAGS)
+	dmc -o$(TARGET).exe $(OBJS) -cpp -mn -Ar $(LFLAGS)
 
 
 ##################### INCLUDE MACROS #####################
@@ -190,11 +190,11 @@ msgs.h msgs.c sj1041.msg sj1036.msg sj1031.msg : msgsx.exe
 	msgsx
 
 msgsx.exe : msgsx.c
-	$(CC) msgsx -mn -D$(TARGET) $(DEFINES) $(WINLIBS)
+	dmc msgsx -mn -D$(TARGET) $(DEFINES) $(WINLIBS)
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK) -I$(ROOT) $(WINLIBS) #-L$(LINKS)
+	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK) $(WINLIBS) #-L$(LINKS)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
@@ -202,7 +202,7 @@ impcnvtab.c : impcnvgen.c
 	impcnvgen
 
 id.h id.c : idgen.c
-	$(CC) -cpp idgen
+	dmc -cpp idgen
 	idgen
 
 ##################### SPECIAL BUILDS #####################
@@ -340,7 +340,7 @@ module.obj : $(TOTALH) $C\html.h module.c
 	$(CC) -c $(CFLAGS) -I$C $(PREC) module.c
 
 msc.obj : $(CH) mars.h msc.c
-	$(CC) -c $(MFLAGS) msc
+	$(CC) -c $(MFLAGS) -I$(ROOT) msc
 
 newman.obj : $(CH) $C\newman.c
 	$(CC) -c $(MFLAGS) $C\newman
@@ -365,9 +365,6 @@ ptrntab.obj : $C\iasm.h $C\ptrntab.c
 
 rtlsym.obj : $C\rtlsym.h $C\rtlsym.c
 	$(CC) -c $(MFLAGS) $C\rtlsym
-
-strtold.obj : $C\strtold.c
-	$(CC) -c -I$(ROOT) $C\strtold
 
 ti_achar.obj : $C\tinfo.h $C\ti_achar.c
 	$(CC) -c $(MFLAGS) -I. $C\ti_achar
@@ -437,9 +434,6 @@ dmgcmem.obj : $(ROOT)\dmgcmem.c
 
 gnuc.obj : $(ROOT)\gnuc.c
 	$(CC) -c $(CFLAGS) $(ROOT)\gnuc.c
-
-longdouble.obj : $(ROOT)\longdouble.c
-	$(CC) -c $(CFLAGS) $(ROOT)\longdouble.c
 
 lstring.obj : $(ROOT)\lstring.c
 	$(CC) -c $(CFLAGS) $(ROOT)\lstring.c

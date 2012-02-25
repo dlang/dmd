@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1332,14 +1332,7 @@ struct Aliassym : Symbol { };
 /* Format the identifier for presentation to the user   */
 char *cpp_prettyident (Symbol *s);
 
-inline char *prettyident(Symbol *s) 
-{ 
-#if CPP 
-    return cpp_prettyident(s);
-#else
-    return s->Sident;
-#endif
-}
+inline char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : s->Sident; }
 
 /**********************************
  * Function parameters:

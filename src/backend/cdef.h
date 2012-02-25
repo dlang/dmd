@@ -252,7 +252,11 @@ One and only one of these macros must be set by the makefile:
 #define LDOUBLE         (config.exe == EX_NT)   // support true long doubles
 #endif
 
+#if _MSC_VER
 #include "longdouble.h"
+#else
+typedef long double longdouble;
+#endif
 
 // Precompiled header variations
 #define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
