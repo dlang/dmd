@@ -32,14 +32,17 @@ struct Declaration;
 #define SI      6
 #define DI      7
 
-#define R8      8
-#define R9      9
-#define R10     10
-#define R11     11
-#define R12     12
-#define R13     13
-#define R14     14
-#define R15     15
+enum // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
+{
+    R8       = 8,
+    R9       = 9,
+    R10      = 10,
+    R11      = 11,
+    R12      = 12,
+    R13      = 13,
+    R14      = 14,
+    R15      = 15,
+};
 
 #define XMM0    16
 #define XMM1    17

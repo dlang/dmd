@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -201,8 +201,17 @@ void WReqn(elem *e)
                         dbg_printf("%g ",e->EV.Vdouble);
                         break;
                     case TYldouble:
+#if _MSC_VER
+                    {
+                        char buffer[3 + 3 * sizeof(targ_ldouble) + 1];
+                        ld_sprint(buffer, 'g', e->EV.Vldouble);
+                        dbg_printf("%s ",buffer);
+                        break;
+                    }
+#else
                         dbg_printf("%Lg ",e->EV.Vldouble);
                         break;
+#endif
                     case TYcent:
                     case TYucent:
                         dbg_printf("%lld+%lld ", e->EV.Vcent.msw, e->EV.Vcent.lsw);

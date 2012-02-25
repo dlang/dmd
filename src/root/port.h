@@ -10,6 +10,8 @@
 // Portable wrapper around compiler/system specific things.
 // The idea is to minimize #ifdef's in the app code.
 
+#include "longdouble.h"
+
 #ifndef TYPEDEFS
 #define TYPEDEFS
 
@@ -20,7 +22,7 @@ typedef __int64 longlong;
 typedef unsigned __int64 ulonglong;
 
 // According to VC 8.0 docs, long double is the same as double
-#define strtold strtod
+longdouble strtold(const char *p,char **endp);
 #define strtof  strtod
 
 #else
@@ -38,7 +40,7 @@ struct Port
     static double infinity;
     static double dbl_max;
     static double dbl_min;
-    static long double ldbl_max;
+    static longdouble ldbl_max;
 
 #if __OpenBSD__
 #elif __GNUC__
@@ -49,10 +51,10 @@ struct Port
     #undef signbit
 #endif
     static int isNan(double);
-    static int isNan(long double);
+    static int isNan(longdouble);
 
     static int isSignallingNan(double);
-    static int isSignallingNan(long double);
+    static int isSignallingNan(longdouble);
 
     static int isFinite(double);
     static int isInfinity(double);
@@ -61,7 +63,7 @@ struct Port
     static double floor(double);
     static double pow(double x, double y);
 
-    static long double fmodl(long double x, long double y);
+    static longdouble fmodl(longdouble x, longdouble y);
 
     static ulonglong strtoull(const char *p, char **pend, int base);
 
