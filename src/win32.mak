@@ -164,6 +164,7 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c \
+	$(ROOT)\longdouble.h $(ROOT)\longdouble.c \
 	$(ROOT)\dmgcmem.c $(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
 	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 	$(ROOT)\gc\win32.c
@@ -339,7 +340,7 @@ module.obj : $(TOTALH) $C\html.h module.c
 	$(CC) -c $(CFLAGS) -I$C $(PREC) module.c
 
 msc.obj : $(CH) mars.h msc.c
-	$(CC) -c $(MFLAGS) msc
+	$(CC) -c $(MFLAGS) -I$(ROOT) msc
 
 newman.obj : $(CH) $C\newman.c
 	$(CC) -c $(MFLAGS) $C\newman
