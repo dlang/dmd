@@ -1294,6 +1294,32 @@ Type *Type::aliasthisOf()
             Type *t = ed->type;
             return t;
         }
+        TemplateDeclaration *td = ad->aliasthis->isTemplateDeclaration();
+        if (td)
+        {   assert(td->scope);
+            Expression *ethis = defaultInit(0);
+            FuncDeclaration *fd = td->deduceFunctionTemplate(td->scope, 0, NULL, ethis, NULL, 1);
+            if (fd)
+            {
+                //if (!fd->type->nextOf() && fd->inferRetType)
+                {
+                    TemplateInstance *spec = fd->isSpeculative();
+                    int olderrs = global.errors;
+                    fd->semantic3(fd->scope);
+                    // Update the template instantiation with the number
+                    // of errors which occured.
+                    if (spec && global.errors != olderrs)
+                        spec->errors = global.errors - olderrs;
+                }
+                if (!global.errors)
+                {
+                    Type *t = fd->type->nextOf();
+                    t = t->substWildTo(mod == 0 ? MODmutable : mod);
+                    return t;
+                }
+            }
+            return Type::terror;
+        }
         //printf("%s\n", ad->aliasthis->kind());
     }
     return NULL;
