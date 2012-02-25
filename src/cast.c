@@ -845,7 +845,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                 {   /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
-                    Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
+                    Expression *e1 = resolveAliasThis(sc, this);
                     Expression *e2 = new CastExp(loc, e1, tb);
                     e2 = e2->semantic(sc);
                     return e2;
@@ -866,7 +866,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                     /* Forward the cast to our alias this member, rewrite to:
                      *   cast(to)e1.aliasthis
                      */
-                    Expression *e1 = new DotIdExp(loc, this, ts->sym->aliasthis->ident);
+                    Expression *e1 = resolveAliasThis(sc, this);
                     Expression *e2 = new CastExp(loc, e1, tb);
                     e2 = e2->semantic(sc);
                     return e2;
@@ -1940,17 +1940,13 @@ Lcc:
             }
             else if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
             {
-                e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);
-                e1 = e1->semantic(sc);
-                e1 = resolveProperties(sc, e1);
+                e1 = resolveAliasThis(sc, e1);
                 t1 = e1->type;
                 continue;
             }
             else if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
             {
-                e2 = new DotIdExp(e2->loc, e2, ((TypeStruct *)t2)->sym->aliasthis->ident);
-                e2 = e2->semantic(sc);
-                e2 = resolveProperties(sc, e2);
+                e2 = resolveAliasThis(sc, e2);
                 t2 = e2->type;
                 continue;
             }
@@ -1985,16 +1981,12 @@ Lcc:
             Expression *e2b = NULL;
             if (ts2->sym->aliasthis)
             {
-                e2b = new DotIdExp(e2->loc, e2, ts2->sym->aliasthis->ident);
-                e2b = e2b->semantic(sc);
-                e2b = resolveProperties(sc, e2b);
+                e2b = resolveAliasThis(sc, e2);
                 i1 = e2b->implicitConvTo(t1);
             }
             if (ts1->sym->aliasthis)
             {
-                e1b = new DotIdExp(e1->loc, e1, ts1->sym->aliasthis->ident);
-                e1b = e1b->semantic(sc);
-                e1b = resolveProperties(sc, e1b);
+                e1b = resolveAliasThis(sc, e1);
                 i2 = e1b->implicitConvTo(t2);
             }
             if (i1 && i2)
@@ -2021,18 +2013,14 @@ Lcc:
     {
         if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
         {
-            e1 = new DotIdExp(e1->loc, e1, ((TypeStruct *)t1)->sym->aliasthis->ident);
-            e1 = e1->semantic(sc);
-            e1 = resolveProperties(sc, e1);
+            e1 = resolveAliasThis(sc, e1);
             t1 = e1->type;
             t = t1;
             goto Lagain;
         }
         if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
         {
-            e2 = new DotIdExp(e2->loc, e2, ((TypeStruct *)t2)->sym->aliasthis->ident);
-            e2 = e2->semantic(sc);
-            e2 = resolveProperties(sc, e2);
+            e2 = resolveAliasThis(sc, e2);
             t2 = e2->type;
             t = t2;
             goto Lagain;

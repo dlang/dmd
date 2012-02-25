@@ -1485,9 +1485,7 @@ Lretry:
                          * eg purity(bug 7295), just regard it as not a match.
                          */
                         unsigned olderrors = global.startGagging();
-                        Expression *e = new DotIdExp(farg->loc, farg, ad->aliasthis->ident);
-                        e = e->semantic(sc);
-                        e = resolveProperties(sc, e);
+                        Expression *e = resolveAliasThis(sc, farg);
                         if (!global.endGagging(olderrors))
                         {   farg = e;
                             goto Lretry;
