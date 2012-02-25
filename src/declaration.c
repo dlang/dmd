@@ -977,7 +977,7 @@ Lnomatch:
         {   Parameter *arg = Parameter::getNth(tt->arguments, i);
 
             OutBuffer buf;
-            buf.printf("_%s_field_%zu", ident->toChars(), i);
+            buf.printf("_%s_field_%llu", ident->toChars(), (ulonglong)i);
             buf.writeByte(0);
             const char *name = (const char *)buf.extractData();
             Identifier *id = Lexer::idPool(name);

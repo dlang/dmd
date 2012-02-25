@@ -631,7 +631,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                                     code_orrex(cs, REX_W);
                             }
                         }
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                        cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
                         if (nalign)
                         {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
                             if (I64)
@@ -694,7 +694,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         code_orrex(c, REX_W);
                 }
                 // CALL bl->Bsucc
-                c = genc(c,0xE8,0,0,0,FLblock,(long)list_block(bl->Bsucc));
+                c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bl->Bsucc));
                 if (nalign)
                 {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
                     if (I64)
@@ -711,7 +711,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 // corresponding BC_ret
                 //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
                 // PUSH &succ
-                c = genc(c,0x68,0,0,0,FLblock,(long)list_block(list_next(bl->Bsucc)));
+                c = genc(c,0x68,0,0,0,FLblock,(targ_size_t)list_block(list_next(bl->Bsucc)));
                 nextb = list_block(bl->Bsucc);
                 goto L2;
             }
@@ -811,7 +811,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 
                             c = cat(c,nteh_gensindex(-1));
                             gensaverestore(retregs,&cs,&cr);
-                            cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                            cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
                             bl->Bcode = cat3(c,cs,cr);
                         }
                         else
@@ -836,7 +836,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             }
                         }
                         // CALL bf->Bsucc
-                        cs = genc(cs,0xE8,0,0,0,FLblock,(long)list_block(bf->Bsucc));
+                        cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
                         if (nalign)
                         {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
                             if (I64)
@@ -5179,7 +5179,7 @@ static char *pgen;
 
 #define GEN(c)          (*pgen++ = (c))
 #define GENP(n,p)       (memcpy(pgen,(p),(n)), pgen += (n))
-#if ELFOBJ || MACHOBJ
+#if ELFOBJ || MACHOBJ || _MSC_VER
 #define FLUSH()         if (pgen-bytes) cod3_flush()
 #else
 #define FLUSH()         ((pgen - bytes) && cod3_flush())

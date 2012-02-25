@@ -86,7 +86,7 @@ void util_exit(int exitcode)
 }
 
 
-#if _WIN32
+#if _WIN32 && !_MSC_VER
 
 volatile int controlc_saw;
 
@@ -136,7 +136,7 @@ void util_progress(int linnum)
 
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4 || _MSC_VER
 void util_progress()
 {
 }

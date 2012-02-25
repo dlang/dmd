@@ -17,7 +17,7 @@
 #include        <stdlib.h>
 #include        <time.h>
 
-#if __sun&&__SVR4
+#if __sun&&__SVR4 || _MSC_VER
 #include        <alloca.h>
 #endif
 

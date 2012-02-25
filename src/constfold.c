@@ -577,12 +577,12 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         if (e1->type->isfloating())
         {
             r = new RealExp(loc, e1->toReal(), e1->type);
-            v = new RealExp(loc, 1.0, e1->type);
+            v = new RealExp(loc, ldouble(1.0), e1->type);
         }
         else
         {
             r = new RealExp(loc, e1->toReal(), Type::tfloat64);
-            v = new RealExp(loc, 1.0, Type::tfloat64);
+            v = new RealExp(loc, ldouble(1.0), Type::tfloat64);
         }
 
         while (n != 0)
@@ -594,7 +594,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         }
 
         if (neg)
-            v = Div(v->type, new RealExp(loc, 1.0, v->type), v);
+            v = Div(v->type, new RealExp(loc, ldouble(1.0), v->type), v);
 
         if (type->isintegral())
             e = new IntegerExp(loc, v->toInteger(), type);
@@ -606,7 +606,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         // x ^^ y for x < 0 and y not an integer is not defined
         if (e1->toReal() < 0.0)
         {
-            e = new RealExp(loc, Port::nan, type);
+            e = new RealExp(loc, ldouble(Port::nan), type);
         }
         else if (e2->toReal() == 0.5)
         {
@@ -1346,7 +1346,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 
         if (i >= es1->len)
         {
-            e1->error("string index %ju is out of bounds [0 .. %zu]", i, es1->len);
+            e1->error("string index %llu is out of bounds [0 .. %llu]", i, (ulonglong)es1->len);
             e = new ErrorExp();
         }
         else
@@ -1361,7 +1361,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
 
         if (i >= length)
         {
-            e1->error("array index %ju is out of bounds %s[0 .. %ju]", i, e1->toChars(), length);
+            e1->error("array index %llu is out of bounds %s[0 .. %llu]", i, e1->toChars(), length);
             e = new ErrorExp();
         }
         else if (e1->op == TOKarrayliteral)
@@ -1380,7 +1380,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             if (i >= ale->elements->dim)
             {
-                e1->error("array index %ju is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
+                e1->error("array index %llu is out of bounds %s[0 .. %u]", i, e1->toChars(), ale->elements->dim);
                 e = new ErrorExp();
             }
             else
@@ -1436,7 +1436,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 
         if (iupr > es1->len || ilwr > iupr)
         {
-            e1->error("string slice [%ju .. %ju] is out of bounds", ilwr, iupr);
+            e1->error("string slice [%llu .. %llu] is out of bounds", ilwr, iupr);
             e = new ErrorExp();
         }
         else
@@ -1466,7 +1466,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 
         if (iupr > es1->elements->dim || ilwr > iupr)
         {
-            e1->error("array slice [%ju .. %ju] is out of bounds", ilwr, iupr);
+            e1->error("array slice [%llu .. %llu] is out of bounds", ilwr, iupr);
             e = new ErrorExp();
         }
         else

@@ -519,7 +519,7 @@ void cv_init()
  * Return number of bytes required to store a numeric leaf.
  */
 
-inline unsigned cv4_numericbytes(targ_size_t value)
+unsigned cv4_numericbytes(targ_size_t value)
 {   unsigned u;
 
     if (value < 0x8000)

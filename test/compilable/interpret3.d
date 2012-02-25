@@ -181,6 +181,42 @@ static assert(retRefTest3()==26);
 static assert(retRefTest4()==218);
 
 /**************************************************
+    Bug 7473 struct non-ref
+**************************************************/
+
+struct S7473{
+    int i;
+}
+
+static assert({
+    S7473 s = S7473(1);
+    assert(s.i == 1);
+    bug7473(s);
+    assert(s.i == 1);
+    return true;
+}());
+
+void bug7473(S7473 s){
+    s.i = 2;
+}
+
+struct S7473b{
+    S7473 m;
+}
+
+static assert({
+    S7473b s = S7473b(S7473(7));
+    assert(s.m.i == 7);
+    bug7473b(s);
+    assert(s.m.i == 7);
+    return true;
+}());
+
+void bug7473b(S7473b s){
+    s.m.i = 2;
+}
+
+/**************************************************
     Bug 4389
 **************************************************/
 

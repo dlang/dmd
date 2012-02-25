@@ -11,7 +11,7 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
-#include        <complex.h>
+//#include        <complex.h>
 
 #include        "port.h"
 
@@ -3543,7 +3543,7 @@ elem *CallExp::toElem(IRState *irs)
 #if 0 // This optimization is not valid if alloca can be called
       // multiple times within the same function, eg in a loop
       // see issue 3822
-        if (fd && fd->ident == Id::alloca &&
+        if (fd && fd->ident == Id::__alloca &&
             !fd->fbody && fd->linkage == LINKc &&
             arguments && arguments->dim == 1)
         {   Expression *arg = arguments->tdata()[0];

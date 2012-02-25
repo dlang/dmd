@@ -330,6 +330,9 @@ struct TemplateInstance : ScopeDsymbol
     void declareParameters(Scope *sc);
     int hasNestedArgs(Objects *tiargs);
     Identifier *genIdent(Objects *args);
+    void expandMembers(Scope *sc);
+    void tryExpandMembers(Scope *sc);
+    void trySemantic3(Scope *sc2);
 
     TemplateInstance *isTemplateInstance() { return this; }
     AliasDeclaration *isAliasDeclaration();
