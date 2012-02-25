@@ -2097,7 +2097,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
         {   /* Rewrite e.ident as:
              *  e.aliasthis.ident
              */
-            e = new DotIdExp(e->loc, e, sym->aliasthis->ident);
+            e = resolveAliasThis(sc, e);
             e = new DotIdExp(e->loc, e, ident);
             return e->semantic(sc);
         }
