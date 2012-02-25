@@ -167,6 +167,7 @@ void EnumDeclaration::semantic(Scope *sc)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
         Expression *e;
+        Expression *emax = NULL;
 
         if (!em)
             /* The e->semantic(sce) can insert other symbols, such as
@@ -217,10 +218,18 @@ void EnumDeclaration::semantic(Scope *sc)
         }
         else
         {
+            // Lazily evaluate enum.max
+            if (!emax)
+            {
+                emax = t->getProperty(0, Id::max);
+                emax = emax->semantic(sce);
+                emax = emax->optimize(WANTvalue | WANTinterpret);
+            }
+
             // Set value to (elast + 1).
             // But first check that (elast != t.max)
             assert(elast);
-            e = new EqualExp(TOKequal, em->loc, elast, t->getProperty(0, Id::max));
+            e = new EqualExp(TOKequal, em->loc, elast, emax);
             e = e->semantic(sce);
             e = e->optimize(WANTvalue | WANTinterpret);
             if (e->toInteger())
@@ -231,6 +240,16 @@ void EnumDeclaration::semantic(Scope *sc)
             e = e->semantic(sce);
             e = e->castTo(sce, elast->type);
             e = e->optimize(WANTvalue | WANTinterpret);
+
+            if (t->isfloating())
+            {
+                // Check that e != elast (not always true for floats)
+                Expression *etest = new EqualExp(TOKequal, em->loc, e, elast);
+                etest = etest->semantic(sce);
+                etest = etest->optimize(WANTvalue | WANTinterpret);
+                if (etest->toInteger())
+                    error("enum member %s has inexact value, due to loss of precision", em->toChars());
+            }
         }
         elast = e;
         em->value = e;
