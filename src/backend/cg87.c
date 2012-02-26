@@ -663,7 +663,11 @@ __body
         {0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2};
     static double dval[7] =
         {0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2};
+#if _MSC_VER
+    static longdouble ldval[7] =
+#else
     static long double ldval[7] =
+#endif
 #if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #define M_PIl           0x1.921fb54442d1846ap+1L        // 3.14159 fldpi
 #define M_LOG2T_L       0x1.a934f0979a3715fcp+1L        // 3.32193 fldl2t
