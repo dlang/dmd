@@ -89,21 +89,34 @@ code *orthxmm(elem *e, regm_t *pretregs)
     regm_t rretregs = XMMREGS & ~retregs;
     code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
 
+    unsigned op = xmmoperator(e1->Ety, e->Eoper);
+    unsigned rreg = findreg(rretregs);
+
     // float + ifloat is not actually addition
     if ((e->Eoper == OPadd || e->Eoper == OPmin) &&
         ((tyreal(e1->Ety) && tyimaginary(e2->Ety)) ||
          (tyreal(e2->Ety) && tyimaginary(e1->Ety))))
     {
-        assert(e->Eoper == OPadd);
         retregs |= rretregs;
         c = cat(c, cr);
+        if (e->Eoper == OPmin)
+        {
+            unsigned nretregs = XMMREGS & ~retregs;
+            unsigned sreg; // hold sign bit
+            unsigned sz = tysize[tybasic(e1->Ety)];
+            c = cat(c,allocreg(&nretregs,&sreg,e2->Ety));
+            targ_size_t signbit = 0x80000000;
+            if (sz == 8)
+                signbit = 0x8000000000000000LL;
+            c = cat(c, movxmmconst(sreg, sz, signbit, 0));
+            c = cat(c, getregs(nretregs));
+            unsigned xop = (sz == 8) ? XORPD : XORPS;       // XORPD/S rreg,sreg
+            c = cat(c, gen2(CNIL,xop,modregxrmx(3,rreg-XMM0,sreg-XMM0)));
+        }
         if (retregs != *pretregs)
             c = cat(c, fixresult(e,retregs,pretregs));
         return c;
     }
-
-    unsigned op = xmmoperator(e1->Ety, e->Eoper);
-    unsigned rreg = findreg(rretregs);
 
     code *cg;
     if (OTrel(e->Eoper))
