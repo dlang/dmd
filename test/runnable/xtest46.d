@@ -3712,6 +3712,39 @@ void test6295() {
 
 /***************************************************/
 
+template TT4155(T...) { alias T TT4155; }
+
+void test4155()
+{
+    static int test4155a()
+    {
+        T getnan(T)() { return T.nan; } // OPcall
+        static T getnanu(T)() { return T.nan; } // OPucall
+
+        foreach(T; TT4155!(float, double, real, ifloat, idouble, ireal, cfloat, cdouble, creal))
+        {
+            auto f = getnan!T();
+            if (!__ctfe) // force f into memory
+                asm { nop; };
+
+            assert(!(T.nan == 0), T.stringof);
+            assert(!(f == 0), T.stringof);
+            assert(!(getnan!T == 0), T.stringof);
+            assert(!(getnanu!T == 0), T.stringof);
+
+            assert((T.nan != 0), T.stringof);
+            assert((f != 0), T.stringof);
+            assert((getnan!T != 0), T.stringof);
+            assert((getnanu!T != 0), T.stringof);
+        }
+        return 1;
+    }
+    auto a = test4155a();
+    enum b = test4155a();
+}
+
+/***************************************************/
+
 template TT4536(T...) { alias T TT4536; }
 
 void test4536()
@@ -4723,6 +4756,7 @@ int main()
     test25();
     test26();
     test27();
+    test4155();
     test28();
     test29();
     test30();
