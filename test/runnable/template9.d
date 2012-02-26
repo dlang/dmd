@@ -1094,6 +1094,43 @@ void test7580()
 }
 
 /**********************************/
+// 7585
+
+extern(C) alias void function() Callback;
+
+template W7585a(alias dg)
+{
+    //pragma(msg, typeof(dg));
+    extern(C) void W7585a() { dg(); }
+}
+
+void test7585()
+{
+    static void f7585a(){}
+    Callback cb1 = &W7585a!(f7585a);      // OK
+    static assert(!__traits(compiles,
+    {
+        void f7585b(){}
+        Callback cb2 = &W7585a!(f7585b);  // NG
+    }));
+
+    Callback cb3 = &W7585a!((){});              // NG -> OK
+    Callback cb4 = &W7585a!(function(){});      // OK
+    static assert(!__traits(compiles,
+    {
+        Callback cb5 = &W7585a!(delegate(){});  // NG
+    }));
+
+    static int global;  // global data
+    Callback cb6 = &W7585a!((){return global;});    // NG -> OK
+    static assert(!__traits(compiles,
+    {
+        int n;
+        Callback cb7 = &W7585a!((){return n;});     // NG
+    }));
+}
+
+/**********************************/
 // 7643
 
 template T7643(A...){ alias A T7643; }
@@ -1439,6 +1476,7 @@ int main()
     test7416();
     test7563();
     test7580();
+    test7585();
     test7671();
     test7672();
     test7684();

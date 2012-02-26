@@ -2968,6 +2968,7 @@ int FuncDeclaration::isNested()
     FuncDeclaration *f = toAliasFunc();
     //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
     return ((f->storage_class & STCstatic) == 0) &&
+           (f->linkage == LINKd) &&
            (f->toParent2()->isFuncDeclaration() != NULL);
 }
 
