@@ -676,6 +676,8 @@ __body
         #define M_LOG2T_L       LOG2T
         #define M_LOG2_L        LOG2
         {0.0,1.0,M_PIl,M_LOG2T_L,M_LOG2El,M_LOG2_L,M_LN2l};
+#elif _MSC_VER
+        { ld_zero, ld_one, ld_pi, ld_log2t, ld_log2e, ld_log2, ld_ln2 };
 #else
         {0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L};
 #endif
