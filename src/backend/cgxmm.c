@@ -89,6 +89,19 @@ code *orthxmm(elem *e, regm_t *pretregs)
     regm_t rretregs = XMMREGS & ~retregs;
     code *cr = scodelem(e2, &rretregs, retregs, TRUE);  // eval right leaf
 
+    // float + ifloat is not actually addition
+    if ((e->Eoper == OPadd || e->Eoper == OPmin) &&
+        ((tyreal(e1->Ety) && tyimaginary(e2->Ety)) ||
+         (tyreal(e2->Ety) && tyimaginary(e1->Ety))))
+    {
+        assert(e->Eoper == OPadd);
+        retregs |= rretregs;
+        c = cat(c, cr);
+        if (retregs != *pretregs)
+            c = cat(c, fixresult(e,retregs,pretregs));
+        return c;
+    }
+
     unsigned op = xmmoperator(e1->Ety, e->Eoper);
     unsigned rreg = findreg(rretregs);
 
