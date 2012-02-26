@@ -4955,7 +4955,8 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
 
 Expression *FuncExp::syntaxCopy()
 {
-    return new FuncExp(loc, (FuncLiteralDeclaration *)fd->syntaxCopy(NULL));
+    TemplateDeclaration *td2 = td ? (TemplateDeclaration *)td->syntaxCopy(NULL) : NULL;
+    return new FuncExp(loc, (FuncLiteralDeclaration *)fd->syntaxCopy(NULL), td2);
 }
 
 Expression *FuncExp::semantic(Scope *sc)
