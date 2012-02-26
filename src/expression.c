@@ -1620,9 +1620,7 @@ Expression *Expression::checkToBoolean(Scope *sc)
         // Forward to aliasthis.
         if (ad->aliasthis)
         {
-            Expression *e = new DotIdExp(loc, this, ad->aliasthis->ident);
-            e = e->semantic(sc);
-            e = resolveProperties(sc, e);
+            Expression *e = resolveAliasThis(sc, this);
             e = e->checkToBoolean(sc);
             return e;
         }
@@ -7198,9 +7196,7 @@ Lagain:
         L1:
             if (ad->aliasthis)
             {
-                ethis = new DotIdExp(ethis->loc, ethis, ad->aliasthis->ident);
-                ethis = ethis->semantic(sc);
-                ethis = resolveProperties(sc, ethis);
+                ethis = resolveAliasThis(sc, ethis);
                 goto Lagain;
             }
         }
@@ -8903,7 +8899,7 @@ Lagain:
         }
         if (ad->aliasthis)
         {
-            e1 = new DotIdExp(e1->loc, e1, ad->aliasthis->ident);
+            e1 = resolveAliasThis(sc, e1);
             goto Lagain;
         }
         goto Lerror;
@@ -9762,18 +9758,17 @@ Expression *AssignExp::semantic(Scope *sc)
 
         // No opIndexAssign found yet, but there might be an alias this to try.
         if (ad && ad->aliasthis)
-        {   Expression *at = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
-            at = at->semantic(sc);
-            Type *attype = at->type->toBasetype();
+        {   Expression *e = resolveAliasThis(sc, ae->e1);
+            Type *t = e->type->toBasetype();
 
-            if (attype->ty == Tstruct)
+            if (t->ty == Tstruct)
             {
-                ad = ((TypeStruct *)attype)->sym;
+                ad = ((TypeStruct *)t)->sym;
                 goto L1;
             }
-            else if (attype->ty == Tclass)
+            else if (t->ty == Tclass)
             {
-                ad = ((TypeClass *)attype)->sym;
+                ad = ((TypeClass *)t)->sym;
                 goto L1;
             }
         }
@@ -9821,18 +9816,17 @@ Expression *AssignExp::semantic(Scope *sc)
 
         // No opSliceAssign found yet, but there might be an alias this to try.
         if (ad && ad->aliasthis)
-        {   Expression *at = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
-            at = at->semantic(sc);
-            Type *attype = at->type->toBasetype();
+        {   Expression *e = resolveAliasThis(sc, ae->e1);
+            Type *t = e->type->toBasetype();
 
-            if (attype->ty == Tstruct)
+            if (t->ty == Tstruct)
             {
-                ad = ((TypeStruct *)attype)->sym;
+                ad = ((TypeStruct *)t)->sym;
                 goto L2;
             }
-            else if (attype->ty == Tclass)
+            else if (t->ty == Tclass)
             {
-                ad = ((TypeClass *)attype)->sym;
+                ad = ((TypeClass *)t)->sym;
                 goto L2;
             }
         }

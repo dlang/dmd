@@ -924,6 +924,38 @@ void test7416() {
 }
 
 /**********************************/
+// 7580
+
+struct S7580(T)
+{
+    void opAssign()(T value) {}
+}
+struct X7580(T)
+{
+    private T val;
+    @property ref inout(T) get()() inout { return val; }    // template
+    alias get this;
+}
+struct Y7580(T)
+{
+    private T val;
+    @property ref auto get()() inout { return val; }        // template + auto return
+    alias get this;
+}
+
+void test7580()
+{
+    S7580!(int) s;
+    X7580!int x;
+    Y7580!int y;
+    s = x;
+    s = y;
+
+    shared(X7580!int) sx;
+    static assert(!__traits(compiles, s = sx));
+}
+
+/**********************************/
 
 int main()
 {
@@ -962,6 +994,7 @@ int main()
     test7124();
     test7359();
     test7416();
+    test7580();
 
     printf("Success\n");
     return 0;

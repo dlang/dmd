@@ -79,7 +79,9 @@ int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
 void valueNoDtor(Expression *e);
 void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
-
+#if DMDV2
+Expression *resolveAliasThis(Scope *sc, Expression *e);
+#endif
 
 /* Interpreter: what form of return value expression is required?
  */

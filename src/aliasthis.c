@@ -17,9 +17,32 @@
 #include "scope.h"
 #include "aggregate.h"
 #include "dsymbol.h"
+#include "mtype.h"
 
 #if DMDV2
 
+Expression *resolveAliasThis(Scope *sc, Expression *e)
+{
+    Type *t = e->type->toBasetype();
+    AggregateDeclaration *ad;
+
+    if (t->ty == Tclass)
+    {   ad = ((TypeClass *)t)->sym;
+        goto L1;
+    }
+    else if (t->ty == Tstruct)
+    {   ad = ((TypeStruct *)t)->sym;
+    L1:
+        if (ad && ad->aliasthis)
+        {
+            e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
+        }
+    }
+
+    return e;
+}
 
 AliasThis::AliasThis(Loc loc, Identifier *ident)
     : Dsymbol(NULL)             // it's anonymous (no identifier)
