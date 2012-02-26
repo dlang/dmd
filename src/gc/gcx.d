@@ -454,14 +454,25 @@ class GC
             return null;
         }
 
+        void* p = void;
+        size_t localAllocSize = void;
+        if(alloc_size is null) alloc_size = &localAllocSize;
+        
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
         {
             gcLock.lock();
             scope(exit) gcLock.unlock();
-            return mallocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, alloc_size);
         }
+
+        if (!(bits & BlkAttr.NO_SCAN))
+        {
+            memset(p + size, 0, *alloc_size - size);
+        }
+        
+        return p;
     }
 
 
@@ -530,8 +541,6 @@ class GC
             // Return next item from free list
             gcx.bucket[bin] = (cast(List*)p).next;
             pool = (cast(List*)p).pool;
-            if (!(bits & BlkAttr.NO_SCAN))
-                memset(p + size, 0, binsize[bin] - size);
             //debug(PRINTF) printf("\tmalloc => %p\n", p);
             debug (MEMSTOMP) memset(p, 0xF0, size);
         }
@@ -558,13 +567,17 @@ class GC
      *
      */
     void *calloc(size_t size, uint bits = 0, size_t *alloc_size = null)
-    {
+    {      
         if (!size)
         {
             if(alloc_size)
                 *alloc_size = 0;
             return null;
         }
+    
+        size_t localAllocSize = void;
+        void* p = void;
+        if(alloc_size is null) alloc_size = &localAllocSize;
 
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
@@ -572,38 +585,42 @@ class GC
         {
             gcLock.lock();
             scope(exit) gcLock.unlock();
-            return callocNoSync(size, bits, alloc_size);
+            p = mallocNoSync(size, bits, alloc_size);
         }
-    }
-
-
-    //
-    //
-    //
-    private void *callocNoSync(size_t size, uint bits = 0, size_t *alloc_size = null)
-    {
-        assert(size != 0);
-
-        //debug(PRINTF) printf("calloc: %p len %d\n", p, len);
-        void *p = mallocNoSync(size, bits, alloc_size);
+        
         memset(p, 0, size);
+        if (!(bits & BlkAttr.NO_SCAN))
+        {
+            memset(p + size, 0, *alloc_size - size);
+        }
+        
         return p;
     }
-
 
     /**
      *
      */
     void *realloc(void *p, size_t size, uint bits = 0, size_t *alloc_size = null)
     {
+        size_t localAllocSize = void;
+        auto oldp = p;
+        if(alloc_size is null) alloc_size = &localAllocSize;
+        
         // Since a finalizer could launch a new thread, we always need to lock
         // when collecting.  The safest way to do this is to simply always lock
         // when allocating.
         {
             gcLock.lock();
             scope(exit) gcLock.unlock();
-            return reallocNoSync(p, size, bits, alloc_size);
+            p = reallocNoSync(p, size, bits, alloc_size);
         }
+        
+        if (p !is oldp && !(bits & BlkAttr.NO_SCAN))
+        {
+            memset(p + size, 0, *alloc_size - size);
+        }
+        
+        return p;
     }
 
 
@@ -2338,7 +2355,6 @@ struct Gcx
 
         p = pool.baseAddr + pn * PAGESIZE;
         debug(PRINTF) printf("Got large alloc:  %p, pt = %d, np = %d\n", p, pool.pagetable[pn], npages);
-        memset(cast(char *)p + size, 0, npages * PAGESIZE - size);
         debug (MEMSTOMP) memset(p, 0xF1, size);
         if(alloc_size)
             *alloc_size = npages * PAGESIZE;
