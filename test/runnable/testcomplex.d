@@ -50,12 +50,26 @@ void testa()
        else static if (is(T == cdouble)) return one!double() + one!idouble();
        else static if (is(T == creal)) return one!real() + one!ireal();
    }
+   static T neg(T)()
+   {
+       static if (is(T == float)) return -1.0f;
+       else static if (is(T == double)) return -1.0;
+       else static if (is(T == real)) return -1.0L;
+       else static if (is(T == ifloat)) return -1.0fi;
+       else static if (is(T == idouble)) return -1.0i;
+       else static if (is(T == ireal)) return -1.0Li;
+       else static if (is(T == cfloat)) return one!float() - one!ifloat();
+       else static if (is(T == cdouble)) return one!double() - one!idouble();
+       else static if (is(T == creal)) return one!real() - one!ireal();
+   }
 
    static void test(T, U)()
    {
        U conv(T v) { return v; }
        assert(conv(one!T()) == one!U(), T.stringof ~ U.stringof);
        static assert(conv(one!T()) == one!U());
+       assert(conv(neg!T()) == neg!U(), T.stringof ~ U.stringof);
+       static assert(conv(neg!T()) == neg!U());
    }
 
    foreach(T; TT!(float, double, real, ifloat, idouble, ireal, cfloat, cdouble, creal))
