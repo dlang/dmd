@@ -265,8 +265,24 @@ void test6()
 }
 
 /**********************************************/
+// 7578
 
-void main()
+struct Foo7578
+{
+    static int[] opDispatch(string op, Args...)(Args)
+    {
+        return [0];
+    }
+}
+
+void test7578()
+{
+    Foo7578.attrs[0] = 1;
+}
+
+/**********************************************/
+
+int main()
 {
     test1();
     test2();
@@ -274,4 +290,8 @@ void main()
     test4();
     test5();
     test6();
+    test7578();
+
+    printf("Success\n");
+    return 0;
 }
