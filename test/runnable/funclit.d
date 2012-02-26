@@ -332,6 +332,18 @@ void test7202()
 }
 
 /***************************************************/
+// 7582
+
+void test7582()
+{
+    void delegate(int) foo;
+    void delegate(int) foo2;
+    foo = (a) {
+        foo2 = (b) { };
+    };
+}
+
+/***************************************************/
 
 int main()
 {
@@ -348,6 +360,7 @@ int main()
     test6714();
     test7193();
     test7202();
+    test7582();
 
     printf("Success\n");
     return 0;
