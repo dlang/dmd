@@ -4969,6 +4969,18 @@ Expression *FuncExp::semantic(Scope *sc)
         // save for later use
         scope = sc;
 
+        // Set target of return type inference
+        if (tded && !fd->type->nextOf())
+        {   TypeFunction *tfv = NULL;
+            if (tded->ty == Tdelegate ||
+                (tded->ty == Tpointer && tded->nextOf()->ty == Tfunction))
+                tfv = (TypeFunction *)tded->nextOf();
+            if (tfv)
+            {   TypeFunction *tfl = (TypeFunction *)fd->type;
+                tfl->next = tfv->nextOf();
+            }
+        }
+
         //printf("td = %p, tded = %p\n", td, tded);
         if (td)
         {
