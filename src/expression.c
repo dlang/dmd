@@ -5137,7 +5137,8 @@ Expression *FuncExp::inferType(Scope *sc, Type *to)
                         {   p = Parameter::getNth(tfv->parameters, u);
                             if (p->type->ty == Tident)
                                 return NULL;
-                            tiargs->push(p->type);
+                            Type *tprm = p->type->semantic(loc, sc);
+                            tiargs->push(tprm);
                             u = dim;    // break inner loop
                         }
                     }
