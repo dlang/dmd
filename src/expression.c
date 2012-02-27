@@ -3729,6 +3729,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->sd = sd;
     this->elements = elements;
     this->stype = stype;
+    this->sinit = NULL;
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
