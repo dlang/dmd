@@ -3533,6 +3533,10 @@ elem *CallExp::toElem(IRState *irs)
             }
             break;
         }
+        if (dve->e1->op == TOKstructliteral)
+        {   StructLiteralExp *sle = (StructLiteralExp *)dve->e1;
+            sle->sinit = NULL;          // don't modify initializer
+        }
         ec = dve->e1->toElem(irs);
         ectype = dve->e1->type->toBasetype();
     }
@@ -4917,15 +4921,35 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
 }
 
 elem *StructLiteralExp::toElem(IRState *irs)
-{   elem *e;
-    size_t dim;
-
+{
     //printf("StructLiteralExp::toElem() %s\n", toChars());
+
+    if (sinit)
+    {
+        elem *e = el_var(sinit);
+        e->ET = sd->type->toCtype();
+        el_setLoc(e,loc);
+
+        if (sym)
+        {   elem *ev = el_var(sym);
+            if (tybasic(ev->Ety) == TYnptr)
+                ev = el_una(OPind, e->Ety, ev);
+            ev->ET = e->ET;
+            e = el_bin(OPstreq,e->Ety,ev,e);
+            e->ET = ev->ET;
+
+            //ev = el_var(sym);
+            //ev->ET = e->ET;
+            //e = el_combine(e, ev);
+            el_setLoc(e,loc);
+        }
+        return e;
+    }
 
     // struct symbol to initialize with the literal
     Symbol *stmp = sym ? sym : symbol_genauto(sd->type->toCtype());
 
-    e = NULL;
+    elem *e = NULL;
 
     if (fillHoles)
     {
@@ -4950,7 +4974,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
 
     if (elements)
     {
-        dim = elements->dim;
+        size_t dim = elements->dim;
         assert(dim <= sd->fields.dim);
         for (size_t i = 0; i < dim; i++)
         {   Expression *el = elements->tdata()[i];

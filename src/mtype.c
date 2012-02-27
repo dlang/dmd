@@ -2008,35 +2008,6 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
         }
         else if (ident == Id::init)
         {
-#if 0
-            if (v->init)
-            {
-                if (v->init->isVoidInitializer())
-                    error(e->loc, "%s.init is void", v->toChars());
-                else
-                {   Loc loc = e->loc;
-                    e = v->init->toExpression();
-                    if (e->op == TOKassign || e->op == TOKconstruct || e->op == TOKblit)
-                    {
-                        e = ((AssignExp *)e)->e2;
-
-                        /* Take care of case where we used a 0
-                         * to initialize the struct.
-                         */
-                        if (e->type == Type::tint32 &&
-                            e->isBool(0) &&
-                            v->type->toBasetype()->ty == Tstruct)
-                        {
-                            e = v->type->defaultInit(e->loc);
-                        }
-                    }
-                    e = e->optimize(WANTvalue | WANTinterpret);
-//                  if (!e->isConst())
-//                      error(loc, ".init cannot be evaluated at compile time");
-                }
-                goto Lreturn;
-            }
-#endif
             e = defaultInitLiteral(e->loc);
             goto Lreturn;
         }
@@ -7768,9 +7739,16 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         }
         else
             e = vd->type->defaultInitLiteral(loc);
-        structelems->tdata()[j] = e;
+        (*structelems)[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
+
+    /* Copy from the initializer symbol for larger symbols,
+     * otherwise the literals expressed as code get excessively large.
+     */
+    if (size(loc) > PTRSIZE * 4)
+        structinit->sinit = sym->toInitializer();
+
     // Why doesn't the StructLiteralExp constructor do this, when
     // sym->type != NULL ?
     structinit->type = sym->type;
