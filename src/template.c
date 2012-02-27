@@ -4535,7 +4535,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     unsigned errorsave = global.errors;
     inst = this;
     // Mark as speculative if we are instantiated from inside is(typeof())
-    if (global.gag && sc->intypeof)
+    if (global.gag && sc->speculative)
         speculative = 1;
 
     int tempdecl_instance_idx = tempdecl->instances.dim;
