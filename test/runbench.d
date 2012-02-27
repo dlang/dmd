@@ -11,8 +11,8 @@
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-import std.datetime, std.exception, std.file, std.path, std.process,
-    std.regex, std.stdio, std.string, std.typecons;
+import std.ascii, std.datetime, std.exception, std.file, std.path,
+    std.process, std.regex, std.stdio, std.string, std.typecons;
 
 // cmdline flags
 bool verbose;
