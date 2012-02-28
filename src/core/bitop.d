@@ -226,7 +226,7 @@ uint outpl(uint port_address, uint value);
 /**
  *  Calculates the number of set bits in a 32-bit integer.
  */
-int popcnt( uint x )
+pure int popcnt( uint x )
 {
     // Avoid branches, and the potential for cache misses which
     // could be incurred with a table lookup.
@@ -273,7 +273,7 @@ unittest
 /**
  * Reverses the order of bits in a 32-bit integer.
  */
-uint bitswap( uint x )
+pure uint bitswap( uint x )
 {
 
     version( D_InlineAsm_X86 )
