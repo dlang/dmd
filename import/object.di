@@ -66,7 +66,7 @@ struct OffsetTypeInfo
 
 class TypeInfo
 {
-    hash_t   getHash(in void* p) @safe;
+    hash_t   getHash(in void* p) @trusted;
     equals_t equals(in void* p1, in void* p2);
     int      compare(in void* p1, in void* p2);
     @property size_t   tsize() nothrow pure const @safe;
