@@ -709,7 +709,7 @@ class Bar26 {}
 string name26;
 
 template aliastest(alias A) {
-        pragma(msg,"Alias Test instanciated");  
+        pragma(msg,"Alias Test instantiated");
         void aliastest() {
 		name26 = (new A!().al).classinfo.name;
 		//writefln("Alias Test: ", name26);
@@ -1019,6 +1019,19 @@ void instantiate4652()
     bug4652default(true);
     bug4676(1, 2, 3);
 }
+
+/*********************************************************/
+// 7589
+
+struct T7589(T)
+{
+    void n;
+}
+static assert(!__traits(compiles, T7589!(int)));
+
+int bug7589b(T)() @safe { int *p; *(p + 8) = 6; }
+static assert(__traits(compiles, bug7589b!(int)()+7 ));
+
 
 /*********************************************************/
 

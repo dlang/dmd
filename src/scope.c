@@ -74,6 +74,7 @@ Scope::Scope()
     this->noaccesscheck = 0;
     this->mustsemantic = 0;
     this->intypeof = 0;
+    this->speculative = 0;
     this->parameterSpecialization = 0;
     this->callSuper = 0;
     this->flags = 0;
