@@ -2495,6 +2495,25 @@ void test7202()
 }
 
 /************************************/
+// 7554
+
+T outer7554(T)(immutable T function(T) pure foo) pure {
+    pure int inner() {
+        return foo(5);
+    }
+    return inner();
+}
+int sqr7554(int x) pure {
+    return x * x;
+}
+void test7554()
+{
+    assert(outer7554(&sqr7554) == 25);
+
+    immutable(int function(int) pure) ifp = &sqr7554;
+}
+
+/************************************/
 
 int main()
 {
@@ -2601,6 +2620,7 @@ int main()
     test6940();
     test7105();
     test7202();
+    test7554();
 
     printf("Success\n");
     return 0;
