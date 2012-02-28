@@ -1030,7 +1030,7 @@ struct T7589(T)
 static assert(!__traits(compiles, T7589!(int)));
 
 int bug7589b(T)() @safe { int *p; *(p + 8) = 6; }
-static assert(__traits(compiles, bug7589b!(int)()+7 ));
+static assert(!__traits(compiles, bug7589b!(int)()+7 ));
 
 
 /*********************************************************/
