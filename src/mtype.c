@@ -4661,7 +4661,8 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
         deco = NULL;
     }
     next = n;
-    transitive();
+    if (next->ty != Tfunction)
+        transitive();
     return merge();
 }
 
