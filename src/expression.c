@@ -3729,6 +3729,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->sd = sd;
     this->elements = elements;
     this->stype = stype;
+    this->sinit = NULL;
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
@@ -5136,7 +5137,8 @@ Expression *FuncExp::inferType(Scope *sc, Type *to)
                         {   p = Parameter::getNth(tfv->parameters, u);
                             if (p->type->ty == Tident)
                                 return NULL;
-                            tiargs->push(p->type);
+                            Type *tprm = p->type->semantic(loc, sc);
+                            tiargs->push(tprm);
                             u = dim;    // break inner loop
                         }
                     }
