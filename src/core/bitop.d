@@ -16,6 +16,10 @@ module core.bitop;
 
 nothrow:
 
+version( D_InlineAsm_X86_64 )
+    version = AsmX86;
+else version( D_InlineAsm_X86 )
+    version = AsmX86;
 
 /**
  * Scans the bits in v starting with bit 0, looking
@@ -275,12 +279,15 @@ unittest
  */
 pure uint bitswap( uint x )
 {
-
-    version( D_InlineAsm_X86 )
+    version (AsmX86)
     {
+        version (D_InlineAsm_X86_64)
+        asm { naked; mov EAX, EDI; }
+
         asm
         {
             // Author: Tiago Gasiba.
+            naked;
             mov EDX, EAX;
             shr EAX, 1;
             and EDX, 0x5555_5555;
@@ -300,6 +307,7 @@ pure uint bitswap( uint x )
             shl EDX, 4;
             or  EAX, EDX;
             bswap EAX;
+            ret;
         }
     }
     else
@@ -323,4 +331,6 @@ pure uint bitswap( uint x )
 unittest
 {
     assert( bitswap( 0x8000_0100 ) == 0x0080_0001 );
+    foreach(i; 0 .. 32)
+        assert(bitswap(1 << i) == 1 << 32 - i - 1);
 }
