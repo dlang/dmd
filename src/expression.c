@@ -2994,45 +2994,10 @@ Lagain:
     }
     f = s->isFuncDeclaration();
     if (f)
-    {   f = f->toAliasFunc();
-
-        if (!f->originalType && f->scope)       // semantic not yet run
-        {
-            unsigned oldgag = global.gag;
-            if (global.isSpeculativeGagging() && !f->isSpeculative())
-                global.gag = 0;
-            f->semantic(f->scope);
-            global.gag = oldgag;
-        }
-
-        // if inferring return type, sematic3 needs to be run
-        if (f->scope && (f->inferRetType && f->type && !f->type->nextOf() ||
-                         getFuncTemplateDecl(f)))
-        {
-            TemplateInstance *spec = f->isSpeculative();
-            int olderrs = global.errors;
-            // If it isn't speculative, we need to show errors
-            unsigned oldgag = global.gag;
-            if (global.gag && !spec)
-                global.gag = 0;
-            f->semantic3(f->scope);
-            global.gag = oldgag;
-            // Update the template instantiation with the number
-            // of errors which occured.
-            if (spec && global.errors != olderrs)
-                spec->errors = global.errors - olderrs;
-        }
-
-        if (f->isUnitTestDeclaration())
-        {
-            error("cannot call unittest function %s", toChars());
+    {
+        f = f->toAliasFunc();
+        if (!f->functionSemantic(sc))
             return new ErrorExp();
-        }
-        if (!f->type->deco)
-        {
-            error("forward reference to %s", toChars());
-            return new ErrorExp();
-        }
         FuncDeclaration *fd = s->isFuncDeclaration();
         fd->type = f->type;
         return new VarExp(loc, fd, hasOverloads);
@@ -5025,8 +4990,12 @@ Expression *VarExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
-//    if (var->sem == SemanticStart && var->scope)      // if forward referenced
-//      var->semantic(sc);
+    if (FuncDeclaration *f = var->isFuncDeclaration())
+    {
+        if (!f->functionSemantic(sc))
+            return new ErrorExp();
+    }
+
     if (!type)
     {   type = var->type;
 #if 0
@@ -7121,16 +7090,26 @@ Expression *DotVarExp::semantic(Scope *sc)
 
         e1 = e1->semantic(sc);
         e1 = e1->addDtorHook(sc);
-        type = var->type;
-        if (!type && global.errors)
-        {   // var is goofed up, just return 0
-            return new ErrorExp();
-        }
-        assert(type);
 
         Type *t1 = e1->type;
-        if (!var->isFuncDeclaration())  // for functions, do checks after overload resolution
+        FuncDeclaration *f = var->isFuncDeclaration();
+        if (f)  // for functions, do checks after overload resolution
         {
+            if (!f->functionSemantic(sc))
+                return new ErrorExp();
+
+            type = f->type;
+            assert(type);
+        }
+        else
+        {
+            type = var->type;
+            if (!type && global.errors)
+            {   // var is goofed up, just return 0
+                goto Lerr;
+            }
+            assert(type);
+
             if (t1->ty == Tpointer)
                 t1 = t1->nextOf();
 
