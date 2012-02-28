@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -77,13 +77,11 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
 
-    Import *si;
-
-    si = new Import(loc, packages, id, aliasId, isstatic);
+    Import *si = new Import(loc, packages, id, aliasId, isstatic);
 
     for (size_t i = 0; i < names.dim; i++)
     {
-        si->addAlias(names.tdata()[i], aliases.tdata()[i]);
+        si->addAlias(names[i], aliases[i]);
     }
 
     return si;
@@ -232,7 +230,9 @@ void Import::semantic(Scope *sc)
         sc = sc->pop();
     }
 
-    if (global.params.moduleDeps != NULL)
+    if (global.params.moduleDeps != NULL &&
+        // object self-imports itself, so skip that (Bugzilla 7547)
+        !(id == Id::object && sc->module->ident == Id::object))
     {
         /* The grammar of the file is:
          *      ImportDeclaration
@@ -263,7 +263,7 @@ void Import::semantic(Scope *sc)
         {
             for (size_t i = 0; i < packages->dim; i++)
             {
-                Identifier *pid = packages->tdata()[i];
+                Identifier *pid = (*packages)[i];
                 ob->printf("%s.", pid->toChars());
             }
         }
@@ -283,8 +283,8 @@ void Import::semantic(Scope *sc)
             else
                 ob->writebyte(',');
 
-            Identifier *name = names.tdata()[i];
-            Identifier *alias = aliases.tdata()[i];
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
 
             if (!alias)
             {
