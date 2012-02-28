@@ -198,7 +198,9 @@ void Import::semantic(Scope *sc)
         }
     }
 
-    if (global.params.moduleDeps != NULL)
+    if (global.params.moduleDeps != NULL &&
+        // object self-imports itself, so skip that (Bugzilla 7547)
+        !(id == Id::object && sc->module->ident == Id::object))
     {
         /* The grammar of the file is:
          *      ImportDeclaration
