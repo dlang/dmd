@@ -395,6 +395,7 @@ extern (C) int main(int argc, char** argv)
             assert(wlen <= int.max, "wlen cannot exceed int.max");
             int clen = WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, null, 0, null, 0);
             args[i]  = cargp[p .. p+clen];
+            if (clen==0) continue;
             p += clen; assert(p <= cargl);
             WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, &args[i][0], clen, null, 0);
         }
