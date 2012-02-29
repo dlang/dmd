@@ -453,7 +453,7 @@ class TypeInfo_Array : TypeInfo
     override hash_t getHash(in void* p) @trusted
     {
         void[] a = *cast(void[]*)p;
-        return hashOf(a.ptr, a.length);
+        return hashOf(a.ptr, a.length * value.tsize);
     }
 
     override equals_t equals(in void* p1, in void* p2)
