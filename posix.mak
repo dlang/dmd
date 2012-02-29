@@ -97,6 +97,8 @@ MANIFEST= \
 	src/core/sync/rwmutex.d \
 	src/core/sync/semaphore.d \
 	\
+	src/core/sys/freebsd/sys/event.d \
+	\
 	src/core/sys/osx/mach/dyld.d \
 	src/core/sys/osx/mach/getsect.d \
 	src/core/sys/osx/mach/kern_return.d \
@@ -275,6 +277,8 @@ SRC_D_MODULES = \
 	core/stdc/time \
 	core/stdc/wchar_ \
 	\
+	core/sys/freebsd/sys/event \
+	\
 	core/sys/posix/sys/select \
 	core/sys/posix/sys/socket \
 	core/sys/posix/sys/stat \
@@ -441,6 +445,8 @@ IMPORTS=\
 	$(IMPDIR)/core/sync/mutex.di \
 	$(IMPDIR)/core/sync/rwmutex.di \
 	$(IMPDIR)/core/sync/semaphore.di \
+	\
+	$(IMPDIR)/core/sys/freebsd/sys/event.di \
 	\
 	$(IMPDIR)/core/sys/osx/mach/kern_return.di \
 	$(IMPDIR)/core/sys/osx/mach/port.di \

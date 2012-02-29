@@ -76,6 +76,8 @@ MANIFEST= \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\freebsd\sys\event.d \
+	\
 	src\core\sys\osx\pthread.d \
 	src\core\sys\osx\mach\dyld.d \
 	src\core\sys\osx\mach\getsect.d \
