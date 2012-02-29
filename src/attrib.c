@@ -977,7 +977,12 @@ void PragmaDeclaration::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
+                if (e->op != TOKerror)
+                    e = e->optimize(WANTvalue | WANTinterpret);
+                if (e->op == TOKerror)
+                {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
+                    return;
+                }
                 StringExp *se = e->toString();
                 if (se)
                 {
