@@ -1445,8 +1445,7 @@ Lretry:
             if (fvarargs == 2 && i + 1 == nfparams && i + 1 < nfargs)
                 goto Lvarargs;
 
-            MATCH m;
-            m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes,
+            MATCH m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes,
                 tf->hasWild() ? &wildmatch : NULL);
             //printf("\tdeduceType m = %d\n", m);
             //if (tf->hasWild())
@@ -1896,11 +1895,10 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
             goto Lerror;
         }
 
-        MATCH m;
         Objects dedargs;
         FuncDeclaration *fd = NULL;
 
-        m = td->deduceFunctionTemplateMatch(sc, loc, targsi, ethis, fargs, &dedargs);
+        MATCH m = td->deduceFunctionTemplateMatch(sc, loc, targsi, ethis, fargs, &dedargs);
         //printf("deduceFunctionTemplateMatch = %d\n", m);
         if (!m)                 // if no match
             continue;
@@ -2406,11 +2404,18 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
+            case X(MODconst,             MODshared):
+                // foo(U:const(U)) shared(T)       => shared(T)
+                if (!at)
+                {   (*dedtypes)[i] = tt;
+                    goto Lconst;
+                }
+                break;
+
             case X(MODimmutable,         0):
             case X(MODimmutable,         MODconst):
             case X(MODimmutable,         MODshared):
             case X(MODimmutable,         MODconst | MODshared):
-            case X(MODconst,             MODshared):
             case X(MODshared,            0):
             case X(MODshared,            MODconst):
             case X(MODshared,            MODimmutable):
@@ -4317,7 +4322,7 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
 #if WINDOWS_SEH
     if(nest == 1)
     {
-        // do not catch at every nesting level, because generating the output error might cause more stack 
+        // do not catch at every nesting level, because generating the output error might cause more stack
         //  errors in the __except block otherwise
         __try
         {
@@ -4349,7 +4354,7 @@ void TemplateInstance::trySemantic3(Scope *sc2)
 #if WINDOWS_SEH
     if(nest == 1)
     {
-        // do not catch at every nesting level, because generating the output error might cause more stack 
+        // do not catch at every nesting level, because generating the output error might cause more stack
         //  errors in the __except block otherwise
         __try
         {

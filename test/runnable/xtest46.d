@@ -1382,7 +1382,9 @@ void test73()
     static assert(!is(Bari!(const(T))));
     static assert(!is(Bari!(shared(T))));
     static assert(!is(Bari!(const(shared(T)))));
-    static assert(!is(Barc!(shared(T))));
+
+    static assert(is(Barc!(shared(T))));
+
     static assert(!is(Bars!(T)));
     static assert(!is(Bars!(const(T))));
     static assert(!is(Bars!(immutable(T))));

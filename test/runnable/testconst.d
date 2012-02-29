@@ -2515,6 +2515,20 @@ void test7554()
 
 /************************************/
 
+bool empty(T)(in T[] a)
+{
+    assert(is(T == shared(string)));
+    return false;
+}
+
+
+void test7518() {
+    shared string[] stuff;
+    stuff.empty();
+}
+
+/************************************/
+
 int main()
 {
     test1();
@@ -2621,6 +2635,7 @@ int main()
     test7105();
     test7202();
     test7554();
+    test7518();
 
     printf("Success\n");
     return 0;
