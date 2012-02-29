@@ -569,6 +569,20 @@ void test4()
 
 /*****************************************/
 
+void BaseTypeOfVector(T : __vector(T[N]), size_t N)(int i)
+{
+    assert(is(T == int));
+    assert(N == 4);
+}
+
+
+void test7411()
+{
+    BaseTypeOfVector!(__vector(int[4]))(3);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -585,6 +599,7 @@ int main()
 
     test3();
     test4();
+    test7411();
 
     return 0;
 }
