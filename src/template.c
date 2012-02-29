@@ -2539,6 +2539,23 @@ Lconst:
 }
 
 #if DMDV2
+MATCH TypeVector::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
+        Objects *dedtypes, unsigned *wildmatch)
+{
+#if 0
+    printf("TypeVector::deduceType()\n");
+    printf("\tthis   = %d, ", ty); print();
+    printf("\ttparam = %d, ", tparam->ty); tparam->print();
+#endif
+    if (tparam->ty == Tvector)
+    {   TypeVector *tp = (TypeVector *)tparam;
+        return basetype->deduceType(sc, tp->basetype, parameters, dedtypes, wildmatch);
+    }
+    return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+}
+#endif
+
+#if DMDV2
 MATCH TypeDArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         Objects *dedtypes, unsigned *wildmatch)
 {

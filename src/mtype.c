@@ -3325,11 +3325,25 @@ Type *TypeVector::semantic(Loc loc, Scope *sc)
     if (errors != global.errors)
         return terror;
     basetype = basetype->toBasetype()->mutableOf();
-    if (basetype->ty != Tsarray || basetype->size() != 16)
-    {   error(loc, "base type of __vector must be a 16 byte static array, not %s", basetype->toChars());
+    if (basetype->ty != Tsarray)
+    {   error(loc, "T in __vector(T) must be a static array, not %s", basetype->toChars());
         return terror;
     }
     TypeSArray *t = (TypeSArray *)basetype;
+
+    if (sc && sc->parameterSpecialization && t->dim->op == TOKvar &&
+        ((VarExp *)t->dim)->var->storage_class & STCtemplateparameter)
+    {
+        /* It could be a template parameter N which has no value yet:
+         *   template Foo(T : __vector(T[N]), size_t N);
+         */
+        return this;
+    }
+
+    if (t->size(loc) != 16)
+    {   error(loc, "base type of __vector must be a 16 byte static array, not %s", t->toChars());
+        return terror;
+    }
     TypeBasic *tb = t->nextOf()->isTypeBasic();
     if (!tb || !(tb->flags & TFLAGSvector))
     {   error(loc, "base type of __vector must be a static array of an arithmetic type, not %s", t->toChars());
