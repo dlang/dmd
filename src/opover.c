@@ -1141,7 +1141,7 @@ L1:
         /* Rewrite (e1 op e2) as:
          *      (e1.aliasthis op e2)
          */
-        Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
+        Expression *e1 = new DotIdExp(loc, this->e1->syntaxCopy(), ad1->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e1 = e1;
         e = e->trySemantic(sc);
@@ -1155,7 +1155,7 @@ L1:
         /* Rewrite (e1 op e2) as:
          *      (e1 op e2.aliasthis)
          */
-        Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
+        Expression *e2 = new DotIdExp(loc, this->e2->syntaxCopy(), ad2->aliasthis->ident);
         Expression *e = copy();
         ((BinExp *)e)->e2 = e2;
         e = e->trySemantic(sc);

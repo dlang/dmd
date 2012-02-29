@@ -4693,6 +4693,26 @@ mixin template ProxyOf(alias a)
 }
 
 /***************************************************/
+// 7583
+
+template Tup7583(E...) { alias E Tup7583; }
+
+struct S7583
+{
+    Tup7583!(float, char) field;
+    alias field this;
+    this(int x) {    }
+}
+
+int bug7583() {
+    S7583[] arr;
+    arr ~= S7583(0);
+    return 1;
+}
+
+static assert (bug7583());
+
+/***************************************************/
 
 int main()
 {
