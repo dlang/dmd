@@ -986,7 +986,7 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
     return Cat(type, e1, e2);
 }
 
-void scrubArray(Loc loc, Expressions *elems);
+bool scrubArray(Loc loc, Expressions *elems);
 
 /* All results destined for use outside of CTFE need to have their CTFE-specific
  * features removed.
@@ -1007,7 +1007,8 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
         se->ownedByCtfe = false;
-        scrubArray(loc, se->elements);
+        if (!scrubArray(loc, se->elements))
+            return EXP_CANT_INTERPRET;
     }
     if (e->op == TOKstring)
     {
@@ -1016,20 +1017,23 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     if (e->op == TOKarrayliteral)
     {
         ((ArrayLiteralExp *)e)->ownedByCtfe = false;
-        scrubArray(loc, ((ArrayLiteralExp *)e)->elements);
+        if (!scrubArray(loc, ((ArrayLiteralExp *)e)->elements))
+            return EXP_CANT_INTERPRET;
     }
     if (e->op == TOKassocarrayliteral)
     {
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
         aae->ownedByCtfe = false;
-        scrubArray(loc, aae->keys);
-        scrubArray(loc, aae->values);
+        if (!scrubArray(loc, aae->keys))
+            return EXP_CANT_INTERPRET;
+        if (!scrubArray(loc, aae->values))
+            return EXP_CANT_INTERPRET;
     }
     return e;
 }
 
-// Scrub all members of an array
-void scrubArray(Loc loc, Expressions *elems)
+// Scrub all members of an array. Return false if error
+bool scrubArray(Loc loc, Expressions *elems)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
@@ -1037,8 +1041,11 @@ void scrubArray(Loc loc, Expressions *elems)
         if (!m)
             continue;
         m = scrubReturnValue(loc, m);
+        if (m == EXP_CANT_INTERPRET)
+            return false;
         elems->tdata()[i] = m;
     }
+    return true;
 }
 
 
