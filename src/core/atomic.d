@@ -85,11 +85,15 @@ version( D_Ddoc )
      *  true if the store occurred, false if not.
      */
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( !is(T == class) && !is(T U : U*) && __traits( compiles, mixin( "*here = writeThis" ) ) );
+        if( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
 
     /// Ditto
     bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis )
-        if( is(T == class) || is(T U : U*) && __traits( compiles, mixin( "*here = writeThis" ) ) );
+        if( is(T == class) && __traits( compiles, { *here = writeThis; } ) );
+
+    /// Ditto
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis )
+        if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
 
     /**
      * Loads 'val' from memory and returns it.  The memory barrier specified
@@ -117,7 +121,7 @@ version( D_Ddoc )
      *  newval = The value to store.
      */
     void atomicStore(msync ms = msync.seq,T,V1)( ref shared T val, V1 newval )
-        if( __traits( compiles, mixin( "val = newval" ) ) )
+        if( __traits( compiles, { val = newval; } ) )
     {
 
     }
@@ -189,13 +193,19 @@ else version( AsmX86_32 )
     }
 
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( !is(T == class) && !is(T U : U*) && __traits( compiles, mixin( "*here = writeThis" ) ) )
+        if( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
     bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis )
-        if( is(T == class) || is(T U : U*) && __traits( compiles, mixin( "*here = writeThis" ) ) )
+        if( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
+    {
+        return casImpl(here, ifThis, writeThis);
+    }
+
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis )
+        if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
@@ -455,7 +465,7 @@ else version( AsmX86_32 )
     }
 
     void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
-        if( __traits( compiles, mixin( "val = newval" ) ) )
+        if( __traits( compiles, { val = newval; } ) )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -620,13 +630,19 @@ else version( AsmX86_64 )
 
 
     bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
-        if( !is(T == class) && !is(T U : U*) &&  __traits( compiles, mixin( "*here = writeThis" ) ) )
+        if( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
     bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis )
-        if( is(T == class) || is(T U : U*) && __traits( compiles, mixin( "*here = writeThis" ) ) )
+        if( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
+    {
+        return casImpl(here, ifThis, writeThis);
+    }
+
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis )
+        if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
@@ -882,7 +898,7 @@ else version( AsmX86_64 )
 
 
     void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
-        if( __traits( compiles, mixin( "val = newval" ) ) )
+        if( __traits( compiles, { val = newval; } ) )
     {
         static if( T.sizeof == byte.sizeof )
         {
@@ -1113,5 +1129,31 @@ version( unittest )
         shared double d = 0;
         atomicOp!"+="( d, 1 );
         assert( d == 1 );
+    }
+
+    unittest
+    {
+        static struct S { int val; }
+        auto s = shared(S)(1);
+
+        shared(S*) ptr;
+
+        // head unshared
+        shared(S)* ifThis = null;
+        shared(S)* writeThis = &s;
+        assert(ptr is null);
+        assert(cas(&ptr, ifThis, writeThis));
+        assert(ptr is writeThis);
+
+        // head shared
+        shared(S*) ifThis2 = writeThis;
+        shared(S*) writeThis2 = null;
+        assert(cas(&ptr, ifThis2, writeThis2));
+        assert(ptr is null);
+
+        // head unshared target doesn't want atomic CAS
+        shared(S)* ptr2;
+        static assert(!__traits(compiles, cas(&ptr2, ifThis, writeThis)));
+        static assert(!__traits(compiles, cas(&ptr2, ifThis2, writeThis2)));
     }
 }
