@@ -109,8 +109,16 @@ private
         extern (C) bool thread_needLock();
         extern (C) void thread_suspendAll();
         extern (C) void thread_resumeAll();
-        alias bool delegate(void*) HasMarks;
-        extern (C) void thread_processGCMarks(scope HasMarks hasMarks);
+
+        // core.thread
+        enum IsMarked : int
+        {
+                 no,
+                yes,
+            unknown, // memory is not managed by GC
+        }
+        alias IsMarked delegate(void*) IsMarkedDg;
+        extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
 
         alias void delegate(void*, void*) scanFn;
         extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
@@ -2860,7 +2868,7 @@ struct Gcx
             }
         }
 
-        thread_processGCMarks(&hasMarks);
+        thread_processGCMarks(&isMarked);
         thread_resumeAll();
 
         debug(PROFILING)
@@ -3070,7 +3078,7 @@ struct Gcx
      * Warning! This should only be called while the world is stopped inside
      * the fullcollect function.
      */
-    bool hasMarks(void *addr)
+    IsMarked isMarked(void *addr)
     {
         // first, we find the Pool this block is in, then check to see if the
         // mark bit is clear.
@@ -3090,9 +3098,9 @@ struct Gcx
                 pn -= pool.bPageOffsets[pn];
                 biti = pn * (PAGESIZE >> pool.shiftBy);
             }
-            return !!pool.mark.test(biti);
+            return pool.mark.test(biti) ? IsMarked.yes : IsMarked.no;
         }
-        return false; // not collecting or pointer is a valid argument.
+        return IsMarked.unknown;
     }
 
 

@@ -404,7 +404,7 @@ static ~this()
 
 
 // we expect this to be called with the lock in place
-void processGCMarks(BlkInfo* cache, scope rt.tlsgc.HasMarks hasMarks)
+void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked)
 {
     // called after the mark routine to eliminate block cache data when it
     // might be ready to sweep
@@ -419,7 +419,7 @@ void processGCMarks(BlkInfo* cache, scope rt.tlsgc.HasMarks hasMarks)
         auto cache_end = cache + N_CACHE_BLOCKS;
         for(;cache < cache_end; ++cache)
         {
-            if(cache.base != null && !hasMarks(cache.base))
+            if(cache.base != null && !isMarked(cache.base))
             {
                 debug(PRINTF) printf("clearing cache entry at %x\n", cache.base);
                 cache.base = null; // clear that data.

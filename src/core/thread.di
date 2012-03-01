@@ -611,8 +611,14 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan, void* curSt
  */
 extern (C) void thread_scanAll( scope ScanAllThreadsFn scan, void* curStackTop = null );
 
+enum IsMarked : int
+{
+         no,
+        yes,
+    unknown, // memory is not managed by GC
+}
 
-alias bool delegate( void* addr ) HasMarks;
+alias IsMarked delegate( void* addr ) IsMarkedDg;
 
 /**
  * This routine allows the runtime to process any special per-thread handling
@@ -626,7 +632,7 @@ alias bool delegate( void* addr ) HasMarks;
  * In:
  *  This routine must be called just prior to resuming all threads.
  */
-extern(C) void thread_processGCMarks( scope HasMarks hasMarks );
+extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked );
 
 
 /**

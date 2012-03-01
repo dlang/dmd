@@ -16,7 +16,7 @@ import core.stdc.stdlib;
 
 static import rt.lifetime;
 
-/*
+/**
  * Per thread record to store thread associated data for garbage collection.
  */
 struct Data
@@ -24,7 +24,7 @@ struct Data
     rt.lifetime.BlkInfo** blockInfoCache;
 }
 
-/*
+/**
  * Initialization hook, called FROM each thread. No assumptions about
  * module initialization state should be made.
  */
@@ -39,7 +39,7 @@ Data* init()
     return p;
 }
 
-/*
+/**
  * Finalization hook, called FOR each thread. No assumptions about
  * module initialization state should be made.
  */
@@ -50,23 +50,25 @@ void destroy(Data* data)
     .free(data);
 }
 
-/*
+alias void delegate(void* pstart, void* pend) ScanDg;
+
+/**
  * GC scan hook, called FOR each thread. Can be used to scan
  * additional thread local memory.
  */
-alias void delegate(void* pstart, void* pend) ScanDg;
 void scan(Data* data, scope ScanDg dg)
 {
     // do module specific marking
 }
 
-/*
+alias int delegate(void* addr) IsMarkedDg;
+
+/**
  * GC sweep hook, called FOR each thread. Can be used to free
  * additional thread local memory or associated data structures. Note
  * that only memory allocated from the GC can have marks.
  */
-alias bool delegate(void* addr) HasMarks;
-void processGCMarks(Data* data, scope HasMarks dg)
+void processGCMarks(Data* data, scope IsMarkedDg dg)
 {
     // do module specific sweeping
     rt.lifetime.processGCMarks(*data.blockInfoCache, dg);

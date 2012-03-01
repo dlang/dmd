@@ -2687,7 +2687,7 @@ body
  * In:
  *  This routine must be called just prior to resuming all threads.
  */
-extern(C) void thread_processGCMarks(scope rt.tlsgc.HasMarks dg)
+extern(C) void thread_processGCMarks(scope rt.tlsgc.IsMarkedDg dg)
 {
     for( Thread t = Thread.sm_tbeg; t; t = t.next )
     {
