@@ -9996,7 +9996,8 @@ Ltupleassign:
             TypeTuple *tt = (TypeTuple *)e1->type;
 
             Identifier *id = Lexer::uniqueId("__tup");
-            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, new ExpInitializer(e2->loc, e2));
+            ExpInitializer *ei = new ExpInitializer(e2->loc, e2);
+            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, ei);
             v->storage_class = STCctfe | STCref | STCforeach;
             Expression *ve = new VarExp(e2->loc, v);
             ve->type = e2->type;
