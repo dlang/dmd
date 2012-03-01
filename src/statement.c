@@ -2754,7 +2754,12 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
+                if (e->op != TOKerror)
+                    e = e->optimize(WANTvalue | WANTinterpret);
+                if (e->op == TOKerror)
+                {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
+                    goto Lerror;
+                }
                 StringExp *se = e->toString();
                 if (se)
                 {
@@ -2820,7 +2825,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
 #endif
     else
         error("unrecognized pragma(%s)", ident->toChars());
-
+Lerror:
     if (body)
     {
         body = body->semantic(sc);
