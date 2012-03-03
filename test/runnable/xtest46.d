@@ -4680,6 +4680,38 @@ class B158 : A158
 
 
 /***************************************************/
+// 3282
+
+class Base3282
+{
+    string f()
+    {
+        return "Base.f()";
+    }
+}
+class Derived3282 : Base3282
+{
+    string f()
+    {
+        return "Derived.f()";
+    }
+    string f() const
+    {
+        return "Derived.f() const";
+    }
+}
+
+void test3282()
+{
+    auto x = new Base3282;
+    assert(x.f() == "Base.f()");
+    auto y = new Derived3282;
+    assert(y.f() == "Derived.f()");// calls "Derived.f() const", but it is expected that be called non-const.
+    auto z = new const(Derived3282);
+    assert(z.f() == "Derived.f() const");
+}
+
+/***************************************************/
 // 7534
 
 class C7534
@@ -5012,6 +5044,7 @@ int main()
     test7196();
     test7285();
     test7321();
+    test3282();
     test7534();
     test7618();
     test7682();
