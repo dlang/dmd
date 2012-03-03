@@ -4863,13 +4863,24 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol 
 elem *AssocArrayLiteralExp::toElem(IRState *irs)
 {
     //printf("AssocArrayLiteralExp::toElem() %s\n", toChars());
-    size_t dim = keys->dim;
 
+    Type *t = type->toBasetype()->mutableOf();
+
+    size_t dim = keys->dim;
     if (dim)
     {
         // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
         // Prefer this to avoid the varargs fiasco in 64 bit code
-        Type *t = type->toBasetype()->mutableOf();
+
+        Type *ta;
+        if (t->ty == Taarray)
+            ta = t;
+        else
+        {   // It's the AssociativeArray type.
+            // Turn it back into a TypeAArray
+            ta = new TypeAArray((*values)[0]->type, (*keys)[0]->type);
+            ta = ta->semantic(loc, NULL);
+        }
 
         symbol *skeys = NULL;
         elem *ekeys = ExpressionsToStaticArray(irs, loc, keys, &skeys);
@@ -4879,11 +4890,13 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 
         elem *e = el_params(el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues)),
                             el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  )),
-                            t->getTypeInfo(NULL)->toElem(irs),
+                            ta->getTypeInfo(NULL)->toElem(irs),
                             NULL);
 
         // call _d_assocarrayliteralTX(ti, keys, values)
         e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALTX]),e);
+        if (t != ta)
+            e = addressElem(e, ta);
         el_setLoc(e,loc);
 
         e = el_combine(evalues, e);
@@ -4892,7 +4905,10 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
     }
     else
     {
-        return el_long(TYnptr, 0);      // empty associative array is the null pointer
+        elem *e = el_long(TYnptr, 0);      // empty associative array is the null pointer
+        if (t->ty != Taarray)
+            e = addressElem(e, Type::tvoidptr);
+        return e;
     }
 }
 
