@@ -7124,7 +7124,11 @@ Lagain:
         if (t->ty == Tpointer)
         {   Type *tn = t->nextOf();
             if (tn->ty == Tclass || tn->ty == Tstruct)
-                t = t->nextOf();
+            {
+                e = new PtrExp(e->loc, e);
+                e = e->semantic(sc);
+                t = e->type->toBasetype();
+            }
         }
         if (t->ty == Tclass)
         {
