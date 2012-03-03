@@ -825,6 +825,15 @@ void test7365() {
 
 /************************************************/
 
+enum aa5520 = [5 : "hello"];
+
+void test5520()
+{
+    auto a = aa5520.values;
+}
+
+/************************************************/
+
 int main()
 {
 printf("before test 1\n");   test1();
@@ -863,6 +872,7 @@ printf("before test 32\n");   test32();
     test35();
     test36();
     test7365();
+    test5520();
 
     printf("Success\n");
     return 0;

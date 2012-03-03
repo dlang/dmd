@@ -4529,8 +4529,12 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         ident != Id::stringof &&
         ident != Id::offsetof)
     {
-        e->type = getImpl()->type;
-        e = e->type->dotExp(sc, e, ident);
+//printf("test1: %s, %s\n", e->toChars(), e->type->toChars());
+        Type *t = getImpl()->type;
+//printf("test2: %s, %s\n", e->toChars(), e->type->toChars());
+        e->type = t;
+        e = t->dotExp(sc, e, ident);
+//printf("test3: %s, %s\n", e->toChars(), e->type->toChars());
     }
     else
         e = Type::dotExp(sc, e, ident);

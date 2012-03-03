@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -4806,22 +4806,34 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
  * exps[].
  * Return the initialization expression, and the symbol for the static array in *psym.
  */
-elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, Type *telem, symbol **psym)
+elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol **psym)
 {
     // Create a static array of type telem[dim]
     size_t dim = exps->dim;
-    Type *tsarray = new TypeSArray(telem, new IntegerExp(loc, dim, Type::tsize_t));
-    tsarray = tsarray->semantic(loc, NULL);
-    symbol *stmp = symbol_genauto(tsarray->toCtype());
-    targ_size_t szelem = telem->size();
 
     Elems elems;
     elems.setDim(dim);
 
-    ::type *te = telem->toCtype();      // stmp[] element type
+    Type *telem;
+    Type *tsarray;
+    symbol *stmp;
+    targ_size_t szelem;
+    ::type *te;      // stmp[] element type
 
     for (size_t i = 0; i < dim; i++)
-    {   Expression *el = exps->tdata()[i];
+    {   Expression *el = (*exps)[i];
+
+        if (i == 0)
+        {
+            telem = el->type;
+            szelem = telem->size();
+            te = telem->toCtype();
+
+            tsarray = new TypeSArray(telem, new IntegerExp(loc, dim, Type::tsize_t));
+            tsarray = tsarray->semantic(loc, NULL);
+            stmp = symbol_genauto(tsarray->toCtype());
+            *psym = stmp;
+        }
 
         /* Generate: *(&stmp + i * szelem) = element[i]
          */
@@ -4842,10 +4854,9 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, Type *t
             eeq->Ejty = eeq->Ety = TYstruct;
             eeq->ET = te;
         }
-        elems.tdata()[i] = eeq;
+        elems[i] = eeq;
     }
 
-    *psym = stmp;
     return el_combines((void **)elems.tdata(), dim);
 }
 
@@ -4853,33 +4864,36 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 {
     //printf("AssocArrayLiteralExp::toElem() %s\n", toChars());
     size_t dim = keys->dim;
-    elem *e;
 
-    // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
-    // Prefer this to avoid the varargs fiasco in 64 bit code
-    Type *t = type->toBasetype()->mutableOf();
-    assert(t->ty == Taarray);
-    TypeAArray *ta = (TypeAArray *)t;
+    if (dim)
+    {
+        // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
+        // Prefer this to avoid the varargs fiasco in 64 bit code
+        Type *t = type->toBasetype()->mutableOf();
 
-    symbol *skeys;
-    elem *ekeys = ExpressionsToStaticArray(irs, loc, keys, ta->index, &skeys);
+        symbol *skeys = NULL;
+        elem *ekeys = ExpressionsToStaticArray(irs, loc, keys, &skeys);
 
-    symbol *svalues;
-    elem *evalues = ExpressionsToStaticArray(irs, loc, values, ta->nextOf(), &svalues);
+        symbol *svalues = NULL;
+        elem *evalues = ExpressionsToStaticArray(irs, loc, values, &svalues);
 
-    e = el_params(el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues)),
-                  el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  )),
-                  ta->getTypeInfo(NULL)->toElem(irs),
-                  NULL);
+        elem *e = el_params(el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues)),
+                            el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  )),
+                            t->getTypeInfo(NULL)->toElem(irs),
+                            NULL);
 
-    // call _d_assocarrayliteralTX(ti, keys, values)
-    e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALTX]),e);
-    el_setLoc(e,loc);
+        // call _d_assocarrayliteralTX(ti, keys, values)
+        e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALTX]),e);
+        el_setLoc(e,loc);
 
-    e = el_combine(evalues, e);
-    e = el_combine(ekeys, e);
-
-    return e;
+        e = el_combine(evalues, e);
+        e = el_combine(ekeys, e);
+        return e;
+    }
+    else
+    {
+        return el_long(TYnptr, 0);      // empty associative array is the null pointer
+    }
 }
 
 
