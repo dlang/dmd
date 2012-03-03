@@ -2983,13 +2983,25 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
 
             if (fparam->defaultArg)
-            {
-                fparam->defaultArg = fparam->defaultArg->semantic(argsc);
-                fparam->defaultArg = resolveProperties(argsc, fparam->defaultArg);
-                fparam->defaultArg = fparam->defaultArg->implicitCastTo(argsc, fparam->type);
+            {   Expression *e = fparam->defaultArg;
+                e = e->semantic(argsc);
+                e = resolveProperties(argsc, e);
+                if (e->op == TOKfunction)               // see Bugzilla 4820
+                {   FuncExp *fe = (FuncExp *)e;
+                    if (fe->fd)
+                    {   // Replace function literal with a function symbol,
+                        // since default arg expression must be copied when used
+                        // and copying the literal itself is wrong.
+                        e = new VarExp(e->loc, fe->fd);
+                        e = new AddrExp(e->loc, e);
+                        e = e->semantic(argsc);
+                    }
+                }
+                e = e->implicitCastTo(argsc, fparam->type);
+                fparam->defaultArg = e;
             }
 
-            /* If arg turns out to be a tuple, the number of parameters may
+            /* If fparam after semantic() turns out to be a tuple, the number of parameters may
              * change.
              */
             if (t->ty == Ttuple)

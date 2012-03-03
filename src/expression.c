@@ -7307,11 +7307,24 @@ Expression *AddrExp::semantic(Scope *sc)
             VarExp *dve = (VarExp *)e1;
             FuncDeclaration *f = dve->var->isFuncDeclaration();
 
-            if (f && f->isNested())
+            if (f)
             {
-                Expression *e = new DelegateExp(loc, e1, f);
-                e = e->semantic(sc);
-                return e;
+                if (f->isNested())
+                {
+                    if (f->isFuncLiteralDeclaration())
+                    {
+                        if (!f->FuncDeclaration::isNested())
+                        {   /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            Expression *e = new DelegateExp(loc, new NullExp(loc, Type::tvoidptr), f);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                    }
+                    Expression *e = new DelegateExp(loc, e1, f);
+                    e = e->semantic(sc);
+                    return e;
+                }
             }
         }
         else if (e1->op == TOKarray)
