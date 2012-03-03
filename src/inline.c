@@ -1779,6 +1779,18 @@ Expression *Expression::inlineCopy(Scope *sc)
      */
     return copy();
 #else
+    if (op == TOKdelegate)
+    {   DelegateExp *de = (DelegateExp *)this;
+
+        if (de->func->isNested())
+        {   /* See Bugzilla 4820
+             * Defer checking until later if we actually need the 'this' pointer
+             */
+            Expression *e = de->copy();
+            return e;
+        }
+    }
+
     InlineCostState ics;
 
     memset(&ics, 0, sizeof(ics));
@@ -1795,3 +1807,4 @@ Expression *Expression::inlineCopy(Scope *sc)
     return e;
 #endif
 }
+

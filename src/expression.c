@@ -8192,6 +8192,16 @@ Expression *AddrExp::semantic(Scope *sc)
                     f->tookAddressOf++;
                 if (f->isNested())
                 {
+                    if (f->isFuncLiteralDeclaration())
+                    {
+                        if (!f->FuncDeclaration::isNested())
+                        {   /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            Expression *e = new DelegateExp(loc, new NullExp(loc, Type::tnull), f, ve->hasOverloads);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                    }
                     Expression *e = new DelegateExp(loc, e1, f, ve->hasOverloads);
                     e = e->semantic(sc);
                     return e;

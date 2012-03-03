@@ -4796,6 +4796,22 @@ void test7502()
 
 /***************************************************/
 
+void nextis(void delegate() dg = {}) {}
+
+void test4820() {
+    nextis();
+}
+
+/***************************************************/
+
+void test4820_2() {
+
+void nextis(void delegate() dg = {}) {}
+    nextis();
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5043,6 +5059,8 @@ int main()
     test7424();
     test7504();
     test7502();
+    test4820();
+    test4820_2();
 
     writefln("Success");
     return 0;

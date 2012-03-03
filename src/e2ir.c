@@ -3426,11 +3426,18 @@ elem *DelegateExp::toElem(IRState *irs)
     int directcall = 0;
 
     //printf("DelegateExp::toElem() '%s'\n", toChars());
+
+    if (func->semanticRun == PASSsemantic3done)
+        irs->deferToObj->push(func);
+
     sfunc = func->toSymbol();
     if (func->isNested())
     {
         ep = el_ptr(sfunc);
-        ethis = getEthis(loc, irs, func);
+        if (e1->op == TOKnull)
+            ethis = e1->toElem(irs);
+        else
+            ethis = getEthis(loc, irs, func);
     }
     else
     {
