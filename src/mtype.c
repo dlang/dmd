@@ -5730,9 +5730,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         assert(arg);
 
         if (arg->op == TOKfunction)
-        {   FuncExp *fe = (FuncExp *)arg;
-            Type *pt = p->type;
-            arg = ((FuncExp *)arg)->inferType(NULL, pt);
+        {
+            arg = ((FuncExp *)arg)->inferType(p->type, 1);
             if (!arg)
                 goto L1;    // try typesafe variadics
         }
@@ -5819,9 +5818,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                             assert(arg);
 #if 1
                             if (arg->op == TOKfunction)
-                            {   FuncExp *fe = (FuncExp *)arg;
-                                Type *pt = tb->nextOf();
-                                arg = ((FuncExp *)arg)->inferType(NULL, pt);
+                            {
+                                arg = ((FuncExp *)arg)->inferType(tb->nextOf(), 1);
                                 if (!arg)
                                     goto Nomatch;
                             }

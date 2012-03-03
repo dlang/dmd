@@ -131,6 +131,12 @@ Expression *ErrorExp::implicitCastTo(Scope *sc, Type *t)
     return this;
 }
 
+Expression *FuncExp::implicitCastTo(Scope *sc, Type *t)
+{
+    //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
+    return inferType(t);
+}
+
 /*******************************************
  * Return !=0 if we can implicitly convert this to type t.
  * Don't do the actual cast.
@@ -719,12 +725,24 @@ MATCH DelegateExp::implicitConvTo(Type *t)
 
 MATCH FuncExp::implicitConvTo(Type *t)
 {
-    //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
-    if (type && type != Type::tvoid && tok == TOKreserved && type->ty == Tpointer
-        && (t->ty == Tpointer || t->ty == Tdelegate))
-    {   // Allow implicit function to delegate conversion
-        if (type->nextOf()->covariant(t->nextOf()) == 1)
-            return t->ty == Tpointer ? MATCHconst : MATCHconvert;
+    //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
+    Expression *e = inferType(t, 1);
+    if (e)
+    {
+        if (e != this)
+            return e->implicitConvTo(t);
+
+        /* MATCHconst:   Conversion from implicit to explicit function pointer
+         * MATCHconvert: Conversion from impliict funciton pointer to delegate
+         */
+        if (tok == TOKreserved && type->ty == Tpointer &&
+            (t->ty == Tpointer || t->ty == Tdelegate))
+        {
+            if (type == t)
+                return MATCHexact;
+            if (type->nextOf()->covariant(t->nextOf()) == 1)
+                return t->ty == Tpointer ? MATCHconst : MATCHconvert;
+        }
     }
     return Expression::implicitConvTo(t);
 }
@@ -1491,15 +1509,11 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
 Expression *FuncExp::castTo(Scope *sc, Type *t)
 {
     //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
-    if (tok == TOKreserved)
-    {   assert(type && type != Type::tvoid);
-        if (type->ty == Tpointer && t->ty == Tdelegate)
-        {
-            Expression *e = copy();
-            e->type = new TypeDelegate(fd->type);
-            e->type = e->type->semantic(loc, sc);
-            return e;
-        }
+    Expression *e = inferType(t, 1);
+    if (e)
+    {   if (e != this)
+            e = e->castTo(sc, t);
+        return e;
     }
     return Expression::castTo(sc, t);
 }

@@ -656,16 +656,16 @@ struct FuncExp : Expression
     TemplateDeclaration *td;
     enum TOK tok;
     Type *tded;
-    Scope *scope;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    Expression *inferType(Scope *sc, Type *t);
+    Expression *inferType(Type *t, int flag = 0);
     void setType(Type *t);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

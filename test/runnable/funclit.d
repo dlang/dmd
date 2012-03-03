@@ -281,6 +281,27 @@ void test8()
 }
 
 /***************************************************/
+// on concat operation
+
+void test9()
+{
+    int function(int)[] a2;
+    a2 ~= x => x;
+}
+
+/***************************************************/
+// on associative array key
+
+void test10()
+{
+    int[int function()] aa;
+    assert(!aa.remove(() => 1));
+
+    int[int function(int)] aa2;
+    assert(!aa2.remove(x => 1));
+}
+
+/***************************************************/
 // 3235
 
 void test3235()
@@ -387,6 +408,8 @@ int main()
     test6();
     test7();
     test8();
+    test9();
+    test10();
     test3235();
     test6714();
     test7193();

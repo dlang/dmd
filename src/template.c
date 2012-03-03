@@ -1415,19 +1415,22 @@ Lretry:
             if (farg->op == TOKfunction)
             {   FuncExp *fe = (FuncExp *)farg;
                 Type *tp = fparam->type;
-                if (tp->ty == Tdelegate &&
-                    fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction &&
-                    fe->tok == TOKreserved)
-                {   Type *tdg = new TypeDelegate(fe->type->nextOf());
-                    tdg = tdg->semantic(loc, sc);
-                    farg = fe->inferType(sc, tdg);
-                }
-                else if (fe->type == Type::tvoid)
+                Expression *e = fe->inferType(tp, 1);
+                if (!e)
                 {
-                    farg = fe->inferType(sc, tp);
-                    if (!farg)
-                        goto Lvarargs;
+                    if (tp->ty == Tdelegate &&
+                        fe->tok == TOKreserved &&
+                        fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction)
+                    {
+                        fe = (FuncExp *)fe->copy();
+                        fe->tok = TOKdelegate;
+                        fe->type = (new TypeDelegate(fe->type->nextOf()))->merge();
+                        e = fe;
+                    }
+                    else
+                        e = farg;
                 }
+                farg = e;
                 argtype = farg->type;
             }
 
@@ -1541,19 +1544,23 @@ Lretry:
                     if (arg->op == TOKfunction)
                     {   FuncExp *fe = (FuncExp *)arg;
                         Type *tp = tb->nextOf();
-                        if (tp->ty == Tdelegate &&
-                            fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction &&
-                            fe->tok == TOKreserved)
-                        {   tp = new TypeDelegate(fe->type->nextOf());
-                            tp = tp->semantic(loc, sc);
-                            arg = fe->inferType(sc, tp);
-                        }
-                        else if (arg->type == Type::tvoid)
+
+                        Expression *e = fe->inferType(tp, 1);
+                        if (!e)
                         {
-                            arg = fe->inferType(sc, tp);
-                            if (!arg)
-                                goto Lnomatch;
+                            if (tp->ty == Tdelegate &&
+                                fe->tok == TOKreserved &&
+                                fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction)
+                            {
+                                fe = (FuncExp *)fe->copy();
+                                fe->tok = TOKdelegate;
+                                fe->type = (new TypeDelegate(fe->type->nextOf()))->merge();
+                                e = fe;
+                            }
+                            else
+                                e = arg;
                         }
+                        arg = e;
                     }
 
                     MATCH m;
