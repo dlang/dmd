@@ -219,13 +219,19 @@ void Import::semantic(Scope *sc)
         sc->protection = PROTpublic;
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
-        {   Dsymbol *s = aliasdecls.tdata()[i];
+        {   Dsymbol *s = aliasdecls[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (!mod->search(loc, names.tdata()[i], 0))
-                error("%s not found", (names.tdata()[i])->toChars());
-
-            s->semantic(sc);
+            if (mod->search(loc, names[i], 0))
+                s->semantic(sc);
+            else
+            {
+                s = mod->search_correct(names[i]);
+                if (s)
+                    mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
+                else
+                    mod->error(loc, "import '%s' not found", names[i]->toChars());
+            }
         }
         sc = sc->pop();
     }
