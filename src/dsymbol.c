@@ -423,7 +423,13 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
             id = ti->name;
             sm = s->search(loc, id, 0);
             if (!sm)
-            {   error("template identifier %s is not a member of %s %s",
+            {
+                sm = s->search_correct(id);
+                if (sm)
+                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
+                          id->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
+                else
+                    error("template identifier '%s' is not a member of '%s %s'",
                     id->toChars(), s->kind(), s->toChars());
                 return NULL;
             }

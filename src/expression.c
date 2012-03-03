@@ -5893,7 +5893,9 @@ Expression *DotIdExp::semantic(Scope *sc)
             if (tup)
             {
                 if (eleft)
-                    error("cannot have e.tuple");
+                {   error("cannot have e.tuple");
+                    return new ErrorExp();
+                }
                 e = new TupleExp(loc, tup);
                 e = e->semantic(sc);
                 return e;
@@ -5931,7 +5933,12 @@ Expression *DotIdExp::semantic(Scope *sc)
             e = e->semantic(sc);
             return e;
         }
-        error("undefined identifier %s", toChars());
+        s = ie->sds->search_correct(ident);
+        if (s)
+            error("undefined identifier '%s', did you mean '%s %s'?",
+                  ident->toChars(), s->kind(), s->toChars());
+        else
+            error("undefined identifier '%s'", ident->toChars());
         return new ErrorExp();
     }
     else if (e1->type->ty == Tpointer &&

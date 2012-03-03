@@ -3461,7 +3461,19 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 else
                 {
                   Lerror:
-                    error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                    if (id->dyncast() == DYNCAST_DSYMBOL)
+                    {   // searchX already handles errors for template instances
+                        assert(global.errors);
+                    }
+                    else
+                    {
+                        sm = s->search_correct(id);
+                        if (sm)
+                            error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
+                                  id->toChars(), toChars(), sm->kind(), sm->toChars());
+                        else
+                            error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                    }
                     *pe = new ErrorExp();
                 }
                 return;
