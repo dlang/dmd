@@ -924,6 +924,24 @@ void test7416() {
 }
 
 /**********************************/
+// 7563
+
+class Test7563
+{
+    void test(T, bool a = true)(T t)
+    {
+
+    }
+}
+
+void test7563()
+{
+    auto test = new Test7563;
+    pragma(msg, typeof(test.test!(int, true)).stringof);
+    pragma(msg, typeof(test.test!(int)).stringof); // Error: expression (test.test!(int)) has no type
+}
+
+/**********************************/
 // 7580
 
 struct S7580(T)
@@ -994,6 +1012,7 @@ int main()
     test7124();
     test7359();
     test7416();
+    test7563();
     test7580();
 
     printf("Success\n");
