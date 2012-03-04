@@ -3664,7 +3664,10 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
     if (*pe)
     {   // It's really an index expression
-        Expression *e = new IndexExp(loc, *pe, dim);
+        Expressions *exps = new Expressions();
+        exps->setDim(1);
+        (*exps)[0] = dim;
+        Expression *e = new ArrayExp(loc, *pe, exps);
         *pe = e;
     }
     else if (*ps)
@@ -4115,6 +4118,31 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
     next = tn;
     transitive();
     return merge();
+}
+
+void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    //printf("TypeDArray::resolve() %s\n", toChars());
+    next->resolve(loc, sc, pe, pt, ps);
+    //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
+    if (*pe)
+    {   // It's really a slice expression
+        Expression *e = new SliceExp(loc, *pe, NULL, NULL);
+        *pe = e;
+    }
+    else if (*ps)
+    {
+        TupleDeclaration *td = (*ps)->isTupleDeclaration();
+        if (td)
+            ;   // keep *ps
+        else
+            goto Ldefault;
+    }
+    else
+    {
+     Ldefault:
+        Type::resolve(loc, sc, pe, pt, ps);
+    }
 }
 
 void TypeDArray::toDecoBuffer(OutBuffer *buf, int flag)
