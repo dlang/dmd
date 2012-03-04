@@ -755,12 +755,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->push(arg);
                 nargs++;
             }
-            else if (arg->op == TOKfunction)
+            else
             {
                 Type *pt = p->type;
                 if (tf->varargs == 2 && i + 1 == nparams && pt->nextOf())
                     pt = pt->nextOf();
-                arg = ((FuncExp *)arg)->inferType(pt);
+                arg = arg->inferType(pt);
                 arguments->tdata()[i] = arg;
             }
 
@@ -4941,7 +4941,7 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->fd = fd;
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
-    tded = NULL;
+    treq = NULL;
 }
 
 Expression *FuncExp::syntaxCopy()
@@ -4954,33 +4954,36 @@ Expression *FuncExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
     printf("FuncExp::semantic(%s)\n", toChars());
+    if (treq) printf("  treq = %s\n", treq->toChars());
 #endif
     if (!type || type == Type::tvoid)
     {
+        if (treq)
+            treq = treq->semantic(loc, sc);
+
         // Set target of return type inference
-        if (tded && !fd->type->nextOf())
+        if (treq && !fd->type->nextOf())
         {   TypeFunction *tfv = NULL;
-            if (tded->ty == Tdelegate ||
-                (tded->ty == Tpointer && tded->nextOf()->ty == Tfunction))
-                tfv = (TypeFunction *)tded->nextOf();
+            if (treq->ty == Tdelegate ||
+                (treq->ty == Tpointer && treq->nextOf()->ty == Tfunction))
+                tfv = (TypeFunction *)treq->nextOf();
             if (tfv)
             {   TypeFunction *tfl = (TypeFunction *)fd->type;
                 tfl->next = tfv->nextOf();
             }
         }
 
-        //printf("td = %p, tded = %p\n", td, tded);
+        //printf("td = %p, treq = %p\n", td, treq);
         if (td)
         {
             assert(td->parameters && td->parameters->dim);
             td->semantic(sc);
+            type = Type::tvoid; // temporary type
 
-            if (!tded)
-            {   // defer type determination
-                type = Type::tvoid; // temporary type
+            if (!treq)  // defer type determination
                 return this;
-            }
-            return inferType(tded);
+
+            return inferType(treq);
         }
 
         unsigned olderrors = global.errors;
@@ -5009,7 +5012,7 @@ Expression *FuncExp::semantic(Scope *sc)
 
         // Type is a "delegate to" or "pointer to" the function literal
         if ((fd->isNested() && fd->tok == TOKdelegate) ||
-            (tok == TOKreserved && tded && tded->ty == Tdelegate))
+            (tok == TOKreserved && treq && treq->ty == Tdelegate))
         {
             type = new TypeDelegate(fd->type);
             type = type->semantic(loc, sc);
@@ -5067,101 +5070,6 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
         return new ErrorExp();
     }
     return semantic(sc);
-}
-
-Expression *FuncExp::inferType(Type *to, int flag)
-{
-    Expression *e = NULL;
-
-    Type *t = to;
-    if (t->ty == Tdelegate)
-    {   if (tok == TOKfunction)
-            goto L1;
-        t = t->nextOf();
-    }
-    else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-    {   if (tok == TOKdelegate)
-            goto L1;
-        t = t->nextOf();
-    }
-    else
-        goto L1;
-
-    if (td)
-    {   /// Parameter types inference from
-        assert(td->scope);
-        if (t->ty == Tfunction)
-        {
-            TypeFunction *tfv = (TypeFunction *)t;
-            TypeFunction *tfl = (TypeFunction *)fd->type;
-            size_t dim = Parameter::dim(tfl->parameters);
-
-            if (Parameter::dim(tfv->parameters) == dim &&
-                tfv->varargs == tfl->varargs)
-            {
-                Objects *tiargs = new Objects();
-                tiargs->reserve(td->parameters->dim);
-
-                for (size_t i = 0; i < td->parameters->dim; i++)
-                {
-                    TemplateParameter *tp = (*td->parameters)[i];
-                    for (size_t u = 0; u < dim; u++)
-                    {   Parameter *p = Parameter::getNth(tfl->parameters, u);
-                        if (p->type->ty == Tident &&
-                            ((TypeIdentifier *)p->type)->ident == tp->ident)
-                        {   p = Parameter::getNth(tfv->parameters, u);
-                            if (p->type->ty == Tident)
-                                return NULL;
-                            Type *tprm = p->type->semantic(loc, td->scope);
-                            tiargs->push(tprm);
-                            u = dim;    // break inner loop
-                        }
-                    }
-                }
-
-                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
-                e = (new ScopeExp(loc, ti))->semantic(td->scope);
-            }
-        }
-    }
-    else if (type)
-    {
-        assert(type != Type::tvoid);   // semantic is already done
-
-        // Allow conversion from implicit function pointer to delegate
-        if (tok == TOKreserved && type->ty == Tpointer &&
-            to->ty == Tdelegate)
-        {
-            Type *typen = type->nextOf();
-            assert(typen->deco);
-            if (typen->covariant(to->nextOf()) == 1)
-            {
-                FuncExp *fe = (FuncExp *)copy();
-                fe->tok = TOKdelegate;
-                fe->type = (new TypeDelegate(typen))->merge();
-                e = fe;
-                //e = fe->Expression::implicitCastTo(sc, to);
-            }
-        }
-        else
-            e = this;
-    }
-L1:
-    if (!flag && !e)
-    {   error("cannot infer function literal type from %s", to->toChars());
-        e = new ErrorExp();
-    }
-    return e;
-}
-
-void FuncExp::setType(Type *t)
-{
-    assert(t);
-
-    if (t->ty == Tdelegate ||
-        t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-    {   tded = t;
-    }
 }
 
 char *FuncExp::toChars()
@@ -10191,8 +10099,7 @@ Ltupleassign:
         }
     }
 
-    if (e2->op == TOKfunction)
-        e2 = ((FuncExp *)e2)->inferType(t1);
+    e2 = e2->inferType(t1);
     if (!e2->rvalue())
         return new ErrorExp();
 
@@ -10350,8 +10257,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();
 
-    if (e2->op == TOKfunction)
-        e2 = ((FuncExp *)e2)->inferType(tb1next);
+    e2 = e2->inferType(tb1next);
     if (!e2->rvalue())
         return new ErrorExp();
 

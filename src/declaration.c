@@ -1233,8 +1233,8 @@ Lnomatch:
         StructInitializer *si = init->isStructInitializer();
         ExpInitializer *ei = init->isExpInitializer();
 
-        if (ei && ei->exp->op == TOKfunction && !inferred)
-            ((FuncExp *)ei->exp)->setType(type);
+        if (ei && !inferred)
+            ei->exp = ei->exp->inferType(type);
 
         if (ei && isScope())
         {

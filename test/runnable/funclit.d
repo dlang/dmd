@@ -302,6 +302,30 @@ void test10()
 }
 
 /***************************************************/
+// on common type deduction
+
+void test11()
+{
+    auto a1 = [x => x, (int x) => x * 2];
+    static assert(is(typeof(a1[0]) == int function(int) pure @safe nothrow));
+    assert(a1[0](10) == 10);
+    assert(a1[1](10) == 20);
+
+    //int n = 10;
+    //auto a2 = [x => n, (int x) => x * 2];
+    //static assert(is(typeof(a2[0]) == int delegate(int) @safe nothrow));
+    //assert(a2[0](99) == 10);
+    //assert(a2[1](10) == 20);
+
+    int function(int) fp = true ? (x => x) : (x => x*2);
+    assert(fp(10) == 10);
+
+    int m = 10;
+    int delegate(int) dg = true ? (x => x) : (x => m*2);
+    assert(dg(10) == 10);
+}
+
+/***************************************************/
 // 3235
 
 void test3235()
@@ -410,6 +434,7 @@ int main()
     test8();
     test9();
     test10();
+    test11();
     test3235();
     test6714();
     test7193();
