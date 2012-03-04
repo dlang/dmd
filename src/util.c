@@ -50,7 +50,7 @@ void file_progress()
  * Alternative assert failure.
  */
 
-void util_assert(char *file,int line)
+void util_assert(const char *file, int line)
 {
     fflush(stdout);
     printf("Internal error: %s %d\n",file,line);

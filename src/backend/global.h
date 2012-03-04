@@ -115,14 +115,14 @@ elem *exp2_copytotemp(elem *e);
 
 /* util.c */
 #if __clang__
-void util_exit(int) __attribute__((analyzer_noreturn));
-void util_assert(char *, int) __attribute__((analyzer_noreturn));
+void util_exit(int) __attribute__((noreturn));
+void util_assert(const char *, int) __attribute__((noreturn));
 #elif _MSC_VER
 __declspec(noreturn) void util_exit(int);
-__declspec(noreturn) void util_assert(char *, int);
+__declspec(noreturn) void util_assert(const char *, int);
 #else
 void util_exit(int);
-void util_assert(char *, int);
+void util_assert(const char *, int);
 #if __DMC__
 #pragma ZTC noreturn(util_exit)
 #pragma ZTC noreturn(util_assert)
