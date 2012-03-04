@@ -1305,7 +1305,7 @@ STATIC code *asm_emit(Loc loc,
         unsigned char *puc;
         unsigned usDefaultseg;
         code *pc = NULL;
-        OPND *popndTmp;
+        OPND *popndTmp = NULL;
         ASM_OPERAND_TYPE    aoptyTmp;
         unsigned  uSizemaskTmp;
         REG     *pregSegment;
