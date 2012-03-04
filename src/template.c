@@ -4434,15 +4434,14 @@ void TemplateInstance::declareParameters(Scope *sc)
     //printf("TemplateInstance::declareParameters()\n");
     for (size_t i = 0; i < tdtypes.dim; i++)
     {
-        TemplateParameter *tp = (TemplateParameter *)tempdecl->parameters->data[i];
-        //Object *o = (Object *)tiargs->data[i];
-        Object *o = (Object *)tdtypes.data[i];          // initializer for tp
+        TemplateParameter *tp = tempdecl->parameters->tdata()[i];
+        //Object *o = tiargs->tdata()[i];
+        Object *o = tdtypes.tdata()[i];          // initializer for tp
 
         //printf("\ttdtypes[%d] = %p\n", i, o);
         tempdecl->declareParameter(sc, tp, o);
     }
 }
-
 
 /*****************************************************
  * Determine if template instance is really a template function,
@@ -4455,6 +4454,7 @@ int TemplateInstance::needsTypeInference(Scope *sc)
     //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
     if (!tempdecl)
         tempdecl = findTemplateDeclaration(sc);
+    int multipleMatches = FALSE;
     for (TemplateDeclaration *td = tempdecl; td; td = td->overnext)
     {
         /* If any of the overloaded template declarations need inference,
@@ -4480,15 +4480,36 @@ int TemplateInstance::needsTypeInference(Scope *sc)
         /* Determine if the instance arguments, tiargs, are all that is necessary
          * to instantiate the template.
          */
-        TemplateTupleParameter *tp = td->isVariadic();
         //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, tiargs->dim);
         TypeFunction *fdtype = (TypeFunction *)fd->type;
-        if (Parameter::dim(fdtype->parameters) &&
-            ((tp && td->parameters->dim > 1) || tiargs->dim < td->parameters->dim))
-            return TRUE;
+        if (Parameter::dim(fdtype->parameters))
+        {
+            TemplateParameter *tp = td->isVariadic();
+            if (tp && td->parameters->dim > 1)
+                return TRUE;
+
+            if (tiargs->dim < td->parameters->dim)
+            {   // Can remain tiargs be filled by default arguments?
+                for (size_t i = tiargs->dim; i < td->parameters->dim; i++)
+                {   tp = (*td->parameters)[i];
+                    if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+                    {   if (!ttp->defaultType)
+                            return TRUE;
+                    }
+                    else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+                    {   if (!tap->defaultAlias)
+                            return TRUE;
+                    }
+                    else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
+                    {   if (!tvp->defaultValue)
+                            return TRUE;
+                    }
+                }
+            }
+        }
     }
     //printf("false\n");
-    return FALSE;
+    return multipleMatches;
 }
 
 void TemplateInstance::semantic2(Scope *sc)
