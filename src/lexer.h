@@ -252,6 +252,7 @@ struct Token
     static const char *tochars[TOKMAX];
     static void *operator new(size_t sz);
 
+    Token() : next(NULL) {}
     int isKeyword();
     void print();
     const char *toChars();
