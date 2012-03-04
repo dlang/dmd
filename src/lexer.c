@@ -370,7 +370,6 @@ Token *Lexer::peek(Token *ct)
     {
         t = new Token();
         scan(t);
-        t->next = NULL;
         ct->next = t;
     }
     return t;
@@ -1231,7 +1230,7 @@ void Lexer::scan(Token *t)
             case '#':
             {
                 p++;
-                Token *n = peek(&token);
+                Token *n = peek(t);
                 if (n->value == TOKidentifier && n->ident == Id::line)
                 {
                     nextToken();
