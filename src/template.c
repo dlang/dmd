@@ -5486,12 +5486,33 @@ int TemplateInstance::needsTypeInference(Scope *sc)
         /* Determine if the instance arguments, tiargs, are all that is necessary
          * to instantiate the template.
          */
-        TemplateTupleParameter *tp = td->isVariadic();
         //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, tiargs->dim);
         TypeFunction *fdtype = (TypeFunction *)fd->type;
-        if (Parameter::dim(fdtype->parameters) &&
-            ((tp && td->parameters->dim > 1) || tiargs->dim < td->parameters->dim))
-            return TRUE;
+        if (Parameter::dim(fdtype->parameters))
+        {
+            TemplateParameter *tp = td->isVariadic();
+            if (tp && td->parameters->dim > 1)
+                return TRUE;
+
+            if (tiargs->dim < td->parameters->dim)
+            {   // Can remain tiargs be filled by default arguments?
+                for (size_t i = tiargs->dim; i < td->parameters->dim; i++)
+                {   tp = (*td->parameters)[i];
+                    if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+                    {   if (!ttp->defaultType)
+                            return TRUE;
+                    }
+                    else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+                    {   if (!tap->defaultAlias)
+                            return TRUE;
+                    }
+                    else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
+                    {   if (!tvp->defaultValue)
+                            return TRUE;
+                    }
+                }
+            }
+        }
         /* If there is more than one function template which matches, we may
          * need type inference (see Bugzilla 4430)
          */
