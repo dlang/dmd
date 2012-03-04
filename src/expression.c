@@ -1109,18 +1109,17 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
  * Write out argument list to buf.
  */
 
-void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs)
+void argsToCBuffer(OutBuffer *buf, Expressions *expressions, HdrGenState *hgs)
 {
-    if (arguments)
+    if (expressions)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *arg = arguments->tdata()[i];
+        for (size_t i = 0; i < expressions->dim; i++)
+        {   Expression *e = (*expressions)[i];
 
-            if (arg)
-            {   if (i)
-                    buf->writeByte(',');
-                expToCBuffer(buf, hgs, arg, PREC_assign);
-            }
+            if (i)
+                buf->writeByte(',');
+            if (e)
+                expToCBuffer(buf, hgs, e, PREC_assign);
         }
     }
 }
@@ -1135,12 +1134,12 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
     {   OutBuffer argbuf;
 
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *arg = arguments->tdata()[i];
+        {   Expression *e = (*arguments)[i];
 
             if (i)
                 buf->writeByte(',');
             argbuf.reset();
-            arg->type->toCBuffer2(&argbuf, hgs, 0);
+            e->type->toCBuffer2(&argbuf, hgs, 0);
             buf->write(&argbuf);
         }
     }
@@ -3734,6 +3733,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->soffset = 0;
     this->fillHoles = 1;
     this->ownedByCtfe = false;
+    //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
 Expression *StructLiteralExp::syntaxCopy()
