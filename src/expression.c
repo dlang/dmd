@@ -1109,18 +1109,17 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
  * Write out argument list to buf.
  */
 
-void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs)
+void argsToCBuffer(OutBuffer *buf, Expressions *expressions, HdrGenState *hgs)
 {
-    if (arguments)
+    if (expressions)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *arg = arguments->tdata()[i];
+        for (size_t i = 0; i < expressions->dim; i++)
+        {   Expression *e = (*expressions)[i];
 
-            if (arg)
-            {   if (i)
-                    buf->writeByte(',');
-                expToCBuffer(buf, hgs, arg, PREC_assign);
-            }
+            if (i)
+                buf->writeByte(',');
+            if (e)
+                expToCBuffer(buf, hgs, e, PREC_assign);
         }
     }
 }
@@ -1135,12 +1134,12 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
     {   OutBuffer argbuf;
 
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *arg = arguments->tdata()[i];
+        {   Expression *e = (*arguments)[i];
 
             if (i)
                 buf->writeByte(',');
             argbuf.reset();
-            arg->type->toCBuffer2(&argbuf, hgs, 0);
+            e->type->toCBuffer2(&argbuf, hgs, 0);
             buf->write(&argbuf);
         }
     }
@@ -3734,6 +3733,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->soffset = 0;
     this->fillHoles = 1;
     this->ownedByCtfe = false;
+    //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
 Expression *StructLiteralExp::syntaxCopy()
@@ -6622,7 +6622,12 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             e = e->semantic(sc);
             return e;
         }
-        error("undefined identifier %s", toChars());
+        s = ie->sds->search_correct(ident);
+        if (s)
+            error("undefined identifier '%s', did you mean '%s %s'?",
+                  ident->toChars(), s->kind(), s->toChars());
+        else
+            error("undefined identifier '%s'", ident->toChars());
         return new ErrorExp();
     }
     else if (t1b->ty == Tpointer &&
@@ -7291,7 +7296,6 @@ Lshift:
 
 Expression *CallExp::semantic(Scope *sc)
 {
-    TypeFunction *tf;
     Type *t1;
     int istemp;
     Objects *targsi = NULL;     // initial list of template arguments
@@ -7873,38 +7877,18 @@ Lagain:
     }
     else if (t1->ty != Tfunction)
     {
+        TypeFunction *tf;
+        const char *p;
         if (t1->ty == Tdelegate)
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
-            if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
-            {
-                if (sc->func->setImpure())
-                    error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
-            }
-            if (sc->func && tf->trust <= TRUSTsystem)
-            {
-                if (sc->func->setUnsafe())
-                    error("safe function '%s' cannot call system delegate '%s'", sc->func->toChars(), e1->toChars());
-            }
-            goto Lcheckargs;
+            p = "delegate";
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
-            Expression *e = new PtrExp(loc, e1);
-            t1 = ((TypePointer *)t1)->next;
-            if (sc->func && !((TypeFunction *)t1)->purity && !(sc->flags & SCOPEdebug))
-            {
-                if (sc->func->setImpure())
-                    error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
-            }
-            if (sc->func && ((TypeFunction *)t1)->trust <= TRUSTsystem)
-            {
-                if (sc->func->setUnsafe())
-                    error("safe function '%s' cannot call system function pointer '%s'", sc->func->toChars(), e1->toChars());
-            }
-            e->type = t1;
-            e1 = e;
+            tf = (TypeFunction *)(((TypePointer *)t1)->next);
+            p = "function pointer";
         }
         else if (e1->op == TOKtemplate)
         {
@@ -7931,6 +7915,50 @@ Lagain:
         {   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
             return new ErrorExp();
         }
+
+        if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
+        {
+            if (sc->func->setImpure())
+                error("pure function '%s' cannot call impure %s '%s'", sc->func->toChars(), p, e1->toChars());
+        }
+        if (sc->func && tf->trust <= TRUSTsystem)
+        {
+            if (sc->func->setUnsafe())
+                error("safe function '%s' cannot call system %s '%s'", sc->func->toChars(), p, e1->toChars());
+        }
+
+        if (!tf->callMatch(NULL, arguments))
+        {
+            OutBuffer buf;
+
+            buf.writeByte('(');
+            if (arguments)
+            {
+                HdrGenState hgs;
+
+                argExpTypesToCBuffer(&buf, arguments, &hgs);
+                buf.writeByte(')');
+                if (ethis)
+                    ethis->type->modToBuffer(&buf);
+            }
+            else
+                buf.writeByte(')');
+
+            //printf("tf = %s, args = %s\n", tf->deco, arguments->tdata()[0]->type->deco);
+            ::error(loc, "%s %s %s is not callable using argument types %s",
+                p, e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                buf.toChars());
+
+            return new ErrorExp();
+        }
+
+        if (t1->ty == Tpointer)
+        {
+            Expression *e = new PtrExp(loc, e1);
+            e->type = tf;
+            e1 = e;
+        }
+        t1 = tf;
     }
     else if (e1->op == TOKvar)
     {
@@ -7968,10 +7996,7 @@ Lagain:
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
-    tf = (TypeFunction *)(t1);
-
-Lcheckargs:
-    assert(tf->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)(t1);
 
     if (!arguments)
         arguments = new Expressions();
@@ -8172,6 +8197,16 @@ Expression *AddrExp::semantic(Scope *sc)
                     f->tookAddressOf++;
                 if (f->isNested())
                 {
+                    if (f->isFuncLiteralDeclaration())
+                    {
+                        if (!f->FuncDeclaration::isNested())
+                        {   /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            Expression *e = new DelegateExp(loc, new NullExp(loc, Type::tnull), f, ve->hasOverloads);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                    }
                     Expression *e = new DelegateExp(loc, e1, f, ve->hasOverloads);
                     e = e->semantic(sc);
                     return e;
@@ -9996,7 +10031,8 @@ Ltupleassign:
             TypeTuple *tt = (TypeTuple *)e1->type;
 
             Identifier *id = Lexer::uniqueId("__tup");
-            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, new ExpInitializer(e2->loc, e2));
+            ExpInitializer *ei = new ExpInitializer(e2->loc, e2);
+            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, ei);
             v->storage_class = STCctfe | STCref | STCforeach;
             Expression *ve = new VarExp(e2->loc, v);
             ve->type = e2->type;

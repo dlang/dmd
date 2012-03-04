@@ -4695,6 +4695,44 @@ mixin template ProxyOf(alias a)
 }
 
 /***************************************************/
+// 7583
+
+template Tup7583(E...) { alias E Tup7583; }
+
+struct S7583
+{
+    Tup7583!(float, char) field;
+    alias field this;
+    this(int x) {    }
+}
+
+int bug7583() {
+    S7583[] arr;
+    arr ~= S7583(0);
+    return 1;
+}
+
+static assert (bug7583());
+
+/***************************************************/
+// 7618
+
+void test7618(const int x = 1)
+{
+    int func(ref int x) { return 1; }
+    static assert(!__traits(compiles, func(x)));
+    // Error: function test.foo.func (ref int _param_0) is not callable using argument types (const(int))
+
+    int delegate(ref int) dg = (ref int x) => 1;
+    static assert(!__traits(compiles, dg(x)));
+    // --> no error, bad!
+
+    int function(ref int) fp = (ref int x) => 1;
+    static assert(!__traits(compiles, fp(x)));
+    // --> no error, bad!
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4914,6 +4952,7 @@ int main()
     test7196();
     test7285();
     test7321();
+    test7618();
 
     printf("Success\n");
     return 0;

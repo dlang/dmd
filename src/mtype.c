@@ -4529,8 +4529,12 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
         ident != Id::stringof &&
         ident != Id::offsetof)
     {
-        e->type = getImpl()->type;
-        e = e->type->dotExp(sc, e, ident);
+//printf("test1: %s, %s\n", e->toChars(), e->type->toChars());
+        Type *t = getImpl()->type;
+//printf("test2: %s, %s\n", e->toChars(), e->type->toChars());
+        e->type = t;
+        e = t->dotExp(sc, e, ident);
+//printf("test3: %s, %s\n", e->toChars(), e->type->toChars());
     }
     else
         e = Type::dotExp(sc, e, ident);
@@ -5445,10 +5449,22 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             if (fparam->defaultArg)
-            {
-                fparam->defaultArg = fparam->defaultArg->semantic(argsc);
-                fparam->defaultArg = resolveProperties(argsc, fparam->defaultArg);
-                fparam->defaultArg = fparam->defaultArg->implicitCastTo(argsc, fparam->type);
+            {   Expression *e = fparam->defaultArg;
+                e = e->semantic(argsc);
+                e = resolveProperties(argsc, e);
+                if (e->op == TOKfunction)               // see Bugzilla 4820
+                {   FuncExp *fe = (FuncExp *)e;
+                    if (fe->fd)
+                    {   // Replace function literal with a function symbol,
+                        // since default arg expression must be copied when used
+                        // and copying the literal itself is wrong.
+                        e = new VarExp(e->loc, fe->fd, 0);
+                        e = new AddrExp(e->loc, e);
+                        e = e->semantic(argsc);
+                    }
+                }
+                e = e->implicitCastTo(argsc, fparam->type);
+                fparam->defaultArg = e;
             }
 
             /* If fparam after semantic() turns out to be a tuple, the number of parameters may
@@ -6254,7 +6270,19 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 else
                 {
                   Lerror:
-                    error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                    if (id->dyncast() == DYNCAST_DSYMBOL)
+                    {   // searchX already handles errors for template instances
+                        assert(global.errors);
+                    }
+                    else
+                    {
+                        sm = s->search_correct(id);
+                        if (sm)
+                            error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
+                                  id->toChars(), toChars(), sm->kind(), sm->toChars());
+                        else
+                            error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
+                    }
                     *pe = new ErrorExp();
                 }
                 return;
