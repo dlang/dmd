@@ -1233,9 +1233,6 @@ Lnomatch:
         StructInitializer *si = init->isStructInitializer();
         ExpInitializer *ei = init->isExpInitializer();
 
-        if (ei && !inferred)
-            ei->exp = ei->exp->inferType(type);
-
         if (ei && isScope())
         {
             // See if initializer is a NewExp that can be allocated on the stack
@@ -1284,6 +1281,8 @@ Lnomatch:
                 Expression *e1 = new VarExp(loc, this);
 
                 Type *t = type->toBasetype();
+                if (ei && !inferred)
+                    ei->exp = ei->exp->inferType(t);
 
             Linit2:
                 if (t->ty == Tsarray && !(storage_class & (STCref | STCout)))
