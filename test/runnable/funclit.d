@@ -377,6 +377,23 @@ void test7202()
 }
 
 /***************************************************/
+// 7288
+
+void test7288()
+{
+    // 7288 -> OK
+    auto foo()
+    {
+        int x;
+        return () => { return x; };
+    }
+    pragma(msg, typeof(&foo));
+    alias int delegate() nothrow @safe delegate() nothrow @safe delegate() Dg;
+    pragma(msg, Dg);
+    static assert(is(typeof(&foo) == Dg));  // should pass
+}
+
+/***************************************************/
 // 7499
 
 void test7499()
@@ -450,6 +467,7 @@ int main()
     test6714();
     test7193();
     test7202();
+    test7288();
     test7499();
     test7500();
     test7525();
