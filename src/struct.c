@@ -377,14 +377,6 @@ void StructDeclaration::semantic(Scope *sc)
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
         error("structs, unions cannot be abstract");
-#if DMDV2
-    if (storage_class & STCimmutable)
-        type = type->addMod(MODimmutable);
-    if (storage_class & STCconst)
-        type = type->addMod(MODconst);
-    if (storage_class & STCshared)
-        type = type->addMod(MODshared);
-#endif
 
     if (sizeok == 0)            // if not already done the addMember step
     {

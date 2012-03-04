@@ -3604,10 +3604,10 @@ shared class Bug5504b
 
 void test5504()
 {
-    Bug5504 c;
+    immutable Bug5504 c;
     c.foo(10);
     c.xx!(int).hoo(10);
-    Bug5504b d;
+    shared Bug5504b d;
     d.foo(10);
     d.xx!(int).hoo(10);
 }
@@ -3616,7 +3616,7 @@ void test5504()
 
 void bug5105() // compilation test -- don't need to run
 {
-    auto c = new C5105;
+    auto c = new shared(C5105);
     c.foo(10);
 }
 

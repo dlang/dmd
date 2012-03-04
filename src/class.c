@@ -590,13 +590,6 @@ void ClassDeclaration::semantic(Scope *sc)
     if (storage_class & STCabstract)
         isabstract = 1;
 
-    if (storage_class & STCimmutable)
-        type = type->addMod(MODimmutable);
-    if (storage_class & STCconst)
-        type = type->addMod(MODconst);
-    if (storage_class & STCshared)
-        type = type->addMod(MODshared);
-
     sc = sc->push(this);
     //sc->stc &= ~(STCfinal | STCauto | STCscope | STCstatic | STCabstract | STCdeprecated | STC_TYPECTOR | STCtls | STCgshared);
     //sc->stc |= storage_class & STC_TYPECTOR;
