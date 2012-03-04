@@ -2493,10 +2493,11 @@ void test129()
 
 const shared class C5107
 {
+    int x;
 }
 
-static assert(is(C5107 ==  const)); // okay
-static assert(is(C5107 == shared)); // fails!
+static assert(is(typeof(C5107.x) ==  const)); // okay
+static assert(is(typeof(C5107.x) == shared)); // fails!
 
 /***************************************************/
 

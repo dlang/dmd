@@ -2446,6 +2446,28 @@ void test6940()
 }
 
 /************************************/
+// 7038
+
+static assert(!is(S7038 == const));
+const struct S7038{ int x; }
+static assert(!is(S7038 == const));
+
+static assert(!is(C7038 == const));
+const class C7038{ int x; }
+static assert(!is(C7038 == const));
+
+void test7038()
+{
+    S7038 s;
+    static assert(!is(typeof(s) == const));
+    static assert(is(typeof(s.x) == const int));
+
+    C7038 c;
+    static assert(!is(typeof(c) == const));
+    static assert(is(typeof(c.x) == const int));
+}
+
+/************************************/
 // 7105
 
 void copy(inout(int)** tgt, inout(int)* src){ *tgt = src; }
@@ -2632,6 +2654,7 @@ int main()
     test6912();
     test6939();
     test6940();
+    test7038();
     test7105();
     test7202();
     test7554();
