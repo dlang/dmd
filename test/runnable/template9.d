@@ -1008,6 +1008,15 @@ void test7580()
 }
 
 /**********************************/
+// 7643
+
+template T7643(A...){ alias A T7643; }
+
+alias T7643!(long, "x", string, "y") Specs7643;
+
+alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
+
+/**********************************/
 
 int main()
 {
