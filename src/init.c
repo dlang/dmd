@@ -854,12 +854,6 @@ L1:
 Type *ExpInitializer::inferType(Scope *sc)
 {
     //printf("ExpInitializer::inferType() %s\n", toChars());
-    if (exp->op == TOKfunction && ((FuncExp *)exp)->td)
-    {
-        exp->error("cannot infer type from ambiguous function literal %s", exp->toChars());
-        return Type::terror;
-    }
-
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
 

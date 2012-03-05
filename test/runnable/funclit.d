@@ -281,6 +281,51 @@ void test8()
 }
 
 /***************************************************/
+// on concat operation
+
+void test9()
+{
+    int function(int)[] a2;
+    a2 ~= x => x;
+}
+
+/***************************************************/
+// on associative array key
+
+void test10()
+{
+    int[int function()] aa;
+    assert(!aa.remove(() => 1));
+
+    int[int function(int)] aa2;
+    assert(!aa2.remove(x => 1));
+}
+
+/***************************************************/
+// on common type deduction
+
+void test11()
+{
+    auto a1 = [x => x, (int x) => x * 2];
+    static assert(is(typeof(a1[0]) == int function(int) pure @safe nothrow));
+    assert(a1[0](10) == 10);
+    assert(a1[1](10) == 20);
+
+    //int n = 10;
+    //auto a2 = [x => n, (int x) => x * 2];
+    //static assert(is(typeof(a2[0]) == int delegate(int) @safe nothrow));
+    //assert(a2[0](99) == 10);
+    //assert(a2[1](10) == 20);
+
+    int function(int) fp = true ? (x => x) : (x => x*2);
+    assert(fp(10) == 10);
+
+    int m = 10;
+    int delegate(int) dg = true ? (x => x) : (x => m*2);
+    assert(dg(10) == 10);
+}
+
+/***************************************************/
 // 3235
 
 void test3235()
@@ -332,6 +377,34 @@ void test7202()
 }
 
 /***************************************************/
+// 7288
+
+void test7288()
+{
+    // 7288 -> OK
+    auto foo()
+    {
+        int x;
+        return () => { return x; };
+    }
+    pragma(msg, typeof(&foo));
+    alias int delegate() nothrow @safe delegate() nothrow @safe delegate() Dg;
+    pragma(msg, Dg);
+    static assert(is(typeof(&foo) == Dg));  // should pass
+}
+
+/***************************************************/
+// 7499
+
+void test7499()
+{
+    int function(int)[]   a1 = [ x => x ];  // 7499
+    int function(int)[][] a2 = [[x => x]];  // +a
+    assert(a1[0]   (10) == 10);
+    assert(a2[0][0](10) == 10);
+}
+
+/***************************************************/
 // 7500
 
 void test7500()
@@ -375,6 +448,45 @@ void test7582()
 }
 
 /***************************************************/
+// 7649
+
+void test7649()
+{
+    void foo(int function(int) fp = x => 1)
+    {
+        assert(fp(1) == 1);
+    }
+    foo();
+}
+
+/***************************************************/
+// 7650
+
+void test7650()
+{
+    int[int function(int)] aa1 = [x=>x:1, x=>x*2:2];
+    foreach (k, v; aa1) {
+        if (v == 1) assert(k(10) == 10);
+        if (v == 2) assert(k(10) == 20);
+    }
+
+    int function(int)[int] aa2 = [1:x=>x, 2:x=>x*2];
+    assert(aa2[1](10) == 10);
+    assert(aa2[2](10) == 20);
+
+    int n = 10;
+    int[int delegate(int)] aa3 = [x=>n+x:1, x=>n+x*2:2];
+    foreach (k, v; aa3) {
+        if (v == 1) assert(k(10) == 20);
+        if (v == 2) assert(k(10) == 30);
+    }
+
+    int delegate(int)[int] aa4 = [1:x=>n+x, 2:x=>n+x*2];
+    assert(aa4[1](10) == 20);
+    assert(aa4[2](10) == 30);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -387,13 +499,20 @@ int main()
     test6();
     test7();
     test8();
+    test9();
+    test10();
+    test11();
     test3235();
     test6714();
     test7193();
     test7202();
+    test7288();
+    test7499();
     test7500();
     test7525();
     test7582();
+    test7649();
+    test7650();
 
     printf("Success\n");
     return 0;

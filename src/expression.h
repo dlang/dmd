@@ -135,6 +135,7 @@ struct Expression : Object
     virtual MATCH implicitConvTo(Type *t);
     virtual IntRange getIntRange();
     virtual Expression *castTo(Scope *sc, Type *t);
+    virtual Expression *inferType(Type *t, int flag = 0);
     virtual void checkEscape();
     virtual void checkEscapeRef();
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
@@ -438,6 +439,7 @@ struct ArrayLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    Expression *inferType(Type *t, int flag = 0);
     dt_t **toDt(dt_t **pdt);
 
     Expression *doInline(InlineDoState *ids);
@@ -463,6 +465,7 @@ struct AssocArrayLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    Expression *inferType(Type *t, int flag = 0);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -655,18 +658,17 @@ struct FuncExp : Expression
     FuncLiteralDeclaration *fd;
     TemplateDeclaration *td;
     enum TOK tok;
-    Type *tded;
-    Scope *scope;
+    Type *treq;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    Expression *inferType(Scope *sc, Type *t);
-    void setType(Type *t);
+    Expression *inferType(Type *t, int flag = 0);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
@@ -787,6 +789,7 @@ struct BinExp : Expression
     int isunsigned();
     Expression *incompatibleTypes();
     void dump(int indent);
+
     Expression *interpretCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *));
     Expression *interpretCommon2(InterState *istate, CtfeGoal goal,
@@ -1591,7 +1594,7 @@ struct EqualExp : BinExp
     elem *toElem(IRState *irs);
 };
 
-// === and !===
+// is and !is
 
 struct IdentityExp : BinExp
 {
@@ -1624,6 +1627,7 @@ struct CondExp : BinExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    Expression *inferType(Type *t, int flag = 0);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
