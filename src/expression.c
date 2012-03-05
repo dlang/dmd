@@ -7833,42 +7833,75 @@ Lagain:
     }
     else if (e1->op == TOKoverloadset)
     {
-        OverExp *eo = (OverExp *)e1;
-        FuncDeclaration *f = NULL;
-        Dsymbol *s = NULL;
-        for (size_t i = 0; i < eo->vars->a.dim; i++)
-        {   s = eo->vars->a.tdata()[i];
-            FuncDeclaration *f2 = s->isFuncDeclaration();
-            if (f2)
+        struct ApplyArgs
+        {
+            static int dg(Dsymbol *s, void *param)
             {
-                f2 = f2->overloadResolve(loc, ethis, arguments, 1);
-            }
-            else
-            {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                assert(td);
-                f2 = td->deduceFunctionTemplate(sc, loc, targsi, ethis, arguments, 1);
-            }
-            if (f2)
-            {   if (f)
-                    /* Error if match in more than one overload set,
-                     * even if one is a 'better' match than the other.
-                     */
-                    ScopeDsymbol::multiplyDefined(loc, f, f2);
+                ApplyArgs *p = (ApplyArgs *)param;
+                FuncDeclaration *f2;
+                TemplateDeclaration *td;
+                if ((f2 = s->toAlias()->isFuncDeclaration()))
+                    f2 = f2->overloadResolve(p->loc, p->ethis, p->arguments, 1);
+                else if ((td = s->toAlias()->isTemplateDeclaration()))
+                    f2 = td->deduceFunctionTemplate(p->sc, p->loc, p->targsi, p->ethis, p->arguments, 1);
                 else
-                    f = f2;
+                    assert(0);
+                if (f2)
+                {   if (p->f)
+                    {
+                        /* Error if match in more than one overload set,
+                         * even if one is a 'better' match than the other
+                         * or an alias to the same function.
+                         */
+                        ScopeDsymbol::multiplyDefined(p->loc, p->f, f2);
+                        return 1;
+                    }
+                    else
+                    {
+                        p->f = f2;
+                        p->s = s;
+                    }
+                }
+                else if (!p->s)
+                {   // always set symbol for no match error message
+                    p->s = s;
+                }
+                return 0;
             }
-        }
-        if (!f)
-        {   /* No overload matches
-             */
-            error("no overload matches for %s", s->toChars());
+
+            Scope *sc;
+            Loc loc;
+            Objects *targsi;
+            Expression *ethis;
+            Expressions *arguments;
+            // apply results
+            FuncDeclaration *f;
+            Dsymbol *s;
+        };
+
+        OverExp *eo = (OverExp *)e1;
+        ApplyArgs args = { sc, loc, targsi, ethis, arguments, NULL, NULL };
+        if (eo->vars->apply(&ApplyArgs::dg, &args))
+        {   // multiply defined
             return new ErrorExp();
         }
-        if (ethis)
-            e1 = new DotVarExp(loc, ethis, f);
+        else if (!args.f)
+        {   // No overload matches
+            error("no overload matches for %s", args.s->toChars());
+            return new ErrorExp();
+        }
         else
-            e1 = new VarExp(loc, f);
-        goto Lagain;
+        {   // s can be an alias so check for deprecation and access
+            args.s->checkDeprecated(loc, sc);
+            Declaration *d = args.s->isDeclaration();
+            if (d)
+                accessCheck(loc, sc, NULL, d);
+            if (ethis)
+                e1 = new DotVarExp(loc, ethis, args.f);
+            else
+                e1 = new VarExp(loc, args.f);
+            goto Lagain;
+        }
     }
     else if (!t1)
     {
