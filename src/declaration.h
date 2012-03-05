@@ -603,6 +603,7 @@ struct FuncDeclaration : Declaration
     VarDeclarations closureVars;        // local variables in this function
                                         // which are referenced by nested
                                         // functions
+    FuncDeclarations deferred;          // toObjFile() these functions after this one
 
     unsigned flags;
     #define FUNCFLAGpurityInprocess 1   // working on determining purity

@@ -3428,7 +3428,9 @@ elem *DelegateExp::toElem(IRState *irs)
     //printf("DelegateExp::toElem() '%s'\n", toChars());
 
     if (func->semanticRun == PASSsemantic3done)
+    {
         irs->deferToObj->push(func);
+    }
 
     sfunc = func->toSymbol();
     if (func->isNested())
