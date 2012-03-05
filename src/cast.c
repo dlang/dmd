@@ -1583,6 +1583,26 @@ Expression *ArrayLiteralExp::inferType(Type *t, int flag)
 
 Expression *AssocArrayLiteralExp::inferType(Type *t, int flag)
 {
+    t = t->toBasetype();
+    if (t->ty == Taarray)
+    {	TypeAArray *taa = (TypeAArray *)t;
+        Type *ti = taa->index;
+        Type *tv = taa->nextOf();
+        for (size_t i = 0; i < keys->dim; i++)
+        {   Expression *e = (*keys)[i];
+            if (e)
+            {   e = e->inferType(ti, flag);
+                (*keys)[i] = e;
+            }
+        }
+        for (size_t i = 0; i < values->dim; i++)
+        {   Expression *e = (*values)[i];
+            if (e)
+            {   e = e->inferType(tv, flag);
+                (*values)[i] = e;
+            }
+        }
+    }
     return this;
 }
 

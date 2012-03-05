@@ -460,6 +460,33 @@ void test7649()
 }
 
 /***************************************************/
+// 7650
+
+void test7650()
+{
+    int[int function(int)] aa1 = [x=>x:1, x=>x*2:2];
+    foreach (k, v; aa1) {
+        if (v == 1) assert(k(10) == 10);
+        if (v == 2) assert(k(10) == 20);
+    }
+
+    int function(int)[int] aa2 = [1:x=>x, 2:x=>x*2];
+    assert(aa2[1](10) == 10);
+    assert(aa2[2](10) == 20);
+
+    int n = 10;
+    int[int delegate(int)] aa3 = [x=>n+x:1, x=>n+x*2:2];
+    foreach (k, v; aa3) {
+        if (v == 1) assert(k(10) == 20);
+        if (v == 2) assert(k(10) == 30);
+    }
+
+    int delegate(int)[int] aa4 = [1:x=>n+x, 2:x=>n+x*2];
+    assert(aa4[1](10) == 20);
+    assert(aa4[2](10) == 30);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -485,6 +512,7 @@ int main()
     test7525();
     test7582();
     test7649();
+    test7650();
 
     printf("Success\n");
     return 0;
