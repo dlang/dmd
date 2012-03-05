@@ -1679,37 +1679,9 @@ struct TickDuration
 
 
     /++
-       operator overloading "=="
-      +/
-    bool opEquals(const TickDuration rhs) @safe const pure nothrow
-    {
-        return opEquals(rhs);
-    }
-
-    /// ditto
-    bool opEquals(ref const TickDuration rhs) @safe const pure nothrow
-    {
-        return length == rhs.length;
-    }
-
-    unittest
-    {
-        foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
-        {
-            foreach(U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
-            {
-                T t = TickDuration.currSystemTick;
-                U u = t;
-                assert(t == u);
-            }
-        }
-    }
-
-
-    /++
        operator overloading "<, >, <=, >="
       +/
-    int opCmp(ref const TickDuration rhs) @safe const pure nothrow
+    int opCmp(TickDuration rhs) @safe const pure nothrow
     {
         return length < rhs.length ? -1 : (length == rhs.length ? 0 : 1);
     }
