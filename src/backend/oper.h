@@ -45,9 +45,9 @@ enum OPER
         OPaddr,                 /* &E                           */
         OPneg,                  /* unary -                      */
         OPuadd,                 /* unary +                      */
-#if TX86
         OPvoid,                 // where casting to void is not a no-op
         OPabs,                  /* absolute value               */
+#if TX86
         OPsqrt,                 /* square root                  */
         OPrndtol,               // round to short, long, long long (inline 8087 only)
         OPsin,                  // sine
@@ -56,6 +56,7 @@ enum OPER
         OPscale,                // ldexp
         OPyl2x,                 // y * log2(x)
         OPyl2xp1,               // y * log2(x + 1)
+#endif
         OPstrlen,               /* strlen()                     */
         OPstrcpy,               /* strcpy()                     */
         OPstrcat,               /* strcat()                     */
@@ -64,11 +65,9 @@ enum OPER
         OPmemcmp,
         OPmemset,
         OPsetjmp,               // setjmp()
-#endif
 
         OPremquo,               // / and % in one operation
 
-#if TX86
         OPbsf,                  // bit scan forward
         OPbsr,                  // bit scan reverse
         OPbt,                   // bit test
@@ -78,7 +77,6 @@ enum OPER
         OPbswap,                // swap bytes
         OProl,                  // rotate left
         OPror,                  // rotate right
-#endif
 
         OPstreq,                /* structure assignment         */
 
