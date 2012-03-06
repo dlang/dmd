@@ -15,8 +15,11 @@ module rt.memory_osx;
 
 version(OSX):
 
+//import core.stdc.stdio;   // printf
 import src.core.sys.osx.mach.dyld;
 import src.core.sys.osx.mach.getsect;
+
+extern (C) extern __gshared ModuleInfo*[] _moduleinfo_array;
 
 extern (C) void gc_addRange( void* p, size_t sz );
 extern (C) void gc_removeRange( void* p );
@@ -77,16 +80,27 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
 
 extern (C) void onAddImage(in mach_header* h, intptr_t slide)
 {
+    //printf("onAddImage()\n");
     foreach(i, e; dataSegs)
     {
         if (auto sect = getSection(h, slide, e.seg.ptr, e.sect.ptr))
             gc_addRange(sect.ptr, sect.length);
+    }
+
+    if (auto sect = getSection(h, slide, "__DATA", "__minfodata"))
+    {
+        //printf("  minfodata\n");
+        /* BUG: this will fail if there are multiple images with __minfodata
+         * sections. Not set up to handle that.
+         */
+        _moduleinfo_array = (cast(ModuleInfo**)sect.ptr)[0 .. sect.length / _moduleinfo_array[0].sizeof];
     }
 }
 
 
 extern (C) void onRemoveImage(in mach_header* h, intptr_t slide)
 {
+    //printf("onRemoveImage()\n");
     foreach(i, e; dataSegs)
     {
         if (auto sect = getSection(h, slide, e.seg.ptr, e.sect.ptr))
@@ -97,6 +111,7 @@ extern (C) void onRemoveImage(in mach_header* h, intptr_t slide)
 
 extern (C) void _d_osx_image_init()
 {
+    //printf("_d_osx_image_init()\n");
     _dyld_register_func_for_add_image( &onAddImage );
     _dyld_register_func_for_remove_image( &onRemoveImage );
 }

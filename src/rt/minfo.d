@@ -13,6 +13,7 @@
  */
 module rt.minfo;
 
+import core.stdc.stdio;   // printf
 import core.stdc.stdlib;  // alloca
 import core.stdc.string;  // memcpy
 import rt.util.console;   // console
@@ -163,6 +164,28 @@ body
 
     version (OSX)
     {
+        // set by src.rt.memory_osx.onAddImage()
+        result = _moduleinfo_array;
+
+        // But we need to throw out any null pointers
+        auto p = _moduleinfo_array.ptr;
+        auto pend = _moduleinfo_array.ptr + _moduleinfo_array.length;
+
+        // count non-null pointers
+        size_t cnt;
+        for (; p < pend; ++p)
+            if (*p !is null) ++cnt;
+
+        result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
+
+        p = _moduleinfo_array.ptr;
+        cnt = 0;
+        for (; p < pend; ++p)
+            if (*p !is null) result[cnt++] = *p;
+    }
+    else version (none)
+    {
+        //printf("getModuleInfos()\n");
         /* The ModuleInfo references are stored in the special segment
          * __minfodata, which is bracketed by the segments __minfo_beg
          * and __minfo_end. The variables _minfo_beg and _minfo_end
