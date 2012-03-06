@@ -307,7 +307,7 @@ void Lexer::error(const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    verror(loc, format, ap);
+    verror(tokenLoc(), format, ap);
     va_end(ap);
 }
 
@@ -2870,6 +2870,38 @@ unsigned char *Lexer::combineComments(unsigned char *c1, unsigned char *c2)
         }
     }
     return c;
+}
+
+/*******************************************
+ * Search actual location of current token
+ * even when infinite look-ahead was done.
+ */
+Loc Lexer::tokenLoc()
+{
+    Loc result = this->loc;
+    Token* last = &token;
+    while (last->next)
+        last = last->next;
+
+    unsigned char* start = token.ptr;
+    unsigned char* stop = last->ptr;
+
+    for (unsigned char* p = start; p < stop; ++p)
+    {
+        switch (*p)
+        {
+            case '\n':
+                result.linnum--;
+                break;
+            case '\r':
+                if (p[1] != '\n')
+                    result.linnum--;
+                break;
+            default:
+                break;
+        }
+    }
+    return result;
 }
 
 /********************************************
