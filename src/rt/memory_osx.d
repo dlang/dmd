@@ -1,16 +1,15 @@
 /**
+ * Written in the D programming language.
  * This module provides OSX-specific support routines for memory.d.
  *
- * Copyright: Copyright Digital Mars 2008 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 2008 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE_1_0.txt)
  * Authors:   Walter Bright, Sean Kelly
+ * Source: $(DRUNTIMESRC src/rt/_memory_osx.d)
  */
 
-/*          Copyright Digital Mars 2008 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.memory_osx;
 
 version(OSX):
@@ -20,6 +19,7 @@ import src.core.sys.osx.mach.dyld;
 import src.core.sys.osx.mach.getsect;
 
 extern (C) extern __gshared ModuleInfo*[] _moduleinfo_array;
+extern (C) extern __gshared ubyte[] _deh_eh_array;
 
 extern (C) void gc_addRange( void* p, size_t sz );
 extern (C) void gc_removeRange( void* p );
@@ -94,6 +94,15 @@ extern (C) void onAddImage(in mach_header* h, intptr_t slide)
          * sections. Not set up to handle that.
          */
         _moduleinfo_array = (cast(ModuleInfo**)sect.ptr)[0 .. sect.length / _moduleinfo_array[0].sizeof];
+    }
+
+    if (auto sect = getSection(h, slide, "__DATA", "__deh_eh"))
+    {
+        //printf("  deh_eh\n");
+        /* BUG: this will fail if there are multiple images with __deh_eh
+         * sections. Not set up to handle that.
+         */
+        _deh_eh_array = sect.ptr[0 .. sect.length];
     }
 }
 

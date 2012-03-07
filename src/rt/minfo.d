@@ -1,16 +1,15 @@
 /**
+ * Written in the D programming language.
  * Module initialization routines.
  *
- * Copyright: Copyright Digital Mars 2000 - 2011.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 2000 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE_1_0.txt)
  * Authors:   Walter Bright, Sean Kelly
+ * Source: $(DRUNTIMESRC src/rt/_minfo.d)
  */
 
-/*          Copyright Digital Mars 2000 - 2011.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.minfo;
 
 import core.stdc.stdio;   // printf
@@ -131,7 +130,7 @@ extern (C) void rt_moduleDtor()
  * Access compiler generated list of modules.
  */
 
-version (OSX)
+version (none)
 {
     extern (C)
     {

@@ -1,16 +1,15 @@
 /**
+ * Written in the D programming language.
  * Implementation of exception handling support routines for Posix.
  *
- * Copyright: Copyright Digital Mars 2000 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Walter Bright
+ * Copyright: Copyright Digital Mars 2000 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE_1_0.txt)
+ * Authors:   Walter Bright, Sean Kelly
+ * Source: $(DRUNTIMESRC src/rt/_deh2.d)
  */
 
-/*          Copyright Digital Mars 2000 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.deh2;
 
 //debug=1;
@@ -18,10 +17,21 @@ debug import core.stdc.stdio : printf;
 
 extern (C)
 {
-    extern __gshared
+    version (OSX)
     {
-        void* _deh_beg;
-        void* _deh_end;
+        // Set by rt.memory_osx.onAddImage()
+        __gshared ubyte[] _deh_eh_array;
+    }
+    else
+    {
+        extern __gshared
+        {
+            /* Symbols created by the compiler and inserted into the object file
+             * that 'bracket' the __deh_eh segment
+             */
+            void* _deh_beg;
+            void* _deh_end;
+        }
     }
 
     Throwable.TraceInfo _d_traceContext(void* ptr = null);
@@ -109,10 +119,19 @@ DHandlerTable *__eh_finddata(void *address)
 {
     debug printf("FuncTable.sizeof = %p\n", FuncTable.sizeof);
     debug printf("__eh_finddata(address = %p)\n", address);
-    debug printf("_deh_beg = %p, _deh_end = %p\n", &_deh_beg, &_deh_end);
-    for (auto ft = cast(FuncTable *)&_deh_beg;
-         ft < cast(FuncTable *)&_deh_end;
-         ft++)
+
+    version (OSX)
+    {
+        auto pstart = cast(FuncTable *)_deh_eh_array.ptr;
+        auto pend   = cast(FuncTable *)&_deh_eh_array[length];
+    }
+    else
+    {
+        auto pstart = cast(FuncTable *)&_deh_beg;
+        auto pend   = cast(FuncTable *)&_deh_end;
+    }
+    debug printf("_deh_beg = %p, _deh_end = %p\n", pstart, pend);
+    for (auto ft = pstart; ft < pend; ft++)
     {
       debug printf("\tft = %p, fptr = %p, fsize = x%03x, handlertable = %p\n",
               ft, ft.fptr, ft.fsize, ft.handlertable);
