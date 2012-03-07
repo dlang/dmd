@@ -1600,9 +1600,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
     int align = I64 ? 3 : 2;            // align to NPTRSIZE
     // The size is sizeof(struct FuncTable) in deh2.d
-    mach_getsegment("__deh_beg", "__DATA", align, S_COALESCED, 3 * NPTRSIZE);
     int seg = mach_getsegment("__deh_eh", "__DATA", align, S_REGULAR);
-    mach_getsegment("__deh_end", "__DATA", align, S_COALESCED, NPTRSIZE);
 
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (I64)
@@ -2703,8 +2701,6 @@ void obj_moduleinfo(Symbol *scc)
 {
     int align = I64 ? 4 : 2;
 
-    mach_getsegment("__minfo_beg", "__DATA", align, S_COALESCED, 4);
-
     int seg = mach_getsegment("__minfodata", "__DATA", align, S_REGULAR);
     //printf("obj_moduleinfo(%s) seg = %d:x%x\n", scc->Sident, seg, Offset(seg));
 
@@ -2722,8 +2718,6 @@ void obj_moduleinfo(Symbol *scc)
     if (I64)
         flags |= CFoffset64;
     SegData[seg]->SDoffset += reftoident(seg, Offset(seg), scc, 0, flags);
-
-    mach_getsegment("__minfo_end", "__DATA", align, S_COALESCED, 4);
 }
 
 #endif
