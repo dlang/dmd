@@ -9621,6 +9621,7 @@ Expression *AssignExp::semantic(Scope *sc)
         Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
+        ae->e1 = resolveProperties(sc, ae->e1);
         Type *t1 = ae->e1->type->toBasetype();
         if (t1->ty == Tstruct)
         {
