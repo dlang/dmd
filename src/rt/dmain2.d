@@ -98,6 +98,8 @@ version (OSX)
 {
     // The bottom of the stack
     extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
+
+    extern (C) extern (C) void _d_osx_image_init2();
 }
 
 /***********************************
@@ -348,6 +350,8 @@ extern (C) int main(int argc, char** argv)
          * of the main thread's stack, so save the address of that.
          */
         __osx_stack_end = cast(void*)&argv;
+
+        _d_osx_image_init2();
     }
 
     version (FreeBSD) version (D_InlineAsm_X86)
@@ -375,7 +379,7 @@ extern (C) int main(int argc, char** argv)
     version (Windows)
     {
         wchar_t*  wcbuf = GetCommandLineW();
-        size_t 	  wclen = wcslen(wcbuf);
+        size_t    wclen = wcslen(wcbuf);
         int       wargc = 0;
         wchar_t** wargs = CommandLineToArgvW(wcbuf, &wargc);
         assert(wargc == argc);

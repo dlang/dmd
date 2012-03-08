@@ -18,6 +18,7 @@ module core.thread;
 
 public import core.time; // for Duration
 
+//import core.stdc.stdio;
 
 // this should be true for most architectures
 version = StackGrowsDown;
@@ -282,6 +283,13 @@ else version( Posix )
             {
                 extern (C)
                 {
+                    __gshared void[][2] _tls_data_array;
+                }
+            }
+            else version(none)
+            {
+                extern (C)
+                {
                     extern __gshared
                     {
                         void* _tls_beg;
@@ -355,7 +363,21 @@ else version( Posix )
                 obj.m_main.bstack = &obj;
             obj.m_main.tstack = obj.m_main.bstack;
 
-            version( OSX )
+            version (OSX)
+            {
+                // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+                //       data output by the compiler is bracketed by _tls_data_array[2],
+                //       so make a copy of it for each thread.
+                const sz0 = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
+                const sz2 = sz0 + _tls_data_array[1].length;
+                auto p = malloc( sz2 );
+                assert( p );
+                obj.m_tls = p[0 .. sz2];
+                memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
+                memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
+                scope (exit) { free( p ); obj.m_tls = null; }
+            }
+            else version (none)
             {
                 // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
                 //       data output by the compiler is bracketed by _tls_beg and
@@ -1354,7 +1376,23 @@ private:
         m_call = Call.NO;
         m_curr = &m_main;
 
-        version( OSX )
+        version (OSX)
+        {
+            //printf("test2 %p %p\n", _tls_data_array[0].ptr, &_tls_data_array[1][length]);
+            //printf("test2 %p %p\n", &_tls_beg, &_tls_end);
+            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+            //       data output by the compiler is bracketed by _tls_data_array2],
+            //       so make a copy of it for each thread.
+            const sz0 = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
+            const sz2 = sz0 + _tls_data_array[1].length;
+            auto p = malloc( sz2 );
+            assert( p );
+            m_tls = p[0 .. sz2];
+            memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
+            memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
+            // The free must happen at program end, if anywhere.
+        }
+        else version (none)
         {
             // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
             //       data output by the compiler is bracketed by _tls_beg and
@@ -1974,7 +2012,23 @@ extern (C) Thread thread_attachThis()
         assert( thisThread.m_tmach != thisThread.m_tmach.init );
     }
 
-    version( OSX )
+    version (OSX)
+    {
+        //printf("test3 %p %p\n", _tls_data_array[0].ptr, &_tls_data_array[1][length]);
+        //printf("test3 %p %p\n", &_tls_beg, &_tls_end);
+        // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+        //       data output by the compiler is bracketed by _tls_data_array[2],
+        //       so make a copy of it for each thread.
+        const sz0 = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
+        const sz2 = sz0 + _tls_data_array[1].length;
+        auto p = gc_malloc( sz2 );
+        assert( p );
+        thisThread.m_tls = p[0 .. sz2];
+        memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
+        memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
+        // used gc_malloc so no need to free
+    }
+    else version (none)
     {
         // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
         //       data output by the compiler is bracketed by _tls_beg and
@@ -2059,7 +2113,24 @@ version( Windows )
             assert( thisThread.m_tmach != thisThread.m_tmach.init );
         }
 
-        version( OSX )
+        version (OSX)
+        {
+            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
+            //       data output by the compiler is bracketed by _tls_data_array[2],
+            //       so make a copy of it for each thread.
+            const sz0 = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
+            const sz2 = sz0 + _tls_data_array[1].length;
+            auto p = gc_malloc( sz2 );
+            assert( p );
+            obj.m_tls = p[0 .. sz2];
+            memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
+            memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
+            // used gc_malloc so no need to free
+
+            if( t.m_addr == pthread_self() )
+                Thread.setThis( thisThread );
+        }
+        else version (none)
         {
             // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
             //       data output by the compiler is bracketed by _tls_beg and
@@ -4232,8 +4303,21 @@ version( OSX )
     {
         // NOTE: p is an address in the TLS static data emitted by the
         //       compiler.  If it isn't, something is disastrously wrong.
-        assert( p >= cast(void*) &_tls_beg && p < cast(void*) &_tls_end );
         auto obj = Thread.getThis();
-        return obj.m_tls.ptr + (p - cast(void*) &_tls_beg);
+
+        if (p >= _tls_data_array[0].ptr && p < &_tls_data_array[0][length])
+        {
+            return obj.m_tls.ptr + (p - _tls_data_array[0].ptr);
+        }
+        else if (p >= _tls_data_array[1].ptr && p < &_tls_data_array[1][length])
+        {
+            size_t sz = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
+            return obj.m_tls.ptr + sz + (p - _tls_data_array[1].ptr);
+        }
+        else
+            assert(0);
+
+        //assert( p >= cast(void*) &_tls_beg && p < cast(void*) &_tls_end );
+        //return obj.m_tls.ptr + (p - cast(void*) &_tls_beg);
     }
 }
