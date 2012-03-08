@@ -6562,6 +6562,25 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         e = e->semantic(sc);
         return e;
     }
+    else if ((t1b->isTypeBasic() && t1b->ty != Tvoid) ||
+             t1b->ty == Tenum || t1b->ty == Tnull)
+    {   /* If ident is not a valid property, rewrite:
+         *   e1.ident
+         * as:
+         *   .ident(e1)
+         */
+        unsigned errors = global.startGagging();
+        Type *t1 = e1->type;
+        e = e1->type->dotExp(sc, e1, ident);
+        if (global.endGagging(errors))    // if failed to find the property
+        {
+            e1->type = t1;              // kludge to restore type
+            e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
+            e = new CallExp(loc, e, e1);
+        }
+        e = e->semantic(sc);
+        return e;
+    }
 #endif
     else
     {
@@ -7069,7 +7088,7 @@ Expression *CallExp::syntaxCopy()
 
 Expression *CallExp::resolveUFCS(Scope *sc)
 {
-    Expression *ethis = NULL;
+    Expression *e = NULL;
     DotIdExp *dotid;
     DotTemplateInstanceExp *dotti;
     Identifier *ident;
@@ -7078,46 +7097,73 @@ Expression *CallExp::resolveUFCS(Scope *sc)
     {
         dotid = (DotIdExp *)e1;
         ident = dotid->ident;
-        ethis = dotid->e1 = dotid->e1->semantic(sc);
-        if (ethis->op == TOKdotexp)
+        e = dotid->e1 = dotid->e1->semantic(sc);
+        if (e->op == TOKdotexp)
             return NULL;
-        ethis = resolveProperties(sc, ethis);
+        e = resolveProperties(sc, e);
     }
     else if (e1->op == TOKdotti)
     {
         dotti = (DotTemplateInstanceExp *)e1;
         ident = dotti->ti->name;
-        ethis = dotti->e1 = dotti->e1->semantic(sc);
-        if (ethis->op == TOKdotexp)
+        e = dotti->e1 = dotti->e1->semantic(sc);
+        if (e->op == TOKdotexp)
             return NULL;
-        ethis = resolveProperties(sc, ethis);
+        e = resolveProperties(sc, e);
     }
 
-    if (ethis && ethis->type)
+    if (e && e->type)
     {
+        if (e->op == TOKtype || e->op == TOKimport)
+            return NULL;
+        //printf("resolveUCSS %s, e->op = %s\n", toChars(), Token::toChars(e->op));
         AggregateDeclaration *ad;
+        Expression *esave = e;
 Lagain:
-        Type *tthis = ethis->type->toBasetype();
-        if (tthis->ty == Tclass)
-        {
-            ad = ((TypeClass *)tthis)->sym;
-            if (search_function(ad, ident))
-                return NULL;
-            goto L1;
-        }
-        else if (tthis->ty == Tstruct)
-        {
-            ad = ((TypeStruct *)tthis)->sym;
-            if (search_function(ad, ident))
-                return NULL;
-        L1:
-            if (ad->aliasthis)
+        Type *t = e->type->toBasetype();
+        if (t->ty == Tpointer)
+        {   Type *tn = t->nextOf();
+            if (tn->ty == Tclass || tn->ty == Tstruct)
             {
-                ethis = resolveAliasThis(sc, ethis);
-                goto Lagain;
+                e = new PtrExp(e->loc, e);
+                e = e->semantic(sc);
+                t = e->type->toBasetype();
             }
         }
-        else if (tthis->ty == Taarray && e1->op == TOKdot)
+        if (t->ty == Tclass)
+        {
+            ad = ((TypeClass *)t)->sym;
+            goto L1;
+        }
+        else if (t->ty == Tstruct)
+        {
+            ad = ((TypeStruct *)t)->sym;
+        L1:
+            if (ad->search(loc, ident, 0))
+                return NULL;
+            if (ad->aliasthis)
+            {
+                e = resolveAliasThis(sc, e);
+                goto Lagain;
+            }
+            if (ad->search(loc, Id::opDot, 0))
+            {
+                e = new DotIdExp(e->loc, e, Id::opDot);
+                e = e->semantic(sc);
+                e = resolveProperties(sc, e);
+                goto Lagain;
+            }
+            if (ad->search(loc, Id::opDispatch, 0))
+                return NULL;
+            e = esave;
+            goto Lshift;
+        }
+        else if ((t->isTypeBasic() && t->ty != Tvoid) ||
+                 t->ty == Tenum || t->ty == Tnull)
+        {
+            goto Lshift;
+        }
+        else if (t->ty == Taarray && e1->op == TOKdot)
         {
             if (ident == Id::remove)
             {
@@ -7132,20 +7178,20 @@ Lagain:
                 key = key->semantic(sc);
                 key = resolveProperties(sc, key);
 
-                TypeAArray *taa = (TypeAArray *)tthis;
+                TypeAArray *taa = (TypeAArray *)t;
                 key = key->implicitCastTo(sc, taa->index);
 
                 if (!key->rvalue())
                     return new ErrorExp();
 
-                return new RemoveExp(loc, ethis, key);
+                return new RemoveExp(loc, e, key);
             }
             else if (ident == Id::apply || ident == Id::applyReverse)
             {
                 return NULL;
             }
             else
-            {   TypeAArray *taa = (TypeAArray *)tthis;
+            {   TypeAArray *taa = (TypeAArray *)t;
                 assert(taa->ty == Taarray);
                 StructDeclaration *sd = taa->getImpl();
                 Dsymbol *s = sd->search(0, ident, 2);
@@ -7154,12 +7200,12 @@ Lagain:
                 goto Lshift;
             }
         }
-        else if (tthis->ty == Tarray || tthis->ty == Tsarray)
+        else if (t->ty == Tarray || t->ty == Tsarray)
         {
 Lshift:
             if (!arguments)
                 arguments = new Expressions();
-            arguments->shift(ethis);
+            arguments->shift(e);
             if (e1->op == TOKdot)
             {
                 /* Transform:
