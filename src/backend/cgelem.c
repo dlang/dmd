@@ -581,12 +581,6 @@ STATIC elem * elstrcpy(elem *e)
 #endif
         case OPstring:
             /* Replace strcpy(e1,"string") with memcpy(e1,"string",sizeof("string")) */
-#if 0
-            // As memcpy
-            e->Eoper = OPmemcpy;
-            elem *en = el_long(TYsize_t, strlen(e->E2->EV.ss.Vstring) + 1);
-            e->E2 = el_bin(OPparam,TYvoid,e->E2,en);
-#else
             // As streq
             e->Eoper = OPstreq;
             type *t = type_allocn(TYarray, tschar);
@@ -599,7 +593,6 @@ STATIC elem * elstrcpy(elem *e)
             e = el_bin(OPcomma,e->Ety,e,el_copytree(e->E1->E1));
             if (el_sideeffect(e->E2))
                 fixside(&e->E1->E1->E1,&e->E2);
-#endif
             e = optelem(e,TRUE);
             break;
     }
@@ -741,7 +734,6 @@ STATIC elem * elmemxxx(elem *e)
                         el_free(ex);
                         return optelem(e, TRUE);
                     }
-#if 1
                     // Convert OPmemcpy to OPstreq
                     e->Eoper = OPstreq;
                     type *t = type_allocn(TYarray, tschar);
@@ -761,7 +753,6 @@ STATIC elem * elmemxxx(elem *e)
                     if (el_sideeffect(e->E2))
                         fixside(&e->E1->E1->E1,&e->E2);
                     return optelem(e,TRUE);
-#endif
                 }
                 break;
 
@@ -2520,7 +2511,6 @@ CEXTERN elem * elstruct(elem *e)
     if (e->ET)
     switch ((int) type_size(e->ET))
     {
-#if TX86
         case CHARSIZE:  tym = TYchar;   goto L1;
         case SHORTSIZE: tym = TYshort;  goto L1;
         case LONGSIZE:  tym = TYlong;   goto L1;
@@ -2547,7 +2537,6 @@ CEXTERN elem * elstruct(elem *e)
                     break;
             }
             break;
-#endif
         case 0:
             if (e->Eoper == OPstreq)
             {   e->Eoper = OPcomma;
@@ -4219,7 +4208,6 @@ beg:
                     goto retnull;
                 leftgoal = rightgoal;
                 break;
-#if TX86
             case OPmemcmp:
                 if (!goal)
                 {   // So OPmemcmp is removed cleanly
@@ -4228,7 +4216,6 @@ beg:
                 }
                 leftgoal = rightgoal;
                 break;
-#endif
         }
 
         e1 = e->E1;

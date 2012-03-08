@@ -302,7 +302,6 @@ STATIC void ecom(elem **pe)
         if (tyfloating(tym))
             return;
         break;
-#if TX86
     case OPstrcpy:
     case OPstrcat:
     case OPmemcpy:
@@ -312,9 +311,7 @@ STATIC void ecom(elem **pe)
         ecom(&e->E1);
         touchfunc(0);
         return;
-#endif
     default:                            /* other operators */
-#if TX86
 #ifdef DEBUG
         if (!EBIN(e)) WROP(e->Eoper);
 #endif
@@ -334,16 +331,6 @@ STATIC void ecom(elem **pe)
         ecom(&e->E1);
         ecom(&e->E2);
         break;
-#else
-#ifdef DEBUG
-        if (!EOP(e)) WROP(e->Eoper);
-#endif
-        assert(EOP(e));
-        ecom(&e->E1);
-        if (EBIN(e))
-                ecom(&e->E2);           /* eval left first              */
-        break;
-#endif
     case OPstring:
     case OPaddr:
     case OPbit:
@@ -620,12 +607,10 @@ STATIC void touchfunc(int flag)
                 }
                 break;
             case OPind:
-#if TX86
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
-#endif
                 goto L1;
 #if TARGET_SEGMENTED
             case OPvp_fp:
@@ -653,7 +638,7 @@ STATIC void touchstar()
 
   for (i = touchstari; i < hcstop; i++)
   {     e = hcstab[i].Helem;
-        if (e && (e->Eoper == OPind || e->Eoper == OPbt) /*&& !(e->Ety & mTYconst)*/)
+        if (e && (e->Eoper == OPind || e->Eoper == OPbt) )
                 hcstab[i].Helem = NULL;
   }
   touchstari = hcstop;

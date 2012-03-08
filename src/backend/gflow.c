@@ -805,12 +805,10 @@ void main()
                            )
                             break;
 #endif
-#if TX86
                     case OPstrlen:
                     case OPstrcmp:
                     case OPmemcmp:
                     case OPbt:          // OPbt is like OPind
-#endif
                         vec_setbit(i,defkill);
                         vec_setbit(i,starkill);
                         break;
@@ -1339,11 +1337,9 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
 
             case OPcall:
             case OPcallns:
-#if TX86
             case OPstrcpy:
             case OPmemcpy:
             case OPmemset:
-#endif
 #ifdef DEBUG
                 assert(OTrtol(op));
 #endif
@@ -1351,14 +1347,12 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
                 accumlv(GEN,KILL,n->E1);
                 goto L1;
 
-#if TX86
             case OPstrcat:
 #ifdef DEBUG
                 assert(!OTrtol(op));
 #endif
                 accumlv(GEN,KILL,n->E1);
                 accumlv(GEN,KILL,n->E2);
-#endif
             L1:
                 vec_orass(GEN,ambigsym);
                 vec_subass(GEN,KILL);
