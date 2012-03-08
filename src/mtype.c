@@ -4578,6 +4578,22 @@ int TypeAArray::checkBoolean()
     return TRUE;
 }
 
+Expression *TypeAArray::toExpression()
+{
+    Expression *e = next->toExpression();
+    if (e)
+    {
+        Expression *ei = index->toExpression();
+        if (ei)
+        {
+            Expressions *arguments = new Expressions();
+            arguments->push(ei);
+            return new ArrayExp(loc, e, arguments);
+        }
+    }
+    return NULL;
+}
+
 int TypeAArray::hasPointers()
 {
     return TRUE;
