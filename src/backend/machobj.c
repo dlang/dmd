@@ -1690,11 +1690,7 @@ int obj_comdat(Symbol *s)
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
         s->Sfl = FLtlsdata;
-        align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
-        mach_getsegment("__tls_data", "__DATA", align, S_REGULAR, 4);
         s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
-        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
         elf_data_start(s, 1 << align, s->Sseg);
     }
     else
@@ -1885,10 +1881,7 @@ seg_data *obj_tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
         seg_tlsseg = mach_getsegment("__tls_data", "__DATA", align, S_REGULAR);
-        mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
-        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
     }
     return SegData[seg_tlsseg];
 }
