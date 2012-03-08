@@ -3590,9 +3590,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
         fd->hasReturnExp |= 1;
 
-        if (exp->op == TOKfunction && tbret)
-            ((FuncExp *)exp)->setType(tbret);
-
+        if (tret)
+            exp = exp->inferType(tbret);
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
         if (!((TypeFunction *)fd->type)->isref)

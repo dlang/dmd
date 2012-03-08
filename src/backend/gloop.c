@@ -958,7 +958,6 @@ STATIC void markinvar(elem *n,vec_t rd)
                 markinvar(n->E1,rd);
                 break;
 
-#if TX86
         case OPstrcpy:
         case OPstrcat:
         case OPmemcpy:
@@ -974,7 +973,6 @@ STATIC void markinvar(elem *n,vec_t rd)
                 markinvar(n->E2,rd);
                 updaterd(n,rd,NULL);
                 break;
-#endif
         case OPucall:
                 markinvar(n->E1,rd);
                 /* FALL-THROUGH */
@@ -987,20 +985,20 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPstrpar:
         case OPstrctor:
         case OPvector:
-#if TX86
         case OPvoid:
         case OPstrlen:
+#if TX86
         case OPinp:
 #endif
                 markinvar(n->E1,rd);
                 break;
         case OPcond:
         case OPparam:
-#if TX86
-        case OPoutp:
         case OPstrcmp:
         case OPmemcmp:
         case OPbt:                      // OPbt is like OPind, assume not LI
+#if TX86
+        case OPoutp:
 #endif
                 markinvar(n->E1,rd);
                 markinvar(n->E2,rd);
@@ -1057,12 +1055,10 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPsin:
         case OPcos:
         case OPrint:
-#if TX86
         case OPsetjmp:
         case OPbsf:
         case OPbsr:
         case OPbswap:
-#endif
 #if TARGET_SEGMENTED
         case OPvp_fp: /* BUG for MacHandles */
         case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:

@@ -1600,9 +1600,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
     int align = I64 ? 3 : 2;            // align to NPTRSIZE
     // The size is sizeof(struct FuncTable) in deh2.d
-    mach_getsegment("__deh_beg", "__DATA", align, S_COALESCED, 3 * NPTRSIZE);
     int seg = mach_getsegment("__deh_eh", "__DATA", align, S_REGULAR);
-    mach_getsegment("__deh_end", "__DATA", align, S_COALESCED, NPTRSIZE);
 
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (I64)
@@ -1692,11 +1690,7 @@ int obj_comdat(Symbol *s)
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
         s->Sfl = FLtlsdata;
-        align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
-        mach_getsegment("__tls_data", "__DATA", align, S_REGULAR, 4);
         s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
-        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
         elf_data_start(s, 1 << align, s->Sseg);
     }
     else
@@ -1887,10 +1881,7 @@ seg_data *obj_tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
         seg_tlsseg = mach_getsegment("__tls_data", "__DATA", align, S_REGULAR);
-        mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
-        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
     }
     return SegData[seg_tlsseg];
 }
@@ -2703,8 +2694,6 @@ void obj_moduleinfo(Symbol *scc)
 {
     int align = I64 ? 4 : 2;
 
-    mach_getsegment("__minfo_beg", "__DATA", align, S_COALESCED, 4);
-
     int seg = mach_getsegment("__minfodata", "__DATA", align, S_REGULAR);
     //printf("obj_moduleinfo(%s) seg = %d:x%x\n", scc->Sident, seg, Offset(seg));
 
@@ -2722,8 +2711,6 @@ void obj_moduleinfo(Symbol *scc)
     if (I64)
         flags |= CFoffset64;
     SegData[seg]->SDoffset += reftoident(seg, Offset(seg), scc, 0, flags);
-
-    mach_getsegment("__minfo_end", "__DATA", align, S_COALESCED, 4);
 }
 
 #endif

@@ -2784,13 +2784,8 @@ elem *AssignExp::toElem(IRState *irs)
                 esize = el_bin(OPmul, TYsize_t, elen, esize);
                 elem *epto = array_toPtr(e1->type, ex);
                 elem *epfr = array_toPtr(e2->type, efrom);
-#if 1
-                // memcpy() is faster, so if we can't beat 'em, join 'em
                 e = el_params(esize, epfr, epto, NULL);
                 e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_MEMCPY]),e);
-#else
-                e = el_bin(OPmemcpy, TYnptr, epto, el_param(epfr, esize));
-#endif
                 e = el_pair(eto->Ety, el_copytree(elen), e);
                 e = el_combine(eto, e);
             }
@@ -3428,7 +3423,9 @@ elem *DelegateExp::toElem(IRState *irs)
     //printf("DelegateExp::toElem() '%s'\n", toChars());
 
     if (func->semanticRun == PASSsemantic3done)
+    {
         irs->deferToObj->push(func);
+    }
 
     sfunc = func->toSymbol();
     if (func->isNested())

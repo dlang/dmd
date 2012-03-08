@@ -3038,7 +3038,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
             case Timaginary64:  t = tfloat64;           goto L2;
             case Timaginary80:  t = tfloat80;           goto L2;
             L2:
-                e = new RealExp(0, ldouble(0.0), t);
+                e = new RealExp(e->loc, ldouble(0.0), t);
                 break;
 
             default:
@@ -3070,7 +3070,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                e = new RealExp(0, ldouble(0.0), this);
+                e = new RealExp(e->loc, ldouble(0.0), this);
                 break;
 
             default:
@@ -5450,12 +5450,23 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
             if (fparam->defaultArg)
             {   Expression *e = fparam->defaultArg;
+                e = e->inferType(fparam->type);
                 e = e->semantic(argsc);
                 e = resolveProperties(argsc, e);
                 if (e->op == TOKfunction)               // see Bugzilla 4820
                 {   FuncExp *fe = (FuncExp *)e;
                     if (fe->fd)
-                    {   // Replace function literal with a function symbol,
+                    {   if (fe->fd->tok == TOKreserved)
+                        {
+                            if (fe->type->ty == Tpointer)
+                            {
+                                fe->fd->vthis = NULL;
+                                fe->fd->tok = TOKfunction;
+                            }
+                            else
+                                fe->fd->tok = TOKdelegate;
+                        }
+                        // Replace function literal with a function symbol,
                         // since default arg expression must be copied when used
                         // and copying the literal itself is wrong.
                         e = new VarExp(e->loc, fe->fd, 0);
@@ -5730,9 +5741,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         assert(arg);
 
         if (arg->op == TOKfunction)
-        {   FuncExp *fe = (FuncExp *)arg;
-            Type *pt = p->type;
-            arg = ((FuncExp *)arg)->inferType(NULL, pt);
+        {
+            arg = ((FuncExp *)arg)->inferType(p->type, 1);
             if (!arg)
                 goto L1;    // try typesafe variadics
         }
@@ -5819,9 +5829,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                             assert(arg);
 #if 1
                             if (arg->op == TOKfunction)
-                            {   FuncExp *fe = (FuncExp *)arg;
-                                Type *pt = tb->nextOf();
-                                arg = ((FuncExp *)arg)->inferType(NULL, pt);
+                            {
+                                arg = ((FuncExp *)arg)->inferType(tb->nextOf(), 1);
                                 if (!arg)
                                     goto Nomatch;
                             }

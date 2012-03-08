@@ -75,7 +75,6 @@ int _assign[] =
         {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
          OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
          OPnegass,
-        /* OPbtc,OPbtr,OPbts,*/
         };
 int _wid[] =
         {OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
@@ -142,7 +141,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
 #if TARGET_SEGMENTED
                 OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
 #endif
-                /*OPcomma,OPbit,OPoror,OPandand,OPcond,OPcolon,OPcolon2*/};
+                };
 int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
                 OPstrlen,OPstrcmp,OPind,OPaddr,
