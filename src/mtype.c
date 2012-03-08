@@ -3038,7 +3038,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
             case Timaginary64:  t = tfloat64;           goto L2;
             case Timaginary80:  t = tfloat80;           goto L2;
             L2:
-                e = new RealExp(0, ldouble(0.0), t);
+                e = new RealExp(e->loc, ldouble(0.0), t);
                 break;
 
             default:
@@ -3070,7 +3070,7 @@ Expression *TypeBasic::dotExp(Scope *sc, Expression *e, Identifier *ident)
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                e = new RealExp(0, ldouble(0.0), this);
+                e = new RealExp(e->loc, ldouble(0.0), this);
                 break;
 
             default:
