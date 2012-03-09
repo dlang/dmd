@@ -44,6 +44,10 @@ private:
        together with the VarDeclaration, and the previous
        stack address of that variable, so that we can restore it
        when we leave the stack frame.
+       Note that when a function is forward referenced, the interpreter must
+       run semantic3, and that may start CTFE again with a NULL istate. Thus
+       the stack might not be empty when CTFE begins.
+
        Ctfe Stack addresses are just 0-based integers, but we save
        them as 'void *' because ArrayBase can only do pointers.
     */
@@ -4845,7 +4849,6 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
     InterState istateComma;
     if (!istate &&  firstComma->e1->op == TOKdeclaration)
     {
-        assert(ctfeStack.stackPointer() == 0);
         ctfeStack.startFrame();
         istate = &istateComma;
     }
