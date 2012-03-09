@@ -108,6 +108,9 @@ fflush(stdout);
         else if (t->reliesOnTident())
             error("forward reference to type %s", t->reliesOnTident()->toChars());
 
+//printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
+//type = type->semantic(loc, sc);
+//printf("type %s t %s\n", type->deco, t->deco);
         error("cannot implicitly convert expression (%s) of type %s to %s",
             toChars(), type->toChars(), t->toChars());
     }
@@ -1585,7 +1588,7 @@ Expression *AssocArrayLiteralExp::inferType(Type *t, int flag)
 {
     t = t->toBasetype();
     if (t->ty == Taarray)
-    {	TypeAArray *taa = (TypeAArray *)t;
+    {   TypeAArray *taa = (TypeAArray *)t;
         Type *ti = taa->index;
         Type *tv = taa->nextOf();
         for (size_t i = 0; i < keys->dim; i++)

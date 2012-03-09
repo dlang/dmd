@@ -6640,12 +6640,11 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     Expression *e;
     Dsymbol *s;
 
-    //printf("TypeInstance::semantic(%s)\n", toChars());
+    //printf("TypeInstance::semantic(%p, %s)\n", this, toChars());
 
     if (sc->parameterSpecialization)
     {
         unsigned errors = global.startGagging();
-
         resolve(loc, sc, &e, &t, &s);
 
         if (global.endGagging(errors))

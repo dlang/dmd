@@ -837,7 +837,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         //printf("FuncDeclaration::semantic3(%s '%s', sc = %p)\n", kind(), toChars(), sc);
         assert(0);
     }
-    //printf("FuncDeclaration::semantic3('%s.%s', sc = %p, loc = %s)\n", parent->toChars(), toChars(), sc, loc.toChars());
+    //printf("FuncDeclaration::semantic3('%s.%s', %p, sc = %p, loc = %s)\n", parent->toChars(), toChars(), this, sc, loc.toChars());
     //fflush(stdout);
     //printf("storage class = x%x %x\n", sc->stc, storage_class);
     //{ static int x; if (++x == 2) *(char*)0=0; }
