@@ -286,17 +286,6 @@ else version( Posix )
                     __gshared void[][2] _tls_data_array;
                 }
             }
-            else version(none)
-            {
-                extern (C)
-                {
-                    extern __gshared
-                    {
-                        void* _tls_beg;
-                        void* _tls_end;
-                    }
-                }
-            }
             else version( FreeBSD )
             {
                 extern (C)
@@ -375,18 +364,6 @@ else version( Posix )
                 obj.m_tls = p[0 .. sz2];
                 memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
                 memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
-                scope (exit) { free( p ); obj.m_tls = null; }
-            }
-            else version (none)
-            {
-                // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
-                //       data output by the compiler is bracketed by _tls_beg and
-                //       _tls_end, so make a copy of it for each thread.
-                const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
-                auto p = malloc( sz );
-                assert( p );
-                obj.m_tls = p[0 .. sz];
-                memcpy( p, &_tls_beg, sz );
                 scope (exit) { free( p ); obj.m_tls = null; }
             }
             else
@@ -1392,18 +1369,6 @@ private:
             memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
             // The free must happen at program end, if anywhere.
         }
-        else version (none)
-        {
-            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
-            //       data output by the compiler is bracketed by _tls_beg and
-            //       _tls_end, so make a copy of it for each thread.
-            const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
-            auto p = malloc( sz );
-            assert( p );
-            m_tls = p[0 .. sz];
-            memcpy( p, &_tls_beg, sz );
-            // The free must happen at program end, if anywhere.
-        }
         else
         {
             auto pstart = cast(void*) &_tlsstart;
@@ -2028,17 +1993,6 @@ extern (C) Thread thread_attachThis()
         memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
         // used gc_malloc so no need to free
     }
-    else version (none)
-    {
-        // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
-        //       data output by the compiler is bracketed by _tls_beg and
-        //       _tls_end, so make a copy of it for each thread.
-        const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
-        auto p = gc_malloc(sz);
-        thisThread.m_tls = p[0 .. sz];
-        memcpy( p, &_tls_beg, sz );
-        // used gc_malloc so no need to free
-    }
     else
     {
         auto pstart = cast(void*) &_tlsstart;
@@ -2128,21 +2082,6 @@ version( Windows )
             // used gc_malloc so no need to free
 
             if( t.m_addr == pthread_self() )
-                Thread.setThis( thisThread );
-        }
-        else version (none)
-        {
-            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
-            //       data output by the compiler is bracketed by _tls_beg and
-            //       _tls_end, so make a copy of it for each thread.
-            const sz = cast(void*) &_tls_end - cast(void*) &_tls_beg;
-            auto p = gc_malloc(sz);
-            assert( p );
-            obj.m_tls = p[0 .. sz];
-            memcpy( p, &_tls_beg, sz );
-            // used gc_malloc so no need to free
-
-           if( t.m_addr == pthread_self() )
                 Thread.setThis( thisThread );
         }
         else version( Windows )
