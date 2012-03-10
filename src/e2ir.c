@@ -4347,7 +4347,7 @@ Lagain:
         case X(Timaginary80,Tfloat32):
         case X(Timaginary80,Tfloat64):
         case X(Timaginary80,Tfloat80):  goto Lzero;
-        case X(Timaginary80,Timaginary32): e = el_una(OPf_d, TYidouble, e);
+        case X(Timaginary80,Timaginary32): e = el_una(OPld_d, TYidouble, e);
                                    fty = Timaginary64;
                                    goto Lagain;
         case X(Timaginary80,Timaginary64): eop = OPld_d; goto Leop;
