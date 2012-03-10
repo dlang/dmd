@@ -223,7 +223,7 @@ int runLINK()
         delete lnkfilename;
     }
     return status;
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif CC_DRIVES_LINKING
     pid_t childpid;
     int i;
     int status;
@@ -340,6 +340,11 @@ int runLINK()
         if (!p || !p[0] || !(p[0] == '-' && p[1] == 'l'))
             // Don't need -Xlinker if switch starts with -l
             argv.push((char *)"-Xlinker");
+        argv.push(p);
+    }
+    
+    for (size_t i = 0; i < global.params.ccswitches->dim; i++)
+    {   char *p = global.params.ccswitches->tdata()[i];
         argv.push(p);
     }
 
