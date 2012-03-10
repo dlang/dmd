@@ -835,6 +835,40 @@ void test7037()
 }
 
 /**********************************/
+// 7110
+
+struct S7110
+{
+    int opSlice(int, int) const { return 0; }
+    int opSlice()         const { return 0; }
+    int opIndex(int, int) const { return 0; }
+    int opIndex(int)      const { return 0; }
+}
+
+enum e7110 = S7110();
+
+template T7110(alias a) { } // or T7110(a...)
+
+alias T7110!( S7110 ) T71100; // passes
+alias T7110!((S7110)) T71101; // passes
+
+alias T7110!( S7110()[0..0]  )  A0; // passes
+alias T7110!(  (e7110[0..0]) )  A1; // passes
+alias T7110!(   e7110[0..0]  )  A2; // passes
+
+alias T7110!( S7110()[0, 0]  ) B0; // passes
+alias T7110!(  (e7110[0, 0]) ) B1; // passes
+alias T7110!(   e7110[0, 0]  ) B2; // passes
+
+alias T7110!( S7110()[]  ) C0; // passes
+alias T7110!(  (e7110[]) ) C1; // passes
+alias T7110!(   e7110[]  ) C2; // fails: e7110 is used as a type
+
+alias T7110!( S7110()[0]  ) D0; // passes
+alias T7110!(  (e7110[0]) ) D1; // passes
+alias T7110!(   e7110[0]  ) D2; // fails: e7110 must be an array or pointer type, not S7110
+
+/**********************************/
 // 7124
 
 template StaticArrayOf(T : E[dim], E, size_t dim)
@@ -972,6 +1006,15 @@ void test7580()
     shared(X7580!int) sx;
     static assert(!__traits(compiles, s = sx));
 }
+
+/**********************************/
+// 7643
+
+template T7643(A...){ alias A T7643; }
+
+alias T7643!(long, "x", string, "y") Specs7643;
+
+alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
 
 /**********************************/
 
