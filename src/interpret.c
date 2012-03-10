@@ -243,6 +243,16 @@ struct ClassReferenceExp : Expression
     {
         return value->sd->isClassDeclaration();
     }
+    VarDeclaration *getFieldAt(int index)
+    {
+        ClassDeclaration *cd = originalClass();
+        size_t fieldsSoFar = 0;
+        while (index - fieldsSoFar >= cd->fields.dim)
+        {   fieldsSoFar += cd->fields.dim;
+            cd = cd->baseClass;
+        }
+        return cd->fields.tdata()[index - fieldsSoFar];
+    }
     // Return index of the field, or -1 if not found
     int getFieldIndex(Type *fieldtype, size_t fieldoffset)
     {
@@ -280,6 +290,28 @@ struct ClassReferenceExp : Expression
             }
         }
         return -1;
+    }
+};
+
+struct VoidInitExp : Expression
+{
+    VarDeclaration *var;
+
+    VoidInitExp(VarDeclaration *var, Type *type)
+        : Expression(var->loc, TOKvoid, sizeof(VoidInitExp))
+    {
+        this->var = var;
+        this->type = var->type;
+    }
+    char *toChars()
+    {
+        return "void";
+    }
+    Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue)
+    {
+        error("CTFE internal error: trying to read uninitialized variable");
+        assert(0);
+        return EXP_CANT_INTERPRET;
     }
 };
 
@@ -973,7 +1005,7 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
     return Cat(type, e1, e2);
 }
 
-void scrubArray(Loc loc, Expressions *elems);
+void scrubArray(Loc loc, Expressions *elems, int structlit = 0);
 
 /* All results destined for use outside of CTFE need to have their CTFE-specific
  * features removed.
@@ -986,6 +1018,11 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
         error(loc, "%s class literals cannot be returned from CTFE", ((ClassReferenceExp*)e)->originalClass()->toChars());
         return EXP_CANT_INTERPRET;
     }
+    if (e->op == TOKvoid)
+    {
+        error(loc, "uninitialized variable '%s' cannot be returned from CTFE", ((VoidInitExp *)e)->var->toChars());
+        e = new ErrorExp();
+    }
     if (e->op == TOKslice)
     {
         e = resolveSlice(e);
@@ -994,7 +1031,7 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
         se->ownedByCtfe = false;
-        scrubArray(loc, se->elements);
+        scrubArray(loc, se->elements, 1);
     }
     if (e->op == TOKstring)
     {
@@ -1016,14 +1053,15 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
 }
 
 // Scrub all members of an array
-void scrubArray(Loc loc, Expressions *elems)
+void scrubArray(Loc loc, Expressions *elems, int structlit)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = elems->tdata()[i];
-        if (!m)
-            continue;
-        m = scrubReturnValue(loc, m);
+        if (m->op == TOKvoid && structlit)
+            m = NULL;
+        if (m)
+            m = scrubReturnValue(loc, m);
         elems->tdata()[i] = m;
     }
 }
@@ -1915,11 +1953,16 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             {
                 if (v->init->isVoidInitializer())
                 {
-                        error(loc, "variable %s is used before initialization", v->toChars());
-                        return EXP_CANT_INTERPRET;
+                    // var should have been initialized when it was created
+                    error("CTFE internal error - trying to access uninitialized var");
+                    assert(0);
+                    e = EXP_CANT_INTERPRET;
                 }
-                e = v->init->toExpression();
-                e = e->interpret(istate);
+                else
+                {
+                    e = v->init->toExpression();
+                    e = e->interpret(istate);
+                }
             }
             else
                 e = v->type->defaultInitLiteral(loc);
@@ -1935,7 +1978,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 e = EXP_CANT_INTERPRET;
             }
             else if (!e)
-                error(loc, "variable %s is used before initialization", v->toChars());
+            {
+                assert(0);
+                assert(v->init && v->init->isVoidInitializer());
+                e = v->type->voidInitLiteral(v);
+            }
             else if (exceptionOrCantInterpret(e))
                 return e;
             else if (goal == ctfeNeedLvalue && v->isRef() && e->op == TOKindex)
@@ -1954,6 +2001,13 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                     || e->op == TOKassocarrayliteral || e->op == TOKslice
                     || e->type->toBasetype()->ty == Tpointer)
                 return e; // it's already an Lvalue
+            else if (e->op == TOKvoid)
+            {
+                VoidInitExp *ve = (VoidInitExp *)e;
+                error(loc, "cannot read uninitialized variable %s in ctfe", v->toPrettyChars());
+                errorSupplemental(ve->var->loc, "%s was uninitialized and used before set", ve->var->toChars());
+                e = EXP_CANT_INTERPRET;
+            }
             else
                 e = e->interpret(istate, goal);
         }
@@ -2035,7 +2089,12 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
             if (ie)
                 e = ie->exp->interpret(istate);
             else if (v->init->isVoidInitializer())
-                e = NULL;
+            {
+                e = v->type->voidInitLiteral(v);
+                // There is no AssignExp for void initializers,
+                // so set it here.
+                v->setValue(e);
+            }
             else
             {
                 error("Declaration %s is not yet implemented in CTFE", toChars());
@@ -3134,7 +3193,7 @@ Expression *copyLiteral(Expression *e)
             assert(v);
             // If it is a void assignment, use the default initializer
             if (!m)
-                m = v->type->defaultInitLiteral(e->loc);
+                m = v->type->voidInitLiteral(v);
             if (m->op == TOKslice)
                 m = resolveSlice(m);
             if ((v->type->ty != m->type->ty) && v->type->ty == Tsarray)
@@ -3161,7 +3220,8 @@ Expression *copyLiteral(Expression *e)
             || e->op == TOKsymoff || e->op == TOKnull
             || e->op == TOKvar
             || e->op == TOKint64 || e->op == TOKfloat64
-            || e->op == TOKchar || e->op == TOKcomplex80)
+            || e->op == TOKchar || e->op == TOKcomplex80
+            || e->op == TOKvoid)
     {   // Simple value types
         Expression *r = e->syntaxCopy();
         r->type = e->type;
@@ -3331,7 +3391,7 @@ void assignInPlace(Expression *dest, Expression *src)
             assert(o->op == e->op);
             assignInPlace(o, e);
         }
-        else if (e->type->ty == Tsarray && o->type->ty == Tsarray)
+        else if (e->type->ty == Tsarray && o->type->ty == Tsarray && e->op != TOKvoid)
         {
             assignInPlace(o, e);
         }
@@ -3958,14 +4018,29 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             ? (StructLiteralExp *)exx
             : ((ClassReferenceExp *)exx)->value;
         int fieldi =  exx->op == TOKstructliteral
-            ? se->getFieldIndex(member->type, member->offset)
-            : ((ClassReferenceExp *)exx)->getFieldIndex(member->type, member->offset);
+            ? findFieldIndexByName(se->sd, member)
+            : ((ClassReferenceExp *)exx)->findFieldIndexByName(member);
         if (fieldi == -1)
         {
             error("CTFE internal error: cannot find field %s in %s", member->toChars(), exx->toChars());
             return EXP_CANT_INTERPRET;
         }
-        assert(fieldi>=0 && fieldi < se->elements->dim);
+        assert(fieldi >= 0 && fieldi < se->elements->dim);
+        // If it's a union, set all other members of this union to void
+        if (exx->op == TOKstructliteral)
+        {
+            assert(se->sd);
+            int unionStart = se->sd->firstFieldInUnion(fieldi);
+            int unionSize = se->sd->numFieldsInUnion(fieldi);
+            for(int i = unionStart; i < unionStart + unionSize; ++i)
+            {   if (i == fieldi)
+                    continue;
+                Expression **el = &se->elements->tdata()[i];
+                if ((*el)->op != TOKvoid)
+                    *el = (*el)->type->voidInitLiteral(member);
+            }
+        }
+
         if (newval->op == TOKstructliteral)
             assignInPlace(se->elements->tdata()[fieldi], newval);
         else
@@ -5784,6 +5859,13 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
                 e->op == TOKassocarrayliteral || e->op == TOKstring)
                     return e;
+            if (e->op == TOKvoid)
+            {
+                VoidInitExp *ve = (VoidInitExp *)e;
+                error("cannot read uninitialized variable %s in ctfe", toChars());
+                ve->var->error("was uninitialized and used before set");
+                return EXP_CANT_INTERPRET;
+            }
             if ( isPointer(type) )
             {
                 return paintTypeOntoLiteral(type, e);
@@ -6462,6 +6544,10 @@ bool isCtfeValueValid(Expression *newval)
             assert(((ArrayLiteralExp *)se->e1)->ownedByCtfe);
         return true;
     }
+    if (newval->op == TOKvoid)
+    {
+        return true;
+    }
     newval->error("CTFE internal error: illegal value %s\n", newval->toChars());
     return false;
 }
@@ -6493,4 +6579,29 @@ void VarDeclaration::setValue(Expression *newval)
 {
     assert(isCtfeValueValid(newval));
     ctfeStack.setValue(this, newval);
+}
+
+
+Expression *Type::voidInitLiteral(VarDeclaration *var)
+{
+    return new VoidInitExp(var, this);
+}
+
+Expression *TypeSArray::voidInitLiteral(VarDeclaration *var)
+{
+    return createBlockDuplicatedArrayLiteral(var->loc, this, next->voidInitLiteral(var), dim->toInteger());
+}
+
+Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
+{
+    Expressions *exps = new Expressions();
+    exps->setDim(sym->fields.dim);
+    for (size_t i = 0; i < sym->fields.dim; i++)
+    {
+        (*exps)[i] = new VoidInitExp(var, sym->fields[i]->type);
+    }
+    StructLiteralExp *se = new StructLiteralExp(var->loc, sym, exps);
+    se->type = this;
+    se->ownedByCtfe = true;
+    return se;
 }
