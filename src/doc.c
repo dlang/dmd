@@ -929,7 +929,7 @@ void AggregateDeclaration::toDocBuffer(OutBuffer *buf)
 #if 0
         emitProtection(buf, protection);
 #endif
-        buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars());
+        buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars() + strlen(this->getModule()->toChars()) + 1);
         buf->writestring(";\n");
     }
 }
@@ -953,7 +953,7 @@ void StructDeclaration::toDocBuffer(OutBuffer *buf)
         }
         else
         {
-            buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars());
+            buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars()  + strlen(this->getModule()->toChars()) + 1);
         }
         buf->writestring(";\n");
     }
@@ -980,7 +980,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
         {
             if (isAbstract())
                 buf->writestring("abstract ");
-            buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars());
+            buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars()  + strlen(this->getModule()->toChars()) + 1);
         }
         int any = 0;
         for (size_t i = 0; i < baseclasses->dim; i++)
@@ -1017,7 +1017,7 @@ void EnumDeclaration::toDocBuffer(OutBuffer *buf)
 {
     if (ident)
     {
-        buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars());
+        buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars()  + strlen(this->getModule()->toChars()) + 1  );
         buf->writestring(";\n");
     }
 }
@@ -1975,7 +1975,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
     char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
 
-    const char *fullyQualifiedName = s->toPrettyChars();
+    const char *fullyQualifiedName = s->toPrettyChars() + strlen(s->getModule()->toChars()) + 1;
     int total = strlen(fullyQualifiedName);
     char *terminator = (char*) malloc(total + 3);
     terminator[0] = ','; // end the first argument
