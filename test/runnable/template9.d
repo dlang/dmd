@@ -1048,6 +1048,34 @@ void test7684()
 
 /**********************************/
 
+       inout(U)[]  id11a(U)(        inout(U)[]  );
+       inout(U[])  id11a(U)(        inout(U[])  );
+inout(shared(U[])) id11a(U)( inout(shared(U[])) );
+
+void test11a(inout int _ = 0)
+{
+    shared(const(int))[] x;
+    static assert(is( typeof(id11a(x)) == shared(const(int))[] ));
+
+    shared(int)[] y;
+    static assert(is( typeof(id11a(y)) == shared(int)[] ));
+
+    inout(U)[n] idz(U, size_t n)( inout(U)[n] );
+
+    inout(shared(bool[1])) z;
+    static assert(is( typeof(idz(z)) == inout(shared(bool[1])) ));
+}
+
+inout(U[]) id11b(U)( inout(U[]) );
+
+void test11b()
+{
+    alias const(shared(int)[]) T;
+    static assert(is(typeof(id11b(T.init)) == const(shared(int)[])));
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -1089,6 +1117,8 @@ int main()
     test7580();
     test7671();
     test7684();
+    test11a();
+    test11b();
 
     printf("Success\n");
     return 0;

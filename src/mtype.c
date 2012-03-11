@@ -417,6 +417,8 @@ Type *Type::mutableOf()
         t = t->merge();
         t->fixTo(this);
     }
+    else
+        t = t->merge();
     assert(t->isMutable());
     return t;
 }
@@ -508,6 +510,8 @@ Type *Type::unSharedOf()
 
         t->fixTo(this);
     }
+    else
+        t = t->merge();
     assert(!t->isShared());
     return t;
 }
