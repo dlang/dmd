@@ -4653,11 +4653,7 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         MATCH mi = index->constConv(ta->index);
         if (m != MATCHnomatch && mi != MATCHnomatch)
         {
-            if (m == MATCHexact && mod != to->mod)
-                m = MATCHconst;
-            if (mi < m)
-                m = mi;
-            return m;
+            return MODimplicitConv(mod, to->mod) ? MATCHconst : MATCHnomatch;
         }
     }
     else if (to->ty == Tstruct && ((TypeStruct *)to)->sym->ident == Id::AssociativeArray)
