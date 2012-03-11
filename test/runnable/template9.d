@@ -1017,6 +1017,24 @@ alias T7643!(long, "x", string, "y") Specs7643;
 alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
 
 /**********************************/
+// 7671
+
+       inout(int)[3]  id7671n1             ( inout(int)[3] );
+       inout( U )[n]  id7671x1(U, size_t n)( inout( U )[n] );
+
+shared(inout int)[3]  id7671n2             ( shared(inout int)[3] );
+shared(inout  U )[n]  id7671x2(U, size_t n)( shared(inout  U )[n] );
+
+void test7671()
+{
+    static assert(is( typeof( id7671n1( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+    static assert(is( typeof( id7671x1( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+
+    static assert(is( typeof( id7671n2( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+    static assert(is( typeof( id7671x2( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+}
+
+/************************************/
 // 7684
 
        U[]  id7684(U)(        U[]  );
@@ -1069,6 +1087,7 @@ int main()
     test7416();
     test7563();
     test7580();
+    test7671();
     test7684();
 
     printf("Success\n");
