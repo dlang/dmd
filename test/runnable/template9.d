@@ -1017,6 +1017,78 @@ alias T7643!(long, "x", string, "y") Specs7643;
 alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
 
 /**********************************/
+// 7671
+
+       inout(int)[3]  id7671n1             ( inout(int)[3] );
+       inout( U )[n]  id7671x1(U, size_t n)( inout( U )[n] );
+
+shared(inout int)[3]  id7671n2             ( shared(inout int)[3] );
+shared(inout  U )[n]  id7671x2(U, size_t n)( shared(inout  U )[n] );
+
+void test7671()
+{
+    static assert(is( typeof( id7671n1( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+    static assert(is( typeof( id7671x1( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+
+    static assert(is( typeof( id7671n2( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+    static assert(is( typeof( id7671x2( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+}
+
+/************************************/
+// 7672
+
+T foo7672(T)(T a){ return a; }
+
+void test7672(inout(int[]) a = null, inout(int*) p = null)
+{
+    static assert(is( typeof(        a ) == inout(int[]) ));
+    static assert(is( typeof(foo7672(a)) == inout(int)[] ));
+
+    static assert(is( typeof(        p ) == inout(int*) ));
+    static assert(is( typeof(foo7672(p)) == inout(int)* ));
+}
+
+/**********************************/
+// 7684
+
+       U[]  id7684(U)(        U[]  );
+shared(U[]) id7684(U)( shared(U[]) );
+
+void test7684()
+{
+    shared(int)[] x;
+    static assert(is( typeof(id7684(x)) == shared(int)[] ));
+}
+
+/**********************************/
+
+       inout(U)[]  id11a(U)(        inout(U)[]  );
+       inout(U[])  id11a(U)(        inout(U[])  );
+inout(shared(U[])) id11a(U)( inout(shared(U[])) );
+
+void test11a(inout int _ = 0)
+{
+    shared(const(int))[] x;
+    static assert(is( typeof(id11a(x)) == shared(const(int))[] ));
+
+    shared(int)[] y;
+    static assert(is( typeof(id11a(y)) == shared(int)[] ));
+
+    inout(U)[n] idz(U, size_t n)( inout(U)[n] );
+
+    inout(shared(bool[1])) z;
+    static assert(is( typeof(idz(z)) == inout(shared(bool[1])) ));
+}
+
+inout(U[]) id11b(U)( inout(U[]) );
+
+void test11b()
+{
+    alias const(shared(int)[]) T;
+    static assert(is(typeof(id11b(T.init)) == const(shared(int)[])));
+}
+
+/**********************************/
 
 int main()
 {
@@ -1057,6 +1129,11 @@ int main()
     test7416();
     test7563();
     test7580();
+    test7671();
+    test7672();
+    test7684();
+    test11a();
+    test11b();
 
     printf("Success\n");
     return 0;
