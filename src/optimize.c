@@ -633,7 +633,7 @@ Expression *CastExp::optimize(int result)
     }
 
     // We can convert 'head const' to mutable
-    if (to->constOf()->equals(e1->type->constOf()))
+    if (to->mutableOf()->constOf()->equals(e1->type->mutableOf()->constOf()))
     {
         e1->type = type;
         if (X) printf(" returning5 %s\n", e1->toChars());

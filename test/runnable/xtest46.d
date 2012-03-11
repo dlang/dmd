@@ -4743,6 +4743,27 @@ void test7618(const int x = 1)
 }
 
 /***************************************************/
+// 7682
+
+template ConstOf7682(T)
+{
+    alias const(T) ConstOf7682;
+}
+bool pointsTo7682(S)(ref const S source) @trusted pure nothrow
+{
+    return true;
+}
+void test7682()
+{
+    shared(ConstOf7682!(int[])) x;  // line A
+
+    struct S3 { int[10] a; }
+    shared(S3) sh3;
+    shared(int[]) sh3sub = sh3.a[];
+    assert(pointsTo7682(sh3sub));   // line B
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4963,6 +4984,7 @@ int main()
     test7285();
     test7321();
     test7618();
+    test7682();
 
     printf("Success\n");
     return 0;
