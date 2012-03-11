@@ -7918,7 +7918,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 {   MATCH m;
 
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
-    if (to->ty == Taarray)
+    if (to->ty == Taarray && sym->ident == Id::AssociativeArray)
     {
         /* If there is an error instantiating AssociativeArray!(), it shouldn't
          * be reported -- it just means implicit conversion is impossible.
