@@ -1035,6 +1035,20 @@ void test7671()
 }
 
 /************************************/
+// 7672
+
+T foo7672(T)(T a){ return a; }
+
+void test7672(inout(int[]) a = null, inout(int*) p = null)
+{
+    static assert(is( typeof(        a ) == inout(int[]) ));
+    static assert(is( typeof(foo7672(a)) == inout(int)[] ));
+
+    static assert(is( typeof(        p ) == inout(int*) ));
+    static assert(is( typeof(foo7672(p)) == inout(int)* ));
+}
+
+/**********************************/
 // 7684
 
        U[]  id7684(U)(        U[]  );
@@ -1116,6 +1130,7 @@ int main()
     test7563();
     test7580();
     test7671();
+    test7672();
     test7684();
     test11a();
     test11b();
