@@ -1934,9 +1934,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
                 goto Lerror;
         }
         {
-            tdargs->setDim(dedargs.dim);
-            memcpy(tdargs->data, dedargs.data, tdargs->dim * sizeof(void *));
-            fd = td->doHeaderInstantiation(sc, tdargs, fargs);
+            fd = td->doHeaderInstantiation(sc, &dedargs, fargs);
             if (!fd)
                 goto Lerror;
         }
@@ -2301,13 +2299,17 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         {
             switch (X(tparam->mod, mod))
             {
-                case X(MODwild,              MODwild):
-                case X(MODwild | MODshared,  MODwild | MODshared):
                 case X(MODwild,              0):
+                case X(MODwild,              MODshared):
                 case X(MODwild,              MODconst):
+                case X(MODwild,              MODconst | MODshared):
                 case X(MODwild,              MODimmutable):
+                case X(MODwild,              MODwild):
+                case X(MODwild,              MODwild | MODshared):
                 case X(MODwild | MODshared,  MODshared):
                 case X(MODwild | MODshared,  MODconst | MODshared):
+                case X(MODwild | MODshared,  MODimmutable):
+                case X(MODwild | MODshared,  MODwild | MODshared):
 
                     if (!at)
                     {
