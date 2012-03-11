@@ -1934,9 +1934,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
                 goto Lerror;
         }
         {
-            tdargs->setDim(dedargs.dim);
-            memcpy(tdargs->data, dedargs.data, tdargs->dim * sizeof(void *));
-            fd = td->doHeaderInstantiation(sc, tdargs, fargs);
+            fd = td->doHeaderInstantiation(sc, &dedargs, fargs);
             if (!fd)
                 goto Lerror;
         }

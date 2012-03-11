@@ -1017,6 +1017,18 @@ alias T7643!(long, "x", string, "y") Specs7643;
 alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
 
 /**********************************/
+// 7684
+
+       U[]  id7684(U)(        U[]  );
+shared(U[]) id7684(U)( shared(U[]) );
+
+void test7684()
+{
+    shared(int)[] x;
+    static assert(is( typeof(id7684(x)) == shared(int)[] ));
+}
+
+/**********************************/
 
 int main()
 {
@@ -1057,6 +1069,7 @@ int main()
     test7416();
     test7563();
     test7580();
+    test7684();
 
     printf("Success\n");
     return 0;
