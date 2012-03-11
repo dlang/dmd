@@ -2550,6 +2550,15 @@ void test7518() {
 }
 
 /************************************/
+// 7669
+
+shared(inout U)[n] id7669(U, size_t n)( shared(inout U)[n] );
+void test7669()
+{
+    static assert(is(typeof( id7669((shared(int)[3]).init)) == shared(int)[3]));
+}
+
+/************************************/
 
 int main()
 {
@@ -2659,6 +2668,7 @@ int main()
     test7202();
     test7554();
     test7518();
+    test7669();
 
     printf("Success\n");
     return 0;
