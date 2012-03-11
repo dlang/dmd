@@ -1426,7 +1426,7 @@ void test82(inout(int) _ = 0)
     pragma(msg, typeof(o));
     static assert(typeof(o).stringof == "inout(char*****)");
     pragma(msg, typeof(cast()o));
-    static assert(typeof(cast()o).stringof == "char*****");
+    static assert(typeof(cast()o).stringof == "inout(char****)*");
 
     const(char*****) p;
     pragma(msg, typeof(p));

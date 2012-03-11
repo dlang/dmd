@@ -1868,14 +1868,11 @@ Type *Type::substWildTo(unsigned mod)
             else if (ty == Tsarray)
                 t = new TypeSArray(t, ((TypeSArray *)this)->dim->syntaxCopy());
             else if (ty == Taarray)
-            {
                 t = new TypeAArray(t, ((TypeAArray *)this)->index->syntaxCopy());
-                t = t->merge();
-            }
             else
                 assert(0);
 
-            t = t->addMod(this->mod);
+            t = t->merge();
         }
     }
     else
@@ -2468,9 +2465,7 @@ Type *TypeNext::makeMutable()
 {
     //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
     TypeNext *t = (TypeNext *)Type::makeMutable();
-    if ((ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
-        next->isWild()) || ty == Tsarray)
+    if (ty == Tsarray)
     {
         t->next = next->mutableOf();
     }
