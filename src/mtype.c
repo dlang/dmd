@@ -5391,10 +5391,14 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->isnothrow = TRUE;
     if (sc->stc & STCref)
         tf->isref = TRUE;
+
     if (sc->stc & STCsafe)
         tf->trust = TRUSTsafe;
+    if (sc->stc & STCsystem)
+        tf->trust = TRUSTsystem;
     if (sc->stc & STCtrusted)
         tf->trust = TRUSTtrusted;
+
     if (sc->stc & STCproperty)
         tf->isproperty = TRUE;
 
