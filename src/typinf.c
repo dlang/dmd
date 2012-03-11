@@ -547,6 +547,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     {
         Scope sc;
 
+        /* const hash_t toHash();
+         */
         tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
         tftohash->mod = MODconst;
         tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
@@ -558,6 +560,9 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     TypeFunction *tfcmpptr;
     {
         Scope sc;
+
+        /* const int opCmp(ref const KeyType s);
+         */
         Parameters *arguments = new Parameters;
 #if STRUCTTHISREF
         // arg type is ref const T
@@ -578,10 +583,28 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     if (fdx)
     {   fd = fdx->overloadExactMatch(tftohash);
         if (fd)
+        {
             dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            assert(tf->ty == Tfunction);
+            if (global.params.warnings)
+            {
+                /* I'm a little unsure this is the right way to do it. Perhaps a better
+                 * way would to automatically add these attributes to any struct member
+                 * function with the name "toHash".
+                 * So I'm leaving this here as an experiment for the moment.
+                 */
+                if (!tf->isnothrow || tf->trust == TRUSTsystem || tf->purity == PUREimpure)
+                {   warning(fd->loc, "toHash() must be declared as extern (D) uint toHash() const pure nothrow @safe, not %s", tf->toChars());
+                    global.errors++;
+                }
+            }
+        }
         else
+        {
             //fdx->error("must be declared as extern (D) uint toHash()");
             dtsize_t(pdt, 0);
+        }
     }
     else
         dtsize_t(pdt, 0);
