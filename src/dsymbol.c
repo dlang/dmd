@@ -1489,6 +1489,14 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
 #endif
 }
 
+#if _MSC_VER
+// reference not removed in prettyident()
+char *cpp_prettyident (Symbol *s)
+{
+    assert(false);
+    return 0;
+}
 
+#endif
 
 
