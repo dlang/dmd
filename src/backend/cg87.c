@@ -663,21 +663,18 @@ __body
         {0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2};
     static double dval[7] =
         {0.0,1.0,PI,LOG2T,LOG2E,LOG2,LN2};
-    static long double ldval[7] =
-#if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
-#define M_PIl           0x1.921fb54442d1846ap+1L        // 3.14159 fldpi
+    static longdouble ldval[7] =
+#if __DMC__    // from math.h
+    {0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L};
+#elif _MSC_VER // struct longdouble constants
+    {ld_zero, ld_one, ld_pi, ld_log2t, ld_log2e, ld_log2, ld_ln2};
+#else          // C99 hexadecimal floats (GCC, CLANG, ...)
+#define M_PI_L          0x1.921fb54442d1846ap+1L        // 3.14159 fldpi
 #define M_LOG2T_L       0x1.a934f0979a3715fcp+1L        // 3.32193 fldl2t
-#define M_LOG2El        0x1.71547652b82fe178p+0L        // 1.4427 fldl2e
+#define M_LOG2E_L       0x1.71547652b82fe178p+0L        // 1.4427 fldl2e
 #define M_LOG2_L        0x1.34413509f79fef32p-2L        // 0.30103 fldlg2
-#define M_LN2l          0x1.62e42fefa39ef358p-1L        // 0.693147 fldln2
-        {0.0,1.0,M_PIl,M_LOG2T_L,M_LOG2El,M_LOG2_L,M_LN2l};
-#elif __GNUC__
-        // BUG: should get proper 80 bit values for these
-        #define M_LOG2T_L       LOG2T
-        #define M_LOG2_L        LOG2
-        {0.0,1.0,M_PIl,M_LOG2T_L,M_LOG2El,M_LOG2_L,M_LN2l};
-#else
-        {0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L};
+#define M_LN2_L         0x1.62e42fefa39ef358p-1L        // 0.693147 fldln2
+    {0.0,1.0,M_PI_L,M_LOG2T_L,M_LOG2E_L,M_LOG2_L,M_LN2_L};
 #endif
     static char opcode[7 + 1] =
         /* FLDZ,FLD1,FLDPI,FLDL2T,FLDL2E,FLDLG2,FLDLN2,0 */
