@@ -7174,6 +7174,17 @@ Lagain:
                 {   error("expected key as argument to aa.remove()");
                     return new ErrorExp();
                 }
+                if (!e->type->isMutable())
+                {   const char *p = NULL;
+                    if (e->type->isConst())
+                        p = "const";
+                    else if (e->type->isImmutable())
+                        p = "immutable";
+                    else
+                        p = "inout";
+                    error("cannot remove key from %s associative array %s", p, e->toChars());
+                    return new ErrorExp();
+                }
                 Expression *key = arguments->tdata()[0];
                 key = key->semantic(sc);
                 key = resolveProperties(sc, key);
