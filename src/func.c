@@ -627,7 +627,11 @@ void FuncDeclaration::semantic(Scope *sc)
 
         if (!doesoverride && isOverride())
         {
-            error("does not override any function");
+            Dsymbol *s = cd->search_correct(ident);
+            if (s)
+                error("does not override any function, did you mean '%s'", s->toPrettyChars());
+            else
+                error("does not override any function");
         }
 
     L2: ;
