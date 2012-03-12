@@ -1973,7 +1973,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 if (v->init->isVoidInitializer())
                 {
                     // var should have been initialized when it was created
-                    error("CTFE internal error - trying to access uninitialized var");
+                    error(loc, "CTFE internal error - trying to access uninitialized var");
                     assert(0);
                     e = EXP_CANT_INTERPRET;
                 }
