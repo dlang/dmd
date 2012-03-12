@@ -48,6 +48,20 @@ struct Library
     unsigned short numDictPages(unsigned padding);
     int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
     void WriteLibToBuffer(OutBuffer *libbuf);
+
+    void error(char *format, ...)
+    {
+        Loc loc;
+        if (libfile)
+        {
+            loc.filename = libfile->name->toChars();
+            loc.linnum = 0;
+        }
+        va_list ap;
+        va_start(ap, format);
+        ::verror(loc, format, ap);
+        va_end(ap);
+    }
 };
 
 #endif /* DMD_LIB_H */
