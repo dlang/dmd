@@ -2237,7 +2237,7 @@ int templateParameterLookup(Type *tparam, TemplateParameters *parameters)
  *      Foo!(int*)              // template instantiation
  * Input:
  *      this = int*
- *      tparam = T
+ *      tparam = T*
  *      parameters = [ T:T* ]   // Array of TemplateParameter's
  * Output:
  *      dedtypes = [ int ]      // Array of Expression/Type's
