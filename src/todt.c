@@ -108,7 +108,9 @@ dt_t *StructInitializer::toDt()
         {   // An instance specific initializer was not provided.
             // Look to see if there's a default initializer from the
             // struct definition
-            if (v->init)
+            if (v->init && v->init->isVoidInitializer())
+                ;
+            else if (v->init)
             {
                 d = v->init->toDt();
             }
@@ -646,6 +648,17 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
              * If there is no overlap with any explicit initializer in dts[],
              * supply a default initializer.
              */
+#if 0
+           // An instance specific initializer was not provided.
+            // Look to see if there's a default initializer from the
+            // struct definition
+            if (v->init && v->init->isVoidInitializer())
+                ;
+            else if (v->init)
+            {
+                d = v->init->toDt();
+            } else
+#endif
             if (v->offset >= offset)
             {
                 unsigned offset2 = v->offset + v->type->size();
@@ -838,7 +851,9 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
         {   //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
             ExpInitializer *ei = init->isExpInitializer();
             Type *tb = v->type->toBasetype();
-            if (ei && tb->ty == Tsarray)
+            if (init->isVoidInitializer())
+                ;
+            else if (ei && tb->ty == Tsarray)
                 ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
             else
                 dt = init->toDt();
@@ -924,7 +939,9 @@ void StructDeclaration::toDt(dt_t **pdt)
             {   //printf("\t\thas initializer %s\n", init->toChars());
                 ExpInitializer *ei = init->isExpInitializer();
                 Type *tb = v->type->toBasetype();
-                if (ei && tb->ty == Tsarray)
+                if (init->isVoidInitializer())
+                    ;
+                else if (ei && tb->ty == Tsarray)
                     ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
                 else
                     dt = init->toDt();

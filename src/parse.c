@@ -6589,6 +6589,7 @@ void initPrecedence()
     precedence[TOKtraits] = PREC_primary;
     precedence[TOKdefault] = PREC_primary;
     precedence[TOKoverloadset] = PREC_primary;
+    precedence[TOKvoid] = PREC_primary;
 #endif
 
     // post

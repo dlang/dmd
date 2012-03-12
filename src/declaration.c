@@ -1558,6 +1558,33 @@ Ldtor:
 void VarDeclaration::semantic2(Scope *sc)
 {
     //printf("VarDeclaration::semantic2('%s')\n", toChars());
+        // Inside unions, default to void initializers
+    if (!init && sc->inunion && !toParent()->isFuncDeclaration())
+    {
+        AggregateDeclaration *aad = sc->anonAgg;
+        if (!aad)
+            aad = parent->isAggregateDeclaration();
+        if (aad)
+        {
+            if (aad->fields[0] == this)
+            {
+                int hasinit = 0;
+                for (size_t i = 1; i < aad->fields.dim; i++)
+                {
+                    if (aad->fields[i]->init &&
+                        !aad->fields[i]->init->isVoidInitializer())
+                    {
+                        hasinit = 1;
+                        break;
+                    }
+                }
+                if (!hasinit)
+                    init = new ExpInitializer(loc, type->defaultInitLiteral(loc));
+            }
+            else
+                init = new VoidInitializer(loc);
+        }
+    }
     if (init && !toParent()->isFuncDeclaration())
     {   inuse++;
 #if 0

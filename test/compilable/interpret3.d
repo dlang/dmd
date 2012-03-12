@@ -4118,3 +4118,46 @@ void vop() {
     const string x7536 = "x";
     static assert(bug7536(x7536));
 }
+
+/**************************************************
+    6681 unions
+**************************************************/
+
+struct S6681
+{
+    this(int a, int b) { this.a = b; this.b = a; }
+    union {
+        ulong g;
+        struct {int a, b; };
+    }
+}
+
+static immutable S6681 s6681 = S6681(0, 1);
+
+bool bug6681(int test)
+{
+    S6681 x = S6681(0, 1);
+    x.g = 5;
+    auto u = &x.g;
+    auto v = &x.a;
+    long w = *u;
+    int  z;
+    assert(w == 5);
+    if (test == 4)
+        z = *v; // error
+    x.a = 2; // invalidate g, and hence u.
+    if (test == 1)
+        w = *u; // error
+    z = *v;
+    assert(z == 2);
+    x.g = 6;
+    w = *u;
+    assert( w == 6);
+    if (test == 3)
+        z = *v;
+    return true;
+}
+static assert(bug6681(2));
+static assert(!is(typeof(compiles!(bug6681(1)))));
+static assert(!is(typeof(compiles!(bug6681(3)))));
+static assert(!is(typeof(compiles!(bug6681(4)))));
