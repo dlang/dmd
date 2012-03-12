@@ -3837,6 +3837,15 @@ ref const(Foo6529) func6529(const(Foo6529)[] arr){ return arr[0]; }
 
 /***************************************************/
 
+void test783()
+{
+    const arr = [ 1,2,3 ];
+    const i = 2;
+    auto jhk = new int[arr[i]]; // "need size of rightmost array, not type arr[i]"
+}
+
+/***************************************************/
+
 template X157(alias x)
 {
     alias x X157;
@@ -4734,6 +4743,27 @@ void test7618(const int x = 1)
 }
 
 /***************************************************/
+// 7682
+
+template ConstOf7682(T)
+{
+    alias const(T) ConstOf7682;
+}
+bool pointsTo7682(S)(ref const S source) @trusted pure nothrow
+{
+    return true;
+}
+void test7682()
+{
+    shared(ConstOf7682!(int[])) x;  // line A
+
+    struct S3 { int[10] a; }
+    shared(S3) sh3;
+    shared(int[]) sh3sub = sh3.a[];
+    assert(pointsTo7682(sh3sub));   // line B
+}
+
+/***************************************************/
 
 int main()
 {
@@ -4954,6 +4984,7 @@ int main()
     test7285();
     test7321();
     test7618();
+    test7682();
 
     printf("Success\n");
     return 0;

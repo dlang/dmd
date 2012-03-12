@@ -208,7 +208,7 @@ int runLINK()
         flnk.setbuffer(p, plen);
         flnk.ref = 1;
         if (flnk.write())
-            error("error writing file %s", lnkfilename);
+            error(0, "error writing file %s", lnkfilename);
         if (lnkfilename->len() < plen)
             sprintf(p, "@%s", lnkfilename->toChars());
     }
@@ -490,7 +490,7 @@ int executecmd(char *cmd, char *args, int useenv)
         else
         {
         L1:
-            error("command line length of %d is too long",len);
+            error(0, "command line length of %d is too long",len);
         }
     }
 

@@ -664,6 +664,36 @@ void test17()
 }
 
 /**************************************/
+// 7641
+
+mixin template Proxy7641(alias a)
+{
+    auto ref opBinaryRight(string op, B)(auto ref B b)
+    {
+        return mixin("b "~op~" a");
+    }
+}
+struct Typedef7641(T)
+{
+    private T Typedef_payload;
+
+    this(T init)
+    {
+        Typedef_payload = init;
+    }
+
+    mixin Proxy7641!Typedef_payload;
+}
+
+void test7641()
+{
+    class C {}
+    C c1 = new C();
+    auto a = Typedef7641!C(c1);
+    static assert(!__traits(compiles, { C c2 = a; }));
+}
+
+/**************************************/
 
 int main()
 {
@@ -685,6 +715,7 @@ int main()
     test15();
     test16();
     test17();
+    test7641();
 
     printf("Success\n");
     return 0;

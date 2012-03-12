@@ -409,7 +409,7 @@ int tryMain(int argc, char *argv[])
     if (argc < 1 || !argv)
     {
       Largs:
-        error("missing or null command line arguments");
+        error(0, "missing or null command line arguments");
         fatal();
     }
     for (size_t i = 0; i < argc; i++)
@@ -419,7 +419,7 @@ int tryMain(int argc, char *argv[])
     }
 
     if (response_expand(&argc,&argv))   // expand response files
-        error("can't open response file");
+        error(0, "can't open response file");
 
     files.reserve(argc - 1);
 
@@ -548,7 +548,7 @@ int tryMain(int argc, char *argv[])
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = 1;
             else if (strcmp(p + 1, "gt") == 0)
-            {   error("use -profile instead of -gt\n");
+            {   error(0, "use -profile instead of -gt\n");
                 global.params.trace = 1;
             }
             else if (strcmp(p + 1, "m32") == 0)
@@ -568,7 +568,7 @@ int tryMain(int argc, char *argv[])
 #if DMDV1
                 global.params.Dversion = 1;
 #else
-                error("use DMD 1.0 series compilers for -v1 switch");
+                error(0, "use DMD 1.0 series compilers for -v1 switch");
                 break;
 #endif
             }
@@ -605,7 +605,7 @@ int tryMain(int argc, char *argv[])
                         break;
 
                     case 0:
-                        error("-o no longer supported, use -of or -od");
+                        error(0, "-o no longer supported, use -of or -od");
                         break;
 
                     default:
@@ -850,11 +850,11 @@ int tryMain(int argc, char *argv[])
             else
             {
              Lerror:
-                error("unrecognized switch '%s'", argv[i]);
+                error(0, "unrecognized switch '%s'", argv[i]);
                 continue;
 
              Lnoarg:
-                error("argument expected for switch '%s'", argv[i]);
+                error(0, "argument expected for switch '%s'", argv[i]);
                 continue;
             }
         }
@@ -889,7 +889,7 @@ int tryMain(int argc, char *argv[])
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (global.params.lib && global.params.dll)
-        error("cannot mix -lib and -shared\n");
+        error(0, "cannot mix -lib and -shared\n");
 #endif
 
     if (global.params.release)
@@ -951,7 +951,7 @@ int tryMain(int argc, char *argv[])
     }
     else if (global.params.run)
     {
-        error("flags conflict with -run");
+        error(0, "flags conflict with -run");
         fatal();
     }
     else
@@ -1142,12 +1142,12 @@ int tryMain(int argc, char *argv[])
                     strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error("invalid file name '%s'", files.tdata()[i]);
+                    error(0, "invalid file name '%s'", files.tdata()[i]);
                     fatal();
                 }
             }
             else
-            {   error("unrecognized file extension %s\n", ext);
+            {   error(0, "unrecognized file extension %s\n", ext);
                 fatal();
             }
         }
@@ -1207,7 +1207,7 @@ int tryMain(int argc, char *argv[])
 #if ASYNCREAD
         if (aw->read(filei))
         {
-            error("cannot read file %s", m->srcfile->name->toChars());
+            error(0, "cannot read file %s", m->srcfile->name->toChars());
         }
 #endif
         m->parse();
@@ -1241,7 +1241,7 @@ int tryMain(int argc, char *argv[])
     if (anydocfiles && modules.dim &&
         (global.params.oneobj || global.params.objname))
     {
-        error("conflicting Ddoc and obj generation options");
+        error(0, "conflicting Ddoc and obj generation options");
         fatal();
     }
     if (global.errors)
@@ -1435,7 +1435,7 @@ int tryMain(int argc, char *argv[])
     if (!global.params.objfiles->dim)
     {
         if (global.params.link)
-            error("no object files to link");
+            error(0, "no object files to link");
     }
     else
     {

@@ -33,9 +33,6 @@ int wcharIsAscii(wchar_t *, unsigned len);
 
 int bstrcmp(unsigned char *s1, unsigned char *s2);
 char *bstr2str(unsigned char *b);
-void error(const char *format, ...);
-void error(const wchar_t *format, ...);
-void warning(const char *format, ...);
 
 #ifndef TYPEDEFS
 #define TYPEDEFS

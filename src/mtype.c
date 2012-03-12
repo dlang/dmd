@@ -417,6 +417,8 @@ Type *Type::mutableOf()
         t = t->merge();
         t->fixTo(this);
     }
+    else
+        t = t->merge();
     assert(t->isMutable());
     return t;
 }
@@ -508,6 +510,8 @@ Type *Type::unSharedOf()
 
         t->fixTo(this);
     }
+    else
+        t = t->merge();
     assert(!t->isShared());
     return t;
 }
@@ -1864,14 +1868,11 @@ Type *Type::substWildTo(unsigned mod)
             else if (ty == Tsarray)
                 t = new TypeSArray(t, ((TypeSArray *)this)->dim->syntaxCopy());
             else if (ty == Taarray)
-            {
                 t = new TypeAArray(t, ((TypeAArray *)this)->index->syntaxCopy());
-                t = t->merge();
-            }
             else
                 assert(0);
 
-            t = t->addMod(this->mod);
+            t = t->merge();
         }
     }
     else
@@ -2464,9 +2465,7 @@ Type *TypeNext::makeMutable()
 {
     //printf("TypeNext::makeMutable() %p, %s\n", this, toChars());
     TypeNext *t = (TypeNext *)Type::makeMutable();
-    if ((ty != Tfunction && next->ty != Tfunction &&
-        //(next->deco || next->ty == Tfunction) &&
-        next->isWild()) || ty == Tsarray)
+    if (ty == Tsarray)
     {
         t->next = next->mutableOf();
     }
@@ -3664,7 +3663,10 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
     if (*pe)
     {   // It's really an index expression
-        Expression *e = new IndexExp(loc, *pe, dim);
+        Expressions *exps = new Expressions();
+        exps->setDim(1);
+        (*exps)[0] = dim;
+        Expression *e = new ArrayExp(loc, *pe, exps);
         *pe = e;
     }
     else if (*ps)
@@ -4115,6 +4117,31 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
     next = tn;
     transitive();
     return merge();
+}
+
+void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
+{
+    //printf("TypeDArray::resolve() %s\n", toChars());
+    next->resolve(loc, sc, pe, pt, ps);
+    //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
+    if (*pe)
+    {   // It's really a slice expression
+        Expression *e = new SliceExp(loc, *pe, NULL, NULL);
+        *pe = e;
+    }
+    else if (*ps)
+    {
+        TupleDeclaration *td = (*ps)->isTupleDeclaration();
+        if (td)
+            ;   // keep *ps
+        else
+            goto Ldefault;
+    }
+    else
+    {
+     Ldefault:
+        Type::resolve(loc, sc, pe, pt, ps);
+    }
 }
 
 void TypeDArray::toDecoBuffer(OutBuffer *buf, int flag)
@@ -4578,6 +4605,22 @@ int TypeAArray::checkBoolean()
     return TRUE;
 }
 
+Expression *TypeAArray::toExpression()
+{
+    Expression *e = next->toExpression();
+    if (e)
+    {
+        Expression *ei = index->toExpression();
+        if (ei)
+        {
+            Expressions *arguments = new Expressions();
+            arguments->push(ei);
+            return new ArrayExp(loc, e, arguments);
+        }
+    }
+    return NULL;
+}
+
 int TypeAArray::hasPointers()
 {
     return TRUE;
@@ -4609,11 +4652,7 @@ MATCH TypeAArray::implicitConvTo(Type *to)
         MATCH mi = index->constConv(ta->index);
         if (m != MATCHnomatch && mi != MATCHnomatch)
         {
-            if (m == MATCHexact && mod != to->mod)
-                m = MATCHconst;
-            if (mi < m)
-                m = mi;
-            return m;
+            return MODimplicitConv(mod, to->mod) ? MATCHconst : MATCHnomatch;
         }
     }
     else if (to->ty == Tstruct && ((TypeStruct *)to)->sym->ident == Id::AssociativeArray)
@@ -5347,10 +5386,14 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->isnothrow = TRUE;
     if (sc->stc & STCref)
         tf->isref = TRUE;
+
     if (sc->stc & STCsafe)
         tf->trust = TRUSTsafe;
+    if (sc->stc & STCsystem)
+        tf->trust = TRUSTsystem;
     if (sc->stc & STCtrusted)
         tf->trust = TRUSTtrusted;
+
     if (sc->stc & STCproperty)
         tf->isproperty = TRUE;
 
@@ -6624,12 +6667,11 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
     Expression *e;
     Dsymbol *s;
 
-    //printf("TypeInstance::semantic(%s)\n", toChars());
+    //printf("TypeInstance::semantic(%p, %s)\n", this, toChars());
 
     if (sc->parameterSpecialization)
     {
         unsigned errors = global.startGagging();
-
         resolve(loc, sc, &e, &t, &s);
 
         if (global.endGagging(errors))
@@ -7879,7 +7921,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
 {   MATCH m;
 
     //printf("TypeStruct::implicitConvTo(%s => %s)\n", toChars(), to->toChars());
-    if (to->ty == Taarray)
+    if (to->ty == Taarray && sym->ident == Id::AssociativeArray)
     {
         /* If there is an error instantiating AssociativeArray!(), it shouldn't
          * be reported -- it just means implicit conversion is impossible.

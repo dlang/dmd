@@ -1426,7 +1426,7 @@ void test82(inout(int) _ = 0)
     pragma(msg, typeof(o));
     static assert(typeof(o).stringof == "inout(char*****)");
     pragma(msg, typeof(cast()o));
-    static assert(typeof(cast()o).stringof == "char*****");
+    static assert(typeof(cast()o).stringof == "inout(char****)*");
 
     const(char*****) p;
     pragma(msg, typeof(p));
@@ -1705,8 +1705,8 @@ void test4968()
 
     inout(int)[string] f5(inout(int)[string] aa) { return aa; }
     int[string] maa;
-    const int[string] caa;
-    immutable int[string] iaa;
+    const(int)[string] caa;
+    immutable(int)[string] iaa;
     static assert(is(typeof(f5(maa)) == int[string]));
     static assert(is(typeof(f5(caa)) == const(int)[string]));
     static assert(is(typeof(f5(iaa)) == immutable(int)[string]));
@@ -2317,33 +2317,33 @@ void test6912()
     static assert( is(           inout(int [int]) :           inout(int [int]) ));
 
     static assert( is(                 int [int]  :           const(int)[int]  ));
-    static assert( is(           inout(int [int]) :           const(int)[int]  ));
+    static assert(!is(           inout(int [int]) :           const(int)[int]  ));
     static assert(!is(                 int [int]  :     inout(const(int)[int]) ));
     static assert( is(           inout(int [int]) :     inout(const(int)[int]) ));
 
     static assert( is(           const(int)[int]  :           const(int)[int]  ));
-    static assert( is(     inout(const(int)[int]) :           const(int)[int]  ));
+    static assert(!is(     inout(const(int)[int]) :           const(int)[int]  ));
     static assert(!is(           const(int)[int]  :     inout(const(int)[int]) ));
     static assert( is(     inout(const(int)[int]) :     inout(const(int)[int]) ));
 
     static assert( is(       immutable(int)[int]  :           const(int)[int]  ));
-    static assert( is( inout(immutable(int)[int]) :           const(int)[int]  ));
-    static assert( is(       immutable(int)[int]  :     inout(const(int)[int]) ));
+    static assert(!is( inout(immutable(int)[int]) :           const(int)[int]  ));
+    static assert(!is(       immutable(int)[int]  :     inout(const(int)[int]) ));
     static assert( is( inout(immutable(int)[int]) :     inout(const(int)[int]) ));
 
     static assert( is(       immutable(int)[int]  :       immutable(int)[int]  ));
-    static assert( is( inout(immutable(int)[int]) :       immutable(int)[int]  ));
-    static assert( is(       immutable(int)[int]  : inout(immutable(int)[int]) ));
+    static assert(!is( inout(immutable(int)[int]) :       immutable(int)[int]  ));
+    static assert(!is(       immutable(int)[int]  : inout(immutable(int)[int]) ));
     static assert( is( inout(immutable(int)[int]) : inout(immutable(int)[int]) ));
 
     static assert( is(           inout(int)[int]  :           inout(int)[int]  ));
-    static assert( is(     inout(inout(int)[int]) :           inout(int)[int]  ));
-    static assert( is(           inout(int)[int]  :     inout(inout(int)[int]) ));
+    static assert(!is(     inout(inout(int)[int]) :           inout(int)[int]  ));
+    static assert(!is(           inout(int)[int]  :     inout(inout(int)[int]) ));
     static assert( is(     inout(inout(int)[int]) :     inout(inout(int)[int]) ));
 
     static assert( is(           inout(int)[int]  :           const(int)[int]  ));
-    static assert( is(     inout(inout(int)[int]) :           const(int)[int]  ));
-    static assert( is(           inout(int)[int]  :     inout(const(int)[int]) ));
+    static assert(!is(     inout(inout(int)[int]) :           const(int)[int]  ));
+    static assert(!is(           inout(int)[int]  :     inout(const(int)[int]) ));
     static assert( is(     inout(inout(int)[int]) :     inout(const(int)[int]) ));
 
     // Regression check
@@ -2443,6 +2443,23 @@ void test6940()
     immutable(int)**    v;
     int**               w;
     static assert(is(typeof(1?v:w) == const(int*)*));
+}
+
+/************************************/
+// 6982
+
+void test6982()
+{
+    alias int Bla;
+    immutable(Bla[string]) ifiles = ["a":1, "b":2, "c":3];
+    static assert(!__traits(compiles, { immutable(Bla)[string] files = ifiles; }));  // (1)
+    static assert(!__traits(compiles, { ifiles.remove ("a"); }));                    // (2)
+
+          immutable(int)[int]  maa;
+    const(immutable(int)[int]) caa;
+    immutable(      int [int]) iaa;
+    static assert(!__traits(compiles, { maa = iaa; }));
+    static assert(!__traits(compiles, { maa = caa; }));
 }
 
 /************************************/
@@ -2550,6 +2567,15 @@ void test7518() {
 }
 
 /************************************/
+// 7669
+
+shared(inout U)[n] id7669(U, size_t n)( shared(inout U)[n] );
+void test7669()
+{
+    static assert(is(typeof( id7669((shared(int)[3]).init)) == shared(int)[3]));
+}
+
+/************************************/
 
 int main()
 {
@@ -2654,11 +2680,13 @@ int main()
     test6912();
     test6939();
     test6940();
+    test6982();
     test7038();
     test7105();
     test7202();
     test7554();
     test7518();
+    test7669();
 
     printf("Success\n");
     return 0;
