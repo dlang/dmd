@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -48,6 +48,20 @@ struct Library
     unsigned short numDictPages(unsigned padding);
     int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
     void WriteLibToBuffer(OutBuffer *libbuf);
+
+    void error(char *format, ...)
+    {
+        Loc loc;
+        if (libfile)
+        {
+            loc.filename = libfile->name->toChars();
+            loc.linnum = 0;
+        }
+        va_list ap;
+        va_start(ap, format);
+        ::verror(loc, format, ap);
+        va_end(ap);
+    }
 };
 
 #endif /* DMD_LIB_H */

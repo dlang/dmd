@@ -101,15 +101,15 @@ Html::Html(const char *sourcename, unsigned char *base, unsigned length)
 
 void Html::error(const char *format, ...)
 {
-    printf("%s(%d) : HTML Error: ", sourcename, linnum);
+    fprintf(stderr, "%s(%d) : HTML Error: ", sourcename, linnum);
 
     va_list ap;
     va_start(ap, format);
-    vprintf(format, ap);
+    vfprintf(stderr, format, ap);
     va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
+    fprintf(stderr, "\n");
+    fflush(stderr);
 
 //#if MARS
 //    global.errors++;

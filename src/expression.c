@@ -329,10 +329,10 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
      */
     Type *t0 = NULL;
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (Expression *)exps->data[i];
+    {   Expression *e = (*exps)[i];
 
         if (!e->type)
-        {   error("%s has no value", e->toChars());
+        {   error(e->loc, "%s has no value", e->toChars());
             e = new ErrorExp();
         }
         e = resolveProperties(sc, e);
@@ -341,7 +341,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             t0 = e->type;
         else
             e = e->implicitCastTo(sc, t0);
-        exps->data[i] = (void *)e;
+        (*exps)[i] = e;
     }
 
     if (!t0)
@@ -368,11 +368,11 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
     Expression *e0;
     int j0;
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (Expression *)exps->data[i];
+    {   Expression *e = (*exps)[i];
 
         e = resolveProperties(sc, e);
         if (!e->type)
-        {   error("%s has no value", e->toChars());
+        {   e->error("%s has no value", e->toChars());
             e = new ErrorExp();
         }
 
@@ -385,8 +385,9 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
                 condexp.type = NULL;
                 condexp.e1 = e0;
                 condexp.e2 = e;
+                condexp.loc = e->loc;
                 condexp.semantic(sc);
-                exps->data[j0] = (void *)condexp.e1;
+                (*exps)[j0] = condexp.e1;
                 e = condexp.e2;
                 j0 = i;
                 e0 = e;
@@ -398,15 +399,15 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             e0 = e;
             t0 = e->type;
         }
-        exps->data[i] = (void *)e;
+        (*exps)[i] = e;
     }
 
     if (t0)
     {
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e = (Expression *)exps->data[i];
+        {   Expression *e = (*exps)[i];
             e = e->implicitCastTo(sc, t0);
-            exps->data[i] = (void *)e;
+            (*exps)[i] = e;
         }
     }
     else

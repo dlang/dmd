@@ -710,7 +710,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, int needInterpret)
         return this; // Failed, suppress duplicate error messages
 
     if (exp->op == TOKtype)
-        error("initializer must be an expression, not '%s'", exp->toChars());
+        exp->error("initializer must be an expression, not '%s'", exp->toChars());
     Type *tb = t->toBasetype();
 
     /* Look for case of initializing a static array with a too-short

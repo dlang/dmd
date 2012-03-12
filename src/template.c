@@ -202,7 +202,7 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
                 {
                     if (sc1->scopesym == ti1)
                     {
-                        error("recursive template expansion for template argument %s", t1->toChars());
+                        tempdecl->error("recursive template expansion for template argument %s", t1->toChars());
                         return 1;       // fake a match
                     }
                 }
@@ -2937,7 +2937,7 @@ Object *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
     {
         s = defaultAlias->toDsymbol(sc);
         if (!s)
-            error("%s is not a symbol", defaultAlias->toChars());
+            error(0, "%s is not a symbol", defaultAlias->toChars());
     }
     return s;
 }

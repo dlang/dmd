@@ -2135,18 +2135,12 @@ code *asm_genloc(Loc loc, code *c)
 STATIC void asmerr(int errnum, ...)
 {   const char *format;
 
-    const char *p = asmstate.loc.toChars();
-    if (*p)
-        printf("%s: ", p);
-
     format = asmerrmsgs[errnum];
     va_list ap;
     va_start(ap, errnum);
-    vprintf(format, ap);
+    verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    printf("\n");
-    fflush(stdout);
     longjmp(asmstate.env,1);
 }
 
@@ -2155,17 +2149,10 @@ STATIC void asmerr(int errnum, ...)
 
 STATIC void asmerr(const char *format, ...)
 {
-    const char *p = asmstate.loc.toChars();
-    if (*p)
-        printf("%s: ", p);
-
     va_list ap;
     va_start(ap, format);
-    vprintf(format, ap);
+    verror(asmstate.loc, format, ap);
     va_end(ap);
-
-    printf("\n");
-    fflush(stdout);
 
     longjmp(asmstate.env,1);
 }
