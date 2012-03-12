@@ -1633,7 +1633,7 @@ char *TemplateDeclaration::toChars()
 int templateIdentifierLookup(Identifier *id, TemplateParameters *parameters)
 {
     for (size_t i = 0; i < parameters->dim; i++)
-    {   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+    {   TemplateParameter *tp = parameters->tdata()[i];
 
         if (tp->ident->equals(id))
             return i;
@@ -1662,7 +1662,7 @@ int templateParameterLookup(Type *tparam, TemplateParameters *parameters)
  *      Foo!(int*)              // template instantiation
  * Input:
  *      this = int*
- *      tparam = T
+ *      tparam = T*
  *      parameters = [ T:T* ]   // Array of TemplateParameter's
  * Output:
  *      dedtypes = [ int ]      // Array of Expression/Type's
@@ -1696,7 +1696,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             Loc loc;
             if (parameters->dim)
             {
-                TemplateParameter *tp = (TemplateParameter *)parameters->data[0];
+                TemplateParameter *tp = parameters->tdata()[0];
                 loc = tp->loc;
             }
 
@@ -1708,7 +1708,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             return deduceType(sc, tparam, parameters, dedtypes);
         }
 
-        TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+        TemplateParameter *tp = parameters->tdata()[i];
 
         // Found the corresponding parameter tp
         if (!tp->isTemplateTypeParameter())
