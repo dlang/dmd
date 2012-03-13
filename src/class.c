@@ -637,7 +637,8 @@ void ClassDeclaration::semantic(Scope *sc)
          */
         if (s->isEnumDeclaration() ||
             (s->isAggregateDeclaration() && s->ident) ||
-            s->isTemplateMixin())
+            s->isTemplateMixin() ||
+            s->isAliasDeclaration())
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc);

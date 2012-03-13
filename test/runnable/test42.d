@@ -4812,6 +4812,28 @@ void nextis(void delegate() dg = {}) {}
 
 /***************************************************/
 
+template T3509(bool b) { static assert (b); }
+
+template Mix3509() { void f() {} }
+
+class C3509 {
+    alias T3509!(is(typeof(M.f))) U;
+    mixin Mix3509!() M;
+}
+
+/***************************************************/
+
+struct S3510(int x) {}
+
+template Mix3510() { Sa s; }
+
+class C3510 {
+    mixin Mix3510!();
+    alias S3510!(0) Sa;
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
