@@ -10310,6 +10310,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
 
     e1 = e1->modifiableLvalue(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();
