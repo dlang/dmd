@@ -226,9 +226,9 @@ Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
     cd->baseclasses->setDim(this->baseclasses->dim);
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
     {
-        BaseClass *b = (BaseClass *)this->baseclasses->data[i];
+        BaseClass *b = this->baseclasses->tdata()[i];
         BaseClass *b2 = new BaseClass(b->type->syntaxCopy(), b->protection);
-        cd->baseclasses->data[i] = b2;
+        cd->baseclasses->tdata()[i] = b2;
     }
 
     ScopeDsymbol::syntaxCopy(cd);
@@ -288,7 +288,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+    {   BaseClass *b = baseclasses->tdata()[i];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
 
@@ -330,7 +330,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 if (!isDeprecated())
                 {
                     // Deriving from deprecated class makes this one deprecated too
-                    isdeprecated = 1;
+                    isdeprecated = true;
 
                     tc->checkDeprecated(loc, sc);
                 }
@@ -403,7 +403,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 if (!isDeprecated())
                 {
                     // Deriving from deprecated class makes this one deprecated too
-                    isdeprecated = 1;
+                    isdeprecated = true;
 
                     tc->checkDeprecated(loc, sc);
                 }
@@ -412,7 +412,7 @@ void ClassDeclaration::semantic(Scope *sc)
             // Check for duplicate interfaces
             for (size_t j = (baseClass ? 1 : 0); j < i; j++)
             {
-                BaseClass *b2 = (BaseClass *)baseclasses->data[j];
+                BaseClass *b2 = baseclasses->tdata()[j];
                 if (b2->base == tc->sym)
                     error("inherits from duplicate interface %s", b2->base->toChars());
             }
@@ -466,7 +466,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     interfaces_dim = baseclasses->dim;
-    interfaces = (BaseClass **)baseclasses->data;
+    interfaces = baseclasses->tdata();
 
 
     if (baseClass)
@@ -479,7 +479,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         // Copy vtbl[] from base class
         vtbl.setDim(baseClass->vtbl.dim);
-        memcpy(vtbl.data, baseClass->vtbl.data, sizeof(void *) * vtbl.dim);
+        memcpy(vtbl.tdata(), baseClass->vtbl.tdata(), sizeof(void *) * vtbl.dim);
 
         // Inherit properties from base class
         com = baseClass->isCOMclass();
@@ -502,7 +502,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = (*members)[i];
             s->addMember(sc, this, 1);
         }
 
@@ -611,11 +611,13 @@ void ClassDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members_dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = (*members)[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
-        if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
+        if (s->isEnumDeclaration() ||
+            (s->isAggregateDeclaration() && s->ident) ||
+            s->isTemplateMixin())
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc);
@@ -623,13 +625,14 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     for (size_t i = 0; i < members_dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = (*members)[i];
         s->semantic(sc);
     }
 
-    if (sizeok == 2)
-    {   // semantic() failed because of forward references.
+    if (sizeok == 2)            // failed due to forward references
+    {   // semantic() failed due to forward references
         // Unwind what we did, and defer it for later
+
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
@@ -700,7 +703,7 @@ void ClassDeclaration::semantic(Scope *sc)
     // Allocate instance of each new interface
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
-        BaseClass *b = (BaseClass *)vtblInterfaces->data[i];
+        BaseClass *b = (*vtblInterfaces)[i];
         unsigned thissize = PTRSIZE;
 
         alignmember(structalign, thissize, &sc->offset);
@@ -1182,12 +1185,12 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (sc->stc & STCdeprecated)
     {
-        isdeprecated = 1;
+        isdeprecated = true;
     }
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (BaseClass *)baseclasses->data[0];
+    {   BaseClass *b = (*baseclasses)[0];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
 
@@ -1317,8 +1320,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->offset = PTRSIZE * 2;
     inuse++;
     for (size_t i = 0; i < members->dim; i++)
-    {
-        Dsymbol *s = (*members)[i];
+    {    Dsymbol *s = (*members)[i];
         s->semantic(sc);
     }
     inuse--;
