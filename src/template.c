@@ -3883,6 +3883,7 @@ void TemplateValueParameter::semantic(Scope *sc)
             error(loc, "arithmetic/string type expected for value-parameter, not %s", valType->toChars());
     }
 
+#if 0   // defer semantic analysis to arg match
     if (specValue)
     {   Expression *e = specValue;
 
@@ -3895,7 +3896,6 @@ void TemplateValueParameter::semantic(Scope *sc)
         //e->toInteger();
     }
 
-#if 0   // defer semantic analysis to arg match
     if (defaultValue)
     {   Expression *e = defaultValue;
 
@@ -3990,7 +3990,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
         Expression *e = specValue;
 
         e = e->semantic(sc);
-        e = e->implicitCastTo(sc, valType);
+        e = e->implicitCastTo(sc, vt);
         e = e->optimize(WANTvalue | WANTinterpret);
 
         ei = ei->syntaxCopy();
