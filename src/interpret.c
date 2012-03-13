@@ -215,7 +215,7 @@ VarDeclaration *findParentVar(Expression *e, Expression *thisval);
 bool needToCopyLiteral(Expression *expr);
 Expression *copyLiteral(Expression *e);
 Expression *paintTypeOntoLiteral(Type *type, Expression *lit);
-Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2);
+Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *scrubReturnValue(Loc loc, Expression *e);
@@ -913,13 +913,16 @@ uinteger_t resolveArrayLength(Expression *e)
 }
 
 // As Equal, but resolves slices before comparing
-Expression *ctfeEqual(enum TOK op, Type *type, Expression *e1, Expression *e2)
+Expression *ctfeEqual(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
 {
     if (e1->op == TOKslice)
         e1 = resolveSlice(e1);
     if (e2->op == TOKslice)
         e2 = resolveSlice(e2);
-    return Equal(op, type, e1, e2);
+    Expression *e = Equal(op, type, e1, e2);
+    if (e == EXP_CANT_INTERPRET)
+        error(loc, "cannot evaluate %s==%s at compile time", e1->toChars(), e2->toChars());
+    return e;
 }
 
 Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
@@ -1384,7 +1387,7 @@ Expression *SwitchStatement::interpret(InterState *istate)
             Expression * caseExp = cs->exp->interpret(istate);
             if (exceptionOrCantInterpret(caseExp))
                 return caseExp;
-            e = ctfeEqual(TOKequal, Type::tint32, econdition, caseExp);
+            e = ctfeEqual(caseExp->loc, TOKequal, Type::tint32, econdition, caseExp);
             if (exceptionOrCantInterpret(e))
                 return e;
             if (e->isBool(TRUE))
@@ -2285,7 +2288,7 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
             ekey = resolveSlice(ekey);
         for (size_t j = i; j < keysx->dim; j++)
         {   Expression *ekey2 = keysx->tdata()[j];
-            Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, ekey2);
+            Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, ekey2);
             if (ex == EXP_CANT_INTERPRET)
                 goto Lerr;
             if (ex->isBool(TRUE))       // if a match
@@ -2985,7 +2988,7 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae, Expressi
     for (size_t j = valuesx->dim; j; )
     {   j--;
         Expression *ekey = aae->keys->tdata()[j];
-        Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, index);
+        Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, index);
         if (exceptionOrCantInterpret(ex))
             return ex;
         if (ex->isBool(TRUE))
@@ -3833,7 +3836,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     indx = resolveSlice(indx);
 
                 // Look up this index in it up in the existing AA, to get the next level of AA.
-                AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(existingAA, indx);
+                AssocArrayLiteralExp *newAA = (AssocArrayLiteralExp *)findKeyInAA(loc, existingAA, indx);
                 if (exceptionOrCantInterpret(newAA))
                     return newAA;
                 if (!newAA)
@@ -4086,7 +4089,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
             {
                 IndexExp *ix = (IndexExp *)aggregate;
-                aggregate = findKeyInAA((AssocArrayLiteralExp *)ix->e1, ix->e2);
+                aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
                 if (!aggregate)
                 {
                     error("key %s not found in associative array %s",
@@ -4262,7 +4265,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
             {
                 IndexExp *ix = (IndexExp *)aggregate;
-                aggregate = findKeyInAA((AssocArrayLiteralExp *)ix->e1, ix->e2);
+                aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
                 if (!aggregate)
                 {
                     error("key %s not found in associative array %s",
@@ -4962,7 +4965,7 @@ Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
  *  Return ae[e2] if present, or NULL if not found.
  *  Return EXP_CANT_INTERPRET on error.
  */
-Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
+Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2)
 {
     /* Search the keys backwards, in case there are duplicate keys
      */
@@ -4970,13 +4973,9 @@ Expression *findKeyInAA(AssocArrayLiteralExp *ae, Expression *e2)
     {
         i--;
         Expression *ekey = ae->keys->tdata()[i];
-        Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, e2);
+        Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, e2);
         if (ex == EXP_CANT_INTERPRET)
-        {
-            e2->error("cannot evaluate %s==%s at compile time",
-                ekey->toChars(), e2->toChars());
             return ex;
-        }
         if (ex->isBool(TRUE))
         {
             return ae->values->tdata()[i];
@@ -5109,7 +5108,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     {
         if (e2->op == TOKslice)
             e2 = resolveSlice(e2);
-        e = findKeyInAA((AssocArrayLiteralExp *)e1, e2);
+        e = findKeyInAA(loc, (AssocArrayLiteralExp *)e1, e2);
         if (!e)
         {
             error("key %s not found in associative array %s",
@@ -5313,7 +5312,7 @@ Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (e1->op == TOKslice)
         e1 = resolveSlice(e1);
-    e = findKeyInAA((AssocArrayLiteralExp *)e2, e1);
+    e = findKeyInAA(loc, (AssocArrayLiteralExp *)e2, e1);
     if (exceptionOrCantInterpret(e))
         return e;
     if (!e)
@@ -5862,7 +5861,7 @@ Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
     size_t removed = 0;
     for (size_t j = 0; j < valuesx->dim; ++j)
     {   Expression *ekey = keysx->tdata()[j];
-        Expression *ex = ctfeEqual(TOKequal, Type::tbool, ekey, index);
+        Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, index);
         if (exceptionOrCantInterpret(ex))
             return ex;
         if (ex->isBool(TRUE))
