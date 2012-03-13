@@ -213,7 +213,7 @@ L63:
 
 #else
 
-int binary(const char *p, const char __near * __near *table,int high)
+int binary(const char *p, const char ** table,int high)
 { int low,mid;
   signed char cond;
   char cp;
