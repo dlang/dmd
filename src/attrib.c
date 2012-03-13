@@ -47,6 +47,24 @@ Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     return decl;
 }
 
+int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
+            if (s)
+            {
+                if (s->apply(fp, param))
+                    return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     int m = 0;
@@ -246,6 +264,7 @@ void AttribDeclaration::toObjFile(int multiobj)
 
 int AttribDeclaration::cvMember(unsigned char *p)
 {
+    assert(0);
     int nwritten = 0;
     int n;
     Dsymbols *d = include(NULL, NULL);

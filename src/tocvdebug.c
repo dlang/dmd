@@ -1,5 +1,5 @@
 
-// Copyright (c) 2004-2011 by Digital Mars
+// Copyright (c) 2004-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -281,6 +281,34 @@ void EnumDeclaration::toDebug()
     }
 }
 
+// Closure variables for Lambda cv_mem_count
+struct CvMemberCount
+{
+    unsigned nfields;
+    unsigned fnamelen;
+};
+
+// Lambda function
+int cv_mem_count(Dsymbol *s, void *param)
+{   CvMemberCount *pmc = (CvMemberCount *)param;
+
+    int nwritten = s->cvMember(NULL);
+    if (nwritten)
+    {
+        pmc->fnamelen += nwritten;
+        pmc->nfields++;
+    }
+    return 0;
+}
+
+// Lambda function
+int cv_mem_p(Dsymbol *s, void *param)
+{
+    unsigned char **pp = (unsigned char **)param;
+    *pp += s->cvMember(*pp);
+    return 0;
+}
+
 
 void StructDeclaration::toDebug()
 {
@@ -354,24 +382,18 @@ void StructDeclaration::toDebug()
         return /*typidx*/;
     }
 
-    // Compute the number of fields, and the length of the fieldlist record
-    nfields = 0;
-    fnamelen = 2;
+    // Compute the number of fields (nfields), and the length of the fieldlist record (fnamelen)
+    CvMemberCount mc;
+    mc.nfields = 0;
+    mc.fnamelen = 2;
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = (*members)[i];
+        s->apply(&cv_mem_count, &mc);
+    }
+    nfields = mc.nfields;
+    fnamelen = mc.fnamelen;
 
     count = nfields;
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
-        int nwritten;
-
-        nwritten = s->cvMember(NULL);
-        if (nwritten)
-        {
-            fnamelen += nwritten;
-            nfields++;
-            count++;
-        }
-    }
-
     TOWORD(d->data + 2,count);
     TOWORD(d->data + 6,property);
 
@@ -383,9 +405,8 @@ void StructDeclaration::toDebug()
     TOWORD(p,LF_FIELDLIST);
     p += 2;
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
-
-        p += s->cvMember(p);
+    {   Dsymbol *s = (*members)[i];
+        s->apply(&cv_mem_p, &p);
     }
 
     //dbg_printf("fnamelen = %d, p-dt->data = %d\n",fnamelen,p-dt->data);
@@ -516,32 +537,25 @@ void ClassDeclaration::toDebug()
         return /*typidx*/;
     }
 
-    // Compute the number of fields, and the length of the fieldlist record
-    nfields = 0;
-    fnamelen = 2;
-
+    // Compute the number of fields (nfields), and the length of the fieldlist record (fnamelen)
+    CvMemberCount mc;
+    mc.nfields = 0;
+    mc.fnamelen = 2;
     // Add in base classes
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *bc = baseclasses->tdata()[i];
+    {   BaseClass *bc = (*baseclasses)[i];
 
-        nfields++;
-        fnamelen += 6 + cv4_numericbytes(bc->offset);
+        mc.nfields++;
+        mc.fnamelen += 6 + cv4_numericbytes(bc->offset);
     }
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = (*members)[i];
+        s->apply(&cv_mem_count, &mc);
+    }
+    nfields = mc.nfields;
+    fnamelen = mc.fnamelen;
 
     count = nfields;
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
-        int nwritten;
-
-        nwritten = s->cvMember(NULL);
-        if (nwritten)
-        {
-            fnamelen += nwritten;
-            nfields++;
-            count++;
-        }
-    }
-
     TOWORD(d->data + 2,count);
     TOWORD(d->data + 6,property);
 
@@ -555,7 +569,7 @@ void ClassDeclaration::toDebug()
 
     // Add in base classes
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *bc = baseclasses->tdata()[i];
+    {   BaseClass *bc = (*baseclasses)[i];
         idx_t typidx;
         unsigned attribute;
 
@@ -572,12 +586,9 @@ void ClassDeclaration::toDebug()
         p += cv4_numericbytes(bc->offset);
     }
 
-
-
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
-
-        p += s->cvMember(p);
+    {   Dsymbol *s = (*members)[i];
+        s->apply(&cv_mem_p, &p);
     }
 
     //dbg_printf("fnamelen = %d, p-dt->data = %d\n",fnamelen,p-dt->data);
