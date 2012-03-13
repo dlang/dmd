@@ -6875,8 +6875,8 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 #endif
     Expression *eleft;
     Expression *e = new DotIdExp(loc, e1, ti->name);
-L1:
     e = e->semantic(sc);
+L1:
     if (e->op == TOKerror)
         return e;
     if (e->op == TOKdottd)
@@ -6962,6 +6962,9 @@ L1:
         else
             goto Lerr;
 
+        e = e->semantic(sc);
+        if (e == de)
+            goto Lerr;
         goto L1;
     }
 Lerr:
