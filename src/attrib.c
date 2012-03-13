@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -47,6 +47,24 @@ Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     return decl;
 }
 
+int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
+            if (s)
+            {
+                if (s->apply(fp, param))
+                    return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     int m = 0;
@@ -54,8 +72,8 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
     if (d)
     {
-        for (unsigned i = 0; i < d->dim; i++)
-        {   Dsymbol *s = d->tdata()[i];
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
             //printf("\taddMember %s to %s\n", s->toChars(), sd->toChars());
             m |= s->addMember(sc, sd, m | memnum);
         }
@@ -85,8 +103,8 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
             newsc->explicitProtection = explicitProtection;
             newsc->structalign = structalign;
         }
-        for (unsigned i = 0; i < decl->dim; i++)
-        {   Dsymbol *s = decl->tdata()[i];
+        for (size_t i = 0; i < decl->dim; i++)
+        {   Dsymbol *s = (*decl)[i];
 
             s->setScope(newsc); // yes, the only difference from semanticNewSc()
         }
@@ -120,8 +138,8 @@ void AttribDeclaration::semanticNewSc(Scope *sc,
             newsc->explicitProtection = explicitProtection;
             newsc->structalign = structalign;
         }
-        for (unsigned i = 0; i < decl->dim; i++)
-        {   Dsymbol *s = decl->tdata()[i];
+        for (size_t i = 0; i < decl->dim; i++)
+        {   Dsymbol *s = (*decl)[i];
 
             s->semantic(newsc);
         }
@@ -142,7 +160,7 @@ void AttribDeclaration::semantic(Scope *sc)
     {
         for (size_t i = 0; i < d->dim; i++)
         {
-            Dsymbol *s = d->tdata()[i];
+            Dsymbol *s = (*d)[i];
 
             s->semantic(sc);
         }
@@ -156,7 +174,7 @@ void AttribDeclaration::semantic2(Scope *sc)
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = d->tdata()[i];
+        {   Dsymbol *s = (*d)[i];
             s->semantic2(sc);
         }
     }
@@ -169,7 +187,7 @@ void AttribDeclaration::semantic3(Scope *sc)
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = d->tdata()[i];
+        {   Dsymbol *s = (*d)[i];
             s->semantic3(sc);
         }
     }
@@ -181,8 +199,8 @@ void AttribDeclaration::inlineScan()
 
     if (d)
     {
-        for (unsigned i = 0; i < d->dim; i++)
-        {   Dsymbol *s = d->tdata()[i];
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
             //printf("AttribDeclaration::inlineScan %s\n", s->toChars());
             s->inlineScan();
         }
@@ -198,8 +216,8 @@ void AttribDeclaration::addComment(unsigned char *comment)
 
         if (d)
         {
-            for (unsigned i = 0; i < d->dim; i++)
-            {   Dsymbol *s = d->tdata()[i];
+            for (size_t i = 0; i < d->dim; i++)
+            {   Dsymbol *s = (*d)[i];
                 //printf("AttribDeclaration::addComment %s\n", s->toChars());
                 s->addComment(comment);
             }

@@ -543,6 +543,11 @@ int Dsymbol::needThis()
     return FALSE;
 }
 
+int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
+{
+    return (*fp)(this, param);
+}
+
 int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("Dsymbol::addMember('%s')\n", toChars());
