@@ -6959,8 +6959,12 @@ L1:
         {   TemplateExp *te = (TemplateExp *) de->e2;
             e = new DotTemplateExp(loc,de->e1,te->td);
         }
+        else
+            goto Lerr;
+
         goto L1;
     }
+Lerr:
     error("%s isn't a template", e->toChars());
     return new ErrorExp();
 }
