@@ -130,6 +130,24 @@ public:
 
     unittest
     {
+        //To verify that an lvalue isn't required.
+        T copy(T)(T duration)
+        {
+            return duration;
+        }
+
+        foreach(T; _TypeTuple!(Duration, const Duration, immutable Duration))
+        {
+            foreach(U; _TypeTuple!(Duration, const Duration, immutable Duration))
+            {
+                T t = 42;
+                U u = t;
+                assert(t == u);
+                assert(copy(t) == u);
+                assert(t == copy(u));
+            }
+        }
+
         foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
         {
             foreach(E; _TypeTuple!(Duration, const Duration, immutable Duration))
@@ -142,6 +160,24 @@ public:
 
                 assert((cast(D)Duration(12)).opCmp(cast(E)Duration(10)) > 0);
                 assert((cast(D)Duration(12)).opCmp(cast(E)Duration(-12)) > 0);
+
+                assert(copy(cast(D)Duration(12)).opCmp(cast(E)Duration(12)) == 0);
+                assert(copy(cast(D)Duration(-12)).opCmp(cast(E)Duration(-12)) == 0);
+
+                assert(copy(cast(D)Duration(10)).opCmp(cast(E)Duration(12)) < 0);
+                assert(copy(cast(D)Duration(-12)).opCmp(cast(E)Duration(12)) < 0);
+
+                assert(copy(cast(D)Duration(12)).opCmp(cast(E)Duration(10)) > 0);
+                assert(copy(cast(D)Duration(12)).opCmp(cast(E)Duration(-12)) > 0);
+
+                assert((cast(D)Duration(12)).opCmp(copy(cast(E)Duration(12))) == 0);
+                assert((cast(D)Duration(-12)).opCmp(copy(cast(E)Duration(-12))) == 0);
+
+                assert((cast(D)Duration(10)).opCmp(copy(cast(E)Duration(12))) < 0);
+                assert((cast(D)Duration(-12)).opCmp(copy(cast(E)Duration(12))) < 0);
+
+                assert((cast(D)Duration(12)).opCmp(copy(cast(E)Duration(10))) > 0);
+                assert((cast(D)Duration(12)).opCmp(copy(cast(E)Duration(-12))) > 0);
             }
         }
     }
@@ -1679,21 +1715,21 @@ struct TickDuration
 
 
     /++
-       operator overloading "=="
+       operator overloading "<, >, <=, >="
       +/
-    bool opEquals(const TickDuration rhs) @safe const pure nothrow
+    int opCmp(TickDuration rhs) @safe const pure nothrow
     {
-        return opEquals(rhs);
-    }
-
-    /// ditto
-    bool opEquals(ref const TickDuration rhs) @safe const pure nothrow
-    {
-        return length == rhs.length;
+        return length < rhs.length ? -1 : (length == rhs.length ? 0 : 1);
     }
 
     unittest
     {
+        //To verify that an lvalue isn't required.
+        T copy(T)(T duration)
+        {
+            return duration;
+        }
+
         foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
         {
             foreach(U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
@@ -1701,21 +1737,11 @@ struct TickDuration
                 T t = TickDuration.currSystemTick;
                 U u = t;
                 assert(t == u);
+                assert(copy(t) == u);
+                assert(t == copy(u));
             }
         }
-    }
 
-
-    /++
-       operator overloading "<, >, <=, >="
-      +/
-    int opCmp(ref const TickDuration rhs) @safe const pure nothrow
-    {
-        return length < rhs.length ? -1 : (length == rhs.length ? 0 : 1);
-    }
-
-    unittest
-    {
         foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
         {
             foreach(U; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
@@ -1726,6 +1752,16 @@ struct TickDuration
                 assert(t <= t);
                 assert(u > t);
                 assert(u >= u);
+
+                assert(copy(t) < u);
+                assert(copy(t) <= t);
+                assert(copy(u) > t);
+                assert(copy(u) >= u);
+
+                assert(t < copy(u));
+                assert(t <= copy(t));
+                assert(u > copy(t));
+                assert(u >= copy(u));
             }
         }
     }
