@@ -346,11 +346,11 @@ inline enum_TK stoken() { return toklist ? stokenx() : rtoken(1); }
 
 void token_init(void);
 void removext(void);
-void __near comment(void);
-void __near cppcomment(void);
+void comment(void);
+void cppcomment(void);
 char *combinestrings(targ_size_t *plen);
 char *combinestrings(targ_size_t *plen, tym_t *pty);
-void __near inident(void);
+void inident(void);
 void inidentX(char *p);
 unsigned comphash(const char *p);
 int insertSpace(unsigned char xclast, unsigned char xcnext);
@@ -368,9 +368,9 @@ void token_term(void);
 /* from pragma.c */
 //enum_TK ptoken(void);
 void pragma_process();
-int __near pragma_search(char *id);
-macro_t * __near macfind(void);
-void __near listident(void);
+int pragma_search(char *id);
+macro_t * macfind(void);
+void listident(void);
 void pragma_term(void);
 macro_t *defmac(const char *name , const char *text);
 int pragma_defined(void);

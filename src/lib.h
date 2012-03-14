@@ -49,7 +49,7 @@ struct Library
     int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
     void WriteLibToBuffer(OutBuffer *libbuf);
 
-    void error(char *format, ...)
+    void error(const char *format, ...)
     {
         Loc loc;
         if (libfile)

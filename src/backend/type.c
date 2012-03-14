@@ -415,7 +415,7 @@ type_count_free()
  * Initialize type package.
  */
 
-STATIC type * __near type_allocbasic(tym_t ty)
+STATIC type * type_allocbasic(tym_t ty)
 {   type *t;
 
     t = type_alloc(ty);

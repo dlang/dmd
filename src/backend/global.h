@@ -515,7 +515,7 @@ Symbol *symboldata(targ_size_t offset,tym_t ty);
 int dom(block *A , block *B);
 unsigned revop(unsigned op);
 unsigned invrel(unsigned op);
-int binary(const char *p, const char __near * __near *tab, int high);
+int binary(const char *p, const char ** tab, int high);
 
 /* go.c */
 void go_term(void);

@@ -132,7 +132,7 @@ struct OPTABLE
 {
     unsigned char tokn;
     unsigned char oper;
-    char __near *string;
+    char *string;
     char *pretty;
 }
 #endif
