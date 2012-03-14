@@ -322,6 +322,7 @@ const char *LinkageToChars(enum LINK linkage)
 
 
 void JsonProperty(OutBuffer *buf, const char *name, Type *type);
+void JsonProperty(OutBuffer *buf, const char *name, Parameters *parameters);
 
 void JsonProperties(OutBuffer *buf, Module *module)
 {
@@ -407,6 +408,7 @@ void JsonProperties(OutBuffer *buf, TypeFunction *type)
     JsonProperty(buf, "linkage", LinkageToChars(type->linkage));
         
     JsonProperty(buf, "returnType", type->next);
+    JsonProperty(buf, "parameters", type->parameters);
 }
 
 void JsonProperties(OutBuffer *buf, TypeDelegate *type)
@@ -682,6 +684,31 @@ void JsonProperty(OutBuffer *buf, const char *name, Type *type)
 
     JsonObjectEnd(buf);
 }
+
+void JsonProperty(OutBuffer *buf, const char *name, Parameters *parameters)
+{
+    JsonPropertyStart(buf, name);
+    JsonArrayStart(buf);
+
+    for (size_t i = 0; i < parameters->dim; i++)
+    {   Parameter *p = parameters->tdata()[i];
+        JsonObjectStart(buf);
+
+        JsonProperty(buf, Pname, p->ident->toChars());
+
+        JsonProperty(buf, Ptype, p->type);
+
+        
+        if (p->defaultArg)
+            JsonProperty(buf, "default", p->defaultArg->toChars());
+
+
+        JsonObjectEnd(buf);
+    }
+
+    JsonArrayEnd(buf);
+}
+
 
 
 void Dsymbol::toJsonBuffer(OutBuffer *buf)
