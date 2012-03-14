@@ -467,7 +467,8 @@ void JsonOut::properties(TypeFunction *type)
     property("linkage", LinkageToChars(type->linkage));
         
     property("returnType", type->next);
-    property("parameters", type->parameters);
+    if (type->parameters)
+        property("parameters", type->parameters);
 }
 
 void JsonOut::properties(TypeDelegate *type)
@@ -764,7 +765,8 @@ void JsonOut::property(const char *name, Parameters *parameters)
     {   Parameter *p = (*parameters)[i];
         objectStart();
 
-        property("name", p->ident->toChars());
+        if (p->ident)
+            property("name", p->ident->toChars());
 
         property("type", p->type);
 
