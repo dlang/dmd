@@ -149,6 +149,19 @@ void test3382()
 }
 
 /*******************************************/
+// 7703
+void f7703(T)(T a) { }
+
+void test7703()
+{
+    int x;
+    x.f7703;        // accepted
+    x.f7703();      // accepted
+    x.f7703!int;    // rejected -- "f(x) isn't a template"
+    x.f7703!int();  // accepted
+}
+
+/*******************************************/
 
 void main()
 {
@@ -156,4 +169,5 @@ void main()
     test2();
     test682();
     test3382();
+    test7703();
 }
