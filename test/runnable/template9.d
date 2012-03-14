@@ -307,7 +307,7 @@ void foo2579(T)(T delegate(in Object) dlg)
 
 void test2579()
 {
-    foo2579( (in Object) { return 15; } );
+    foo2579( (in Object o) { return 15; } );
 }
 
 /**********************************/
