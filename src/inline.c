@@ -190,6 +190,8 @@ int lambdaInlineCost(Expression *e, void *param)
 
 int expressionInlineCost(Expression *e, InlineCostState *ics)
 {
+    //printf("expressionInlineCost()\n");
+    //e->dump(0);
     ICS2 ics2;
     ics2.cost = 0;
     ics2.ics = ics;
@@ -324,6 +326,7 @@ struct InlineDoState
     Dsymbols from;      // old Dsymbols
     Dsymbols to;        // parallel array of new Dsymbols
     Dsymbol *parent;    // new parent
+    FuncDeclaration *fd; // function being inlined (old parent)
 };
 
 /* -------------------------------------------------------------------- */
@@ -1457,6 +1460,9 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     if (
         !fbody ||
         ident == Id::ensure ||  // ensure() has magic properties the inliner loses
+        (ident == Id::require &&             // require() has magic properties too
+         toParent()->isFuncDeclaration() &&  // see bug 7699
+         toParent()->isFuncDeclaration()->needThis()) ||
         !hdrscan &&
         (
 #if 0
@@ -1565,6 +1571,7 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
 
     memset(&ids, 0, sizeof(ids));
     ids.parent = iss->fd;
+    ids.fd = this;
 
     if (ps)
         as = new Statements();
