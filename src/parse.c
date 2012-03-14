@@ -1377,10 +1377,15 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         error("scope cannot be ref or out");
 
                     Token *t;
+#if 1
+                    if (tpl && !stc && token.value == TOKidentifier &&
+                        (t = peek(&token), (t->value == TOKcomma || t->value == TOKrparen)))
+#else
                     if (tpl && token.value == TOKidentifier &&
                         (t = peek(&token), (t->value == TOKcomma ||
                                             t->value == TOKrparen ||
                                             t->value == TOKdotdotdot)))
+#endif
                     {   Identifier *id = Lexer::uniqueId("__T");
                         at = new TypeIdentifier(loc, id);
                         if (!*tpl)

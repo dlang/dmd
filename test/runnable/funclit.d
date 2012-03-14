@@ -491,6 +491,7 @@ void test7650()
 
 void test7705()
 {
+/+
     void foo1(void delegate(ref int ) dg){ int x=10; dg(x); }
     foo1((ref x){ pragma(msg, typeof(x)); assert(x == 10); });
     static assert(!__traits(compiles, foo1((x){}) ));
@@ -500,6 +501,7 @@ void test7705()
 
     void foo3(void delegate(int[]...) dg){ dg(1, 2, 3); }
     foo3((x ...){ pragma(msg, typeof(x)); assert(x == [1,2,3]); });
++/
 }
 
 /***************************************************/
