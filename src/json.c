@@ -790,7 +790,7 @@ void Dsymbol::toJson(JsonOut *json)
 {
     json->objectStart();
 
-    json->property("unknown", "dsymbol");
+    //json->property("unknown", "dsymbol");
 
     json->property("kind", kind());
 
@@ -868,14 +868,9 @@ void ConditionalDeclaration::toJson(JsonOut *json)
 }
 
 
-void InvariantDeclaration::toJson(JsonOut *json)  { }
-void DtorDeclaration::toJson(JsonOut *json)       { }
-void StaticCtorDeclaration::toJson(JsonOut *json) { }
-void StaticDtorDeclaration::toJson(JsonOut *json) { }
 void ClassInfoDeclaration::toJson(JsonOut *json)  { }
 void ModuleInfoDeclaration::toJson(JsonOut *json) { }
 void TypeInfoDeclaration::toJson(JsonOut *json)   { }
-void UnitTestDeclaration::toJson(JsonOut *json)   { }
 #if DMDV2
 void PostBlitDeclaration::toJson(JsonOut *json)   { }
 #endif
@@ -912,7 +907,7 @@ void Declaration::toJson(JsonOut *json)
 {
     json->objectStart();
 
-    json->property("unknown", "declaration");
+    //json->property("unknown", "declaration");
 
     JsonCommonProperties(json, this);
 

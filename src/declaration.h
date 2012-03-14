@@ -779,7 +779,6 @@ struct DtorDeclaration : FuncDeclaration
     int addPostInvariant();
     int overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
 };
@@ -796,7 +795,6 @@ struct StaticCtorDeclaration : FuncDeclaration
     int addPostInvariant();
     bool hasStaticCtorOrDtor();
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
@@ -826,7 +824,6 @@ struct StaticDtorDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
@@ -852,7 +849,6 @@ struct InvariantDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
@@ -868,7 +864,6 @@ struct UnitTestDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJson(JsonOut *json);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
 };
