@@ -335,7 +335,7 @@ void JsonProperties(OutBuffer *buf, Module *module)
             JsonPropertyStart(buf, "package");
             JsonArrayStart(buf);
             for (size_t i = 0; i < module->md->packages->dim; i++)
-            {   Identifier *pid = module->md->packages->tdata()[i];
+            {   Identifier *pid = (*module->md->packages)[i];
 
                 JsonString(buf, pid->toChars());
                 buf->writestring(", ");
@@ -422,7 +422,7 @@ void JsonProperties(OutBuffer *buf, TypeQualified *type) // ident.ident.ident.et
     JsonArrayStart(buf);
 
     for (size_t i = 0; i < type->idents.dim; i++)
-    {   Identifier *ident = type->idents.tdata()[i];
+    {   Identifier *ident = (*type->idents)[i];
         JsonString(buf, ident->toChars());
         buf->writestring(", ");
     }
@@ -691,7 +691,7 @@ void JsonProperty(OutBuffer *buf, const char *name, Parameters *parameters)
     JsonArrayStart(buf);
 
     for (size_t i = 0; i < parameters->dim; i++)
-    {   Parameter *p = parameters->tdata()[i];
+    {   Parameter *p = (*parameters)[i];
         JsonObjectStart(buf);
 
         JsonProperty(buf, Pname, p->ident->toChars());
@@ -728,6 +728,23 @@ void Module::toJsonBuffer(OutBuffer *buf)
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
 
+    JsonPropertyStart(buf, "imports");
+    JsonArrayStart(buf);
+
+    for (size_t i = 0; i < aimports.dim; i++)
+    {   Module *m = aimports[i];
+        JsonObjectStart(buf);
+
+        JsonProperty(buf, Pname, m->toPrettyChars());
+
+        JsonProperty(buf, Pkind, m->kind());
+
+        JsonProperty(buf, Pfile, m->srcfile->toChars());
+
+        JsonObjectEnd(buf);
+    }
+
+    JsonArrayEnd(buf);
 
     JsonPropertyStart(buf, Pmembers);
     JsonArrayStart(buf);
