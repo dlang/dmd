@@ -325,6 +325,54 @@ const char *LinkageToChars(enum LINK linkage)
 }
 
 
+void JsonOut::propertyStorageClass(const char *name, StorageClass stc)
+{
+    propertyStart(name);
+    arrayStart();
+
+    if (stc & STCstatic) item("static");
+    if (stc & STCextern) item("extern");
+    if (stc & STCconst) item("const");
+    if (stc & STCfinal) item("final");
+    if (stc & STCabstract) item("abstract");
+    if (stc & STCparameter) item("parameter");
+    if (stc & STCfield) item("field");
+    if (stc & STCoverride) item("override");
+    if (stc & STCauto) item("auto");
+    if (stc & STCsynchronized) item("synchronized");
+    if (stc & STCdeprecated) item("deprecated");
+    if (stc & STCin) item("in");
+    if (stc & STCout) item("out");
+    if (stc & STClazy) item("lazy");
+    if (stc & STCforeach) item("foreach");
+    if (stc & STCcomdat) item("comdat");
+    if (stc & STCvariadic) item("variadic");
+    if (stc & STCctorinit) item("ctorinit");
+    if (stc & STCtemplateparameter) item("templateparameter");
+    if (stc & STCscope) item("scope");
+    if (stc & STCimmutable) item("immutable");
+    if (stc & STCref) item("ref");
+    if (stc & STCinit) item("init");
+    if (stc & STCmanifest) item("manifest");
+    if (stc & STCnodtor) item("nodtor");
+    if (stc & STCnothrow) item("nothrow");
+    if (stc & STCpure) item("pure");
+    if (stc & STCtls) item("tls");
+    if (stc & STCalias) item("alias");
+    if (stc & STCshared) item("shared");
+    if (stc & STCgshared) item("gshared");
+    if (stc & STCwild) item("wild");
+    if (stc & STCproperty) item("property");
+    if (stc & STCsafe) item("safe");
+    if (stc & STCtrusted) item("trusted");
+    if (stc & STCsystem) item("system");
+    if (stc & STCctfe) item("ctfe");
+    if (stc & STCdisable) item("disable");
+    if (stc & STCresult) item("result");
+    if (stc & STCnodefaultctor) item("nodefaultctor");
+
+    arrayEnd();
+}
 
 void JsonOut::properties(Module *module)
 {
@@ -377,6 +425,7 @@ void JsonOut::properties(Declaration *decl)
 {
     properties((Dsymbol *)decl);
 
+    propertyStorageClass("modifiers", decl->storage_class);
 }
 
 
@@ -513,6 +562,18 @@ void JsonOut::property(const char *name, Type *type)
     objectStart();
 
     property("raw", type->toChars());
+
+
+    propertyStart("modifiers");
+    arrayStart();
+
+    if (type->isConst()) item("const");
+
+    if (type->isImmutable()) item("immutable");
+
+    if (type->isShared()) item("shared");
+
+    arrayEnd();
 
 
     switch (type->ty)
@@ -707,6 +768,9 @@ void JsonOut::property(const char *name, Parameters *parameters)
 
         property("type", p->type);
 
+
+
+        propertyStorageClass("modifiers", p->storageClass);
         
         if (p->defaultArg)
             property("default", p->defaultArg->toChars());
