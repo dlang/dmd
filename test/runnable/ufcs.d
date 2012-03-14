@@ -16,6 +16,13 @@ int bar(S s, int n)     { return 2; }
 int baz(X)(X x)         { return 1; }
 int baz(X)(X x, int n)  { return 2; }
 
+int temp;
+ref int boo(int n)      { return temp; }
+ref int coo(int[] a)    { return temp; }
+ref int mar(S s)        { return temp; }
+
+ref int maz(X)(X x)     { return temp; }
+
 void test1()
 {
     int n;
@@ -42,6 +49,13 @@ void test1()
     assert(   bar(s, 2) == 2);      assert(   baz(s, 2) == 2);
     assert( s.bar(2)    == 2);      assert( s.baz(2)    == 2);
     assert((s.bar = 2)  == 2);      assert((s.baz = 2)  == 2);
+
+    assert((  boo(4) = 2) == 2);    assert((  maz(4) = 2) == 2);
+    assert((4.boo    = 2) == 2);    assert((4.maz    = 2) == 2);
+    assert((  coo(a) = 2) == 2);    assert((  maz(a) = 2) == 2);
+    assert((a.coo    = 2) == 2);    assert((a.maz    = 2) == 2);
+    assert((  mar(s) = 2) == 2);    assert((  maz(s) = 2) == 2);
+    assert((s.mar    = 2) == 2);    assert((s.maz    = 2) == 2);
 }
 
 int hoo(T)(int n)          { return 1; }
@@ -53,6 +67,13 @@ int var(T)(S s, int n)     { return 2; }
 
 int vaz(T, X)(X x)         { return 1; }
 int vaz(T, X)(X x, int n)  { return 2; }
+
+//int temp;
+ref int voo(T)(int n)      { return temp; }
+ref int woo(T)(int[] a)    { return temp; }
+ref int nar(T)(S s)        { return temp; }
+
+ref int naz(T, X)(X x)     { return temp; }
 
 void test2()
 {
@@ -80,6 +101,13 @@ void test2()
     assert(   var!int(s, 2) == 2);  assert(   vaz!int(s, 2) == 2);
     assert( s.var!int(2)    == 2);  assert( s.vaz!int(2)    == 2);
     assert((s.var!int = 2)  == 2);  assert((s.vaz!int = 2)  == 2);
+
+    assert((  voo!int(4) = 2) == 2);    assert((  naz!int(4) = 2) == 2);
+    assert((4.voo!int    = 2) == 2);    assert((4.naz!int    = 2) == 2);
+    assert((  woo!int(a) = 2) == 2);    assert((  naz!int(a) = 2) == 2);
+    assert((a.woo!int    = 2) == 2);    assert((a.naz!int    = 2) == 2);
+    assert((  nar!int(s) = 2) == 2);    assert((  naz!int(s) = 2) == 2);
+    assert((s.nar!int    = 2) == 2);    assert((s.naz!int    = 2) == 2);
 }
 
 /*******************************************/
@@ -149,6 +177,24 @@ void test3382()
 }
 
 /*******************************************/
+// 7670
+
+struct A7670
+{
+    double x;
+}
+@property ref double y7670(ref A7670 a)
+{
+    return a.x;
+}
+void test7670()
+{
+    A7670 a1;
+    a1.y7670() = 2.0; // OK
+    a1.y7670 = 2.0; // Error
+}
+
+/*******************************************/
 // 7703
 void f7703(T)(T a) { }
 
@@ -169,5 +215,6 @@ void main()
     test2();
     test682();
     test3382();
+    test7670();
     test7703();
 }

@@ -9844,6 +9844,8 @@ Expression *AssignExp::semantic(Scope *sc)
     /* With UFCS, e.f = value
      * Could mean:
      *      .f(e, value)
+     * or:
+     *      .f(e) = value
      */
     if (e1->op == TOKdotti)
     {
@@ -9863,8 +9865,21 @@ Expression *AssignExp::semantic(Scope *sc)
                 Expression *e;
                 e = new DotTemplateInstanceExp(loc, new IdentifierExp(loc, Id::empty),
                         dti->ti->name, dti->ti->tiargs);
+
+                Expression *ex = e->syntaxCopy();
+
                 e = new CallExp(loc, e, arguments);
-                return e->semantic(sc);
+                e = e->trySemantic(sc);
+                if (e)
+                    return e;
+
+                e = new CallExp(loc, ex, dti->e1);
+                e = e->trySemantic(sc);
+                if (!e)
+                {   error("not a property");
+                    return new ErrorExp();
+                }
+                e1 = e;
             }
         }
     }
@@ -9885,8 +9900,21 @@ Expression *AssignExp::semantic(Scope *sc)
 
                 Expression *e;
                 e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), die->ident);
+
+                Expression *ex = e->syntaxCopy();
+
                 e = new CallExp(loc, e, arguments);
-                return e->semantic(sc);
+                e = e->trySemantic(sc);
+                if (e)
+                    return e;
+
+                e = new CallExp(loc, ex, die->e1);
+                e = e->trySemantic(sc);
+                if (!e)
+                {   error("not a property");
+                    return new ErrorExp();
+                }
+                e1 = e;
             }
         }
     }
