@@ -1377,7 +1377,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         error("scope cannot be ref or out");
 
                     Token *t;
-#if 1
+#if 0
                     if (tpl && !stc && token.value == TOKidentifier &&
                         (t = peek(&token), (t->value == TOKcomma || t->value == TOKrparen)))
 #else
