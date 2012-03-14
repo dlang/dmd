@@ -5770,8 +5770,8 @@ Dsymbol *TemplateInstance::toAlias()
             unsigned offset = scope->offset;
             Scope *sc = scope;
             semantic(scope);
-            if (offset != sc->offset)
-                inst = NULL;            // trigger fwd ref error
+//            if (offset != sc->offset)
+//                inst = NULL;            // trigger fwd ref error
         }
         if (!inst)
         {   error("cannot resolve forward reference");
@@ -6208,6 +6208,22 @@ int TemplateMixin::oneMember(Dsymbol **ps, Identifier *ident)
     return Dsymbol::oneMember(ps, ident);
 }
 
+int TemplateMixin::apply(Dsymbol_apply_ft_t fp, void *param)
+{
+    if (members)
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            if (s)
+            {
+                if (s->apply(fp, param))
+                    return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int TemplateMixin::hasPointers()
 {
     //printf("TemplateMixin::hasPointers() %s\n", toChars());
@@ -6223,6 +6239,17 @@ int TemplateMixin::hasPointers()
             }
         }
     return 0;
+}
+
+void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
+{
+    if (members)
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            s->setFieldOffset(ad, poffset, isunion);
+        }
+    }
 }
 
 char *TemplateMixin::toChars()

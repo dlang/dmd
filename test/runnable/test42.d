@@ -4834,6 +4834,29 @@ class C3510 {
 
 /***************************************************/
 
+struct Array243(T) if (is(T == bool))
+{
+    struct Range
+    {
+        Array243!bool _outer;
+        ulong _a, _b, _c;
+	ulong _d;
+    }
+
+    Range opSlice()
+    {
+        return Range(this, 0, 3);
+    }
+
+}
+
+
+void test243() {
+    Array243!bool a;
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5083,6 +5106,7 @@ int main()
     test7502();
     test4820();
     test4820_2();
+    test243();
 
     writefln("Success");
     return 0;

@@ -78,7 +78,6 @@ Scope::Scope()
     this->parameterSpecialization = 0;
     this->callSuper = 0;
     this->flags = 0;
-    this->anonAgg = NULL;
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = NULL;
@@ -127,7 +126,6 @@ Scope::Scope(Scope *enclosing)
     this->parameterSpecialization = enclosing->parameterSpecialization;
     this->callSuper = enclosing->callSuper;
     this->flags = 0;
-    this->anonAgg = NULL;
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = enclosing->docbuf;

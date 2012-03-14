@@ -3760,7 +3760,10 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
         e = resolveProperties(sc, e);
         if (i >= nfields)
-        {   error("more initializers than fields of %s", sd->toChars());
+        {
+            for (size_t i = 0; i < sd->fields.dim; i++)
+                printf("[%d] = %s\n", i, sd->fields[i]->toChars());
+            error("more initializers than fields (%d) of %s", nfields, sd->toChars());
             return new ErrorExp();
         }
         Dsymbol *s = sd->fields.tdata()[i];
