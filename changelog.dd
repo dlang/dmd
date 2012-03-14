@@ -1,3 +1,10 @@
+$(VERSION 059, mmm dd, 2012, =================================================,
+
+    $(RUNTIMEBUGSFIXED
+$(LI $(BUGZILLA 7606): core.time.TickDuration opCmp accepts only lvalues)
+    )
+)
+
 $(VERSION 057, mmm dd, 2011, =================================================,
 
     $(RUNTIMEBUGSFIXED
