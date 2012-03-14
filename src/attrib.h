@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -33,6 +33,7 @@ struct AttribDeclaration : Dsymbol
 
     AttribDeclaration(Dsymbols *decl);
     virtual Dsymbols *include(Scope *sc, ScopeDsymbol *s);
+    int apply(Dsymbol_apply_ft_t fp, void *param);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void setScopeNewSc(Scope *sc,
         StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -57,6 +57,10 @@ struct Scope
     Statement *scontinue;       // enclosing statement that supports "continue"
     ForeachStatement *fes;      // if nested function for ForeachStatement, this is it
     unsigned offset;            // next offset to use in aggregate
+                                // This really shouldn't be a part of Scope, because it requires
+                                // semantic() to be done in the lexical field order. It should be
+                                // set in a pass after semantic() on all fields so they can be
+                                // semantic'd in any order.
     int inunion;                // we're processing members of a union
     int incontract;             // we're inside contract code
     int nofree;                 // set if shouldn't free it

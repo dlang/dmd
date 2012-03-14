@@ -109,6 +109,8 @@ enum PASS
     PASSobj,            // toObjFile() run
 };
 
+typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
+
 struct Dsymbol : Object
 {
     Identifier *ident;
@@ -146,6 +148,7 @@ struct Dsymbol : Object
     virtual const char *toPrettyChars();
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
+    virtual int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);

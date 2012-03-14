@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -520,7 +520,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             s->addMember(sc, this, 1);
         }
 
@@ -632,11 +632,14 @@ void ClassDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members_dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
+    {   Dsymbol *s = (*members)[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
-        if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
+        if (s->isEnumDeclaration() ||
+            (s->isAggregateDeclaration() && s->ident) ||
+            s->isTemplateMixin() ||
+            s->isAliasDeclaration())
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc);
@@ -644,7 +647,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     for (size_t i = 0; i < members_dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
+    {   Dsymbol *s = (*members)[i];
         s->semantic(sc);
     }
 
@@ -733,7 +736,7 @@ void ClassDeclaration::semantic(Scope *sc)
     // Allocate instance of each new interface
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
-        BaseClass *b = vtblInterfaces->tdata()[i];
+        BaseClass *b = (*vtblInterfaces)[i];
         unsigned thissize = PTRSIZE;
 
         alignmember(structalign, thissize, &sc->offset);
@@ -1022,7 +1025,7 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
     {
         for (size_t i = 0; i < vtbl->dim; i++)
         {
-            FuncDeclaration *fd = vtbl->tdata()[i]->isFuncDeclaration();
+            FuncDeclaration *fd = (*vtbl)[i]->isFuncDeclaration();
             if (!fd)
                 continue;               // the first entry might be a ClassInfo
 
@@ -1241,7 +1244,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = baseclasses->tdata()[0];
+    {   BaseClass *b = (*baseclasses)[0];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
 
@@ -1335,7 +1338,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     {   BaseClass *b = interfaces[i];
 
         // Skip if b has already appeared
-        for (int k = 0; k < i; k++)
+        for (size_t k = 0; k < i; k++)
         {
             if (b == interfaces[k])
                 goto Lcontinue;
@@ -1343,11 +1346,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         // Copy vtbl[] from base class
         if (b->base->vtblOffset())
-        {   int d = b->base->vtbl.dim;
+        {   size_t d = b->base->vtbl.dim;
             if (d > 1)
             {
                 vtbl.reserve(d - 1);
-                for (int j = 1; j < d; j++)
+                for (size_t j = 1; j < d; j++)
                     vtbl.push(b->base->vtbl.tdata()[j]);
             }
         }
@@ -1365,7 +1368,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = members->tdata()[i];
+        Dsymbol *s = (*members)[i];
         s->addMember(sc, this, 1);
     }
 

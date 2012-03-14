@@ -5747,7 +5747,7 @@ void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         {
             if (i)
                 buf->writeByte(',');
-            Object *oarg = args->tdata()[i];
+            Object *oarg = (*args)[i];
             ObjectToCBuffer(buf, hgs, oarg);
         }
         nest--;
@@ -5762,9 +5762,24 @@ Dsymbol *TemplateInstance::toAlias()
     printf("TemplateInstance::toAlias()\n");
 #endif
     if (!inst)
-    {   error("cannot resolve forward reference");
-        errors = 1;
-        return this;
+    {
+        // Maybe we can resolve it
+        if (scope)
+        {
+            /* Anything that affects scope->offset must be
+             * done in lexical order. Fwd ref error if it is affected, otherwise allow.
+             */
+            unsigned offset = scope->offset;
+            Scope *sc = scope;
+            semantic(scope);
+            if (offset != sc->offset)
+                inst = NULL;            // trigger fwd ref error
+        }
+        if (!inst)
+        {   error("cannot resolve forward reference");
+            errors = 1;
+            return this;
+        }
     }
 
     if (inst != this)
@@ -5994,11 +6009,11 @@ void TemplateMixin::semantic(Scope *sc)
             continue;
 
         for (size_t i = 0; i < tiargs->dim; i++)
-        {   Object *o = tiargs->tdata()[i];
+        {   Object *o = (*tiargs)[i];
             Type *ta = isType(o);
             Expression *ea = isExpression(o);
             Dsymbol *sa = isDsymbol(o);
-            Object *tmo = tm->tiargs->tdata()[i];
+            Object *tmo = (*tm->tiargs)[i];
             if (ta)
             {
                 Type *tmta = isType(tmo);
@@ -6062,10 +6077,8 @@ void TemplateMixin::semantic(Scope *sc)
     declareParameters(argscope);
 
     // Add members to enclosing scope, as well as this scope
-    for (unsigned i = 0; i < members->dim; i++)
-    {   Dsymbol *s;
-
-        s = members->tdata()[i];
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = (*members)[i];
         s->addMember(argscope, this, i);
         //sc->insert(s);
         //printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
@@ -6091,7 +6104,7 @@ void TemplateMixin::semantic(Scope *sc)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = members->tdata()[i];
+        Dsymbol *s = (*members)[i];
         s->semantic(sc2);
     }
 
@@ -6146,7 +6159,7 @@ void TemplateMixin::semantic2(Scope *sc)
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
 #if LOG
             printf("\tmember '%s', kind = '%s'\n", s->toChars(), s->kind());
 #endif
