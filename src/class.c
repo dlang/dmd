@@ -630,10 +630,31 @@ void ClassDeclaration::semantic(Scope *sc)
         s->semantic(sc);
     }
 
+    // Set the offsets of the fields and determine the size of the class
+
+    unsigned offset = structsize;
+    bool isunion = isUnionDeclaration() != NULL;
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = (*members)[i];
+        s->setFieldOffset(this, &offset, false);
+    }
+    sc->offset = structsize;
+
+    if (global.gag && global.gaggedErrors != errors)
+    {   // The type is no good, yet the error messages were gagged.
+        type = Type::terror;
+    }
+
     if (sizeok == 2)            // failed due to forward references
     {   // semantic() failed due to forward references
         // Unwind what we did, and defer it for later
 
+        for (size_t i = 0; i < fields.dim; i++)
+        {   Dsymbol *s = fields[i];
+            VarDeclaration *vd = s->isVarDeclaration();
+            if (vd)
+                vd->offset = 0;
+        }
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
@@ -653,7 +674,6 @@ void ClassDeclaration::semantic(Scope *sc)
 
     //printf("\tsemantic('%s') successful\n", toChars());
 
-    structsize = sc->offset;
     //members->print();
 
     /* Look for special member functions.
@@ -686,7 +706,6 @@ void ClassDeclaration::semantic(Scope *sc)
         members->push(ctor);
         ctor->addMember(sc, this, 1);
         *sc = scsave;   // why? What about sc->nofree?
-        sc->offset = structsize;
         ctor->semantic(sc);
         this->ctor = ctor;
         defaultCtor = ctor;
@@ -702,6 +721,7 @@ void ClassDeclaration::semantic(Scope *sc)
 #endif
 
     // Allocate instance of each new interface
+    sc->offset = structsize;
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
         BaseClass *b = (*vtblInterfaces)[i];
@@ -1319,6 +1339,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->explicitProtection = 0;
     structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
+    structsize = sc->offset;
     inuse++;
     for (size_t i = 0; i < members->dim; i++)
     {    Dsymbol *s = (*members)[i];
@@ -1415,7 +1436,7 @@ int InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
     for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *b = (BaseClass *)baseclasses->data[i];
+    {   BaseClass *b = baseclasses->tdata()[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
             return 0;
     }

@@ -4750,8 +4750,8 @@ Dsymbol *TemplateInstance::toAlias()
             unsigned offset = scope->offset;
             Scope *sc = scope;
             semantic(scope);
-            if (offset != sc->offset)
-                inst = NULL;            // trigger fwd ref error
+//            if (offset != sc->offset)
+//                inst = NULL;            // trigger fwd ref error
         }
         if (!inst)
         {   error("cannot resolve forward reference");
@@ -5163,7 +5163,7 @@ void TemplateMixin::semantic3(Scope *sc)
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = (Dsymbol *)members->data[i];
+            Dsymbol *s = members->tdata()[i];
             s->semantic3(sc);
         }
         sc = sc->pop();
@@ -5186,21 +5186,48 @@ int TemplateMixin::oneMember(Dsymbol **ps)
     return Dsymbol::oneMember(ps);
 }
 
+int TemplateMixin::apply(Dsymbol_apply_ft_t fp, void *param)
+{
+    if (members)
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            if (s)
+            {
+                if (s->apply(fp, param))
+                    return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int TemplateMixin::hasPointers()
 {
     //printf("TemplateMixin::hasPointers() %s\n", toChars());
 
     if (members)
-    for (size_t i = 0; i < members->dim; i++)
-    {
-            Dsymbol *s = (*members)[i];
-        //printf(" s = %s %s\n", s->kind(), s->toChars());
-        if (s->hasPointers())
+        for (size_t i = 0; i < members->dim; i++)
         {
-            return 1;
+            Dsymbol *s = (*members)[i];
+            //printf(" s = %s %s\n", s->kind(), s->toChars());
+            if (s->hasPointers())
+            {
+                return 1;
+            }
+        }
+    return 0;
+}
+
+void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
+{
+    if (members)
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            s->setFieldOffset(ad, poffset, isunion);
         }
     }
-    return 0;
 }
 
 char *TemplateMixin::toChars()
@@ -5220,7 +5247,7 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("mixin ");
 
     for (size_t i = 0; i < idents->dim; i++)
-    {   Identifier *id = (Identifier *)idents->data[i];
+    {   Identifier *id = idents->tdata()[i];
 
         if (i)
             buf->writeByte('.');

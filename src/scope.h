@@ -93,7 +93,6 @@ struct Scope
 #define SCOPEstaticif   2       // inside static if
 #define SCOPEfree       4       // is on free list
 
-    AnonymousAggregateDeclaration *anonAgg;     // for temporary analysis
 
     DocComment *lastdc;         // documentation comment for last symbol at this scope
     unsigned lastoffset;        // offset in docbuf of where to insert next dec

@@ -248,6 +248,7 @@ struct VarDeclaration : Declaration
 #else
     int nestedref;              // referenced by a lexically nested function
 #endif
+    unsigned short alignment;
     int ctorinit;               // it has been initialized in a ctor
     int onstack;                // 1: it has been allocated on the stack
                                 // 2: on stack, run destructor anyway
@@ -274,6 +275,7 @@ struct VarDeclaration : Declaration
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

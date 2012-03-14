@@ -717,6 +717,7 @@ VarDeclaration::VarDeclaration(Loc loc, Type *type, Identifier *id, Initializer 
 #if DMDV1
     nestedref = 0;
 #endif
+    alignment = 0;
     ctorinit = 0;
     aliassym = NULL;
     onstack = 0;
@@ -748,6 +749,7 @@ Dsymbol *VarDeclaration::syntaxCopy(Dsymbol *s)
         sv = new VarDeclaration(loc, type ? type->syntaxCopy() : NULL, ident, init);
         sv->storage_class = storage_class;
     }
+
     // Syntax copy for header file
     if (!htype)      // Don't overwrite original
     {   if (type)    // Make copy for both old and new instances
@@ -932,9 +934,7 @@ void VarDeclaration::semantic(Scope *sc)
     }
     else
     {
-        AggregateDeclaration *aad = sc->anonAgg;
-        if (!aad)
-            aad = parent->isAggregateDeclaration();
+        AggregateDeclaration *aad = parent->isAggregateDeclaration();
         if (aad)
         {
 #if DMDV2
@@ -947,7 +947,15 @@ void VarDeclaration::semantic(Scope *sc)
             }
             else
 #endif
-                aad->addField(sc, this);
+            {
+                storage_class |= STCfield;
+                alignment = sc->structalign;
+#if DMDV2
+                if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->noDefaultCtor ||
+                    tb->ty == Tclass  && ((TypeClass  *)tb)->sym->noDefaultCtor)
+                    aad->noDefaultCtor = TRUE;
+#endif
+            }
         }
 
         InterfaceDeclaration *id = parent->isInterfaceDeclaration();
@@ -1295,6 +1303,82 @@ void VarDeclaration::semantic2(Scope *sc)
         init = init->semantic(sc, type, WANTinterpret);
         inuse--;
     }
+}
+
+void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
+{
+    //printf("VarDeclaration::setFieldOffset(ad = %s) %s\n", ad->toChars(), toChars());
+
+    if (aliassym)
+    {   // If this variable was really a tuple, set the offsets for the tuple fields
+        TupleDeclaration *v2 = aliassym->isTupleDeclaration();
+        assert(v2);
+        for (size_t i = 0; i < v2->objects->dim; i++)
+        {   Object *o = (*v2->objects)[i];
+            assert(o->dyncast() == DYNCAST_EXPRESSION);
+            Expression *e = (Expression *)o;
+            assert(e->op == TOKdsymbol);
+            DsymbolExp *se = (DsymbolExp *)e;
+            se->s->setFieldOffset(ad, poffset, isunion);
+        }
+        return;
+    }
+
+    if (!(storage_class & STCfield))
+        return;
+    assert(!(storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
+
+    /* Fields that are tuples appear both as part of TupleDeclarations and
+     * as members. That means ignore them if they are already a field.
+     */
+    if (offset)
+        return;         // already a field
+    for (size_t i = 0; i < ad->fields.dim; i++)
+    {
+        if (ad->fields[i] == this)
+            return;     // already a field
+    }
+
+    // Check for forward referenced types which will fail the size() call
+    Type *t = type->toBasetype();
+    if (storage_class & STCref)
+    {   // References are the size of a pointer
+        t = Type::tvoidptr;
+    }
+    if (t->ty == Tstruct)
+    {   TypeStruct *ts = (TypeStruct *)t;
+#if DMDV2
+        if (ts->sym == ad)
+        {
+            ad->error("cannot have field %s with same struct type", toChars());
+        }
+#endif
+
+        if (ts->sym->sizeok != 1 && ts->sym->scope)
+            ts->sym->semantic(NULL);
+        if (ts->sym->sizeok != 1)
+        {
+            ad->sizeok = 2;         // cannot finish; flag as forward referenced
+            return;
+        }
+    }
+    if (t->ty == Tident)
+    {
+        ad->sizeok = 2;             // cannot finish; flag as forward referenced
+        return;
+    }
+
+    unsigned memsize      = t->size(loc);            // size of member
+    unsigned memalignsize = t->alignsize();          // size of member for alignment purposes
+    unsigned memalign     = t->memalign(alignment);  // alignment boundaries
+
+    offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, memalign,
+                &ad->structsize, &ad->alignsize, isunion);
+
+    //printf("\t%s: alignsize = %d\n", toChars(), alignsize);
+
+    //printf(" addField '%s' to '%s' at offset %d, size = %d\n", toChars(), ad->toChars(), offset, memsize);
+    ad->fields.push(this);
 }
 
 const char *VarDeclaration::kind()

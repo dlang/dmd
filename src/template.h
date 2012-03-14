@@ -338,7 +338,9 @@ struct TemplateMixin : TemplateInstance
     void inlineScan();
     const char *kind();
     int oneMember(Dsymbol **ps);
+    int apply(Dsymbol_apply_ft_t fp, void *param);
     int hasPointers();
+    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
