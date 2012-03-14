@@ -1486,6 +1486,9 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
     if (
         !fbody ||
         ident == Id::ensure ||  // ensure() has magic properties the inliner loses
+        (ident == Id::require &&             // require() has magic properties too
+         toParent()->isFuncDeclaration() &&  // see bug 7699
+         toParent()->isFuncDeclaration()->needThis()) ||
         !hdrscan &&
         (
 #if 0
