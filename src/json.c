@@ -792,6 +792,8 @@ void JsonCommonProperties(OutBuffer *buf, Declaration *decl)
 
     JsonProperty(buf, Ptype, decl->type);
 
+    if (decl->type != decl->originalType)
+        JsonProperty(buf, "originalType", decl->originalType);
 
     if (decl->comment)
         JsonProperty(buf, Pcomment, (const char *)decl->comment);
