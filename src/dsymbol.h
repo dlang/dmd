@@ -72,6 +72,7 @@ struct DeleteDeclaration;
 struct HdrGenState;
 struct OverloadSet;
 struct AA;
+struct JsonOut;
 #if TARGET_NET
 struct PragmaScope;
 #endif
@@ -165,7 +166,7 @@ struct Dsymbol : Object
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf);
-    virtual void toJsonBuffer(OutBuffer *buf);
+    virtual void toJson(JsonOut *json);
     virtual unsigned size(Loc loc);
     virtual int isforwardRef();
     virtual void defineRef(Dsymbol *s);

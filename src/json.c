@@ -11,57 +11,34 @@
 // This implements the JSON capability.
 
 #include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <ctype.h>
 #include <assert.h>
 
 #include "rmem.h"
-#include "root.h"
 
-#include "mars.h"
 #include "dsymbol.h"
-#include "macro.h"
 #include "template.h"
-#include "lexer.h"
 #include "aggregate.h"
 #include "declaration.h"
 #include "enum.h"
-#include "id.h"
 #include "module.h"
-#include "scope.h"
-#include "hdrgen.h"
 #include "json.h"
 #include "mtype.h"
 #include "attrib.h"
 #include "cond.h"
 
-const char Pname[] = "name";
-const char Pkind[] = "kind";
-const char Pfile[] = "file";
-const char Pline[] = "line";
-const char Ptype[] = "type";
-const char Pcomment[] = "comment";
-const char Pmembers[] = "members";
-const char Pprotection[] = "protection";
-const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
-
-void JsonRemoveComma(OutBuffer *buf);
-void JsonArrayStart(OutBuffer *buf);
-void JsonArrayEnd(OutBuffer *buf);
 
 void json_generate(Modules *modules)
 {   OutBuffer buf;
+    JsonOut json(&buf);
 
-    JsonArrayStart(&buf);
+    json.arrayStart();
     for (size_t i = 0; i < modules->dim; i++)
     {   Module *m = (*modules)[i];
         if (global.params.verbose)
             printf("json gen %s\n", m->toChars());
-        m->toJsonBuffer(&buf);
+        m->toJson(&json);
     }
-    JsonArrayEnd(&buf);
-    JsonRemoveComma(&buf);
+    json.arrayEnd();
 
     // Write buf to file
     char *arg = global.params.xfilename;
@@ -94,12 +71,8 @@ void json_generate(Modules *modules)
 }
 
 
-// Json helper functions
 
-// TODO: better solution than global variable?
-static int indentLevel = 0;
-
-void JsonIndent(OutBuffer *buf)
+void JsonOut::indent()
 {
     if (buf->offset >= 1 && 
         buf->data[buf->offset - 1] == '\n')
@@ -107,12 +80,18 @@ void JsonIndent(OutBuffer *buf)
             buf->writeByte('\t');
 }
 
-void JsonRemoveComma(OutBuffer *buf)
+void JsonOut::removeComma()
 {
     if (buf->offset >= 2 &&
         buf->data[buf->offset - 2] == ',' &&
         (buf->data[buf->offset - 1] == '\n' || buf->data[buf->offset - 1] == ' '))
         buf->offset -= 2;
+}
+
+void JsonOut::comma()
+{
+    if (indentLevel > 0)
+        buf->writestring(",\n");
 }
 
 
@@ -121,7 +100,7 @@ void JsonRemoveComma(OutBuffer *buf)
 /*********************************
  * Encode string into buf, and wrap it in double quotes.
  */
-void JsonString(OutBuffer *buf, const char *s)
+void JsonOut::value(const char *s)
 {
     buf->writeByte('\"');
     for (; *s; s++)
@@ -169,53 +148,77 @@ void JsonString(OutBuffer *buf, const char *s)
     buf->writeByte('\"');
 }
 
-void JsonInt(OutBuffer *buf, int value)
+void JsonOut::value(int value)
 {
     buf->printf("%d", value);
 }
 
-void JsonBool(OutBuffer *buf, bool value)
+void JsonOut::valueBool(bool value)
 {
     buf->writestring(value? "true" : "false");
 }
 
 
+void JsonOut::item(const char *s)
+{
+    indent();
+    value(s);
+    comma();
+}
+
+void JsonOut::item(int i)
+{
+    indent();
+    value(i);
+    comma();
+}
+
+void JsonOut::itemBool(bool b)
+{
+    indent();
+    valueBool(b);
+    comma();
+}
+
+
 // Json array functions
 
-void JsonArrayStart(OutBuffer *buf)
+void JsonOut::arrayStart()
 {
-    JsonIndent(buf);
+    indent();
     buf->writestring("[\n");
     indentLevel++;
 }
 
-void JsonArrayEnd(OutBuffer *buf)
+void JsonOut::arrayEnd()
 {
     indentLevel--;
     if (buf->offset >= 2 &&
         buf->data[buf->offset - 2] == '[' &&
         buf->data[buf->offset - 1] == '\n')
         buf->offset -= 1;
-    else
+    else if (!(buf->offset >= 1 &&
+        buf->data[buf->offset - 1] == '['))
     {
-        JsonRemoveComma(buf);
+        removeComma();
         buf->writestring("\n");
-        JsonIndent(buf);
+        indent();
     }
-    buf->writestring("],\n");
+    buf->writestring("]");
+    comma();
 }
 
 
 // Json object functions
 
-void JsonObjectStart(OutBuffer *buf)
+void JsonOut::objectStart()
 {
-    JsonIndent(buf);
+    indent();
     buf->writestring("{\n");
     indentLevel++;
 }
 
-void JsonObjectEnd(OutBuffer *buf)
+void JsonOut::objectEnd()
 {
     indentLevel--;
     if (buf->offset >= 2 &&
@@ -224,42 +227,43 @@ void JsonObjectEnd(OutBuffer *buf)
         buf->offset -= 1;
     else
     {
-        JsonRemoveComma(buf);
+        removeComma();
         buf->writestring("\n");
-        JsonIndent(buf);
+        indent();
     }
-    buf->writestring("},\n");
+    buf->writestring("}");
+    comma();
 }
 
 
 // Json object property functions
 
-void JsonPropertyStart(OutBuffer *buf, const char *name)
+void JsonOut::propertyStart(const char *name)
 {
-    JsonIndent(buf);
-    JsonString(buf, name);
+    indent();
+    value(name);
     buf->writestring(" : ");
 }
 
-void JsonProperty(OutBuffer *buf, const char *name, const char *value)
+void JsonOut::property(const char *name, const char *string)
 {
-    JsonPropertyStart(buf, name);
-    JsonString(buf, value);
-    buf->writestring(",\n");
+    propertyStart(name);
+    value(string);
+    comma();
 }
 
-void JsonProperty(OutBuffer *buf, const char *name, int value)
+void JsonOut::property(const char *name, int num)
 {
-    JsonPropertyStart(buf, name);
-    JsonInt(buf, value);
-    buf->writestring(",\n");
+    propertyStart(name);
+    value(num);
+    comma();
 }
 
-void JsonPropertyBool(OutBuffer *buf, const char *name, bool value)
+void JsonOut::propertyBool(const char *name, bool b)
 {
-    JsonPropertyStart(buf, name);
-    JsonBool(buf, value);
-    buf->writestring(",\n");
+    propertyStart(name);
+    valueBool(b);
+    comma();
 }
 
 
@@ -321,725 +325,722 @@ const char *LinkageToChars(enum LINK linkage)
 }
 
 
-void JsonProperty(OutBuffer *buf, const char *name, Type *type);
-void JsonProperty(OutBuffer *buf, const char *name, Parameters *parameters);
 
-void JsonProperties(OutBuffer *buf, Module *module)
+void JsonOut::properties(Module *module)
 {
     if (module->md)
     {
-        JsonProperty(buf, Pname, module->md->id->toChars());
+        property("name", module->md->id->toChars());
 
         if (module->md->packages)
         {
-            JsonPropertyStart(buf, "package");
-            JsonArrayStart(buf);
+            propertyStart("package");
+            arrayStart();
             for (size_t i = 0; i < module->md->packages->dim; i++)
             {   Identifier *pid = (*module->md->packages)[i];
-
-                JsonString(buf, pid->toChars());
-                buf->writestring(", ");
+                item(pid->toChars());
             }
-            JsonArrayEnd(buf);
+            arrayEnd();
         }
     }
 
-    JsonProperty(buf, "prettyName", module->toPrettyChars());
+    property("prettyName", module->toPrettyChars());
 }
 
-void JsonProperties(OutBuffer *buf, Dsymbol *sym)
+void JsonOut::properties(Dsymbol *sym)
 {
-    JsonProperty(buf, Pname, sym->ident->toChars());
-    JsonPropertyStart(buf, "loc");
-    JsonObjectStart(buf);
+    property("name", sym->toChars());
+    propertyStart("loc");
+    objectStart();
 
     if (sym->loc.filename)
-        JsonProperty(buf, "file", sym->loc.filename);
+        property("file", sym->loc.filename);
 
     if (sym->loc.linnum)
-        JsonProperty(buf, "line", sym->loc.linnum);
+        property("line", sym->loc.linnum);
 
-    JsonObjectEnd(buf);
+    objectEnd();
 
-    JsonPropertyStart(buf, "module");
-    JsonObjectStart(buf);
+    Module *module = sym->getModule();
+    if (module)
+    {
+        propertyStart("module");
+        objectStart();
 
-    JsonProperties(buf, sym->getModule());
+        properties(module);
 
-    JsonObjectEnd(buf);
+        objectEnd();
+    }
+}
+
+void JsonOut::properties(Declaration *decl)
+{
+    properties((Dsymbol *)decl);
+
 }
 
 
-void JsonProperties(OutBuffer *buf, TypeSArray *type)
+void JsonOut::properties(TypeSArray *type)
 {
-    JsonProperty(buf, "next", type->next);
-    JsonProperty(buf, "dim", type->dim->toChars());
+    property("next", type->next);
+    property("dim", type->dim->toChars());
 }
 
-void JsonProperties(OutBuffer *buf, TypeDArray *type)
+void JsonOut::properties(TypeDArray *type)
 {
-    JsonProperty(buf, "next", type->next);
+    property("next", type->next);
 }
 
-void JsonProperties(OutBuffer *buf, TypeAArray *type)
+void JsonOut::properties(TypeAArray *type)
 {
-    JsonProperty(buf, "next", type->next);
-    JsonProperty(buf, "index", type->index);
+    property("next", type->next);
+    property("index", type->index);
 }
 
-void JsonProperties(OutBuffer *buf, TypePointer *type)
+void JsonOut::properties(TypePointer *type)
 {
-    JsonProperty(buf, "next", type->next);
+    property("next", type->next);
 }
 
-void JsonProperties(OutBuffer *buf, TypeReference *type)
+void JsonOut::properties(TypeReference *type)
 {
-    JsonProperty(buf, "next", type->next);
+    property("next", type->next);
 }
 
-void JsonProperties(OutBuffer *buf, TypeFunction *type)
+void JsonOut::properties(TypeFunction *type)
 {
-    JsonPropertyBool(buf, "nothrow", type->isnothrow);
-    JsonPropertyBool(buf, "property", type->isproperty);
-    JsonPropertyBool(buf, "ref", type->isref);
+    propertyBool("nothrow", type->isnothrow);
+    propertyBool("property", type->isproperty);
+    propertyBool("ref", type->isref);
 
-    JsonProperty(buf, "trust", TrustToChars(type->trust));
-    JsonProperty(buf, "purity", PurityToChars(type->purity));
-    JsonProperty(buf, "linkage", LinkageToChars(type->linkage));
+    property("trust", TrustToChars(type->trust));
+    property("purity", PurityToChars(type->purity));
+    property("linkage", LinkageToChars(type->linkage));
         
-    JsonProperty(buf, "returnType", type->next);
-    JsonProperty(buf, "parameters", type->parameters);
+    property("returnType", type->next);
+    property("parameters", type->parameters);
 }
 
-void JsonProperties(OutBuffer *buf, TypeDelegate *type)
+void JsonOut::properties(TypeDelegate *type)
 {
-    JsonProperties(buf, (TypeFunction *)type->next);
+    properties((TypeFunction *)type->next);
 }
 
-void JsonProperties(OutBuffer *buf, TypeQualified *type) // ident.ident.ident.etc
+void JsonOut::properties(TypeQualified *type) // ident.ident.ident.etc
 {
-    JsonPropertyStart(buf, "idents");
-    JsonArrayStart(buf);
+    propertyStart("idents");
+    arrayStart();
 
     for (size_t i = 0; i < type->idents.dim; i++)
     {   Identifier *ident = (*type->idents)[i];
-        JsonString(buf, ident->toChars());
-        buf->writestring(", ");
+        item(ident->toChars());
     }
 
-    JsonArrayEnd(buf);
+    arrayEnd();
 }
 
-void JsonProperties(OutBuffer *buf, TypeIdentifier *type)
+void JsonOut::properties(TypeIdentifier *type)
 {
-    JsonProperties(buf, (TypeQualified *)type);
-    JsonProperty(buf, "ident", type->ident->toChars());
+    properties((TypeQualified *)type);
+    property("ident", type->ident->toChars());
 }
 
-void JsonProperties(OutBuffer *buf, TypeInstance *type)
+void JsonOut::properties(TypeInstance *type)
 {
-    JsonProperties(buf, (TypeQualified *)type);
-    JsonProperty(buf, "tempinst", type->tempinst->toChars());
+    properties((TypeQualified *)type);
+    property("tempinst", type->tempinst->toChars());
 }
 
-void JsonProperties(OutBuffer *buf, TypeTypeof *type)
+void JsonOut::properties(TypeTypeof *type)
 {
-    JsonProperties(buf, (TypeQualified *)type);
-    JsonProperty(buf, "exp", type->exp->toChars());
-    JsonProperty(buf, "type", type->exp->type);
+    properties((TypeQualified *)type);
+    property("exp", type->exp->toChars());
+    property("type", type->exp->type);
 }
 
-void JsonProperties(OutBuffer *buf, TypeReturn *type)
+void JsonOut::properties(TypeReturn *type)
 {
-    JsonProperties(buf, (TypeQualified *)type);
+    properties((TypeQualified *)type);
 }
 
-void JsonProperties(OutBuffer *buf, TypeStruct *type)
+void JsonOut::properties(TypeStruct *type)
 {
-    JsonProperties(buf, (Dsymbol *)type->sym);
+    properties((Declaration *)type->sym);
 }
 
-void JsonProperties(OutBuffer *buf, TypeEnum *type)
+void JsonOut::properties(TypeEnum *type)
 {
-    JsonProperties(buf, (Dsymbol *)type->sym);
+    properties((Declaration *)type->sym);
 }
 
-void JsonProperties(OutBuffer *buf, TypeTypedef *type)
+void JsonOut::properties(TypeTypedef *type)
 {
-    JsonProperties(buf, (Dsymbol *)type->sym);
+    properties((Declaration *)type->sym);
 }
 
-void JsonProperties(OutBuffer *buf, TypeClass *type)
+void JsonOut::properties(TypeClass *type)
 {
-    JsonProperties(buf, (Dsymbol *)type->sym);
+    properties((Declaration *)type->sym);
 }
 
-void JsonProperties(OutBuffer *buf, TypeTuple *type)
+void JsonOut::properties(TypeTuple *type)
 {
-    JsonProperty(buf, "arguments", type->arguments);
+    property("arguments", type->arguments);
 }
 
-void JsonProperties(OutBuffer *buf, TypeSlice *type)
+void JsonOut::properties(TypeSlice *type)
 {
-    JsonProperty(buf, "lower", type->lwr->toChars());
-    JsonProperty(buf, "upper", type->upr->toChars());
+    property("lower", type->lwr->toChars());
+    property("upper", type->upr->toChars());
 }
 
-void JsonProperties(OutBuffer *buf, TypeNull *type) { }
+void JsonOut::properties(TypeNull *type) { }
 
-void JsonProperties(OutBuffer *buf, TypeVector *type)
+void JsonOut::properties(TypeVector *type)
 {
-    JsonProperty(buf, "basetype", type->basetype);
+    property("basetype", type->basetype);
 }
 
 
 
 
 
-void JsonProperty(OutBuffer *buf, const char *name, Type *type)
+void JsonOut::property(const char *name, Type *type)
 {
     if (type == NULL) return;
 
-    JsonPropertyStart(buf, name);
-    JsonObjectStart(buf);
+    propertyStart(name);
+    objectStart();
 
-    JsonProperty(buf, "raw", type->toChars());
+    property("raw", type->toChars());
 
 
     switch (type->ty)
     {
         case Tarray: // slice array, aka T[]
-            JsonProperty(buf, "kind", "array");
-            JsonProperties(buf, (TypeDArray *)type);
+            property("kind", "array");
+            properties((TypeDArray *)type);
             break;
         case Tsarray: // static array, aka T[dimension]
-            JsonProperty(buf, "kind", "sarray");
-            JsonProperties(buf, (TypeSArray *)type);
+            property("kind", "sarray");
+            properties((TypeSArray *)type);
             break;
         case Taarray: // associative array, aka T[type]
-            JsonProperty(buf, "kind", "aarray");
-            JsonProperties(buf, (TypeAArray *)type);
+            property("kind", "aarray");
+            properties((TypeAArray *)type);
             break;
         case Tpointer:
-            JsonProperty(buf, "kind", "pointer");
-            JsonProperties(buf, (TypePointer *)type);
+            property("kind", "pointer");
+            properties((TypePointer *)type);
             break;
         case Treference:
-            JsonProperty(buf, "kind", "reference");
-            JsonProperties(buf, (TypeReference *)type);
+            property("kind", "reference");
+            properties((TypeReference *)type);
             break;
         case Tfunction:
-            JsonProperty(buf, "kind", "function");
-            JsonProperties(buf, (TypeFunction *)type);
+            property("kind", "function");
+            properties((TypeFunction *)type);
             break;
         case Tident:
-            JsonProperty(buf, "kind", "ident");
-            // JsonProperties(buf, (TypeIdent *)type);
+            property("kind", "ident");
+            // properties((TypeIdent *)type);
             break;
         case Tclass:
-            JsonProperty(buf, "kind", "class");
-            JsonProperties(buf, (TypeClass *)type);
+            property("kind", "class");
+            properties((TypeClass *)type);
             break;
         case Tstruct:
-            JsonProperty(buf, "kind", "struct");
-            JsonProperties(buf, (TypeStruct *)type);
+            property("kind", "struct");
+            properties((TypeStruct *)type);
             break;
         case Tenum:
-            JsonProperty(buf, "kind", "enum");
-            JsonProperties(buf, (TypeEnum *)type);
+            property("kind", "enum");
+            properties((TypeEnum *)type);
             break;
         case Ttypedef:
-            JsonProperty(buf, "kind", "typedef");
-            JsonProperties(buf, (TypeTypedef *)type);
+            property("kind", "typedef");
+            properties((TypeTypedef *)type);
             break;
         case Tdelegate:
-            JsonProperty(buf, "kind", "delegate");
-            JsonProperties(buf, (TypeDelegate *)type);
+            property("kind", "delegate");
+            properties((TypeDelegate *)type);
             break;
         case Tnone:
-            JsonProperty(buf, "kind", "none");
-            // JsonProperties(buf, (TypeNone *)type);
+            property("kind", "none");
+            // properties((TypeNone *)type);
             break;
         case Tvoid:
-            JsonProperty(buf, "kind", "void");
-            // JsonProperties(buf, (TypeVoid *)type);
+            property("kind", "void");
+            // properties((TypeVoid *)type);
             break;
         case Tint8:
-            JsonProperty(buf, "kind", "int8");
-            // JsonProperties(buf, (TypeInt8 *)type);
+            property("kind", "int8");
+            // properties((TypeInt8 *)type);
             break;
         case Tuns8:
-            JsonProperty(buf, "kind", "uns8");
-            // JsonProperties(buf, (TypeUns8 *)type);
+            property("kind", "uns8");
+            // properties((TypeUns8 *)type);
             break;
         case Tint16:
-            JsonProperty(buf, "kind", "int16");
-            // JsonProperties(buf, (TypeInt16 *)type);
+            property("kind", "int16");
+            // properties((TypeInt16 *)type);
             break;
         case Tuns16:
-            JsonProperty(buf, "kind", "uns16");
-            // JsonProperties(buf, (TypeUns16 *)type);
+            property("kind", "uns16");
+            // properties((TypeUns16 *)type);
             break;
         case Tint32:
-            JsonProperty(buf, "kind", "int32");
-            // JsonProperties(buf, (TypeInt32 *)type);
+            property("kind", "int32");
+            // properties((TypeInt32 *)type);
             break;
         case Tuns32:
-            JsonProperty(buf, "kind", "uns32");
-            // JsonProperties(buf, (TypeUns32 *)type);
+            property("kind", "uns32");
+            // properties((TypeUns32 *)type);
             break;
         case Tint64:
-            JsonProperty(buf, "kind", "int64");
-            // JsonProperties(buf, (TypeInt64 *)type);
+            property("kind", "int64");
+            // properties((TypeInt64 *)type);
             break;
         case Tuns64:
-            JsonProperty(buf, "kind", "uns64");
-            // JsonProperties(buf, (TypeUns64 *)type);
+            property("kind", "uns64");
+            // properties((TypeUns64 *)type);
             break;
         case Tfloat32:
-            JsonProperty(buf, "kind", "float32");
-            // JsonProperties(buf, (TypeFloat32 *)type);
+            property("kind", "float32");
+            // properties((TypeFloat32 *)type);
             break;
         case Tfloat64:
-            JsonProperty(buf, "kind", "float64");
-            // JsonProperties(buf, (TypeFloat64 *)type);
+            property("kind", "float64");
+            // properties((TypeFloat64 *)type);
             break;
         case Tfloat80:
-            JsonProperty(buf, "kind", "float80");
-            // JsonProperties(buf, (TypeFloat80 *)type);
+            property("kind", "float80");
+            // properties((TypeFloat80 *)type);
             break;
         case Timaginary32:
-            JsonProperty(buf, "kind", "imaginary32");
-            // JsonProperties(buf, (TypeImaginary32 *)type);
+            property("kind", "imaginary32");
+            // properties((TypeImaginary32 *)type);
             break;
         case Timaginary64:
-            JsonProperty(buf, "kind", "imaginary64");
-            // JsonProperties(buf, (TypeImaginary64 *)type);
+            property("kind", "imaginary64");
+            // properties((TypeImaginary64 *)type);
             break;
         case Timaginary80:
-            JsonProperty(buf, "kind", "imaginary80");
-            // JsonProperties(buf, (TypeImaginary80 *)type);
+            property("kind", "imaginary80");
+            // properties((TypeImaginary80 *)type);
             break;
         case Tcomplex32:
-            JsonProperty(buf, "kind", "complex32");
-            // JsonProperties(buf, (TypeComplex32 *)type);
+            property("kind", "complex32");
+            // properties((TypeComplex32 *)type);
             break;
         case Tcomplex64:
-            JsonProperty(buf, "kind", "complex64");
-            // JsonProperties(buf, (TypeComplex64 *)type);
+            property("kind", "complex64");
+            // properties((TypeComplex64 *)type);
             break;
         case Tcomplex80:
-            JsonProperty(buf, "kind", "complex80");
-            // JsonProperties(buf, (TypeComplex80 *)type);
+            property("kind", "complex80");
+            // properties((TypeComplex80 *)type);
             break;
         case Tbool:
-            JsonProperty(buf, "kind", "bool");
-            // JsonProperties(buf, (TypeBool *)type);
+            property("kind", "bool");
+            // properties((TypeBool *)type);
             break;
         case Tchar:
-            JsonProperty(buf, "kind", "char");
-            // JsonProperties(buf, (TypeChar *)type);
+            property("kind", "char");
+            // properties((TypeChar *)type);
             break;
         case Twchar:
-            JsonProperty(buf, "kind", "wchar");
-            // JsonProperties(buf, (TypeWchar *)type);
+            property("kind", "wchar");
+            // properties((TypeWchar *)type);
             break;
         case Tdchar:
-            JsonProperty(buf, "kind", "dchar");
-            // JsonProperties(buf, (TypeDchar *)type);
+            property("kind", "dchar");
+            // properties((TypeDchar *)type);
             break;
         case Terror:
-            JsonProperty(buf, "kind", "error");
-            // JsonProperties(buf, (TypeError *)type);
+            property("kind", "error");
+            // properties((TypeError *)type);
             break;
         case Tinstance:
-            JsonProperty(buf, "kind", "instance");
-            JsonProperties(buf, (TypeInstance *)type);
+            property("kind", "instance");
+            properties((TypeInstance *)type);
             break;
         case Ttypeof:
-            JsonProperty(buf, "kind", "typeof");
-            JsonProperties(buf, (TypeTypeof *)type);
+            property("kind", "typeof");
+            properties((TypeTypeof *)type);
             break;
         case Ttuple:
-            JsonProperty(buf, "kind", "tuple");
-            JsonProperties(buf, (TypeTuple *)type);
+            property("kind", "tuple");
+            properties((TypeTuple *)type);
             break;
         case Tslice:
-            JsonProperty(buf, "kind", "slice");
-            JsonProperties(buf, (TypeSlice *)type);
+            property("kind", "slice");
+            properties((TypeSlice *)type);
             break;
         case Treturn:
-            JsonProperty(buf, "kind", "return");
-            JsonProperties(buf, (TypeReturn *)type);
+            property("kind", "return");
+            properties((TypeReturn *)type);
             break;
         case Tnull:
-            JsonProperty(buf, "kind", "null");
-            JsonProperties(buf, (TypeNull *)type);
+            property("kind", "null");
+            properties((TypeNull *)type);
             break;
         case Tvector:
-            JsonProperty(buf, "kind", "vector");
-            JsonProperties(buf, (TypeVector *)type);
+            property("kind", "vector");
+            properties((TypeVector *)type);
             break;
     }
 
-    JsonObjectEnd(buf);
+    objectEnd();
 }
 
-void JsonProperty(OutBuffer *buf, const char *name, Parameters *parameters)
+void JsonOut::property(const char *name, Parameters *parameters)
 {
-    JsonPropertyStart(buf, name);
-    JsonArrayStart(buf);
+    propertyStart(name);
+    arrayStart();
 
     for (size_t i = 0; i < parameters->dim; i++)
     {   Parameter *p = (*parameters)[i];
-        JsonObjectStart(buf);
+        objectStart();
 
-        JsonProperty(buf, Pname, p->ident->toChars());
+        property("name", p->ident->toChars());
 
-        JsonProperty(buf, Ptype, p->type);
+        property("type", p->type);
 
         
         if (p->defaultArg)
-            JsonProperty(buf, "default", p->defaultArg->toChars());
+            property("default", p->defaultArg->toChars());
 
 
-        JsonObjectEnd(buf);
+        objectEnd();
     }
 
-    JsonArrayEnd(buf);
+    arrayEnd();
 }
 
 
 
-void Dsymbol::toJsonBuffer(OutBuffer *buf)
+void Dsymbol::toJson(JsonOut *json)
 {
+    json->objectStart();
+
+    json->property("unknown", "dsymbol");
+
+    json->property("kind", kind());
+
+    json->properties(this);
+
+    json->objectEnd();
 }
 
-void Module::toJsonBuffer(OutBuffer *buf)
+void Module::toJson(JsonOut *json)
 {
-    JsonObjectStart(buf);
+    json->objectStart();
 
-    JsonProperties(buf, this);
+    json->properties(this);
 
-    JsonProperty(buf, Pfile, srcfile->toChars());
+    json->property("file", srcfile->toChars());
 
-    JsonProperty(buf, Pkind, kind());
+    json->property("kind", kind());
 
     if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
+        json->property("comment", (const char *)comment);
 
-    JsonPropertyStart(buf, "imports");
-    JsonArrayStart(buf);
+    json->propertyStart("imports");
+    json->arrayStart();
 
     for (size_t i = 0; i < aimports.dim; i++)
     {   Module *m = aimports[i];
-        JsonObjectStart(buf);
+        json->objectStart();
 
-        JsonProperty(buf, Pname, m->toPrettyChars());
+        json->property("name", m->toPrettyChars());
 
-        JsonProperty(buf, Pkind, m->kind());
+        json->property("kind", m->kind());
 
-        JsonProperty(buf, Pfile, m->srcfile->toChars());
+        json->property("file", m->srcfile->toChars());
 
-        JsonObjectEnd(buf);
+        json->objectEnd();
     }
 
-    JsonArrayEnd(buf);
+    json->arrayEnd();
 
-    JsonPropertyStart(buf, Pmembers);
-    JsonArrayStart(buf);
+    json->propertyStart("members");
+    json->arrayStart();
 
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
-        s->toJsonBuffer(buf);
+        s->toJson(json);
     }
 
-    JsonArrayEnd(buf);
+    json->arrayEnd();
 
-    JsonObjectEnd(buf);
+    json->objectEnd();
 }
 
-void AttribDeclaration::toJsonBuffer(OutBuffer *buf)
+void AttribDeclaration::toJson(JsonOut *json)
 {
-    //printf("AttribDeclaration::toJsonBuffer()\n");
-
     Dsymbols *d = include(NULL, NULL);
 
     if (d)
     {
         for (unsigned i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
-            //printf("AttribDeclaration::toJsonBuffer %s\n", s->toChars());
-            s->toJsonBuffer(buf);
+            //printf("AttribDeclaration::toJson %s\n", s->toChars());
+            s->toJson(json);
         }
-        JsonRemoveComma(buf);
+        json->removeComma();
     }
 }
 
 
-void ConditionalDeclaration::toJsonBuffer(OutBuffer *buf)
+void ConditionalDeclaration::toJson(JsonOut *json)
 {
-    //printf("ConditionalDeclaration::toJsonBuffer()\n");
     if (condition->inc)
     {
-        AttribDeclaration::toJsonBuffer(buf);
+        AttribDeclaration::toJson(json);
     }
 }
 
 
-void InvariantDeclaration::toJsonBuffer(OutBuffer *buf)  { }
-void DtorDeclaration::toJsonBuffer(OutBuffer *buf)       { }
-void StaticCtorDeclaration::toJsonBuffer(OutBuffer *buf) { }
-void StaticDtorDeclaration::toJsonBuffer(OutBuffer *buf) { }
-void ClassInfoDeclaration::toJsonBuffer(OutBuffer *buf)  { }
-void ModuleInfoDeclaration::toJsonBuffer(OutBuffer *buf) { }
-void TypeInfoDeclaration::toJsonBuffer(OutBuffer *buf)   { }
-void UnitTestDeclaration::toJsonBuffer(OutBuffer *buf)   { }
+void InvariantDeclaration::toJson(JsonOut *json)  { }
+void DtorDeclaration::toJson(JsonOut *json)       { }
+void StaticCtorDeclaration::toJson(JsonOut *json) { }
+void StaticDtorDeclaration::toJson(JsonOut *json) { }
+void ClassInfoDeclaration::toJson(JsonOut *json)  { }
+void ModuleInfoDeclaration::toJson(JsonOut *json) { }
+void TypeInfoDeclaration::toJson(JsonOut *json)   { }
+void UnitTestDeclaration::toJson(JsonOut *json)   { }
 #if DMDV2
-void PostBlitDeclaration::toJsonBuffer(OutBuffer *buf)   { }
+void PostBlitDeclaration::toJson(JsonOut *json)   { }
 #endif
 
-void JsonCommonProperties(OutBuffer *buf, Declaration *decl)
+
+const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
+
+void JsonCommonProperties(JsonOut *json, Dsymbol *sym)
 {
-    JsonProperty(buf, Pname, decl->toChars());
-    JsonProperty(buf, Pkind, decl->kind());
+    json->property("name", sym->toChars());
+    json->property("kind", sym->kind());
 
-    if (decl->prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[decl->prot()]);
+    if (sym->prot())
+        json->property("protection", Pprotectionnames[sym->prot()]);
 
-    JsonProperty(buf, Ptype, decl->type);
+    if (sym->comment)
+        json->property("comment", (const char *)sym->comment);
 
-    if (decl->type != decl->originalType)
-        JsonProperty(buf, "originalType", decl->originalType);
-
-    if (decl->comment)
-        JsonProperty(buf, Pcomment, (const char *)decl->comment);
-
-    if (decl->loc.linnum)
-        JsonProperty(buf, Pline, decl->loc.linnum);
+    if (sym->loc.linnum)
+        json->property("line", (int)sym->loc.linnum);
 }
 
-void Declaration::toJsonBuffer(OutBuffer *buf)
+void JsonCommonProperties(JsonOut *json, Declaration *decl)
 {
-    //printf("Declaration::toJsonBuffer()\n");
-    JsonObjectStart(buf);
+    JsonCommonProperties(json, (Dsymbol *)decl);
 
-    JsonCommonProperties(buf, this);
+    json->property("type", decl->type);
+
+    if (decl->type != decl->originalType)
+        json->property("originalType", decl->originalType);
+}
+
+void Declaration::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    json->property("unknown", "declaration");
+
+    JsonCommonProperties(json, this);
 
     TypedefDeclaration *td = isTypedefDeclaration();
     if (td)
     {
-        JsonProperty(buf, "base", td->basetype);
+        json->property("base", td->basetype);
     }
 
-    JsonObjectEnd(buf);
+    json->objectEnd();
 }
 
-void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
+void AggregateDeclaration::toJson(JsonOut *json)
 {
-    //printf("AggregateDeclaration::toJsonBuffer()\n");
-    JsonObjectStart(buf);
+    json->objectStart();
 
-    JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
-
-    if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
-
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
-
-    if (loc.linnum)
-        JsonProperty(buf, Pline, loc.linnum);
+    JsonCommonProperties(json, this);
 
     ClassDeclaration *cd = isClassDeclaration();
     if (cd)
     {
         if (cd->baseClass)
         {
-            JsonProperty(buf, "base", cd->baseClass->toChars());
+            json->property("base", cd->baseClass->toChars());
         }
         if (cd->interfaces_dim)
         {
-            JsonPropertyStart(buf, "interfaces");
-            JsonArrayStart(buf);
+            json->propertyStart("interfaces");
+            json->arrayStart();
             for (size_t i = 0; i < cd->interfaces_dim; i++)
             {   BaseClass *b = cd->interfaces[i];
-                JsonString(buf, b->base->toChars());
-                buf->writestring(",\n");
+                json->item(b->base->toChars());
             }
-            JsonArrayEnd(buf);
+            json->arrayEnd();
         }
     }
 
     if (members)
     {
-        JsonPropertyStart(buf, Pmembers);
-        JsonArrayStart(buf);
+        json->propertyStart("members");
+        json->arrayStart();
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
-            s->toJsonBuffer(buf);
+            s->toJson(json);
         }
-        JsonRemoveComma(buf);
-        JsonArrayEnd(buf);
+        json->removeComma();
+        json->arrayEnd();
     }
 
-    JsonObjectEnd(buf);
+    json->objectEnd();
 }
 
-void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
+void TemplateDeclaration::toJson(JsonOut *json)
 {
-    //printf("TemplateDeclaration::toJsonBuffer()\n");
+    json->objectStart();
 
-    JsonObjectStart(buf);
+    JsonCommonProperties(json, this);
 
-    JsonProperty(buf, Pname, ident->toChars());
-    JsonProperty(buf, Pkind, "template");
-
-    if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
-
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
-
-    if (loc.linnum)
-        JsonProperty(buf, Pline, loc.linnum);
-
-    JsonPropertyStart(buf, "parameters");
-    JsonArrayStart(buf);
+    json->propertyStart("parameters");
+    json->arrayStart();
     for (size_t i = 0; i < parameters->dim; i++)
     {   TemplateParameter *s = (*parameters)[i];
-        JsonObjectStart(buf);
+        json->objectStart();
 
-        JsonProperty(buf, Pname, s->ident->toChars());
+        json->property("name", s->ident->toChars());
 
         TemplateTypeParameter *type = s->isTemplateTypeParameter();
         if (type)
         {
-            JsonProperty(buf, Pkind, "type");
+            json->property("kind", "type");
 
             if (type->specType)
-                JsonProperty(buf, "specType", type->specType->toChars());
+                json->property("specType", type->specType->toChars());
             
             if (type->defaultType)
-                JsonProperty(buf, "defaultType", type->defaultType->toChars());
+                json->property("defaultType", type->defaultType->toChars());
         }
 
         TemplateValueParameter *value = s->isTemplateValueParameter();
         if (value)
         {
-            JsonProperty(buf, Pkind, "value");
+            json->property("kind", "value");
 
             if (value->valType)
-                JsonProperty(buf, "valType", value->valType->toChars());
+                json->property("valType", value->valType->toChars());
             
             if (value->specValue)
-                JsonProperty(buf, "specValue", value->specValue->toChars());
+                json->property("specValue", value->specValue->toChars());
             
             if (value->defaultValue)
-                JsonProperty(buf, "defaultValue", value->defaultValue->toChars());
+                json->property("defaultValue", value->defaultValue->toChars());
         }
 
         TemplateAliasParameter *alias = s->isTemplateAliasParameter();
         if (alias)
         {
-            JsonProperty(buf, Pkind, "alias");
+            json->property("kind", "alias");
 
             if (alias->specType)
-                JsonProperty(buf, "specType", alias->specType->toChars());
+                json->property("specType", alias->specType->toChars());
             
             if (alias->specAlias)
-                JsonProperty(buf, "specAlias", alias->specAlias->toChars());
+                json->property("specAlias", alias->specAlias->toChars());
             
             if (alias->defaultAlias)
-                JsonProperty(buf, "defaultAlias", alias->defaultAlias->toChars());
+                json->property("defaultAlias", alias->defaultAlias->toChars());
         }
 
         TemplateTupleParameter *tuple = s->isTemplateTupleParameter();
         if (tuple)
         {
-            JsonProperty(buf, Pkind, "tuple");
+            json->property("kind", "tuple");
         }
 
 #if DMDV2
         TemplateThisParameter *thisp = s->isTemplateThisParameter();
         if (thisp)
         {
-            JsonProperty(buf, Pkind, "this");
+            json->property("kind", "this");
 
             if (type->specType)
-                JsonProperty(buf, "specType", type->specType->toChars());
+                json->property("specType", type->specType->toChars());
             
             if (type->defaultType)
-                JsonProperty(buf, "defaultType", type->defaultType->toChars());
+                json->property("defaultType", type->defaultType->toChars());
         }
 #endif
 
-        JsonObjectEnd(buf);
+        json->objectEnd();
     }
-    JsonRemoveComma(buf);
-    JsonArrayEnd(buf);
+    json->removeComma();
+    json->arrayEnd();
 
-    JsonPropertyStart(buf, Pmembers);
-    JsonArrayStart(buf);
+    json->propertyStart("members");
+    json->arrayStart();
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
-        s->toJsonBuffer(buf);
+        s->toJson(json);
     }
-    JsonRemoveComma(buf);
-    JsonArrayEnd(buf);
+    json->removeComma();
+    json->arrayEnd();
 
-    JsonObjectEnd(buf);
+    json->objectEnd();
 }
 
-void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
+void EnumDeclaration::toJson(JsonOut *json)
 {
-    //printf("EnumDeclaration::toJsonBuffer()\n");
     if (isAnonymous())
     {
         if (members)
         {
             for (size_t i = 0; i < members->dim; i++)
-            {
-                Dsymbol *s = (*members)[i];
-                s->toJsonBuffer(buf);
+            {   Dsymbol *s = (*members)[i];
+                s->toJson(json);
             }
         }
         return;
     }
 
-    JsonObjectStart(buf);
+    json->objectStart();
 
-    JsonCommonProperties(buf, (Declaration *)this);
+    JsonCommonProperties(json, this);
+
+    json->property("type", type);
 
     if (memtype)
-        JsonProperty(buf, "base", memtype);
+        json->property("base", memtype);
 
     if (members)
     {
-        JsonPropertyStart(buf, Pmembers);
-        JsonArrayStart(buf);
+        json->propertyStart("members");
+        json->arrayStart();
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
-            s->toJsonBuffer(buf);
+            s->toJson(json);
         }
-        JsonRemoveComma(buf);
-        JsonArrayEnd(buf);
+        json->removeComma();
+        json->arrayEnd();
     }
-    JsonRemoveComma(buf);
+    json->removeComma();
 
-    JsonObjectEnd(buf);
+    json->objectEnd();
 }
 
-void EnumMember::toJsonBuffer(OutBuffer *buf)
+void EnumMember::toJson(JsonOut *json)
 {
-    //printf("EnumMember::toJsonBuffer()\n");
-    JsonObjectStart(buf);
+    json->objectStart();
 
-    JsonCommonProperties(buf, (Declaration *)this);
+    JsonCommonProperties(json, this);
 
-    JsonRemoveComma(buf);
-    JsonObjectEnd(buf);
+    json->property("type", type);
+
+    json->removeComma();
+    json->objectEnd();
 }
 
 
