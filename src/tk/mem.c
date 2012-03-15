@@ -6,7 +6,6 @@
 #if MSDOS || __OS2__ || __NT__ || _WIN32
 #include        <io.h>
 #else
-#define _near
 #include        <sys/time.h>
 #include        <sys/resource.h>
 #include        <unistd.h>
@@ -361,7 +360,7 @@ void mem_setnewfileline( void *ptr, const char *fil, int lin)
  * Print out struct mem_debug.
  */
 
-static void _near mem_printdl(struct mem_debug *dl)
+static void mem_printdl(struct mem_debug *dl)
 {
         PRINT "alloc'd from file '%s' line %d nbytes %d ptr %p\n",
                 dl->Mfile,dl->Mline,dl->Mnbytes,(long)mem_dltoptr(dl));
@@ -371,7 +370,7 @@ static void _near mem_printdl(struct mem_debug *dl)
  * Print out file and line number.
  */
 
-static void _near mem_fillin(const char *fil, int lin)
+static void mem_fillin(const char *fil, int lin)
 {
         PRINT "File '%s' line %d\n",fil,lin);
 #ifdef ferr
