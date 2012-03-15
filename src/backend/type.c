@@ -188,8 +188,8 @@ L1:
                 if (t->Tflags & TFsizeunknown)
                     goto err1;
                 sz = t->Ttag->Sstruct->Salignsize;
-                if (sz > t->Ttag->Sstruct->Sstructalign)
-                    sz = t->Ttag->Sstruct->Sstructalign;
+                if (sz > t->Ttag->Sstruct->Sstructalign + 1)
+                    sz = t->Ttag->Sstruct->Sstructalign + 1;
                 break;
 
             case TYldouble:
