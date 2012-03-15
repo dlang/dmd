@@ -2084,7 +2084,6 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             tiargs->push(se);
             e = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             ((DotTemplateInstanceExp *)e)->ti->tempdecl = td;
-            //return e;
             e = e->semantic(sc);
             return e;
         }
