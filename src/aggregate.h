@@ -84,8 +84,10 @@ struct AggregateDeclaration : ScopeDsymbol
     void inlineScan();
     unsigned size(Loc loc);
     static void alignmember(unsigned salign, unsigned size, unsigned *poffset);
+    static unsigned placeField(unsigned *nextoffset,
+        unsigned memsize, unsigned memalignsize, unsigned memalign,
+        unsigned *paggsize, unsigned *paggalignsize, bool isunion);
     Type *getType();
-    void addField(Scope *sc, VarDeclaration *v);
     int firstFieldInUnion(int indx); // first field in union that includes indx
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     int isDeprecated();         // is aggregate deprecated?
@@ -144,7 +146,7 @@ struct StructDeclaration : AggregateDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     const char *kind();
-    void finalizeSize();
+    void finalizeSize(Scope *sc);
 #if DMDV1
     Expression *cloneMembers();
 #endif

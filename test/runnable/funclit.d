@@ -487,6 +487,22 @@ void test7650()
 }
 
 /***************************************************/
+// 7705
+
+void test7705()
+{
+    void foo1(void delegate(ref int ) dg){ int x=10; dg(x); }
+    foo1((ref x){ pragma(msg, typeof(x)); assert(x == 10); });
+    static assert(!__traits(compiles, foo1((x){}) ));
+
+    void foo2(void delegate(int, ...) dg){ dg(20, 3.14); }
+    foo2((x,...){ pragma(msg, typeof(x)); assert(x == 20); });
+
+    void foo3(void delegate(int[]...) dg){ dg(1, 2, 3); }
+    foo3((x ...){ pragma(msg, typeof(x)); assert(x == [1,2,3]); });
+}
+
+/***************************************************/
 
 int main()
 {
@@ -513,6 +529,7 @@ int main()
     test7582();
     test7649();
     test7650();
+    test7705();
 
     printf("Success\n");
     return 0;
