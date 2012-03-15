@@ -6244,12 +6244,6 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 }
 
 Expression *DotIdExp::semantic(Scope *sc)
-{
-    // Indicate we didn't come from CallExp::semantic()
-    return semantic(sc, 0);
-}
-
-Expression *DotIdExp::semantic(Scope *sc, int flag)
 {   Expression *e;
     Expression *eleft;
     Expression *eright;
@@ -6588,8 +6582,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     else
     {
         e = e1->type->dotExp(sc, e1, ident);
-        if (!(flag && e->op == TOKdotti))       // let CallExp::semantic() handle this
-            e = e->semantic(sc);
+        e = e->semantic(sc);
         return e;
     }
 }
@@ -6882,8 +6875,8 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 #endif
     Expression *eleft;
     Expression *e = new DotIdExp(loc, e1, ti->name);
-L1:
     e = e->semantic(sc);
+L1:
     if (e->op == TOKerror)
         return e;
     if (e->op == TOKdottd)
@@ -6966,8 +6959,15 @@ L1:
         {   TemplateExp *te = (TemplateExp *) de->e2;
             e = new DotTemplateExp(loc,de->e1,te->td);
         }
+        else
+            goto Lerr;
+
+        e = e->semantic(sc);
+        if (e == de)
+            goto Lerr;
         goto L1;
     }
+Lerr:
     error("%s isn't a template", e->toChars());
     return new ErrorExp();
 }
@@ -7395,7 +7395,7 @@ Lagain:
     {
         if (e1->op == TOKdot)
         {   DotIdExp *die = (DotIdExp *)e1;
-            e1 = die->semantic(sc, 1);
+            e1 = die->semantic(sc);
             /* Look for e1 having been rewritten to expr.opDispatch!(string)
              * We handle such earlier, so go back.
              * Note that in the rewrite, we carefully did not run semantic() on e1
