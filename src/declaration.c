@@ -1561,9 +1561,7 @@ void VarDeclaration::semantic2(Scope *sc)
         // Inside unions, default to void initializers
     if (!init && sc->inunion && !toParent()->isFuncDeclaration())
     {
-        AggregateDeclaration *aad = sc->anonAgg;
-        if (!aad)
-            aad = parent->isAggregateDeclaration();
+        AggregateDeclaration *aad = parent->isAggregateDeclaration();
         if (aad)
         {
             if (aad->fields[0] == this)
