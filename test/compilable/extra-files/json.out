@@ -1,18 +1,47 @@
 [
-{
-"kind" : "module",
-"members" : [
-{
-"name" : "X",
-"kind" : "struct",
-"protection" : "public",
-"line" : 5}
-,
-{
-"name" : "Y",
-"kind" : "enum",
-"protection" : "public",
-"line" : 7}
-]
-}
+	{
+		"prettyName" : "json",
+		"kind" : "module",
+		"imports" : [
+			{
+				"name" : "object",
+				"kind" : "module",
+			}
+		],
+		"members" : [
+			{
+				"kind" : "import",
+				"name" : "object",
+				"loc" : {},
+				"module" : {
+					"prettyName" : "json"
+				}
+			},
+			{
+				"name" : "X",
+				"kind" : "struct",
+				"protection" : "public",
+				"line" : 5
+			},
+			{
+				"name" : "Y",
+				"kind" : "enum",
+				"protection" : "public",
+				"line" : 7,
+				"type" : {
+					"raw" : "Y",
+					"modifiers" : [],
+					"kind" : "enum",
+					"name" : "Y",
+					"loc" : {
+						"line" : 7
+					},
+					"module" : {
+						"prettyName" : "json"
+					},
+					"modifiers" : []
+				}
+			}
+		]
+	}
 ]
