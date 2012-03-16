@@ -230,7 +230,7 @@ extern unsigned tytab[];
 
 #define tyaggregate(ty) (tytab[(ty) & 0xFF] & TYFLaggregate)
 
-#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLmptr | TYFLnullptr))
+#define tyscalar(ty)    (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLreal | TYFLimaginary | TYFLcomplex | TYFLptr | TYFLref | TYFLmptr | TYFLnullptr))
 
 #define tyfloating(ty)  (tytab[(ty) & 0xFF] & (TYFLreal | TYFLimaginary | TYFLcomplex))
 
@@ -241,7 +241,7 @@ extern unsigned tytab[];
 #define tyreal(ty)      (tytab[(ty) & 0xFF] & TYFLreal)
 
 // Fits into 64 bit register
-#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
+#define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr | TYFLref) && tysize(ty) <= NPTRSIZE)
 
 // Can go in XMM floating point register
 #define tyxmmreg(ty)    (tytab[(ty) & 0xFF] & TYFLxmmreg)

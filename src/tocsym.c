@@ -183,12 +183,12 @@ Symbol *VarDeclaration::toSymbol()
         {
             if (global.params.symdebug && storage_class & STCparameter)
             {
-                t = type_alloc(TYnptr);         // should be TYref, but problems in back end
+                t = type_alloc(TYref);
                 t->Tnext = type->toCtype();
                 t->Tnext->Tcount++;
             }
             else
-                t = type_fake(TYnptr);
+                t = type_fake(TYref);
         }
         else if (storage_class & STClazy)
             t = type_fake(TYdelegate);          // Tdelegate as C type

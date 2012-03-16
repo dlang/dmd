@@ -209,6 +209,7 @@ void util_set32()
         tysize[TYuint + i] = LONGSIZE;
         tysize[TYjhandle + i] = LONGSIZE;
         tysize[TYnptr + i] = LONGSIZE;
+        tysize[TYref  + i] = LONGSIZE;
         tysize[TYnref + i] = LONGSIZE;
     }
 
@@ -218,6 +219,7 @@ void util_set32()
         tyalignsize[TYuint + i] = LONGSIZE;
         tyalignsize[TYnullptr + i] = LONGSIZE;
         tyalignsize[TYnptr + i] = LONGSIZE;
+        tyalignsize[TYref  + i] = LONGSIZE;
         tyalignsize[TYnref + i] = LONGSIZE;
     }
 }
@@ -240,6 +242,7 @@ void util_set64()
         tysize[TYint  + i] = LONGSIZE;
         tysize[TYuint + i] = LONGSIZE;
         tysize[TYnptr + i] = 8;
+        tysize[TYref  + i] = 8;
         tysize[TYnref + i] = 8;
         tysize[TYldouble + i] = REALSIZE;
         tysize[TYildouble + i] = REALSIZE;
@@ -250,6 +253,7 @@ void util_set64()
         tyalignsize[TYuint + i] = LONGSIZE;
         tyalignsize[TYnullptr + i] = 8;
         tyalignsize[TYnptr + i] = 8;
+        tyalignsize[TYref  + i] = 8;
         tyalignsize[TYnref + i] = 8;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
         tyalignsize[TYldouble + i] = 16;

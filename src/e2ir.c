@@ -4926,7 +4926,8 @@ elem *fillHole(Symbol *stmp, size_t *poffset, size_t offset2, size_t maxoff)
     {   tym_t ty;
         elem *e1;
 
-        if (tybasic(stmp->Stype->Tty) == TYnptr)
+        if (tybasic(stmp->Stype->Tty) == TYref ||
+            tybasic(stmp->Stype->Tty) == TYnptr)
             e1 = el_var(stmp);
         else
             e1 = el_ptr(stmp);
@@ -5021,7 +5022,8 @@ elem *StructLiteralExp::toElem(IRState *irs)
             assert(!v->isThisDeclaration());
 
             elem *e1;
-            if (tybasic(stmp->Stype->Tty) == TYnptr)
+            if (tybasic(stmp->Stype->Tty) == TYref ||
+                tybasic(stmp->Stype->Tty) == TYnptr)
             {   e1 = el_var(stmp);
                 e1->EV.sp.Voffset = soffset;
             }
@@ -5110,7 +5112,8 @@ elem *StructLiteralExp::toElem(IRState *irs)
         assert(v);
 
         elem *e1;
-        if (tybasic(stmp->Stype->Tty) == TYnptr)
+        if (tybasic(stmp->Stype->Tty) == TYref ||
+            tybasic(stmp->Stype->Tty) == TYnptr)
         {   e1 = el_var(stmp);
             e1->EV.sp.Voffset = soffset;
         }

@@ -2883,6 +2883,7 @@ code *cdstrcmp( elem *e, regm_t *pretregs)
     /* Load DS with right value */
     switch (tybasic(ty1))
     {
+        case TYref:
         case TYnptr:
             need_DS = FALSE;
             break;
@@ -2994,6 +2995,7 @@ code *cdmemcmp(elem *e,regm_t *pretregs)
     c3 = NULL;
     switch (tybasic(ty1))
     {
+        case TYref:
         case TYnptr:
             need_DS = FALSE;
             break;
@@ -3105,6 +3107,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
     /* Load DS with right value */
     switch (ty2)
     {
+        case TYref:
         case TYnptr:
             need_DS = FALSE;
             break;
@@ -3142,7 +3145,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
     c3 = cat(c3,getregs(mAX|mCX|mSI|mDI));
 
     /* Make sure ES contains proper segment value       */
-    if (ty2 != TYnptr || ty1 != ty2)
+    if (!(ty2 == TYnptr || ty2 == TYref) || !(ty1 == TYnptr || ty1 == TYref))
         c4 = cod2_setES(ty1);
     else
         c4 = CNIL;                              /* ES is already same as DS */
@@ -3225,6 +3228,7 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
     c3 = NULL;
     switch (tybasic(ty2))
     {
+        case TYref:
         case TYnptr:
             need_DS = FALSE;
             break;
