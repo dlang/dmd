@@ -60,10 +60,8 @@ struct dt_t
             #define DTpbytes _DU._DN.DTpbytes_
             unsigned DTnbytes_;         // # of bytes
             #define DTnbytes _DU._DN.DTnbytes_
-#if TX86
             int DTseg_;                 // segment it went into
             #define DTseg _DU._DN.DTseg_
-#endif
             targ_size_t DTabytes_;              // offset of abytes for DTabytes
             #define DTabytes _DU._DN.DTabytes_
         }_DN;
@@ -90,11 +88,9 @@ enum
     DT_ibytes, // 8
 };
 
-#if TX86
 dt_t *dt_calloc(char dtx);
 void dt_free(dt_t *);
 void dt_term(void);
-#endif
 
 dt_t **dtnbytes(dt_t **,targ_size_t,const char *);
 dt_t **dtabytes(dt_t **pdtend,tym_t ty, targ_size_t offset, targ_size_t size, const char *ptr);

@@ -239,7 +239,7 @@ type *type_alloc(tym_t ty)
 {   type *t;
     static type tzero;
 
-#if TARGET_SEGMENTED
+#if !MARS
     assert(tybasic(ty) != TYtemplate);
 #endif
     if (type_list)
@@ -336,7 +336,7 @@ type *type_allocn(tym_t ty,type *tn)
  * Allocate a TYmemptr type.
  */
 
-#if !MARS
+#if SCPP
 type *type_allocmemptr(Classsym *stag,type *tn)
 {   type *t;
 
@@ -1139,9 +1139,6 @@ param_t *param_calloc()
     static param_t pzero;
     param_t *p;
 
-#if !TX86
-    debug_assert(PARSER);
-#endif
     if (param_list)
     {
         p = param_list;
