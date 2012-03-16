@@ -900,6 +900,7 @@ struct DotTemplateInstanceExp : UnaExp
     Expression *syntaxCopy();
     TemplateDeclaration *getTempdecl(Scope *sc);
     Expression *semantic(Scope *sc);
+    Expression *semantic(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
 };

@@ -686,7 +686,7 @@ __body
     int sz;
     int zero;
     void *p;
-    static char zeros[sizeof(long double)];
+    static char zeros[sizeof(longdouble)];
 
     if (im == 0)
     {

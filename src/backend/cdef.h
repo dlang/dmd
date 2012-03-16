@@ -593,9 +593,6 @@ typedef int bool;
 #define __far
 #define __cs
 #define __ss
-#define near
-#define _near
-#define __near
 #endif
 
 // gcc defines this for us, dmc doesn't, so look for it's __I86__

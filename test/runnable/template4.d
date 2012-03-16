@@ -1061,6 +1061,30 @@ void test6701()
     assert(foo2_6701!(0u, "+")() == 1);
 }
 
+/******************************************/
+
+template foo7698a(T, T val : 0)
+{
+    enum foo7698a = val;
+}
+
+T foo7698b(T, T val : 0)()
+{
+    return val;
+}
+
+T foo7698c(T, T val : T.init)()
+{
+    return val;
+}
+
+void test7698()
+{
+    static assert(foo7698a!(int, 0) == 0);
+    assert(foo7698b!(int, 0)() == 0);
+    assert(foo7698c!(int, 0)() == 0);
+}
+
 /*********************************************************/
 
 int main()
@@ -1105,6 +1129,7 @@ int main()
     test38();
     test39();
     test6701();
+    test7698();
 
     printf("Success\n");
     return 0;

@@ -6245,7 +6245,7 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 
 Expression *DotIdExp::semantic(Scope *sc)
 {
-    // Indicate we didn't come from CallExp::semantic()
+    // Indicate we need to resolve by UFCS.
     return semantic(sc, 0);
 }
 
@@ -6544,34 +6544,19 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         return e->type->dotExp(sc, e, ident);
     }
 #if DMDV2
-    else if ((t1b->ty == Tarray || t1b->ty == Tsarray ||
-             t1b->ty == Taarray) &&
-             ident != Id::sort && ident != Id::reverse &&
-             ident != Id::dup && ident != Id::idup)
+    else if (!flag)
     {   /* If ident is not a valid property, rewrite:
          *   e1.ident
          * as:
          *   .ident(e1)
          */
-        unsigned errors = global.startGagging();
-        Type *t1 = e1->type;
-        e = e1->type->dotExp(sc, e1, ident);
-        if (global.endGagging(errors))    // if failed to find the property
-        {
-            e1->type = t1;              // kludge to restore type
-            e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
-            e = new CallExp(loc, e, e1);
+        if (e1->op == TOKtype ||
+            t1b->ty == Tvoid ||
+            (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray) &&
+            (ident == Id::sort || ident == Id::reverse || ident == Id::dup || ident == Id::idup))
+        {   goto L2;
         }
-        e = e->semantic(sc);
-        return e;
-    }
-    else if ((t1b->isTypeBasic() && t1b->ty != Tvoid) ||
-             t1b->ty == Tenum || t1b->ty == Tnull)
-    {   /* If ident is not a valid property, rewrite:
-         *   e1.ident
-         * as:
-         *   .ident(e1)
-         */
+
         unsigned errors = global.startGagging();
         Type *t1 = e1->type;
         e = e1->type->dotExp(sc, e1, ident);
@@ -6587,9 +6572,9 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 #endif
     else
     {
+    L2:
         e = e1->type->dotExp(sc, e1, ident);
-        if (!(flag && e->op == TOKdotti))       // let CallExp::semantic() handle this
-            e = e->semantic(sc);
+        e = e->semantic(sc);
         return e;
     }
 }
@@ -6877,13 +6862,37 @@ TemplateDeclaration *DotTemplateInstanceExp::getTempdecl(Scope *sc)
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 {
+    // Indicate we need to resolve by UFCS.
+    return semantic(sc, 0);
+}
+Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
+{
 #if LOGSEMANTIC
     printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
 #endif
-    Expression *eleft;
+
+    UnaExp::semantic(sc);
     Expression *e = new DotIdExp(loc, e1, ti->name);
+
+    if (e1->op == TOKimport && ((ScopeExp *)e1)->sds->isModule())
+        e = ((DotIdExp *)e)->semantic(sc, 1);
+    else
+    {
+        unsigned errors = global.startGagging();
+        e = ((DotIdExp *)e)->semantic(sc, 1);
+        if (global.endGagging(errors) && !flag)
+        {
+            e = new DotTemplateInstanceExp(loc,
+                            new IdentifierExp(loc, Id::empty),
+                            ti->name, ti->tiargs);
+            e = new CallExp(loc, e, e1);
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
+            return e;
+        }
+    }
+
 L1:
-    e = e->semantic(sc);
     if (e->op == TOKerror)
         return e;
     if (e->op == TOKdottd)
@@ -6892,7 +6901,7 @@ L1:
             return new ErrorExp();
         DotTemplateExp *dte = (DotTemplateExp *)e;
         TemplateDeclaration *td = dte->td;
-        eleft = dte->e1;
+        Expression *eleft = dte->e1;
         ti->tempdecl = td;
         if (ti->needsTypeInference(sc))
         {
@@ -6966,8 +6975,15 @@ L1:
         {   TemplateExp *te = (TemplateExp *) de->e2;
             e = new DotTemplateExp(loc,de->e1,te->td);
         }
+        else
+            goto Lerr;
+
+        e = e->semantic(sc);
+        if (e == de)
+            goto Lerr;
         goto L1;
     }
+Lerr:
     error("%s isn't a template", e->toChars());
     return new ErrorExp();
 }
@@ -7395,7 +7411,7 @@ Lagain:
     {
         if (e1->op == TOKdot)
         {   DotIdExp *die = (DotIdExp *)e1;
-            e1 = die->semantic(sc, 1);
+            e1 = die->semantic(sc);
             /* Look for e1 having been rewritten to expr.opDispatch!(string)
              * We handle such earlier, so go back.
              * Note that in the rewrite, we carefully did not run semantic() on e1
@@ -9820,13 +9836,92 @@ Expression *AssignExp::semantic(Scope *sc)
         }
     }
 
-    {
-    Expression *e = BinExp::semantic(sc);
-    if (e->op == TOKerror)
-        return e;
-    }
-
+    e2 = e2->semantic(sc);
+    if (e2->op == TOKerror)
+        return new ErrorExp();
     e2 = resolveProperties(sc, e2);
+
+    /* With UFCS, e.f = value
+     * Could mean:
+     *      .f(e, value)
+     * or:
+     *      .f(e) = value
+     */
+    if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
+        dti->e1 = dti->e1->semantic(sc);
+        if (!global.errors && dti->e1->type)
+        {
+            unsigned errors = global.startGagging();
+            e1 = dti->semantic(sc, 1);
+            if (global.endGagging(errors) || e1->op == TOKerror)
+            {
+                Expressions *arguments = new Expressions();
+                arguments->setDim(2);
+                (*arguments)[0] = dti->e1;
+                (*arguments)[1] = e2;
+
+                Expression *e;
+                e = new DotTemplateInstanceExp(loc, new IdentifierExp(loc, Id::empty),
+                        dti->ti->name, dti->ti->tiargs);
+
+                Expression *ex = e->syntaxCopy();
+
+                e = new CallExp(loc, e, arguments);
+                e = e->trySemantic(sc);
+                if (e)
+                    return e;
+
+                e = new CallExp(loc, ex, dti->e1);
+                e = e->trySemantic(sc);
+                if (!e)
+                {   error("not a property");
+                    return new ErrorExp();
+                }
+                e1 = e;
+            }
+        }
+    }
+    else if (e1->op == TOKdot)
+    {
+        DotIdExp *die = (DotIdExp *)e1;
+        die->e1 = die->e1->semantic(sc);
+        if (!global.errors && die->e1->type)
+        {
+            unsigned errors = global.startGagging();
+            e1 = die->semantic(sc, 1);
+            if (global.endGagging(errors) || e1->op == TOKerror)
+            {
+                Expressions *arguments = new Expressions();
+                arguments->setDim(2);
+                (*arguments)[0] = die->e1;
+                (*arguments)[1] = e2;
+
+                Expression *e;
+                e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), die->ident);
+
+                Expression *ex = e->syntaxCopy();
+
+                e = new CallExp(loc, e, arguments);
+                e = e->trySemantic(sc);
+                if (e)
+                    return e;
+
+                e = new CallExp(loc, ex, die->e1);
+                e = e->trySemantic(sc);
+                if (!e)
+                {   error("not a property");
+                    return new ErrorExp();
+                }
+                e1 = e;
+            }
+        }
+    }
+Le1:
+    e1 = e1->semantic(sc);
+    if (e1->op == TOKerror)
+        return new ErrorExp();
 
     /* We have f = value.
      * Could mean:
@@ -10313,6 +10408,8 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
 
     e1 = e1->modifiableLvalue(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
 
     Type *tb1 = e1->type->toBasetype();
     Type *tb1next = tb1->nextOf();
