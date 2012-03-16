@@ -280,7 +280,7 @@ const char *TrustToChars(enum TRUST trust)
         case TRUSTsafe:
             return "safe";
         default:
-            return "unknown";
+            assert(false);
     }
 }
 
@@ -299,7 +299,7 @@ const char *PurityToChars(enum PURE purity)
         case PUREfwdref:
             return "fwdref";
         default:
-            return "unknown";
+            assert(false);
     }
 }
 
@@ -320,7 +320,7 @@ const char *LinkageToChars(enum LINK linkage)
         case LINKpascal:
             return "pascal";
         default:
-            return "unknown";
+            assert(false);
     }
 }
 
@@ -719,10 +719,6 @@ void JsonOut::property(const char *name, Type *type)
             property("kind", "dchar");
             // properties((TypeDchar *)type);
             break;
-        case Terror:
-            property("kind", "error");
-            // properties((TypeError *)type);
-            break;
         case Tinstance:
             property("kind", "instance");
             properties((TypeInstance *)type);
@@ -751,6 +747,10 @@ void JsonOut::property(const char *name, Type *type)
             property("kind", "vector");
             properties((TypeVector *)type);
             break;
+        case Terror:
+            assert(false); // shouldn't ever happen
+        default:
+            assert(false);
     }
 
     objectEnd();
