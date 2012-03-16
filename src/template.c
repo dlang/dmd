@@ -1417,19 +1417,7 @@ Lretry:
                 Type *tp = fparam->type;
                 Expression *e = fe->inferType(tp, 1);
                 if (!e)
-                {
-                    if (tp->ty == Tdelegate &&
-                        fe->tok == TOKreserved &&
-                        fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction)
-                    {
-                        fe = (FuncExp *)fe->copy();
-                        fe->tok = TOKdelegate;
-                        fe->type = (new TypeDelegate(fe->type->nextOf()))->merge();
-                        e = fe;
-                    }
-                    else
-                        e = farg;
-                }
+                    goto Lvarargs;
                 farg = e;
                 argtype = farg->type;
             }
@@ -1547,19 +1535,7 @@ Lretry:
 
                         Expression *e = fe->inferType(tp, 1);
                         if (!e)
-                        {
-                            if (tp->ty == Tdelegate &&
-                                fe->tok == TOKreserved &&
-                                fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction)
-                            {
-                                fe = (FuncExp *)fe->copy();
-                                fe->tok = TOKdelegate;
-                                fe->type = (new TypeDelegate(fe->type->nextOf()))->merge();
-                                e = fe;
-                            }
-                            else
-                                e = arg;
-                        }
+                            goto Lnomatch;
                         arg = e;
                     }
 

@@ -1611,6 +1611,8 @@ Expression *AssocArrayLiteralExp::inferType(Type *t, int flag)
 
 Expression *FuncExp::inferType(Type *to, int flag)
 {
+    //printf("FuncExp::interType('%s'), to=%s\n", type?type->toChars():"null", to->toChars());
+
     if (!type)  // semantic is not yet done
     {
         if (to->ty == Tdelegate ||
@@ -1633,8 +1635,6 @@ Expression *FuncExp::inferType(Type *to, int flag)
             goto L1;
         t = t->nextOf();
     }
-    else
-        goto L1;
 
     if (td)
     {   /// Parameter types inference from
@@ -1659,9 +1659,10 @@ Expression *FuncExp::inferType(Type *to, int flag)
                         if (p->type->ty == Tident &&
                             ((TypeIdentifier *)p->type)->ident == tp->ident)
                         {   p = Parameter::getNth(tfv->parameters, u);
-                            if (p->type->ty == Tident)
-                                return NULL;
+                            unsigned errors = global.startGagging();
                             Type *tprm = p->type->semantic(loc, td->scope);
+                            if (global.endGagging(errors))
+                                return NULL;
                             tiargs->push(tprm);
                             u = dim;    // break inner loop
                         }
@@ -1688,7 +1689,7 @@ Expression *FuncExp::inferType(Type *to, int flag)
         {
             Type *typen = type->nextOf();
             assert(typen->deco);
-            if (typen->covariant(to->nextOf()) == 1)
+            //if (typen->covariant(to->nextOf()) == 1)
             {
                 FuncExp *fe = (FuncExp *)copy();
                 fe->tok = TOKdelegate;
