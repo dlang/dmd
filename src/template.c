@@ -4582,7 +4582,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     parent = tempdecl->parent;
     //printf("parent = '%s'\n", parent->kind());
 
-    ident = genIdent(tiargs);         // need an identifier for name mangling purposes.
+    ident = genIdent(&tdtypes);       // need an identifier for name mangling purposes.
+
 
 #if 1
     if (isnested)
@@ -5337,7 +5338,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
     char *id = tempdecl->ident->toChars();
     buf.printf("__T%llu%s", (ulonglong)strlen(id), id);
     for (size_t i = 0; i < args->dim; i++)
-    {   Object *o = args->tdata()[i];
+    {   Object *o = (*args)[i];
         Type *ta = isType(o);
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
@@ -5345,6 +5346,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
         //printf("\to [%d] %p ta %p ea %p sa %p va %p\n", i, o, ta, ea, sa, va);
         if (ta)
         {
+        Lta:
             buf.writeByte('T');
             if (ta->deco)
                 buf.writestring(ta->deco);
@@ -5359,6 +5361,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
         }
         else if (ea)
         {
+        Lea:
             // Don't interpret it yet, it might actually be an alias
             ea = ea->optimize(WANTvalue);
             if (ea->op == TOKvar)
@@ -5389,30 +5392,26 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             ea = ea->optimize(WANTvalue | WANTinterpret);
             if (ea->op == TOKerror || olderr != global.errors)
                 continue;
-#if 1
-            /* Use deco that matches what it would be for a function parameter
-             */
+
             buf.writestring(ea->type->deco);
-#else
-            // Use type of parameter, not type of argument
-            TemplateParameter *tp = tempdecl->parameters->tdata()[i];
-            assert(tp);
-            TemplateValueParameter *tvp = tp->isTemplateValueParameter();
-            assert(tvp);
-            buf.writestring(tvp->valType->deco);
-#endif
             ea->toMangleBuffer(&buf);
         }
         else if (sa)
         {
-          Lsa:
-            buf.writeByte('S');
+        Lsa:
+            if (AliasDeclaration *ad = sa->isAliasDeclaration())
+            {
+                if ((ta = ad->getType()))
+                    goto Lta;
+                sa = ad->toAlias();
+            }
+
             Declaration *d = sa->isDeclaration();
             if (d && (!d->type || !d->type->deco))
             {   error("forward reference of %s", d->toChars());
                 continue;
             }
-#if 0
+
             VarDeclaration *v = sa->isVarDeclaration();
             if (v && v->storage_class & STCmanifest)
             {   ExpInitializer *ei = v->init->isExpInitializer();
@@ -5422,7 +5421,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
                     goto Lea;
                 }
             }
-#endif
+
             const char *p = sa->mangle();
 
             /* Bugzilla 3043: if the first character of p is a digit this
@@ -5432,6 +5431,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
              * Unfortunately, fixing this ambiguity will break existing binary
              * compatibility and the demanglers, so we'll leave it as is.
              */
+            buf.writeByte('S');
             buf.printf("%llu%s", (ulonglong)strlen(p), p);
         }
         else if (va)
@@ -5987,7 +5987,7 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     if (!ident)
-        ident = genIdent(tiargs);
+        ident = genIdent(&tdtypes);
 
     inst = this;
     parent = sc->parent;
