@@ -187,7 +187,9 @@ targ_size_t type_paramsize(type *t);
 type *type_alloc(tym_t);
 type *type_alloc_template(symbol *s);
 type *type_allocn(tym_t,type *tn);
+#if SCPP
 type *type_allocmemptr(Classsym *stag,type *tn);
+#endif
 type *type_fake(tym_t);
 type *type_setty(type **,long);
 type *type_settype(type **pt, type *t);
