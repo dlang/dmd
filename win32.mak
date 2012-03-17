@@ -184,6 +184,7 @@ MANIFEST= \
 	src\rt\qsort2.d \
 	src\rt\switch_.d \
 	src\rt\tls.S \
+	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	\
 	src\rt\typeinfo\ti_AC.d \
@@ -304,6 +305,7 @@ SRCS= \
 	src\rt\obj.d \
 	src\rt\qsort.d \
 	src\rt\switch_.d \
+	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	\
 	src\rt\util\console.d \

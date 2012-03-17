@@ -202,6 +202,7 @@ MANIFEST= \
 	src/rt/qsort2.d \
 	src/rt/switch_.d \
 	src/rt/tls.S \
+	src/rt/tlsgc.d \
 	src/rt/trace.d \
 	\
 	src/rt/typeinfo/ti_AC.d \
@@ -329,6 +330,7 @@ SRC_D_MODULES = \
 	rt/obj \
 	rt/qsort \
 	rt/switch_ \
+	rt/tlsgc \
 	rt/trace \
 	\
 	rt/util/console \

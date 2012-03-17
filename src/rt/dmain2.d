@@ -71,7 +71,6 @@ extern (C) void rt_moduleTlsCtor();
 extern (C) void rt_moduleDtor();
 extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
-extern (C) void rt_lifetimeInit();
 
 // NOTE: This is to preserve compatibility with old Windows DLLs.
 extern (C) void _moduleCtor()
@@ -278,7 +277,6 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
     {
         gc_init();
         initStaticDataGC();
-        rt_lifetimeInit();
         rt_moduleCtor();
         rt_moduleTlsCtor();
         runModuleUnitTests();
@@ -530,7 +528,6 @@ extern (C) int main(int argc, char** argv)
     {
         gc_init();
         initStaticDataGC();
-        rt_lifetimeInit();
         rt_moduleCtor();
         rt_moduleTlsCtor();
         if (runModuleUnitTests())
