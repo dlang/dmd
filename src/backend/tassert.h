@@ -23,7 +23,7 @@
 
 #if __clang__
 
-void util_assert ( char * , int ) __attribute__((analyzer_noreturn));
+void util_assert(const char * , int) __attribute__((noreturn));
 
 static void local_assert(int line)
 {
@@ -36,7 +36,7 @@ static void local_assert(int line)
 #if _MSC_VER
 __declspec(noreturn)
 #endif
-void util_assert ( char * , int );
+void util_assert(const char *, int);
 
 static void local_assert(int line)
 {

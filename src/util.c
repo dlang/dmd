@@ -50,7 +50,7 @@ void file_progress()
  * Alternative assert failure.
  */
 
-void util_assert(char *file,int line)
+void util_assert(const char *file, int line)
 {
     fflush(stdout);
     printf("Internal error: %s %d\n",file,line);
@@ -213,30 +213,37 @@ L63:
 
 #else
 
-int binary(const char *p, const char ** table,int high)
-{ int low,mid;
-  signed char cond;
-  char cp;
+int binary(const char *p, const char ** table, int high)
+{
+    return binary(p, strlen(p), table, high);
+}
 
-  low = 0;
-  high--;
-  cp = *p;
-  p++;
-  while (low <= high)
-  {     mid = (low + high) >> 1;
-        if ((cond = table[mid][0] - cp) == 0)
-            cond = strcmp(table[mid] + 1,p);
+#endif
+
+// search table[0 .. high] for p[0 .. len]
+int binary(const char *p, size_t len, const char ** table, int high)
+{
+    int low = 0;
+    high--;
+    char cp = *p;
+    p++;
+    while (low <= high)
+    {
+        int mid = (low + high) >> 1;
+        int cond = table[mid][0] - cp;
+
+        if (cond == 0)
+            cond = memcmp(table[mid] + 1, p, len);
+
         if (cond > 0)
             high = mid - 1;
         else if (cond < 0)
             low = mid + 1;
         else
             return mid;                 /* match index                  */
-  }
-  return -1;
+    }
+    return -1;
 }
-
-#endif
 
 /**********************
  * If c is a power of 2, return that power else -1.
