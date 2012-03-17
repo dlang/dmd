@@ -375,6 +375,19 @@ version( linux )
                 int      si_fd;
             } _sigpoll_t _sigpoll;
         } _sifields_t _sifields;
+        
+        // How these fields are to be accessed. (as mentionned in kernel source code).
+        alias _sifields._kill.si_pid si_pid;
+        alias _sifields._kill.si_uid si_uid;
+        alias _sifields._timer.si_tid si_tid;
+        alias _sifields._timer.si_overrun si_overrun;
+        alias _sifields._sigchld.si_status si_status;
+        alias _sifields._sigchld.si_utime si_utime;
+        alias _sifields._sigchld.si_stime si_stime;
+        alias _sifields._rt.si_sigval si_value;
+        alias _sifields._rt.si_sigval.sival_int si_int;
+        alias _sifields._rt.si_sigval.sival_ptr si_ptr;
+        alias _sifields._sigfault.si_addr si_addr;
     }
 
     enum
