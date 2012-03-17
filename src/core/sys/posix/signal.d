@@ -377,17 +377,115 @@ version( linux )
         } _sifields_t _sifields;
         
         // How these fields are to be accessed. (as mentionned in kernel source code).
-        alias _sifields._kill.si_pid si_pid;
-        alias _sifields._kill.si_uid si_uid;
-        alias _sifields._timer.si_tid si_tid;
-        alias _sifields._timer.si_overrun si_overrun;
-        alias _sifields._sigchld.si_status si_status;
-        alias _sifields._sigchld.si_utime si_utime;
-        alias _sifields._sigchld.si_stime si_stime;
-        alias _sifields._rt.si_sigval si_value;
-        alias _sifields._rt.si_sigval.sival_int si_int;
-        alias _sifields._rt.si_sigval.sival_ptr si_ptr;
-        alias _sifields._sigfault.si_addr si_addr;
+        @property
+        auto si_pid() {
+        	return _sifields._kill.si_pid;
+        }
+        
+        @property
+        auto si_pid(pid_t si_pid) {
+        	return _sifields._kill.si_pid = si_pid;
+        }
+        
+        @property
+        auto si_uid() {
+        	return _sifields._kill.si_uid;
+        }
+        
+        @property
+        auto si_uid(uid_t si_uid) {
+        	return _sifields._kill.si_uid = si_uid;
+        }
+        
+        @property
+        auto si_tid() {
+        	return _sifields._timer.si_tid;
+        }
+        
+        @property
+        auto si_tid(int si_tid) {
+        	return _sifields._timer.si_tid = si_tid;
+        }
+        
+        @property
+        auto si_overrun() {
+        	return _sifields._timer.si_overrun;
+        }
+        
+        @property
+        auto si_overrun(int si_overrun) {
+        	return _sifields._timer.si_overrun = si_overrun;
+        }
+        
+        @property
+        auto si_status() {
+        	return _sifields._sigchld.si_status;
+        }
+        
+        @property
+        auto si_status(int si_status) {
+        	return _sifields._sigchld.si_status = si_status;
+        }
+        
+        @property
+        auto si_utime() {
+        	return _sifields._sigchld.si_utime;
+        }
+        
+        @property
+        auto si_utime(clock_t si_utime) {
+        	return _sifields._sigchld.si_utime = si_utime;
+        }
+        
+        @property
+        auto si_stime() {
+        	return _sifields._sigchld.si_stime;
+        }
+        
+        @property
+        auto si_stime(clock_t si_stime) {
+        	return _sifields._sigchld.si_stime = si_stime;
+        }
+        
+        @property
+        auto si_value() {
+        	return _sifields._rt.si_sigval;
+        }
+        
+        @property
+        auto si_value(sigval si_value) {
+        	return _sifields._rt.si_sigval = si_value;
+        }
+        
+        @property
+        auto si_int() {
+        	return _sifields._rt.si_sigval.sival_int;
+        }
+        
+        @property
+        auto si_int(int si_int) {
+        	return _sifields._rt.si_sigval.sival_int = si_int;
+        }
+        
+        @property
+        auto si_ptr() {
+        	return _sifields._rt.si_sigval.sival_ptr;
+        }
+        
+        @property
+        auto si_ptr(void* si_ptr) {
+        	return _sifields._rt.si_sigval.sival_ptr = si_ptr;
+        }
+        
+        @property
+        auto si_addr() {
+        	return _sifields._sigfault.si_addr;
+        }
+        
+        @property
+        auto si_addr(void* si_addr) {
+        	return _sifields._sigfault.si_addr = si_addr;
+        }
     }
 
     enum
