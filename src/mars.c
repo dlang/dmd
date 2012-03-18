@@ -1196,6 +1196,7 @@ int main(int argc, char *argv[])
         if (aw->read(filei))
         {
             error(0, "cannot read file %s", m->srcfile->name->toChars());
+            fatal();
         }
 #endif
         m->parse();
