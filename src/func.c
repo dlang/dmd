@@ -498,7 +498,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (fdc->toParent() == parent)
                 {
                     // fdc overrides fdv exactly, then this introduces new function.
-                    if (fdc->type->equals(fdv->type) && !this->type->equals(fdv->type))
+                    if (fdc->type->mod == fdv->type->mod && this->type->mod != fdv->type->mod)
                         goto Lintro;
 
                     // If both are mixins, then error.

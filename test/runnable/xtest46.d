@@ -4741,6 +4741,42 @@ void test7534()
 }
 
 /***************************************************/
+// 7534 + return type covariance
+
+class X7534 {}
+class Y7534 : X7534
+{
+    int value; this(int n){ value = n; }
+}
+
+class V7534
+{
+    X7534 foo(){ return new X7534(); }
+}
+class W7534 : V7534
+{
+    Y7534 foo(){ return new Y7534(1); }
+    Y7534 foo() const { return new Y7534(2); }
+}
+
+void test7534cov()
+{
+    auto mv = new V7534();
+    assert(typeid(mv.foo()) == typeid(X7534));
+
+    auto mw = new W7534();
+    assert(typeid(mw.foo()) == typeid(Y7534));
+    assert(mw.foo().value == 1);
+    mv = mw;
+    assert(typeid(mv.foo()) == typeid(Y7534));
+    assert((cast(Y7534)mv.foo()).value == 1);
+
+    auto cw = new const(W7534)();
+    assert(typeid(cw.foo()) == typeid(Y7534));
+    assert(cw.foo().value == 2);
+}
+
+/***************************************************/
 // 7562
 
 static struct MyInt
@@ -5046,6 +5082,7 @@ int main()
     test7321();
     test3282();
     test7534();
+    test7534cov();
     test7618();
     test7682();
 
