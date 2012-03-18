@@ -2523,6 +2523,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
 
             case OPf_d:
             case OPd_f:
+                if (tycomplex(e->E1->Ety))
+                    goto Lcomplex;
                 if (config.fpxmmregs && *pretregs & XMMREGS)
                     return xmmcnvt(e, pretregs);
 
@@ -2541,8 +2543,6 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                     else
                         break;
                 }
-                if (tycomplex(e->E1->Ety))
-                    goto Lcomplex;
                 goto Lload87;
 
             case OPs64_d:

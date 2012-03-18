@@ -1353,20 +1353,21 @@ int jmpopcode(elem *e)
         e = e->E2;                      /* right operand determines it  */
 
   op = e->Eoper;
-  if (e->Ecount != e->Ecomsub)          // comsubs just get Z bit set
-        return JNE;
   if (!OTrel(op))                       // not relational operator
   {
         tym_t tymx = tybasic(e->Ety);
         if (tyfloating(tymx) && config.inline8087 &&
             (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
              tymx == TYcdouble || tymx == TYcfloat ||
-             op == OPind))
+             op == OPind ||
+             (OTcall(op) && (regmask(tymx, tybasic(e->E1->Eoper)) & (mST0 | XMMREGS)))))
         {
             return XP|JNE;
         }
         return (op >= OPbt && op <= OPbts) ? JC : JNE;
   }
+  if (e->Ecount != e->Ecomsub)          // comsubs just get Z bit set
+        return JNE;
 
   if (e->E2->Eoper == OPconst)
         zero = !boolres(e->E2);
