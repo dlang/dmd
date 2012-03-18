@@ -8546,10 +8546,11 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e1->op == TOKarray)
     {
         ArrayExp *ae = (ArrayExp *)e1;
-        AggregateDeclaration *ad;
+        AggregateDeclaration *ad = NULL;
         Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
+        ae->e1 = resolveProperties(sc, ae->e1);
         Type *t1 = ae->e1->type->toBasetype();
         if (t1->ty == Tstruct)
         {
@@ -8577,7 +8578,9 @@ Expression *AssignExp::semantic(Scope *sc)
                 {   Expression *e = new DotIdExp(loc, ae->e1, id);
 
                     if (1 || !global.params.useDeprecated)
-                        error("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
+                    {   error("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
+                        return new ErrorExp();
+                    }
 
                     e = new CallExp(loc, e, (Expression *)ae->arguments->data[0], e2);
                     e = e->semantic(sc);
@@ -8593,7 +8596,7 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e1->op == TOKslice)
     {   Type *t1;
         SliceExp *ae = (SliceExp *)e1;
-        AggregateDeclaration *ad;
+        AggregateDeclaration *ad = NULL;
         Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
