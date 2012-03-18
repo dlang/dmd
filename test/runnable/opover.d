@@ -914,6 +914,23 @@ void test15()
 //static assert(is(typeof(bug4953(3))));
 
 /**************************************/
+// 4993
+
+// reduced from the bug report
+struct Bar4993
+{
+    void opIndexAssign(int value, size_t index) {}
+}
+@property auto bar4993()
+{
+    return Bar4993();
+}
+void test4993()
+{
+    bar4993[3] = 42;
+}
+
+/**************************************/
 
 int main()
 {
@@ -932,6 +949,7 @@ int main()
     test13();
     test14();
     test15();
+    test4993();
 
     printf("Success\n");
     return 0;
