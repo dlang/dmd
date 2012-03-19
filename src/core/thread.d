@@ -780,6 +780,8 @@ class Thread
         {
             m_tmach = m_tmach.init;
         }
+        rt.tlsgc.destroy( m_tlsgcdata );
+        m_tlsgcdata = null;
     }
 
 
