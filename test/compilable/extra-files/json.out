@@ -39,7 +39,7 @@
 					"module" : {
 						"prettyName" : "json"
 					},
-					"modifiers" : []
+					"storageClass" : []
 				}
 			}
 		]

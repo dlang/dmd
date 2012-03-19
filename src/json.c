@@ -485,7 +485,7 @@ void JsonOut::properties(Declaration *decl)
 {
     properties((Dsymbol *)decl);
 
-    propertyStorageClass("modifiers", decl->storage_class);
+    propertyStorageClass("storageClass", decl->storage_class);
 }
 
 
@@ -832,7 +832,7 @@ void JsonOut::property(const char *name, Parameters *parameters)
 
 
 
-        propertyStorageClass("modifiers", p->storageClass);
+        propertyStorageClass("storageClass", p->storageClass);
         
         if (p->defaultArg)
             property("default", p->defaultArg->toChars());
