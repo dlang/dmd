@@ -2556,7 +2556,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
     {
         s = sc->search_correct(ident);
         if (s)
-            error("undefined identifier %s, did you mean %s %s?", ident->toChars(), s->kind(), s->toChars());
+            error("undefined identifier %s, did you mean '%s'?", ident->toChars(), s->toPrettyChars(true));
         else
             error("undefined identifier %s", ident->toChars());
     }
@@ -6529,8 +6529,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         }
         s = ie->sds->search_correct(ident);
         if (s)
-            error("undefined identifier '%s', did you mean '%s %s'?",
-                  ident->toChars(), s->kind(), s->toChars());
+            error("undefined identifier '%s', did you mean '%s'?", ident->toChars(), s->toPrettyChars(true));
         else
             error("undefined identifier '%s'", ident->toChars());
         return new ErrorExp();

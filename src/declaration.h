@@ -640,7 +640,7 @@ struct FuncDeclaration : Declaration
     void appendExp(Expression *e);
     void appendState(Statement *s);
     char *mangle();
-    const char *toPrettyChars();
+    const char *toPrettyChars(bool verbose=false);
     int isMain();
     int isWinMain();
     int isDllMain();
