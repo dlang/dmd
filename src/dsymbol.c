@@ -397,7 +397,7 @@ void *symbol_search_fp(void *arg, const char *seed)
 
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return s->search(0, id, 4|2);
+    return s->search(0, id, 1|2);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -405,7 +405,10 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
     if (global.gag)
         return NULL;            // don't do it for speculative compiles; too time consuming
 
-    return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
+    Dsymbol *s = search(0, ident, 1|2); // repeat search including private symbols
+    if (!s)
+        s = (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
+    return s;
 }
 
 /***************************************
