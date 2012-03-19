@@ -88,6 +88,7 @@ else version ( FreeBSD )
 {
     enum
     {
+        BUFSIZ       = 1024,
         EOF          = -1,
         FOPEN_MAX    = 20,
         FILENAME_MAX = 1024,
