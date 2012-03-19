@@ -1562,12 +1562,12 @@ Expression *CommaExp::castTo(Scope *sc, Type *t)
  *      flag    1: don't put an error when inference fails
  */
 
-Expression *Expression::inferType(Type *t, int flag)
+Expression *Expression::inferType(Type *t, int flag, TemplateParameters *tparams)
 {
     return this;
 }
 
-Expression *ArrayLiteralExp::inferType(Type *t, int flag)
+Expression *ArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
 {
     t = t->toBasetype();
     if (t->ty == Tarray || t->ty == Tsarray)
@@ -1576,7 +1576,7 @@ Expression *ArrayLiteralExp::inferType(Type *t, int flag)
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *e = (*elements)[i];
             if (e)
-            {   e = e->inferType(tn, flag);
+            {   e = e->inferType(tn, flag, tparams);
                 (*elements)[i] = e;
             }
         }
@@ -1584,7 +1584,7 @@ Expression *ArrayLiteralExp::inferType(Type *t, int flag)
     return this;
 }
 
-Expression *AssocArrayLiteralExp::inferType(Type *t, int flag)
+Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
 {
     t = t->toBasetype();
     if (t->ty == Taarray)
@@ -1594,14 +1594,14 @@ Expression *AssocArrayLiteralExp::inferType(Type *t, int flag)
         for (size_t i = 0; i < keys->dim; i++)
         {   Expression *e = (*keys)[i];
             if (e)
-            {   e = e->inferType(ti, flag);
+            {   e = e->inferType(ti, flag, tparams);
                 (*keys)[i] = e;
             }
         }
         for (size_t i = 0; i < values->dim; i++)
         {   Expression *e = (*values)[i];
             if (e)
-            {   e = e->inferType(tv, flag);
+            {   e = e->inferType(tv, flag, tparams);
                 (*values)[i] = e;
             }
         }
@@ -1609,7 +1609,7 @@ Expression *AssocArrayLiteralExp::inferType(Type *t, int flag)
     return this;
 }
 
-Expression *FuncExp::inferType(Type *to, int flag)
+Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
 {
     //printf("FuncExp::interType('%s'), to=%s\n", type?type->toChars():"null", to->toChars());
 
@@ -1659,10 +1659,10 @@ Expression *FuncExp::inferType(Type *to, int flag)
                         if (p->type->ty == Tident &&
                             ((TypeIdentifier *)p->type)->ident == tp->ident)
                         {   p = Parameter::getNth(tfv->parameters, u);
-                            unsigned errors = global.startGagging();
-                            Type *tprm = p->type->semantic(loc, td->scope);
-                            if (global.endGagging(errors))
-                                return NULL;
+                            Type *tprm = p->type;
+                            if (tprm->reliesOnTident(tparams))
+                                goto L1;
+                            tprm = tprm->semantic(loc, td->scope);
                             tiargs->push(tprm);
                             u = dim;    // break inner loop
                         }
@@ -1709,11 +1709,11 @@ L1:
     return e;
 }
 
-Expression *CondExp::inferType(Type *t, int flag)
+Expression *CondExp::inferType(Type *t, int flag, TemplateParameters *tparams)
 {
     t = t->toBasetype();
-    e1 = e1->inferType(t, flag);
-    e2 = e2->inferType(t, flag);
+    e1 = e1->inferType(t, flag, tparams);
+    e2 = e2->inferType(t, flag, tparams);
     return this;
 }
 
