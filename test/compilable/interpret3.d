@@ -4186,3 +4186,42 @@ static assert(bug6681(2));
 static assert(!is(typeof(compiles!(bug6681(1)))));
 static assert(!is(typeof(compiles!(bug6681(3)))));
 static assert(!is(typeof(compiles!(bug6681(4)))));
+
+/**************************************************
+    6438 void
+**************************************************/
+
+struct S6438
+{
+    int a;
+    int b = void;
+}
+
+void fill6438(int[] arr, int testnum)
+{
+    if (testnum == 2)
+    {
+        auto u = arr[0];
+    }
+    foreach(ref x; arr)
+        x = 7;
+    auto r = arr[0];
+    S6438[2] s;
+    auto p = &s[0].b;
+    if (testnum == 3)
+    {
+        auto v = *p;
+    }
+}
+
+bool bug6438(int testnum)
+{
+    int[4] stackSpace = void;
+    fill6438(stackSpace[], testnum);
+    assert(stackSpace == [7,7,7,7]);
+    return true;
+}
+
+static assert( is(typeof(compiles!(bug6438(1)))));
+static assert(!is(typeof(compiles!(bug6438(2)))));
+static assert(!is(typeof(compiles!(bug6438(3)))));
