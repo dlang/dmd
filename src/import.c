@@ -244,7 +244,7 @@ void Import::semantic(Scope *sc)
             {
                 s = mod->search_correct(names[i]);
                 if (s)
-                    mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
+                    mod->error(loc, "import '%s' not found, did you mean '%s'?", names[i]->toChars(), s->toPrettyChars(true));
                 else
                     mod->error(loc, "import '%s' not found", names[i]->toChars());
             }

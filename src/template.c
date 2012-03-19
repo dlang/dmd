@@ -5474,7 +5474,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
         {
             s = sc->search_correct(id);
             if (s)
-                error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
+                error("template '%s' is not defined, did you mean '%s'?", id->toChars(), s->toPrettyChars(true));
             else
                 error("template '%s' is not defined", id->toChars());
             return NULL;

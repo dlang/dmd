@@ -178,35 +178,42 @@ char *Dsymbol::toChars()
     return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
-const char *Dsymbol::toPrettyChars()
-{   Dsymbol *p;
-    char *s;
-    char *q;
-    size_t len;
+const char *Dsymbol::toPrettyChars(bool verbose)
+{
 
     //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
-    if (!parent)
+    if (!verbose && !parent)
         return toChars();
 
-    len = 0;
-    for (p = this; p; p = p->parent)
+    OutBuffer buf;
+    if (verbose)
+    {
+        if (enum PROT p = prot())
+        {
+            buf.writestring(Pprotectionnames[p]);
+            buf.writeByte(' ');
+        }
+        buf.writestring(kind());
+        buf.writeByte(' ');
+    }
+
+    size_t len = 0;
+    for (Dsymbol *p = this; p; p = p->parent)
         len += strlen(p->toChars()) + 1;
 
-    s = (char *)mem.malloc(len);
-    q = s + len - 1;
+    buf.reserve(len);
+    char *q = (char*)buf.data + buf.offset + len - 1;
     *q = 0;
-    for (p = this; p; p = p->parent)
+    for (Dsymbol *p = this; p; p = p->parent)
     {
+        if (p != this) *--q = '.';
         char *t = p->toChars();
         len = strlen(t);
         q -= len;
         memcpy(q, t, len);
-        if (q == s)
-            break;
-        q--;
-        *q = '.';
     }
-    return s;
+    assert(q == (char*)buf.data + buf.offset);
+    return buf.extractData();
 }
 
 Loc& Dsymbol::getLoc()
@@ -441,8 +448,8 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
             {
                 sm = s->search_correct(id);
                 if (sm)
-                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
-                          id->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
+                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s'?",
+                          id->toChars(), s->kind(), s->toChars(), sm->toPrettyChars(true));
                 else
                     error("template identifier '%s' is not a member of '%s %s'",
                           id->toChars(), s->kind(), s->toChars());

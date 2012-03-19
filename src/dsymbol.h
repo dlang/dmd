@@ -150,7 +150,7 @@ struct Dsymbol : Object
 
     static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
-    virtual const char *toPrettyChars();
+    virtual const char *toPrettyChars(bool verbose=false);
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
     virtual int apply(Dsymbol_apply_ft_t fp, void *param);
