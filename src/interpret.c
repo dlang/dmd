@@ -5456,8 +5456,12 @@ bool isAssocArray(Type *t)
     if (t->ty != Tstruct)
         return false;
     StructDeclaration *sym = ((TypeStruct *)t)->sym;
-    if (sym->ident == Id::AssociativeArray)
+    if (sym->ident == Id::AssociativeArray && sym->parent &&
+        sym->parent->parent &&
+        sym->parent->parent->ident == Id::object)
+    {
         return true;
+    }
 #endif
     return false;
 }
