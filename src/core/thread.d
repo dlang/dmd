@@ -19,8 +19,6 @@ module core.thread;
 public import core.time; // for Duration
 static import rt.tlsgc;
 
-//import core.stdc.stdio;
-
 // this should be true for most architectures
 version = StackGrowsDown;
 
@@ -780,6 +778,8 @@ class Thread
         {
             m_tmach = m_tmach.init;
         }
+        rt.tlsgc.destroy( m_tlsgcdata );
+        m_tlsgcdata = null;
     }
 
 
