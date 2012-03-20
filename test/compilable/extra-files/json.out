@@ -29,8 +29,7 @@
 				"protection" : "public",
 				"line" : 7,
 				"type" : {
-					"raw" : "Y",
-					"modifiers" : [],
+					"pretty" : "Y",
 					"kind" : "enum",
 					"name" : "Y",
 					"loc" : {

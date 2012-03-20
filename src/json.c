@@ -37,6 +37,9 @@ struct JsonOut
     void indent();
     void removeComma();
     void comma();
+    void stringStart();
+    void stringEnd();
+    void stringPart(const char*);
 
     void value(const char*);
     void value(int);
@@ -157,15 +160,18 @@ void JsonOut::comma()
         buf->writestring(",\n");
 }
 
-
-// Json value functions
-
-/*********************************
- * Encode string into buf, and wrap it in double quotes.
- */
-void JsonOut::value(const char *s)
+void JsonOut::stringStart()
 {
     buf->writeByte('\"');
+}
+
+void JsonOut::stringEnd()
+{
+    buf->writeByte('\"');
+}
+
+void JsonOut::stringPart(const char *s)
+{
     for (; *s; s++)
     {
         unsigned char c = (unsigned char) *s;
@@ -208,7 +214,19 @@ void JsonOut::value(const char *s)
                 break;
         }
     }
-    buf->writeByte('\"');
+}
+
+
+// Json value functions
+
+/*********************************
+ * Encode string into buf, and wrap it in double quotes.
+ */
+void JsonOut::value(const char *s)
+{
+    stringStart();
+    stringPart(s);
+    stringEnd();
 }
 
 void JsonOut::value(int value)
@@ -644,19 +662,18 @@ void JsonOut::property(const char *name, Type *type)
     propertyStart(name);
     objectStart();
 
-    property("raw", type->toChars());
+    property("pretty", type->toChars());
 
 
-    propertyStart("modifiers");
-    arrayStart();
+    if (type->mod)
+    {
+        propertyStart("modifiers");
+        stringStart();
+        type->modToBuffer(buf);
+        stringEnd();
+        comma();
+    }
 
-    if (type->isConst()) item("const");
-
-    if (type->isImmutable()) item("immutable");
-
-    if (type->isShared()) item("shared");
-
-    arrayEnd();
 
 
     switch (type->ty)
