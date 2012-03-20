@@ -318,9 +318,11 @@ struct ForStatement : Statement
     Expression *condition;
     Expression *increment;
     Statement *body;
+    int nest;
 
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
+    Statement *semanticInit(Scope *sc);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     int hasBreak();
