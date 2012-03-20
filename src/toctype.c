@@ -225,6 +225,25 @@ type *TypePointer::toCtype()
     return t;
 }
 
+type *replaceCppTemplate(Type *t, type *tx)
+{
+    if (t->ty == Tstruct)
+    {
+        TemplateInstance *ti = ((TypeStruct *)t)->sym->toParent()->isTemplateInstance();
+        if (ti)
+            return ti->toCtype();
+    }
+    if (t->ty == Tclass)
+    {
+        TemplateInstance *ti = ((TypeClass *)t)->sym->toParent()->isTemplateInstance();
+        if (ti)
+        {
+            return type_allocn(TYnptr, ti->toCtype());
+        }
+    }
+    return tx;
+}
+
 type *TypeFunction::toCtype()
 {   type *t;
 
@@ -238,6 +257,8 @@ type *TypeFunction::toCtype()
         for (size_t i = 0; i < nparams; i++)
         {   Parameter *arg = Parameter::getNth(parameters, i);
             type *tp = arg->type->toCtype();
+            if (linkage == LINKcpp)
+                tp = replaceCppTemplate(arg->type, tp);
             if (arg->storageClass & (STCout | STCref))
             {   // C doesn't have reference types, so it's really a pointer
                 // to the parameter type
@@ -253,6 +274,8 @@ type *TypeFunction::toCtype()
         ctype = t;
         assert(next);           // function return type should exist
         t->Tnext = next->toCtype();
+        if (linkage == LINKcpp)
+                t->Tnext = replaceCppTemplate(next, t->Tnext);
         t->Tnext->Tcount++;
         t->Tparamtypes = paramtypes;
     }
@@ -515,3 +538,7 @@ type *TypeClass::toCtype()
     return t;
 }
 
+type *TemplateInstance::toCtype()
+{
+    return toSymbol()->Stype;
+}

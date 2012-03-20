@@ -4255,6 +4255,7 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->havetempdecl = 0;
     this->isnested = NULL;
     this->speculative = 0;
+    this->csym = NULL;
 }
 
 /*****************

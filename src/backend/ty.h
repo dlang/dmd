@@ -104,7 +104,9 @@ enum TYM
 #if !MARS
     TYmemptr            = 0x2F, // pointer to member
     TYident             = 0x30, // type-argument
+#endif
     TYtemplate          = 0x31, // unexpanded class template
+#if !MARS
     TYvtshape           = 0x32, // virtual function table
 #endif
 
