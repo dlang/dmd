@@ -49,6 +49,7 @@ struct JsonOut
     void item(int);
     void itemBool(bool);
 
+
     void arrayStart();
     void arrayEnd();
     void objectStart();
@@ -592,7 +593,8 @@ void JsonOut::properties(TypeQualified *type) // ident.ident.ident.etc
 void JsonOut::properties(TypeIdentifier *type)
 {
     properties((TypeQualified *)type);
-    property("ident", type->ident->toChars());
+    property("rawIdentifier", type->ident->toChars());
+    property("identifier", type->ident->toHChars2());
 }
 
 void JsonOut::properties(TypeInstance *type)
@@ -704,7 +706,7 @@ void JsonOut::property(const char *name, Type *type)
             break;
         case Tident:
             property("kind", "ident");
-            // properties((TypeIdent *)type);
+            properties((TypeIdentifier *)type);
             break;
         case Tclass:
             property("kind", "class");
@@ -731,92 +733,29 @@ void JsonOut::property(const char *name, Type *type)
             // properties((TypeNone *)type);
             break;
         case Tvoid:
-            property("kind", "void");
-            // properties((TypeVoid *)type);
-            break;
         case Tint8:
-            property("kind", "int8");
-            // properties((TypeInt8 *)type);
-            break;
         case Tuns8:
-            property("kind", "uns8");
-            // properties((TypeUns8 *)type);
-            break;
         case Tint16:
-            property("kind", "int16");
-            // properties((TypeInt16 *)type);
-            break;
         case Tuns16:
-            property("kind", "uns16");
-            // properties((TypeUns16 *)type);
-            break;
         case Tint32:
-            property("kind", "int32");
-            // properties((TypeInt32 *)type);
-            break;
         case Tuns32:
-            property("kind", "uns32");
-            // properties((TypeUns32 *)type);
-            break;
         case Tint64:
-            property("kind", "int64");
-            // properties((TypeInt64 *)type);
-            break;
         case Tuns64:
-            property("kind", "uns64");
-            // properties((TypeUns64 *)type);
-            break;
         case Tfloat32:
-            property("kind", "float32");
-            // properties((TypeFloat32 *)type);
-            break;
         case Tfloat64:
-            property("kind", "float64");
-            // properties((TypeFloat64 *)type);
-            break;
         case Tfloat80:
-            property("kind", "float80");
-            // properties((TypeFloat80 *)type);
-            break;
         case Timaginary32:
-            property("kind", "imaginary32");
-            // properties((TypeImaginary32 *)type);
-            break;
         case Timaginary64:
-            property("kind", "imaginary64");
-            // properties((TypeImaginary64 *)type);
-            break;
         case Timaginary80:
-            property("kind", "imaginary80");
-            // properties((TypeImaginary80 *)type);
-            break;
         case Tcomplex32:
-            property("kind", "complex32");
-            // properties((TypeComplex32 *)type);
-            break;
         case Tcomplex64:
-            property("kind", "complex64");
-            // properties((TypeComplex64 *)type);
-            break;
         case Tcomplex80:
-            property("kind", "complex80");
-            // properties((TypeComplex80 *)type);
-            break;
         case Tbool:
-            property("kind", "bool");
-            // properties((TypeBool *)type);
-            break;
         case Tchar:
-            property("kind", "char");
-            // properties((TypeChar *)type);
-            break;
         case Twchar:
-            property("kind", "wchar");
-            // properties((TypeWchar *)type);
-            break;
         case Tdchar:
-            property("kind", "dchar");
-            // properties((TypeDchar *)type);
+            // basic types
+            property("kind", type->isTypeBasic()->dstring);
             break;
         case Tinstance:
             property("kind", "instance");
