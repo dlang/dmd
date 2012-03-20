@@ -302,34 +302,6 @@ return_expr:
 }
 
 /******************************
- * Check the tail CallExp is really property function call.
- */
-
-void checkPropertyCall(Expression *e, Expression *emsg)
-{
-    while (e->op == TOKcomma)
-        e = ((CommaExp *)e)->e2;
-
-    if (e->op == TOKcall)
-    {   CallExp *ce = (CallExp *)e;
-        TypeFunction *tf;
-        if (ce->f)
-            tf = (TypeFunction *)ce->f->type;
-        else if (ce->e1->type->ty == Tfunction)
-            tf = (TypeFunction *)ce->e1->type;
-        else if (ce->e1->type->ty == Tdelegate)
-            tf = (TypeFunction *)ce->e1->type->nextOf();
-        else if (ce->e1->type->ty == Tpointer && ce->e1->type->nextOf()->ty == Tfunction)
-            tf = (TypeFunction *)ce->e1->type->nextOf();
-        else
-            assert(0);
-
-        if (!tf->isproperty && global.params.enforcePropertySyntax)
-            ce->e1->error("not a property %s", (emsg ? emsg : ce)->toChars());
-    }
-}
-
-/******************************
  * Perform semantic() on an array of Expressions.
  */
 
@@ -6595,8 +6567,6 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             e1->type = t1;              // kludge to restore type
             e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
             e = new CallExp(loc, e, e1);
-            e = e->semantic(sc);
-            checkPropertyCall(e, this);
         }
         e = e->semantic(sc);
         return e;
@@ -6919,7 +6889,6 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
                             ti->name, ti->tiargs);
             e = new CallExp(loc, e, e1);
             e = e->semantic(sc);
-            checkPropertyCall(e, this);
             e = resolveProperties(sc, e);
             return e;
         }
@@ -9905,9 +9874,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = new CallExp(loc, e, arguments);
                 e = e->trySemantic(sc);
                 if (e)
-                {   checkPropertyCall(e, dti);
                     return e;
-                }
 
                 e = new CallExp(loc, ex, dti->e1);
                 e = e->trySemantic(sc);
@@ -9915,7 +9882,6 @@ Expression *AssignExp::semantic(Scope *sc)
                 {   error("not a property");
                     return new ErrorExp();
                 }
-                checkPropertyCall(e, dti);
                 e1 = e;
             }
         }
@@ -9943,9 +9909,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = new CallExp(loc, e, arguments);
                 e = e->trySemantic(sc);
                 if (e)
-                {   checkPropertyCall(e, die);
                     return e;
-                }
 
                 e = new CallExp(loc, ex, die->e1);
                 e = e->trySemantic(sc);
@@ -9953,7 +9917,6 @@ Expression *AssignExp::semantic(Scope *sc)
                 {   error("not a property");
                     return new ErrorExp();
                 }
-                checkPropertyCall(e, die);
                 e1 = e;
             }
         }
