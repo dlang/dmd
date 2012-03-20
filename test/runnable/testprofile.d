@@ -25,7 +25,23 @@ void test1()
 
 // ------------------
 
+void foo5689(double a, double b)
+{
+    assert(a == 17.0);
+    assert(b == 12.0);
+}
+
+__gshared fun5689 = &foo5689;
+
+void test5689()
+{
+    fun5689(17.0, 12.0);
+}
+
+// ------------------
+
 void main()
 {
     test1();
+    test5689();
 }
