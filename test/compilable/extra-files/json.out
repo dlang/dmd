@@ -38,8 +38,7 @@
 					},
 					"module" : {
 						"prettyName" : "json"
-					},
-					"storageClass" : []
+					}
 				}
 			}
 		]

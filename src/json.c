@@ -597,22 +597,22 @@ void JsonOut::properties(TypeReturn *type)
 
 void JsonOut::properties(TypeStruct *type)
 {
-    properties((Declaration *)type->sym);
+    propertyStorageClass("storageClass", type->sym->storage_class);
 }
 
 void JsonOut::properties(TypeEnum *type)
 {
-    properties((Declaration *)type->sym);
+    properties((Dsymbol*)type->sym);
 }
 
 void JsonOut::properties(TypeTypedef *type)
 {
-    properties((Declaration *)type->sym);
+    properties(type->sym->isDeclaration());
 }
 
 void JsonOut::properties(TypeClass *type)
 {
-    properties((Declaration *)type->sym);
+    propertyStorageClass("storageClass", type->sym->storage_class);
 }
 
 void JsonOut::properties(TypeTuple *type)
