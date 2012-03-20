@@ -135,7 +135,7 @@ struct Expression : Object
     virtual MATCH implicitConvTo(Type *t);
     virtual IntRange getIntRange();
     virtual Expression *castTo(Scope *sc, Type *t);
-    virtual Expression *inferType(Type *t, int flag = 0);
+    virtual Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
     virtual void checkEscape();
     virtual void checkEscapeRef();
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
@@ -439,7 +439,7 @@ struct ArrayLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    Expression *inferType(Type *t, int flag = 0);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
     dt_t **toDt(dt_t **pdt);
 
     Expression *doInline(InlineDoState *ids);
@@ -465,7 +465,7 @@ struct AssocArrayLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    Expression *inferType(Type *t, int flag = 0);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -668,7 +668,7 @@ struct FuncExp : Expression
     Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    Expression *inferType(Type *t, int flag = 0);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
@@ -1628,7 +1628,7 @@ struct CondExp : BinExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    Expression *inferType(Type *t, int flag = 0);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);

@@ -503,6 +503,16 @@ void test7705()
 }
 
 /***************************************************/
+// 7713
+
+void foo7713(T)(T delegate(in Object) dlg)
+{}
+void test7713()
+{
+   foo7713( (in obj) { return 15; } );   // line 6
+}
+
+/***************************************************/
 
 int main()
 {
@@ -530,6 +540,7 @@ int main()
     test7649();
     test7650();
     test7705();
+    test7713();
 
     printf("Success\n");
     return 0;

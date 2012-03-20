@@ -4225,3 +4225,26 @@ bool bug6438(int testnum)
 static assert( is(typeof(compiles!(bug6438(1)))));
 static assert(!is(typeof(compiles!(bug6438(2)))));
 static assert(!is(typeof(compiles!(bug6438(3)))));
+
+/**************************************************
+    7732
+**************************************************/
+
+struct AssociativeArray
+{
+    int *impl;
+    int f()
+    {
+        if (impl !is null)
+            auto x = *impl;
+        return 1;
+    }
+}
+
+int test7732()
+{
+    AssociativeArray aa;
+    return aa.f;
+}
+
+static assert( test7732() );
