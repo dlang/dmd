@@ -774,7 +774,14 @@ void _trace_pro_n()
             {
                 naked                           ;
                 pushad                          ;
-                mov     ECX,8*4[ESP]            ;
+
+                sub     RSP, 4*16               ;
+                movdqu  0*16[RSP], XMM0         ;
+                movdqu  1*16[RSP], XMM1         ;
+                movdqu  2*16[RSP], XMM2         ;
+                movdqu  3*16[RSP], XMM3         ;
+
+                mov     ECX,8*4+4*16[ESP]       ;
                 xor     EAX,EAX                 ;
                 mov     AL,[ECX]                ;
                 cmp     AL,0xFF                 ;
@@ -782,17 +789,24 @@ void _trace_pro_n()
                 cmp     byte ptr 1[ECX],0       ;
                 jne     L1                      ;
                 mov     AX,2[ECX]               ;
-                add     8*4[ESP],3              ;
+                add     8*4+4*16[ESP],3         ;
                 add     ECX,3                   ;
             L1: inc     EAX                     ;
                 inc     ECX                     ;
-                add     8*4[ESP],EAX            ;
+                add     8*4+4*16[ESP],EAX       ;
                 dec     EAX                     ;
                 sub     ESP,4                   ;
                 push    ECX                     ;
                 push    EAX                     ;
                 call    trace_pro               ;
                 add     ESP,12                  ;
+
+                movdqu  XMM0, 0*16[RSP]         ;
+                movdqu  XMM1, 1*16[RSP]         ;
+                movdqu  XMM2, 2*16[RSP]         ;
+                movdqu  XMM3, 3*16[RSP]         ;
+                add     RSP, 4*16               ;
+
                 popad                           ;
                 ret                             ;
             }
