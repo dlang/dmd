@@ -59,6 +59,9 @@ struct JsonOut
     void propertyStorageClass(const char*, StorageClass);
     void property(const char*, Type*);
     void property(const char*, Parameters*);
+    void property(const char*, enum TRUST);
+    void property(const char*, enum PURE);
+    void property(const char*, enum LINK);
 
     void properties(Module*);
     void properties(Dsymbol*);
@@ -327,58 +330,77 @@ void JsonOut::propertyBool(const char *name, bool b)
 }
 
 
-const char *TrustToChars(enum TRUST trust)
+void JsonOut::property(const char *name, enum TRUST trust)
 {
     switch (trust)
     {
         case TRUSTdefault:
-            return "default";
+            // Should not be printed
+            //property(name, "default");
+            break;
         case TRUSTsystem:
-            return "system";
+            property(name, "system");
+            break;
         case TRUSTtrusted:
-            return "trusted";
+            property(name, "trusted");
+            break;
         case TRUSTsafe:
-            return "safe";
+            property(name, "safe");
+            break;
         default:
             assert(false);
     }
 }
 
-const char *PurityToChars(enum PURE purity)
+void JsonOut::property(const char *name, enum PURE purity)
 {
     switch (purity)
     {
         case PUREimpure:
-            return "impure";
+            // Should not be printed
+            //property(name, "impure");
+            break;
         case PUREweak:
-            return "weak";
+            property(name, "weak");
+            break;
         case PUREconst:
-            return "const";
+            property(name, "const");
+            break;
         case PUREstrong:
-            return "strong";
+            property(name, "strong");
+            break;
         case PUREfwdref:
-            return "fwdref";
+            property(name, "fwdref");
+            break;
         default:
             assert(false);
     }
 }
 
-const char *LinkageToChars(enum LINK linkage)
+void JsonOut::property(const char *name, enum LINK linkage)
 {
     switch (linkage)
     {
         case LINKdefault:
-            return "default";
+            // Should not be printed
+            //property(name, "default");
+            break;
         case LINKd:
-            return "d";
+            // Should not be printed
+            //property(name, "d");
+            break;
         case LINKc:
-            return "c";
+            property(name, "c");
+            break;
         case LINKcpp:
-            return "cpp";
+            property(name, "cpp");
+            break;
         case LINKwindows:
-            return "windows";
+            property(name, "windows");
+            break;
         case LINKpascal:
-            return "pascal";
+            property(name, "pascal");
+            break;
         default:
             assert(false);
     }
@@ -522,9 +544,9 @@ void JsonOut::properties(TypeFunction *type)
     propertyBool("property", type->isproperty);
     propertyBool("ref", type->isref);
 
-    property("trust", TrustToChars(type->trust));
-    property("purity", PurityToChars(type->purity));
-    property("linkage", LinkageToChars(type->linkage));
+    property("trust", type->trust);
+    property("purity", type->purity);
+    property("linkage", type->linkage);
         
     property("returnType", type->next);
     if (type->parameters)
