@@ -134,6 +134,7 @@ struct Declaration : Dsymbol
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
+    void jsonProperties(JsonOut *json);
     void toDocBuffer(OutBuffer *buf);
 
     char *mangle();

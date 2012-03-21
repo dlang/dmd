@@ -1,5 +1,8 @@
 [
 	{
+		"name" : "json",
+		"kind" : "module",
+		"protection" : "public",
 		"prettyName" : "json",
 		"kind" : "module",
 		"imports" : [
@@ -12,8 +15,12 @@
 			{
 				"kind" : "import",
 				"name" : "object",
-				"loc" : {},
+				"kind" : "import",
+				"protection" : "private",
 				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
 					"prettyName" : "json"
 				}
 			},
@@ -21,21 +28,42 @@
 				"name" : "X",
 				"kind" : "struct",
 				"protection" : "public",
-				"line" : 5
+				"loc" : {
+					"line" : 5
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				}
 			},
 			{
 				"name" : "Y",
 				"kind" : "enum",
 				"protection" : "public",
-				"line" : 7,
+				"loc" : {
+					"line" : 7
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
 				"type" : {
-					"pretty" : "Y",
 					"kind" : "enum",
+					"pretty" : "Y",
 					"name" : "Y",
+					"kind" : "enum",
+					"protection" : "public",
 					"loc" : {
 						"line" : 7
 					},
 					"module" : {
+						"name" : "json",
+						"kind" : "module",
+						"protection" : "public",
 						"prettyName" : "json"
 					}
 				}
