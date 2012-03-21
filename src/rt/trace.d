@@ -776,10 +776,10 @@ void _trace_pro_n()
                 pushad                          ;
 
                 sub     RSP, 4*16               ;
-                movdqu  0*16[RSP], XMM0         ;
-                movdqu  1*16[RSP], XMM1         ;
-                movdqu  2*16[RSP], XMM2         ;
-                movdqu  3*16[RSP], XMM3         ;
+                movdqu  0*16[ESP], XMM0         ;
+                movdqu  1*16[ESP], XMM1         ;
+                movdqu  2*16[ESP], XMM2         ;
+                movdqu  3*16[ESP], XMM3         ;
 
                 mov     ECX,8*4+4*16[ESP]       ;
                 xor     EAX,EAX                 ;
@@ -801,10 +801,10 @@ void _trace_pro_n()
                 call    trace_pro               ;
                 add     ESP,12                  ;
 
-                movdqu  XMM0, 0*16[RSP]         ;
-                movdqu  XMM1, 1*16[RSP]         ;
-                movdqu  XMM2, 2*16[RSP]         ;
-                movdqu  XMM3, 3*16[RSP]         ;
+                movdqu  XMM0, 0*16[ESP]         ;
+                movdqu  XMM1, 1*16[ESP]         ;
+                movdqu  XMM2, 2*16[ESP]         ;
+                movdqu  XMM3, 3*16[ESP]         ;
                 add     RSP, 4*16               ;
 
                 popad                           ;
