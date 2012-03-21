@@ -51,7 +51,7 @@ struct DHandlerInfo
     uint endoffset;             // offset of end of guarded section
     int prev_index;             // previous table index
     uint cioffset;              // offset to DCatchInfo data from start of table (!=0 if try-catch)
-    void *finally_code;         // pointer to finally code to execute
+    size_t finally_offset;      // offset to finally code to execute
                                 // (!=0 if try-finally)
 }
 
@@ -59,7 +59,6 @@ struct DHandlerInfo
 
 struct DHandlerTable
 {
-    void *fptr;                 // pointer to start of function
     uint espoffset;             // offset of ESP from EBP
     uint retoffset;             // offset from start of function to return code
     size_t nhandlers;           // dimension of handler_info[] (use size_t to set alignment of handler_info[])
@@ -70,7 +69,7 @@ struct DCatchBlock
 {
     ClassInfo type;             // catch type
     size_t bpoffset;            // EBP offset of catch var
-    void *code;                 // catch handler code
+    size_t codeoffset;          // catch handler offset
 }
 
 // Create one of these for each try-catch
@@ -115,7 +114,7 @@ void terminate()
  * Return DHandlerTable if there is one, NULL if not.
  */
 
-DHandlerTable *__eh_finddata(void *address)
+FuncTable *__eh_finddata(void *address)
 {
     debug printf("FuncTable.sizeof = %p\n", FuncTable.sizeof);
     debug printf("__eh_finddata(address = %p)\n", address);
@@ -140,7 +139,7 @@ DHandlerTable *__eh_finddata(void *address)
             address < cast(void *)(cast(char *)ft.fptr + ft.fsize))
         {
           debug printf("\tfound handler table\n");
-            return ft.handlertable;
+            return ft;
         }
     }
     debug printf("\tnot found\n");
@@ -223,13 +222,14 @@ extern (C) void _d_throwc(Object *h)
 
         debug printf("found caller, EBP = %p, retaddr = %p\n", regebp, retaddr);
 //if (++count == 12) *(char*)0=0;
-        auto handler_table = __eh_finddata(cast(void *)retaddr);   // find static data associated with function
+        auto func_table = __eh_finddata(cast(void *)retaddr);   // find static data associated with function
+        auto handler_table = func_table ? func_table.handlertable : null;
         if (!handler_table)         // if no static data
         {
             debug printf("no handler table\n");
             continue;
         }
-        auto funcoffset = cast(size_t)handler_table.fptr;
+        auto funcoffset = cast(size_t)func_table.fptr;
         auto spoff = handler_table.espoffset;
         auto retoffset = handler_table.retoffset;
 
@@ -273,7 +273,7 @@ extern (C) void _d_throwc(Object *h)
             auto prev = cast(InFlight*) &__inflight;
             auto curr = prev.next;
 
-            if (curr !is null && curr.addr == phi.finally_code)
+            if (curr !is null && curr.addr == cast(void*)(funcoffset + phi.finally_offset))
             {
                 auto e = cast(Error)(cast(Throwable) h);
                 if (e !is null && (cast(Error) curr.t) is null)
@@ -331,7 +331,7 @@ extern (C) void _d_throwc(Object *h)
                             size_t catch_esp;
                             fp_t catch_addr;
 
-                            catch_addr = cast(fp_t)(pcb.code);
+                            catch_addr = cast(fp_t)(funcoffset + pcb.codeoffset);
                             catch_esp = regebp - handler_table.espoffset - fp_t.sizeof;
                             version (D_InlineAsm_X86)
                                 asm
@@ -360,14 +360,14 @@ extern (C) void _d_throwc(Object *h)
                     }
                 }
             }
-            else if (phi.finally_code)
+            else if (phi.finally_offset)
             {
                 // Call finally block
                 // Note that it is unnecessary to adjust the ESP, as the finally block
                 // accesses all items on the stack as relative to EBP.
                 debug printf("calling finally_code %p\n", phi.finally_code);
 
-                auto     blockaddr = phi.finally_code;
+                auto     blockaddr = cast(void*)(funcoffset + phi.finally_offset);
                 InFlight inflight;
 
                 inflight.addr = blockaddr;
