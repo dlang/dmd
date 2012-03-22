@@ -93,7 +93,16 @@ void Import::load(Scope *sc)
 
     // See if existing module
     DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
-
+#if TARGET_NET  //dot net needs modules and packages with same name
+#else
+    if (pkg && pkg->isModule())
+    {
+        ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
+             pkg->toChars(), pkg->toChars(), id->toChars());
+        mod = pkg->isModule(); // Error recovery - treat as import of that module
+        return;
+    }
+#endif
     Dsymbol *s = dst->lookup(id);
     if (s)
     {
@@ -103,7 +112,8 @@ void Import::load(Scope *sc)
         if (s->isModule())
             mod = (Module *)s;
         else
-            error("package and module have the same name");
+            ::error(loc, "can only import from a module, not from package %s.%s",
+                pkg->toChars(), id->toChars());
 #endif
     }
 
