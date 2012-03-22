@@ -4,10 +4,13 @@
 		"kind" : "module",
 		"protection" : "public",
 		"prettyName" : "json",
-		"kind" : "module",
 		"imports" : [
 			{
 				"name" : "object",
+				"kind" : "module",
+			},
+			{
+				"name" : "std.stdio",
 				"kind" : "module",
 			}
 		],
@@ -25,11 +28,784 @@
 				}
 			},
 			{
-				"name" : "X",
+				"kind" : "import",
+				"name" : "__anonymous",
+				"kind" : "import",
+				"protection" : "private",
+				"loc" : {
+					"line" : 8
+				}
+			},
+			{
+				"name" : "_staticCtor1",
+				"kind" : "function",
+				"protection" : "public",
+				"loc" : {
+					"line" : 11
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"storageClass" : [
+					"static"
+				],
+				"type" : {
+					"kind" : "function",
+					"pretty" : "void()",
+					"nothrow" : false,
+					"property" : false,
+					"ref" : false,
+					"returnType" : {
+						"kind" : "void",
+						"pretty" : "void"
+					},
+					"parameters" : []
+				},
+				"originalType" : {
+					"kind" : "function",
+					"pretty" : "void()",
+					"nothrow" : false,
+					"property" : false,
+					"ref" : false,
+					"returnType" : {
+						"kind" : "void",
+						"pretty" : "void"
+					},
+					"parameters" : []
+				}
+			},
+			{
+				"name" : "_staticDtor2",
+				"kind" : "function",
+				"protection" : "public",
+				"loc" : {
+					"line" : 13
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"storageClass" : [
+					"static"
+				],
+				"type" : {
+					"kind" : "function",
+					"pretty" : "void()",
+					"nothrow" : false,
+					"property" : false,
+					"ref" : false,
+					"returnType" : {
+						"kind" : "void",
+						"pretty" : "void"
+					},
+					"parameters" : []
+				},
+				"originalType" : {
+					"kind" : "function",
+					"pretty" : "void()",
+					"nothrow" : false,
+					"property" : false,
+					"ref" : false,
+					"returnType" : {
+						"kind" : "void",
+						"pretty" : "void"
+					},
+					"parameters" : []
+				}
+			},
+			{
+				"name" : "myInt",
+				"kind" : "alias",
+				"protection" : "public",
+				"loc" : {
+					"line" : 16
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"storageClass" : [],
+				"type" : {
+					"kind" : "int",
+					"pretty" : "int"
+				}
+			},
+			{
+				"name" : "x",
+				"kind" : "variable",
+				"protection" : "public",
+				"loc" : {
+					"line" : 17
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"storageClass" : [],
+				"type" : {
+					"kind" : "int",
+					"pretty" : "int"
+				},
+				"originalType" : {
+					"kind" : "identifier",
+					"pretty" : "myInt",
+					"idents" : [],
+					"rawIdentifier" : "myInt",
+					"identifier" : "myInt"
+				}
+			},
+			{
+				"kind" : "template",
+				"name" : "Foo(T)",
+				"protection" : "public",
+				"loc" : {
+					"line" : 19
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"parameters" : [
+					{
+						"name" : "T",
+						"kind" : "type"
+					}
+				],
+				"members" : [
+					{
+						"name" : "Foo",
+						"kind" : "struct",
+						"protection" : "public",
+						"loc" : {
+							"line" : 19
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"members" : [
+							{
+								"name" : "t",
+								"kind" : "variable",
+								"loc" : {
+									"line" : 19
+								},
+								"storageClass" : [],
+								"type" : {
+									"kind" : "identifier",
+									"pretty" : "T",
+									"idents" : [],
+									"rawIdentifier" : "T",
+									"identifier" : "T"
+								}
+							}
+						]
+					}
+				]
+			},
+			{
+				"kind" : "template",
+				"name" : "Bar(int T)",
+				"protection" : "public",
+				"loc" : {
+					"line" : 20
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"parameters" : [
+					{
+						"name" : "T",
+						"kind" : "value",
+						"valType" : "int"
+					}
+				],
+				"members" : [
+					{
+						"name" : "Bar",
+						"kind" : "class",
+						"protection" : "public",
+						"loc" : {
+							"line" : 20
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"members" : [
+							{
+								"name" : "t",
+								"kind" : "variable",
+								"loc" : {
+									"line" : 20
+								},
+								"storageClass" : [],
+								"type" : {
+									"kind" : "int",
+									"pretty" : "int"
+								}
+							}
+						]
+					}
+				]
+			},
+			{
+				"kind" : "template",
+				"name" : "Baz(T...)",
+				"protection" : "public",
+				"loc" : {
+					"line" : 21
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"parameters" : [
+					{
+						"name" : "T",
+						"kind" : "tuple"
+					}
+				],
+				"members" : [
+					{
+						"name" : "Baz",
+						"kind" : "interface",
+						"protection" : "public",
+						"loc" : {
+							"line" : 21
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"members" : [
+							{
+								"name" : "t",
+								"kind" : "function",
+								"loc" : {
+									"line" : 21
+								},
+								"storageClass" : [],
+								"type" : {
+									"kind" : "function",
+									"pretty" : "const T[0]()",
+									"modifiers" : " const",
+									"nothrow" : false,
+									"property" : false,
+									"ref" : false,
+									"returnType" : {
+										"kind" : "sarray",
+										"pretty" : "T[0]",
+										"elementType" : {
+											"kind" : "identifier",
+											"pretty" : "T",
+											"idents" : [],
+											"rawIdentifier" : "T",
+											"identifier" : "T"
+										},
+										"dim" : "0"
+									},
+									"parameters" : []
+								}
+							}
+						]
+					}
+				]
+			},
+			{
+				"kind" : "template",
+				"name" : "P(alias T)",
+				"protection" : "public",
+				"loc" : {
+					"line" : 23
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"parameters" : [
+					{
+						"name" : "T",
+						"kind" : "alias"
+					}
+				],
+				"members" : []
+			},
+			{
+				"name" : "Bar2",
+				"kind" : "class",
+				"protection" : "public",
+				"loc" : {
+					"line" : 25
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"base" : "Bar",
+				"interfaces" : [
+					"Baz"
+				],
+				"members" : [
+					{
+						"name" : "this",
+						"kind" : "constructor",
+						"protection" : "public",
+						"loc" : {
+							"line" : 26
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"storageClass" : [],
+						"type" : {
+							"kind" : "function",
+							"pretty" : "Bar2()",
+							"nothrow" : false,
+							"property" : false,
+							"ref" : false,
+							"returnType" : {
+								"kind" : "class",
+								"pretty" : "json.Bar2",
+								"storageClass" : []
+							},
+							"parameters" : []
+						}
+					},
+					{
+						"name" : "~this",
+						"kind" : "destructor",
+						"protection" : "public",
+						"loc" : {
+							"line" : 27
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"storageClass" : [],
+						"type" : {
+							"kind" : "function",
+							"pretty" : "void()",
+							"nothrow" : false,
+							"property" : false,
+							"ref" : false,
+							"returnType" : {
+								"kind" : "void",
+								"pretty" : "void"
+							},
+							"parameters" : []
+						},
+						"originalType" : {
+							"kind" : "function",
+							"pretty" : "void()",
+							"nothrow" : false,
+							"property" : false,
+							"ref" : false,
+							"returnType" : {
+								"kind" : "void",
+								"pretty" : "void"
+							},
+							"parameters" : []
+						}
+					},
+					{
+						"name" : "foo",
+						"kind" : "function",
+						"protection" : "public",
+						"loc" : {
+							"line" : 29
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"storageClass" : [
+							"static"
+						],
+						"type" : {
+							"kind" : "function",
+							"pretty" : "void()",
+							"nothrow" : false,
+							"property" : false,
+							"ref" : false,
+							"returnType" : {
+								"kind" : "void",
+								"pretty" : "void"
+							},
+							"parameters" : []
+						},
+						"originalType" : {
+							"kind" : "function",
+							"pretty" : "()",
+							"nothrow" : false,
+							"property" : false,
+							"ref" : false,
+							"parameters" : []
+						}
+					},
+					{
+						"name" : "baz",
+						"kind" : "function",
+						"protection" : "protected",
+						"loc" : {
+							"line" : 30
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"storageClass" : [
+							"abstract"
+						],
+						"type" : {
+							"kind" : "function",
+							"pretty" : "Foo!(int)()",
+							"nothrow" : false,
+							"property" : false,
+							"ref" : false,
+							"returnType" : {
+								"kind" : "struct",
+								"pretty" : "Foo!(int)",
+								"storageClass" : []
+							},
+							"parameters" : []
+						},
+						"originalType" : {
+							"kind" : "function",
+							"pretty" : "Foo!(int)()",
+							"nothrow" : false,
+							"property" : false,
+							"ref" : false,
+							"returnType" : {
+								"kind" : "instance",
+								"pretty" : "Foo!(int)",
+								"idents" : [],
+								"tempinst" : "Foo!(int)"
+							},
+							"parameters" : []
+						}
+					}
+				]
+			},
+			{
+				"name" : "Foo2",
 				"kind" : "struct",
 				"protection" : "public",
 				"loc" : {
-					"line" : 5
+					"line" : 33
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"members" : [
+					{
+						"name" : "bar2",
+						"kind" : "variable",
+						"protection" : "public",
+						"loc" : {
+							"line" : 34
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"storageClass" : [],
+						"type" : {
+							"kind" : "class",
+							"pretty" : "json.Bar2",
+							"storageClass" : []
+						},
+						"originalType" : {
+							"kind" : "identifier",
+							"pretty" : "Bar2",
+							"idents" : [],
+							"rawIdentifier" : "Bar2",
+							"identifier" : "Bar2"
+						}
+					},
+					{
+						"name" : "U",
+						"kind" : "union",
+						"protection" : "public",
+						"loc" : {
+							"line" : 35
+						},
+						"module" : {
+							"name" : "json",
+							"kind" : "module",
+							"protection" : "public",
+							"prettyName" : "json"
+						},
+						"members" : [
+							{
+								"name" : "s",
+								"kind" : "variable",
+								"protection" : "public",
+								"loc" : {
+									"line" : 37
+								},
+								"module" : {
+									"name" : "json",
+									"kind" : "module",
+									"protection" : "public",
+									"prettyName" : "json"
+								},
+								"storageClass" : [],
+								"type" : {
+									"kind" : "short",
+									"pretty" : "short"
+								}
+							},
+							{
+								"name" : "i",
+								"kind" : "variable",
+								"protection" : "public",
+								"loc" : {
+									"line" : 38
+								},
+								"module" : {
+									"name" : "json",
+									"kind" : "module",
+									"protection" : "public",
+									"prettyName" : "json"
+								},
+								"storageClass" : [],
+								"type" : {
+									"kind" : "int",
+									"pretty" : "int"
+								}
+							},
+							{
+								"name" : "o",
+								"kind" : "variable",
+								"protection" : "public",
+								"loc" : {
+									"line" : 40
+								},
+								"module" : {
+									"name" : "json",
+									"kind" : "module",
+									"protection" : "public",
+									"prettyName" : "json"
+								},
+								"storageClass" : [],
+								"type" : {
+									"kind" : "class",
+									"pretty" : "object.Object",
+									"storageClass" : []
+								},
+								"originalType" : {
+									"kind" : "identifier",
+									"pretty" : "Object",
+									"idents" : [],
+									"rawIdentifier" : "Object",
+									"identifier" : "Object"
+								}
+							}
+						]
+					}
+				]
+			},
+			{
+				"name" : "bar",
+				"kind" : "function",
+				"protection" : "public",
+				"loc" : {
+					"line" : 44
+				},
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				},
+				"storageClass" : [
+					"@trusted"
+				],
+				"type" : {
+					"kind" : "function",
+					"pretty" : "@trusted int(uint blah, ref Bar2 foo = null)",
+					"nothrow" : false,
+					"property" : false,
+					"ref" : false,
+					"trust" : "trusted",
+					"returnType" : {
+						"kind" : "int",
+						"pretty" : "int"
+					},
+					"parameters" : [
+						{
+							"name" : "blah",
+							"type" : {
+								"kind" : "uint",
+								"pretty" : "uint"
+							},
+							"storageClass" : []
+						},
+						{
+							"name" : "foo",
+							"type" : {
+								"kind" : "class",
+								"pretty" : "json.Bar2",
+								"storageClass" : []
+							},
+							"storageClass" : [
+								"ref"
+							],
+							"default" : "null"
+						}
+					]
+				},
+				"originalType" : {
+					"kind" : "function",
+					"pretty" : "myInt(uint blah, ref Bar2 foo = null)",
+					"nothrow" : false,
+					"property" : false,
+					"ref" : false,
+					"returnType" : {
+						"kind" : "identifier",
+						"pretty" : "myInt",
+						"idents" : [],
+						"rawIdentifier" : "myInt",
+						"identifier" : "myInt"
+					},
+					"parameters" : [
+						{
+							"name" : "blah",
+							"type" : {
+								"kind" : "uint",
+								"pretty" : "uint"
+							},
+							"storageClass" : []
+						},
+						{
+							"name" : "foo",
+							"type" : {
+								"kind" : "identifier",
+								"pretty" : "Bar2",
+								"idents" : [],
+								"rawIdentifier" : "Bar2",
+								"identifier" : "Bar2"
+							},
+							"storageClass" : [
+								"ref"
+							],
+							"default" : "null"
+						}
+					]
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "bitfields!(uint,\"fraction\",23,ubyte,\"exponent\",8,bool,\"sign\",1)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 282
+				},
+				"module" : {
+					"name" : "bitmanip",
+					"kind" : "module",
+					"protection" : "public",
+					"loc" : {
+						"line" : 24
+					},
+					"package" : [
+						"std"
+					],
+					"prettyName" : "std.bitmanip"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "bitfields!(ulong,\"fraction\",52,ushort,\"exponent\",11,bool,\"sign\",1)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 315
+				},
+				"module" : {
+					"name" : "bitmanip",
+					"kind" : "module",
+					"protection" : "public",
+					"loc" : {
+						"line" : 24
+					},
+					"package" : [
+						"std"
+					],
+					"prettyName" : "std.bitmanip"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "Demangle!(uint)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 46
+				},
+				"module" : {
+					"name" : "traits",
+					"kind" : "module",
+					"protection" : "public",
+					"loc" : {
+						"line" : 23
+					},
+					"package" : [
+						"std"
+					],
+					"prettyName" : "std.traits"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "Bar!(1)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 25
 				},
 				"module" : {
 					"name" : "json",
@@ -39,33 +815,96 @@
 				}
 			},
 			{
-				"name" : "Y",
-				"kind" : "enum",
+				"kind" : "template instance",
+				"name" : "Baz!(void,2,null)",
+				"kind" : "template instance",
 				"protection" : "public",
 				"loc" : {
-					"line" : 7
+					"line" : 25
 				},
 				"module" : {
 					"name" : "json",
 					"kind" : "module",
 					"protection" : "public",
 					"prettyName" : "json"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "Foo!(int)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 30
 				},
-				"type" : {
-					"kind" : "enum",
-					"pretty" : "Y",
-					"name" : "Y",
-					"kind" : "enum",
+				"module" : {
+					"name" : "json",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "json"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "isForwardRange!(ByCodepoint)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 447
+				},
+				"module" : {
+					"name" : "range",
+					"kind" : "module",
 					"protection" : "public",
 					"loc" : {
-						"line" : 7
+						"line" : 47
 					},
-					"module" : {
-						"name" : "json",
-						"kind" : "module",
-						"protection" : "public",
-						"prettyName" : "json"
-					}
+					"package" : [
+						"std"
+					],
+					"prettyName" : "std.range"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "isInputRange!(ByCodepoint)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 485
+				},
+				"module" : {
+					"name" : "range",
+					"kind" : "module",
+					"protection" : "public",
+					"loc" : {
+						"line" : 47
+					},
+					"package" : [
+						"std"
+					],
+					"prettyName" : "std.range"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "IRL!(cast(IR)149u)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 306
+				},
+				"module" : {
+					"name" : "regex",
+					"kind" : "module",
+					"protection" : "public",
+					"loc" : {
+						"line" : 64
+					},
+					"package" : [
+						"std"
+					],
+					"prettyName" : "std.regex"
 				}
 			}
 		]
