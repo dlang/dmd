@@ -133,8 +133,8 @@ struct Declaration : Dsymbol
     void checkModify(Loc loc, Scope *sc, Type *t);
 
     void emitComment(Scope *sc);
-    void toJson(JsonOut *json);
-    void jsonProperties(JsonOut *json);
+    virtual void toJson(JsonOut *json);
+    virtual void jsonProperties(JsonOut *json);
     void toDocBuffer(OutBuffer *buf);
 
     char *mangle();
@@ -283,6 +283,7 @@ struct VarDeclaration : Declaration
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     Type *htype;
     Initializer *hinit;
     AggregateDeclaration *isThis();
@@ -629,6 +630,7 @@ struct FuncDeclaration : Declaration
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
     int overloadInsert(Dsymbol *s);

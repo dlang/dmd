@@ -25,6 +25,7 @@
 #include "mtype.h"
 #include "attrib.h"
 #include "cond.h"
+#include "init.h"
 
 
 struct JsonOut
@@ -61,6 +62,7 @@ struct JsonOut
     void property(const char*, int);
     void propertyBool(const char*, bool);
     void propertyStorageClass(const char*, StorageClass);
+    void property(const char*, Loc*);
     void property(const char*, Type*);
     void property(const char*, Parameters*);
     void property(const char*, enum TRUST);
@@ -442,6 +444,23 @@ void JsonOut::propertyStorageClass(const char *name, StorageClass stc)
     arrayEnd();
 }
 
+void JsonOut::property(const char *name, Loc *loc)
+{
+    if (loc->filename || loc->linnum)
+    {
+        propertyStart(name);
+        objectStart();
+
+        if (loc->filename)
+            property("file", loc->filename);
+
+        if (loc->linnum)
+            property("line", loc->linnum);
+
+        objectEnd();
+    }
+}
+
 void JsonOut::property(const char *name, Type *type)
 {
     if (type == NULL) return;
@@ -474,7 +493,7 @@ void JsonOut::property(const char *name, Parameters *parameters)
 
     if (parameters)
         for (size_t i = 0; i < parameters->dim; i++)
-        {   Parameter *p = parameters->tdata()[i];
+        {   Parameter *p = (*parameters)[i];
             objectStart();
 
             if (p->ident)
@@ -528,9 +547,13 @@ void TypeReference::toJson(JsonOut *json)
 
 void TypeFunction::toJson(JsonOut *json)
 {
-    json->propertyBool("nothrow", isnothrow);
-    json->propertyBool("property", isproperty);
-    json->propertyBool("ref", isref);
+    json->propertyStart("attributes");
+    json->arrayStart();
+    if (purity) json->item("pure");
+    if (isnothrow) json->item("nothrow");
+    if (isproperty) json->item("@property");
+    if (isref) json->item("ref");
+    json->arrayEnd();
 
     json->property("trust", trust);
     json->property("purity", purity);
@@ -648,19 +671,7 @@ void Dsymbol::jsonProperties(JsonOut *json)
     if (comment)
         json->property("comment", (const char *)comment);
 
-    if (loc.filename || loc.linnum)
-    {
-        json->propertyStart("loc");
-        json->objectStart();
-
-        if (loc.filename)
-            json->property("file", loc.filename);
-
-        if (loc.linnum)
-            json->property("line", loc.linnum);
-
-        json->objectEnd();
-    }
+    json->property("loc", &loc);
 
     if (!isModule())
     {
@@ -715,12 +726,10 @@ void Module::toJson(JsonOut *json)
 
     json->propertyStart("members");
     json->arrayStart();
-
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
         s->toJson(json);
     }
-
     json->arrayEnd();
 
     json->objectEnd();
@@ -735,7 +744,7 @@ void Module::jsonProperties(JsonOut *json)
         json->propertyStart("package");
         json->arrayStart();
         for (size_t i = 0; i < md->packages->dim; i++)
-        {   Identifier *pid = md->packages->tdata()[i];
+        {   Identifier *pid = (*md->packages)[i];
             json->item(pid->toChars());
         }
         json->arrayEnd();
@@ -839,6 +848,53 @@ void AggregateDeclaration::toJson(JsonOut *json)
             s->toJson(json);
         }
         json->arrayEnd();
+    }
+
+    json->objectEnd();
+}
+
+void FuncDeclaration::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    jsonProperties(json);
+
+    if (parameters)
+    {
+        json->propertyStart("parameters");
+        json->arrayStart();
+        for (size_t i = 0; i < parameters->dim; i++)
+        {   VarDeclaration *v = (*parameters)[i];
+            v->toJson(json);
+        }
+        json->arrayEnd();
+    }
+
+
+    json->property("endloc", &endloc);
+
+
+    json->propertyStart("overrides");
+    json->arrayStart();
+    for (size_t i = 0; i < foverrides.dim; i++)
+    {   FuncDeclaration *fd = foverrides[i];
+        json->objectStart();
+        fd->jsonProperties(json);
+        json->objectEnd();
+    }
+    json->arrayEnd();
+
+
+    if (fdrequire)
+    {
+        json->propertyStart("in");
+        fdrequire->toJson(json);
+    }
+
+    if (fdensure)
+    {
+        json->propertyStart("out");
+        fdensure->toJson(json);
     }
 
     json->objectEnd();
@@ -982,6 +1038,23 @@ void EnumMember::toJson(JsonOut *json)
     jsonProperties(json);
 
     json->property("type", type);
+
+    json->objectEnd();
+}
+
+void VarDeclaration::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    jsonProperties(json);
+
+    if (init)
+        json->property("init", init->toChars());
+
+    if (offset)
+        json->property("offset", offset);
+    if (alignment)
+        json->property("alignment", alignment);
 
     json->objectEnd();
 }
