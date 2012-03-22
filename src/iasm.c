@@ -4236,8 +4236,7 @@ STATIC OPND *asm_una_exp()
                     // Check for offset keyword
                     if (asmtok->ident == Id::offset)
                     {
-                        if (!global.params.useDeprecated)
-                            error(asmstate.loc, "offset deprecated, use offsetof");
+                        deprecation(asmstate.loc, "offset deprecated, use offsetof");
                         goto Loffset;
                     }
                     if (asmtok->ident == Id::offsetof)
