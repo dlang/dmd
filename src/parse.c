@@ -1326,8 +1326,8 @@ BaseClasses *Parser::parseBaseClasses()
                 nextToken();
                 break;
         }
-        //if (prot && !global.params.useDeprecated)
-            //error("use of base class protection is deprecated");
+        //if (prot)
+            //deprecation("use of base class protection is deprecated");
         if (token.value == TOKidentifier)
         {
             BaseClass *b = new BaseClass(parseBasicType(), protection);
@@ -3221,8 +3221,7 @@ Statement *Parser::parseStatement(int flags)
                     arg = new Parameter(STCin, NULL, token.ident, NULL);
                     nextToken();
                     nextToken();
-                    if (1 || !global.params.useDeprecated)
-                        error("if (v; e) is deprecated, use if (auto v = e)");
+                    deprecation("if (v; e) is deprecated, use if (auto v = e)");
                 }
             }
 
@@ -3575,8 +3574,7 @@ Statement *Parser::parseStatement(int flags)
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
 #if DMDV2
-            if (!global.params.useDeprecated)
-                error("volatile statements deprecated; used synchronized statements instead");
+            deprecation("volatile statements deprecated; used synchronized statements instead");
 #endif
             s = new VolatileStatement(loc, s);
             break;

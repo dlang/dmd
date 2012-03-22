@@ -116,6 +116,14 @@ void Statement::warning(const char *format, ...)
     va_end( ap );
 }
 
+void Statement::deprecation(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    ::vdeprecation(loc, format, ap);
+    va_end( ap );
+}
+
 int Statement::hasBreak()
 {
     //printf("Statement::hasBreak()\n");

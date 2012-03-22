@@ -314,6 +314,14 @@ void Lexer::error(Loc loc, const char *format, ...)
     va_end(ap);
 }
 
+void Lexer::deprecation(const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    ::vdeprecation(tokenLoc(), format, ap);
+    va_end(ap);
+}
+
 TOK Lexer::nextToken()
 {   Token *t;
 
@@ -594,8 +602,7 @@ void Lexer::scan(Token *t)
                 t->postfix = 0;
                 t->value = TOKstring;
 #if DMDV2
-                if (!global.params.useDeprecated)
-                    error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
+                deprecation("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
 #endif
                 return;
             }
@@ -2254,8 +2261,7 @@ done:
                 goto L1;
 
             case 'l':
-                if (1 || !global.params.useDeprecated)
-                    error("'l' suffix is deprecated, use 'L' instead");
+                deprecation("'l' suffix is deprecated, use 'L' instead");
             case 'L':
                 f = FLAGS_long;
             L1:
@@ -2271,8 +2277,8 @@ done:
     }
 
 #if DMDV2
-    if (state == STATE_octal && n >= 8 && !global.params.useDeprecated)
-        error("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
+    if (state == STATE_octal && n >= 8)
+        deprecation("octal literals 0%llo%.*s are deprecated, use std.conv.octal!%llo%.*s instead",
                 n, p - psuffix, psuffix, n, p - psuffix, psuffix);
 #endif
 
@@ -2504,8 +2510,7 @@ done:
             break;
 
         case 'l':
-            if (!global.params.useDeprecated)
-                error("'l' suffix is deprecated, use 'L' instead");
+            deprecation("'l' suffix is deprecated, use 'L' instead");
         case 'L':
             result = TOKfloat80v;
             p++;
@@ -2513,8 +2518,8 @@ done:
     }
     if (*p == 'i' || *p == 'I')
     {
-        if (!global.params.useDeprecated && *p == 'I')
-            error("'I' suffix is deprecated, use 'i' instead");
+        if (*p == 'I')
+            deprecation("'I' suffix is deprecated, use 'i' instead");
         p++;
         switch (result)
         {
