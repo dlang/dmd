@@ -81,6 +81,7 @@ void json_generate(Modules *modules)
         m->toJson(&json);
     }
     json.arrayEnd();
+    json.removeComma();
 
     // Write buf to file
     char *arg = global.params.xfilename;
@@ -251,6 +252,7 @@ void JsonOut::arrayStart()
 void JsonOut::arrayEnd()
 {
     indentLevel--;
+    removeComma();
     if (buf->offset >= 2 &&
         buf->data[buf->offset - 2] == '[' &&
         buf->data[buf->offset - 1] == '\n')
@@ -258,7 +260,6 @@ void JsonOut::arrayEnd()
     else if (!(buf->offset >= 1 &&
         buf->data[buf->offset - 1] == '['))
     {
-        removeComma();
         buf->writestring("\n");
         indent();
     }
@@ -279,13 +280,13 @@ void JsonOut::objectStart()
 void JsonOut::objectEnd()
 {
     indentLevel--;
+    removeComma();
     if (buf->offset >= 2 &&
         buf->data[buf->offset - 2] == '{' &&
         buf->data[buf->offset - 1] == '\n')
         buf->offset -= 1;
     else
     {
-        removeComma();
         buf->writestring("\n");
         indent();
     }
@@ -691,8 +692,6 @@ void Module::toJson(JsonOut *json)
 
     json->property("file", srcfile->toChars());
 
-    json->property("kind", kind());
-
     if (comment)
         json->property("comment", (const char *)comment);
 
@@ -756,7 +755,6 @@ void AttribDeclaration::toJson(JsonOut *json)
             //printf("AttribDeclaration::toJson %s\n", s->toChars());
             s->toJson(json);
         }
-        json->removeComma();
     }
 }
 
@@ -840,7 +838,6 @@ void AggregateDeclaration::toJson(JsonOut *json)
         {   Dsymbol *s = (*members)[i];
             s->toJson(json);
         }
-        json->removeComma();
         json->arrayEnd();
     }
 
@@ -928,7 +925,6 @@ void TemplateDeclaration::toJson(JsonOut *json)
 
         json->objectEnd();
     }
-    json->removeComma();
     json->arrayEnd();
 
     json->propertyStart("members");
@@ -937,7 +933,6 @@ void TemplateDeclaration::toJson(JsonOut *json)
     {   Dsymbol *s = (*members)[i];
         s->toJson(json);
     }
-    json->removeComma();
     json->arrayEnd();
 
     json->objectEnd();
@@ -974,10 +969,8 @@ void EnumDeclaration::toJson(JsonOut *json)
         {   Dsymbol *s = (*members)[i];
             s->toJson(json);
         }
-        json->removeComma();
         json->arrayEnd();
     }
-    json->removeComma();
 
     json->objectEnd();
 }
@@ -990,7 +983,6 @@ void EnumMember::toJson(JsonOut *json)
 
     json->property("type", type);
 
-    json->removeComma();
     json->objectEnd();
 }
 
