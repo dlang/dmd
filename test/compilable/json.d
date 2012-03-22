@@ -2,7 +2,6 @@
 // REQUIRED_ARGS: -o- -X -Xftest_results/compilable/json.out
 // POST_SCRIPT: compilable/extra-files/json-postscript.sh
 
-
 module json;
 
 import std.stdio : writefln;
@@ -41,14 +40,30 @@ struct Foo2 {
 	}
 }
 
-@trusted myInt bar(uint blah, ref Bar2 foo = null) // bug 4477
+/++
+ + Documentation test
+ +/
+@trusted myInt bar(uint blah, ref Object foo = new Object()) // bug 4477
 {
-	void inner(void* v)
-	{
-		assert(true);
-	}
 	return -1;
 }
 
-
+@property int outer() nothrow
+in {
+	assert(true);
+}
+out(result) {
+	assert(result == 18);
+}
+body {
+	int x = 8;
+	int inner(void* v) nothrow
+	{
+		int y = 2;
+		assert(true);
+		return x + y;
+	}
+	int z = inner(null);
+	return x + z;
+}
 
