@@ -56,7 +56,6 @@ private
         extern (C) void function() gc_collect;
         extern (C) void function() gc_minimize;
 
-        extern (C) bool function(void*) gc_isCollecting;
         extern (C) uint function(void*) gc_getAttr;
         extern (C) uint function(void*, uint) gc_setAttr;
         extern (C) uint function(void*, uint) gc_clrAttr;
@@ -91,7 +90,6 @@ private
         pthis.gc_collect = &gc_collect;
         pthis.gc_minimize = &gc_minimize;
 
-        pthis.gc_isCollecting = &gc_isCollecting;
         pthis.gc_getAttr = &gc_getAttr;
         pthis.gc_setAttr = &gc_setAttr;
         pthis.gc_clrAttr = &gc_clrAttr;
@@ -169,13 +167,6 @@ extern (C) void gc_minimize()
     if( proxy is null )
         return;
     return proxy.gc_minimize();
-}
-
-extern (C) bool gc_isCollecting( void* p )
-{
-    if( proxy is null )
-        return false;
-    return proxy.gc_isCollecting( p );
 }
 
 extern (C) uint gc_getAttr( void* p )
