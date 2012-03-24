@@ -513,6 +513,30 @@ void test7713()
 }
 
 /***************************************************/
+// 7743
+
+auto foo7743a()
+{
+    int x = 10;
+    return () nothrow {
+        return x;
+    };
+}
+auto foo7743b()
+{
+    int x = 10;
+    return () nothrow => x;
+}
+void test7743()
+{
+    static assert(is(typeof(&foo7743a) == int delegate() nothrow @safe function()));
+    assert(foo7743a()() == 10);
+
+    static assert(is(typeof(&foo7743b) == int delegate() nothrow @safe function()));
+    assert(foo7743b()() == 10);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -541,6 +565,7 @@ int main()
     test7650();
     test7705();
     test7713();
+    test7743();
 
     printf("Success\n");
     return 0;
