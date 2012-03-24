@@ -5255,6 +5255,11 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                 sa = ((VarExp *)ea)->var;
                 goto Lsa;
             }
+            if (ea->op == TOKthis)
+            {
+                sa = ((ThisExp *)ea)->var;
+                goto Lsa;
+            }
             if (ea->op == TOKfunction)
             {
                 sa = ((FuncExp *)ea)->fd;
