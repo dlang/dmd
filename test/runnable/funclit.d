@@ -537,6 +537,17 @@ void test7743()
 }
 
 /***************************************************/
+// 7761
+
+enum dg7761 = (int a) pure => 2 * a;
+
+void test7761()
+{
+    static assert(is(typeof(dg7761) == int function(int) pure @safe nothrow));
+    assert(dg7761(10) == 20);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -566,6 +577,7 @@ int main()
     test7705();
     test7713();
     test7743();
+    test7761();
 
     printf("Success\n");
     return 0;
