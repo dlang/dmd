@@ -1110,6 +1110,13 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                 t->objects.setDim(tuple_dim);
                 for (size_t i = 0; i < tuple_dim; i++)
                 {   Expression *farg = fargs->tdata()[fptupindex + i];
+
+                    // Check invalid arguments to detect errors early.
+                    if (farg->op == TOKerror || farg->type->ty == Terror)
+                        goto Lnomatch;
+                    if (!(fparam->storageClass & STClazy) && farg->type->ty == Tvoid)
+                        goto Lnomatch;
+
                     unsigned mod = farg->type->mod;
                     Type *tt;
                     MATCH m;
@@ -1386,6 +1393,13 @@ L2:
         else
         {
             Expression *farg = fargs->tdata()[i];
+
+            // Check invalid arguments to detect errors early.
+            if (farg->op == TOKerror || farg->type->ty == Terror)
+                goto Lnomatch;
+            if (!(fparam->storageClass & STClazy) && farg->type->ty == Tvoid)
+                goto Lnomatch;
+
 Lretry:
 #if 0
             printf("\tfarg->type   = %s\n", farg->type->toChars());
