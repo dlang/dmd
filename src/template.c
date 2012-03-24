@@ -1114,6 +1114,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                     // Check invalid arguments to detect errors early.
                     if (farg->op == TOKerror || farg->type->ty == Terror)
                         goto Lnomatch;
+
                     if (!(fparam->storageClass & STClazy) && farg->type->ty == Tvoid)
                         goto Lnomatch;
 
@@ -1397,8 +1398,6 @@ L2:
             // Check invalid arguments to detect errors early.
             if (farg->op == TOKerror || farg->type->ty == Terror)
                 goto Lnomatch;
-            if (!(fparam->storageClass & STClazy) && farg->type->ty == Tvoid)
-                goto Lnomatch;
 
 Lretry:
 #if 0
@@ -1435,6 +1434,9 @@ Lretry:
                 farg = e;
                 argtype = farg->type;
             }
+
+            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
+                goto Lnomatch;
 
             /* Remove top const for dynamic array types and pointer types
              */
