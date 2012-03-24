@@ -718,6 +718,49 @@ void test7136()
 }
 
 /***************************************************/
+// 7731
+
+struct A7731
+{
+    int a;
+}
+template Inherit7731(alias X)
+{
+    X __super;
+    alias __super this;
+}
+struct B7731
+{
+    mixin Inherit7731!A7731;
+    int b;
+}
+
+struct PolyPtr7731(X)
+{
+    X* _payload;
+    static if (is(typeof(X.init.__super)))
+    {
+        alias typeof(X.init.__super) Super;
+        @property auto getSuper(){ return PolyPtr7731!Super(&_payload.__super); }
+        alias getSuper this;
+    }
+}
+template create7731(X)
+{
+    PolyPtr7731!X create7731(T...)(T args){
+        return PolyPtr7731!X(args);
+    }
+}
+
+void f7731a(PolyPtr7731!A7731 a) {/*...*/}
+void f7731b(PolyPtr7731!B7731 b) {f7731a(b);/*...*/}
+
+void test7731()
+{
+    auto b = create7731!B7731();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -746,6 +789,7 @@ int main()
     test6928();
     test6929();
     test7136();
+    test7731();
 
     printf("Success\n");
     return 0;

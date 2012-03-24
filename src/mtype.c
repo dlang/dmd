@@ -1288,7 +1288,19 @@ Type *Type::aliasthisOf()
                 Expression *ethis = this->defaultInit(0);
                 fd = fd->overloadResolve(0, ethis, NULL);
                 if (fd)
+                {   TypeFunction *tf = (TypeFunction *)fd->type;
+                    if (!tf->next && fd->inferRetType)
+                    {
+                        TemplateInstance *spec = fd->isSpeculative();
+                        int olderrs = global.errors;
+                        fd->semantic3(fd->scope);
+                        // Update the template instantiation with the number
+                        // of errors which occured.
+                        if (spec && global.errors != olderrs)
+                            spec->errors = global.errors - olderrs;
+                    }
                     t = ((TypeFunction *)fd->type)->next;
+                }
             }
             return t;
         }
