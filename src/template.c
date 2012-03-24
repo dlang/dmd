@@ -1445,6 +1445,12 @@ Lretry:
             //if (tf->hasWild())
             //    printf("\twildmatch = x%x m = %d\n", wildmatch, m);
 
+            /* If no match, see if the argument can be matched by using
+             * implicit conversions.
+             */
+            if (!m)
+                m = farg->implicitConvTo(fparam->type);
+
             /* If no match, see if there's a conversion to a delegate
              */
             if (!m)
@@ -1994,7 +2000,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     ti = new TemplateInstance(loc, td_best, tdargs);
     ti->semantic(sc, fargs);
     fd_best = ti->toAlias()->isFuncDeclaration();
-    if (!fd_best || !((TypeFunction*)fd_best->type)->callMatch(ethis, fargs, flags))
+    if (!fd_best || !((TypeFunction*)fd_best->type)->callMatch(ethis, fargs))
         goto Lerror;
 
     /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
