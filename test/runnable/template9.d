@@ -1061,6 +1061,32 @@ void test7684()
 }
 
 /**********************************/
+// 7755
+
+template to7755(T)
+{
+    T to7755(A...)(A args)
+    {
+        return toImpl7755!T(args);
+    }
+}
+
+T toImpl7755(T, S)(S value)
+{
+    return T.init;
+}
+
+template Foo7755(T){}
+
+struct Bar7755
+{
+    void qux()
+    {
+        if (is(typeof(to7755!string(Foo7755!int)))){};
+    }
+}
+
+/**********************************/
 
        inout(U)[]  id11a(U)(        inout(U)[]  );
        inout(U[])  id11a(U)(        inout(U[])  );
