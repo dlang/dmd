@@ -1,0 +1,7 @@
+LIBRARY         MYDLL
+DESCRIPTION     'MyDll demonstration DLL'
+
+EXETYPE		NT
+CODE            PRELOAD DISCARDABLE
+DATA            PRELOAD SINGLE
+

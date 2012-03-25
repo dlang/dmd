@@ -1171,14 +1171,10 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
             else
             {
                 assert(p->isPackage());
-#if TARGET_NET  //dot net needs modules and packages with same name
-#else
-                if (p->isModule())
-                {   p->error("module and package have the same name");
-                    fatal();
-                    break;
-                }
-#endif
+                // It might already be a module, not a package, but that needs
+                // to be checked at a higher level, where a nice error message
+                // can be generated.
+                // dot net needs modules and packages with same name
             }
             parent = p;
             dst = ((Package *)p)->symtab;
