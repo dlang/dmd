@@ -273,7 +273,7 @@ void ClassDeclaration::semantic(Scope *sc)
         return;
     }
     if (symtab)
-    {   if (sizeok == 1 || !scope)
+    {   if (sizeok == SIZEOKdone || !scope)
         {   //printf("\tsemantic for '%s' is already completed\n", toChars());
             return;             // semantic() already completed
         }
@@ -365,12 +365,12 @@ void ClassDeclaration::semantic(Scope *sc)
                         goto L7;
                     }
                 }
-                if (!tc->sym->symtab || tc->sym->sizeok == 0)
+                if (!tc->sym->symtab || tc->sym->sizeok == SIZEOKnone)
                 {   // Try to resolve forward reference
                     if (/*sc->mustsemantic &&*/ tc->sym->scope)
                         tc->sym->semantic(NULL);
                 }
-                if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == 0)
+                if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == SIZEOKnone)
                 {
                     //printf("%s: forward reference of base class %s\n", toChars(), tc->sym->toChars());
                     //error("forward reference of base class %s", baseClass->toChars());
@@ -513,7 +513,7 @@ void ClassDeclaration::semantic(Scope *sc)
     protection = sc->protection;
     storage_class |= sc->stc;
 
-    if (sizeok == 0)
+    if (sizeok == SIZEOKnone)
     {
         interfaceSemantic(sc);
 
@@ -625,7 +625,7 @@ void ClassDeclaration::semantic(Scope *sc)
     structsize = sc->offset;
     Scope scsave = *sc;
     size_t members_dim = members->dim;
-    sizeok = 0;
+    sizeok = SIZEOKnone;
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -665,7 +665,7 @@ void ClassDeclaration::semantic(Scope *sc)
         type = Type::terror;
     }
 
-    if (sizeok == 2)            // failed due to forward references
+    if (sizeok == SIZEOKfwd)            // failed due to forward references
     {   // semantic() failed due to forward references
         // Unwind what we did, and defer it for later
 
@@ -769,7 +769,7 @@ void ClassDeclaration::semantic(Scope *sc)
             alignsize = thissize;
     }
     structsize = sc->offset;
-    sizeok = 1;
+    sizeok = SIZEOKdone;
     Module::dprogress++;
 
     dtor = buildDtor(sc);

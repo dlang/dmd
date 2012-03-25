@@ -3750,6 +3750,8 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (type)
         return this;
 
+//printf("sizeok = %d\n", sd->sizeok);
+
     elements = arrayExpressionSemantic(elements, sc);   // run semantic() on each element
     expandTuples(elements);
     size_t offset = 0;

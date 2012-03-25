@@ -5954,7 +5954,7 @@ void TemplateMixin::semantic(Scope *sc)
             semanticRun = PASSinit;
             AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
             if (ad)
-                ad->sizeok = 2;
+                ad->sizeok = SIZEOKfwd;
             else
             {
                 // Forward reference
