@@ -119,6 +119,43 @@ unsigned AggregateDeclaration::size(Loc loc)
         error(loc, "unknown size");
     if (sizeok != SIZEOKdone && scope)
         semantic(NULL);
+
+    StructDeclaration *sd = isStructDeclaration();
+    if (sizeok != SIZEOKdone && sd)
+    {
+        /* See if enough is done to determine the size,
+         * meaning all the fields are done.
+         */
+        struct SV
+        {
+            static int func(Dsymbol *s, void *param)
+            {   SV *psv = (SV *)param;
+                VarDeclaration *v = s->isVarDeclaration();
+                if (v)
+                {
+                    if (v->scope)
+                        v->semantic(NULL);
+                    if (v->storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCconst | STCimmutable | STCmanifest | STCctfe | STCtemplateparameter))
+                        return 0;
+                    if (v->storage_class & STCfield && v->sem >= SemanticDone)
+                        return 0;
+                    return 1;
+                }
+                return 0;
+            }
+        };
+        SV sv;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            if (s->apply(&SV::func, &sv))
+                goto L1;
+        }
+        sd->finalizeSize(NULL);
+
+      L1: ;
+    }
+
     if (sizeok != SIZEOKdone)
     {   error(loc, "no size yet for forward reference");
         //*(char*)0=0;
@@ -405,7 +442,7 @@ void StructDeclaration::semantic(Scope *sc)
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
-        if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
+        //if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc2);
