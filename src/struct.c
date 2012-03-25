@@ -36,7 +36,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     alignsize = 0;              // size of struct for alignment purposes
     structalign = 0;            // struct member alignment in effect
     hasUnions = 0;
-    sizeok = 0;                 // size not determined yet
+    sizeok = SIZEOKnone;        // size not determined yet
     isdeprecated = 0;
     inv = NULL;
     aggNew = NULL;
@@ -111,9 +111,9 @@ unsigned AggregateDeclaration::size(Loc loc)
     //printf("AggregateDeclaration::size() = %d\n", structsize);
     if (!members)
         error(loc, "unknown size");
-    if (sizeok != 1 && scope)
+    if (sizeok != SIZEOKdone && scope)
         semantic(NULL);
-    if (sizeok != 1)
+    if (sizeok != SIZEOKdone)
     {   error(loc, "no size yet for forward reference");
         //*(char*)0=0;
     }
@@ -286,7 +286,7 @@ void StructDeclaration::semantic(Scope *sc)
         return;
 
     if (symtab)
-    {   if (sizeok == 1 || !scope)
+    {   if (sizeok == SIZEOKdone || !scope)
         {   //printf("already completed\n");
             scope = NULL;
             return;             // semantic() already completed
@@ -325,7 +325,7 @@ void StructDeclaration::semantic(Scope *sc)
         type = type->constOf();
 #endif
 
-    if (sizeok == 0)            // if not already done the addMember step
+    if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {
         for (size_t i = 0; i < members->dim; i++)
         {
@@ -335,7 +335,7 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    sizeok = 0;
+    sizeok = SIZEOKnone;
     sc2 = sc->push(this);
     sc2->stc = 0;
     sc2->parent = this;
@@ -489,7 +489,7 @@ void StructDeclaration::semantic(Scope *sc)
     // aligned properly.
     structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
 
-    sizeok = 1;
+    sizeok = SIZEOKdone;
     Module::dprogress++;
 
     //printf("-StructDeclaration::semantic(this=%p, '%s')\n", this, toChars());
@@ -553,7 +553,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 void StructDeclaration::finalizeSize(Scope *sc)
 {
-    if (sizeok)
+    if (sizeok != SIZEOKnone)
         return;
 
     // Set the offsets of the fields and determine the size of the struct
@@ -563,7 +563,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
     {   Dsymbol *s = (*members)[i];
         s->setFieldOffset(this, &offset, isunion);
     }
-    if (sizeok == 2)
+    if (sizeok == SIZEOKfwd)
         return;
 
     // 0 sized struct's are set to 1 byte
@@ -578,7 +578,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
     // aligned properly.
     structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
 
-    sizeok = 1;
+    sizeok = SIZEOKdone;
 }
 
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

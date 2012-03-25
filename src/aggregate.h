@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -34,6 +34,12 @@ struct ClassInfoDeclaration;
 struct VarDeclaration;
 struct dt_t;
 
+enum Sizeok
+{
+    SIZEOKnone,         // size of aggregate is not computed yet
+    SIZEOKdone,         // size of aggregate is set correctly
+    SIZEOKfwd,          // error in computing size of aggregate
+};
 
 struct AggregateDeclaration : ScopeDsymbol
 {
@@ -46,10 +52,7 @@ struct AggregateDeclaration : ScopeDsymbol
     unsigned structalign;       // struct member alignment in effect
     int hasUnions;              // set if aggregate has overlapping fields
     VarDeclarations fields;     // VarDeclaration fields
-    unsigned sizeok;            // set when structsize contains valid data
-                                // 0: no size
-                                // 1: size is correct
-                                // 2: cannot determine size; fwd referenced
+    enum Sizeok sizeok;         // set when structsize contains valid data
     int isdeprecated;           // !=0 if deprecated
 
 #if DMDV2
@@ -73,7 +76,8 @@ struct AggregateDeclaration : ScopeDsymbol
     FuncDeclaration *dtor;      // aggregate destructor
 
 #ifdef IN_GCC
-    Array methods;              // flat list of all methods for debug information
+    Expressions *attributes;    // GCC decl/type attributes
+    FuncDeclarations methods;   // flat list of all methods for debug information
 #endif
 
     AggregateDeclaration(Loc loc, Identifier *id);
@@ -198,7 +202,8 @@ struct BaseClass
 };
 
 #if DMDV2
-#define CLASSINFO_SIZE  (0x3C+16+4)     // value of ClassInfo.size
+#define CLASSINFO_SIZE_64  0x98         // value of ClassInfo.size
+#define CLASSINFO_SIZE  (0x3C+12+4)     // value of ClassInfo.size
 #else
 #define CLASSINFO_SIZE  (0x3C+12+4)     // value of ClassInfo.size
 #define CLASSINFO_SIZE_64  (0x98)       // value of ClassInfo.size

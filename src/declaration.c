@@ -1379,17 +1379,17 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         }
 #endif
 
-        if (ts->sym->sizeok != 1 && ts->sym->scope)
+        if (ts->sym->sizeok != SIZEOKdone && ts->sym->scope)
             ts->sym->semantic(NULL);
-        if (ts->sym->sizeok != 1)
+        if (ts->sym->sizeok != SIZEOKdone)
         {
-            ad->sizeok = 2;         // cannot finish; flag as forward referenced
+            ad->sizeok = SIZEOKfwd;         // cannot finish; flag as forward referenced
             return;
         }
     }
     if (t->ty == Tident)
     {
-        ad->sizeok = 2;             // cannot finish; flag as forward referenced
+        ad->sizeok = SIZEOKfwd;             // cannot finish; flag as forward referenced
         return;
     }
 
