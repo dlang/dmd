@@ -215,25 +215,50 @@ L63:
 
 int binary(const char *p, const char ** table, int high)
 {
-    return binary(p, strlen(p), table, high);
-}
-
-#endif
-
-// search table[0 .. high] for p[0 .. len]
-int binary(const char *p, size_t len, const char ** table, int high)
-{
     int low = 0;
-    high--;
     char cp = *p;
+    high--;
     p++;
+
     while (low <= high)
     {
         int mid = (low + high) >> 1;
         int cond = table[mid][0] - cp;
 
         if (cond == 0)
-            cond = memcmp(table[mid] + 1, p, len);
+            cond = strcmp(table[mid] + 1,p);
+        if (cond > 0)
+            high = mid - 1;
+        else if (cond < 0)
+            low = mid + 1;
+        else
+            return mid;                 /* match index                  */
+    }
+    return -1;
+}
+
+#endif
+
+// search table[0 .. high] for p[0 .. len] (where p.length not necessairily equal to len)
+int binary(const char *p, size_t len, const char ** table, int high)
+{
+    int low = 0;
+    char cp = *p;
+    high--;
+    p++;
+    len--;
+
+    while (low <= high)
+    {
+        int mid = (low + high) >> 1;
+        int cond = table[mid][0] - cp;
+
+        if (cond == 0)
+        {
+            cond = strncmp(table[mid] + 1, p, len);
+            if (cond == 0)
+                cond = table[mid][len+1]; // same as: if (table[mid][len+1] != '\0') cond = 1;
+        }
 
         if (cond > 0)
             high = mid - 1;
