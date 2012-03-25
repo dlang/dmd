@@ -1614,6 +1614,8 @@ Type *Type::merge()
     if (ty == Ttypeof) return this;
     if (ty == Tident) return this;
     if (ty == Tinstance) return this;
+    if (ty == Taarray && !((TypeAArray *)this)->index->merge()->deco)
+        return this;
     if (nextOf() && !nextOf()->merge()->deco)
         return this;
 
