@@ -1452,11 +1452,11 @@ Lretry:
             if (fvarargs == 2 && i + 1 == nfparams && i + 1 < nfargs)
                 goto Lvarargs;
 
-            MATCH m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes,
-                tf->hasWild() ? &wildmatch : NULL);
+            unsigned wm = 0;
+            MATCH m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes, &wm);
             //printf("\tdeduceType m = %d\n", m);
-            //if (tf->hasWild())
-            //    printf("\twildmatch = x%x m = %d\n", wildmatch, m);
+            //printf("\twildmatch = x%x m = %d\n", wildmatch, m);
+            wildmatch |= wm;
 
             /* If no match, see if there's a conversion to a delegate
              */
