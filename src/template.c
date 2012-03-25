@@ -984,12 +984,17 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Objects *targsi,
                  * now form the tuple argument.
                  */
                 Tuple *t = new Tuple();
-                dedargs->data[parameters->dim - 1] = (void *)t;
+                dedargs->tdata()[parameters->dim - 1] = t;
 
                 tuple_dim = nfargs - (nfparams - 1);
                 t->objects.setDim(tuple_dim);
                 for (size_t i = 0; i < tuple_dim; i++)
-                {   Expression *farg = (Expression *)fargs->data[fptupindex + i];
+                {   Expression *farg = fargs->tdata()[fptupindex + i];
+
+                    // Check invalid arguments to detect errors early.
+                    if (farg->op == TOKerror || farg->type->ty == Terror)
+                        goto Lnomatch;
+
                     t->objects.data[i] = (void *)farg->type;
                 }
                 declareParameter(paramscope, tp, t);
@@ -1015,7 +1020,7 @@ L2:
     {
         // Match 'ethis' to any TemplateThisParameter's
         for (size_t i = 0; i < parameters->dim; i++)
-        {   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+        {   TemplateParameter *tp = parameters->tdata()[i];
             TemplateThisParameter *ttp = tp->isTemplateThisParameter();
             if (ttp)
             {   MATCH m;
@@ -1091,7 +1096,13 @@ L2:
             }
         }
         else
-        {   Expression *farg = (Expression *)fargs->data[i];
+        {
+            Expression *farg = fargs->tdata()[i];
+
+            // Check invalid arguments to detect errors early.
+            if (farg->op == TOKerror || farg->type->ty == Terror)
+                goto Lnomatch;
+
 #if 0
             printf("\tfarg->type   = %s\n", farg->type->toChars());
             printf("\tfparam->type = %s\n", fparam->type->toChars());
@@ -1111,10 +1122,34 @@ L2:
                     argtype = argtype->invariantOf();
                 }
             }
+
+            /* Allow implicit function literals to delegate conversion
+             */
+            if (farg->op == TOKfunction)
+            {   FuncExp *fe = (FuncExp *)farg;
+                Type *tp = fparam->type;
+                Expression *e = fe->inferType(tp, 1, parameters);
+                if (!e)
+                    goto Lvarargs;
+                farg = e;
+                argtype = farg->type;
+            }
+
+            if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
+                goto Lnomatch;
+
+            /* Remove top const for dynamic array types and pointer types
+             */
+            if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
+                !argtype->isMutable() &&
+                (!(fparam->storageClass & STCref) ||
+                 (fparam->storageClass & STCauto) && !farg->isLvalue()))
+            {
+                argtype = argtype->mutableOf();
+            }
 #endif
 
-            MATCH m;
-            m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes);
+            MATCH m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes);
             //printf("\tdeduceType m = %d\n", m);
 
             /* If no match, see if there's a conversion to a delegate
