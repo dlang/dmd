@@ -71,6 +71,7 @@ MANIFEST= \
 	src/core/exception.d \
 	src/core/math.d \
 	src/core/memory.d \
+	src/core/nullpointererror.d \
 	src/core/runtime.d \
 	src/core/simd.d \
 	src/core/thread.d \
@@ -281,6 +282,7 @@ SRC_D_MODULES = \
 	core/exception \
 	core/math \
 	core/memory \
+	core/nullpointererror \
 	core/runtime \
 	core/simd \
 	core/thread \
@@ -416,6 +418,7 @@ DOCS=\
 	$(DOCDIR)/core_exception.html \
 	$(DOCDIR)/core_math.html \
 	$(DOCDIR)/core_memory.html \
+	$(DOCDIR)/core_nullpointererror.html \
 	$(DOCDIR)/core_runtime.html \
 	$(DOCDIR)/core_simd.html \
 	$(DOCDIR)/core_thread.html \

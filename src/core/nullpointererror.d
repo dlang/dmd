@@ -14,6 +14,7 @@ module core.nullpointererror;
 
 version(linux) {
 
+private :
 import core.sys.posix.signal;
 import core.sys.posix.ucontext;
 
@@ -221,8 +222,28 @@ version(X86_64) {
 	}
 }
 
+// This should be calculated by druntime.
+enum PAGE_SIZE = 4096;
+
+// The first 64Kb are reserved for detecting null pointer deferences.
+enum MEMORY_RESERVED_FOR_NULL_DEFERENCE = 4096 * 16;
+
 // User space handler
 
+void sigsegv_userspace_process(void* address) {
+	// The first page is protected to detect null deference.
+	if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEFERENCE) {
+		throw new NullPointerError();
+	}
+	
+	throw new SignalError(SIGSEGV);
+}
+
+public :
+
+/**
+ * Thrown on posix system when a signal is recieved. Is only throw for SIGSEGV.
+ */
 class SignalError : Error {
 	private int _signum;
 	
@@ -236,12 +257,18 @@ class SignalError : Error {
 		super("", file, line, next);
 	}
 	
+	/**
+	 * Property that returns the signal number.
+	 */
 	@property
 	int signum() const {
 		return _signum;
 	}
 }
 
+/**
+ * Throw on null pointer deference.
+ */
 class NullPointerError : SignalError {
 	this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
 		super(SIGSEGV, file, line, next);
@@ -250,21 +277,6 @@ class NullPointerError : SignalError {
 	this(Throwable next, string file = __FILE__, size_t line = __LINE__) {
 		super(SIGSEGV, file, line, next);
 	}
-}
-
-// This should be calculated by druntime.
-enum PAGE_SIZE = 4096;
-
-// The first 64Kb are reserved for detecting null pointer deferences.
-enum MEMORY_RESERVED_FOR_NULL_DEFERENCE = 4096 * 16;
-
-void sigsegv_userspace_process(void* address) {
-	// The first page is protected to detect null deference.
-	if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEFERENCE) {
-		throw new NullPointerError();
-	}
-	
-	throw new SignalError(SIGSEGV);
 }
 
 }
