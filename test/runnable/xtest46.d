@@ -4840,6 +4840,18 @@ void test7618(const int x = 1)
 }
 
 /***************************************************/
+// 7621
+
+void test7621()
+{
+    enum uint N = 4u;
+    char[] A = "hello".dup;
+    uint[immutable char[4u]] dict;
+    dict[*cast(immutable char[4]*)(A[0 .. N].ptr)] = 0; // OK
+    dict[*cast(immutable char[N]*)(A[0 .. N].ptr)] = 0; // line 6, error
+}
+
+/***************************************************/
 // 7682
 
 template ConstOf7682(T)
@@ -5084,6 +5096,7 @@ int main()
     test7534();
     test7534cov();
     test7618();
+    test7621();
     test7682();
 
     printf("Success\n");
