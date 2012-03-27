@@ -1115,6 +1115,15 @@ void test11b()
 }
 
 /**********************************/
+// 7769
+
+void f7769(K)(inout(K) value){}
+void test7769()
+{
+    f7769("abc");
+}
+
+/**********************************/
 
 int main()
 {
@@ -1160,6 +1169,7 @@ int main()
     test7684();
     test11a();
     test11b();
+    test7769();
 
     printf("Success\n");
     return 0;

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -39,7 +39,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     alignsize = 0;              // size of struct for alignment purposes
     structalign = 0;            // struct member alignment in effect
     hasUnions = 0;
-    sizeok = 0;                 // size not determined yet
+    sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
     inv = NULL;
@@ -118,9 +118,46 @@ unsigned AggregateDeclaration::size(Loc loc)
     //printf("AggregateDeclaration::size() %s, scope = %p\n", toChars(), scope);
     if (!members)
         error(loc, "unknown size");
-    if (sizeok != 1 && scope)
+    if (sizeok != SIZEOKdone && scope)
         semantic(NULL);
-    if (sizeok != 1)
+
+    StructDeclaration *sd = isStructDeclaration();
+    if (sizeok != SIZEOKdone && sd)
+    {
+        /* See if enough is done to determine the size,
+         * meaning all the fields are done.
+         */
+        struct SV
+        {
+            static int func(Dsymbol *s, void *param)
+            {   SV *psv = (SV *)param;
+                VarDeclaration *v = s->isVarDeclaration();
+                if (v)
+                {
+                    if (v->scope)
+                        v->semantic(NULL);
+                    if (v->storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCconst | STCimmutable | STCmanifest | STCctfe | STCtemplateparameter))
+                        return 0;
+                    if (v->storage_class & STCfield && v->sem >= SemanticDone)
+                        return 0;
+                    return 1;
+                }
+                return 0;
+            }
+        };
+        SV sv;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            if (s->apply(&SV::func, &sv))
+                goto L1;
+        }
+        sd->finalizeSize(NULL);
+
+      L1: ;
+    }
+
+    if (sizeok != SIZEOKdone)
     {   error(loc, "no size yet for forward reference");
         //*(char*)0=0;
     }
@@ -305,7 +342,7 @@ void StructDeclaration::semantic(Scope *sc)
         return;
 
     if (symtab)
-    {   if (sizeok == 1 || !scope)
+    {   if (sizeok == SIZEOKdone || !scope)
         {   //printf("already completed\n");
             scope = NULL;
             return;             // semantic() already completed
@@ -341,7 +378,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (sc->stc & STCabstract)
         error("structs, unions cannot be abstract");
 
-    if (sizeok == 0)            // if not already done the addMember step
+    if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {
         int hasfunctions = 0;
         for (size_t i = 0; i < members->dim; i++)
@@ -387,7 +424,7 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    sizeok = 0;
+    sizeok = SIZEOKnone;
     sc2 = sc->push(this);
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
@@ -406,7 +443,7 @@ void StructDeclaration::semantic(Scope *sc)
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
          */
-        if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
+        //if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
         {
             //printf("setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc2);
@@ -424,7 +461,7 @@ void StructDeclaration::semantic(Scope *sc)
          */
         if (i + 1 == members_dim)
         {
-            if (sizeok == 0 && s->isAliasDeclaration())
+            if (sizeok == SIZEOKnone && s->isAliasDeclaration())
                 finalizeSize(sc2);
         }
         // Ungag errors when not speculative
@@ -436,7 +473,7 @@ void StructDeclaration::semantic(Scope *sc)
     }
     finalizeSize(sc2);
 
-    if (sizeok == 2)
+    if (sizeok == SIZEOKfwd)
     {   // semantic() failed because of forward references.
         // Unwind what we did, and defer it for later
         for (size_t i = 0; i < fields.dim; i++)
@@ -608,7 +645,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 void StructDeclaration::finalizeSize(Scope *sc)
 {
-    if (sizeok)
+    if (sizeok != SIZEOKnone)
         return;
 
     // Set the offsets of the fields and determine the size of the struct
@@ -618,7 +655,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
     {   Dsymbol *s = (*members)[i];
         s->setFieldOffset(this, &offset, isunion);
     }
-    if (sizeok == 2)
+    if (sizeok == SIZEOKfwd)
         return;
 
     // 0 sized struct's are set to 1 byte
@@ -633,7 +670,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
     // aligned properly.
     structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
 
-    sizeok = 1;
+    sizeok = SIZEOKdone;
 }
 
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

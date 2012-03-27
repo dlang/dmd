@@ -3742,13 +3742,17 @@ Expression *StructLiteralExp::syntaxCopy()
 
 Expression *StructLiteralExp::semantic(Scope *sc)
 {   Expression *e;
-    size_t nfields = sd->fields.dim - sd->isnested;
 
 #if LOGSEMANTIC
     printf("StructLiteralExp::semantic('%s')\n", toChars());
 #endif
     if (type)
         return this;
+
+    sd->size(loc);
+    if (sd->sizeok != SIZEOKdone)
+        return new ErrorExp();
+    size_t nfields = sd->fields.dim - sd->isnested;
 
     elements = arrayExpressionSemantic(elements, sc);   // run semantic() on each element
     expandTuples(elements);

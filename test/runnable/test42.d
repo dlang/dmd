@@ -4856,6 +4856,28 @@ void test243() {
 }
 
 /***************************************************/
+// 7742
+
+struct Foo7742 {
+    static immutable f = Foo7742(1, 2);
+    int x, y;
+}
+
+struct Bar7742 {
+    int x, y;
+    static immutable f = Bar7742(1, 2);
+}
+
+void test7742()
+{
+    assert(Foo7742.f.x == 1);
+    assert(Foo7742.f.y == 2);
+
+    assert(Bar7742.f.x == 1);
+    assert(Bar7742.f.y == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5107,6 +5129,7 @@ int main()
     test4820();
     test4820_2();
     test243();
+    test7742();
 
     writefln("Success");
     return 0;
