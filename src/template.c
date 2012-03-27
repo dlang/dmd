@@ -1524,8 +1524,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     }
     if (td_ambig)
     {
-        error(loc, "%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
-                toChars(),
+        ::error(loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
+                kind(), parent->toPrettyChars(), ident->toChars(),
                 td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
                 td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
@@ -1565,14 +1565,19 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
             {
                 if (i)
                     bufa.writeByte(',');
-                Object *oarg = (Object *)args->data[i];
+                Object *oarg = args->tdata()[i];
                 ObjectToCBuffer(&bufa, &hgs, oarg);
             }
         }
 
         OutBuffer buf;
         argExpTypesToCBuffer(&buf, fargs, &hgs);
-        error(loc, "cannot deduce template function from argument types !(%s)(%s)",
+        if (this->overnext)
+            ::error(loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
+                    kind(), parent->toPrettyChars(), ident->toChars(),
+                    bufa.toChars(), buf.toChars());
+        else
+            error("cannot deduce template function from argument types !(%s)(%s)",
                 bufa.toChars(), buf.toChars());
     }
     return NULL;
@@ -4215,13 +4220,14 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc)
             // Only one template, so we can give better error message
             error("%s does not match template declaration %s", toChars(), tempdecl->toChars());
         else
-            error("%s does not match any template declaration", toChars());
+            ::error(loc, "%s %s.%s does not match any template declaration",
+                    tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
         return NULL;
     }
     if (td_ambig)
     {
-        error("%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
-                toChars(),
+        ::error(loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
+                td_best->kind(), td_best->parent->toPrettyChars(), td_best->ident->toChars(),
                 td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
                 td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
