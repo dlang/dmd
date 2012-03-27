@@ -126,23 +126,41 @@ int SliceExp::apply(fp_t fp, void *param)
 
 int ArrayLiteralExp::apply(fp_t fp, void *param)
 {
-    return arrayExpressionApply(elements, fp, param) ||
-           (*fp)(this, param);
+    int res = 0;
+    if (!inApply)
+    {   inApply = true;
+        res = arrayExpressionApply(elements, fp, param) ||
+            (*fp)(this, param);
+        inApply = false;
+    }
+    return res;
 }
 
 
 int AssocArrayLiteralExp::apply(fp_t fp, void *param)
 {
-    return arrayExpressionApply(keys, fp, param) ||
-           arrayExpressionApply(values, fp, param) ||
-           (*fp)(this, param);
+    int res = 0;
+    if (!inApply)
+    {   inApply = true;
+        res = arrayExpressionApply(keys, fp, param) ||
+            arrayExpressionApply(values, fp, param) ||
+            (*fp)(this, param);
+        inApply = false;
+    }
+    return res;
 }
 
 
 int StructLiteralExp::apply(fp_t fp, void *param)
 {
-    return arrayExpressionApply(elements, fp, param) ||
-           (*fp)(this, param);
+    int res = 0;
+    if (!inApply)
+    {   inApply = true;
+        res = arrayExpressionApply(elements, fp, param) ||
+            (*fp)(this, param);
+        inApply = false;
+    }
+    return res;
 }
 
 
