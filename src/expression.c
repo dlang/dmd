@@ -7448,7 +7448,10 @@ Lagain:
             if (ve->var->storage_class & STClazy)
             {
                 // lazy paramaters can be called without violating purity and safety
-                TypeFunction *tf = new TypeFunction(NULL, ve->var->type, 0, LINKd, STCsafe | STCpure);
+                Type *tw = ve->var->type;
+                Type *tc = ve->var->type->substWildTo(MODconst);
+                TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd, STCsafe | STCpure);
+                (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
                 TypeDelegate *t = new TypeDelegate(tf);
                 ve->type = t->semantic(loc, sc);
             }
