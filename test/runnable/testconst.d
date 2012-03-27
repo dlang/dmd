@@ -2576,6 +2576,34 @@ void test7669()
 }
 
 /************************************/
+// 7757
+
+inout(int)      foo7757a(int x, lazy inout(int)      def) { return def; }
+inout(int)[]    foo7757b(int x, lazy inout(int)[]    def) { return def; }
+inout(int)[int] foo7757c(int x, lazy inout(int)[int] def) { return def; }
+
+inout(T)      bar7757a(T)(T x, lazy inout(T)    def) { return def; }
+inout(T)[]    bar7757b(T)(T x, lazy inout(T)[]  def) { return def; }
+inout(T)[T]   bar7757c(T)(T x, lazy inout(T)[T] def) { return def; }
+
+void test7757()
+{
+          int       mx1  = foo7757a(1,2);
+    const(int)      cx1  = foo7757a(1,2);
+          int []    ma1  = foo7757b(1,[2]);
+    const(int)[]    ca1  = foo7757b(1,[2]);
+          int [int] maa1 = foo7757c(1,[2:3]);
+    const(int)[int] caa1 = foo7757c(1,[2:3]);
+
+          int       mx2  = bar7757a(1,2);
+    const(int)      cx2  = bar7757a(1,2);
+          int []    ma2  = bar7757b(1,[2]);
+    const(int)[]    ca2  = bar7757b(1,[2]);
+          int [int] maa2 = bar7757c(1,[2:3]);
+    const(int)[int] caa2 = bar7757c(1,[2:3]);
+}
+
+/************************************/
 
 int main()
 {
@@ -2687,6 +2715,7 @@ int main()
     test7554();
     test7518();
     test7669();
+    test7757();
 
     printf("Success\n");
     return 0;
