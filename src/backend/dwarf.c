@@ -1621,9 +1621,12 @@ unsigned dwarf_typidx(type *t)
 
     tym_t ty;
     ty = tybasic(t->Tty);
-    idx = typidx_tab[ty];
-    if (idx)
-        return idx;
+    if (!(t->Tnext && (ty == TYucent || ty == TYcent)))
+    {   // use cached basic type if it's not TYdarray or TYdelegate
+        idx = typidx_tab[ty];
+        if (idx)
+            return idx;
+    }
 
     unsigned char ate;
     ate = tyuns(t->Tty) ? DW_ATE_unsigned : DW_ATE_signed;
