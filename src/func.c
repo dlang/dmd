@@ -3640,7 +3640,7 @@ int StaticCtorDeclaration::addPostInvariant()
 
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (hgs->hdrgen)
+    if (hgs->hdrgen && !hgs->tpltMember)
     {   buf->writestring("static this();");
         buf->writenl();
         return;
