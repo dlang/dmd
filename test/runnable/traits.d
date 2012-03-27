@@ -703,6 +703,31 @@ static assert(__traits(isVirtualMethod, FF.YYY));
 static assert(__traits(getVirtualMethods, FF, "YYY").length == 1);
 
 /********************************************************/
+// 7608
+
+struct S7608a(bool T)
+{
+    static if (T) { int x; }
+    int y;
+}
+struct S7608b
+{
+    version(none) { int x; }
+    int y;
+}
+template TypeTuple7608(T...){ alias T TypeTuple7608; }
+void test7608()
+{
+    alias TypeTuple7608!(__traits(allMembers, S7608a!false)) MembersA;
+    static assert(MembersA.length == 1);
+    static assert(MembersA[0] == "y");
+
+    alias TypeTuple7608!(__traits(allMembers, S7608b)) MembersB;
+    static assert(MembersB.length == 1);
+    static assert(MembersB[0] == "y");
+}
+
+/********************************************************/
 
 int main()
 {
@@ -730,6 +755,7 @@ int main()
     test21();
     test22();
     test23();
+    test7608();
 
     writeln("Success");
     return 0;

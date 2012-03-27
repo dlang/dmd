@@ -1145,7 +1145,7 @@ int ScopeDsymbol::foreach(Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *c
     {   Dsymbol *s = (*members)[i];
 
         if (AttribDeclaration *a = s->isAttribDeclaration())
-            result = foreach(a->decl, dg, ctx, &n);
+            result = foreach(a->include(NULL, NULL), dg, ctx, &n);
         else if (TemplateMixin *tm = s->isTemplateMixin())
             result = foreach(tm->members, dg, ctx, &n);
         else if (s->isTemplateInstance())
