@@ -1,7 +1,7 @@
 
 struct S
 {
-    @property int foo(int a, int b) { return 1; }
+    @property int foo(int a, int b, int c) { return 1; }
 }
 
 void main()

@@ -302,6 +302,113 @@ return_expr:
 }
 
 /******************************
+ * Check the tail CallExp is really property function call.
+ */
+
+void checkPropertyCall(Expression *e, Expression *emsg)
+{
+    while (e->op == TOKcomma)
+        e = ((CommaExp *)e)->e2;
+
+    if (e->op == TOKcall)
+    {   CallExp *ce = (CallExp *)e;
+        TypeFunction *tf;
+        if (ce->f)
+            tf = (TypeFunction *)ce->f->type;
+        else if (ce->e1->type->ty == Tfunction)
+            tf = (TypeFunction *)ce->e1->type;
+        else if (ce->e1->type->ty == Tdelegate)
+            tf = (TypeFunction *)ce->e1->type->nextOf();
+        else if (ce->e1->type->ty == Tpointer && ce->e1->type->nextOf()->ty == Tfunction)
+            tf = (TypeFunction *)ce->e1->type->nextOf();
+        else
+            assert(0);
+
+        if (!tf->isproperty && global.params.enforcePropertySyntax)
+            ce->e1->error("not a property %s", emsg->toChars());
+    }
+}
+
+/******************************
+ * Pull out property with UFCS.
+ */
+
+Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NULL)
+{
+    Expression *e = NULL;
+    Expression *eleft;
+    Identifier *ident;
+    Objects* tiargs;
+    Loc loc = e1->loc;
+
+    if (e1->op == TOKdot)
+    {
+        DotIdExp *die = (DotIdExp *)e1;
+        eleft  = die->e1;
+        ident  = die->ident;
+        tiargs = NULL;
+        goto L1;
+    }
+    else if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp *dti;
+        dti = (DotTemplateInstanceExp *)e1;
+        eleft  = dti->e1;
+        ident  = dti->ti->name;
+        tiargs = dti->ti->tiargs;
+    L1:
+        /* .ident
+         * .ident!tiargs
+         */
+        e = new IdentifierExp(loc, Id::empty);
+        if (tiargs)
+            e = new DotTemplateInstanceExp(loc, e, ident, tiargs);
+        else
+            e = new DotIdExp(loc, e, ident);
+
+        Expressions *arguments = new Expressions();
+        /* .f(e1, e2)
+         */
+        if (e2)
+        {
+            arguments->setDim(2);
+            (*arguments)[0] = eleft;
+            (*arguments)[1] = e2;
+
+            Expression *ex = e->syntaxCopy();
+            e = new CallExp(loc, e, arguments);
+            e = e->trySemantic(sc);
+            if (e)
+            {   checkPropertyCall(e, e1);
+                return e->semantic(sc);
+            }
+            e = ex;
+        }
+
+        /* .f(e1)
+         * .f(e1) = e2
+         */
+        {
+            arguments->setDim(1);
+            (*arguments)[0] = eleft;
+            e = new CallExp(loc, e, arguments);
+            e = e->trySemantic(sc);
+            if (!e)
+                goto Leprop;
+            checkPropertyCall(e, e1);
+            if (e2)
+                e = new AssignExp(loc, e, e2);
+            return e->semantic(sc);
+        }
+    }
+    return e;
+
+Leprop:
+    e1->error("not a property %s", e1->toChars());
+    return new ErrorExp();
+}
+
+/******************************
  * Perform semantic() on an array of Expressions.
  */
 
@@ -6566,11 +6673,10 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         unsigned errors = global.startGagging();
         Type *t1 = e1->type;
         e = e1->type->dotExp(sc, e1, ident);
-        if (global.endGagging(errors))    // if failed to find the property
+        if (global.endGagging(errors))  // if failed to find the property
         {
             e1->type = t1;              // kludge to restore type
-            e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
-            e = new CallExp(loc, e, e1);
+            e = resolveUFCSProperties(sc, this);
         }
         e = e->semantic(sc);
         return e;
@@ -6888,13 +6994,7 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
         e = ((DotIdExp *)e)->semantic(sc, 1);
         if (global.endGagging(errors) && !flag)
         {
-            e = new DotTemplateInstanceExp(loc,
-                            new IdentifierExp(loc, Id::empty),
-                            ti->name, ti->tiargs);
-            e = new CallExp(loc, e, e1);
-            e = e->semantic(sc);
-            e = resolveProperties(sc, e);
-            return e;
+            return resolveUFCSProperties(sc, this);
         }
     }
 
@@ -9867,29 +9967,7 @@ Expression *AssignExp::semantic(Scope *sc)
             e1 = dti->semantic(sc, 1);
             if (global.endGagging(errors) || e1->op == TOKerror)
             {
-                Expressions *arguments = new Expressions();
-                arguments->setDim(2);
-                (*arguments)[0] = dti->e1;
-                (*arguments)[1] = e2;
-
-                Expression *e;
-                e = new DotTemplateInstanceExp(loc, new IdentifierExp(loc, Id::empty),
-                        dti->ti->name, dti->ti->tiargs);
-
-                Expression *ex = e->syntaxCopy();
-
-                e = new CallExp(loc, e, arguments);
-                e = e->trySemantic(sc);
-                if (e)
-                    return e;
-
-                e = new CallExp(loc, ex, dti->e1);
-                e = e->trySemantic(sc);
-                if (!e)
-                {   error("not a property");
-                    return new ErrorExp();
-                }
-                e1 = e;
+                return resolveUFCSProperties(sc, dti, e2);
             }
         }
     }
@@ -9903,28 +9981,7 @@ Expression *AssignExp::semantic(Scope *sc)
             e1 = die->semantic(sc, 1);
             if (global.endGagging(errors) || e1->op == TOKerror)
             {
-                Expressions *arguments = new Expressions();
-                arguments->setDim(2);
-                (*arguments)[0] = die->e1;
-                (*arguments)[1] = e2;
-
-                Expression *e;
-                e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), die->ident);
-
-                Expression *ex = e->syntaxCopy();
-
-                e = new CallExp(loc, e, arguments);
-                e = e->trySemantic(sc);
-                if (e)
-                    return e;
-
-                e = new CallExp(loc, ex, die->e1);
-                e = e->trySemantic(sc);
-                if (!e)
-                {   error("not a property");
-                    return new ErrorExp();
-                }
-                e1 = e;
+                return resolveUFCSProperties(sc, die, e2);
             }
         }
     }
