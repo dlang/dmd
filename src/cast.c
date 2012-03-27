@@ -500,14 +500,17 @@ MATCH StringExp::implicitConvTo(Type *t)
                             return MATCHnomatch;
                         m = MATCHconst;
                     }
-                    switch (tn->ty)
+                    if (!committed)
                     {
-                        case Tchar:
-                        case Twchar:
-                        case Tdchar:
-                            if (!committed)
-                                return m;
-                            break;
+                        switch (tn->ty)
+                        {
+                            case Tchar:
+                                return (postfix != 'w' && postfix != 'd' ? m : MATCHconvert);
+                            case Twchar:
+                                return (postfix == 'w' ? m : MATCHconvert);
+                            case Tdchar:
+                                return (postfix == 'd' ? m : MATCHconvert);
+                        }
                     }
                     break;
             }
