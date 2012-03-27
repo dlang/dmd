@@ -34,7 +34,10 @@ int lambdaCheckForNestedRef(Expression *e, void *param);
 Expression *Expression::toDelegate(Scope *sc, Type *t)
 {
     //printf("Expression::toDelegate(t = %s) %s\n", t->toChars(), toChars());
-    TypeFunction *tf = new TypeFunction(NULL, t, 0, LINKd);
+    Type *tw = t->semantic(loc, sc);
+    Type *tc = t->substWildTo(MODconst)->semantic(loc, sc);
+    TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd);
+    (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
     FuncLiteralDeclaration *fld =
         new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);
     Expression *e;
