@@ -5,3 +5,5 @@ EXETYPE		NT
 CODE            PRELOAD DISCARDABLE
 DATA            PRELOAD SINGLE
 
+EXPORTS
+	D5mydll12__ModuleInfoZ
