@@ -94,3 +94,14 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
 
     return hash;
 }
+
+// Check that hashOf works with CTFE
+unittest
+{
+    hash_t ctfeHash(string x)
+    {
+        return hashOf(x.ptr, x.length);
+    }
+
+    enum hash_t hashVal = ctfeHash("Sample string");
+}
