@@ -98,7 +98,7 @@ void Import::load(Scope *sc)
     if (pkg && pkg->isModule())
     {
         ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
-             pkg->toChars(), pkg->toChars(), id->toChars());
+             pkg->toChars(), pkg->toPrettyChars(), id->toChars());
         mod = pkg->isModule(); // Error recovery - treat as import of that module
         return;
     }
@@ -113,7 +113,7 @@ void Import::load(Scope *sc)
             mod = (Module *)s;
         else
             ::error(loc, "can only import from a module, not from package %s.%s",
-                pkg->toChars(), id->toChars());
+                pkg->toPrettyChars(), id->toChars());
 #endif
     }
 
