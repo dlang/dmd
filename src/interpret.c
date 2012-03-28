@@ -5817,7 +5817,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         }
         else if (e->op == TOKaddress)
             e = ((AddrExp*)e)->e1;  // *(&x) ==> x
-        if (e->op == TOKnull)
+        else if (e->op == TOKnull)
         {
             error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
