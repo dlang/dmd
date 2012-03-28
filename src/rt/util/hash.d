@@ -103,5 +103,7 @@ unittest
         return hashOf(x.ptr, x.length);
     }
 
-    enum hash_t hashVal = ctfeHash("Sample string");
+    enum test_str = "Sample string";
+    enum hash_t hashVal = ctfeHash(test_str);
+    assert(hashVal == hashOf(test_str.ptr, test_str.length));
 }
