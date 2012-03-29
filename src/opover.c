@@ -1041,6 +1041,10 @@ Expression *BinAssignExp::op_overload(Scope *sc)
     e1 = resolveProperties(sc, e1);
     e2 = resolveProperties(sc, e2);
 
+    // Don't attempt 'alias this' if an error occured
+    if (e1->type->ty == Terror || e2->type->ty == Terror)
+        return new ErrorExp();
+
     Identifier *id = opId();
 
     Expressions args2;
