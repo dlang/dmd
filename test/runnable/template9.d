@@ -1061,6 +1061,27 @@ void test7684()
 }
 
 /**********************************/
+// 7694
+
+void match7694(alias m)()
+{
+    m.foo();    //removing this line supresses ice in both cases
+}
+
+struct T7694
+{
+    void foo(){}
+    void bootstrap()
+    {
+    //next line causes ice
+        match7694!(this)();
+    //while this works:
+        alias this p;
+        match7694!(p)();
+    }
+}
+
+/**********************************/
 // 7755
 
 template to7755(T)
