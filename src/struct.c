@@ -121,7 +121,7 @@ unsigned AggregateDeclaration::size(Loc loc)
         semantic(NULL);
 
     StructDeclaration *sd = isStructDeclaration();
-    if (sizeok != SIZEOKdone && sd)
+    if (sizeok != SIZEOKdone && sd && sd->members)
     {
         /* See if enough is done to determine the size,
          * meaning all the fields are done.
