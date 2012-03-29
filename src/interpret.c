@@ -724,6 +724,11 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // If fell off the end of a void function, return void
     if (!e && type->toBasetype()->nextOf()->ty == Tvoid)
         return EXP_VOID_INTERPRET;
+
+    // If result is void, return void
+    if (e == EXP_VOID_INTERPRET)
+        return e;
+
     // If it generated an exception, return it
     if (exceptionOrCantInterpret(e))
     {
@@ -732,6 +737,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         ((ThrownExceptionExp *)e)->generateUncaughtError();
         return EXP_CANT_INTERPRET;
     }
+
+    // If we're about to leave CTFE, make sure we don't crash the
+    // compiler by returning a CTFE-internal expression.
     if (!istate && !evaluatingArgs)
     {
         e = scrubReturnValue(loc, e);
