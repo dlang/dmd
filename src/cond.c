@@ -248,6 +248,12 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         sc->flags |= SCOPEstaticif;
         Expression *e = exp->semantic(sc);
         sc->pop();
+        if (e->type == Type::tvoid)
+        {
+            exp->error("expression %s of type void does not have a boolean value", exp->toChars());
+            inc = 2;
+            return 0;
+        }
         e = e->optimize(WANTvalue | WANTinterpret);
         if (e->isBool(TRUE))
             inc = 1;
