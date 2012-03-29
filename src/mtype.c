@@ -5610,8 +5610,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         return terror;
     }
 
-    if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 1))
-        error(loc, "properties can only have zero or one parameter");
+    if (tf->isproperty && (tf->varargs || Parameter::dim(tf->parameters) > 2))
+        error(loc, "properties can only have zero, one, or two parameter");
 
     if (tf->varargs == 1 && tf->linkage != LINKd && Parameter::dim(tf->parameters) == 0)
         error(loc, "variadic functions with non-D linkage must have at least one parameter");
