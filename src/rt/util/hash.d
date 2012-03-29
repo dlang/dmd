@@ -31,19 +31,17 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
      * It is protected by the following open source license:
      *   http://www.azillionmonkeys.com/qed/weblicense.html
      */
-    version( HasUnalignedOps )
+    static uint get16bits( const (ubyte)* x ) pure nothrow
     {
-        static uint get16bits( const (ubyte)* x ) pure nothrow
+        // CTFE doesn't support casting ubyte* -> ushort*, so revert to
+        // per-byte access when in CTFE.
+        version( HasUnalignedOps )
         {
-            return *cast(ushort*) x;
+            if (!__ctfe)
+                return *cast(ushort*) x;
         }
-    }
-    else
-    {
-        static uint get16bits( const (ubyte)* x ) pure nothrow
-        {
-            return ((cast(uint) x[1]) << 8) + (cast(uint) x[0]);
-        }
+
+        return ((cast(uint) x[1]) << 8) + (cast(uint) x[0]);
     }
 
     // NOTE: SuperFastHash normally starts with a zero hash value.  The seed
@@ -95,4 +93,17 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
     hash += hash >> 6;
 
     return hash;
+}
+
+// Check that hashOf works with CTFE
+unittest
+{
+    hash_t ctfeHash(string x)
+    {
+        return hashOf(x.ptr, x.length);
+    }
+
+    enum test_str = "Sample string";
+    enum hash_t hashVal = ctfeHash(test_str);
+    assert(hashVal == hashOf(test_str.ptr, test_str.length));
 }
