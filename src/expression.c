@@ -2315,7 +2315,7 @@ Lagain:
     }
 
     TemplateInstance *ti = s->isTemplateInstance();
-    if (ti && !global.errors)
+    if (ti)
     {   if (!ti->semanticRun)
             ti->semantic(sc);
         s = ti->inst->toAlias();
