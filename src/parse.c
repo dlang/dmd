@@ -3568,6 +3568,9 @@ Statement *Parser::parseStatement(int flags)
             goto Ldeclaration;
 
         case BASIC_TYPES:
+            // bug 7773: int.max is always a part of expression
+            if (peekNext() == TOKdot)
+                goto Lexp;
         case TOKtypedef:
         case TOKalias:
         case TOKconst:
