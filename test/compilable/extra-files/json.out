@@ -8,10 +8,6 @@
 			{
 				"name" : "object",
 				"kind" : "module",
-			},
-			{
-				"name" : "std.stdio",
-				"kind" : "module",
 			}
 		],
 		"members" : [
@@ -28,20 +24,11 @@
 				}
 			},
 			{
-				"kind" : "import",
-				"name" : "__anonymous",
-				"kind" : "import",
-				"protection" : "private",
-				"loc" : {
-					"line" : 7
-				}
-			},
-			{
 				"name" : "_staticCtor1",
 				"kind" : "function",
 				"protection" : "public",
 				"loc" : {
-					"line" : 10
+					"line" : 8
 				},
 				"module" : {
 					"name" : "json",
@@ -73,7 +60,7 @@
 					"parameters" : []
 				},
 				"endloc" : {
-					"line" : 10
+					"line" : 8
 				},
 				"overrides" : []
 			},
@@ -82,7 +69,7 @@
 				"kind" : "function",
 				"protection" : "public",
 				"loc" : {
-					"line" : 12
+					"line" : 10
 				},
 				"module" : {
 					"name" : "json",
@@ -114,7 +101,7 @@
 					"parameters" : []
 				},
 				"endloc" : {
-					"line" : 12
+					"line" : 10
 				},
 				"overrides" : []
 			},
@@ -123,7 +110,7 @@
 				"kind" : "alias",
 				"protection" : "public",
 				"loc" : {
-					"line" : 15
+					"line" : 13
 				},
 				"module" : {
 					"name" : "json",
@@ -142,7 +129,7 @@
 				"kind" : "variable",
 				"protection" : "public",
 				"loc" : {
-					"line" : 16
+					"line" : 14
 				},
 				"module" : {
 					"name" : "json",
@@ -168,7 +155,7 @@
 				"name" : "Foo(T)",
 				"protection" : "public",
 				"loc" : {
-					"line" : 18
+					"line" : 16
 				},
 				"module" : {
 					"name" : "json",
@@ -188,7 +175,7 @@
 						"kind" : "struct",
 						"protection" : "public",
 						"loc" : {
-							"line" : 18
+							"line" : 16
 						},
 						"module" : {
 							"name" : "json",
@@ -201,7 +188,7 @@
 								"name" : "t",
 								"kind" : "variable",
 								"loc" : {
-									"line" : 18
+									"line" : 16
 								},
 								"storageClass" : [],
 								"type" : {
@@ -221,7 +208,7 @@
 				"name" : "Bar(int T)",
 				"protection" : "public",
 				"loc" : {
-					"line" : 19
+					"line" : 17
 				},
 				"module" : {
 					"name" : "json",
@@ -242,7 +229,7 @@
 						"kind" : "class",
 						"protection" : "public",
 						"loc" : {
-							"line" : 19
+							"line" : 17
 						},
 						"module" : {
 							"name" : "json",
@@ -255,7 +242,7 @@
 								"name" : "t",
 								"kind" : "variable",
 								"loc" : {
-									"line" : 19
+									"line" : 17
 								},
 								"storageClass" : [],
 								"type" : {
@@ -273,7 +260,7 @@
 				"name" : "Baz(T...)",
 				"protection" : "public",
 				"loc" : {
-					"line" : 20
+					"line" : 18
 				},
 				"module" : {
 					"name" : "json",
@@ -293,7 +280,7 @@
 						"kind" : "interface",
 						"protection" : "public",
 						"loc" : {
-							"line" : 20
+							"line" : 18
 						},
 						"module" : {
 							"name" : "json",
@@ -306,7 +293,7 @@
 								"name" : "t",
 								"kind" : "function",
 								"loc" : {
-									"line" : 20
+									"line" : 18
 								},
 								"storageClass" : [],
 								"type" : {
@@ -339,7 +326,7 @@
 				"name" : "P(alias T)",
 				"protection" : "public",
 				"loc" : {
-					"line" : 22
+					"line" : 20
 				},
 				"module" : {
 					"name" : "json",
@@ -360,7 +347,7 @@
 				"kind" : "class",
 				"protection" : "public",
 				"loc" : {
-					"line" : 24
+					"line" : 22
 				},
 				"module" : {
 					"name" : "json",
@@ -378,7 +365,7 @@
 						"kind" : "constructor",
 						"protection" : "public",
 						"loc" : {
-							"line" : 25
+							"line" : 23
 						},
 						"module" : {
 							"name" : "json",
@@ -399,7 +386,7 @@
 							"parameters" : []
 						},
 						"endloc" : {
-							"line" : 25
+							"line" : 23
 						},
 						"overrides" : []
 					},
@@ -408,7 +395,7 @@
 						"kind" : "destructor",
 						"protection" : "public",
 						"loc" : {
-							"line" : 26
+							"line" : 24
 						},
 						"module" : {
 							"name" : "json",
@@ -438,7 +425,7 @@
 							"parameters" : []
 						},
 						"endloc" : {
-							"line" : 26
+							"line" : 24
 						},
 						"overrides" : []
 					},
@@ -447,7 +434,7 @@
 						"kind" : "function",
 						"protection" : "public",
 						"loc" : {
-							"line" : 28
+							"line" : 26
 						},
 						"module" : {
 							"name" : "json",
@@ -475,7 +462,7 @@
 							"parameters" : []
 						},
 						"endloc" : {
-							"line" : 28
+							"line" : 26
 						},
 						"overrides" : []
 					},
@@ -484,7 +471,7 @@
 						"kind" : "function",
 						"protection" : "protected",
 						"loc" : {
-							"line" : 29
+							"line" : 27
 						},
 						"module" : {
 							"name" : "json",
@@ -527,7 +514,7 @@
 				"kind" : "struct",
 				"protection" : "public",
 				"loc" : {
-					"line" : 32
+					"line" : 30
 				},
 				"module" : {
 					"name" : "json",
@@ -541,7 +528,7 @@
 						"kind" : "variable",
 						"protection" : "public",
 						"loc" : {
-							"line" : 33
+							"line" : 31
 						},
 						"module" : {
 							"name" : "json",
@@ -569,7 +556,7 @@
 						"kind" : "union",
 						"protection" : "public",
 						"loc" : {
-							"line" : 34
+							"line" : 32
 						},
 						"module" : {
 							"name" : "json",
@@ -583,7 +570,7 @@
 								"kind" : "variable",
 								"protection" : "public",
 								"loc" : {
-									"line" : 36
+									"line" : 34
 								},
 								"module" : {
 									"name" : "json",
@@ -603,7 +590,7 @@
 								"kind" : "variable",
 								"protection" : "public",
 								"loc" : {
-									"line" : 37
+									"line" : 35
 								},
 								"module" : {
 									"name" : "json",
@@ -624,7 +611,7 @@
 								"kind" : "variable",
 								"protection" : "public",
 								"loc" : {
-									"line" : 39
+									"line" : 37
 								},
 								"module" : {
 									"name" : "json",
@@ -656,7 +643,7 @@
 				"kind" : "function",
 				"protection" : "public",
 				"loc" : {
-					"line" : 46
+					"line" : 44
 				},
 				"module" : {
 					"name" : "json",
@@ -741,7 +728,7 @@
 						"kind" : "variable",
 						"protection" : "public",
 						"loc" : {
-							"line" : 46
+							"line" : 44
 						},
 						"module" : {
 							"name" : "json",
@@ -760,7 +747,7 @@
 						"kind" : "variable",
 						"protection" : "public",
 						"loc" : {
-							"line" : 46
+							"line" : 44
 						},
 						"module" : {
 							"name" : "json",
@@ -779,7 +766,7 @@
 					}
 				],
 				"endloc" : {
-					"line" : 49
+					"line" : 47
 				},
 				"overrides" : []
 			},
@@ -788,7 +775,7 @@
 				"kind" : "function",
 				"protection" : "public",
 				"loc" : {
-					"line" : 51
+					"line" : 49
 				},
 				"module" : {
 					"name" : "json",
@@ -825,72 +812,9 @@
 					"parameters" : []
 				},
 				"endloc" : {
-					"line" : 68
+					"line" : 66
 				},
 				"overrides" : []
-			},
-			{
-				"kind" : "template instance",
-				"name" : "bitfields!(uint,\"fraction\",23,ubyte,\"exponent\",8,bool,\"sign\",1)",
-				"kind" : "template instance",
-				"protection" : "public",
-				"loc" : {
-					"line" : 282
-				},
-				"module" : {
-					"name" : "bitmanip",
-					"kind" : "module",
-					"protection" : "public",
-					"loc" : {
-						"line" : 24
-					},
-					"package" : [
-						"std"
-					],
-					"prettyName" : "std.bitmanip"
-				}
-			},
-			{
-				"kind" : "template instance",
-				"name" : "bitfields!(ulong,\"fraction\",52,ushort,\"exponent\",11,bool,\"sign\",1)",
-				"kind" : "template instance",
-				"protection" : "public",
-				"loc" : {
-					"line" : 315
-				},
-				"module" : {
-					"name" : "bitmanip",
-					"kind" : "module",
-					"protection" : "public",
-					"loc" : {
-						"line" : 24
-					},
-					"package" : [
-						"std"
-					],
-					"prettyName" : "std.bitmanip"
-				}
-			},
-			{
-				"kind" : "template instance",
-				"name" : "Demangle!(uint)",
-				"kind" : "template instance",
-				"protection" : "public",
-				"loc" : {
-					"line" : 46
-				},
-				"module" : {
-					"name" : "traits",
-					"kind" : "module",
-					"protection" : "public",
-					"loc" : {
-						"line" : 23
-					},
-					"package" : [
-						"std"
-					],
-					"prettyName" : "std.traits"
-				}
 			},
 			{
 				"kind" : "template instance",
@@ -898,7 +822,7 @@
 				"kind" : "template instance",
 				"protection" : "public",
 				"loc" : {
-					"line" : 24
+					"line" : 22
 				},
 				"module" : {
 					"name" : "json",
@@ -913,7 +837,7 @@
 				"kind" : "template instance",
 				"protection" : "public",
 				"loc" : {
-					"line" : 24
+					"line" : 22
 				},
 				"module" : {
 					"name" : "json",
@@ -928,76 +852,13 @@
 				"kind" : "template instance",
 				"protection" : "public",
 				"loc" : {
-					"line" : 29
+					"line" : 27
 				},
 				"module" : {
 					"name" : "json",
 					"kind" : "module",
 					"protection" : "public",
 					"prettyName" : "json"
-				}
-			},
-			{
-				"kind" : "template instance",
-				"name" : "isForwardRange!(ByCodepoint)",
-				"kind" : "template instance",
-				"protection" : "public",
-				"loc" : {
-					"line" : 447
-				},
-				"module" : {
-					"name" : "range",
-					"kind" : "module",
-					"protection" : "public",
-					"loc" : {
-						"line" : 47
-					},
-					"package" : [
-						"std"
-					],
-					"prettyName" : "std.range"
-				}
-			},
-			{
-				"kind" : "template instance",
-				"name" : "isInputRange!(ByCodepoint)",
-				"kind" : "template instance",
-				"protection" : "public",
-				"loc" : {
-					"line" : 485
-				},
-				"module" : {
-					"name" : "range",
-					"kind" : "module",
-					"protection" : "public",
-					"loc" : {
-						"line" : 47
-					},
-					"package" : [
-						"std"
-					],
-					"prettyName" : "std.range"
-				}
-			},
-			{
-				"kind" : "template instance",
-				"name" : "IRL!(cast(IR)149u)",
-				"kind" : "template instance",
-				"protection" : "public",
-				"loc" : {
-					"line" : 306
-				},
-				"module" : {
-					"name" : "regex",
-					"kind" : "module",
-					"protection" : "public",
-					"loc" : {
-						"line" : 64
-					},
-					"package" : [
-						"std"
-					],
-					"prettyName" : "std.regex"
 				}
 			}
 		]
