@@ -240,8 +240,8 @@ version( linux )
 else version( OSX )
 {
     alias ubyte cc_t;
-    alias uint  speed_t;
-    alias uint  tcflag_t;
+    alias c_ulong  speed_t;
+    alias c_ulong  tcflag_t;
 
     enum NCCS   = 20;
 
