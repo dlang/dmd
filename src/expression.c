@@ -3783,6 +3783,9 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     keys = arrayExpressionToCommonType(sc, keys, &tkey);
     values = arrayExpressionToCommonType(sc, values, &tvalue);
 
+    if (tkey == Type::terror || tvalue == Type::terror)
+        return new ErrorExp;
+
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
     return this;
