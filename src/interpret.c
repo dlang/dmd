@@ -1809,6 +1809,8 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     }
     Type *pointee = ((TypePointer *)type)->next;
     Expression *val = getVarExp(loc, istate, var, goal);
+    if (val == EXP_CANT_INTERPRET)
+        return val;
     if (val->type->ty == Tarray || val->type->ty == Tsarray)
     {
         // Check for unsupported type painting operations
