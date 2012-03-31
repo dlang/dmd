@@ -3177,6 +3177,9 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     printf("AssocArrayLiteralExp::semantic('%s')\n", toChars());
 #endif
 
+    if (type)
+        return this;
+
     // Run semantic() on each element
     arrayExpressionSemantic(keys, sc);
     arrayExpressionSemantic(values, sc);
@@ -3185,14 +3188,16 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     if (keys->dim != values->dim)
     {
         error("number of keys is %u, must match number of values %u", keys->dim, values->dim);
-        keys->setDim(0);
-        values->setDim(0);
+        return new ErrorExp();
     }
 
     Type *tkey = NULL;
     Type *tvalue = NULL;
     keys = arrayExpressionToCommonType(sc, keys, &tkey);
     values = arrayExpressionToCommonType(sc, values, &tvalue);
+
+    if (tkey == Type::terror || tvalue == Type::terror)
+        return new ErrorExp;
 
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
