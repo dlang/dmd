@@ -4283,3 +4283,26 @@ static assert( test7732() );
 **************************************************/
 
 static assert( ({return;}(), true) );
+
+/**************************************************
+    7785
+**************************************************/
+
+bool bug7785(int n)
+{
+    int val = 7;
+    auto p = &val;
+    if (n==2) {
+        auto ary = p[0 .. 1];
+    }
+    auto x = p[0];
+    val = 6;
+    assert(x == 7);
+    if (n==3)
+        p[0..1] = 1;
+    return true;
+}
+
+static assert(bug7785(1));
+static assert(!is(typeof(compiles!(bug7785(2)))));
+static assert(!is(typeof(compiles!(bug7785(3)))));
