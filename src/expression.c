@@ -551,10 +551,9 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
         Expression *arg;
 
         if (i < nargs)
-            arg = (Expression *)arguments->data[i];
+            arg = (*arguments)[i];
         else
             arg = NULL;
-        Type *tb;
 
         if (i < nparams)
         {
@@ -581,12 +580,13 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
             if (tf->varargs == 2 && i + 1 == nparams)
             {
                 //printf("\t\tvarargs == 2, p->type = '%s'\n", p->type->toChars());
-                if (arg->implicitConvTo(p->type))
+                MATCH m;
+                if ((m = arg->implicitConvTo(p->type)) != MATCHnomatch)
                 {
-                    if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()))
+                    if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()) >= m)
                         goto L2;
                     else if (nargs != nparams)
-                    {   error(loc, "expected %zu function arguments, not %zu", nparams, nargs);
+                    {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
                         return;
                     }
                     goto L1;
@@ -629,9 +629,6 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
                             Expression *e = new VarExp(loc, v);
                             e = new IndexExp(loc, e, new IntegerExp(u + 1 - nparams));
                             AssignExp *ae = new AssignExp(loc, e, a);
-#if DMDV2
-                            ae->op = TOKconstruct;
-#endif
                             if (c)
                                 c = new CommaExp(loc, c, ae);
                             else
@@ -689,7 +686,7 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
             }
 
             // Convert static arrays to pointers
-            tb = arg->type->toBasetype();
+            Type *tb = arg->type->toBasetype();
             if (tb->ty == Tsarray)
             {
                 arg = arg->checkToPointer();
@@ -697,7 +694,19 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
 #if DMDV2
             if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
             {
-                arg = callCpCtor(loc, sc, arg);
+                if (arg->op == TOKcall)
+                {
+                    /* The struct value returned from the function is transferred
+                     * to the function, so the callee should not call the destructor
+                     * on it.
+                     */
+                    valueNoDtor(arg);
+                }
+                else
+                {   /* Not transferring it, so call the copy constructor
+                     */
+                    arg = callCpCtor(loc, sc, arg, 1);
+                }
             }
 #endif
 
@@ -765,7 +774,8 @@ void functionParameters(Loc loc, Scope *sc, TypeFunction *tf, Expressions *argum
             }
 
             // Convert static arrays to dynamic arrays
-            tb = arg->type->toBasetype();
+            // BUG: I don't think this is right for D2
+            Type *tb = arg->type->toBasetype();
             if (tb->ty == Tsarray)
             {   TypeSArray *ts = (TypeSArray *)tb;
                 Type *ta = ts->next->arrayOf();
