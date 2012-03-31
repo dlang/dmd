@@ -4873,6 +4873,35 @@ void test7682()
 }
 
 /***************************************************/
+// 7735
+
+void a7735(void[][] data...)
+{
+    //writeln(data);
+    assert(data.length == 1);
+    b7735(data);
+}
+
+void b7735(void[][] data...)
+{
+    //writeln(data);
+    assert(data.length == 1);
+    c7735(data);
+}
+
+void c7735(void[][] data...)
+{
+    //writeln(data);
+    assert(data.length == 1);
+}
+
+void test7735()
+{
+    a7735([]);
+    a7735([]);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5098,6 +5127,7 @@ int main()
     test7618();
     test7621();
     test7682();
+    test7735();
 
     printf("Success\n");
     return 0;
