@@ -724,6 +724,11 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // If fell off the end of a void function, return void
     if (!e && type->toBasetype()->nextOf()->ty == Tvoid)
         return EXP_VOID_INTERPRET;
+
+    // If result is void, return void
+    if (e == EXP_VOID_INTERPRET)
+        return e;
+
     // If it generated an exception, return it
     if (exceptionOrCantInterpret(e))
     {
@@ -732,6 +737,9 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         ((ThrownExceptionExp *)e)->generateUncaughtError();
         return EXP_CANT_INTERPRET;
     }
+
+    // If we're about to leave CTFE, make sure we don't crash the
+    // compiler by returning a CTFE-internal expression.
     if (!istate && !evaluatingArgs)
     {
         e = scrubReturnValue(loc, e);
@@ -1801,6 +1809,8 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     }
     Type *pointee = ((TypePointer *)type)->next;
     Expression *val = getVarExp(loc, istate, var, goal);
+    if (val == EXP_CANT_INTERPRET)
+        return val;
     if (val->type->ty == Tarray || val->type->ty == Tsarray)
     {
         // Check for unsupported type painting operations
@@ -4143,6 +4153,21 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
             aggregate = getAggregateFromPointer(aggregate, &ofs);
             indexToModify += ofs;
+            if (aggregate->op != TOKslice && aggregate->op != TOKstring &&
+                aggregate->op != TOKarrayliteral && aggregate->op != TOKassocarrayliteral)
+            {
+                if (indexToModify != 0)
+                {
+                    error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
+                    return EXP_CANT_INTERPRET;
+                }
+                // It is equivalent to *aggregate = newval.
+                // Aggregate could be varexp, a dotvar, ...
+                // TODO: we could support this
+                error("indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
+                    ie->e1->toChars(), e2->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             destarraylen = resolveArrayLength(aggregate);
         }
         if (indexToModify >= destarraylen)
@@ -4281,7 +4306,13 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
             && oldval->op != TOKslice && oldval->op != TOKnull)
         {
-            error("CTFE ICE: cannot resolve array length");
+            if (assignmentToSlicedPointer)
+            {
+                error("pointer %s cannot be sliced at compile time (it does not point to an array)",
+                    sexp->e1->toChars());
+            }
+            else
+                error("CTFE ICE: cannot resolve array length");
             return EXP_CANT_INTERPRET;
         }
         uinteger_t dollar = resolveArrayLength(oldval);
@@ -5109,23 +5140,37 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         if (exceptionOrCantInterpret(e2))
             return e2;
         dinteger_t indx = e2->toInteger();
+
         dinteger_t ofs;
         Expression *agg = getAggregateFromPointer(e1, &ofs);
+
         if (agg->op == TOKnull)
         {
             error("cannot index null pointer %s", this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
-        assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
-        dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
-        Type *pointee = ((TypePointer *)agg->type)->next;
-        if ((indx + ofs) < 0 || (indx+ofs) > len)
+        if ( agg->op == TOKarrayliteral || agg->op == TOKstring)
         {
-            error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
-                indx+ofs, len);
-            return EXP_CANT_INTERPRET;
+            dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
+            Type *pointee = ((TypePointer *)agg->type)->next;
+            if ((indx + ofs) < 0 || (indx+ofs) > len)
+            {
+                error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
+                    indx+ofs, len);
+                return EXP_CANT_INTERPRET;
+            }
+            return ctfeIndex(loc, type, agg, indx+ofs);
         }
-        return ctfeIndex(loc, type, agg, indx+ofs);
+        else
+        {   // Pointer to a non-array variable
+            if ((indx + ofs) != 0)
+            {
+                error("pointer index [%lld] lies outside memory block [0..1]",
+                    indx+ofs);
+                return EXP_CANT_INTERPRET;
+            }
+            return agg->interpret(istate);
+        }
     }
     e1 = this->e1;
     if (!(e1->op == TOKarrayliteral && ((ArrayLiteralExp *)e1)->ownedByCtfe))
@@ -5266,6 +5311,12 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
                 return e;
             }
             error("cannot slice null pointer %s", this->e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        if (agg->op != TOKarrayliteral && agg->op != TOKstring)
+        {
+            error("pointer %s cannot be sliced at compile time (it does not point to an array)",
+                this->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         assert(agg->op == TOKarrayliteral || agg->op == TOKstring);

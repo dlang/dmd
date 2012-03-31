@@ -208,6 +208,17 @@ void test7703()
 }
 
 /*******************************************/
+// 7773
+
+//import std.stdio;
+void writeln7773(int n){}
+void test7773()
+{
+    (int.max).writeln7773(); // OK
+    int.max.writeln7773();   // error
+}
+
+/*******************************************/
 
 void main()
 {
@@ -217,4 +228,5 @@ void main()
     test3382();
     test7670();
     test7703();
+    test7773();
 }

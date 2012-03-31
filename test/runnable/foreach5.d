@@ -270,6 +270,95 @@ void test7406()
 }
 
 /***************************************/
+// 6659
+
+void test6659()
+{
+    static struct Iter
+    {
+        ~this()
+        {
+            ++_dtor;
+        }
+
+        bool opCmp(ref const Iter rhs) { return _pos == rhs._pos; }
+        void opUnary(string op:"++")() { ++_pos; }
+        size_t _pos;
+
+        static size_t _dtor;
+    }
+
+    foreach (ref iter; Iter(0) .. Iter(10))
+    {
+        assert(Iter._dtor == 0);
+    }
+    assert(Iter._dtor == 2);
+
+    Iter._dtor = 0; // reset
+
+    for (auto iter = Iter(0), limit = Iter(10); iter != limit; ++iter)
+    {
+        assert(Iter._dtor == 0);
+    }
+    assert(Iter._dtor == 2);
+}
+
+void test6659a()
+{
+    auto value = 0;
+    try
+    {
+        for ({scope(success) { assert(value == 1); value = 2;} }  true; )
+        {
+            value = 1;
+            break;
+        }
+        assert(value == 2);
+    }
+    catch (Exception e)
+    {
+        assert(0);
+    }
+    assert(value == 2);
+}
+
+void test6659b()
+{
+    auto value = 0;
+    try
+    {
+        for ({scope(failure) value = 1;}  true; )
+        {
+            throw new Exception("");
+        }
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e);
+    }
+    assert(value == 1);
+}
+
+void test6659c()
+{
+    auto value = 0;
+    try
+    {
+        for ({scope(exit) value = 1;}  true; )
+        {
+            throw new Exception("");
+        }
+        assert(0);
+    }
+    catch (Exception e)
+    {
+        assert(e);
+    }
+    assert(value == 1);
+}
+
+/***************************************/
 
 int main()
 {
@@ -281,6 +370,10 @@ int main()
     test5605();
     test7004();
     test7406();
+    test6659();
+    test6659a();
+    test6659b();
+    test6659c();
 
     printf("Success\n");
     return 0;

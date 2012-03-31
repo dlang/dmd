@@ -1572,15 +1572,18 @@ Expression *Expression::inferType(Type *t, int flag, TemplateParameters *tparams
 
 Expression *ArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
 {
-    t = t->toBasetype();
-    if (t->ty == Tarray || t->ty == Tsarray)
+    if (t)
     {
-        Type *tn = t->nextOf();
-        for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (*elements)[i];
-            if (e)
-            {   e = e->inferType(tn, flag, tparams);
-                (*elements)[i] = e;
+        t = t->toBasetype();
+        if (t->ty == Tarray || t->ty == Tsarray)
+        {
+            Type *tn = t->nextOf();
+            for (size_t i = 0; i < elements->dim; i++)
+            {   Expression *e = (*elements)[i];
+                if (e)
+                {   e = e->inferType(tn, flag, tparams);
+                    (*elements)[i] = e;
+                }
             }
         }
     }
@@ -1589,23 +1592,26 @@ Expression *ArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tp
 
 Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
 {
-    t = t->toBasetype();
-    if (t->ty == Taarray)
-    {   TypeAArray *taa = (TypeAArray *)t;
-        Type *ti = taa->index;
-        Type *tv = taa->nextOf();
-        for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *e = (*keys)[i];
-            if (e)
-            {   e = e->inferType(ti, flag, tparams);
-                (*keys)[i] = e;
+    if (t)
+    {
+        t = t->toBasetype();
+        if (t->ty == Taarray)
+        {   TypeAArray *taa = (TypeAArray *)t;
+            Type *ti = taa->index;
+            Type *tv = taa->nextOf();
+            for (size_t i = 0; i < keys->dim; i++)
+            {   Expression *e = (*keys)[i];
+                if (e)
+                {   e = e->inferType(ti, flag, tparams);
+                    (*keys)[i] = e;
+                }
             }
-        }
-        for (size_t i = 0; i < values->dim; i++)
-        {   Expression *e = (*values)[i];
-            if (e)
-            {   e = e->inferType(tv, flag, tparams);
-                (*values)[i] = e;
+            for (size_t i = 0; i < values->dim; i++)
+            {   Expression *e = (*values)[i];
+                if (e)
+                {   e = e->inferType(tv, flag, tparams);
+                    (*values)[i] = e;
+                }
             }
         }
     }
@@ -1614,6 +1620,9 @@ Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, TemplateParameter
 
 Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
 {
+    if (!to)
+        return this;
+
     //printf("FuncExp::interType('%s'), to=%s\n", type?type->toChars():"null", to->toChars());
 
     if (!type)  // semantic is not yet done
@@ -1714,9 +1723,12 @@ L1:
 
 Expression *CondExp::inferType(Type *t, int flag, TemplateParameters *tparams)
 {
-    t = t->toBasetype();
-    e1 = e1->inferType(t, flag, tparams);
-    e2 = e2->inferType(t, flag, tparams);
+    if (t)
+    {
+        t = t->toBasetype();
+        e1 = e1->inferType(t, flag, tparams);
+        e2 = e2->inferType(t, flag, tparams);
+    }
     return this;
 }
 
