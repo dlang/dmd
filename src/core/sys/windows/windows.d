@@ -322,6 +322,28 @@ enum
     DWORD INVALID_FILE_SIZE         = cast(DWORD)0xFFFFFFFF,
 }
 
+union LARGE_INTEGER
+{
+    struct
+    {
+        uint LowPart;
+        int  HighPart;
+    }
+    long QuadPart;
+}
+alias LARGE_INTEGER* PLARGE_INTEGER;
+
+union ULARGE_INTEGER
+{
+    struct
+    {
+        uint LowPart;
+        uint HighPart;
+    }
+    ulong QuadPart;
+}
+alias ULARGE_INTEGER* PULARGE_INTEGER;
+
 struct OVERLAPPED {
     ULONG_PTR Internal;
     ULONG_PTR InternalHigh;
