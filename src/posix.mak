@@ -37,7 +37,16 @@ ifeq (OSX,$(TARGET))
     #SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
     #SDK=/Developer/SDKs/MacOSX10.5.sdk
     #SDK=/Developer/SDKs/MacOSX10.6.sdk
-    SDK:=$(if $(filter 11.%, $(OSVER)), /Developer/SDKs/MacOSX10.6.sdk, /Developer/SDKs/MacOSX10.5.sdk)
+
+    # This is the path to the SDKs in Xcode 4.3 +
+    SDK_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+
+    ifeq ($(exists $(SDK_PATH)),)
+        SDK=$(SDK_PATH)/MacOSX10.7.sdk
+    else
+        SDK:=$(if $(filter 11.%, $(OSVER)), /Developer/SDKs/MacOSX10.6.sdk, /Developer/SDKs/MacOSX10.5.sdk)
+    endif
+
     TARGET_CFLAGS=-isysroot ${SDK}
     #-syslibroot is only passed to libtool, not ld.
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
