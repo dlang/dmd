@@ -4,24 +4,16 @@ ifeq (,$(TARGET))
     OSVER:=$(shell uname -r)
     ifeq (Darwin,$(OS))
         TARGET=OSX
+    else ifeq (Linux,$(OS))
+        TARGET=LINUX
+    else ifeq (FreeBSD,$(OS))
+        TARGET=FREEBSD
+    else ifeq (OpenBSD,$(OS))
+        TARGET=OPENBSD
+    else ifeq (Solaris,$(OS))
+        TARGET=SOLARIS
     else
-        ifeq (Linux,$(OS))
-            TARGET=LINUX
-        else
-            ifeq (FreeBSD,$(OS))
-                TARGET=FREEBSD
-            else
-                ifeq (OpenBSD,$(OS))
-                    TARGET=OPENBSD
-                else
-                    ifeq (Solaris,$(OS))
-                        TARGET=SOLARIS
-                    else
-                        $(error Unrecognized or unsupported OS for uname: $(OS))
-                    endif
-                endif
-            endif
-        endif
+        $(error Unrecognized or unsupported OS for uname: $(OS))
     endif
 endif
 
