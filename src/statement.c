@@ -1242,7 +1242,7 @@ Statement *ForStatement::syntaxCopy()
     return s;
 }
 
-/* 
+/*
  * Run semantic on init recursively.
  * Rewrite:
  *      for (auto x=X(), y = Y(); ...; ...) {}
@@ -3081,6 +3081,7 @@ SwitchStatement::SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFi
 
 Statement *SwitchStatement::syntaxCopy()
 {
+    //printf("SwitchStatement::syntaxCopy(%p)\n", this);
     SwitchStatement *s = new SwitchStatement(loc,
         condition->syntaxCopy(), body->syntaxCopy(), isFinal);
     return s;
@@ -3090,7 +3091,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
 {
     //printf("SwitchStatement::semantic(%p)\n", this);
     tf = sc->tf;
-    assert(!cases);             // ensure semantic() is only run once
+    if (cases)
+        return this;            // already run
     condition = condition->semantic(sc);
     condition = resolveProperties(sc, condition);
     if (condition->type->isString())
