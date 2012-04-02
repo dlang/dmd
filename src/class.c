@@ -1046,7 +1046,7 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
             //printf("\t[%d] = %s\n", i, fd->toChars());
             if (ident == fd->ident &&
                 fd->type->covariant(tf) == 1)
-            {   //printf("fd->parent->isClassDeclaration() = %p", fd->parent->isClassDeclaration());
+            {   //printf("fd->parent->isClassDeclaration() = %p\n", fd->parent->isClassDeclaration());
                 if (!fdmatch)
                     goto Lfd;
 
@@ -1054,6 +1054,15 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
                 // Function type matcing: exact > covariant
                 int m1 = tf->equals(fd     ->type) ? MATCHexact : MATCHnomatch;
                 int m2 = tf->equals(fdmatch->type) ? MATCHexact : MATCHnomatch;
+                if (m1 > m2)
+                    goto Lfd;
+                else if (m1 < m2)
+                    goto Lfdmatch;
+                }
+
+                {
+                int m1 = (tf->mod == fd     ->type->mod) ? MATCHexact : MATCHnomatch;
+                int m2 = (tf->mod == fdmatch->type->mod) ? MATCHexact : MATCHnomatch;
                 if (m1 > m2)
                     goto Lfd;
                 else if (m1 < m2)
