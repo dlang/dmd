@@ -640,7 +640,14 @@ void Module::parse()
     if (md)
     {   this->ident = md->id;
         this->safe = md->safe;
-        dst = Package::resolve(md->packages, &this->parent, NULL);
+        Package *ppack = NULL;
+        dst = Package::resolve(md->packages, &this->parent, &ppack);
+        if (ppack && ppack->isModule())
+        {
+            error(loc, "package name '%s' in file %s conflicts with usage as a module name in file %s",
+                ppack->toChars(), srcname, ppack->isModule()->srcfile->toChars());
+            dst = modules;
+        }
     }
     else
     {
@@ -659,13 +666,13 @@ void Module::parse()
         assert(prev);
         Module *mprev = prev->isModule();
         if (mprev)
-            error(loc, "from file %s conflicts with another module %s from file %s",
+            error(loc, "from file %s conflicts with another module %s fro file %s",
                 srcname, mprev->toChars(), mprev->srcfile->toChars());
         else
         {
             Package *pkg = prev->isPackage();
             assert(pkg);
-            error(loc, "from file %s conflicts with package name %s",
+            error(pkg->loc, "from file %s conflicts with package name %s",
                 srcname, pkg->toChars());
         }
     }
@@ -1184,7 +1191,8 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 #else
             if (p->isModule())
             {   // Return the module so that a nice error message can be generated
-                *ppkg = (Package *)p;
+                if (ppkg)
+                    *ppkg = (Package *)p;
                 break;
             }
 #endif
