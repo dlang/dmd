@@ -322,6 +322,28 @@ enum
     DWORD INVALID_FILE_SIZE         = cast(DWORD)0xFFFFFFFF,
 }
 
+union LARGE_INTEGER
+{
+    struct
+    {
+        uint LowPart;
+        int  HighPart;
+    }
+    long QuadPart;
+}
+alias LARGE_INTEGER* PLARGE_INTEGER;
+
+union ULARGE_INTEGER
+{
+    struct
+    {
+        uint LowPart;
+        uint HighPart;
+    }
+    ulong QuadPart;
+}
+alias ULARGE_INTEGER* PULARGE_INTEGER;
+
 struct OVERLAPPED {
     ULONG_PTR Internal;
     ULONG_PTR InternalHigh;
@@ -421,6 +443,23 @@ enum
     STD_ERROR_HANDLE =    cast(DWORD)-12,
 }
 
+enum GET_FILEEX_INFO_LEVELS
+{
+    GetFileExInfoStandard,
+    GetFileExMaxInfoLevel
+}
+
+struct WIN32_FILE_ATTRIBUTE_DATA
+{
+    DWORD    dwFileAttributes;
+    FILETIME ftCreationTime;
+    FILETIME ftLastAccessTime;
+    FILETIME ftLastWriteTime;
+    DWORD    nFileSizeHigh;
+    DWORD    nFileSizeLow;
+}
+alias WIN32_FILE_ATTRIBUTE_DATA* LPWIN32_FILE_ATTRIBUTE_DATA;
+
 export
 {
 BOOL SetCurrentDirectoryA(LPCSTR lpPathName);
@@ -457,6 +496,8 @@ BOOL   GetExitCodeThread(HANDLE hThread, DWORD *lpExitCode);
 DWORD  GetLastError();
 DWORD  GetFileAttributesA(in char *lpFileName);
 DWORD  GetFileAttributesW(in wchar *lpFileName);
+BOOL   GetFileAttributesExA(LPCSTR, GET_FILEEX_INFO_LEVELS, PVOID);
+BOOL   GetFileAttributesExW(LPCWSTR, GET_FILEEX_INFO_LEVELS, PVOID);
 DWORD  GetFileSize(HANDLE hFile, DWORD *lpFileSizeHigh);
 BOOL   CopyFileA(LPCSTR lpExistingFileName, LPCSTR lpNewFileName, BOOL bFailIfExists);
 BOOL   CopyFileW(LPCWSTR lpExistingFileName, LPCWSTR lpNewFileName, BOOL bFailIfExists);
