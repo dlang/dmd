@@ -5839,7 +5839,9 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                 }
                 if (ie->e1->op == TOKassocarrayliteral)
                 {
-                    e = Index(type, ie->e1, ie->e2);
+                    e = findKeyInAA(loc, (AssocArrayLiteralExp *)ie->e1, ie->e2);
+                    assert(e != EXP_CANT_INTERPRET);
+                    e = paintTypeOntoLiteral(type, e);
                     if (isGenuineIndex)
                     {
                         if (e->op == TOKindex)
