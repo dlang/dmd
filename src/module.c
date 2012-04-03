@@ -1175,6 +1175,9 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
                 // to be checked at a higher level, where a nice error message
                 // can be generated.
                 // dot net needs modules and packages with same name
+
+                if (!((Package *)p)->symtab)
+                    ((Package *)p)->symtab = new DsymbolTable();
             }
             parent = p;
             dst = ((Package *)p)->symtab;
@@ -1184,7 +1187,8 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 #else
             if (p->isModule())
             {   // Return the module so that a nice error message can be generated
-                *ppkg = (Package *)p;
+                if (ppkg)
+                    *ppkg = (Package *)p;
                 break;
             }
 #endif
