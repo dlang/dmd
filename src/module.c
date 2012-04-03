@@ -1174,7 +1174,29 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
                 // It might already be a module, not a package, but that needs
                 // to be checked at a higher level, where a nice error message
                 // can be generated.
-                // dot net needs modules and packages with same name
+
+#if TARGET_NET  //dot net needs modules and packages with same name
+#else
+                if (p->isModule())
+                {   p->error("module and package have the same name");
+                    //fatal();
+                    //break;
+
+                    // Example:
+                    //   src/a.d is:
+                    //       module src; // only the package name (invalid)
+                    //   src/b.d is:
+                    //       module src.b;
+                    //   command line:
+                    //       dmd src/a.d src/b.d
+                    // adds 'src' as module name into global table, and
+                    // succeeds to compile.
+                    // This error is still needed to detect it.
+                }
+#endif
+
+                if (!((Package *)p)->symtab)
+                    ((Package *)p)->symtab = new DsymbolTable();
             }
             parent = p;
             dst = ((Package *)p)->symtab;
@@ -1184,7 +1206,8 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
 #else
             if (p->isModule())
             {   // Return the module so that a nice error message can be generated
-                *ppkg = (Package *)p;
+                if (ppkg)
+                    *ppkg = (Package *)p;
                 break;
             }
 #endif
