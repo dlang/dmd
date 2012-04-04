@@ -133,7 +133,7 @@ struct Declaration : Dsymbol
 
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
-    void toDocBuffer(OutBuffer *buf);
+    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     char *mangle();
     int isStatic() { return storage_class & STCstatic; }
@@ -200,7 +200,7 @@ struct TypedefDeclaration : Declaration
     Type *htype;
     Type *hbasetype;
 
-    void toDocBuffer(OutBuffer *buf);
+    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
@@ -232,7 +232,7 @@ struct AliasDeclaration : Declaration
     Type *htype;
     Dsymbol *haliassym;
 
-    void toDocBuffer(OutBuffer *buf);
+    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     AliasDeclaration *isAliasDeclaration() { return this; }
 };
@@ -670,7 +670,7 @@ struct FuncDeclaration : Declaration
     int canInline(int hasthis, int hdrscan, int statementsToo);
     Expression *expandInline(InlineScanState *iss, Expression *ethis, Expressions *arguments, Statement **ps);
     const char *kind();
-    void toDocBuffer(OutBuffer *buf);
+    void toDocBuffer(OutBuffer *buf, Scope *sc);
     FuncDeclaration *isUnique();
     void checkNestedReference(Scope *sc, Loc loc);
     int needsClosure();

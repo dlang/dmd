@@ -100,7 +100,7 @@ struct AggregateDeclaration : ScopeDsymbol
 
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
-    void toDocBuffer(OutBuffer *buf);
+    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);   // determine access to smember
@@ -163,7 +163,7 @@ struct StructDeclaration : AggregateDeclaration
 
     FuncDeclaration *buildXopEquals(Scope *sc);
 #endif
-    void toDocBuffer(OutBuffer *buf);
+    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember
 
@@ -280,7 +280,7 @@ struct ClassDeclaration : AggregateDeclaration
     virtual int vtblOffset();
     const char *kind();
     char *mangle();
-    void toDocBuffer(OutBuffer *buf);
+    void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember
 
