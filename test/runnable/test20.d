@@ -1254,6 +1254,18 @@ void test61()
 
 /*****************************************/
 
+void bug7493()
+{
+    string str = "abcde";
+    const(void) [][1] arr = [str];
+    assert(arr[0].length == str.length);
+    const(void) [][1] arr2;
+    arr2 = [str];
+    assert(arr[0].length == str.length);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1314,6 +1326,7 @@ int main()
     test59();
     test60();
     test61();
+    bug7493();
 
     printf("Success\n");
     return 0;
