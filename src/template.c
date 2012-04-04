@@ -5737,8 +5737,13 @@ void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     int i;
 
     Identifier *id = name;
-    if (hgs->ddoc && tempdecl && tempdecl->comment && tempdecl->getModule()->docfile)
-        tempdecl->emitIdentifier(buf, hgs);
+    if (hgs->ddoc)
+    {
+        if (tempdecl && tempdecl->comment && tempdecl->getModule()->docfile)
+            tempdecl->emitIdentifier(buf, hgs);
+        else
+            identifierToDocBuffer(id, buf, hgs);
+    }
     else
         buf->writestring(id->toChars());
     buf->writestring("!(");

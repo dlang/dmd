@@ -6496,30 +6496,14 @@ void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
         return;
     }
 
-    if (hgs->ddoc) {
+    if (hgs->ddoc)
+    {
         if (originalSymbol)
             originalSymbol->emitIdentifier(buf, hgs);
-        else {
-            Dsymbol *s = NULL;
-
-            // Try to search a symbol in the global scope.
-            // In most cases this is the correct guess.
-            // We don't search if the length is 1 because it's probably
-            // a template parameter (like E, which would incorrectly resolve to Math.E).
-            if (ident->len > 1) {
-                Dsymbol *scopesym;
-                Loc loc;
-                unsigned errors = global.startGagging();
-                s = hgs->scope->search(loc, ident, &scopesym);
-                global.endGagging(errors);
-            }
-
-            if (s) {
-                s->emitIdentifier(buf, hgs);
-            } else
-                buf->writestring(this->ident->toChars());
-        }
-    } else
+        else
+            identifierToDocBuffer(ident, buf, hgs);
+    }
+    else
         buf->writestring(this->ident->toChars());
 
     toCBuffer2Helper(buf, hgs);
@@ -9254,4 +9238,27 @@ int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, siz
     if (pn)
         *pn = n; // update index
     return result;
+}
+
+/* Try to search a symbol in the global scope.
+ * In most cases this is the correct guess.
+ * We don't search if the length is 1 because it's probably
+ * a template parameter (like E, which would incorrectly resolve to Math.E).
+ */
+void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs) {
+    Dsymbol *s = NULL;
+
+    if (ident->len > 1)
+    {
+        Dsymbol *scopesym;
+        Loc loc;
+        unsigned errors = global.startGagging();
+        s = hgs->scope->search(loc, ident, &scopesym);
+        global.endGagging(errors);
+    }
+
+    if (s)
+        s->emitIdentifier(buf, hgs);
+    else
+        buf->writestring(ident->toChars());
 }
