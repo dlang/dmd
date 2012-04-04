@@ -860,15 +860,17 @@ template pow(F)
         if (i < 1)
         {
             static if (is(F : real))
-		return 1;
+                return 1;
             else
-		return F(1);
+                return F(1);
         }
         if (i & 1)
-	    if(i == 1)
-		return x;
-	    else
-		return x * pow(x,i-1);
+        {
+            if (i == 1)
+                return x;
+            else
+                return x * pow(x,i-1);
+        }
         return sqr!(F)(pow(x,i/2));
     }
 }
