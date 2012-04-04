@@ -6465,6 +6465,7 @@ TypeIdentifier::TypeIdentifier(Loc loc, Identifier *ident)
     : TypeQualified(Tident, loc)
 {
     this->ident = ident;
+    this->originalSymbol = NULL;
 }
 
 
@@ -6494,7 +6495,12 @@ void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    buf->writestring(this->ident->toChars());
+
+    if (hgs->ddoc && this->originalSymbol)
+        this->originalSymbol->emitIdentifier(buf, hgs);
+    else
+        buf->writestring(this->ident->toChars());
+
     toCBuffer2Helper(buf, hgs);
 }
 
@@ -6535,6 +6541,9 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     }
 
     Dsymbol *s = sc->search(loc, ident, &scopesym);
+
+    this->originalSymbol = s;
+
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
     if (*pt)
         (*pt) = (*pt)->addMod(mod);
@@ -7097,7 +7106,7 @@ void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    buf->writestring(sym->toChars());
+    sym->emitIdentifier(buf, hgs);
 }
 
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -7610,7 +7619,7 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     if (ti && ti->toAlias() == sym)
         buf->writestring(ti->toChars());
     else
-        buf->writestring(sym->toChars());
+        sym->emitIdentifier(buf, hgs);
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -8087,7 +8096,7 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    buf->writestring(sym->toChars());
+    sym->emitIdentifier(buf, hgs);
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)

@@ -196,6 +196,8 @@ struct Dsymbol : Object
 
     virtual void addComment(unsigned char *comment);
     virtual void emitComment(Scope *sc);
+    void emitAnchor(OutBuffer *buf);
+    void emitIdentifier(OutBuffer *buf, HdrGenState *hgs);
     void emitDitto(Scope *sc);
 
     // Backend

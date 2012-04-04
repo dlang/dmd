@@ -692,6 +692,7 @@ struct TypeQualified : Type
 struct TypeIdentifier : TypeQualified
 {
     Identifier *ident;
+    Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
 
     TypeIdentifier(Loc loc, Identifier *ident);
     Type *syntaxCopy();
