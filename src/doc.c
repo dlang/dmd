@@ -537,8 +537,11 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
+            Dsymbol *oldParent = s->parent;
+            s->parent = this;
             //printf("\ts = '%s'\n", s->toChars());
             s->emitComment(sc);
+            s->parent = oldParent;
         }
         sc->pop();
         if (buf->offset == offset2)
@@ -571,8 +574,21 @@ void Dsymbol::emitAnchor(OutBuffer *buf)
 {
     if (parent && !parent->isModule())
     {
-        parent->emitAnchor(buf);
-        buf->writestring(".");
+        TemplateDeclaration *td;
+        if ((td = parent->isTemplateDeclaration()) != NULL &&
+            td->onemember == this)
+        {
+            if (!td->parent->isModule())
+            {
+                td->parent->emitAnchor(buf);
+                buf->writestring(".");
+            }
+        }
+        else
+        {
+            parent->emitAnchor(buf);
+            buf->writestring(".");
+        }
     }
 
     buf->writestring(ident->toChars());
@@ -583,7 +599,9 @@ void Dsymbol::emitIdentifier(OutBuffer *buf, HdrGenState *hgs)
     if (hgs->ddoc && comment && getModule()->docfile)
     {
         buf->writestring("$(LINK2 ");
+
         buf->writestring(getModule()->docfile->name->name());
+
         buf->writestring("#");
         emitAnchor(buf);
         buf->writestring(",");
