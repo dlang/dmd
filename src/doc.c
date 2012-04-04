@@ -605,11 +605,11 @@ void Dsymbol::emitIdentifier(OutBuffer *buf, HdrGenState *hgs)
         buf->writestring("#");
         emitAnchor(buf);
         buf->writestring(",");
-        buf->writestring(this->ident->toChars());
+        buf->writestring(ident->toChars());
         buf->writestring(")");
     }
     else
-        buf->writestring(this->toChars());
+        buf->writestring(toChars());
 }
 
 void Dsymbol::emitComment(Scope *sc)               { }
