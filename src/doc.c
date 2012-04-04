@@ -599,9 +599,7 @@ void Dsymbol::emitIdentifier(OutBuffer *buf, HdrGenState *hgs)
     if (hgs->ddoc && comment && getModule()->docfile)
     {
         buf->writestring("$(LINK2 ");
-
         buf->writestring(getModule()->docfile->name->name());
-
         buf->writestring("#");
         emitAnchor(buf);
         buf->writestring(",");
