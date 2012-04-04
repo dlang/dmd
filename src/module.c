@@ -666,7 +666,7 @@ void Module::parse()
         assert(prev);
         Module *mprev = prev->isModule();
         if (mprev)
-            error(loc, "from file %s conflicts with another module %s fro file %s",
+            error(loc, "from file %s conflicts with another module %s from file %s",
                 srcname, mprev->toChars(), mprev->srcfile->toChars());
         else
         {
