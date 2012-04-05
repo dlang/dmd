@@ -860,15 +860,17 @@ template pow(F)
         if (i < 1)
         {
             static if (is(F : real))
-		return 1;
+                return 1;
             else
-		return F(1);
+                return F(1);
         }
         if (i & 1)
-	    if(i == 1)
-		return x;
-	    else
-		return x * pow(x,i-1);
+        {
+            if (i == 1)
+                return x;
+            else
+                return x * pow(x,i-1);
+        }
         return sqr!(F)(pow(x,i/2));
     }
 }
@@ -1254,6 +1256,18 @@ void test61()
 
 /*****************************************/
 
+void bug7493()
+{
+    string str = "abcde";
+    const(void) [][1] arr = [str];
+    assert(arr[0].length == str.length);
+    const(void) [][1] arr2;
+    arr2 = [str];
+    assert(arr[0].length == str.length);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1314,6 +1328,7 @@ int main()
     test59();
     test60();
     test61();
+    bug7493();
 
     printf("Success\n");
     return 0;
