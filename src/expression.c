@@ -8735,8 +8735,16 @@ Expression *AssignExp::semantic(Scope *sc)
             e1 = e1->modifiableLvalue(sc, e1old);
     }
 
+    // If it is a array, get the element type. Note that it may be
+    // multi-dimensional.
+    Type *telem = t1;
+    while (telem->ty == Tarray)
+        telem = telem->nextOf();
+
+    // Check for block assignment. If it is of type void[], void[][], etc,
+    // '= null' is the only allowable block assignment (Bug 7493)
     if (e1->op == TOKslice &&
-        t1->nextOf() &&
+        t1->nextOf() && (telem->ty != Tvoid || e2->op == TOKnull) &&
         e2->implicitConvTo(t1->nextOf())
 //      !(t1->nextOf()->equals(e2->type->nextOf()))
        )
