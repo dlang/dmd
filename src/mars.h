@@ -174,6 +174,7 @@ struct Param
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
     char pic;           // generate position-independent-code for shared libs
+    char forceCconvention; // force C calling convention for LINKd functions
     char cov;           // generate code coverage data
     char nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number

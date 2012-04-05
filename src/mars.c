@@ -325,7 +325,8 @@ Usage:\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
   -deps=filename write module dependencies to filename\n%s"
-"  -g             add symbolic debug info\n\
+"  -forcec        force C calling convention for D functions\n\
+  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -gs            always emit stack frame\n\
   -H             generate 'header' file\n\
@@ -537,6 +538,8 @@ int tryMain(int argc, char *argv[])
             else if (strcmp(p + 1, "fPIC") == 0)
                 global.params.pic = 1;
 #endif
+            else if (strcmp(p + 1, "forcec") == 0)
+                global.params.forceCconvention = 1;
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = 1;
             else if (strcmp(p + 1, "multiobj") == 0)
