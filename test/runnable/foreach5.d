@@ -359,6 +359,35 @@ void test6659c()
 }
 
 /***************************************/
+// 7814
+
+struct File7814
+{
+    ~this(){}
+}
+
+struct ByLine7814
+{
+    File7814 file;
+
+    // foreach interface
+    @property bool empty() const    { return true; }
+    @property char[] front()        { return null; }
+    void popFront(){}
+}
+
+void test7814()
+{
+    int dummy;
+    ByLine7814 f;
+    foreach (l; f) {
+        scope(failure) // 'failure' or 'success' fails, but 'exit' works
+            dummy = -1;
+        dummy = 0;
+    }
+}
+
+/***************************************/
 
 int main()
 {
@@ -374,6 +403,7 @@ int main()
     test6659a();
     test6659b();
     test6659c();
+    test7814();
 
     printf("Success\n");
     return 0;
