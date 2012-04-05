@@ -4579,7 +4579,9 @@ Catch *Catch::syntaxCopy()
 }
 
 void Catch::semantic(Scope *sc)
-{   ScopeDsymbol *sym;
+{
+    if (type && type->deco)
+        return;
 
     //printf("Catch::semantic(%s)\n", ident->toChars());
 
@@ -4596,7 +4598,7 @@ void Catch::semantic(Scope *sc)
     }
 #endif
 
-    sym = new ScopeDsymbol();
+    ScopeDsymbol *sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
