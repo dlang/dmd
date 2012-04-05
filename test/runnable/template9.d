@@ -1145,6 +1145,20 @@ void test7769()
 }
 
 /**********************************/
+// 7812
+
+template A7812(T...) {}
+
+template B7812(alias C) if (C) {}
+
+template D7812()
+{
+    alias B7812!(A7812!(NonExistent!())) D7812;
+}
+
+static assert(!__traits(compiles, D7812!()));
+
+/**********************************/
 
 int main()
 {
