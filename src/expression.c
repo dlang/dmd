@@ -2328,7 +2328,7 @@ Lagain:
     if (ti)
     {   if (!ti->semanticRun)
             ti->semantic(sc);
-        s = ti->inst->toAlias();
+        s = ti->toAlias();
         if (!s->isTemplateInstance())
             goto Lagain;
         e = new ScopeExp(loc, ti);
