@@ -8708,7 +8708,8 @@ Expression *AssignExp::semantic(Scope *sc)
      */
     if (t1->ty == Tclass || t1->ty == Tstruct)
     {   // Disallow assignment operator overloads for same type
-        if (op == TOKassign && !e2->implicitConvTo(e1->type))
+        if (/*op == TOKassign &&*/      // construction shouldn't be allowed, but OK to avoid breaking existing code
+            !e2->implicitConvTo(e1->type))
         {
             Expression *e = op_overload(sc);
             if (e)
