@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -4000,7 +4000,9 @@ Catch *Catch::syntaxCopy()
 }
 
 void Catch::semantic(Scope *sc)
-{   ScopeDsymbol *sym;
+{
+    if (type && type->deco)
+        return;
 
     //printf("Catch::semantic(%s)\n", ident->toChars());
 
@@ -4017,7 +4019,7 @@ void Catch::semantic(Scope *sc)
     }
 #endif
 
-    sym = new ScopeDsymbol();
+    ScopeDsymbol *sym = new ScopeDsymbol();
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
