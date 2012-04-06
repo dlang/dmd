@@ -157,8 +157,18 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
         if (ad->ctor)
             error(loc, "%s %s has constructors, cannot use { initializers }, use %s( initializers ) instead",
                 ad->kind(), ad->toChars(), ad->toChars());
-        size_t nfields = ad->fields.dim;
-        if (((StructDeclaration *)ad)->isnested) nfields--;
+        StructDeclaration *sd = ad->isStructDeclaration();
+        assert(sd);
+        sd->size(loc);
+        if (sd->sizeok != SIZEOKdone)
+        {
+            error(loc, "struct %s is forward referenced", sd->toChars());
+            errors = 1;
+            goto Lerror;
+        }
+        size_t nfields = sd->fields.dim;
+        if (sd->isnested)
+            nfields--;
         for (size_t i = 0; i < field.dim; i++)
         {
             Identifier *id = field[i];
@@ -241,6 +251,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
         error(loc, "a struct is not a valid initializer for a %s", t->toChars());
         errors = 1;
     }
+Lerror:
     if (errors)
     {
         field.setDim(0);
@@ -261,12 +272,11 @@ Expression *StructInitializer::toExpression()
 
     //printf("StructInitializer::toExpression() %s\n", toChars());
     if (!ad)                            // if fwd referenced
-    {
         return NULL;
-    }
     StructDeclaration *sd = ad->isStructDeclaration();
     if (!sd)
         return NULL;
+
     Expressions *elements = new Expressions();
     size_t nfields = ad->fields.dim;
 #if DMDV2
