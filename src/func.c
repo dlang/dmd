@@ -156,6 +156,9 @@ void FuncDeclaration::semantic(Scope *sc)
         semanticRun = PASSsemantic;
     }
 
+    if (scope)
+        sc = scope;
+
     unsigned dprogress_save = Module::dprogress;
 
     foverrides.setDim(0);       // reset in case semantic() is being retried for this function

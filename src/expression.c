@@ -314,7 +314,15 @@ void checkPropertyCall(Expression *e, Expression *emsg)
     {   CallExp *ce = (CallExp *)e;
         TypeFunction *tf;
         if (ce->f)
+        {
             tf = (TypeFunction *)ce->f->type;
+            /* If a forward reference to ce->f, try to resolve it
+             */
+            if (!tf->deco && ce->f->scope)
+            {   ce->f->semantic(ce->f->scope);
+                tf = (TypeFunction *)ce->f->type;
+            }
+        }
         else if (ce->e1->type->ty == Tfunction)
             tf = (TypeFunction *)ce->e1->type;
         else if (ce->e1->type->ty == Tdelegate)
