@@ -443,6 +443,7 @@ void StorageClassDeclaration::setScope(Scope *sc)
         if (stc & (STCsafe | STCtrusted | STCsystem))
             scstc &= ~(STCsafe | STCtrusted | STCsystem);
         scstc |= stc;
+        //printf("scstc = x%llx\n", scstc);
 
         setScopeNewSc(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
     }
