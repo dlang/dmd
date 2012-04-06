@@ -1298,8 +1298,11 @@ Type *Type::aliasthisOf()
                         // of errors which occured.
                         if (spec && global.errors != olderrs)
                             spec->errors = global.errors - olderrs;
+                        tf = (TypeFunction *)fd->type;
                     }
-                    t = ((TypeFunction *)fd->type)->next;
+                    t = tf->next;
+                    if (tf->isWild())
+                        t = t->substWildTo(mod == 0 ? MODmutable : mod);
                 }
             }
             return t;
