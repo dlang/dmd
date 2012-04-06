@@ -596,7 +596,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
                  */
                 if (!tf->isnothrow || tf->trust == TRUSTsystem || tf->purity == PUREimpure)
                 {   warning(fd->loc, "toHash() must be declared as extern (D) uint toHash() const pure nothrow @safe, not %s", tf->toChars());
-                    global.errors++;
+                    if (global.params.warnings == 1)
+                        global.errors++;
                 }
             }
         }
