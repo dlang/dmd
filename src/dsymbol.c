@@ -313,7 +313,7 @@ int Dsymbol::isAnonymous()
 
 void Dsymbol::setScope(Scope *sc)
 {
-    //printf("Dsymbol::setScope() %p %s\n", this, toChars());
+    //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc->stc);
     if (!sc->nofree)
         sc->setNoFree();                // may need it even after semantic() finishes
     scope = sc;
@@ -1086,7 +1086,7 @@ static int dimDg(void *ctx, size_t n, Dsymbol *)
 size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
-    foreach(members, &dimDg, &n);
+    foreach(NULL, members, &dimDg, &n);
     return n;
 }
 #endif
@@ -1119,7 +1119,7 @@ static int getNthSymbolDg(void *ctx, size_t n, Dsymbol *sym)
 Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
     GetNthSymbolCtx ctx = { nth, NULL };
-    int res = foreach(members, &getNthSymbolDg, &ctx);
+    int res = foreach(NULL, members, &getNthSymbolDg, &ctx);
     return res ? ctx.sym : NULL;
 }
 #endif
@@ -1134,7 +1134,7 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
  */
 
 #if DMDV2
-int ScopeDsymbol::foreach(Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
+int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
 {
     assert(dg);
     if (!members)
@@ -1146,9 +1146,9 @@ int ScopeDsymbol::foreach(Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *c
     {   Dsymbol *s = (*members)[i];
 
         if (AttribDeclaration *a = s->isAttribDeclaration())
-            result = foreach(a->include(NULL, NULL), dg, ctx, &n);
+            result = foreach(sc, a->include(sc, NULL), dg, ctx, &n);
         else if (TemplateMixin *tm = s->isTemplateMixin())
-            result = foreach(tm->members, dg, ctx, &n);
+            result = foreach(sc, tm->members, dg, ctx, &n);
         else if (s->isTemplateInstance())
             ;
         else

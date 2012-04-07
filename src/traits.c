@@ -396,7 +396,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         };
 
         Identifiers *idents = new Identifiers;
-        ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
+
+        ScopeDsymbol::foreach(sc, sd->members, &PushIdentsDg::dg, idents);
 
         ClassDeclaration *cd = sd->isClassDeclaration();
         if (cd && ident == Id::allMembers)
@@ -407,7 +408,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                 {
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {   ClassDeclaration *cb = (*cd->baseclasses)[i]->base;
-                        ScopeDsymbol::foreach(cb->members, &PushIdentsDg::dg, idents);
+                        ScopeDsymbol::foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
                         if (cb->baseclasses->dim)
                             dg(cb, idents);
                     }
