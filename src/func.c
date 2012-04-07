@@ -157,7 +157,9 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
     if (scope)
-        sc = scope;
+    {   sc = scope;
+        scope = NULL;
+    }
 
     unsigned dprogress_save = Module::dprogress;
 
@@ -3288,6 +3290,11 @@ void CtorDeclaration::semantic(Scope *sc)
     TypeFunction *tf = (TypeFunction *)type;
     assert(tf && tf->ty == Tfunction);
 
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
+
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static constructor
     sc->flags |= SCOPEctor;
@@ -3406,6 +3413,10 @@ void PostBlitDeclaration::semantic(Scope *sc)
     //printf("PostBlitDeclaration::semantic() %s\n", toChars());
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
     //printf("stc = x%llx\n", sc->stc);
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
     parent = sc->parent;
     Dsymbol *parent = toParent();
     StructDeclaration *ad = parent->isStructDeclaration();
@@ -3479,6 +3490,10 @@ void DtorDeclaration::semantic(Scope *sc)
 {
     //printf("DtorDeclaration::semantic() %s\n", toChars());
     //printf("ident: %s, %s, %p, %p\n", ident->toChars(), Id::dtor->toChars(), ident, Id::dtor);
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
     parent = sc->parent;
     Dsymbol *parent = toParent();
     AggregateDeclaration *ad = parent->isAggregateDeclaration();
@@ -3569,6 +3584,11 @@ Dsymbol *StaticCtorDeclaration::syntaxCopy(Dsymbol *s)
 void StaticCtorDeclaration::semantic(Scope *sc)
 {
     //printf("StaticCtorDeclaration::semantic()\n");
+
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
 
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
@@ -3698,6 +3718,11 @@ Dsymbol *StaticDtorDeclaration::syntaxCopy(Dsymbol *s)
 
 void StaticDtorDeclaration::semantic(Scope *sc)
 {
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
+
     ClassDeclaration *cd = sc->scopesym->isClassDeclaration();
 
     if (!type)
@@ -3825,6 +3850,10 @@ Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
 
 void InvariantDeclaration::semantic(Scope *sc)
 {
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
     parent = sc->parent;
     Dsymbol *parent = toParent();
     AggregateDeclaration *ad = parent->isAggregateDeclaration();
@@ -3905,6 +3934,11 @@ Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
 
 void UnitTestDeclaration::semantic(Scope *sc)
 {
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
+
     if (global.params.useUnitTests)
     {
         if (!type)
@@ -3987,6 +4021,11 @@ Dsymbol *NewDeclaration::syntaxCopy(Dsymbol *s)
 void NewDeclaration::semantic(Scope *sc)
 {
     //printf("NewDeclaration::semantic()\n");
+
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
 
     parent = sc->parent;
     Dsymbol *parent = toParent();
@@ -4071,6 +4110,11 @@ Dsymbol *DeleteDeclaration::syntaxCopy(Dsymbol *s)
 void DeleteDeclaration::semantic(Scope *sc)
 {
     //printf("DeleteDeclaration::semantic()\n");
+
+    if (scope)
+    {   sc = scope;
+        scope = NULL;
+    }
 
     parent = sc->parent;
     Dsymbol *parent = toParent();
