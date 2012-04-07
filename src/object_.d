@@ -79,7 +79,7 @@ class Object
     /**
      * Compute hash function for Object.
      */
-    hash_t toHash() @trusted
+    hash_t toHash() @trusted nothrow
     {
         // BUG: this prevents a compacting GC from working, needs to be fixed
         return cast(hash_t)cast(void*)this;
@@ -236,8 +236,18 @@ class TypeInfo
 {
     override hash_t toHash() @trusted
     {
-        auto data = this.toString();
-        return hashOf(data.ptr, data.length);
+        try
+        {
+            auto data = this.toString();
+            return hashOf(data.ptr, data.length);
+        }
+        catch (Throwable)
+        {
+            // This should never happen; remove when toString() is made nothrow
+
+            // BUG: this prevents a compacting GC from working, needs to be fixed
+            return cast(hash_t)cast(void*)this;
+        }
     }
 
     override int opCmp(Object o)
@@ -263,7 +273,7 @@ class TypeInfo
     }
 
     /// Returns a hash of the instance of a type.
-    hash_t getHash(in void* p) @trusted { return cast(hash_t)p; }
+    hash_t getHash(in void* p) @trusted nothrow { return cast(hash_t)p; }
 
     /// Compares two instances for equality.
     equals_t equals(in void* p1, in void* p2) { return p1 == p2; }
@@ -1328,9 +1338,16 @@ class Throwable : Object
         }
         if (info)
         {
-            buf ~= "\n----------------";
-            foreach (t; info)
-                buf ~= "\n" ~ t;
+            try
+            {
+                buf ~= "\n----------------";
+                foreach (t; info)
+                    buf ~= "\n" ~ t;
+            }
+            catch (Throwable)
+            {
+                // ignore more errors
+            }
         }
         return cast(string) buf;
     }
