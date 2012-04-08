@@ -4878,6 +4878,38 @@ void test7742()
 }
 
 /***************************************************/
+// 7815
+
+enum Closure {
+    Matrix
+}
+
+struct BasicMatrix {
+    mixin Operand!( Closure.Matrix );
+}
+
+template Operand( Closure closure_ ) {
+    alias closure_ closure;
+}
+
+struct Expression( string op_, Lhs, Rhs = void ) {
+    enum lhsClosure = closureOf!Lhs;
+}
+
+template closureOf( T ) {
+    enum closureOf = T.closure;
+}
+
+alias Expression!("+", BasicMatrix) Foo7815;
+
+/***************************************************/
+
+struct Test244 {
+    static immutable c = Test244();
+    static if( true ){}
+}
+
+/***************************************************/
 
 int main()
 {

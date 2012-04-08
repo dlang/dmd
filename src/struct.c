@@ -444,7 +444,7 @@ void StructDeclaration::semantic(Scope *sc)
          */
         //if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
         {
-            //printf("setScope %s %s\n", s->kind(), s->toChars());
+            //printf("struct: setScope %s %s\n", s->kind(), s->toChars());
             s->setScope(sc2);
         }
     }
