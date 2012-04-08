@@ -8724,6 +8724,8 @@ Expression *CastExp::semantic(Scope *sc)
         }
         else
             to = to->semantic(loc, sc);
+        if (to == Type::terror)
+            return new ErrorExp();
 
         if (!to->equals(e1->type))
         {
