@@ -366,12 +366,13 @@ void FuncDeclaration::semantic(Scope *sc)
      *   interface TestInterface { void tpl(T)(); }
      * and so won't work in interfaces
      */
-    if ((pd = toParent()) != NULL &&
+    if (!(Declaration::isFinal() || Declaration::isStatic()) &&
+        (pd = toParent()) != NULL &&
         pd->isTemplateInstance() &&
         (pd = toParent2()) != NULL &&
         (id = pd->isInterfaceDeclaration()) != NULL)
     {
-        error("template member functions are not allowed in interface %s", id->toChars());
+        error("virtual template member functions are not allowed in interface %s", id->toChars());
     }
 
     cd = parent->isClassDeclaration();
