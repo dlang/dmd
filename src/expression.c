@@ -7864,6 +7864,7 @@ Lagain:
             {
                 e1 = new DotVarExp(loc, dte->e1, f);
                 e1 = e1->semantic(sc);
+                ue = (UnaExp *)e1;
             }
 #if 0
             printf("ue->e1 = %s\n", ue->e1->toChars());
