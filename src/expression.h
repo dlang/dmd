@@ -1196,6 +1196,7 @@ struct IndexExp : BinExp
     int modifiable;
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
