@@ -50,7 +50,7 @@ Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 
 int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
 {
-    Dsymbols *d = include(NULL, NULL);
+    Dsymbols *d = include(scope, NULL);
 
     if (d)
     {
@@ -1429,6 +1429,9 @@ void StaticIfDeclaration::importAll(Scope *sc)
 void StaticIfDeclaration::setScope(Scope *sc)
 {
     // do not evaluate condition before semantic pass
+
+    // But do set the scope, in case we need it for forward referencing
+    Dsymbol::setScope(sc);
 }
 
 void StaticIfDeclaration::semantic(Scope *sc)

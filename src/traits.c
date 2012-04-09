@@ -528,6 +528,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         s1 = s1->toAlias();
         s2 = s2->toAlias();
 
+        if (s1->isFuncAliasDeclaration())
+            s1 = ((FuncAliasDeclaration *)s1)->toAliasFunc();
+        if (s2->isFuncAliasDeclaration())
+            s2 = ((FuncAliasDeclaration *)s2)->toAliasFunc();
+
         if (s1 == s2)
             goto Ltrue;
         else

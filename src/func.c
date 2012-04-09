@@ -2763,6 +2763,9 @@ int FuncDeclaration::isImportedSymbol()
 
 int FuncDeclaration::isVirtual()
 {
+    if (toAliasFunc() != this)
+        return toAliasFunc()->isVirtual();
+
     Dsymbol *p = toParent();
 #if 0
     printf("FuncDeclaration::isVirtual(%s)\n", toChars());
@@ -2783,6 +2786,9 @@ int FuncDeclaration::isVirtual()
 
 int FuncDeclaration::isVirtualMethod()
 {
+    if (toAliasFunc() != this)
+        return toAliasFunc()->isVirtualMethod();
+
     //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
     if (!isVirtual())
         return 0;
@@ -2796,6 +2802,9 @@ int FuncDeclaration::isVirtualMethod()
 
 int FuncDeclaration::isFinal()
 {
+    if (toAliasFunc() != this)
+        return toAliasFunc()->isFinal();
+
     ClassDeclaration *cd;
 #if 0
     printf("FuncDeclaration::isFinal(%s), %x\n", toChars(), Declaration::isFinal());
