@@ -374,46 +374,54 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         else
             e = new DotIdExp(loc, e, ident);
 
-        Expressions *arguments = new Expressions();
-        /* .f(e1, e2)
-         */
         if (e2)
         {
-            arguments->setDim(2);
-            (*arguments)[0] = eleft;
-            (*arguments)[1] = e2;
-
+            /* .f(e1) = e2
+             */
             Expression *ex = e->syntaxCopy();
-            e = new CallExp(loc, e, arguments);
-            e = e->trySemantic(sc);
-            if (e)
-            {   checkPropertyCall(e, e1);
-                return e->semantic(sc);
-            }
-            e = ex;
-        }
+            Expressions *a1 = new Expressions();
+            a1->setDim(1);
+            (*a1)[0] = eleft;
+            ex = new CallExp(loc, ex, a1);
+            ex = ex->trySemantic(sc);
 
-        /* .f(e1)
-         * .f(e1) = e2
-         */
+            /* .f(e1, e2)
+             */
+            Expressions *a2 = new Expressions();
+            a2->setDim(2);
+            (*a2)[0] = eleft;
+            (*a2)[1] = e2;
+            e = new CallExp(loc, e, a2);
+            if (ex)
+            {   // if fallback setter exists, gag errors
+                e = e->trySemantic(sc);
+                if (!e)
+                {   checkPropertyCall(ex, e1);
+                    ex = new AssignExp(loc, ex, e2);
+                    return ex->semantic(sc);
+                }
+            }
+            else
+            {   // strict setter prints errors if fails
+                e = e->semantic(sc);
+            }
+            checkPropertyCall(e, e1);
+            return e;
+        }
+        else
         {
+            /* .f(e1)
+             */
+            Expressions *arguments = new Expressions();
             arguments->setDim(1);
             (*arguments)[0] = eleft;
             e = new CallExp(loc, e, arguments);
-            e = e->trySemantic(sc);
-            if (!e)
-                goto Leprop;
+            e = e->semantic(sc);
             checkPropertyCall(e, e1);
-            if (e2)
-                e = new AssignExp(loc, e, e2);
             return e->semantic(sc);
         }
     }
     return e;
-
-Leprop:
-    e1->error("not a property %s", e1->toChars());
-    return new ErrorExp();
 }
 
 /******************************
