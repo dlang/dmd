@@ -423,6 +423,7 @@ struct ArrayLiteralExp : Expression
 {
     Expressions *elements;
     bool ownedByCtfe;   // true = created in CTFE
+    bool inApply;       // true during apply()
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
@@ -451,6 +452,7 @@ struct AssocArrayLiteralExp : Expression
     Expressions *keys;
     Expressions *values;
     bool ownedByCtfe;   // true = created in CTFE
+    bool inApply;       // true during apply()
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
 
@@ -483,6 +485,7 @@ struct StructLiteralExp : Expression
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
     bool ownedByCtfe;           // true = created in CTFE
+    bool inApply;               // true during apply()
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
