@@ -4946,6 +4946,27 @@ struct A7823 {
 void test7823(A7823 a = A7823.b) { }
 
 /***************************************************/
+// 7871
+
+struct Tuple7871
+{
+    string field;
+    alias field this;
+}
+
+//auto findSplitBefore(R1)(R1 haystack)
+auto findSplitBefore7871(string haystack)
+{
+    return Tuple7871(haystack);
+}
+
+void test7871()
+{
+    string line = `<bookmark href="https://stuff">`;
+    auto a = findSplitBefore7871(line[0 .. $])[0];
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5173,6 +5194,7 @@ int main()
     test7682();
     test7735();
     test7823();
+    test7871();
 
     printf("Success\n");
     return 0;

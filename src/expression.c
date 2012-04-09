@@ -8962,7 +8962,9 @@ Expression *SliceExp::syntaxCopy()
     if (this->upr)
         upr = this->upr->syntaxCopy();
 
-    return new SliceExp(loc, e1->syntaxCopy(), lwr, upr);
+    SliceExp *se = new SliceExp(loc, e1->syntaxCopy(), lwr, upr);
+    se->lengthVar = this->lengthVar;    // bug7871
+    return se;
 }
 
 Expression *SliceExp::semantic(Scope *sc)
@@ -9307,7 +9309,9 @@ ArrayExp::ArrayExp(Loc loc, Expression *e1, Expressions *args)
 
 Expression *ArrayExp::syntaxCopy()
 {
-    return new ArrayExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    ArrayExp *ae = new ArrayExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    ae->lengthVar = this->lengthVar;    // bug7871
+    return ae;
 }
 
 Expression *ArrayExp::semantic(Scope *sc)
@@ -9472,6 +9476,13 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
     //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
     modifiable = 0;     // assume it is an rvalue
+}
+
+Expression *IndexExp::syntaxCopy()
+{
+    IndexExp *ie = new IndexExp(loc, e1->syntaxCopy(), e2->syntaxCopy());
+    ie->lengthVar = this->lengthVar;    // bug7871
+    return ie;
 }
 
 Expression *IndexExp::semantic(Scope *sc)
