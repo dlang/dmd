@@ -6690,9 +6690,25 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         {   goto L2;
         }
 
-        unsigned errors = global.startGagging();
+        if (t1b->ty == Taarray)
+        {
+            TypeAArray *taa = (TypeAArray *)t1b;
+            if (!taa->impl &&
+                ident != Id::__sizeof &&
+                ident != Id::__xalignof &&
+                ident != Id::init &&
+                ident != Id::mangleof &&
+                ident != Id::stringof &&
+                ident != Id::offsetof)
+            {
+                // Find out about these errors when not gagged
+                taa->getImpl();
+            }
+        }
+
         Type *t1 = e1->type;
-        e = e1->type->dotExp(sc, e1, ident);
+        unsigned errors = global.startGagging();
+        e = t1->dotExp(sc, e1, ident);
         if (global.endGagging(errors))  // if failed to find the property
         {
             e1->type = t1;              // kludge to restore type
