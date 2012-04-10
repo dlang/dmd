@@ -374,7 +374,7 @@ int cov2()
     SWITCHLABEL:
                 i = 27;
                 goto case 3;
-	     default: assert(0);
+             default: assert(0);
             }
             return i;
         }
@@ -1663,7 +1663,7 @@ struct Bug6123(T) {
     // can also trigger if the struct is normal but f is template
 }
 static assert({
-    auto piece = Bug6123!int(); 
+    auto piece = Bug6123!int();
     piece.f();
     return true;
 }());
@@ -1879,12 +1879,12 @@ static assert({
     q = p;
     assert(p == q);
     q = &x[4];
-    assert(p != q);    
+    assert(p != q);
     q += 4;
     assert(q == &x[8]);
     q = q - 2;
-    q = q + 4;    
-    assert(q is p);    
+    q = q + 4;
+    assert(q is p);
     return 6;
 }() == 6);
 
@@ -2629,10 +2629,10 @@ bool test3512()
     assert(q == 6);
     foreach (int i, wchar c; s) {
         assert(i >= 0 && i < s.length);
-	}   // _aApplycw2
+        }   // _aApplycw2
     foreach (int i, dchar c; s) {
         assert(i >= 0 && i < s.length);
-	} // _aApplycd2
+        } // _aApplycd2
 
     wstring w = "xüm";
     foreach (char c; w) {++q; } // _aApplywc1
@@ -2641,10 +2641,10 @@ bool test3512()
     assert(q == 13);
     foreach (int i, char c; w) {
         assert(i >= 0 && i < w.length);
-	} // _aApplywc2
+        } // _aApplywc2
     foreach (int i, dchar c; w) {
         assert(i >= 0 && i < w.length);
-	} // _aApplywd2
+        } // _aApplywd2
 
     dstring d = "yäq";
     q = 0;
@@ -3337,10 +3337,10 @@ int test75()
 {   int x = 0;
     try
     {
-	A75.raise("a");
+        A75.raise("a");
     } catch (Exception e)
     {
-	x = 1;
+        x = 1;
     }
     assert(x == 1);
     return 1;
@@ -3353,30 +3353,30 @@ static assert(test75());
 
 int test4_test54()
 {
-	int status=0;
+        int status=0;
 
-	try
-	{
-		try
-		{
-			status++;
-			assert(status==1);
-			throw new Exception("first");
-		}
-		finally
-		{
-			status++;
-			assert(status==2);
-			status++;
-			throw new Exception("second");
-		}
-	}
-	catch(Exception e)
-	{
+        try
+        {
+                try
+                {
+                        status++;
+                        assert(status==1);
+                        throw new Exception("first");
+                }
+                finally
+                {
+                        status++;
+                        assert(status==2);
+                        status++;
+                        throw new Exception("second");
+                }
+        }
+        catch(Exception e)
+        {
         assert(e.msg == "first");
         assert(e.next.msg == "second");
-	}
-	return true;
+        }
+        return true;
 }
 
 static assert(test4_test54());
@@ -3385,34 +3385,34 @@ void foo55()
 {
     try
     {
-	Exception x = new Exception("second");
-	throw x;
+        Exception x = new Exception("second");
+        throw x;
     }
     catch (Exception e)
     {
-	assert(e.msg == "second");
+        assert(e.msg == "second");
     }
 }
 
 int test4_test55()
 {
-	int status=0;
-	try{
-		try{
-			status++;
-			assert(status==1);
-			Exception x = new Exception("first");
-			throw x;
-		}finally{
-			status++;
-			assert(status==2);
-			status++;
-			foo55();
-		}
-	}catch(Exception e){
-		assert(e.msg == "first");
-		assert(status==3);
-	}
+        int status=0;
+        try{
+                try{
+                        status++;
+                        assert(status==1);
+                        Exception x = new Exception("first");
+                        throw x;
+                }finally{
+                        status++;
+                        assert(status==2);
+                        status++;
+                        foo55();
+                }
+        }catch(Exception e){
+                assert(e.msg == "first");
+                assert(status==3);
+        }
     return 1;
 }
 
@@ -3663,7 +3663,7 @@ class Foo32
 {
    struct Bar
    {
-	int x;
+        int x;
    }
 }
 
@@ -4306,3 +4306,21 @@ bool bug7785(int n)
 static assert(bug7785(1));
 static assert(!is(typeof(compiles!(bug7785(2)))));
 static assert(!is(typeof(compiles!(bug7785(3)))));
+
+/******************************************************/
+
+struct B73 {}
+struct C73 { B73 b; }
+C73 func73() { C73 b = void; b.b = B73(); return b; }
+C73 test73 = func73();
+
+/******************************************************/
+
+struct S74 {
+    int n[1];
+    static S74 test(){ S74 ret = void; ret.n[0] = 0; return ret; }
+}
+
+enum Test74 = S74.test();
+
+
