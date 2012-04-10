@@ -187,6 +187,7 @@ struct CompileDeclaration : AttribDeclaration
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    const char *kind();
 };
 
 #endif /* DMD_ATTRIB_H */
