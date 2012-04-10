@@ -2319,7 +2319,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                             *wildmatch |= MODmutable;
                         else
                             *wildmatch |= (mod & ~MODshared);
-                        tt = mutableOf();
+                        tt = mutableOf()->substWildTo(MODmutable);
                         dedtypes->tdata()[i] = tt;
                         goto Lconst;
                     }
