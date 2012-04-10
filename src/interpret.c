@@ -6696,7 +6696,8 @@ Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
     exps->setDim(sym->fields.dim);
     for (size_t i = 0; i < sym->fields.dim; i++)
     {
-        (*exps)[i] = new VoidInitExp(var, sym->fields[i]->type);
+        //(*exps)[i] = new VoidInitExp(var, sym->fields[i]->type);
+        (*exps)[i] = sym->fields[i]->type->voidInitLiteral(var);
     }
     StructLiteralExp *se = new StructLiteralExp(var->loc, sym, exps);
     se->type = this;
