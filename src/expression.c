@@ -6690,6 +6690,10 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         {   goto L2;
         }
 
+        /* This would be much better if we added a "hasProperty" method to types,
+         * i.e. the gagging is a bad way.
+         */
+
         if (t1b->ty == Taarray)
         {
             TypeAArray *taa = (TypeAArray *)t1b;

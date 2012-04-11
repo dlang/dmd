@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -22,6 +22,7 @@
 #include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
+#include "arraytypes.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -29,7 +30,7 @@ int findCondition(Strings *ids, Identifier *ident)
     {
         for (size_t i = 0; i < ids->dim; i++)
         {
-            const char *id = ids->tdata()[i];
+            const char *id = (*ids)[i];
 
             if (strcmp(id, ident->toChars()) == 0)
                 return TRUE;
@@ -337,7 +338,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 
             TemplateParameters parameters;
             parameters.setDim(1);
-            parameters.tdata()[0] = &tp;
+            parameters[0] = &tp;
 
             Objects dedtypes;
             dedtypes.setDim(1);
@@ -349,7 +350,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
             else
             {
                 inc = 1;
-                Type *tded = (Type *)dedtypes.tdata()[0];
+                Type *tded = (Type *)dedtypes[0];
                 if (!tded)
                     tded = targ;
                 Dsymbol *s = new AliasDeclaration(loc, id, tded);
