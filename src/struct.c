@@ -466,7 +466,9 @@ void StructDeclaration::semantic(Scope *sc)
         // Ungag errors when not speculative
         unsigned oldgag = global.gag;
         if (global.isSpeculativeGagging() && !isSpeculative())
+        {
             global.gag = 0;
+        }
         s->semantic(sc2);
         global.gag = oldgag;
     }

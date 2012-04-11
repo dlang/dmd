@@ -21,6 +21,7 @@
 #include "scope.h"
 #include "mtype.h"
 #include "hdrgen.h"
+#include "template.h"
 
 /********************************** Initializer *******************************/
 
@@ -866,6 +867,15 @@ Type *ExpInitializer::inferType(Scope *sc)
     //printf("ExpInitializer::inferType() %s\n", toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    if (exp->op == TOKimport)
+    {   ScopeExp *se = (ScopeExp *)exp;
+        TemplateInstance *ti = se->sds->isTemplateInstance();
+        if (ti && ti->semanticRun == PASSsemantic && !ti->aliasdecl)
+            se->error("cannot infer type from %s %s, possible circular dependency", se->sds->kind(), se->toChars());
+        else
+            se->error("cannot infer type from %s %s", se->sds->kind(), se->toChars());
+        return Type::terror;
+    }
 
     // Give error for overloaded function addresses
     if (exp->op == TOKsymoff)
