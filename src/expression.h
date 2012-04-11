@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -497,6 +497,8 @@ struct StructLiteralExp : Expression
     Expression *optimize(int result);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     dt_t **toDt(dt_t **pdt);
+    int isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
     MATCH implicitConvTo(Type *t);
 
     int inlineCost3(InlineCostState *ics);
