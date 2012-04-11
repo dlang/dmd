@@ -15,6 +15,8 @@
 module core.bitop;
 
 nothrow:
+pure:
+@safe:
 
 version( D_InlineAsm_X86_64 )
     version = AsmX86;
@@ -38,7 +40,7 @@ else version( D_InlineAsm_X86 )
  * }
  * ---
  */
-pure int bsf(size_t v);
+int bsf(size_t v);
 
 unittest
 {
@@ -63,7 +65,7 @@ unittest
  * }
  * ---
  */
-pure int bsr(size_t v);
+int bsr(size_t v);
 
 unittest
 {
@@ -73,7 +75,7 @@ unittest
 /**
  * Tests the bit.
  */
-pure int bt(in size_t* p, size_t bitnum);
+int bt(in size_t* p, size_t bitnum);
 
 
 /**
@@ -188,49 +190,51 @@ unittest
  * byte 3, byte 1 becomes byte 2, byte 2 becomes byte 1, byte 3
  * becomes byte 0.
  */
-pure uint bswap(uint v);
+uint bswap(uint v);
+
+@system
+{
+    /**
+     * Reads I/O port at port_address.
+     */
+    ubyte inp(uint port_address);
 
 
-/**
- * Reads I/O port at port_address.
- */
-ubyte inp(uint port_address);
+    /**
+     * ditto
+     */
+    ushort inpw(uint port_address);
 
 
-/**
- * ditto
- */
-ushort inpw(uint port_address);
+    /**
+     * ditto
+     */
+    uint inpl(uint port_address);
 
 
-/**
- * ditto
- */
-uint inpl(uint port_address);
+    /**
+     * Writes and returns value to I/O port at port_address.
+     */
+    ubyte outp(uint port_address, ubyte value);
 
 
-/**
- * Writes and returns value to I/O port at port_address.
- */
-ubyte outp(uint port_address, ubyte value);
+    /**
+     * ditto
+     */
+    ushort outpw(uint port_address, ushort value);
 
 
-/**
- * ditto
- */
-ushort outpw(uint port_address, ushort value);
-
-
-/**
- * ditto
- */
-uint outpl(uint port_address, uint value);
+    /**
+     * ditto
+     */
+    uint outpl(uint port_address, uint value);
+}
 
 
 /**
  *  Calculates the number of set bits in a 32-bit integer.
  */
-pure int popcnt( uint x )
+int popcnt( uint x )
 {
     // Avoid branches, and the potential for cache misses which
     // could be incurred with a table lookup.
@@ -277,7 +281,7 @@ unittest
 /**
  * Reverses the order of bits in a 32-bit integer.
  */
-pure uint bitswap( uint x )
+@trusted uint bitswap( uint x )
 {
     version (AsmX86)
     {
