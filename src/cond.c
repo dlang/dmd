@@ -219,7 +219,7 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
     : Condition(loc)
 {
     this->exp = exp;
-    this->inuse = false;
+    this->nest = 0;
 }
 
 Condition *StaticIfCondition::syntaxCopy()
@@ -238,10 +238,10 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 #endif
     if (inc == 0)
     {
-        if (exp->op == TOKerror || inuse)
+        if (exp->op == TOKerror || nest > 100)
         {
-            error(loc, inuse ? "unresolvable circular static if expression"
-                             : "error evaluating static if expression");
+            error(loc, (nest > 1000) ? "unresolvable circular static if expression"
+                                     : "error evaluating static if expression");
             if (!global.gag)
                 inc = 2;                // so we don't see the error message again
             return 0;
@@ -254,14 +254,14 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
             return 0;
         }
 
-        inuse = true;
+        ++nest;
         sc = sc->push(sc->scopesym);
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
         Expression *e = exp->semantic(sc);
         sc->pop();
         e = e->optimize(WANTvalue | WANTinterpret);
-        inuse = false;
+        --nest;
         if (e->op == TOKerror)
         {   exp = e;
             inc = 0;

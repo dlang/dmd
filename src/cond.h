@@ -79,7 +79,7 @@ struct VersionCondition : DVCondition
 struct StaticIfCondition : Condition
 {
     Expression *exp;
-    bool inuse;         // detect circular dependencies
+    int nest;         // limit circular dependencies
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();
