@@ -295,28 +295,52 @@ struct S14b { this(int n){} }
 
 void foo14(ref S14a s) {}
 void foo14(ref S14b s) {}
+void hoo14()(ref S14a s) {}
+void hoo14()(ref S14b s) {}
+void poo14(S)(ref S s) {}
 
 void bar14(S14a s) {}
 void bar14(S14b s) {}
+void var14()(S14a s) {}
+void var14()(S14b s) {}
+void war14(S)(S s) {}
 
 int baz14(    S14a s) { return 1; }
 int baz14(ref S14a s) { return 2; }
 int baz14(    S14b s) { return 1; }
 int baz14(ref S14b s) { return 2; }
+int vaz14()(    S14a s) { return 1; }
+int vaz14()(ref S14a s) { return 2; }
+int vaz14()(    S14b s) { return 1; }
+int vaz14()(ref S14b s) { return 2; }
+int waz14(S)(    S s) { return 1; }
+int waz14(S)(ref S s) { return 2; }
 
 void test14()
 {
     // can bind rvalue-sl with ref
     foo14(S14a(0));
     foo14(S14b(0));
+    hoo14(S14a(0));
+    hoo14(S14b(0));
+    poo14(S14a(0));
+    poo14(S14b(0));
 
     // still can bind rvalue-sl with non-ref
     bar14(S14a(0));
     bar14(S14b(0));
+    var14(S14a(0));
+    var14(S14b(0));
+    war14(S14a(0));
+    war14(S14b(0));
 
     // preferred binding of rvalue-sl in overload resolution
     assert(baz14(S14a(0)) == 1);
     assert(baz14(S14b(0)) == 1);
+    assert(vaz14(S14a(0)) == 1);
+    assert(vaz14(S14b(0)) == 1);
+    assert(waz14(S14a(0)) == 1);
+    assert(waz14(S14b(0)) == 1);
 }
 
 /********************************************/
