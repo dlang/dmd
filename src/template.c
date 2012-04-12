@@ -1504,7 +1504,23 @@ Lretry:
 
             if (m && (fparam->storageClass & (STCref | STCauto)) == STCref)
             {   if (!farg->isLvalue())
-                    goto Lnomatch;
+                {
+                    if (farg->op == TOKstructliteral)
+                        m = MATCHconvert;
+                    else if (farg->op == TOKcall)
+                    {
+                        CallExp *ce = (CallExp *)farg;
+                        if (ce->e1->op == TOKdotvar &&
+                            ((DotVarExp *)ce->e1)->var->isCtorDeclaration())
+                        {
+                            m = MATCHconvert;
+                        }
+                        else
+                            goto Lnomatch;
+                    }
+                    else
+                        goto Lnomatch;
+                }
             }
             if (m && (fparam->storageClass & STCout))
             {   if (!farg->isLvalue())
