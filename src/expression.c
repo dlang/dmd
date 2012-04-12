@@ -4060,19 +4060,6 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     return -1;
 }
 
-#if DMDV2
-int StructLiteralExp::isLvalue()
-{
-    return 1;
-}
-#endif
-
-Expression *StructLiteralExp::toLvalue(Scope *sc, Expression *e)
-{
-    return this;
-}
-
-
 void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(sd->toChars());

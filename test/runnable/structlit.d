@@ -396,28 +396,28 @@ void test5889()
 
     assert( isLvalue(sa));
     assert( isLvalue(sb));
-//    assert(!isLvalue(S5889a(0)));
+    assert(!isLvalue(S5889a(0)));
     assert(!isLvalue(S5889b(0)));
     assert(!isLvalue(makeRvalue!S5889a()));
     assert(!isLvalue(makeRvalue!S5889b()));
 
-//    assert(foo(sa) == 1);
-//    assert(foo(sb) == 1);
-//    assert(foo(S5889a(0)) == 2);
+    assert(foo(sa) == 1);
+    assert(foo(sb) == 1);
+    assert(foo(S5889a(0)) == 2);
     assert(foo(S5889b(0)) == 2);
     assert(foo(makeRvalue!S5889a()) == 2);
     assert(foo(makeRvalue!S5889b()) == 2);
 
     assert(goo(sa) == 1);
     assert(goo(sb) == 1);
-//    assert(goo(S5889a(0)) == 2);
+    assert(goo(S5889a(0)) == 2);
     assert(goo(S5889b(0)) == 2);
     assert(goo(makeRvalue!S5889a()) == 2);
     assert(goo(makeRvalue!S5889b()) == 2);
 
-//    assert(too(sa) == 1);
-//    assert(too(sb) == 1);
-//    assert(too(S5889a(0)) == 2);
+    assert(too(sa) == 1);
+    assert(too(sb) == 1);
+    assert(too(S5889a(0)) == 2);
     assert(too(S5889b(0)) == 2);
     assert(too(makeRvalue!S5889a()) == 2);
     assert(too(makeRvalue!S5889b()) == 2);
