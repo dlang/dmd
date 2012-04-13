@@ -2052,7 +2052,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         OutBuffer buf;
         argExpTypesToCBuffer(&buf, fargs, &hgs);
         if (this->overnext)
-            ::error(loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
+            ::error(this->loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
                     kind(), parent->toPrettyChars(), ident->toChars(),
                     bufa.toChars(), buf.toChars());
         else
