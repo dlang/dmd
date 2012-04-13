@@ -1159,6 +1159,26 @@ template D7812()
 static assert(!__traits(compiles, D7812!()));
 
 /**********************************/
+// 7873
+
+inout(T)* foo(T)(inout(T)* t)
+{
+    static assert(is(T == int*));
+    return t;
+}
+
+inout(T)* bar(T)(inout(T)* t)
+{
+    return foo(t);
+}
+
+void test7873()
+{
+    int *i;
+    bar(&i);
+}
+
+/**********************************/
 
 int main()
 {
@@ -1205,6 +1225,7 @@ int main()
     test11a();
     test11b();
     test7769();
+    test7873();
 
     printf("Success\n");
     return 0;

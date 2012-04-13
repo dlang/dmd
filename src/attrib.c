@@ -1267,9 +1267,9 @@ void ConditionalDeclaration::emitComment(Scope *sc)
 
 Dsymbols *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 {
-    //printf("ConditionalDeclaration::include()\n");
+    //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
     assert(condition);
-    return condition->include(sc, sd) ? decl : elsedecl;
+    return condition->include(scope ? scope : sc, sd) ? decl : elsedecl;
 }
 
 void ConditionalDeclaration::setScope(Scope *sc)
@@ -1463,6 +1463,8 @@ const char *StaticIfDeclaration::kind()
 
 /***************************** CompileDeclaration *****************************/
 
+// These are mixin declarations, like mixin("int x");
+
 CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     : AttribDeclaration(NULL)
 {
@@ -1536,3 +1538,10 @@ void CompileDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(");");
     buf->writenl();
 }
+
+const char *CompileDeclaration::kind()
+{
+    return "mixin";
+}
+
+

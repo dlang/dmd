@@ -760,6 +760,7 @@ void VarDeclaration::semantic(Scope *sc)
     if (!type)
     {   inuse++;
 
+        //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
         {   Expression *e;
@@ -780,7 +781,6 @@ void VarDeclaration::semantic(Scope *sc)
         else
             type = init->inferType(sc);
 
-//printf("test2: %s, %s, %s\n", toChars(), type->toChars(), type->deco);
 //      type = type->semantic(loc, sc);
 
         inuse--;
@@ -847,7 +847,14 @@ void VarDeclaration::semantic(Scope *sc)
 
     Type *tb = type->toBasetype();
     if (tb->ty == Tvoid && !(storage_class & STClazy))
-    {   error("voids have no value");
+    {
+        if (inferred)
+        {
+            error("type %s is inferred from initializer %s, and variables cannot be of type void",
+                type->toChars(), init->toChars());
+        }
+        else
+            error("variables cannot be of type void");
         type = Type::terror;
         tb = type;
     }

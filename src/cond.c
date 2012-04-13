@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -23,6 +23,7 @@
 #include "mtype.h"
 #include "scope.h"
 #include "hdrgen.h"
+#include "arraytypes.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -30,7 +31,7 @@ int findCondition(Strings *ids, Identifier *ident)
     {
         for (size_t i = 0; i < ids->dim; i++)
         {
-            const char *id = ids->tdata()[i];
+            const char *id = (*ids)[i];
 
             if (strcmp(id, ident->toChars()) == 0)
                 return TRUE;
@@ -219,6 +220,7 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
     : Condition(loc)
 {
     this->exp = exp;
+    this->nest = 0;
 }
 
 Condition *StaticIfCondition::syntaxCopy()
@@ -237,9 +239,10 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 #endif
     if (inc == 0)
     {
-        if (exp->op == TOKerror)
+        if (exp->op == TOKerror || nest > 100)
         {
-            error(loc, "error evaluating static if expression");
+            error(loc, (nest > 1000) ? "unresolvable circular static if expression"
+                                     : "error evaluating static if expression");
             if (!global.gag)
                 inc = 2;                // so we don't see the error message again
             return 0;
@@ -252,12 +255,14 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
             return 0;
         }
 
+        ++nest;
         sc = sc->push(sc->scopesym);
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
         Expression *e = exp->semantic(sc);
         sc->pop();
         e = e->optimize(WANTvalue | WANTinterpret);
+        --nest;
         if (e->op == TOKerror)
         {   exp = e;
             inc = 0;
@@ -334,7 +339,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 
             TemplateParameters parameters;
             parameters.setDim(1);
-            parameters.tdata()[0] = &tp;
+            parameters[0] = &tp;
 
             Objects dedtypes;
             dedtypes.setDim(1);
@@ -346,7 +351,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
             else
             {
                 inc = 1;
-                Type *tded = (Type *)dedtypes.tdata()[0];
+                Type *tded = (Type *)dedtypes[0];
                 if (!tded)
                     tded = targ;
                 Dsymbol *s = new AliasDeclaration(loc, id, tded);

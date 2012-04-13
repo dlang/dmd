@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1196,6 +1196,7 @@ struct IndexExp : BinExp
     int modifiable;
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);

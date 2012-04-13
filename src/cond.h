@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -79,6 +79,7 @@ struct VersionCondition : DVCondition
 struct StaticIfCondition : Condition
 {
     Expression *exp;
+    int nest;         // limit circular dependencies
 
     StaticIfCondition(Loc loc, Expression *exp);
     Condition *syntaxCopy();

@@ -1037,7 +1037,37 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                arg = arg->toLvalue(sc, arg);
+                if (arg->op == TOKstructliteral)
+                {
+                    Identifier *idtmp = Lexer::uniqueId("__tmpsl");
+                    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(0, arg));
+                    tmp->storage_class |= STCctfe;
+                    Expression *ae = new DeclarationExp(loc, tmp);
+                    Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+                    e = e->semantic(sc);
+
+                    arg = e;
+                }
+                else if (arg->op == TOKcall)
+                {
+                    CallExp *ce = (CallExp *)arg;
+                    if (ce->e1->op == TOKdotvar &&
+                        ((DotVarExp *)ce->e1)->var->isCtorDeclaration())
+                    {
+                        DotVarExp *dve = (DotVarExp *)ce->e1;
+                        assert(dve->e1->op == TOKcomma);
+                        assert(((CommaExp *)dve->e1)->e2->op == TOKvar);
+                        VarExp *ve = (VarExp *)((CommaExp *)dve->e1)->e2;
+                        VarDeclaration *tmp = ve->var->isVarDeclaration();
+
+                        arg = new CommaExp(arg->loc, arg, new VarExp(loc, tmp));
+                        arg = arg->semantic(sc);
+                    }
+                    else
+                        arg = arg->toLvalue(sc, arg);
+                }
+                else
+                    arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
             {
@@ -6690,9 +6720,29 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         {   goto L2;
         }
 
-        unsigned errors = global.startGagging();
+        /* This would be much better if we added a "hasProperty" method to types,
+         * i.e. the gagging is a bad way.
+         */
+
+        if (t1b->ty == Taarray)
+        {
+            TypeAArray *taa = (TypeAArray *)t1b;
+            if (!taa->impl &&
+                ident != Id::__sizeof &&
+                ident != Id::__xalignof &&
+                ident != Id::init &&
+                ident != Id::mangleof &&
+                ident != Id::stringof &&
+                ident != Id::offsetof)
+            {
+                // Find out about these errors when not gagged
+                taa->getImpl();
+            }
+        }
+
         Type *t1 = e1->type;
-        e = e1->type->dotExp(sc, e1, ident);
+        unsigned errors = global.startGagging();
+        e = t1->dotExp(sc, e1, ident);
         if (global.endGagging(errors))  // if failed to find the property
         {
             e1->type = t1;              // kludge to restore type
@@ -8970,7 +9020,9 @@ Expression *SliceExp::syntaxCopy()
     if (this->upr)
         upr = this->upr->syntaxCopy();
 
-    return new SliceExp(loc, e1->syntaxCopy(), lwr, upr);
+    SliceExp *se = new SliceExp(loc, e1->syntaxCopy(), lwr, upr);
+    se->lengthVar = this->lengthVar;    // bug7871
+    return se;
 }
 
 Expression *SliceExp::semantic(Scope *sc)
@@ -9315,7 +9367,9 @@ ArrayExp::ArrayExp(Loc loc, Expression *e1, Expressions *args)
 
 Expression *ArrayExp::syntaxCopy()
 {
-    return new ArrayExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    ArrayExp *ae = new ArrayExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    ae->lengthVar = this->lengthVar;    // bug7871
+    return ae;
 }
 
 Expression *ArrayExp::semantic(Scope *sc)
@@ -9480,6 +9534,13 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
     //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
     modifiable = 0;     // assume it is an rvalue
+}
+
+Expression *IndexExp::syntaxCopy()
+{
+    IndexExp *ie = new IndexExp(loc, e1->syntaxCopy(), e2->syntaxCopy());
+    ie->lengthVar = this->lengthVar;    // bug7871
+    return ie;
 }
 
 Expression *IndexExp::semantic(Scope *sc)
