@@ -364,8 +364,8 @@ Usage:\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
-  -w             enable warnings\n\
-  -wi            enable informational warnings\n\
+  -w             warnings as errors (compilation will halt)\n\
+  -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
 ", fpic);
