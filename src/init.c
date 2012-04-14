@@ -754,6 +754,9 @@ bool arrayHasNonConstPointers(Expressions *elems);
 
 bool hasNonConstPointers(Expression *e)
 {
+    if (e->type->ty == Terror)
+        return false;
+
     if (e->op == TOKnull)
         return false;
     if (e->op == TOKstructliteral)
