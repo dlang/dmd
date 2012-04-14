@@ -2027,6 +2027,44 @@ pure int genFactorials(int n) {
 
 /***************************************************/
 
+void test2547a()
+{
+    bool failed;
+    try
+    {
+        real[] a,b,c;
+        a.length = 2;
+        b.length = 2;
+        c.length = 5;
+        a[] = b[] + c[]; // not in druntime
+    }
+    catch
+    {
+        failed = true;
+    }
+    assert(failed);
+}
+
+void test2547b()
+{
+    bool failed;
+    try
+    {
+        int[] a,b,c;
+        a.length = 2;
+        b.length = 2;
+        c.length = 5;
+        a[] = b[] + c[]; // in druntime
+    }
+    catch
+    {
+        failed = true;
+    }
+    assert(failed);
+}
+
+/***************************************************/
+
 void test107()
 {
     int[6] a;
@@ -5054,6 +5092,8 @@ int main()
     test80();
     test81();
     test82();
+    test2547a();
+    test2547b();
     test83();
     test3559();
     test84();
