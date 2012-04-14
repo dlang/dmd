@@ -142,19 +142,23 @@ label1:
 
     // (o_O)
     switch (1)
+    {
         default:
             if (true)
                 assert(113);
             else
                 assert(114);
+    }
 
     // (o_O)
     final switch (1)
+    {
         case 1:
             if (true)
                 assert(117);
             else
                 assert(118);
+    }
 
     mixin(q{
         if (true)

@@ -1270,7 +1270,6 @@ void test51()
   A51_a = 0; { do A51 a; while(0);                  } assert(A51_a == 1);
   A51_a = 0; { if (0) while(1) A51 a;               } assert(A51_a == 0);
   A51_a = 0; { try A51 a; catch(Error e) {}         } assert(A51_a == 1);
-  A51_a = 0; { if (0) final switch(1) A51 a;        } assert(A51_a == 0); // should fail to build
   A51_a = 0; { if (0) switch(1) { A51 a; default: } } assert(A51_a == 0);
   A51_a = 0; { if (0) switch(1) { default: A51 a; } } assert(A51_a == 0);
   A51_a = 0; { if (1) switch(1) { A51 a; default: } } assert(A51_a == 1); // should be 0, right?
