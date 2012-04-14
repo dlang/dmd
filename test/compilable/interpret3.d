@@ -1210,6 +1210,30 @@ int sdfgasf()
 static assert(sdfgasf() == 1);
 
 /**************************************************
+   Bug 7770
+**************************************************/
+
+immutable char[] foo7770 = "abcde";
+
+int bug7770a(string a)
+{
+    return 1;
+}
+
+bool bug7770b(char c)
+{
+    return true;
+}
+
+static assert( bug7770a(foo7770[0 .. $]));
+static assert( bug7770b(foo7770[ $ - 2 ]));
+void baz7770()
+{
+    static assert( bug7770a(foo7770[0 .. $]));
+    static assert( bug7770b(foo7770[ $ - 2 ]));
+}
+
+/**************************************************
    Bug 6015
 **************************************************/
 
