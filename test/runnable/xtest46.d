@@ -4971,7 +4971,7 @@ void test7871()
 
 void test7906()
 {
-    enum s = [string.min];
+    static assert(!__traits(compiles, { enum s = [string.min]; }));
 }
 
 /***************************************************/
