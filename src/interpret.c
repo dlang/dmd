@@ -5678,9 +5678,16 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         }
     }
     if (to->ty == Tarray && e1->op == TOKslice)
-    {
-        e1 = new SliceExp(e1->loc, ((SliceExp *)e1)->e1, ((SliceExp *)e1)->lwr,
-            ((SliceExp *)e1)->upr);
+    {   // Note that the slice may be void[], so when checking for dangerous
+        // casts, we need to use the original type, which is se->e1.
+        SliceExp *se = (SliceExp *)e1;
+        if ( !isSafePointerCast( se->e1->type->nextOf(), to->nextOf() ) )
+        {
+        error("array cast from %s to %s is not supported at compile time",
+             se->e1->type->toChars(), to->toChars());
+        return EXP_CANT_INTERPRET;
+        }
+        e1 = new SliceExp(e1->loc, se->e1, se->lwr, se->upr);
         e1->type = to;
         return e1;
     }
