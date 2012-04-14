@@ -362,14 +362,14 @@ Usage:\n\
   -v1            D language version 1\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
-  -w             enable warnings\n\
-  -wi            enable informational warnings\n\
+  -w             warnings as errors (compilation will halt)\n\
+  -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
 ", fpic);
 }
 
-#if _WIN32
+#if _WIN32 && __DMC__
 extern "C"
 {
     extern int _xi_a;
@@ -381,7 +381,7 @@ int main(int argc, char *argv[])
 {
     mem.init();                         // initialize storage allocator
     mem.setStackBottom(&argv);
-#if _WIN32
+#if _WIN32 && __DMC__
     mem.addroots((char *)&_xi_a, (char *)&_end);
 #endif
 
@@ -439,6 +439,7 @@ int main(int argc, char *argv[])
     global.params.is64bit = (sizeof(size_t) == 8);
 
 #if TARGET_WINDOS
+    global.params.is64bit = 0;
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos";
@@ -1016,7 +1017,7 @@ int main(int argc, char *argv[])
     {
         for (size_t i = 0; i < global.params.fileImppath->dim; i++)
         {
-            char *path = global.params.fileImppath->tdata()[i];
+            char *path = (*global.params.fileImppath)[i];
             Strings *a = FileName::splitPath(path);
 
             if (a)
@@ -1037,7 +1038,7 @@ int main(int argc, char *argv[])
         char *ext;
         char *name;
 
-        p = files.tdata()[i];
+        p = files[i];
 
 #if _WIN32
         // Convert / to \ so linker will work
@@ -1055,47 +1056,47 @@ int main(int argc, char *argv[])
              */
             if (FileName::equals(ext, global.obj_ext))
             {
-                global.params.objfiles->push(files.tdata()[i]);
-                libmodules.push(files.tdata()[i]);
+                global.params.objfiles->push(files[i]);
+                libmodules.push(files[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.lib_ext))
             {
-                global.params.libfiles->push(files.tdata()[i]);
-                libmodules.push(files.tdata()[i]);
+                global.params.libfiles->push(files[i]);
+                libmodules.push(files[i]);
                 continue;
             }
 
             if (strcmp(ext, global.ddoc_ext) == 0)
             {
-                global.params.ddocfiles->push(files.tdata()[i]);
+                global.params.ddocfiles->push(files[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.json_ext))
             {
                 global.params.doXGeneration = 1;
-                global.params.xfilename = files.tdata()[i];
+                global.params.xfilename = files[i];
                 continue;
             }
 
             if (FileName::equals(ext, global.map_ext))
             {
-                global.params.mapfile = files.tdata()[i];
+                global.params.mapfile = files[i];
                 continue;
             }
 
 #if TARGET_WINDOS
             if (FileName::equals(ext, "res"))
             {
-                global.params.resfile = files.tdata()[i];
+                global.params.resfile = files[i];
                 continue;
             }
 
             if (FileName::equals(ext, "def"))
             {
-                global.params.deffile = files.tdata()[i];
+                global.params.deffile = files[i];
                 continue;
             }
 
@@ -1126,7 +1127,7 @@ int main(int argc, char *argv[])
                     strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error(0, "invalid file name '%s'", files.tdata()[i]);
+                    error(0, "invalid file name '%s'", files[i]);
                     fatal();
                 }
             }
@@ -1212,7 +1213,7 @@ int main(int argc, char *argv[])
             // Remove m's object file from list of object files
             for (size_t j = 0; j < global.params.objfiles->dim; j++)
             {
-                if (m->objfile->name->str == global.params.objfiles->tdata()[j])
+                if (m->objfile->name->str == (*global.params.objfiles)[j])
                 {
                     global.params.objfiles->remove(j);
                     break;
@@ -1385,7 +1386,7 @@ int main(int argc, char *argv[])
         }
         if (!global.errors && modules.dim)
         {
-            obj_end(library, modules.tdata()[0]->objfile);
+            obj_end(library, modules[0]->objfile);
         }
     }
     else
@@ -1489,7 +1490,7 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
     argv->setDim(argc);
 
     for (size_t i = 0; i < argc; i++)
-        argv->tdata()[i] = (*pargv)[i];
+        (*argv)[i] = (*pargv)[i];
 
     size_t j = 1;               // leave argv[0] alone
     while (1)
