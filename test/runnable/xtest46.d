@@ -4975,6 +4975,23 @@ void test7906()
 }
 
 /***************************************************/
+// 7907
+
+template Id7907(E)
+{
+    alias E Id7907;
+}
+template Id7907(alias E)
+{
+    alias E Id7907;
+}
+
+void test7907()
+{
+    static assert(!__traits(compiles, { alias Id7907!([string.min]) X; }));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5204,6 +5221,7 @@ int main()
     test7823();
     test7871();
     test7906();
+    test7907();
 
     printf("Success\n");
     return 0;

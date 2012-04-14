@@ -87,7 +87,7 @@ int isError(Object *o)
         return (t->ty == Terror);
     Expression *e = isExpression(o);
     if (e)
-        return (e->op == TOKerror);
+        return (e->op == TOKerror || !e->type || e->type->ty== Terror);
     Tuple *v = isTuple(o);
     if (v)
         return arrayObjectIsError(&v->objects);
