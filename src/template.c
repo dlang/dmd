@@ -86,7 +86,7 @@ int isError(Object *o)
         return (t->ty == Terror);
     Expression *e = isExpression(o);
     if (e)
-        return (e->op == TOKerror);
+        return (e->op == TOKerror || !e->type || e->type->ty== Terror);
     Tuple *v = isTuple(o);
     if (v)
         return arrayObjectIsError(&v->objects);
@@ -100,7 +100,7 @@ int arrayObjectIsError(Objects *args)
 {
     for (size_t i = 0; i < args->dim; i++)
     {
-        Object *o = (Object *)args->data[i];
+        Object *o = (*args)[i];
         if (isError(o))
             return 1;
     }
@@ -244,8 +244,8 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
             goto Lnomatch;
         for (size_t i = 0; i < u1->objects.dim; i++)
         {
-            if (!match(u1->objects.tdata()[i],
-                       u2->objects.tdata()[i],
+            if (!match(u1->objects[i],
+                       u2->objects[i],
                        tempdecl, sc))
                 goto Lnomatch;
         }
@@ -270,8 +270,8 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2, TemplateDeclaration *tempdecl, 
     if (oa1->dim != oa2->dim)
         return 0;
     for (size_t j = 0; j < oa1->dim; j++)
-    {   Object *o1 = (Object *)oa1->data[j];
-        Object *o2 = (Object *)oa2->data[j];
+    {   Object *o1 = (*oa1)[j];
+        Object *o2 = (*oa2)[j];
         if (!match(o1, o2, tempdecl, sc))
         {
             return 0;
@@ -364,7 +364,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
 #if 0
     if (parameters)
         for (size_t i = 0; i < parameters->dim; i++)
-        {   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+        {   TemplateParameter *tp = (*parameters)[i];
             //printf("\tparameter[%d] = %p\n", i, tp);
             TemplateTypeParameter *ttp = tp->isTemplateTypeParameter();
 
@@ -411,8 +411,8 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
         p = new TemplateParameters();
         p->setDim(parameters->dim);
         for (size_t i = 0; i < p->dim; i++)
-        {   TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
-            p->data[i] = (void *)tp->syntaxCopy();
+        {   TemplateParameter *tp = (*parameters)[i];
+            (*p)[i] = tp->syntaxCopy();
         }
     }
     Expression *e = NULL;
@@ -467,8 +467,10 @@ void TemplateDeclaration::semantic(Scope *sc)
     /* Remember Scope for later instantiations, but make
      * a copy since attributes can change.
      */
-    this->scope = new Scope(*sc);
-    this->scope->setNoFree();
+    if (!this->scope)
+    {   this->scope = new Scope(*sc);
+        this->scope->setNoFree();
+    }
 
     // Set up scope for parameters
     ScopeDsymbol *paramsym = new ScopeDsymbol();
