@@ -327,8 +327,10 @@ struct OverloadSet : Dsymbol
 
     OverloadSet();
     void push(Dsymbol *s);
+    virtual int isOverloadable();
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();
+    int apply(int (*fp)(Dsymbol *, void *), void *param);
 };
 #endif
 

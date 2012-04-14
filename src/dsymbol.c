@@ -805,9 +805,27 @@ void OverloadSet::push(Dsymbol *s)
     a.push(s);
 }
 
+int OverloadSet::isOverloadable()
+{
+    return 1;
+}
+
 const char *OverloadSet::kind()
 {
     return "overloadset";
+}
+
+int OverloadSet::apply(int (*fp)(Dsymbol *, void *), void *param)
+{
+    int res = 0;
+    for (size_t i = 0; !res && i < a.dim; ++i)
+    {   Dsymbol *s = a[i];
+        if (OverloadSet *a2 = s->toAlias()->isOverloadSet())
+            res = a2->apply(fp, param);
+        else
+            res = (*fp)(s, param);
+    }
+    return res;
 }
 #endif
 
@@ -907,7 +925,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                         /* If both s2 and s are overloadable (though we only
                          * need to check s once)
                          */
-                        if (s2->isOverloadable() && (a || s->isOverloadable()))
+                        if (s2->toAlias()->isOverloadable() && (a || s->toAlias()->isOverloadable()))
                         {   if (!a)
                                 a = new OverloadSet();
                             /* Don't add to a[] if s2 is alias of previous sym
