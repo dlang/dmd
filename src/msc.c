@@ -251,7 +251,7 @@ void util_set64()
         tyalignsize[TYnullptr + i] = 8;
         tyalignsize[TYnptr + i] = 8;
         tyalignsize[TYnref + i] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX || TARGET_WINDOS
         tyalignsize[TYldouble + i] = 16;
         tyalignsize[TYildouble + i] = 16;
         tyalignsize[TYcldouble + i] = 16;
