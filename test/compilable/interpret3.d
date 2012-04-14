@@ -3097,6 +3097,29 @@ static assert({
 }());
 
 /**************************************************
+   7780 array cast
+**************************************************/
+int bug7780(int testnum){
+    int[] y = new int[2];
+    y[0]=2000000;
+    if (testnum == 1)
+    {
+        void[] x = y;
+        return (cast(byte[])x)[1];
+    }
+    if (testnum == 2)
+    {
+        int[] x = y[0..1];
+        return (cast(byte[])x)[1];
+    }
+    return 1;
+}
+
+static assert( is(typeof(compiles!(bug7780(0)))));
+static assert(!is(typeof(compiles!(bug7780(1)))));
+static assert(!is(typeof(compiles!(bug7780(2)))));
+
+/**************************************************
     6851 passing pointer by argument
 **************************************************/
 
