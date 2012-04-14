@@ -1305,11 +1305,12 @@ void VarDeclaration::toObjFile(int multiobj)
         else
             s->Sseg = DATA;
 #endif
-        if (sz)
-        {   outdata(s);
-            if (isExport())
-                obj_export(s,0);
-        }
+        if (!sz && type->toBasetype()->ty != Tsarray)
+            assert(0); // this shouldn't be possible
+
+        outdata(s);
+        if (isExport())
+            obj_export(s,0);
     }
 }
 
