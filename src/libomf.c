@@ -43,7 +43,7 @@ void Library::setFilename(char *dir, char *filename)
     char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = global.params.objfiles->tdata()[0];
+        char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.lib_ext);
@@ -291,7 +291,7 @@ void Library::scanObjModule(ObjModule *om)
                 }
 
                 //printf("[s] name='%s'\n",name);
-                addSymbol(om, names.tdata()[idx],pickAny);
+                addSymbol(om, names[idx],pickAny);
                 break;
             }
             case ALIAS:
@@ -349,7 +349,7 @@ void Library::scanObjModule(ObjModule *om)
     }
 Ret:
     for (u = 1; u < names.dim; u++)
-        free(names.tdata()[u]);
+        free(names[u]);
 }
 
 /***************************************
@@ -537,13 +537,13 @@ unsigned short Library::numDictPages(unsigned padding)
     unsigned symSize = 0;
 
     for (size_t i = 0; i < objsymbols.dim; i++)
-    {   ObjSymbol *s = objsymbols.tdata()[i];
+    {   ObjSymbol *s = objsymbols[i];
 
         symSize += ( strlen(s->name) + 4 ) & ~1;
     }
 
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         size_t len = strlen(om->name);
         if (len > 0xFF)
@@ -719,7 +719,7 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 
     // Add each of the module names
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         unsigned short n = strlen( om->name );
         if (n > 255)
@@ -742,11 +742,11 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
     }
 
     // Sort the symbols
-    qsort( objsymbols.tdata(), objsymbols.dim, sizeof(objsymbols.tdata()[0]), (cmpfunc_t)NameCompare );
+    qsort( objsymbols.tdata(), objsymbols.dim, sizeof(objsymbols[0]), (cmpfunc_t)NameCompare );
 
     // Add each of the symbols
     for (size_t i = 0; i < objsymbols.dim; i++)
-    {   ObjSymbol *os = objsymbols.tdata()[i];
+    {   ObjSymbol *os = objsymbols[i];
 
         unsigned short n = strlen( os->name );
         if (n > 255)
@@ -787,7 +787,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
      * to go into the dictionary
      */
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         scanObjModule(om);
     }
@@ -807,7 +807,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
         unsigned offset = g_page_size;
 
         for (size_t i = 0; i < objmodules.dim; i++)
-        {   ObjModule *om = objmodules.tdata()[i];
+        {   ObjModule *om = objmodules[i];
 
             unsigned page = offset / g_page_size;
             if (page > 0xFFFF)
@@ -847,7 +847,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     /* Write each object module into the library
      */
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         unsigned page = libbuf->offset / g_page_size;
         assert(page <= 0xFFFF);

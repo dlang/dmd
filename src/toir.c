@@ -711,7 +711,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
         unsigned offset = PTRSIZE;      // leave room for previous sthis
         for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars.tdata()[i];
+        {   VarDeclaration *v = closureVars[i];
             assert(v->isVarDeclaration());
 
 #if DMDV2
@@ -791,7 +791,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
         // Copy function parameters into closure
         for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars.tdata()[i];
+        {   VarDeclaration *v = closureVars[i];
 
             if (!v->isParameter())
                 continue;

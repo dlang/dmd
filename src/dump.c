@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -36,7 +36,7 @@ void dumpExpressions(int i, Expressions *exps)
     if (exps)
     {
         for (size_t j = 0; j < exps->dim; j++)
-        {   Expression *e = exps->tdata()[j];
+        {   Expression *e = (*exps)[j];
             indent(i);
             printf("(\n");
             e->dump(i + 2);

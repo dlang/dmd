@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -3598,7 +3598,7 @@ Statement *Parser::parseStatement(int flags)
                 as->reserve(a->dim);
                 for (size_t i = 0; i < a->dim; i++)
                 {
-                    Dsymbol *d = a->tdata()[i];
+                    Dsymbol *d = (*a)[i];
                     s = new ExpStatement(loc, d);
                     as->push(s);
                 }
@@ -3606,7 +3606,7 @@ Statement *Parser::parseStatement(int flags)
             }
             else if (a->dim == 1)
             {
-                Dsymbol *d = a->tdata()[0];
+                Dsymbol *d = (*a)[0];
                 s = new ExpStatement(loc, d);
             }
             else
@@ -3838,7 +3838,7 @@ Statement *Parser::parseStatement(int flags)
             Expression *aggr = parseExpression();
             if (token.value == TOKslice && arguments->dim == 1)
             {
-                Parameter *a = arguments->tdata()[0];
+                Parameter *a = (*arguments)[0];
                 delete arguments;
                 nextToken();
                 Expression *upr = parseExpression();
@@ -4084,7 +4084,7 @@ Statement *Parser::parseStatement(int flags)
                 // Keep cases in order by building the case statements backwards
                 for (size_t i = cases.dim; i; i--)
                 {
-                    exp = cases.tdata()[i - 1];
+                    exp = cases[i - 1];
                     s = new CaseStatement(loc, exp, s);
                 }
             }

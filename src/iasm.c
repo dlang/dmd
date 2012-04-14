@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2011 by Digital Mars
+ * Copyright (c) 1999-2012 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/iasm.c
@@ -2285,7 +2285,7 @@ ILLEGAL_ADDRESS_ERROR:
                 error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
-                Object *o = tup->objects->tdata()[index];
+                Object *o = (*tup->objects)[index];
                 if (o->dyncast() == DYNCAST_DSYMBOL)
                 {   o1->s = (Dsymbol *)o;
                     return o1;

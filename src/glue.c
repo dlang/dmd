@@ -81,7 +81,7 @@ void obj_append(Dsymbol *s)
 void obj_write_deferred(Library *library)
 {
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
-    {   Dsymbol *s = obj_symbols_towrite.tdata()[i];
+    {   Dsymbol *s = obj_symbols_towrite[i];
         Module *m = s->getModule();
 
         char *mname;
@@ -289,7 +289,7 @@ void Module::genobjfile(int multiobj)
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = aimports.tdata()[0];
+        Module *m = aimports[0];
         assert(m);
         if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
         {
@@ -336,7 +336,7 @@ void Module::genobjfile(int multiobj)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *member = members->tdata()[i];
+        Dsymbol *member = (*members)[i];
         member->toObjFile(multiobj);
     }
 
@@ -710,7 +710,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = parameters->tdata()[i];
+        {   VarDeclaration *v = (*parameters)[i];
             if (v->csym)
             {
                 error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());

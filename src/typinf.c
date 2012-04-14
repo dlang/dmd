@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -682,7 +682,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         {
             if (i < tup->arguments->dim)
             {
-                Type *targ = (tup->arguments->tdata()[i])->type;
+                Type *targ = (*tup->arguments)[i]->type;
                 targ = targ->merge();
                 targ->getTypeInfo(NULL);
                 dtxoff(pdt, targ->vtinfo->toSymbol(), 0, TYnptr);       // m_argi
@@ -753,7 +753,7 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
 
     dt_t *d = NULL;
     for (size_t i = 0; i < dim; i++)
-    {   Parameter *arg = tu->arguments->tdata()[i];
+    {   Parameter *arg = (*tu->arguments)[i];
         Expression *e = arg->type->getTypeInfo(NULL);
         e = e->optimize(WANTvalue);
         e->toDt(&d);
@@ -880,7 +880,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {   Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
-        args->tdata()[i] = arg;
+        (*args)[i] = arg;
     }
     TypeTuple *tup = new TypeTuple(args);
     Expression *e = tup->getTypeInfo(sc);
