@@ -1633,7 +1633,6 @@ STATIC int cse_simple(elem *e,int i)
         e->E2->Eoper == OPconst &&
         e->E1->Eoper == OPvar &&
         isregvar(e->E1,&regm,&reg) &&
-        sz <= REGSIZE &&
         !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
        )
     {
