@@ -1234,6 +1234,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 VoidInitializer *e = new VoidInitializer(0);
                 e->type = Type::tsize_t;
                 v->init = e;
+                v->storage_class |= STCctfe; // it's never a true static variable
             }
             *pvar = v;
         }

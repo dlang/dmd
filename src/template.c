@@ -1449,13 +1449,13 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     printf("    targsi:\n");
     if (targsi)
     {   for (size_t i = 0; i < targsi->dim; i++)
-        {   Object *arg = (Object *)targsi->data[i];
+        {   Object *arg = (*targsi)[i];
             printf("\t%s\n", arg->toChars());
         }
     }
     printf("    fargs:\n");
     for (size_t i = 0; i < fargs->dim; i++)
-    {   Expression *arg = fargs->tdata()[i];
+    {   Expression *arg = (*fargs)[i];
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
     }
@@ -1475,10 +1475,9 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
             goto Lerror;
         }
 
-        MATCH m;
         Objects dedargs;
 
-        m = td->deduceFunctionTemplateMatch(loc, targsi, ethis, fargs, &dedargs);
+        MATCH m = td->deduceFunctionTemplateMatch(loc, targsi, ethis, fargs, &dedargs);
         //printf("deduceFunctionTemplateMatch = %d\n", m);
         if (!m)                 // if no match
             continue;
@@ -1516,7 +1515,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         td_best = td;
         m_best = m;
         tdargs->setDim(dedargs.dim);
-        memcpy(tdargs->data, dedargs.data, tdargs->dim * sizeof(void *));
+        memcpy(tdargs->tdata(), dedargs.tdata(), tdargs->dim * sizeof(void *));
         continue;
     }
     if (!td_best)
@@ -1567,7 +1566,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
             {
                 if (i)
                     bufa.writeByte(',');
-                Object *oarg = args->tdata()[i];
+                Object *oarg = (*args)[i];
                 ObjectToCBuffer(&bufa, &hgs, oarg);
             }
         }
@@ -1575,7 +1574,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         OutBuffer buf;
         argExpTypesToCBuffer(&buf, fargs, &hgs);
         if (this->overnext)
-            ::error(loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
+            ::error(this->loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
                     kind(), parent->toPrettyChars(), ident->toChars(),
                     bufa.toChars(), buf.toChars());
         else
