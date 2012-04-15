@@ -691,6 +691,7 @@ void useregs (regm_t regm );
 code *getregs (regm_t r );
 code *getregs_imm (regm_t r );
 code *cse_flush(int);
+bool cse_simple(code *c, elem *e);
 void cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
