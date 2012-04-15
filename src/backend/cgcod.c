@@ -37,7 +37,7 @@ STATIC code * loadcse(elem *,unsigned,regm_t);
 STATIC void blcodgen(block *);
 STATIC void cgcod_eh();
 STATIC code * cse_save(regm_t ms);
-STATIC int cse_simple(elem *e,int i);
+STATIC bool cse_simple(code *c, elem *e);
 STATIC code * comsub(elem *,regm_t *);
 
 bool floatreg;                  // !=0 if floating register is required
@@ -1576,7 +1576,9 @@ STATIC code * cse_save(regm_t ms)
             ms &= ~mask[reg];           /* turn off reg bit in ms       */
 
             // If we can simply reload the CSE, we don't need to save it
-            if (!cse_simple(csextab[i].e,i))
+            if (cse_simple(&csextab[i].csimple, csextab[i].e))
+                csextab[i].flags |= CSEsimple;
+            else
             {
                 c = cat(c, gensavereg(reg, i));
                 reflocal = TRUE;
@@ -1620,13 +1622,11 @@ code *cse_flush(int do87)
 /*************************************************
  */
 
-STATIC int cse_simple(elem *e,int i)
+STATIC bool cse_simple(code *c, elem *e)
 {   regm_t regm;
     unsigned reg;
-    code *c;
-    int sz;
+    int sz = tysize[tybasic(e->Ety)];
 
-    sz = tysize[tybasic(e->Ety)];
     if (!I16 &&                                  // don't bother with 16 bit code
         e->Eoper == OPadd &&
         sz == REGSIZE &&
@@ -1636,7 +1636,6 @@ STATIC int cse_simple(elem *e,int i)
         !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
        )
     {
-        c = &csextab[i].csimple;
         memset(c,0,sizeof(*c));
 
         // Make this an LEA instruction
@@ -1649,8 +1648,7 @@ STATIC int cse_simple(elem *e,int i)
                 c->Irex |= REX;
         }
 
-        csextab[i].flags |= CSEsimple;
-        return 1;
+        return true;
     }
     else if (e->Eoper == OPind &&
         sz <= REGSIZE &&
@@ -1660,7 +1658,6 @@ STATIC int cse_simple(elem *e,int i)
         !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
        )
     {
-        c = &csextab[i].csimple;
         memset(c,0,sizeof(*c));
 
         // Make this a MOV instruction
@@ -1675,10 +1672,9 @@ STATIC int cse_simple(elem *e,int i)
                 c->Irex |= REX;
         }
 
-        csextab[i].flags |= CSEsimple;
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 /*************************
