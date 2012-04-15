@@ -1366,6 +1366,31 @@ Lopt:
     return optelem(e,TRUE);
 }
 
+/***************************************
+ * Fill in ops[maxops] with operands of repeated operator oper.
+ * Returns:
+ *      true    didn't fail
+ *      false   more than maxops operands
+ */
+
+bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
+{
+    if (e->Eoper == oper)
+    {
+        if (!fillinops(ops, opsi, maxops, oper, e->E1) ||
+            !fillinops(ops, opsi, maxops, oper, e->E2))
+            return false;
+    }
+    else
+    {
+        if (*opsi >= maxops)
+            return false;       // error, too many
+        ops[*opsi] = e;
+        *opsi += 1;
+    }
+    return true;
+}
+
 
 /*************************************
  * Replace shift|shift with rotate.
@@ -1406,6 +1431,105 @@ STATIC elem *elor(elem *e)
             return el_selecte1(e);
         }
     }
+
+    /* BSWAP: (data[0]<< 24) | (data[1]<< 16) | (data[2]<< 8) | (data[3]<< 0)
+     */
+    if (sz == 4 && OPTIMIZER)
+    {   elem *ops[4];
+        int opsi = 0;
+        if (fillinops(ops, &opsi, 4, OPor, e) && opsi == 4)
+        {
+            elem *ex = NULL;
+            unsigned mask = 0;
+            for (int i = 0; i < 4; i++)
+            {   elem *eo = ops[i];
+                elem *eo2;
+                int shift;
+                elem *eo111;
+                if (eo->Eoper == OPu8_16 &&
+                    eo->E1->Eoper == OPind)
+                {
+                    eo111 = eo->E1->E1;
+                    shift = 0;
+                }
+                else if (eo->Eoper == OPshl &&
+                    eo->E1->Eoper == OPu8_16 &&
+                    (eo2 = eo->E2)->Eoper == OPconst &&
+                    eo->E1->E1->Eoper == OPind)
+                {
+                    shift = el_tolong(eo2);
+                    switch (shift)
+                    {   case 8:
+                        case 16:
+                        case 24:
+                            break;
+                        default:
+                            goto L1;
+                    }
+                    eo111 = eo->E1->E1->E1;
+                }
+                else
+                    goto L1;
+                unsigned off;
+                elem *ed;
+                if (eo111->Eoper == OPadd)
+                {
+                    ed = eo111->E1;
+                    if (eo111->E2->Eoper != OPconst)
+                        goto L1;
+                    off = el_tolong(eo111->E2);
+                    if (off < 1 || off > 3)
+                        goto L1;
+                }
+                else
+                {
+                    ed = eo111;
+                    off = 0;
+                }
+                switch ((off << 5) | shift)
+                {
+                    // BSWAP
+                    case (0 << 5) | 24: mask |= 1; break;
+                    case (1 << 5) | 16: mask |= 2; break;
+                    case (2 << 5) |  8: mask |= 4; break;
+                    case (3 << 5) |  0: mask |= 8; break;
+
+                    // No swap
+                    case (0 << 5) |  0: mask |= 0x10; break;
+                    case (1 << 5) |  8: mask |= 0x20; break;
+                    case (2 << 5) | 16: mask |= 0x40; break;
+                    case (3 << 5) | 24: mask |= 0x80; break;
+
+                        break;
+                    default:
+                        goto L1;
+                }
+                if (ex)
+                {
+                    if (!el_match(ex, ed))
+                        goto L1;
+                }
+                else
+                {   if (el_sideeffect(ed))
+                        goto L1;
+                    ex = ed;
+                }
+            }
+            /* Got a match, build:
+             *   BSWAP(*ex)
+             */
+            if (mask == 0x0F)
+                e = el_una(OPbswap, e->Ety, el_una(OPind, e->Ety, ex));
+            else if (mask == 0xF0)
+                e = el_una(OPind, e->Ety, ex);
+            else
+                goto L1;
+            return e;
+        }
+    }
+  L1:
+    ;
+
     return elbitwise(e);
 }
 
