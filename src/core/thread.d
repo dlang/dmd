@@ -2251,6 +2251,109 @@ extern (C) bool thread_needLock() nothrow
 }
 
 
+alias void delegate(void*) StackShellFn;
+
+/**
+  * Calls the given delegate, passing the current thread's stack pointer
+  * to it.
+  *
+  * Params:
+  *  fn = The function to call with the stack pointer.
+  */
+extern (C) void thread_callWithStackShell(scope StackShellFn fn)
+in
+{
+    assert(fn);
+}
+body
+{
+    // The purpose of the 'shell' is to ensure all the registers
+    // get put on the stack so they'll be scanned
+    void *sp;
+
+    version (GNU)
+    {
+        __builtin_unwind_init();
+        sp = & sp;
+    }
+    else version (D_InlineAsm_X86)
+    {
+        asm
+        {
+            pushad              ;
+            mov sp[EBP],ESP     ;
+        }
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        asm
+        {
+            push RAX ;
+            push RBX ;
+            push RCX ;
+            push RDX ;
+            push RSI ;
+            push RDI ;
+            push RBP ;
+            push R8  ;
+            push R9  ;
+            push R10  ;
+            push R11  ;
+            push R12  ;
+            push R13  ;
+            push R14  ;
+            push R15  ;
+            push RAX ;   // 16 byte align the stack
+            mov sp[RBP],RSP     ;
+        }
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+
+    fn(sp);
+
+    version (GNU)
+    {
+        // registers will be popped automatically
+    }
+    else version (D_InlineAsm_X86)
+    {
+        asm
+        {
+            popad;
+        }
+    }
+    else version (D_InlineAsm_X86_64)
+    {
+        asm
+        {
+            pop RAX ;   // 16 byte align the stack
+            pop R15  ;
+            pop R14  ;
+            pop R13  ;
+            pop R12  ;
+            pop R11  ;
+            pop R10  ;
+            pop R9  ;
+            pop R8  ;
+            pop RBP ;
+            pop RDI ;
+            pop RSI ;
+            pop RDX ;
+            pop RCX ;
+            pop RBX ;
+            pop RAX ;
+        }
+    }
+    else
+    {
+        static assert(false, "Architecture not supported.");
+    }
+}
+
+
 // Used for suspendAll/resumeAll below.
 private __gshared uint suspendDepth = 0;
 
