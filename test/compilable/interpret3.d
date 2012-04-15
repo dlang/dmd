@@ -4326,6 +4326,36 @@ int test7732()
 static assert( test7732() );
 
 /**************************************************
+    7784
+**************************************************/
+struct Foo7784
+{
+    void bug()
+    {
+        tab["A"] = Bar7784(&this);
+        auto pbar = "A" in tab;
+        auto bar = *pbar;
+    }
+
+    Bar7784[string] tab;
+}
+
+struct Bar7784
+{
+    Foo7784* foo;
+    int val;
+}
+
+bool ctfe7784()
+{
+    auto foo = Foo7784();
+    foo.bug();
+    return true;
+}
+
+static assert(ctfe7784());
+
+/**************************************************
     7781
 **************************************************/
 
