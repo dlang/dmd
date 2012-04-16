@@ -777,6 +777,7 @@ extern int BPoff;
 
 int cod3_EA(code *c);
 regm_t cod3_useBP();
+void cod3_setdefault();
 void cod3_set32 (void );
 void cod3_set64 (void );
 void cod3_align (void );

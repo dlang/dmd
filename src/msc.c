@@ -385,6 +385,7 @@ void backend_init()
     ph_init();
     block_init();
 
+    cod3_setdefault();
     if (global.params.is64bit)
     {
         util_set64();
