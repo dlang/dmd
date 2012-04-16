@@ -252,6 +252,10 @@ int cgreg_benefit(Symbol *s,int reg, Symbol *retsym)
     vec_sub(s->Slvreg,s->Srange,regrange[reg]);
     int si = s->Ssymnum;
 
+    regm_t dst_integer_reg;
+    regm_t dst_float_reg;
+    cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
+
 Lagain:
     //printf("again\n");
     benefit = 0;
@@ -282,7 +286,7 @@ Lagain:
             //printf("WEIGHTS(%d,%d) = %d, benefit = %d\n",bi,si,WEIGHTS(bi,si),benefit);
             inout = 1;
 
-            if (s == retsym && (reg == AX || reg == XMM0) && b->BC == BCretexp)
+            if (s == retsym && (reg == dst_integer_reg || reg == dst_float_reg) && b->BC == BCretexp)
             {   benefit += 1;
                 retsym_cnt++;
                 //printf("retsym, benefit = %d\n",benefit);
@@ -808,7 +812,7 @@ int cgreg_assign(Symbol *retsym)
         u.sym = s;
         if (!(s->Sflags & GTregcand) ||
             s->Sflags & SFLspill ||
-            // Keep trying to reassign retsym into AX
+            // Keep trying to reassign retsym into destination register
             (s->Sfl == FLreg && !(s == retsym && s->Sregm != dst_integer_mask && s->Sregm != dst_float_mask))
            )
         {
