@@ -1987,6 +1987,21 @@ done:
  *      pointer to the MOV instruction
  */
 
+code* gen_loadcse(unsigned reg, targ_uns i)
+{
+    code* c = getregs(mask[reg]);
+    unsigned op = 0x8B;
+    if (reg == ES)
+    {
+        op = 0x8E;
+        reg = 0;
+    }
+    c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,i);
+    if (I64)
+        code_orrex(c, REX_W);
+    return c;
+}
+
 STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
 { unsigned i,op;
   code *c;
@@ -1998,18 +2013,9 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
         {
                 reflocal = TRUE;
                 csextab[i].flags |= CSEload;    /* it was loaded        */
-                c = getregs(mask[reg]);
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask[reg];
-                op = 0x8B;
-                if (reg == ES)
-                {       op = 0x8E;
-                        reg = 0;
-                }
-                c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
-                if (I64)
-                    code_orrex(c, REX_W);
-                return c;
+                return gen_loadcse(reg, i);
         }
   }
 #if DEBUG
