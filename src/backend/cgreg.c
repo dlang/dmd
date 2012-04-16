@@ -790,9 +790,11 @@ int cgreg_assign(Symbol *retsym)
 
     vec_t v = vec_calloc(dfotop);
 
-    regm_t dst_integer_reg;
-    regm_t dst_float_reg;
+    unsigned dst_integer_reg;
+    unsigned dst_float_reg;
     cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
+    regm_t dst_integer_mask = mask[dst_integer_reg];
+    regm_t dst_float_mask = mask[dst_float_reg];
 
     // Find symbol t, which is the most 'deserving' symbol that should be
     // placed into a register.
@@ -807,7 +809,7 @@ int cgreg_assign(Symbol *retsym)
         if (!(s->Sflags & GTregcand) ||
             s->Sflags & SFLspill ||
             // Keep trying to reassign retsym into AX
-            (s->Sfl == FLreg && !(s == retsym && s->Sregm != dst_integer_reg && s->Sregm != dst_float_reg))
+            (s->Sfl == FLreg && !(s == retsym && s->Sregm != dst_integer_mask && s->Sregm != dst_float_mask))
            )
         {
             #ifdef DEBUG
@@ -845,7 +847,7 @@ int cgreg_assign(Symbol *retsym)
             unsigned reg = pseq[i];
 
             // Symbols used as return values should only be mapped into return value registers
-            if (s == retsym && !(mask[reg] & (dst_integer_reg | dst_float_reg)))
+            if (s == retsym && !(reg == dst_integer_reg || reg == dst_float_reg))
                 continue;
 
             // If BP isn't available, can't assign to it

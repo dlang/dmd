@@ -490,10 +490,10 @@ regm_t regmask(tym_t tym, tym_t tyf)
 /*******************************
  * setup register allocator parameters with platform specific data
  */
-void cgreg_dst_regs(regm_t *dst_integer_reg, regm_t *dst_float_reg)
+void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg)
 {
-    *dst_integer_reg = mAX;
-    *dst_float_reg   = mXMM0;
+    *dst_integer_reg = AX;
+    *dst_float_reg   = XMM0;
 }
 
 void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
