@@ -414,7 +414,12 @@ tryagain:
                 unsigned nalign = (u - (unsigned)Coffset) & (u - 1);
 
                 while (nalign--)
-                    obj_byte(cseg,Coffset++,0x90);      // XCHG AX,AX
+                {
+                    obj_byte(cseg,Coffset,0x90);      // XCHG AX,AX
+#if OMFOBJ
+                    Coffset++;
+#endif
+                }
             }
             assert(b->Boffset == Coffset);
 
