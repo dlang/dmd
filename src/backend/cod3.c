@@ -292,6 +292,15 @@ int cod3_EA(code *c)
 }
 
 /********************************
+ * set initial global variable values
+ */
+
+void cod3_setdefault()
+{
+    fregsaved = mBP | mSI | mDI;
+}
+
+/********************************
  * Fix global variables for 386.
  */
 
