@@ -130,14 +130,7 @@ extern (C) void rt_moduleDtor()
  * Access compiler generated list of modules.
  */
 
-version (none)
-{
-    extern (C)
-    {
-        extern __gshared void* _minfo_beg;
-        extern __gshared void* _minfo_end;
-    }
-}
+version (OSX) {}
 else version (Posix)
 {
     // This linked list is created by a compiler generated function inserted
@@ -163,10 +156,8 @@ body
 
     version (OSX)
     {
-        // set by src.rt.memory_osx.onAddImage()
-        result = _moduleinfo_array;
-
-        // But we need to throw out any null pointers
+        // _moduleinfo_array is set by src.rt.memory_osx.onAddImage()
+        // but we need to throw out any null pointers
         auto p = _moduleinfo_array.ptr;
         auto pend = _moduleinfo_array.ptr + _moduleinfo_array.length;
 
@@ -178,31 +169,6 @@ body
         result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
 
         p = _moduleinfo_array.ptr;
-        cnt = 0;
-        for (; p < pend; ++p)
-            if (*p !is null) result[cnt++] = *p;
-    }
-    else version (none)
-    {
-        //printf("getModuleInfos()\n");
-        /* The ModuleInfo references are stored in the special segment
-         * __minfodata, which is bracketed by the segments __minfo_beg
-         * and __minfo_end. The variables _minfo_beg and _minfo_end
-         * are of zero size and are in the two bracketing segments,
-         * respectively.
-         */
-
-        auto p = cast(ModuleInfo**)&_minfo_beg;
-        auto pend = cast(ModuleInfo**)&_minfo_end;
-
-        // Throw out null pointers
-        size_t cnt;
-        for (; p < pend; ++p)
-            if (*p !is null) ++cnt;
-
-        result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
-
-        p = cast(ModuleInfo**)&_minfo_beg;
         cnt = 0;
         for (; p < pend; ++p)
             if (*p !is null) result[cnt++] = *p;
