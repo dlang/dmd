@@ -413,13 +413,10 @@ tryagain:
             {   unsigned u = b->Balign;
                 unsigned nalign = (u - (unsigned)Coffset) & (u - 1);
 
-                while (nalign--)
-                {
-                    obj_byte(cseg,Coffset,0x90);      // XCHG AX,AX
+                cod3_align_bytes(nalign);
 #if OMFOBJ
-                    Coffset++;
+                Coffset += nalign;
 #endif
-                }
             }
             assert(b->Boffset == Coffset);
 
