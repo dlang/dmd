@@ -20,7 +20,7 @@ ifeq (,$(OS))
     endif
 endif
 
-DMD=dmd
+DMD?=dmd
 
 DOCDIR=doc
 IMPDIR=import
