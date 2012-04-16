@@ -1689,6 +1689,21 @@ bool cse_simple(code *c, elem *e)
     return false;
 }
 
+code* gen_loadcse(unsigned reg, targ_uns i)
+{
+    code* c = getregs(mask[reg]);
+    unsigned op = 0x8B;
+    if (reg == ES)
+    {
+        op = 0x8E;
+        reg = 0;
+    }
+    c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,i);
+    if (I64)
+        code_orrex(c, REX_W);
+    return c;
+}
+
 /***************************************
  * Gen code for OPframeptr
  */
