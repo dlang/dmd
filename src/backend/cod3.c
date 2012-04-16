@@ -292,6 +292,15 @@ int cod3_EA(code *c)
 }
 
 /********************************
+ * set initial global variable values
+ */
+
+void cod3_setdefault()
+{
+    fregsaved = mBP | mSI | mDI;
+}
+
+/********************************
  * Fix global variables for 386.
  */
 
@@ -343,10 +352,17 @@ void cod3_set64()
 /*********************************
  * Word or dword align start of function.
  */
+size_t cod3_align_bytes(size_t nbytes)
+{
+    static unsigned char nops[] = {
+        0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
+    }; // XCHG AX,AX
+    assert(nbytes < sizeof(nops));
+    return obj_bytes(cseg,Coffset,nbytes,nops);
+}
 
 void cod3_align()
 {
-    static unsigned char nops[7] = { 0x90,0x90,0x90,0x90,0x90,0x90,0x90 };
     unsigned nbytes;
 #if OMFOBJ
     if (config.flags4 & CFG4speed)      // if optimized for speed
@@ -360,14 +376,13 @@ void cod3_align()
             nbytes = -Coffset & 15;
             if (nbytes < 8)
             {
-                Coffset += obj_bytes(cseg,Coffset,nbytes,nops); // XCHG AX,AX
+                Coffset += cod3_align_bytes(nbytes);
             }
         }
     }
 #else
     nbytes = -Coffset & 3;
-    //dbg_printf("cod3_align Coffset %x nbytes %d\n",Coffset,nbytes);
-    obj_bytes(cseg,Coffset,nbytes,nops);
+    cod3_align_bytes(nbytes);
 #endif
 }
 
@@ -486,6 +501,72 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return 0;
     }
 }
+
+/*******************************
+ * setup register allocator parameters with platform specific data
+ */
+void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg)
+{
+    *dst_integer_reg = AX;
+    *dst_float_reg   = XMM0;
+}
+
+void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
+{
+    unsigned sz = tysize(ty);
+
+    if (tyxmmreg(ty))
+    {
+        static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
+        *pseq = sequence;
+    }
+    else if (I64)
+    {
+        if (sz == REGSIZE * 2)
+        {
+            static char seqmsw[] = {CX,DX,NOREG};
+            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            *pseq = seqlsw;
+            *pseqmsw = seqmsw;
+        }
+        else
+        {   // R10 is reserved for the static link
+            static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+    else if (I32)
+    {
+        if (sz == REGSIZE * 2)
+        {
+            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            static char seqmsw[] = {CX,DX,NOREG};
+            *pseq = seqlsw;
+            *pseqmsw = seqmsw;
+        }
+        else
+        {
+            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+    else
+    {   assert(I16);
+        if (typtr(ty))
+        {
+            // For pointer types, try to pick index register first
+            static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
+            *pseq = seqidx;
+        }
+        else
+        {
+            // Otherwise, try to pick index registers last
+            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+}
+
 
 /*******************************
  * Generate block exit code
