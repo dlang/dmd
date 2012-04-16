@@ -492,6 +492,72 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return 0;
     }
 }
+
+/*******************************
+ * setup register allocator parameters with platform specific data
+ */
+void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg)
+{
+    *dst_integer_reg = AX;
+    *dst_float_reg   = XMM0;
+}
+
+void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
+{
+    unsigned sz = tysize(ty);
+
+    if (tyxmmreg(ty))
+    {
+        static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
+        *pseq = sequence;
+    }
+    else if (I64)
+    {
+        if (sz == REGSIZE * 2)
+        {
+            static char seqmsw[] = {CX,DX,NOREG};
+            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            *pseq = seqlsw;
+            *pseqmsw = seqmsw;
+        }
+        else
+        {   // R10 is reserved for the static link
+            static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+    else if (I32)
+    {
+        if (sz == REGSIZE * 2)
+        {
+            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            static char seqmsw[] = {CX,DX,NOREG};
+            *pseq = seqlsw;
+            *pseqmsw = seqmsw;
+        }
+        else
+        {
+            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+    else
+    {   assert(I16);
+        if (typtr(ty))
+        {
+            // For pointer types, try to pick index register first
+            static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
+            *pseq = seqidx;
+        }
+        else
+        {
+            // Otherwise, try to pick index registers last
+            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+}
+
 
 /*******************************
  * Generate block exit code

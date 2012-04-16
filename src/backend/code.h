@@ -782,6 +782,8 @@ void cod3_set64 (void );
 size_t cod3_align_bytes (size_t nbytes);
 void cod3_align (void );
 regm_t regmask(tym_t tym, tym_t tyf);
+void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);
+void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw);
 void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void doswitch (block *b );
 void outjmptab (block *b );

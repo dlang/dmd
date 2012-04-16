@@ -252,6 +252,10 @@ int cgreg_benefit(Symbol *s,int reg, Symbol *retsym)
     vec_sub(s->Slvreg,s->Srange,regrange[reg]);
     int si = s->Ssymnum;
 
+    regm_t dst_integer_reg;
+    regm_t dst_float_reg;
+    cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
+
 Lagain:
     //printf("again\n");
     benefit = 0;
@@ -282,7 +286,7 @@ Lagain:
             //printf("WEIGHTS(%d,%d) = %d, benefit = %d\n",bi,si,WEIGHTS(bi,si),benefit);
             inout = 1;
 
-            if (s == retsym && (reg == AX || reg == XMM0) && b->BC == BCretexp)
+            if (s == retsym && (reg == dst_integer_reg || reg == dst_float_reg) && b->BC == BCretexp)
             {   benefit += 1;
                 retsym_cnt++;
                 //printf("retsym, benefit = %d\n",benefit);
@@ -790,6 +794,12 @@ int cgreg_assign(Symbol *retsym)
 
     vec_t v = vec_calloc(dfotop);
 
+    unsigned dst_integer_reg;
+    unsigned dst_float_reg;
+    cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
+    regm_t dst_integer_mask = mask[dst_integer_reg];
+    regm_t dst_float_mask = mask[dst_float_reg];
+
     // Find symbol t, which is the most 'deserving' symbol that should be
     // placed into a register.
     Reg t;
@@ -802,8 +812,8 @@ int cgreg_assign(Symbol *retsym)
         u.sym = s;
         if (!(s->Sflags & GTregcand) ||
             s->Sflags & SFLspill ||
-            // Keep trying to reassign retsym into AX
-            (s->Sfl == FLreg && !(s == retsym && s->Sregm != mAX && s->Sregm != mXMM0))
+            // Keep trying to reassign retsym into destination register
+            (s->Sfl == FLreg && !(s == retsym && s->Sregm != dst_integer_mask && s->Sregm != dst_float_mask))
            )
         {
             #ifdef DEBUG
@@ -821,12 +831,11 @@ int cgreg_assign(Symbol *retsym)
         }
 
         tym_t ty = s->ty();
-        unsigned sz = tysize(ty);
 
         #ifdef DEBUG
             if (debugr)
-            {   printf("symbol '%3s', ty x%x weight x%x sz %d\n   ",
-                s->Sident,ty,s->Sweight,(int)sz);
+            {   printf("symbol '%3s', ty x%x weight x%x\n   ",
+                s->Sident,ty,s->Sweight);
                 vec_println(s->Srange);
             }
         #endif
@@ -834,56 +843,7 @@ int cgreg_assign(Symbol *retsym)
         // Select sequence of registers to try to map s onto
         char *pseq;                     // sequence to try for LSW
         char *pseqmsw = NULL;           // sequence to try for MSW, NULL if none
-        if (tyxmmreg(ty))
-        {
-            static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
-            pseq = sequence;
-        }
-        else if (I64)
-        {
-            if (sz == REGSIZE * 2)
-            {
-                static char seqmsw[] = {CX,DX,NOREG};
-                static char seqlsw[] = {AX,BX,SI,DI,NOREG};
-                pseq = seqlsw;
-                pseqmsw = seqmsw;
-            }
-            else
-            {   // R10 is reserved for the static link
-                static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
-                pseq = sequence;
-            }
-        }
-        else if (I32)
-        {
-            if (sz == REGSIZE * 2)
-            {
-                static char seqlsw[] = {AX,BX,SI,DI,NOREG};
-                static char seqmsw[] = {CX,DX,NOREG};
-                pseq = seqlsw;
-                pseqmsw = seqmsw;
-            }
-            else
-            {
-                static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
-                pseq = sequence;
-            }
-        }
-        else
-        {   assert(I16);
-            if (typtr(ty))
-            {
-                // For pointer types, try to pick index register first
-                static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
-                pseq = seqidx;
-            }
-            else
-            {
-                // Otherwise, try to pick index registers last
-                static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
-                pseq = sequence;
-            }
-        }
+        cgreg_set_priorities(ty, &pseq, &pseqmsw);
 
         u.benefit = 0;
         for (int i = 0; pseq[i] != NOREG; i++)
@@ -891,7 +851,7 @@ int cgreg_assign(Symbol *retsym)
             unsigned reg = pseq[i];
 
             // Symbols used as return values should only be mapped into return value registers
-            if (s == retsym && !(mask[reg] & (mAX | mXMM0)))
+            if (s == retsym && !(reg == dst_integer_reg || reg == dst_float_reg))
                 continue;
 
             // If BP isn't available, can't assign to it
