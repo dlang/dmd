@@ -240,8 +240,8 @@ version( linux )
 else version( OSX )
 {
     alias ubyte cc_t;
-    alias uint  speed_t;
-    alias uint  tcflag_t;
+    alias c_ulong  speed_t;
+    alias c_ulong  tcflag_t;
 
     enum NCCS   = 20;
 
@@ -527,6 +527,42 @@ version( linux )
 
     pid_t   tcgetsid(int);
 }
+
+else version (OSX)
+{
+    enum IXANY      = 0x00000800;
+
+    enum ONLCR      = 0x00000002;
+    enum OCRNL      = 0x00000010;
+    enum ONOCR      = 0x00000020;
+    enum ONLRET     = 0x00000040;
+    enum OFILL      = 0x00000080;
+    enum NLDLY      = 0x00000300;
+    enum   NL0      = 0x00000000;
+    enum   NL1      = 0x00000100;
+    enum CRDLY      = 0x00003000;
+    enum   CR0      = 0x00000000;
+    enum   CR1      = 0x00001000;
+    enum   CR2      = 0x00002000;
+    enum   CR3      = 0x00003000;
+    enum TABDLY     = 0x00000c04;
+    enum   TAB0     = 0x00000000;
+    enum   TAB1     = 0x00000400;
+    enum   TAB2     = 0x00000800;
+    enum   TAB3     = 0x00000004;
+    enum BSDLY      = 0x00008000;
+    enum   BS0      = 0x00000000;
+    enum   BS1      = 0x00008000;
+    enum VTDLY      = 0x00010000;
+    enum   VT0      = 0x00000000;
+    enum   VT1      = 0x00010000;
+    enum FFDLY      = 0x00004000;
+    enum   FF0      = 0x00000000;
+    enum   FF1      = 0x00004000;
+
+    pid_t tcgetsid (int);
+}
+
 else version( FreeBSD )
 {
     enum IXANY      = 0x00000800;
