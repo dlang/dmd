@@ -730,68 +730,6 @@ struct Reg              // data for trial register assignment
     int benefit;
 };
 
-void set_dst_regs(regm_t *dst_integer_reg, regm_t *dst_float_reg)
-{
-    *dst_integer_reg = mAX;
-    *dst_float_reg   = mXMM0;
-}
-
-void set_reg_priorities(tym_t ty, char **pseq, char **pseqmsw)
-{
-    unsigned sz = tysize(ty);
-
-    if (tyxmmreg(ty))
-    {
-        static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
-        *pseq = sequence;
-    }
-    else if (I64)
-    {
-        if (sz == REGSIZE * 2)
-        {
-            static char seqmsw[] = {CX,DX,NOREG};
-            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
-            *pseq = seqlsw;
-            *pseqmsw = seqmsw;
-        }
-        else
-        {   // R10 is reserved for the static link
-            static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
-            *pseq = sequence;
-        }
-    }
-    else if (I32)
-    {
-        if (sz == REGSIZE * 2)
-        {
-            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
-            static char seqmsw[] = {CX,DX,NOREG};
-            *pseq = seqlsw;
-            *pseqmsw = seqmsw;
-        }
-        else
-        {
-            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
-            *pseq = sequence;
-        }
-    }
-    else
-    {   assert(I16);
-        if (typtr(ty))
-        {
-            // For pointer types, try to pick index register first
-            static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
-            *pseq = seqidx;
-        }
-        else
-        {
-            // Otherwise, try to pick index registers last
-            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
-            *pseq = sequence;
-        }
-    }
-}
-
 int cgreg_assign(Symbol *retsym)
 {
     int flag = FALSE;                   // assume no changes
@@ -854,7 +792,7 @@ int cgreg_assign(Symbol *retsym)
 
     regm_t dst_integer_reg;
     regm_t dst_float_reg;
-    set_dst_regs(&dst_integer_reg, &dst_float_reg);
+    cgreg_dst_regs(&dst_integer_reg, &dst_float_reg);
 
     // Find symbol t, which is the most 'deserving' symbol that should be
     // placed into a register.
@@ -899,7 +837,7 @@ int cgreg_assign(Symbol *retsym)
         // Select sequence of registers to try to map s onto
         char *pseq;                     // sequence to try for LSW
         char *pseqmsw = NULL;           // sequence to try for MSW, NULL if none
-        set_reg_priorities(ty, &pseq, &pseqmsw);
+        cgreg_set_priorities(ty, &pseq, &pseqmsw);
 
         u.benefit = 0;
         for (int i = 0; pseq[i] != NOREG; i++)
