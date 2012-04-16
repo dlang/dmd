@@ -511,13 +511,14 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *  int function(in void*, in void*) xopCmp;
      *  string function(const(void)*) xtoString;
      *  uint m_flags;
-     *  xgetMembers;
+     *  //xgetMembers;
      *  xdtor;
      *  xpostblit;
      *  uint m_align;
      *  version (X86_64)
      *      TypeInfo m_arg1;
      *      TypeInfo m_arg2;
+     *  xgetGCInfo
      *
      *  name[]
      */
@@ -646,15 +647,18 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         dtsize_t(pdt, 0);
 
     // uint m_flags;
-    dtsize_t(pdt, tc->hasPointers());
+    size_t m_flags = tc->hasPointers();
+    dtsize_t(pdt, m_flags);
 
 #if DMDV2
+#if 0
     // xgetMembers
     FuncDeclaration *sgetmembers = sd->findGetMembers();
     if (sgetmembers)
         dtxoff(pdt, sgetmembers->toSymbol(), 0, TYnptr);
     else
         dtsize_t(pdt, 0);                        // xgetMembers
+#endif
 
     // xdtor
     FuncDeclaration *sdtor = sd->dtor;
@@ -691,6 +695,14 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
                 dtsize_t(pdt, 0);                    // m_argi
         }
     }
+
+    // xgetGCInfo
+    if (sd->getGCInfo)
+        sd->getGCInfo->toDt(pdt);
+    else if (m_flags)
+        dtsize_t(pdt, 1);       // has pointers
+    else
+        dtsize_t(pdt, 0);       // no pointers
 
     // name[]
     dtnbytes(pdt, namelen + 1, name);

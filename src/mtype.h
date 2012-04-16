@@ -204,6 +204,7 @@ struct Type : Object
     static ClassDeclaration *typeinfowild;
 
     static TemplateDeclaration *associativearray;
+    static TemplateDeclaration *gcinfo;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];

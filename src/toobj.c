@@ -483,7 +483,8 @@ void ClassDeclaration::toObjFile(int multiobj)
             void *deallocator;
             OffsetTypeInfo[] offTi;
             void *defaultConstructor;
-            const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            void *xgetGCInfo;
             //TypeInfo typeinfo;
        }
      */
@@ -597,11 +598,21 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);
 
 #if DMDV2
+#if 0
     FuncDeclaration *sgetmembers = findGetMembers();
     if (sgetmembers)
         dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
     else
         dtsize_t(&dt, 0);        // module getMembers() function
+#endif
+
+    // xgetGCInfo
+    if (getGCInfo)
+        getGCInfo->toDt(&dt);
+    else if (flags & 2)
+        dtsize_t(&dt, 0);       // no pointers
+    else
+        dtsize_t(&dt, 1);       // has pointers
 #endif
 
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
@@ -976,7 +987,8 @@ void InterfaceDeclaration::toObjFile(int multiobj)
             OffsetTypeInfo[] offTi;
             void *defaultConstructor;
 #if DMDV2
-            const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            void* xgetGCInfo;
 #endif
             //TypeInfo typeinfo;
        }
@@ -1049,7 +1061,10 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
 #if DMDV2
     // xgetMembers
-    dtsize_t(&dt, 0);
+    //dtsize_t(&dt, 0);
+
+    // xgetGCInfo
+    dtsize_t(&dt, 0x12345678);
 #endif
 
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo

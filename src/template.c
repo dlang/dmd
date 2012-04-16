@@ -434,8 +434,13 @@ void TemplateDeclaration::semantic(Scope *sc)
         return;         // semantic() already run
     semanticRun = PASSsemantic;
 
-    if (sc->module && sc->module->ident == Id::object && ident == Id::AssociativeArray)
-    {   Type::associativearray = this;
+    // Remember templates defined in module object that we need to know about
+    if (sc->module && sc->module->ident == Id::object)
+    {
+        if (ident == Id::AssociativeArray)
+            Type::associativearray = this;
+        else if (ident == Id::GCInfo)
+            Type::gcinfo = this;
     }
 
     if (sc->func)

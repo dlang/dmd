@@ -114,6 +114,7 @@ ClassDeclaration *Type::typeinfoshared;
 ClassDeclaration *Type::typeinfowild;
 
 TemplateDeclaration *Type::associativearray;
+TemplateDeclaration *Type::gcinfo;
 
 Type *Type::tvoidptr;
 Type *Type::tstring;
