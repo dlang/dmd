@@ -343,10 +343,17 @@ void cod3_set64()
 /*********************************
  * Word or dword align start of function.
  */
+size_t cod3_align_bytes(size_t nbytes)
+{
+    static unsigned char nops[] = {
+        0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
+    }; // XCHG AX,AX
+    assert(nbytes < sizeof(nops));
+    return obj_bytes(cseg,Coffset,nbytes,nops);
+}
 
 void cod3_align()
 {
-    static unsigned char nops[7] = { 0x90,0x90,0x90,0x90,0x90,0x90,0x90 };
     unsigned nbytes;
 #if OMFOBJ
     if (config.flags4 & CFG4speed)      // if optimized for speed
@@ -360,14 +367,13 @@ void cod3_align()
             nbytes = -Coffset & 15;
             if (nbytes < 8)
             {
-                Coffset += obj_bytes(cseg,Coffset,nbytes,nops); // XCHG AX,AX
+                Coffset += cod3_align_bytes(nbytes);
             }
         }
     }
 #else
     nbytes = -Coffset & 3;
-    //dbg_printf("cod3_align Coffset %x nbytes %d\n",Coffset,nbytes);
-    obj_bytes(cseg,Coffset,nbytes,nops);
+    cod3_align_bytes(nbytes);
 #endif
 }
 
