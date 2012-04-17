@@ -924,7 +924,8 @@ void PragmaDeclaration::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
+                if (e->op != TOKerror)
+                    e = e->optimize(WANTvalue | WANTinterpret);
                 StringExp *se = e->toString();
                 if (se)
                 {
@@ -1368,6 +1369,26 @@ void StaticIfDeclaration::importAll(Scope *sc)
 void StaticIfDeclaration::setScope(Scope *sc)
 {
     // do not evaluate condition before semantic pass
+
+    // But do set the scope, in case we need it for forward referencing
+    Dsymbol::setScope(sc);
+
+    // Set the scopes for both the decl and elsedecl, as we don't know yet
+    // which will be selected, and the scope will be the same regardless
+    Dsymbols *d = decl;
+    for (int j = 0; j < 2; j++)
+    {
+        if (d)
+        {
+           for (size_t i = 0; i < d->dim; i++)
+           {
+               Dsymbol *s = (*d)[i];
+
+               s->setScope(sc);
+           }
+        }
+        d = elsedecl;
+    }
 }
 
 void StaticIfDeclaration::semantic(Scope *sc)
@@ -1399,6 +1420,8 @@ const char *StaticIfDeclaration::kind()
 
 /***************************** CompileDeclaration *****************************/
 
+// These are mixin declarations, like mixin("int x");
+
 CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     : AttribDeclaration(NULL)
 {
@@ -1418,7 +1441,7 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    //printf("CompileDeclaration::addMember(sc = %p, memnum = %d)\n", sc, memnum);
+    //printf("CompileDeclaration::addMember(sc = %p, sd = %p, memnum = %d)\n", sc, sd, memnum);
     this->sd = sd;
     if (memnum == 0)
     {   /* No members yet, so parse the mixin now
@@ -1432,7 +1455,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
 void CompileDeclaration::compileIt(Scope *sc)
 {
-    //printf("CompileDeclaration::compileIt(loc = %d)\n", loc.linnum);
+    //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->optimize(WANTvalue | WANTinterpret);
