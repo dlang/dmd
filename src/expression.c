@@ -3022,6 +3022,7 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
 {
     elements = new Expressions;
     elements->push(e);
+    this->ownedByCtfe = false;
 }
 
 Expression *ArrayLiteralExp::syntaxCopy()
