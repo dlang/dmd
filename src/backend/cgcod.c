@@ -1853,10 +1853,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                         csextab[i].flags |= CSEload;
                         if (*pretregs == mPSW)  /* if result in CCs only */
                         {                       // CMP cs[BP],0
-                            c = genc(NULL,0x81 ^ byte,modregrm(2,7,BPRM),
-                                        FLcs,i, FLconst,(targ_uns) 0);
-                            if (I32 && sz == 2)
-                                c->Iflags |= CFopsize;
+                            c = gen_testcse(NULL, sz, i);
                         }
                         else
                         {
@@ -1864,10 +1861,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                             if (byte && !(retregs & BYTEREGS))
                                     retregs = BYTEREGS;
                             c = allocreg(&retregs,&reg,tym);
-                                            // MOV reg,cs[BP]
-                            c = genc1(c,0x8B,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
-                            if (I64)
-                                code_orrex(c, REX_W);
+                            c = gen_loadcse(c, reg, i);
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
                             regcon.cse.value[reg] = e;
@@ -1995,10 +1989,8 @@ done:
  */
 
 STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
-{ unsigned i,op;
-  code *c;
-
-  for (i = cstop; i--;)
+{
+  for (unsigned i = cstop; i--;)
   {
         //printf("csextab[%d] = %p, regm = x%x\n", i, csextab[i].e, csextab[i].regm);
         if (csextab[i].e == e && csextab[i].regm & regm)
@@ -2007,7 +1999,8 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
                 csextab[i].flags |= CSEload;    /* it was loaded        */
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask[reg];
-                return gen_loadcse(reg, i);
+                code *c = getregs(mask[reg]);
+                return gen_loadcse(c, reg, i);
         }
   }
 #if DEBUG

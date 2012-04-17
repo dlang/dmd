@@ -1765,9 +1765,18 @@ bool cse_simple(code *c, elem *e)
     return false;
 }
 
-code* gen_loadcse(unsigned reg, targ_uns i)
+code* gen_testcse(code *c, unsigned sz, targ_uns i)
 {
-    code* c = getregs(mask[reg]);
+    bool byte = sz == 1;
+    c = genc(c,0x81 ^ byte,modregrm(2,7,BPRM),
+                FLcs,i, FLconst,(targ_uns) 0);
+    if (I32 && sz == 2)
+        c->Iflags |= CFopsize;
+    return c;
+}
+
+code* gen_loadcse(code *c, unsigned reg, targ_uns i)
+{
     unsigned op = 0x8B;
     if (reg == ES)
     {
