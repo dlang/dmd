@@ -1402,6 +1402,23 @@ void StaticIfDeclaration::setScope(Scope *sc)
 
     // But do set the scope, in case we need it for forward referencing
     Dsymbol::setScope(sc);
+
+    // Set the scopes for both the decl and elsedecl, as we don't know yet
+    // which will be selected, and the scope will be the same regardless
+    Dsymbols *d = decl;
+    for (int j = 0; j < 2; j++)
+    {
+        if (d)
+        {
+           for (size_t i = 0; i < d->dim; i++)
+           {
+               Dsymbol *s = (*d)[i];
+
+               s->setScope(sc);
+           }
+        }
+        d = elsedecl;
+    }
 }
 
 void StaticIfDeclaration::semantic(Scope *sc)
