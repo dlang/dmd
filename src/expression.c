@@ -4209,7 +4209,7 @@ Lagain:
                     e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
-                    e = new DsymbolExp(loc, s);
+                    e = new DsymbolExp(loc, s, s->hasOverloads());
                 e = e->semantic(sc);
                 //printf("-1ScopeExp::semantic()\n");
                 return e;
