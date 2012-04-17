@@ -780,7 +780,7 @@ regm_t cod3_useBP();
 void cod3_setdefault();
 void cod3_set32 (void );
 void cod3_set64 (void );
-size_t cod3_align_bytes (size_t nbytes);
+void cod3_align_bytes (size_t nbytes);
 void cod3_align (void );
 regm_t regmask(tym_t tym, tym_t tyf);
 void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);

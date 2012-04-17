@@ -414,9 +414,6 @@ tryagain:
                 unsigned nalign = (u - (unsigned)Coffset) & (u - 1);
 
                 cod3_align_bytes(nalign);
-#if OMFOBJ
-                Coffset += nalign;
-#endif
             }
             assert(b->Boffset == Coffset);
 

@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -352,19 +352,20 @@ void cod3_set64()
 /*********************************
  * Word or dword align start of function.
  */
-size_t cod3_align_bytes(size_t nbytes)
+void cod3_align_bytes(size_t nbytes)
 {
     static unsigned char nops[] = {
         0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
     }; // XCHG AX,AX
     assert(nbytes < sizeof(nops));
-    return obj_bytes(cseg,Coffset,nbytes,nops);
+    assert(SegData[cseg]->SDseg == cseg);
+    obj_write_bytes(SegData[cseg],nbytes,nops);
 }
 
 void cod3_align()
 {
     unsigned nbytes;
-#if OMFOBJ
+#if TARGET_WINDOS
     if (config.flags4 & CFG4speed)      // if optimized for speed
     {
         // Pick alignment based on CPU target
@@ -375,9 +376,7 @@ void cod3_align()
 
             nbytes = -Coffset & 15;
             if (nbytes < 8)
-            {
-                Coffset += cod3_align_bytes(nbytes);
-            }
+                cod3_align_bytes(nbytes);
         }
     }
 #else
@@ -1360,13 +1359,11 @@ void outswitab(block *b)
   assert(*poffset == offset + alignbytes);
 
   sz = intsize;
+  assert(SegData[seg]->SDseg == seg);
   for (n = 0; n < ncases; n++)          /* send out value table         */
   {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
-#if OMFOBJ
-        *poffset +=
-#endif
-            obj_bytes(seg,*poffset,sz,p);
+        obj_write_bytes(SegData[seg],sz,p);
         p++;
   }
   offset += alignbytes + sz * ncases;
@@ -1379,10 +1376,7 @@ void outswitab(block *b)
         for (n = 0; n < ncases; n++)
         {   val = MSREG(*p);
             p++;
-#if OMFOBJ
-            *poffset +=
-#endif
-                obj_bytes(seg,*poffset,REGSIZE,&val);
+            obj_write_bytes(SegData[seg],REGSIZE,&val);
         }
         offset += REGSIZE * ncases;
         assert(*poffset == offset);
