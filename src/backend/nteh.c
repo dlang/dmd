@@ -300,6 +300,7 @@ void nteh_usevars()
 #endif
 }
 
+#if TX86
 /*********************************
  * Generate NT exception handling function prolog.
  */
@@ -529,6 +530,12 @@ void nteh_framehandler(symbol *scopetable)
 /*********************************
  * Generate code to set scope index.
  */
+
+code *nteh_patchindex(code* c, int sindex)
+{
+    c->IEV2.Vsize_t = sindex;
+    return c;
+}
 
 code *nteh_gensindex(int sindex)
 {   code *c;
@@ -911,5 +918,7 @@ code *nteh_monitor_epilog(regm_t retregs)
 }
 
 #endif
+
+#endif // TX86
 
 #endif

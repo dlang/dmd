@@ -4749,11 +4749,6 @@ code *cdinfo(elem *e,regm_t *pretregs)
             }
             else
             {
-#if 0
-                usednteh |= EHcleanup;
-                if (config.exe == EX_NT)
-                    usednteh |= NTEHcleanup;
-#endif
                 cs.Iop = ESCAPE | ESCmark;
                 cs.Iflags = 0;
                 cs.Irex = 0;
@@ -4884,17 +4879,9 @@ code *cdctor(elem *e,regm_t *pretregs)
     code cs;
     code *c;
 
-#if 0
-    if (config.exe == EX_NT)
-    {   usednteh |= NTEHcleanup;
-        except_push(NULL,e,NULL);
-        return nteh_gensindex(except_index_get() - 1);
-    }
-#else
     usednteh |= EHcleanup;
     if (config.exe == EX_NT)
         usednteh |= NTEHcleanup;
-#endif
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCctor;
     cs.Iflags = 0;
@@ -4902,7 +4889,6 @@ code *cdctor(elem *e,regm_t *pretregs)
     cs.IFL1 = FLctor;
     cs.IEV1.Vtor = e;
     c = gen(CNIL,&cs);
-    //except_push(c,e,NULL);
     return c;
 #else
     return NULL;
@@ -4915,17 +4901,9 @@ code *cddtor(elem *e,regm_t *pretregs)
     code cs;
     code *c;
 
-#if 0
-    if (config.exe == EX_NT)
-    {   usednteh |= NTEHcleanup;
-        except_pop(NULL,e,NULL);
-        return nteh_gensindex(except_index_get() - 1);
-    }
-#else
     usednteh |= EHcleanup;
     if (config.exe == EX_NT)
         usednteh |= NTEHcleanup;
-#endif
     assert(*pretregs == 0);
     cs.Iop = ESCAPE | ESCdtor;
     cs.Iflags = 0;
@@ -4933,7 +4911,6 @@ code *cddtor(elem *e,regm_t *pretregs)
     cs.IFL1 = FLdtor;
     cs.IEV1.Vtor = e;
     c = gen(CNIL,&cs);
-    //except_pop(c,e,NULL);
     return c;
 #else
     return NULL;
