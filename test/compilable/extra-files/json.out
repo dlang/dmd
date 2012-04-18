@@ -860,6 +860,96 @@
 					"protection" : "public",
 					"prettyName" : "json"
 				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "RTInfo!(Bar2)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 22
+				},
+				"module" : {
+					"name" : "object",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "object"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "RTInfo!(U)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 32
+				},
+				"module" : {
+					"name" : "object",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "object"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "RTInfo!(Foo2)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 30
+				},
+				"module" : {
+					"name" : "object",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "object"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "RTInfo!(Bar)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 17
+				},
+				"module" : {
+					"name" : "object",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "object"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "RTInfo!(Baz)",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 18
+				},
+				"module" : {
+					"name" : "object",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "object"
+				}
+			},
+			{
+				"kind" : "template instance",
+				"name" : "RTInfo!(Foo!(int))",
+				"kind" : "template instance",
+				"protection" : "public",
+				"loc" : {
+					"line" : 16
+				},
+				"module" : {
+					"name" : "object",
+					"kind" : "module",
+					"protection" : "public",
+					"prettyName" : "object"
+				}
 			}
 		]
 	}
