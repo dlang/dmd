@@ -26,7 +26,62 @@
 
 #define LOG 0
 
-Library::Library()
+struct ObjModule;
+
+struct ObjSymbol
+{
+    char *name;
+    ObjModule *om;
+};
+
+#include "arraytypes.h"
+
+typedef ArrayBase<ObjModule> ObjModules;
+typedef ArrayBase<ObjSymbol> ObjSymbols;
+
+class LibOMF : public Library
+{
+  public:
+    File *libfile;
+    ObjModules objmodules;   // ObjModule[]
+    ObjSymbols objsymbols;   // ObjSymbol[]
+
+    StringTable tab;
+
+    LibOMF();
+    void setFilename(char *dir, char *filename);
+    void addObject(const char *module_name, void *buf, size_t buflen);
+    void addLibrary(void *buf, size_t buflen);
+    void write();
+
+  private:
+    void addSymbol(ObjModule *om, char *name, int pickAny = 0);
+    void scanObjModule(ObjModule *om);
+    unsigned short numDictPages(unsigned padding);
+    int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
+    void WriteLibToBuffer(OutBuffer *libbuf);
+
+    void error(const char *format, ...)
+    {
+        Loc loc;
+        if (libfile)
+        {
+            loc.filename = libfile->name->toChars();
+            loc.linnum = 0;
+        }
+        va_list ap;
+        va_start(ap, format);
+        ::verror(loc, format, ap);
+        va_end(ap);
+    }
+};
+
+Library *Library::factory()
+{
+    return new LibOMF();
+}
+
+LibOMF::LibOMF()
 {
     libfile = NULL;
     tab.init();
@@ -38,7 +93,7 @@ Library::Library()
  * Add default library file name extension.
  */
 
-void Library::setFilename(char *dir, char *filename)
+void LibOMF::setFilename(char *dir, char *filename)
 {
     char *arg = filename;
     if (!arg || !*arg)
@@ -56,7 +111,7 @@ void Library::setFilename(char *dir, char *filename)
     libfile = new File(libfilename);
 }
 
-void Library::write()
+void LibOMF::write()
 {
     if (global.params.verbose)
         printf("library   %s\n", libfile->name->toChars());
@@ -78,7 +133,7 @@ void Library::write()
 
 /*****************************************************************************/
 
-void Library::addLibrary(void *buf, size_t buflen)
+void LibOMF::addLibrary(void *buf, size_t buflen)
 {
     addObject(NULL, buf, buflen);
 }
@@ -175,10 +230,10 @@ static unsigned short parseIdx(unsigned char **pp)
     return idx;
 }
 
-void Library::addSymbol(ObjModule *om, char *name, int pickAny)
+void LibOMF::addSymbol(ObjModule *om, char *name, int pickAny)
 {
 #if LOG
-    printf("Library::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
+    printf("LibOMF::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
 #endif
     StringValue *s = tab.insert(name, strlen(name));
     if (!s)
@@ -204,10 +259,10 @@ void Library::addSymbol(ObjModule *om, char *name, int pickAny)
 
 /************************************
  * Scan single object module for dictionary symbols.
- * Send those symbols to Library::addSymbol().
+ * Send those symbols to LibOMF::addSymbol().
  */
 
-void Library::scanObjModule(ObjModule *om)
+void LibOMF::scanObjModule(ObjModule *om)
 {   int easyomf;
     unsigned u;
     unsigned char result = 0;
@@ -359,10 +414,10 @@ Ret:
  * and load the file.
  */
 
-void Library::addObject(const char *module_name, void *buf, size_t buflen)
+void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 {
 #if LOG
-    printf("Library::addObject(%s)\n", module_name ? module_name : "");
+    printf("LibOMF::addObject(%s)\n", module_name ? module_name : "");
 #endif
     if (!buf)
     {   assert(module_name);
@@ -529,7 +584,7 @@ extern "C" int NameCompare(ObjSymbol **p1, ObjSymbol **p2)
  *      number of pages
  */
 
-unsigned short Library::numDictPages(unsigned padding)
+unsigned short LibOMF::numDictPages(unsigned padding)
 {
     unsigned short      ndicpages;
     unsigned short      bucksForHash;
@@ -711,7 +766,7 @@ static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigne
  *      0       failure
  */
 
-int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
+int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 {
     unsigned char entry[4 + LIBIDMAX + 2 + 1];
 
@@ -781,7 +836,7 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
  *      dictionary pages...
  */
 
-void Library::WriteLibToBuffer(OutBuffer *libbuf)
+void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
 {
     /* Scan each of the object modules for symbols
      * to go into the dictionary
