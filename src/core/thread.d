@@ -488,49 +488,11 @@ else version( Posix )
         }
         body
         {
-            version( D_InlineAsm_X86 )
+            void op(void* sp)
             {
-                asm
-                {
-                    pushad;
-                }
-            }
-            else version ( D_InlineAsm_X86_64 )
-            {
-                asm
-                {
-                    // Not sure what goes here, pushad is invalid in 64 bit code
-                    push RAX ;
-                    push RBX ;
-                    push RCX ;
-                    push RDX ;
-                    push RSI ;
-                    push RDI ;
-                    push RBP ;
-                    push R8  ;
-                    push R9  ;
-                    push R10 ;
-                    push R11 ;
-                    push R12 ;
-                    push R13 ;
-                    push R14 ;
-                    push R15 ;
-                    push RAX ;   // 16 byte align the stack
-                }
-            }
-            else version( GNU )
-            {
-                __builtin_unwind_init();
-            }
-            else
-            {
-                static assert( false, "Architecture not supported." );
-            }
-
-            // NOTE: Since registers are being pushed and popped from the
-            //       stack, any other stack data used by this function should
-            //       be gone before the stack cleanup code is called below.
-            {
+                // NOTE: Since registers are being pushed and popped from the
+                //       stack, any other stack data used by this function should
+                //       be gone before the stack cleanup code is called below.
                 Thread  obj = Thread.getThis();
 
                 // NOTE: The thread reference returned by getThis is set within
@@ -564,44 +526,7 @@ else version( Posix )
                 }
             }
 
-            version( D_InlineAsm_X86 )
-            {
-                asm
-                {
-                    popad;
-                }
-            }
-            else version ( D_InlineAsm_X86_64 )
-            {
-                asm
-                {
-                    // Not sure what goes here, popad is invalid in 64 bit code
-                    pop RAX ;   // 16 byte align the stack
-                    pop R15 ;
-                    pop R14 ;
-                    pop R13 ;
-                    pop R12 ;
-                    pop R11 ;
-                    pop R10 ;
-                    pop R9  ;
-                    pop R8  ;
-                    pop RBP ;
-                    pop RDI ;
-                    pop RSI ;
-                    pop RDX ;
-                    pop RCX ;
-                    pop RBX ;
-                    pop RAX ;
-                }
-            }
-            else version( GNU )
-            {
-                // registers will be popped automatically
-            }
-            else
-            {
-                static assert( false, "Architecture not supported." );
-            }
+            thread_callWithStackShell(&op);
         }
 
 
