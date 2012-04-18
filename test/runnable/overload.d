@@ -6,6 +6,24 @@ template Id(      T){ alias T Id; }
 template Id(alias A){ alias A Id; }
 
 /***************************************************/
+// 7418
+
+int foo7418(uint a)   { return 1; }
+int foo7418(char[] a) { return 2; }
+
+alias foo7418 foo7418a;
+template foo7418b(T = void) { alias foo7418 foo7418b; }
+
+void test7418()
+{
+    assert(foo7418a(1U) == 1);
+    assert(foo7418a("a".dup) == 2);
+
+    assert(foo7418b!()(1U) == 1);
+    assert(foo7418b!()("a".dup) == 2);
+}
+
+/***************************************************/
 // 7552
 
 struct S7552
@@ -65,6 +83,7 @@ void test7552()
 
 int main()
 {
+    test7418();
     test7552();
 
     printf("Success\n");
