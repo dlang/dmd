@@ -484,7 +484,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             OffsetTypeInfo[] offTi;
             void *defaultConstructor;
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
-            void *xgetGCInfo;
+            void *xgetRTInfo;
             //TypeInfo typeinfo;
        }
      */
@@ -606,9 +606,9 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);        // module getMembers() function
 #endif
 
-    // xgetGCInfo
-    if (getGCInfo)
-        getGCInfo->toDt(&dt);
+    // xgetRTInfo
+    if (getRTInfo)
+        getRTInfo->toDt(&dt);
     else if (flags & 2)
         dtsize_t(&dt, 0);       // no pointers
     else
@@ -988,7 +988,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
             void *defaultConstructor;
 #if DMDV2
             //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
-            void* xgetGCInfo;
+            void* xgetRTInfo;
 #endif
             //TypeInfo typeinfo;
        }
@@ -1063,7 +1063,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     // xgetMembers
     //dtsize_t(&dt, 0);
 
-    // xgetGCInfo
+    // xgetRTInfo
     dtsize_t(&dt, 0x12345678);
 #endif
 

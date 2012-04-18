@@ -57,7 +57,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     noDefaultCtor = FALSE;
 #endif
     dtor = NULL;
-    getGCInfo = NULL;
+    getRTInfo = NULL;
 }
 
 enum PROT AggregateDeclaration::prot()
@@ -97,11 +97,11 @@ void AggregateDeclaration::semantic3(Scope *sc)
         }
         sc->pop();
 
-        if (!getGCInfo)
-        {   // Evaluate: GCInfo!type
+        if (!getRTInfo)
+        {   // Evaluate: gcinfo!type
             Objects *tiargs = new Objects();
             tiargs->push(type);
-            TemplateInstance *ti = new TemplateInstance(loc, Type::gcinfo, tiargs);
+            TemplateInstance *ti = new TemplateInstance(loc, Type::rtinfo, tiargs);
             ti->semantic(sc);
             ti->semantic2(sc);
             ti->semantic3(sc);
@@ -109,7 +109,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
             Expression *e = new DsymbolExp(0, s, 0);
             e = e->semantic(ti->tempdecl->scope);
             e = e->optimize(WANTvalue | WANTinterpret);
-            getGCInfo = e;
+            getRTInfo = e;
         }
     }
 }

@@ -518,7 +518,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *  version (X86_64)
      *      TypeInfo m_arg1;
      *      TypeInfo m_arg2;
-     *  xgetGCInfo
+     *  xgetRTInfo
      *
      *  name[]
      */
@@ -696,9 +696,9 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         }
     }
 
-    // xgetGCInfo
-    if (sd->getGCInfo)
-        sd->getGCInfo->toDt(pdt);
+    // xgetRTInfo
+    if (sd->getRTInfo)
+        sd->getRTInfo->toDt(pdt);
     else if (m_flags)
         dtsize_t(pdt, 1);       // has pointers
     else

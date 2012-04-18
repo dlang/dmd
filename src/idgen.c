@@ -66,7 +66,7 @@ Msgtable msgtable[] =
     { "outer" },
     { "Exception" },
     { "AssociativeArray" },
-    { "GCInfo" },
+    { "RTInfo" },
     { "Throwable" },
     { "Error" },
     { "withSym", "__withSym" },
