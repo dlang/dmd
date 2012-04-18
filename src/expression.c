@@ -8139,6 +8139,8 @@ Expression *ArrayExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
 
     t1 = e1->type->toBasetype();
     if (t1->ty != Tclass && t1->ty != Tstruct)
@@ -8147,13 +8149,13 @@ Expression *ArrayExp::semantic(Scope *sc)
         {   error("only one index allowed to index %s", t1->toChars());
             goto Lerr;
         }
-        e = new IndexExp(loc, e1, (Expression *)arguments->data[0]);
+        e = new IndexExp(loc, e1, (*arguments)[0]);
         return e->semantic(sc);
     }
 
     // Run semantic() on each argument
     for (size_t i = 0; i < arguments->dim; i++)
-    {   e = (Expression *)arguments->data[i];
+    {   e = (*arguments)[i];
 
         e = e->semantic(sc);
         if (!e->type)
@@ -8162,7 +8164,7 @@ Expression *ArrayExp::semantic(Scope *sc)
         }
         else if (e->type == Type::terror)
             goto Lerr;
-        arguments->data[i] = (void *)e;
+        (*arguments)[i] = e;
     }
 
     expandTuples(arguments);
