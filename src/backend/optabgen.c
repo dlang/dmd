@@ -1055,6 +1055,11 @@ void dotytab()
 #error "fix this"
 #endif
                 break;
+
+            case TYcent:
+            case TYucent:
+                sz = 8;
+                break;
         }
         tysize[typetab[i].ty | 0x00] = sz;
         /*printf("tyalignsize[%d] = %d\n",typetab[i].ty,typetab[i].size);*/
