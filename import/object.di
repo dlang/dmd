@@ -80,7 +80,7 @@ class TypeInfo
     void postblit(void* p);
     @property size_t talign() nothrow pure const @safe;
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow;
-    immutable(void)* getGCInfo() nothrow pure const @safe;
+    @property immutable(void)* rtInfo() nothrow pure const @safe;
 }
 
 class TypeInfo_Typedef : TypeInfo
@@ -155,7 +155,7 @@ class TypeInfo_Class : TypeInfo
     void*       deallocator;
     OffsetTypeInfo[] m_offTi;
     void*       defaultConstructor;
-    immutable(void)*    xgetGCInfo;     // data for precise GC
+    immutable(void)*    m_rtInfo;     // data for precise GC
 
     static TypeInfo_Class find(in char[] classname);
     Object create();
@@ -192,7 +192,7 @@ class TypeInfo_Struct : TypeInfo
         TypeInfo m_arg1;
         TypeInfo m_arg2;
     }
-    immutable(void)* xgetGCInfo;
+    immutable(void)* m_rtInfo;
 }
 
 class TypeInfo_Tuple : TypeInfo
@@ -619,8 +619,8 @@ bool _xopEquals(in void* ptr, in void* ptr);
 void __ctfeWrite(T...)(auto ref T) {}
 void __ctfeWriteln(T...)(auto ref T values) { __ctfeWrite(values, "\n"); }
 
-template GCInfo(T)
+template RTInfo(T)
 {
-    enum GCInfo = cast(void*)0x12345678;
+    enum RTInfo = cast(void*)0x12345678;
 }
 

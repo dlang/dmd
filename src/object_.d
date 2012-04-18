@@ -329,7 +329,7 @@ class TypeInfo
 
     /** Return info used by the garbage collector to do precise collection.
      */
-    immutable(void)* getGCInfo() nothrow pure const @safe { return null; }
+    @property immutable(void)* rtInfo() nothrow pure const @safe { return null; }
 }
 
 class TypeInfo_Vector : TypeInfo
@@ -392,7 +392,7 @@ class TypeInfo_Typedef : TypeInfo
     {   return base.argTypes(arg1, arg2);
     }
 
-    override immutable(void)* getGCInfo() { return base.getGCInfo(); }
+    @property override immutable(void)* rtInfo() { return base.rtInfo; }
 
     TypeInfo base;
     string   name;
@@ -852,8 +852,8 @@ class TypeInfo_Class : TypeInfo
     OffsetTypeInfo[] m_offTi;
     void function(Object) defaultConstructor;   // default Constructor
 
-    immutable(void)* xgetGCInfo;        // data for precise GC
-    override immutable(void)* getGCInfo() { return xgetGCInfo; }
+    immutable(void)* m_RTInfo;        // data for precise GC
+    @property override immutable(void)* rtInfo() { return m_RTInfo; }
 
     /**
      * Search all modules for TypeInfo_Class corresponding to classname.
@@ -1061,7 +1061,7 @@ class TypeInfo_Struct : TypeInfo
 
     uint m_align;
 
-    override immutable(void)* getGCInfo() { return xgetGCInfo; }
+    @property override immutable(void)* rtInfo() { return m_RTInfo; }
 
     version (X86_64)
     {
@@ -1073,7 +1073,7 @@ class TypeInfo_Struct : TypeInfo
         TypeInfo m_arg1;
         TypeInfo m_arg2;
     }
-    immutable(void)* xgetGCInfo;                // data for precise GC
+    immutable(void)* m_RTInfo;                // data for precise GC
 }
 
 unittest
@@ -2511,10 +2511,10 @@ bool _xopEquals(in void*, in void*)
 }
 
 /******************************************
- * Create GCInfo for type T
+ * Create RTInfo for type T
  */
 
-template GCInfo(T)
+template RTInfo(T)
 {
-    enum GCInfo = null;
+    enum RTInfo = null;
 }
