@@ -1355,7 +1355,7 @@ int main(int argc, char *argv[])
     Library *library = NULL;
     if (global.params.lib)
     {
-        library = new Library();
+        library = Library::factory();
         library->setFilename(global.params.objdir, global.params.libname);
 
         // Add input object and input library files to output library

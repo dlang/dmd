@@ -26,7 +26,62 @@
 
 #define LOG 0
 
-Library::Library()
+struct ObjModule;
+
+struct ObjSymbol
+{
+    char *name;
+    ObjModule *om;
+};
+
+#include "arraytypes.h"
+
+typedef ArrayBase<ObjModule> ObjModules;
+typedef ArrayBase<ObjSymbol> ObjSymbols;
+
+class LibOMF : public Library
+{
+  public:
+    File *libfile;
+    ObjModules objmodules;   // ObjModule[]
+    ObjSymbols objsymbols;   // ObjSymbol[]
+
+    StringTable tab;
+
+    LibOMF();
+    void setFilename(char *dir, char *filename);
+    void addObject(const char *module_name, void *buf, size_t buflen);
+    void addLibrary(void *buf, size_t buflen);
+    void write();
+
+  private:
+    void addSymbol(ObjModule *om, char *name, int pickAny = 0);
+    void scanObjModule(ObjModule *om);
+    unsigned short numDictPages(unsigned padding);
+    int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
+    void WriteLibToBuffer(OutBuffer *libbuf);
+
+    void error(const char *format, ...)
+    {
+        Loc loc;
+        if (libfile)
+        {
+            loc.filename = libfile->name->toChars();
+            loc.linnum = 0;
+        }
+        va_list ap;
+        va_start(ap, format);
+        ::verror(loc, format, ap);
+        va_end(ap);
+    }
+};
+
+Library *Library::factory()
+{
+    return new LibOMF();
+}
+
+LibOMF::LibOMF()
 {
     libfile = NULL;
     tab.init();
@@ -38,12 +93,12 @@ Library::Library()
  * Add default library file name extension.
  */
 
-void Library::setFilename(char *dir, char *filename)
+void LibOMF::setFilename(char *dir, char *filename)
 {
     char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = global.params.objfiles->tdata()[0];
+        char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.lib_ext);
@@ -56,7 +111,7 @@ void Library::setFilename(char *dir, char *filename)
     libfile = new File(libfilename);
 }
 
-void Library::write()
+void LibOMF::write()
 {
     if (global.params.verbose)
         printf("library   %s\n", libfile->name->toChars());
@@ -78,7 +133,7 @@ void Library::write()
 
 /*****************************************************************************/
 
-void Library::addLibrary(void *buf, size_t buflen)
+void LibOMF::addLibrary(void *buf, size_t buflen)
 {
     addObject(NULL, buf, buflen);
 }
@@ -175,10 +230,10 @@ static unsigned short parseIdx(unsigned char **pp)
     return idx;
 }
 
-void Library::addSymbol(ObjModule *om, char *name, int pickAny)
+void LibOMF::addSymbol(ObjModule *om, char *name, int pickAny)
 {
 #if LOG
-    printf("Library::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
+    printf("LibOMF::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
 #endif
     StringValue *s = tab.insert(name, strlen(name));
     if (!s)
@@ -204,10 +259,10 @@ void Library::addSymbol(ObjModule *om, char *name, int pickAny)
 
 /************************************
  * Scan single object module for dictionary symbols.
- * Send those symbols to Library::addSymbol().
+ * Send those symbols to LibOMF::addSymbol().
  */
 
-void Library::scanObjModule(ObjModule *om)
+void LibOMF::scanObjModule(ObjModule *om)
 {   int easyomf;
     unsigned u;
     unsigned char result = 0;
@@ -260,6 +315,7 @@ void Library::scanObjModule(ObjModule *om)
                 if (easyomf)
                     recTyp = COMDAT+1;          // convert to MS format
             case COMDAT+1:
+            {
                 int pickAny = 0;
 
                 if (*p++ & 5)           // if continuation or local comdat
@@ -290,9 +346,9 @@ void Library::scanObjModule(ObjModule *om)
                 }
 
                 //printf("[s] name='%s'\n",name);
-                addSymbol(om, names.tdata()[idx],pickAny);
+                addSymbol(om, names[idx],pickAny);
                 break;
-
+            }
             case ALIAS:
                 while (p + 1 < pnext)
                 {
@@ -348,7 +404,7 @@ void Library::scanObjModule(ObjModule *om)
     }
 Ret:
     for (u = 1; u < names.dim; u++)
-        free(names.tdata()[u]);
+        free(names[u]);
 }
 
 /***************************************
@@ -358,10 +414,10 @@ Ret:
  * and load the file.
  */
 
-void Library::addObject(const char *module_name, void *buf, size_t buflen)
+void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 {
 #if LOG
-    printf("Library::addObject(%s)\n", module_name ? module_name : "");
+    printf("LibOMF::addObject(%s)\n", module_name ? module_name : "");
 #endif
     if (!buf)
     {   assert(module_name);
@@ -484,6 +540,7 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
 
             case MODEND :
             case M386END:
+            {
                 if (om)
                 {   om->page = (om->base - pstart) / g_page_size;
                     om->length = pnext - om->base;
@@ -494,7 +551,7 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
                 t = (t + g_page_size - 1) & ~(unsigned)(g_page_size - 1);
                 pnext = pstart + t;
                 break;
-
+            }
             default:
                 // ignore
                 ;
@@ -527,7 +584,7 @@ extern "C" int NameCompare(ObjSymbol **p1, ObjSymbol **p2)
  *      number of pages
  */
 
-unsigned short Library::numDictPages(unsigned padding)
+unsigned short LibOMF::numDictPages(unsigned padding)
 {
     unsigned short      ndicpages;
     unsigned short      bucksForHash;
@@ -535,13 +592,13 @@ unsigned short Library::numDictPages(unsigned padding)
     unsigned symSize = 0;
 
     for (size_t i = 0; i < objsymbols.dim; i++)
-    {   ObjSymbol *s = objsymbols.tdata()[i];
+    {   ObjSymbol *s = objsymbols[i];
 
         symSize += ( strlen(s->name) + 4 ) & ~1;
     }
 
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         size_t len = strlen(om->name);
         if (len > 0xFF)
@@ -709,7 +766,7 @@ static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigne
  *      0       failure
  */
 
-int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
+int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 {
     unsigned char entry[4 + LIBIDMAX + 2 + 1];
 
@@ -717,7 +774,7 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 
     // Add each of the module names
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         unsigned short n = strlen( om->name );
         if (n > 255)
@@ -740,11 +797,11 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
     }
 
     // Sort the symbols
-    qsort( objsymbols.tdata(), objsymbols.dim, 4, (cmpfunc_t)NameCompare );
+    qsort( objsymbols.tdata(), objsymbols.dim, sizeof(objsymbols[0]), (cmpfunc_t)NameCompare );
 
     // Add each of the symbols
     for (size_t i = 0; i < objsymbols.dim; i++)
-    {   ObjSymbol *os = objsymbols.tdata()[i];
+    {   ObjSymbol *os = objsymbols[i];
 
         unsigned short n = strlen( os->name );
         if (n > 255)
@@ -779,13 +836,13 @@ int Library::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
  *      dictionary pages...
  */
 
-void Library::WriteLibToBuffer(OutBuffer *libbuf)
+void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
 {
     /* Scan each of the object modules for symbols
      * to go into the dictionary
      */
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         scanObjModule(om);
     }
@@ -805,7 +862,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
         unsigned offset = g_page_size;
 
         for (size_t i = 0; i < objmodules.dim; i++)
-        {   ObjModule *om = objmodules.tdata()[i];
+        {   ObjModule *om = objmodules[i];
 
             unsigned page = offset / g_page_size;
             if (page > 0xFFFF)
@@ -845,7 +902,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     /* Write each object module into the library
      */
     for (size_t i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         unsigned page = libbuf->offset / g_page_size;
         assert(page <= 0xFFFF);

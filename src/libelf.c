@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -26,7 +26,60 @@
 
 #define LOG 0
 
-Library::Library()
+struct ObjModule;
+
+struct ObjSymbol
+{
+    char *name;
+    ObjModule *om;
+};
+
+#include "arraytypes.h"
+
+typedef ArrayBase<ObjModule> ObjModules;
+typedef ArrayBase<ObjSymbol> ObjSymbols;
+
+class LibElf : public Library
+{
+  public:
+    File *libfile;
+    ObjModules objmodules;   // ObjModule[]
+    ObjSymbols objsymbols;   // ObjSymbol[]
+
+    StringTable tab;
+
+    LibElf();
+    void setFilename(char *dir, char *filename);
+    void addObject(const char *module_name, void *buf, size_t buflen);
+    void addLibrary(void *buf, size_t buflen);
+    void write();
+
+  private:
+    void addSymbol(ObjModule *om, char *name, int pickAny = 0);
+    void scanObjModule(ObjModule *om);
+    void WriteLibToBuffer(OutBuffer *libbuf);
+
+    void error(const char *format, ...)
+    {
+        Loc loc;
+        if (libfile)
+        {
+            loc.filename = libfile->name->toChars();
+            loc.linnum = 0;
+        }
+        va_list ap;
+        va_start(ap, format);
+        ::verror(loc, format, ap);
+        va_end(ap);
+    }
+};
+
+Library *Library::factory()
+{
+    return new LibElf();
+}
+
+LibElf::LibElf()
 {
     libfile = NULL;
     tab.init();
@@ -38,16 +91,16 @@ Library::Library()
  * Add default library file name extension.
  */
 
-void Library::setFilename(char *dir, char *filename)
+void LibElf::setFilename(char *dir, char *filename)
 {
 #if LOG
-    printf("Library::setFilename(dir = '%s', filename = '%s')\n",
+    printf("LibElf::setFilename(dir = '%s', filename = '%s')\n",
         dir ? dir : "", filename ? filename : "");
 #endif
     char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = global.params.objfiles->tdata()[0];
+        char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.lib_ext);
@@ -60,7 +113,7 @@ void Library::setFilename(char *dir, char *filename)
     libfile = new File(libfilename);
 }
 
-void Library::write()
+void LibElf::write()
 {
     if (global.params.verbose)
         printf("library   %s\n", libfile->name->toChars());
@@ -82,7 +135,7 @@ void Library::write()
 
 /*****************************************************************************/
 
-void Library::addLibrary(void *buf, size_t buflen)
+void LibElf::addLibrary(void *buf, size_t buflen)
 {
     addObject(NULL, buf, buflen);
 }
@@ -184,10 +237,10 @@ void OmToHeader(Header *h, ObjModule *om)
     h->trailer[1] = '\n';
 }
 
-void Library::addSymbol(ObjModule *om, char *name, int pickAny)
+void LibElf::addSymbol(ObjModule *om, char *name, int pickAny)
 {
 #if LOG
-    printf("Library::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
+    printf("LibElf::addSymbol(%s, %s, %d)\n", om->name, name, pickAny);
 #endif
     StringValue *s = tab.insert(name, strlen(name));
     if (!s)
@@ -213,13 +266,13 @@ void Library::addSymbol(ObjModule *om, char *name, int pickAny)
 
 /************************************
  * Scan single object module for dictionary symbols.
- * Send those symbols to Library::addSymbol().
+ * Send those symbols to LibElf::addSymbol().
  */
 
-void Library::scanObjModule(ObjModule *om)
+void LibElf::scanObjModule(ObjModule *om)
 {
 #if LOG
-    printf("Library::scanObjModule(%s)\n", om->name);
+    printf("LibElf::scanObjModule(%s)\n", om->name);
 #endif
     unsigned char *buf = (unsigned char *)om->base;
     size_t buflen = om->length;
@@ -367,12 +420,12 @@ void Library::scanObjModule(ObjModule *om)
  * and load the file.
  */
 
-void Library::addObject(const char *module_name, void *buf, size_t buflen)
+void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
 {
     if (!module_name)
         module_name = "";
 #if LOG
-    printf("Library::addObject(%s)\n", module_name);
+    printf("LibElf::addObject(%s)\n", module_name);
 #endif
     int fromfile = 0;
     if (!buf)
@@ -543,7 +596,7 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
                 {   reason = 12;
                     goto Lcorrupt;              // didn't find it
                 }
-                ObjModule *om = objmodules.tdata()[m];
+                ObjModule *om = objmodules[m];
 //printf("\t%x\n", (char *)om->base - (char *)buf);
                 if (moff + sizeof(Header) == (char *)om->base - (char *)buf)
                 {
@@ -617,16 +670,16 @@ void Library::addObject(const char *module_name, void *buf, size_t buflen)
  *      object modules...
  */
 
-void Library::WriteLibToBuffer(OutBuffer *libbuf)
+void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
 {
 #if LOG
-    printf("Library::WriteLibToBuffer()\n");
+    printf("LibElf::WriteLibToBuffer()\n");
 #endif
 
     /************* Scan Object Modules for Symbols ******************/
 
     for (int i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
         if (om->scan)
         {
             scanObjModule(om);
@@ -639,7 +692,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
      */
     unsigned noffset = 0;
     for (int i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
         size_t len = strlen(om->name);
         if (len >= OBJECT_NAME_SIZE)
         {
@@ -659,7 +712,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     unsigned moffset = 8 + sizeof(Header) + 4;
 
     for (int i = 0; i < objsymbols.dim; i++)
-    {   ObjSymbol *os = objsymbols.tdata()[i];
+    {   ObjSymbol *os = objsymbols[i];
 
         moffset += 4 + strlen(os->name) + 1;
     }
@@ -674,7 +727,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
          moffset += sizeof(Header) + noffset;
 
     for (int i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         moffset += moffset & 1;
         om->offset = moffset;
@@ -705,14 +758,14 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     libbuf->write(buf, 4);
 
     for (int i = 0; i < objsymbols.dim; i++)
-    {   ObjSymbol *os = objsymbols.tdata()[i];
+    {   ObjSymbol *os = objsymbols[i];
 
         sputl(os->om->offset, buf);
         libbuf->write(buf, 4);
     }
 
     for (int i = 0; i < objsymbols.dim; i++)
-    {   ObjSymbol *os = objsymbols.tdata()[i];
+    {   ObjSymbol *os = objsymbols[i];
 
         libbuf->writestring(os->name);
         libbuf->writeByte(0);
@@ -741,7 +794,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
         libbuf->write(&h, sizeof(h));
 
         for (int i = 0; i < objmodules.dim; i++)
-        {   ObjModule *om = objmodules.tdata()[i];
+        {   ObjModule *om = objmodules[i];
             if (om->name_offset >= 0)
             {   libbuf->writestring(om->name);
                 libbuf->writeByte('/');
@@ -753,7 +806,7 @@ void Library::WriteLibToBuffer(OutBuffer *libbuf)
     /* Write out each of the object modules
      */
     for (int i = 0; i < objmodules.dim; i++)
-    {   ObjModule *om = objmodules.tdata()[i];
+    {   ObjModule *om = objmodules[i];
 
         if (libbuf->offset & 1)
             libbuf->writeByte('\n');    // module alignment
