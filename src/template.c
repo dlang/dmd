@@ -2192,6 +2192,10 @@ MATCH TypeInstance::deduceType(Scope *sc,
             }
             else if (e1 && e2)
             {
+                e1 = e1->optimize(WANTvalue | WANTinterpret);
+
+                //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
+                //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
                 if (!e1->equals(e2))
                 {   if (e2->op == TOKvar)
                     {
@@ -2201,6 +2205,12 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
                         goto L1;
                     }
+                    if (!e2->implicitConvTo(e1->type))
+                        goto Lnomatch;
+
+                    e2 = e2->implicitCastTo(sc, e1->type);
+                    e2 = e2->optimize(WANTvalue | WANTinterpret);
+                    if (!e1->equals(e2))
                     goto Lnomatch;
                 }
             }
@@ -2210,12 +2220,12 @@ MATCH TypeInstance::deduceType(Scope *sc,
             L1:
                 if (j == -1)
                     goto Lnomatch;
-                TemplateParameter *tp = (TemplateParameter *)parameters->data[j];
+                TemplateParameter *tp = (*parameters)[j];
                 // BUG: use tp->matchArg() instead of the following
                 TemplateValueParameter *tv = tp->isTemplateValueParameter();
                 if (!tv)
                     goto Lnomatch;
-                Expression *e = (Expression *)dedtypes->data[j];
+                Expression *e = (Expression *)(*dedtypes)[j];
                 if (e)
                 {
                     if (!e1->equals(e))
@@ -2226,7 +2236,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     MATCH m = (MATCH)e1->implicitConvTo(vt);
                     if (!m)
                         goto Lnomatch;
-                    dedtypes->data[j] = e1;
+                    (*dedtypes)[j] = e1;
                 }
             }
             else if (s1 && t2 && t2->ty == Tident)
@@ -2234,12 +2244,12 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 j = templateParameterLookup(t2, parameters);
                 if (j == -1)
                     goto Lnomatch;
-                TemplateParameter *tp = (TemplateParameter *)parameters->data[j];
+                TemplateParameter *tp = (*parameters)[j];
                 // BUG: use tp->matchArg() instead of the following
                 TemplateAliasParameter *ta = tp->isTemplateAliasParameter();
                 if (!ta)
                     goto Lnomatch;
-                Dsymbol *s = (Dsymbol *)dedtypes->data[j];
+                Dsymbol *s = (Dsymbol *)(*dedtypes)[j];
                 if (s)
                 {
                     if (!s1->equals(s))
@@ -2247,7 +2257,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 }
                 else
                 {
-                    dedtypes->data[j] = s1;
+                    (*dedtypes)[j] = s1;
                 }
             }
             else if (s1 && s2)
