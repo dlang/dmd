@@ -1179,6 +1179,25 @@ void test7873()
 }
 
 /**********************************/
+// 7933
+
+struct Boo7933(size_t dim){int a;}
+struct Baa7933(size_t dim)
+{
+    Boo7933!dim a;
+    //Boo7933!1 a; //(1) This version causes no errors
+}
+
+auto foo7933()(Boo7933!1 b){return b;}
+//auto fuu7933(Boo7933!1 b){return b;} //(2) This line neutralizes the error
+
+void test7933()
+{
+    Baa7933!1 a; //(3) This line causes the error message
+    auto b = foo7933(Boo7933!1(1));
+}
+
+/**********************************/
 
 int main()
 {
@@ -1226,6 +1245,7 @@ int main()
     test11b();
     test7769();
     test7873();
+    test7933();
 
     printf("Success\n");
     return 0;

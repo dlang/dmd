@@ -2974,6 +2974,10 @@ MATCH TypeInstance::deduceType(Scope *sc,
             }
             else if (e1 && e2)
             {
+                e1 = e1->optimize(WANTvalue | WANTinterpret);
+
+                //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
+                //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
                 if (!e1->equals(e2))
                 {   if (e2->op == TOKvar)
                     {
@@ -2983,7 +2987,13 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
                         goto L1;
                     }
-                    goto Lnomatch;
+                    if (!e2->implicitConvTo(e1->type))
+                        goto Lnomatch;
+
+                    e2 = e2->implicitCastTo(sc, e1->type);
+                    e2 = e2->optimize(WANTvalue | WANTinterpret);
+                    if (!e1->equals(e2))
+                        goto Lnomatch;
                 }
             }
             else if (e1 && t2 && t2->ty == Tident)
