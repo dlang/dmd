@@ -800,7 +800,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             fd->vthis = vthissave;
 
         sc->pop();
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
         if (e->isBool(TRUE))
             ;
         else if (e->isBool(FALSE))
@@ -1737,7 +1737,7 @@ Lmatch:
         if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
             goto Lnomatch;
 
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
         if (e->isBool(TRUE))
             ;
         else if (e->isBool(FALSE))
@@ -2974,7 +2974,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
             }
             else if (e1 && e2)
             {
-                e1 = e1->optimize(WANTvalue | WANTinterpret);
+                e1 = e1->ctfeInterpret();
 
                 //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
                 //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
@@ -2991,7 +2991,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         goto Lnomatch;
 
                     e2 = e2->implicitCastTo(sc, e1->type);
-                    e2 = e2->optimize(WANTvalue | WANTinterpret);
+                    e2 = e2->ctfeInterpret();
                     if (!e1->equals(e2))
                         goto Lnomatch;
                 }
@@ -3655,7 +3655,7 @@ Object *aliasParameterSemantic(Loc loc, Scope *sc, Object *o)
         else if (ea)
         {
             ea = ea->semantic(sc);
-            o = ea->optimize(WANTvalue | WANTinterpret);
+            o = ea->ctfeInterpret();
         }
     }
     return o;
@@ -3920,7 +3920,7 @@ void TemplateValueParameter::semantic(Scope *sc)
 
         e = e->semantic(sc);
         e = e->implicitCastTo(sc, valType);
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
         if (e->op == TOKint64 || e->op == TOKfloat64 ||
             e->op == TOKcomplex80 || e->op == TOKnull || e->op == TOKstring)
             specValue = e;
@@ -3932,7 +3932,7 @@ void TemplateValueParameter::semantic(Scope *sc)
 
         e = e->semantic(sc);
         e = e->implicitCastTo(sc, valType);
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
         if (e->op == TOKint64)
             defaultValue = e;
         //e->toInteger();
@@ -3997,7 +3997,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
     if (ei && ei->op == TOKvar)
     {   // Resolve const variables that we had skipped earlier
-        ei = ei->optimize(WANTvalue | WANTinterpret);
+        ei = ei->ctfeInterpret();
     }
 
     //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
@@ -4022,12 +4022,12 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
         e = e->semantic(sc);
         e = e->implicitCastTo(sc, vt);
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
 
         ei = ei->syntaxCopy();
         ei = ei->semantic(sc);
         ei = ei->implicitCastTo(sc, vt);
-        ei = ei->optimize(WANTvalue | WANTinterpret);
+        ei = ei->ctfeInterpret();
         //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
         //printf("\te : %s, %s\n", e->toChars(), e->type->toChars());
         if (!ei->equals(e))
@@ -4045,7 +4045,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
         else if (m != MATCHexact)
         {
             ei = ei->implicitCastTo(sc, vt);
-            ei = ei->optimize(WANTvalue | WANTinterpret);
+            ei = ei->ctfeInterpret();
         }
     }
     (*dedtypes)[i] = ei;
@@ -4907,7 +4907,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 if (flags & 1) // only used by __traits, must not interpret the args
                     ea = ea->optimize(WANTvalue);
                 else if (ea->op != TOKvar)
-                    ea = ea->optimize(WANTvalue | WANTinterpret);
+                    ea = ea->ctfeInterpret();
                 (*tiargs)[j] = ea;
             }
             else if (sa)
@@ -4960,7 +4960,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
             else if (ea->op != TOKvar && ea->op != TOKtuple)
-                ea = ea->optimize(WANTvalue | WANTinterpret);
+                ea = ea->ctfeInterpret();
             (*tiargs)[j] = ea;
             if (ea->op == TOKtype)
             {   ta = ea->type;
@@ -5258,7 +5258,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
         {
             assert(ea);
             ea = ea->castTo(tvp->valType);
-            ea = ea->optimize(WANTvalue | WANTinterpret);
+            ea = ea->ctfeInterpret();
             (*tiargs)[i] = (Object *)ea;
         }
     }
@@ -5423,7 +5423,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             }
             // Now that we know it is not an alias, we MUST obtain a value
             unsigned olderr = global.errors;
-            ea = ea->optimize(WANTvalue | WANTinterpret);
+            ea = ea->ctfeInterpret();
             if (ea->op == TOKerror || olderr != global.errors)
                 continue;
 #if 1

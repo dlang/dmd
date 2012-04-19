@@ -6245,7 +6245,7 @@ Expression *CompileExp::semantic(Scope *sc)
         error("argument to mixin must be a string type, not %s\n", e1->type->toChars());
         return new ErrorExp();
     }
-    e1 = e1->optimize(WANTvalue | WANTinterpret);
+    e1 = e1->ctfeInterpret();
     StringExp *se = e1->toString();
     if (!se)
     {   error("argument to mixin must be a string, not (%s)", e1->toChars());
@@ -6287,7 +6287,7 @@ Expression *FileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->optimize(WANTvalue | WANTinterpret);
+    e1 = e1->ctfeInterpret();
     if (e1->op != TOKstring)
     {   error("file name argument must be a string, not (%s)", e1->toChars());
         goto Lerror;
@@ -9137,8 +9137,8 @@ Lagain:
 
     if (t->ty == Ttuple)
     {
-        lwr = lwr->optimize(WANTvalue | WANTinterpret);
-        upr = upr->optimize(WANTvalue | WANTinterpret);
+        lwr = lwr->ctfeInterpret();
+        upr = upr->ctfeInterpret();
         uinteger_t i1 = lwr->toUInteger();
         uinteger_t i2 = upr->toUInteger();
 
@@ -9631,7 +9631,7 @@ Expression *IndexExp::semantic(Scope *sc)
         case Ttuple:
         {
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            e2 = e2->optimize(WANTvalue | WANTinterpret);
+            e2 = e2->ctfeInterpret();
             uinteger_t index = e2->toUInteger();
             size_t length;
             TupleExp *te;

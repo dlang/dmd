@@ -1513,7 +1513,7 @@ Lnomatch:
                 else if (ei)
                 {
                     if (isDataseg() || (storage_class & STCmanifest))
-                        e = e->optimize(WANTvalue | WANTinterpret);
+                        e = e->ctfeInterpret();
                     else
                         e = e->optimize(WANTvalue);
                     switch (e->op)
