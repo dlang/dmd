@@ -5822,17 +5822,38 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         Type *targ = arg->type;
         Type *tprm = wildmatch ? p->type->substWildTo(wildmatch) : p->type;
 
+        if (p->storageClass & STClazy && tprm->ty == Tvoid && targ->ty != Tvoid)
+            m = MATCHconvert;
+        else
+        {
+            //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
+            if (flag)
+                // for partial ordering, value is an irrelevant mockup, just look at the type
+                m = targ->implicitConvTo(tprm);
+            else
+                m = arg->implicitConvTo(tprm);
+            //printf("match %d\n", m);
+        }
+
         // Non-lvalues do not match ref or out parameters
         if (p->storageClass & STCref)
-        {   if (!arg->isLvalue())
-            {   if (arg->op == TOKstring && tprm->ty == Tsarray)
+        {   if (m && !arg->isLvalue())
+            {
+                Type *ta = targ->aliasthisOf();
+                if (arg->op == TOKstring && tprm->ty == Tsarray)
                 {   if (targ->ty != Tsarray)
                         targ = new TypeSArray(targ->nextOf(),
                                 new IntegerExp(0, ((StringExp *)arg)->len,
                                 Type::tindex));
                 }
+                else if (ta && ta->implicitConvTo(tprm))
+                {
+                    goto Nomatch;
+                }
                 else if (arg->op == TOKstructliteral)
+                {
                     match = MATCHconvert;
+                }
                 else if (arg->op == TOKcall)
                 {
                     CallExp *ce = (CallExp *)arg;
@@ -5848,13 +5869,24 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                     goto Nomatch;
             }
 
-            /* Don't allow static arrays to be passed to mutable references
-             * to static arrays if the argument cannot be modified.
-             */
             Type *targb = targ->toBasetype();
             Type *tprmb = tprm->toBasetype();
             //printf("%s\n", targb->toChars());
             //printf("%s\n", tprmb->toChars());
+
+            /* find most derived alias this type being matched.
+             */
+            while (1)
+            {
+                Type *tat = targb->aliasthisOf();
+                if (!tat || !tat->implicitConvTo(tprm))
+                    break;
+                targb = tat;
+            }
+
+            /* Don't allow static arrays to be passed to mutable references
+             * to static arrays if the argument cannot be modified.
+             */
             if (targb->nextOf() && tprmb->ty == Tsarray &&
                 !MODimplicitConv(targb->nextOf()->mod, tprmb->nextOf()->mod))
                 goto Nomatch;
@@ -5864,21 +5896,8 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                 goto Nomatch;
         }
         else if (p->storageClass & STCout)
-        {   if (!arg->isLvalue())
+        {   if (m && !arg->isLvalue())
                 goto Nomatch;
-        }
-
-        if (p->storageClass & STClazy && tprm->ty == Tvoid && targ->ty != Tvoid)
-            m = MATCHconvert;
-        else
-        {
-            //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
-            if (flag)
-                // for partial ordering, value is an irrelevant mockup, just look at the type
-                m = targ->implicitConvTo(tprm);
-            else
-                m = arg->implicitConvTo(tprm);
-            //printf("match %d\n", m);
         }
         }
 
