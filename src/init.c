@@ -494,7 +494,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         Expression *idx = index[i];
         if (idx)
         {   idx = idx->semantic(sc);
-            idx = idx->optimize(WANTvalue | WANTinterpret);
+            idx = idx->ctfeInterpret();
             index[i] = idx;
             length = idx->toInteger();
         }
@@ -815,10 +815,12 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    int wantOptimize = needInterpret ? WANTinterpret|WANTvalue : WANTvalue;
 
     int olderrors = global.errors;
-    exp = exp->optimize(wantOptimize);
+    if (needInterpret)
+        exp = exp->ctfeInterpret();
+    else
+        exp = exp->optimize(WANTvalue);
     if (!global.gag && olderrors != global.errors)
         return this; // Failed, suppress duplicate error messages
 
@@ -864,7 +866,10 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
 
     exp = exp->implicitCastTo(sc, t);
 L1:
-    exp = exp->optimize(wantOptimize);
+    if (needInterpret)
+        exp = exp->ctfeInterpret();
+    else
+        exp = exp->optimize(WANTvalue);
     //printf("-ExpInitializer::semantic(): "); exp->print();
     return this;
 }

@@ -237,7 +237,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         {   error("expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
         }
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
         StringExp *se = e->toString();
         if (!se || se->length() == 0)
         {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());

@@ -166,6 +166,11 @@ struct Expression : Object
     // Same as WANTvalue, but also expand variables as far as possible
     #define WANTexpand  8
 
+    // Entry point for CTFE.
+    // A compile-time result is required. Give an error if not possible
+    Expression *ctfeInterpret();
+
+    // Implementation of CTFE for this expression
     virtual Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
     virtual int isConst();
