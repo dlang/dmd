@@ -21,7 +21,10 @@ nothrow:
  *
  * Parameters:
  *      T = one of double[2], float[4], void[16], byte[16], ubyte[16],
- *      short[8], ushort[8], int[4], uint[4], long[2], ulong[2]
+ *      short[8], ushort[8], int[4], uint[4], long[2], ulong[2].
+ *      For 256 bit vectors,
+ *      one of double[4], float[8], void[32], byte[32], ubyte[32],
+ *      short[16], ushort[16], int[8], uint[8], long[4], ulong[4]
  */
 
 template Vector(T)
@@ -45,6 +48,18 @@ alias Vector!(int[4])    int4;          ///
 alias Vector!(uint[4])   uint4;         ///
 alias Vector!(long[2])   long2;         ///
 alias Vector!(ulong[2])  ulong2;        ///
+
+alias Vector!(void[32])   void32;        ///
+alias Vector!(double[4])  double4;       ///
+alias Vector!(float[8])   float8;        ///
+alias Vector!(byte[32])   byte32;        ///
+alias Vector!(ubyte[32])  ubyte32;       ///
+alias Vector!(short[16])  short16;       ///
+alias Vector!(ushort[16]) ushort16;      ///
+alias Vector!(int[8])     int8;          ///
+alias Vector!(uint[8])    uint8;         ///
+alias Vector!(long[4])    long4;         ///
+alias Vector!(ulong[4])   ulong4;        ///
 
 /** XMM opcodes that conform to the following:
  *
