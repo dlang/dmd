@@ -3085,7 +3085,9 @@ Expression *ArrayLiteralExp::semantic(Scope *sc)
     /* Disallow array literals of type void being used.
      */
     if (elements->dim > 0 && t0->ty == Tvoid)
-        error("%s of type %s has no value", toChars(), type->toChars());
+    {   error("%s of type %s has no value", toChars(), type->toChars());
+        return new ErrorExp();
+    }
 
     return this;
 }
@@ -3109,13 +3111,6 @@ int ArrayLiteralExp::isBool(int result)
     return result ? (dim != 0) : (dim == 0);
 }
 
-#if DMDV2
-int ArrayLiteralExp::canThrow()
-{
-    return 1;   // because it can fail allocating memory
-}
-#endif
-
 StringExp *ArrayLiteralExp::toString()
 {
     TY telem = type->nextOf()->toBasetype()->ty;
@@ -3127,7 +3122,7 @@ StringExp *ArrayLiteralExp::toString()
         if (elements)
             for (int i = 0; i < elements->dim; ++i)
             {
-                Expression *ch = elements->tdata()[i];
+                Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
                     return NULL;
                 buf.writedchar(ch->toInteger());
@@ -3138,7 +3133,8 @@ StringExp *ArrayLiteralExp::toString()
         if (telem == Twchar) prefix = 'w';
         else if (telem == Tdchar) prefix = 'd';
 
-        StringExp *se = new StringExp(loc, buf.extractData(), buf.size - 1, prefix);
+        const size_t len = buf.offset - 1;
+        StringExp *se = new StringExp(loc, buf.extractData(), len, prefix);
         se->type = type;
         return se;
     }
@@ -3157,7 +3153,7 @@ void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     size_t dim = elements ? elements->dim : 0;
     buf->printf("A%u", dim);
     for (size_t i = 0; i < dim; i++)
-    {   Expression *e = elements->tdata()[i];
+    {   Expression *e = (*elements)[i];
         e->toMangleBuffer(buf);
     }
 }
@@ -3247,8 +3243,8 @@ void AssocArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('[');
     for (size_t i = 0; i < keys->dim; i++)
-    {   Expression *key = (Expression *)keys->data[i];
-        Expression *value = (Expression *)values->data[i];
+    {   Expression *key = (*keys)[i];
+        Expression *value = (*values)[i];
 
         if (i)
             buf->writeByte(',');
@@ -3264,8 +3260,8 @@ void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     size_t dim = keys->dim;
     buf->printf("A%u", dim);
     for (size_t i = 0; i < dim; i++)
-    {   Expression *key = (Expression *)keys->data[i];
-        Expression *value = (Expression *)values->data[i];
+    {   Expression *key = (*keys)[i];
+        Expression *value = (*values)[i];
 
         key->toMangleBuffer(buf);
         value->toMangleBuffer(buf);
