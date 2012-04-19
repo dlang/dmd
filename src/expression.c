@@ -3762,7 +3762,8 @@ StringExp *ArrayLiteralExp::toString()
         if (telem == Twchar) prefix = 'w';
         else if (telem == Tdchar) prefix = 'd';
 
-        StringExp *se = new StringExp(loc, buf.extractData(), buf.size - 1, prefix);
+        const size_t len = buf.offset - 1;
+        StringExp *se = new StringExp(loc, buf.extractData(), len, prefix);
         se->type = type;
         return se;
     }
