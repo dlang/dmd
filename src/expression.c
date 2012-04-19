@@ -7351,7 +7351,6 @@ Lagain:
             }
             if (ad->search(loc, Id::opDispatch, 0))
                 return NULL;
-            e = esave;
             goto Lshift;
         }
         else if ((t->isTypeBasic() && t->ty != Tvoid) ||
@@ -7412,7 +7411,7 @@ Lagain:
 Lshift:
             if (!arguments)
                 arguments = new Expressions();
-            arguments->shift(e);
+            arguments->shift(esave);
             if (e1->op == TOKdot)
             {
                 /* Transform:
