@@ -791,6 +791,25 @@ void test7808()
 }
 
 /***************************************************/
+// 7945
+
+struct S7945
+{
+    int v;
+    alias v this;
+}
+void foo7945(ref int n){}
+
+void test7945()
+{
+    auto s = S7945(1);
+    foo7945(s);         // 1.NG -> OK
+    s.foo7945();        // 2.OK, ufcs
+    foo7945(s.v);       // 3.OK
+    s.v.foo7945();      // 4.OK, ufcs
+}
+
+/***************************************************/
 
 int main()
 {
@@ -821,6 +840,7 @@ int main()
     test7136();
     test7731();
     test7808();
+    test7945();
 
     printf("Success\n");
     return 0;
