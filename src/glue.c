@@ -1103,6 +1103,8 @@ unsigned Type::totym()
                     assert(0);
                     break;
             }
+            if (tv->size(0) == 32)
+                error(0, "AVX vector types not supported");
             break;
         }
 
