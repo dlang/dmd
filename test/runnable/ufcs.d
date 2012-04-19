@@ -219,8 +219,26 @@ void test7773()
 }
 
 /*******************************************/
+// 7943
 
-void main()
+struct Foo7943
+{
+    int _member;
+    alias _member this;
+}
+
+int foo7943(Foo7943 f) { return 1; }
+int foo7943(int i) { return 2; }
+
+void test7943()
+{
+    Foo7943 f;
+    assert(f.foo7943() == 1);
+}
+
+/*******************************************/
+
+int main()
 {
     test1();
     test2();
@@ -229,4 +247,8 @@ void main()
     test7670();
     test7703();
     test7773();
+    test7943();
+
+    printf("Success\n");
+    return 0;
 }
