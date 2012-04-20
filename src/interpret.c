@@ -491,18 +491,28 @@ void showCtfeExpr(Expression *e, int level = 0)
 /*************************************
  *
  * Entry point for CTFE.
+ *
  * A compile-time result is required. Give an error if not possible
  */
 Expression *Expression::ctfeInterpret()
 {
-    InterState istate;
     Expression *e = optimize(WANTvalue);
-    ctfeStack.startFrame();
-    e = e->interpret(&istate);
-    ctfeStack.endFrame(0);
+
+    // A special-case hack for Windows: pointers to variables are
+    // permissible compile-time values.
+    if (op == TOKsymoff)
+        return this;
+    if (op == TOKcast && ((CastExp *)this)->e1->op == TOKsymoff)
+       return e;
+
+    // In all other cases, run the interpreter
+    e = e->interpret(NULL);
+
+    // When we leave CTFE, make sure we don't crash the
+    // compiler by returning a CTFE-internal expression.
     if (e != EXP_CANT_INTERPRET)
         e = scrubReturnValue(loc, e);
-    return (e == EXP_CANT_INTERPRET) ? this : e;
+    return (e == EXP_CANT_INTERPRET) ? new ErrorExp() : e;
 }
 
 /*************************************
@@ -645,7 +655,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
             if (earg->op == TOKthrownexception)
             {
-                if (istate->caller)
+                if (istate)
                     return earg;
                 ((ThrownExceptionExp *)earg)->generateUncaughtError();
                 return EXP_CANT_INTERPRET;
@@ -749,18 +759,12 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // If it generated an exception, return it
     if (exceptionOrCantInterpret(e))
     {
-        if (istate->caller || e == EXP_CANT_INTERPRET)
+        if (istate || e == EXP_CANT_INTERPRET)
             return e;
         ((ThrownExceptionExp *)e)->generateUncaughtError();
         return EXP_CANT_INTERPRET;
     }
 
-    // If we're about to leave CTFE, make sure we don't crash the
-    // compiler by returning a CTFE-internal expression.
-    if (!istate && !evaluatingArgs)
-    {
-        e = scrubReturnValue(loc, e);
-    }
     return e;
 }
 
