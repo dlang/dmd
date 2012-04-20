@@ -1157,7 +1157,7 @@ unsigned TypeFunction::totym()
             break;
 
         case LINKd:
-            tyf = (varargs == 1) ? TYnfunc : TYjfunc;
+            tyf = (varargs == 1 || global.params.forceCconvention) ? TYnfunc : TYjfunc;
             break;
 
         case LINKcpp:
