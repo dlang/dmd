@@ -532,7 +532,8 @@ void ClassDeclaration::semantic(Scope *sc)
             if (storage_class & STCstatic)
                 error("static class cannot inherit from nested class %s", baseClass->toChars());
             if (toParent2() != baseClass->toParent2() &&
-                !baseClass->toParent2()->getType()->isBaseOf(toParent2()->getType(), NULL))
+                (!toParent2() ||
+                 !baseClass->toParent2()->getType()->isBaseOf(toParent2()->getType(), NULL)))
             {
                 if (toParent2())
                 {
