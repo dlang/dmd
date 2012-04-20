@@ -1795,6 +1795,11 @@ void obj_moduleinfo(Symbol *scc)
  *      distinguish it from regular segments).
  */
 
+int obj_comdatsize(Symbol *s, targ_size_t symsize)
+{
+    return obj_comdat(s);
+}
+
 int obj_comdat(Symbol *s)
 {   char lnames[IDMAX+IDOHD+1]; // +1 to allow room for strcpy() terminating 0
     char cextdef[2+2];
@@ -1871,6 +1876,7 @@ int obj_comdat(Symbol *s)
     }
     if (s->Sclass == SCstatic)
         lr->flags |= 0x04;      // local bit (make it an "LCOMDAT")
+    s->Soffset = 0;
     return pseg->SDseg;
 }
 
@@ -2374,6 +2380,11 @@ void objpubdef(int seg,Symbol *s,targ_size_t offset)
     ti = (config.fulltypes == CVOLD) ? cv_typidx(s->Stype) : 0;
     reclen += instypidx(p,ti);
     obj.pubdatai += reclen;
+}
+
+void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+{
+    objpubdef(seg, s, offset);
 }
 
 /*******************************

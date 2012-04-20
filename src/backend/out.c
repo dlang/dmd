@@ -227,12 +227,11 @@ void outdata(symbol *s)
 #if ELFOBJ || MACHOBJ
                     assert(s->Sseg != UNKNOWN);
                     if (s->Sclass == SCglobal || s->Sclass == SCstatic) // if a pubdef to be done
-                        objpubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
 #endif
 #if OMFOBJ
-                    if (s->Sclass == SCglobal)          /* if a pubdef to be done */
-                        objpubdef(s->Sseg,s,s->Soffset);    /* do the definition    */
+                    if (s->Sclass == SCglobal)          // if a pubdef to be done
 #endif
+                        objpubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
                     searchfixlist(s);
                     if (config.fulltypes &&
                         !(s->Sclass == SCstatic && funcsym_p)) // not local static
@@ -276,14 +275,7 @@ void outdata(symbol *s)
 
     if (s->Sclass == SCcomdat)          // if initialized common block
     {
-#if ELFOBJ
         seg = obj_comdatsize(s, datasize);
-#else
-        seg = obj_comdat(s);
-#endif
-#if ELFOBJ || OMFOBJ
-        s->Soffset = 0;
-#endif
         switch (ty & mTYLINK)
         {
 #if TARGET_SEGMENTED
@@ -330,14 +322,9 @@ void outdata(symbol *s)
 #endif
         case mTYthread:
         {   seg_data *pseg = obj_tlsseg();
-#if ELFOBJ || MACHOBJ
             s->Sseg = pseg->SDseg;
             elf_data_start(s, datasize, s->Sseg);
-#endif
 #if OMFOBJ
-            targ_size_t TDoffset = pseg->SDoffset;
-            TDoffset = align(datasize,TDoffset);
-            s->Soffset = TDoffset;
             tls = 1;
 #endif
             seg = pseg->SDseg;
@@ -346,14 +333,10 @@ void outdata(symbol *s)
         }
         case mTYnear:
         case 0:
-#if ELFOBJ || MACHOBJ
-            seg = elf_data_start(s,datasize,DATA);
-#endif
 #if OMFOBJ
-            seg = DATA;
-            alignOffset(DATA, datasize);
-            s->Soffset = Doffset;
+            s->Sseg = DATA;
 #endif
+            seg = elf_data_start(s,datasize,DATA);
             s->Sfl = FLdata;            // initialized data
             break;
         default:
@@ -513,12 +496,11 @@ void outcommon(symbol *s,targ_size_t n)
         }
         else
         {
-#if ELFOBJ || MACHOBJ
             s->Sclass = SCcomdef;
+#if ELFOBJ || MACHOBJ
             obj_comdef(s, 0, n, 1);
 #endif
 #if OMFOBJ
-            s->Sclass = SCcomdef;
 #if TARGET_SEGMENTED
             s->Sxtrnnum = obj_comdef(s,(s->ty() & mTYfar) == 0,n,1);
 #else

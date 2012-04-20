@@ -1654,6 +1654,7 @@ int obj_comdatsize(Symbol *s, targ_size_t symsize)
         objpubdefsize(s->Sseg,s,0,symsize);
         searchfixlist(s);               // backpatch any refs to this symbol
     }
+    s->Soffset = 0;
     return s->Sseg;
 }
 

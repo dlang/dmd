@@ -402,6 +402,7 @@ void obj_browse(char *, unsigned);
 void objend(void);
 void obj_export(Symbol *s, unsigned argsize);
 void objpubdef(int seg, Symbol *s, targ_size_t offset);
+void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
 #if ELFOBJ
 void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
 #elif MACHOBJ
