@@ -2766,6 +2766,13 @@ struct S5117b
 }
 
 /************************************************/
+// This is required by druntime for Windows
+
+struct DruntimeCtfe { int dummy; }
+shared DruntimeCtfe required_by_Windows[4];
+static assert(&required_by_Windows[1]);
+
+/************************************************/
 // from tests/fail_compilation/fail147
 
 static assert(!is(typeof(Compileable!(

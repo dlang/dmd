@@ -489,6 +489,33 @@ void showCtfeExpr(Expression *e, int level = 0)
 }
 
 /*************************************
+ *
+ * Entry point for CTFE.
+ *
+ * A compile-time result is required. Give an error if not possible
+ */
+Expression *Expression::ctfeInterpret()
+{
+    Expression *e = optimize(WANTvalue);
+
+    // A special-case hack for Windows: pointers to variables are
+    // permissible compile-time values.
+    if (op == TOKsymoff)
+        return this;
+    if (op == TOKcast && ((CastExp *)this)->e1->op == TOKsymoff)
+       return e;
+
+    // In all other cases, run the interpreter
+    e = e->interpret(NULL);
+
+    // When we leave CTFE, make sure we don't crash the
+    // compiler by returning a CTFE-internal expression.
+    if (e != EXP_CANT_INTERPRET)
+        e = scrubReturnValue(loc, e);
+    return (e == EXP_CANT_INTERPRET) ? new ErrorExp() : e;
+}
+
+/*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
  *      istate     state for calling function (NULL if none)
@@ -738,12 +765,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         return EXP_CANT_INTERPRET;
     }
 
-    // If we're about to leave CTFE, make sure we don't crash the
-    // compiler by returning a CTFE-internal expression.
-    if (!istate && !evaluatingArgs)
-    {
-        e = scrubReturnValue(loc, e);
-    }
     return e;
 }
 
