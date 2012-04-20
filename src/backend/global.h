@@ -393,7 +393,7 @@ void obj_ehsections();
 void obj_moduleinfo(Symbol *scc);
 int  obj_comdat(Symbol *);
 int  obj_comdatsize(Symbol *, targ_size_t symsize);
-void obj_setcodeseg(int seg,targ_size_t offset);
+void obj_setcodeseg(int seg);
 int  obj_codeseg(char *name,int suffix);
 seg_data *obj_tlsseg();
 seg_data *obj_tlsseg_bss();
@@ -425,6 +425,9 @@ void reftocodseg(int seg, targ_size_t offset, targ_size_t val);
 int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags);
 void obj_far16thunk(Symbol *s);
 void obj_fltused();
+int elf_data_cdata(char *p, int len, int *pseg);
+int elf_data_cdata(char *p, int len);
+
 
 // objrecor.c
 void objfile_open(const char *);
