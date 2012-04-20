@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -139,33 +139,27 @@ void outdata(symbol *s)
             {   // Put out the data for the string, and
                 // reserve a spot for a pointer to that string
                 datasize += size(dt->Dty);      // reserve spot for pointer to string
-#if ELFOBJ || MACHOBJ
-                dt->DTabytes += elf_data_cdata(dt->DTpbytes,dt->DTnbytes,&dt->DTseg);
-#else
-                int stringseg;
-                targ_size_t foffset;
-                targ_size_t *poffset;
 #if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
-                {   stringseg = cseg;
-                    poffset = &Coffset;
+                {   dt->DTseg = cseg;
+                    dt->DTabytes += Coffset;
+                    goto L1;
                 }
                 else if (tybasic(dt->Dty) == TYfptr &&
                          dt->DTnbytes > config.threshold)
                 {
-                    stringseg = obj_fardata(s->Sident,dt->DTnbytes,&foffset);
-                    poffset = &foffset;
+                    targ_size_t foffset;
+                    dt->DTseg = obj_fardata(s->Sident,dt->DTnbytes,&foffset);
+                    dt->DTabytes += foffset;
+                L1:
+                    obj_write_bytes(SegData[dt->DTseg],dt->DTnbytes,dt->DTpbytes);
+                    break;
                 }
                 else
 #endif
-                {   stringseg = DATA;
-                    poffset = &Doffset;
+                {
+                    dt->DTabytes += elf_data_cdata(dt->DTpbytes,dt->DTnbytes,&dt->DTseg);
                 }
-                dt->DTseg = stringseg;
-                dt->DTabytes += *poffset;
-                obj_bytes(stringseg,*poffset,dt->DTnbytes,dt->DTpbytes);
-                *poffset += dt->DTnbytes;
-#endif
                 break;
             }
             case DT_ibytes:
@@ -210,15 +204,12 @@ void outdata(symbol *s)
                         case mTYthread:
                         {   seg_data *pseg = obj_tlsseg_bss();
                             s->Sseg = pseg->SDseg;
-#if ELFOBJ || MACHOBJ
                             elf_data_start(s, datasize, pseg->SDseg);
+#if ELFOBJ || MACHOBJ
                             obj_lidata(pseg->SDseg, pseg->SDoffset, datasize);
-#else
-                            targ_size_t TDoffset = pseg->SDoffset;
-                            TDoffset = align(datasize,TDoffset);
-                            s->Soffset = TDoffset;
-                            TDoffset += datasize;
-                            pseg->SDoffset = TDoffset;
+#endif
+#if OMFOBJ
+                            pseg->SDoffset += datasize;
                             tls = 1;
 #endif
                             s->Sfl = FLtlsdata;
@@ -237,7 +228,8 @@ void outdata(symbol *s)
                     assert(s->Sseg != UNKNOWN);
                     if (s->Sclass == SCglobal || s->Sclass == SCstatic) // if a pubdef to be done
                         objpubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
-#else
+#endif
+#if OMFOBJ
                     if (s->Sclass == SCglobal)          /* if a pubdef to be done */
                         objpubdef(s->Sseg,s,s->Soffset);    /* do the definition    */
 #endif
@@ -341,8 +333,8 @@ void outdata(symbol *s)
 #if ELFOBJ || MACHOBJ
             s->Sseg = pseg->SDseg;
             elf_data_start(s, datasize, s->Sseg);
-//          s->Soffset = pseg->SDoffset;
-#else
+#endif
+#if OMFOBJ
             targ_size_t TDoffset = pseg->SDoffset;
             TDoffset = align(datasize,TDoffset);
             s->Soffset = TDoffset;
@@ -356,7 +348,8 @@ void outdata(symbol *s)
         case 0:
 #if ELFOBJ || MACHOBJ
             seg = elf_data_start(s,datasize,DATA);
-#else
+#endif
+#if OMFOBJ
             seg = DATA;
             alignOffset(DATA, datasize);
             s->Soffset = Doffset;
@@ -376,7 +369,8 @@ void outdata(symbol *s)
     {
         objpubdefsize(s->Sseg,s,s->Soffset,datasize); // do the definition
     }
-#else
+#endif
+#if OMFOBJ
     s->Sseg = seg;
     if (s->Sclass == SCglobal)          /* if a pubdef to be done       */
         objpubdef(seg,s,s->Soffset);    /* do the definition            */
@@ -522,7 +516,8 @@ void outcommon(symbol *s,targ_size_t n)
 #if ELFOBJ || MACHOBJ
             s->Sclass = SCcomdef;
             obj_comdef(s, 0, n, 1);
-#else
+#endif
+#if OMFOBJ
             s->Sclass = SCcomdef;
 #if TARGET_SEGMENTED
             s->Sxtrnnum = obj_comdef(s,(s->ty() & mTYfar) == 0,n,1);
@@ -547,7 +542,7 @@ void outcommon(symbol *s,targ_size_t n)
     }
 }
 #endif // TX86
-
+
 /******************************
  * Walk expression tree, converting it from a PARSER tree to
  * a code generator tree.
@@ -686,7 +681,7 @@ again:
                 {
                     s->Sflags &= ~(SFLunambig | GTregcand);
                 }
-#if SCPP && TX86 && OMFOBJ
+#if TARGET_SEGMENTED
                 else if (s->ty() & mTYfar)
                     e->Ety |= mTYfar;
 #endif
@@ -930,7 +925,6 @@ STATIC void writefunc2(symbol *sfunc)
     int anyasm;
 #if OMFOBJ
     int csegsave;
-    targ_size_t coffsetsave;
 #endif
     func_t *f = sfunc->Sfunc;
     tym_t tyf;
@@ -1226,7 +1220,6 @@ STATIC void writefunc2(symbol *sfunc)
         {
 #if OMFOBJ
             csegsave = cseg;
-            coffsetsave = Coffset;
 #endif
             obj_comdat(sfunc);
         }
@@ -1243,7 +1236,8 @@ STATIC void writefunc2(symbol *sfunc)
         cod3_align();                   // align start of function
 #if ELFOBJ || MACHOBJ
         elf_func_start(sfunc);
-#else
+#endif
+#if OMFOBJ
         sfunc->Sseg = cseg;             // current code seg
 #endif
 #endif
@@ -1377,21 +1371,17 @@ STATIC void writefunc2(symbol *sfunc)
 
 #if OMFOBJ
     if (symbol_iscomdat(sfunc))         // if generated a COMDAT
-        obj_setcodeseg(csegsave,coffsetsave);   // reset to real code seg
+        obj_setcodeseg(csegsave);       // reset to real code seg
 #endif
 
     /* Check if function is a constructor or destructor, by     */
     /* seeing if the function name starts with _STI or _STD     */
     {
 #if _M_I86
-        short *p;
-
-        p = (short *) sfunc->Sident;
+        short *p = (short *) sfunc->Sident;
         if (p[0] == 'S_' && (p[1] == 'IT' || p[1] == 'DT'))
 #else
-        char *p;
-
-        p = sfunc->Sident;
+        char *p = sfunc->Sident;
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
 #endif
@@ -1432,9 +1422,6 @@ void alignOffset(int seg,targ_size_t datasize)
       //seg,datasize,Offset(seg),alignbytes);
     if (alignbytes)
         obj_lidata(seg,Offset(seg),alignbytes);
-#if OMFOBJ
-    //Offset(seg) += alignbytes;          /* offset of start of data      */
-#endif
 }
 
 

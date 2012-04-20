@@ -523,6 +523,30 @@ seg_data *getsegment()
 }
 
 
+/**************************
+ * Ouput read only data for data.
+ * Output:
+ *      *pseg   segment of that data
+ * Returns:
+ *      offset of that data
+ */
+
+int elf_data_cdata(char *p, int len, int *pseg)
+{
+    targ_size_t oldoff = Doffset;
+    obj_bytes(DATA,Doffset,len,p);
+    Doffset += len;
+    *pseg = DATA;
+    return oldoff;
+}
+
+int elf_data_cdata(char *p, int len)
+{
+    int pseg;
+
+    return elf_data_cdata(p, len, &pseg);
+}
+
 /******************************
  * Perform initialization that applies to all .obj output files.
  * Input:
@@ -1855,11 +1879,10 @@ int obj_comdat(Symbol *s)
  * Used after a COMDAT for a function is done.
  */
 
-void obj_setcodeseg(int seg,targ_size_t offset)
+void obj_setcodeseg(int seg)
 {
     assert(0 < seg && seg <= seg_count);
     cseg = seg;
-    Coffset = offset;
 }
 
 /********************************
@@ -2305,9 +2328,10 @@ int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
         seg = sdata->Sseg;
     targ_size_t offset = SegData[seg]->SDoffset;
     alignbytes = align(datasize, offset) - offset;
-    if (alignbytes)
-        obj_lidata(seg, offset, alignbytes);
+//    if (alignbytes)
+//        obj_lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;
+    SegData[seg]->SDoffset = sdata->Soffset;
     return seg;
 }
 
