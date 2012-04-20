@@ -4,16 +4,24 @@ ifeq (,$(TARGET))
     OSVER:=$(shell uname -r)
     ifeq (Darwin,$(OS))
         TARGET=OSX
-    else ifeq (Linux,$(OS))
-        TARGET=LINUX
-    else ifeq (FreeBSD,$(OS))
-        TARGET=FREEBSD
-    else ifeq (OpenBSD,$(OS))
-        TARGET=OPENBSD
-    else ifeq (Solaris,$(OS))
-        TARGET=SOLARIS
     else
-        $(error Unrecognized or unsupported OS for uname: $(OS))
+        ifeq (Linux,$(OS))
+            TARGET=LINUX
+        else
+            ifeq (FreeBSD,$(OS))
+                TARGET=FREEBSD
+            else
+                ifeq (OpenBSD,$(OS))
+                    TARGET=OPENBSD
+                else
+                    ifeq (Solaris,$(OS))
+                        TARGET=SOLARIS
+                    else
+                        $(error Unrecognized or unsupported OS for uname: $(OS))
+                    endif
+                endif
+            endif
+        endif
     endif
 endif
 
@@ -29,16 +37,7 @@ ifeq (OSX,$(TARGET))
     #SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
     #SDK=/Developer/SDKs/MacOSX10.5.sdk
     #SDK=/Developer/SDKs/MacOSX10.6.sdk
-
-    # This is the path to the SDKs in Xcode 4.3 +
-    SDK_PATH=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
-
-    ifeq ($(exists $(SDK_PATH)),)
-        SDK=$(SDK_PATH)/MacOSX10.7.sdk
-    else
-        SDK:=$(if $(filter 11.%, $(OSVER)), /Developer/SDKs/MacOSX10.6.sdk, /Developer/SDKs/MacOSX10.5.sdk)
-    endif
-
+    SDK:=$(if $(filter 11.%, $(OSVER)), /Developer/SDKs/MacOSX10.6.sdk, /Developer/SDKs/MacOSX10.5.sdk)
     TARGET_CFLAGS=-isysroot ${SDK}
     #-syslibroot is only passed to libtool, not ld.
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
