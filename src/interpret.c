@@ -495,7 +495,14 @@ void showCtfeExpr(Expression *e, int level = 0)
  */
 Expression *Expression::ctfeInterpret()
 {
-    return optimize(WANTvalue | WANTinterpret);
+    InterState istate;
+    Expression *e = optimize(WANTvalue);
+    ctfeStack.startFrame();
+    e = e->interpret(&istate);
+    ctfeStack.endFrame(0);
+    if (e != EXP_CANT_INTERPRET)
+        e = scrubReturnValue(loc, e);
+    return (e == EXP_CANT_INTERPRET) ? this : e;
 }
 
 /*************************************
@@ -638,7 +645,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
             if (earg->op == TOKthrownexception)
             {
-                if (istate)
+                if (istate->caller)
                     return earg;
                 ((ThrownExceptionExp *)earg)->generateUncaughtError();
                 return EXP_CANT_INTERPRET;
@@ -742,7 +749,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // If it generated an exception, return it
     if (exceptionOrCantInterpret(e))
     {
-        if (istate || e == EXP_CANT_INTERPRET)
+        if (istate->caller || e == EXP_CANT_INTERPRET)
             return e;
         ((ThrownExceptionExp *)e)->generateUncaughtError();
         return EXP_CANT_INTERPRET;
