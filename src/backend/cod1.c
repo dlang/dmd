@@ -2239,6 +2239,48 @@ void fillParameters(elem *e, Parameter *parameters, int *pi)
     }
 }
 
+/*******************************
+ * Return the set of registers to use for parameter passing.
+ */
+
+const unsigned char* getintegerparamsreglist(tym_t tyf, size_t* num)
+{
+    if (I64)
+    {
+        static const unsigned char reglist[] = { DI,SI,DX,CX,R8,R9 };
+        *num = 6;
+        return reglist;
+    }
+    else
+    {
+        *num = 1;
+        if (tyf == TYjfunc)
+        {
+            static const unsigned char reglist[] = { AX };
+            return reglist;
+        }
+        else
+        {
+            static const unsigned char reglist[] = { CX };
+            return reglist;
+        }
+    }
+}
+
+const unsigned char* getfloatparamsreglist(tym_t tyf, size_t* num)
+{
+    if (I64)
+    {
+        *num = 8;
+        static const unsigned char reglist[] = { XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
+        return reglist;
+    }
+    else
+    {
+        *num = 0;
+        return NULL;
+    }
+}
 
 /*******************************
  * Generate code sequence for function call.
@@ -2392,6 +2434,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
         }
         else
         {   assert(I64);
+            tym_t tyf = tybasic(e->E1->Ety);
 
             // Easier to deal with parameters as an array: parameters[0..np]
             int np = el_nparams(e->E2);
@@ -2416,14 +2459,16 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
             // Figure out which parameters go in registers
             // Compute numpara, the total bytes pushed on the stack
+            size_t numintegerregs = 0, numfloatregs = 0;
+            const unsigned char* argregs = getintegerparamsreglist(tyf, &numintegerregs);
+            const unsigned char* floatregs = getfloatparamsreglist(tyf, &numfloatregs);
             int r = 0;
-            int xmmcnt = XMM0;
+            int xmmcnt = 0;
             for (int i = np; --i >= 0;)
             {
-                static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };
                 elem *ep = parameters[i].e;
                 tym_t ty = ep->Ety;
-                if (r < sizeof(argregs)/sizeof(argregs[0]))     // if more arg regs
+                if (r < numintegerregs)     // if more arg regs
                 {   unsigned sz;
                     if (
                         // This must match type_jparam()
@@ -2437,11 +2482,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         continue;       // goes in register, not stack
                     }
                 }
-                if (xmmcnt <= XMM7)
+                if (xmmcnt < numfloatregs)
                 {
                     if (tyxmmreg(ty))
                     {
-                        parameters[i].reg = xmmcnt;
+                        parameters[i].reg = floatregs[xmmcnt];
                         xmmcnt++;
                         continue;       // goes in register, not stack
                     }
@@ -2560,7 +2605,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             // Variadic functions store the number of XMM registers used in AL
             if (e->Eflags & EFLAGS_variadic)
             {   code *c1 = getregs(mAX);
-                c1 = movregconst(c1,AX,xmmcnt - XMM0,1);
+                c1 = movregconst(c1,AX,xmmcnt,1);
                 c = cat(c, c1);
                 keepmsk |= mAX;
             }

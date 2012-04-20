@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -290,7 +290,7 @@ void Module::genobjfile(int multiobj)
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = aimports.tdata()[0];
+        Module *m = aimports[0];
         assert(m);
         if (m->sictor || m->sctor || m->sdtor)
         {
@@ -337,7 +337,7 @@ void Module::genobjfile(int multiobj)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *member = members->tdata()[i];
+        Dsymbol *member = (*members)[i];
         member->toObjFile(multiobj);
     }
 
@@ -461,7 +461,8 @@ void Module::genobjfile(int multiobj)
                 sp->Stype = type_fake(TYint);
                 sp->Stype->Tcount++;
                 sp->Sclass = SCfastpar;
-                sp->Spreg = I64 ? DI : AX;
+                size_t num;
+                sp->Spreg = getintegerparamsreglist(TYjfunc, &num)[0];
                 sp->Sflags &= ~SFLspill;
                 sp->Sfl = FLpara;       // FLauto?
                 cstate.CSpsymtab = &ma->Sfunc->Flocsym;
@@ -700,7 +701,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = parameters->tdata()[i];
+        {   VarDeclaration *v = (*parameters)[i];
             if (v->csym)
             {
                 error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
@@ -769,20 +770,21 @@ void FuncDeclaration::toObjFile(int multiobj)
     // Determine register assignments
     if (pi)
     {
-        if (global.params.is64bit)
-        {
+        size_t numintegerregs = 0, numfloatregs = 0;
+        const unsigned char* argregs = getintegerparamsreglist(tyf, &numintegerregs);
+        const unsigned char* floatregs = getfloatparamsreglist(tyf, &numfloatregs);
+
             // Order of assignment of pointer or integer parameters
-            static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };
             int r = 0;
-            int xmmcnt = XMM0;
+        int xmmcnt = 0;
 
             for (size_t i = 0; i < pi; i++)
             {   Symbol *sp = params[i];
                 tym_t ty = tybasic(sp->Stype->Tty);
                 // BUG: doesn't work for structs
-                if (r < sizeof(argregs)/sizeof(argregs[0]))
+            if (r < numintegerregs)
                 {
-                    if (type_jparam(sp->Stype))
+                if ((I64 || (i == 0 && (tyf == TYjfunc || tyf == TYmfunc))) && type_jparam(sp->Stype))
                     {
                         sp->Sclass = SCfastpar;
                         sp->Spreg = argregs[r];
@@ -790,31 +792,18 @@ void FuncDeclaration::toObjFile(int multiobj)
                         ++r;
                     }
                 }
-                if (xmmcnt <= XMM7)
+            if (xmmcnt < numfloatregs)
                 {
-                    if (tyfloating(ty) && tysize(ty) <= 8)
+                if (tyxmmreg(ty))
                     {
                         sp->Sclass = SCfastpar;
-                        sp->Spreg = xmmcnt;
+                    sp->Spreg = floatregs[xmmcnt];
                         sp->Sfl = FLauto;
                         ++xmmcnt;
                     }
                 }
             }
         }
-        else
-        {
-            // First parameter goes in register
-            Symbol *sp = params[0];
-            if ((tyf == TYjfunc || tyf == TYmfunc) &&
-                type_jparam(sp->Stype))
-            {   sp->Sclass = SCfastpar;
-                sp->Spreg = (tyf == TYjfunc) ? AX : CX;
-                sp->Sfl = FLauto;
-                //printf("'%s' is SCfastpar\n",sp->Sident);
-            }
-        }
-    }
 
     if (func->fbody)
     {   block *b;
@@ -965,7 +954,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
-        Dsymbol *s = irs.deferToObj->tdata()[i];
+        Dsymbol *s = (*irs.deferToObj)[i];
         s->toObjFile(0);
     }
 
