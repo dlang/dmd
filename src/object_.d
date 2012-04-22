@@ -168,32 +168,8 @@ bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
     if (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs)))
         return lhs.opEquals(rhs);
 
-    static if (is(Lhs == const) || is(Rhs == const))
-    {
-        // const   == const
-        // mutable == const
-        // const   == mutable
-
-        // General case => symmetric calls to method opEquals
-        return lhs.opEquals(rhs) && rhs.opEquals(lhs);
-    }
-    else
-    {
-        // mutable == mutable
-
-        // #1 require that parameter type is mutable Object version ?
-        // == calling
-        //          ( Lhs.opEquals(Object) or Lhs.opEquals(const Object) const )
-        //      and ( Rhs.opEquals(Object) or Rhs.opEquals(const Object) const )
-        return lhs.opEquals( cast(Object)(rhs) ) && rhs.opEquals( cast(Object)(lhs) );
-
-        // #2 or allow comparing between exact types
-        //    (Allow breaking "Loskov substitution principle")
-        // == allow calling
-        //          ( Lhs.opEquals(Rhs) or ... or Lhs.opEquals(const Object) const )
-        //      and ( Rhs.opEquals(Lhs) or ... or Rhs.opEquals(const Object) const )
-        //return lhs.opEquals( rhs ) && rhs.opEquals( lhs );
-    }
+    // General case => symmetric calls to method opEquals
+    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
 }
 
 /**
