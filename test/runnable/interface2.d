@@ -12,9 +12,9 @@ class Bar : Foo
 {
     int bar()
     {
-	printf("Bar.bar(this = %p)\n", this);
-	p1 = cast(void*)this;
-	return 0;
+        printf("Bar.bar(this = %p)\n", this);
+        p1 = cast(void*)this;
+        return 0;
     }
 }
 
@@ -63,7 +63,7 @@ void test2()
 
 interface B3
 {
-        void close();
+    void close();
 }
 
 interface C3 : B3
@@ -72,9 +72,9 @@ interface C3 : B3
 
 class A3 : B3
 {
-        void close()
-        {
-        }
+    void close()
+    {
+    }
 }
 
 class D3 : A3
@@ -87,8 +87,8 @@ class E3 : D3, C3
 
 void test3()
 {
-        C3 c = new E3();
-        delete c;
+    C3 c = new E3();
+    delete c;
 }
 
 
@@ -114,8 +114,8 @@ void test4()
 {
     Z z = new Z();
     if (cast(K) z)
-    {	printf("not ok\n");
-	assert(0);
+    {   printf("not ok\n");
+        assert(0);
     }
 }
 
@@ -123,55 +123,55 @@ void test4()
 
 interface I5
 {
-     char M ();
+    char M ();
 }
 
 interface J5 : I5
 {
-     char N ();
+    char N ();
 }
 
 class A5 : I5
 {
-     char M () { printf("M()\n"); return 'M'; }
+    char M () { printf("M()\n"); return 'M'; }
 }
 
 class B5 : A5, J5
 {
-     char N () { printf("N()\n"); return 'N'; }
+    char N () { printf("N()\n"); return 'N'; }
 }
 
 void test5()
 {
-     I5 f = new B5 ();
+    I5 f = new B5 ();
 
-     char c = f.M();
-     assert(c == 'M');
+    char c = f.M();
+    assert(c == 'M');
 }
 
 /*******************************************************/
 
 interface A6
 {
-     void ma ();
+    void ma ();
 }
 
 interface B6
 {
-     void mb ();
+    void mb ();
 }
 
 class C6 : A6, B6
 {
-     void ma () { }
-     void mb () { }
+    void ma () { }
+    void mb () { }
 }
 
 void test6()
 {
-     A6 x = new C6 ();
+    A6 x = new C6 ();
 
-     assert (cast (B6) x);
+    assert (cast (B6) x);
 }
 
 /*******************************************************/
@@ -212,12 +212,12 @@ void test8()
 
 interface IA9
 {
-     int i1();
+    int i1();
 }
 
 interface IB9
 {
-     int i2();
+    int i2();
 }
 
 interface IC9 : IA9, IB9
@@ -226,8 +226,8 @@ interface IC9 : IA9, IB9
 
 class C9 : IC9
 {
-     int i1() { printf("i1\n"); return 1; }
-     int i2() { printf("i2\n"); return 2; }
+    int i1() { printf("i1\n"); return 1; }
+    int i2() { printf("i2\n"); return 2; }
 }
 
 void f9(IA9 i1, IB9 i2)
@@ -242,11 +242,11 @@ void f9(IA9 i1, IB9 i2)
 
 void test9()
 {
-     IC9 i3 = new C9();
-     C9 c = new C9();
-     f9(c, c);
-     //printf("c = %p, IC9 = %p, IA9 = %p, IB9 = %p\n", c, i3, cast(IA9)i3, cast(IB9)i3);
-     f9(i3, i3);
+    IC9 i3 = new C9();
+    C9 c = new C9();
+    f9(c, c);
+    //printf("c = %p, IC9 = %p, IA9 = %p, IB9 = %p\n", c, i3, cast(IA9)i3, cast(IB9)i3);
+    f9(i3, i3);
 }
 
 
@@ -254,41 +254,42 @@ void test9()
 
 interface IOne
 {
-        int one ();
+    int one ();
 }
 
 interface ITwo
 {
-        int two ();
+    int two ();
 }
 
 interface IThree : IOne, ITwo
 {
-        int three ();
+    int three ();
 }
 
 class Three : IThree
 {
-        int one ()   { printf ("one\n"); return 1; }
-        int two ()   { printf ("two\n"); return 2; }
-        int three () { printf ("three\n"); return 3; }
+    int one ()   { printf ("one\n"); return 1; }
+    int two ()   { printf ("two\n"); return 2; }
+    int three () { printf ("three\n"); return 3; }
 }
 
 
 void test10()
-{	int i;
-        IThree three = new Three;
+{
+    int i;
+    IThree three = new Three;
 
-        i = three.one();
-	assert(i == 1);
-        i = three.two();
-	assert(i == 2);
-        i = three.three();
-	assert(i == 3);
+    i = three.one();
+    assert(i == 1);
+    i = three.two();
+    assert(i == 2);
+    i = three.three();
+    assert(i == 3);
 
-	ITwo two = cast(ITwo) three;
-	i = two.two();
-	assert(i == 2);
+    ITwo two = cast(ITwo) three;
+    i = two.two();
+    assert(i == 2);
 }
 
 
@@ -305,9 +306,9 @@ class MyClass : B11{
 
 void test11()
 {
-        B11 b = new MyClass();
-	Object o = cast(Object)b;
-	printf("o = %p\n", o);
+    B11 b = new MyClass();
+    Object o = cast(Object)b;
+    printf("o = %p\n", o);
 }
 
 /*******************************************************/
@@ -333,14 +334,14 @@ class B12 : A12
 {
     IA12 ia;
 
-    override IA12 clone()	// covariant return value
+    override IA12 clone()   // covariant return value
     out (result)
     {
-	printf("B12.clone()\n");
+        printf("B12.clone()\n");
     }
     body
     {
-	return ia;
+        return ia;
     }
 }
 
@@ -390,7 +391,7 @@ class B13 : A13
     override IA13 clone()
     out (result)
     {
-	printf("B13.clone()\n");
+        printf("B13.clone()\n");
     }
     body { return ia; }
 }
@@ -433,13 +434,14 @@ interface BabyI14: I14
 }
 
 class A14: BabyI14
-{	int x;
-	BabyI14 clone()
-	{
-	    A14 a = new A14;
-	    a.x = x;
-	    return a;
-	}
+{
+    int x;
+    BabyI14 clone()
+    {
+        A14 a = new A14;
+        a.x = x;
+        return a;
+    }
 }
 
 I14 foo14(I14 i)
@@ -468,8 +470,8 @@ interface I15
 
 class A15 : I15
 {
-	int x;
-	A15 clone() { return this; }
+    int x;
+    A15 clone() { return this; }
 }
 
 void test15()
@@ -494,8 +496,8 @@ class A16
 {
     I16 foo()
     {
-	printf("Called A.foo\n");
-	return new B16(42);
+        printf("Called A.foo\n");
+        return new B16(42);
     }
 }
 
@@ -507,8 +509,8 @@ class B16 : A16, I16
 
     override B16 foo()
     {
-	printf("Called B.foo\n");
-	return new B16(69);
+        printf("Called B.foo\n");
+        return new B16(69);
     }
 }
 
@@ -533,7 +535,7 @@ interface Father
 class Mother
 {
     Father test() {
-	printf("Called Mother.test\n");
+        printf("Called Mother.test\n");
         return new Child(42);
     }
 }
@@ -545,13 +547,13 @@ class Child : Mother, Father {
 
     override Child test()
     {
-	printf("Called Child.test\n");
+        printf("Called Child.test\n");
         return new Child(69);
     }
 
     int showData() {
-	printf("%d\n", data);
-	return data;
+        printf("%d\n", data);
+        return data;
     }
 }
 
@@ -575,55 +577,55 @@ void test17()
 int status18;
 
 interface I18 {
-	int showData();
+    int showData();
 }
 
 class Parent18 {
-	I18 test() {
-		status18 += 7;
-		return new Child18(42);
-	}
+    I18 test() {
+        status18 += 7;
+        return new Child18(42);
+    }
 }
 
 class Child18 : Parent18, I18 {
-	int data;
+    int data;
 
-	this(int d) {
-		data = d;
-	}
+    this(int d) {
+        data = d;
+    }
 
-	override Child18 test() {
-		status18 += 1;
-		return new Child18(69);
-	}
+    override Child18 test() {
+        status18 += 1;
+        return new Child18(69);
+    }
 
-	override
-	 int showData(){
-		return data;
-	}
+    override
+     int showData(){
+        return data;
+    }
 }
 
 void test18()
 {
-	Child18 a = new Child18(105);
-	assert(a);
-	assert(status18 == 0);
-	assert(a.data == 105);
+    Child18 a = new Child18(105);
+    assert(a);
+    assert(status18 == 0);
+    assert(a.data == 105);
 
-	Parent18 p = a;
-	assert(a);
-	assert(status18 == 0);
+    Parent18 p = a;
+    assert(a);
+    assert(status18 == 0);
 
-	a.test();
-	assert(status18 == 1);
+    a.test();
+    assert(status18 == 1);
 
-	I18 i = p.test();
-	assert(i);
-	assert(status18 == 2);
+    I18 i = p.test();
+    assert(i);
+    assert(status18 == 2);
 
-	assert(a.data == 105);
-	assert(a.showData() == 105);
-	assert(i.showData() == 69);
+    assert(a.data == 105);
+    assert(a.showData() == 105);
+    assert(i.showData() == 69);
 }
 
 /*******************************************************/
@@ -704,26 +706,26 @@ void test20()
 
 interface I21
 {
-        int test(int);
+    int test(int);
 }
 
 class C21 : I21
 {
-        int test(int i){
-                return i+1;
-        }
+    int test(int i){
+        return i+1;
+    }
 }
 
 void test21()
 {
-        C21[I21] aa;
+    C21[I21] aa;
 
-        C21 o = new C21();
+    C21 o = new C21();
 
-        aa[o] = o;
+    aa[o] = o;
 
-	I21 i = aa[o];
-	assert(i.test(3) == 4);
+    I21 i = aa[o];
+    assert(i.test(3) == 4);
 }
 
 
@@ -788,20 +790,20 @@ class Foo24 : I24B!()
 {
     I24B!() func()
     {
-	return null;
+        return null;
     }
 }
 
 void test24()
 {
-  auto foo = new Foo24();
+    auto foo = new Foo24();
 
-  foo.func(); 
-  printf("foo.func() call passed\n");
+    foo.func();
+    printf("foo.func() call passed\n");
 
-  I24A ifA = foo;
-  assert(ifA !is null);
-  ifA.func();
+    I24A ifA = foo;
+    assert(ifA !is null);
+    ifA.func();
 }
 
 /*******************************************************/
@@ -928,19 +930,19 @@ void test2553()
 {
     IFoo foo;
     if (0)
-	foo.foo;
+        foo.foo;
 }
 
 /*******************************************************/
 
 interface I2524
 {
-  void foo();
+    void foo();
 }
 
 class C2524 : I2524
 {
-  final override void foo() { }
+    final override void foo() { }
 }
 
 /*******************************************************/
@@ -951,6 +953,13 @@ bool foo4088(Test4088 x, Test4088 y)
 {
     return x == y;
 }
+
+/*******************************************************/
+// 7950
+
+template TypeTuple7950(T...){alias T TypeTuple7950;}
+interface I7950a {} // ok
+interface I7950b : I7950a, TypeTuple7950!() {} // fail
 
 /*******************************************************/
 
