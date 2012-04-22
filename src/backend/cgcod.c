@@ -611,7 +611,15 @@ void stackoffsets(int flags)
             }
             alignsize = type_alignsize(s->Stype);
 
-            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)type_alignsize(s->Stype), s->Sflags & SFLread);
+            /* The purpose of this is to reduce alignment faults when SIMD vectors
+             * are reinterpreted cast to other types with less alignment.
+             */
+            if (sz == 16 && config.fpxmmregs && alignsize < sz &&
+                (s->Sclass == SCauto || s->Sclass == SCtmp)
+               )
+                alignsize = sz;
+
+            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
             if (pass == 1)
@@ -708,8 +716,8 @@ void stackoffsets(int flags)
                         vec_setbit(si,tbl);
 
                     // Align doubles to 8 byte boundary
-                    if (!I16 && type_alignsize(s->Stype) > REGSIZE)
-                        Aalign = type_alignsize(s->Stype);
+                    if (!I16 && alignsize > REGSIZE)
+                        Aalign = alignsize;
                 L2:
                     break;
 
