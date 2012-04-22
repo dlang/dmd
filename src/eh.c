@@ -244,7 +244,7 @@ void except_fillInEHTable(symbol *s)
             {
                 code *c2 = code_next(c);
                 if (config.flags2 & CFG2seh)
-                    c2->IEV2.Vsize_t = scopeindex;
+                    nteh_patchindex(c2, scopeindex);
 #if OUREH
                 pdt = dtdword(pdt,boffset - startblock->Boffset); // guard offset
 #endif
@@ -264,12 +264,13 @@ void except_fillInEHTable(symbol *s)
                             foffset = eoffset;
                             code *cf = code_next(c2);
                             if (config.flags2 & CFG2seh)
-                            {   cf->IEV2.Vsize_t = stack[stacki - 1];
+                            {
+                                nteh_patchindex(cf, stack[stacki - 1]);
                                 foffset += calccodsize(cf);
                                 cf = code_next(cf);
                             }
                             foffset += calccodsize(cf);
-                            while (cf->Iop != JMP && cf->Iop != JMPS)
+                            while (!cf->isJumpOP())
                             {
                                 cf = code_next(cf);
                                 foffset += calccodsize(cf);

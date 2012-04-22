@@ -510,6 +510,8 @@ struct code
         Irm &= ~modregrm(0, 7, 0);
         orReg(reg);
     }
+
+    bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
 };
 
 // !=0 if we have to add FWAIT to floating point ops
@@ -930,6 +932,7 @@ code *nteh_gensindex(int);
 #define GENSINDEXSIZE 7
 code *nteh_monitor_prolog(Symbol *shandle);
 code *nteh_monitor_epilog(regm_t retregs);
+code *nteh_patchindex(code* c, int index);
 
 // cgen.c
 code *code_last(code *c);
