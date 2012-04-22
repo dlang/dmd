@@ -51,16 +51,75 @@ bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
     // If aliased to the same object or both null => equal
     if (lhs is rhs) return true;
 
-    // If either is null => non-equal
-    if (lhs is null || rhs is null) return false;
+    static if (is(Lhs == shared) || is(Rhs == shared))
+    {
+        // If either is shared, is defined only equality comparisons.
+        return false;
+    }
+    else
+    {
+      version (all) // allow direct comparison
+      {
+        // If either is null => non-equal
+        if (lhs is null || rhs is null) return false;
 
-    // If same exact type => one call to method opEquals
-    if (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs)))
-        return lhs.opEquals(rhs);
+        // If same exact type => one call to method opEquals
+        if (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs)))
+            return lhs.opEquals(rhs);
 
-    // General case => symmetric calls to method opEquals
-    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+        // General case => symmetric calls to method opEquals
+        return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+      }
+      else      // always compare with const(Object)
+      {
+        return _ObjectEq(lhs, rhs);
+      }
+    }
 }
+
+bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
+    if (is(Lhs == interface) || is(Rhs == interface))
+{
+    // If aliased to the same object or both null => equal
+    static if (is(typeof(lhs is rhs)))
+    {
+        if (lhs is rhs) return true;
+    }
+
+    static if (is(Lhs == shared) || is(Rhs == shared))
+    {
+        // If either is shared, is defined only equality comparisons.
+        return false;
+    }
+    else
+    {
+        // If either is interface, downcast to Object and keep qualifier
+        static if (is(Lhs == interface))
+        {
+            static if (is(Lhs == shared))
+                auto lho = cast(shared const(Object))lhs;
+            else
+                auto lho = cast(const Object)lhs;
+            // If C++ interface, result is null
+        }
+        else
+            alias lhs lho;
+
+        static if (is(Rhs == interface))
+        {
+            static if (is(Rhs == shared))
+                auto rho = cast(shared const(Object))rhs;
+            else
+                auto rho = cast(const Object)rhs;
+        }
+        else
+            alias rhs rho;
+
+        return _ObjectEq(lho, rho);
+    }
+}
+
+private bool _ObjectEq(const Object lhs, const Object rhs);
 
 void setSameMutex(shared Object ownee, shared Object owner);
 
