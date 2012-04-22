@@ -1213,7 +1213,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (*baseclasses)[0];
+    {   BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
         Type *tb = b->type->toBasetype();
 
