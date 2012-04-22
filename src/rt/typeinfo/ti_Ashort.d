@@ -20,7 +20,7 @@ private import rt.util.hash;
 
 class TypeInfo_As : TypeInfo_Array
 {
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(const Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -65,7 +65,7 @@ class TypeInfo_As : TypeInfo_Array
         return 0;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(short);
     }
@@ -104,7 +104,7 @@ class TypeInfo_At : TypeInfo_As
         return 0;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(ushort);
     }
@@ -121,7 +121,7 @@ class TypeInfo_Au : TypeInfo_At
 
     override string toString() const pure nothrow @safe { return "wchar[]"; }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(wchar);
     }

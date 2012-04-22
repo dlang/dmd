@@ -21,7 +21,7 @@ private import rt.util.string;
 
 class TypeInfo_Ag : TypeInfo_Array
 {
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(const Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -66,7 +66,7 @@ class TypeInfo_Ag : TypeInfo_Array
         return 0;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(byte);
     }
@@ -92,7 +92,7 @@ class TypeInfo_Ah : TypeInfo_Ag
         return dstrcmp(s1, s2);
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(ubyte);
     }
@@ -109,7 +109,7 @@ class TypeInfo_Av : TypeInfo_Ah
 
     override string toString() const pure nothrow @safe { return "void[]"; }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(void);
     }
@@ -126,7 +126,7 @@ class TypeInfo_Ab : TypeInfo_Ah
 
     override string toString() const pure nothrow @safe { return "bool[]"; }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(bool);
     }
@@ -193,7 +193,7 @@ else
         return hash;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(char);
     }
@@ -210,7 +210,7 @@ class TypeInfo_Aya : TypeInfo_Aa
 
     override string toString() const pure nothrow @safe { return "immutable(char)[]"; }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(immutable(char));
     }

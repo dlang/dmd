@@ -53,7 +53,7 @@ class TypeInfo_u : TypeInfo
         *cast(wchar *)p2 = t;
     }
 
-    override void[] init()
+    override const(void)[] init()
     {
         static immutable wchar c;
 

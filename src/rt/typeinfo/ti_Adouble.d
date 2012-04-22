@@ -20,7 +20,7 @@ private import rt.util.hash;
 
 class TypeInfo_Ad : TypeInfo_Array
 {
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(const Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -72,7 +72,7 @@ class TypeInfo_Ad : TypeInfo_Array
         return 0;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(double);
     }
@@ -89,7 +89,7 @@ class TypeInfo_Ap : TypeInfo_Ad
 
     override string toString() const pure nothrow @safe { return "idouble[]"; }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(idouble);
     }

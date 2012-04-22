@@ -20,7 +20,7 @@ private import rt.util.hash;
 
 class TypeInfo_Al : TypeInfo_Array
 {
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(const Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -66,7 +66,7 @@ class TypeInfo_Al : TypeInfo_Array
         return 0;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(long);
     }
@@ -106,7 +106,7 @@ class TypeInfo_Am : TypeInfo_Al
         return 0;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(ulong);
     }

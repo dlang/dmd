@@ -78,7 +78,7 @@ class TypeInfo_c : TypeInfo
         *cast(creal *)p2 = t;
     }
 
-    override void[] init() nothrow pure
+    override const(void)[] init() nothrow pure
     {
         static immutable creal r;
 

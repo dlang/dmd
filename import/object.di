@@ -30,11 +30,11 @@ alias immutable(dchar)[] dstring;
 
 class Object
 {
-    string   toString();
-    hash_t   toHash() @trusted nothrow;
-    int      opCmp(Object o);
-    equals_t opEquals(Object o);
-    equals_t opEquals(Object lhs, Object rhs);
+    string   toString() const;
+    hash_t   toHash() @trusted nothrow const;
+    int      opCmp(const Object o) const;
+    equals_t opEquals(const Object o) const;
+    equals_t opEquals(const Object lhs, const Object rhs) const;
 
     interface Monitor
     {
@@ -46,8 +46,6 @@ class Object
 }
 
 bool opEquals(const Object lhs, const Object rhs);
-bool opEquals(Object lhs, Object rhs);
-//bool opEquals(TypeInfo lhs, TypeInfo rhs);
 
 void setSameMutex(shared Object ownee, shared Object owner);
 
@@ -66,18 +64,18 @@ struct OffsetTypeInfo
 
 class TypeInfo
 {
-    hash_t   getHash(in void* p) @trusted nothrow;
-    equals_t equals(in void* p1, in void* p2);
-    int      compare(in void* p1, in void* p2);
+    hash_t   getHash(in void* p) @trusted nothrow const;
+    equals_t equals(in void* p1, in void* p2) const;
+    int      compare(in void* p1, in void* p2) const;
     @property size_t   tsize() nothrow pure const @safe;
-    void     swap(void* p1, void* p2);
-    @property TypeInfo next() nothrow pure;
+    void     swap(void* p1, void* p2) const;
+    @property TypeInfo next() nothrow pure const;
     const(void)[]   init() nothrow pure const @safe; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
     @property uint     flags() nothrow pure const @safe;
     // 1:    // has possible pointers into GC memory
-    OffsetTypeInfo[] offTi();
-    void destroy(void* p);
-    void postblit(void* p);
+    const(OffsetTypeInfo)[] offTi() const;
+    void destroy(void* p) const;
+    void postblit(void* p) const;
     @property size_t talign() nothrow pure const @safe;
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow;
     @property immutable(void)* rtInfo() nothrow pure const @safe;
@@ -103,7 +101,7 @@ class TypeInfo_Pointer : TypeInfo
 class TypeInfo_Array : TypeInfo
 {
     override string toString();
-    override equals_t opEquals(Object o);
+    override equals_t opEquals(const Object o);
     override hash_t getHash(in void* p) @trusted;
     override equals_t equals(in void* p1, in void* p2);
     override int compare(in void* p1, in void* p2);
@@ -147,8 +145,8 @@ class TypeInfo_Delegate : TypeInfo
 
 class TypeInfo_Class : TypeInfo
 {
-    @property auto info() @safe nothrow pure { return this; }
-    @property auto typeinfo() @safe nothrow pure { return this; }
+    @property auto info() @safe nothrow pure const { return this; }
+    @property auto typeinfo() @safe nothrow pure const { return this; }
 
     byte[]      init;   // class static initializer
     string      name;   // class name
@@ -169,8 +167,8 @@ class TypeInfo_Class : TypeInfo
     void*       defaultConstructor;
     immutable(void)*    m_rtInfo;     // data for precise GC
 
-    static TypeInfo_Class find(in char[] classname);
-    Object create();
+    static const(TypeInfo_Class) find(in char[] classname);
+    Object create() const;
 }
 
 alias TypeInfo_Class ClassInfo;
@@ -316,9 +314,9 @@ class Throwable : Object
 {
     interface TraceInfo
     {
-        int opApply(scope int delegate(ref char[]));
-        int opApply(scope int delegate(ref size_t, ref char[]));
-        string toString();
+        int opApply(scope int delegate(ref const(char[]))) const;
+        int opApply(scope int delegate(ref size_t, ref const(char[]))) const;
+        string toString() const;
     }
 
     string      msg;

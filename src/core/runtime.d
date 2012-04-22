@@ -420,15 +420,15 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 free( framelist );
             }
 
-            override int opApply( scope int delegate(ref char[]) dg )
+            override int opApply( scope int delegate(ref const(char[])) dg ) const
             {
-                return opApply( (ref size_t, ref char[] buf)
+                return opApply( (ref size_t, ref const(char[]) buf)
                                 {
                                     return dg( buf );
                                 } );
             }
 
-            override int opApply( scope int delegate(ref size_t, ref char[]) dg )
+            override int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
             {
                 version( Posix )
                 {

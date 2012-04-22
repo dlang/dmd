@@ -19,7 +19,7 @@ class TypeInfo_AC : TypeInfo_Array
 {
     override string toString() { return TypeInfo.toString(); }
 
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(const Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -96,7 +96,7 @@ class TypeInfo_AC : TypeInfo_Array
         return c < 0 ? -1 : c > 0 ? 1 : 0;
     }
 
-    override @property TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(Object);
     }
