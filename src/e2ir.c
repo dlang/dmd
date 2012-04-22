@@ -152,6 +152,7 @@ elem *callfunc(Loc loc,
             {
                 ea = el_una(OPstrpar, TYstruct, ea);
                 ea->ET = ea->E1->ET;
+                assert(ea->ET);
             }
             if (reverse)
                 ep = el_param(ep,ea);
@@ -709,15 +710,14 @@ elem *Expression::toElemDtor(IRState *irs)
  */
 #if DMDV2
 elem *SymbolExp::toElem(IRState *irs)
-{   Symbol *s;
+{
     elem *e;
     tym_t tym;
     Type *tb = (op == TOKsymoff) ? var->type->toBasetype() : type->toBasetype();
     int offset = (op == TOKsymoff) ? ((SymOffExp*)this)->offset : 0;
-    FuncDeclaration *fd;
     VarDeclaration *v = var->isVarDeclaration();
 
-    //printf("SymbolExp::toElem('%s') %p\n", toChars(), this);
+    //printf("SymbolExp::toElem('%s') %p, %s\n", toChars(), this, type->toChars());
     //printf("\tparent = '%s'\n", var->parent ? var->parent->toChars() : "null");
     if (op == TOKvar && var->needThis())
     {
@@ -730,8 +730,8 @@ elem *SymbolExp::toElem(IRState *irs)
     if (op == TOKvar && v && v->ident == Id::ctfe)
         return el_long(type->totym(), 0);
 
-    s = var->toSymbol();
-    fd = NULL;
+    Symbol *s = var->toSymbol();
+    FuncDeclaration *fd = NULL;
     if (var->toParent2())
         fd = var->toParent2()->isFuncDeclaration();
 
@@ -862,6 +862,10 @@ L1:
         else if (tybasic(tym) == TYarray)
         {
             e->Ejty = e->Ety = TYstruct;
+            e->ET = type->toCtype();
+        }
+        else if (tybasic(tym) >= TYfloat4 && tybasic(tym) <= TYullong2)
+        {
             e->ET = type->toCtype();
         }
     }

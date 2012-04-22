@@ -1092,8 +1092,20 @@ unsigned Type::totym()
                     assert(0);
                     break;
             }
-            if (tv->size(0) == 32)
-                error(0, "AVX vector types not supported");
+            static bool once = false;
+            if (!once)
+            {
+                if (global.params.is64bit || TARGET_OSX)
+                    ;
+                else
+                {   error(0, "SIMD vector types not supported on this platform");
+                    once = true;
+                }
+                if (tv->size(0) == 32)
+                {   error(0, "AVX vector types not supported");
+                    once = true;
+                }
+            }
             break;
         }
 
