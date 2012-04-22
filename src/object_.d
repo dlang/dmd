@@ -229,6 +229,56 @@ bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
     }
 }
 
+deprecated bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
+    if (is(Lhs == typedef) || is(Rhs == typedef))
+{
+    static if (is(Lhs LhsB == typedef))
+    {
+        static if (is(Lhs == immutable))
+            alias immutable(LhsB) Lhs2;
+        else static if (is(Lhs == const))
+        {
+            static if (is(Lhs == shared))
+                alias const(shared(LhsB)) Lhs2;
+            else
+                alias const(LhsB) Lhs2;
+        }
+        else
+        {
+            static if (is(Lhs == shared))
+                alias shared(LhsB) Lhs2;
+            else
+                alias LhsB Lhs2;
+        }
+    }
+    else
+        alias Lhs Lhs2;
+
+    static if (is(Rhs RhsB == typedef))
+    {
+        static if (is(Rhs == immutable))
+            alias immutable(RhsB) Rhs2;
+        else static if (is(Rhs == const))
+        {
+            static if (is(Rhs == shared))
+                alias const(shared(RhsB)) Rhs2;
+            else
+                alias const(RhsB) Rhs2;
+        }
+        else
+        {
+            static if (is(Rhs == shared))
+                alias shared(RhsB) Rhs2;
+            else
+                alias RhsB Rhs2;
+        }
+    }
+    else
+        alias Rhs Rhs2;
+
+    return opEquals(cast(Lhs2)lhs, cast(Rhs2)rhs);
+}
+
 private bool _ObjectEq(const Object lhs, const Object rhs)
 {
     // If either is null => non-equal
