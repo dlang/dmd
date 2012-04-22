@@ -29,7 +29,8 @@ class TypeInfo_c : TypeInfo
     }
 
     static int _compare(creal f1, creal f2)
-    {   int result;
+    {
+        int result;
 
         if (f1.re < f2.re)
             result = -1;
@@ -63,7 +64,7 @@ class TypeInfo_c : TypeInfo
         return _compare(*cast(creal *)p1, *cast(creal *)p2);
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return creal.sizeof;
     }
@@ -78,18 +79,20 @@ class TypeInfo_c : TypeInfo
     }
 
     override void[] init() nothrow pure
-    {   static immutable creal r;
+    {
+        static immutable creal r;
 
         return (cast(creal *)&r)[0 .. 1];
     }
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {
         return creal.alignof;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(real);
+    {
+        arg1 = typeid(real);
         arg2 = typeid(real);
         return 0;
     }

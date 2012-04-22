@@ -30,7 +30,8 @@ class TypeInfo_Ac : TypeInfo_Array
     override string toString() const pure nothrow @safe { return "creal[]"; }
 
     override hash_t getHash(in void* p)
-    {   creal[] s = *cast(creal[]*)p;
+    {
+        creal[] s = *cast(creal[]*)p;
         return hashOf(s.ptr, s.length * creal.sizeof);
     }
 
@@ -71,7 +72,7 @@ class TypeInfo_Ac : TypeInfo_Array
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(creal);
     }

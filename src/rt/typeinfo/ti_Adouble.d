@@ -30,7 +30,8 @@ class TypeInfo_Ad : TypeInfo_Array
     override string toString() const pure nothrow @safe { return "double[]"; }
 
     override hash_t getHash(in void* p)
-    {   double[] s = *cast(double[]*)p;
+    {
+        double[] s = *cast(double[]*)p;
         return hashOf(s.ptr, s.length * double.sizeof);
     }
 
@@ -71,7 +72,7 @@ class TypeInfo_Ad : TypeInfo_Array
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(double);
     }
@@ -88,7 +89,7 @@ class TypeInfo_Ap : TypeInfo_Ad
 
     override string toString() const pure nothrow @safe { return "idouble[]"; }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(idouble);
     }

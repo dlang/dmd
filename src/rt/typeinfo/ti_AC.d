@@ -27,7 +27,8 @@ class TypeInfo_AC : TypeInfo_Array
     //nothrow:
 
     override hash_t getHash(in void* p)
-    {   Object[] s = *cast(Object[]*)p;
+    {
+        Object[] s = *cast(Object[]*)p;
         hash_t hash = 0;
 
         foreach (Object o; s)
@@ -46,7 +47,8 @@ class TypeInfo_AC : TypeInfo_Array
         if (s1.length == s2.length)
         {
             for (size_t u = 0; u < s1.length; u++)
-            {   Object o1 = s1[u];
+            {
+                Object o1 = s1[u];
                 Object o2 = s2[u];
 
                 // Do not pass null's to Object.opEquals()
@@ -68,7 +70,8 @@ class TypeInfo_AC : TypeInfo_Array
         if (c == 0)
         {
             for (size_t u = 0; u < s1.length; u++)
-            {   Object o1 = s1[u];
+            {
+                Object o1 = s1[u];
                 Object o2 = s2[u];
 
                 if (o1 is o2)
@@ -93,7 +96,7 @@ class TypeInfo_AC : TypeInfo_Array
         return c < 0 ? -1 : c > 0 ? 1 : 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(Object);
     }

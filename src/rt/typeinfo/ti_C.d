@@ -46,7 +46,8 @@ class TypeInfo_C : TypeInfo
         if (!(o1 is o2))
         {
             if (o1)
-            {   if (!o2)
+            {
+                if (!o2)
                     c = 1;
                 else
                     c = o1.opCmp(o2);
@@ -57,12 +58,12 @@ class TypeInfo_C : TypeInfo
         return c;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return Object.sizeof;
     }
 
-    @property override uint flags() nothrow pure
+    override @property uint flags() nothrow pure
     {
         return 1;
     }

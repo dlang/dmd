@@ -30,7 +30,8 @@ class TypeInfo_Al : TypeInfo_Array
     override string toString() const pure nothrow @safe { return "long[]"; }
 
     override hash_t getHash(in void* p)
-    {   long[] s = *cast(long[]*)p;
+    {
+        long[] s = *cast(long[]*)p;
         return hashOf(s.ptr, s.length * long.sizeof);
     }
 
@@ -65,7 +66,7 @@ class TypeInfo_Al : TypeInfo_Array
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(long);
     }
@@ -105,7 +106,7 @@ class TypeInfo_Am : TypeInfo_Al
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(ulong);
     }

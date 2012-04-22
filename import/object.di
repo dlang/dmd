@@ -107,11 +107,11 @@ class TypeInfo_Array : TypeInfo
     override hash_t getHash(in void* p) @trusted;
     override equals_t equals(in void* p1, in void* p2);
     override int compare(in void* p1, in void* p2);
-    @property override size_t tsize() nothrow pure;
+    override @property size_t tsize() nothrow pure;
     override void swap(void* p1, void* p2);
-    @property override TypeInfo next() nothrow pure;
-    @property override uint flags() nothrow pure;
-    @property override size_t talign() nothrow pure;
+    override @property TypeInfo next() nothrow pure;
+    override @property uint flags() nothrow pure;
+    override @property size_t talign() nothrow pure;
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2);
 
     TypeInfo value;
@@ -239,7 +239,7 @@ class MemberInfo_field : MemberInfo
 {
     this(string name, TypeInfo ti, size_t offset);
 
-    @property override string name() nothrow pure;
+    override @property string name() nothrow pure;
     @property TypeInfo typeInfo() nothrow pure;
     @property size_t offset() nothrow pure;
 }
@@ -255,7 +255,7 @@ class MemberInfo_function : MemberInfo
 
     this(string name, TypeInfo ti, void* fp, uint flags);
 
-    @property override string name() nothrow pure;
+    override @property string name() nothrow pure;
     @property TypeInfo typeInfo() nothrow pure;
     @property void* fp() nothrow pure;
     @property uint flags() nothrow pure;

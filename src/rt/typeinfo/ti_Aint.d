@@ -30,7 +30,8 @@ class TypeInfo_Ai : TypeInfo_Array
     override string toString() const pure nothrow @safe { return "int[]"; }
 
     override hash_t getHash(in void* p)
-    {   int[] s = *cast(int[]*)p;
+    {
+        int[] s = *cast(int[]*)p;
         return hashOf(s.ptr, s.length * int.sizeof);
     }
 
@@ -64,7 +65,7 @@ class TypeInfo_Ai : TypeInfo_Array
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(int);
     }
@@ -113,7 +114,7 @@ class TypeInfo_Ak : TypeInfo_Ai
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(uint);
     }
@@ -130,7 +131,7 @@ class TypeInfo_Aw : TypeInfo_Ak
 
     override string toString() const pure nothrow @safe { return "dchar[]"; }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(dchar);
     }

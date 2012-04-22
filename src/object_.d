@@ -328,7 +328,8 @@ class TypeInfo
      * See X86-64 ABI 3.2.3
      */
     version (X86_64) int argTypes(out TypeInfo arg1, out TypeInfo arg2) @safe nothrow
-    {   arg1 = this;
+    {
+        arg1 = this;
         return 0;
     }
 
@@ -352,14 +353,14 @@ class TypeInfo_Vector : TypeInfo
     override hash_t getHash(in void* p) { return base.getHash(p); }
     override equals_t equals(in void* p1, in void* p2) { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) { return base.compare(p1, p2); }
-    @property override size_t tsize() nothrow pure { return base.tsize; }
+    override @property size_t tsize() nothrow pure { return base.tsize; }
     override void swap(void* p1, void* p2) { return base.swap(p1, p2); }
 
-    @property override TypeInfo next() nothrow pure { return base.next; }
-    @property override uint flags() nothrow pure { return base.flags; }
+    override @property TypeInfo next() nothrow pure { return base.next; }
+    override @property uint flags() nothrow pure { return base.flags; }
     override const(void)[] init() nothrow pure { return base.init(); }
 
-    @property override size_t talign() nothrow pure { return 16; }
+    override @property size_t talign() nothrow pure { return 16; }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {   return base.argTypes(arg1, arg2);
@@ -384,20 +385,21 @@ class TypeInfo_Typedef : TypeInfo
     override hash_t getHash(in void* p) { return base.getHash(p); }
     override equals_t equals(in void* p1, in void* p2) { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) { return base.compare(p1, p2); }
-    @property override size_t tsize() nothrow pure { return base.tsize; }
+    override @property size_t tsize() nothrow pure { return base.tsize; }
     override void swap(void* p1, void* p2) { return base.swap(p1, p2); }
 
-    @property override TypeInfo next() nothrow pure { return base.next; }
-    @property override uint flags() nothrow pure { return base.flags; }
+    override @property TypeInfo next() nothrow pure { return base.next; }
+    override @property uint flags() nothrow pure { return base.flags; }
     override const(void)[] init() nothrow pure const @safe { return m_init.length ? m_init : base.init(); }
 
-    @property override size_t talign() nothrow pure { return base.talign; }
+    override @property size_t talign() nothrow pure { return base.talign; }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   return base.argTypes(arg1, arg2);
+    {
+        return base.argTypes(arg1, arg2);
     }
 
-    @property override immutable(void)* rtInfo() { return base.rtInfo; }
+    override @property immutable(void)* rtInfo() { return base.rtInfo; }
 
     TypeInfo base;
     string   name;
@@ -441,7 +443,7 @@ class TypeInfo_Pointer : TypeInfo
             return 0;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return (void*).sizeof;
     }
@@ -453,8 +455,8 @@ class TypeInfo_Pointer : TypeInfo
         *cast(void**)p2 = tmp;
     }
 
-    @property override TypeInfo next() nothrow pure { return m_next; }
-    @property override uint flags() nothrow pure { return 1; }
+    override @property TypeInfo next() nothrow pure { return m_next; }
+    override @property uint flags() nothrow pure { return 1; }
 
     TypeInfo m_next;
 }
@@ -510,7 +512,7 @@ class TypeInfo_Array : TypeInfo
         return cast(int)a1.length - cast(int)a2.length;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return (void[]).sizeof;
     }
@@ -524,20 +526,21 @@ class TypeInfo_Array : TypeInfo
 
     TypeInfo value;
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return value;
     }
 
-    @property override uint flags() nothrow pure { return 1; }
+    override @property uint flags() nothrow pure { return 1; }
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {
         return (void[]).alignof;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(size_t);
+    {
+        arg1 = typeid(size_t);
         arg2 = typeid(void*);
         return 0;
     }
@@ -594,7 +597,7 @@ class TypeInfo_StaticArray : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return len * value.tsize;
     }
@@ -612,7 +615,8 @@ class TypeInfo_StaticArray : TypeInfo
             tmp = pbuffer = (new void[sz]).ptr;
 
         for (size_t u = 0; u < len; u += sz)
-        {   size_t o = u * sz;
+        {
+            size_t o = u * sz;
             memcpy(tmp, p1 + o, sz);
             memcpy(p1 + o, p2 + o, sz);
             memcpy(p2 + o, tmp, sz);
@@ -622,8 +626,8 @@ class TypeInfo_StaticArray : TypeInfo
     }
 
     override const(void)[] init() nothrow pure { return value.init(); }
-    @property override TypeInfo next() nothrow pure { return value; }
-    @property override uint flags() nothrow pure { return value.flags(); }
+    override @property TypeInfo next() nothrow pure { return value; }
+    override @property uint flags() nothrow pure { return value.flags(); }
 
     override void destroy(void* p)
     {
@@ -649,13 +653,14 @@ class TypeInfo_StaticArray : TypeInfo
     TypeInfo value;
     size_t   len;
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {
         return value.talign;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(void*);
+    {
+        arg1 = typeid(void*);
         return 0;
     }
 }
@@ -678,26 +683,27 @@ class TypeInfo_AssociativeArray : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return (char[int]).sizeof;
     }
 
-    @property override TypeInfo next() nothrow pure { return value; }
-    @property override uint flags() nothrow pure { return 1; }
+    override @property TypeInfo next() nothrow pure { return value; }
+    override @property uint flags() nothrow pure { return 1; }
 
     TypeInfo value;
     TypeInfo key;
 
     TypeInfo impl;
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {
         return (char[int]).alignof;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(void*);
+    {
+        arg1 = typeid(void*);
         return 0;
     }
 }
@@ -719,7 +725,7 @@ class TypeInfo_Function : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return 0;       // no size for functions
     }
@@ -745,24 +751,25 @@ class TypeInfo_Delegate : TypeInfo
 
     // BUG: need to add the rest of the functions
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         alias int delegate() dg;
         return dg.sizeof;
     }
 
-    @property override uint flags() nothrow pure { return 1; }
+    override @property uint flags() nothrow pure { return 1; }
 
     TypeInfo next;
     string deco;
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {   alias int delegate() dg;
         return dg.alignof;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(void*);
+    {
+        arg1 = typeid(void*);
         arg2 = typeid(void*);
         return 0;
     }
@@ -821,14 +828,14 @@ class TypeInfo_Class : TypeInfo
         return c;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return Object.sizeof;
     }
 
-    @property override uint flags() nothrow pure { return 1; }
+    override @property uint flags() nothrow pure { return 1; }
 
-    @property override OffsetTypeInfo[] offTi() nothrow pure
+    override @property OffsetTypeInfo[] offTi() nothrow pure
     {
         return m_offTi;
     }
@@ -858,7 +865,7 @@ class TypeInfo_Class : TypeInfo
     void function(Object) defaultConstructor;   // default Constructor
 
     immutable(void)* m_RTInfo;        // data for precise GC
-    @property override immutable(void)* rtInfo() { return m_RTInfo; }
+    override @property immutable(void)* rtInfo() { return m_RTInfo; }
 
     /**
      * Search all modules for TypeInfo_Class corresponding to classname.
@@ -954,12 +961,12 @@ class TypeInfo_Interface : TypeInfo
         return c;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return Object.sizeof;
     }
 
-    @property override uint flags() nothrow pure { return 1; }
+    override @property uint flags() nothrow pure { return 1; }
 
     TypeInfo_Class info;
 }
@@ -1026,16 +1033,16 @@ class TypeInfo_Struct : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return init().length;
     }
 
     override const(void)[] init() nothrow pure const @safe { return m_init; }
 
-    @property override uint flags() nothrow pure { return m_flags; }
+    override @property uint flags() nothrow pure { return m_flags; }
 
-    @property override size_t talign() nothrow pure { return m_align; }
+    override @property size_t talign() nothrow pure { return m_align; }
 
     override void destroy(void* p)
     {
@@ -1066,12 +1073,13 @@ class TypeInfo_Struct : TypeInfo
 
     uint m_align;
 
-    @property override immutable(void)* rtInfo() { return m_RTInfo; }
+    override @property immutable(void)* rtInfo() { return m_RTInfo; }
 
     version (X86_64)
     {
         override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-        {   arg1 = m_arg1;
+        {
+            arg1 = m_arg1;
             arg2 = m_arg2;
             return 0;
         }
@@ -1144,7 +1152,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         assert(0);
     }
@@ -1164,7 +1172,7 @@ class TypeInfo_Tuple : TypeInfo
         assert(0);
     }
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {
         assert(0);
     }
@@ -1202,17 +1210,18 @@ class TypeInfo_Const : TypeInfo
     override hash_t getHash(in void *p) { return base.getHash(p); }
     override equals_t equals(in void *p1, in void *p2) { return base.equals(p1, p2); }
     override int compare(in void *p1, in void *p2) { return base.compare(p1, p2); }
-    @property override size_t tsize() nothrow pure { return base.tsize; }
+    override @property size_t tsize() nothrow pure { return base.tsize; }
     override void swap(void *p1, void *p2) { return base.swap(p1, p2); }
 
-    @property override TypeInfo next() nothrow pure { return base.next; }
-    @property override uint flags() nothrow pure { return base.flags; }
+    override @property TypeInfo next() nothrow pure { return base.next; }
+    override @property uint flags() nothrow pure { return base.flags; }
     override const(void)[] init() nothrow pure { return base.init(); }
 
-    @property override size_t talign() nothrow pure { return base.talign(); }
+    override @property size_t talign() nothrow pure { return base.talign(); }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   return base.argTypes(arg1, arg2);
+    {
+        return base.argTypes(arg1, arg2);
     }
 
     TypeInfo base;
@@ -1256,7 +1265,7 @@ class MemberInfo_field : MemberInfo
         m_offset = offset;
     }
 
-    @property override string name() nothrow pure { return m_name; }
+    override @property string name() nothrow pure { return m_name; }
     @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
     @property size_t offset() nothrow pure { return m_offset; }
 
@@ -1275,7 +1284,7 @@ class MemberInfo_function : MemberInfo
         m_flags = flags;
     }
 
-    @property override string name() nothrow pure { return m_name; }
+    override @property string name() nothrow pure { return m_name; }
     @property TypeInfo typeInfo() nothrow pure { return m_typeinfo; }
     @property void* fp() nothrow pure { return m_fp; }
     @property uint flags() nothrow pure { return m_flags; }

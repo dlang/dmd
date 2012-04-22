@@ -30,7 +30,8 @@ class TypeInfo_Af : TypeInfo_Array
     override string toString() const pure nothrow @safe { return "float[]"; }
 
     override hash_t getHash(in void* p)
-    {   float[] s = *cast(float[]*)p;
+    {
+        float[] s = *cast(float[]*)p;
         return hashOf(s.ptr, s.length * float.sizeof);
     }
 
@@ -71,7 +72,7 @@ class TypeInfo_Af : TypeInfo_Array
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(float);
     }
@@ -88,7 +89,7 @@ class TypeInfo_Ao : TypeInfo_Af
 
     override string toString() const pure nothrow @safe { return "ifloat[]"; }
 
-    @property override TypeInfo next() nothrow pure
+    override @property TypeInfo next() nothrow pure
     {
         return typeid(ifloat);
     }
