@@ -497,6 +497,18 @@ void AliasDeclaration::semantic(Scope *sc)
     else if (t)
     {
         type = t->semantic(loc, sc);
+
+        /* If type is class or struct, convert to symbol.
+         * See bugzilla 6475.
+         */
+        s = type->toDsymbol(sc);
+        if (s
+#if DMDV2
+            && ((s->getType() && type->equals(s->getType())) || s->isEnumMember())
+#endif
+            )
+            goto L2;
+
         //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)

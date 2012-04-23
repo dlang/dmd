@@ -2,6 +2,20 @@
 extern(C) int printf(const char*, ...);
 
 /***************************************************/
+// 6475
+
+class Foo6475(Value)
+{
+    template T1(size_t n){ alias int T1; }
+}
+
+void test6475()
+{
+    alias Foo6475!(int) C2;
+    alias C2.T1!0 a1;
+}
+
+/***************************************************/
 // 7239
 
 struct vec7239
@@ -26,6 +40,7 @@ void test7239()
 
 int main()
 {
+    test6475();
     test7239();
 
     printf("Success\n");
