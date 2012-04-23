@@ -2650,8 +2650,7 @@ CEXTERN elem * elstruct(elem *e)
                 elem *e2 = e->E2;
                 if (tybasic(e2->Ety) == TYstruct &&
                     (EBIN(e2) || EUNA(e2)) &&
-                    tyxmmreg(e2->E1->Ety) &&
-                    tybasic(e2->E1->Ety) >= TYfloat4)   // is a vector type
+                    tysimd(e2->E1->Ety))   // is a vector type
                 {   tym = tybasic(e2->E1->Ety);
 
                     /* This has problems if the destination is not aligned, as happens with

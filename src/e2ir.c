@@ -864,7 +864,7 @@ L1:
             e->Ejty = e->Ety = TYstruct;
             e->ET = type->toCtype();
         }
-        else if (tybasic(tym) >= TYfloat4 && tybasic(tym) <= TYullong2)
+        else if (tysimd(tym))
         {
             e->ET = type->toCtype();
         }

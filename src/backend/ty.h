@@ -221,6 +221,7 @@ extern unsigned tytab[];
 #define TYFLaggregate   0x2000
 #define TYFLfunc        0x4000
 #define TYFLref         0x8000
+#define TYFLsimd        0x20000     // SIMD vector type
 
 /* Groupings of types   */
 
@@ -350,6 +351,11 @@ extern const tym_t tytouns[];
 /* Determine relaxed type       */
 #ifndef tyrelax
 #define tyrelax(ty)     (_tyrelax[tybasic(ty)])
+#endif
+
+// Determine if parameter is a SIMD vector type
+#ifndef tysimd
+#define tysimd(ty)   (tytab[(ty) & 0xFF] & TYFLsimd)
 #endif
 
 /* Array to give the 'relaxed' type for relaxed type checking   */
