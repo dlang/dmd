@@ -33,7 +33,7 @@ MODEL=32
 
 ifeq (OSX,$(TARGET))
 	SDKDIR=/Developer/SDKs
-	ifeq "$(wildcard $(MY_DIRNAME) )" ""
+	ifeq "$(wildcard $(SDKDIR) )" ""
 		SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
 	endif
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
