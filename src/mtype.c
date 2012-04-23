@@ -7835,7 +7835,10 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        return new VarExp(e->loc, d, 1);
+        VarExp *ve = new VarExp(e->loc, d, 1);
+        if (d->isVarDeclaration() && d->needThis())
+            ve->type = d->type->addMod(e->type->mod);
+        return ve;
     }
 
     if (d->isDataseg())
@@ -8430,11 +8433,10 @@ L1:
             e = de->semantic(sc);
             return e;
         }
-        else
-        {
-            VarExp *ve = new VarExp(e->loc, d, 1);
-            return ve;
-        }
+        VarExp *ve = new VarExp(e->loc, d, 1);
+        if (d->isVarDeclaration() && d->needThis())
+            ve->type = d->type->addMod(e->type->mod);
+        return ve;
     }
 
     if (d->isDataseg())

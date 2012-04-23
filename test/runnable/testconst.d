@@ -5,6 +5,8 @@ class C { }
 
 int ctfe() { return 3; }
 
+template TypeTuple(T...) { alias T TypeTuple; }
+
 /************************************/
 
 void showf(string f)
@@ -2029,6 +2031,48 @@ void test4251b()
 }
 
 /************************************/
+// 5473
+
+void test5473()
+{
+    class C
+    {
+        int b;
+        void f(){}
+        static int x;
+        static void g(){};
+    }
+    struct S
+    {
+        int b;
+        void f(){}
+        static int x;
+        static void g(){};
+    }
+
+    void dummy(){}
+    alias typeof(dummy) VoidFunc;
+
+    const C c = new C;
+    const S s;
+
+    foreach (a; TypeTuple!(c, s))
+    {
+        alias typeof(a) A;
+
+        static assert(is(typeof(a.b) == const int));    // const(int)
+        static assert(is(typeof(a.f) == VoidFunc));
+        static assert(is(typeof(a.x) == int));
+        static assert(is(typeof(a.g) == VoidFunc));
+
+        static assert(is(typeof((const A).b) == const int));    // int, should be const(int)
+        static assert(is(typeof((const A).f) == VoidFunc));
+        static assert(is(typeof((const A).x) == int));
+        static assert(is(typeof((const A).g) == VoidFunc));
+    }
+}
+
+/************************************/
 // 5493
 
 void test5493()
@@ -2698,6 +2742,7 @@ int main()
     test88();
     test4251a();
     test4251b();
+    test5473();
     test5493();
     test5493inout();
     test6782();
