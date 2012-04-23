@@ -122,6 +122,9 @@ private
 
         alias void delegate(void*, void*) scanFn;
         extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
+
+        alias void delegate(void*) StackShellFn;
+        extern (C) void thread_callWithStackShell(scope StackShellFn fn);
     }
 
     extern (C) void onOutOfMemoryError();
@@ -2614,90 +2617,15 @@ struct Gcx
      */
     size_t fullcollectshell()
     {
-        // The purpose of the 'shell' is to ensure all the registers
-        // get put on the stack so they'll be scanned
-        void *sp;
         size_t result;
-        version (GNU)
+
+        void op(void* sp)
         {
-            __builtin_unwind_init();
-            sp = & sp;
-        }
-        else version (D_InlineAsm_X86)
-        {
-            asm
-            {
-                pushad              ;
-                mov sp[EBP],ESP     ;
-            }
-        }
-        else version (D_InlineAsm_X86_64)
-        {
-            asm
-            {
-                push RAX ;
-                push RBX ;
-                push RCX ;
-                push RDX ;
-                push RSI ;
-                push RDI ;
-                push RBP ;
-                push R8  ;
-                push R9  ;
-                push R10  ;
-                push R11  ;
-                push R12  ;
-                push R13  ;
-                push R14  ;
-                push R15  ;
-                push RAX ;   // 16 byte align the stack
-                mov sp[RBP],RSP     ;
-            }
-        }
-        else
-        {
-            static assert(false, "Architecture not supported.");
+            result = fullcollect(sp);
         }
 
-        result = fullcollect(sp);
+        thread_callWithStackShell(&op);
 
-        version (GNU)
-        {
-            // registers will be popped automatically
-        }
-        else version (D_InlineAsm_X86)
-        {
-            asm
-            {
-                popad;
-            }
-        }
-        else version (D_InlineAsm_X86_64)
-        {
-            asm
-            {
-                pop RAX ;   // 16 byte align the stack
-                pop R15  ;
-                pop R14  ;
-                pop R13  ;
-                pop R12  ;
-                pop R11  ;
-                pop R10  ;
-                pop R9  ;
-                pop R8  ;
-                pop RBP ;
-                pop RDI ;
-                pop RSI ;
-                pop RDX ;
-                pop RCX ;
-                pop RBX ;
-                pop RAX ;
-            }
-        }
-        else
-        {
-            static assert(false, "Architecture not supported.");
-        }
         return result;
     }
 
