@@ -4148,8 +4148,32 @@ Expression *TypeExp::syntaxCopy()
 Expression *TypeExp::semantic(Scope *sc)
 {
     //printf("TypeExp::semantic(%s)\n", type->toChars());
-    type = type->semantic(loc, sc);
-    return this;
+    Expression *e;
+    Type *t;
+    Dsymbol *s;
+
+    type->resolve(loc, sc, &e, &t, &s);
+    if (e)
+    {
+        //printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+        e = e->semantic(sc);
+    }
+    else if (t)
+    {
+        //printf("t = %d %s\n", t->ty, t->toChars());
+        type = t->semantic(loc, sc);
+        e = this;
+    }
+    else if (s)
+    {
+        //printf("s = %s %s\n", s->kind(), s->toChars());
+        e = new DsymbolExp(loc, s, s->hasOverloads());
+        e = e->semantic(sc);
+    }
+    else
+        assert(0);
+
+    return e;
 }
 
 int TypeExp::rvalue()
