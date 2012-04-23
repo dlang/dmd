@@ -1705,6 +1705,80 @@ Lcant:
     return 0;
 }
 
+/*************************************************
+ * Generate code segment to be used later to restore a cse
+ */
+
+bool cse_simple(code *c, elem *e)
+{   regm_t regm;
+    unsigned reg;
+    int sz = tysize[tybasic(e->Ety)];
+
+    if (!I16 &&                                  // don't bother with 16 bit code
+        e->Eoper == OPadd &&
+        sz == REGSIZE &&
+        e->E2->Eoper == OPconst &&
+        e->E1->Eoper == OPvar &&
+        isregvar(e->E1,&regm,&reg) &&
+        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
+       )
+    {
+        memset(c,0,sizeof(*c));
+
+        // Make this an LEA instruction
+        c->Iop = 0x8D;                          // LEA
+        buildEA(c,reg,-1,1,e->E2->EV.Vuns);
+        if (I64)
+        {   if (sz == 8)
+                c->Irex |= REX_W;
+            else if (sz == 1 && reg >= 4)
+                c->Irex |= REX;
+        }
+
+        return true;
+    }
+    else if (e->Eoper == OPind &&
+        sz <= REGSIZE &&
+        e->E1->Eoper == OPvar &&
+        isregvar(e->E1,&regm,&reg) &&
+        (I32 || I64 || regm & IDXREGS) &&
+        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
+       )
+    {
+        memset(c,0,sizeof(*c));
+
+        // Make this a MOV instruction
+        c->Iop = (sz == 1) ? 0x8A : 0x8B;       // MOV reg,EA
+        buildEA(c,reg,-1,1,0);
+        if (sz == 2 && I32)
+            c->Iflags |= CFopsize;
+        else if (I64)
+        {   if (sz == 8)
+                c->Irex |= REX_W;
+            else if (sz == 1 && reg >= 4)
+                c->Irex |= REX;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+code* gen_loadcse(unsigned reg, targ_uns i)
+{
+    code* c = getregs(mask[reg]);
+    unsigned op = 0x8B;
+    if (reg == ES)
+    {
+        op = 0x8E;
+        reg = 0;
+    }
+    c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,i);
+    if (I64)
+        code_orrex(c, REX_W);
+    return c;
+}
+
 /***************************************
  * Gen code for OPframeptr
  */
