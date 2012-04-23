@@ -32,12 +32,16 @@ ROOT=root
 MODEL=32
 
 ifeq (OSX,$(TARGET))
+    SDKDIR=/Developer/SDKs
+    ifeq "$(wildcard $(SDKDIR) )" ""
+        SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+    endif
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
     ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    #SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
-    #SDK=/Developer/SDKs/MacOSX10.5.sdk
-    #SDK=/Developer/SDKs/MacOSX10.6.sdk
-    SDK:=$(if $(filter 11.%, $(OSVER)), /Developer/SDKs/MacOSX10.6.sdk, /Developer/SDKs/MacOSX10.5.sdk)
+    #SDK=$(SDKDIR)/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
+    #SDK=$(SDKDIR)/MacOSX10.5.sdk
+    #SDK=$(SDKDIR)/MacOSX10.6.sdk
+    SDK:=$(if $(filter 11.%, $(OSVER)), $(SDKDIR)/MacOSX10.6.sdk, $(SDKDIR)/MacOSX10.5.sdk)
     TARGET_CFLAGS=-isysroot ${SDK}
     #-syslibroot is only passed to libtool, not ld.
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
