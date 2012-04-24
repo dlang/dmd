@@ -4945,7 +4945,7 @@ mixin template mix7974()
     uint _x;
 }
 
-struct Foo
+struct Foo7974
 {
     immutable Foo7974 fa = Foo7974(0);
 
