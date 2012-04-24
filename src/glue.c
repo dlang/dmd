@@ -601,7 +601,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             obj_includelib(libname);
             s->Sclass = SCglobal;
         }
-        else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc && onlyOneMain(loc))
+        else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
         {
 #if TARGET_WINDOS
             objextdef("__acrtused_con");        // bring in C startup code
