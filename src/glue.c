@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -66,6 +66,8 @@ int dtorcount;
 int shareddtorcount;
 
 char *lastmname;
+
+bool onlyOneMain(Loc loc);
 
 /**************************************
  * Append s to list of object files to generate later.
@@ -590,9 +592,10 @@ void FuncDeclaration::toObjFile(int multiobj)
                                 ? global.params.debuglibname
                                 : global.params.defaultlibname;
 
-        // Pull in RTL startup code
-        if (func->isMain())
-        {   objextdef("_main");
+        // Pull in RTL startup code (but only once)
+        if (func->isMain() && onlyOneMain(loc))
+        {
+            objextdef("_main");
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             obj_ehsections();   // initialize exception handling sections
 #endif
@@ -602,7 +605,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             obj_includelib(libname);
             s->Sclass = SCglobal;
         }
-        else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
+        else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc && onlyOneMain(loc))
         {
 #if TARGET_WINDOS
             objextdef("__acrtused_con");        // bring in C startup code
@@ -610,7 +613,8 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
             s->Sclass = SCglobal;
         }
-        else if (func->isWinMain())
+#if TARGET_WINDOS
+        else if (func->isWinMain() && onlyOneMain(loc))
         {
             objextdef("__acrtused");
             obj_includelib(libname);
@@ -618,12 +622,13 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
 
         // Pull in RTL startup code
-        else if (func->isDllMain())
+        else if (func->isDllMain() && onlyOneMain(loc))
         {
             objextdef("__acrtused_dll");
             obj_includelib(libname);
             s->Sclass = SCglobal;
         }
+#endif
     }
 
     cstate.CSpsymtab = &f->Flocsym;
@@ -1002,6 +1007,22 @@ void FuncDeclaration::toObjFile(int multiobj)
         obj_startaddress(irs.startaddress);
     }
 #endif
+}
+
+bool onlyOneMain(Loc loc)
+{
+    static bool hasMain = false;
+    if (hasMain)
+    {
+#if TARGET_WINDOS
+        error(loc, "only one main/WinMain/DllMain allowed");
+#else
+        error(loc, "only one main allowed");
+#endif
+        return false;
+    }
+    hasMain = true;
+    return true;
 }
 
 /* ================================================================== */
