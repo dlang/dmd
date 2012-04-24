@@ -662,6 +662,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 void StructDeclaration::finalizeSize(Scope *sc)
 {
+    //printf("StructDeclaration::finalizeSize() %s\n", toChars());
     if (sizeok != SIZEOKnone)
         return;
 

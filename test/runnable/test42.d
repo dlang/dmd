@@ -4911,6 +4911,54 @@ struct Test244 {
 
 /***************************************************/
 
+int noswap245(ubyte *data)
+{
+    return
+	(data[0]<<  0) |
+	(data[1]<<  8) |
+	(data[2]<< 16) |
+	(data[3]<< 24);
+}
+
+int bswap245(ubyte *data)
+{
+    return
+	(data[0]<< 24) |
+	(data[1]<< 16) |
+	(data[2]<< 8 ) |
+	(data[3]<< 0 );
+}
+
+void test245()
+{
+    int x1 = 0x01234567;
+    x1 = noswap245(cast(ubyte *)&x1);
+    assert(x1 == 0x01234567);
+    x1 = bswap245(cast(ubyte *)&x1);
+    assert(x1 == 0x67452301);
+}
+
+/***************************************************/
+
+mixin template mix7974()
+{
+    uint _x;
+}
+
+struct Foo
+{
+    immutable Foo7974 fa = Foo7974(0);
+
+    this(uint x)
+    {
+        _x = x;
+    }
+
+    mixin mix7974!();
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5162,6 +5210,7 @@ int main()
     test4820_2();
     test243();
     test7742();
+    test245();
 
     writefln("Success");
     return 0;

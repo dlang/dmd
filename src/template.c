@@ -6280,10 +6280,14 @@ int TemplateMixin::hasPointers()
 
 void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
 {
+    //printf("TemplateMixin::setFieldOffset() %s\n", toChars());
+    if (scope)                  // if fwd reference
+        semantic(NULL);         // try to resolve it
     if (members)
     {
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
+            //printf("\t%s\n", s->toChars());
             s->setFieldOffset(ad, poffset, isunion);
         }
     }
