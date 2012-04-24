@@ -1064,7 +1064,7 @@ Lnomatch:
     }
     else if (storage_class & STCfinal)
     {
-        error("final cannot be applied to variable");
+        error("final cannot be applied to variable, perhaps you meant const?");
     }
 
     if (storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter | STCtls | STCgshared | STCctfe))
