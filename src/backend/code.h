@@ -510,6 +510,8 @@ struct code
         Irm &= ~modregrm(0, 7, 0);
         orReg(reg);
     }
+
+    bool isJumpOP() { return Iop == JMP || Iop == JMPS; }
 };
 
 // !=0 if we have to add FWAIT to floating point ops
@@ -691,6 +693,8 @@ void useregs (regm_t regm );
 code *getregs (regm_t r );
 code *getregs_imm (regm_t r );
 code *cse_flush(int);
+bool cse_simple(code *c, elem *e);
+code* gen_loadcse(unsigned reg, targ_uns i);
 void cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
@@ -725,6 +729,8 @@ code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
 cd_t cdfunc;
 cd_t cdstrthis;
+const unsigned char* getintegerparamsreglist(tym_t tyf, size_t* num);
+const unsigned char* getfloatparamsreglist(tym_t tyf, size_t* num);
 code *params(elem *, unsigned);
 code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
@@ -777,10 +783,14 @@ extern int BPoff;
 
 int cod3_EA(code *c);
 regm_t cod3_useBP();
+void cod3_setdefault();
 void cod3_set32 (void );
 void cod3_set64 (void );
+void cod3_align_bytes (size_t nbytes);
 void cod3_align (void );
 regm_t regmask(tym_t tym, tym_t tyf);
+void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg);
+void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw);
 void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, symbol** retsym, const regm_t mfuncregsave );
 void doswitch (block *b );
 void outjmptab (block *b );
@@ -924,6 +934,7 @@ code *nteh_gensindex(int);
 #define GENSINDEXSIZE 7
 code *nteh_monitor_prolog(Symbol *shandle);
 code *nteh_monitor_epilog(regm_t retregs);
+code *nteh_patchindex(code* c, int index);
 
 // cgen.c
 code *code_last(code *c);

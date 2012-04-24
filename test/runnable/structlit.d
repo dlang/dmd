@@ -480,6 +480,24 @@ void test5889()
 }
 
 /********************************************/
+// 7929
+
+void test7929()
+{
+    static struct S
+    {
+        int [] numbers;
+    }
+
+    const int [] numbers = new int[2];
+    const S si = {numbers};
+    // Error: cannot implicitly convert expression (numbers) of type const(int[]) to int[]
+
+    const S se = const(S)(numbers);
+    // OK
+}
+
+/********************************************/
 
 int main()
 {
@@ -500,6 +518,7 @@ int main()
     test3198and1914();
     test5885();
     test5889();
+    test7929();
 
     printf("Success\n");
     return 0;

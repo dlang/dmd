@@ -224,7 +224,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
             }
             if (s && (v = s->isVarDeclaration()) != NULL)
             {
-                val = val->semantic(sc, v->type, needInterpret);
+                val = val->semantic(sc, v->type->addMod(t->mod), needInterpret);
                 value[i] = val;
                 vars[i] = v;
             }
@@ -754,6 +754,9 @@ bool arrayHasNonConstPointers(Expressions *elems);
 
 bool hasNonConstPointers(Expression *e)
 {
+    if (e->type->ty == Terror)
+        return false;
+
     if (e->op == TOKnull)
         return false;
     if (e->op == TOKstructliteral)

@@ -1668,6 +1668,11 @@ void obj_ehsections()
  *      "segment index" of COMDAT
  */
 
+int obj_comdatsize(Symbol *s, targ_size_t symsize)
+{
+    return obj_comdat(s);
+}
+
 int obj_comdat(Symbol *s)
 {
     const char *sectname;

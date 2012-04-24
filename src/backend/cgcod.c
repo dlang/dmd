@@ -37,7 +37,6 @@ STATIC code * loadcse(elem *,unsigned,regm_t);
 STATIC void blcodgen(block *);
 STATIC void cgcod_eh();
 STATIC code * cse_save(regm_t ms);
-STATIC int cse_simple(elem *e,int i);
 STATIC code * comsub(elem *,regm_t *);
 
 bool floatreg;                  // !=0 if floating register is required
@@ -413,8 +412,7 @@ tryagain:
             {   unsigned u = b->Balign;
                 unsigned nalign = (u - (unsigned)Coffset) & (u - 1);
 
-                while (nalign--)
-                    obj_byte(cseg,Coffset++,0x90);      // XCHG AX,AX
+                cod3_align_bytes(nalign);
             }
             assert(b->Boffset == Coffset);
 
@@ -612,7 +610,15 @@ void stackoffsets(int flags)
             }
             alignsize = type_alignsize(s->Stype);
 
-            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)type_alignsize(s->Stype), s->Sflags & SFLread);
+            /* The purpose of this is to reduce alignment faults when SIMD vectors
+             * are reinterpreted cast to other types with less alignment.
+             */
+            if (sz == 16 && config.fpxmmregs && alignsize < sz &&
+                (s->Sclass == SCauto || s->Sclass == SCtmp)
+               )
+                alignsize = sz;
+
+            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
             if (pass == 1)
@@ -709,8 +715,8 @@ void stackoffsets(int flags)
                         vec_setbit(si,tbl);
 
                     // Align doubles to 8 byte boundary
-                    if (!I16 && type_alignsize(s->Stype) > REGSIZE)
-                        Aalign = type_alignsize(s->Stype);
+                    if (!I16 && alignsize > REGSIZE)
+                        Aalign = alignsize;
                 L2:
                     break;
 
@@ -1576,7 +1582,9 @@ STATIC code * cse_save(regm_t ms)
             ms &= ~mask[reg];           /* turn off reg bit in ms       */
 
             // If we can simply reload the CSE, we don't need to save it
-            if (!cse_simple(csextab[i].e,i))
+            if (cse_simple(&csextab[i].csimple, csextab[i].e))
+                csextab[i].flags |= CSEsimple;
+            else
             {
                 c = cat(c, gensavereg(reg, i));
                 reflocal = TRUE;
@@ -1615,71 +1623,6 @@ code *cse_flush(int do87)
     if (do87)
         c = cat(c,save87());    // save any 8087 temporaries
     return c;
-}
-
-/*************************************************
- */
-
-STATIC int cse_simple(elem *e,int i)
-{   regm_t regm;
-    unsigned reg;
-    code *c;
-    int sz;
-
-    sz = tysize[tybasic(e->Ety)];
-    if (!I16 &&                                  // don't bother with 16 bit code
-        e->Eoper == OPadd &&
-        sz == REGSIZE &&
-        e->E2->Eoper == OPconst &&
-        e->E1->Eoper == OPvar &&
-        isregvar(e->E1,&regm,&reg) &&
-        sz <= REGSIZE &&
-        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
-       )
-    {
-        c = &csextab[i].csimple;
-        memset(c,0,sizeof(*c));
-
-        // Make this an LEA instruction
-        c->Iop = 0x8D;                          // LEA
-        buildEA(c,reg,-1,1,e->E2->EV.Vuns);
-        if (I64)
-        {   if (sz == 8)
-                c->Irex |= REX_W;
-            else if (sz == 1 && reg >= 4)
-                c->Irex |= REX;
-        }
-
-        csextab[i].flags |= CSEsimple;
-        return 1;
-    }
-    else if (e->Eoper == OPind &&
-        sz <= REGSIZE &&
-        e->E1->Eoper == OPvar &&
-        isregvar(e->E1,&regm,&reg) &&
-        (I32 || I64 || regm & IDXREGS) &&
-        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
-       )
-    {
-        c = &csextab[i].csimple;
-        memset(c,0,sizeof(*c));
-
-        // Make this a MOV instruction
-        c->Iop = (sz == 1) ? 0x8A : 0x8B;       // MOV reg,EA
-        buildEA(c,reg,-1,1,0);
-        if (sz == 2 && I32)
-            c->Iflags |= CFopsize;
-        else if (I64)
-        {   if (sz == 8)
-                c->Irex |= REX_W;
-            else if (sz == 1 && reg >= 4)
-                c->Irex |= REX;
-        }
-
-        csextab[i].flags |= CSEsimple;
-        return 1;
-    }
-    return 0;
 }
 
 /*************************
@@ -2062,18 +2005,9 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
         {
                 reflocal = TRUE;
                 csextab[i].flags |= CSEload;    /* it was loaded        */
-                c = getregs(mask[reg]);
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask[reg];
-                op = 0x8B;
-                if (reg == ES)
-                {       op = 0x8E;
-                        reg = 0;
-                }
-                c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
-                if (I64)
-                    code_orrex(c, REX_W);
-                return c;
+                return gen_loadcse(reg, i);
         }
   }
 #if DEBUG

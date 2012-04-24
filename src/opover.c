@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -373,7 +373,7 @@ Expression *ArrayExp::op_overload(Scope *sc)
         if (fd)
         {
             for (size_t i = 0; i < arguments->dim; i++)
-            {   Expression *x = arguments->tdata()[i];
+            {   Expression *x = (*arguments)[i];
                 // Create scope for '$' variable for this dimension
                 ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, this);
                 sym->loc = loc;
@@ -392,7 +392,7 @@ Expression *ArrayExp::op_overload(Scope *sc)
                     x = new CommaExp(0, av, x);
                     x->semantic(sc);
                 }
-                arguments->tdata()[i] = x;
+                (*arguments)[i] = x;
                 sc = sc->pop();
             }
 
@@ -528,9 +528,9 @@ Expression *BinExp::op_overload(Scope *sc)
          */
 
         args1.setDim(1);
-        args1.tdata()[0] = e1;
+        args1[0] = e1;
         args2.setDim(1);
-        args2.tdata()[0] = e2;
+        args2[0] = e2;
         argsset = 1;
 
         Match m;
@@ -621,9 +621,9 @@ L1:
 
             if (!argsset)
             {   args1.setDim(1);
-                args1.tdata()[0] = e1;
+                args1[0] = e1;
                 args2.setDim(1);
-                args2.tdata()[0] = e2;
+                args2[0] = e2;
             }
 
             Match m;
@@ -775,9 +775,9 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         Expressions args2;
 
         args1.setDim(1);
-        args1.tdata()[0] = e1;
+        args1[0] = e1;
         args2.setDim(1);
-        args2.tdata()[0] = e2;
+        args2[0] = e2;
 
         Match m;
         memset(&m, 0, sizeof(m));
@@ -967,7 +967,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 Expressions *a = new Expressions();
                 a->push(e2);
                 for (size_t i = 0; i < ae->arguments->dim; i++)
-                    a->push(ae->arguments->tdata()[i]);
+                    a->push((*ae->arguments)[i]);
 
                 Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
@@ -1084,7 +1084,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
          */
 
         args2.setDim(1);
-        args2.tdata()[0] = e2;
+        args2[0] = e2;
 
         Match m;
         memset(&m, 0, sizeof(m));
@@ -1315,7 +1315,7 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
     if (sapply)     // prefer opApply
     {
         for (size_t u = 0; u < arguments->dim; u++)
-        {   Parameter *arg = arguments->tdata()[u];
+        {   Parameter *arg = (*arguments)[u];
             if (arg->type)
                 arg->type = arg->type->semantic(loc, sc);
         }
@@ -1349,14 +1349,14 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
     /* Return if no arguments need types.
      */
     for (size_t u = 0; u < arguments->dim; u++)
-    {   Parameter *arg = arguments->tdata()[u];
+    {   Parameter *arg = (*arguments)[u];
         if (!arg->type)
             break;
     }
 
     AggregateDeclaration *ad;
 
-    Parameter *arg = arguments->tdata()[0];
+    Parameter *arg = (*arguments)[0];
     Type *taggr = aggr->type;
     assert(taggr);
     Type *tab = taggr->toBasetype();
@@ -1369,7 +1369,7 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             {
                 if (!arg->type)
                     arg->type = Type::tsize_t;  // key type
-                arg = arguments->tdata()[1];
+                arg = (*arguments)[1];
             }
             if (!arg->type && tab->ty != Ttuple)
                 arg->type = tab->nextOf();      // value type
@@ -1382,7 +1382,7 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             {
                 if (!arg->type)
                     arg->type = taa->index;     // key type
-                arg = arguments->tdata()[1];
+                arg = (*arguments)[1];
             }
             if (!arg->type)
                 arg->type = taa->next;          // value type
@@ -1521,7 +1521,7 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
 
     for (size_t u = 0; u < nparams; u++)
     {
-        Parameter *arg = arguments->tdata()[u];
+        Parameter *arg = (*arguments)[u];
         Parameter *param = Parameter::getNth(tf->parameters, u);
         if (arg->type)
         {   if (!arg->type->equals(param->type))
@@ -1559,7 +1559,7 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
         }
         if (!td->parameters || td->parameters->dim != 1)
             continue;
-        TemplateParameter *tp = td->parameters->tdata()[0];
+        TemplateParameter *tp = (*td->parameters)[0];
         TemplateAliasParameter *tap = tp->isTemplateAliasParameter();
         if (!tap || !tap->specType || tap->specType->ty != Tfunction)
             continue;

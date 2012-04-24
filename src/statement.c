@@ -3658,6 +3658,7 @@ ReturnStatement::ReturnStatement(Loc loc, Expression *exp)
     : Statement(loc)
 {
     this->exp = exp;
+    this->implicit0 = 0;
 }
 
 Statement *ReturnStatement::syntaxCopy()
@@ -3675,7 +3676,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
     Scope *scx = sc;
-    int implicit0 = 0;
     Expression *eorg = NULL;
 
     if (fd->fes)

@@ -572,13 +572,13 @@ MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
     if (tb->ty == Taarray && typeb->ty == Taarray)
     {
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *e = keys->tdata()[i];
+        {   Expression *e = (*keys)[i];
             MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->index);
             if (m < result)
                 result = m;                     // remember worst match
             if (result == MATCHnomatch)
                 break;                          // no need to check for worse
-            e = values->tdata()[i];
+            e = (*values)[i];
             m = (MATCH)e->implicitConvTo(tb->nextOf());
             if (m < result)
                 result = m;                     // remember worst match
@@ -1314,9 +1314,9 @@ Expression *TupleExp::castTo(Scope *sc, Type *t)
 {   TupleExp *e = (TupleExp *)copy();
     e->exps = (Expressions *)exps->copy();
     for (size_t i = 0; i < e->exps->dim; i++)
-    {   Expression *ex = e->exps->tdata()[i];
+    {   Expression *ex = (*e->exps)[i];
         ex = ex->castTo(sc, t);
-        e->exps->tdata()[i] = ex;
+        (*e->exps)[i] = ex;
     }
     return e;
 }
@@ -1381,13 +1381,13 @@ Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
         e->values = (Expressions *)values->copy();
         assert(keys->dim == values->dim);
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *ex = values->tdata()[i];
+        {   Expression *ex = (*values)[i];
             ex = ex->castTo(sc, tb->nextOf());
-            e->values->tdata()[i] = ex;
+            (*e->values)[i] = ex;
 
-            ex = keys->tdata()[i];
+            ex = (*keys)[i];
             ex = ex->castTo(sc, ((TypeAArray *)tb)->index);
-            e->keys->tdata()[i] = ex;
+            (*e->keys)[i] = ex;
         }
         e->type = t;
         return e;
@@ -1797,7 +1797,7 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
     while (e->op == TOKarrayliteral && e->type->ty == Tarray
         && (((ArrayLiteralExp *)e)->elements->dim == 1))
     {
-        e = ((ArrayLiteralExp *)e)->elements->tdata()[0];
+        e = (*((ArrayLiteralExp *)e)->elements)[0];
         if (other->ty == Tsarray || other->ty == Tarray)
             other = other->nextOf();
         else

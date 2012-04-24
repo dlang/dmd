@@ -146,7 +146,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     if (!property)
     {
         for (size_t i = 0; i < e->members->dim; i++)
-        {   EnumMember *sf = (e->members->tdata()[i])->isEnumMember();
+        {   EnumMember *sf = (*e->members)[i]->isEnumMember();
             dinteger_t value;
 
             if (sf)
@@ -185,7 +185,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     unsigned j = 2;
     unsigned fieldi = 0;
     for (size_t i = 0; i < e->members->dim; i++)
-    {   EnumMember *sf = (e->members->tdata()[i])->isEnumMember();
+    {   EnumMember *sf = (*e->members)[i]->isEnumMember();
         dinteger_t value;
 
         if (sf)
@@ -507,7 +507,7 @@ void ClassDeclaration::toDebug()
             n = 0;
             descriptor = 0;
             for (size_t i = 0; i < vtbl.dim; i++)
-            {   FuncDeclaration *fd = (FuncDeclaration *)vtbl.tdata()[i];
+            {   FuncDeclaration *fd = (FuncDeclaration *)vtbl[i];
 
                 //if (intsize == 4)
                     descriptor |= 5;

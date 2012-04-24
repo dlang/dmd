@@ -94,7 +94,7 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v2.059";
+    version = "v2.060";
     global.structalign = 8;
 
     memset(&params, 0, sizeof(Param));
@@ -364,8 +364,8 @@ Usage:\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
   -vtls          list all variables going into thread local storage\n\
-  -w             enable warnings\n\
-  -wi            enable informational warnings\n\
+  -w             warnings as errors (compilation will halt)\n\
+  -wi            warnings as messages (compilation will continue)\n\
   -X             generate JSON file\n\
   -Xffilename    write JSON file to filename\n\
 ", fpic);
@@ -1032,7 +1032,7 @@ int tryMain(int argc, char *argv[])
     {
         for (size_t i = 0; i < global.params.fileImppath->dim; i++)
         {
-            char *path = global.params.fileImppath->tdata()[i];
+            char *path = (*global.params.fileImppath)[i];
             Strings *a = FileName::splitPath(path);
 
             if (a)
@@ -1053,7 +1053,7 @@ int tryMain(int argc, char *argv[])
         char *ext;
         char *name;
 
-        p = files.tdata()[i];
+        p = files[i];
 
 #if _WIN32
         // Convert / to \ so linker will work
@@ -1071,47 +1071,47 @@ int tryMain(int argc, char *argv[])
              */
             if (FileName::equals(ext, global.obj_ext))
             {
-                global.params.objfiles->push(files.tdata()[i]);
-                libmodules.push(files.tdata()[i]);
+                global.params.objfiles->push(files[i]);
+                libmodules.push(files[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.lib_ext))
             {
-                global.params.libfiles->push(files.tdata()[i]);
-                libmodules.push(files.tdata()[i]);
+                global.params.libfiles->push(files[i]);
+                libmodules.push(files[i]);
                 continue;
             }
 
             if (strcmp(ext, global.ddoc_ext) == 0)
             {
-                global.params.ddocfiles->push(files.tdata()[i]);
+                global.params.ddocfiles->push(files[i]);
                 continue;
             }
 
             if (FileName::equals(ext, global.json_ext))
             {
                 global.params.doXGeneration = 1;
-                global.params.xfilename = files.tdata()[i];
+                global.params.xfilename = files[i];
                 continue;
             }
 
             if (FileName::equals(ext, global.map_ext))
             {
-                global.params.mapfile = files.tdata()[i];
+                global.params.mapfile = files[i];
                 continue;
             }
 
 #if TARGET_WINDOS
             if (FileName::equals(ext, "res"))
             {
-                global.params.resfile = files.tdata()[i];
+                global.params.resfile = files[i];
                 continue;
             }
 
             if (FileName::equals(ext, "def"))
             {
-                global.params.deffile = files.tdata()[i];
+                global.params.deffile = files[i];
                 continue;
             }
 
@@ -1142,7 +1142,7 @@ int tryMain(int argc, char *argv[])
                     strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error(0, "invalid file name '%s'", files.tdata()[i]);
+                    error(0, "invalid file name '%s'", files[i]);
                     fatal();
                 }
             }
@@ -1224,7 +1224,7 @@ int tryMain(int argc, char *argv[])
             // Remove m's object file from list of object files
             for (size_t j = 0; j < global.params.objfiles->dim; j++)
             {
-                if (m->objfile->name->str == global.params.objfiles->tdata()[j])
+                if (m->objfile->name->str == (*global.params.objfiles)[j])
                 {
                     global.params.objfiles->remove(j);
                     break;
@@ -1366,7 +1366,7 @@ int tryMain(int argc, char *argv[])
     Library *library = NULL;
     if (global.params.lib)
     {
-        library = new Library();
+        library = Library::factory();
         library->setFilename(global.params.objdir, global.params.libname);
 
         // Add input object and input library files to output library
@@ -1397,7 +1397,7 @@ int tryMain(int argc, char *argv[])
         }
         if (!global.errors && modules.dim)
         {
-            obj_end(library, modules.tdata()[0]->objfile);
+            obj_end(library, modules[0]->objfile);
         }
     }
     else
@@ -1511,7 +1511,7 @@ void getenv_setargv(const char *envvar, int *pargc, char** *pargv)
     argv->setDim(argc);
 
     for (size_t i = 0; i < argc; i++)
-        argv->tdata()[i] = (*pargv)[i];
+        (*argv)[i] = (*pargv)[i];
 
     size_t j = 1;               // leave argv[0] alone
     while (1)

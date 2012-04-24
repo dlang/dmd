@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -292,6 +292,15 @@ int cod3_EA(code *c)
 }
 
 /********************************
+ * set initial global variable values
+ */
+
+void cod3_setdefault()
+{
+    fregsaved = mBP | mSI | mDI;
+}
+
+/********************************
  * Fix global variables for 386.
  */
 
@@ -343,12 +352,20 @@ void cod3_set64()
 /*********************************
  * Word or dword align start of function.
  */
+void cod3_align_bytes(size_t nbytes)
+{
+    static unsigned char nops[] = {
+        0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
+    }; // XCHG AX,AX
+    assert(nbytes < sizeof(nops));
+    assert(SegData[cseg]->SDseg == cseg);
+    obj_write_bytes(SegData[cseg],nbytes,nops);
+}
 
 void cod3_align()
 {
-    static unsigned char nops[7] = { 0x90,0x90,0x90,0x90,0x90,0x90,0x90 };
     unsigned nbytes;
-#if OMFOBJ
+#if TARGET_WINDOS
     if (config.flags4 & CFG4speed)      // if optimized for speed
     {
         // Pick alignment based on CPU target
@@ -359,15 +376,12 @@ void cod3_align()
 
             nbytes = -Coffset & 15;
             if (nbytes < 8)
-            {
-                Coffset += obj_bytes(cseg,Coffset,nbytes,nops); // XCHG AX,AX
-            }
+                cod3_align_bytes(nbytes);
         }
     }
 #else
     nbytes = -Coffset & 3;
-    //dbg_printf("cod3_align Coffset %x nbytes %d\n",Coffset,nbytes);
-    obj_bytes(cseg,Coffset,nbytes,nops);
+    cod3_align_bytes(nbytes);
 #endif
 }
 
@@ -486,6 +500,72 @@ regm_t regmask(tym_t tym, tym_t tyf)
             return 0;
     }
 }
+
+/*******************************
+ * setup register allocator parameters with platform specific data
+ */
+void cgreg_dst_regs(unsigned *dst_integer_reg, unsigned *dst_float_reg)
+{
+    *dst_integer_reg = AX;
+    *dst_float_reg   = XMM0;
+}
+
+void cgreg_set_priorities(tym_t ty, char **pseq, char **pseqmsw)
+{
+    unsigned sz = tysize(ty);
+
+    if (tyxmmreg(ty))
+    {
+        static char sequence[] = {XMM0,XMM1,XMM2,XMM3,XMM4,XMM5,XMM6,XMM7,NOREG};
+        *pseq = sequence;
+    }
+    else if (I64)
+    {
+        if (sz == REGSIZE * 2)
+        {
+            static char seqmsw[] = {CX,DX,NOREG};
+            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            *pseq = seqlsw;
+            *pseqmsw = seqmsw;
+        }
+        else
+        {   // R10 is reserved for the static link
+            static char sequence[] = {AX,CX,DX,SI,DI,R8,R9,R11,BX,R12,R13,R14,R15,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+    else if (I32)
+    {
+        if (sz == REGSIZE * 2)
+        {
+            static char seqlsw[] = {AX,BX,SI,DI,NOREG};
+            static char seqmsw[] = {CX,DX,NOREG};
+            *pseq = seqlsw;
+            *pseqmsw = seqmsw;
+        }
+        else
+        {
+            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+    else
+    {   assert(I16);
+        if (typtr(ty))
+        {
+            // For pointer types, try to pick index register first
+            static char seqidx[] = {BX,SI,DI,AX,CX,DX,BP,NOREG};
+            *pseq = seqidx;
+        }
+        else
+        {
+            // Otherwise, try to pick index registers last
+            static char sequence[] = {AX,CX,DX,BX,SI,DI,BP,NOREG};
+            *pseq = sequence;
+        }
+    }
+}
+
 
 /*******************************
  * Generate block exit code
@@ -1279,13 +1359,11 @@ void outswitab(block *b)
   assert(*poffset == offset + alignbytes);
 
   sz = intsize;
+  assert(SegData[seg]->SDseg == seg);
   for (n = 0; n < ncases; n++)          /* send out value table         */
   {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
-#if OMFOBJ
-        *poffset +=
-#endif
-            obj_bytes(seg,*poffset,sz,p);
+        obj_write_bytes(SegData[seg],sz,p);
         p++;
   }
   offset += alignbytes + sz * ncases;
@@ -1298,10 +1376,7 @@ void outswitab(block *b)
         for (n = 0; n < ncases; n++)
         {   val = MSREG(*p);
             p++;
-#if OMFOBJ
-            *poffset +=
-#endif
-                obj_bytes(seg,*poffset,REGSIZE,&val);
+            obj_write_bytes(SegData[seg],REGSIZE,&val);
         }
         offset += REGSIZE * ncases;
         assert(*poffset == offset);
@@ -1628,6 +1703,80 @@ Lcan:
 
 Lcant:
     return 0;
+}
+
+/*************************************************
+ * Generate code segment to be used later to restore a cse
+ */
+
+bool cse_simple(code *c, elem *e)
+{   regm_t regm;
+    unsigned reg;
+    int sz = tysize[tybasic(e->Ety)];
+
+    if (!I16 &&                                  // don't bother with 16 bit code
+        e->Eoper == OPadd &&
+        sz == REGSIZE &&
+        e->E2->Eoper == OPconst &&
+        e->E1->Eoper == OPvar &&
+        isregvar(e->E1,&regm,&reg) &&
+        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
+       )
+    {
+        memset(c,0,sizeof(*c));
+
+        // Make this an LEA instruction
+        c->Iop = 0x8D;                          // LEA
+        buildEA(c,reg,-1,1,e->E2->EV.Vuns);
+        if (I64)
+        {   if (sz == 8)
+                c->Irex |= REX_W;
+            else if (sz == 1 && reg >= 4)
+                c->Irex |= REX;
+        }
+
+        return true;
+    }
+    else if (e->Eoper == OPind &&
+        sz <= REGSIZE &&
+        e->E1->Eoper == OPvar &&
+        isregvar(e->E1,&regm,&reg) &&
+        (I32 || I64 || regm & IDXREGS) &&
+        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
+       )
+    {
+        memset(c,0,sizeof(*c));
+
+        // Make this a MOV instruction
+        c->Iop = (sz == 1) ? 0x8A : 0x8B;       // MOV reg,EA
+        buildEA(c,reg,-1,1,0);
+        if (sz == 2 && I32)
+            c->Iflags |= CFopsize;
+        else if (I64)
+        {   if (sz == 8)
+                c->Irex |= REX_W;
+            else if (sz == 1 && reg >= 4)
+                c->Irex |= REX;
+        }
+
+        return true;
+    }
+    return false;
+}
+
+code* gen_loadcse(unsigned reg, targ_uns i)
+{
+    code* c = getregs(mask[reg]);
+    unsigned op = 0x8B;
+    if (reg == ES)
+    {
+        op = 0x8E;
+        reg = 0;
+    }
+    c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,i);
+    if (I64)
+        code_orrex(c, REX_W);
+    return c;
 }
 
 /***************************************

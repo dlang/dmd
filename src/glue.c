@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -67,6 +67,8 @@ int shareddtorcount;
 
 char *lastmname;
 
+bool onlyOneMain(Loc loc);
+
 /**************************************
  * Append s to list of object files to generate later.
  */
@@ -81,7 +83,7 @@ void obj_append(Dsymbol *s)
 void obj_write_deferred(Library *library)
 {
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
-    {   Dsymbol *s = obj_symbols_towrite.tdata()[i];
+    {   Dsymbol *s = obj_symbols_towrite[i];
         Module *m = s->getModule();
 
         char *mname;
@@ -289,7 +291,7 @@ void Module::genobjfile(int multiobj)
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = aimports.tdata()[0];
+        Module *m = aimports[0];
         assert(m);
         if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
         {
@@ -336,7 +338,7 @@ void Module::genobjfile(int multiobj)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *member = members->tdata()[i];
+        Dsymbol *member = (*members)[i];
         member->toObjFile(multiobj);
     }
 
@@ -466,7 +468,8 @@ void Module::genobjfile(int multiobj)
                 sp->Stype = type_fake(TYint);
                 sp->Stype->Tcount++;
                 sp->Sclass = SCfastpar;
-                sp->Spreg = I64 ? DI : AX;
+                size_t num;
+                sp->Spreg = getintegerparamsreglist(TYjfunc, &num)[0];
                 sp->Sflags &= ~SFLspill;
                 sp->Sfl = FLpara;       // FLauto?
                 cstate.CSpsymtab = &ma->Sfunc->Flocsym;
@@ -589,9 +592,10 @@ void FuncDeclaration::toObjFile(int multiobj)
                                 ? global.params.debuglibname
                                 : global.params.defaultlibname;
 
-        // Pull in RTL startup code
-        if (func->isMain())
-        {   objextdef("_main");
+        // Pull in RTL startup code (but only once)
+        if (func->isMain() && onlyOneMain(loc))
+        {
+            objextdef("_main");
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             obj_ehsections();   // initialize exception handling sections
 #endif
@@ -601,7 +605,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             obj_includelib(libname);
             s->Sclass = SCglobal;
         }
-        else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
+        else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc && onlyOneMain(loc))
         {
 #if TARGET_WINDOS
             objextdef("__acrtused_con");        // bring in C startup code
@@ -609,7 +613,8 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
             s->Sclass = SCglobal;
         }
-        else if (func->isWinMain())
+#if TARGET_WINDOS
+        else if (func->isWinMain() && onlyOneMain(loc))
         {
             objextdef("__acrtused");
             obj_includelib(libname);
@@ -617,12 +622,13 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
 
         // Pull in RTL startup code
-        else if (func->isDllMain())
+        else if (func->isDllMain() && onlyOneMain(loc))
         {
             objextdef("__acrtused_dll");
             obj_includelib(libname);
             s->Sclass = SCglobal;
         }
+#endif
     }
 
     cstate.CSpsymtab = &f->Flocsym;
@@ -710,7 +716,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = parameters->tdata()[i];
+        {   VarDeclaration *v = (*parameters)[i];
             if (v->csym)
             {
                 error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
@@ -779,49 +785,37 @@ void FuncDeclaration::toObjFile(int multiobj)
     // Determine register assignments
     if (pi)
     {
-        if (global.params.is64bit)
-        {
-            // Order of assignment of pointer or integer parameters
-            static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };
-            int r = 0;
-            int xmmcnt = XMM0;
+        size_t numintegerregs = 0, numfloatregs = 0;
+        const unsigned char* argregs = getintegerparamsreglist(tyf, &numintegerregs);
+        const unsigned char* floatregs = getfloatparamsreglist(tyf, &numfloatregs);
 
-            for (size_t i = 0; i < pi; i++)
-            {   Symbol *sp = params[i];
-                tym_t ty = tybasic(sp->Stype->Tty);
-                // BUG: doesn't work for structs
-                if (r < sizeof(argregs)/sizeof(argregs[0]))
+        // Order of assignment of pointer or integer parameters
+        int r = 0;
+        int xmmcnt = 0;
+
+        for (size_t i = 0; i < pi; i++)
+        {   Symbol *sp = params[i];
+            tym_t ty = tybasic(sp->Stype->Tty);
+            // BUG: doesn't work for structs
+            if (r < numintegerregs)
+            {
+                if ((I64 || (i == 0 && (tyf == TYjfunc || tyf == TYmfunc))) && type_jparam(sp->Stype))
                 {
-                    if (type_jparam(sp->Stype))
-                    {
-                        sp->Sclass = SCfastpar;
-                        sp->Spreg = argregs[r];
-                        sp->Sfl = FLauto;
-                        ++r;
-                    }
-                }
-                if (xmmcnt <= XMM7)
-                {
-                    if (tyxmmreg(ty))
-                    {
-                        sp->Sclass = SCfastpar;
-                        sp->Spreg = xmmcnt;
-                        sp->Sfl = FLauto;
-                        ++xmmcnt;
-                    }
+                    sp->Sclass = SCfastpar;
+                    sp->Spreg = argregs[r];
+                    sp->Sfl = FLauto;
+                    ++r;
                 }
             }
-        }
-        else
-        {
-            // First parameter goes in register
-            Symbol *sp = params[0];
-            if ((tyf == TYjfunc || tyf == TYmfunc) &&
-                type_jparam(sp->Stype))
-            {   sp->Sclass = SCfastpar;
-                sp->Spreg = (tyf == TYjfunc) ? AX : CX;
-                sp->Sfl = FLauto;
-                //printf("'%s' is SCfastpar\n",sp->Sident);
+            if (xmmcnt < numfloatregs)
+            {
+                if (tyxmmreg(ty))
+                {
+                    sp->Sclass = SCfastpar;
+                    sp->Spreg = floatregs[xmmcnt];
+                    sp->Sfl = FLauto;
+                    ++xmmcnt;
+                }
             }
         }
     }
@@ -1015,6 +1009,22 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
 }
 
+bool onlyOneMain(Loc loc)
+{
+    static bool hasMain = false;
+    if (hasMain)
+    {
+#if TARGET_WINDOS
+        error(loc, "only one main/WinMain/DllMain allowed");
+#else
+        error(loc, "only one main allowed");
+#endif
+        return false;
+    }
+    hasMain = true;
+    return true;
+}
+
 /* ================================================================== */
 
 /*****************************
@@ -1102,6 +1112,20 @@ unsigned Type::totym()
                 default:
                     assert(0);
                     break;
+            }
+            static bool once = false;
+            if (!once)
+            {
+                if (global.params.is64bit || TARGET_OSX)
+                    ;
+                else
+                {   error(0, "SIMD vector types not supported on this platform");
+                    once = true;
+                }
+                if (tv->size(0) == 32)
+                {   error(0, "AVX vector types not supported");
+                    once = true;
+                }
             }
             break;
         }

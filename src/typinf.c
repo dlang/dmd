@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -511,13 +511,14 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
      *  int function(in void*, in void*) xopCmp;
      *  string function(const(void)*) xtoString;
      *  uint m_flags;
-     *  xgetMembers;
+     *  //xgetMembers;
      *  xdtor;
      *  xpostblit;
      *  uint m_align;
      *  version (X86_64)
      *      TypeInfo m_arg1;
      *      TypeInfo m_arg2;
+     *  xgetRTInfo
      *
      *  name[]
      */
@@ -646,15 +647,18 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         dtsize_t(pdt, 0);
 
     // uint m_flags;
-    dtsize_t(pdt, tc->hasPointers());
+    size_t m_flags = tc->hasPointers();
+    dtsize_t(pdt, m_flags);
 
 #if DMDV2
+#if 0
     // xgetMembers
     FuncDeclaration *sgetmembers = sd->findGetMembers();
     if (sgetmembers)
         dtxoff(pdt, sgetmembers->toSymbol(), 0, TYnptr);
     else
         dtsize_t(pdt, 0);                        // xgetMembers
+#endif
 
     // xdtor
     FuncDeclaration *sdtor = sd->dtor;
@@ -682,7 +686,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         {
             if (i < tup->arguments->dim)
             {
-                Type *targ = (tup->arguments->tdata()[i])->type;
+                Type *targ = (*tup->arguments)[i]->type;
                 targ = targ->merge();
                 targ->getTypeInfo(NULL);
                 dtxoff(pdt, targ->vtinfo->toSymbol(), 0, TYnptr);       // m_argi
@@ -691,6 +695,14 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
                 dtsize_t(pdt, 0);                    // m_argi
         }
     }
+
+    // xgetRTInfo
+    if (sd->getRTInfo)
+        sd->getRTInfo->toDt(pdt);
+    else if (m_flags)
+        dtsize_t(pdt, 1);       // has pointers
+    else
+        dtsize_t(pdt, 0);       // no pointers
 
     // name[]
     dtnbytes(pdt, namelen + 1, name);
@@ -753,7 +765,7 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
 
     dt_t *d = NULL;
     for (size_t i = 0; i < dim; i++)
-    {   Parameter *arg = tu->arguments->tdata()[i];
+    {   Parameter *arg = (*tu->arguments)[i];
         Expression *e = arg->type->getTypeInfo(NULL);
         e = e->optimize(WANTvalue);
         e->toDt(&d);
@@ -880,7 +892,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {   Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
-        args->tdata()[i] = arg;
+        (*args)[i] = arg;
     }
     TypeTuple *tup = new TypeTuple(args);
     Expression *e = tup->getTypeInfo(sc);

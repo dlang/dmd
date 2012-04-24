@@ -841,6 +841,11 @@ void dotytab()
                                  TYlong4,TYulong4,TYllong2,TYullong2,
                              };
 #endif
+    static tym_t _simd[] = {
+                                 TYfloat4,TYdouble2,
+                                 TYschar16,TYuchar16,TYshort8,TYushort8,
+                                 TYlong4,TYulong4,TYllong2,TYullong2,
+                             };
 
     static struct
     {
@@ -990,6 +995,7 @@ void dotytab()
 #if TX86
     T1(_xmmreg,    TYFLxmmreg);
 #endif
+    T1(_simd,      TYFLsimd);
 #undef T1
 #undef T2
 
@@ -1054,6 +1060,11 @@ void dotytab()
 #else
 #error "fix this"
 #endif
+                break;
+
+            case TYcent:
+            case TYucent:
+                sz = 8;
                 break;
         }
         tysize[typetab[i].ty | 0x00] = sz;

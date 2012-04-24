@@ -85,7 +85,7 @@ void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = members->tdata()[i];
+    {   Dsymbol *s = (*members)[i];
 
         s->toHBuffer(buf, hgs);
     }

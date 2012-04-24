@@ -590,8 +590,11 @@ symbol *elf_sym_cdata(tym_t ty,char *p,int len)
 }
 
 /**************************
- * Ouput read only data for data
- *
+ * Ouput read only data for data.
+ * Output:
+ *      *pseg   segment of that data
+ * Returns:
+ *      offset of that data
  */
 
 int elf_data_cdata(char *p, int len, int *pseg)
@@ -1651,6 +1654,7 @@ int obj_comdatsize(Symbol *s, targ_size_t symsize)
         objpubdefsize(s->Sseg,s,0,symsize);
         searchfixlist(s);               // backpatch any refs to this symbol
     }
+    s->Soffset = 0;
     return s->Sseg;
 }
 

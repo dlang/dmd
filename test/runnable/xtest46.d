@@ -3561,6 +3561,31 @@ pure int test4031()
 }
 
 /***************************************************/
+// 5437
+
+template EnumMembers5437(E)
+{
+    template TypeTuple(T...){ alias T TypeTuple; }
+
+    alias TypeTuple!("A", "B") EnumMembers5437;
+}
+template IntValue5437()
+{
+    int IntValue5437 = 10;
+}
+
+void test5437()
+{
+    enum Foo { A, B }
+    alias EnumMembers5437!Foo members;      // OK
+    enum n1 = members.length;               // OK
+    enum n2 = (EnumMembers5437!Foo).length; // NG, type -> symbol
+
+    enum s1 = IntValue5437!().sizeof;       // OK
+    enum s2 = (IntValue5437!()).sizeof;     // NG, type -> expression
+}
+
+/***************************************************/
 // 1962
 
 
@@ -4967,6 +4992,46 @@ void test7871()
 }
 
 /***************************************************/
+// 7906
+
+void test7906()
+{
+    static assert(!__traits(compiles, { enum s = [string.min]; }));
+}
+
+/***************************************************/
+// 7907
+
+template Id7907(E)
+{
+    alias E Id7907;
+}
+template Id7907(alias E)
+{
+    alias E Id7907;
+}
+
+void test7907()
+{
+    static assert(!__traits(compiles, { alias Id7907!([string.min]) X; }));
+}
+
+/***************************************************/
+// 1175
+
+class A1175
+{
+    class I1 { }
+}
+
+class B1175 : A1175
+{
+    class I2 : I1 { }
+
+    I1 getI() { return new I2; }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5145,6 +5210,7 @@ int main()
     test4539();
     test4963();
     test4031();
+    test5437();
     test6230();
     test6264();
     test6284();
@@ -5195,6 +5261,8 @@ int main()
     test7735();
     test7823();
     test7871();
+    test7906();
+    test7907();
 
     printf("Success\n");
     return 0;

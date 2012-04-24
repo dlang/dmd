@@ -1210,6 +1210,30 @@ int sdfgasf()
 static assert(sdfgasf() == 1);
 
 /**************************************************
+   Bug 7770
+**************************************************/
+
+immutable char[] foo7770 = "abcde";
+
+int bug7770a(string a)
+{
+    return 1;
+}
+
+bool bug7770b(char c)
+{
+    return true;
+}
+
+static assert( bug7770a(foo7770[0 .. $]));
+static assert( bug7770b(foo7770[ $ - 2 ]));
+void baz7770()
+{
+    static assert( bug7770a(foo7770[0 .. $]));
+    static assert( bug7770b(foo7770[ $ - 2 ]));
+}
+
+/**************************************************
    Bug 6015
 **************************************************/
 
@@ -3097,6 +3121,29 @@ static assert({
 }());
 
 /**************************************************
+   7780 array cast
+**************************************************/
+int bug7780(int testnum){
+    int[] y = new int[2];
+    y[0]=2000000;
+    if (testnum == 1)
+    {
+        void[] x = y;
+        return (cast(byte[])x)[1];
+    }
+    if (testnum == 2)
+    {
+        int[] x = y[0..1];
+        return (cast(byte[])x)[1];
+    }
+    return 1;
+}
+
+static assert( is(typeof(compiles!(bug7780(0)))));
+static assert(!is(typeof(compiles!(bug7780(1)))));
+static assert(!is(typeof(compiles!(bug7780(2)))));
+
+/**************************************************
     6851 passing pointer by argument
 **************************************************/
 
@@ -4277,6 +4324,36 @@ int test7732()
 }
 
 static assert( test7732() );
+
+/**************************************************
+    7784
+**************************************************/
+struct Foo7784
+{
+    void bug()
+    {
+        tab["A"] = Bar7784(&this);
+        auto pbar = "A" in tab;
+        auto bar = *pbar;
+    }
+
+    Bar7784[string] tab;
+}
+
+struct Bar7784
+{
+    Foo7784* foo;
+    int val;
+}
+
+bool ctfe7784()
+{
+    auto foo = Foo7784();
+    foo.bug();
+    return true;
+}
+
+static assert(ctfe7784());
 
 /**************************************************
     7781

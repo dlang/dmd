@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -15,53 +15,15 @@
 #pragma once
 #endif /* __DMC__ */
 
-struct ObjModule;
-
-struct ObjSymbol
+class Library
 {
-    char *name;
-    ObjModule *om;
-};
+  public:
+    static Library *factory();
 
-#include "arraytypes.h"
-
-typedef ArrayBase<ObjModule> ObjModules;
-typedef ArrayBase<ObjSymbol> ObjSymbols;
-
-struct Library
-{
-    File *libfile;
-    ObjModules objmodules;   // ObjModule[]
-    ObjSymbols objsymbols;   // ObjSymbol[]
-
-    StringTable tab;
-
-    Library();
-    void setFilename(char *dir, char *filename);
-    void addObject(const char *module_name, void *buf, size_t buflen);
-    void addLibrary(void *buf, size_t buflen);
-    void write();
-
-  private:
-    void addSymbol(ObjModule *om, char *name, int pickAny = 0);
-    void scanObjModule(ObjModule *om);
-    unsigned short numDictPages(unsigned padding);
-    int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
-    void WriteLibToBuffer(OutBuffer *libbuf);
-
-    void error(const char *format, ...)
-    {
-        Loc loc;
-        if (libfile)
-        {
-            loc.filename = libfile->name->toChars();
-            loc.linnum = 0;
-        }
-        va_list ap;
-        va_start(ap, format);
-        ::verror(loc, format, ap);
-        va_end(ap);
-    }
+    virtual void setFilename(char *dir, char *filename) = 0;
+    virtual void addObject(const char *module_name, void *buf, size_t buflen) = 0;
+    virtual void addLibrary(void *buf, size_t buflen) = 0;
+    virtual void write() = 0;
 };
 
 #endif /* DMD_LIB_H */

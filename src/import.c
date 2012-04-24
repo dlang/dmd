@@ -45,7 +45,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
         this->ident = aliasId;
     // import [std].stdio;
     else if (packages && packages->dim)
-        this->ident = packages->tdata()[0];
+        this->ident = (*packages)[0];
     // import [foo];
     else
         this->ident = id;
@@ -356,8 +356,8 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
      */
     for (size_t i = 0; i < names.dim; i++)
     {
-        Identifier *name = names.tdata()[i];
-        Identifier *alias = aliases.tdata()[i];
+        Identifier *name = names[i];
+        Identifier *alias = aliases[i];
 
         if (!alias)
             alias = name;
@@ -413,7 +413,7 @@ void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (packages && packages->dim)
     {
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = packages->tdata()[i];
+        {   Identifier *pid = (*packages)[i];
 
             buf->printf("%s.", pid->toChars());
         }

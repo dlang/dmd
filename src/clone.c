@@ -45,7 +45,7 @@ int StructDeclaration::needOpAssign()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields.tdata()[i];
+        Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -153,7 +153,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < fields.dim; i++)
         {
-            Dsymbol *s = fields.tdata()[i];
+            Dsymbol *s = fields[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v && v->storage_class & STCfield);
             // this.v = s.v;
@@ -214,7 +214,7 @@ int StructDeclaration::needOpEquals()
      */
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields.tdata()[i];
+        Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -304,7 +304,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     //printf("\tmemberwise compare\n");
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields.tdata()[i];
+        Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -513,7 +513,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields.tdata()[i];
+        Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -581,12 +581,12 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
             return NULL;
 
         case 1:
-            return postblits.tdata()[0];
+            return postblits[0];
 
         default:
             e = NULL;
             for (size_t i = 0; i < postblits.dim; i++)
-            {   FuncDeclaration *fd = postblits.tdata()[i];
+            {   FuncDeclaration *fd = postblits[i];
                 stc |= fd->storage_class & STCdisable;
                 if (stc & STCdisable)
                 {
@@ -625,7 +625,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 #if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
-        Dsymbol *s = fields.tdata()[i];
+        Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v && v->storage_class & STCfield);
         if (v->storage_class & STCref)
@@ -686,12 +686,12 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
             return NULL;
 
         case 1:
-            return dtors.tdata()[0];
+            return dtors[0];
 
         default:
             e = NULL;
             for (size_t i = 0; i < dtors.dim; i++)
-            {   FuncDeclaration *fd = dtors.tdata()[i];
+            {   FuncDeclaration *fd = dtors[i];
                 Expression *ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, fd, 0);
                 ex = new CallExp(0, ex);

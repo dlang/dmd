@@ -58,6 +58,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     noDefaultCtor = FALSE;
 #endif
     dtor = NULL;
+    getRTInfo = NULL;
 }
 
 enum PROT AggregateDeclaration::prot()
@@ -77,7 +78,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             s->semantic2(sc);
         }
         sc->pop();
@@ -92,10 +93,25 @@ void AggregateDeclaration::semantic3(Scope *sc)
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             s->semantic3(sc);
         }
         sc->pop();
+
+        if (!getRTInfo)
+        {   // Evaluate: gcinfo!type
+            Objects *tiargs = new Objects();
+            tiargs->push(type);
+            TemplateInstance *ti = new TemplateInstance(loc, Type::rtinfo, tiargs);
+            ti->semantic(sc);
+            ti->semantic2(sc);
+            ti->semantic3(sc);
+            Dsymbol *s = ti->toAlias();
+            Expression *e = new DsymbolExp(0, s, 0);
+            e = e->semantic(ti->tempdecl->scope);
+            e = e->optimize(WANTvalue | WANTinterpret);
+            getRTInfo = e;
+        }
     }
 }
 
@@ -106,7 +122,7 @@ void AggregateDeclaration::inlineScan()
     {
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             //printf("inline scan aggregate symbol '%s'\n", s->toChars());
             s->inlineScan();
         }
@@ -254,13 +270,13 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
 {
     if (isUnionDeclaration())
         return 0;
-    VarDeclaration * vd = fields.tdata()[indx];
+    VarDeclaration * vd = fields[indx];
     int firstNonZero = indx; // first index in the union with non-zero size
     for (; ;)
     {
         if (indx == 0)
             return firstNonZero;
-        VarDeclaration * v = fields.tdata()[indx - 1];
+        VarDeclaration * v = fields[indx - 1];
         if (v->offset != vd->offset)
             return firstNonZero;
         --indx;
@@ -279,7 +295,7 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
  */
 int AggregateDeclaration::numFieldsInUnion(int firstIndex)
 {
-    VarDeclaration * vd = fields.tdata()[firstIndex];
+    VarDeclaration * vd = fields[firstIndex];
     /* If it is a zero-length field, AND we can't find an earlier non-zero
      * sized field with the same offset, we assume it's not part of a union.
      */
@@ -289,7 +305,7 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
     int count = 1;
     for (size_t i = firstIndex+1; i < fields.dim; ++i)
     {
-        VarDeclaration * v = fields.tdata()[i];
+        VarDeclaration * v = fields[i];
         // If offsets are different, they are not in the same union
         if (v->offset != vd->offset)
             break;
@@ -383,7 +399,7 @@ void StructDeclaration::semantic(Scope *sc)
         int hasfunctions = 0;
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
             s->addMember(sc, this, 1);
             if (s->isFuncDeclaration())
@@ -692,8 +708,8 @@ void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	buf->level++;
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = members->tdata()[i];
-		s->toCBuffer(buf, hgs);
+        Dsymbol *s = (*members)[i];
+        s->toCBuffer(buf, hgs);
     }
 	buf->level--;
 	buf->writeByte('}');
