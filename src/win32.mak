@@ -165,9 +165,10 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c \
 	$(ROOT)\longdouble.h $(ROOT)\longdouble.c \
-	$(ROOT)\dmgcmem.c $(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
-	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
-	$(ROOT)\gc\win32.c
+	$(ROOT)\dmgcmem.c
+#	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
+#	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
+#	$(ROOT)\gc\win32.c
 
 MAKEFILES=win32.mak posix.mak
 
@@ -460,15 +461,15 @@ stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
 
 # ROOT/GC
-
-bits.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\bits.c
-	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\bits.c
-
-gc.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\os.h $(ROOT)\gc\gc.h $(ROOT)\gc\gc.c
-	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\gc.c
-
-win32.obj : $(ROOT)\gc\os.h $(ROOT)\gc\win32.c
-	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\win32.c
+#
+#bits.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\bits.c
+#	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\bits.c
+#
+#gc.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\os.h $(ROOT)\gc\gc.h $(ROOT)\gc\gc.c
+#	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\gc.c
+#
+#win32.obj : $(ROOT)\gc\os.h $(ROOT)\gc\win32.c
+#	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\win32.c
 
 
 ################# Source file dependencies ###############
