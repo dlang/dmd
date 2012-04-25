@@ -1348,7 +1348,7 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
             case OPind:
             case OPucall:
             case OPucallns:
-#if !TX86
+#if TARGET_SEGMENTED
             case OPvp_fp:
 #endif
                 accumda(n->E1,DEAD,POSS);

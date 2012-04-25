@@ -53,6 +53,8 @@
 #include        "iasm.h"
 #include        "xmm.h"
 
+#if TX86
+
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
 #undef I16
@@ -4847,4 +4849,14 @@ AFTER_EMIT:
     //return asmstate.bReturnax;
     return this;
 }
+
+#else
+
+Statement* AsmStatement::semantic(Scope *sc)
+{
+    assert(0);
+    return NULL;
+}
+
+#endif
 

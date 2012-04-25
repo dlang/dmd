@@ -135,7 +135,6 @@ void util_set32(void);
 void util_set64(void);
 int ispow2(targ_ullong);
 
-#if TX86
 #if __GNUC__
 #define util_malloc(n,size) mem_malloc((n)*(size))
 #define util_calloc(n,size) mem_calloc((n)*(size))
@@ -156,7 +155,6 @@ void *parc_calloc(size_t len);
 void *parc_realloc(void *oldp,size_t len);
 char *parc_strdup(const char *s);
 void parc_free(void *p);
-#endif
 #endif
 
 void swap(int *,int *);
