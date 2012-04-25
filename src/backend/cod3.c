@@ -2380,6 +2380,8 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
  *      BPoff
  */
 
+static targ_size_t spoff;
+
 code *prolog()
 {
     SYMIDX si;
@@ -2408,6 +2410,7 @@ code *prolog()
         needframe = 1;
 
 Lagain:
+    spoff = 0;
     guessneedframe = needframe;
 //    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & ~NTEHjmonitor))
 //      usednteh |= NTEHpassthru;
@@ -2892,6 +2895,7 @@ Lagain:
         if (reg & 8)
             code_orrex(c, REX_B);
         EBPtoESP += REGSIZE;
+        spoff += REGSIZE;
 #if ELFOBJ || MACHOBJ
         if (config.fulltypes)
         {   // Emit debug_frame data giving location of saved register
@@ -2911,6 +2915,7 @@ Lcont:
 
         if (!pushds)                            // if not already pushed
             c = gen1(c,0x1E);                   // PUSH DS
+        spoff += intsize;
         c1 = genc(CNIL,0xC7,modregrm(3,0,AX),0,0,FLdatseg,(targ_uns) 0); /* MOV  AX,DGROUP      */
         c1->Iflags ^= CFseg | CFoff;            /* turn off CFoff, on CFseg */
         c = cat(c,c1);
@@ -3243,8 +3248,6 @@ Lcont:
  *      retsize         Size of function epilog
  */
 
-static targ_size_t spoff;
-
 void epilog(block *b)
 {   code *c;
     code *cr;
@@ -3267,7 +3270,7 @@ void epilog(block *b)
         goto Lret;                      // just generate RET
     regx = (b->BC == BCret) ? AX : CX;
 
-    spoff = 0;
+//    spoff = 0;
     retsize = 0;
 
     if (tyf & mTYnaked)                 // if no prolog/epilog
@@ -3311,7 +3314,7 @@ void epilog(block *b)
     if (tyf & mTYloadds)
     {   cpopds = gen1(cpopds,0x1F);             // POP DS
         c = cat(c,cpopds);
-        spoff += intsize;
+//        spoff += intsize;
     }
 
     /* Pop all the general purpose registers saved on the stack
@@ -3332,7 +3335,7 @@ void epilog(block *b)
             if (reg & 8)
                 code_orrex(c, REX_B);
             topop &= ~regm;
-            spoff += REGSIZE;
+//            spoff += REGSIZE;
         }
         regm >>= 1;
         reg--;
@@ -3477,6 +3480,7 @@ Lopt:
 
 targ_size_t cod3_spoff()
 {
+    //printf("spoff = x%x, localsize = x%x\n", (int)spoff, (int)localsize);
     return spoff + localsize;
 }
 
