@@ -269,6 +269,14 @@ void test14()
 
 /***************************************/
 
+void test7581()
+{
+    cfloat a() { return cfloat.nan; }
+    assert(a() != 0);
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -286,6 +294,7 @@ int main(char[][] args)
     test12();
     test13();
     test14();
+    test7581();
 
     printf("Success!\n");
     return 0;
