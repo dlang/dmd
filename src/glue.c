@@ -581,6 +581,20 @@ void FuncDeclaration::toObjFile(int multiobj)
 //      if (!(config.flags3 & CFG3pic))
 //          s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
+
+        /* The enclosing function must have its code generated first,
+         * so we know things like where its local symbols are stored.
+         */
+        FuncDeclaration *fdp = toParent2()->isFuncDeclaration();
+        if (fdp && fdp->semanticRun == PASSsemantic3done &&
+            !fdp->isUnitTestDeclaration())
+        {
+            /* Can't do unittest's out of order, they are order dependent in that their
+             * execution is done in lexical order, and some modules (std.datetime *cough*
+             * *cough*) rely on this.
+             */
+            fdp->toObjFile(multiobj);
+        }
     }
     else
     {
