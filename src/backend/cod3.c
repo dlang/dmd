@@ -406,6 +406,23 @@ void cod3_align()
     cod3_align_bytes(nbytes);
 #endif
 }
+
+code* cod3_stackadj(code* c, int nbytes)
+{
+    unsigned grex = I64 ? REX_W << 16 : 0;
+    unsigned rm;
+    if (nbytes > 0)
+        rm = modregrm(3,5,SP); // SUB ESP,nbytes
+    else
+    {
+        nbytes = -nbytes;
+        rm = modregrm(3,0,SP); // ADD ESP,nbytes
+    }
+    c = genc2(c, 0x81, grex | rm, nbytes);
+    if (I64)
+        code_orrex(c, REX_W);
+    return c;
+}
 
 /*****************************
  * Given a type, return a mask of

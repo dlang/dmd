@@ -2296,19 +2296,14 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
             sz = -(adjesp & 7) & 7;
         if (calledafunc && !I16 && sz && (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
         {
-            unsigned grex = I64 ? REX_W << 16 : 0;
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
                                         // because c hasn't been executed yet
-            cs1 = genc2(cs1,0x81,grex | modregrm(3,5,SP),sz);  // SUB ESP,sz
-            if (I64)
-                code_orrex(cs1, REX_W);
+            cs1 = cod3_stackadj(cs1, sz);
             regcon.immed.mval = mval_save;
             cs1 = genadjesp(cs1, sz);
 
-            code *cx = genc2(CNIL,0x81,grex | modregrm(3,0,SP),sz);  // ADD ESP,sz
-            if (I64)
-                code_orrex(cx, REX_W);
+            code *cx = cod3_stackadj(NULL, -sz);
             cx = genadjesp(cx, -sz);
             cs2 = cat(cx, cs2);
         }
