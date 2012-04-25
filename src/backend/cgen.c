@@ -64,6 +64,7 @@ void code_orflag(code *c,unsigned flag)
     }
 }
 
+#if TX86
 /*****************************
  * Set rex bits on last code in list.
  */
@@ -76,6 +77,7 @@ void code_orrex(code *c,unsigned rex)
         c->Irex |= rex;
     }
 }
+#endif
 
 /**************************************
  * Set the opcode fields in cs.
@@ -192,7 +194,9 @@ code *gen1(code *c,unsigned op)
   ce = code_calloc();
   ce->Iop = op;
   ccheck(ce);
+#if TX86
   assert(op != LEA);
+#endif
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -202,6 +206,7 @@ code *gen1(code *c,unsigned op)
   return ce;
 }
 
+#if TX86
 code *gen2(code *c,unsigned op,unsigned rm)
 { code *ce,*cstart;
 
@@ -237,6 +242,7 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
   }
   return cstart;
 }
+#endif
 
 /********************************
  * Generate an ASM sequence.
@@ -254,6 +260,7 @@ code *genasm(code *c,char *s,unsigned slen)
     return cat(c,ce);
 }
 
+#if TX86
 code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 {   code cs;
 
@@ -316,6 +323,7 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
     cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
 }
+#endif
 
 /********************************
  * Generate 'instruction' which is actually a line number.
@@ -374,6 +382,7 @@ code *genadjesp(code *c, int offset)
         return c;
 }
 
+#if TX86
 /********************************
  * Generate 'instruction' which tells the scheduler that the fpu stack has
  * changed.
@@ -393,6 +402,7 @@ code *genadjfpu(code *c, int offset)
     else
         return c;
 }
+#endif
 
 /********************************
  * Generate 'nop'
