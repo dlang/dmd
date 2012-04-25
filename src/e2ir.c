@@ -255,6 +255,7 @@ elem *callfunc(Loc loc,
             ep->Eoper = op;
             ep->Ety = tyret;
             e = ep;
+#if TX86
             if (op == OPscale)
             {
                 elem *et = e->E1;
@@ -268,6 +269,7 @@ elem *callfunc(Loc loc,
                 e->E1 = e->E2;
                 e->E2 = et;
             }
+#endif
         }
         else
             e = el_una(op,tyret,ep);

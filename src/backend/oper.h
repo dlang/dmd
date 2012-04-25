@@ -47,12 +47,12 @@ enum OPER
         OPuadd,                 /* unary +                      */
         OPvoid,                 // where casting to void is not a no-op
         OPabs,                  /* absolute value               */
+        OPrndtol,               // round to short, long, long long (inline 8087 only)
+        OPrint,                 // round to int
 #if TX86
         OPsqrt,                 /* square root                  */
-        OPrndtol,               // round to short, long, long long (inline 8087 only)
         OPsin,                  // sine
         OPcos,                  // cosine
-        OPrint,                 // round to int
         OPscale,                // ldexp
         OPyl2x,                 // y * log2(x)
         OPyl2xp1,               // y * log2(x + 1)
@@ -314,12 +314,8 @@ extern unsigned char rel_unord[];
  *      OTboolnop       operation is a nop if boolean result is desired
  */
 
-#if TX86
 extern const unsigned char optab1[OPMAX],optab2[OPMAX],optab3[OPMAX];
 extern const unsigned char opcost[OPMAX];
-#else
-extern unsigned char optab1[OPMAX],optab2[OPMAX];
-#endif
 /* optab1[]     */      /* Use byte arrays to avoid index scaling       */
 #define _OTbinary       1
 #define _OTunary        2
@@ -340,10 +336,9 @@ extern unsigned char optab1[OPMAX],optab2[OPMAX];
 #define _OTae           0x40
 #define _OTexp          0x80
 
-#if TX86
 // optab3[]
 #define _OTboolnop      1
-#endif
+
 #define OTbinary(op)    (optab1[op]&_OTbinary)
 #define OTunary(op)     (optab1[op]&_OTunary)
 #define OTleaf(op)      (!(optab1[op]&(_OTunary|_OTbinary)))
@@ -367,12 +362,8 @@ extern unsigned char optab1[OPMAX],optab2[OPMAX];
 #define OTdef(op)       (optab2[op]&_OTdef)
 #define OTae(op)        (optab2[op]&_OTae)
 #define OTexp(op)       (optab2[op]&_OTexp)
-#if TX86
 #define OTboolnop(op)   (optab3[op]&_OTboolnop)
 #define OTcalldef(op)   (OTcall(op) || (op) == OPstrcpy || (op) == OPstrcat || (op) == OPmemcpy)
-#else
-#define OTcalldef(op)   (OTcall(op))
-#endif
 
 /* Convert op= to op    */
 #define opeqtoop(opx)   ((opx) - OPaddass + OPadd)

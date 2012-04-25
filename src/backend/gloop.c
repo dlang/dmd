@@ -1050,15 +1050,17 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPu64_128:
 #endif
         case OPabs:
-        case OPsqrt:
         case OPrndtol:
-        case OPsin:
-        case OPcos:
         case OPrint:
         case OPsetjmp:
         case OPbsf:
         case OPbsr:
         case OPbswap:
+#if TX86
+        case OPsqrt:
+        case OPsin:
+        case OPcos:
+#endif
 #if TARGET_SEGMENTED
         case OPvp_fp: /* BUG for MacHandles */
         case OPnp_f16p: case OPf16p_np: case OPoffset: case OPnp_fp:
@@ -1118,10 +1120,12 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPcomma:
         case OPpair:
         case OPrpair:
-        case OPscale:
         case OPremquo:
+#if TX86
+        case OPscale:
         case OPyl2x:
         case OPyl2xp1:
+#endif
                 markinvar(n->E1,rd);
                 markinvar(n->E2,rd);
                 if (isLI(n->E2) && isLI(n->E1))
