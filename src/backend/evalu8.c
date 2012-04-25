@@ -1615,10 +1615,12 @@ elem * evalu8(elem *e)
                 break;
         }
         break;
+#if TX86
     case OPsqrt:
-    case OPrndtol:
     case OPsin:
     case OPcos:
+#endif
+    case OPrndtol:
     case OPrint:
         return e;
     case OPngt:
