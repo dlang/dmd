@@ -545,8 +545,7 @@ STATIC elem * elstring(elem *e)
 /************************
  */
 
-#if TX86
-
+#if TARGET_SEGMENTED
 /************************
  * Convert far pointer to pointer.
  */
@@ -560,6 +559,7 @@ STATIC void eltonear(elem **pe)
     e->Ety = ty;
     *pe = optelem(e,TRUE);
 }
+#endif
 
 /************************
  */
@@ -662,7 +662,7 @@ STATIC elem * elmemxxx(elem *e)
                     elem *enbytes = e->E2->E1;
                     elem *evalue = e->E2->E2;
 
-#if MARS && TX86
+#if MARS
                     if (enbytes->Eoper == OPconst && evalue->Eoper == OPconst
                         /* && tybasic(e->E1->Ety) == TYstruct*/)
                     {   tym_t tym;
@@ -763,7 +763,6 @@ STATIC elem * elmemxxx(elem *e)
     return e;
 }
 
-#endif
 
 /***********************
  *        +             #       (combine offsets with addresses)

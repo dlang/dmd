@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2011 by Digital Mars
+ * Copyright (c) 1999-2012 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/iasm.c
@@ -52,6 +52,8 @@
 #include        "code.h"
 #include        "iasm.h"
 #include        "xmm.h"
+
+#if TX86
 
 // I32 isn't set correctly yet because this is the front end, and I32
 // is a backend flag
@@ -689,11 +691,11 @@ RETRY:
                                             goto Lfound1;
                                         break;
                                     case 1:
-                            break;
+                                        break;
                                     default:
                                         goto PARAM_ERROR;
+                                }
                         }
-                }
                 }
             Lfound1:
                 if (table1->usOpcode == ASM_END)
@@ -2285,7 +2287,7 @@ ILLEGAL_ADDRESS_ERROR:
                 error(asmstate.loc, "tuple index %u exceeds length %u", index, tup->objects->dim);
             else
             {
-                Object *o = tup->objects->tdata()[index];
+                Object *o = (*tup->objects)[index];
                 if (o->dyncast() == DYNCAST_DSYMBOL)
                 {   o1->s = (Dsymbol *)o;
                     return o1;
@@ -4847,4 +4849,14 @@ AFTER_EMIT:
     //return asmstate.bReturnax;
     return this;
 }
+
+#else
+
+Statement* AsmStatement::semantic(Scope *sc)
+{
+    assert(0);
+    return NULL;
+}
+
+#endif
 
