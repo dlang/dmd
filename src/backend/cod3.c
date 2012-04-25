@@ -292,6 +292,28 @@ int cod3_EA(code *c)
 }
 
 /********************************
+ * setup ALLREGS and BYTEREGS
+ * called by: codgen
+ */
+
+void cod3_initregs()
+{
+    // should probably be !TARGET_WINDOS insetad of a long list of some targets
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (I64)
+    {
+        ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+        BYTEREGS = ALLREGS;
+    }
+    else
+    {
+        ALLREGS = ALLREGS_INIT;
+        BYTEREGS = BYTEREGS_INIT;
+    }
+#endif
+}
+
+/********************************
  * set initial global variable values
  */
 

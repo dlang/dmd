@@ -128,15 +128,7 @@ void codgen()
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
     functy = tybasic(funcsym_p->ty());
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    regm_t value = BYTEREGS_INIT;
-    ALLREGS = ALLREGS_INIT;
-    BYTEREGS = value;
-    if (I64)
-    {   ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
-        BYTEREGS = ALLREGS;
-    }
-#endif
+    cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinit;
 
