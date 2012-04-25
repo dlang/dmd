@@ -4972,6 +4972,26 @@ STATIC void pinholeopt_unittest()
 }
 #endif
 
+void simplify_code(code* c)
+{
+    unsigned reg;
+    if (config.flags4 & CFG4optimized &&
+        (c->Iop == 0x81 || c->Iop == 0x80) &&
+        c->IFL2 == FLconst &&
+        reghasvalue((c->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c->IEV2.Vsize_t : c->IEV2.Vlong,&reg) &&
+        !(c->Iflags & CFopsize && I16)
+       )
+    {
+        // See if we can replace immediate instruction with register instruction
+        static unsigned char regop[8] =
+                { 0x00,0x08,0x10,0x18,0x20,0x28,0x30,0x38 };
+
+        //printf("replacing 0x%02x, val = x%lx\n",c->Iop,c->IEV2.Vlong);
+        c->Iop = regop[(c->Irm & modregrm(0,7,0)) >> 3] | (c->Iop & 1);
+        code_newreg(c, reg);
+    }
+}
+
 /**************************
  * Compute jump addresses for FLcode.
  * Note: only works for forward referenced code.

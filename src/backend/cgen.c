@@ -164,34 +164,21 @@ code * cat6(code *c1,code *c2,code *c3,code *c4,code *c5,code *c6)
  */
 
 code *gen(code *c,code *cs)
-{   code *ce,*cstart;
-    unsigned reg;
-
+{
 #ifdef DEBUG                            /* this is a high usage routine */
     assert(cs);
 #endif
+#if TX86
     assert(I64 || cs->Irex == 0);
-    ce = code_calloc();
+#endif
+    code* ce = code_calloc();
     *ce = *cs;
     //printf("ce = %p %02x\n", ce, ce->Iop);
     ccheck(ce);
-    if (config.flags4 & CFG4optimized &&
-        (ce->Iop == 0x81 || ce->Iop == 0x80) &&
-        ce->IFL2 == FLconst &&
-        reghasvalue((ce->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? ce->IEV2.Vsize_t : ce->IEV2.Vlong,&reg) &&
-        !(ce->Iflags & CFopsize && I16)
-       )
-    {   // See if we can replace immediate instruction with register instruction
-        static unsigned char regop[8] =
-                { 0x00,0x08,0x10,0x18,0x20,0x28,0x30,0x38 };
-
-        //printf("replacing 0x%02x, val = x%lx\n",ce->Iop,ce->IEV2.Vlong);
-        ce->Iop = regop[(ce->Irm & modregrm(0,7,0)) >> 3] | (ce->Iop & 1);
-        code_newreg(ce, reg);
-    }
+    simplify_code(ce);
     code_next(ce) = CNIL;
     if (c)
-    {   cstart = c;
+    {   code* cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
         code_next(c) = ce;                      /* link into list       */
         return cstart;

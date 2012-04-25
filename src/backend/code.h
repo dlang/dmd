@@ -825,6 +825,7 @@ void assignaddr (block *bl );
 void assignaddrc (code *c );
 targ_size_t cod3_bpoffset(symbol *s);
 void pinholeopt (code *c , block *bn );
+void simplify_code(code *c);
 void jmpaddr (code *c );
 int code_match(code *c1,code *c2);
 unsigned calcblksize (code *c);
