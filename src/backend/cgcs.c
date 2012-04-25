@@ -325,9 +325,11 @@ STATIC void ecom(elem **pe)
     case OPand:
     case OPeqeq:
     case OPne:
+#if TX86
     case OPscale:
     case OPyl2x:
     case OPyl2xp1:
+#endif
         ecom(&e->E1);
         ecom(&e->E2);
         break;
@@ -343,7 +345,7 @@ STATIC void ecom(elem **pe)
 
     // Explicitly list all the unary ops for speed
     case OPnot: case OPcom: case OPneg: case OPuadd:
-    case OPabs: case OPsqrt: case OPrndtol: case OPsin: case OPcos: case OPrint:
+    case OPabs: case OPrndtol: case OPrint:
     case OPpreinc: case OPpredec:
     case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
     case OPd_s32: case OPd_u32:
@@ -360,6 +362,9 @@ STATIC void ecom(elem **pe)
     case OPvoid: case OPnullcheck:
     case OPbsf: case OPbsr: case OPbswap: case OPvector:
     case OPld_u64:
+#if TX86
+    case OPsqrt: case OPsin: case OPcos:
+#endif
 #if TARGET_SEGMENTED
     case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
 #endif
