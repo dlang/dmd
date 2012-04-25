@@ -132,7 +132,6 @@ enum TYM
 #define mTYbasic        0xFF    /* bit mask for basic types     */
 #define tybasic(ty)     ((ty) & mTYbasic)
 
-#if TX86
 // These change depending on memory model
 extern int TYptrdiff, TYsize, TYsize_t;
 
@@ -145,17 +144,14 @@ extern int TYptrdiff, TYsize, TYsize_t;
 #define mTYthread       0x4000
 #define mTYLINK         0x7800           // all linkage bits
 
+#if TX86
 #define mTYloadds       0x08000
+#endif
 #define mTYexport       0x10000
 #define mTYweak         0x00000
 #define mTYimport       0x20000
 #define mTYnaked        0x40000
 #define mTYMOD          0x78000          // all modifier bits
-
-#else
-#define TYTARG          0x11
-#include "TGty.h"               /* Target types */
-#endif
 
 /* Modifiers to basic types     */
 
@@ -207,21 +203,18 @@ extern unsigned tytab[];
 #define TYFLmptr        0x40
 #define TYFLfv          0x80    /* TYfptr || TYvptr     */
 
-#if TX86
-#define TYFLfarfunc     0x100
 #define TYFLpascal      0x200       // callee cleans up stack
 #define TYFLrevparam    0x400       // function parameters are reversed
-#define TYFLxmmreg      0x10000     // can be put in XMM register
-#else
-#define TYFLcallstkc    0x100       // callee cleans up stack
-#define TYFLrevparam    0x200       // function parameters are reversed
-#endif
 #define TYFLnullptr     0x800
 #define TYFLshort       0x1000
 #define TYFLaggregate   0x2000
 #define TYFLfunc        0x4000
 #define TYFLref         0x8000
 #define TYFLsimd        0x20000     // SIMD vector type
+#if TX86
+#define TYFLfarfunc     0x100
+#define TYFLxmmreg      0x10000     // can be put in XMM register
+#endif
 
 /* Groupings of types   */
 
@@ -245,7 +238,11 @@ extern unsigned tytab[];
 #define ty64reg(ty)     (tytab[(ty) & 0xFF] & (TYFLintegral | TYFLptr) && tysize(ty) <= NPTRSIZE)
 
 // Can go in XMM floating point register
+#if TX86
 #define tyxmmreg(ty)    (tytab[(ty) & 0xFF] & TYFLxmmreg)
+#else
+#define tyxmmreg(ty)    0
+#endif
 
 // Is a vector type
 #define tyvector(ty)    (tybasic(ty) >= TYfloat4 && tybasic(ty) <= TYullong2)
@@ -321,15 +318,11 @@ extern signed char tyalignsize[];
 /* Target dependent info        */
 #if TX86
 #define TYoffset TYuint         /* offset to an address         */
+#endif
 
-/* Detect cpp function type (callee cleans up stack)    */
-#define typfunc(ty)     (tytab[(ty) & 0xFF] & TYFLpascal)
-
-#else
 /* Detect cpp function type (callee cleans up stack)    */
 #ifndef typfunc
-#define typfunc(ty)     (tytab[(ty) & 0xFF] & TYFLcallstkc)
-#endif
+#define typfunc(ty)     (tytab[(ty) & 0xFF] & TYFLpascal)
 #endif
 
 /* Array to convert a type to its unsigned equivalent   */
@@ -340,7 +333,11 @@ extern const tym_t tytouns[];
 
 /* Determine if TYffunc or TYfpfunc (a far function) */
 #ifndef tyfarfunc
+#if TX86
 #define tyfarfunc(ty)   (tytab[(ty) & 0xFF] & TYFLfarfunc)
+#else
+#define tyfarfunc(ty)   0
+#endif
 #endif
 
 // Determine if parameter can go in register for TYjfunc
