@@ -5211,7 +5211,9 @@ Expression *FuncExp::semantic(Scope *sc)
         }
         else
         {
-            type = fd->type->pointerTo();
+            type = new TypePointer(fd->type);
+            type = type->semantic(loc, sc);
+            //type = fd->type->pointerTo();
         }
         fd->tookAddressOf++;
     }

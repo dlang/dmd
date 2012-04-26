@@ -4729,7 +4729,7 @@ Type *TypePointer::syntaxCopy()
 
 Type *TypePointer::semantic(Loc loc, Scope *sc)
 {
-    //printf("TypePointer::semantic()\n");
+    //printf("TypePointer::semantic() %s\n", toChars());
     if (deco)
         return this;
     Type *n = next->semantic(loc, sc);
@@ -4746,8 +4746,15 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     }
     next = n;
     if (next->ty != Tfunction)
-        transitive();
-    return merge();
+    {   transitive();
+        return merge();
+    }
+    deco = merge()->deco;
+    /* Don't return merge(), because arg identifiers and default args
+     * can be different
+     * even though the types match
+     */
+    return this;
 }
 
 
@@ -6111,6 +6118,7 @@ Type *TypeDelegate::syntaxCopy()
 
 Type *TypeDelegate::semantic(Loc loc, Scope *sc)
 {
+    //printf("TypeDelegate::semantic() %s\n", toChars());
     if (deco)                   // if semantic() already run
     {
         //printf("already done\n");
@@ -6125,9 +6133,9 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
      * can be different
      * even though the types match
      */
-    //deco = merge()->deco;
-    //return this;
-    return merge();
+    deco = merge()->deco;
+    return this;
+    //return merge();
 }
 
 d_uns64 TypeDelegate::size(Loc loc)
