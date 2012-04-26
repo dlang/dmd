@@ -793,7 +793,7 @@ struct BinExp : Expression
     Expression *interpretCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *));
     Expression *interpretCommon2(InterState *istate, CtfeGoal goal,
-        Expression *(*fp)(TOK, Type *, Expression *, Expression *));
+        Expression *(*fp)(Loc, TOK, Type *, Expression *, Expression *));
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
     Expression *arrayOp(Scope *sc);
@@ -1709,6 +1709,9 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
 void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, int firstIndex);
 void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, int firstIndex);
 void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, int firstIndex);
+
+int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len);
+int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len);
 
 
 #endif /* DMD_EXPRESSION_H */

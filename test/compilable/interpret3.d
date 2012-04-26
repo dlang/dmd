@@ -4384,6 +4384,46 @@ static assert(bug7785(1));
 static assert(!is(typeof(compiles!(bug7785(2)))));
 static assert(!is(typeof(compiles!(bug7785(3)))));
 
+/**************************************************
+    7987
+**************************************************/
+
+class C7987 {
+    int m;
+}
+
+struct S7987 {
+    int *p;
+    C7987 c;
+}
+
+bool bug7987()
+{
+    int [7] q;
+    int[][2] b = q[0..5];
+    assert(b == b);
+    assert(b is b);
+    C7987 c1 = new C7987;
+    C7987 c2 = new C7987;
+    S7987 s, t;
+    s.p = &q[0];
+    t.p = &q[1];
+    assert(s!=t);
+    s.p = &q[1];
+    assert(s == t);
+    s.c = c1;
+    t.c = c2;
+    assert(s != t);
+    assert(s !is t);
+    s.c = c2;
+    assert(s == t);
+    assert(s is t);
+    return true;
+}
+
+static assert(bug7987());
+
+
 /******************************************************/
 
 struct B73 {}
