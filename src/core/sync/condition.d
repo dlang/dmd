@@ -88,8 +88,7 @@ class Condition
         }
         else version( Posix )
         {
-            m_mutexAddr = m.handleAddr();
-
+            m_assocMutex = m;
             int rc = pthread_cond_init( &m_hndl, null );
             if( rc )
                 throw new SyncException( "Unable to initialize condition" );
@@ -116,6 +115,23 @@ class Condition
 
 
     ////////////////////////////////////////////////////////////////////////////
+    // General Properties
+    ////////////////////////////////////////////////////////////////////////////
+
+
+    /**
+     * Gets the mutex associated with this condition.
+     *
+     * Returns:
+     *  The mutex associated with this condition.
+     */
+    @property Mutex mutex()
+    {
+        return m_assocMutex;
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////////
     // General Actions
     ////////////////////////////////////////////////////////////////////////////
 
@@ -134,7 +150,7 @@ class Condition
         }
         else version( Posix )
         {
-            int rc = pthread_cond_wait( &m_hndl, m_mutexAddr );
+            int rc = pthread_cond_wait( &m_hndl, m_assocMutex.handleAddr() );
             if( rc )
                 throw new SyncException( "Unable to wait for condition" );
         }
@@ -182,7 +198,9 @@ class Condition
             timespec t = void;
             mktspec( t, val );
 
-            int rc = pthread_cond_timedwait( &m_hndl, m_mutexAddr, &t );
+            int rc = pthread_cond_timedwait( &m_hndl,
+                                             m_assocMutex.handleAddr(),
+                                             &t );
             if( !rc )
                 return true;
             if( rc == ETIMEDOUT )
@@ -432,8 +450,8 @@ private:
     }
     else version( Posix )
     {
+        Mutex               m_assocMutex;
         pthread_cond_t      m_hndl;
-        pthread_mutex_t*    m_mutexAddr;
     }
 }
 
