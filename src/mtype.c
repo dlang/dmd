@@ -4749,12 +4749,16 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     {   transitive();
         return merge();
     }
+#if 1
+    return merge();
+#else
     deco = merge()->deco;
     /* Don't return merge(), because arg identifiers and default args
      * can be different
      * even though the types match
      */
     return this;
+#endif
 }
 
 
@@ -6129,13 +6133,16 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
      * be removed from next before the merge.
      */
 
+#if 1
+    return merge();
+#else
     /* Don't return merge(), because arg identifiers and default args
      * can be different
      * even though the types match
      */
     deco = merge()->deco;
     return this;
-    //return merge();
+#endif
 }
 
 d_uns64 TypeDelegate::size(Loc loc)

@@ -10611,7 +10611,9 @@ Expression *CatAssignExp::semantic(Scope *sc)
         (tb2->ty == Tarray || tb2->ty == Tsarray) &&
         (e2->implicitConvTo(e1->type)
 #if DMDV2
-         || tb2->nextOf()->implicitConvTo(tb1next)
+         || (tb2->nextOf()->implicitConvTo(tb1next) &&
+             (tb2->nextOf()->size(0) == tb1next->size(0) ||
+             tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
 #endif
         )
        )
