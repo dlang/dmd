@@ -3948,17 +3948,14 @@ void UnitTestDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    if (global.params.useUnitTests)
-    {
-        if (!type)
-            type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
-        Scope *sc2 = sc->push();
-        // It makes no sense for unit tests to be pure or nothrow.
-        sc2->stc &= ~(STCnothrow | STCpure);
-        sc2->linkage = LINKd;
-        FuncDeclaration::semantic(sc2);
-        sc2->pop();
-    }
+    if (!type)
+        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+    Scope *sc2 = sc->push();
+    // It makes no sense for unit tests to be pure or nothrow.
+    sc2->stc &= ~(STCnothrow | STCpure);
+    sc2->linkage = LINKd;
+    FuncDeclaration::semantic(sc2);
+    sc2->pop();
 
 #if 0
     // We're going to need ModuleInfo even if the unit tests are not

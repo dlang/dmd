@@ -5032,6 +5032,23 @@ class B1175 : A1175
 }
 
 /***************************************************/
+// 7983
+
+void test7983()
+{
+    class A
+    {
+        unittest {}
+    }
+    A a;
+
+    foreach (name; __traits(allMembers, A))
+    {
+        static if (__traits(compiles, &__traits(getMember, a, name))) {}
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5263,6 +5280,7 @@ int main()
     test7871();
     test7906();
     test7907();
+    test7983();
 
     printf("Success\n");
     return 0;
