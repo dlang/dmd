@@ -2331,10 +2331,11 @@ complex_t RealExp::toComplex()
 
 int RealEquals(real_t x1, real_t x2)
 {
-    /* In some cases, the REALPAD bytes get garbage in them,
-     * so be sure and ignore them.
-     */
-    return memcmp(&x1, &x2, REALSIZE - REALPAD) == 0;
+    return (Port::isNan(x1) && Port::isNan(x2)) ||
+        /* In some cases, the REALPAD bytes get garbage in them,
+         * so be sure and ignore them.
+         */
+        memcmp(&x1, &x2, REALSIZE - REALPAD) == 0;
 }
 
 int RealExp::equals(Object *o)

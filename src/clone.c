@@ -204,6 +204,11 @@ int StructDeclaration::needOpEquals()
     if (hasIdentityEquals)
         goto Lneed;
 
+#if 0
+    if (isUnionDeclaration())
+        goto Ldontneed;
+#endif
+
     /* If any of the fields has an opEquals, then we
      * need it too.
      */
@@ -215,6 +220,14 @@ int StructDeclaration::needOpEquals()
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
+#if 0
+        if (tv->isfloating())
+            goto Lneed;
+        if (tv->ty == Tarray)
+            goto Lneed;
+        if (tv->ty == Tclass)
+            goto Lneed;
+#endif
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             tv = tv->nextOf()->toBasetype();
@@ -226,6 +239,7 @@ int StructDeclaration::needOpEquals()
                 goto Lneed;
         }
     }
+Ldontneed:
     if (X) printf("\tdontneed\n");
     return 0;
 
