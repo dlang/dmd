@@ -801,6 +801,8 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
  *      3. do default promotions on arguments corresponding to ...
  *      4. add hidden _arguments[] argument
  *      5. call copy constructor for struct value arguments
+ * Input:
+ *      fd      the function being called, NULL if called indirectly
  * Returns:
  *      return type from function
  */
@@ -863,7 +865,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
             if (!arg)
             {
-                if (!p->defaultArg)
+                if (!p->defaultArg || !fd)
                 {
                     if (tf->varargs == 2 && i + 1 == nparams)
                         goto L2;
