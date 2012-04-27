@@ -139,9 +139,9 @@ version( linux )
       }
     }
 
-    enum S_IRUSR    = 0400;
-    enum S_IWUSR    = 0200;
-    enum S_IXUSR    = 0100;
+    enum S_IRUSR    = 0x100; // octal 0400
+    enum S_IWUSR    = 0x080; // octal 0200
+    enum S_IXUSR    = 0x040; // octal 0100
     enum S_IRWXU    = S_IRUSR | S_IWUSR | S_IXUSR;
 
     enum S_IRGRP    = S_IRUSR >> 3;
@@ -154,9 +154,9 @@ version( linux )
     enum S_IXOTH    = S_IXGRP >> 3;
     enum S_IRWXO    = S_IRWXG >> 3;
 
-    enum S_ISUID    = 04000;
-    enum S_ISGID    = 02000;
-    enum S_ISVTX    = 01000;
+    enum S_ISUID    = 0x800; // octal 04000
+    enum S_ISGID    = 0x400; // octal 02000
+    enum S_ISVTX    = 0x200; // octal 01000
 
     private
     {
@@ -216,9 +216,9 @@ else version( OSX )
         long        st_qspare[2];
     }
 
-    enum S_IRUSR    = 0400;
-    enum S_IWUSR    = 0200;
-    enum S_IXUSR    = 0100;
+    enum S_IRUSR    = 0x100;  // octal 0400
+    enum S_IWUSR    = 0x080;  // octal 0200
+    enum S_IXUSR    = 0x040;  // octal 0100
     enum S_IRWXU    = S_IRUSR | S_IWUSR | S_IXUSR;
 
     enum S_IRGRP    = S_IRUSR >> 3;
@@ -231,9 +231,9 @@ else version( OSX )
     enum S_IXOTH    = S_IXGRP >> 3;
     enum S_IRWXO    = S_IRWXG >> 3;
 
-    enum S_ISUID    = 04000;
-    enum S_ISGID    = 02000;
-    enum S_ISVTX    = 01000;
+    enum S_ISUID    = 0x800; // octal 04000
+    enum S_ISGID    = 0x400; // octal 02000
+    enum S_ISVTX    = 0x200; // octal 01000
 
     private
     {
@@ -283,24 +283,24 @@ else version( FreeBSD )
         ubyte[16 - timespec.sizeof] padding;
     }
 
-    enum S_IRUSR    = 0000400;
-    enum S_IWUSR    = 0000200;
-    enum S_IXUSR    = 0000100;
-    enum S_IRWXU    = 0000700;
+    enum S_IRUSR    = 0x100; // octal 0000400
+    enum S_IWUSR    = 0x080; // octal 0000200
+    enum S_IXUSR    = 0x040; // octal 0000100
+    enum S_IRWXU    = 0x1C0; // octal 0000700
 
-    enum S_IRGRP    = 0000040;
-    enum S_IWGRP    = 0000020;
-    enum S_IXGRP    = 0000010;
-    enum S_IRWXG    = 0000070;
+    enum S_IRGRP    = 0x020;  // octal 0000040
+    enum S_IWGRP    = 0x010;  // octal 0000020
+    enum S_IXGRP    = 0x008;  // octal 0000010
+    enum S_IRWXG    = 0x038;  // octal 0000070
 
     enum S_IROTH    = 0000004;
     enum S_IWOTH    = 0000002;
     enum S_IXOTH    = 0000001;
     enum S_IRWXO    = 0000007;
 
-    enum S_ISUID    = 0004000;
-    enum S_ISGID    = 0002000;
-    enum S_ISVTX    = 0001000;
+    enum S_ISUID    = 0x800; // octal 0004000
+    enum S_ISGID    = 0x400; // octal 0002000
+    enum S_ISVTX    = 0x200; // octal 0001000
 
     private
     {
@@ -383,40 +383,40 @@ int mknod(in 3char*, mode_t, dev_t);
 
 version( linux )
 {
-    enum S_IFMT     = 0170000;
-    enum S_IFBLK    = 0060000;
-    enum S_IFCHR    = 0020000;
-    enum S_IFIFO    = 0010000;
-    enum S_IFREG    = 0100000;
-    enum S_IFDIR    = 0040000;
-    enum S_IFLNK    = 0120000;
-    enum S_IFSOCK   = 0140000;
+    enum S_IFMT     = 0xF000; // octal 0170000
+    enum S_IFBLK    = 0x6000; // octal 0060000
+    enum S_IFCHR    = 0x2000; // octal 0020000
+    enum S_IFIFO    = 0x1000; // octal 0010000
+    enum S_IFREG    = 0x8000; // octal 0100000
+    enum S_IFDIR    = 0x4000; // octal 0040000
+    enum S_IFLNK    = 0xA000; // octal 0120000
+    enum S_IFSOCK   = 0xC000; // octal 0140000
 
     int mknod(in char*, mode_t, dev_t);
 }
 else version( OSX )
 {
-    enum S_IFMT     = 0170000;
-    enum S_IFBLK    = 0060000;
-    enum S_IFCHR    = 0020000;
-    enum S_IFIFO    = 0010000;
-    enum S_IFREG    = 0100000;
-    enum S_IFDIR    = 0040000;
-    enum S_IFLNK    = 0120000;
-    enum S_IFSOCK   = 0140000;
+    enum S_IFMT     = 0xF000; // octal 0170000
+    enum S_IFBLK    = 0x6000; // octal 0060000
+    enum S_IFCHR    = 0x2000; // octal 0020000
+    enum S_IFIFO    = 0x1000; // octal 0010000
+    enum S_IFREG    = 0x8000; // octal 0100000
+    enum S_IFDIR    = 0x4000; // octal 0040000
+    enum S_IFLNK    = 0xA000; // octal 0120000
+    enum S_IFSOCK   = 0xC000; // octal 0140000
 
     int mknod(in char*, mode_t, dev_t);
 }
 else version( FreeBSD )
 {
-    enum S_IFMT     = 0170000;
-    enum S_IFBLK    = 0060000;
-    enum S_IFCHR    = 0020000;
-    enum S_IFIFO    = 0010000;
-    enum S_IFREG    = 0100000;
-    enum S_IFDIR    = 0040000;
-    enum S_IFLNK    = 0120000;
-    enum S_IFSOCK   = 0140000;
+    enum S_IFMT     = 0xF000; // octal 0170000
+    enum S_IFBLK    = 0x6000; // octal 0060000
+    enum S_IFCHR    = 0x2000; // octal 0020000
+    enum S_IFIFO    = 0x1000; // octal 0010000
+    enum S_IFREG    = 0x8000; // octal 0100000
+    enum S_IFDIR    = 0x4000; // octal 0040000
+    enum S_IFLNK    = 0xA000; // octal 0120000
+    enum S_IFSOCK   = 0xC000; // octal 0140000
 
     int mknod(in char*, mode_t, dev_t);
 }
