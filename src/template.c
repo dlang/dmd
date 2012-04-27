@@ -465,7 +465,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     }
 
 #if DMDV2
-    if (/*global.params.useUnitTests &&*/ sc->module)
+    if (sc->module)
     {
         // Generate this function as it may be used
         // when template is instantiated in other modules
