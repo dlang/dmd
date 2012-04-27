@@ -3029,7 +3029,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
         r2 = e2->toImaginary();
      L1:
 #if __DMC__
-        return (r1 == r2);
+        return (r1 != r2);
 #else
         if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
         {
