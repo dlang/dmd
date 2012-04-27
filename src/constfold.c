@@ -1541,6 +1541,48 @@ void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, int f
     memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
 }
 
+/* Compare a string slice with another string slice.
+ * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  se2[lo2..lo2+len])
+ */
+int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len)
+{
+    unsigned char *s1 = (unsigned char *)se1->string;
+    unsigned char *s2 = (unsigned char *)se2->string;
+    size_t sz = se1->sz;
+    assert(sz == se2->sz);
+
+    return memcmp(s1 + sz * lo1, s2 + sz * lo2, sz * len);
+}
+
+/* Compare a string slice with an array literal slice
+ * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  ae2[lo2..lo2+len])
+ */
+int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len)
+{
+    unsigned char *s = (unsigned char *)se1->string;
+    size_t sz = se1->sz;
+
+    int c = 0;
+
+    for (size_t j = 0; j < len; j++)
+    {
+        unsigned value = (unsigned)((*ae2->elements)[j + lo2]->toInteger());
+        unsigned svalue;
+        switch (sz)
+        {
+            case 1: svalue = s[j + lo1]; break;
+            case 2: svalue = ((unsigned short *)s)[j+lo1]; break;
+            case 4: svalue = ((unsigned *)s)[j + lo1]; break;
+            default:
+                assert(0);
+        }
+        int c = svalue - value;
+        if (c)
+            return c;
+    }
+    return 0;
+}
+
 /* Also return EXP_CANT_INTERPRET if this fails
  */
 Expression *Cat(Type *type, Expression *e1, Expression *e2)
