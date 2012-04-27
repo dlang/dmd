@@ -4878,6 +4878,41 @@ void test7742()
 }
 
 /***************************************************/
+// 7807
+
+interface Interface7807
+{
+    Interface7807 getNext();
+    const(Interface7807) getNext() const;
+}
+
+class Implementation7807 : Interface7807
+{
+    Implementation7807 getNext()
+    {
+        return this;
+    }
+
+    const(Implementation7807) getNext() const
+    {
+        return null;
+    }
+}
+
+void test7807()
+{
+    auto mc = new Implementation7807();
+    assert(mc.getNext() is mc);
+    Interface7807 mi = mc;
+    assert(mi.getNext() is mi);
+
+    auto cc = new const(Implementation7807)();
+    assert(cc.getNext() is null);
+    const(Interface7807) ci = cc;
+    assert(ci.getNext() is null);
+}
+
+/***************************************************/
 // 7815
 
 enum Closure {
@@ -5211,6 +5246,7 @@ int main()
     test243();
     test7742();
     test245();
+    test7807();
 
     writefln("Success");
     return 0;
