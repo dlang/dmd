@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1150,7 +1150,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         assert(sd);
         Expressions *elements = new Expressions;
         for (size_t i = 0; i < sd->fields.dim; i++)
-        {   Dsymbol *s = sd->fields.tdata()[i];
+        {   Dsymbol *s = sd->fields[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
 
@@ -1234,7 +1234,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         }
         else if (e1->op == TOKarrayliteral)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
-            e = ale->elements->tdata()[i];
+            e = (*ale->elements)[i];
             e->type = type;
             if (e->hasSideEffect())
                 e = EXP_CANT_INTERPRET;
@@ -1252,7 +1252,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
                 e = new ErrorExp();
             }
             else
-            {   e = ale->elements->tdata()[i];
+            {   e = (*ale->elements)[i];
                 e->type = type;
                 if (e->hasSideEffect())
                     e = EXP_CANT_INTERPRET;
@@ -1267,12 +1267,12 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         for (size_t i = ae->keys->dim; i;)
         {
             i--;
-            Expression *ekey = ae->keys->tdata()[i];
+            Expression *ekey = (*ae->keys)[i];
             Expression *ex = Equal(TOKequal, Type::tbool, ekey, e2);
             if (ex == EXP_CANT_INTERPRET)
                 return ex;
             if (ex->isBool(TRUE))
-            {   e = ae->values->tdata()[i];
+            {   e = (*ae->values)[i];
                 e->type = type;
                 if (e->hasSideEffect())
                     e = EXP_CANT_INTERPRET;
@@ -1343,7 +1343,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
             elements->setDim(iupr - ilwr);
             memcpy(elements->tdata(),
                    es1->elements->tdata() + ilwr,
-                   (iupr - ilwr) * sizeof(es1->elements->tdata()[0]));
+                   (iupr - ilwr) * sizeof((*es1->elements)[0]));
             e = new ArrayLiteralExp(e1->loc, elements);
             e->type = type;
         }
@@ -1372,7 +1372,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *n
                 assert(0);
                 break;
         }
-        existingAE->elements->tdata()[j+firstIndex]
+        (*existingAE->elements)[j+firstIndex]
             = new IntegerExp(newval->loc, val, elemType);
     }
 }
@@ -1385,7 +1385,7 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
     unsigned char *s = (unsigned char *)existingSE->string;
     for (size_t j = 0; j < newae->elements->dim; j++)
     {
-        unsigned value = (unsigned)(newae->elements->tdata()[j]->toInteger());
+        unsigned value = (unsigned)((*newae->elements)[j]->toInteger());
         switch (existingSE->sz)
         {
             case 1: s[j+firstIndex] = value; break;
@@ -1407,6 +1407,48 @@ void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, int f
     size_t sz = existingSE->sz;
     assert(sz == newstr->sz);
     memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
+}
+
+/* Compare a string slice with another string slice.
+ * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  se2[lo2..lo2+len])
+ */
+int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len)
+{
+    unsigned char *s1 = (unsigned char *)se1->string;
+    unsigned char *s2 = (unsigned char *)se2->string;
+    size_t sz = se1->sz;
+    assert(sz == se2->sz);
+
+    return memcmp(s1 + sz * lo1, s2 + sz * lo2, sz * len);
+}
+
+/* Compare a string slice with an array literal slice
+ * Conceptually equivalent to memcmp( se1[lo1..lo1+len],  ae2[lo2..lo2+len])
+ */
+int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len)
+{
+    unsigned char *s = (unsigned char *)se1->string;
+    size_t sz = se1->sz;
+
+    int c = 0;
+
+    for (size_t j = 0; j < len; j++)
+    {
+        unsigned value = (unsigned)((*ae2->elements)[j + lo2]->toInteger());
+        unsigned svalue;
+        switch (sz)
+        {
+            case 1: svalue = s[j + lo1]; break;
+            case 2: svalue = ((unsigned short *)s)[j+lo1]; break;
+            case 4: svalue = ((unsigned *)s)[j + lo1]; break;
+            default:
+                assert(0);
+        }
+        int c = svalue - value;
+        if (c)
+            return c;
+    }
+    return 0;
 }
 
 /* Also return EXP_CANT_INTERPRET if this fails
@@ -1526,7 +1568,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         elems->setDim(len);
         for (size_t i= 0; i < ea->elements->dim; ++i)
         {
-            elems->tdata()[i] = ea->elements->tdata()[i];
+            (*elems)[i] = (*ea->elements)[i];
         }
         ArrayLiteralExp *dest = new ArrayLiteralExp(e1->loc, elems);
         dest->type = type;
@@ -1544,7 +1586,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         elems->setDim(len);
         for (size_t i= 0; i < ea->elements->dim; ++i)
         {
-            elems->tdata()[es->len + i] = ea->elements->tdata()[i];
+            (*elems)[es->len + i] = (*ea->elements)[i];
         }
         ArrayLiteralExp *dest = new ArrayLiteralExp(e1->loc, elems);
         dest->type = type;
