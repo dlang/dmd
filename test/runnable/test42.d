@@ -4993,6 +4993,21 @@ struct Foo7974
 }
 
 /***************************************************/
+// 4155
+
+
+float getnanf() { return float.nan; }
+double getnand() { return double.nan; }
+real getnanr() { return real.nan; }
+
+void test4155()
+{
+    assert(getnanf() != 0);
+    assert(getnand() != 0);
+    assert(getnanr() != 0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5247,6 +5262,7 @@ int main()
     test7742();
     test245();
     test7807();
+    test4155();
 
     writefln("Success");
     return 0;
