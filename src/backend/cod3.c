@@ -1436,7 +1436,8 @@ int jmpopcode(elem *e)
         if (tyfloating(tymx) && config.inline8087 &&
             (tymx == TYldouble || tymx == TYildouble || tymx == TYcldouble ||
              tymx == TYcdouble || tymx == TYcfloat ||
-             op == OPind))
+             op == OPind ||
+             (OTcall(op) && (regmask(tymx, tybasic(e->E1->Eoper)) & (mST0 | XMMREGS)))))
         {
             return XP|JNE;
         }
