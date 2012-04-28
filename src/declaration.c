@@ -1511,20 +1511,23 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
         // The current function
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
-        if (fdv && fdthis && fdv != fdthis && fdthis->ident != Id::ensure)
+        if (fdv && fdthis && fdv != fdthis)
         {
-            /* __ensure is always called directly,
-             * so it never becomes closure.
-             */
-
-            if (loc.filename)
-                fdthis->getLevel(loc, fdv);
             nestedref = 1;
-            fdv->nestedFrameRef = 1;
-            //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
-            // __dollar creates problems because it isn't a real variable Bugzilla 3326
-            if (ident == Id::dollar)
-                ::error(loc, "cannnot use $ inside a function literal");
+            if (fdthis->ident != Id::ensure)
+            {
+                /* __ensure is always called directly,
+                 * so it never becomes closure.
+                 */
+
+                if (loc.filename)
+                    fdthis->getLevel(loc, fdv);
+                fdv->nestedFrameRef = 1;
+                //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
+                // __dollar creates problems because it isn't a real variable Bugzilla 3326
+                if (ident == Id::dollar)
+                    ::error(loc, "cannnot use $ inside a function literal");
+            }
         }
     }
 }
