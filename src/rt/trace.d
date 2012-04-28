@@ -795,11 +795,11 @@ void _trace_pro_n()
                 inc     ECX                     ;
                 add     8*4+4*16[ESP],EAX       ;
                 dec     EAX                     ;
-                sub     ESP,12                  ;
+                sub     ESP,4                   ;
                 push    ECX                     ;
                 push    EAX                     ;
                 call    trace_pro               ;
-                add     ESP,20                  ;
+                add     ESP,12                  ;
 
                 movdqu  XMM0, 0*16[ESP]         ;
                 movdqu  XMM1, 1*16[ESP]         ;
