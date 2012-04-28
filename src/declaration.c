@@ -1791,28 +1791,8 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
         // The current function
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
-        if (fdv && fdthis && fdv != fdthis && fdthis->ident != Id::ensure)
+        if (fdv && fdthis && fdv != fdthis)
         {
-            /* __ensure is always called directly,
-             * so it never becomes closure.
-             */
-
-            //printf("\tfdv = %s\n", fdv->toChars());
-            //printf("\tfdthis = %s\n", fdthis->toChars());
-
-            if (loc.filename)
-                fdthis->getLevel(loc, sc, fdv);
-
-            // Function literals from fdthis to fdv must be delegates
-            for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
-            {
-                // function literal has reference to enclosing scope is delegate
-                if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
-                {
-                    fld->tok = TOKdelegate;
-                }
-            }
-
             // Add fdthis to nestedrefs[] if not already there
             for (size_t i = 0; 1; i++)
             {
@@ -1825,23 +1805,46 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     break;
             }
 
-            // Add this to fdv->closureVars[] if not already there
-            for (size_t i = 0; 1; i++)
+            if (fdthis->ident != Id::ensure)
             {
-                if (i == fdv->closureVars.dim)
-                {
-                    fdv->closureVars.push(this);
-                    break;
-                }
-                if (fdv->closureVars[i] == this)
-                    break;
-            }
+                /* __ensure is always called directly,
+                 * so it never becomes closure.
+                 */
 
-            //printf("fdthis is %s\n", fdthis->toChars());
-            //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
-            // __dollar creates problems because it isn't a real variable Bugzilla 3326
-            if (ident == Id::dollar)
-                ::error(loc, "cannnot use $ inside a function literal");
+                //printf("\tfdv = %s\n", fdv->toChars());
+                //printf("\tfdthis = %s\n", fdthis->toChars());
+
+                if (loc.filename)
+                    fdthis->getLevel(loc, sc, fdv);
+
+                // Function literals from fdthis to fdv must be delegates
+                for (Dsymbol *s = fdthis; s && s != fdv; s = s->toParent2())
+                {
+                    // function literal has reference to enclosing scope is delegate
+                    if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
+                    {
+                        fld->tok = TOKdelegate;
+                    }
+                }
+
+                // Add this to fdv->closureVars[] if not already there
+                for (size_t i = 0; 1; i++)
+                {
+                    if (i == fdv->closureVars.dim)
+                    {
+                        fdv->closureVars.push(this);
+                        break;
+                    }
+                    if (fdv->closureVars[i] == this)
+                        break;
+                }
+
+                //printf("fdthis is %s\n", fdthis->toChars());
+                //printf("var %s in function %s is nested ref\n", toChars(), fdv->toChars());
+                // __dollar creates problems because it isn't a real variable Bugzilla 3326
+                if (ident == Id::dollar)
+                    ::error(loc, "cannnot use $ inside a function literal");
+            }
         }
     }
 }
