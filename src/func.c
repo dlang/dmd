@@ -1689,7 +1689,6 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 	StorageClassDeclaration::stcToCBuffer(buf, storage_class);
     type->toCBuffer(buf, ident, hgs);
-	hgs->inFunc++;
     if(hgs->hdrgen == 1)
 	{
 		if(hgs->tpltMember == 0)
@@ -1699,7 +1698,6 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 	}
 	else
 		bodyToCBuffer(buf, hgs);
-	hgs->inFunc--;
 	buf->writenl();
 }
 

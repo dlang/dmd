@@ -559,12 +559,8 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 
 void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if(stc & STCimmutable) hgs->inImmutable++;	//HACK inform down-tree symbols they are immutable.
-
     stcToCBuffer(buf, stc);
     AttribDeclaration::toCBuffer(buf, hgs);
-
-    if(stc & STCimmutable) hgs->inImmutable--;	//Undo the hack.
 }
 
 /********************************* LinkDeclaration ****************************/
