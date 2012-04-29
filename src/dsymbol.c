@@ -1150,6 +1150,8 @@ int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg 
             result = foreach(sc, tm->members, dg, ctx, &n);
         else if (s->isTemplateInstance())
             ;
+        else if (s->isUnitTestDeclaration())
+            ;
         else
             result = dg(ctx, n++, s);
 

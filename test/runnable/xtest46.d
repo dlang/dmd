@@ -5039,6 +5039,27 @@ class B1175 : A1175
 }
 
 /***************************************************/
+// 7983
+
+class A7983 {
+        void f() {
+                g7983(this);
+        }
+        unittest {
+        }
+}     
+
+void g7983(T)(T a)
+{      
+        foreach (name; __traits(allMembers, T)) {
+                pragma(msg, name);
+                static if (__traits(compiles, &__traits(getMember, a, name)))
+                {
+                }
+        }
+}
+
+/***************************************************/
 
 int main()
 {
