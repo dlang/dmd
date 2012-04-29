@@ -75,10 +75,10 @@ else version( OSX )
 
     private
     {
-        enum _WSTOPPED = 0177;
+        enum _WSTOPPED = 0x7F; // octal 0177
     }
 
-    extern (D) int _WSTATUS(int status)         { return (status & 0177);           }
+    extern (D) int _WSTATUS(int status)         { return (status & 0x7F);           }
     extern (D) int  WEXITSTATUS( int status )   { return (status >> 8);             }
     extern (D) int  WIFCONTINUED( int status )  { return status == 0x13;            }
     extern (D) bool WIFEXITED( int status )     { return _WSTATUS(status) == 0;     }
@@ -97,10 +97,10 @@ else version( FreeBSD )
 
     private
     {
-        enum _WSTOPPED = 0177;
+        enum _WSTOPPED = 0x7F; // octal 0177
     }
 
-    extern (D) int _WSTATUS(int status)         { return (status & 0177);           }
+    extern (D) int _WSTATUS(int status)         { return (status & 0x7F);           }
     extern (D) int  WEXITSTATUS( int status )   { return (status >> 8);             }
     extern (D) int  WIFCONTINUED( int status )  { return status == 0x13;            }
     extern (D) bool WIFEXITED( int status )     { return _WSTATUS(status) == 0;     }

@@ -100,14 +100,14 @@ version( linux )
     enum F_UNLCK        = 2;
     enum F_WRLCK        = 1;
 
-    enum O_CREAT        = 0100;
-    enum O_EXCL         = 0200;
-    enum O_NOCTTY       = 0400;
-    enum O_TRUNC        = 01000;
+    enum O_CREAT        = 0x40;   // octal   0100
+    enum O_EXCL         = 0x80;   // octal   0200
+    enum O_NOCTTY       = 0x100;  // octal   0400
+    enum O_TRUNC        = 0x200;  // octal  01000
 
-    enum O_APPEND       = 02000;
-    enum O_NONBLOCK     = 04000;
-    enum O_SYNC         = 010000;
+    enum O_APPEND       = 0x400;  // octal  02000
+    enum O_NONBLOCK     = 0x800;  // octal  04000
+    enum O_SYNC         = 0x1000; // octal 010000
     enum O_DSYNC        = O_SYNC;
     enum O_RSYNC        = O_SYNC;
 
