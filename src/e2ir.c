@@ -1756,17 +1756,11 @@ elem *NewExp::toElem(IRState *irs)
         {
             d_uns64 elemsize = cd->size(loc);
 
-            // call _d_newarrayT(ti, 1)
-            e = el_long(TYsize_t, 1);
-            e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+            // call _d_newitemT(ti)
+            e = type->getTypeInfo(NULL)->toElem(irs);
 
-            int rtl = t->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
-            e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
-
-            // The new functions return an array, so convert to a pointer
-            // ex -> (unsigned)(e >> 32)
-            e = el_bin(OPshr, TYdarray, e, el_long(TYint, PTRSIZE * 8));
-            ex = el_una(OP64_32, TYnptr, e);
+            int rtl = t->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+            ex = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
 
             ectype = NULL;
 
@@ -1846,17 +1840,11 @@ elem *NewExp::toElem(IRState *irs)
         Expression *di = tp->next->defaultInit();
         d_uns64 disize = di->type->size();
 
-        // call _d_newarrayT(ti, 1)
-        e = el_long(TYsize_t, 1);
-        e = el_param(e, type->getTypeInfo(NULL)->toElem(irs));
+        // call _d_newitemT(ti)
+        e = type->getTypeInfo(NULL)->toElem(irs);
 
-        int rtl = tp->next->isZeroInit() ? RTLSYM_NEWARRAYT : RTLSYM_NEWARRAYIT;
-        e = el_bin(OPcall,TYdarray,el_var(rtlsym[rtl]),e);
-
-        // The new functions return an array, so convert to a pointer
-        // e -> (unsigned)(e >> 32)
-        e = el_bin(OPshr, TYdarray, e, el_long(TYsize_t, PTRSIZE * 8));
-        e = el_una(I64 ? OP128_64 : OP64_32, t->totym(), e);
+        int rtl = tp->next->isZeroInit() ? RTLSYM_NEWITEMT : RTLSYM_NEWITEMIT;
+        e = el_bin(OPcall,TYnptr,el_var(rtlsym[rtl]),e);
     }
     else
     {
