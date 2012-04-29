@@ -418,7 +418,7 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (iz)
             iz->toCBuffer(buf, hgs);
     }
-	buf->writebyte('}');
+    buf->writebyte('}');
 }
 
 /********************************** ArrayInitializer ************************************/

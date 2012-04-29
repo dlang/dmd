@@ -271,7 +271,7 @@ struct OutBuffer : Object
     unsigned offset;
     unsigned size;
 
-	int doindent, level, linehead;
+    int doindent, level, linehead;
 
     OutBuffer();
     ~OutBuffer();

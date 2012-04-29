@@ -1709,30 +1709,30 @@ Dsymbol *VarDeclaration::toAlias()
 
 void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-	StorageClassDeclaration::stcToCBuffer(buf, storage_class);
+    StorageClassDeclaration::stcToCBuffer(buf, storage_class);
 
     /* If changing, be sure and fix CompoundDeclarationStatement::toCBuffer()
      * too.
      */
 
-	int ism = 0;
+    int ism = 0;
     if (type)
-	{
+    {
         type->toCBuffer(buf, ident, hgs);
-	}
+    }
     else
-        buf->writestring(ident->toChars());	
+        buf->writestring(ident->toChars());    
 
-	if (init)
-	{   buf->writestring(" = ");
+    if (init)
+    {   buf->writestring(" = ");
 #if DMDV2
-		ExpInitializer *ie = init->isExpInitializer();
-		if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
-			((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
-		else
+        ExpInitializer *ie = init->isExpInitializer();
+        if (ie && (ie->exp->op == TOKconstruct || ie->exp->op == TOKblit))
+            ((AssignExp *)ie->exp)->e2->toCBuffer(buf, hgs);
+        else
 #endif
-			init->toCBuffer(buf, hgs);
-	}
+            init->toCBuffer(buf, hgs);
+    }
     buf->writeByte(';');
     buf->writenl();
 }

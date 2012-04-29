@@ -706,14 +706,14 @@ void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
     buf->writeByte('{');
     buf->writenl();
-	buf->level++;
+    buf->level++;
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
         s->toCBuffer(buf, hgs);
     }
-	buf->level--;
-	buf->writeByte('}');
+    buf->level--;
+    buf->writeByte('}');
     buf->writenl();
 }
 

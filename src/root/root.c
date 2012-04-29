@@ -1544,8 +1544,8 @@ OutBuffer::OutBuffer()
     offset = 0;
     size = 0;
 
-	doindent = 0;
-	level = 0;
+    doindent = 0;
+    level = 0;
     linehead = 1;
 }
 
@@ -1605,15 +1605,15 @@ void OutBuffer::write(const void *data, unsigned nbytes)
     //    }
     //    linehead = 0;
     //}
-	char t = '\t';
-	reserve(nbytes + level);
+    char t = '\t';
+    reserve(nbytes + level);
     if (doindent && linehead)
     {
         if (level)
         {
             for (size_t i=0; i<level; i++)
             {
-				memcpy(this->data + offset, &t, sizeof(t));
+                memcpy(this->data + offset, &t, sizeof(t));
                 offset++;
             }
         }
@@ -1702,7 +1702,7 @@ void OutBuffer::writeByte(unsigned b)
         }
         linehead = 0;
     }    
-	reserve(1);
+    reserve(1);
     this->data[offset] = (unsigned char)b;
     offset++;
 }
@@ -1794,7 +1794,7 @@ void OutBuffer::writeword(unsigned w)
         }
         linehead = 0;
     }
-	reserve(2);
+    reserve(2);
     *(unsigned short *)(this->data + offset) = (unsigned short)w;
     offset += 2;
 }
@@ -1837,7 +1837,7 @@ void OutBuffer::write4(unsigned w)
         }
         linehead = 0;
     }
-	reserve(4);
+    reserve(4);
     *(unsigned *)(this->data + offset) = w;
     offset += 4;
 }
