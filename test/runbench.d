@@ -28,8 +28,8 @@ void runTest(string pattern, string dflags)
 {
     string[] sources;
     auto re = regex(pattern, "g");
-    auto self = buildPath(curdir, "runbench.d");
-    foreach(DirEntry src; dirEntries(curdir, SpanMode.depth))
+    auto self = buildPath(".", "runbench.d");
+    foreach(DirEntry src; dirEntries(".", SpanMode.depth))
     {
         if (src.isFile && !match(src.name, re).empty &&
             endsWith(src.name, ".d") && src.name != self)
