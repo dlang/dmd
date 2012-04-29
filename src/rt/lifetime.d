@@ -1008,6 +1008,22 @@ extern (C) void[] _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
     }
 }
 
+/**
+ * Allocate a non-array item.
+ * This is an optimization to avoid things needed for arrays like the __arrayPad(size).
+ */
+
+extern (C) void* _d_newitemT(TypeInfo ti)
+{
+    // Just add the API at the moment; do the optimal implementation later
+    return _d_newarrayT(ti, 1).ptr;
+}
+
+extern (C) void* _d_newitemiT(TypeInfo ti)
+{
+    // Just add the API at the moment; do the optimal implementation later
+    return _d_newarrayiT(ti, 1).ptr;
+}
 
 /**
  *
