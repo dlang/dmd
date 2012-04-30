@@ -5238,6 +5238,12 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
 
         TypeFunction *tfl = (TypeFunction *)fd->type;
         size_t dim = Parameter::dim(tfl->parameters);
+        if (arguments->dim < dim)
+        {   // Default arguments are always typed, so they don't need inference.
+            Parameter *p = Parameter::getNth(tfl->parameters, arguments->dim);
+            if (p->defaultArg)
+                dim = arguments->dim;
+        }
 
         if ((!tfl->varargs && arguments->dim == dim) ||
             ( tfl->varargs && arguments->dim >= dim))
