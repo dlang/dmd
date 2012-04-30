@@ -3534,8 +3534,17 @@ void TemplateInstance::semantic(Scope *sc)
     }
     else
     {
+        /* Find template declaration first.
+         */
+        tempdecl = findTemplateDeclaration(sc);
+        if (!tempdecl)
+        {   inst = this;
+            //printf("error return %p, %d\n", tempdecl, global.errors);
+            return;             // error recovery
+        }
+
         /* Run semantic on each argument, place results in tiargs[]
-         * (if we havetempdecl, then tiargs is already evaluated)
+         * (if we have tempdecl, then tiargs is already evaluated)
          */
         semanticTiargs(sc);
         if (arrayObjectIsError(tiargs))
@@ -3544,9 +3553,7 @@ void TemplateInstance::semantic(Scope *sc)
             return;             // error recovery
         }
 
-        tempdecl = findTemplateDeclaration(sc);
-        if (tempdecl)
-            tempdecl = findBestMatch(sc);
+        tempdecl = findBestMatch(sc);
         if (!tempdecl || global.errors)
         {   inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
@@ -3562,7 +3569,7 @@ void TemplateInstance::semantic(Scope *sc)
 
     for (size_t i = 0; i < tempdecl->instances.dim; i++)
     {
-        TemplateInstance *ti = (TemplateInstance *)tempdecl->instances.data[i];
+        TemplateInstance *ti = tempdecl->instances[i];
 #if LOG
         printf("\t%s: checking for match with instance %d (%p): '%s'\n", toChars(), i, ti, ti->toChars());
 #endif
@@ -3699,7 +3706,7 @@ void TemplateInstance::semantic(Scope *sc)
                 a->push(this);
                 break;
             }
-            if (this == a->tdata()[i])  // if already in Array
+            if (this == (*a)[i])  // if already in Array
                 break;
         }
     }
@@ -3735,7 +3742,7 @@ void TemplateInstance::semantic(Scope *sc)
     int memnum = 0;
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = members->tdata()[i];
+        Dsymbol *s = (*members)[i];
 #if LOG
         printf("\t[%d] adding member '%s' %p kind %s to '%s', memnum = %d\n", i, s->toChars(), s, s->kind(), this->toChars(), memnum);
 #endif
@@ -3816,7 +3823,7 @@ void TemplateInstance::semantic(Scope *sc)
      * or semantic3() yet.
      */
     for (size_t i = 0; i < Module::deferred.dim; i++)
-    {   Dsymbol *sd = Module::deferred.tdata()[i];
+    {   Dsymbol *sd = Module::deferred[i];
 
         if (sd->parent == this)
             goto Laftersemantic;
@@ -3886,7 +3893,7 @@ void TemplateInstance::semantic(Scope *sc)
             {
                 // Because we added 'this' in the last position above, we
                 // should be able to remove it without messing other indices up.
-                assert(target_symbol_list->tdata()[target_symbol_list_idx] == this);
+                assert((*target_symbol_list)[target_symbol_list_idx] == this);
                 target_symbol_list->remove(target_symbol_list_idx);
             }
             semanticRun = PASSinit;
@@ -3922,12 +3929,12 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         return;
     for (size_t j = 0; j < tiargs->dim; j++)
     {
-        Object *o = (Object *)tiargs->data[j];
+        Object *o = (*tiargs)[j];
         Type *ta = isType(o);
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
 
-        //printf("1: tiargs->data[%d] = %p, %p, %p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
+        //printf("1: (*tiargs)[%d] = %p, %p, %p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
         if (ta)
         {
             //printf("type %s\n", ta->toChars());
@@ -3937,12 +3944,12 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             {
                 ea = ea->semantic(sc);
                 ea = ea->optimize(WANTvalue | WANTinterpret);
-                tiargs->data[j] = ea;
+                (*tiargs)[j] = ea;
             }
             else if (sa)
             {
               Ldsym:
-                tiargs->tdata()[j] = sa;
+                (*tiargs)[j] = sa;
                 TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
                 if (d)
                 {
@@ -3963,19 +3970,19 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     if (dim)
                     {   tiargs->reserve(dim);
                         for (size_t i = 0; i < dim; i++)
-                        {   Parameter *arg = tt->arguments->tdata()[i];
+                        {   Parameter *arg = (*tt->arguments)[i];
                             tiargs->insert(j + i, arg->type);
                         }
                     }
                     j--;
                 }
                 else
-                    tiargs->tdata()[j] = ta;
+                    (*tiargs)[j] = ta;
             }
             else
             {
                 assert(global.errors);
-                tiargs->data[j] = Type::terror;
+                (*tiargs)[j] = Type::terror;
             }
         }
         else if (ea)
@@ -3987,7 +3994,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             assert(ea);
             ea = ea->semantic(sc);
             ea = ea->optimize(WANTvalue | WANTinterpret);
-            tiargs->data[j] = ea;
+            (*tiargs)[j] = ea;
             if (ea->op == TOKtype)
             {   ta = ea->type;
                 goto Ltype;
@@ -4016,13 +4023,13 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
             assert(0);
         }
-        //printf("1: tiargs->data[%d] = %p\n", j, tiargs->data[j]);
+        //printf("1: (*tiargs)[%d] = %p\n", j, (*tiargs)[j]);
     }
 #if 0
     printf("-TemplateInstance::semanticTiargs('%s', this=%p)\n", toChars(), this);
     for (size_t j = 0; j < tiargs->dim; j++)
     {
-        Object *o = (Object *)tiargs->data[j];
+        Object *o = (*tiargs)[j];
         Type *ta = isType(o);
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
