@@ -8061,7 +8061,15 @@ Lagain:
     {
         TypeFunction *tf;
         const char *p;
-        if (t1->ty == Tdelegate)
+        if (e1->op == TOKfunction)
+        {
+            // function literal that direct called is always inferred.
+            assert(((FuncExp *)e1)->fd);
+            f = ((FuncExp *)e1)->fd;
+            tf = (TypeFunction *)f->type;
+            p = "function literal";
+        }
+        else if (t1->ty == Tdelegate)
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
