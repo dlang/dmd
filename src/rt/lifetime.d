@@ -2319,3 +2319,48 @@ unittest
     assert(sarr2[0].x == 1);
     assert(sarr[0].x == 0);
 }
+
+// cannot define structs inside unit test block, or they become nested structs.
+version(unittest)
+{
+    struct S1
+    {
+        int x = 5;
+    }
+    struct S2
+    {
+        int x;
+        this(int x) {this.x = x;}
+    }
+    struct S3
+    {
+        int[4] x;
+        this(int x)
+        {this.x[] = x;}
+    }
+    struct S4
+    {
+        int *x;
+    }
+
+}
+
+unittest
+{
+    auto s1 = new S1;
+    assert(s1.x == 5);
+    assert(gc_getAttr(s1) == BlkAttr.NO_SCAN);
+
+    auto s2 = new S2(3);
+    assert(s2.x == 3);
+    assert(gc_getAttr(s2) == BlkAttr.NO_SCAN);
+
+    auto s3 = new S3(1);
+    assert(s3.x == [1,1,1,1]);
+    assert(gc_getAttr(s3) == BlkAttr.NO_SCAN);
+    assert(gc_sizeOf(s3) == 16);
+
+    auto s4 = new S4;
+    assert(s4.x == null);
+    assert(gc_getAttr(s4) == 0);
+}
