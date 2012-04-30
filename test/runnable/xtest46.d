@@ -5047,16 +5047,25 @@ class A7983 {
         }
         unittest {
         }
-}     
+}
 
 void g7983(T)(T a)
-{      
+{
         foreach (name; __traits(allMembers, T)) {
                 pragma(msg, name);
                 static if (__traits(compiles, &__traits(getMember, a, name)))
                 {
                 }
         }
+}
+
+/***************************************************/
+// 8004
+
+void test8004()
+{
+    auto n = (int n = 10){ return n; }();
+    assert(n == 10);
 }
 
 /***************************************************/
@@ -5291,6 +5300,7 @@ int main()
     test7871();
     test7906();
     test7907();
+    test8004();
 
     printf("Success\n");
     return 0;
