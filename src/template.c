@@ -4486,8 +4486,17 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     }
     else
     {
+        /* Find template declaration first.
+         */
+        tempdecl = findTemplateDeclaration(sc);
+        if (!tempdecl)
+        {   inst = this;
+            //printf("error return %p, %d\n", tempdecl, global.errors);
+            return;             // error recovery
+        }
+
         /* Run semantic on each argument, place results in tiargs[]
-         * (if we havetempdecl, then tiargs is already evaluated)
+         * (if we have tempdecl, then tiargs is already evaluated)
          */
         semanticTiargs(sc);
         if (arrayObjectIsError(tiargs))
@@ -4495,10 +4504,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
+
         unsigned errs = global.errors;
-        tempdecl = findTemplateDeclaration(sc);
-        if (tempdecl)
-            tempdecl = findBestMatch(sc, fargs);
+        tempdecl = findBestMatch(sc, fargs);
         if (!tempdecl || (errs != global.errors))
         {   inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
