@@ -4,6 +4,8 @@ version (D_SIMD)
 {
 
 import core.simd;
+import core.stdc.string;
+import std.stdio;
 
 /*****************************************/
 
@@ -606,6 +608,73 @@ void test7951_2()
 
 /*****************************************/
 
+void test7949()
+{
+    int[4] o = [1,2,3,4];
+    int4 v1;
+    v1.array = o;
+    int4 v2;
+    v2.array = o;
+
+
+
+    auto r = __simd(XMM.ADDPS, v1,v2);
+
+    writeln(r.array);
+}
+
+/*****************************************/
+
+immutable ulong2 gulong2 = 0x8000_0000_0000_0000;
+immutable uint4 guint4 = 0x8000_0000;
+immutable ushort8 gushort8 = 0x8000;
+immutable ubyte16 gubyte16 = 0x80;
+
+immutable long2 glong2 = 0x7000_0000_0000_0000;
+immutable int4 gint4 = 0x7000_0000;
+immutable short8 gshort8 = 0x7000;
+immutable byte16 gbyte16 = 0x70;
+
+immutable float4 gfloat4 = 4.0;
+immutable double2 gdouble2 = 8.0;
+
+void test7414()
+{
+    immutable ulong2 lulong2 = 0x8000_0000_0000_0000;
+    assert(memcmp(&lulong2, &gulong2, gulong2.sizeof) == 0);
+
+    immutable uint4 luint4 = 0x8000_0000;
+    assert(memcmp(&luint4, &guint4, guint4.sizeof) == 0);
+
+    immutable ushort8 lushort8 = 0x8000;
+    assert(memcmp(&lushort8, &gushort8, gushort8.sizeof) == 0);
+
+    immutable ubyte16 lubyte16 = 0x80;
+    assert(memcmp(&lubyte16, &gubyte16, gubyte16.sizeof) == 0);
+
+
+    immutable long2 llong2 = 0x7000_0000_0000_0000;
+    assert(memcmp(&llong2, &glong2, glong2.sizeof) == 0);
+
+    immutable int4 lint4 = 0x7000_0000;
+    assert(memcmp(&lint4, &gint4, gint4.sizeof) == 0);
+
+    immutable short8 lshort8 = 0x7000;
+    assert(memcmp(&lshort8, &gshort8, gshort8.sizeof) == 0);
+
+    immutable byte16 lbyte16 = 0x70;
+    assert(memcmp(&lbyte16, &gbyte16, gbyte16.sizeof) == 0);
+
+
+    immutable float4 lfloat4 = 4.0;
+    assert(memcmp(&lfloat4, &gfloat4, gfloat4.sizeof) == 0);
+
+    immutable double2 ldouble2 = 8.0;
+    assert(memcmp(&ldouble2, &gdouble2, gdouble2.sizeof) == 0);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -626,6 +695,8 @@ int main()
 
     test7951();
     test7951_2();
+    test7949();
+    test7414();
 
     return 0;
 }

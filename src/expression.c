@@ -9007,7 +9007,7 @@ VectorExp::VectorExp(Loc loc, Expression *e, Type *t)
         : UnaExp(loc, TOKvector, sizeof(VectorExp), e)
 {
     assert(t->ty == Tvector);
-    to = t;
+    to = (TypeVector *)t;
     dim = ~0;
 }
 
