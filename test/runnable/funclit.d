@@ -548,6 +548,14 @@ void test7761()
 }
 
 /***************************************************/
+// 7941
+
+void test7941()
+{
+    static assert(!__traits(compiles, { enum int c = function(){}; }));
+}
+
+/***************************************************/
 // 8005
 
 void test8005()
@@ -587,6 +595,7 @@ int main()
     test7713();
     test7743();
     test7761();
+    test7941();
     test8005();
 
     printf("Success\n");
