@@ -42,6 +42,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     deferred = NULL;
     isdeprecated = false;
     inv = NULL;
+    superInv = NULL;
     aggNew = NULL;
     aggDelete = NULL;
 
@@ -192,6 +193,48 @@ int AggregateDeclaration::isDeprecated()
 int AggregateDeclaration::isExport()
 {
     return protection == PROTexport;
+}
+
+void AggregateDeclaration::addInvariant(InvariantDeclaration *inv)
+{
+    inv->next = this->inv;
+    this->inv = inv;
+}
+
+void AggregateDeclaration::combineInvariants(Scope *sc)
+{
+    if (!inv)
+        return;
+
+    assert(!superInv);
+    InvariantDeclaration *xinv = inv;
+
+    // Define a new function to call all the invariants
+    superInv = new FuncDeclaration(loc, 0, Id::classInvariant, STCundefined, inv->type);
+
+    Expression *call = new CallExp(loc, new DsymbolExp(loc, xinv));
+    Statement *body = new ExpStatement(loc, call);
+    xinv = xinv->next;
+
+    while (xinv)
+    {
+        call = new CallExp(loc, new DsymbolExp(loc, xinv));
+        body = new CompoundStatement(loc, new ExpStatement(loc, call), body);
+        xinv = xinv->next;
+    }
+    superInv->fbody = body;
+
+    members->push(superInv);
+    superInv->addMember(sc, this, 0);
+
+    sc = sc->push();
+    sc->stc &= ~STCstatic;              // not a static invariant
+    sc->incontract++;
+    sc->linkage = LINKd;
+
+    superInv->semantic(sc);
+
+    sc->pop();
 }
 
 /****************************
@@ -615,6 +658,8 @@ void StructDeclaration::semantic(Scope *sc)
     xeq = buildXopEquals(sc2);
 #endif
 
+    combineInvariants(sc2);
+
     sc2->pop();
 
     /* Look for special member functions.
@@ -622,7 +667,6 @@ void StructDeclaration::semantic(Scope *sc)
 #if DMDV2
     ctor = search(0, Id::ctor, 0);
 #endif
-    inv =    (InvariantDeclaration *)search(0, Id::classInvariant, 0);
     aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);
     aggDelete = (DeleteDeclaration *)search(0, Id::classDelete,    0);
 
