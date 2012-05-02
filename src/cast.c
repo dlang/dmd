@@ -138,7 +138,12 @@ Expression *ErrorExp::implicitCastTo(Scope *sc, Type *t)
 Expression *FuncExp::implicitCastTo(Scope *sc, Type *t)
 {
     //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
-    return inferType(t);
+    if ((t->ty == Tpointer && t->nextOf()->ty == Tfunction) ||
+        t->ty == Tdelegate)
+    {
+        return inferType(t);
+    }
+    return Expression::implicitCastTo(sc, t);
 }
 
 /*******************************************
