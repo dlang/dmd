@@ -2974,7 +2974,9 @@ MATCH TypeInstance::deduceType(Scope *sc,
             }
             else if (e1 && e2)
             {
+            Le:
                 e1 = e1->optimize(WANTvalue | WANTinterpret);
+                e2 = e2->optimize(WANTvalue | WANTinterpret);
 
                 //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
                 //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
@@ -3001,7 +3003,12 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 j = templateParameterLookup(t2, parameters);
             L1:
                 if (j == -1)
+                {
+                    t2->resolve(loc, sc, &e2, &t2, &s2);
+                    if (e2)
+                        goto Le;
                     goto Lnomatch;
+                }
                 TemplateParameter *tp = (*parameters)[j];
                 // BUG: use tp->matchArg() instead of the following
                 TemplateValueParameter *tv = tp->isTemplateValueParameter();
