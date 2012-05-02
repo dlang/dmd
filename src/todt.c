@@ -190,6 +190,9 @@ dt_t *ArrayInitializer::toDt()
 {
     //printf("ArrayInitializer::toDt('%s')\n", toChars());
     Type *tb = type->toBasetype();
+    if (tb->ty == Tvector)
+        tb = ((TypeVector *)tb)->basetype;
+
     Type *tn = tb->nextOf()->toBasetype();
 
     Dts dts;
@@ -803,8 +806,16 @@ dt_t **VectorExp::toDt(dt_t **pdt)
 {
     //printf("VectorExp::toDt() %s\n", toChars());
     for (unsigned i = 0; i < dim; i++)
-    {
-        pdt = e1->toDt(pdt);
+    {   Expression *elem;
+
+        if (e1->op == TOKarrayliteral)
+        {
+            ArrayLiteralExp *ea = (ArrayLiteralExp *)e1;
+            elem = (*ea->elements)[i];
+        }
+        else
+            elem = e1;
+        pdt = elem->toDt(pdt);
     }
     return pdt;
 }

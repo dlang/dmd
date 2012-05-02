@@ -479,6 +479,10 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, int needInterpret)
         case Tarray:
             break;
 
+        case Tvector:
+            t = ((TypeVector *)t)->basetype;
+            break;
+
         default:
             error(loc, "cannot use array to initialize %s", type->toChars());
             goto Lerr;
