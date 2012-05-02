@@ -544,6 +544,17 @@ void AliasDeclaration::semantic(Scope *sc)
                 s->parent = sc->parent;
             }
         }
+        OverloadSet *o = s->toAlias()->isOverloadSet();
+        if (o)
+        {
+            if (overnext)
+            {
+                o->push(overnext);
+                overnext = NULL;
+                s = o;
+                s->parent = sc->parent;
+            }
+        }
         if (overnext)
             ScopeDsymbol::multiplyDefined(0, this, overnext);
         if (s == this)

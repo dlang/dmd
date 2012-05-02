@@ -18,6 +18,7 @@
 #include "intrange.h"
 
 struct Type;
+struct TypeVector;
 struct Scope;
 struct TupleDeclaration;
 struct VarDeclaration;
@@ -1088,7 +1089,7 @@ struct CastExp : UnaExp
 
 struct VectorExp : UnaExp
 {
-    Type *to;
+    TypeVector *to;             // the target vector type before semantic()
     unsigned dim;               // number of elements in the vector
 
     VectorExp(Loc loc, Expression *e, Type *t);
@@ -1096,6 +1097,7 @@ struct VectorExp : UnaExp
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
+    dt_t **toDt(dt_t **pdt);
 };
 
 struct SliceExp : UnaExp

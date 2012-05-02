@@ -900,6 +900,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
             }
             else if (tb->ty == Tvector && typeb->ty != Tvector)
             {
+                //printf("test1 e = %s, e->type = %s, tb = %s\n", e->toChars(), e->type->toChars(), tb->toChars());
+                TypeVector *tv = (TypeVector *)tb;
+                e = new CastExp(loc, e, tv->elementType());
                 e = new VectorExp(loc, e, tb);
                 e = e->semantic(sc);
                 return e;
@@ -1700,14 +1703,12 @@ Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
             to->ty == Tdelegate)
         {
             Type *typen = type->nextOf();
-            assert(typen->deco);
-            //if (typen->covariant(to->nextOf()) == 1)
+            if (typen->deco)
             {
                 FuncExp *fe = (FuncExp *)copy();
                 fe->tok = TOKdelegate;
                 fe->type = (new TypeDelegate(typen))->merge();
                 e = fe;
-                //e = fe->Expression::implicitCastTo(sc, to);
             }
         }
         else

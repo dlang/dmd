@@ -5238,6 +5238,12 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
 
         TypeFunction *tfl = (TypeFunction *)fd->type;
         size_t dim = Parameter::dim(tfl->parameters);
+        if (arguments->dim < dim)
+        {   // Default arguments are always typed, so they don't need inference.
+            Parameter *p = Parameter::getNth(tfl->parameters, arguments->dim);
+            if (p->defaultArg)
+                dim = arguments->dim;
+        }
 
         if ((!tfl->varargs && arguments->dim == dim) ||
             ( tfl->varargs && arguments->dim >= dim))
@@ -7864,6 +7870,7 @@ Lagain:
             {
                 e1 = new DotVarExp(loc, dte->e1, f);
                 e1 = e1->semantic(sc);
+                ue = (UnaExp *)e1;
             }
 #if 0
             printf("ue->e1 = %s\n", ue->e1->toChars());
@@ -8061,7 +8068,15 @@ Lagain:
     {
         TypeFunction *tf;
         const char *p;
-        if (t1->ty == Tdelegate)
+        if (e1->op == TOKfunction)
+        {
+            // function literal that direct called is always inferred.
+            assert(((FuncExp *)e1)->fd);
+            f = ((FuncExp *)e1)->fd;
+            tf = (TypeFunction *)f->type;
+            p = "function literal";
+        }
+        else if (t1->ty == Tdelegate)
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
@@ -8992,7 +9007,7 @@ VectorExp::VectorExp(Loc loc, Expression *e, Type *t)
         : UnaExp(loc, TOKvector, sizeof(VectorExp), e)
 {
     assert(t->ty == Tvector);
-    to = t;
+    to = (TypeVector *)t;
     dim = ~0;
 }
 

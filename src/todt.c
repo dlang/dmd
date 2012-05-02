@@ -799,6 +799,16 @@ dt_t **FuncExp::toDt(dt_t **pdt)
     return dtxoff(pdt, s, 0, TYnptr);
 }
 
+dt_t **VectorExp::toDt(dt_t **pdt)
+{
+    //printf("VectorExp::toDt() %s\n", toChars());
+    for (unsigned i = 0; i < dim; i++)
+    {
+        pdt = e1->toDt(pdt);
+    }
+    return pdt;
+}
+
 /* ================================================================= */
 
 // Generate the data for the static initializer.
