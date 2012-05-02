@@ -49,6 +49,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     outId = NULL;
     vresult = NULL;
     returnLabel = NULL;
+    scout = NULL;
     fensure = NULL;
     fbody = NULL;
     localsymtab = NULL;
@@ -869,6 +870,12 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
 #endif
 
+    if (!fbody && inferRetType && !type->nextOf())
+    {
+        error("has no function body with return type inference");
+        return;
+    }
+
     if (frequire)
     {
         for (int i = 0; i < foverrides.dim; i++)
@@ -1094,148 +1101,106 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
         }
 
-        /* Do the semantic analysis on the [in] preconditions and
-         * [out] postconditions.
-         */
-        sc2->incontract++;
+        // Precondition invariant
+        Statement *fpreinv = NULL;
+        if (addPreInvariant())
+        {
+            Expression *e = NULL;
+            if (isDtorDeclaration())
+            {
+                // Call invariant directly only if it exists
+                InvariantDeclaration *inv = ad->inv;
+                ClassDeclaration *cd = ad->isClassDeclaration();
 
-        if (frequire)
-        {   /* frequire is composed of the [in] contracts
-             */
-            // BUG: need to error if accessing out parameters
-            // BUG: need to treat parameters as const
-            // BUG: need to disallow returns and throws
-            // BUG: verify that all in and ref parameters are read
-            frequire = frequire->semantic(sc2);
-            labtab = NULL;              // so body can't refer to labels
+                while (!inv && cd)
+                {
+                    cd = cd->baseClass;
+                    if (!cd)
+                        break;
+                    inv = cd->inv;
+                }
+                if (inv)
+                {
+                    e = new DsymbolExp(0, inv);
+                    e = new CallExp(0, e);
+                    e = e->semantic(sc2);
+                }
+            }
+            else
+            {   // Call invariant virtually
+                Expression *v = new ThisExp(0);
+                v->type = vthis->type;
+#if STRUCTTHISREF
+                if (ad->isStructDeclaration())
+                    v = v->addressOf(sc);
+#endif
+                Expression *se = new StringExp(0, (char *)"null this");
+                se = se->semantic(sc);
+                se->type = Type::tchar->arrayOf();
+                e = new AssertExp(loc, v, se);
+            }
+            if (e)
+                fpreinv = new ExpStatement(0, e);
+        }
+
+        // Postcondition invariant
+        Statement *fpostinv = NULL;
+        if (addPostInvariant())
+        {
+            Expression *e = NULL;
+            if (isCtorDeclaration())
+            {
+                // Call invariant directly only if it exists
+                InvariantDeclaration *inv = ad->inv;
+                ClassDeclaration *cd = ad->isClassDeclaration();
+
+                while (!inv && cd)
+                {
+                    cd = cd->baseClass;
+                    if (!cd)
+                        break;
+                    inv = cd->inv;
+                }
+                if (inv)
+                {
+                    e = new DsymbolExp(0, inv);
+                    e = new CallExp(0, e);
+                    e = e->semantic(sc2);
+                }
+            }
+            else
+            {   // Call invariant virtually
+                Expression *v = new ThisExp(0);
+                v->type = vthis->type;
+#if STRUCTTHISREF
+                if (ad->isStructDeclaration())
+                    v = v->addressOf(sc);
+#endif
+                e = new AssertExp(0, v);
+            }
+            if (e)
+                fpostinv = new ExpStatement(0, e);
         }
 
         if (fensure || addPostInvariant())
-        {   /* fensure is composed of the [out] contracts
-             */
-            if (!type->nextOf())                // if return type is inferred
-            {   /* This case:
-                 *   auto fp = function() out { } body { };
-                 * Can fix by doing semantic() onf fbody first.
-                 */
-                error("post conditions are not supported if the return type is inferred");
-                return;
+        {
+            if ((fensure && global.params.useOut) || fpostinv)
+            {   returnLabel = new LabelDsymbol(Id::returnLabel);
             }
 
+            // scope of out contract (need for vresult->semantic)
+            ScopeDsymbol *sym = new ScopeDsymbol();
+            sym->parent = sc2->scopesym;
+            scout = sc2->push(sym);
+        }
+
+        if (fbody)
+        {
             ScopeDsymbol *sym = new ScopeDsymbol();
             sym->parent = sc2->scopesym;
             sc2 = sc2->push(sym);
 
-            assert(type->nextOf());
-            if (type->nextOf()->ty == Tvoid)
-            {
-                if (outId)
-                    error("void functions have no result");
-            }
-            else
-            {
-                if (!outId)
-                    outId = Id::result;         // provide a default
-            }
-
-            if (outId)
-            {   // Declare result variable
-                Loc loc = this->loc;
-
-                if (fensure)
-                    loc = fensure->loc;
-
-                VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
-                v->noscope = 1;
-                v->storage_class |= STCresult;
-#if DMDV2
-                if (!isVirtual())
-                    v->storage_class |= STCconst;
-                if (f->isref)
-                {
-                    v->storage_class |= STCref | STCforeach;
-                }
-#endif
-                sc2->incontract--;
-                v->semantic(sc2);
-                sc2->incontract++;
-                if (!sc2->insert(v))
-                    error("out result %s is already defined", v->toChars());
-                v->parent = this;
-                vresult = v;
-
-                // vresult gets initialized with the function return value
-                // in ReturnStatement::semantic()
-            }
-
-            // BUG: need to treat parameters as const
-            // BUG: need to disallow returns and throws
-            if (fensure)
-            {   fensure = fensure->semantic(sc2);
-                labtab = NULL;          // so body can't refer to labels
-            }
-
-            if (!global.params.useOut)
-            {   fensure = NULL;         // discard
-                vresult = NULL;
-            }
-
-            // Postcondition invariant
-            if (addPostInvariant())
-            {
-                Expression *e = NULL;
-                if (isCtorDeclaration())
-                {
-                    // Call invariant directly only if it exists
-                    InvariantDeclaration *inv = ad->inv;
-                    ClassDeclaration *cd = ad->isClassDeclaration();
-
-                    while (!inv && cd)
-                    {
-                        cd = cd->baseClass;
-                        if (!cd)
-                            break;
-                        inv = cd->inv;
-                    }
-                    if (inv)
-                    {
-                        e = new DsymbolExp(0, inv);
-                        e = new CallExp(0, e);
-                        e = e->semantic(sc2);
-                    }
-                }
-                else
-                {   // Call invariant virtually
-                    Expression *v = new ThisExp(0);
-                    v->type = vthis->type;
-#if STRUCTTHISREF
-                    if (ad->isStructDeclaration())
-                        v = v->addressOf(sc);
-#endif
-                    e = new AssertExp(0, v);
-                }
-                if (e)
-                {
-                    ExpStatement *s = new ExpStatement(0, e);
-                    if (fensure)
-                        fensure = new CompoundStatement(0, s, fensure);
-                    else
-                        fensure = s;
-                }
-            }
-
-            if (fensure)
-            {   returnLabel = new LabelDsymbol(Id::returnLabel);
-                LabelStatement *ls = new LabelStatement(0, Id::returnLabel, fensure);
-                returnLabel->statement = ls;
-            }
-            sc2 = sc2->pop();
-        }
-
-        sc2->incontract--;
-
-        if (fbody)
-        {   AggregateDeclaration *ad = isAggregateMember();
+            AggregateDeclaration *ad = isAggregateMember();
 
             /* If this is a class constructor
              */
@@ -1401,6 +1366,66 @@ void FuncDeclaration::semantic3(Scope *sc)
                     }
                 }
             }
+
+            sc2 = sc2->pop();
+        }
+
+        Statement *freq = frequire;
+        Statement *fens = fensure;
+
+        /* Do the semantic analysis on the [in] preconditions and
+         * [out] postconditions.
+         */
+        if (freq)
+        {   /* frequire is composed of the [in] contracts
+             */
+            ScopeDsymbol *sym = new ScopeDsymbol();
+            sym->parent = sc2->scopesym;
+            sc2 = sc2->push(sym);
+            sc2->incontract++;
+
+            // BUG: need to error if accessing out parameters
+            // BUG: need to treat parameters as const
+            // BUG: need to disallow returns and throws
+            // BUG: verify that all in and ref parameters are read
+            DsymbolTable *labtab_save = labtab;
+            labtab = NULL;              // so in contract can't refer to out/body labels
+            freq = freq->semantic(sc2);
+            labtab = labtab_save;
+
+            sc2->incontract--;
+            sc2 = sc2->pop();
+
+            if (!global.params.useIn)
+                freq = NULL;
+        }
+
+        if (fens)
+        {   /* fensure is composed of the [out] contracts
+             */
+            if (type->nextOf()->ty == Tvoid && outId)
+            {
+                error("void functions have no result");
+            }
+
+            if (type->nextOf()->ty != Tvoid)
+                buildResultVar();
+
+            sc2 = scout;    //push
+            sc2->incontract++;
+
+            // BUG: need to treat parameters as const
+            // BUG: need to disallow returns and throws
+            DsymbolTable *labtab_save = labtab;
+            labtab = NULL;              // so out contract can't refer to in/body labels
+            fens = fens->semantic(sc2);
+            labtab = labtab_save;
+
+            sc2->incontract--;
+            sc2 = sc2->pop();
+
+            if (!global.params.useOut)
+                fens = NULL;
         }
 
         {
@@ -1501,60 +1526,29 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             // Merge contracts together with body into one compound statement
 
-            if (frequire && global.params.useIn)
-            {   frequire->incontract = 1;
-                a->push(frequire);
-            }
-
-            // Precondition invariant
-            if (addPreInvariant())
+            if (freq || fpreinv)
             {
-                Expression *e = NULL;
-                if (isDtorDeclaration())
-                {
-                    // Call invariant directly only if it exists
-                    InvariantDeclaration *inv = ad->inv;
-                    ClassDeclaration *cd = ad->isClassDeclaration();
+                if (!freq)
+                    freq = fpreinv;
+                else if (fpreinv)
+                    freq = new CompoundStatement(0, freq, fpreinv);
 
-                    while (!inv && cd)
-                    {
-                        cd = cd->baseClass;
-                        if (!cd)
-                            break;
-                        inv = cd->inv;
-                    }
-                    if (inv)
-                    {
-                        e = new DsymbolExp(0, inv);
-                        e = new CallExp(0, e);
-                        e = e->semantic(sc2);
-                    }
-                }
-                else
-                {   // Call invariant virtually
-                    Expression *v = new ThisExp(0);
-                    v->type = vthis->type;
-#if STRUCTTHISREF
-                    if (ad->isStructDeclaration())
-                        v = v->addressOf(sc);
-#endif
-                    Expression *se = new StringExp(0, (char *)"null this");
-                    se = se->semantic(sc);
-                    se->type = Type::tchar->arrayOf();
-                    e = new AssertExp(loc, v, se);
-                }
-                if (e)
-                {
-                    ExpStatement *s = new ExpStatement(0, e);
-                    a->push(s);
-                }
+                freq->incontract = 1;
+                a->push(freq);
             }
 
             if (fbody)
                 a->push(fbody);
 
-            if (fensure)
+            if (fens || fpostinv)
             {
+                if (!fens)
+                    fens = fpostinv;
+                else if (fpostinv)
+                    fens = new CompoundStatement(0, fpostinv, fens);
+
+                LabelStatement *ls = new LabelStatement(0, Id::returnLabel, fens);
+                returnLabel->statement = ls;
                 a->push(returnLabel->statement);
 
                 if (type->nextOf()->ty != Tvoid)
@@ -1823,6 +1817,48 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {   buf->writeByte(';');
         buf->writenl();
     }
+}
+
+/****************************************************
+ * Declare result variable lazily.
+ */
+
+void FuncDeclaration::buildResultVar()
+{
+    if (vresult)
+        return;
+
+    assert(type->nextOf());
+    assert(type->nextOf()->toBasetype()->ty != Tvoid);
+    TypeFunction *tf = (TypeFunction *)(type);
+
+    Loc loc = this->loc;
+
+    if (fensure)
+        loc = fensure->loc;
+
+    if (!outId)
+        outId = Id::result;         // provide a default
+
+    VarDeclaration *v = new VarDeclaration(loc, type->nextOf(), outId, NULL);
+    v->noscope = 1;
+    v->storage_class |= STCresult;
+#if DMDV2
+    if (!isVirtual())
+        v->storage_class |= STCconst;
+    if (tf->isref)
+    {
+        v->storage_class |= STCref | STCforeach;
+    }
+#endif
+    v->semantic(scout);
+    if (!scout->insert(v))
+        error("out result %s is already defined", v->toChars());
+    v->parent = this;
+    vresult = v;
+
+    // vresult gets initialized with the function return value
+    // in ReturnStatement::semantic()
 }
 
 /****************************************************
