@@ -3233,6 +3233,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
+#if 0
+        if (fd->returnLabel && tbret && tbret->ty != Tvoid)
+        {
+        }
+        else
+#endif
         if (fd->inferRetType)
         {
             Type *tfret = fd->type->nextOf();
@@ -3344,7 +3350,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
         if (fd->returnLabel && tbret->ty != Tvoid)
         {
-            assert(fd->vresult);
+            fd->buildResultVar();
             VarExp *v = new VarExp(0, fd->vresult);
 
             assert(eorg);

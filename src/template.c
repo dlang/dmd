@@ -2034,8 +2034,8 @@ MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *pa
 
         for (size_t i = 0; i < idents.dim; i++)
         {
-            Identifier *id1 = (Identifier *)idents.data[i];
-            Identifier *id2 = (Identifier *)tp->idents.data[i];
+            Identifier *id1 = idents[i];
+            Identifier *id2 = tp->idents[i];
 
             if (!id1->equals(id2))
                 return MATCHnomatch;
@@ -2083,7 +2083,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     }
                     goto Lnomatch;
                 }
-                TemplateParameter *tpx = (TemplateParameter *)parameters->data[i];
+                TemplateParameter *tpx = (*parameters)[i];
                 // This logic duplicates tpx->matchArg()
                 TemplateAliasParameter *ta = tpx->isTemplateAliasParameter();
                 if (!ta)
@@ -2093,14 +2093,14 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     goto Lnomatch;
                 if (ta->specAlias && sa != ta->specAlias)
                     goto Lnomatch;
-                if (dedtypes->data[i])
+                if ((*dedtypes)[i])
                 {   // Must match already deduced symbol
-                    Object *s = (Object *)dedtypes->data[i];
+                    Object *s = (*dedtypes)[i];
 
                     if (s != sa)
                         goto Lnomatch;
                 }
-                dedtypes->data[i] = sa;
+                (*dedtypes)[i] = sa;
             }
         }
         else if (tempinst->tempdecl != tp->tempinst->tempdecl)
@@ -2113,17 +2113,17 @@ MATCH TypeInstance::deduceType(Scope *sc,
             //printf("\ttest: tempinst->tiargs[%d]\n", i);
             Object *o1;
             if (i < tempinst->tiargs->dim)
-                o1 = (Object *)tempinst->tiargs->data[i];
+                o1 = (*tempinst->tiargs)[i];
             else if (i < tempinst->tdtypes.dim && i < tp->tempinst->tiargs->dim)
                 // Pick up default arg
-                o1 = (Object *)tempinst->tdtypes.data[i];
+                o1 = tempinst->tdtypes[i];
             else
                 break;
 
             if (i >= tp->tempinst->tiargs->dim)
                 goto Lnomatch;
 
-            Object *o2 = (Object *)tp->tempinst->tiargs->data[i];
+            Object *o2 = (*tp->tempinst->tiargs)[i];
 
             Type *t1 = isType(o1);
             Type *t2 = isType(o2);
@@ -2172,16 +2172,16 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 size_t vtdim = tempinst->tiargs->dim - i;
                 vt->objects.setDim(vtdim);
                 for (size_t k = 0; k < vtdim; k++)
-                    vt->objects.data[k] = (void *)tempinst->tiargs->data[i + k];
+                    vt->objects[k] = (*tempinst->tiargs)[i + k];
 
-                Tuple *v = (Tuple *)dedtypes->data[j];
+                Tuple *v = (Tuple *)(*dedtypes)[j];
                 if (v)
                 {
                     if (!match(v, vt, tempinst->tempdecl, sc))
                         goto Lnomatch;
                 }
                 else
-                    dedtypes->data[j] = vt;
+                    (*dedtypes)[j] = vt;
                 break; //return MATCHexact;
             }
 
@@ -2192,7 +2192,9 @@ MATCH TypeInstance::deduceType(Scope *sc,
             }
             else if (e1 && e2)
             {
+            Le:
                 e1 = e1->optimize(WANTvalue | WANTinterpret);
+                e2 = e2->optimize(WANTvalue | WANTinterpret);
 
                 //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
                 //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
@@ -2219,7 +2221,12 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 j = templateParameterLookup(t2, parameters);
             L1:
                 if (j == -1)
+                {
+                    t2->resolve(loc, sc, &e2, &t2, &s2);
+                    if (e2)
+                        goto Le;
                     goto Lnomatch;
+                }
                 TemplateParameter *tp = (*parameters)[j];
                 // BUG: use tp->matchArg() instead of the following
                 TemplateValueParameter *tv = tp->isTemplateValueParameter();
