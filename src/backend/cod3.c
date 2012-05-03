@@ -2943,93 +2943,25 @@ Lcont:
         c = cat(c,nteh_setsp(0x89));            // MOV __context[EBP].esp,ESP
 #endif
 
-    // Load register parameters off of the stack. Do not use
-    // assignaddr(), as it will replace the stack reference with
-    // the register!
+    // Keep track of used registers.
+    unsigned usedregs = 0;
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
-        code *c2;
-        unsigned sz = type_size(s->Stype);
+        if (s->Sclass == SCfastpar)
+            usedregs |= mask[s->Spreg];
+    }
+    namedargs = usedregs;
 
-        if ((s->Sclass == SCregpar || s->Sclass == SCparameter) &&
-            s->Sfl == FLreg &&
-            (refparam
-#if MARS
-                // This variable has been reference by a nested function
-                || s->Stype->Tty & mTYvolatile
-#endif
-                ))
+    // Do register argument to stack moves.
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        if (s->Sclass == SCfastpar && s->Sfl != FLreg)
         {
-            /* MOV reg,param[BP]        */
-            //assert(refparam);
-            if (mask[s->Sreglsw] & XMMREGS)
-            {
-                unsigned op = xmmload(s->Stype->Tty);  // MOVSS/D xreg,mem
-                unsigned xreg = s->Sreglsw - XMM0;
-                code *c2 = genc1(CNIL,op,modregxrm(2,xreg,BPRM),FLconst,Poff + s->Soffset);
-                if (!hasframe)
-                {   // Convert to ESP relative address rather than EBP
-                    c2->Irm = modregxrm(2,xreg,4);
-                    c2->Isib = modregrm(0,4,SP);
-                    c2->IEVpointer1 += EBPtoESP;
-                }
-                c = cat(c,c2);
-            }
-            else
-            {
-                code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
-                    modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
-                if (!I16 && sz == SHORTSIZE)
-                    c2->Iflags |= CFopsize; // operand size
-                if (I64 && sz >= REGSIZE)
-                    c2->Irex |= REX_W;
-                if (!hasframe)
-                {   /* Convert to ESP relative address rather than EBP      */
-                    assert(!I16);
-                    c2->Irm = modregxrm(2,s->Sreglsw,4);
-                    c2->Isib = modregrm(0,4,SP);
-                    c2->IEVpointer1 += EBPtoESP;
-                }
-                if (sz > REGSIZE)
-                {
-                    code *c3 = genc1(CNIL,0x8B,
-                        modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
-                    if (I64)
-                        c3->Irex |= REX_W;
-                    if (!hasframe)
-                    {   /* Convert to ESP relative address rather than EBP  */
-                        assert(!I16);
-                        c3->Irm = modregxrm(2,s->Sregmsw,4);
-                        c3->Isib = modregrm(0,4,SP);
-                        c3->IEVpointer1 += EBPtoESP;
-                    }
-                    c2 = cat(c2,c3);
-                }
-                c = cat(c,c2);
-            }
-        }
-        else if (s->Sclass == SCfastpar)
-        {   // Argument is passed in a register
             unsigned preg = s->Spreg;
+            assert(usedregs & mask[preg]); // bug 6189
+            usedregs &= ~mask[preg];
 
-            namedargs |= mask[preg];
-
-            if (s->Sfl == FLreg)
-            {   // MOV reg,preg
-                if (mask[preg] & XMMREGS)
-                {
-                    unsigned op = xmmload(s->Stype->Tty);      // MOVSS/D xreg,preg
-                    unsigned xreg = s->Sreglsw - XMM0;
-                    c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
-                }
-                else
-                {
-                    c = genmovreg(c,s->Sreglsw,preg);
-                    if (I64 && sz == 8)
-                        code_orrex(c, REX_W);
-                }
-            }
-            else if (s->Sflags & SFLdead ||
+            if (s->Sflags & SFLdead ||
                 (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
 #if MARS
                  // This variable has been reference by a nested function
@@ -3053,7 +2985,7 @@ Lcont:
                     if (!(pushalloc && preg == pushallocreg))
                     {
                         // MOV x[EBP],preg
-                        c2 = genc1(CNIL,op,
+                        code *c2 = genc1(CNIL,op,
                             modregxrm(2,preg,BPRM),FLconst, offset);
                         if (preg >= XMM0 && preg <= XMM15)
                         {
@@ -3063,7 +2995,7 @@ Lcont:
 //printf("%s Aoff = %d, BPoff = %d, Soffset = %d, sz = %d\n", s->Sident, (int)Aoff, (int)BPoff, (int)s->Soffset, (int)sz);
 //                          if (offset & 2)
 //                              c2->Iflags |= CFopsize;
-                            if (I64 && sz == 8)
+                            if (I64 && type_size(s->Stype) == 8)
                                 code_orrex(c2, REX_W);
                         }
                         c = cat(c, c2);
@@ -3076,7 +3008,7 @@ Lcont:
                     {
                         // MOV offset[ESP],preg
                         // BUG: byte size?
-                        c2 = genc1(CNIL,op,
+                        code *c2 = genc1(CNIL,op,
                             (modregrm(0,4,SP) << 8) |
                             modregxrm(2,preg,4),FLconst,offset);
                         if (preg >= XMM0 && preg <= XMM15)
@@ -3084,7 +3016,7 @@ Lcont:
                         }
                         else
                         {
-                            if (I64 && sz == 8)
+                            if (I64 && type_size(s->Stype) == 8)
                                 c2->Irex |= REX_W;
 //                          if (offset & 2)
 //                              c2->Iflags |= CFopsize;
@@ -3092,6 +3024,196 @@ Lcont:
                         c = cat(c,c2);
                     }
                 }
+            }
+        }
+    }
+
+#ifdef DEBUG
+    // check that SFLprologue flag is not used
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        assert(!(s->Sflags & SFLprologue));
+    }
+#endif
+
+    // Do register argument to register variable moves.
+    SYMIDX pushed = -1;
+    while (1)
+    {
+        size_t cnt=0, defer=0;
+        for (si = 0; si < globsym.top; si++)
+        {   symbol *s = globsym.tab[si];
+            if (s->Sclass != SCfastpar || s->Sfl != FLreg ||
+                s->Spreg == s->Sreglsw || s->Sflags & SFLprologue)
+                continue;
+
+            ++cnt;
+            if (usedregs & mask[s->Sreglsw])
+            {
+                ++defer;
+                continue;
+            }
+
+            s->Sflags |= SFLprologue;
+
+            // MOV reg,preg
+            unsigned preg = s->Spreg;
+            assert(usedregs & mask[preg]); // bug 6189
+            usedregs &= ~mask[preg];
+            usedregs |= mask[s->Sreglsw];
+            if (mask[preg] & XMMREGS)
+            {
+                unsigned op = xmmload(s->Stype->Tty);      // MOVSS/D xreg,preg
+                unsigned xreg = s->Sreglsw - XMM0;
+                c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
+            }
+            else
+            {
+                c = genmovreg(c,s->Sreglsw,preg);
+                if (I64 && type_size(s->Stype) == 8)
+                    code_orrex(c, REX_W);
+            }
+        }
+
+        if (!defer && pushed == -1) // done
+            break;
+        else if (defer == cnt)
+        {
+            // This is bad and means there is a cyclic dependency of register moves.
+            // Should be avoided by register allocation. Temporarily push a register to solve it.
+            assert(pushed == -1);
+            symbol *s;
+            for (si = 0; si < globsym.top; si++)
+            {   s = globsym.tab[si];
+                if (s->Sclass != SCfastpar || s->Sfl != FLreg ||
+                    s->Spreg == s->Sreglsw || s->Sflags & SFLprologue)
+                    continue;
+
+                pushed = si;
+                break;
+            }
+            assert(pushed != -1);
+
+            s = globsym.tab[pushed];
+            unsigned reg = s->Spreg;
+            if (mask[s->Spreg] & XMMREGS)
+            {
+                unsigned sz = type_size(s->Stype);
+                code *c2 = genc2(CNIL, 0x83, modregrm(3,5,SP), sz); // SUB SP,sz
+                if (I64)
+                    c2->Irex |= REX_W;
+                c = cat(c, c2);
+                unsigned op = xmmstore(s->Stype->Tty);      // MOVSS/D [SP],xreg
+                c = gen2sib(c,op,modregxrm(0,reg-XMM0,4),modregrm(0,4,SP));
+            }
+            else
+            {
+                code *c2 = gen1(NULL, 0x50 + (reg & 0x7));       // PUSH reg
+                if (I64 && reg & 8)
+                    c2->Irex |= REX_B;
+                c = cat(c, c2);
+            }
+            s->Sflags |= SFLprologue;
+            usedregs &= ~mask[reg];
+        }
+        else if (pushed != -1 && !(usedregs & mask[globsym.tab[pushed]->Sreglsw]))
+        {   // pop temporary into variable register
+            symbol *s = globsym.tab[pushed];
+            unsigned reg = s->Sreglsw;
+            if (mask[s->Spreg] & XMMREGS)
+            {
+                unsigned sz = type_size(s->Stype);
+                unsigned op = xmmload(s->Stype->Tty);      // MOVSS/D xreg,[SP]
+                c = gen2sib(c,op,modregxrm(0,reg-XMM0,4),modregrm(0,4,SP));
+                code *c2 = genc2(CNIL, 0x83, modregrm(3,0,SP), sz); // ADD SP,sz
+                if (I64)
+                    c2->Irex |= REX_W;
+                c = cat(c, c2);
+            }
+            else
+            {
+                code *c2 = gen1(NULL, 0x58 + (reg & 0x7));       // POP reg
+                if (I64 && reg & 8)
+                    c2->Irex |= REX_B;
+                c = cat(c, c2);
+            }
+
+            usedregs |= mask[reg];
+            pushed = -1;
+            if (!defer) // done
+                break;
+        }
+    }
+
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        s->Sflags &= ~SFLprologue;
+    }
+
+
+    // Do stack argument to register variable moves.
+    for (si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+        if ((s->Sclass == SCregpar || s->Sclass == SCparameter) &&
+            s->Sfl == FLreg &&
+            (refparam
+#if MARS
+                // This variable has been reference by a nested function
+                || s->Stype->Tty & mTYvolatile
+#endif
+                ))
+        {
+            /* MOV reg,param[BP]        */
+            //assert(refparam);
+            assert(!(usedregs & mask[s->Sreglsw])); // bug 6189
+            usedregs |= mask[s->Sreglsw];
+            if (mask[s->Sreglsw] & XMMREGS)
+            {
+                unsigned op = xmmload(s->Stype->Tty);  // MOVSS/D xreg,mem
+                unsigned xreg = s->Sreglsw - XMM0;
+                code *c2 = genc1(CNIL,op,modregxrm(2,xreg,BPRM),FLconst,Poff + s->Soffset);
+                if (!hasframe)
+                {   // Convert to ESP relative address rather than EBP
+                    c2->Irm = modregxrm(2,xreg,4);
+                    c2->Isib = modregrm(0,4,SP);
+                    c2->IEVpointer1 += EBPtoESP;
+                }
+                c = cat(c,c2);
+            }
+            else
+            {
+                unsigned sz = type_size(s->Stype);
+                code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
+                    modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
+                if (!I16 && sz == SHORTSIZE)
+                    c2->Iflags |= CFopsize; // operand size
+                if (I64 && sz >= REGSIZE)
+                    c2->Irex |= REX_W;
+                if (!hasframe)
+                {   /* Convert to ESP relative address rather than EBP      */
+                    assert(!I16);
+                    c2->Irm = modregxrm(2,s->Sreglsw,4);
+                    c2->Isib = modregrm(0,4,SP);
+                    c2->IEVpointer1 += EBPtoESP;
+                }
+                if (sz > REGSIZE)
+                {
+                    assert(!(usedregs & mask[s->Sregmsw])); // bug 6189
+                    usedregs |= mask[s->Sregmsw];
+                    code *c3 = genc1(CNIL,0x8B,
+                        modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
+                    if (I64)
+                        c3->Irex |= REX_W;
+                    if (!hasframe)
+                    {   /* Convert to ESP relative address rather than EBP  */
+                        assert(!I16);
+                        c3->Irm = modregxrm(2,s->Sregmsw,4);
+                        c3->Isib = modregrm(0,4,SP);
+                        c3->IEVpointer1 += EBPtoESP;
+                    }
+                    c2 = cat(c2,c3);
+                }
+                c = cat(c,c2);
             }
         }
     }

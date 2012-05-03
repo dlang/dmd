@@ -1260,6 +1260,7 @@ struct Symbol
         #define SFLread         0x40000 // variable is actually read from
                                         // (to eliminate dead stores)
         #define SFLspill        0x80000 // only in register part of the time
+        #define SFLprologue     0x4000000 // used as temporary flag during prologue
 
     vec_t       Srange;         // live range, if any
     vec_t       Slvreg;         // when symbol is in register
