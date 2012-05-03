@@ -590,7 +590,15 @@ void FuncDeclaration::toObjFile(int multiobj)
          * so we know things like where its local symbols are stored.
          */
         FuncDeclaration *fdp = toAliasFunc()->toParent2()->isFuncDeclaration();
-        if (fdp && fdp->semanticRun == PASSsemantic3done &&
+        // Bug 8016 - only include the function if it is a template instance
+        Dsymbol * owner = NULL;
+        if (fdp)
+        {   owner =  fdp->toParent();
+            while (owner && !owner->isTemplateInstance())
+                owner = owner->toParent();
+        }
+
+        if (owner && fdp && fdp->semanticRun == PASSsemantic3done &&
             !fdp->isUnitTestDeclaration())
         {
             /* Can't do unittest's out of order, they are order dependent in that their
