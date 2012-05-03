@@ -3929,7 +3929,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
         if (fd->returnLabel && tbret->ty != Tvoid)
         {
-            assert(fd->vresult);
+            fd->buildResultVar();
             VarExp *v = new VarExp(0, fd->vresult);
 
             assert(eorg);

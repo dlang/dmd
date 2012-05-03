@@ -2822,12 +2822,22 @@ Lagain:
         )
        )
     {
+        unsigned spalign = 0;
+#if 1
+        int sz = Poff + (needframe ? 0 : -REGSIZE) + localsize;
+        if (STACKALIGN == 16 && (sz & (STACKALIGN - 1)))
+            spalign = STACKALIGN - (sz & (STACKALIGN - 1));
+#else
         if (STACKALIGN == 16 && npush)
+            spalign = npush * REGSIZE;
+#endif
+
+        if (spalign)
         {   /* This could be avoided by moving the function call to after the
              * registers are saved. But I don't remember why the call is here
              * and not there.
              */
-            c = genc2(c,0x81,modregrm(3,5,SP),npush * REGSIZE); // SUB ESP,npush * REGSIZE
+            c = genc2(c,0x81,modregrm(3,5,SP),spalign); // SUB ESP,spalign
             if (I64)
                 code_orrex(c, REX_W);
         }
@@ -2841,6 +2851,7 @@ Lagain:
          * makes disassembling the code annoying.
          */
 #if ELFOBJ || MACHOBJ
+        // Generate length prefixed name that is recognized by profiler
         size_t len = strlen(funcsym_p->Sident);
         char *buffer = (char *)malloc(len + 4);
         assert(buffer);
@@ -2865,9 +2876,9 @@ Lagain:
         assert(len < sizeof(name));
         genasm(c,name,len);                             // append func name
 #endif
-        if (STACKALIGN == 16 && npush)
+        if (spalign)
         {
-            c = genc2(c,0x81,modregrm(3,0,SP),npush * REGSIZE); // ADD ESP,npush * REGSIZE
+            c = genc2(c,0x81,modregrm(3,0,SP),spalign); // ADD ESP,npush * REGSIZE
             if (I64)
                 code_orrex(c, REX_W);
         }

@@ -3752,48 +3752,53 @@ elem *VectorExp::toElem(IRState *irs)
     printf("\tto  : %s\n", to->toChars());
 #endif
 
-    dinteger_t d;
-    real_t r;
-    if (e1->type->isfloating())
-        r = e1->toReal();
-    else if (e1->type->isintegral())
-        d = e1->toInteger();
-    else
-        assert(0);
     elem *e = el_calloc();
     e->Eoper = OPconst;
     e->Ety = type->totym();
-    switch (tybasic(e->Ety))
-    {
-        case TYfloat4:
-                        for (size_t i = 0; i < 4; i++)
-                            ((targ_float *)&e->EV.Vcent)[i] = r;
-                        break;
-        case TYdouble2:
-                        ((targ_double *)&e->EV.Vcent.lsw)[0] = r;
-                        ((targ_double *)&e->EV.Vcent.msw)[0] = r;
-                        break;
-        case TYschar16:
-        case TYuchar16:
-                        for (size_t i = 0; i < 16; i++)
-                            ((targ_uchar *)&e->EV.Vcent)[i] = d;
-                        break;
-        case TYshort8:
-        case TYushort8:
-                        for (size_t i = 0; i < 8; i++)
-                            ((targ_ushort *)&e->EV.Vcent)[i] = d;
-                        break;
-        case TYlong4:
-        case TYulong4:
-                        for (size_t i = 0; i < 4; i++)
-                            ((targ_ulong *)&e->EV.Vcent)[i] = d;
-                        break;
-        case TYllong2:
-        case TYullong2: e->EV.Vcent.lsw = d;
-                        e->EV.Vcent.msw = d;
-                        break;
-        default:
-            assert(0);
+
+    for (unsigned i = 0; i < dim; i++)
+    {   Expression *elem;
+
+        if (e1->op == TOKarrayliteral)
+        {
+            ArrayLiteralExp *ea = (ArrayLiteralExp *)e1;
+            elem = (*ea->elements)[i];
+        }
+        else
+            elem = e1;
+        switch (elem->type->toBasetype()->ty)
+        {
+            case Tfloat32:
+                ((targ_float *)&e->EV.Vcent)[i] = elem->toReal();
+                break;
+
+            case Tfloat64:
+                ((targ_double *)&e->EV.Vcent)[i] = elem->toReal();
+                break;
+
+            case Tint64:
+            case Tuns64:
+                ((targ_ullong *)&e->EV.Vcent)[i] = elem->toInteger();
+                break;
+
+            case Tint32:
+            case Tuns32:
+                ((targ_ulong *)&e->EV.Vcent)[i] = elem->toInteger();
+                break;
+
+            case Tint16:
+            case Tuns16:
+                ((targ_ushort *)&e->EV.Vcent)[i] = elem->toInteger();
+                break;
+
+            case Tint8:
+            case Tuns8:
+                ((targ_uchar *)&e->EV.Vcent)[i] = elem->toInteger();
+                break;
+
+            default:
+                assert(0);
+        }
     }
     el_setLoc(e, loc);
     return e;
