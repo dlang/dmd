@@ -454,7 +454,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     ((tk = peek(tk)), 1) &&
                     skipAttributes(tk, &tk) &&
                     (tk->value == TOKlparen ||
-                     tk->value == TOKlcurly)
+                     tk->value == TOKlcurly ||
+                     tk->value == TOKin ||
+                     tk->value == TOKout ||
+                     tk->value == TOKbody)
                    )
                 {
                     a = parseDeclarations(storageClass, comment);
@@ -2857,7 +2860,10 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
         ((tk = peek(tk)), 1) &&
         skipAttributes(tk, &tk) &&
         (tk->value == TOKlparen ||
-         tk->value == TOKlcurly)
+         tk->value == TOKlcurly ||
+         tk->value == TOKin ||
+         tk->value == TOKout ||
+         tk->value == TOKbody)
        )
     {
         ts = NULL;

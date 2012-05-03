@@ -242,6 +242,108 @@ void test6()
 +/
 
 /*******************************************/
+
+auto test7foo()
+in{
+	++cnt;
+}body{
+	++cnt;
+	return "str";
+}
+
+void test7()
+{
+	cnt = 0;
+	assert(test7foo() == "str");
+	assert(cnt == 2);
+}
+
+/*******************************************/
+
+auto foo8()
+out(r){
+	++cnt;
+	assert(r == 10);
+}body{
+	++cnt;
+	return 10;
+}
+
+auto bar8()
+out{
+	++cnt;
+}body{
+	++cnt;
+}
+
+void test8()
+{
+	cnt = 0;
+	assert(foo8() == 10);
+	assert(cnt == 2);
+
+	cnt = 0;
+	bar8();
+	assert(cnt == 2);
+}
+
+/*******************************************/
+// from fail317
+
+void test9()
+{
+    auto f1 = function() body { }; // fine
+    auto f2 = function() in { } body { }; // fine
+    auto f3 = function() out { } body { }; // error
+    auto f4 = function() in { } out { } body { }; // error
+
+    auto d1 = delegate() body { }; // fine
+    auto d2 = delegate() in { } body { }; // fine
+    auto d3 = delegate() out { } body { }; // error
+    auto d4 = delegate() in { } out { } body { }; // error
+}
+
+/*******************************************/
+// 4785
+
+int cnt;
+
+auto foo4785()
+in{
+	int r;
+	++cnt;
+}
+out(r){
+	assert(r == 10);
+	++cnt;
+}body{
+	++cnt;
+	int r = 10;
+	return r;
+}
+void test4785()
+{
+	cnt = 0;
+	assert(foo4785() == 10);
+	assert(cnt == 3);
+}
+
+/*******************************************/
+// 5039
+
+class C5039 {
+    int x;
+
+    invariant() {
+        assert( x < int.max );
+    }
+
+    auto foo() {
+        return x;
+    }
+}
+
+/*******************************************/
 // 7218
 
 void test7218()
@@ -276,6 +378,10 @@ int main()
     test4();
     test5();
 //    test6();
+    test7();
+    test8();
+    test9();
+    test4785();
     test7218();
 
     printf("Success\n");
