@@ -1380,6 +1380,7 @@ private:
         bool            m_isRunning;
     }
     bool                m_isDaemon;
+    bool                m_isInCriticalRegion;
     Throwable           m_unhandled;
 
 
@@ -2252,6 +2253,154 @@ body
 // Used for suspendAll/resumeAll below.
 private __gshared uint suspendDepth = 0;
 
+/**
+ * Suspend the specified thread and load stack and register information for
+ * use by thread_scanAll.  If the supplied thread is the calling thread,
+ * stack and register information will be loaded but the thread will not
+ * be suspended.  If the suspend operation fails and the thread is not
+ * running then it will be removed from the global thread list, otherwise
+ * an exception will be thrown.
+ *
+ * Params:
+ *  t = The thread to suspend.
+ *
+ * Throws:
+ *  ThreadException if the suspend operation fails for a running thread.
+ */
+private void suspend( Thread t )
+{
+    version( Windows )
+    {
+        if( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
+        {
+            if( !t.isRunning )
+            {
+                Thread.remove( t );
+                return;
+            }
+            throw new ThreadException( "Unable to suspend thread" );
+        }
+
+        CONTEXT context = void;
+        context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
+
+        if( !GetThreadContext( t.m_hndl, &context ) )
+            throw new ThreadException( "Unable to load thread context" );
+
+        version( X86 )
+        {
+            if( !t.m_lock )
+                t.m_curr.tstack = cast(void*) context.Esp;
+            // eax,ebx,ecx,edx,edi,esi,ebp,esp
+            t.m_reg[0] = context.Eax;
+            t.m_reg[1] = context.Ebx;
+            t.m_reg[2] = context.Ecx;
+            t.m_reg[3] = context.Edx;
+            t.m_reg[4] = context.Edi;
+            t.m_reg[5] = context.Esi;
+            t.m_reg[6] = context.Ebp;
+            t.m_reg[7] = context.Esp;
+        }
+        else
+        {
+            static assert(false, "Architecture not supported." );
+        }
+    }
+    else version( OSX )
+    {
+        if( t.m_addr != pthread_self() && thread_suspend( t.m_tmach ) != KERN_SUCCESS )
+        {
+            if( !t.isRunning )
+            {
+                Thread.remove( t );
+                return;
+            }
+            throw new ThreadException( "Unable to suspend thread" );
+        }
+
+        version( X86 )
+        {
+            x86_thread_state32_t    state = void;
+            mach_msg_type_number_t  count = x86_THREAD_STATE32_COUNT;
+
+            if( thread_get_state( t.m_tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
+                throw new ThreadException( "Unable to load thread state" );
+            if( !t.m_lock )
+                t.m_curr.tstack = cast(void*) state.esp;
+            // eax,ebx,ecx,edx,edi,esi,ebp,esp
+            t.m_reg[0] = state.eax;
+            t.m_reg[1] = state.ebx;
+            t.m_reg[2] = state.ecx;
+            t.m_reg[3] = state.edx;
+            t.m_reg[4] = state.edi;
+            t.m_reg[5] = state.esi;
+            t.m_reg[6] = state.ebp;
+            t.m_reg[7] = state.esp;
+        }
+        else version( X86_64 )
+        {
+            x86_thread_state64_t    state = void;
+            mach_msg_type_number_t  count = x86_THREAD_STATE64_COUNT;
+
+            if( thread_get_state( t.m_tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
+                throw new ThreadException( "Unable to load thread state" );
+            if( !t.m_lock )
+                t.m_curr.tstack = cast(void*) state.rsp;
+            // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
+            t.m_reg[0] = state.rax;
+            t.m_reg[1] = state.rbx;
+            t.m_reg[2] = state.rcx;
+            t.m_reg[3] = state.rdx;
+            t.m_reg[4] = state.rdi;
+            t.m_reg[5] = state.rsi;
+            t.m_reg[6] = state.rbp;
+            t.m_reg[7] = state.rsp;
+            // r8,r9,r10,r11,r12,r13,r14,r15
+            t.m_reg[8]  = state.r8;
+            t.m_reg[9]  = state.r9;
+            t.m_reg[10] = state.r10;
+            t.m_reg[11] = state.r11;
+            t.m_reg[12] = state.r12;
+            t.m_reg[13] = state.r13;
+            t.m_reg[14] = state.r14;
+            t.m_reg[15] = state.r15;
+        }
+        else
+        {
+            static assert(false, "Architecture not supported." );
+        }
+    }
+    else version( Posix )
+    {
+        if( t.m_addr != pthread_self() )
+        {
+            if( pthread_kill( t.m_addr, SIGUSR1 ) != 0 )
+            {
+                if( !t.isRunning )
+                {
+                    Thread.remove( t );
+                    return;
+                }
+                throw new ThreadException( "Unable to suspend thread" );
+            }
+            // NOTE: It's really not ideal to wait for each thread to
+            //       signal individually -- rather, it would be better to
+            //       suspend them all and wait once at the end.  However,
+            //       semaphores don't really work this way, and the obvious
+            //       alternative (looping on an atomic suspend count)
+            //       requires either the atomic module (which only works on
+            //       x86) or other specialized functionality.  It would
+            //       also be possible to simply loop on sem_wait at the
+            //       end, but I'm not convinced that this would be much
+            //       faster than the current approach.
+            sem_wait( &suspendCount );
+        }
+        else if( !t.m_lock )
+        {
+            t.m_curr.tstack = getStackTop();
+        }
+    }
+}
 
 /**
  * Suspend all threads but the calling thread for "stop the world" garbage
@@ -2264,156 +2413,6 @@ private __gshared uint suspendDepth = 0;
  */
 extern (C) void thread_suspendAll()
 {
-    /**
-     * Suspend the specified thread and load stack and register information for
-     * use by thread_scanAll.  If the supplied thread is the calling thread,
-     * stack and register information will be loaded but the thread will not
-     * be suspended.  If the suspend operation fails and the thread is not
-     * running then it will be removed from the global thread list, otherwise
-     * an exception will be thrown.
-     *
-     * Params:
-     *  t = The thread to suspend.
-     *
-     * Throws:
-     *  ThreadException if the suspend operation fails for a running thread.
-     */
-    void suspend( Thread t )
-    {
-        version( Windows )
-        {
-            if( t.m_addr != GetCurrentThreadId() && SuspendThread( t.m_hndl ) == 0xFFFFFFFF )
-            {
-                if( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return;
-                }
-                throw new ThreadException( "Unable to suspend thread" );
-            }
-
-            CONTEXT context = void;
-            context.ContextFlags = CONTEXT_INTEGER | CONTEXT_CONTROL;
-
-            if( !GetThreadContext( t.m_hndl, &context ) )
-                throw new ThreadException( "Unable to load thread context" );
-
-            version( X86 )
-            {
-                if( !t.m_lock )
-                    t.m_curr.tstack = cast(void*) context.Esp;
-                // eax,ebx,ecx,edx,edi,esi,ebp,esp
-                t.m_reg[0] = context.Eax;
-                t.m_reg[1] = context.Ebx;
-                t.m_reg[2] = context.Ecx;
-                t.m_reg[3] = context.Edx;
-                t.m_reg[4] = context.Edi;
-                t.m_reg[5] = context.Esi;
-                t.m_reg[6] = context.Ebp;
-                t.m_reg[7] = context.Esp;
-            }
-            else
-            {
-                static assert(false, "Architecture not supported." );
-            }
-        }
-        else version( OSX )
-        {
-            if( t.m_addr != pthread_self() && thread_suspend( t.m_tmach ) != KERN_SUCCESS )
-            {
-                if( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return;
-                }
-                throw new ThreadException( "Unable to suspend thread" );
-            }
-
-            version( X86 )
-            {
-                x86_thread_state32_t    state = void;
-                mach_msg_type_number_t  count = x86_THREAD_STATE32_COUNT;
-
-                if( thread_get_state( t.m_tmach, x86_THREAD_STATE32, &state, &count ) != KERN_SUCCESS )
-                    throw new ThreadException( "Unable to load thread state" );
-                if( !t.m_lock )
-                    t.m_curr.tstack = cast(void*) state.esp;
-                // eax,ebx,ecx,edx,edi,esi,ebp,esp
-                t.m_reg[0] = state.eax;
-                t.m_reg[1] = state.ebx;
-                t.m_reg[2] = state.ecx;
-                t.m_reg[3] = state.edx;
-                t.m_reg[4] = state.edi;
-                t.m_reg[5] = state.esi;
-                t.m_reg[6] = state.ebp;
-                t.m_reg[7] = state.esp;
-            }
-            else version( X86_64 )
-            {
-                x86_thread_state64_t    state = void;
-                mach_msg_type_number_t  count = x86_THREAD_STATE64_COUNT;
-
-                if( thread_get_state( t.m_tmach, x86_THREAD_STATE64, &state, &count ) != KERN_SUCCESS )
-                    throw new ThreadException( "Unable to load thread state" );
-                if( !t.m_lock )
-                    t.m_curr.tstack = cast(void*) state.rsp;
-                // rax,rbx,rcx,rdx,rdi,rsi,rbp,rsp
-                t.m_reg[0] = state.rax;
-                t.m_reg[1] = state.rbx;
-                t.m_reg[2] = state.rcx;
-                t.m_reg[3] = state.rdx;
-                t.m_reg[4] = state.rdi;
-                t.m_reg[5] = state.rsi;
-                t.m_reg[6] = state.rbp;
-                t.m_reg[7] = state.rsp;
-                // r8,r9,r10,r11,r12,r13,r14,r15
-                t.m_reg[8]  = state.r8;
-                t.m_reg[9]  = state.r9;
-                t.m_reg[10] = state.r10;
-                t.m_reg[11] = state.r11;
-                t.m_reg[12] = state.r12;
-                t.m_reg[13] = state.r13;
-                t.m_reg[14] = state.r14;
-                t.m_reg[15] = state.r15;
-            }
-            else
-            {
-                static assert(false, "Architecture not supported." );
-            }
-        }
-        else version( Posix )
-        {
-            if( t.m_addr != pthread_self() )
-            {
-                if( pthread_kill( t.m_addr, SIGUSR1 ) != 0 )
-                {
-                    if( !t.isRunning )
-                    {
-                        Thread.remove( t );
-                        return;
-                    }
-                    throw new ThreadException( "Unable to suspend thread" );
-                }
-                // NOTE: It's really not ideal to wait for each thread to
-                //       signal individually -- rather, it would be better to
-                //       suspend them all and wait once at the end.  However,
-                //       semaphores don't really work this way, and the obvious
-                //       alternative (looping on an atomic suspend count)
-                //       requires either the atomic module (which only works on
-                //       x86) or other specialized functionality.  It would
-                //       also be possible to simply loop on sem_wait at the
-                //       end, but I'm not convinced that this would be much
-                //       faster than the current approach.
-                sem_wait( &suspendCount );
-            }
-            else if( !t.m_lock )
-            {
-                t.m_curr.tstack = getStackTop();
-            }
-        }
-    }
-
-
     // NOTE: We've got an odd chicken & egg problem here, because while the GC
     //       is required to call thread_init before calling any other thread
     //       routines, thread_init may allocate memory which could in turn
@@ -2431,6 +2430,7 @@ extern (C) void thread_suspendAll()
     {
         if( ++suspendDepth == 1 )
             suspend( Thread.getThis() );
+
         return;
     }
 
@@ -2440,7 +2440,7 @@ extern (C) void thread_suspendAll()
             return;
 
         // NOTE: I'd really prefer not to check isRunning within this loop but
-        //       not doing so could be problematic if threads are termianted
+        //       not doing so could be problematic if threads are terminated
         //       abnormally and a new thread is created with the same thread
         //       address before the next GC run.  This situation might cause
         //       the same thread to be suspended twice, which would likely
@@ -2454,6 +2454,48 @@ extern (C) void thread_suspendAll()
                 Thread.remove( t );
         }
 
+        // The world is stopped. We now make sure that all threads are outside
+        // critical regions by continually suspending and resuming them until all
+        // of them are safe. This is extremely error-prone; if some thread enters
+        // a critical region and never exits it (e.g. it waits for a mutex forever),
+        // then we'll pretty much 'deadlock' here. Not much we can do about that,
+        // and it indicates incorrect use of the critical region API anyway.
+        for (;;)
+        {
+            uint unsafeCount;
+
+            for (auto t = Thread.sm_tbeg; t; t = t.next)
+            {
+                // NOTE: We don't need to check whether the thread has died here,
+                //       since it's checked in the loops above and below.
+                if (atomicLoad(*cast(shared)&t.m_isInCriticalRegion))
+                {
+                    unsafeCount += 10;
+                    resume(t);
+                }
+            }
+
+            // If all threads are safe (i.e. unsafeCount == 0), no threads were in
+            // critical regions in the first place, and we can just break. Otherwise,
+            // we sleep for a bit to give the threads a chance to get to safe points.
+            if (unsafeCount)
+                Thread.sleep(dur!"usecs"(unsafeCount)); // This heuristic could probably use some tuning.
+            else
+                break;
+
+            // Some thread was not in a safe region, so we suspend the world again to
+            // re-do this loop to check whether we're safe now.
+            for (auto t = Thread.sm_tbeg; t; t = t.next)
+            {
+                // The thread could have died in the meantime. Also see the note in
+                // the topmost loop that initially suspends the world.
+                if (t.isRunning)
+                    suspend(t);
+                else
+                    Thread.remove(t);
+            }
+        }
+
         version( Posix )
         {
             // wait on semaphore -- see note in suspend for
@@ -2462,6 +2504,74 @@ extern (C) void thread_suspendAll()
     }
 }
 
+/**
+ * Resume the specified thread and unload stack and register information.
+ * If the supplied thread is the calling thread, stack and register
+ * information will be unloaded but the thread will not be resumed.  If
+ * the resume operation fails and the thread is not running then it will
+ * be removed from the global thread list, otherwise an exception will be
+ * thrown.
+ *
+ * Params:
+ *  t = The thread to resume.
+ *
+ * Throws:
+ *  ThreadException if the resume fails for a running thread.
+ */
+private void resume( Thread t )
+{
+    version( Windows )
+    {
+        if( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )
+        {
+            if( !t.isRunning )
+            {
+                Thread.remove( t );
+                return;
+            }
+            throw new ThreadException( "Unable to resume thread" );
+        }
+
+        if( !t.m_lock )
+            t.m_curr.tstack = t.m_curr.bstack;
+        t.m_reg[0 .. $] = 0;
+    }
+    else version( OSX )
+    {
+        if( t.m_addr != pthread_self() && thread_resume( t.m_tmach ) != KERN_SUCCESS )
+        {
+            if( !t.isRunning )
+            {
+                Thread.remove( t );
+                return;
+            }
+            throw new ThreadException( "Unable to resume thread" );
+        }
+
+        if( !t.m_lock )
+            t.m_curr.tstack = t.m_curr.bstack;
+        t.m_reg[0 .. $] = 0;
+    }
+    else version( Posix )
+    {
+        if( t.m_addr != pthread_self() )
+        {
+            if( pthread_kill( t.m_addr, SIGUSR2 ) != 0 )
+            {
+                if( !t.isRunning )
+                {
+                    Thread.remove( t );
+                    return;
+                }
+                throw new ThreadException( "Unable to resume thread" );
+            }
+        }
+        else if( !t.m_lock )
+        {
+            t.m_curr.tstack = t.m_curr.bstack;
+        }
+    }
+}
 
 /**
  * Resume all threads but the calling thread for "stop the world" garbage
@@ -2481,76 +2591,6 @@ in
 }
 body
 {
-    /**
-     * Resume the specified thread and unload stack and register information.
-     * If the supplied thread is the calling thread, stack and register
-     * information will be unloaded but the thread will not be resumed.  If
-     * the resume operation fails and the thread is not running then it will
-     * be removed from the global thread list, otherwise an exception will be
-     * thrown.
-     *
-     * Params:
-     *  t = The thread to resume.
-     *
-     * Throws:
-     *  ThreadException if the resume fails for a running thread.
-     */
-    void resume( Thread t )
-    {
-        version( Windows )
-        {
-            if( t.m_addr != GetCurrentThreadId() && ResumeThread( t.m_hndl ) == 0xFFFFFFFF )
-            {
-                if( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return;
-                }
-                throw new ThreadException( "Unable to resume thread" );
-            }
-
-            if( !t.m_lock )
-                t.m_curr.tstack = t.m_curr.bstack;
-            t.m_reg[0 .. $] = 0;
-        }
-        else version( OSX )
-        {
-            if( t.m_addr != pthread_self() && thread_resume( t.m_tmach ) != KERN_SUCCESS )
-            {
-                if( !t.isRunning )
-                {
-                    Thread.remove( t );
-                    return;
-                }
-                throw new ThreadException( "Unable to resume thread" );
-            }
-
-            if( !t.m_lock )
-                t.m_curr.tstack = t.m_curr.bstack;
-            t.m_reg[0 .. $] = 0;
-        }
-        else version( Posix )
-        {
-            if( t.m_addr != pthread_self() )
-            {
-                if( pthread_kill( t.m_addr, SIGUSR2 ) != 0 )
-                {
-                    if( !t.isRunning )
-                    {
-                        Thread.remove( t );
-                        return;
-                    }
-                    throw new ThreadException( "Unable to resume thread" );
-                }
-            }
-            else if( !t.m_lock )
-            {
-                t.m_curr.tstack = t.m_curr.bstack;
-            }
-        }
-    }
-
-
     // NOTE: See thread_suspendAll for the logic behind this.
     if( !multiThreadedFlag && Thread.sm_tbeg )
     {
@@ -2566,6 +2606,8 @@ body
 
         for( Thread t = Thread.sm_tbeg; t; t = t.next )
         {
+            // NOTE: We do not need to care about critical regions at all
+            //       here. thread_suspendAll takes care of everything.
             resume( t );
         }
     }
@@ -2656,6 +2698,142 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
 extern (C) void thread_scanAll( scope ScanAllThreadsFn scan )
 {
     thread_scanAllType((type, p1, p2) => scan(p1, p2));
+}
+
+import core.atomic; // atomicStore, atomicLoad
+
+/**
+ * Signals that the code following this call is a critical region. Any code in
+ * this region must finish running before the calling thread can be suspended
+ * by a call to thread_suspendAll. If the world is stopped while the calling
+ * thread is in a critical region, it will be continually suspended and resumed
+ * until it is outside a critical region.
+ *
+ * This function is, in particular, meant to help maintain garbage collector
+ * invariants when a lock is not used.
+ *
+ * A critical region is exited with thread_exitCriticalRegion.
+ *
+ * In:
+ *  The calling thread must be attached to the runtime.
+ */
+extern (C) void thread_enterCriticalRegion()
+in
+{
+    assert(Thread.getThis());
+}
+body
+{
+    atomicStore(*cast(shared)&Thread.getThis().m_isInCriticalRegion, true);
+}
+
+/**
+ * Signals that the calling thread is no longer in a critical region. Following
+ * a call to this function, the thread can once again be suspended.
+ *
+ * In:
+ *  The calling thread must be attached to the runtime.
+ */
+extern (C) void thread_exitCriticalRegion()
+in
+{
+    assert(Thread.getThis());
+}
+body
+{
+    atomicStore(*cast(shared)&Thread.getThis().m_isInCriticalRegion, false);
+}
+
+/**
+ * Returns true if the current thread is in a critical region; otherwise, false.
+ *
+ * In:
+ *  The calling thread must be attached to the runtime.
+ */
+extern (C) bool thread_inCriticalRegion()
+in
+{
+    assert(Thread.getThis());
+}
+body
+{
+    return atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion);
+}
+
+unittest
+{
+    assert(!thread_inCriticalRegion());
+
+    {
+        thread_enterCriticalRegion();
+
+        scope (exit)
+            thread_exitCriticalRegion();
+
+        assert(thread_inCriticalRegion());
+    }
+
+    assert(!thread_inCriticalRegion());
+}
+
+unittest
+{
+    // NOTE: This entire test is based on the assumption that no
+    //       memory is allocated after the child thread is
+    //       started. If an allocation happens, a collection could
+    //       trigger, which would cause the synchronization below
+    //       to cause a deadlock.
+    // NOTE: DO NOT USE LOCKS IN CRITICAL REGIONS IN NORMAL CODE.
+
+    import core.sync.condition;
+
+    bool critical;
+    auto cond1 = new Condition(new Mutex());
+
+    bool stop;
+    auto cond2 = new Condition(new Mutex());
+
+    auto thr = new Thread(delegate void()
+    {
+        thread_enterCriticalRegion();
+
+        assert(thread_inCriticalRegion());
+        assert(atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion));
+
+        synchronized (cond1.mutex)
+        {
+            critical = true;
+            cond1.notify();
+        }
+
+        synchronized (cond2.mutex)
+            while (!stop)
+                cond2.wait();
+
+        assert(thread_inCriticalRegion());
+        assert(atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion));
+
+        thread_exitCriticalRegion();
+
+        assert(!thread_inCriticalRegion());
+        assert(!atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion));
+    });
+
+    thr.start();
+
+    synchronized (cond1.mutex)
+        while (!critical)
+            cond1.wait();
+
+    assert(atomicLoad(*cast(shared)&thr.m_isInCriticalRegion));
+
+    synchronized (cond2.mutex)
+    {
+        stop = true;
+        cond2.notify();
+    }
+
+    thr.join();
 }
 
 /**
