@@ -3281,6 +3281,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
+    this->ownedByCtfe = false;
 }
 
 Expression *StructLiteralExp::syntaxCopy()
