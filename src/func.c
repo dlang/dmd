@@ -2030,6 +2030,7 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
     FuncDeclaration *mismatch = NULL;
     StorageClass mismatchstc = 0;
     int mismatchvi = -1;
+    int exactvi = -1;
     int bestvi = -1;
     for (int vi = 0; vi < dim; vi++)
     {
@@ -2037,7 +2038,20 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
         if (fdv && fdv->ident == ident)
         {
             if (type->equals(fdv->type))        // if exact match
-                return vi;                      // no need to look further
+            {
+                if (fdv->parent->isClassDeclaration())
+                    return vi;                  // no need to look further
+
+                if (exactvi >= 0)
+                {
+                    error("cannot determine overridden function");
+                    return exactvi;
+                }
+                exactvi = vi;
+
+                bestvi = vi;
+                continue;
+            }
 
             StorageClass stc = 0;
             int cov = type->covariant(fdv->type, &stc);
