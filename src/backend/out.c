@@ -92,8 +92,6 @@ void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
  *      s               symbol to be initialized
  */
 
-#if TX86
-
 void outdata(symbol *s)
 {
 #if HTOD
@@ -524,7 +522,6 @@ void outcommon(symbol *s,targ_size_t n)
             cv_outsym(s);
     }
 }
-#endif // TX86
 
 /******************************
  * Walk expression tree, converting it from a PARSER tree to
@@ -780,9 +777,7 @@ void out_regcand(symtab_t *psymtab)
         //assert(sytab[s->Sclass] & SCSS);      // only stack variables
         s->Ssymnum = si;                        // Ssymnum trashed by cpp_inlineexpand
         if (!(s->ty() & mTYvolatile) &&
-#if TX86
             !(ifunc && (s->Sclass == SCparameter || s->Sclass == SCregpar)) &&
-#endif
             s->Sclass != SCstatic)
             s->Sflags |= (GTregcand | SFLunambig);      // assume register candidate
         else
@@ -935,7 +930,7 @@ STATIC void writefunc2(symbol *sfunc)
 #if VBTABLES
             n2_genvbtbl(stag,scvtbl,1);
 #endif
-#if TX86 && OMFOBJ
+#if OMFOBJ
             if (config.fulltypes == CV4)
                 cv4_struct(stag,2);
 #endif
@@ -1205,7 +1200,6 @@ STATIC void writefunc2(symbol *sfunc)
     assert(funcsym_p == sfunc);
     if (eecontext.EEcompile != 1)
     {
-#if TX86
         if (symbol_iscomdat(sfunc))
         {
 #if OMFOBJ
@@ -1229,7 +1223,6 @@ STATIC void writefunc2(symbol *sfunc)
 #endif
 #if OMFOBJ
         sfunc->Sseg = cseg;             // current code seg
-#endif
 #endif
         sfunc->Soffset = Coffset;       // offset of start of function
         searchfixlist(sfunc);           // backpatch any refs to this function
@@ -1388,11 +1381,7 @@ Ldone:
     globsym.top = 0;
 
     //dbg_printf("done with writefunc()\n");
-#if TX86
     util_free(dfo);
-#else
-    MEM_PARF_FREE(dfo);
-#endif
     dfo = NULL;
 }
 
