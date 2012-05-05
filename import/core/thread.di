@@ -608,6 +608,12 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
  *
  * A critical region is exited with thread_exitCriticalRegion.
  *
+ * $(RED Warning):
+ * Using critical regions is extremely error-prone. For instance, using a lock
+ * inside a critical region will most likely result in an application deadlocking
+ * because the stop-the-world routine will attempt to suspend and resume the thread
+ * forever, to no avail.
+ *
  * In:
  *  The calling thread must be attached to the runtime.
  */

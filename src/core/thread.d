@@ -2712,6 +2712,12 @@ import core.atomic; // atomicStore, atomicLoad
  * This function is, in particular, meant to help maintain garbage collector
  * invariants when a lock is not used.
  *
+ * $(RED Warning):
+ * Using critical regions is extremely error-prone. For instance, using a lock
+ * inside a critical region will most likely result in an application deadlocking
+ * because the stop-the-world routine will attempt to suspend and resume the thread
+ * forever, to no avail.
+ *
  * A critical region is exited with thread_exitCriticalRegion.
  *
  * In:
