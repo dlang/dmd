@@ -1087,7 +1087,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
             {
-                if (arg->op == TOKcall)
+                if (arg->op == TOKcall && !arg->isLvalue())
                 {
                     /* The struct value returned from the function is transferred
                      * to the function, so the callee should not call the destructor

@@ -1741,6 +1741,38 @@ void test5737()
 }
 
 /**********************************/
+// 6119
+
+void test6119()
+{
+    int postblit = 0;
+    int dtor = 0;
+
+    struct Test
+    {
+        this(this) { ++postblit; }
+        ~this()    { ++dtor; }
+    }
+
+    void takesVal(Test x) {}
+    ref Test returnsRef(ref Test x) { return x; }
+
+    void f(ref Test x) { takesVal( x ); }
+
+    Test x;
+
+    postblit = dtor = 0;
+    takesVal(returnsRef(x));
+    assert(postblit == 1);
+    assert(dtor == 1);
+
+    postblit = dtor = 0;
+    f(x);
+    assert(postblit == 1);
+    assert(dtor == 1);
+}
+
+/**********************************/
 // 6364
 
 struct Foo6364
@@ -2016,6 +2048,7 @@ int main()
     test58();
     test59();
     test5737();
+    test6119();
     test6364();
     test6499();
     test60();
