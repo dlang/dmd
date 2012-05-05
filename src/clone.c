@@ -519,7 +519,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
+        dinteger_t dim = 1;
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -528,7 +528,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         if (tv->ty == Tstruct)
         {   TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
-            if (sd->postblit)
+            if (sd->postblit && dim)
             {
                 stc |= sd->postblit->storage_class & STCdisable;
 
@@ -542,7 +542,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                 Expression *ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, v, 0);
 
-                if (dim == 0)
+                if (v->type->toBasetype()->ty == Tstruct)
                 {   // this.v.postblit()
                     ex = new DotVarExp(0, ex, sd->postblit, 0);
                     ex = new CallExp(0, ex);
@@ -631,7 +631,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-        dinteger_t dim = (tv->ty == Tsarray ? 1 : 0);
+        dinteger_t dim = 1;
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             dim *= ((TypeSArray *)tv)->dim->toInteger();
@@ -640,14 +640,14 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         if (tv->ty == Tstruct)
         {   TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
-            if (sd->dtor)
+            if (sd->dtor && dim)
             {   Expression *ex;
 
                 // this.v
                 ex = new ThisExp(0);
                 ex = new DotVarExp(0, ex, v, 0);
 
-                if (dim == 0)
+                if (v->type->toBasetype()->ty == Tstruct)
                 {   // this.v.dtor()
                     ex = new DotVarExp(0, ex, sd->dtor, 0);
                     ex = new CallExp(0, ex);
