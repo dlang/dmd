@@ -292,6 +292,28 @@ int cod3_EA(code *c)
 }
 
 /********************************
+ * setup ALLREGS and BYTEREGS
+ * called by: codgen
+ */
+
+void cod3_initregs()
+{
+    // should probably be !TARGET_WINDOS insetad of a long list of some targets
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    if (I64)
+    {
+        ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
+        BYTEREGS = ALLREGS;
+    }
+    else
+    {
+        ALLREGS = ALLREGS_INIT;
+        BYTEREGS = BYTEREGS_INIT;
+    }
+#endif
+}
+
+/********************************
  * set initial global variable values
  */
 
@@ -383,6 +405,23 @@ void cod3_align()
     nbytes = -Coffset & 3;
     cod3_align_bytes(nbytes);
 #endif
+}
+
+code* cod3_stackadj(code* c, int nbytes)
+{
+    unsigned grex = I64 ? REX_W << 16 : 0;
+    unsigned rm;
+    if (nbytes > 0)
+        rm = modregrm(3,5,SP); // SUB ESP,nbytes
+    else
+    {
+        nbytes = -nbytes;
+        rm = modregrm(3,0,SP); // ADD ESP,nbytes
+    }
+    c = genc2(c, 0x81, grex | rm, nbytes);
+    if (I64)
+        code_orrex(c, REX_W);
+    return c;
 }
 
 /*****************************
@@ -1765,9 +1804,18 @@ bool cse_simple(code *c, elem *e)
     return false;
 }
 
-code* gen_loadcse(unsigned reg, targ_uns i)
+code* gen_testcse(code *c, unsigned sz, targ_uns i)
 {
-    code* c = getregs(mask[reg]);
+    bool byte = sz == 1;
+    c = genc(c,0x81 ^ byte,modregrm(2,7,BPRM),
+                FLcs,i, FLconst,(targ_uns) 0);
+    if (I32 && sz == 2)
+        c->Iflags |= CFopsize;
+    return c;
+}
+
+code* gen_loadcse(code *c, unsigned reg, targ_uns i)
+{
     unsigned op = 0x8B;
     if (reg == ES)
     {
@@ -4951,6 +4999,26 @@ STATIC void pinholeopt_unittest()
     }
 }
 #endif
+
+void simplify_code(code* c)
+{
+    unsigned reg;
+    if (config.flags4 & CFG4optimized &&
+        (c->Iop == 0x81 || c->Iop == 0x80) &&
+        c->IFL2 == FLconst &&
+        reghasvalue((c->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? c->IEV2.Vsize_t : c->IEV2.Vlong,&reg) &&
+        !(c->Iflags & CFopsize && I16)
+       )
+    {
+        // See if we can replace immediate instruction with register instruction
+        static unsigned char regop[8] =
+                { 0x00,0x08,0x10,0x18,0x20,0x28,0x30,0x38 };
+
+        //printf("replacing 0x%02x, val = x%lx\n",c->Iop,c->IEV2.Vlong);
+        c->Iop = regop[(c->Irm & modregrm(0,7,0)) >> 3] | (c->Iop & 1);
+        code_newreg(c, reg);
+    }
+}
 
 /**************************
  * Compute jump addresses for FLcode.

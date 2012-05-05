@@ -128,15 +128,7 @@ void codgen()
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
     functy = tybasic(funcsym_p->ty());
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    regm_t value = BYTEREGS_INIT;
-    ALLREGS = ALLREGS_INIT;
-    BYTEREGS = value;
-    if (I64)
-    {   ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
-        BYTEREGS = ALLREGS;
-    }
-#endif
+    cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinit;
 
@@ -1853,10 +1845,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                         csextab[i].flags |= CSEload;
                         if (*pretregs == mPSW)  /* if result in CCs only */
                         {                       // CMP cs[BP],0
-                            c = genc(NULL,0x81 ^ byte,modregrm(2,7,BPRM),
-                                        FLcs,i, FLconst,(targ_uns) 0);
-                            if (I32 && sz == 2)
-                                c->Iflags |= CFopsize;
+                            c = gen_testcse(NULL, sz, i);
                         }
                         else
                         {
@@ -1864,10 +1853,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                             if (byte && !(retregs & BYTEREGS))
                                     retregs = BYTEREGS;
                             c = allocreg(&retregs,&reg,tym);
-                                            // MOV reg,cs[BP]
-                            c = genc1(c,0x8B,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
-                            if (I64)
-                                code_orrex(c, REX_W);
+                            c = gen_loadcse(c, reg, i);
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
                             regcon.cse.value[reg] = e;
@@ -1995,10 +1981,8 @@ done:
  */
 
 STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
-{ unsigned i,op;
-  code *c;
-
-  for (i = cstop; i--;)
+{
+  for (unsigned i = cstop; i--;)
   {
         //printf("csextab[%d] = %p, regm = x%x\n", i, csextab[i].e, csextab[i].regm);
         if (csextab[i].e == e && csextab[i].regm & regm)
@@ -2007,7 +1991,8 @@ STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
                 csextab[i].flags |= CSEload;    /* it was loaded        */
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask[reg];
-                return gen_loadcse(reg, i);
+                code *c = getregs(mask[reg]);
+                return gen_loadcse(c, reg, i);
         }
   }
 #if DEBUG
@@ -2311,19 +2296,14 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
             sz = -(adjesp & 7) & 7;
         if (calledafunc && !I16 && sz && (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
         {
-            unsigned grex = I64 ? REX_W << 16 : 0;
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
                                         // because c hasn't been executed yet
-            cs1 = genc2(cs1,0x81,grex | modregrm(3,5,SP),sz);  // SUB ESP,sz
-            if (I64)
-                code_orrex(cs1, REX_W);
+            cs1 = cod3_stackadj(cs1, sz);
             regcon.immed.mval = mval_save;
             cs1 = genadjesp(cs1, sz);
 
-            code *cx = genc2(CNIL,0x81,grex | modregrm(3,0,SP),sz);  // ADD ESP,sz
-            if (I64)
-                code_orrex(cx, REX_W);
+            code *cx = cod3_stackadj(NULL, -sz);
             cx = genadjesp(cx, -sz);
             cs2 = cat(cx, cs2);
         }
