@@ -951,7 +951,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         if (f->parameters)
         {
             for (size_t i = 0; i < f->parameters->dim; i++)
-            {   Parameter *arg = (Parameter *)f->parameters->data[i];
+            {   Parameter *arg = (*f->parameters)[i];
 
                 if (!arg->ident)
                     continue;                   // never used, so ignore
@@ -966,7 +966,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         VarDeclaration *v = sc2->search(0, narg->ident, NULL)->isVarDeclaration();
                         assert(v);
                         Expression *e = new VarExp(v->loc, v);
-                        exps->data[j] = (void *)e;
+                        (*exps)[j] = e;
                     }
                     assert(arg->ident);
                     TupleDeclaration *v = new TupleDeclaration(loc, arg->ident, exps);
@@ -1747,17 +1747,31 @@ int FuncDeclaration::overrides(FuncDeclaration *fd)
  *      -2      can't determine because of forward references
  */
 
-int FuncDeclaration::findVtblIndex(Array *vtbl, int dim)
+int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 {
     FuncDeclaration *mismatch = NULL;
+    int exactvi = -1;
     int bestvi = -1;
     for (int vi = 0; vi < dim; vi++)
     {
-        FuncDeclaration *fdv = ((Dsymbol *)vtbl->data[vi])->isFuncDeclaration();
+        FuncDeclaration *fdv = (*vtbl)[vi]->isFuncDeclaration();
         if (fdv && fdv->ident == ident)
         {
             if (type->equals(fdv->type))        // if exact match
-                return vi;                      // no need to look further
+            {
+                if (fdv->parent->isClassDeclaration())
+                    return vi;                  // no need to look further
+
+                if (exactvi >= 0)
+                {
+                    error("cannot determine overridden function");
+                    return exactvi;
+                }
+                exactvi = vi;
+
+                bestvi = vi;
+                continue;
+            }
 
             int cov = type->covariant(fdv->type);
             //printf("\tbaseclass cov = %d\n", cov);
