@@ -1916,6 +1916,8 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
     Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
 #endif
   };
+  static symbol clibldiv2  = Y(mAX|mBX|mCX|mDX,"_LDIV2__");
+  static symbol clibuldiv2 = Y(mAX|mBX|mCX|mDX,"_ULDIV2__");
 #else
   static symbol lib[CLIBMAX] =
   {
@@ -2103,7 +2105,17 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             lib[i].Stypidx = 0;
 #endif
         }
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        clibldiv2.Stype = tsclib;
+        clibuldiv2.Stype = tsclib;
+#if MARS
+        clibldiv2.Sxtrnnum = 0;
+        clibldiv2.Stypidx = 0;
 
+        clibuldiv2.Sxtrnnum = 0;
+        clibuldiv2.Stypidx = 0;
+#endif
+#endif
         if (!I16)
         {   /* Adjust table for 386     */
             lib[CLIBdbllng].Sregsaved  = Z(DOUBLEREGS_32);
@@ -2185,11 +2197,33 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         c = genasm(c,lmul,sizeof(lmul));
   }
   else
-  {     makeitextern(s);
+  {
+        code *cgot = NULL;
+        bool pushebx = false;
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        if (config.flags3 & CFG3pic && I32)
+        {
+            cgot = load_localgot();     // EBX gets set to this value
+            switch (clib)
+            {   // EBX is a parameter to these, so push it on the stack before load_localgot()
+                case CLIBldiv:
+                case CLIBlmod:
+                    s = &clibldiv2;
+                    pushebx = true;
+                    break;
+                case CLIBuldiv:
+                case CLIBulmod:
+                    s = &clibuldiv2;
+                    pushebx = true;
+                    break;
+            }
+        }
+#endif
+        makeitextern(s);
         int nalign = 0;
         if (STACKALIGN == 16)
         {   // Align the stack (assume no args on stack)
-            int npush = npushed * REGSIZE + stackpush;
+            int npush = (npushed + pushebx) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
                 c = genc2(c,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
@@ -2197,6 +2231,11 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
                     code_orrex(c, REX_W);
             }
         }
+        if (pushebx)
+        {   c = gen1(c, 0x50 + BX);                             // PUSH EBX
+            nalign += REGSIZE;
+        }
+        c = cat(c, cgot);                                       // EBX = localgot
         c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
         if (nalign)
         {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
