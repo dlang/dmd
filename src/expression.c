@@ -10385,11 +10385,7 @@ Ltupleassign:
                         e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
-                else if (e2->op == TOKvar ||
-                         e2->op == TOKdotvar ||
-                         e2->op == TOKstar ||
-                         e2->op == TOKthis ||
-                         e2->op == TOKindex)
+                else if (e2->isLvalue())
                 {   /* Write as:
                      *  e1.cpctor(e2);
                      */

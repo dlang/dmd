@@ -1705,6 +1705,42 @@ void test59()
 }
 
 /**********************************/
+// 5737
+
+void test5737()
+{
+    static struct S
+    {
+        static int destroyed;
+        static int copied;
+
+        this(this)
+        {
+            copied++;
+        }
+
+        ~this()
+        {
+            destroyed++;
+        }
+    }
+
+    static S s;
+
+    ref S foo()
+    {
+        return s;
+    }
+
+    {
+        auto s2 = foo();
+    }
+
+    assert(S.copied == 1); // fail, s2 was not copied;
+    assert(S.destroyed == 1); // ok, s2 was destroyed
+}
+
+/**********************************/
 // 6364
 
 struct Foo6364
@@ -1979,6 +2015,7 @@ int main()
     test57();
     test58();
     test59();
+    test5737();
     test6364();
     test6499();
     test60();
