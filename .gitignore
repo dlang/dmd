@@ -4,3 +4,5 @@ obj/*
 import/core/*
 druntime.json
 .DS_Store
+trace.def
+trace.log
