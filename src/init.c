@@ -914,6 +914,7 @@ Expression *ExpInitializer::toExpression()
 
 void ExpInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
+
     exp->toCBuffer(buf, hgs);
 }
 

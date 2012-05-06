@@ -17,6 +17,7 @@
 #include "cond.h"
 #include "version.h"
 #include "module.h"
+#include "hdrgen.h"
 
 /* ================================================== */
 

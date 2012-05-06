@@ -1725,10 +1725,15 @@ void VarDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     /* If changing, be sure and fix CompoundDeclarationStatement::toCBuffer()
      * too.
      */
+
+    int ism = 0;
     if (type)
+    {
         type->toCBuffer(buf, ident, hgs);
+    }
     else
-        buf->writestring(ident->toChars());
+        buf->writestring(ident->toChars());    
+
     if (init)
     {   buf->writestring(" = ");
 #if DMDV2

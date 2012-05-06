@@ -18,6 +18,7 @@
 #include "expression.h"
 #include "module.h"
 #include "declaration.h"
+#include "hdrgen.h"
 
 /********************************* EnumDeclaration ****************************/
 
@@ -345,16 +346,17 @@ void EnumDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
     buf->writeByte('{');
     buf->writenl();
+    buf->level++;
     for (size_t i = 0; i < members->dim; i++)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
         if (!em)
             continue;
-        //buf->writestring("    ");
         em->toCBuffer(buf, hgs);
         buf->writeByte(',');
         buf->writenl();
     }
+    buf->level--;
     buf->writeByte('}');
     buf->writenl();
 }
