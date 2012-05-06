@@ -1,78 +1,179 @@
 #_ win32.mak
-# Copyright (C) 1999-2011 by Digital Mars, http://www.digitalmars.com
-# Written by Walter Bright
+#
+# Copyright (c) 1999-2012 by Digital Mars
 # All Rights Reserved
-# Build dmd with Digital Mars C++ compiler
-#   http://www.digitalmars.com/ctg/sc.html
-# This makefile is designed to be used with Digital Mars make.exe
+# written by Walter Bright
+# http://www.digitalmars.com
+# License for redistribution is by either the Artistic License
+# in artistic.txt, or the GNU General Public License in gnu.txt.
+# See the included readme.txt for details.
+#
+# Dependencies:
+#
+# Digital Mars C++ toolset
+#   http://www.digitalmars.com/download/freecompiler.html
+#
+# win32.mak (this file) - requires Digital Mars Make ($DM_HOME\dm\bin\make.exe)
 #   http://www.digitalmars.com/ctg/make.html
-# which should be in \dm\bin or in \dmd\windows\bin 
+#
+# $(CC) - requires Digital Mars C++ Compiler ($DM_HOME\dm\bin\dmc.exe)
+#   http://www.digitalmars.com/ctg/sc.html
+#
+# detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
+#   https://github.com/D-Programming-Language/tools.
+#
+# install target - requires Phobos (.\phobos.lib)
+#   https://github.com/D-Programming-Language/phobos
+#
+# zip target - requires Info-ZIP or equivalent (zip32.exe)
+#   http://www.info-zip.org/Zip.html#Downloads
+#
+# Configuration:
+#
+# The easiest and recommended way to configure this makefile is to set DM_HOME
+# in your environment to the location where DMC is installed (the parent of
+# \dm and/or \dmd).  By default, the install target will place the build
+# targets under $DM_HOME\dmd2.
+#
+# Custom CFLAGS may be set in the User configuration section, along with custom
+# LFLAGS.  The difference between CFLAGS and OPT is that CFLAGS primarily
+# applies to front-end files, while OPT applies to essentially all C++ sources.
+#
+# Pre-compiled headers may be enabled via the PREC variable.  This configuration
+# has not been tested recently.  If you enable pre-compiled headers, you should
+# update the TOTALH variable as mentioned in the accompanying comment.
+#
+# Targets:
+#
+# defaulttarget - debug dmd
+# release       - release dmd (with clean)
+# trace         - release dmd with tracing options enabled
+# clean         - delete all generated files except target binary
+# install       - copy build targets to install directory
+# zip           - create ZIP archive of source code
+#
+# dmd           - release dmd (legacy target)
+# debdmd        - debug dmd
+# reldmd        - release dmd
+# detab         - replace hard tabs with spaces
+# tolf          - convert to Unix line endings
 
-D=
-DMDSVN=\svnproj\dmd\trunk\src
-#DMDSVN=\svnproj\dmd\branches\dmd-1.x\src
-SCROOT=$D\dm
-INCLUDE=$(SCROOT)\include
-CC=dmc
-LIBNT=$(SCROOT)\lib
-SNN=$(SCROOT)\lib\snn
-DIR=\dmd2
-CP=cp
+############################### Configuration ################################
 
+##### Directories
+
+# Root directory of Digital Mars tools (i.e.: where you installed DMC)
+D=$(DM_HOME)
+# Location of DMC
+DMCROOT=$D\dm
+INCLUDE=$(DMCROOT)\include
+# DMD source directories
 C=backend
 TK=tk
 ROOT=root
+# Install directory
+DIR=$D\dmd2
 
+##### Tools
+
+# C++ compiler
+CC=dmc
+# File copy
+CP=cp
+# De-tabify
+DETAB=detab
+# Convert line endings to Unix
+TOLF=tolf
+# Zip
+ZIP=zip32
+# Recursive make
 MAKE=make -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
+##### User configuration switches
+
+# Target name
 TARGET=dmd
-XFLG=
-MODEL=n
+TARGETEXE=$(TARGET).exe
+# Custom compile flags
+CFLAGS=
+# Custom compile flags for all modules
 OPT=
+# Debug flags
 DEBUG=-gl -D -DUNITTEST
-#PREC=-H -HItotal.h -HO
+# Precompiled Header support
+# To enable, use: PREC=-H -HItotal.h -HO
 PREC=
+# Link flags (prefix with -L)
 LFLAGS=
 
-LINKN=$(SCROOT)\bin\link /de
+##### Implementation switches (do not modify)
 
-CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp
+# Compile flags
+CFLAGS=-I$(ROOT);$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
+# Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
 
-# Makerules:
-.c.obj:
-	$(CC) -c $(CFLAGS) $(PREC) $*
-
-.asm.obj:
-	$(CC) -c $(CFLAGS) $*
+############################## Release Targets ###############################
 
 defaulttarget: debdmd
 
-################ RELEASES #########################
+dmd: reldmd
 
 release:
 	$(MAKE) clean
-	$(MAKE) dmd
+	$(MAKE) reldmd
 	$(MAKE) clean
 
-################ NT COMMAND LINE RELEASE #########################
+debdmd:
+	$(MAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
+
+reldmd:
+	$(MAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
 
 trace:
-	$(MAKE) OPT=-o "DEBUG=-gt -Nc" LFLAGS=-L/ma/co/delexe dmd.exe
+	$(MAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
 
-dmd:
-	$(MAKE) OPT=-o "DEBUG=" LFLAGS=-L/delexe dmd.exe
-#	$(MAKE) OPT=-o "DEBUG=" LFLAGS=-L/ma/co/delexe dmd.exe
+############################ Maintenance Targets #############################
 
-################ NT COMMAND LINE DEBUG #########################
+clean:
+	del *.obj
+	del total.sym
+	del msgs.h msgs.c
+	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
+	del impcnvtab.c
 
-debdmd:
-	$(MAKE) OPT= "DEBUG=-D -g -DUNITTEST" LFLAGS=-L/ma/co dmd.exe
+install: detab install-copy
 
-#########################################
+install-copy:
+	$(CP) $(TARGETEXE) $(DIR)\windows\bin\
+	$(CP) phobos\phobos.lib $(DIR)\windows\lib
+	$(CP) $(SRCS) $(DIR)\src\dmd\
+	$(CP) $(ROOTSRC) $(DIR)\src\dmd\root\
+	$(CP) $(TKSRC) $(DIR)\src\dmd\tk\
+	$(CP) $(BACKSRC) $(DIR)\src\dmd\backend\
+	$(CP) $(MAKEFILES) $(DIR)\src\dmd\
+	$(CP) gpl.txt $(DIR)\src\dmd\
+	$(CP) readme.txt $(DIR)\src\dmd\
+	$(CP) artistic.txt $(DIR)\src\dmd\
+	$(CP) backendlicense.txt $(DIR)\src\dmd\
+
+detab:
+	$(DETAB) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+
+tolf:
+	$(TOLF) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
+
+zip: detab tolf $(MAKEFILES)
+	del dmdsrc.zip
+	$(ZIP) dmdsrc $(MAKEFILES)
+	$(ZIP) dmdsrc $(SRCS)
+	$(ZIP) dmdsrc $(BACKSRC)
+	$(ZIP) dmdsrc $(TKSRC)
+	$(ZIP) dmdsrc $(ROOTSRC)
+
+############################### Rule Variables ###############################
 
 # D front end
-
 OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	staticassert.obj identifier.obj mtype.obj expression.obj \
 	optimize.obj template.obj lexer.obj declaration.obj cast.obj \
@@ -88,8 +189,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj canthrow.obj \
 	sideeffect.obj
 
-# from C/C++ compiler optimizer and back end
-
+# D back end
 OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	newman.obj glocal.obj os.obj nteh.obj evalu8.obj cgcs.obj \
 	rtlsym.obj html.obj cgelem.obj cgen.obj cgreg.obj out.obj \
@@ -99,17 +199,18 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj
 
-# from ROOT
-
+# Root package
 GCOBJS=rmem.obj
+# Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-
 ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj root.obj port.obj \
 	stringtable.obj dchar.obj response.obj async.obj speller.obj aav.obj \
 	$(GCOBJS)
 
+# All objects
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
+# D front end
 SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
 	template.h template.c lexer.c declaration.c cast.c \
@@ -128,8 +229,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c canthrow.c sideeffect.c
 
-# From C++ compiler
-
+# D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\global.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h $C\html.h \
@@ -149,13 +249,11 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h \
 	$C\backend.txt
 
-# From TK
-
+# Toolkit
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 
-# From root
-
+# Root package
 ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\lstring.c $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
 	$(ROOT)\rmem.h $(ROOT)\rmem.c $(ROOT)\port.h \
@@ -166,36 +264,30 @@ ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
 	$(ROOT)\aav.h $(ROOT)\aav.c \
 	$(ROOT)\longdouble.h $(ROOT)\longdouble.c \
 	$(ROOT)\dmgcmem.c
+# Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
 #	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 #	$(ROOT)\gc\win32.c
 
+# Header files
+#TOTALH=total.sym # Use with pre-compiled headers
+TOTALH=id.h
+CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
+	$C\el.h $C\iasm.h
+
+# Makefiles
 MAKEFILES=win32.mak posix.mak
 
-#########################################
+############################# Executable Target ##############################
 
-$(TARGET).exe : $(OBJS) win32.mak
-	dmc -o$(TARGET).exe $(OBJS) -cpp -mn -Ar $(LFLAGS)
+$(TARGETEXE): $(OBJS) win32.mak
+	dmc -o$(TARGETEXE) $(OBJS) -cpp -mn -Ar $(LFLAGS)
 
-
-##################### INCLUDE MACROS #####################
-
-CCH=
-#TOTALH=$(CCH) total.sym
-TOTALH=$(CCH) id.h
-CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h
-
-##################### GENERATED SOURCE #####################
-
-msgs.h msgs.c sj1041.msg sj1036.msg sj1031.msg : msgsx.exe
-	msgsx
-
-msgsx.exe : msgsx.c
-	dmc msgsx -mn -D$(TARGET) $(DEFINES) $(WINLIBS)
+############################## Generated Source ##############################
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK) $(WINLIBS) #-L$(LINKS)
+	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
@@ -206,20 +298,30 @@ id.h id.c : idgen.c
 	dmc -cpp idgen
 	idgen
 
-##################### SPECIAL BUILDS #####################
+############################# Intermediate Rules ############################
 
+# Default rules
+.c.obj:
+	$(CC) -c $(CFLAGS) $(PREC) $*
+
+.asm.obj:
+	$(CC) -c $(CFLAGS) $*
+
+# Pre-compiled header
 total.sym : $(ROOT)\root.h mars.h lexer.h parse.h enum.h dsymbol.h \
 	mtype.h expression.h attrib.h init.h cond.h version.h \
 	declaration.h statement.h scope.h import.h module.h id.h \
 	template.h aggregate.h arraytypes.h lib.h total.h
 	$(CC) -c $(CFLAGS) -HFtotal.sym total.h
 
+# Generated source
 impcnvtab.obj : mtype.h impcnvtab.c
 	$(CC) -c -I$(ROOT) -cpp impcnvtab
 
 iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) iasm
 
+# D front/back end
 bcomplex.obj : $C\bcomplex.c
 	$(CC) -c $(MFLAGS) $C\bcomplex
 
@@ -416,8 +518,7 @@ var.obj : $C\var.c optab.c
 tk.obj : tk.c
 	$(CC) -c $(MFLAGS) tk.c
 
-# ROOT
-
+# Root
 aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
 	$(CC) -c $(CFLAGS) $(ROOT)\aav.c
 
@@ -460,7 +561,7 @@ speller.obj : $(ROOT)\speller.h $(ROOT)\speller.c
 stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
 
-# ROOT/GC
+# Root/GC -- Removed (look in history)
 #
 #bits.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\bits.c
 #	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\bits.c
@@ -471,8 +572,9 @@ stringtable.obj : $(ROOT)\stringtable.c
 #win32.obj : $(ROOT)\gc\os.h $(ROOT)\gc\win32.c
 #	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\win32.c
 
+############################## Generated Rules ###############################
 
-################# Source file dependencies ###############
+# These rules were generated by makedep, but are not currently maintained
 
 access.obj : $(TOTALH) enum.h aggregate.h init.h attrib.h access.c
 aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
@@ -508,7 +610,6 @@ libomf.obj : $(TOTALH) lib.h libomf.c
 link.obj : $(TOTALH) link.c
 macro.obj : $(TOTALH) macro.h macro.c
 mangle.obj : $(TOTALH) dsymbol.h declaration.h mangle.c
-#module.obj : $(TOTALH) mars.h $C\html.h module.h module.c
 opover.obj : $(TOTALH) expression.h opover.c
 optimize.obj : $(TOTALH) expression.h optimize.c
 parse.obj : $(TOTALH) attrib.h lexer.h parse.h parse.c
@@ -520,66 +621,6 @@ struct.obj : $(TOTALH) identifier.h enum.h struct.c
 traits.obj : $(TOTALH) traits.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c
-#typinf.obj : $(TOTALH) mtype.h typinf.c
 utf.obj : utf.h utf.c
 template.obj : $(TOTALH) template.h template.c
 version.obj : $(TOTALH) identifier.h dsymbol.h cond.h version.h version.c
-
-################### Utilities ################
-
-clean:
-	del *.obj
-	del total.sym
-	del msgs.h msgs.c
-	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	del impcnvtab.c
-
-zip : detab tolf $(MAKEFILES)
-	del dmdsrc.zip
-	zip32 dmdsrc $(MAKEFILES)
-	zip32 dmdsrc $(SRCS)
-	zip32 dmdsrc $(BACKSRC)
-	zip32 dmdsrc $(TKSRC)
-	zip32 dmdsrc $(ROOTSRC)
-
-################### Detab ################
-
-detab:
-	detab $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
-
-tolf:
-	tolf $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
-
-################### Install ################
-
-install: detab install2
-
-install2:
-	copy dmd.exe $(DIR)\windows\bin\ 
-	copy phobos\phobos.lib $(DIR)\windows\lib 
-	$(CP) $(SRCS) $(DIR)\src\dmd\ 
-	$(CP) $(ROOTSRC) $(DIR)\src\dmd\root\ 
-	$(CP) $(TKSRC) $(DIR)\src\dmd\tk\  
-	$(CP) $(BACKSRC) $(DIR)\src\dmd\backend\  
-	$(CP) $(MAKEFILES) $(DIR)\src\dmd\  
-	copy gpl.txt $(DIR)\src\dmd\ 
-	copy readme.txt $(DIR)\src\dmd\ 
-	copy artistic.txt $(DIR)\src\dmd\ 
-	copy backendlicense.txt $(DIR)\src\dmd\ 
-
-################### Write to SVN ################
-
-svn:	detab tolf svn2
-
-svn2:
-	$(CP) $(SRCS) $(DMDSVN)\ 
-	$(CP) $(ROOTSRC) $(DMDSVN)\root\ 
-	$(CP) $(TKSRC) $(DMDSVN)\tk\  
-	$(CP) $(BACKSRC) $(DMDSVN)\backend\  
-	$(CP) $(MAKEFILES) $(DMDSVN)\  
-	copy gpl.txt $(DMDSVN)\ 
-	copy readme.txt $(DMDSVN)\ 
-	copy artistic.txt $(DMDSVN)\ 
-	copy backendlicense.txt $(DMDSVN)\ 
-
-###################################
