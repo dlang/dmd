@@ -2261,7 +2261,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter { elem *e; int reg; unsigned numalign; };
+struct Parameter { elem *e; unsigned char reg; unsigned numalign; };
 
 void fillParameters(elem *e, Parameter *parameters, int *pi)
 {
@@ -2289,13 +2289,12 @@ FuncParamRegs::FuncParamRegs(tym_t tyf)
     regcnt = 0;
     xmmcnt = 0;
 
-    if (I64)
+    if (I16)
     {
-        static const unsigned char reglist[] = { DI,SI,DX,CX,R8,R9 };
-        argregs = reglist;
-        numintegerregs = sizeof(reglist) / sizeof(reglist[0]);
+        numintegerregs = 0;
+        numfloatregs = 0;
     }
-    else
+    else if (I32)
     {
         if (tyf == TYjfunc)
         {
@@ -2311,16 +2310,20 @@ FuncParamRegs::FuncParamRegs(tym_t tyf)
         }
         else
             numintegerregs = 0;
+        numfloatregs = 0;
     }
-
-    if (I64)
+    else if (I64)
     {
-        static const unsigned char reglist[] = { XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
-        floatregs = reglist;
-        numfloatregs = sizeof(reglist) / sizeof(reglist[0]);
+        static const unsigned char reglist[] = { DI,SI,DX,CX,R8,R9 };
+        argregs = reglist;
+        numintegerregs = sizeof(reglist) / sizeof(reglist[0]);
+
+        static const unsigned char freglist[] = { XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
+        floatregs = freglist;
+        numfloatregs = sizeof(freglist) / sizeof(freglist[0]);
     }
     else
-        numfloatregs = 0;
+        assert(0);
 }
 
 /*****************************************
@@ -2360,350 +2363,183 @@ int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char 
  */
 
 code *cdfunc(elem *e,regm_t *pretregs)
-{ unsigned numpara = 0;
-  unsigned stackpushsave;
-  unsigned preg;
-  regm_t keepmsk;
-  unsigned numalign = 0;
-  code *c;
+{
+    //printf("cdfunc()\n"); elem_print(e);
+    assert(e);
+    unsigned numpara = 0;
+    unsigned numalign = 0;
+    unsigned stackpushsave = stackpush;            // so we can compute # of parameters
+    cgstate.stackclean++;
+    code *c = CNIL;
+    regm_t keepmsk = 0;
+    int xmmcnt = 0;
+    tym_t tyf = tybasic(e->E1->Ety);        // the function type
 
-  //printf("cdfunc()\n"); elem_print(e);
-  assert(e);
-  stackpushsave = stackpush;            /* so we can compute # of parameters */
-  cgstate.stackclean++;
-  c = CNIL;
-  keepmsk = 0;
-  if (OTbinary(e->Eoper))               // if parameters
-  {
-        if (I16)
-        {
-            c = cat(c, params(e->E2,2));   // push parameters
-        }
-        else if (I32)
-        {
-            unsigned stackalign = REGSIZE;
-            tym_t tyf = tybasic(e->E1->Ety);
+    // Easier to deal with parameters as an array: parameters[0..np]
+    int np = OTbinary(e->Eoper) ? el_nparams(e->E2) : 0;
+    Parameter *parameters = (Parameter *)alloca(np * sizeof(Parameter));
 
-            // First compute numpara, the total bytes pushed on the stack
-            switch (tyf)
-            {
+    if (np)
+    {   int n = 0;
+        fillParameters(e->E2, parameters, &n);
+        assert(n == np);
+    }
+
+    /* Special handling for call to __tls_get_addr, we must save registers
+     * before evaluating the parameter, so that the parameter load and call
+     * are adjacent.
+     */
+    if (np == 1 && e->E1->Eoper == OPvar)
+    {   symbol *s = e->E1->EV.sp.Vsym;
+        if (s == tls_get_addr_sym)
+            c = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
+    }
+
+    unsigned stackalign = REGSIZE;
 #if TARGET_SEGMENTED
-                case TYf16func:
-                    stackalign = 2;
-                    goto Ldefault;
+    if (tyf == TYf16func)
+        stackalign = 2;
 #endif
-                case TYmfunc:
-                case TYjfunc:
-                    // last parameter goes into register
-                    elem *ep;
-                    for (ep = e->E2; ep->Eoper == OPparam; ep = ep->E2)
-                    {
-                        numpara += paramsize(ep->E1,stackalign);
-                    }
-#if 1
-                    {   FuncParamRegs fpr(tyf);
-                        unsigned char reg1;
-                        if (!fpr.alloc(ep->ET, ep->Ety, &reg1, NULL))
-                            numpara += paramsize(ep,stackalign);
-                    }
-#else
-                    if (tyf == TYjfunc &&
-                        !type_jparam2(ep->ET, ep->Ety)
-                        )
-                    {
-                        numpara += paramsize(ep,stackalign);
-                    }
-#endif
-                    break;
-                default:
-                Ldefault:
-                    numpara += paramsize(e->E2,stackalign);
-                    break;
-            }
-            assert((numpara & (REGSIZE - 1)) == 0);
-            assert((stackpush & (REGSIZE - 1)) == 0);
+    // Figure out which parameters go in registers.
+    // Compute numpara, the total bytes pushed on the stack
+    FuncParamRegs fpr(tyf);
+    for (int i = np; --i >= 0;)
+    {
+        elem *ep = parameters[i].e;
+        if (fpr.alloc(ep->ET, ep->Ety, &parameters[i].reg, NULL))
+            continue;   // goes in register, not stack
 
-            /* Special handling for call to __tls_get_addr, we must save registers
-             * before evaluating the parameter, so that the parameter load and call
-             * are adjacent.
+        // Parameter i goes on the stack
+        parameters[i].reg = NOREG;
+        unsigned alignsize = el_alignsize(ep);
+        parameters[i].numalign = 0;
+        if (I64 && alignsize > stackalign)
+        {   unsigned newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
+            parameters[i].numalign = newnumpara - numpara;
+            numpara = newnumpara;
+        }
+        numpara += paramsize(ep,stackalign);
+    }
+
+    assert((numpara & (REGSIZE - 1)) == 0);
+    assert((stackpush & (REGSIZE - 1)) == 0);
+
+    /* Should consider reordering the order of evaluation of the parameters
+     * so that args that go into registers are evaluated after args that get
+     * pushed. We can reorder args that are constants or relconst's.
+     */
+
+    /* Adjust start of the stack so after all args are pushed,
+     * the stack will be aligned.
+     */
+    if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
+    {
+        numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
+        c = genc2(c,0x81,modregrm(3,5,SP),numalign); // SUB RSP,numalign
+        if (I64)
+            code_orrex(c, REX_W);
+        c = genadjesp(c, numalign);
+        stackpush += numalign;
+        stackpushsave += numalign;
+    }
+
+    int regsaved[XMM7 + 1];
+    memset(regsaved, -1, sizeof(regsaved));
+    code *crest = NULL;
+    regm_t saved = 0;
+
+    /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
+     * float and double parameters go into XMM0..XMM7
+     * For variadic functions, count of XMM registers used goes in AL
+     */
+    for (int i = 0; i < np; i++)
+    {
+        elem *ep = parameters[i].e;
+        int preg = parameters[i].reg;
+        if (preg == NOREG)
+        {
+            /* Push parameter on stack, but keep track of registers used
+             * in the process. If they interfere with keepmsk, we'll have
+             * to save/restore them.
              */
-            if (e->E2->Eoper != OPparam && e->E1->Eoper == OPvar)
-            {   symbol *s = e->E1->EV.sp.Vsym;
-                if (s == tls_get_addr_sym)
-                    c = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
+            code *csave = NULL;
+            regm_t overlap = msavereg & keepmsk;
+            msavereg |= keepmsk;
+            code *cp = params(ep,stackalign);
+            regm_t tosave = keepmsk & ~msavereg;
+            msavereg &= ~keepmsk | overlap;
+
+            // tosave is the mask to save and restore
+            for (int j = 0; tosave; j++)
+            {   regm_t mi = mask[j];
+                assert(j <= XMM7);
+                if (mi & tosave)
+                {
+                    unsigned idx;
+                    csave = regsave.save(csave, j, &idx);
+                    crest = regsave.restore(crest, j, idx);
+                    saved |= mi;
+                    keepmsk &= ~mi;             // don't need to keep these for rest of params
+                    tosave &= ~mi;
+                }
             }
 
+            c = cat4(c, csave, cp, NULL);
 
-            /* Adjust start of the stack so after all args are pushed,
-             * the stack will be aligned.
-             */
-            if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
+            // Alignment for parameter comes after it got pushed
+            unsigned numalign = parameters[i].numalign;
+            if (numalign)
             {
-                numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-                c = genc2(c,0x81,modregrm(3,5,SP),numalign); // SUB ESP,numalign
+                c = genc2(c,0x81,modregrm(3,5,SP),numalign); // SUB RSP,numalign
                 if (I64)
                     code_orrex(c, REX_W);
                 c = genadjesp(c, numalign);
                 stackpush += numalign;
-                stackpushsave += numalign;
-            }
-
-            switch (tyf)
-            {
-#if TARGET_SEGMENTED
-                case TYf16func:
-                    stackalign = 2;
-                    goto Ldefault2;
-#endif
-                case TYmfunc:   // last parameter goes into ECX
-                case TYjfunc:   // last parameter goes into EAX
-                {   elem *ep;
-                    elem *en;
-                    for (ep = e->E2; ep->Eoper == OPparam; ep = en)
-                    {
-                        c = cat(c,params(ep->E1,stackalign));
-                        en = ep->E2;
-                        freenode(ep);
-                    }
-#if 1
-                    {   FuncParamRegs fpr(tyf);
-                        unsigned char reg1;
-                        if (!fpr.alloc(ep->ET, ep->Ety, &reg1, NULL))
-                        {   c = cat(c,params(ep,stackalign));
-                            goto Lret;
-                        }
-                        preg = reg1;
-                    }
-#else
-                    if (tyf == TYjfunc &&
-                        !type_jparam2(ep->ET, ep->Ety)
-                        )
-                    {
-                        c = cat(c,params(ep,stackalign));
-                        goto Lret;
-                    }
-#endif
-                    // preg is the register to put the parameter ep in
-                    keepmsk = mask[preg];       // don't change preg when evaluating func address
-                    regm_t retregs = keepmsk;
-                    if (ep->Eoper == OPstrthis)
-                    {   code *c2;
-
-                        code *c1 = getregs(retregs);
-                        // LEA preg,np[ESP]
-                        unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
-                        c2 = genc1(CNIL,0x8D,(modregrm(0,4,SP) << 8) | modregrm(2,preg,4),FLconst,np);
-                        if (I64)
-                            code_orrex(c2, REX_W);
-                        c = cat3(c,c1,c2);
-                    }
-                    else
-                    {   code *cp = codelem(ep,&retregs,FALSE);
-                        c = cat(c,cp);
-                    }
-                    goto Lret;
-                }
-                default:
-                Ldefault2:
-                    c = cat(c, params(e->E2,stackalign));   // push parameters
-                    break;
             }
         }
         else
-        {   assert(I64);
-            tym_t tyf = tybasic(e->E1->Ety);
-
-            // Easier to deal with parameters as an array: parameters[0..np]
-            int np = el_nparams(e->E2);
-            Parameter *parameters = (Parameter *)alloca(np * sizeof(Parameter));
-
-            { int n = 0;
-              fillParameters(e->E2, parameters, &n);
-              assert(n == np);
-            }
-
-            /* Special handling for call to __tls_get_addr, we must save registers
-             * before evaluating the parameter, so that the parameter load and call
-             * are adjacent.
-             */
-            if (np == 1 && e->E1->Eoper == OPvar)
-            {   symbol *s = e->E1->EV.sp.Vsym;
-                if (s == tls_get_addr_sym)
-                    c = getregs(~s->Sregsaved & (mBP | ALLREGS | mES | XMMREGS));
-            }
-
-            unsigned stackalign = REGSIZE;
-
-            // Figure out which parameters go in registers
-            // Compute numpara, the total bytes pushed on the stack
-            FuncParamRegs fpr(tyf);
-
-            for (int i = np; --i >= 0;)
-            {
-                elem *ep = parameters[i].e;
-                unsigned char r;
-                if (fpr.alloc(ep->ET, ep->Ety, &r, NULL))
-                {
-                    parameters[i].reg = r;
-                    continue;   // goes in register, not stack
-                }
-
-                // Parameter i goes on the stack
-                parameters[i].reg = -1;         // -1 means no register
-                unsigned alignsize = el_alignsize(ep);
-                parameters[i].numalign = 0;
-                if (alignsize > stackalign)
-                {   unsigned newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
-                    parameters[i].numalign = newnumpara - numpara;
-                    numpara = newnumpara;
-                }
-                numpara += paramsize(ep,stackalign);
-            }
-
-            assert((numpara & (REGSIZE - 1)) == 0);
-            assert((stackpush & (REGSIZE - 1)) == 0);
-
-            /* Should consider reordering the order of evaluation of the parameters
-             * so that args that go into registers are evaluated after args that get
-             * pushed. We can reorder args that are constants or relconst's.
-             */
-
-            /* Adjust start of the stack so after all args are pushed,
-             * the stack will be aligned.
-             */
-            if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
-            {
-                numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-                c = genc2(c,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB RSP,numalign
-                c = genadjesp(c, numalign);
-                stackpush += numalign;
-                stackpushsave += numalign;
-            }
-
-            int regsaved[XMM7 + 1];
-            memset(regsaved, -1, sizeof(regsaved));
-            code *crest = NULL;
-            regm_t saved = 0;
-            int xmmcnt = 0;
-
-            /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
-             * float and double parameters go into XMM0..XMM7
-             * For variadic functions, count of XMM registers used goes in AL
-             */
-            for (int i = 0; i < np; i++)
-            {
-                elem *ep = parameters[i].e;
-                int preg = parameters[i].reg;
-                if (preg == -1)
-                {
-                    /* Push parameter on stack, but keep track of registers used
-                     * in the process. If they interfere with keepmsk, we'll have
-                     * to save/restore them.
-                     */
-                    code *csave = NULL;
-                    regm_t overlap = msavereg & keepmsk;
-                    msavereg |= keepmsk;
-                    code *cp = params(ep,stackalign);
-                    regm_t tosave = keepmsk & ~msavereg;
-                    msavereg &= ~keepmsk | overlap;
-
-                    // tosave is the mask to save and restore
-                    for (int j = 0; tosave; j++)
-                    {   regm_t mi = mask[j];
-                        assert(j <= XMM7);
-                        if (mi & tosave)
-                        {
-                            unsigned idx;
-                            csave = regsave.save(csave, j, &idx);
-                            crest = regsave.restore(crest, j, idx);
-                            saved |= mi;
-                            keepmsk &= ~mi;             // don't need to keep these for rest of params
-                            tosave &= ~mi;
-                        }
-                    }
-
-                    c = cat4(c, csave, cp, NULL);
-
-                    // Alignment for parameter comes after it got pushed
-                    unsigned numalign = parameters[i].numalign;
-                    if (numalign)
-                    {
-                        c = genc2(c,0x81,(REX_W << 16) | modregrm(3,5,SP),numalign); // SUB RSP,numalign
-                        c = genadjesp(c, numalign);
-                        stackpush += numalign;
-                    }
-                }
-                else
-                {
-                    // Goes in register preg, not stack
-                    regm_t retregs = mask[preg];
-                    if (retregs & XMMREGS)
-                        ++xmmcnt;
-                    if (ep->Eoper == OPstrthis)
-                    {
-                        code *c1 = getregs(retregs);
-                        // LEA preg,np[RSP]
-                        unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
-                        code *c2 = genc1(CNIL,0x8D,(REX_W << 16) |
-                                             (modregrm(0,4,SP) << 8) |
-                                              modregxrm(2,preg,4), FLconst,np);
-                        c = cat3(c,c1,c2);
-                    }
-                    else
-                    {   code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
-                        c = cat(c,cp);
-                    }
-                    keepmsk |= retregs;      // don't change preg when evaluating func address
-                }
-            }
-
-            // Restore any register parameters we saved
-            c = cat4(c, getregs(saved), crest, NULL);
-            keepmsk |= saved;
-
-            // Variadic functions store the number of XMM registers used in AL
-            if (e->Eflags & EFLAGS_variadic)
-            {   code *c1 = getregs(mAX);
-                c1 = movregconst(c1,AX,xmmcnt,1);
-                c = cat(c, c1);
-                keepmsk |= mAX;
-            }
-        }
-    }
-    else
-    {
-        /* Adjust start of the stack so
-         * the stack will be aligned.
-         */
-        if (STACKALIGN == 16 && (stackpush) & (STACKALIGN - 1))
         {
-            numalign = STACKALIGN - ((stackpush) & (STACKALIGN - 1));
-            c = genc2(NULL,0x81,modregrm(3,5,SP),numalign); // SUB ESP,numalign
-            if (I64)
-                code_orrex(c, REX_W);
-            c = genadjesp(c, numalign);
-            stackpush += numalign;
-            stackpushsave += numalign;
+            // Goes in register preg, not stack
+            regm_t retregs = mask[preg];
+            if (retregs & XMMREGS)
+                ++xmmcnt;
+            if (ep->Eoper == OPstrthis)
+            {
+                code *c1 = getregs(retregs);
+                // LEA preg,np[RSP]
+                unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
+                code *c2 = genc1(CNIL,0x8D,
+                        (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FLconst,np);
+                if (I64)
+                    code_orrex(c2, REX_W);
+                c = cat3(c,c1,c2);
+            }
+            else
+            {   code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
+                c = cat(c,cp);
+            }
+            keepmsk |= retregs;      // don't change preg when evaluating func address
         }
+    }
 
-        // Variadic functions store the number of XMM registers used in AL
-        if (I64 && e->Eflags & EFLAGS_variadic)
-        {   code *c1 = getregs(mAX);
-            c1 = movregconst(c1,AX,0,1);
-            c = cat(c, c1);
-            keepmsk |= mAX;
-        }
+    // Restore any register parameters we saved
+    c = cat4(c, getregs(saved), crest, NULL);
+    keepmsk |= saved;
+
+    // Variadic functions store the number of XMM registers used in AL
+    if (I64 && e->Eflags & EFLAGS_variadic)
+    {   code *c1 = getregs(mAX);
+        c1 = movregconst(c1,AX,xmmcnt,1);
+        c = cat(c, c1);
+        keepmsk |= mAX;
     }
-Lret:
+
     cgstate.stackclean--;
-    if (I16)
-        numpara = stackpush - stackpushsave;
-    else
-    {
-        if (numpara != stackpush - stackpushsave)
-            printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, stackpush, stackpushsave);
-        assert(numpara == stackpush - stackpushsave);
-    }
+
+    if (numpara != stackpush - stackpushsave)
+        printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, stackpush, stackpushsave);
+    assert(numpara == stackpush - stackpushsave);
+
     return cat(c,funccall(e,numpara,numalign,pretregs,keepmsk));
 }
 
