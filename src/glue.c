@@ -799,7 +799,6 @@ void FuncDeclaration::toObjFile(int multiobj)
     // Determine register assignments
     if (pi)
     {
-#if 1
         FuncParamRegs fpr(tyf);
 
         for (size_t i = 0; i < pi; i++)
@@ -810,41 +809,6 @@ void FuncDeclaration::toObjFile(int multiobj)
                 sp->Sfl = FLauto;
             }
         }
-#else
-        size_t numintegerregs = 0, numfloatregs = 0;
-        const unsigned char* argregs = getintegerparamsreglist(tyf, &numintegerregs);
-        const unsigned char* floatregs = getfloatparamsreglist(tyf, &numfloatregs);
-
-            // Order of assignment of pointer or integer parameters
-            int r = 0;
-        int xmmcnt = 0;
-
-            for (size_t i = 0; i < pi; i++)
-            {   Symbol *sp = params[i];
-                tym_t ty = tybasic(sp->Stype->Tty);
-                // BUG: doesn't work for structs
-            if (r < numintegerregs)
-                {
-                if ((I64 || (i == 0 && (tyf == TYjfunc || tyf == TYmfunc))) && type_jparam(sp->Stype))
-                    {
-                        sp->Sclass = SCfastpar;
-                        sp->Spreg = argregs[r];
-                        sp->Sfl = FLauto;
-                        ++r;
-                    }
-                }
-            if (xmmcnt < numfloatregs)
-                {
-                if (tyxmmreg(ty))
-                    {
-                        sp->Sclass = SCfastpar;
-                    sp->Spreg = floatregs[xmmcnt];
-                        sp->Sfl = FLauto;
-                        ++xmmcnt;
-                    }
-                }
-            }
-#endif
         }
 
     if (func->fbody)

@@ -892,7 +892,8 @@ int type_jparam(type *t)
 int type_jparam2(type *t, tym_t ty)
 {
     targ_size_t sz;
-    type_debug(t);
+    if (t)
+        type_debug(t);
     ty = tybasic(ty);
     return tyjparam(ty) ||
 
