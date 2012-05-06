@@ -139,6 +139,10 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclaration *postblit;  // aggregate postblit
 #endif
 
+    // For 64 bit Efl function call/return ABI
+    Type *arg1type;
+    Type *arg2type;
+
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
@@ -147,6 +151,7 @@ struct StructDeclaration : AggregateDeclaration
     char *mangle();
     const char *kind();
     void finalizeSize(Scope *sc);
+    bool isPOD();
 #if DMDV1
     Expression *cloneMembers();
 #endif

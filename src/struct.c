@@ -99,7 +99,7 @@ void AggregateDeclaration::inlineScan()
     {
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             //printf("inline scan aggregate symbol '%s'\n", s->toChars());
             s->inlineScan();
         }
@@ -256,6 +256,8 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     postblit = NULL;
     eq = NULL;
 #endif
+    arg1type = NULL;
+    arg2type = NULL;
 
     // For forward references
     type = new TypeStruct(this);
@@ -329,7 +331,7 @@ void StructDeclaration::semantic(Scope *sc)
     {
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
             s->addMember(sc, this, 1);
         }
@@ -528,6 +530,15 @@ void StructDeclaration::semantic(Scope *sc)
     aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);
     aggDelete = (DeleteDeclaration *)search(0, Id::classDelete,    0);
 
+    TypeTuple *tup = type->toArgTypes();
+    size_t dim = tup->arguments->dim;
+    if (dim >= 1)
+    {   assert(dim <= 2);
+        arg1type = (*tup->arguments)[0]->type;
+        if (dim == 2)
+            arg2type = (*tup->arguments)[1]->type;
+    }
+
     if (sc->func)
     {
         semantic2(sc);
@@ -553,6 +564,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 void StructDeclaration::finalizeSize(Scope *sc)
 {
+    //printf("StructDeclaration::finalizeSize() %s\n", toChars());
     if (sizeok != SIZEOKnone)
         return;
 
@@ -581,6 +593,19 @@ void StructDeclaration::finalizeSize(Scope *sc)
     sizeok = SIZEOKdone;
 }
 
+/***************************************
+ * Return true if struct is POD (Plain Old Data).
+ * This is defined as:
+ *      not nested
+ *      no constructors, postblits, destructors, or assignment operators
+ *      no fields with with any of those
+ * The idea being these are compatible with C structs.
+ */
+bool StructDeclaration::isPOD()
+{
+    return true;
+}
+
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf("%s ", kind());
@@ -597,7 +622,7 @@ void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *s = members->tdata()[i];
+        Dsymbol *s = (*members)[i];
 
         buf->writestring("    ");
         s->toCBuffer(buf, hgs);

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -337,8 +337,12 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
      *  void[] m_init;
      */
 
-    sd->memtype->getTypeInfo(NULL);
+    if (sd->memtype)
+    {   sd->memtype->getTypeInfo(NULL);
     dtxoff(pdt, sd->memtype->vtinfo->toSymbol(), 0, TYnptr);    // TypeInfo for enum members
+    }
+    else
+        dtsize_t(pdt, 0);
 
     const char *name = sd->toPrettyChars();
     size_t namelen = strlen(name);
@@ -615,12 +619,14 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     dtdword(pdt, tc->alignsize());
 
 #if DMDV2
+#if 0
     // xgetMembers
     FuncDeclaration *sgetmembers = sd->findGetMembers();
     if (sgetmembers)
         dtxoff(pdt, sgetmembers->toSymbol(), 0, TYnptr);
     else
         dtsize_t(pdt, 0);                        // xgetMembers
+#endif
 
     // xdtor
     FuncDeclaration *sdtor = sd->dtor;
@@ -638,19 +644,18 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 #endif
     if (global.params.is64bit)
     {
-        TypeTuple *tup = tc->toArgTypes();
-        assert(tup->arguments->dim <= 2);
+        Type *t = sd->arg1type;
         for (int i = 0; i < 2; i++)
         {
-            if (i < tup->arguments->dim)
-            {
-                Type *targ = (tup->arguments->tdata()[i])->type;
-                targ = targ->merge();
-                targ->getTypeInfo(NULL);
-                dtxoff(pdt, targ->vtinfo->toSymbol(), 0, TYnptr);       // m_argi
+            // m_argi
+            if (t)
+            {   t->getTypeInfo(NULL);
+                dtxoff(pdt, t->vtinfo->toSymbol(), 0, TYnptr);
             }
             else
-                dtsize_t(pdt, 0);                    // m_argi
+                dtsize_t(pdt, 0);
+
+            t = sd->arg2type;
         }
     }
 
@@ -661,6 +666,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 void TypeInfoClassDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoClassDeclaration::toDt() %s\n", tinfo->toChars());
+#if DMDV1
     dtxoff(pdt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for TypeInfoClass
     dtsize_t(pdt, 0);                        // monitor
 
@@ -673,6 +679,9 @@ void TypeInfoClassDeclaration::toDt(dt_t **pdt)
         tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
     s = tc->sym->vclassinfo->toSymbol();
     dtxoff(pdt, s, 0, TYnptr);          // ClassInfo for tinfo
+#else
+    assert(0);
+#endif
 }
 
 void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
@@ -687,7 +696,11 @@ void TypeInfoInterfaceDeclaration::toDt(dt_t **pdt)
     Symbol *s;
 
     if (!tc->sym->vclassinfo)
+#if DMDV1
         tc->sym->vclassinfo = new ClassInfoDeclaration(tc->sym);
+#else
+        tc->sym->vclassinfo = new TypeInfoClassDeclaration(tc);
+#endif
     s = tc->sym->vclassinfo->toSymbol();
     dtxoff(pdt, s, 0, TYnptr);          // ClassInfo for tinfo
 }
@@ -707,7 +720,7 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
 
     dt_t *d = NULL;
     for (size_t i = 0; i < dim; i++)
-    {   Parameter *arg = (Parameter *)tu->arguments->data[i];
+    {   Parameter *arg = (*tu->arguments)[i];
         Expression *e = arg->type->getTypeInfo(NULL);
         e = e->optimize(WANTvalue);
         e->toDt(&d);
@@ -834,7 +847,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {   Parameter *arg = new Parameter(STCin, exps[i]->type, NULL, NULL);
-        args->data[i] = (void *)arg;
+        (*args)[i] = arg;
     }
     TypeTuple *tup = new TypeTuple(args);
     Expression *e = tup->getTypeInfo(sc);

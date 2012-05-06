@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2010-2011 by Digital Mars
+// Copyright (c) 2010-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -123,6 +123,13 @@ TypeTuple *TypeBasic::toArgTypes()
         t = new TypeTuple();
     return t;
 }
+
+#if DMDV2
+TypeTuple *TypeVector::toArgTypes()
+{
+    return new TypeTuple(Type::tfloat64);
+}
+#endif
 
 TypeTuple *TypeSArray::toArgTypes()
 {
