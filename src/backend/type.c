@@ -885,15 +885,22 @@ int type_isvla(type *t)
 
 int type_jparam(type *t)
 {
+    return type_jparam2(t, t->Tty);
+}
+
+// t is valid only if ty is a TYstruct or TYarray
+int type_jparam2(type *t, tym_t ty)
+{
     targ_size_t sz;
     type_debug(t);
-    return tyjparam(t->Tty) ||
+    ty = tybasic(ty);
+    return tyjparam(ty) ||
 
-                ((tybasic(t->Tty) == TYstruct || tybasic(t->Tty) == TYarray) &&
+                ((ty == TYstruct || ty == TYarray) &&
                  (sz = type_size(t)) <= NPTRSIZE &&
-                 (sz == 1 || sz == 2 || sz == 4 || sz == 8)) ||
+                 (sz == 1 || sz == 2 || sz == 4 || sz == 8)) /*||
 
-                tybasic(t->Tty) == TYfloat4;
+                tybasic(ty) == TYfloat4*/;
 }
 
 

@@ -463,8 +463,10 @@ void Module::genobjfile(int multiobj)
                 sp->Stype = type_fake(TYint);
                 sp->Stype->Tcount++;
                 sp->Sclass = SCfastpar;
-                size_t num;
-                sp->Spreg = getintegerparamsreglist(TYjfunc, &num)[0];
+
+                FuncParamRegs fpr(TYjfunc);
+                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, NULL);
+
                 sp->Sflags &= ~SFLspill;
                 sp->Sfl = FLpara;       // FLauto?
                 cstate.CSpsymtab = &ma->Sfunc->Flocsym;
@@ -797,6 +799,18 @@ void FuncDeclaration::toObjFile(int multiobj)
     // Determine register assignments
     if (pi)
     {
+#if 1
+        FuncParamRegs fpr(tyf);
+
+        for (size_t i = 0; i < pi; i++)
+        {   Symbol *sp = params[i];
+            if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, NULL))
+            {
+                sp->Sclass = SCfastpar;
+                sp->Sfl = FLauto;
+            }
+        }
+#else
         size_t numintegerregs = 0, numfloatregs = 0;
         const unsigned char* argregs = getintegerparamsreglist(tyf, &numintegerregs);
         const unsigned char* floatregs = getfloatparamsreglist(tyf, &numfloatregs);
@@ -830,6 +844,7 @@ void FuncDeclaration::toObjFile(int multiobj)
                     }
                 }
             }
+#endif
         }
 
     if (func->fbody)

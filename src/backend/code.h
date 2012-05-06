@@ -1061,6 +1061,29 @@ extern seg_data **SegData;
 #define CDoffset SegData[CDATA]->SDoffset
 #define Coffset SegData[cseg]->SDoffset
 
+/**************************************************/
+
+/* Allocate registers to function parameters
+ */
+
+struct FuncParamRegs
+{
+    FuncParamRegs(tym_t tyf);
+
+    int alloc(type *t, tym_t ty, unsigned char *reg1, unsigned char *reg2);
+
+  private:
+    tym_t tyf;                  // type of function
+    int i;                      // ith parameter
+    int regcnt;                 // how many general purpose registers are allocated
+    int xmmcnt;                 // how many fp registers are allocated
+    size_t numintegerregs;      // number of gp registers that can be allocated
+    size_t numfloatregs;        // number of fp registers that can be allocated
+    const unsigned char* argregs;       // map to gp register
+    const unsigned char* floatregs;     // map to fp register
+};
+
+
 #if __cplusplus && TX86
 }
 #endif
