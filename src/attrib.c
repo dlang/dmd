@@ -349,28 +349,6 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
     }
 }
 
-FuncDeclaration* AttribDeclaration::isFuncDeclaration()
-{
-    if (decl)
-    {
-        if (decl->dim == 0)
-            return NULL;
-        else if (decl->dim == 1)
-            return (decl->tdata()[0])->isFuncDeclaration();
-        else
-        {
-            for (unsigned i = 0; i < decl->dim; i++)
-            {
-                Dsymbol *s = decl->tdata()[i];
-                if(s->isFuncDeclaration() != NULL) return s->isFuncDeclaration();
-            }
-        }
-    }
-    else
-        return NULL;
-    return NULL;
-}
-
 void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (decl)
