@@ -419,8 +419,6 @@ code* cod3_stackadj(code* c, int nbytes)
         rm = modregrm(3,0,SP); // ADD ESP,nbytes
     }
     c = genc2(c, 0x81, grex | rm, nbytes);
-    if (I64)
-        code_orrex(c, REX_W);
     return c;
 }
 
@@ -745,17 +743,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
                             if (npush & (STACKALIGN - 1))
                             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-                                if (I64)
-                                    code_orrex(cs, REX_W);
+                                cs = cod3_stackadj(cs, nalign);
                             }
                         }
                         cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
                         if (nalign)
-                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-                            if (I64)
-                                code_orrex(cs, REX_W);
-                        }
+                            cs = cod3_stackadj(cs, -nalign);
                         c = cat3(c,cs,cr);
                     }
                 }
@@ -808,17 +801,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 int nalign = 0;
                 if (STACKALIGN == 16)
                 {   nalign = STACKALIGN - REGSIZE;
-                    c = genc2(c,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-                    if (I64)
-                        code_orrex(c, REX_W);
+                    c = cod3_stackadj(c, nalign);
                 }
                 // CALL bl->Bsucc
                 c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bl->Bsucc));
                 if (nalign)
-                {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-                    if (I64)
-                        code_orrex(c, REX_W);
-                }
+                    c = cod3_stackadj(c, -nalign);
                 // JMP list_next(bl->Bsucc)
                 nextb = list_block(list_next(bl->Bsucc));
                 goto L2;
@@ -949,18 +937,13 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
                             if (npush & (STACKALIGN - 1))
                             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                                cs = genc2(cs,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-                                if (I64)
-                                    code_orrex(cs, REX_W);
+                                cs = cod3_stackadj(cs, nalign);
                             }
                         }
                         // CALL bf->Bsucc
                         cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
                         if (nalign)
-                        {   cs = genc2(cs,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-                            if (I64)
-                                code_orrex(cs, REX_W);
-                        }
+                            cs = cod3_stackadj(cs, -nalign);
                         bl->Bcode = c = cat3(c,cs,cr);
                     }
                 }
@@ -2576,7 +2559,7 @@ Lagain:
         while (*++p);
         c = genregs(c,0x8B,BP,SP);                              // MOV BP,SP
         if (localsize)
-            c = genc2(c,0x81,modregrm(3,5,SP),localsize);       // SUB SP,localsize
+            c = cod3_stackadj(c, localsize);
         tyf |= mTYloadds;
         hasframe = 1;
         goto Lcont;
@@ -2767,7 +2750,7 @@ Lagain:
                      *      SUB     ESP, xlocalsize % 0x1000
                      */
                     c = movregconst(c, reg, xlocalsize / 0x1000, FALSE);
-                    code *csub = genc2(NULL,0x81,modregrm(3,5,SP),0x1000);
+                    code *csub = cod3_stackadj(NULL, 0x1000);
                     if (I64)
                         code_orrex(csub, REX_W);
                     code_orflag(csub, CFtarg2);
@@ -2781,9 +2764,7 @@ Lagain:
                         genc2(csub,JNE,0,(targ_uns)-12);
                     }
                     regimmed_set(reg,0);             // reg is now 0
-                    genc2(csub,0x81,modregrm(3,5,SP),xlocalsize & 0xFFF);
-                    if (I64)
-                        code_orrex(csub, REX_W);
+                    cod3_stackadj(csub, xlocalsize & 0xFFF);
                     c = cat(c,csub);
                     useregs(mask[reg]);
                 }
@@ -2806,11 +2787,7 @@ Lagain:
                     pushalloc = 1;
                 }
                 else
-                {   // SUB SP,xlocalsize
-                    c = genc2(c,0x81,modregrm(3,5,SP),xlocalsize);
-                    if (I64)
-                        code_orrex(c, REX_W);
-                }
+                    c = cod3_stackadj(c, xlocalsize);
             }
 
             if (usedalloca)
@@ -2842,11 +2819,7 @@ Lagain:
             pushalloc = 1;
         }
         else
-        {   // SUB ESP,xlocalsize
-            c = genc2(c,0x81,modregrm(3,5,SP),xlocalsize);
-            if (I64)
-                code_orrex(c, REX_W);
-        }
+            c = cod3_stackadj(c, xlocalsize);
         BPoff += REGSIZE;
     }
     else
@@ -2881,9 +2854,7 @@ Lagain:
              * registers are saved. But I don't remember why the call is here
              * and not there.
              */
-            c = genc2(c,0x81,modregrm(3,5,SP),spalign); // SUB ESP,spalign
-            if (I64)
-                code_orrex(c, REX_W);
+            c = cod3_stackadj(c, spalign);
         }
 
         symbol *s = rtlsym[farfunc ? RTLSYM_TRACE_PRO_F : RTLSYM_TRACE_PRO_N];
@@ -2921,11 +2892,7 @@ Lagain:
         genasm(c,name,len);                             // append func name
 #endif
         if (spalign)
-        {
-            c = genc2(c,0x81,modregrm(3,0,SP),spalign); // ADD ESP,npush * REGSIZE
-            if (I64)
-                code_orrex(c, REX_W);
-        }
+            c = cod3_stackadj(c, -spalign);
         useregs((ALLREGS | mBP | mES) & ~s->Sregsaved);
     }
 
@@ -3468,11 +3435,7 @@ void epilog(block *b)
             c = gen1(c,0x58 + regx);                    // POP regx
         }
         else if (xlocalsize)
-        {
-            c = genc2(c,0x81,modregrm(3,0,SP),xlocalsize);      // ADD SP,xlocalsize
-            if (I64)
-                code_orrex(c, REX_W);
-        }
+            c = cod3_stackadj(c, -xlocalsize);
     }
     if (b->BC == BCret || b->BC == BCretexp)
     {

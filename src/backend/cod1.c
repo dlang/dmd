@@ -285,7 +285,7 @@ void genEEcode()
     regcon.immed.mval = 0;
     retregs = 0;    //regmask(eecontext.EEelem->Ety);
     assert(EEoffset >= REGSIZE);
-    c = genc2(NULL,0x81,modregrm(3,5,SP),EEoffset - REGSIZE); // SUB ESP,EEoffset
+    c = cod3_stackadj(NULL, EEoffset - REGSIZE);
     gen1(c,0x50 + SI);                      // PUSH ESI
     genadjesp(c,EEoffset);
     c = gencodelem(c,eecontext.EEelem,&retregs, FALSE);
@@ -383,10 +383,7 @@ code *genstackclean(code *c,unsigned numpara,regm_t keepmsk)
                 c = gen1(c,0x58 + r);           // POP r
             }
             else
-            {   c = genc2(c,0x81,modregrm(3,0,SP),numpara); // ADD SP,numpara
-                if (I64)
-                    code_orrex(c, REX_W);
-            }
+                c = cod3_stackadj(c, -numpara);
         }
         stackpush -= numpara;
         c = genadjesp(c,-numpara);
@@ -2226,9 +2223,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             int npush = (npushed + pushebx) * REGSIZE + stackpush;
             if (npush & (STACKALIGN - 1))
             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
-                c = genc2(c,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-                if (I64)
-                    code_orrex(c, REX_W);
+                c = cod3_stackadj(c, nalign);
             }
         }
         if (pushebx)
@@ -2238,10 +2233,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         c = cat(c, cgot);                                       // EBX = localgot
         c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
         if (nalign)
-        {   c = genc2(c,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-            if (I64)
-                code_orrex(c, REX_W);
-        }
+            c = cod3_stackadj(c, -nalign);
         calledafunc = 1;
 
         if (I16 &&                                   // bug in Optlink for weak references
@@ -2435,9 +2427,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     if (STACKALIGN == 16 && (numpara + stackpush) & (STACKALIGN - 1))
     {
         numalign = STACKALIGN - ((numpara + stackpush) & (STACKALIGN - 1));
-        c = genc2(c,0x81,modregrm(3,5,SP),numalign); // SUB RSP,numalign
-        if (I64)
-            code_orrex(c, REX_W);
+        c = cod3_stackadj(c, numalign);
         c = genadjesp(c, numalign);
         stackpush += numalign;
         stackpushsave += numalign;
@@ -2490,9 +2480,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             unsigned numalign = parameters[i].numalign;
             if (numalign)
             {
-                c = genc2(c,0x81,modregrm(3,5,SP),numalign); // SUB RSP,numalign
-                if (I64)
-                    code_orrex(c, REX_W);
+                c = cod3_stackadj(c, numalign);
                 c = genadjesp(c, numalign);
                 stackpush += numalign;
             }
@@ -2949,7 +2937,7 @@ code *params(elem *e,unsigned stackalign)
         e1 = e->E1;
         c = docommas(&e1);              /* skip over any comma expressions */
 
-        c = genc2(c,0x81,grex | modregrm(3,5,SP),sz); // SUB SP,sizeof(struct)
+        c = cod3_stackadj(c, sz);
         stackpush += sz;
         genadjesp(c,sz);
 
@@ -3402,7 +3390,7 @@ code *params(elem *e,unsigned stackalign)
         c = cat(c,codelem(e,&retregs,FALSE));
         stackpush += sz;
         c = genadjesp(c,sz);
-        c = genc2(c,0x81,grex | modregrm(3,5,SP),sz);      // SUB SP,sz
+        c = cod3_stackadj(c, sz);
         unsigned op = xmmstore(tym);
         unsigned r = findreg(retregs);
         c = gen2sib(c,op,modregxrm(0,r - XMM0,4),modregrm(0,4,SP));   // MOV [ESP],r
@@ -3418,7 +3406,7 @@ code *params(elem *e,unsigned stackalign)
             c = cat(c,codelem(e,&retregs,FALSE));
             stackpush += sz;
             c = genadjesp(c,sz);
-            c = genc2(c,0x81,grex | modregrm(3,5,SP),sz);      // SUB SP,sz
+            c = cod3_stackadj(c, sz);
             switch (tym)
             {
                 case TYfloat:
