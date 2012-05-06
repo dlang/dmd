@@ -38,12 +38,11 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 static  int addrparam;  /* see if any parameters get their address taken */
 
+#if SCPP
+
 /**********************************
  * We put out an external definition.
  */
-
-#if SCPP
-
 void out_extdef(symbol *s)
 {
     pstate.STflags |= PFLextdef;
@@ -55,27 +54,17 @@ void out_extdef(symbol *s)
         synerr(EM_data_in_pch,prettyident(s));          // data or code in precompiled header
 }
 
-#endif
-
-#if TX86
-#if SCPP
 /********************************
  * Put out code segment name record.
  */
-
 void outcsegname(char *csegname)
 {
     obj_codeseg(csegname,0);
 }
-#endif
-#endif
 
 /***********************************
  * Output function thunk.
  */
-
-#if SCPP
-
 void outthunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         targ_size_t d,int i,targ_size_t d2)
 {
