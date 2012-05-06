@@ -2278,48 +2278,6 @@ void fillParameters(elem *e, Parameter *parameters, int *pi)
     }
 }
 
-/*******************************
- * Return the set of registers to use for parameter passing.
- */
-
-const unsigned char* getintegerparamsreglist(tym_t tyf, size_t* num)
-{
-    if (I64)
-    {
-        static const unsigned char reglist[] = { DI,SI,DX,CX,R8,R9 };
-        *num = 6;
-        return reglist;
-    }
-    else
-    {
-        *num = 1;
-        if (tyf == TYjfunc)
-        {
-            static const unsigned char reglist[] = { AX };
-            return reglist;
-        }
-        else
-        {
-            static const unsigned char reglist[] = { CX };
-            return reglist;
-        }
-    }
-}
-
-const unsigned char* getfloatparamsreglist(tym_t tyf, size_t* num)
-{
-    if (I64)
-    {
-        *num = 8;
-        static const unsigned char reglist[] = { XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
-        return reglist;
-    }
-    else
-    {
-        *num = 0;
-        return NULL;
-    }
-}
 
 /***********************************
  * tyf: type of the function
@@ -2330,8 +2288,39 @@ FuncParamRegs::FuncParamRegs(tym_t tyf)
     i = 0;
     regcnt = 0;
     xmmcnt = 0;
-    argregs = getintegerparamsreglist(tyf, &numintegerregs);
-    floatregs = getfloatparamsreglist(tyf, &numfloatregs);
+
+    if (I64)
+    {
+        static const unsigned char reglist[] = { DI,SI,DX,CX,R8,R9 };
+        argregs = reglist;
+        numintegerregs = sizeof(reglist) / sizeof(reglist[0]);
+    }
+    else
+    {
+        if (tyf == TYjfunc)
+        {
+            static const unsigned char reglist[] = { AX };
+            argregs = reglist;
+            numintegerregs = sizeof(reglist) / sizeof(reglist[0]);
+        }
+        else if (tyf == TYmfunc)
+        {
+            static const unsigned char reglist[] = { CX };
+            argregs = reglist;
+            numintegerregs = sizeof(reglist) / sizeof(reglist[0]);
+        }
+        else
+            numintegerregs = 0;
+    }
+
+    if (I64)
+    {
+        static const unsigned char reglist[] = { XMM0, XMM1, XMM2, XMM3, XMM4, XMM5, XMM6, XMM7 };
+        floatregs = reglist;
+        numfloatregs = sizeof(reglist) / sizeof(reglist[0]);
+    }
+    else
+        numfloatregs = 0;
 }
 
 /*****************************************
@@ -2347,7 +2336,7 @@ int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char 
     if (regcnt < numintegerregs)
     {
         if ((I64 || (i == 1 && (tyf == TYjfunc || tyf == TYmfunc))) &&
-            type_jparam(t))
+            type_jparam2(t, ty))
         {
             *preg1 = argregs[regcnt];
             ++regcnt;
@@ -2411,13 +2400,20 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     {
                         numpara += paramsize(ep->E1,stackalign);
                     }
-
+#if 1
+                    {   FuncParamRegs fpr(tyf);
+                        unsigned char reg1;
+                        if (!fpr.alloc(ep->ET, ep->Ety, &reg1, NULL))
+                            numpara += paramsize(ep,stackalign);
+                    }
+#else
                     if (tyf == TYjfunc &&
                         !type_jparam2(ep->ET, ep->Ety)
                         )
                     {
                         numpara += paramsize(ep,stackalign);
                     }
+#endif
                     break;
                 default:
                 Ldefault:
@@ -2460,12 +2456,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     goto Ldefault2;
 #endif
                 case TYmfunc:   // last parameter goes into ECX
-                    preg = CX;
-                    goto L1;
                 case TYjfunc:   // last parameter goes into EAX
-                    preg = AX;
-                    goto L1;
-                L1:
                 {   elem *ep;
                     elem *en;
                     for (ep = e->E2; ep->Eoper == OPparam; ep = en)
@@ -2474,6 +2465,16 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         en = ep->E2;
                         freenode(ep);
                     }
+#if 1
+                    {   FuncParamRegs fpr(tyf);
+                        unsigned char reg1;
+                        if (!fpr.alloc(ep->ET, ep->Ety, &reg1, NULL))
+                        {   c = cat(c,params(ep,stackalign));
+                            goto Lret;
+                        }
+                        preg = reg1;
+                    }
+#else
                     if (tyf == TYjfunc &&
                         !type_jparam2(ep->ET, ep->Ety)
                         )
@@ -2481,6 +2482,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                         c = cat(c,params(ep,stackalign));
                         goto Lret;
                     }
+#endif
                     // preg is the register to put the parameter ep in
                     keepmsk = mask[preg];       // don't change preg when evaluating func address
                     regm_t retregs = keepmsk;
@@ -2534,32 +2536,16 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
             // Figure out which parameters go in registers
             // Compute numpara, the total bytes pushed on the stack
-            size_t numintegerregs = 0, numfloatregs = 0;
-            const unsigned char* argregs = getintegerparamsreglist(tyf, &numintegerregs);
-            const unsigned char* floatregs = getfloatparamsreglist(tyf, &numfloatregs);
-            int r = 0;
-            int xmmcnt = 0;
+            FuncParamRegs fpr(tyf);
+
             for (int i = np; --i >= 0;)
             {
                 elem *ep = parameters[i].e;
-                tym_t ty = ep->Ety;
-                if (r < numintegerregs)     // if more arg regs
+                unsigned char r;
+                if (fpr.alloc(ep->ET, ep->Ety, &r, NULL))
                 {
-                    if (type_jparam2(ep->ET, ep->Ety))
-                    {
-                        parameters[i].reg = argregs[r];
-                        r++;
-                        continue;       // goes in register, not stack
-                    }
-                }
-                if (xmmcnt < numfloatregs)
-                {
-                    if (tyxmmreg(ty))
-                    {
-                        parameters[i].reg = floatregs[xmmcnt];
-                        xmmcnt++;
-                        continue;       // goes in register, not stack
-                    }
+                    parameters[i].reg = r;
+                    continue;   // goes in register, not stack
                 }
 
                 // Parameter i goes on the stack
@@ -2598,6 +2584,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             memset(regsaved, -1, sizeof(regsaved));
             code *crest = NULL;
             regm_t saved = 0;
+            int xmmcnt = 0;
 
             /* Parameters go into the registers RDI,RSI,RDX,RCX,R8,R9
              * float and double parameters go into XMM0..XMM7
@@ -2650,6 +2637,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 {
                     // Goes in register preg, not stack
                     regm_t retregs = mask[preg];
+                    if (retregs & XMMREGS)
+                        ++xmmcnt;
                     if (ep->Eoper == OPstrthis)
                     {
                         code *c1 = getregs(retregs);

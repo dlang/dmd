@@ -730,8 +730,6 @@ code *fixresult (elem *e , regm_t retregs , regm_t *pretregs );
 code *callclib (elem *e , unsigned clib , regm_t *pretregs , regm_t keepmask );
 cd_t cdfunc;
 cd_t cdstrthis;
-const unsigned char* getintegerparamsreglist(tym_t tyf, size_t* num);
-const unsigned char* getfloatparamsreglist(tym_t tyf, size_t* num);
 code *params(elem *, unsigned);
 code *offsetinreg (elem *e , regm_t *pretregs );
 code *loaddata (elem *e , regm_t *pretregs );
