@@ -1685,7 +1685,13 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     type->toCBuffer(buf, ident, hgs);
     if(hgs->hdrgen == 1)
     {
-        if(hgs->tpltMember == 0)
+        if(storage_class & STCauto)
+        {
+			hgs->autoMember++;
+            bodyToCBuffer(buf, hgs);
+			hgs->autoMember--;
+        }
+		else if(hgs->tpltMember == 0)
             buf->writestring(";");
         else
             bodyToCBuffer(buf, hgs);
@@ -1787,7 +1793,7 @@ int FuncDeclaration::equals(Object *o)
 
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (fbody && (!hgs->hdrgen || hgs->tpltMember))
+    if (fbody && (!hgs->hdrgen || hgs->autoMember || hgs->tpltMember))
     {   buf->writenl();
 
         // in{}
@@ -3318,7 +3324,9 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(kind());
     buf->writeByte(' ');
     type->toCBuffer(buf, NULL, hgs);
+	hgs->tpltMember++;
     bodyToCBuffer(buf, hgs);
+	hgs->tpltMember--;
 }
 
 

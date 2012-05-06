@@ -22,6 +22,7 @@ struct HdrGenState
     int inBinExp;
     int inArrExp;
     int emitInst;
+	int autoMember;     // Non-zero if function is an auto type
 
     struct
     {

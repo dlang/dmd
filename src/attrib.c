@@ -723,7 +723,6 @@ void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT protection)
 
 void ProtDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    //if(protection == PROTprivate) if(isFuncDeclaration() != NULL) return;        //Uncomment this if it is decided that privates should not be in DI files.
     protectionToCBuffer(buf, protection);
     AttribDeclaration::toCBuffer(buf, hgs);
 }
