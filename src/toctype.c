@@ -362,6 +362,8 @@ type *TypeStruct::toCtype()
         s->Sstruct->Salignsize = sym->alignsize;
         s->Sstruct->Sstructalign = sym->alignsize;
         s->Sstruct->Sstructsize = sym->structsize;
+        s->Sstruct->Sarg1type = sym->arg1type ? sym->arg1type->toCtype() : NULL;
+        s->Sstruct->Sarg2type = sym->arg2type ? sym->arg2type->toCtype() : NULL;
 
         if (sym->isUnionDeclaration())
             s->Sstruct->Sflags |= STRunion;

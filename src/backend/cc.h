@@ -1029,6 +1029,10 @@ typedef struct STRUCT
                                 // of a template class, this is the
                                 // template class Symbol
 
+    // For 64 bit Elf function ABI
+    type *Sarg1type;
+    type *Sarg2type;
+
     /* For:
      *  template<class T> struct A { };
      *  template<class T> struct A<T *> { };

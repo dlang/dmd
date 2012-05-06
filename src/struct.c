@@ -327,6 +327,8 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
 
     xeq = NULL;
 #endif
+    arg1type = NULL;
+    arg2type = NULL;
 
     // For forward references
     type = new TypeStruct(this);
@@ -626,6 +628,15 @@ void StructDeclaration::semantic(Scope *sc)
     aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);
     aggDelete = (DeleteDeclaration *)search(0, Id::classDelete,    0);
 
+    TypeTuple *tup = type->toArgTypes();
+    size_t dim = tup->arguments->dim;
+    if (dim >= 1)
+    {   assert(dim <= 2);
+        arg1type = (*tup->arguments)[0]->type;
+        if (dim == 2)
+            arg2type = (*tup->arguments)[1]->type;
+    }
+
     if (sc->func)
     {
         semantic2(sc);
@@ -689,6 +700,19 @@ void StructDeclaration::finalizeSize(Scope *sc)
     structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
 
     sizeok = SIZEOKdone;
+}
+
+/***************************************
+ * Return true if struct is POD (Plain Old Data).
+ * This is defined as:
+ *      not nested
+ *      no constructors, postblits, destructors, or assignment operators
+ *      no fields with with any of those
+ * The idea being these are compatible with C structs.
+ */
+bool StructDeclaration::isPOD()
+{
+    return !(isnested || cpctor || postblit || ctor || dtor);
 }
 
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
