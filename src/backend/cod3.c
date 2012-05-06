@@ -2484,13 +2484,9 @@ Lagain:
      */
 
     if (tym == TYifunc)
-        Poff = 26;
-    else if (I64)
-        Poff = 16;
-    else if (I32)
-        Poff = farfunc ? 12 : 8;
+        Poff = 26; // how is this number derived?
     else
-        Poff = farfunc ? 6 : 4;
+        Poff = (farfunc ? 3 : 2) * REGSIZE;
 
     Aoff = 0;
 #if NTEXCEPTIONS == 2
