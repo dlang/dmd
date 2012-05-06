@@ -1687,11 +1687,11 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         if(storage_class & STCauto)
         {
-			hgs->autoMember++;
+            hgs->autoMember++;
             bodyToCBuffer(buf, hgs);
-			hgs->autoMember--;
+            hgs->autoMember--;
         }
-		else if(hgs->tpltMember == 0)
+        else if(hgs->tpltMember == 0)
             buf->writestring(";");
         else
             bodyToCBuffer(buf, hgs);
@@ -3324,9 +3324,9 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(kind());
     buf->writeByte(' ');
     type->toCBuffer(buf, NULL, hgs);
-	hgs->tpltMember++;
+    hgs->tpltMember++;
     bodyToCBuffer(buf, hgs);
-	hgs->tpltMember--;
+    hgs->tpltMember--;
 }
 
 
