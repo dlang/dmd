@@ -19,6 +19,9 @@
 # $(CC) - requires Digital Mars C++ Compiler ($DM_HOME\dm\bin\dmc.exe)
 #   http://www.digitalmars.com/ctg/sc.html
 #
+# cppunit target - requires STLport 4.5.3 ($DM_HOME\dm\stlport\stlport)
+#   http://www.digitalmars.com/download/freecompiler.html
+#
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
 #   https://github.com/D-Programming-Language/tools.
 #
@@ -57,6 +60,7 @@
 # reldmd        - release dmd
 # detab         - replace hard tabs with spaces
 # tolf          - convert to Unix line endings
+# cppunit       - cppunit library
 
 ############################### Configuration ################################
 
@@ -64,13 +68,18 @@
 
 # Root directory of Digital Mars tools (i.e.: where you installed DMC)
 D=$(DM_HOME)
-# Location of DMC
+# DMC directory
 DMCROOT=$D\dm
-INCLUDE=$(DMCROOT)\include
+# STLPort directory
+STLPORT=$(DMCROOT)\stlport\stlport
 # DMD source directories
 C=backend
 TK=tk
 ROOT=root
+# CPPUnit directory
+CPPUNIT=cppunit-1.12.1
+# Include directories
+INCLUDE=$(ROOT);$(DMCROOT)\include
 # Install directory
 DIR=$D\dmd2
 
@@ -78,6 +87,10 @@ DIR=$D\dmd2
 
 # C++ compiler
 CC=dmc
+# Make program
+MAKE=make
+# Librarian
+LIB=lib
 # File copy
 CP=cp
 # De-tabify
@@ -86,8 +99,6 @@ DETAB=detab
 TOLF=tolf
 # Zip
 ZIP=zip32
-# Recursive make
-MAKE=make -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
 ##### User configuration switches
 
@@ -98,20 +109,28 @@ TARGETEXE=$(TARGET).exe
 CFLAGS=
 # Custom compile flags for all modules
 OPT=
+# Custom compile flags for compiler unit tests
+TFLAGS=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
 # Precompiled Header support
 # To enable, use: PREC=-H -HItotal.h -HO
 PREC=
-# Link flags (prefix with -L)
+# Linker flags (prefix with -L)
 LFLAGS=
+# Librarian flags
+BFLAGS=
 
-##### Implementation switches (do not modify)
+##### Implementation variables (do not modify)
 
 # Compile flags
-CFLAGS=-I$(ROOT);$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
+CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
+# Compile flags for compiler unit tests
+TFLAGS=-I$(STLPORT);$(CPPUNIT)\include $(CFLAGS) $(TFLAGS) -Aa -Ab -Ae -Ar
+# Recursive make
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
 ############################## Release Targets ###############################
 
@@ -120,18 +139,33 @@ defaulttarget: debdmd
 dmd: reldmd
 
 release:
-	$(MAKE) clean
-	$(MAKE) reldmd
-	$(MAKE) clean
+	$(DMDMAKE) clean
+	$(DMDMAKE) reldmd
+	$(DMDMAKE) clean
 
 debdmd:
-	$(MAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
 
 reldmd:
-	$(MAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
 
 trace:
-	$(MAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
+
+
+################### Unit Tests ################
+# TODO: Work in progress!
+
+cppunit: $(CPPUNIT)\lib\cppunit.lib
+
+#TESTS=dchar_test.exe
+
+#dmdtest: $(TESTS)
+
+#DCHARDEP=root\test\dchar_test.cpp dchar.obj
+
+#dchar_test.exe: $(DCHAROBJS)
+#	$(CC) -o $@ $(TFLAGS) $(DCHARDEP) $(CPPUNIT)\lib\cppunit.lib
 
 ############################ Maintenance Targets #############################
 
@@ -141,6 +175,8 @@ clean:
 	del msgs.h msgs.c
 	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	del impcnvtab.c
+	cd $(CPPUNIT)\src\cppunit
+	$(MAKE) clean
 
 install: detab install-copy
 
@@ -278,16 +314,20 @@ CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 # Makefiles
 MAKEFILES=win32.mak posix.mak
 
-############################# Executable Target ##############################
+############################## Project Targets ###############################
 
 $(TARGETEXE): $(OBJS) win32.mak
-	dmc -o$(TARGETEXE) $(OBJS) -cpp -mn -Ar $(LFLAGS)
+	$(CC) -o$(TARGETEXE) $(OBJS) -cpp -mn -Ar $(LFLAGS)
+
+$(CPPUNIT)\lib\cppunit.lib:
+	cd $(CPPUNIT)\src\cppunit
+	$(MAKE) CC=$(CC) LIB=$(LIB) "TFLAGS=$(TFLAGS)" "BFLAGS=$(BFLAGS)"
 
 ############################## Generated Source ##############################
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
+	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
@@ -295,7 +335,7 @@ impcnvtab.c : impcnvgen.c
 	impcnvgen
 
 id.h id.c : idgen.c
-	dmc -cpp idgen
+	$(CC) -cpp idgen
 	idgen
 
 ############################# Intermediate Rules ############################
