@@ -241,13 +241,6 @@ extern (C) void _d_hidden_func()
     onHiddenFuncError(o);
 }
 
-shared bool _d_isHalting = false;
-
-extern (C) bool rt_isHalting()
-{
-    return _d_isHalting;
-}
-
 __gshared string[] _d_args = null;
 
 extern (C) string[] rt_args()
@@ -309,7 +302,6 @@ extern (C) bool rt_term(ExceptionHandler dg = null)
     {
         rt_moduleTlsDtor();
         thread_joinAll();
-        _d_isHalting = true;
         rt_moduleDtor();
         gc_term();
         return true;
@@ -543,7 +535,6 @@ extern (C) int main(int argc, char** argv)
             result = EXIT_FAILURE;
         rt_moduleTlsDtor();
         thread_joinAll();
-        _d_isHalting = true;
         rt_moduleDtor();
         gc_term();
     }

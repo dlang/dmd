@@ -17,8 +17,6 @@ module core.runtime;
 
 private
 {
-    extern (C) bool rt_isHalting();
-
     alias bool function() ModuleUnitTester;
     alias bool function(Object) CollectHandler;
     alias Throwable.TraceInfo function( void* ptr ) TraceHandler;
@@ -133,20 +131,6 @@ struct Runtime
     static bool terminate( ExceptionHandler dg = null )
     {
         return rt_term( dg );
-    }
-
-
-    /**
-     * Returns true if the runtime is halting.  Under normal circumstances,
-     * this will be set between the time that normal application code has
-     * exited and before module dtors are called.
-     *
-     * Returns:
-     *  true if the runtime is halting.
-     */
-    deprecated static @property bool isHalting()
-    {
-        return rt_isHalting();
     }
 
 
