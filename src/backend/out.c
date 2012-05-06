@@ -1041,17 +1041,17 @@ STATIC void writefunc2(symbol *sfunc)
         s->Sflags &= ~(SFLunambig | GTregcand);
         switch (s->Sclass)
         {
-#if SCPP
-            case SCauto:
-            case SCregister:
-                s->Sfl = FLauto;
-                goto L3;
             case SCtmp:
                 s->Sfl = FLtmp;
                 goto L3;
             case SCbprel:
                 s->Sfl = FLbprel;
                 goto L3;
+            case SCauto:
+            case SCregister:
+                s->Sfl = FLauto;
+                goto L3;
+#if SCPP
             case SCfastpar:
             case SCregpar:
             case SCparameter:
@@ -1066,15 +1066,7 @@ STATIC void writefunc2(symbol *sfunc)
                 assert(s->Sclass != SCfastpar);
 #else
             case SCfastpar:
-            case SCauto:
-            case SCregister:
                 s->Sfl = FLauto;
-                goto L3;
-            case SCtmp:
-                s->Sfl = FLtmp;
-                goto L3;
-            case SCbprel:
-                s->Sfl = FLbprel;
                 goto L3;
             case SCregpar:
             case SCparameter:
