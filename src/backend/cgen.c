@@ -267,7 +267,6 @@ code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
     cs.Iop = op;
     cs.Iea = ea;
     ccheck(&cs);
-    cs.Iflags = 0;
     cs.IFL2 = FL2;
     cs.IEVsym2 = s;
     cs.IEVoffset2 = 0;
@@ -336,10 +335,6 @@ code *genlinnum(code *c,Srcpos srcpos)
     srcpos.print("genlinnum");
 #endif
     cs.Iop = ESCAPE | ESClinnum;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = 0;
-    cs.IFL2 = 0;
     cs.IEV1.Vsrcpos = srcpos;
     return gen(c,&cs);
 }
@@ -373,8 +368,6 @@ code *genadjesp(code *c, int offset)
     if (!I16 && offset)
     {
         cs.Iop = ESCAPE | ESCadjesp;
-        cs.Iflags = 0;
-        cs.Irex = 0;
         cs.IEV1.Vint = offset;
         return gen(c,&cs);
     }
@@ -394,8 +387,6 @@ code *genadjfpu(code *c, int offset)
     if (!I16 && offset)
     {
         cs.Iop = ESCAPE | ESCadjfpu;
-        cs.Iflags = 0;
-        cs.Irex = 0;
         cs.IEV1.Vint = offset;
         return gen(c,&cs);
     }
