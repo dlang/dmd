@@ -879,31 +879,6 @@ int type_isvla(type *t)
     return 0;
 }
 
-/*************************************
- * Determine if type can be passed in a register.
- */
-
-int type_jparam(type *t)
-{
-    return type_jparam2(t, t->Tty);
-}
-
-// t is valid only if ty is a TYstruct or TYarray
-int type_jparam2(type *t, tym_t ty)
-{
-    targ_size_t sz;
-    if (t)
-        type_debug(t);
-    ty = tybasic(ty);
-    return tyjparam(ty) ||
-
-                ((ty == TYstruct || ty == TYarray) &&
-                 (sz = type_size(t)) <= NPTRSIZE &&
-                 (sz == 1 || sz == 2 || sz == 4 || sz == 8)) /*||
-
-                tybasic(ty) == TYfloat4*/;
-}
-
 
 /**********************************
  * Pretty-print a type.
