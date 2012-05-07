@@ -2311,8 +2311,6 @@ L1:
 #endif
                 if (mreg & 1 && regcon.immed.value[r] == value)
                 {   c = genmovreg(c,reg,r);
-                    if (flags & 64)
-                        code_orrex(c, REX_W);
                     goto done;
                 }
                 r++;
