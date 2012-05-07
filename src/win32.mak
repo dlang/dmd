@@ -19,9 +19,6 @@
 # $(CC) - requires Digital Mars C++ Compiler ($DM_HOME\dm\bin\dmc.exe)
 #   http://www.digitalmars.com/ctg/sc.html
 #
-# cppunit target - requires STLport 4.5.3 ($DM_HOME\dm\stlport\stlport)
-#   http://www.digitalmars.com/download/freecompiler.html
-#
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
 #   https://github.com/D-Programming-Language/tools.
 #
@@ -60,7 +57,6 @@
 # reldmd        - release dmd
 # detab         - replace hard tabs with spaces
 # tolf          - convert to Unix line endings
-# cppunit       - cppunit library
 
 ############################### Configuration ################################
 
@@ -68,18 +64,13 @@
 
 # Root directory of Digital Mars tools (i.e.: where you installed DMC)
 D=$(DM_HOME)
-# DMC directory
+# Location of DMC
 DMCROOT=$D\dm
-# STLPort directory
-STLPORT=$(DMCROOT)\stlport\stlport
+INCLUDE=$(DMCROOT)\include
 # DMD source directories
 C=backend
 TK=tk
 ROOT=root
-# CPPUnit directory
-CPPUNIT=cppunit-1.12.1
-# Include directories
-INCLUDE=$(ROOT);$(DMCROOT)\include
 # Install directory
 DIR=$D\dmd2
 
@@ -87,10 +78,6 @@ DIR=$D\dmd2
 
 # C++ compiler
 CC=dmc
-# Make program
-MAKE=make
-# Librarian
-LIB=lib
 # File copy
 CP=cp
 # De-tabify
@@ -99,6 +86,8 @@ DETAB=detab
 TOLF=tolf
 # Zip
 ZIP=zip32
+# Recursive make
+MAKE=make -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
 ##### User configuration switches
 
@@ -109,28 +98,20 @@ TARGETEXE=$(TARGET).exe
 CFLAGS=
 # Custom compile flags for all modules
 OPT=
-# Custom compile flags for compiler unit tests
-TFLAGS=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
 # Precompiled Header support
 # To enable, use: PREC=-H -HItotal.h -HO
 PREC=
-# Linker flags (prefix with -L)
+# Link flags (prefix with -L)
 LFLAGS=
-# Librarian flags
-BFLAGS=
 
-##### Implementation variables (do not modify)
+##### Implementation switches (do not modify)
 
 # Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
+CFLAGS=-I$(ROOT);$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
-# Compile flags for compiler unit tests
-TFLAGS=-I$(STLPORT);$(CPPUNIT)\include $(CFLAGS) $(TFLAGS) -Aa -Ab -Ae -Ar
-# Recursive make
-DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
 ############################## Release Targets ###############################
 
@@ -139,73 +120,18 @@ defaulttarget: debdmd
 dmd: reldmd
 
 release:
-	$(DMDMAKE) clean
-	$(DMDMAKE) reldmd
-	$(DMDMAKE) clean
-
-debdmd:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
-
-reldmd:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
-
-trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
-
-
-################### Unit Tests ################
-# TODO: Work in progress!
-
-cppunit: $(CPPUNIT)\lib\cppunit.lib
-
-#TESTS=dchar_test.exe
-
-#dmdtest: $(TESTS)
-
-#DCHARDEP=root\test\dchar_test.cpp dchar.obj
-
-#dchar_test.exe: $(DCHAROBJS)
-#	$(CC) -o $@ $(TFLAGS) $(DCHARDEP) $(CPPUNIT)\lib\cppunit.lib
-
-############################ Maintenance Targets #############################
-
-clean:
-	del *.obj
-	del total.sym
-	del msgs.h msgs.c
-	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	del impcnvtab.c
-	cd $(CPPUNIT)\src\cppunit
+	$(MAKE) clean
+	$(MAKE) reldmd
 	$(MAKE) clean
 
-install: detab install-copy
+debdmd:
+	$(MAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
 
-install-copy:
-	$(CP) $(TARGETEXE) $(DIR)\windows\bin\
-	$(CP) phobos\phobos.lib $(DIR)\windows\lib
-	$(CP) $(SRCS) $(DIR)\src\dmd\
-	$(CP) $(ROOTSRC) $(DIR)\src\dmd\root\
-	$(CP) $(TKSRC) $(DIR)\src\dmd\tk\
-	$(CP) $(BACKSRC) $(DIR)\src\dmd\backend\
-	$(CP) $(MAKEFILES) $(DIR)\src\dmd\
-	$(CP) gpl.txt $(DIR)\src\dmd\
-	$(CP) readme.txt $(DIR)\src\dmd\
-	$(CP) artistic.txt $(DIR)\src\dmd\
-	$(CP) backendlicense.txt $(DIR)\src\dmd\
+reldmd:
+	$(MAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
 
-detab:
-	$(DETAB) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
-
-tolf:
-	$(TOLF) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
-
-zip: detab tolf $(MAKEFILES)
-	del dmdsrc.zip
-	$(ZIP) dmdsrc $(MAKEFILES)
-	$(ZIP) dmdsrc $(SRCS)
-	$(ZIP) dmdsrc $(BACKSRC)
-	$(ZIP) dmdsrc $(TKSRC)
-	$(ZIP) dmdsrc $(ROOTSRC)
+trace:
+	$(MAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
 
 ############################### Rule Variables ###############################
 
@@ -314,20 +240,16 @@ CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 # Makefiles
 MAKEFILES=win32.mak posix.mak
 
-############################## Project Targets ###############################
+############################# Executable Target ##############################
 
 $(TARGETEXE): $(OBJS) win32.mak
-	$(CC) -o$(TARGETEXE) $(OBJS) -cpp -mn -Ar $(LFLAGS)
-
-$(CPPUNIT)\lib\cppunit.lib:
-	cd $(CPPUNIT)\src\cppunit
-	$(MAKE) CC=$(CC) LIB=$(LIB) "TFLAGS=$(TFLAGS)" "BFLAGS=$(BFLAGS)"
+	dmc -o$(TARGETEXE) $(OBJS) -cpp -mn -Ar $(LFLAGS)
 
 ############################## Generated Source ##############################
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
+	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
@@ -335,8 +257,46 @@ impcnvtab.c : impcnvgen.c
 	impcnvgen
 
 id.h id.c : idgen.c
-	$(CC) -cpp idgen
+	dmc -cpp idgen
 	idgen
+
+############################ Maintenance Targets #############################
+
+clean:
+	del *.obj
+	del total.sym
+	del msgs.h msgs.c
+	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
+	del impcnvtab.c
+
+install: detab install-copy
+
+install-copy:
+	$(CP) $(TARGETEXE) $(DIR)\windows\bin\
+	$(CP) phobos\phobos.lib $(DIR)\windows\lib
+	$(CP) $(SRCS) $(DIR)\src\dmd\
+	$(CP) $(ROOTSRC) $(DIR)\src\dmd\root\
+	$(CP) $(TKSRC) $(DIR)\src\dmd\tk\
+	$(CP) $(BACKSRC) $(DIR)\src\dmd\backend\
+	$(CP) $(MAKEFILES) $(DIR)\src\dmd\
+	$(CP) gpl.txt $(DIR)\src\dmd\
+	$(CP) readme.txt $(DIR)\src\dmd\
+	$(CP) artistic.txt $(DIR)\src\dmd\
+	$(CP) backendlicense.txt $(DIR)\src\dmd\
+
+detab:
+	$(DETAB) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
+
+tolf:
+	$(TOLF) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
+
+zip: detab tolf $(MAKEFILES)
+	del dmdsrc.zip
+	$(ZIP) dmdsrc $(MAKEFILES)
+	$(ZIP) dmdsrc $(SRCS)
+	$(ZIP) dmdsrc $(BACKSRC)
+	$(ZIP) dmdsrc $(TKSRC)
+	$(ZIP) dmdsrc $(ROOTSRC)
 
 ############################# Intermediate Rules ############################
 
