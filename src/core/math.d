@@ -25,10 +25,6 @@
  */
 module core.math;
 
-version(LDC) {
-    public import ldc.intrinsics;
-}
-
 public:
 
 /***********************************
