@@ -4842,17 +4842,12 @@ code *cdddtor(elem *e,regm_t *pretregs)
         int nalign = 0;
         if (STACKALIGN == 16)
         {   nalign = STACKALIGN - REGSIZE;
-            cd = genc2(cd,0x81,modregrm(3,5,SP),nalign); // SUB ESP,nalign
-            if (I64)
-                code_orrex(cd, REX_W);
+            cd = cod3_stackadj(cd, nalign);
         }
         calledafunc = 1;
         genjmp(cd,0xE8,FLcode,(block *)c);                  // CALL Ldtor
         if (nalign)
-        {   cd = genc2(cd,0x81,modregrm(3,0,SP),nalign); // ADD ESP,nalign
-            if (I64)
-                code_orrex(cd, REX_W);
-        }
+            cd = cod3_stackadj(cd, -nalign);
     }
     else
 #endif
