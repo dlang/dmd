@@ -2335,20 +2335,22 @@ FuncParamRegs::FuncParamRegs(tym_t tyf)
  */
 
 // t is valid only if ty is a TYstruct or TYarray
-int type_jparam2(type *t, tym_t ty)
+static int type_jparam2(type *t, tym_t ty)
 {
-    targ_size_t sz;
-    if (t)
-        type_debug(t);
     ty = tybasic(ty);
 
-#define tyjparam(ty)    (tysize(ty) <= NPTRSIZE && !tyfloating(ty) && tybasic(ty) != TYstruct && tybasic(ty) != TYarray)
-
-    return tyjparam(ty) ||
-
-                ((ty == TYstruct || ty == TYarray) &&
-                 (sz = type_size(t)) <= NPTRSIZE &&
-                 (sz == 1 || sz == 2 || sz == 4 || sz == 8));
+    if (tyfloating(ty))
+        ;
+    else if (ty == TYstruct || ty == TYarray)
+    {
+        type_debug(t);
+        targ_size_t sz = type_size(t);
+        return (sz <= NPTRSIZE) &&
+               (sz == 1 || sz == 2 || sz == 4 || sz == 8);
+    }
+    else if (tysize(ty) <= NPTRSIZE)
+        return 1;
+    return 0;
 }
 
 int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char *preg2)
