@@ -2347,6 +2347,18 @@ static int type_jparam2(type *t, tym_t ty)
 
 int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char *preg2)
 {
+    // If struct just wraps another type
+    if (ty == TYstruct && tybasic(t->Tty) == TYstruct)
+    {
+        type *targ1 = t->Ttag->Sstruct->Sarg1type;
+        type *targ2 = t->Ttag->Sstruct->Sarg2type;
+        if (targ1 && !targ2)
+        {
+            t = targ1;
+            ty = t->Tty;
+        }
+    }
+
     ++i;
     if (regcnt < numintegerregs)
     {
@@ -2880,7 +2892,7 @@ targ_size_t paramsize(elem *e,unsigned stackalign)
     tym_t tym = tybasic(e->Ety);
     if (tyscalar(tym))
         szb = size(tym);
-    else if (tym == TYstruct)
+    else if (tym == TYstruct || tym == TYarray)
         szb = type_size(e->ET);
     else
     {
@@ -2933,7 +2945,7 @@ code *params(elem *e,unsigned stackalign)
   /* sz = number of bytes pushed        */
   if (tyscalar(tym))
         szb = size(tym);
-  else if (tym == TYstruct)
+  else if (tym == TYstruct || tym == TYarray)
         szb = type_size(e->ET);
   else
   {

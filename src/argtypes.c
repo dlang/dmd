@@ -152,7 +152,7 @@ TypeTuple *TypeAArray::toArgTypes()
 
 TypeTuple *TypePointer::toArgTypes()
 {
-    return new TypeTuple(this);
+    return new TypeTuple(Type::tvoidptr);
 }
 
 TypeTuple *TypeDelegate::toArgTypes()
@@ -162,20 +162,40 @@ TypeTuple *TypeDelegate::toArgTypes()
 
 TypeTuple *TypeStruct::toArgTypes()
 {
+    Type *t;
     d_uns64 sz = size(0);
     assert(sz < 0xFFFFFFFF);
     switch ((unsigned)sz)
     {
         case 1:
-            return new TypeTuple(Type::tint8);
+            t = Type::tint8;
+            break;
         case 2:
-            return new TypeTuple(Type::tint16);
+            t = Type::tint16;
+            break;
         case 4:
-            return new TypeTuple(Type::tint32);
+            t = Type::tint32;
+            break;
         case 8:
-            return new TypeTuple(Type::tint64);
+            t = Type::tint64;
+            break;
+        default:
+            return new TypeTuple();     // pass on the stack
     }
-    return new TypeTuple();     // pass on the stack
+    if (global.params.is64bit)
+    {
+        if (sym->fields.dim == 1)
+        {   VarDeclaration *f = sym->fields[0];
+            TypeTuple *tup = f->type->toArgTypes();
+            if (tup)
+            {
+                size_t dim = tup->arguments->dim;
+                if (dim == 1)
+                    t = (*tup->arguments)[0]->type;
+            }
+        }
+    }
+    return new TypeTuple(t);
 }
 
 TypeTuple *TypeEnum::toArgTypes()
