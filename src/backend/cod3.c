@@ -3022,6 +3022,12 @@ Lcont:
         else if (s->Sclass == SCfastpar)
         {   // Argument is passed in a register
             unsigned preg = s->Spreg;
+            type *t = s->Stype;
+            if (tybasic(t->Tty) == TYstruct)
+            {   type *targ1 = t->Ttag->Sstruct->Sarg1type;
+                if (targ1)
+                    t = targ1;
+            }
 
             namedargs |= mask[preg];
 
@@ -3029,7 +3035,7 @@ Lcont:
             {   // MOV reg,preg
                 if (mask[preg] & XMMREGS)
                 {
-                    unsigned op = xmmload(s->Stype->Tty);      // MOVSS/D xreg,preg
+                    unsigned op = xmmload(t->Tty);      // MOVSS/D xreg,preg
                     unsigned xreg = s->Sreglsw - XMM0;
                     c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
                 }
@@ -3057,7 +3063,7 @@ Lcont:
                 int op = 0x89;                  // MOV x[EBP],preg
                 if (preg >= XMM0 && preg <= XMM15)
                 {
-                    op = xmmstore(s->Stype->Tty);
+                    op = xmmstore(t->Tty);
                 }
                 if (hasframe)
                 {
