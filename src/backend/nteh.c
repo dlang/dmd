@@ -398,7 +398,7 @@ code *nteh_prolog()
         gen(c,&cs);                             // MOV FS:__except_list,ESP
     }
 
-    c = genc2(c,0x81,modregrm(3,5,SP),8);       // SUB ESP,8
+    c = cod3_stackadj(c, 8);
 
     return cat(c1,c);
 }
@@ -674,7 +674,7 @@ code *cdsetjmp(elem *e,regm_t *pretregs)
     c = cat(c,getregs(~rtlsym[RTLSYM_SETJMP3]->Sregsaved & (ALLREGS | mES)));
     gencs(c,0xE8,0,FLfunc,rtlsym[RTLSYM_SETJMP3]);      // CALL __setjmp3
 
-    c = genc2(c,0x81,modregrm(3,0,SP),stackpush - stackpushsave);       // ADD ESP,8
+    c = cod3_stackadj(c, -(stackpush - stackpushsave));
     genadjesp(c,-(stackpush - stackpushsave));
 
     stackpush = stackpushsave;
@@ -730,10 +730,10 @@ code *nteh_unwind(regm_t retregs,unsigned index)
     gencs(c,0x68,0,FLextern,nteh_scopetable());         // PUSH &scope_table
 
     gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __d_local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),12);                  // ADD ESP,12
+    cod3_stackadj(c, -12);
 #else
     gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),8);                   // ADD ESP,8
+    cod3_stackadj(c, -8);
 #endif
 
     c = cat4(cs1,c,cs2,NULL);
@@ -778,10 +778,10 @@ code *linux_unwind(regm_t retregs,unsigned index)
 //    gencs(c,0x68,0,FLextern,nteh_scopetable());               // PUSH &scope_table
 
     gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __d_local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),4);                   // ADD ESP,12
+    cod3_stackadj(c, -4);
 #else
     gencs(c,0xE8,0,FLfunc,rtlsym[local_unwind]);        // CALL __local_unwind2()
-    genc2(c,0x81,modregrm(3,0,SP),8);                   // ADD ESP,8
+    cod3_stackadj(c, -8);
 #endif
 
     c = cat4(cs1,c,cs2,NULL);

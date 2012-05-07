@@ -3011,7 +3011,7 @@ code *cnvt87(elem *e,regm_t *pretregs)
             if (szpush == REGSIZE)
                 c1 = gen1(c1,0x50 + AX);                // PUSH EAX
             else
-                c1 = genc2(c1,0x81,grex | modregrm(3,5,SP), szpush);   // SUB ESP,12
+                c1 = cod3_stackadj(c1, szpush);
             c1 = genfwait(c1);
             genc1(c1,0xD9,modregrm(2,7,4) + 256*modregrm(0,4,SP),FLconst,szoff); // FSTCW szoff[ESP]
 
@@ -3047,7 +3047,7 @@ code *cnvt87(elem *e,regm_t *pretregs)
             c2 = genpop(c2,reg);                           // POP reg
 
             if (szpush)
-                genc2(c2,0x81,grex | modregrm(3,0,SP), szpush);        // ADD ESP,4
+                cod3_stackadj(c2, -szpush);
             c2 = cat(c2,fixresult(e,retregs,pretregs));
         }
         else
