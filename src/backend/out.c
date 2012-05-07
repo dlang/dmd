@@ -30,6 +30,7 @@
 #include        "parser.h"
 #include        "cpp.h"
 #include        "el.h"
+#include        "code.h"
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
@@ -1028,6 +1029,11 @@ STATIC void writefunc2(symbol *sfunc)
 
     // TX86 computes parameter offsets in stackoffsets()
     //printf("globsym.top = %d\n", globsym.top);
+
+#if SCPP
+    FuncParamRegs fpr(tyf);
+#endif
+
     for (si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
 
@@ -1041,9 +1047,6 @@ STATIC void writefunc2(symbol *sfunc)
         switch (s->Sclass)
         {
 #if SCPP
-            case SCfastpar:
-            Lfp:
-                s->Spreg = (tyf == TYmfunc) ? CX : AX;
             case SCauto:
             case SCregister:
                 s->Sfl = FLauto;
@@ -1054,13 +1057,18 @@ STATIC void writefunc2(symbol *sfunc)
             case SCbprel:
                 s->Sfl = FLbprel;
                 goto L3;
+            case SCfastpar:
             case SCregpar:
             case SCparameter:
-                if (tyf == TYjfunc && si == 0 &&
-                    type_jparam(s->Stype))
-                {   s->Sclass = SCfastpar;      // put last parameter into register
-                    goto Lfp;
+                if (si == 0 && fpr.alloc(s->Stype, s->Stype->Tty, &s->Spreg, NULL))
+                {
+                    assert(s->Spreg == ((tyf == TYmfunc) ? CX : AX));
+                    assert(si == 0);
+                    s->Sclass = SCfastpar;
+                    s->Sfl = FLauto;
+                    goto L3;
                 }
+                assert(s->Sclass != SCfastpar);
 #else
             case SCfastpar:
             case SCauto:

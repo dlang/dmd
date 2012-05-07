@@ -197,8 +197,6 @@ type *type_setmangle(type **pt,mangle_t mangle);
 type *type_setcv(type **pt,tym_t cv);
 int type_embed(type *t,type *u);
 int type_isvla(type *t);
-int type_jparam(type *t);
-int type_jparam2(type *t, tym_t ty);
 
 param_t *param_calloc(void);
 param_t *param_append_type(param_t **,type *);
