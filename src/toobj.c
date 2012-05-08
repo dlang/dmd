@@ -744,7 +744,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         for (cd = this->baseClass; cd; cd = cd->baseClass)
         {
             for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = cd->(*vtblInterfaces)[k];
+            {   BaseClass *bs = (*cd->vtblInterfaces)[k];
 
                 if (b->base == bs->base)
                 {
