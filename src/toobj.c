@@ -910,7 +910,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
         {
             //printf("\tbase class %s\n", cd->toChars());
             for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = cd->(*vtblInterfaces)[k];
+            {   BaseClass *bs = (*cd->vtblInterfaces)[k];
 
                 if (bc == bs)
                 {   //printf("\tcsymoffset = x%x\n", csymoffset);
