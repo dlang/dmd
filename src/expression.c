@@ -770,24 +770,41 @@ void valueNoDtor(Expression *e)
 #if DMDV2
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 {
-    Type *tb = e->type->toBasetype();
-    assert(tb->ty == Tstruct);
-    StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-    if (sd->cpctor)
+    if (e->op == TOKarrayliteral)
     {
-        /* Create a variable tmp, and replace the argument e with:
-         *      (tmp = e),tmp
-         * and let AssignExp() handle the construction.
-         * This is not the most efficent, ideally tmp would be constructed
-         * directly onto the stack.
-         */
-        Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
-        VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
-        tmp->storage_class |= STCctfe;
-        tmp->noscope = noscope;
-        Expression *ae = new DeclarationExp(loc, tmp);
-        e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-        e = e->semantic(sc);
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+        for (size_t i = 0; i < ae->elements->dim; i++)
+        {
+            ae->elements->tdata()[i] =
+                callCpCtor(loc, sc, ae->elements->tdata()[i], noscope);
+        }
+        e = ae->semantic(sc);
+        return e;
+    }
+
+    Type *tb = e->type->toBasetype();
+    Type *tv = tb;
+    while (tv->ty == Tsarray)
+        tv = tv->nextOf()->toBasetype();
+    if (tv->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+        if (sd->cpctor)
+        {
+            /* Create a variable tmp, and replace the argument e with:
+             *      (tmp = e),tmp
+             * and let AssignExp() handle the construction.
+             * This is not the most efficent, ideally tmp would be constructed
+             * directly onto the stack.
+             */
+            Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
+            VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
+            tmp->storage_class |= STCctfe;
+            tmp->noscope = noscope;
+            Expression *ae = new DeclarationExp(loc, tmp);
+            e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+            e = e->semantic(sc);
+        }
     }
     return e;
 }
@@ -1077,15 +1094,22 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
             Type *tb = arg->type->toBasetype();
-#if !SARRAYVALUE
-            // Convert static arrays to pointers
-            if (tb->ty == Tsarray)
+            if (arg->op == TOKarrayliteral)
             {
-                arg = arg->checkToPointer();
+                arg = callCpCtor(loc, sc, arg, 1);
             }
+            else if (tb->ty == Tsarray)
+            {
+#if !SARRAYVALUE
+                // Convert static arrays to pointers
+                arg = arg->checkToPointer();
+#else
+                // call copy constructor of each element
+                arg = callCpCtor(loc, sc, arg, 1);
 #endif
+            }
 #if DMDV2
-            if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
+            else if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
             {
                 if (arg->op == TOKcall && !arg->isLvalue())
                 {
@@ -10361,16 +10385,6 @@ Ltupleassign:
                 sd->cpctor)
             {   /* We have a copy constructor for this
                  */
-                // Scan past commma's
-                Expression *ec = NULL;
-                while (e2->op == TOKcomma)
-                {   CommaExp *ecomma = (CommaExp *)e2;
-                    e2 = ecomma->e2;
-                    if (ec)
-                        ec = new CommaExp(ecomma->loc, ec, ecomma->e1);
-                    else
-                        ec = ecomma->e1;
-                }
                 if (e2->op == TOKquestion)
                 {   /* Write as:
                      *  a ? e1 = b : e1 = c;
@@ -10381,8 +10395,6 @@ Ltupleassign:
                     AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
                     ea2->op = op;
                     Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
-                    if (ec)
-                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
                 else if (e2->isLvalue())
@@ -10394,8 +10406,6 @@ Ltupleassign:
 
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
-                    if (ec)
-                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
                 else if (e2->op == TOKcall)
@@ -10420,6 +10430,21 @@ Ltupleassign:
 
     if (t1->ty == Tsarray && !refinit)
     {
+        Type *t2 = e2->type->toBasetype();
+
+        if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
+        {   // static array assignment should check their lengths
+            TypeSArray *tsa1 = (TypeSArray *)t1;
+            TypeSArray *tsa2 = (TypeSArray *)t2;
+            uinteger_t dim1 = tsa1->dim->toInteger();
+            uinteger_t dim2 = tsa2->dim->toInteger();
+            if (dim1 != dim2)
+            {
+                error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                return new ErrorExp();
+            }
+        }
+
         if (e1->op == TOKindex &&
             ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
@@ -10431,7 +10456,6 @@ Ltupleassign:
         }
         else
         {
-            Type *t2 = e2->type->toBasetype();
             // Convert e2 to e2[], unless e2-> e1[0]
             if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
             {
@@ -10449,6 +10473,11 @@ Ltupleassign:
     e2 = e2->inferType(t1);
     if (!e2->rvalue())
         return new ErrorExp();
+
+    if (e2->op == TOKarrayliteral)
+    {
+        e2 = callCpCtor(loc, sc, e2, 1);
+    }
 
     if (e1->op == TOKarraylength)
     {

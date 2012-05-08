@@ -2753,7 +2753,7 @@ elem *AssignExp::toElem(IRState *irs)
             /* Determine if we need to do postblit
              */
             int postblit = 0;
-            if (needsPostblit(t1))
+            if (needsPostblit(t1->nextOf()))
                 postblit = 1;
 
             assert(e2->type->ty != Tpointer);
