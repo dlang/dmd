@@ -1087,7 +1087,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
             {
-                if (arg->op == TOKcall)
+                if (arg->op == TOKcall && !arg->isLvalue())
                 {
                     /* The struct value returned from the function is transferred
                      * to the function, so the callee should not call the destructor
@@ -10385,11 +10385,7 @@ Ltupleassign:
                         e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
-                else if (e2->op == TOKvar ||
-                         e2->op == TOKdotvar ||
-                         e2->op == TOKstar ||
-                         e2->op == TOKthis ||
-                         e2->op == TOKindex)
+                else if (e2->isLvalue())
                 {   /* Write as:
                      *  e1.cpctor(e2);
                      */

@@ -1705,6 +1705,74 @@ void test59()
 }
 
 /**********************************/
+// 5737
+
+void test5737()
+{
+    static struct S
+    {
+        static int destroyed;
+        static int copied;
+
+        this(this)
+        {
+            copied++;
+        }
+
+        ~this()
+        {
+            destroyed++;
+        }
+    }
+
+    static S s;
+
+    ref S foo()
+    {
+        return s;
+    }
+
+    {
+        auto s2 = foo();
+    }
+
+    assert(S.copied == 1); // fail, s2 was not copied;
+    assert(S.destroyed == 1); // ok, s2 was destroyed
+}
+
+/**********************************/
+// 6119
+
+void test6119()
+{
+    int postblit = 0;
+    int dtor = 0;
+
+    struct Test
+    {
+        this(this) { ++postblit; }
+        ~this()    { ++dtor; }
+    }
+
+    void takesVal(Test x) {}
+    ref Test returnsRef(ref Test x) { return x; }
+
+    void f(ref Test x) { takesVal( x ); }
+
+    Test x;
+
+    postblit = dtor = 0;
+    takesVal(returnsRef(x));
+    assert(postblit == 1);
+    assert(dtor == 1);
+
+    postblit = dtor = 0;
+    f(x);
+    assert(postblit == 1);
+    assert(dtor == 1);
+}
+
+/**********************************/
 // 6364
 
 struct Foo6364
@@ -1991,6 +2059,8 @@ int main()
     test57();
     test58();
     test59();
+    test5737();
+    test6119();
     test6364();
     test6499();
     test60();
