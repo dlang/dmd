@@ -836,6 +836,26 @@ void outfixlist (void );
 void code_hydrate(code **pc);
 void code_dehydrate(code **pc);
 
+extern int hasframe;            /* !=0 if this function has a stack frame */
+extern targ_size_t spoff;
+extern targ_size_t Foff;        // BP offset of floating register
+extern targ_size_t CSoff;       // offset of common sub expressions
+extern targ_size_t NDPoff;      // offset of saved 8087 registers
+extern int BPoff;                      // offset from BP
+extern int EBPtoESP;            // add to EBP offset to get ESP offset
+extern int AAoff;               // offset of alloca temporary
+
+code* prolog_ifunc(tym_t* tyf);
+code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
+code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds);
+code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter);
+code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushalloc);
+code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
+code* prolog_setupalloca();
+code* prolog_trace(bool farfunc, unsigned* regsaved);
+code* prolog_genvarargs(symbol* sv, regm_t* namedargs);
+code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs);
+
 /* cod4.c */
 extern  const unsigned dblreg[];
 extern int cdcmp_flag;
