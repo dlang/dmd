@@ -1946,6 +1946,78 @@ void test6177()
 
 
 /**********************************/
+// 6470
+
+struct S6470
+{
+    static int spblit;
+
+    this(this){ ++spblit; }
+}
+
+void test6470()
+{
+    S6470[] a1;
+    S6470[] a2;
+    a1.length = 3;
+    a2.length = 3;
+    a1[] = a2[];
+    assert(S6470.spblit == 3);
+
+    S6470 s;
+
+    S6470[] a3;
+    a3.length = 3;
+    a3 = [s, s, s];
+    assert(S6470.spblit == 6);
+
+    void func(S6470[] a){}
+    func([s, s, s]);
+    assert(S6470.spblit == 9);
+}
+
+/**********************************/
+// 6636
+
+struct S6636
+{
+    ~this()
+    {
+        ++sdtor;
+    }
+}
+
+void func6636(S6636[3] sa) {}
+
+void test6636()
+{
+    sdtor = 0;
+
+    S6636[3] sa;
+    func6636(sa);
+    assert(sdtor == 3);
+}
+
+/**********************************/
+// 6637
+
+struct S6637
+{
+    static int spblit;
+
+    this(this){ ++spblit; }
+}
+
+void test6637()
+{
+    void func(S6637[3] sa){}
+
+    S6637[3] sa;
+    func(sa);
+    assert(S6637.spblit == 3);
+}
+
+/**********************************/
 // 7353
 
 struct S7353
@@ -2066,6 +2138,9 @@ int main()
     test60();
     test4316();
     test6177();
+    test6470();
+    test6636();
+    test6637();
     test7353();
 
     printf("Success\n");
