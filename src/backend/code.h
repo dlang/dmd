@@ -496,7 +496,7 @@ struct code
       #define IEVllong2   IEV2.Vllong
     void print();               // pretty-printer
 
-    code() { Irex = 0; Isib = 0; }      // constructor
+    code() { next = NULL; Iflags = 0; Iop = 0; Iea = 0; IFL1 = 0; IFL2 = 0; }      // constructor
 
     void orReg(unsigned reg)
     {   if (reg & 8)
