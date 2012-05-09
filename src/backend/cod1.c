@@ -2357,6 +2357,8 @@ int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char 
             t = targ1;
             ty = t->Tty;
         }
+        if (I64 && !targ1 && !targ2)
+            return 0;
     }
 
     ++i;

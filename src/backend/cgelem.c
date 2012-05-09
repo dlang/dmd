@@ -680,11 +680,9 @@ STATIC elem * elmemxxx(elem *e)
                             case CHARSIZE:      tym = TYchar;   goto L1;
                             case SHORTSIZE:     tym = TYshort;  goto L1;
                             case LONGSIZE:      tym = TYlong;   goto L1;
-#if LONGLONG
                             case LLONGSIZE:     if (intsize == 2)
                                                     goto Ldefault;
                                                 tym = TYllong;  goto L1;
-#endif
                             L1:
                                 ety = e->Ety;
                                 memset(&value, value & 0xFF, sizeof(value));
@@ -2623,27 +2621,36 @@ STATIC void elstructwalk(elem *e,tym_t tym)
  */
 
 CEXTERN elem * elstruct(elem *e)
-{   tym_t tym;
-    elem *e2;
-    elem **pe2;
-
+{
     //printf("elstruct(%p)\n", e);
     if (e->Eoper == OPstreq && (e->E1->Eoper == OPcomma || OTassign(e->E1->Eoper)))
         return cgel_lvalue(e);
+
     //printf("\tnumbytes = %d\n", (int)e->Enumbytes);
-    if (e->ET)
+
+    if (!e->ET)
+        return e;
+
+    tym_t tym;
+    tym_t ty = tybasic(e->ET->Tty);
+
+    type *targ1 = NULL;
+    type *targ2 = NULL;
+    if (ty == TYstruct)
+    {   // If a struct is a wrapper for another type, prefer that other type
+        targ1 = e->ET->Ttag->Sstruct->Sarg1type;
+        targ2 = e->ET->Ttag->Sstruct->Sarg2type;
+    }
+
     switch ((int) type_size(e->ET))
     {
         case CHARSIZE:  tym = TYchar;   goto L1;
         case SHORTSIZE: tym = TYshort;  goto L1;
         case LONGSIZE:  tym = TYlong;   goto L1;
-#if LONGLONG
         case LLONGSIZE: if (intsize == 2)
                             goto Ldefault;
                         tym = TYllong;  goto L1;
-#endif
         case 16:
-        {
             if (config.fpxmmregs && e->Eoper == OPstreq)
             {
                 elem *e2 = e->E2;
@@ -2660,9 +2667,19 @@ CEXTERN elem * elstruct(elem *e)
                     goto L1;
                 }
             }
+            if (targ1 && !targ2)
+                goto L1;
             goto Ldefault;
-        }
+
         L1:
+            if (ty == TYstruct)
+            {   // If a struct is a wrapper for another type, prefer that other type
+                if (targ1 && !targ2)
+                    tym = targ1->Tty;
+                else if (I64 && !targ1 && !targ2)
+                    // In-memory only
+                    goto Ldefault;
+            }
             switch (e->Eoper)
             {   case OPstreq:
                     e->Eoper = OPeq;
@@ -2671,12 +2688,12 @@ CEXTERN elem * elstruct(elem *e)
                     elstructwalk(e->E2,tym);
                     e = optelem(e,TRUE);
                     break;
+
                 case OPstrpar:
                     e = el_selecte1(e);
                     /* FALL-THROUGH */
                 default:                /* called by doptelem()         */
-                    e2 = e;
-                    elstructwalk(e2,tym);
+                    elstructwalk(e,tym);
                     break;
             }
             break;
@@ -2692,6 +2709,8 @@ CEXTERN elem * elstruct(elem *e)
 
         default:
         Ldefault:
+        {
+            elem **pe2;
             if (e->Eoper == OPstreq)
                 pe2 = &e->E2;
             else if (e->Eoper == OPstrpar)
@@ -2700,20 +2719,19 @@ CEXTERN elem * elstruct(elem *e)
                 break;
             while ((*pe2)->Eoper == OPcomma)
                 pe2 = &(*pe2)->E2;
-            e2 = *pe2;
+            elem *e2 = *pe2;
 
             // Convert (x streq (a?y:z)) to (x streq *(a ? &y : &z))
             if (e2->Eoper == OPcond)
             {   tym_t ty2 = e2->Ety;
-                tym_t typ;
 
                 /* We should do the analysis to see if we can use
                    something simpler than TYfptr.
                  */
 #if TARGET_SEGMENTED
-                typ = (intsize == LONGSIZE) ? TYnptr : TYfptr;
+                tym_t typ = (intsize == LONGSIZE) ? TYnptr : TYfptr;
 #else
-                typ = TYnptr;
+                tym_t typ = TYnptr;
 #endif
                 e2 = el_una(OPaddr,typ,e2);
                 e2 = optelem(e2,TRUE);          /* distribute & to x and y leaves */
@@ -2721,10 +2739,11 @@ CEXTERN elem * elstruct(elem *e)
                 break;
             }
             break;
+        }
     }
     return e;
 }
-
+
 /**************************
  * Assignment. Replace bit field assignment with
  * equivalent tree.

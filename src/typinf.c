@@ -685,7 +685,8 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         {
             // m_argi
             if (t)
-            {   t->getTypeInfo(NULL);
+            {
+                t->getTypeInfo(NULL);
                 dtxoff(pdt, t->vtinfo->toSymbol(), 0, TYnptr);
             }
             else

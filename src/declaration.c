@@ -2319,7 +2319,7 @@ TypeInfoAssociativeArrayDeclaration::TypeInfoAssociativeArrayDeclaration(Type *t
 TypeInfoVectorDeclaration::TypeInfoVectorDeclaration(Type *tinfo)
     : TypeInfoDeclaration(tinfo, 0)
 {
-    if (!Type::typeinfoarray)
+    if (!Type::typeinfovector)
     {
         ObjectNotFound(Id::TypeInfo_Vector);
     }

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -841,6 +841,7 @@ enum RET TypeFunction::retStyle()
 #endif
 
     Type *tn = next->toBasetype();
+Lagain:
     Type *tns = tn;
     d_uns64 sz = tn->size();
 
@@ -853,8 +854,8 @@ enum RET TypeFunction::retStyle()
         } while (tns->ty == Tsarray);
         if (tns->ty != Tstruct)
         {
-            if (global.params.isLinux && linkage != LINKd)
-                ;
+            if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+                ;                               // 32 bit C/C++ structs always on stack
             else
             {
                 switch (sz)
@@ -875,13 +876,14 @@ enum RET TypeFunction::retStyle()
 
     if (tns->ty == Tstruct)
     {   StructDeclaration *sd = ((TypeStruct *)tn)->sym;
-        if (global.params.isLinux && linkage != LINKd)
-            ;
-#if DMDV2
-        else if (sd->dtor || sd->cpctor)
-            ;
-#endif
-        else
+        if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+            return RETstack;            // 32 bit C/C++ structs always on stack
+        if (sd->arg1type && !sd->arg2type)
+        {
+            tn = sd->arg1type;
+            goto Lagain;
+        }
+        else if (sd->isPOD())
         {
             switch (sz)
             {   case 1:

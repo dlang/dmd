@@ -40,6 +40,10 @@ TypeTuple *Type::toArgTypes()
     return NULL;        // not valid for a parameter
 }
 
+TypeTuple *TypeError::toArgTypes()
+{
+    return new TypeTuple(Type::terror);
+}
 
 TypeTuple *TypeBasic::toArgTypes()
 {   Type *t1 = NULL;
@@ -87,8 +91,10 @@ TypeTuple *TypeBasic::toArgTypes()
             break;
 
         case Tcomplex64:
+#if DMDV2
             t1 = Type::tfloat64;
             t2 = Type::tfloat64;
+#endif
             break;
 
         case Tcomplex80:
@@ -127,7 +133,7 @@ TypeTuple *TypeBasic::toArgTypes()
 #if DMDV2
 TypeTuple *TypeVector::toArgTypes()
 {
-    return new TypeTuple(Type::tfloat64);
+    return new TypeTuple(this);
 }
 #endif
 
@@ -162,6 +168,8 @@ TypeTuple *TypeDelegate::toArgTypes()
 
 TypeTuple *TypeStruct::toArgTypes()
 {
+    if (!sym->isPOD())
+        return new TypeTuple();
     Type *t;
     d_uns64 sz = size(0);
     assert(sz < 0xFFFFFFFF);
@@ -179,6 +187,9 @@ TypeTuple *TypeStruct::toArgTypes()
         case 8:
             t = Type::tint64;
             break;
+        case 16:
+            t = NULL;                   // could be a TypeVector
+            break;
         default:
             return new TypeTuple();     // pass on the stack
     }
@@ -186,6 +197,7 @@ TypeTuple *TypeStruct::toArgTypes()
     {
         if (sym->fields.dim == 1)
         {   VarDeclaration *f = sym->fields[0];
+            //printf("f->type = %s\n", f->type->toChars());
             TypeTuple *tup = f->type->toArgTypes();
             if (tup)
             {
@@ -195,7 +207,8 @@ TypeTuple *TypeStruct::toArgTypes()
             }
         }
     }
-    return new TypeTuple(t);
+    //if (t) printf("test1: %s => %s\n", toChars(), t->toChars());
+    return t ? new TypeTuple(t) : new TypeTuple();
 }
 
 TypeTuple *TypeEnum::toArgTypes()

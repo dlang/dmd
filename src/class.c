@@ -175,6 +175,12 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
                     Type::typeinfowild->error("%s", msg);
                 Type::typeinfowild = this;
             }
+
+            if (id == Id::TypeInfo_Vector)
+            {   if (Type::typeinfovector)
+                    Type::typeinfovector->error("%s", msg);
+                Type::typeinfovector = this;
+            }
 #endif
         }
 
