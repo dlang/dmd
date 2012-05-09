@@ -1267,9 +1267,6 @@ class Thread
     ///////////////////////////////////////////////////////////////////////////
 
 
-    deprecated alias thread_findByAddr findThread;
-
-
 private:
     //
     // Initializes a thread object which has no associated executable function.
@@ -2049,22 +2046,6 @@ version( Windows )
         thisThread.m_tlsgcdata = rt.tlsgc.init();
         return thisThread;
     }
-
-
-    /// This should be handled automatically by thread_attach.
-    deprecated extern (C) void thread_setNeedLock( bool need ) nothrow
-    {
-        if( need )
-            multiThreadedFlag = true;
-    }
-
-
-    /// Renamed to be more consistent with other extern (C) routines.
-    deprecated alias thread_attachByAddr thread_attach;
-
-
-    /// ditto
-    deprecated alias thread_detachByAddr thread_detach;
 }
 
 
