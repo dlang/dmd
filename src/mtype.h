@@ -278,6 +278,7 @@ struct TypeError : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
+    TypeTuple *toArgTypes();
 };
 
 #if DMDV2

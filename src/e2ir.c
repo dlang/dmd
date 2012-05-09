@@ -580,14 +580,30 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
                 case 4:      r = RTLSYM_MEMSET32;   break;
                 case 8:      r = RTLSYM_MEMSET64;   break;
                 case 16:     r = RTLSYM_MEMSET128;  break;
+                default:     r = RTLSYM_MEMSETN;    break;
+            }
 
-                default:
+            if (I64 && tybasic(evalue->Ety) == TYstruct && r != RTLSYM_MEMSETN)
+            {
+                /* If this struct is in-memory only, i.e. cannot necessarily be passed as
+                 * a gp register parameter.
+                 * The trouble is that memset() is expecting the argument to be in a gp
+                 * register, but the argument pusher may have other ideas on I64.
+                 * MEMSETN is inefficient, though.
+                 */
+                if (!evalue->ET->Ttag->Sstruct->Sarg1type &&
+                    !evalue->ET->Ttag->Sstruct->Sarg2type)
                     r = RTLSYM_MEMSETN;
-                    evalue = el_una(OPaddr, TYnptr, evalue);
-                    elem *esz = el_long(TYsize_t, sz);
-                    e = el_params(esz, edim, evalue, eptr, NULL);
-                    e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
-                    return e;
+            }
+
+            if (r == RTLSYM_MEMSETN)
+            {
+                // void *_memsetn(void *p, void *value, int dim, int sizelem)
+                evalue = el_una(OPaddr, TYnptr, evalue);
+                elem *esz = el_long(TYsize_t, sz);
+                e = el_params(esz, edim, evalue, eptr, NULL);
+                e = el_bin(OPcall,TYnptr,el_var(rtlsym[r]),e);
+                return e;
             }
             break;
     }

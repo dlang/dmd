@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -707,18 +707,51 @@ enum RET TypeFunction::retStyle()
 #endif
 
     Type *tn = next->toBasetype();
+Lagain:
+    Type *tns = tn;
+    d_uns64 sz = tn->size();
 
-    if (tn->ty == Tstruct)
-    {   StructDeclaration *sd = ((TypeStruct *)tn)->sym;
-        if (global.params.isLinux && linkage != LINKd)
-            ;
-#if DMDV2
-        else if (sd->dtor || sd->cpctor)
-            ;
-#endif
-        else
+#if SARRAYVALUE
+    if (tn->ty == Tsarray)
+    {
+        do
         {
-            switch ((int)tn->size())
+            tns = tns->nextOf()->toBasetype();
+        } while (tns->ty == Tsarray);
+        if (tns->ty != Tstruct)
+        {
+            if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+                ;                               // 32 bit C/C++ structs always on stack
+            else
+            {
+                switch (sz)
+                {   case 1:
+                    case 2:
+                    case 4:
+                    case 8:
+                        return RETregs; // return small structs in regs
+                                            // (not 3 byte structs!)
+                    default:
+                        break;
+                }
+            }
+            return RETstack;
+        }
+    }
+#endif
+
+    if (tns->ty == Tstruct)
+    {   StructDeclaration *sd = ((TypeStruct *)tn)->sym;
+        if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+            return RETstack;            // 32 bit C/C++ structs always on stack
+        if (sd->arg1type && !sd->arg2type)
+        {
+            tn = sd->arg1type;
+            goto Lagain;
+        }
+        else if (sd->isPOD())
+        {
+            switch (sz)
             {   case 1:
                 case 2:
                 case 4:
