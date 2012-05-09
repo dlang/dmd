@@ -1051,6 +1051,8 @@ FuncDeclaration *ClassDeclaration::findFunc(Identifier *ident, TypeFunction *tf)
             {   //printf("fd->parent->isClassDeclaration() = %p\n", fd->parent->isClassDeclaration());
                 if (!fdmatch)
                     goto Lfd;
+                if (fd == fdmatch)
+                    goto Lfdmatch;
 
                 {
                 // Function type matcing: exact > covariant
