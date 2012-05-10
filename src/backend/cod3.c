@@ -1792,7 +1792,7 @@ code* gen_testcse(code *c, unsigned sz, targ_uns i)
     bool byte = sz == 1;
     c = genc(c,0x81 ^ byte,modregrm(2,7,BPRM),
                 FLcs,i, FLconst,(targ_uns) 0);
-    if (I32 && sz == 2)
+    if ((I64 || I32) && sz == 2)
         c->Iflags |= CFopsize;
     return c;
 }
