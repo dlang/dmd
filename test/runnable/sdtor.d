@@ -2070,6 +2070,35 @@ struct S8036b // or class
 
 /**********************************/
 
+struct S61
+{
+    this(long length)
+    {
+        this.length = length;
+    }
+
+    long length;
+}
+
+
+const(S61) copy(const S61 s)
+{
+    return s;
+}
+
+
+void test61()
+{
+    S61 t = S61(42);
+    const S61 u = t;
+
+    assert(t == u);
+    assert(copy(t) == u);
+    assert(t == copy(u));
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -2142,6 +2171,7 @@ int main()
     test6636();
     test6637();
     test7353();
+    test61();
 
     printf("Success\n");
     return 0;
