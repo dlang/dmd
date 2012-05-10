@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -H -Hdtest_results/compilable
-// POST_SCRIPT: compilable/extra-files/xheader-postscript.sh
+// POST_SCRIPT: compilable/extra-files/diff-postscript.sh xheader.di
 
 // for D 2.0 only
 

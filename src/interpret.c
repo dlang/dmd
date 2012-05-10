@@ -6599,6 +6599,8 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     return eresult;
 }
 
+
+
 /* If this is a built-in function, return the interpreted result,
  * Otherwise, return NULL.
  */
@@ -6622,7 +6624,8 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     if (!pthis)
     {
         enum BUILTIN b = fd->isBuiltin();
-        if (b)
+        bool isCTFEWrite = fd->ident == Id::ctfeWrite;
+        if (b || isCTFEWrite)
         {   Expressions args;
             args.setDim(nargs);
             for (size_t i = 0; i < args.dim; i++)
@@ -6633,9 +6636,17 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                     return earg;
                 args[i] = earg;
             }
-            e = eval_builtin(loc, b, &args);
-            if (!e)
-                e = EXP_CANT_INTERPRET;
+            if (isCTFEWrite)
+            {
+                printExpressionsToStdmsg(loc, &args, NULL, /*printNewLine*/false);
+                e = EXP_VOID_INTERPRET;
+            }
+            else
+            {
+                e = eval_builtin(loc, b, &args);
+                if (!e)
+                    e = EXP_CANT_INTERPRET;
+            }
         }
     }
     /* Horrid hack to retrieve the builtin AA functions after they've been

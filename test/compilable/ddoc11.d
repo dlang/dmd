@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddoc11-postscript.sh
+// POST_SCRIPT: compilable/extra-files/diff-postscript.sh ddoc11.html
 
 /// The various floating point exceptions
 enum
@@ -49,7 +49,7 @@ struct lldiv_t { long quot,rem; }
 
 
 
-    void *calloc(size_t, size_t);	/// 
+    void *calloc(size_t, size_t);	///
     void *malloc(size_t);	/// dittx
 
 /**

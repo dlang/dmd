@@ -84,6 +84,8 @@ void modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
 Expression *resolveAliasThis(Scope *sc, Expression *e);
 #endif
 
+void printExpressionsToStdmsg(Loc loc, Expressions *args, Scope *sc, bool printNewLine=true);
+
 /* Interpreter: what form of return value expression is required?
  */
 enum CtfeGoal

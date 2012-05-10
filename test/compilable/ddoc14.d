@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddoc14-postscript.sh
+// POST_SCRIPT: compilable/extra-files/diff-postscript.sh ddoc14.html
 
 
 alias void V;
@@ -77,7 +77,7 @@ interface Interface {
     V mColon(lazy P p) ; /// 10
 }
 +/
-    
+
 public P variable;  /// 0
 V mNone(lazy P p) {}  /// 1
 pure nothrow V mPrefix(lazy P p) {}   /// 2
