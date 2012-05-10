@@ -1832,9 +1832,7 @@ void test94()
 
 struct T95
 {
-    @disable this(this)
-    {
-    }
+    @disable this(this);
 }
 
 struct S95
