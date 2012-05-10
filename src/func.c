@@ -1551,10 +1551,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 returnLabel->statement = ls;
                 a->push(returnLabel->statement);
 
-                if (type->nextOf()->ty != Tvoid)
+                if (type->nextOf()->ty != Tvoid && vresult)
                 {
                     // Create: return vresult;
-                    assert(vresult);
                     Expression *e = new VarExp(0, vresult);
                     if (tintro)
                     {   e = e->implicitCastTo(sc, tintro->nextOf());

@@ -6,47 +6,47 @@ extern(C) int printf(const char*, ...);
 
 class A
 {
-     int x = 7;
+    int x = 7;
 
-     int foo(int i)
-     in
-     {
-	printf("A.foo.in %d\n", i);
-	assert(i == 2);
-	assert(x == 7);
-	printf("A.foo.in pass\n");
-     }
-     out (result)
-     {
-	assert(result & 1);
-	assert(x == 7);
-     }
-     body
-     {
-	return i;
-     }
+    int foo(int i)
+    in
+    {
+        printf("A.foo.in %d\n", i);
+        assert(i == 2);
+        assert(x == 7);
+        printf("A.foo.in pass\n");
+    }
+    out (result)
+    {
+        assert(result & 1);
+        assert(x == 7);
+    }
+    body
+    {
+        return i;
+    }
 }
 
 class B : A
 {
-     override int foo(int i)
-     in
-     {
-	float f;
-	printf("B.foo.in %d\n", i);
-	assert(i == 4);
-	assert(x == 7);
-	f = f + i;
-     }
-     out (result)
-     {
-	assert(result < 8);
-	assert(x == 7);
-     }
-     body
-     {
-	return i - 1;
-     }
+    override int foo(int i)
+    in
+    {
+        float f;
+        printf("B.foo.in %d\n", i);
+        assert(i == 4);
+        assert(x == 7);
+        f = f + i;
+    }
+    out (result)
+    {
+        assert(result < 8);
+        assert(x == 7);
+    }
+    body
+    {
+        return i - 1;
+    }
 }
 
 void test1()
@@ -60,69 +60,69 @@ void test1()
 
 class A2
 {
-     int x = 7;
+    int x = 7;
 
-     int foo(int i)
-     in
-     {
-	printf("A2.foo.in %d\n", i);
-	assert(i == 2);
-	assert(x == 7);
-	printf("A2.foo.in pass\n");
-     }
-     out (result)
-     {
-	assert(result & 1);
-	assert(x == 7);
-     }
-     body
-     {
-	return i;
-     }
+    int foo(int i)
+    in
+    {
+        printf("A2.foo.in %d\n", i);
+        assert(i == 2);
+        assert(x == 7);
+        printf("A2.foo.in pass\n");
+    }
+    out (result)
+    {
+        assert(result & 1);
+        assert(x == 7);
+    }
+    body
+    {
+        return i;
+    }
 }
 
 class B2 : A2
 {
-     override int foo(int i)
-     in
-     {
-	float f;
-	printf("B2.foo.in %d\n", i);
-	assert(i == 4);
-	assert(x == 7);
-	f = f + i;
-     }
-     out (result)
-     {
-	assert(result < 8);
-	assert(x == 7);
-     }
-     body
-     {
-	return i - 1;
-     }
+    override int foo(int i)
+    in
+    {
+        float f;
+        printf("B2.foo.in %d\n", i);
+        assert(i == 4);
+        assert(x == 7);
+        f = f + i;
+    }
+    out (result)
+    {
+        assert(result < 8);
+        assert(x == 7);
+    }
+    body
+    {
+        return i - 1;
+    }
 }
 
 class C : B2
 {
-     override int foo(int i)
-     in
-     {
-	float f;
-	printf("C.foo.in %d\n", i);
-	assert(i == 6);
-	assert(x == 7);
-	f = f + i;
-     }
-     out (result)
-     {
-	assert(result == 1 || result == 3 || result == 5);
-	assert(x == 7);
-     }
-     body
-     {
-	return i - 1;
-     }
+    override int foo(int i)
+    in
+    {
+        float f;
+        printf("C.foo.in %d\n", i);
+        assert(i == 6);
+        assert(x == 7);
+        f = f + i;
+    }
+    out (result)
+    {
+        assert(result == 1 || result == 3 || result == 5);
+        assert(x == 7);
+    }
+    body
+    {
+        return i - 1;
+    }
 }
 
 void test2()
@@ -150,12 +150,12 @@ void test3()
 /*******************************************/
 
 interface Stack {
-   int pop()
+    int pop()
 //   in { printf("pop.in\n"); }
-   out(result) {
-	printf("pop.out\n");
-	assert(result == 3);
-   }
+    out(result) {
+        printf("pop.out\n");
+        assert(result == 3);
+    }
 }
 
 class CC : Stack
@@ -163,8 +163,8 @@ class CC : Stack
     int pop()
     //out (result) { printf("CC.pop.out\n"); } body
     {
-	printf("CC.pop.in\n");
-	return 3;
+        printf("CC.pop.in\n");
+        return 3;
     }
 }
 
@@ -205,19 +205,19 @@ struct Bug3273
 ref int func3273()
 out(r)
 {
-	// Regression check of issue 3390
-	static assert(!__traits(compiles, r = 1));
+    // Regression check of issue 3390
+    static assert(!__traits(compiles, r = 1));
 }
 body
 {
-	static int dummy;
-	return dummy;
+    static int dummy;
+    return dummy;
 }
 
 void test6()
 {
-	func3273() = 1;
-	assert(func3273() == 1);
+    func3273() = 1;
+    assert(func3273() == 1);
 }
 
 /*******************************************/
@@ -245,46 +245,46 @@ void test6()
 
 auto test7foo()
 in{
-	++cnt;
+    ++cnt;
 }body{
-	++cnt;
-	return "str";
+    ++cnt;
+    return "str";
 }
 
 void test7()
 {
-	cnt = 0;
-	assert(test7foo() == "str");
-	assert(cnt == 2);
+    cnt = 0;
+    assert(test7foo() == "str");
+    assert(cnt == 2);
 }
 
 /*******************************************/
 
 auto foo8()
 out(r){
-	++cnt;
-	assert(r == 10);
+    ++cnt;
+    assert(r == 10);
 }body{
-	++cnt;
-	return 10;
+    ++cnt;
+    return 10;
 }
 
 auto bar8()
 out{
-	++cnt;
+    ++cnt;
 }body{
-	++cnt;
+    ++cnt;
 }
 
 void test8()
 {
-	cnt = 0;
-	assert(foo8() == 10);
-	assert(cnt == 2);
+    cnt = 0;
+    assert(foo8() == 10);
+    assert(cnt == 2);
 
-	cnt = 0;
-	bar8();
-	assert(cnt == 2);
+    cnt = 0;
+    bar8();
+    assert(cnt == 2);
 }
 
 /*******************************************/
@@ -310,22 +310,22 @@ int cnt;
 
 auto foo4785()
 in{
-	int r;
-	++cnt;
+    int r;
+    ++cnt;
 }
 out(r){
-	assert(r == 10);
-	++cnt;
+    assert(r == 10);
+    ++cnt;
 }body{
-	++cnt;
-	int r = 10;
-	return r;
+    ++cnt;
+    int r = 10;
+    return r;
 }
 void test4785()
 {
-	cnt = 0;
-	assert(foo4785() == 10);
-	assert(cnt == 3);
+    cnt = 0;
+    assert(foo4785() == 10);
+    assert(cnt == 3);
 }
 
 /*******************************************/
@@ -366,6 +366,20 @@ class P7699
 class D7699 : P7699
 {
     void f(int n) in { } body { }
+}
+
+/*******************************************/
+// 8066
+
+struct CLCommandQueue
+{
+    invariant() {}
+
+//private:
+    int enqueueNativeKernel()
+    {
+        assert(0, "implement me");
+    }
 }
 
 /*******************************************/
