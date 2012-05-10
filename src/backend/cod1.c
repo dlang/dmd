@@ -2348,7 +2348,7 @@ static int type_jparam2(type *t, tym_t ty)
 int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char *preg2)
 {
     // If struct just wraps another type
-    if (ty == TYstruct && tybasic(t->Tty) == TYstruct)
+    if (tybasic(ty) == TYstruct && tybasic(t->Tty) == TYstruct)
     {
         type *targ1 = t->Ttag->Sstruct->Sarg1type;
         type *targ2 = t->Ttag->Sstruct->Sarg2type;
