@@ -45,7 +45,7 @@ version( AsmX86 )
     // NOTE: Strictly speaking, the x86 supports atomic operations on
     //       unaligned values.  However, this is far slower than the
     //       common case, so such behavior should be prohibited.
-    private bool atomicValueIsProperlyAligned(T)( size_t addr )
+    private bool atomicValueIsProperlyAligned(T)( size_t addr ) pure nothrow
     {
         return addr % T.sizeof == 0;
     }
@@ -64,7 +64,7 @@ version( D_Ddoc )
      * Returns:
      *  The result of the operation.
      */
-    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) nothrow
         if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     {
         return HeadUnshared!(T).init;
@@ -84,15 +84,15 @@ version( D_Ddoc )
      * Returns:
      *  true if the store occurred, false if not.
      */
-    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis ) nothrow
         if( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
 
     /// Ditto
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) nothrow
         if( is(T == class) && __traits( compiles, { *here = writeThis; } ) );
 
     /// Ditto
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) nothrow
         if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) );
 
     /**
@@ -106,7 +106,7 @@ version( D_Ddoc )
      * Returns:
      *  The value of 'val'.
      */
-    HeadUnshared!(T) atomicLoad(msync ms = msync.seq,T)( ref const shared T val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq,T)( ref const shared T val ) nothrow
     {
         return HeadUnshared!(T).init;
     }
@@ -120,7 +120,7 @@ version( D_Ddoc )
      *  val    = The target variable.
      *  newval = The value to store.
      */
-    void atomicStore(msync ms = msync.seq,T,V1)( ref shared T val, V1 newval )
+    void atomicStore(msync ms = msync.seq,T,V1)( ref shared T val, V1 newval ) nothrow
         if( __traits( compiles, { val = newval; } ) )
     {
 
@@ -140,7 +140,7 @@ version( D_Ddoc )
 }
 else version( AsmX86_32 )
 {
-    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) nothrow
         if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     in
     {
@@ -192,25 +192,25 @@ else version( AsmX86_32 )
         }
     }
 
-    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis ) nothrow
         if( !is(T == class) && !is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) nothrow
         if( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) nothrow
         if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
-    private bool casImpl(T,V1,V2)( shared(T)* here, V1 ifThis, V2 writeThis )
+    private bool casImpl(T,V1,V2)( shared(T)* here, V1 ifThis, V2 writeThis ) nothrow
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -356,7 +356,7 @@ else version( AsmX86_32 )
     }
 
 
-    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val ) nothrow
     if(!__traits(isFloating, T))
     {
         static if( T.sizeof == byte.sizeof )
@@ -464,7 +464,7 @@ else version( AsmX86_32 )
         }
     }
 
-    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
+    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval ) nothrow
         if( __traits( compiles, { val = newval; } ) )
     {
         static if( T.sizeof == byte.sizeof )
@@ -576,7 +576,7 @@ else version( AsmX86_32 )
 }
 else version( AsmX86_64 )
 {
-    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod )
+    HeadUnshared!(T) atomicOp(string op, T, V1)( ref shared T val, V1 mod ) nothrow
         if( __traits( compiles, mixin( "val" ~ op ~ "mod" ) ) )
     in
     {
@@ -629,25 +629,25 @@ else version( AsmX86_64 )
     }
 
 
-    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const V1 ifThis, const V2 writeThis ) nothrow
         if( !is(T == class) && !is(T U : U*) &&  __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1) ifThis, shared(V2) writeThis ) nothrow
         if( is(T == class) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
-    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis )
+    bool cas(T,V1,V2)( shared(T)* here, const shared(V1)* ifThis, shared(V2)* writeThis ) nothrow
         if( is(T U : U*) && __traits( compiles, { *here = writeThis; } ) )
     {
         return casImpl(here, ifThis, writeThis);
     }
 
-    private bool casImpl(T,V1,V2)( shared(T)* here, V1 ifThis, V2 writeThis )
+    private bool casImpl(T,V1,V2)( shared(T)* here, V1 ifThis, V2 writeThis ) nothrow
     in
     {
         // NOTE: 32 bit x86 systems support 8 byte CAS, which only requires
@@ -784,7 +784,7 @@ else version( AsmX86_64 )
     }
 
 
-    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
+    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val ) nothrow
     if(!__traits(isFloating, T)) {
         static if( T.sizeof == byte.sizeof )
         {
@@ -897,7 +897,7 @@ else version( AsmX86_64 )
     }
 
 
-    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval )
+    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval ) nothrow
         if( __traits( compiles, { val = newval; } ) )
     {
         static if( T.sizeof == byte.sizeof )
@@ -1015,7 +1015,7 @@ else version( AsmX86_64 )
 // floats and doubles to ints and longs, atomically loads them, then puns
 // them back.  This is necessary so that they get returned in floating
 // point instead of integer registers.
-HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val )
+HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val ) nothrow
 if(__traits(isFloating, T))
 {
     static if(T.sizeof == int.sizeof)
@@ -1045,7 +1045,7 @@ if(__traits(isFloating, T))
 
 version( unittest )
 {
-    void testCAS(T)( T val )
+    void testCAS(T)( T val ) pure nothrow
     in
     {
         assert(val !is T.init);
@@ -1064,7 +1064,7 @@ version( unittest )
         assert( atom is val, T.stringof );
     }
 
-    void testLoadStore(msync ms = msync.seq, T)( T val = T.init + 1 )
+    void testLoadStore(msync ms = msync.seq, T)( T val = T.init + 1 ) pure nothrow
     {
         T         base = cast(T) 0;
         shared(T) atom = cast(T) 0;
@@ -1079,7 +1079,7 @@ version( unittest )
     }
 
 
-    void testType(T)( T val = T.init + 1 )
+    void testType(T)( T val = T.init + 1 ) pure nothrow
     {
         testCAS!(T)( val );
         testLoadStore!(msync.seq, T)( val );
@@ -1087,7 +1087,7 @@ version( unittest )
     }
 
 
-    unittest
+    pure nothrow unittest
     {
         testType!(bool)();
 
@@ -1131,7 +1131,7 @@ version( unittest )
         assert( d == 1 );
     }
 
-    unittest
+    pure nothrow unittest
     {
         static struct S { int val; }
         auto s = shared(S)(1);
