@@ -1147,8 +1147,8 @@ class B8032a : A8032a
 
 class A8032b
 {
-    mixin T8032; // Named mixin causes the error too
     void f() { }
+    mixin T8032; // Named mixin causes the error too
 }
 class B8032b : A8032b
 {
