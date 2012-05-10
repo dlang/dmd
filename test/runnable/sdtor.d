@@ -2128,6 +2128,29 @@ void test7506()
 }
 
 /**********************************/
+// 7530
+
+void test7530()
+{
+    static struct S
+    {
+        int val;
+
+        this(int n) { val = n; }
+        this(this) { val *= 3; }
+    }
+
+    S[] sa = new S[](1);
+    sa[0].val = 1;
+    S foo()
+    {
+        return sa[0];
+    }
+    auto s = foo();
+    assert(s.val == 3);
+}
+
+/**********************************/
 
 struct S62
 {
@@ -2237,6 +2260,7 @@ int main()
     test7353();
     test61();
     test7506();
+    test7530();
     test62();
 
     printf("Success\n");
