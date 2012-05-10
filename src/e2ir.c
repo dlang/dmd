@@ -591,7 +591,8 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
                  * register, but the argument pusher may have other ideas on I64.
                  * MEMSETN is inefficient, though.
                  */
-                if (!evalue->ET->Ttag->Sstruct->Sarg1type &&
+                if (tybasic(evalue->ET->Tty) == TYstruct &&
+                    !evalue->ET->Ttag->Sstruct->Sarg1type &&
                     !evalue->ET->Ttag->Sstruct->Sarg2type)
                     r = RTLSYM_MEMSETN;
             }
