@@ -405,9 +405,6 @@ class Thread
     ///////////////////////////////////////////////////////////////////////////
 
 
-    deprecated alias thread_findByAddr findThread;
-
-
 private:
     //
     // Standard types
@@ -489,15 +486,6 @@ version( Windows )
 
     /// ditto
     extern (C) Thread thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack );
-
-    /// This should be handled automatically by thread_attach.
-    deprecated extern (C) void thread_setNeedLock( bool need ) nothrow;
-
-    /// Renamed to be more consistent with other extern (C) routines.
-    deprecated alias thread_attachByAddr thread_attach;
-
-    /// ditto
-    deprecated alias thread_detachByAddr thread_detach;
 }
 
 
