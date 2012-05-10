@@ -2098,6 +2098,36 @@ void test61()
 }
 
 /**********************************/
+// 7506
+
+void test7506()
+{
+    static struct S
+    {
+        static uint ci = 0;
+        static uint di = 0;
+        uint i;
+
+        this(int x) { i = ci++; /*writeln("new: ", i);*/ }
+        this(this)  { i = ci++; /*writeln("copy ", i);*/ }
+        ~this()     { ++di;     /*writeln("del: ", i);*/ }
+
+        S save3()
+        {
+            return this;
+        }
+    }
+
+    {
+        auto s = S(1), t = S(1);
+        assert(S.ci == 2);
+        t = s.save3();
+        assert(S.ci == 3);  // line 23
+    }
+    assert(S.di == 3);
+}
+
+/**********************************/
 
 struct S62
 {
@@ -2206,6 +2236,7 @@ int main()
     test6637();
     test7353();
     test61();
+    test7506();
     test62();
 
     printf("Success\n");
