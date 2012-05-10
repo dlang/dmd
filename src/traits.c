@@ -190,9 +190,9 @@ Expression *TraitsExp::semantic(Scope *sc)
     else if (ident == Id::identifier)
     {   // Get identifier for symbol as a string literal
 
-        // Specify 0 for the flags argument to semanticTiargs() so that
-        // a symbol should not be folded to a constant.
-        TemplateInstance::semanticTiargs(loc, sc, args, 0);
+        // Specify 2 for the flags argument to semanticTiargs() so that
+        // a symbol should not be optimised at all.
+        TemplateInstance::semanticTiargs(loc, sc, args, 2);
 
         if (dim != 1)
             goto Ldimerror;

@@ -4890,6 +4890,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 /**********************************
  * Input:
  *      flags   1: replace const variables with their initializers
+ *              2: do not optimise
  */
 
 void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
@@ -4921,7 +4922,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                  */
                 if (flags & 1) // only used by __traits, must not interpret the args
                     ea = ea->optimize(WANTvalue);
-                else if (ea->op != TOKvar)
+                else if (flags & 2) // don't touch ea, the symbol is what's needed
+                    ;
+                else if (ea->op != TOKvar || (((VarExp *)ea)->var->storage_class & STCmanifest))
                     ea = ea->optimize(WANTvalue | WANTinterpret);
                 (*tiargs)[j] = ea;
             }

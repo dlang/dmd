@@ -2038,6 +2038,19 @@ void test83()
 
 /******************************************/
 
+struct Bug5596(alias a) { void fx() { a = 4; } int a; }
+
+alias Bug5596!"a" x;
+
+void bug5596(alias b)() { Bug5596!b g; }
+
+void test5596()
+{
+    bug5596!("a")();
+}
+
+/******************************************/
+
 int main()
 {
     test1();
@@ -2123,6 +2136,7 @@ int main()
     test81();
     test82();
     test83();
+    test5596();
 
     printf("Success\n");
     return 0;
