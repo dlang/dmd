@@ -2795,7 +2795,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
                 unsigned iop = (op == OPu16_32) ? 0x0FB7 : 0x0FBF; /* MOVZX/MOVSX reg,reg */
                 c3 = genregs(CNIL,iop,reg,reg);
             }
-            c2 = cat(c2,c3);
+            c2 = cat(c3,c2);
         }
      L1:
         c3 = e1comsub ? getregs(retregs) : CNIL;
