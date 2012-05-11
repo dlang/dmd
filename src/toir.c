@@ -741,7 +741,7 @@ Lagain:
 #endif
 
     if (tns->ty == Tstruct)
-    {   StructDeclaration *sd = ((TypeStruct *)tn)->sym;
+    {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
         if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
             return RETstack;            // 32 bit C/C++ structs always on stack
         if (sd->arg1type && !sd->arg2type)
@@ -766,9 +766,9 @@ Lagain:
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
              linkage == LINKc &&
-             tn->iscomplex())
+             tns->iscomplex())
     {
-        if (tn->ty == Tcomplex32)
+        if (tns->ty == Tcomplex32)
             return RETregs;     // in EDX:EAX, not ST1:ST0
         else
             return RETstack;
