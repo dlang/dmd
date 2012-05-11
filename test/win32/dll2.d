@@ -50,7 +50,7 @@ version(D_Version2)
 
 	    // attach to all other threads
 	    enumProcessThreads( function (uint id, void* context) {
-			if( !Thread.findThread( id ) )
+			if( !thread_findByAddr( id ) )
 			{
 				thread_attachByAddr( id );
 				thread_moduleTlsCtor( id );
