@@ -52,7 +52,8 @@ struct TestArgs
     string   postScript;
     string   requiredArgs;
     // reason for disabling the test (if empty, the test is not disabled)
-    string   disabled;
+    string   disabled_reason;
+    @property bool disabled() { return disabled_reason != ""; }
 }
 
 struct EnvData
@@ -145,7 +146,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     string compileSeparatelyStr;
     testArgs.compileSeparately = findTestParameter(file, "COMPILE_SEPARATELY", compileSeparatelyStr);
 
-    findTestParameter(file, "DISABLED", testArgs.disabled);
+    findTestParameter(file, "DISABLED", testArgs.disabled_reason);
 
     if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
@@ -278,22 +279,16 @@ int main(string[] args)
 
     gatherTestParameters(testArgs, input_dir, input_file, envData);
 
-    if ("" != testArgs.disabled)
-    {
-        writefln(" !!! %-30s %s%s(%s) [DISABLED: %s]",
-            input_file,
-            testArgs.requiredArgs,
-            (testArgs.requiredArgs ? " " : ""),
-            testArgs.permuteArgs,
-            testArgs.disabled);
-        return 0;
-    }
-
-    writefln(" ... %-30s %s%s(%s)",
+    writef(" ... %-30s %s%s(%s)",
             input_file,
             testArgs.requiredArgs,
             (testArgs.requiredArgs ? " " : ""),
             testArgs.permuteArgs);
+
+    if (testArgs.disabled)
+        writefln("!!! [DISABLED: %s]", testArgs.disabled_reason);
+    else
+        write("\n");
 
     if (std.file.exists(output_file))
         std.file.remove(output_file);
@@ -370,9 +365,14 @@ int main(string[] args)
                 collectException(std.file.remove(file));
 
             f.writeln();
+
         }
         catch(Exception e)
         {
+            // it failed but it was disabled, exit as if it was successful
+            if (testArgs.disabled)
+                return 0;
+
             f.writeln();
             f.writeln("==============================");
             f.writeln("Test failed: ", e.msg);
@@ -387,6 +387,10 @@ int main(string[] args)
             return 1;
         }
     }
+
+    // it was disabled but it passed! print an informational message
+    if (testArgs.disabled)
+        writefln(" !!! %-30s DISABLED but PASSES!", input_file);
 
     return 0;
 }
