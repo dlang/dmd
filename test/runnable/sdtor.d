@@ -2099,6 +2099,40 @@ void test61()
 
 /**********************************/
 
+struct S62
+{
+    this(int length)
+    {
+        _length = length;
+    }
+
+    int opBinary(string op)(in S62 rhs) const
+        if(op == "-")
+    {
+        return this.length - rhs.length;
+    }
+
+    @property int length() const
+    {
+        return _length;
+    }
+
+    invariant()
+    {
+        assert(_length == 1);
+    }
+
+    int _length  = 1;
+}
+
+
+void test62()
+{
+    immutable result = S62.init - S62.init;
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -2172,6 +2206,7 @@ int main()
     test6637();
     test7353();
     test61();
+    test62();
 
     printf("Success\n");
     return 0;
