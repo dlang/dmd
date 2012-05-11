@@ -1087,7 +1087,8 @@ version( unittest )
     }
 
 
-    pure nothrow unittest
+    //@@@BUG@@@ http://d.puremagic.com/issues/show_bug.cgi?id=8081
+    /+pure nothrow+/ unittest
     {
         testType!(bool)();
 
@@ -1131,7 +1132,8 @@ version( unittest )
         assert( d == 1 );
     }
 
-    pure nothrow unittest
+    //@@@BUG@@@ http://d.puremagic.com/issues/show_bug.cgi?id=8081
+    /+pure nothrow+/ unittest
     {
         static struct S { int val; }
         auto s = shared(S)(1);
