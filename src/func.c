@@ -1403,10 +1403,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 returnLabel->statement = ls;
                 a->push(returnLabel->statement);
 
-                if (type->nextOf()->ty != Tvoid)
+                if (type->nextOf()->ty != Tvoid && vresult)
                 {
                     // Create: return vresult;
-                    assert(vresult);
                     Expression *e = new VarExp(0, vresult);
                     if (tintro)
                     {   e = e->implicitCastTo(sc, tintro->nextOf());
@@ -1424,7 +1423,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (parameters)
             {   for (size_t i = 0; i < parameters->dim; i++)
                 {
-                    VarDeclaration *v = (VarDeclaration *)parameters->data[i];
+                    VarDeclaration *v = (*parameters)[i];
 
                     if (v->storage_class & (STCref | STCout))
                         continue;
@@ -1625,7 +1624,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
      */
     for (int i = 0; i < foverrides.dim; i++)
     {
-        FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+        FuncDeclaration *fdv = foverrides[i];
 
         /* The semantic pass on the contracts of the overridden functions must
          * be completed before code generation occurs (bug 3602).
@@ -1680,7 +1679,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
      */
     for (int i = 0; i < foverrides.dim; i++)
     {
-        FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+        FuncDeclaration *fdv = foverrides[i];
 
         /* The semantic pass on the contracts of the overridden functions must
          * be completed before code generation occurs (bug 3602 and 5230).
