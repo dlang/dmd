@@ -1015,14 +1015,60 @@ extern (C) void[] _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
 
 extern (C) void* _d_newitemT(TypeInfo ti)
 {
-    // Just add the API at the moment; do the optimal implementation later
-    return _d_newarrayT(ti, 1).ptr;
+    // BUG ti is actually still the array typeinfo.  Not that this is a
+    // difficult thing to workaround...
+    auto size = ti.next.tsize();                // array element size
+
+    debug(PRINTF) printf("_d_newitemT(size = %d)\n", size);
+    /* not sure if we need this...
+     * if (length == 0 || size == 0)
+        result = null;
+    else
+    {*/
+        // allocate a block to hold this item
+        auto ptr = gc_malloc(size, !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        debug(PRINTF) printf(" p = %p\n", ptr);
+        if(size == ubyte.sizeof)
+            *cast(ubyte*)ptr = 0;
+        else if(size == ushort.sizeof)
+            *cast(ushort*)ptr = 0;
+        else if(size == uint.sizeof)
+            *cast(uint*)ptr = 0;
+        else
+            memset(ptr, 0, size);
+        return ptr;
+    //}
+
 }
 
 extern (C) void* _d_newitemiT(TypeInfo ti)
 {
-    // Just add the API at the moment; do the optimal implementation later
-    return _d_newarrayiT(ti, 1).ptr;
+    // BUG ti is actually still the array typeinfo.  Not that this is a
+    // difficult thing to workaround...
+    auto size = ti.next.tsize();                // array element size
+
+    debug(PRINTF) printf("_d_newitemiT(size = %d)\n", size);
+
+    /*if (length == 0 || size == 0)
+        result = null;
+    else
+    {*/
+        auto initializer = ti.next.init();
+        auto isize = initializer.length;
+        auto q = initializer.ptr;
+
+        auto ptr = gc_malloc(size, !(ti.next.flags() & 1) ? BlkAttr.NO_SCAN : 0);
+        debug(PRINTF) printf(" p = %p\n", ptr);
+        if (isize == 1)
+            *cast(ubyte*)ptr =  *cast(ubyte*)q;
+        else if (isize == ushort.sizeof)
+            *cast(ushort*)ptr =  *cast(ushort*)q;
+        else if (isize == uint.sizeof)
+            *cast(uint*)ptr =  *cast(uint*)q;
+        else
+            memcpy(ptr, q, isize);
+        return ptr;
+    //}
 }
 
 /**
@@ -2272,4 +2318,49 @@ unittest
     sarr2.reserve(2);
     assert(sarr2[0].x == 1);
     assert(sarr[0].x == 0);
+}
+
+// cannot define structs inside unit test block, or they become nested structs.
+version(unittest)
+{
+    struct S1
+    {
+        int x = 5;
+    }
+    struct S2
+    {
+        int x;
+        this(int x) {this.x = x;}
+    }
+    struct S3
+    {
+        int[4] x;
+        this(int x)
+        {this.x[] = x;}
+    }
+    struct S4
+    {
+        int *x;
+    }
+
+}
+
+unittest
+{
+    auto s1 = new S1;
+    assert(s1.x == 5);
+    assert(gc_getAttr(s1) == BlkAttr.NO_SCAN);
+
+    auto s2 = new S2(3);
+    assert(s2.x == 3);
+    assert(gc_getAttr(s2) == BlkAttr.NO_SCAN);
+
+    auto s3 = new S3(1);
+    assert(s3.x == [1,1,1,1]);
+    assert(gc_getAttr(s3) == BlkAttr.NO_SCAN);
+    assert(gc_sizeOf(s3) == 16);
+
+    auto s4 = new S4;
+    assert(s4.x == null);
+    assert(gc_getAttr(s4) == 0);
 }
