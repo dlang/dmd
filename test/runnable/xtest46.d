@@ -5069,6 +5069,19 @@ void test8004()
 }
 
 /***************************************************/
+// 8064
+
+void test8064()
+{
+    uint[5] arry;
+    ref uint acc(size_t i) {
+        return arry[i];
+    }
+    auto arryacc = &acc;
+    arryacc(3) = 5; // same error
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5301,6 +5314,7 @@ int main()
     test7906();
     test7907();
     test8004();
+    test8064();
 
     printf("Success\n");
     return 0;
