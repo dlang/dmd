@@ -1389,6 +1389,7 @@ export DWORD ResumeThread(HANDLE hThread);
 export DWORD WaitForSingleObject(HANDLE hHandle, DWORD dwMilliseconds);
 export DWORD WaitForMultipleObjects(DWORD nCount, HANDLE *lpHandles, BOOL bWaitAll, DWORD dwMilliseconds);
 export void Sleep(DWORD dwMilliseconds);
+export BOOL SwitchToThread();
 
 // Synchronization
 

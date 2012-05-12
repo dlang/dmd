@@ -1120,16 +1120,9 @@ class Thread
     static void yield()
     {
         version( Windows )
-        {
-            // NOTE: Sleep(1) is necessary because Sleep(0) does not give
-            //       lower priority threads any timeslice, so looping on
-            //       Sleep(0) could be resource-intensive in some cases.
-            Sleep( 1 );
-        }
+            SwitchToThread();
         else version( Posix )
-        {
             sched_yield();
-        }
     }
 
 
