@@ -4978,7 +4978,7 @@ void VarExp::checkEscapeRef()
 #if DMDV2
 int VarExp::isLvalue()
 {
-    if (var->storage_class & STClazy)
+    if (var->storage_class & (STClazy | STCtemp))
         return 0;
     return 1;
 }

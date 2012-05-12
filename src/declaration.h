@@ -84,6 +84,8 @@ enum PURE;
 #define STCdisable      0x2000000000LL  // for functions that are not callable
 #define STCresult       0x4000000000LL  // for result variables passed to out contracts
 #define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
+#define STCtemp         0x10000000000LL  // temporary variable introduced by inlining
+                                         // and used only in backend process, so it's rvalue
 
 struct Match
 {
