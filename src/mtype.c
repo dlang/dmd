@@ -9022,32 +9022,9 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
 {
     OutBuffer *buf = new OutBuffer();
 
-#if 1
     HdrGenState hgs;
     argsToCBuffer(buf, &hgs, args, varargs);
-#else
-    buf->writeByte('(');
-    if (args)
-    {   OutBuffer argbuf;
-        HdrGenState hgs;
 
-        for (size_t i = 0; i < args->dim; i++)
-        {   if (i)
-                buf->writeByte(',');
-            Parameter *arg = (*args)[i];
-            argbuf.reset();
-            arg->type->toCBuffer2(&argbuf, &hgs, 0);
-            buf->write(&argbuf);
-        }
-        if (varargs)
-        {
-            if (i && varargs == 1)
-                buf->writeByte(',');
-            buf->writestring("...");
-        }
-    }
-    buf->writeByte(')');
-#endif
     return buf->toChars();
 }
 
