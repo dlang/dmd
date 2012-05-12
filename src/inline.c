@@ -1111,6 +1111,12 @@ Statement *ReturnStatement::inlineScan(InlineScanState *iss)
         FuncDeclaration *func = iss->fd;
         TypeFunction *tf = (TypeFunction *)(func->type);
 
+        /* Postblit call on return statement is processed in glue layer
+         * (Because NRVO may eliminate the copy), but inlining may remove
+         * ReturnStatement itself. To keep semantics we should insert
+         * temporary variable for postblit call.
+         * This is mostly the same as ReturnStatement::toIR.
+         */
         enum RET retmethod = tf->retStyle();
         if (retmethod == RETstack)
         {
@@ -1128,6 +1134,10 @@ Statement *ReturnStatement::inlineScan(InlineScanState *iss)
                             fd->toParent()->error(loc, "is not copyable because it is annotated with @disable");
                         }
 
+                        /* Rewirte exp as:
+                         *     (__inlinectmp = exp), __inlinectmp.__postblit(), __inlinectmp
+                         * And, __inlinectmp is marked as rvalue (See STCtemp comment)
+                         */
                         ExpInitializer *ei = new ExpInitializer(loc, exp);
 
                         Identifier* tmp = Identifier::generateId("__inlinectmp");
