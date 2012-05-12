@@ -5320,18 +5320,13 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     inuse--;
 }
 
-void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+// kind is inserted before the argument list and will usually be "function" or "delegate".
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind)
 {
-    //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
-    if (inuse)
-    {   inuse = 2;              // flag error to caller
-        return;
-    }
-    inuse++;
     if (hgs->ddoc != 1)
     {
         const char *p = NULL;
-        switch (linkage)
+        switch (t->linkage)
         {
             case LINKd:         p = NULL;       break;
             case LINKc:         p = "C";        break;
@@ -5348,14 +5343,27 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
             buf->writestring(") ");
         }
     }
-    if (next)
+    if (t->next)
     {
-        next->toCBuffer2(buf, hgs, 0);
+        t->next->toCBuffer2(buf, hgs, 0);
         buf->writeByte(' ');
     }
-    buf->writestring("function");
-    Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
-    attributesToCBuffer(buf, mod);
+    buf->writestring(kind);
+    Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
+    t->attributesToCBuffer(buf, mod);
+}
+
+void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+{
+    //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
+    if (inuse)
+    {   inuse = 2;              // flag error to caller
+        return;
+    }
+    inuse++;
+
+    functionToCBuffer2(this, buf, hgs, mod, "function");
+
     inuse--;
 }
 
@@ -6180,12 +6188,8 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    TypeFunction *tf = (TypeFunction *)next;
 
-    tf->next->toCBuffer2(buf, hgs, 0);
-    buf->writestring(" delegate");
-    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
-    tf->attributesToCBuffer(buf, mod);
+    functionToCBuffer2((TypeFunction *)next, buf, hgs, mod, "delegate");
 }
 
 Expression *TypeDelegate::defaultInit(Loc loc)
