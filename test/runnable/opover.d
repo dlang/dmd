@@ -215,11 +215,11 @@ void test3()
 
 struct Foo4
 {
-	int a;
-	int opCmp(Foo4 b)
-	{
-	    return a < b.a;
-	}
+    int a;
+    int opCmp(Foo4 b)
+    {
+        return a < b.a;
+    }
 }
 
 void test4()
@@ -694,39 +694,39 @@ interface IWriter
 
 class Writer : IWriter
 {
-        int opShl (string i)
-        {
-		printf("Writer.opShl(char[])\n");
-                return 1;
-        }
+    int opShl (string i)
+    {
+        printf("Writer.opShl(char[])\n");
+        return 1;
+    }
 
-        int opShl (int i)
-        {
-		printf("Writer.opShl(int)\n");
-                return 2;
-        }
+    int opShl (int i)
+    {
+        printf("Writer.opShl(int)\n");
+        return 2;
+    }
 }
 
 class BinaryWriter : Writer
 {
-	alias Writer.opShl opShl;
+    alias Writer.opShl opShl;
 
-        override int opShl (int i)
-        {
-		printf("BinaryWriter.opShl(int)\n");
-                return 3;
-        }
+    override int opShl (int i)
+    {
+        printf("BinaryWriter.opShl(int)\n");
+        return 3;
+    }
 }
 
 void test8()
 {
-        BinaryWriter bw = new BinaryWriter();
-	int i;
+    BinaryWriter bw = new BinaryWriter();
+    int i;
 
-        i = bw << "test";
-	assert(i == 1);
-        i = bw << 1;
-	assert(i == 3);
+    i = bw << "test";
+    assert(i == 1);
+    i = bw << 1;
+    assert(i == 3);
 }
 
 /**************************************/
@@ -867,7 +867,7 @@ class Foo14
 
     int opIn(int x)
     {
-	return a + x;
+        return a + x;
     }
 }
 
@@ -909,9 +909,62 @@ void test15()
 }
 
 /**************************************/
+// 4953
 
-//void bug4953(T = void)(short x) {}
-//static assert(is(typeof(bug4953(3))));
+struct S4953a
+{
+    short _x;
+    bool opBinaryRight(string op)(short x) if (op == "in")
+    {
+        return x == _x;
+    }
+}
+void test4953a()
+{
+    S4953a s;
+    5 in s;
+}
+
+struct S4953b
+{
+    void opBinary(string op)(short x)
+    {}
+}
+void test4953b()
+{
+    S4953b s;
+    s + 5;
+}
+
+
+struct S4953c
+{
+    void funOpAssign(float[1u] data) { }
+    void opOpAssign(string op)(float[1u] data) if(op=="<<") { }
+}
+void test4953c()
+{
+    // dmd v2.054, v2.055
+    S4953c s;
+    float[1u] a = [1.0f]; // OK: Implicit cast from float[] compiles
+    s.funOpAssign([1.0f]); // OK: Implicit cast from float[] compiles
+    s <<= [1.0f]; // Issue: Implicit cast from float[] does not compile
+    s <<= cast(float[1u])[1.0f]; // OK: Explicit cast from float[] compiles
+}
+
+void f4953d1  (dstring d) { dstring e = d; }
+void f4953d2()(dstring d) { dstring e = d; }
+void f4953d3  ( byte[] b) { byte[] c = b; }
+void f4953d4()( byte[] b) { byte[] c = b; }
+void test4953d()
+{
+    f4953d1("abc");  // OK
+    f4953d2("abc");  // OK
+    f4953d3([1,2,3]); // OK
+    f4953d4([1,2,3]);
+    // Error: template test2.f() does not match any function template declaration
+    // Error: template test2.f() cannot deduce template function from argument types !()(int[])
+}
 
 /**************************************/
 // 4993
@@ -949,6 +1002,10 @@ int main()
     test13();
     test14();
     test15();
+    test4953a();
+    test4953b();
+    test4953c();
+    test4953d();
     test4993();
 
     printf("Success\n");

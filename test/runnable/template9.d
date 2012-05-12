@@ -311,6 +311,12 @@ void test2579()
 }
 
 /**********************************/
+// 4953
+
+void bug4953(T = void)(short x) {}
+static assert(is(typeof(bug4953(3))));
+
+/**********************************/
 // 5886 & 5393
 
 struct K5886 {
@@ -354,6 +360,31 @@ void test5393()
 
     auto b = new B;
     b.foobar();
+}
+
+/**********************************/
+// 5896
+
+struct X5896
+{
+                 T opCast(T)(){ return 1; }
+           const T opCast(T)(){ return 2; }
+       immutable T opCast(T)(){ return 3; }
+          shared T opCast(T)(){ return 4; }
+    const shared T opCast(T)(){ return 5; }
+}
+void test5896()
+{
+    auto xm =              X5896  ();
+    auto xc =        const(X5896) ();
+    auto xi =    immutable(X5896) ();
+    auto xs =       shared(X5896) ();
+    auto xcs= const(shared(X5896))();
+    assert(cast(int)xm == 1);
+    assert(cast(int)xc == 2);
+    assert(cast(int)xi == 3);
+    assert(cast(int)xs == 4);
+    assert(cast(int)xcs== 5);
 }
 
 /**********************************/
@@ -1230,6 +1261,7 @@ int main()
     test2579();
     test5886();
     test5393();
+    test5896();
     test6825();
     test6789();
     test2778();
