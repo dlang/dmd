@@ -2854,8 +2854,6 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
         return;
     }
     inuse++;
-    if (next && (!ident || ident->toHChars2() == ident->toChars()))
-        next->toCBuffer2(buf, hgs, 0);
     if (hgs->ddoc != 1)
     {
         switch (linkage)
@@ -2868,10 +2866,17 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
             default:
                 assert(0);
         }
+        if (!hgs->hdrgen && p)
+        {
+            buf->writestring("extern (");
+            buf->writestring(p);
+            buf->writestring(") ");
+        }
+    }
+    if (next && (!ident || ident->toHChars2() == ident->toChars()))
+    {    next->toCBuffer2(buf, hgs, 0);
     }
 
-    if (!hgs->hdrgen && p)
-        buf->writestring(p);
     if (ident)
     {   buf->writeByte(' ');
         buf->writestring(ident->toHChars2());
@@ -2891,35 +2896,49 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
     inuse--;
 }
 
+// kind is inserted before the argument list and will usually be "function" or "delegate".
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind)
+{
+    if (hgs->ddoc != 1)
+    {
+        const char *p = NULL;
+        switch (t->linkage)
+        {
+            case LINKd:         p = NULL;      break;
+            case LINKc:         p = "C";       break;
+            case LINKwindows:   p = "Windows"; break;
+            case LINKpascal:    p = "Pascal";  break;
+            case LINKcpp:       p = "C++";     break;
+            default:
+                assert(0);
+        }
+        if (!hgs->hdrgen && p)
+        {
+            buf->writestring("extern (");
+            buf->writestring(p);
+            buf->writestring(") ");
+        }
+    }
+    if (t->next)
+    {
+        t->next->toCBuffer2(buf, hgs, 0);
+        buf->writeByte(' ');
+    }
+    buf->writestring(kind);
+    Parameter::argsToCBuffer(buf, hgs, t->parameters, t->varargs);
+}
+
 void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 {
-    const char *p = NULL;
-
+    //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
     if (inuse)
     {   inuse = 2;              // flag error to caller
         return;
     }
     inuse++;
-    if (next)
-        next->toCBuffer2(buf, hgs, 0);
-    if (hgs->ddoc != 1)
-    {
-        switch (linkage)
-        {
-            case LINKd:         p = NULL;       break;
-            case LINKc:         p = " C";       break;
-            case LINKwindows:   p = " Windows"; break;
-            case LINKpascal:    p = " Pascal";  break;
-            case LINKcpp:       p = " C++";     break;
-            default:
-                assert(0);
-        }
-    }
 
-    if (!hgs->hdrgen && p)
-        buf->writestring(p);
-    buf->writestring(" function");
-    Parameter::argsToCBuffer(buf, hgs, parameters, varargs);
+    functionToCBuffer2(this, buf, hgs, mod, "function");
+
     inuse--;
 }
 
@@ -3260,11 +3279,8 @@ void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    TypeFunction *tf = (TypeFunction *)next;
 
-    tf->next->toCBuffer2(buf, hgs, 0);
-    buf->writestring(" delegate");
-    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+    functionToCBuffer2((TypeFunction *)next, buf, hgs, mod, "delegate");
 }
 
 Expression *TypeDelegate::defaultInit(Loc loc)
@@ -5587,27 +5603,8 @@ char *Parameter::argsTypesToChars(Parameters *args, int varargs)
 {
     OutBuffer *buf = new OutBuffer();
 
-    buf->writeByte('(');
-    if (args)
-    {   OutBuffer argbuf;
-        HdrGenState hgs;
-
-        for (size_t i = 0; i < args->dim; i++)
-        {   if (i)
-                buf->writeByte(',');
-            Parameter *arg = args->tdata()[i];
-            argbuf.reset();
-            arg->type->toCBuffer2(&argbuf, &hgs, 0);
-            buf->write(&argbuf);
-        }
-        if (varargs)
-        {
-            if (args->dim && varargs == 1)
-                buf->writeByte(',');
-            buf->writestring("...");
-        }
-    }
-    buf->writeByte(')');
+    HdrGenState hgs;
+    argsToCBuffer(buf, &hgs, args, varargs);
 
     return buf->toChars();
 }
