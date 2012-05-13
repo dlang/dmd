@@ -1518,6 +1518,10 @@ OutBuffer::OutBuffer()
     data = NULL;
     offset = 0;
     size = 0;
+
+    doindent = 0;
+    level = 0;
+    linehead = 1;
 }
 
 OutBuffer::~OutBuffer()
@@ -1563,7 +1567,20 @@ void OutBuffer::setsize(unsigned size)
 
 void OutBuffer::write(const void *data, unsigned nbytes)
 {
-    reserve(nbytes);
+    char t = '\t';
+    reserve(nbytes + level);
+    if (doindent && linehead)
+    {
+        if (level)
+        {
+            for (size_t i=0; i<level; i++)
+            {
+                memcpy(this->data + offset, &t, sizeof(t));
+                offset++;
+            }
+        }
+        linehead = 0;
+    }
     memcpy(this->data + offset, data, nbytes);
     offset += nbytes;
 }
@@ -1595,10 +1612,26 @@ void OutBuffer::writenl()
 #else
     writeByte('\n');
 #endif
+    if (doindent)
+        linehead = 1;
 }
 
 void OutBuffer::writeByte(unsigned b)
 {
+    if (doindent && linehead
+        && b != '\n')
+    {
+        if (level)
+        {
+            reserve(level);
+            for (size_t i=0; i<level; i++)
+            {
+                this->data[offset] = '\t';
+                offset++;
+            }
+        }
+        linehead = 0;
+    }    
     reserve(1);
     this->data[offset] = (unsigned char)b;
     offset++;
@@ -1666,6 +1699,24 @@ void OutBuffer::prependbyte(unsigned b)
 
 void OutBuffer::writeword(unsigned w)
 {
+    if (doindent && linehead
+#if _WIN32
+        && w != 0x0A0D)
+#else
+        && w != '\n')
+#endif
+    {
+        if (level)
+        {
+            reserve(level);
+            for (size_t i=0; i<level; i++)
+            {
+                this->data[offset] = '\t';
+                offset++;
+            }
+        }
+        linehead = 0;
+    }
     reserve(2);
     *(unsigned short *)(this->data + offset) = (unsigned short)w;
     offset += 2;
@@ -1691,6 +1742,24 @@ void OutBuffer::writeUTF16(unsigned w)
 
 void OutBuffer::write4(unsigned w)
 {
+    if (doindent && linehead
+#if _WIN32
+        && w != 0x000A000D)
+#else
+        )
+#endif
+    {
+        if (level)
+        {
+            reserve(level);
+            for (size_t i=0; i<level; i++)
+            {
+                this->data[offset] = '\t';
+                offset++;
+            }
+        }
+        linehead = 0;
+    }
     reserve(4);
     *(unsigned *)(this->data + offset) = w;
     offset += 4;

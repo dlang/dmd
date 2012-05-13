@@ -27,6 +27,7 @@
 #include "module.h"
 #include "parse.h"
 #include "template.h"
+#include "hdrgen.h"
 #if TARGET_NET
  #include "frontend.net/pragma.h"
 #endif
@@ -349,6 +350,27 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
     }
 }
 
+FuncDeclaration* AttribDeclaration::isFuncDeclaration()
+{
+    if (decl)
+    {
+        if (decl->dim == 0)
+            return NULL;
+        else if (decl->dim == 1)
+            return (*decl)[0]->isFuncDeclaration();
+        else
+        {
+            for (unsigned i = 0; i < decl->dim; i++)
+            {
+                Dsymbol *s = (*decl)[i];
+                if(s->isFuncDeclaration() != NULL) return s->isFuncDeclaration();
+            }
+        }
+    }
+    else
+        return NULL;
+    return NULL;
+}
 
 void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -363,13 +385,13 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writenl();
             buf->writeByte('{');
             buf->writenl();
-            for (size_t i = 0; i < decl->dim; i++)
+            buf->level++;
+            for (unsigned i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = (*decl)[i];
-
-                buf->writestring("    ");
                 s->toCBuffer(buf, hgs);
             }
+            buf->level--;
             buf->writeByte('}');
         }
     }
@@ -869,18 +891,21 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
 void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf(isunion ? "union" : "struct");
-    buf->writestring("\n{\n");
+    buf->writenl();
+    buf->writestring("{");
+    buf->writenl();
+    buf->level++;
     if (decl)
     {
         for (size_t i = 0; i < decl->dim; i++)
         {
             Dsymbol *s = (*decl)[i];
-
-            //buf->writestring("    ");
             s->toCBuffer(buf, hgs);
         }
     }
-    buf->writestring("}\n");
+    buf->level--;
+    buf->writestring("}");
+    buf->writenl();
 }
 
 const char *AnonDeclaration::kind()
@@ -1310,16 +1335,16 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
         buf->writeByte('{');
         buf->writenl();
+        buf->level++;
         if (decl)
         {
             for (size_t i = 0; i < decl->dim; i++)
             {
                 Dsymbol *s = (*decl)[i];
-
-                buf->writestring("    ");
                 s->toCBuffer(buf, hgs);
             }
         }
+        buf->level--;
         buf->writeByte('}');
         if (elsedecl)
         {
@@ -1328,13 +1353,13 @@ void ConditionalDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->writenl();
             buf->writeByte('{');
             buf->writenl();
-            for (size_t i = 0; i < elsedecl->dim; i++)
+            buf->level++;
+            for (unsigned i = 0; i < elsedecl->dim; i++)
             {
                 Dsymbol *s = (*elsedecl)[i];
-
-                buf->writestring("    ");
                 s->toCBuffer(buf, hgs);
             }
+            buf->level--;
             buf->writeByte('}');
         }
     }
