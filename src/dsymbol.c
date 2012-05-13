@@ -31,6 +31,7 @@
 #include "import.h"
 #include "template.h"
 #include "attrib.h"
+#include "hdrgen.h"
 
 /****************************** Dsymbol ******************************/
 

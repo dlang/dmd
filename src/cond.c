@@ -22,6 +22,7 @@
 #include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
+#include "hdrgen.h"
 #include "arraytypes.h"
 
 int findCondition(Strings *ids, Identifier *ident)

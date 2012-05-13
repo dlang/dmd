@@ -22,6 +22,8 @@ struct HdrGenState
     int inBinExp;
     int inArrExp;
     int emitInst;
+    int autoMember;     // Non-zero if function is an auto type
+
     struct
     {
         int init;
@@ -30,5 +32,3 @@ struct HdrGenState
 
     HdrGenState() { memset(this, 0, sizeof(HdrGenState)); }
 };
-
-
