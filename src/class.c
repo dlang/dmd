@@ -28,6 +28,7 @@
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
+#include "hdrgen.h"
 
 /********************************* ClassDeclaration ****************************/
 

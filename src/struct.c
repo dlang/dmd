@@ -20,6 +20,7 @@
 #include "id.h"
 #include "statement.h"
 #include "template.h"
+#include "hdrgen.h"
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 

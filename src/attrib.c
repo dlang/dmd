@@ -27,6 +27,7 @@
 #include "module.h"
 #include "parse.h"
 #include "template.h"
+#include "hdrgen.h"
 #if TARGET_NET
  #include "frontend.net/pragma.h"
 #endif
@@ -349,6 +350,27 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
     }
 }
 
+FuncDeclaration* AttribDeclaration::isFuncDeclaration()
+{
+    if (decl)
+    {
+        if (decl->dim == 0)
+            return NULL;
+        else if (decl->dim == 1)
+            return (*decl)[0]->isFuncDeclaration();
+        else
+        {
+            for (unsigned i = 0; i < decl->dim; i++)
+            {
+                Dsymbol *s = (*decl)[i];
+                if(s->isFuncDeclaration() != NULL) return s->isFuncDeclaration();
+            }
+        }
+    }
+    else
+        return NULL;
+    return NULL;
+}
 
 void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -903,7 +925,9 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
 void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf(isunion ? "union" : "struct");
-    buf->writestring("\n{\n");
+    buf->writenl();
+    buf->writestring("{");
+    buf->writenl();
     buf->level++;
     if (decl)
     {
@@ -914,7 +938,8 @@ void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
     }
     buf->level--;
-    buf->writestring("}\n");
+    buf->writestring("}");
+    buf->writenl();
 }
 
 const char *AnonDeclaration::kind()

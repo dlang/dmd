@@ -18,6 +18,7 @@
 #include "expression.h"
 #include "module.h"
 #include "declaration.h"
+#include "hdrgen.h"
 
 /********************************* EnumDeclaration ****************************/
 
