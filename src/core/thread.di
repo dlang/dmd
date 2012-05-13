@@ -359,7 +359,8 @@ class Thread
      *
      * Returns:
      *  The thread object representing the calling thread.  The result of
-     *  deleting this object is undefined.
+     *  deleting this object is undefined.  If the current thread is not
+     *  attached to the runtime, a null reference is returned.
      */
     static Thread getThis();
 
