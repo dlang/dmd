@@ -465,7 +465,7 @@ extern (C) bool thread_isMainThread();
 
 /**
  * Registers the calling thread for use with the D Runtime.  If this routine
- * is called for a thread which is already registered, the result is undefined.
+ * is called for a thread which is already registered, no action is performed.
  */
 extern (C) Thread thread_attachThis();
 
@@ -492,7 +492,7 @@ version( Windows )
 
 /**
  * Deregisters the calling thread from use with the runtime.  If this routine
- * is called for a thread which is not registered, the result is undefined.
+ * is called for a thread which is not registered, no action is performed.
  */
 extern (C) void thread_detachThis();
 

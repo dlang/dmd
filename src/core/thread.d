@@ -1897,11 +1897,14 @@ extern (C) bool thread_isMainThread()
 
 /**
  * Registers the calling thread for use with the D Runtime.  If this routine
- * is called for a thread which is already registered, the result is undefined.
+ * is called for a thread which is already registered, no action is performed.
  */
 extern (C) Thread thread_attachThis()
 {
     gc_disable(); scope(exit) gc_enable();
+
+    if (auto t = Thread.getThis())
+        return t;
 
     Thread          thisThread  = new Thread();
     Thread.Context* thisContext = &thisThread.m_main;
@@ -1986,6 +1989,9 @@ version( Windows )
     extern (C) Thread thread_attachByAddrB( Thread.ThreadAddr addr, void* bstack )
     {
         gc_disable(); scope(exit) gc_enable();
+
+        if (auto t = thread_findByAddr(addr))
+            return t;
 
         Thread          thisThread  = new Thread();
         Thread.Context* thisContext = &thisThread.m_main;
@@ -2084,7 +2090,8 @@ version( Windows )
  */
 extern (C) void thread_detachThis()
 {
-    Thread.remove( Thread.getThis() );
+    if (auto t = Thread.getThis())
+        Thread.remove(t);
 }
 
 
