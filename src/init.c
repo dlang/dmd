@@ -35,7 +35,7 @@ Initializer *Initializer::syntaxCopy()
     return this;
 }
 
-Initializer *Initializer::semantic(Scope *sc, Type *t, int needInterpret)
+Initializer *Initializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     return this;
 }
@@ -88,7 +88,7 @@ Initializer *VoidInitializer::syntaxCopy()
 }
 
 
-Initializer *VoidInitializer::semantic(Scope *sc, Type *t, int needInterpret)
+Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     //printf("VoidInitializer::semantic(t = %p)\n", t);
     type = t;
@@ -142,7 +142,7 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
     this->value.push(value);
 }
 
-Initializer *StructInitializer::semantic(Scope *sc, Type *t, int needInterpret)
+Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     int errors = 0;
 
@@ -461,7 +461,7 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
     type = NULL;
 }
 
-Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, int needInterpret)
+Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {   unsigned i;
     unsigned length;
     const unsigned amax = 0x80000000;
@@ -810,7 +810,7 @@ bool arrayHasNonConstPointers(Expressions *elems)
 
 
 
-Initializer *ExpInitializer::semantic(Scope *sc, Type *t, int needInterpret)
+Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);

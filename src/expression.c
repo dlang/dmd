@@ -4007,7 +4007,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
                     else if (v->scope)
                     {   // Do deferred semantic analysis
                         Initializer *i2 = v->init->syntaxCopy();
-                        i2 = i2->semantic(v->scope, v->type, WANTinterpret);
+                        i2 = i2->semantic(v->scope, v->type, INITinterpret);
                         e = i2->toExpression();
                         // remove v->scope (see bug 3426)
                         // but not if gagged, for we might be called again.
