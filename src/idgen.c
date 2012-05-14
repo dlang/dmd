@@ -324,6 +324,7 @@ Msgtable msgtable[] =
     { "hasMember" },
     { "identifier" },
     { "parent" },
+    { "parameterNames" },
     { "getMember" },
     { "getOverloads" },
     { "getVirtualFunctions" },
