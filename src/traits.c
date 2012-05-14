@@ -187,6 +187,26 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         ISDSYMBOL((d = s->isDeclaration()) != NULL && d->storage_class & STClazy)
     }
+    else if (ident == Id::isPublic)
+    {
+        ISDSYMBOL((s->prot() == PROTpublic));
+    }
+    else if (ident == Id::isPrivate)
+    {
+        ISDSYMBOL((s->prot() == PROTprivate));
+    }
+    else if (ident == Id::isProtected)
+    {
+        ISDSYMBOL((s->prot() == PROTprotected));
+    }
+    else if (ident == Id::isPackage)
+    {
+        ISDSYMBOL((s->prot() == PROTpackage));
+    }
+    else if (ident == Id::isExport)
+    {
+        ISDSYMBOL((s->prot() == PROTexport));
+    }
     else if (ident == Id::identifier)
     {   // Get identifier for symbol as a string literal
 
