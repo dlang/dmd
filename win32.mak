@@ -156,7 +156,6 @@ MANIFEST= \
 	src\rt\arrayshort.d \
 	src\rt\cast_.d \
 	src\rt\cmath2.d \
-	src\rt\compiler.d \
 	src\rt\complex.c \
 	src\rt\cover.d \
 	src\rt\critical.c \
