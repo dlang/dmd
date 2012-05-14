@@ -1243,6 +1243,24 @@ void test7933()
 }
 
 /**********************************/
+// 8094
+
+struct Tuple8094(T...) {}
+
+template getParameters8094(T, alias P)
+{
+    static if (is(T t == P!U, U...))
+        alias U getParameters8094;
+    else
+        static assert(false);
+}
+
+void test8094()
+{
+    alias getParameters8094!(Tuple8094!(int, string), Tuple8094) args;
+}
+
+/**********************************/
 
 int main()
 {
@@ -1293,6 +1311,7 @@ int main()
     test7769();
     test7873();
     test7933();
+    test8094();
 
     printf("Success\n");
     return 0;

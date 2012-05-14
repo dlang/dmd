@@ -2874,7 +2874,11 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 {   /* Didn't find it as a parameter identifier. Try looking
                      * it up and seeing if is an alias. See Bugzilla 1454
                      */
-                    Dsymbol *s = tempinst->tempdecl->scope->search(0, tp->tempinst->name, NULL);
+                    TypeIdentifier *tid = new TypeIdentifier(0, tp->tempinst->name);
+                    Type *t;
+                    Expression *e;
+                    Dsymbol *s;
+                    tid->resolve(0, sc, &e, &t, &s);
                     if (s)
                     {
                         s = s->toAlias();
