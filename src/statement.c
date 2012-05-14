@@ -1706,18 +1706,6 @@ Statement *ForeachStatement::semantic(Scope *sc)
 
             Type *tret = func->type->nextOf();
 
-            // Need a variable to hold value from any return statements in body.
-            if (!sc->func->vresult && tret && tret != Type::tvoid)
-            {
-                VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
-                v->noscope = 1;
-                v->semantic(sc);
-                if (!sc->insert(v))
-                    assert(0);
-                v->parent = sc->func;
-                sc->func->vresult = v;
-            }
-
             /* Turn body into the function literal:
              *  int delegate(ref T arg) { body }
              */
@@ -3324,10 +3312,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
             // Construct: return vresult;
             if (!fd->vresult)
             {   // Declare vresult
+                Scope *sco = fd->scout ? fd->scout : scx;
                 VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
                 v->noscope = 1;
-                v->semantic(scx);
-                if (!scx->insert(v))
+                v->semantic(sco);
+                if (!sco->insert(v))
                     assert(0);
                 v->parent = fd;
                 fd->vresult = v;
