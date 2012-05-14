@@ -148,3 +148,21 @@ void bug6720() { }
 //static assert(!is(typeof(
 //cast(bool)bug6720()
 //)));
+
+/**************************************************
+    1099
+**************************************************/
+
+template Mix1099(int a) {
+   alias typeof(this) ThisType;
+    static assert (ThisType.init.tupleof.length == 2);
+}
+
+
+struct Foo1099 {
+    mixin Mix1099!(0);
+    int foo;
+    mixin Mix1099!(1);
+    int bar;
+    mixin Mix1099!(2);
+}
