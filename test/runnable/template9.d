@@ -1262,6 +1262,26 @@ void test8094()
 
 /**********************************/
 
+struct Tuple12(T...)
+{
+    void foo(alias P)()
+    {
+        alias Tuple12 X;
+        static if (is(typeof(this) t == X!U, U...))
+            alias U getParameters;
+        else
+            static assert(false);
+    }
+}
+
+void test12()
+{
+    Tuple12!(int, string) t;
+    t.foo!Tuple12();
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -1312,6 +1332,7 @@ int main()
     test7873();
     test7933();
     test8094();
+    test12();
 
     printf("Success\n");
     return 0;
