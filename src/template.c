@@ -1970,7 +1970,7 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
             for (; 1; tupi++)
             {   if (tupi == parameters->dim)
                     goto L1;
-                TemplateParameter *t = (TemplateParameter *)parameters->data[tupi];
+                TemplateParameter *t = (*parameters)[tupi];
                 TemplateTupleParameter *tup = t->isTemplateTupleParameter();
                 if (tup && tup->ident->equals(tid->ident))
                     break;
@@ -1983,7 +1983,7 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
 
             /* See if existing tuple, and whether it matches or not
              */
-            Object *o = (Object *)dedtypes->data[tupi];
+            Object *o = (*dedtypes)[tupi];
             if (o)
             {   // Existing deduced argument must be a tuple, and must match
                 Tuple *t = isTuple(o);
@@ -1991,7 +1991,7 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
                     return MATCHnomatch;
                 for (size_t i = 0; i < tuple_dim; i++)
                 {   Parameter *arg = Parameter::getNth(this->parameters, nfparams - 1 + i);
-                    if (!arg->type->equals((Object *)t->objects.data[i]))
+                    if (!arg->type->equals(t->objects[i]))
                         return MATCHnomatch;
                 }
             }
@@ -2001,9 +2001,9 @@ MATCH TypeFunction::deduceType(Scope *sc, Type *tparam, TemplateParameters *para
                 t->objects.setDim(tuple_dim);
                 for (size_t i = 0; i < tuple_dim; i++)
                 {   Parameter *arg = Parameter::getNth(this->parameters, nfparams - 1 + i);
-                    t->objects.data[i] = (void *)arg->type;
+                    t->objects[i] = arg->type;
                 }
-                dedtypes->data[tupi] = (void *)t;
+                (*dedtypes)[tupi] = t;
             }
             nfparams--; // don't consider the last parameter for type deduction
             goto L2;
@@ -2073,9 +2073,25 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 {   /* Didn't find it as a parameter identifier. Try looking
                      * it up and seeing if is an alias. See Bugzilla 1454
                      */
-                    Dsymbol *s = tempinst->tempdecl->scope->search(0, tp->tempinst->name, NULL);
-                    if (s)
+                    TypeIdentifier *tid = new TypeIdentifier(0, tp->tempinst->name);
+                    Type *t;
+                    Expression *e;
+                    Dsymbol *s;
+                    tid->resolve(0, sc, &e, &t, &s);
+                    if (t)
                     {
+                        s = t->toDsymbol(sc);
+                    if (s)
+                        {   TemplateInstance *ti = s->parent->isTemplateInstance();
+                            if (ti)
+                            {   s = ti->tempdecl;
+                                goto L3;
+                            }
+                        }
+                    }
+                    else if (s)
+                    {
+                    L3:
                         s = s->toAlias();
                         TemplateDeclaration *td = s->isTemplateDeclaration();
                         if (td && td == tempinst->tempdecl)
