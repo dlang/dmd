@@ -221,6 +221,19 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         return (new DsymbolExp(loc, s))->semantic(sc);
     }
+    else if (ident == Id::codeof)
+    {
+        Object *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s)
+        {
+           goto Lfalse;
+        }
+        OutBuffer *outBuffer = new OutBuffer();
+        HdrGenState *hgs = new HdrGenState();
+        s->toCBuffer(outBuffer, hgs);
+        return (new StringExp(loc, (char*)outBuffer->data))->semantic(sc);
+    }
 
 #endif
     else if (ident == Id::hasMember ||
