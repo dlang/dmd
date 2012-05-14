@@ -1243,6 +1243,44 @@ void test7933()
 }
 
 /**********************************/
+// 8094
+
+struct Tuple8094(T...) {}
+
+template getParameters8094(T, alias P)
+{
+    static if (is(T t == P!U, U...))
+        alias U getParameters8094;
+    else
+        static assert(false);
+}
+
+void test8094()
+{
+    alias getParameters8094!(Tuple8094!(int, string), Tuple8094) args;
+}
+
+/**********************************/
+
+struct Tuple12(T...)
+{
+    void foo(alias P)()
+    {
+        alias Tuple12 X;
+        static if (is(typeof(this) t == X!U, U...))
+            alias U getParameters;
+        else
+            static assert(false);
+    }
+}
+
+void test12()
+{
+    Tuple12!(int, string) t;
+    t.foo!Tuple12();
+}
+
+/**********************************/
 
 int main()
 {
@@ -1293,6 +1331,8 @@ int main()
     test7769();
     test7873();
     test7933();
+    test8094();
+    test12();
 
     printf("Success\n");
     return 0;

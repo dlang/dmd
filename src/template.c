@@ -2874,9 +2874,25 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 {   /* Didn't find it as a parameter identifier. Try looking
                      * it up and seeing if is an alias. See Bugzilla 1454
                      */
-                    Dsymbol *s = tempinst->tempdecl->scope->search(0, tp->tempinst->name, NULL);
-                    if (s)
+                    TypeIdentifier *tid = new TypeIdentifier(0, tp->tempinst->name);
+                    Type *t;
+                    Expression *e;
+                    Dsymbol *s;
+                    tid->resolve(0, sc, &e, &t, &s);
+                    if (t)
                     {
+                        s = t->toDsymbol(sc);
+                        if (s)
+                        {   TemplateInstance *ti = s->parent->isTemplateInstance();
+                            if (ti)
+                            {   s = ti->tempdecl;
+                                goto L3;
+                            }
+                        }
+                    }
+                    else if (s)
+                    {
+                    L3:
                         s = s->toAlias();
                         TemplateDeclaration *td = s->isTemplateDeclaration();
                         if (td && td == tempinst->tempdecl)
