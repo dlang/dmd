@@ -383,6 +383,45 @@ struct CLCommandQueue
 }
 
 /*******************************************/
+// 8073
+
+struct Container8073
+{
+    int opApply (int delegate(ref int) dg) { return 0; }
+}
+
+class Bug8073
+{
+    static int test;
+    int foo()
+    out(r) { test = 7; } body
+    {
+        Container8073 ww;
+        foreach( xxx ; ww ) {  }
+        return 7;
+    }
+
+    ref int bar()
+    out { } body
+    {
+        Container8073 ww;
+        foreach( xxx ; ww ) {  }
+        test = 7;
+        return test;
+    }
+}
+void test8073()
+{
+    auto c = new Bug8073();
+    assert(c.foo() == 7);
+    assert(c.test == 7);
+
+    auto p = &c.bar();
+    assert(p == &c.test);
+    assert(*p == 7);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -397,6 +436,7 @@ int main()
     test9();
     test4785();
     test7218();
+    test8073();
 
     printf("Success\n");
     return 0;
