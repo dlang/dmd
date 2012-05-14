@@ -220,7 +220,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         if(tf->parameters)
             for (size_t i = 0; i < tf->parameters->dim; i++)
                 exps->push(new StringExp(loc, ((Parameter*) tf->parameters->data[i])->ident->toChars()));
-        Expression *e = new ArrayLiteralExp(loc, exps);
+        Expression *e = new TupleExp(loc, exps);
         return e->semantic(sc);
     }
     else if (ident == Id::parent)
