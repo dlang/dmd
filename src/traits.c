@@ -209,7 +209,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     else if (ident == Id::parameterNames)
     {
         FuncDeclaration *f;
-        Dsymbol *s = getDsymbol((Object *)args->data[0]);
+        Dsymbol *s = getDsymbol((*args)[0]);
         if ((f = s->isFuncDeclaration()) == NULL)
         {
             error("argument %s is not a function", s->toPrettyChars());
