@@ -229,10 +229,12 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
            goto Lfalse;
         }
-        OutBuffer *outBuffer = new OutBuffer();
-        HdrGenState *hgs = new HdrGenState();
-        s->toCBuffer(outBuffer, hgs);
-        return (new StringExp(loc, (char*)outBuffer->data))->semantic(sc);
+        OutBuffer outBuffer;
+        HdrGenState hgs;
+        s->toCBuffer(&outBuffer, &hgs);
+        char* code = (char*)malloc(outBuffer.size);
+        strcpy(code, (char*)outBuffer.data);
+        return (new StringExp(loc, code))->semantic(sc);
     }
 
 #endif
