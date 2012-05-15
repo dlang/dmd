@@ -379,8 +379,6 @@ DOCS=\
 	$(DOCDIR)\core_sync_semaphore.html
 
 IMPORTS=\
-	$(IMPDIR)\core\thread.di \
-	\
 	$(IMPDIR)\core\sync\barrier.di \
 	$(IMPDIR)\core\sync\condition.di \
 	$(IMPDIR)\core\sync\config.di \
@@ -390,6 +388,7 @@ IMPORTS=\
 	$(IMPDIR)\core\sync\semaphore.di
 
 COPY=\
+	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\atomic.di \
 	$(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
@@ -545,9 +544,6 @@ $(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
 
 import: $(IMPORTS) 
 
-$(IMPDIR)\core\thread.di : src\core\thread.di
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
 $(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
@@ -582,6 +578,9 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 	mkdir $(IMPDIR)\core\stdc
 
 copy: $(COPY)
+
+$(IMPDIR)\core\thread.di : src\core\thread.di
+	copy $** $@ 
 
 $(IMPDIR)\core\atomic.di : src\core\atomic.d
 	copy $** $@ 

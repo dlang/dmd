@@ -39,7 +39,7 @@ DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 
 DOCFMT=-version=CoreDdoc
 
-target : import copydir copy $(DRUNTIME) doc
+target : import .DEFAULT copy $(DRUNTIME) doc
 
 MANIFEST= \
 	LICENSE \
@@ -404,8 +404,6 @@ DOCS=\
 	$(DOCDIR)/core_sync_semaphore.html
 
 IMPORTS=\
-	$(IMPDIR)/core/thread.di \
-	\
 	$(IMPDIR)/core/sync/barrier.di \
 	$(IMPDIR)/core/sync/condition.di \
 	$(IMPDIR)/core/sync/config.di \
@@ -415,6 +413,7 @@ IMPORTS=\
 	$(IMPDIR)/core/sync/semaphore.di
 
 COPY=\
+	$(IMPDIR)/core/thread.di \
 	$(IMPDIR)/core/atomic.di \
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
@@ -532,7 +531,7 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 
 ######################## Header .di file copy ##############################
 
-copydir:
+.DEFAULT:
 	mkdir -p $(IMPDIR)/core/sys/windows
 	mkdir -p $(IMPDIR)/core/sys/posix/arpa
 	mkdir -p $(IMPDIR)/core/sys/posix/sys
@@ -543,6 +542,9 @@ copydir:
 	mkdir -p $(IMPDIR)/core/stdc
 
 copy: $(COPY)
+
+$(IMPDIR)/core/%.di : src/core/%.di
+	cp $< $@ 
 
 $(IMPDIR)/core/%.di : src/core/%.d
 	cp $< $@ 
