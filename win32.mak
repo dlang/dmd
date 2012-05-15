@@ -18,7 +18,7 @@ GCSTUB=lib\gcstub.obj
 
 DOCFMT=-version=CoreDdoc
 
-target : import $(DRUNTIME) doc $(GCSTUB)
+target : import .DEFAULT copy $(DRUNTIME) doc $(GCSTUB)
 
 MANIFEST= \
 	LICENSE \
@@ -379,6 +379,17 @@ DOCS=\
 	$(DOCDIR)\core_sync_semaphore.html
 
 IMPORTS=\
+	$(IMPDIR)\core\thread.di \
+	\
+	$(IMPDIR)\core\sync\barrier.di \
+	$(IMPDIR)\core\sync\condition.di \
+	$(IMPDIR)\core\sync\config.di \
+	$(IMPDIR)\core\sync\exception.di \
+	$(IMPDIR)\core\sync\mutex.di \
+	$(IMPDIR)\core\sync\rwmutex.di \
+	$(IMPDIR)\core\sync\semaphore.di
+
+COPY=\
 	$(IMPDIR)\core\atomic.di \
 	$(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
@@ -388,7 +399,6 @@ IMPORTS=\
 	$(IMPDIR)\core\memory.di \
 	$(IMPDIR)\core\runtime.di \
 	$(IMPDIR)\core\simd.di \
-	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\time.di \
 	$(IMPDIR)\core\vararg.di \
 	\
@@ -414,13 +424,7 @@ IMPORTS=\
 	$(IMPDIR)\core\stdc\wchar_.di \
 	$(IMPDIR)\core\stdc\wctype.di \
 	\
-	$(IMPDIR)\core\sync\barrier.di \
-	$(IMPDIR)\core\sync\condition.di \
-	$(IMPDIR)\core\sync\config.di \
-	$(IMPDIR)\core\sync\exception.di \
-	$(IMPDIR)\core\sync\mutex.di \
-	$(IMPDIR)\core\sync\rwmutex.di \
-	$(IMPDIR)\core\sync\semaphore.di \
+	$(IMPDIR)\core\sys\freebsd\sys\event.di \
 	\
 	$(IMPDIR)\core\sys\osx\mach\kern_return.di \
 	$(IMPDIR)\core\sys\osx\mach\port.di \
@@ -539,7 +543,45 @@ $(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
 
 ######################## Header .di file generation ##############################
 
-import: $(IMPORTS)
+import: $(IMPORTS) 
+
+$(IMPDIR)\core\thread.di : src\core\thread.di
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sync\config.di : src\core\sync\config.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+$(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
+	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+
+######################## Header .di file copy ##############################
+
+.DEFAULT:
+	mkdir $(IMPDIR)\core\sys\windows
+	mkdir $(IMPDIR)\core\sys\posix\arpa
+	mkdir $(IMPDIR)\core\sys\posix\sys
+	mkdir $(IMPDIR)\core\sys\posix\net
+	mkdir $(IMPDIR)\core\sys\posix\netinet
+	mkdir $(IMPDIR)\core\sys\osx\mach
+	mkdir $(IMPDIR)\core\sys\freebsd\sys
+	mkdir $(IMPDIR)\core\stdc
+
+copy: $(COPY)
 
 $(IMPDIR)\core\atomic.di : src\core\atomic.d
 	copy $** $@ 
@@ -568,16 +610,13 @@ $(IMPDIR)\core\runtime.di : src\core\runtime.d
 $(IMPDIR)\core\simd.di : src\core\simd.d
 	copy $** $@ 
 
-$(IMPDIR)\core\thread.di : src\core\thread.di
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
 $(IMPDIR)\core\time.di : src\core\time.d
 	copy $** $@ 
 
 $(IMPDIR)\core\vararg.di : src\core\vararg.d
 	copy $** $@ 
 
-$(IMPDIR)\core\stdc\complex.di : src\core\stdc\complex.d ; mkdir $(IMPDIR)\core\stdc
+$(IMPDIR)\core\stdc\complex.di : src\core\stdc\complex.d
 	copy $** $@ 
 
 $(IMPDIR)\core\stdc\config.di : src\core\stdc\config.d
@@ -640,26 +679,8 @@ $(IMPDIR)\core\stdc\wchar_.di : src\core\stdc\wchar_.d
 $(IMPDIR)\core\stdc\wctype.di : src\core\stdc\wctype.d
 	copy $** $@ 
 
-$(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\config.di : src\core\sync\config.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\freebsd\sys\event.di : src\core\sys\freebsd\sys\event.d
+	copy $** $@ 
 
 $(IMPDIR)\core\sys\osx\mach\kern_return.di : src\core\sys\osx\mach\kern_return.d
 	copy $** $@ 
@@ -836,4 +857,5 @@ install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
 clean:
-	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	del $(DOCS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	rmdir import\core /S /Q

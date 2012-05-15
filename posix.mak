@@ -176,6 +176,7 @@ MANIFEST= \
 	src/rt/arrayshort.d \
 	src/rt/cast_.d \
 	src/rt/cmath2.d \
+	src/rt/compiler.d \
 	src/rt/complex.c \
 	src/rt/cover.d \
 	src/rt/critical_.d \
@@ -532,14 +533,14 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 ######################## Header .di file copy ##############################
 
 copydir:
-	mkdir -p $(IMPDIR)/core/sys/windows/
-	mkdir -p $(IMPDIR)/core/sys/posix/arpa/
-	mkdir -p $(IMPDIR)/core/sys/posix/sys/
-	mkdir -p $(IMPDIR)/core/sys/posix/net/
-	mkdir -p $(IMPDIR)/core/sys/posix/netinet/
-	mkdir -p $(IMPDIR)/core/sys/osx/mach/
-	mkdir -p $(IMPDIR)/core/sys/freebsd/sys/
-	mkdir -p $(IMPDIR)/core/stdc/
+	mkdir -p $(IMPDIR)/core/sys/windows
+	mkdir -p $(IMPDIR)/core/sys/posix/arpa
+	mkdir -p $(IMPDIR)/core/sys/posix/sys
+	mkdir -p $(IMPDIR)/core/sys/posix/net
+	mkdir -p $(IMPDIR)/core/sys/posix/netinet
+	mkdir -p $(IMPDIR)/core/sys/osx/mach
+	mkdir -p $(IMPDIR)/core/sys/freebsd/sys
+	mkdir -p $(IMPDIR)/core/stdc
 
 copy: $(COPY)
 
