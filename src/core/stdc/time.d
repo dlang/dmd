@@ -9,7 +9,7 @@
 
 /*          Copyright Sean Kelly 2005 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
+ *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.stdc.time;
@@ -90,7 +90,7 @@ version( Windows )
     void  _tzset();                          // non-standard
     char* _strdate(char* s);                 // non-standard
     char* _strtime(char* s);                 // non-standard
-    
+
     extern __gshared const(char)*[2] tzname; // non-standard
 }
 else version( OSX )

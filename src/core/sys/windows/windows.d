@@ -9,7 +9,7 @@
 
 /*          Copyright Digital Mars 2000 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
+ *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.sys.windows.windows;
@@ -68,7 +68,7 @@ extern (Windows)
     alias int INT;
     alias uint UINT;
     alias uint *PUINT;
-    
+
     alias size_t SIZE_T;
 
 // ULONG_PTR must be able to store a pointer as an integral type
