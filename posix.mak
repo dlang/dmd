@@ -39,7 +39,7 @@ DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 
 DOCFMT=-version=CoreDdoc
 
-target : import $(DRUNTIME) doc
+target : import copydir copy $(DRUNTIME) doc
 
 MANIFEST= \
 	LICENSE \
@@ -403,6 +403,17 @@ DOCS=\
 	$(DOCDIR)/core_sync_semaphore.html
 
 IMPORTS=\
+	$(IMPDIR)/core/thread.di \
+	\
+	$(IMPDIR)/core/sync/barrier.di \
+	$(IMPDIR)/core/sync/condition.di \
+	$(IMPDIR)/core/sync/config.di \
+	$(IMPDIR)/core/sync/exception.di \
+	$(IMPDIR)/core/sync/mutex.di \
+	$(IMPDIR)/core/sync/rwmutex.di \
+	$(IMPDIR)/core/sync/semaphore.di
+
+COPY=\
 	$(IMPDIR)/core/atomic.di \
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
@@ -412,7 +423,6 @@ IMPORTS=\
 	$(IMPDIR)/core/memory.di \
 	$(IMPDIR)/core/runtime.di \
 	$(IMPDIR)/core/simd.di \
-	$(IMPDIR)/core/thread.di \
 	$(IMPDIR)/core/time.di \
 	$(IMPDIR)/core/vararg.di \
 	\
@@ -437,14 +447,6 @@ IMPORTS=\
 	$(IMPDIR)/core/stdc/time.di \
 	$(IMPDIR)/core/stdc/wchar_.di \
 	$(IMPDIR)/core/stdc/wctype.di \
-	\
-	$(IMPDIR)/core/sync/barrier.di \
-	$(IMPDIR)/core/sync/condition.di \
-	$(IMPDIR)/core/sync/config.di \
-	$(IMPDIR)/core/sync/exception.di \
-	$(IMPDIR)/core/sync/mutex.di \
-	$(IMPDIR)/core/sync/rwmutex.di \
-	$(IMPDIR)/core/sync/semaphore.di \
 	\
 	$(IMPDIR)/core/sys/freebsd/sys/event.di \
 	\
@@ -519,16 +521,30 @@ $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 
 ######################## Header .di file generation ##############################
 
-import: $(IMPORTS)
-
-$(IMPDIR)/core/sys/windows/%.di : src/core/sys/windows/%.d
-	$(DMD) -m32 -c -d -o- -Isrc -Iimport -Hf$@ $<
+import: $(IMPORTS) 
 
 $(IMPDIR)/core/%.di : src/core/%.di
 	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
 
-$(IMPDIR)/core/%.di : src/core/%.d
+$(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
+
+######################## Header .di file copy ##############################
+
+copydir:
+	mkdir -p $(IMPDIR)/core/sys/windows/
+	mkdir -p $(IMPDIR)/core/sys/posix/arpa/
+	mkdir -p $(IMPDIR)/core/sys/posix/sys/
+	mkdir -p $(IMPDIR)/core/sys/posix/net/
+	mkdir -p $(IMPDIR)/core/sys/posix/netinet/
+	mkdir -p $(IMPDIR)/core/sys/osx/mach/
+	mkdir -p $(IMPDIR)/core/sys/freebsd/sys/
+	mkdir -p $(IMPDIR)/core/stdc/
+
+copy: $(COPY)
+
+$(IMPDIR)/core/%.di : src/core/%.d
+	cp $< $@ 
 
 ################### C/ASM Targets ############################
 
