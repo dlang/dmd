@@ -14,6 +14,7 @@ CFLAGS=
 
 DRUNTIME_BASE=druntime
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
+DRUNTIME_SHARED=lib\$(DRUNTIME_BASE))win32.dll
 GCSTUB=lib\gcstub.obj
 
 DOCFMT=-version=CoreDdoc
@@ -842,6 +843,7 @@ $(GCSTUB) : src\gcstub\gc.d win32.mak
 
 $(DRUNTIME): $(OBJS) $(SRCS) win32.mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	$(DMD) -shared -fPIC -L/IMPLIB -of$(DRUNTIME-SHARED) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME) src\unittest.d
 	$(DMD) $(UDFLAGS) -L/co -unittest src\unittest.d $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME)

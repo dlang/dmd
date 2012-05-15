@@ -39,7 +39,7 @@ DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 
 DOCFMT=-version=CoreDdoc
 
-target : import .DEFAULT copy $(DRUNTIME) doc
+target : import copydir copy $(DRUNTIME) doc
 
 MANIFEST= \
 	LICENSE \
@@ -531,7 +531,8 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 
 ######################## Header .di file copy ##############################
 
-.DEFAULT:
+copydir: FORCE
+	mkdir -p $(IMPDIR)/core/stdc
 	mkdir -p $(IMPDIR)/core/sys/windows
 	mkdir -p $(IMPDIR)/core/sys/posix/arpa
 	mkdir -p $(IMPDIR)/core/sys/posix/sys
@@ -539,7 +540,7 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 	mkdir -p $(IMPDIR)/core/sys/posix/netinet
 	mkdir -p $(IMPDIR)/core/sys/osx/mach
 	mkdir -p $(IMPDIR)/core/sys/freebsd/sys
-	mkdir -p $(IMPDIR)/core/stdc
+FORCE: 
 
 copy: $(COPY)
 
