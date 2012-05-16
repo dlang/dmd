@@ -1314,24 +1314,13 @@ int tryMain(int argc, char *argv[])
     if (global.errors)
         fatal();
 
-    if (global.params.moduleDeps != NULL)
-    {
-        assert(global.params.moduleDepsFile != NULL);
-
-        File deps(global.params.moduleDepsFile);
-        OutBuffer* ob = global.params.moduleDeps;
-        deps.setbuffer((void*)ob->data, ob->offset);
-        deps.writev();
-    }
-
-
-    // Scan for functions to inline
     if (global.params.useInline)
     {
         /* The problem with useArrayBounds and useAssert is that the
          * module being linked to may not have generated them, so if
          * we inline functions from those modules, the symbols for them will
          * not be found at link time.
+         * We must do this BEFORE generating the .deps file!
          */
         if (!global.params.useArrayBounds && !global.params.useAssert)
         {
@@ -1347,7 +1336,21 @@ int tryMain(int argc, char *argv[])
             if (global.errors)
                 fatal();
         }
+    }
 
+    if (global.params.moduleDeps != NULL)
+    {
+        assert(global.params.moduleDepsFile != NULL);
+
+        File deps(global.params.moduleDepsFile);
+        OutBuffer* ob = global.params.moduleDeps;
+        deps.setbuffer((void*)ob->data, ob->offset);
+        deps.writev();
+    }
+
+    // Scan for functions to inline
+    if (global.params.useInline)
+    {
         for (size_t i = 0; i < modules.dim; i++)
         {
             m = modules[i];
