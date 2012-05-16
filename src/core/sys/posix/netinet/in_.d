@@ -9,7 +9,7 @@
 
 /*          Copyright Sean Kelly 2005 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
+ *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.sys.posix.netinet.in_;
@@ -72,7 +72,7 @@ version( linux )
     //{
     //    in_addr_t s_addr;
     //}
-    
+
     private enum __SOCK_SIZE__ = 16;
 
     struct sockaddr_in
@@ -108,7 +108,7 @@ else version( OSX )
     //{
     //    in_addr_t s_addr;
     //}
-    
+
     private enum __SOCK_SIZE__ = 16;
 
     struct sockaddr_in
@@ -142,7 +142,7 @@ else version( FreeBSD )
     //{
     //    in_addr_t s_addr;
     //}
-    
+
     struct sockaddr_in
     {
         ubyte       sin_len;
@@ -162,7 +162,7 @@ else version( FreeBSD )
 
     enum uint INADDR_ANY       = 0x00000000;
     enum uint INADDR_BROADCAST = 0xffffffff;
-    
+
     //enum INET_ADDRSTRLEN       = 16;
 }
 
@@ -500,13 +500,13 @@ else version( FreeBSD )
         in6_addr    ipv6mr_multiaddr;
         uint        ipv6mr_interface;
     }
-    
+
     enum : uint
     {
         IPPROTO_IPV6        = 41,
 
         //INET6_ADDRSTRLEN    = 46,
-        
+
         IPV6_JOIN_GROUP     = 12,
         IPV6_LEAVE_GROUP    = 13,
         IPV6_MULTICAST_HOPS = 10,

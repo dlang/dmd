@@ -21,8 +21,8 @@ DOCFMT=
 target : import $(DRUNTIME) doc $(GCSTUB)
 
 MANIFEST= \
-	LICENSE_1_0.txt \
-	README.txt \
+	LICENSE \
+	README \
 	posix.mak \
 	win32.mak \
 	\
