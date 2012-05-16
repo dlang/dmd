@@ -5024,6 +5024,40 @@ struct A8069
 }
 
 /***************************************************/
+// 8095
+
+/+
+As far as I can tell, the problem is with spilling registers.
+When a spill occurs ( creg_map(), called from cgreg_assign() line cgreg.c:925)
+I don't see how it marks the fastpar register as not being valid anymore.
+
+Then in cod1.c, loaddata(), line 3818, it decides that "we can use register
+that parameter was passed in".
+So it doesn't bother to reload it.
++/
+
+void bug8095(int p0, int *p1, int z, int edx, int *p4, int p5)
+{
+    int x = z / 3;
+    if (z) {
+        int c = p5 + *p1 + p0; // *p1 segfaults -- it does *z !!
+        if ( z / 5 )
+            c = 1;
+        *p4 = c;
+        x = c;
+    }
+    void never_used() {
+        ++x;
+        int * unused = p1; // kills p4 somehow
+    }
+}
+
+void test8095() {
+    int x, y;
+    bug8095(0, &x, 1, 0, &y, 0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5279,6 +5313,7 @@ int main()
     test245();
     test7807();
     test4155();
+    test8095();
 
     writefln("Success");
     return 0;

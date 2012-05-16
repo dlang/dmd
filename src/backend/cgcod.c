@@ -110,12 +110,10 @@ static regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
 void codgen()
 {   block *b,*bn;
     bool flag;
-    int i;
     targ_size_t swoffset,coffset;
     tym_t functy;
     unsigned nretblocks;                // number of return blocks
     code *cprolog;
-    regm_t noparams;
 #if SCPP
     block *btry;
 #endif
@@ -195,8 +193,8 @@ tryagain:
 
     if (!config.fulltypes || (config.flags4 & CFG4optimized))
     {
-        noparams = 0;
-        for (i = 0; i < globsym.top; i++)
+        regm_t noparams = 0;
+        for (int i = 0; i < globsym.top; i++)
         {
             Symbol *s = globsym.tab[i];
             s->Sflags &= ~SFLread;
@@ -331,8 +329,8 @@ tryagain:
         for (b = startblock; b; b = b->Bnext)
         {   if (b->Bflags & BFLjmpoptdone)      /* if no more jmp opts for this blk */
                 continue;
-            i = branch(b,0);            // see if jmp => jmp short
-            if (i)                      /* if any bytes saved           */
+            int i = branch(b,0);            // see if jmp => jmp short
+            if (i)                          // if any bytes saved
             {   targ_size_t offset;
 
                 b->Bsize -= i;
@@ -856,6 +854,7 @@ STATIC void blcodgen(block *bl)
                         regcon.mvar |= s->Sregm;
                         regcon.cse.mval &= ~s->Sregm;
                         regcon.immed.mval &= ~s->Sregm;
+                        regcon.params &= ~s->Sregm;
                         if (s->Sclass == SCfastpar)
                             regcon.mpvar |= s->Sregm;
                     }
