@@ -4,7 +4,7 @@
  * Copyright: Copyright Digital Mars 1995 - 2011.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
- *    (See accompanying file LICENSE_1_0.txt)
+ *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly
  * Source: $(DRUNTIMESRC src/rt/_trace.d)
  */

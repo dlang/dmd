@@ -9,7 +9,7 @@
 
 /*          Copyright Sean Kelly 2005 - 2009.
  * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE_1_0.txt or copy at
+ *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.runtime;
@@ -404,7 +404,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         auto stackPtr = stackTop;
 
                         for( numframes = 0; stackTop <= stackPtr &&
-                                            stackPtr < stackBottom && 
+                                            stackPtr < stackBottom &&
                                             numframes < MAXFRAMES; )
                         {
                             callstack[numframes++] = *(stackPtr + 1);
