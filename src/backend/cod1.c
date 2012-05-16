@@ -3826,6 +3826,10 @@ code *loaddata(elem *e,regm_t *pretregs)
     {
         reg = e->EV.sp.Vsym->Spreg;
         forregs = mask[reg];
+#ifdef DEBUG
+        if (debugr)
+            printf("%s is fastpar and using register %s\n", e->EV.sp.Vsym->Sident, regm_str(forregs));
+#endif
         mfuncreg &= ~forregs;
         regcon.used |= forregs;
         return fixresult(e,forregs,pretregs);
