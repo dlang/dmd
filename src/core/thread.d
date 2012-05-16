@@ -1770,6 +1770,41 @@ else
         static assert(0, "Platform not supported.");
 }
 
+
+unittest
+{
+    int x = 0;
+
+    auto t = new Thread(
+    {
+        x++;
+    });
+    t.start(); t.join();
+    assert( x == 1 );
+}
+
+
+unittest
+{
+    enum MSG = "Test message.";
+    string caughtMsg;
+
+    try
+    {
+        auto t = new Thread(
+        {
+            throw new Exception( MSG );
+        });
+        t.start(); t.join();
+        assert( false, "Expected rethrown exception." );
+    }
+    catch( Throwable t )
+    {
+        assert( t.msg == MSG );
+    }
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////
 // GC Support Routines
 ///////////////////////////////////////////////////////////////////////////////
@@ -4121,11 +4156,13 @@ version( unittest )
     }
 }
 
+
 // Single thread running separate fibers
 unittest
 {
     runTen();
 }
+
 
 // Multiple threads running separate fibers
 unittest
@@ -4137,6 +4174,7 @@ unittest
     }
     group.joinAll();
 }
+
 
 // Multiple threads running shared fibers
 unittest
@@ -4186,6 +4224,7 @@ unittest
     }
 }
 
+
 // Test exception handling inside fibers.
 unittest
 {
@@ -4203,6 +4242,36 @@ unittest
     })).call();
     assert(caughtMsg == MSG);
 }
+
+
+unittest
+{
+    int x = 0;
+
+    (new Fiber({
+        x++;
+    })).call();
+    assert( x == 1 );
+}
+
+
+unittest
+{
+    enum MSG = "Test message.";
+
+    try
+    {
+        (new Fiber({
+            throw new Exception( MSG );
+        })).call();
+        assert( false, "Expected rethrown exception." );
+    }
+    catch( Throwable t )
+    {
+        assert( t.msg == MSG );
+    }
+}
+
 
 version( AsmX86_64_Posix )
 {
@@ -4222,6 +4291,7 @@ version( AsmX86_64_Posix )
         fib.call();
     }
 }
+
 
 version( OSX )
 {
