@@ -42,8 +42,8 @@ DOCFMT=-version=CoreDdoc
 target : import copydir copy $(DRUNTIME) doc
 
 MANIFEST= \
-	LICENSE \
-	README \
+	LICENSE_1_0.txt \
+	README.txt \
 	posix.mak \
 	win32.mak \
 	\
@@ -413,7 +413,6 @@ IMPORTS=\
 	$(IMPDIR)/core/sync/semaphore.di
 
 COPY=\
-	$(IMPDIR)/core/thread.di \
 	$(IMPDIR)/core/atomic.di \
 	$(IMPDIR)/core/bitop.di \
 	$(IMPDIR)/core/cpuid.di \
@@ -544,11 +543,8 @@ FORCE:
 
 copy: $(COPY)
 
-$(IMPDIR)/core/%.di : src/core/%.di
-	cp $< $@ 
-
 $(IMPDIR)/core/%.di : src/core/%.d
-	cp $< $@ 
+	cp $< $@
 
 ################### C/ASM Targets ############################
 
@@ -605,5 +601,5 @@ install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
 
 clean:
-	rm -rf obj lib import/core doc
-
+	rm -rf obj lib $(IMPDIR)/core/stdc $(IMPDIR)/core/sync $(IMPDIR)/core/sys doc
+	rm -rf $(IMPDIR)/core/atomic.di $(IMPDIR)/core/bitop.di $(IMPDIR)/core/cpuid.di $(IMPDIR)/core/demangle.di $(IMPDIR)/core/exception.di $(IMPDIR)/core/math.di $(IMPDIR)/core/memory.di $(IMPDIR)/core/runtime.di $(IMPDIR)/core/simd.di $(IMPDIR)/core/time.di $(IMPDIR)/core/vararg.di

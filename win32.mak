@@ -388,7 +388,6 @@ IMPORTS=\
 	$(IMPDIR)\core\sync\semaphore.di
 
 COPY=\
-	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\atomic.di \
 	$(IMPDIR)\core\bitop.di \
 	$(IMPDIR)\core\cpuid.di \
@@ -579,242 +578,239 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 
 copy: $(COPY)
 
-$(IMPDIR)\core\thread.di : src\core\thread.di
-	copy $** $@ 
-
 $(IMPDIR)\core\atomic.di : src\core\atomic.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\bitop.di : src\core\bitop.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\cpuid.di : src\core\cpuid.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\demangle.di : src\core\demangle.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\exception.di : src\core\exception.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\math.di : src\core\math.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\memory.di : src\core\memory.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\runtime.di : src\core\runtime.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\simd.di : src\core\simd.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\time.di : src\core\time.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\vararg.di : src\core\vararg.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\complex.di : src\core\stdc\complex.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\config.di : src\core\stdc\config.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\ctype.di : src\core\stdc\ctype.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\errno.di : src\core\stdc\errno.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\fenv.di : src\core\stdc\fenv.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\float_.di : src\core\stdc\float_.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\inttypes.di : src\core\stdc\inttypes.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\limits.di : src\core\stdc\limits.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\locale.di : src\core\stdc\locale.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\math.di : src\core\stdc\math.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\signal.di : src\core\stdc\signal.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\stdarg.di : src\core\stdc\stdarg.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\stddef.di : src\core\stdc\stddef.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\stdint.di : src\core\stdc\stdint.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\stdio.di : src\core\stdc\stdio.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\stdlib.di : src\core\stdc\stdlib.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\string.di : src\core\stdc\string.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\tgmath.di : src\core\stdc\tgmath.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\time.di : src\core\stdc\time.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\wchar_.di : src\core\stdc\wchar_.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\stdc\wctype.di : src\core\stdc\wctype.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\event.di : src\core\sys\freebsd\sys\event.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\kern_return.di : src\core\sys\osx\mach\kern_return.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\port.di : src\core\sys\osx\mach\port.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\semaphore.di : src\core\sys\osx\mach\semaphore.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\thread_act.di : src\core\sys\osx\mach\thread_act.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\arpa\inet.di : src\core\sys\posix\arpa\inet.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\config.di : src\core\sys\posix\config.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\dirent.di : src\core\sys\posix\dirent.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\dlfcn.di : src\core\sys\posix\dlfcn.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\fcntl.di : src\core\sys\posix\fcntl.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\inttypes.di : src\core\sys\posix\inttypes.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\netdb.di : src\core\sys\posix\netdb.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\net\if_.di : src\core\sys\posix\net\if_.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\netinet\in_.di : src\core\sys\posix\netinet\in_.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\netinet\tcp.di : src\core\sys\posix\netinet\tcp.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\poll.di : src\core\sys\posix\poll.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\pthread.di : src\core\sys\posix\pthread.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\pwd.di : src\core\sys\posix\pwd.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sched.di : src\core\sys\posix\sched.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\semaphore.di : src\core\sys\posix\semaphore.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\setjmp.di : src\core\sys\posix\setjmp.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\signal.di : src\core\sys\posix\signal.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\stdio.di : src\core\sys\posix\stdio.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\stdlib.di : src\core\sys\posix\stdlib.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\ipc.di : src\core\sys\posix\sys\ipc.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\mman.di : src\core\sys\posix\sys\mman.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\select.di : src\core\sys\posix\sys\select.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\shm.di : src\core\sys\posix\sys\shm.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\socket.di : src\core\sys\posix\sys\socket.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\stat.di : src\core\sys\posix\sys\stat.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\time.di : src\core\sys\posix\sys\time.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\types.di : src\core\sys\posix\sys\types.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\uio.di : src\core\sys\posix\sys\uio.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\un.di : src\core\sys\posix\sys\un.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\wait.di : src\core\sys\posix\sys\wait.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\utsname.di : src\core\sys\posix\sys\utsname.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\termios.di : src\core\sys\posix\termios.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\time.di : src\core\sys\posix\time.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\ucontext.di : src\core\sys\posix\ucontext.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\unistd.di : src\core\sys\posix\unistd.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\posix\utime.di : src\core\sys\posix\utime.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\windows\dbghelp.di : src\core\sys\windows\dbghelp.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\windows\dll.di : src\core\sys\windows\dll.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\windows\stacktrace.di : src\core\sys\windows\stacktrace.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\windows\threadaux.di : src\core\sys\windows\threadaux.d
-	copy $** $@ 
+	copy $** $@
 
 $(IMPDIR)\core\sys\windows\windows.di : src\core\sys\windows\windows.d
-	copy $** $@ 
+	copy $** $@
 
 ################### C\ASM Targets ############################
 
@@ -857,4 +853,7 @@ install: druntime.zip
 
 clean:
 	del $(DOCS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
-	rmdir import\core /S /Q
+	del $(IMPDIR)\core\atomic.di $(IMPDIR)\core\bitop.di $(IMPDIR)\core\cpuid.di $(IMPDIR)\core\demangle.di $(IMPDIR)\core\exception.di $(IMPDIR)\core\math.di $(IMPDIR)\core\memory.di $(IMPDIR)\core\runtime.di $(IMPDIR)\core\simd.di $(IMPDIR)\core\time.di $(IMPDIR)\core\vararg.di
+	rmdir $(IMPDIR)\core\stdc /S /Q
+	rmdir $(IMPDIR)\core\sync /S /Q
+	rmdir $(IMPDIR)\core\sys /S /Q
