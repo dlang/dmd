@@ -229,6 +229,24 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
            goto Lfalse;
         }
+
+        //Resolve function aliases
+        FuncAliasDeclaration *alias = s->isFuncAliasDeclaration();
+        while (alias)
+        {
+            s = alias->toAliasFunc();
+            alias = s->isFuncAliasDeclaration();
+        }
+
+        //Handle lambdas
+        if(strncmp(s->ident->toChars(), "__lambda", 8) == 0)
+        {
+            TemplateDeclaration *td = s->isTemplateDeclaration();
+            if (td)
+            {
+                s = td->onemember;
+            }
+        }
         OutBuffer outBuffer;
         HdrGenState hgs;
         s->toCBuffer(&outBuffer, &hgs);
