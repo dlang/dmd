@@ -277,6 +277,16 @@ void test7581()
 
 /***************************************/
 
+float f() { return 1.0f; }
+ifloat i() { return 1.0fi; }
+
+void test7594()
+{
+    assert(f() + i() == 1.0f + 1.0fi);
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -295,6 +305,7 @@ int main(char[][] args)
     test13();
     test14();
     test7581();
+    test7594();
 
     printf("Success!\n");
     return 0;
