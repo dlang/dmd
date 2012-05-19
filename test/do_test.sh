@@ -12,6 +12,7 @@ test_extension=$3 # ex: d html or sh
 # ARGS        == default set of dmd command line args to test combinatorially
 # DMD         == compiler path and filename
 # RESULTS_DIR == directory for temporary files and output
+# MODEL       == 32 || 64
 
 # tedious env vars
 # DSEP        == \\ or / depending on windows or not
