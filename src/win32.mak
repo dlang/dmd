@@ -19,6 +19,9 @@
 # $(CC) - requires Digital Mars C++ Compiler ($DM_HOME\dm\bin\dmc.exe)
 #   http://www.digitalmars.com/ctg/sc.html
 #
+# cppunit target - requires STLport 4.5.3 ($DM_HOME\dm\stlport\stlport)
+#   http://www.digitalmars.com/download/freecompiler.html
+#
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
 #   https://github.com/D-Programming-Language/tools.
 #
@@ -50,6 +53,7 @@
 # trace         - release dmd with tracing options enabled
 # clean         - delete all generated files except target binary
 # install       - copy build targets to install directory
+# install-clean - delete all files in the install directory
 # zip           - create ZIP archive of source code
 #
 # dmd           - release dmd (legacy target)
@@ -57,27 +61,39 @@
 # reldmd        - release dmd
 # detab         - replace hard tabs with spaces
 # tolf          - convert to Unix line endings
+# cppunit       - cppunit library
 
 ############################### Configuration ################################
 
 ##### Directories
 
-# Root directory of Digital Mars tools (i.e.: where you installed DMC)
-D=$(DM_HOME)
-# Location of DMC
-DMCROOT=$D\dm
-INCLUDE=$(DMCROOT)\include
+# DMC directory
+DMCROOT=$(DM_HOME)\dm
+# STLPort directory
+STLPORT=$(DMCROOT)\stlport\stlport
 # DMD source directories
 C=backend
 TK=tk
 ROOT=root
+# CPPUnit directory
+CPPUNIT=cppunit-1.12.1
+# Include directories
+INCLUDE=$(ROOT);$(DMCROOT)\include
 # Install directory
-DIR=$D\dmd2
+INSTALL=..\install
 
 ##### Tools
 
 # C++ compiler
 CC=dmc
+# Make program
+MAKE=make
+# Librarian
+LIB=lib
+# Delete file(s)
+DEL=del
+# Make directory
+MD=mkdir
 # File copy
 CP=cp
 # De-tabify
@@ -86,8 +102,6 @@ DETAB=detab
 TOLF=tolf
 # Zip
 ZIP=zip32
-# Recursive make
-MAKE=make -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
 ##### User configuration switches
 
@@ -98,40 +112,28 @@ TARGETEXE=$(TARGET).exe
 CFLAGS=
 # Custom compile flags for all modules
 OPT=
+# Custom compile flags for compiler unit tests
+TFLAGS=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
 # Precompiled Header support
 # To enable, use: PREC=-H -HItotal.h -HO
 PREC=
-# Link flags (prefix with -L)
+# Linker flags (prefix with -L)
 LFLAGS=
+# Librarian flags
+BFLAGS=
 
-##### Implementation switches (do not modify)
+##### Implementation variables (do not modify)
 
 # Compile flags
-CFLAGS=-I$(ROOT);$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
+CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
-
-############################## Release Targets ###############################
-
-defaulttarget: debdmd
-
-dmd: reldmd
-
-release:
-	$(MAKE) clean
-	$(MAKE) reldmd
-	$(MAKE) clean
-
-debdmd:
-	$(MAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
-
-reldmd:
-	$(MAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
-
-trace:
-	$(MAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
+# Compile flags for compiler unit tests
+TFLAGS=-I$(STLPORT);$(CPPUNIT)\include $(CFLAGS) $(TFLAGS) -Aa -Ab -Ae -Ar
+# Recursive make
+DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
 ############################### Rule Variables ###############################
 
@@ -240,49 +242,80 @@ CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 # Makefiles
 MAKEFILES=win32.mak posix.mak
 
-############################# Executable Target ##############################
+############################## Release Targets ###############################
+
+defaulttarget: debdmd
+
+dmd: reldmd
+
+release:
+	$(DMDMAKE) clean
+	$(DMDMAKE) reldmd
+	$(DMDMAKE) clean
+
+debdmd:
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
+
+reldmd:
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
+
+trace:
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
 
 $(TARGETEXE): $(OBJS) win32.mak
-	dmc -o$(TARGETEXE) $(OBJS) -cpp -mn -Ar $(LFLAGS)
+	$(CC) -o$(TARGETEXE) $(OBJS) -cpp -mn -Ar $(LFLAGS)
 
-############################## Generated Source ##############################
+################################ Unit Tests ##################################
+# TODO: Work in progress!
 
-elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
-	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	dmc -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
-	optabgen
+cppunit: $(CPPUNIT)\lib\cppunit.lib
 
-impcnvtab.c : impcnvgen.c
-	$(CC) -I$(ROOT) -cpp impcnvgen
-	impcnvgen
+$(CPPUNIT)\lib\cppunit.lib:
+	cd $(CPPUNIT)\src\cppunit
+	$(MAKE) CC=$(CC) LIB=$(LIB) "TFLAGS=$(TFLAGS)" "BFLAGS=$(BFLAGS)"
 
-id.h id.c : idgen.c
-	dmc -cpp idgen
-	idgen
+#TESTS=dchar_test.exe
+
+#dmdtest: $(TESTS)
+
+#DCHARDEP=root\test\dchar_test.cpp dchar.obj
+
+#dchar_test.exe: $(DCHAROBJS)
+#	$(CC) -o $@ $(TFLAGS) $(DCHARDEP) $(CPPUNIT)\lib\cppunit.lib
 
 ############################ Maintenance Targets #############################
 
 clean:
-	del *.obj
-	del total.sym
-	del msgs.h msgs.c
-	del elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
-	del impcnvtab.c
+	$(DEL) *.obj
+	$(DEL) total.sym
+	$(DEL) msgs.h msgs.c
+	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
+	$(DEL) impcnvtab.c
+	cd $(CPPUNIT)\src\cppunit
+	$(MAKE) clean
 
 install: detab install-copy
 
 install-copy:
-	$(CP) $(TARGETEXE) $(DIR)\windows\bin\
-	$(CP) phobos\phobos.lib $(DIR)\windows\lib
-	$(CP) $(SRCS) $(DIR)\src\dmd\
-	$(CP) $(ROOTSRC) $(DIR)\src\dmd\root\
-	$(CP) $(TKSRC) $(DIR)\src\dmd\tk\
-	$(CP) $(BACKSRC) $(DIR)\src\dmd\backend\
-	$(CP) $(MAKEFILES) $(DIR)\src\dmd\
-	$(CP) gpl.txt $(DIR)\src\dmd\
-	$(CP) readme.txt $(DIR)\src\dmd\
-	$(CP) artistic.txt $(DIR)\src\dmd\
-	$(CP) backendlicense.txt $(DIR)\src\dmd\
+	$(MD) $(INSTALL)\windows\bin
+	$(MD) $(INSTALL)\windows\lib
+	$(MD) $(INSTALL)\src\dmd\root
+	$(MD) $(INSTALL)\src\dmd\tk
+	$(MD) $(INSTALL)\src\dmd\backend
+	$(CP) $(TARGETEXE)          $(INSTALL)\windows\bin\$(TARGETEXE)
+	$(CP) phobos\phobos.lib     $(INSTALL)\windows\lib\phobos.lib
+	$(CP) $(SRCS)               $(INSTALL)\src\dmd
+	$(CP) $(ROOTSRC)            $(INSTALL)\src\dmd\root
+	$(CP) $(TKSRC)              $(INSTALL)\src\dmd\tk
+	$(CP) $(BACKSRC)            $(INSTALL)\src\dmd\backend
+	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd
+	$(CP) gpl.txt               $(INSTALL)\src\dmd\gpl.txt
+	$(CP) readme.txt            $(INSTALL)\src\dmd\readme.txt
+	$(CP) artistic.txt          $(INSTALL)\src\dmd\artistic.txt
+	$(CP) backendlicense.txt    $(INSTALL)\src\dmd\backendlicense.txt
+
+install-clean:
+	$(DEL) /s/q $(INSTALL)\*
 
 detab:
 	$(DETAB) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
@@ -291,12 +324,27 @@ tolf:
 	$(TOLF) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC) $(MAKEFILES)
 
 zip: detab tolf $(MAKEFILES)
-	del dmdsrc.zip
+	$(DEL) dmdsrc.zip
 	$(ZIP) dmdsrc $(MAKEFILES)
 	$(ZIP) dmdsrc $(SRCS)
 	$(ZIP) dmdsrc $(BACKSRC)
 	$(ZIP) dmdsrc $(TKSRC)
 	$(ZIP) dmdsrc $(ROOTSRC)
+
+############################## Generated Source ##############################
+
+elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
+	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
+	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
+	optabgen
+
+impcnvtab.c : impcnvgen.c
+	$(CC) -I$(ROOT) -cpp impcnvgen
+	impcnvgen
+
+id.h id.c : idgen.c
+	$(CC) -cpp idgen
+	idgen
 
 ############################# Intermediate Rules ############################
 
