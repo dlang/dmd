@@ -507,9 +507,15 @@ unsigned xmmload(tym_t tym)
 {   unsigned op;
     switch (tybasic(tym))
     {
+        case TYuint:
+        case TYint:
+        case TYlong:
+        case TYulong:
         case TYfloat:
         case TYcfloat:
         case TYifloat:  op = LODSS; break;       // MOVSS
+        case TYllong:
+        case TYullong:
         case TYdouble:
         case TYcdouble:
         case TYidouble: op = LODSD; break;       // MOVSD
@@ -540,14 +546,16 @@ unsigned xmmstore(tym_t tym)
 {   unsigned op;
     switch (tybasic(tym))
     {
+        case TYuint:
+        case TYint:
+        case TYlong:
+        case TYulong:
         case TYfloat:
         case TYifloat:  op = STOSS; break;       // MOVSS
         case TYdouble:
         case TYidouble:
         case TYllong:
         case TYullong:
-        case TYuint:
-        case TYlong:
         case TYcdouble:
         case TYcfloat:  op = STOSD; break;       // MOVSD
 
