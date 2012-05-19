@@ -94,6 +94,8 @@ LIB=lib
 DEL=del
 # Make directory
 MD=mkdir
+# Remove directory
+RD=rmdir
 # File copy
 CP=cp
 # De-tabify
@@ -316,6 +318,7 @@ install-copy:
 
 install-clean:
 	$(DEL) /s/q $(INSTALL)\*
+	$(RD) /s/q $(INSTALL)
 
 detab:
 	$(DETAB) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
