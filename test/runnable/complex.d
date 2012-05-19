@@ -287,6 +287,18 @@ void test7594()
 
 /***************************************/
 
+cdouble conv(cfloat a)
+{
+    return a;
+}
+
+void test7593()
+{
+    assert(conv(1.0f+1.0fi) == 1.0+1.0i);
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -306,6 +318,7 @@ int main(char[][] args)
     test14();
     test7581();
     test7594();
+    test7593();
 
     printf("Success!\n");
     return 0;
