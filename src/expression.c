@@ -7770,7 +7770,13 @@ Lagain:
                 goto L1;        // overload of opCall, therefore it's a call
 
             if (e1->op != TOKtype)
-            {   error("%s %s does not overload ()", ad->kind(), ad->toChars());
+            {
+                if (ad->aliasthis)
+                {
+                    e1 = resolveAliasThis(sc, e1);
+                    goto Lagain;
+                }
+                error("%s %s does not overload ()", ad->kind(), ad->toChars());
                 return new ErrorExp();
             }
 
