@@ -8,6 +8,7 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include <string.h>                     // memset()
 
 struct HdrGenState
 {
