@@ -16,7 +16,7 @@ DRUNTIME_BASE=druntime
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
 GCSTUB=lib\gcstub.obj
 
-DOCFMT=
+DOCFMT=-version=CoreDdoc
 
 target : import $(DRUNTIME) doc $(GCSTUB)
 
