@@ -878,7 +878,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = s2;
             else if (s2 && s != s2)
             {
-                if (s->toAlias() == s2->toAlias())
+                if (s->toAlias() == s2->toAlias() ||
+                    s->getType() == s2->getType() && s->getType())
                 {
                     /* After following aliases, we found the same
                      * symbol, so it's not an ambiguity.  But if one

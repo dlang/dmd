@@ -11,8 +11,13 @@ class Foo6475(Value)
 
 void test6475()
 {
-    alias Foo6475!(int) C2;
-    alias C2.T1!0 a1;
+    alias Foo6475!(int) C1;
+    alias C1.T1!0 X1;
+    static assert(is(X1 == int));
+
+    alias const(Foo6475!(int)) C2;
+    alias C2.T1!0 X2;
+    static assert(is(X2 == int));
 }
 
 /***************************************************/
@@ -37,11 +42,36 @@ void test7239()
 }
 
 /***************************************************/
+// 8123
+
+void test8123()
+{
+    struct S { }
+
+    struct AS
+    {
+        alias S Alias;
+    }
+
+    struct Wrapper
+    {
+        AS as;
+    }
+
+    Wrapper w;
+    static assert(is(typeof(w.as).Alias == S));         // fail
+    static assert(is(AS.Alias == S));                   // ok
+    static assert(is(typeof(w.as) == AS));              // ok
+    static assert(is(typeof(w.as).Alias == AS.Alias));  // fail
+}
+
+/***************************************************/
 
 int main()
 {
     test6475();
     test7239();
+    test8123();
 
     printf("Success\n");
     return 0;
