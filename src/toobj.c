@@ -1323,9 +1323,14 @@ void VarDeclaration::toObjFile(int multiobj)
         if (!sz && type->toBasetype()->ty != Tsarray)
             assert(0); // this shouldn't be possible
 
-        outdata(s);
-        if (isExport())
-            obj_export(s,0);
+#if OMFOBJ
+        if (sz)
+#endif
+        {
+            outdata(s);
+            if (isExport())
+                obj_export(s,0);
+        }
     }
 }
 
