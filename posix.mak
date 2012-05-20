@@ -25,7 +25,7 @@ DMD?=dmd
 DOCDIR=doc
 IMPDIR=import
 
-MODEL=32
+MODEL?=32
 
 DFLAGS=-m$(MODEL) -O -release -inline -nofloat -w -d -Isrc -Iimport -property
 UDFLAGS=-m$(MODEL) -O -release -nofloat -w -d -Isrc -Iimport -property
