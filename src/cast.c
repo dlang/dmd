@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // mem{set|cpy}()
 
 #include "rmem.h"
 

@@ -3756,7 +3756,7 @@ StringExp *ArrayLiteralExp::toString()
                 Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
                     return NULL;
-                buf.writedchar(ch->toInteger());
+                buf.writeUTF8(ch->toInteger());
             }
         buf.writebyte(0);
 
