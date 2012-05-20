@@ -1281,6 +1281,22 @@ void test12()
 }
 
 /**********************************/
+// 8125
+
+void foo8125(){}
+
+struct X8125(alias a) {}
+
+template Y8125a(T : A!f, alias A, alias f) {}  //OK
+template Y8125b(T : A!foo8125, alias A) {}     //NG
+
+void test8125()
+{
+    alias Y8125a!(X8125!foo8125) y1;
+    alias Y8125b!(X8125!foo8125) y2;
+}
+
+/**********************************/
 
 int main()
 {
@@ -1333,6 +1349,7 @@ int main()
     test7933();
     test8094();
     test12();
+    test8125();
 
     printf("Success\n");
     return 0;

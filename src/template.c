@@ -3059,11 +3059,22 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     (*dedtypes)[j] = e1;
                 }
             }
+            else if (s1 && s2)
+            {
+            Ls:
+                if (!s1->equals(s2))
+                    goto Lnomatch;
+            }
             else if (s1 && t2 && t2->ty == Tident)
             {
                 j = templateParameterLookup(t2, parameters);
                 if (j == -1)
+                {
+                    t2->resolve(loc, sc, &e2, &t2, &s2);
+                    if (s2)
+                        goto Ls;
                     goto Lnomatch;
+                }
                 TemplateParameter *tp = (*parameters)[j];
                 // BUG: use tp->matchArg() instead of the following
                 TemplateAliasParameter *ta = tp->isTemplateAliasParameter();
@@ -3079,11 +3090,6 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 {
                     (*dedtypes)[j] = s1;
                 }
-            }
-            else if (s1 && s2)
-            {
-                if (!s1->equals(s2))
-                    goto Lnomatch;
             }
             // BUG: Need to handle tuple parameters
             else
