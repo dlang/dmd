@@ -2924,22 +2924,66 @@ MATCH TypeInstance::deduceType(Scope *sc,
         for (size_t i = 0; 1; i++)
         {
             //printf("\ttest: tempinst->tiargs[%d]\n", i);
-            Object *o1;
+            Object *o1 = NULL;
             if (i < tempinst->tiargs->dim)
                 o1 = (*tempinst->tiargs)[i];
             else if (i < tempinst->tdtypes.dim && i < tp->tempinst->tiargs->dim)
                 // Pick up default arg
                 o1 = tempinst->tdtypes[i];
-            else
+            else if (i >= tp->tempinst->tiargs->dim)
                 break;
 
             if (i >= tp->tempinst->tiargs->dim)
                 goto Lnomatch;
 
             Object *o2 = (*tp->tempinst->tiargs)[i];
+            Type *t2 = isType(o2);
+
+            int j;
+            if (t2 &&
+                t2->ty == Tident &&
+                i == tp->tempinst->tiargs->dim - 1 &&
+                (j = templateParameterLookup(t2, parameters), j != -1) &&
+                j == parameters->dim - 1 &&
+                (*parameters)[j]->isTemplateTupleParameter())
+            {
+                /* Given:
+                 *  struct A(B...) {}
+                 *  alias A!(int, float) X;
+                 *  static if (is(X Y == A!(Z), Z...)) {}
+                 * deduce that Z is a tuple(int, float)
+                 */
+
+                /* Create tuple from remaining args
+                 */
+                Tuple *vt = new Tuple();
+                size_t vtdim = (tempinst->tempdecl->isVariadic()
+                                ? tempinst->tiargs->dim : tempinst->tdtypes.dim) - i;
+                vt->objects.setDim(vtdim);
+                for (size_t k = 0; k < vtdim; k++)
+                {
+                    Object *o;
+                    if (k < tempinst->tiargs->dim)
+                        o = (*tempinst->tiargs)[i + k];
+                    else    // Pick up default arg
+                        o = tempinst->tdtypes[i + k];
+                    vt->objects[k] = o;
+                }
+
+                Tuple *v = (Tuple *)(*dedtypes)[j];
+                if (v)
+                {
+                    if (!match(v, vt, tempinst->tempdecl, sc))
+                        goto Lnomatch;
+                }
+                else
+                    (*dedtypes)[j] = vt;
+                break; //return MATCHexact;
+            }
+            else if (!o1)
+                break;
 
             Type *t1 = isType(o1);
-            Type *t2 = isType(o2);
 
             Expression *e1 = isExpression(o1);
             Expression *e2 = isExpression(o2);
@@ -2959,44 +3003,6 @@ MATCH TypeInstance::deduceType(Scope *sc,
             if (v1)     printf("v1 = %s\n", v1->toChars());
             if (v2)     printf("v2 = %s\n", v2->toChars());
 #endif
-
-            TemplateTupleParameter *ttp;
-            int j;
-            if (t2 &&
-                t2->ty == Tident &&
-                i == tp->tempinst->tiargs->dim - 1 &&
-                i == tempinst->tempdecl->parameters->dim - 1 &&
-                (ttp = tempinst->tempdecl->isVariadic()) != NULL)
-            {
-                /* Given:
-                 *  struct A(B...) {}
-                 *  alias A!(int, float) X;
-                 *  static if (!is(X Y == A!(Z), Z))
-                 * deduce that Z is a tuple(int, float)
-                 */
-
-                j = templateParameterLookup(t2, parameters);
-                if (j == -1)
-                    goto Lnomatch;
-
-                /* Create tuple from remaining args
-                 */
-                Tuple *vt = new Tuple();
-                size_t vtdim = tempinst->tiargs->dim - i;
-                vt->objects.setDim(vtdim);
-                for (size_t k = 0; k < vtdim; k++)
-                    vt->objects[k] = (*tempinst->tiargs)[i + k];
-
-                Tuple *v = (Tuple *)(*dedtypes)[j];
-                if (v)
-                {
-                    if (!match(v, vt, tempinst->tempdecl, sc))
-                        goto Lnomatch;
-                }
-                else
-                    (*dedtypes)[j] = vt;
-                break; //return MATCHexact;
-            }
 
             if (t1 && t2)
             {
@@ -3091,7 +3097,6 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     (*dedtypes)[j] = s1;
                 }
             }
-            // BUG: Need to handle tuple parameters
             else
                 goto Lnomatch;
         }

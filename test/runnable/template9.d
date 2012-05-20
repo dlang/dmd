@@ -189,6 +189,23 @@ void test9()
 }
 
 /**********************************/
+// 1780
+
+template Tuple1780(Ts ...) { alias Ts Tuple1780; }
+
+template Decode1780( T )                            { alias Tuple1780!() Types; }
+template Decode1780( T : TT!(Us), alias TT, Us... ) { alias Us Types; }
+
+void test1780()
+{
+    struct S1780(T1, T2) {}
+
+    // should extract tuple (bool,short) but matches the first specialisation
+    alias Decode1780!( S1780!(bool,short) ).Types SQ1780;  // --> SQ2 is empty tuple!
+    static assert(is(SQ1780 == Tuple1780!(bool, short)));
+}
+
+/**********************************/
 // 5015
 
 import breaker;
@@ -1298,6 +1315,63 @@ void test8125()
 
 /**********************************/
 
+struct A13() {}
+struct B13(TT...) {}
+struct C13(T1) {}
+struct D13(T1, TT...) {}
+struct E13(T1, T2) {}
+struct F13(T1, T2, TT...) {}
+
+template Test13(alias X)
+{
+    static if (is(X x : P!U, alias P, U...))
+        enum Test13 = true;
+    else
+        enum Test13 = false;
+}
+
+void test13()
+{
+    static assert(Test13!( A13!() ));
+    static assert(Test13!( B13!(int) ));
+    static assert(Test13!( B13!(int, double) ));
+    static assert(Test13!( B13!(int, double, string) ));
+    static assert(Test13!( C13!(int) ));
+    static assert(Test13!( D13!(int) ));
+    static assert(Test13!( D13!(int, double) ));
+    static assert(Test13!( D13!(int, double, string) ));
+    static assert(Test13!( E13!(int, double) ));
+    static assert(Test13!( F13!(int, double) ));
+    static assert(Test13!( F13!(int, double, string) ));
+    static assert(Test13!( F13!(int, double, string, bool) ));
+}
+
+/**********************************/
+
+struct A14(T, U, int n = 1)
+{
+}
+
+template Test14(alias X)
+{
+    static if (is(X x : P!U, alias P, U...))
+        alias U Test14;
+    else
+        static assert(0);
+}
+
+void test14()
+{
+    alias A14!(int, double) Type;
+    alias Test14!Type Params;
+    static assert(Params.length == 3);
+    static assert(is(Params[0] == int));
+    static assert(is(Params[1] == double));
+    static assert(   Params[2] == 1);
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -1309,6 +1383,7 @@ int main()
     test7();
     test8();
     test9();
+    test1780();
     test6404();
     test2246();
     bug4984();
@@ -1350,6 +1425,8 @@ int main()
     test8094();
     test12();
     test8125();
+    test13();
+    test14();
 
     printf("Success\n");
     return 0;
