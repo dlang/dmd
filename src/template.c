@@ -2884,15 +2884,11 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         s = t->toDsymbol(sc);
                         if (s)
                         {   TemplateInstance *ti = s->parent->isTemplateInstance();
-                            if (ti)
-                            {   s = ti->tempdecl;
-                                goto L3;
-                            }
+                            s = ti ? ti->tempdecl : NULL;
                         }
                     }
-                    else if (s)
+                    if (s)
                     {
-                    L3:
                         s = s->toAlias();
                         TemplateDeclaration *td = s->isTemplateDeclaration();
                         if (td && td == tempinst->tempdecl)
@@ -2928,22 +2924,66 @@ MATCH TypeInstance::deduceType(Scope *sc,
         for (size_t i = 0; 1; i++)
         {
             //printf("\ttest: tempinst->tiargs[%d]\n", i);
-            Object *o1;
+            Object *o1 = NULL;
             if (i < tempinst->tiargs->dim)
                 o1 = (*tempinst->tiargs)[i];
             else if (i < tempinst->tdtypes.dim && i < tp->tempinst->tiargs->dim)
                 // Pick up default arg
                 o1 = tempinst->tdtypes[i];
-            else
+            else if (i >= tp->tempinst->tiargs->dim)
                 break;
 
             if (i >= tp->tempinst->tiargs->dim)
                 goto Lnomatch;
 
             Object *o2 = (*tp->tempinst->tiargs)[i];
+            Type *t2 = isType(o2);
+
+            int j;
+            if (t2 &&
+                t2->ty == Tident &&
+                i == tp->tempinst->tiargs->dim - 1 &&
+                (j = templateParameterLookup(t2, parameters), j != -1) &&
+                j == parameters->dim - 1 &&
+                (*parameters)[j]->isTemplateTupleParameter())
+            {
+                /* Given:
+                 *  struct A(B...) {}
+                 *  alias A!(int, float) X;
+                 *  static if (is(X Y == A!(Z), Z...)) {}
+                 * deduce that Z is a tuple(int, float)
+                 */
+
+                /* Create tuple from remaining args
+                 */
+                Tuple *vt = new Tuple();
+                size_t vtdim = (tempinst->tempdecl->isVariadic()
+                                ? tempinst->tiargs->dim : tempinst->tdtypes.dim) - i;
+                vt->objects.setDim(vtdim);
+                for (size_t k = 0; k < vtdim; k++)
+                {
+                    Object *o;
+                    if (k < tempinst->tiargs->dim)
+                        o = (*tempinst->tiargs)[i + k];
+                    else    // Pick up default arg
+                        o = tempinst->tdtypes[i + k];
+                    vt->objects[k] = o;
+                }
+
+                Tuple *v = (Tuple *)(*dedtypes)[j];
+                if (v)
+                {
+                    if (!match(v, vt, tempinst->tempdecl, sc))
+                        goto Lnomatch;
+                }
+                else
+                    (*dedtypes)[j] = vt;
+                break; //return MATCHexact;
+            }
+            else if (!o1)
+                break;
 
             Type *t1 = isType(o1);
-            Type *t2 = isType(o2);
 
             Expression *e1 = isExpression(o1);
             Expression *e2 = isExpression(o2);
@@ -2963,44 +3003,6 @@ MATCH TypeInstance::deduceType(Scope *sc,
             if (v1)     printf("v1 = %s\n", v1->toChars());
             if (v2)     printf("v2 = %s\n", v2->toChars());
 #endif
-
-            TemplateTupleParameter *ttp;
-            int j;
-            if (t2 &&
-                t2->ty == Tident &&
-                i == tp->tempinst->tiargs->dim - 1 &&
-                i == tempinst->tempdecl->parameters->dim - 1 &&
-                (ttp = tempinst->tempdecl->isVariadic()) != NULL)
-            {
-                /* Given:
-                 *  struct A(B...) {}
-                 *  alias A!(int, float) X;
-                 *  static if (!is(X Y == A!(Z), Z))
-                 * deduce that Z is a tuple(int, float)
-                 */
-
-                j = templateParameterLookup(t2, parameters);
-                if (j == -1)
-                    goto Lnomatch;
-
-                /* Create tuple from remaining args
-                 */
-                Tuple *vt = new Tuple();
-                size_t vtdim = tempinst->tiargs->dim - i;
-                vt->objects.setDim(vtdim);
-                for (size_t k = 0; k < vtdim; k++)
-                    vt->objects[k] = (*tempinst->tiargs)[i + k];
-
-                Tuple *v = (Tuple *)(*dedtypes)[j];
-                if (v)
-                {
-                    if (!match(v, vt, tempinst->tempdecl, sc))
-                        goto Lnomatch;
-                }
-                else
-                    (*dedtypes)[j] = vt;
-                break; //return MATCHexact;
-            }
 
             if (t1 && t2)
             {
@@ -3063,11 +3065,22 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     (*dedtypes)[j] = e1;
                 }
             }
+            else if (s1 && s2)
+            {
+            Ls:
+                if (!s1->equals(s2))
+                    goto Lnomatch;
+            }
             else if (s1 && t2 && t2->ty == Tident)
             {
                 j = templateParameterLookup(t2, parameters);
                 if (j == -1)
+                {
+                    t2->resolve(loc, sc, &e2, &t2, &s2);
+                    if (s2)
+                        goto Ls;
                     goto Lnomatch;
+                }
                 TemplateParameter *tp = (*parameters)[j];
                 // BUG: use tp->matchArg() instead of the following
                 TemplateAliasParameter *ta = tp->isTemplateAliasParameter();
@@ -3084,12 +3097,6 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     (*dedtypes)[j] = s1;
                 }
             }
-            else if (s1 && s2)
-            {
-                if (!s1->equals(s2))
-                    goto Lnomatch;
-            }
-            // BUG: Need to handle tuple parameters
             else
                 goto Lnomatch;
         }
@@ -3790,8 +3797,17 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     {
         if (sa == sdummy)
             goto Lnomatch;
-        if (sa != specAlias)
-            goto Lnomatch;
+        if (sa != specAlias && isDsymbol(sa))
+        {
+            TemplateInstance *ti = isDsymbol(sa)->isTemplateInstance();
+            Type *ta = isType(specAlias);
+            if (!ti || !ta)
+                goto Lnomatch;
+            Type *t = new TypeInstance(0, ti);
+            MATCH m = t->deduceType(sc, ta, parameters, dedtypes);
+            if (m == MATCHnomatch)
+                goto Lnomatch;
+        }
     }
     else if ((*dedtypes)[i])
     {   // Must match already deduced symbol
@@ -4532,7 +4548,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          */
         tempdecl = findTemplateDeclaration(sc);
         if (!tempdecl)
-        {   inst = this;
+        {   if (!sc->parameterSpecialization)
+                inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
@@ -4542,7 +4559,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          */
         semanticTiargs(sc);
         if (arrayObjectIsError(tiargs))
-        {   inst = this;
+        {   if (!sc->parameterSpecialization)
+                inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
@@ -4550,7 +4568,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         unsigned errs = global.errors;
         tempdecl = findBestMatch(sc, fargs);
         if (!tempdecl || (errs != global.errors))
-        {   inst = this;
+        {   if (!sc->parameterSpecialization)
+                inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
