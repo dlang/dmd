@@ -2884,15 +2884,11 @@ MATCH TypeInstance::deduceType(Scope *sc,
                         s = t->toDsymbol(sc);
                         if (s)
                         {   TemplateInstance *ti = s->parent->isTemplateInstance();
-                            if (ti)
-                            {   s = ti->tempdecl;
-                                goto L3;
-                            }
+                            s = ti ? ti->tempdecl : NULL;
                         }
                     }
-                    else if (s)
+                    if (s)
                     {
-                    L3:
                         s = s->toAlias();
                         TemplateDeclaration *td = s->isTemplateDeclaration();
                         if (td && td == tempinst->tempdecl)
