@@ -122,6 +122,18 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 }
 #endif
 
+Dsymbol *Declaration::search(Loc loc, Identifier *ident, int flags)
+{
+    Dsymbol *s = Dsymbol::search(loc, ident, flags);
+    if (!s && type)
+    {
+        s = type->toDsymbol(NULL);
+        if (s)
+            s = s->search(loc, ident, flags);
+    }
+    return s;
+}
+
 
 /********************************* TupleDeclaration ****************************/
 
@@ -497,18 +509,6 @@ void AliasDeclaration::semantic(Scope *sc)
     else if (t)
     {
         type = t->semantic(loc, sc);
-
-        /* If type is class or struct, convert to symbol.
-         * See bugzilla 6475.
-         */
-        s = type->toDsymbol(sc);
-        if (s
-#if DMDV2
-            && ((s->getType() && type->equals(s->getType())) || s->isEnumMember())
-#endif
-            )
-            goto L2;
-
         //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)
@@ -617,7 +617,9 @@ const char *AliasDeclaration::kind()
 
 Type *AliasDeclaration::getType()
 {
-    return type;
+    if (type)
+        return type;
+    return toAlias()->getType();
 }
 
 Dsymbol *AliasDeclaration::toAlias()
