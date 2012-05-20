@@ -334,7 +334,7 @@ Expression *BinExp::arrayOp(Scope *sc)
             // foreach (i; 0 .. p.length)
             Statement *s1 = new ForeachRangeStatement(0, TOKforeach,
                 new Parameter(0, NULL, Id::p, NULL),
-                new IntegerExp(0, 0, Type::tint32),
+                new IntegerExp(0, 0, Type::tsize_t),
                 new ArrayLengthExp(0, new IdentifierExp(0, p->ident)),
                 new ExpStatement(0, loopbody));
 #endif

@@ -1573,9 +1573,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                 ((DotVarExp *)(*te->exps)[0])->e1->isTemp())
             {
                 CommaExp *ce = (CommaExp *)((DotVarExp *)(*te->exps)[0])->e1;
-
-                                prelude = ce->e1;
-                                ((DotVarExp *)(*te->exps)[0])->e1 = ce->e2;
+                prelude = ce->e1;
+                ((DotVarExp *)(*te->exps)[0])->e1 = ce->e2;
             }
         }
         else if (aggr->op == TOKtype)   // type tuple
@@ -1586,8 +1585,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
             assert(0);
         for (size_t j = 0; j < n; j++)
         {   size_t k = (op == TOKforeach) ? j : n - 1 - j;
-            Expression *e;
-            Type *t;
+            Expression *e = NULL;
+            Type *t = NULL;
             if (te)
                 e = (*te->exps)[k];
             else

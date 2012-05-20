@@ -768,7 +768,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   tym_t e1ty;
   symbol *s;
 
-  //printf("getlvalue(e = %p)\n",e);
+  //printf("getlvalue(e = %p, keepmsk = x%x)\n",e,(unsigned)keepmsk);
   //elem_print(e);
   assert(e);
   elem_debug(e);
@@ -1395,8 +1395,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         else if (e->EV.sp.Voffset)
             s->Sflags &= ~GTregcand;
         if (!(keepmsk & RMstore))               // if not store only
-        {   s->Sflags |= SFLread;               // assume we are doing a read
-        }
+            s->Sflags |= SFLread;               // assume we are doing a read
         break;
     case FLpseudo:
 #if MARS
