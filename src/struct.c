@@ -662,11 +662,9 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
     if (scope && !symtab)
         semantic(scope);
 
+    // fail silently if struct is opaque (lookup may get resolved by UFCS)
     if (!members || !symtab)
-    {
-        error("is forward referenced when looking for '%s'", ident->toChars());
         return NULL;
-    }
 
     return ScopeDsymbol::search(loc, ident, flags);
 }
