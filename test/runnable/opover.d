@@ -984,6 +984,24 @@ void test4993()
 }
 
 /**************************************/
+// 8133
+
+void test8133()
+{
+    struct S
+    {
+        int opCall() { return 1; }
+    }
+    struct A
+    {
+        S s;
+        alias s this;
+    }
+    A f = A();
+    assert(f() == 1);
+}
+
+/**************************************/
 
 int main()
 {
@@ -1007,6 +1025,7 @@ int main()
     test4953c();
     test4953d();
     test4993();
+    test8133();
 
     printf("Success\n");
     return 0;
