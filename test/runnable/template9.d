@@ -206,6 +206,30 @@ void test1780()
 }
 
 /**********************************/
+// 3608
+
+template foo3608(T, U){}
+
+template BaseTemplate3608(alias TTT : U!V, alias U, V...)
+{
+    alias U BaseTemplate3608;
+}
+template TemplateParams3608(alias T : U!V, alias U, V...)
+{
+    alias V TemplateParams3608;
+}
+
+template TyueTuple3608(T...) { alias T TyueTuple3608; }
+
+void test3608()
+{
+    alias foo3608!(int, long) Foo3608;
+
+    static assert(__traits(isSame, BaseTemplate3608!Foo3608, foo3608));
+    static assert(is(TemplateParams3608!Foo3608 == TyueTuple3608!(int, long)));
+}
+
+/**********************************/
 // 5015
 
 import breaker;
@@ -1384,6 +1408,7 @@ int main()
     test8();
     test9();
     test1780();
+    test3608();
     test6404();
     test2246();
     bug4984();

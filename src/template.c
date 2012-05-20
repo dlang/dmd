@@ -3797,8 +3797,17 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     {
         if (sa == sdummy)
             goto Lnomatch;
-        if (sa != specAlias)
-            goto Lnomatch;
+        if (sa != specAlias && isDsymbol(sa))
+        {
+            TemplateInstance *ti = isDsymbol(sa)->isTemplateInstance();
+            Type *ta = isType(specAlias);
+            if (!ti || !ta)
+                goto Lnomatch;
+            Type *t = new TypeInstance(0, ti);
+            MATCH m = t->deduceType(sc, ta, parameters, dedtypes);
+            if (m == MATCHnomatch)
+                goto Lnomatch;
+        }
     }
     else if ((*dedtypes)[i])
     {   // Must match already deduced symbol
@@ -4539,7 +4548,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          */
         tempdecl = findTemplateDeclaration(sc);
         if (!tempdecl)
-        {   inst = this;
+        {   if (!sc->parameterSpecialization)
+                inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
@@ -4549,7 +4559,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
          */
         semanticTiargs(sc);
         if (arrayObjectIsError(tiargs))
-        {   inst = this;
+        {   if (!sc->parameterSpecialization)
+                inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
@@ -4557,7 +4568,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         unsigned errs = global.errors;
         tempdecl = findBestMatch(sc, fargs);
         if (!tempdecl || (errs != global.errors))
-        {   inst = this;
+        {   if (!sc->parameterSpecialization)
+                inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
