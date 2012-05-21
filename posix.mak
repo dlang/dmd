@@ -25,7 +25,7 @@ DMD?=dmd
 DOCDIR=doc
 IMPDIR=import
 
-MODEL?=32
+MODEL=32
 
 DFLAGS=-m$(MODEL) -O -release -inline -w -d -Isrc -Iimport -property
 UDFLAGS=-m$(MODEL) -O -release -w -d -Isrc -Iimport -property
@@ -37,9 +37,9 @@ OBJDIR=obj/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)
 DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 
-DOCFMT=-version=CoreDdoc
+DOCFMT=
 
-target : import copydir copy $(DRUNTIME) doc
+target : copydir import copy $(DRUNTIME) doc
 
 MANIFEST= \
 	LICENSE_1_0.txt \
@@ -503,6 +503,16 @@ COPY=\
 
 SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
 
+COPYDIRS=\
+	$(IMPDIR)/core/stdc \
+	$(IMPDIR)/core/sys/windows \
+	$(IMPDIR)/core/sys/posix/arpa \
+	$(IMPDIR)/core/sys/posix/sys \
+	$(IMPDIR)/core/sys/posix/net \
+	$(IMPDIR)/core/sys/posix/netinet \
+	$(IMPDIR)/core/sys/osx/mach \
+	$(IMPDIR)/core/sys/freebsd/sys \
+
 ######################## Doc .html file generation ##############################
 
 doc: $(DOCS)
@@ -528,15 +538,15 @@ $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 
 ######################## Header .di file copy ##############################
 
-copydir: $(IMPORTS)
-	mkdir -p $(IMPDIR)/core/stdc
-	mkdir -p $(IMPDIR)/core/sys/windows
-	mkdir -p $(IMPDIR)/core/sys/posix/arpa
-	mkdir -p $(IMPDIR)/core/sys/posix/sys
-	mkdir -p $(IMPDIR)/core/sys/posix/net
-	mkdir -p $(IMPDIR)/core/sys/posix/netinet
-	mkdir -p $(IMPDIR)/core/sys/osx/mach
-	mkdir -p $(IMPDIR)/core/sys/freebsd/sys
+copydir:
+	-mkdir -p $(IMPDIR)/core/stdc
+	-mkdir -p $(IMPDIR)/core/sys/windows
+	-mkdir -p $(IMPDIR)/core/sys/posix/arpa
+	-mkdir -p $(IMPDIR)/core/sys/posix/sys
+	-mkdir -p $(IMPDIR)/core/sys/posix/net
+	-mkdir -p $(IMPDIR)/core/sys/posix/netinet
+	-mkdir -p $(IMPDIR)/core/sys/osx/mach
+	-mkdir -p $(IMPDIR)/core/sys/freebsd/sys
 
 copy: $(COPY)
 
