@@ -1386,11 +1386,17 @@ Lnomatch:
                                         e->op = TOKblit;
                                     }
                                     e->type = t;
-                                    (*pinit) = new CommaExp(loc, e, (*pinit));
 
-                                    /* Replace __ctmp being constructed with e1
+                                    /* Replace __ctmp being constructed with e1.
+                                     * We need to copy constructor call expression,
+                                     * because it may be used in other place.
                                      */
-                                    dve->e1 = e1;
+                                    DotVarExp *dvx = (DotVarExp *)dve->copy();
+                                    dvx->e1 = e1;
+                                    CallExp *cx = (CallExp *)ce->copy();
+                                    cx->e1 = dvx;
+
+                                    (*pinit) = new CommaExp(loc, e, cx);
                                     (*pinit) = (*pinit)->semantic(sc);
                                     goto Ldtor;
                                 }
