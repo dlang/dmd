@@ -131,6 +131,8 @@ extern (C) void gc_term()
     _gc.fullCollectNoStack(); // not really a 'collect all' -- still scans
                               // static data area, roots, and ranges.
     _gc.Dtor();
+
+    free(cast(void*)_gc);
 }
 
 extern (C) void gc_enable()
