@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // strlen()
 
 #include "root.h"
 #include "speller.h"
