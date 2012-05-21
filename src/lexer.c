@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -2620,8 +2620,9 @@ void Lexer::pragma()
                 {
                     p += 8;
                     filespec = mem.strdup(loc.filename ? loc.filename : mod->ident->toChars());
+                    continue;
                 }
-                continue;
+                goto Lerr;
 
             case '"':
                 if (filespec)
@@ -3082,7 +3083,7 @@ void Lexer::initKeywords()
 {
     unsigned nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
-    stringtable.init(1543);
+    stringtable.init(6151);
 
     if (global.params.Dversion == 1)
         nkeywords -= 2;
@@ -3192,6 +3193,7 @@ void Lexer::initKeywords()
     Token::tochars[TOKpow]              = "^^";
     Token::tochars[TOKpowass]           = "^^=";
     Token::tochars[TOKgoesto]           = "=>";
+    Token::tochars[TOKpound]            = "#";
 #endif
 
      // For debugging
