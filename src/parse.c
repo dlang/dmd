@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // strlen(),memcpy()
 
 #include "rmem.h"
 #include "lexer.h"

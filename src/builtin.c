@@ -10,8 +10,8 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // strcmp()
 #include <math.h>
-
 
 #include "mars.h"
 #include "declaration.h"
