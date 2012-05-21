@@ -104,8 +104,8 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
 
-ROOTOBJS= lstring.obj array.obj gnuc.obj man.obj root.obj port.obj \
-	stringtable.obj dchar.obj response.obj async.obj speller.obj aav.obj \
+ROOTOBJS= array.obj gnuc.obj man.obj root.obj port.obj \
+	stringtable.obj response.obj async.obj speller.obj aav.obj \
 	$(GCOBJS)
 
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
@@ -156,8 +156,8 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 
 # From root
 
-ROOTSRC= $(ROOT)\dchar.h $(ROOT)\dchar.c $(ROOT)\lstring.h \
-	$(ROOT)\lstring.c $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
+ROOTSRC= \
+	$(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
 	$(ROOT)\rmem.h $(ROOT)\rmem.c $(ROOT)\port.h \
 	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
@@ -427,17 +427,11 @@ array.obj : $(ROOT)\array.c
 async.obj : $(ROOT)\async.h $(ROOT)\async.c
 	$(CC) -c $(CFLAGS) $(ROOT)\async.c
 
-dchar.obj : $(ROOT)\dchar.c
-	$(CC) -c $(CFLAGS) $(ROOT)\dchar.c
-
 dmgcmem.obj : $(ROOT)\dmgcmem.c
 	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.c
 
 gnuc.obj : $(ROOT)\gnuc.c
 	$(CC) -c $(CFLAGS) $(ROOT)\gnuc.c
-
-lstring.obj : $(ROOT)\lstring.c
-	$(CC) -c $(CFLAGS) $(ROOT)\lstring.c
 
 man.obj : $(ROOT)\man.c
 	$(CC) -c $(CFLAGS) $(ROOT)\man.c

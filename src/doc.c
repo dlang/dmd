@@ -19,6 +19,10 @@
 #include "rmem.h"
 #include "root.h"
 
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#include "gnuc.h"
+#endif
+
 #include "mars.h"
 #include "dsymbol.h"
 #include "macro.h"
@@ -227,7 +231,7 @@ void Module::gendocfile()
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles->dim; i++)
         {
-            FileName f(global.params.ddocfiles->tdata()[i], 0);
+            FileName f((*global.params.ddocfiles)[i], 0);
             File file(&f);
             file.readv();
             // BUG: convert file contents to UTF-8 before use

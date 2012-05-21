@@ -12,6 +12,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // strlen(),memcpy()
 
 #include "rmem.h"
 #include "lexer.h"
@@ -127,7 +128,7 @@ Dsymbols *Parser::parseModule()
 
     decldefs = parseDeclDefs(0);
     if (token.value != TOKeof)
-    {   error("unrecognized declaration");
+    {   error(loc, "unrecognized declaration");
         goto Lerr;
     }
     return decldefs;

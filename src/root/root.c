@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -16,6 +16,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
+#include <ctype.h>
 
 #if (defined (__SVR4) && defined (__sun))
 #include <alloca.h>
@@ -43,7 +44,6 @@
 
 #include "port.h"
 #include "root.h"
-#include "dchar.h"
 #include "rmem.h"
 
 #if 0 //__SC__ //def DEBUG
@@ -136,22 +136,6 @@ void error(const char *format, ...)
     exit(EXIT_FAILURE);
 }
 
-#if M_UNICODE
-void error(const dchar *format, ...)
-{
-    va_list ap;
-
-    va_start(ap, format);
-    printf("Error: ");
-    vwprintf(format, ap);
-    va_end( ap );
-    printf("\n");
-    fflush(stdout);
-
-    exit(EXIT_FAILURE);
-}
-#endif
-
 void error_mem()
 {
     error("out of memory");
@@ -198,15 +182,6 @@ void Object::print()
 char *Object::toChars()
 {
     return (char *)"Object";
-}
-
-dchar *Object::toDchars()
-{
-#if M_UNICODE
-    return L"Object";
-#else
-    return toChars();
-#endif
 }
 
 int Object::dyncast()
@@ -1603,30 +1578,6 @@ void OutBuffer::writestring(const char *string)
     write(string,strlen(string));
 }
 
-void OutBuffer::writedstring(const char *string)
-{
-#if M_UNICODE
-    for (; *string; string++)
-    {
-        writedchar(*string);
-    }
-#else
-    write(string,strlen(string));
-#endif
-}
-
-void OutBuffer::writedstring(const wchar_t *string)
-{
-#if M_UNICODE
-    write(string,wcslen(string) * sizeof(wchar_t));
-#else
-    for (; *string; string++)
-    {
-        writedchar(*string);
-    }
-#endif
-}
-
 void OutBuffer::prependstring(const char *string)
 {   unsigned len;
 
@@ -1640,17 +1591,9 @@ void OutBuffer::prependstring(const char *string)
 void OutBuffer::writenl()
 {
 #if _WIN32
-#if M_UNICODE
-    write4(0x000A000D);         // newline is CR,LF on Microsoft OS's
-#else
     writeword(0x0A0D);          // newline is CR,LF on Microsoft OS's
-#endif
-#else
-#if M_UNICODE
-    writeword('\n');
 #else
     writeByte('\n');
-#endif
 #endif
 }
 
@@ -1711,13 +1654,6 @@ void OutBuffer::writeUTF8(unsigned b)
     }
     else
         assert(0);
-}
-
-void OutBuffer::writedchar(unsigned b)
-{
-    reserve(Dchar_mbmax * sizeof(dchar));
-    offset = (unsigned char *)Dchar::put((dchar *)(this->data + offset), (dchar)b) -
-                this->data;
 }
 
 void OutBuffer::prependbyte(unsigned b)
@@ -1867,46 +1803,6 @@ void OutBuffer::vprintf(const char *format, va_list args)
     write(p,count);
 }
 
-#if M_UNICODE
-void OutBuffer::vprintf(const wchar_t *format, va_list args)
-{
-    dchar buffer[128];
-    dchar *p;
-    unsigned psize;
-    int count;
-
-    WORKAROUND_C99_SPECIFIERS_BUG(wstring, fmt, format);
-
-    p = buffer;
-    psize = sizeof(buffer) / sizeof(buffer[0]);
-    for (;;)
-    {
-#if _WIN32
-        count = _vsnwprintf(p,psize,format,args);
-        if (count != -1)
-            break;
-        psize *= 2;
-#elif POSIX
-        va_list va;
-        va_copy(va, args);
-        count = vsnwprintf(p,psize,format,va);
-        va_end(va);
-
-        if (count == -1)
-            psize *= 2;
-        else if (count >= psize)
-            psize = count + 1;
-        else
-            break;
-#else
-    assert(0);
-#endif
-        p = (dchar *) alloca(psize * 2);        // buffer too small, try again with larger size
-    }
-    write(p,count * 2);
-}
-#endif
-
 void OutBuffer::printf(const char *format, ...)
 {
     va_list ap;
@@ -1914,16 +1810,6 @@ void OutBuffer::printf(const char *format, ...)
     vprintf(format,ap);
     va_end(ap);
 }
-
-#if M_UNICODE
-void OutBuffer::printf(const wchar_t *format, ...)
-{
-    va_list ap;
-    va_start(ap, format);
-    vprintf(format,ap);
-    va_end(ap);
-}
-#endif
 
 void OutBuffer::bracket(char left, char right)
 {

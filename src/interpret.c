@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>                     // mem{cpy|set}()
 
 #include "rmem.h"
 
@@ -3079,6 +3080,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
     }
     error(loc, "CTFE internal error: bad compare");
     assert(0);
+    return 0;
 }
 
 // As Equal, but resolves slices before comparing

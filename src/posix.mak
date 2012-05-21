@@ -74,12 +74,12 @@ DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o blockopt.o \
 	cast.o code.o cg.o cg87.o cgxmm.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o cgsched.o class.o cod1.o cod2.o cod3.o cod4.o cod5.o \
-	constfold.o irstate.o dchar.o cond.o debug.o \
+	constfold.o irstate.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
 	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
 	glocal.o gloop.o glue.o gnuc.o go.o gother.o html.o iasm.o id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
-	lexer.o link.o lstring.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
+	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
 	parse.o ph.o ptrntab.o root.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
@@ -134,8 +134,7 @@ SRC = win32.mak posix.mak \
 	$C/xmm.h \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
-	$(ROOT)/dchar.h $(ROOT)/dchar.c $(ROOT)/lstring.h \
-	$(ROOT)/lstring.c $(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
+	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
@@ -295,9 +294,6 @@ irstate.o: irstate.c irstate.h
 csymbol.o: $C/symbol.c
 	$(CC) -c $(MFLAGS) $< -o $@
 
-dchar.o: $(ROOT)/dchar.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
 cond.o: cond.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -435,9 +431,6 @@ libmach.o: libmach.c $C/mach.h
 
 link.o: link.c
 	$(CC) -c $(CFLAGS) $<
-
-lstring.o: $(ROOT)/lstring.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 machobj.o: $C/machobj.c
 	$(CC) -c $(MFLAGS) -I. $<
