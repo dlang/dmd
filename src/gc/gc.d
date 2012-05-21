@@ -133,6 +133,7 @@ extern (C) void gc_term()
     _gc.Dtor();
 
     free(cast(void*)_gc);
+    _gc = null;
 }
 
 extern (C) void gc_enable()
