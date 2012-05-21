@@ -18,19 +18,19 @@ class Bar : Foo
 
 void test1()
 {
-	int delegate(int, char[]) dg;
-	Foo f = new Foo();
-	Bar b = new Bar();
-	int x;
+    int delegate(int, char[]) dg;
+    Foo f = new Foo();
+    Bar b = new Bar();
+    int x;
 
-	dg = &f.bar;
-	x = dg(3, null);
-	assert(x == 4);
+    dg = &f.bar;
+    x = dg(3, null);
+    assert(x == 4);
 
-	f = b;
-	dg = &f.bar;
-	x = dg(3, null);
-	assert(x == 5);
+    f = b;
+    dg = &f.bar;
+    x = dg(3, null);
+    assert(x == 5);
 }
 
 /********************************************************/
@@ -56,15 +56,15 @@ class Foo3
 
     void test()
     {
-	int delegate(int, char[]) dg;
+        int delegate(int, char[]) dg;
 
-	dg = &bar;
-	printf("%d %d\n", dg(3, null), result());
-	assert(dg(3, null) == result());
+        dg = &bar;
+        printf("%d %d\n", dg(3, null), result());
+        assert(dg(3, null) == result());
 
-	dg = &this.bar;
-	printf("%d %d\n", dg(3, null), result());
-	assert(dg(3, null) == result());
+        dg = &this.bar;
+        printf("%d %d\n", dg(3, null), result());
+        assert(dg(3, null) == result());
     }
 
     int result() { return 47; }
@@ -78,10 +78,10 @@ class Bar3 : Foo3
 
     void test2()
     {
-	int delegate(int, char[]) dg;
+        int delegate(int, char[]) dg;
 
-	dg = &super.bar;
-	assert(dg(3, null) == 47);
+        dg = &super.bar;
+        assert(dg(3, null) == 47);
     }
 
 }
@@ -151,10 +151,10 @@ void foo7(void delegate(int) dg)
 void test7()
 {
     foo7(delegate(int i)
-	{
-	    printf("i = %d\n", i);
-	}
-       );
+        {
+            printf("i = %d\n", i);
+        }
+        );
 }
 
 /********************************************************/
@@ -168,10 +168,10 @@ void foo8(int delegate(int) dg)
 void test8()
 {
     foo8(delegate(int i)
-	{
-	    return i * 2;
-	}
-       );
+        {
+            return i * 2;
+        }
+        );
 }
 
 /********************************************************/
@@ -284,6 +284,23 @@ void test13()
 }
 
 /********************************************************/
+// 2472
+
+class A2472
+{
+    void foo() {}
+}
+
+void test2472()
+{
+    auto a = new A2472;
+    auto fp1 = (&a.foo).funcptr;
+    auto dg = &a.foo;
+    auto fp2 = dg.funcptr;
+    assert(fp1 == fp2);
+}
+
+/********************************************************/
 
 int main()
 {
@@ -300,6 +317,7 @@ int main()
     test11();
     test12();
     test13();
+    test2472();
 
     printf("Success\n");
     return 0;
