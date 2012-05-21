@@ -1088,12 +1088,12 @@ dump(0);
 /***************************************
  * Return !=0 if expression is an lvalue.
  */
-#if DMDV2
+
 int Expression::isLvalue()
 {
     return 0;
 }
-#endif
+
 
 /*******************************
  * Give error if we're not an lvalue.
@@ -2089,12 +2089,12 @@ void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writestring(ident->toChars());
 }
 
-#if DMDV2
+
 int IdentifierExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -2358,12 +2358,12 @@ void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(s->toChars());
 }
 
-#if DMDV2
+
 int DsymbolExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -2456,12 +2456,12 @@ void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("this");
 }
 
-#if DMDV2
+
 int ThisExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -2880,12 +2880,15 @@ int StringExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
-#if DMDV2
+
 int StringExp::isLvalue()
 {
-    return 1;
+    /* string literal is rvalue in default, but
+     * conversion to reference of static array is only allowed.
+     */
+    return 0;
 }
-#endif
+
 unsigned StringExp::charAt(size_t i)
 {   unsigned value;
 
@@ -4310,14 +4313,14 @@ void VarExp::checkEscapeRef()
     }
 }
 
-#if DMDV2
+
 int VarExp::isLvalue()
 {
     if (var->storage_class & STClazy)
         return 0;
     return 1;
 }
-#endif
+
 
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -5455,6 +5458,11 @@ Expression *BinAssignExp::semantic(Scope *sc)
     return this;
 }
 
+int BinAssignExp::isLvalue()
+{
+    return 1;
+}
+
 /************************************************************/
 
 CompileExp::CompileExp(Loc loc, Expression *e)
@@ -6116,12 +6124,12 @@ Expression *DotVarExp::semantic(Scope *sc)
     return this;
 }
 
-#if DMDV2
+
 int DotVarExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -7219,17 +7227,23 @@ int CallExp::canThrow()
 }
 #endif
 
-#if DMDV2
 int CallExp::isLvalue()
 {
-//    if (type->toBasetype()->ty == Tstruct)
-//      return 1;
     Type *tb = e1->type->toBasetype();
+    if (tb->ty == Tdelegate || tb->ty == Tpointer)
+        tb = tb->nextOf();
+#if DMDV2
     if (tb->ty == Tfunction && ((TypeFunction *)tb)->isref)
+    {
+        if (e1->op == TOKdotvar)
+            if (((DotVarExp *)e1)->var->isCtorDeclaration())
+                return 0;
         return 1;               // function returns a reference
+    }
+#endif
     return 0;
 }
-#endif
+
 
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -7415,12 +7429,12 @@ Expression *PtrExp::semantic(Scope *sc)
     return this;
 }
 
-#if DMDV2
+
 int PtrExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 void PtrExp::checkEscapeRef()
 {
@@ -8035,12 +8049,12 @@ void SliceExp::checkEscapeRef()
     e1->checkEscapeRef();
 }
 
-#if DMDV2
+
 int SliceExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -8178,14 +8192,14 @@ Lerr:
     return new ErrorExp();
 }
 
-#if DMDV2
+
 int ArrayExp::isLvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
         return 0;
     return 1;
 }
-#endif
+
 
 Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -8267,12 +8281,12 @@ void CommaExp::checkEscapeRef()
     e2->checkEscapeRef();
 }
 
-#if DMDV2
+
 int CommaExp::isLvalue()
 {
     return e2->isLvalue();
 }
-#endif
+
 
 Expression *CommaExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -8449,12 +8463,12 @@ Lerr:
     return new ErrorExp();
 }
 
-#if DMDV2
+
 int IndexExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -10426,12 +10440,12 @@ Expression *CondExp::semantic(Scope *sc)
     return this;
 }
 
-#if DMDV2
+
 int CondExp::isLvalue()
 {
     return e1->isLvalue() && e2->isLvalue();
 }
-#endif
+
 
 Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {

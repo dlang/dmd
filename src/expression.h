@@ -124,6 +124,7 @@ struct Expression : Object
     virtual StringExp *toString();
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toMangleBuffer(OutBuffer *buf);
+    virtual int isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
     virtual Expression *implicitCastTo(Scope *sc, Type *t);
@@ -273,6 +274,7 @@ struct IdentifierExp : Expression
     char *toChars();
     void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 };
 
@@ -291,6 +293,7 @@ struct DsymbolExp : Expression
     char *toChars();
     void dump(int indent);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 };
 
@@ -303,6 +306,7 @@ struct ThisExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 
     int inlineCost3(InlineCostState *ics);
@@ -364,6 +368,7 @@ struct StringExp : Expression
     Expression *castTo(Scope *sc, Type *t);
     int compare(Object *obj);
     int isBool(int result);
+    int isLvalue();
     unsigned charAt(size_t i);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toMangleBuffer(OutBuffer *buf);
@@ -788,6 +793,7 @@ struct BinAssignExp : BinExp
     }
 
     Expression *semantic(Scope *sc);
+    int isLvalue();
 };
 
 /****************************************************************/
@@ -848,6 +854,7 @@ struct DotVarExp : UnaExp
 
     DotVarExp(Loc loc, Expression *e, Declaration *var);
     Expression *semantic(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *optimize(int result);
@@ -913,6 +920,7 @@ struct CallExp : UnaExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
     elem *toElem(IRState *irs);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
 
@@ -938,6 +946,7 @@ struct PtrExp : UnaExp
     PtrExp(Loc loc, Expression *e);
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
+    int isLvalue();
     void checkEscapeRef();
     Expression *toLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1049,6 +1058,7 @@ struct SliceExp : UnaExp
     Expression *semantic(Scope *sc);
     void checkEscape();
     void checkEscapeRef();
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1085,6 +1095,7 @@ struct ArrayExp : UnaExp
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -1110,6 +1121,7 @@ struct CommaExp : BinExp
     Expression *semantic(Scope *sc);
     void checkEscape();
     void checkEscapeRef();
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
@@ -1126,6 +1138,7 @@ struct IndexExp : BinExp
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1520,6 +1533,7 @@ struct CondExp : BinExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
     void checkEscapeRef();
+    int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     Expression *checkToBoolean();

@@ -3313,6 +3313,15 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     else if (ident == Id::funcptr)
     {
+        if (!e->isLvalue())
+        {
+            Identifier *idtmp = Lexer::uniqueId("__dgtmp");
+            VarDeclaration *tmp = new VarDeclaration(e->loc, this, idtmp, new ExpInitializer(0, e));
+            tmp->storage_class |= STCctfe;
+            e = new DeclarationExp(e->loc, tmp);
+            e = new CommaExp(e->loc, e, new VarExp(e->loc, tmp));
+            e = e->semantic(sc);
+        }
         e = e->addressOf(sc);
         e->type = tvoidptr;
         e = new AddExp(e->loc, e, new IntegerExp(PTRSIZE));
@@ -3349,7 +3358,7 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
     idents.setDim(t->idents.dim);
     for (size_t i = 0; i < idents.dim; i++)
     {
-        Identifier *id = (Identifier *)t->idents.data[i];
+        Identifier *id = t->idents[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
         {
             TemplateInstance *ti = (TemplateInstance *)id;
@@ -3357,7 +3366,7 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
             ti = (TemplateInstance *)ti->syntaxCopy(NULL);
             id = (Identifier *)ti;
         }
-        idents.data[i] = id;
+        idents[i] = id;
     }
 }
 
@@ -3370,7 +3379,7 @@ void TypeQualified::addIdent(Identifier *ident)
 void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 {
     for (size_t i = 0; i < idents.dim; i++)
-    {   Identifier *id = (Identifier *)idents.data[i];
+    {   Identifier *id = idents[i];
 
         buf->writeByte('.');
 
