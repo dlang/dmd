@@ -353,7 +353,7 @@ void FuncDeclaration::semantic(Scope *sc)
 #endif
             isDtorDeclaration() ||
             isInvariantDeclaration() ||
-            isUnitTestDeclaration() || isNewDeclaration() || isDelete())
+            isNewDeclaration() || isDelete())
             error("constructors, destructors, postblits, invariants, unittests, new and delete functions are not allowed in interface %s", id->toChars());
         if (fbody && isVirtual())
             error("function body is not abstract in interface %s", id->toChars());
