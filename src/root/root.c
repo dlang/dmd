@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -16,6 +16,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
+#include <ctype.h>
 
 #if (defined (__SVR4) && defined (__sun))
 #include <alloca.h>

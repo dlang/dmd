@@ -19,6 +19,10 @@
 #include "rmem.h"
 #include "root.h"
 
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#include "gnuc.h"
+#endif
+
 #include "mars.h"
 #include "dsymbol.h"
 #include "macro.h"

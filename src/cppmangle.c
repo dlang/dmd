@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9,6 +9,7 @@
 // See the included readme.txt for details.
 
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 
 #include "mars.h"

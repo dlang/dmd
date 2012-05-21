@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2011 by Digital Mars
+ * Copyright (c) 1999-2012 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -30,6 +30,10 @@
 
 #if __sun&&__SVR4
 #include        <alloca.h>
+#endif
+
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#include "gnuc.h"
 #endif
 
 #include        "root.h"

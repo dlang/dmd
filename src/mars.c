@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <assert.h>
 #include <limits.h>
+#include <string.h>
 
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
 #include <errno.h>

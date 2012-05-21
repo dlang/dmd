@@ -1659,7 +1659,7 @@ Type *Type::merge()
         else
         {
             sv->ptrvalue = this;
-            deco = sv->toDchars();
+            deco = (char *)sv->toDchars();
             //printf("new value, deco = '%s' %p\n", t->deco, t->deco);
         }
     }

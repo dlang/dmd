@@ -40,7 +40,7 @@ private:
 
 public:
     unsigned len() const { return length; }
-    char *toDchars() const { return lstring; }
+    const char *toDchars() const { return lstring; }
 
 private:
     friend struct StringEntry;
