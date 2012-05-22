@@ -15,8 +15,8 @@
 module core.sys.windows.windows;
 
 
-extern (Windows)
-{
+extern (Windows) nothrow:
+
     alias uint ULONG;
     alias ULONG *PULONG;
     alias ushort USHORT;
@@ -24,25 +24,21 @@ extern (Windows)
     alias ubyte UCHAR;
     alias UCHAR *PUCHAR;
     alias char *PSZ;
-    alias wchar WCHAR;
 
     alias void VOID;
     alias char CHAR;
     alias short SHORT;
     alias int LONG;
-    alias CHAR *LPSTR;
-    alias CHAR *PSTR;
 
-    alias const(CHAR)* LPCSTR;
-    alias const(CHAR)* PCSTR;
+    alias CHAR*         LPCH,  LPSTR,  PCH,  PSTR;
+    alias const(CHAR)*  LPCCH, LPCSTR, PCCH, PCSTR;
 
-    alias LPSTR LPTCH, PTCH;
-    alias LPSTR PTSTR, LPTSTR;
-    alias LPCSTR PCTSTR, LPCTSTR;
+    alias wchar WCHAR;
+    alias WCHAR*        LPWCH,  LPWSTR,  PWCH,  PWSTR;
+    alias const(WCHAR)* LPCWCH, LPCWSTR, PCWCH, PCWSTR;
 
-    alias WCHAR* LPWSTR;
-
-    alias const(WCHAR)* LPCWSTR, PCWSTR;
+    alias CHAR*         LPTCH,  LPTSTR,  PTCH,  PTSTR;
+    alias const(CHAR)*  LPCTCH, LPCTSTR, PCTCH, PCTSTR;
 
     alias uint DWORD;
     alias ulong DWORD64;
@@ -182,7 +178,7 @@ else
     alias FARPROC DRAWSTATEPROC;
 }
 
-extern (D)
+extern (D) pure
 {
 WORD HIWORD(int l) { return cast(WORD)((l >> 16) & 0xFFFF); }
 WORD LOWORD(int l) { return cast(WORD)l; }
@@ -512,6 +508,7 @@ DWORD  SetFilePointer(HANDLE hFile, LONG lDistanceToMove,
 BOOL   WriteFile(HANDLE hFile, in void *lpBuffer, DWORD nNumberOfBytesToWrite,
     DWORD *lpNumberOfBytesWritten, OVERLAPPED *lpOverlapped);
 DWORD  GetModuleFileNameA(HMODULE hModule, LPSTR lpFilename, DWORD nSize);
+DWORD  GetModuleFileNameW(HMODULE hModule, LPWSTR lpFilename, DWORD nSize);
 HANDLE GetStdHandle(DWORD nStdHandle);
 BOOL   SetStdHandle(DWORD nStdHandle, HANDLE hHandle);
 }
@@ -2481,6 +2478,16 @@ export
  HWND GetFocus();
 }
 
+/* http://msdn.microsoft.com/en-us/library/windows/desktop/ms683187(v=vs.85).aspx
+According to MSDN about a value returned by GetEnvironmentString:
+"Treat this memory as read-only; do not modify it directly.".
+So return type of GetEnvironmentStrings is changed from LPWCH (as in *.h file)
+to LPCWCH. FreeEnvironmentStrings's argument type is changed correspondingly.
+*/
+export LPCWCH GetEnvironmentStringsW();
+export BOOL FreeEnvironmentStringsW(LPCWCH lpszEnvironmentBlock);
+export DWORD GetEnvironmentVariableW(LPCWSTR lpName, LPWSTR lpBuffer, DWORD nSize);
+export BOOL  SetEnvironmentVariableW(LPCWSTR lpName, LPCWSTR lpValue);
 export DWORD ExpandEnvironmentStringsA(LPCSTR lpSrc, LPSTR lpDst, DWORD nSize);
 export DWORD ExpandEnvironmentStringsW(LPCWSTR lpSrc, LPWSTR lpDst, DWORD nSize);
 
@@ -3395,4 +3402,3 @@ BOOL TlsFree(DWORD);
 // shellapi.h
 HINSTANCE ShellExecuteA(HWND hwnd, LPCSTR lpOperation, LPCSTR lpFile, LPCSTR lpParameters, LPCSTR lpDirectory, INT nShowCmd);
 HINSTANCE ShellExecuteW(HWND hwnd, LPCWSTR lpOperation, LPCWSTR lpFile, LPCWSTR lpParameters, LPCWSTR lpDirectory, INT nShowCmd);
-}
