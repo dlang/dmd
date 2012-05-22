@@ -1358,6 +1358,35 @@ enum
     THREAD_PRIORITY_IDLE =            THREAD_BASE_PRIORITY_IDLE,
 }
 
+struct SYSTEM_INFO
+{
+    union
+    {
+        DWORD  dwOemId;
+
+        struct
+        {
+            WORD wProcessorArchitecture;
+            WORD wReserved;
+        }
+    }
+
+    DWORD     dwPageSize;
+    LPVOID    lpMinimumApplicationAddress;
+    LPVOID    lpMaximumApplicationAddress;
+    ULONG_PTR dwActiveProcessorMask;
+    DWORD     dwNumberOfProcessors;
+    DWORD     dwProcessorType;
+    DWORD     dwAllocationGranularity;
+    WORD      wProcessorLevel;
+    WORD      wProcessorRevision;
+}
+
+alias SYSTEM_INFO* LPSYSTEM_INFO;
+
+export void GetSystemInfo(LPSYSTEM_INFO lpSystemInfo);
+export void GetNativeSystemInfo(LPSYSTEM_INFO lpSystemInfo);
+
 enum : DWORD
 {
     MAX_COMPUTERNAME_LENGTH = 15,
