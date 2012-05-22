@@ -302,7 +302,7 @@ void Lexer::error(const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    verror(tokenLoc(), format, ap);
+    ::verror(tokenLoc(), format, ap);
     va_end(ap);
 }
 
@@ -310,32 +310,8 @@ void Lexer::error(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    verror(loc, format, ap);
+    ::verror(loc, format, ap);
     va_end(ap);
-}
-
-void Lexer::verror(Loc loc, const char *format, va_list ap)
-{
-    if (mod && !global.gag)
-    {
-        char *p = loc.toChars();
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        vfprintf(stdmsg, format, ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-
-        if (global.errors >= 20)        // moderate blizzard of cascading messages
-            fatal();
-    }
-    else
-    {
-        global.gaggedErrors++;
-    }
-    global.errors++;
 }
 
 TOK Lexer::nextToken()

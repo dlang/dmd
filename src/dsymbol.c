@@ -592,7 +592,7 @@ void Dsymbol::error(const char *format, ...)
     }
     va_list ap;
     va_start(ap, format);
-    verror(loc, format, ap);
+    verror(loc, format, ap, kind(), toPrettyChars());
     va_end(ap);
 }
 
@@ -600,39 +600,8 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    verror(loc, format, ap);
+    verror(loc, format, ap, kind(), toPrettyChars());
     va_end(ap);
-}
-
-void Dsymbol::verror(Loc loc, const char *format, va_list ap)
-{
-    if (!global.gag)
-    {
-        char *p = loc.toChars();
-        if (!*p)
-            p = locToChars();
-
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        fprintf(stdmsg, "Error: ");
-        fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
-
-        vfprintf(stdmsg, format, ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-//halt();
-    }
-    else
-    {
-        global.gaggedErrors++;
-    }
-
-    global.errors++;
-
-    //fatal();
 }
 
 void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
