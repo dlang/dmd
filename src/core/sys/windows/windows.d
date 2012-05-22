@@ -95,6 +95,8 @@ else // Win32
     alias uint * PULONG_PTR;
 }
 
+    alias ULONG_PTR DWORD_PTR;
+
     alias void *HANDLE;
     alias void *PVOID;
     alias HANDLE HGLOBAL;
@@ -1374,7 +1376,7 @@ struct SYSTEM_INFO
     DWORD     dwPageSize;
     LPVOID    lpMinimumApplicationAddress;
     LPVOID    lpMaximumApplicationAddress;
-    ULONG_PTR dwActiveProcessorMask;
+    DWORD_PTR dwActiveProcessorMask;
     DWORD     dwNumberOfProcessors;
     DWORD     dwProcessorType;
     DWORD     dwAllocationGranularity;
