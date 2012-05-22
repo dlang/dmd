@@ -131,7 +131,6 @@ struct Dsymbol : Object
     int isAnonymous();
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
-    void verror(Loc loc, const char *format, va_list ap);
     void checkDeprecated(Loc loc, Scope *sc);
     Module *getModule();
     Module *getAccessModule();

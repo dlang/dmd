@@ -192,7 +192,7 @@ void errorSupplemental(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void verror(Loc loc, const char *format, va_list ap)
+void verror(Loc loc, const char *format, va_list ap, const char *p1, const char *p2)
 {
     if (!global.gag)
     {
@@ -203,6 +203,10 @@ void verror(Loc loc, const char *format, va_list ap)
         mem.free(p);
 
         fprintf(stdmsg, "Error: ");
+        if (p1)
+            fprintf(stdmsg, "%s ", p1);
+        if (p2)
+            fprintf(stdmsg, "%s ", p2);
 #if _MSC_VER
         // MS doesn't recognize %zu format
         OutBuffer tmp;
@@ -213,6 +217,8 @@ void verror(Loc loc, const char *format, va_list ap)
 #endif
         fprintf(stdmsg, "\n");
         fflush(stdmsg);
+        if (global.errors >= 20)        // moderate blizzard of cascading messages
+            fatal();
 //halt();
     }
     else
