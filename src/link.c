@@ -337,8 +337,10 @@ int runLINK()
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {   char *p = (*global.params.linkswitches)[i];
-        if (!p || !p[0] || !(p[0] == '-' && p[1] == 'l'))
-            // Don't need -Xlinker if switch starts with -l
+        if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+            // Don't need -Xlinker if switch starts with -l or -L.
+            // Eliding -Xlinker is significant for -L since it allows our paths
+            // to take precedence over gcc defaults.
             argv.push((char *)"-Xlinker");
         argv.push(p);
     }
