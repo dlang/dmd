@@ -95,6 +95,8 @@ else // Win32
     alias uint * PULONG_PTR;
 }
 
+    alias ULONG_PTR DWORD_PTR;
+
     alias void *HANDLE;
     alias void *PVOID;
     alias HANDLE HGLOBAL;
@@ -1357,6 +1359,35 @@ enum
     THREAD_PRIORITY_TIME_CRITICAL =   THREAD_BASE_PRIORITY_LOWRT,
     THREAD_PRIORITY_IDLE =            THREAD_BASE_PRIORITY_IDLE,
 }
+
+struct SYSTEM_INFO
+{
+    union
+    {
+        DWORD  dwOemId;
+
+        struct
+        {
+            WORD wProcessorArchitecture;
+            WORD wReserved;
+        }
+    }
+
+    DWORD     dwPageSize;
+    LPVOID    lpMinimumApplicationAddress;
+    LPVOID    lpMaximumApplicationAddress;
+    DWORD_PTR dwActiveProcessorMask;
+    DWORD     dwNumberOfProcessors;
+    DWORD     dwProcessorType;
+    DWORD     dwAllocationGranularity;
+    WORD      wProcessorLevel;
+    WORD      wProcessorRevision;
+}
+
+alias SYSTEM_INFO* LPSYSTEM_INFO;
+
+export void GetSystemInfo(LPSYSTEM_INFO lpSystemInfo);
+export void GetNativeSystemInfo(LPSYSTEM_INFO lpSystemInfo);
 
 enum : DWORD
 {
