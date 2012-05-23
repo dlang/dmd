@@ -5069,6 +5069,32 @@ void test8091() {
 
 /***************************************************/
 
+struct IPoint {
+    int x, y;
+}
+
+void bug6189_2(uint half, IPoint pos, float[4] *pts, uint unused) {
+    pos.y += half;
+    float xo = pos.x;
+    float yo = pos.y;
+
+    (*pts)[0] = xo;
+    (*pts)[1] = yo;
+    (*pts)[2] = xo;
+}
+
+void test6189_2()
+{
+    auto pos = IPoint(2, 2);
+    float[4] pts;
+    pts[0] = pts[1] = pts[2] = pts[3] = 0;
+    bug6189_2(0, pos, &pts, 0);
+
+    assert(pts[0] == 2);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5325,6 +5351,7 @@ int main()
     test4155();
     test8095();
     test8091();
+    test6189_2();
 
     writefln("Success");
     return 0;
