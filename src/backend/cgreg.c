@@ -261,9 +261,11 @@ Lagain:
     benefit = 0;
     retsym_cnt = 0;
 
+#if 0 // causes assert failure in std.range(4488) from std.parallelism's unit tests
     // If s is passed in a register to the function, favor that register
     if (s->Sclass == SCfastpar && s->Spreg == reg)
         ++benefit;
+#endif
 
     // Make sure we have enough uses to justify
     // using a register we must save
