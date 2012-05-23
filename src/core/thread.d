@@ -1081,8 +1081,8 @@ class Thread
 
 
     /**
-     * $(RED Scheduled for deprecation in January 2012. Please use the version
-     *       which takes a $(D Duration) instead.)
+     * $(RED Deprecated. It will be removed in December 2012. Please use the
+     *       version which takes a $(D Duration) instead.)
      *
      * Suspends the calling thread for at least the supplied period.  This may
      * result in multiple OS calls if period is greater than the maximum sleep
@@ -1103,7 +1103,7 @@ class Thread
      *
      * ------------------------------------------------------------------------
      */
-    static void sleep( long period )
+    deprecated static void sleep( long period )
     in
     {
         assert( period >= 0 );
