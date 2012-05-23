@@ -261,6 +261,10 @@ Lagain:
     benefit = 0;
     retsym_cnt = 0;
 
+    // If s is passed in a register to the function, favor that register
+    if (s->Sclass == SCfastpar && s->Spreg == reg)
+        ++benefit;
+
     // Make sure we have enough uses to justify
     // using a register we must save
     if (fregsaved & mask[reg] & mfuncreg)
