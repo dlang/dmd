@@ -99,6 +99,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
 
                 e1 = new DotVarExp(loc, e1, tcd->vthis);
                 e1->type = tcd->vthis->type;
+                e1->type = e1->type->addMod(t->mod);
                 // Do not call checkNestedRef()
                 //e1 = e1->semantic(sc);
 
@@ -127,6 +128,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                 }
                 if (s && s->isClassDeclaration())
                 {   e1->type = s->isClassDeclaration()->type;
+                    e1->type = e1->type->addMod(t->mod);
                     if (n > 1)
                         e1 = e1->semantic(sc);
                 }

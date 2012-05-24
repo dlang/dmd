@@ -2648,6 +2648,40 @@ void test7757()
 }
 
 /************************************/
+// 8098
+
+class Outer8098
+{
+    int i = 6;
+
+    class Inner
+    {
+        int y=0;
+
+        void foo() const
+        {
+            static assert(is(typeof(this.outer) == const(Outer8098)));
+            static assert(is(typeof(i) == const(int)));
+            static assert(!__traits(compiles, ++i));
+        }
+    }
+
+    Inner inner;
+
+    this()
+    {
+        inner = new Inner;
+    }
+}
+
+void test8098()
+{
+    const(Outer8098) x = new Outer8098();
+    static assert(is(typeof(x) == const(Outer8098)));
+    static assert(is(typeof(x.inner) == const(Outer8098.Inner)));
+}
+
+/************************************/
 
 int main()
 {
@@ -2761,6 +2795,7 @@ int main()
     test7518();
     test7669();
     test7757();
+    test8098();
 
     printf("Success\n");
     return 0;
