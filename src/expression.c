@@ -3250,6 +3250,13 @@ Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
     return this;
 }
 
+Expression *ThisExp::modifiableLvalue(Scope *sc, Expression *e)
+{
+    if (type->toBasetype()->ty == Tclass)
+        error("Cannot modify '%s'", toChars());
+    return Expression::modifiableLvalue(sc, e);
+}
+
 /******************************** SuperExp **************************/
 
 SuperExp::SuperExp(Loc loc)
