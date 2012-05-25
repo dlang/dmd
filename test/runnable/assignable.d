@@ -354,6 +354,35 @@ void test6286()
 }
 
 /***************************************************/
+// 6336
+
+void test6336()
+{
+    // structs aren't identity assignable
+    static struct S1
+    {
+        immutable int n;
+    }
+    static struct S2
+    {
+        void opAssign(int n){ assert(0); }
+    }
+
+    S1 s1;
+    S2 s2;
+
+    void f(S)(out S s){}
+    static assert(!__traits(compiles, f(s1)));
+    f(s2);
+    // Out parameters refuse only S1 because it isn't blit assignable
+
+    ref S g(S)(ref S s){ return s; }
+    g(s1);
+    g(s2);
+    // Allow return by ref both S1 and S2
+}
+
+/***************************************************/
 
 int main()
 {
@@ -367,6 +396,7 @@ int main()
     test6216b();
     test6216c();
     test6286();
+    test6336();
 
     printf("Success\n");
     return 0;
