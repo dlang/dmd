@@ -4386,6 +4386,13 @@ Lagain:
             sc = sc->push(cdthis);
             type = newtype->semantic(loc, sc);
             sc = sc->pop();
+
+            if (!MODimplicitConv(thisexp->type->mod, newtype->mod))
+            {
+                error("nested type %s should have the same or weak constancy as enclosing type %s",
+                    newtype->toChars(), thisexp->type->toChars());
+                goto Lerr;
+            }
         }
         else
         {
