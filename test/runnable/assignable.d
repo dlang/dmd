@@ -210,6 +210,18 @@ void test5()
 }
 
 /***************************************************/
+// 4424
+
+void test4424()
+{
+    static struct S
+    {
+        this(this) {}
+        void opAssign(T)(T rhs) if (!is(T == S)) {}
+    }
+}
+
+/***************************************************/
 // 6216
 
 void test6216a()
@@ -350,6 +362,7 @@ int main()
     test3();
     test4();
     test5();
+    test4424();
     test6216a();
     test6216b();
     test6216c();
