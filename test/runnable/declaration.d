@@ -66,12 +66,39 @@ void test8123()
 }
 
 /***************************************************/
+// 8147
+
+enum A8147 { a, b, c }
+
+@property ref T front8147(T)(T[] a)
+if (!is(T[] == void[]))
+{
+    return a[0];
+}
+
+template ElementType8147(R)
+{
+    static if (is(typeof({ R r = void; return r.front8147; }()) T))
+        alias T ElementType8147;
+    else
+        alias void ElementType8147;
+}
+
+void test8147()
+{
+    auto arr = [A8147.a];
+    alias typeof(arr) R;
+    auto e = ElementType8147!R.init;
+}
+
+/***************************************************/
 
 int main()
 {
     test6475();
     test7239();
     test8123();
+    test8147();
 
     printf("Success\n");
     return 0;
