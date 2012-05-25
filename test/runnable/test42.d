@@ -5008,6 +5008,26 @@ void test4155()
 }
 
 /***************************************************/
+// 7911
+
+struct Klass7911
+{
+    double value;
+
+    //static const Klass zero; // Does not trigger bug!
+    static const Klass7911 zero = {0}; // Bug trigger #1
+
+    static if (true) // Bug trigger #2
+        static if (true)
+            Klass7911 foo() { return Klass7911(); }
+}
+
+void test7911()
+{
+    auto a = Klass7911().foo();
+}
+
+/***************************************************/
 // 8069
 
 interface I8069
@@ -5349,6 +5369,7 @@ int main()
     test245();
     test7807();
     test4155();
+    test7911();
     test8095();
     test8091();
     test6189_2();

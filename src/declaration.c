@@ -632,7 +632,9 @@ Dsymbol *AliasDeclaration::toAlias()
         aliassym = new AliasDeclaration(loc, ident, Type::terror);
         type = Type::terror;
     }
-    else if (!aliassym && scope)
+    else if (aliassym || type->deco)
+        ;   // semantic is already done.
+    else if (scope)
         semantic(scope);
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
     return s;
