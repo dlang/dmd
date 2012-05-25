@@ -2682,6 +2682,41 @@ void test8098()
 }
 
 /************************************/
+// 8099
+
+void test8099()
+{
+    static class Outer
+    {
+        class Inner {}
+    }
+
+    auto m = new Outer;
+    auto c = new const(Outer);
+    auto i = new immutable(Outer);
+
+    auto mm = m.new Inner;            // m -> m  OK
+    auto mc = m.new const(Inner);     // m -> c  OK
+  static assert(!__traits(compiles, {
+    auto mi = m.new immutable(Inner); // m -> i  bad
+  }));
+
+  static assert(!__traits(compiles, {
+    auto cm = c.new Inner;            // c -> m  bad
+  }));
+    auto cc = c.new const(Inner);     // c -> c  OK
+  static assert(!__traits(compiles, {
+    auto ci = c.new immutable(Inner); // c -> i  bad
+  }));
+
+  static assert(!__traits(compiles, {
+    auto im = i.new Inner;            // i -> m  bad
+  }));
+    auto ic = i.new const(Inner);     // i -> c  OK
+    auto ii = i.new immutable(Inner); // i -> i  OK
+}
+
+/************************************/
 
 int main()
 {
@@ -2796,6 +2831,7 @@ int main()
     test7669();
     test7757();
     test8098();
+    test8099();
 
     printf("Success\n");
     return 0;
