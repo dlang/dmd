@@ -252,7 +252,7 @@ struct Type : Object
     virtual int isunsigned();
     virtual int isscope();
     virtual int isString();
-    virtual int isAssignable();
+    virtual int isAssignable(int blit = 0);
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()       { return mod & MODconst; }
@@ -770,7 +770,7 @@ struct TypeStruct : Type
     Expression *defaultInitLiteral(Loc loc);
     Expression *voidInitLiteral(VarDeclaration *var);
     int isZeroInit(Loc loc);
-    int isAssignable();
+    int isAssignable(int blit = 0);
     int checkBoolean();
     int needsDestruction();
     dt_t **toDt(dt_t **pdt);
@@ -812,7 +812,7 @@ struct TypeEnum : Type
     int isscalar();
     int isunsigned();
     int checkBoolean();
-    int isAssignable();
+    int isAssignable(int blit = 0);
     int needsDestruction();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
@@ -854,7 +854,7 @@ struct TypeTypedef : Type
     int isscalar();
     int isunsigned();
     int checkBoolean();
-    int isAssignable();
+    int isAssignable(int blit = 0);
     int needsDestruction();
     Type *toBasetype();
     MATCH implicitConvTo(Type *to);

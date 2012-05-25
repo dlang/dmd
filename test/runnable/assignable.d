@@ -198,7 +198,7 @@ void test5()
     assert(s.mX == 0xA);
     s.x ^= 0xF;
     assert(s.mX == 0x5);
-    
+
     s.x ^^= 2;
     assert(s.mX == 25);
 
@@ -210,6 +210,125 @@ void test5()
 }
 
 /***************************************************/
+// 6216
+
+void test6216a()
+{
+    static class C{}
+
+    static struct Xa{ int n; }
+    static struct Xb{ int[] a; }
+    static struct Xc{ C c; }
+    static struct Xd{ void opAssign(typeof(this) rhs){} }
+    static struct Xe{ void opAssign(T)(T rhs){} }
+    static struct Xf{ void opAssign(int rhs){} }
+    static struct Xg{ void opAssign(T)(T rhs)if(!is(T==typeof(this))){} }
+
+    // has value type as member
+    static struct S1 (X){ static if (!is(X==void)) X x; int n; }
+
+    // has reference type as member
+    static struct S2a(X){ static if (!is(X==void)) X x; int[] a; }
+    static struct S2b(X){ static if (!is(X==void)) X x; C c; }
+
+    // has identity opAssign
+    static struct S3a(X){ static if (!is(X==void)) X x; void opAssign(typeof(this) rhs){} }
+    static struct S3b(X){ static if (!is(X==void)) X x; void opAssign(T)(T rhs){} }
+
+    // has non identity opAssign
+    static struct S4a(X){ static if (!is(X==void)) X x; void opAssign(int rhs){} }
+    static struct S4b(X){ static if (!is(X==void)) X x; void opAssign(T)(T rhs)if(!is(T==typeof(this))){} }
+
+    enum result = [
+        /*S1,   S2a,    S2b,    S3a,    S3b,    S4a,    S4b*/
+/*- */  [true,  true,   true,   true,   true,   false,  false],
+/*Xa*/  [true,  true,   true,   true,   true,   false,  false],
+/*Xb*/  [true,  true,   true,   true,   true,   false,  false],
+/*Xc*/  [true,  true,   true,   true,   true,   false,  false],
+/*Xd*/  [true,  true,   true,   true,   true,   false,  false],
+/*Xe*/  [true,  true,   true,   true,   true,   false,  false],
+/*Xf*/  [false, false,  false,  true,   true,   false,  false],
+/*Xg*/  [false, false,  false,  true,   true,   false,  false]
+    ];
+
+    pragma(msg, "\\\tS1\tS2a\tS2b\tS3a\tS3b\tS4a\tS4b");
+    foreach (i, X; TypeTuple!(void,Xa,Xb,Xc,Xd,Xe,Xf,Xg))
+    {
+        S1!X  s1;
+        S2a!X s2a;
+        S2b!X s2b;
+        S3a!X s3a;
+        S3b!X s3b;
+        S4a!X s4a;
+        S4b!X s4b;
+
+        pragma(msg,
+                is(X==void) ? "-" : X.stringof,
+                "\t", __traits(compiles, (s1  = s1)),
+                "\t", __traits(compiles, (s2a = s2a)),
+                "\t", __traits(compiles, (s2b = s2b)),
+                "\t", __traits(compiles, (s3a = s3a)),
+                "\t", __traits(compiles, (s3b = s3b)),
+                "\t", __traits(compiles, (s4a = s4a)),
+                "\t", __traits(compiles, (s4b = s4b))  );
+
+        static assert(result[i] ==
+            [   __traits(compiles, (s1  = s1)),
+                __traits(compiles, (s2a = s2a)),
+                __traits(compiles, (s2b = s2b)),
+                __traits(compiles, (s3a = s3a)),
+                __traits(compiles, (s3b = s3b)),
+                __traits(compiles, (s4a = s4a)),
+                __traits(compiles, (s4b = s4b))  ]);
+    }
+}
+
+void test6216b()
+{
+    static int cnt = 0;
+
+    static struct X
+    {
+        int n;
+        void opAssign(X rhs){ cnt = 1; }
+    }
+    static struct S
+    {
+        int n;
+        X x;
+    }
+
+    S s;
+    s = s;
+    assert(cnt == 1);
+    // Built-in opAssign runs member's opAssign
+}
+
+void test6216c()
+{
+    static int cnt = 0;
+
+    static struct X
+    {
+        int n;
+        const void opAssign(const X rhs){ cnt = 2; }
+    }
+    static struct S
+    {
+        int n;
+        const(X) x;
+    }
+
+    S s;
+    const(S) cs;
+    s = s;
+    s = cs;     // cs is copied as mutable and assigned into s
+    assert(cnt == 2);
+//  cs = cs;    // built-in opAssin is only allowed with mutable object
+}
+
+/***************************************************/
+// 6286
 
 void test6286()
 {
@@ -231,6 +350,9 @@ int main()
     test3();
     test4();
     test5();
+    test6216a();
+    test6216b();
+    test6216c();
     test6286();
 
     printf("Success\n");

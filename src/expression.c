@@ -1120,7 +1120,10 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             else if (p->storageClass & STCout)
             {
-                arg = arg->modifiableLvalue(sc, arg);
+                if (arg->type->isAssignable(1)) // check blit assignable
+                    arg = arg->modifiableLvalue(sc, arg);
+                else
+                    arg->error("cannot modify struct %s with immutable members", arg->toChars());
             }
             else if (p->storageClass & STClazy)
             {   // Convert lazy argument to a delegate
@@ -1589,7 +1592,7 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
 
     // See if this expression is a modifiable lvalue (i.e. not const)
 #if DMDV2
-    if (type && (!type->isMutable() || !type->isAssignable()))
+    if (type && !type->isMutable())
     {   error("%s is not mutable", e->toChars());
         return new ErrorExp();
     }
@@ -7148,7 +7151,6 @@ Expression *DotVarExp::modifiableLvalue(Scope *sc, Expression *e)
     if (!t1->isMutable() ||
         (t1->ty == Tpointer && !t1->nextOf()->isMutable()) ||
         !var->type->isMutable() ||
-        !var->type->isAssignable() ||
         var->storage_class & STCmanifest
        )
     {
@@ -9940,7 +9942,7 @@ Expression *IndexExp::modifiableLvalue(Scope *sc, Expression *e)
     modifiable = 1;
     if (e1->op == TOKstring)
         error("string literals are immutable");
-    if (type && (!type->isMutable() || !type->isAssignable()))
+    if (type && !type->isMutable())
         error("%s isn't mutable", e->toChars());
     Type *t1 = e1->type->toBasetype();
     if (t1->ty == Taarray)
@@ -10541,8 +10543,15 @@ Ltupleassign:
                 e = ae->op_overload(sc);
                 e2 = new CommaExp(loc, new CommaExp(loc, de, e), ve);
                 e2 = e2->semantic(sc);
+
+                e1 = e1->optimize(WANTvalue);
+                e1 = e1->modifiableLvalue(sc, e1);
+                e2 = e2->implicitCastTo(sc, e1->type);
+                type = e1->type;
+                assert(type);
+                e = this;
             }
-            else if (e)
+            if (e)
                 return e;
         }
         else if (op == TOKconstruct && !refinit)
@@ -10725,6 +10734,15 @@ Ltupleassign:
     else
     {
         e2 = e2->implicitCastTo(sc, e1->type);
+    }
+    if (e2->op == TOKerror)
+        return new ErrorExp();
+
+    // Check identity assignable (opAssign overloading is already resolved)
+    if (op == TOKassign && !t1->isAssignable())
+    {
+        error("cannot modify struct with immutable members");
+        return new ErrorExp();
     }
 
     /* Look for array operations

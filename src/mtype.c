@@ -1749,7 +1749,7 @@ int Type::isString()
  *      a = b;
  * ?
  */
-int Type::isAssignable()
+int Type::isAssignable(int blit)
 {
     return TRUE;
 }
@@ -7323,9 +7323,9 @@ int TypeEnum::isscalar()
     return sym->memtype->isscalar();
 }
 
-int TypeEnum::isAssignable()
+int TypeEnum::isAssignable(int blit)
 {
-    return sym->memtype->isAssignable();
+    return sym->memtype->isAssignable(blit);
 }
 
 int TypeEnum::checkBoolean()
@@ -7532,9 +7532,9 @@ int TypeTypedef::isscalar()
     return sym->basetype->isscalar();
 }
 
-int TypeTypedef::isAssignable()
+int TypeTypedef::isAssignable(int blit)
 {
-    return sym->basetype->isAssignable();
+    return sym->basetype->isAssignable(blit);
 }
 
 int TypeTypedef::checkBoolean()
@@ -8045,8 +8045,18 @@ int TypeStruct::needsDestruction()
     return sym->dtor != NULL;
 }
 
-int TypeStruct::isAssignable()
+int TypeStruct::isAssignable(int blit)
 {
+    if (!blit)
+    {
+        if (sym->hasIdentityAssign)
+            return TRUE;
+
+        // has non-identity opAssign
+        if (search_function(sym, Id::assign))
+            return FALSE;
+    }
+
     int assignable = TRUE;
     unsigned offset;
 
@@ -8072,7 +8082,7 @@ int TypeStruct::isAssignable()
             if (!assignable)
                 return FALSE;
         }
-        assignable = v->type->isMutable() && v->type->isAssignable();
+        assignable = v->type->isMutable() && v->type->isAssignable(blit);
         offset = v->offset;
         //printf(" -> assignable = %d\n", assignable);
     }

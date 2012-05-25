@@ -157,8 +157,6 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
                 p = "inout";
             else if (storage_class & STCmanifest)
                 p = "enum";
-            else if (!t->isAssignable())
-                p = "struct with immutable members";
             if (p)
             {   error(loc, "cannot modify %s", p);
             }
