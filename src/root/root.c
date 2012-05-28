@@ -1545,9 +1545,17 @@ void OutBuffer::prependstring(const char *string)
 void OutBuffer::writenl()
 {
 #if _WIN32
+#if M_UNICODE
+    write4(0x000A000D);         // newline is CR,LF on Microsoft OS's
+#else
     writeword(0x0A0D);          // newline is CR,LF on Microsoft OS's
+#endif
+#else
+#if M_UNICODE
+    writeword('\n');
 #else
     writeByte('\n');
+#endif
 #endif
     if (doindent)
         linehead = 1;
