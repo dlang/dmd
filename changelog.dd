@@ -1,3 +1,12 @@
+$(VERSION 060, mmm dd, 2012, =================================================,
+
+    $(WHATSNEW
+$(LI For functions which have a version which takes a core.time.Duration
+     and another version which takes an integral value, the version which
+     takes an integral value has now been deprecated.)
+     )
+)
+
 $(VERSION 059, mmm dd, 2012, =================================================,
 
     $(RUNTIMEBUGSFIXED
