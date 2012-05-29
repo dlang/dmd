@@ -140,14 +140,22 @@ TypeTuple *TypeVector::toArgTypes()
 TypeTuple *TypeSArray::toArgTypes()
 {
 #if DMDV2
+    /* Should really be done as if it were a struct with length members
+     * of the array's elements.
+     * I.e. int[2] should be done like struct S { int a; int b; }
+     */
     return new TypeTuple();     // pass on the stack for efficiency
 #else
-    return new TypeTuple(Type::tvoidptr);
+    return new TypeTuple();     // pass on the stack for efficiency
+//    return new TypeTuple(Type::tvoidptr);
 #endif
 }
 
 TypeTuple *TypeDArray::toArgTypes()
 {
+    /* Should be done as if it were:
+     * struct S { size_t length; void* ptr; }
+     */
     return new TypeTuple();     // pass on the stack for efficiency
 }
 
@@ -163,38 +171,204 @@ TypeTuple *TypePointer::toArgTypes()
 
 TypeTuple *TypeDelegate::toArgTypes()
 {
+    /* Should be done as if it were:
+     * struct S { void* ptr; void* funcptr; }
+     */
     return new TypeTuple();     // pass on the stack for efficiency
+}
+
+/*************************************
+ * Convert a floating point type into the equivalent integral type.
+ */
+
+Type *mergeFloatToInt(Type *t)
+{
+    switch (t->ty)
+    {
+        case Tfloat32:
+        case Timaginary32:
+            t = Type::tint32;
+            break;
+        case Tfloat64:
+        case Timaginary64:
+        case Tcomplex32:
+            t = Type::tint64;
+            break;
+        default:
+#ifdef DEBUG
+            printf("mergeFloatToInt() %s\n", t->toChars());
+#endif
+            assert(0);
+    }
+    return t;
+}
+
+/*************************************
+ * This merges two types into an 8byte type.
+ */
+
+Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
+{
+    //printf("argtypemerge(%s, %s, %d)\n", t1 ? t1->toChars() : "", t2 ? t2->toChars() : "", offset2);
+    if (!t1)
+    {   assert(!t2 || offset2 == 0);
+        return t2;
+    }
+    if (!t2)
+        return t1;
+
+    unsigned sz1 = t1->size(0);
+    unsigned sz2 = t2->size(0);
+
+    if (t1->ty != t2->ty &&
+        (t1->ty == Tfloat80 || t2->ty == Tfloat80))
+        return NULL;
+
+    // Merging floating and non-floating types produces the non-floating type
+    if (t1->isfloating())
+    {
+        if (!t2->isfloating())
+            t1 = mergeFloatToInt(t1);
+    }
+    else if (t2->isfloating())
+        t2 = mergeFloatToInt(t2);
+
+    Type *t;
+
+    // Pick type with larger size
+    if (sz1 < sz2)
+        t = t2;
+    else
+        t = t1;
+
+    // If t2 does not lie within t1, need to increase the size of t to enclose both
+    if (offset2 && sz1 < offset2 + sz2)
+    {
+        switch (offset2 + sz2)
+        {
+            case 2:
+                t = Type::tint16;
+                break;
+            case 3:
+            case 4:
+                t = Type::tint32;
+                break;
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+                t = Type::tint64;
+                break;
+            default:
+                assert(0);
+        }
+    }
+    return t;
 }
 
 TypeTuple *TypeStruct::toArgTypes()
 {
     if (!sym->isPOD())
-        return new TypeTuple();
-    Type *t;
+    {
+     Lmemory:
+        //printf("toArgTypes() %s => [ ]\n", toChars());
+        return new TypeTuple();         // pass on the stack
+    }
+    Type *t1 = NULL;
+    Type *t2 = NULL;
     d_uns64 sz = size(0);
     assert(sz < 0xFFFFFFFF);
     switch ((unsigned)sz)
     {
         case 1:
-            t = Type::tint8;
+            t1 = Type::tint8;
             break;
         case 2:
-            t = Type::tint16;
+            t1 = Type::tint16;
             break;
         case 4:
-            t = Type::tint32;
+            t1 = Type::tint32;
             break;
         case 8:
-            t = Type::tint64;
+            t1 = Type::tint64;
             break;
         case 16:
-            t = NULL;                   // could be a TypeVector
+            t1 = NULL;                   // could be a TypeVector
             break;
         default:
-    return new TypeTuple();     // pass on the stack
+            goto Lmemory;
     }
-    if (global.params.is64bit)
+    if (global.params.is64bit && sym->fields.dim)
     {
+#if 1
+        unsigned sz1 = 0;
+        unsigned sz2 = 0;
+        t1 = NULL;
+        for (size_t i = 0; i < sym->fields.dim; i++)
+        {   VarDeclaration *f = sym->fields[i];
+            //printf("f->type = %s\n", f->type->toChars());
+
+            TypeTuple *tup = f->type->toArgTypes();
+            if (!tup)
+                goto Lmemory;
+            size_t dim = tup->arguments->dim;
+            Type *ft1 = NULL;
+            Type *ft2 = NULL;
+            switch (dim)
+            {
+                case 2:
+                    ft1 = (*tup->arguments)[0]->type;
+                    ft2 = (*tup->arguments)[1]->type;
+                    break;
+                case 1:
+                    if (f->offset < 8)
+                        ft1 = (*tup->arguments)[0]->type;
+                    else
+                        ft2 = (*tup->arguments)[0]->type;
+                    break;
+                default:
+                    goto Lmemory;
+            }
+
+            if (f->offset & 7)
+            {
+                // Misaligned fields goto Lmemory
+                unsigned alignsz = f->type->alignsize();
+                if (f->offset & (alignsz - 1))
+                    goto Lmemory;
+
+                // Fields that overlap the 8byte boundary goto Lmemory
+                unsigned fieldsz = f->type->size(0);
+                if (f->offset < 8 && (f->offset + fieldsz) > 8)
+                    goto Lmemory;
+            }
+
+            // First field in 8byte must be at start of 8byte
+            assert(t1 || f->offset == 0);
+
+            if (ft1)
+            {
+                t1 = argtypemerge(t1, ft1, f->offset);
+                if (!t1)
+                    goto Lmemory;
+            }
+
+            if (ft2)
+            {
+                unsigned off2 = f->offset;
+                if (ft1)
+                    off2 = 8;
+                assert(t2 || off2 == 8);
+                t2 = argtypemerge(t2, ft2, off2 - 8);
+                if (!t2)
+                    goto Lmemory;
+            }
+        }
+
+        // Cannot currently handle arg types that fit in 2 registers
+        if (t2)
+            goto Lmemory;
+#else
         if (sym->fields.dim == 1)
         {   VarDeclaration *f = sym->fields[0];
             //printf("f->type = %s\n", f->type->toChars());
@@ -203,12 +377,26 @@ TypeTuple *TypeStruct::toArgTypes()
             {
                 size_t dim = tup->arguments->dim;
                 if (dim == 1)
-                    t = (*tup->arguments)[0]->type;
+                    t1 = (*tup->arguments)[0]->type;
             }
         }
+#endif
     }
-    //if (t) printf("test1: %s => %s\n", toChars(), t->toChars());
-    return t ? new TypeTuple(t) : new TypeTuple();
+
+    //printf("toArgTypes() %s => [%s,%s]\n", toChars(), t1 ? t1->toChars() : "", t2 ? t2->toChars() : "");
+
+    TypeTuple *t;
+    if (t1)
+    {
+        //if (t1) printf("test1: %s => %s\n", toChars(), t1->toChars());
+        if (t2)
+            t = new TypeTuple(t1, t2);
+        else
+            t = new TypeTuple(t1);
+    }
+    else
+        goto Lmemory;
+    return t;
 }
 
 TypeTuple *TypeEnum::toArgTypes()
