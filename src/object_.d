@@ -2243,7 +2243,17 @@ unittest
     assert(a == b);
 }
 
-void clear(T)(T obj) if (is(T == class))
+// Scheduled for deprecation in December 2012.
+// Please use destroy instead of clear.
+alias destroy clear;
+
+/++
+    Destroys the given object and puts it in an invalid state. It's used to
+    destroy an object so that any cleanup which its destructor or finalizer
+    does is done and so that it no longer references any other objects. It does
+    $(I not) initiate a GC cycle or free any GC memory.
+  +/
+void destroy(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);
 }
@@ -2254,7 +2264,7 @@ version(unittest) unittest
        class A { string s = "A"; this() {} }
        auto a = new A;
        a.s = "asd";
-       clear(a);
+       destroy(a);
        assert(a.s == "A");
    }
    {
@@ -2270,7 +2280,7 @@ version(unittest) unittest
        }
        auto a = new B;
        a.s = "asd";
-       clear(a);
+       destroy(a);
        assert(destroyed);
        assert(a.s == "B");
    }
@@ -2287,12 +2297,12 @@ version(unittest) unittest
        }
        auto a = new C;
        a.s = "asd";
-       clear(a);
+       destroy(a);
        assert(a.s == "C");
    }
 }
 
-void clear(T)(ref T obj) if (is(T == struct))
+void destroy(T)(ref T obj) if (is(T == struct))
 {
     typeid(T).destroy( &obj );
     auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
@@ -2309,7 +2319,7 @@ version(unittest) unittest
        struct A { string s = "A";  }
        A a;
        a.s = "asd";
-       clear(a);
+       destroy(a);
        assert(a.s == "A");
    }
    {
@@ -2335,14 +2345,14 @@ version(unittest) unittest
        B a;
        a.s = "asd";
        a.c.s = "jkl";
-       clear(a);
+       destroy(a);
        assert(destroyed == 2);
        assert(a.s == "B");
        assert(a.c.s == "C" );
    }
 }
 
-void clear(T : U[n], U, size_t n)(ref T obj)
+void destroy(T : U[n], U, size_t n)(ref T obj)
 {
     obj = T.init;
 }
@@ -2352,11 +2362,11 @@ version(unittest) unittest
     int[2] a;
     a[0] = 1;
     a[1] = 2;
-    clear(a);
+    destroy(a);
     assert(a == [ 0, 0 ]);
 }
 
-void clear(T)(ref T obj)
+void destroy(T)(ref T obj)
     if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
 {
     obj = T.init;
@@ -2376,12 +2386,12 @@ version(unittest) unittest
 {
    {
        int a = 42;
-       clear(a);
+       destroy(a);
        assert(a == 0);
    }
    {
        float a = 42;
-       clear(a);
+       destroy(a);
        assert(isnan(a));
    }
 }
@@ -2455,7 +2465,7 @@ version (unittest) unittest
 
 version (none)
 {
-    // enforce() copied from Phobos std.contracts for clear(), left out until
+    // enforce() copied from Phobos std.contracts for destroy(), left out until
     // we decide whether to use it.
 
 

@@ -545,12 +545,16 @@ unittest
     assert(b == [ 1:"one", 2:"two", 3:"three" ]);
 }
 
-void clear(T)(T obj) if (is(T == class))
+// Scheduled for deprecation in December 2012.
+// Please use destroy instead of clear.
+alias destroy clear;
+
+void destroy(T)(T obj) if (is(T == class))
 {
     rt_finalize(cast(void*)obj);
 }
 
-void clear(T)(ref T obj) if (is(T == struct))
+void destroy(T)(ref T obj) if (is(T == struct))
 {
     typeid(T).destroy(&obj);
     auto buf = (cast(ubyte*) &obj)[0 .. T.sizeof];
@@ -561,12 +565,12 @@ void clear(T)(ref T obj) if (is(T == struct))
         buf[] = init[];
 }
 
-void clear(T : U[n], U, size_t n)(ref T obj)
+void destroy(T : U[n], U, size_t n)(ref T obj)
 {
     obj = T.init;
 }
 
-void clear(T)(ref T obj)
+void destroy(T)(ref T obj)
 if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
 {
     obj = T.init;
