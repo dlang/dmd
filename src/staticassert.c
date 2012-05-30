@@ -60,6 +60,11 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->pop();
     if (e->type == Type::terror)
         return;
+    if (e->type == Type::tvoid)
+    {
+        exp->error("expression %s of type void does not have a boolean value", exp->toChars());
+        return;
+    }
     unsigned olderrs = global.errors;
     e = e->optimize(WANTvalue | WANTinterpret);
     if (global.errors != olderrs)
