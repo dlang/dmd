@@ -546,6 +546,7 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
     elem *e;
     unsigned sz = tb->size();
 
+Lagain:
     switch (tb->ty)
     {
         case Tfloat80:
@@ -570,6 +571,20 @@ elem *setArray(elem *eptr, elem *edim, Type *tb, elem *evalue)
                 goto Ldefault;          // legacy binary compatibility
             r = RTLSYM_MEMSETDOUBLE;
             break;
+
+        case Tstruct:
+            if (I32)
+                goto Ldefault;
+
+        {   TypeStruct *tc = (TypeStruct *)tb;
+            StructDeclaration *sd = tc->sym;
+            if (sd->arg1type && !sd->arg2type)
+            {
+                tb = sd->arg1type;
+                goto Lagain;
+            }
+            goto Ldefault;
+        }
 
         default:
         Ldefault:
