@@ -1666,7 +1666,7 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
 #if 1
-    if (sc->func)
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEdebug))
     {
         /* Given:
          * void f()
@@ -1681,27 +1681,28 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
          * g() can call h() but not f()
          * i() can call h() and g() but not f()
          */
-        FuncDeclaration *outerfunc = sc->func;
+
         // Find the closest pure parent of the calling function
-        while (outerfunc->toParent2() &&
-                !outerfunc->isPureBypassingInference() &&
+        FuncDeclaration *outerfunc = sc->func;
+        while ( outerfunc->toParent2() &&
+               !outerfunc->isPureBypassingInference() &&
                 outerfunc->toParent2()->isFuncDeclaration())
         {
             outerfunc = outerfunc->toParent2()->isFuncDeclaration();
         }
+
         // Find the closest pure parent of the called function
         FuncDeclaration *calledparent = f;
-        while (calledparent->toParent2() && !calledparent->isPureBypassingInference()
-            && calledparent->toParent2()->isFuncDeclaration() )
+        while ( calledparent->toParent2() &&
+               !calledparent->isPureBypassingInference() &&
+                calledparent->toParent2()->isFuncDeclaration())
         {
             calledparent = calledparent->toParent2()->isFuncDeclaration();
         }
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
         if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
-            !sc->intypeof &&
-            !(sc->flags & SCOPEdebug) &&
-            !(f->isPure() || (calledparent == outerfunc)))
+            !f->isPure() && calledparent != outerfunc)
         {
             if (outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
