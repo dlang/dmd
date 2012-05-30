@@ -83,6 +83,17 @@ version( X86 )
 }
 else version (X86_64)
 {
+    // Determine if type is a vector type
+    template isVectorType(T)
+    {
+        enum isVectorType = false;
+    }
+
+    template isVectorType(T : __vector(T[N]), size_t N)
+    {
+        enum isVectorType = true;
+    }
+
     // Layout of this struct must match __gnuc_va_list for C ABI compatibility
     struct __va_list
     {
@@ -121,7 +132,7 @@ else version (X86_64)
         __va_list* ap = cast(__va_list*)apx;
         static if (is(T U == __argTypes))
         {
-            static if (U.length == 0 || T.sizeof > 16 || U[0].sizeof > 8)
+            static if (U.length == 0 || T.sizeof > 16 || (U[0].sizeof > 8 && !isVectorType!(U[0])))
             {   // Always passed in memory
                 // The arg may have more strict alignment than the stack
                 auto p = (cast(size_t)ap.stack_args + T.alignof - 1) & ~(T.alignof - 1);
@@ -131,7 +142,7 @@ else version (X86_64)
             else static if (U.length == 1)
             {   // Arg is passed in one register
                 alias U[0] T1;
-                static if (is(T1 == double) || is(T1 == float))
+                static if (is(T1 == double) || is(T1 == float) || isVectorType!(T1))
                 {   // Passed in XMM register
                     if (ap.offset_fpregs < (6 * 8 + 16 * 8))
                     {
@@ -239,13 +250,13 @@ else version (X86_64)
         __va_list* ap = cast(__va_list*)apx;
         TypeInfo arg1, arg2;
         if (!ti.argTypes(arg1, arg2))
-        {
-            if (arg1 && arg1.tsize() <= 8)
+        {   TypeInfo_Vector v1 = arg1 ? cast(TypeInfo_Vector)arg1 : null;
+            if (arg1 && (arg1.tsize() <= 8 || v1))
             {   // Arg is passed in one register
                 auto tsize = arg1.tsize();
                 void* p;
                 auto s = arg1.toString();
-                if (s == "double" || s == "float" || s == "idouble" || s == "ifloat")
+                if (s == "double" || s == "float" || s == "idouble" || s == "ifloat" || v1)
                 {   // Passed in XMM register
                     if (ap.offset_fpregs < (6 * 8 + 16 * 8))
                     {
@@ -278,7 +289,7 @@ else version (X86_64)
                     parmn += 8;
                     tsize = arg2.tsize();
                     s = arg2.toString();
-		    if (s == "double" || s == "float" || s == "idouble" || s == "ifloat")
+                    if (s == "double" || s == "float" || s == "idouble" || s == "ifloat")
                     {   // Passed in XMM register
                         if (ap.offset_fpregs < (6 * 8 + 16 * 8))
                         {
