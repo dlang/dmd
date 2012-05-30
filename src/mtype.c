@@ -3261,7 +3261,7 @@ MATCH TypeBasic::implicitConvTo(Type *to)
         return MATCHnomatch;
 
     TypeBasic *tob;
-    if (to->ty == Tvector)
+    if (to->ty == Tvector && to->deco)
     {
         TypeVector *tv = (TypeVector *)to;
         tob = tv->elementType();
