@@ -5,6 +5,8 @@ $(LI For functions which have a version which takes a core.time.Duration
      and another version which takes an integral value, the version which
      takes an integral value has now been deprecated.)
      )
+$(LI clear has been renamed to destroy. clear remains as an alias to destroy
+     but has been scheduled for deprecation. Please use destroy instead.)
 )
 
 $(VERSION 059, mmm dd, 2012, =================================================,
