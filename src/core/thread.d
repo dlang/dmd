@@ -386,7 +386,7 @@ else version( Posix )
             Thread.add( &obj.m_main );
             obj.m_tlsgcdata = rt.tlsgc.init();
 
-            static extern (C) void thread_cleanupHandler( void* arg )
+            static extern (C) void thread_cleanupHandler( void* arg ) nothrow
             {
                 Thread  obj = cast(Thread) arg;
                 assert( obj );
