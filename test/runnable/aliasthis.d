@@ -834,6 +834,31 @@ void test7992()
 }
 
 /***************************************************/
+// 8169
+
+void test8169()
+{
+    static struct ValueImpl
+    {
+       static immutable(int) getValue()
+       {
+           return 42;
+       }
+    }
+
+    static struct ValueUser
+    {
+       ValueImpl m_valueImpl;
+       alias m_valueImpl this;
+    }
+
+    static assert(ValueImpl.getValue() == 42); // #0, OK
+    static assert(ValueUser.getValue() == 42); // #1, NG
+    static assert(       ValueUser.m_valueImpl .getValue() == 42); // #2, NG
+    static assert(typeof(ValueUser.m_valueImpl).getValue() == 42); // #3, OK
+}
+
+/***************************************************/
 
 int main()
 {
@@ -866,6 +891,7 @@ int main()
     test7808();
     test7945();
     test7992();
+    test8169();
 
     printf("Success\n");
     return 0;

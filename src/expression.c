@@ -7843,13 +7843,23 @@ Lagain:
         AggregateDeclaration *ad;
         UnaExp *ue = (UnaExp *)(e1);
 
+        Expression *ue1 = ue->e1;
+        VarDeclaration *v;
+        if (ue1->op == TOKvar &&
+            (v = ((VarExp *)ue1)->var->isVarDeclaration()) != NULL &&
+            v->needThis())
+        {
+            ue->e1 = new TypeExp(ue1->loc, ue1->type);
+            ue1 = NULL;
+        }
+
         if (e1->op == TOKdotvar)
         {   // Do overload resolution
             dve = (DotVarExp *)(e1);
 
             f = dve->var->isFuncDeclaration();
             assert(f);
-            f = f->overloadResolve(loc, ue->e1, arguments);
+            f = f->overloadResolve(loc, ue1, arguments);
 
             ad = f->toParent()->isAggregateDeclaration();
         }
@@ -7860,7 +7870,7 @@ Lagain:
             if (!arguments)
                 // Should fix deduceFunctionTemplate() so it works on NULL argument
                 arguments = new Expressions();
-            f = td->deduceFunctionTemplate(sc, loc, targsi, ue->e1, arguments);
+            f = td->deduceFunctionTemplate(sc, loc, targsi, ue1, arguments);
             if (!f)
                 return new ErrorExp();
             ad = td->toParent()->isAggregateDeclaration();
