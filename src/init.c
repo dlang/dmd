@@ -330,7 +330,12 @@ Expression *StructInitializer::toExpression()
         if (unionSize == 1)
         {   // Not a union -- default initialize if missing
             if (!(*elements)[i])
-                (*elements)[i] = vd->type->defaultInit();
+            {   // Default initialize
+                if (vd->init)
+                    (*elements)[i] = vd->init->toExpression();
+                else
+                    (*elements)[i] = vd->type->defaultInit();
+            }
         }
         else
         {   // anonymous union -- check for errors
