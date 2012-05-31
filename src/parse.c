@@ -3516,7 +3516,7 @@ Statement *Parser::parseStatement(int flags)
                 Loc loc = this->loc;
 
                 nextToken();
-                if (token.value == TOKlcurly)
+                if (token.value == TOKlcurly || token.value != TOKlparen)
                 {
                     t = NULL;
                     id = NULL;
