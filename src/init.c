@@ -350,8 +350,12 @@ Expression *StructInitializer::toExpression()
         else
         {
             if (!(*elements)[i])
-                // Default initialize
-                (*elements)[i] = vd->type->defaultInit();
+            {   // Default initialize
+                if (vd->init)
+                    (*elements)[i] = vd->init->toExpression();
+                else
+                    (*elements)[i] = vd->type->defaultInit();
+            }
         }
         offset = vd->offset + vd->type->size();
         i++;
