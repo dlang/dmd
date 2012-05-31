@@ -22,9 +22,7 @@
 #include        <string.h>
 #include        <time.h>
 #include        <assert.h>
-#include        <setjmp.h>
 #if __DMC__
-#undef setjmp
 #include        <limits.h>
 #endif
 
@@ -2143,7 +2141,7 @@ STATIC void asmerr(int errnum, ...)
     verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    longjmp(asmstate.env,1);
+    throw &asmstate;
 }
 
 /*******************************
@@ -2156,7 +2154,7 @@ STATIC void asmerr(const char *format, ...)
     verror(asmstate.loc, format, ap);
     va_end(ap);
 
-    longjmp(asmstate.env,1);
+    throw &asmstate;
 }
 
 /*******************************
@@ -4710,13 +4708,9 @@ Statement *AsmStatement::semantic(Scope *sc)
 
     asmtok = tokens;
     asm_token_trans(asmtok);
-    if (setjmp(asmstate.env))
-    {   asmtok = NULL;                  // skip rest of line
-        tok_value = TOKeof;
-        exit(EXIT_FAILURE);
-        goto AFTER_EMIT;
-    }
 
+    try
+    {
     switch (tok_value)
     {
         case ASMTKnaked:
@@ -4836,6 +4830,13 @@ Statement *AsmStatement::semantic(Scope *sc)
         OPCODE_EXPECTED:
             asmerr(EM_opcode_exp, asmtok->toChars());   // assembler opcode expected
             break;
+    }
+    }
+    catch (ASM_STATE *a)
+    {
+        asmtok = NULL;                  // skip rest of line
+        tok_value = TOKeof;
+        exit(EXIT_FAILURE);
     }
 
 AFTER_EMIT:

@@ -391,7 +391,7 @@ html.o: $C/html.c $(CH) $C/html.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 iasm.o: iasm.c $(CH) $C/iasm.h
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
+	$(CC) -c $(MFLAGS) -I$(ROOT) -fexceptions $<
 
 id.o: id.c id.h
 	$(CC) -c $(CFLAGS) $<

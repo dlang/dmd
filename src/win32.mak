@@ -369,7 +369,7 @@ impcnvtab.obj : mtype.h impcnvtab.c
 	$(CC) -c -I$(ROOT) -cpp impcnvtab
 
 iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.c
-	$(CC) -c $(MFLAGS) -I$(ROOT) iasm
+	$(CC) -c $(MFLAGS) -I$(ROOT) -Ae iasm
 
 # D front/back end
 bcomplex.obj : $C\bcomplex.c
