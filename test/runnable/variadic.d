@@ -1369,6 +1369,21 @@ void test4884()
 }
 
 /***************************************/
+// 4920
+
+struct Test4920(parameters_...)
+{
+    alias parameters_ parameters;
+}
+
+void test4920()
+{
+    Test4920!(10, 20, 30) test;
+    static assert(typeof(test).parameters[1] == 20); // okay
+    static assert(       test .parameters[1] == 20); // (7)
+}
+
+/***************************************/
 // 4940
 
 template Tuple4940(T...)
@@ -1559,6 +1574,7 @@ int main()
     test1411();
     test4444();
     test4884();
+    test4920();
     test4940();
     test4940add();
     test6530();
