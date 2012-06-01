@@ -1559,6 +1559,10 @@ Statement *ForeachStatement::semantic(Scope *sc)
             return s;
         }
 
+        Type *argtype = (*arguments)[dim-1]->type;
+        if (argtype)
+            argtype = argtype->semantic(loc, sc);
+
         TypeTuple *tuple = (TypeTuple *)tab;
         Statements *statements = new Statements();
         //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
@@ -1637,14 +1641,20 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     var = new AliasDeclaration(loc, arg->ident, s);
                     if (arg->storageClass & STCref)
                         error("symbol %s cannot be ref", s->toChars());
+                    if (argtype && argtype->ty != Terror)
+                        error("cannot specify element type for symbol %s", s->toChars());
                 }
                 else if (e->op == TOKtype)
                 {
                     var = new AliasDeclaration(loc, arg->ident, e->type);
+                    if (argtype && argtype->ty != Terror)
+                        error("cannot specify element type for type %s", e->type->toChars());
                 }
                 else
                 {
                     arg->type = e->type;
+                    if (argtype && argtype->ty != Terror)
+                        arg->type = argtype;
                     Initializer *ie = new ExpInitializer(0, e);
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
                     if (arg->storageClass & STCref)
@@ -1661,6 +1671,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
             else
             {
                 var = new AliasDeclaration(loc, arg->ident, t);
+                if (argtype && argtype->ty != Terror)
+                    error("cannot specify element type for symbol %s", s->toChars());
             }
             DeclarationExp *de = new DeclarationExp(loc, var);
             st->push(new ExpStatement(loc, de));
