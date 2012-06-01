@@ -1742,11 +1742,19 @@ Lagain:
                 else
                 {
                     value = var;
-                    /* Reference to immutable data should be marked as const
-                     */
-                    if (var->storage_class & STCref && !tn->isMutable())
+                    if (var->storage_class & STCref)
                     {
-                        var->storage_class |= STCconst;
+                        /* Reference to immutable data should be marked as const
+                         */
+                        if (!tn->isMutable())
+                            var->storage_class |= STCconst;
+
+                        Type *t = tab->nextOf();
+                        if (!t->invariantOf()->equals(argtype->invariantOf()))
+                        {
+                            error("argument type mismatch, %s to ref %s",
+                                  t->toChars(), argtype->toChars());
+                        }
                     }
                 }
 #if 0
