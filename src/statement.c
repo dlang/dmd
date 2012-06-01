@@ -1750,7 +1750,8 @@ Lagain:
                             var->storage_class |= STCconst;
 
                         Type *t = tab->nextOf();
-                        if (!t->invariantOf()->equals(argtype->invariantOf()))
+                        if (!t->invariantOf()->equals(argtype->invariantOf()) ||
+                            !MODimplicitConv(t->mod, argtype->mod))
                         {
                             error("argument type mismatch, %s to ref %s",
                                   t->toChars(), argtype->toChars());
