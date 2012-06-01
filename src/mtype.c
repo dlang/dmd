@@ -5572,8 +5572,13 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
              */
             if (t->ty == Ttuple)
             {
+                /* TypeFunction::parameter also is used as the storage of
+                 * Parameter objects for FuncDeclaration. So we should copy
+                 * the elements of TypeTuple::arguments to avoid unintended
+                 * sharing of Parameter object among other functions.
+                 */
                 TypeTuple *tt = (TypeTuple *)t;
-                if (fparam->storageClass && tt->arguments && tt->arguments->dim)
+                if (tt->arguments && tt->arguments->dim)
                 {
                     /* Propagate additional storage class from tuple parameters to their
                      * element-parameters.
