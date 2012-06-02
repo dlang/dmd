@@ -35,7 +35,7 @@ private
     extern (C) BlkInfo_ gc_qalloc( size_t sz, uint ba = 0 ) pure nothrow;
     extern (C) void*    gc_realloc( void* p, size_t sz, uint ba = 0 ) pure nothrow;
     extern (C) size_t   gc_extend( void* p, size_t mx, size_t sz ) pure nothrow;
-    extern (C) size_t   gc_reserve( size_t sz ) pure nothrow;
+    extern (C) size_t   gc_reserve( size_t sz ) nothrow;
     extern (C) void     gc_free( void* p ) pure nothrow;
 
     extern (C) void*   gc_addrOf( void* p ) pure nothrow;
@@ -370,7 +370,7 @@ struct GC
      * Returns:
      *  The actual number of bytes reserved or zero on error.
      */
-    static size_t reserve( size_t sz ) pure nothrow
+    static size_t reserve( size_t sz ) nothrow /* FIXME pure */
     {
         return gc_reserve( sz );
     }
