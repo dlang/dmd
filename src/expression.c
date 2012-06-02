@@ -7352,161 +7352,117 @@ Expression *CallExp::syntaxCopy()
 
 Expression *CallExp::resolveUFCS(Scope *sc)
 {
-    Expression *e = NULL;
-    DotIdExp *dotid;
-    DotTemplateInstanceExp *dotti;
+    Expression *e;
     Identifier *ident;
+    Objects *tiargs;
 
     if (e1->op == TOKdot)
     {
-        dotid = (DotIdExp *)e1;
-        ident = dotid->ident;
-        e = dotid->e1 = dotid->e1->semantic(sc);
-        if (e->op == TOKdotexp)
-            return NULL;
-        e = resolveProperties(sc, e);
+        DotIdExp *die = (DotIdExp *)e1;
+        e      = (die->e1 = die->e1->semantic(sc));
+        ident  = die->ident;
+        tiargs = NULL;
     }
     else if (e1->op == TOKdotti)
     {
-        dotti = (DotTemplateInstanceExp *)e1;
-        ident = dotti->ti->name;
-        e = dotti->e1 = dotti->e1->semantic(sc);
-        if (e->op == TOKdotexp)
-            return NULL;
-        e = resolveProperties(sc, e);
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
+        e      = (dti->e1 = dti->e1->semantic(sc));
+        ident  = dti->ti->name;
+        tiargs = dti->ti->tiargs;
     }
+    else
+        return NULL;
 
-    if (e && e->type)
+    if (e->op == TOKerror || !e->type)
+        return NULL;
+
+    if (e->op == TOKtype || e->op == TOKimport)
+        return NULL;
+
+    //printf("resolveUCSS %s, e->op = %s\n", toChars(), Token::toChars(e->op));
+    Type *t = e->type->toBasetype();
+    if (t->ty == Taarray && !tiargs)
     {
-        if (e->op == TOKtype || e->op == TOKimport)
+        if (ident == Id::remove)
+        {
+            /* Transform:
+             *  aa.remove(arg) into delete aa[arg]
+             */
+            if (!arguments || arguments->dim != 1)
+            {   error("expected key as argument to aa.remove()");
+                return new ErrorExp();
+            }
+            if (!e->type->isMutable())
+            {   const char *p = NULL;
+                if (e->type->isConst())
+                    p = "const";
+                else if (e->type->isImmutable())
+                    p = "immutable";
+                else
+                    p = "inout";
+                error("cannot remove key from %s associative array %s", p, e->toChars());
+                return new ErrorExp();
+            }
+            Expression *key = (*arguments)[0];
+            key = key->semantic(sc);
+            key = resolveProperties(sc, key);
+
+            TypeAArray *taa = (TypeAArray *)t;
+            key = key->implicitCastTo(sc, taa->index);
+
+            if (!key->rvalue())
+                return new ErrorExp();
+
+            return new RemoveExp(loc, e, key);
+        }
+        else if (ident == Id::apply || ident == Id::applyReverse)
+        {
             return NULL;
-        //printf("resolveUCSS %s, e->op = %s\n", toChars(), Token::toChars(e->op));
-        AggregateDeclaration *ad;
-        Expression *esave = e;
-Lagain:
-        Type *t = e->type->toBasetype();
-        if (t->ty == Tpointer)
-        {   Type *tn = t->nextOf();
-            if (tn->ty == Tclass || tn->ty == Tstruct)
-            {
-                e = new PtrExp(e->loc, e);
-                e = e->semantic(sc);
-                t = e->type->toBasetype();
-            }
         }
-        if (t->ty == Tclass)
-        {
-            ad = ((TypeClass *)t)->sym;
-            goto L1;
-        }
-        else if (t->ty == Tstruct)
-        {
-            ad = ((TypeStruct *)t)->sym;
-        L1:
-            if (ad->search(loc, ident, 0))
-                return NULL;
-            if (ad->aliasthis)
-            {
-                e = resolveAliasThis(sc, e);
-                goto Lagain;
-            }
-            if (ad->search(loc, Id::opDot, 0))
-            {
-                e = new DotIdExp(e->loc, e, Id::opDot);
-                e = e->semantic(sc);
-                e = resolveProperties(sc, e);
-                goto Lagain;
-            }
-            if (ad->search(loc, Id::opDispatch, 0))
+        else
+        {   TypeAArray *taa = (TypeAArray *)t;
+            assert(taa->ty == Taarray);
+            StructDeclaration *sd = taa->getImpl();
+            Dsymbol *s = sd->search(0, ident, 2);
+            if (s)
                 return NULL;
             goto Lshift;
         }
-        else if ((t->isTypeBasic() && t->ty != Tvoid) ||
-                 t->ty == Tenum || t->ty == Tnull)
-        {
-            goto Lshift;
-        }
-        else if (t->ty == Taarray && e1->op == TOKdot)
-        {
-            if (ident == Id::remove)
-            {
-                /* Transform:
-                 *  aa.remove(arg) into delete aa[arg]
-                 */
-                if (!arguments || arguments->dim != 1)
-                {   error("expected key as argument to aa.remove()");
-                    return new ErrorExp();
-                }
-                if (!e->type->isMutable())
-                {   const char *p = NULL;
-                    if (e->type->isConst())
-                        p = "const";
-                    else if (e->type->isImmutable())
-                        p = "immutable";
-                    else
-                        p = "inout";
-                    error("cannot remove key from %s associative array %s", p, e->toChars());
-                    return new ErrorExp();
-                }
-                Expression *key = (*arguments)[0];
-                key = key->semantic(sc);
-                key = resolveProperties(sc, key);
-
-                TypeAArray *taa = (TypeAArray *)t;
-                key = key->implicitCastTo(sc, taa->index);
-
-                if (!key->rvalue())
-                    return new ErrorExp();
-
-                return new RemoveExp(loc, e, key);
-            }
-            else if (ident == Id::apply || ident == Id::applyReverse)
-            {
-                return NULL;
-            }
-            else
-            {   TypeAArray *taa = (TypeAArray *)t;
-                assert(taa->ty == Taarray);
-                StructDeclaration *sd = taa->getImpl();
-                Dsymbol *s = sd->search(0, ident, 2);
-                if (s)
-                    return NULL;
-                goto Lshift;
-            }
-        }
-        else if (t->ty == Tarray || t->ty == Tsarray)
-        {
+    }
+    else if (t->ty == Tarray || t->ty == Tsarray)
+    {
 Lshift:
-            if (!arguments)
-                arguments = new Expressions();
-            arguments->shift(esave);
-            if (e1->op == TOKdot)
-            {
-                /* Transform:
-                 *  array.id(args) into .id(array,args)
-                 */
-#if DMDV2
-                e1 = new DotIdExp(dotid->loc,
-                                  new IdentifierExp(dotid->loc, Id::empty),
-                                  ident);
-#else
-                e1 = new IdentifierExp(dotid->loc, ident);
-#endif
-            }
-            else if (e1->op == TOKdotti)
-            {
-                /* Transform:
-                 *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
-                 */
-#if DMDV2
-                e1 = new DotTemplateInstanceExp(dotti->loc,
-                                new IdentifierExp(dotti->loc, Id::empty),
-                                dotti->ti->name, dotti->ti->tiargs);
-#else
-                e1 = new ScopeExp(dotti->loc, dotti->ti);
-#endif
-            }
-            //printf("-> this = %s\n", toChars());
+        if (!arguments)
+            arguments = new Expressions();
+        arguments->shift(e);
+        if (!tiargs)
+        {
+            /* Transform:
+             *  array.id(args) into .id(array,args)
+             */
+            e1 = new DotIdExp(e1->loc,
+                              new IdentifierExp(e1->loc, Id::empty),
+                              ident);
+        }
+        else
+        {
+            /* Transform:
+             *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
+             */
+            e1 = new DotTemplateInstanceExp(e1->loc,
+                            new IdentifierExp(e1->loc, Id::empty),
+                            ident, tiargs);
+        }
+    }
+    else
+    {
+        DotIdExp *die = new DotIdExp(e->loc, e, ident);
+
+        unsigned errors = global.startGagging();
+        Expression *ex = die->semantic(sc, 1);
+        if (global.endGagging(errors))
+        {
+            goto Lshift;
         }
     }
     return NULL;

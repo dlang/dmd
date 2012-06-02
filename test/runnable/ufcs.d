@@ -237,6 +237,23 @@ void test7943()
 }
 
 /*******************************************/
+// 8180
+
+int writeln8180(T...)(T args) { return 1; }
+
+struct Tuple8180(T...)
+{
+    T field;
+    alias field this;
+}
+
+void test8180()
+{
+    auto t = Tuple8180!(int)(10);
+    assert(t.writeln8180() == 1);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -248,6 +265,7 @@ int main()
     test7703();
     test7773();
     test7943();
+    test8180();
 
     printf("Success\n");
     return 0;
