@@ -282,6 +282,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             sthis->Stype->Tcount++;
             sthis->Sclass = SCfastpar;
             sthis->Spreg = AX;
+            sthis->Spreg2 = NOREG;
             sthis->Sfl = FLauto;
 
             // Call each of the destructors in dtors[]
