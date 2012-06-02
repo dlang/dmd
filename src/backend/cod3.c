@@ -2959,7 +2959,9 @@ Lcont:
     {   symbol *s = globsym.tab[si];
         if (debugr && s->Sclass == SCfastpar)
         {
-            printf("symbol '%s' is fastpar in register %s\n", s->Sident, regm_str(mask[s->Spreg]));
+            printf("symbol '%s' is fastpar in register [%s,%s]\n", s->Sident,
+                regm_str(mask[s->Spreg]),
+                (s->Spreg2 == NOREG ? "NOREG" : regm_str(mask[s->Spreg2])));
             if (s->Sfl == FLreg)
                 printf("\tassigned to register %s\n", regm_str(mask[s->Sreglsw]));
         }
@@ -2975,7 +2977,6 @@ Lcont:
 
         if (s->Sclass == SCfastpar && s->Sfl != FLreg)
         {   // Argument is passed in a register
-            unsigned preg = s->Spreg;
 
             type *t = s->Stype;
             if (tybasic(t->Tty) == TYstruct)
@@ -2998,54 +2999,62 @@ Lcont:
             else
             {
                 targ_size_t offset = Aoff + BPoff + s->Soffset;
-                int op = 0x89;                  // MOV x[EBP],preg
-                if (preg >= XMM0 && preg <= XMM15)
+                if (!hasframe)
+                    offset += EBPtoESP;
+
+                unsigned preg = s->Spreg;
+                for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
                 {
-                    op = xmmstore(t->Tty);
-                }
-                if (hasframe)
-                {
-                    if (!(pushalloc && preg == pushallocreg))
+                    int op = 0x89;                  // MOV x[EBP],preg
+                    if (XMM0 <= preg && preg <= XMM15)
+                        op = xmmstore(t->Tty);
+                    if (hasframe)
                     {
-                        // MOV x[EBP],preg
-                        code *c2 = genc1(CNIL,op,
-                            modregxrm(2,preg,BPRM),FLconst, offset);
-                        if (preg >= XMM0 && preg <= XMM15)
+                        if (!(pushalloc && preg == pushallocreg))
                         {
-                        }
-                        else
-                        {
+                            // MOV x[EBP],preg
+                            code *c2 = genc1(CNIL,op,
+                                modregxrm(2,preg,BPRM),FLconst, offset);
+                            if (XMM0 <= preg && preg <= XMM15)
+                            {
+                            }
+                            else
+                            {
 //printf("%s Aoff = %d, BPoff = %d, Soffset = %d, sz = %d\n", s->Sident, (int)Aoff, (int)BPoff, (int)s->Soffset, (int)sz);
 //                          if (offset & 2)
 //                              c2->Iflags |= CFopsize;
-                            if (I64 && sz == 8)
-                                code_orrex(c2, REX_W);
+                                if (I64 && sz == 8)
+                                    code_orrex(c2, REX_W);
+                            }
+                            c = cat(c, c2);
                         }
-                        c = cat(c, c2);
                     }
-                }
-                else
-                {
-                    offset += EBPtoESP;
-                    if (!(pushalloc && preg == pushallocreg))
+                    else
                     {
-                        // MOV offset[ESP],preg
-                        // BUG: byte size?
-                        code *c2 = genc1(CNIL,op,
-                            (modregrm(0,4,SP) << 8) |
-                            modregxrm(2,preg,4),FLconst,offset);
-                        if (preg >= XMM0 && preg <= XMM15)
+                        if (!(pushalloc && preg == pushallocreg))
                         {
-                        }
-                        else
-                        {
-                            if (I64 && sz == 8)
-                                c2->Irex |= REX_W;
+                            // MOV offset[ESP],preg
+                            // BUG: byte size?
+                            code *c2 = genc1(CNIL,op,
+                                (modregrm(0,4,SP) << 8) |
+                                modregxrm(2,preg,4),FLconst,offset);
+                            if (preg >= XMM0 && preg <= XMM15)
+                            {
+                            }
+                            else
+                            {
+                                if (I64 && sz == 8)
+                                    c2->Irex |= REX_W;
 //                          if (offset & 2)
 //                              c2->Iflags |= CFopsize;
+                            }
+                            c = cat(c,c2);
                         }
-                        c = cat(c,c2);
                     }
+                    preg = s->Spreg2;
+                    if (preg == NOREG)
+                        break;
+                    offset += REGSIZE;
                 }
             }
         }
@@ -3062,11 +3071,13 @@ Lcont:
         unsigned sz = type_size(s->Stype);
 
         if (s->Sclass == SCfastpar)
-            namedargs |= mask[s->Spreg];
+            namedargs |= s->Spregm();
 
         if (s->Sclass == SCfastpar && s->Sfl == FLreg)
         {   // Argument is passed in a register
             unsigned preg = s->Spreg;
+            assert(s->Spreg2 == NOREG); // currently register pairs are never assigned to
+                                        // parameters passed in a pair
 
             type *t = s->Stype;
             if (tybasic(t->Tty) == TYstruct)

@@ -1269,7 +1269,12 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         goto L2;
 
     case FLauto:
-        if (s->Sclass == SCfastpar && regcon.params & mask[s->Spreg])
+        if (s->Sclass == SCfastpar)
+        {   regm_t pregm = s->Spregm();
+            /* See if the parameter is still hanging about in a register,
+             * and so can we load from that register instead.
+             */
+            if (regcon.params & pregm /*&& s->Spreg2 == NOREG && !(pregm & XMMREGS)*/)
         {
             if (keepmsk & RMload)
             {
@@ -1278,12 +1283,13 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     pcs->Irm = modregrm(3,0,s->Spreg & 7);
                     if (s->Spreg & 8)
                         pcs->Irex |= REX_B;
-                    regcon.used |= mask[s->Spreg];
+                        regcon.used |= pregm;
                     break;
                 }
             }
             else
-                regcon.params &= ~mask[s->Spreg];
+                    regcon.params &= ~pregm;
+            }
         }
     case FLtmp:
     case FLbprel:
@@ -2252,7 +2258,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 /*************************************************
  * Helper function for converting OPparam's into array of Parameters.
  */
-struct Parameter { elem *e; unsigned char reg; unsigned numalign; };
+struct Parameter { elem *e; reg_t reg; reg_t reg2; unsigned numalign; };
 
 void fillParameters(elem *e, Parameter *parameters, int *pi)
 {
@@ -2344,8 +2350,11 @@ static int type_jparam2(type *t, tym_t ty)
     return 0;
 }
 
-int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char *preg2)
+int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
 {
+    *preg1 = NOREG;
+    *preg2 = NOREG;
+
     // If struct just wraps another type
     if (tybasic(ty) == TYstruct && tybasic(t->Tty) == TYstruct)
     {
@@ -2431,7 +2440,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     for (int i = np; --i >= 0;)
     {
         elem *ep = parameters[i].e;
-        if (fpr.alloc(ep->ET, ep->Ety, &parameters[i].reg, NULL))
+        if (fpr.alloc(ep->ET, ep->Ety, &parameters[i].reg, &parameters[i].reg2))
             continue;   // goes in register, not stack
 
         // Parameter i goes on the stack
