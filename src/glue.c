@@ -470,7 +470,7 @@ void Module::genobjfile(int multiobj)
                 sp->Sclass = SCfastpar;
 
                 FuncParamRegs fpr(TYjfunc);
-                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, NULL);
+                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
 
                 sp->Sflags &= ~SFLspill;
                 sp->Sfl = FLpara;       // FLauto?
@@ -813,7 +813,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
         for (size_t i = 0; i < pi; i++)
         {   Symbol *sp = params[i];
-            if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, NULL))
+            if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
             {
                 sp->Sclass = SCfastpar;
                 sp->Sfl = FLauto;
