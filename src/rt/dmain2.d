@@ -265,6 +265,8 @@ alias void delegate(Throwable) ExceptionHandler;
 
 extern (C) bool rt_init(ExceptionHandler dg = null)
 {
+    version (OSX)
+        _d_osx_image_init2();
     _d_criticalInit();
 
     try
