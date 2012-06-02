@@ -21,6 +21,7 @@
 #include        "type.h"
 #include        "go.h"
 #include        "ty.h"
+#include        "code.h"
 
 #include        "optab.c"
 #include        "tytab.c"

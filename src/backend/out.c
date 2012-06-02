@@ -1044,9 +1044,10 @@ STATIC void writefunc2(symbol *sfunc)
             case SCfastpar:
             case SCregpar:
             case SCparameter:
-                if (si == 0 && fpr.alloc(s->Stype, s->Stype->Tty, &s->Spreg, NULL))
+                if (si == 0 && fpr.alloc(s->Stype, s->Stype->Tty, &s->Spreg, &s->Spreg2))
                 {
                     assert(s->Spreg == ((tyf == TYmfunc) ? CX : AX));
+                    assert(s->Spreg2 == NOREG);
                     assert(si == 0);
                     s->Sclass = SCfastpar;
                     s->Sfl = FLauto;

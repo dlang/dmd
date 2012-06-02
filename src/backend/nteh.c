@@ -815,6 +815,7 @@ code *nteh_monitor_prolog(Symbol *shandle)
 
     if (shandle->Sclass == SCfastpar)
     {   assert(shandle->Spreg != DX);
+        assert(shandle->Spreg2 == NOREG);
         c = gen1(NULL,0x50 + shandle->Spreg);   // PUSH shandle
     }
     else

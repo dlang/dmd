@@ -200,7 +200,7 @@ tryagain:
             s->Sflags &= ~SFLread;
             switch (s->Sclass)
             {   case SCfastpar:
-                    regcon.params |= mask[s->Spreg];
+                    regcon.params |= s->Spregm();
                 case SCparameter:
                     if (s->Sfl == FLreg)
                         noparams |= s->Sregm;
@@ -831,10 +831,10 @@ STATIC void blcodgen(block *bl)
 
             sflsave[i] = s->Sfl;
             if (s->Sclass & SCfastpar &&
-                regcon.params & mask[s->Spreg] &&
+                regcon.params & s->Spregm() &&
                 vec_testbit(dfoidx,s->Srange))
             {
-                regcon.used |= mask[s->Spreg];
+                regcon.used |= s->Spregm();
             }
 
             if (s->Sfl == FLreg)

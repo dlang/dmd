@@ -1081,6 +1081,14 @@ struct FuncParamRegs
     const unsigned char* floatregs;     // map to fp register
 };
 
+extern "C++" { extern const unsigned mask[32]; }
+
+inline regm_t Symbol::Spregm()
+{
+    /*assert(Sclass == SCfastpar);*/
+    return mask[Spreg] | (Spreg2 == NOREG ? 0 : mask[Spreg2]);
+}
+
 
 #if __cplusplus && TX86
 }

@@ -881,6 +881,7 @@ struct Symbol;
 struct LIST;
 struct elem;
 
+typedef unsigned char reg_t;    // register number
 typedef unsigned regm_t;        // Register mask type
 struct immed_t
 {   targ_size_t value[REGMAX];  // immediate values in registers

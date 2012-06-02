@@ -144,7 +144,6 @@ enum LANG
 #   define debug_assert(e)
 #endif
 
-
 /***************************
  * Print out debugging information.
  */
@@ -1164,9 +1163,16 @@ struct Symbol
         #define Simport _SU.Simport_
                                 // Symbol it was imported from
 #endif
-        unsigned char Spreg_;   // SCfastpar: register parameter is passed in
-        #define Spreg _SU.Spreg_
+        struct                  // SCfastpar
+        {
+            reg_t Spreg_;       // register parameter is passed in
+            reg_t Spreg2_;      // if 2 registers, this is the most significant, else NOREG
+        }_SR;
+        #define Spreg _SU._SR.Spreg_
+        #define Spreg2 _SU._SR.Spreg2_
     }_SU;
+
+    regm_t Spregm();            // return mask of Spreg and Spreg2
 
 #if SCPP || MARS
     Symbol *Sscope;             // enclosing scope (could be struct tag,
