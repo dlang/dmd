@@ -145,7 +145,7 @@ else // Win32
 version (0)
 {   // Properly prototyped versions
     alias BOOL function(HWND, UINT, WPARAM, LPARAM) DLGPROC;
-    alias VOID function(HWND, UINT, UINT, DWORD) TIMERPROC;
+    alias VOID function(HWND, UINT, UINT_PTR, DWORD) TIMERPROC;
     alias BOOL function(HDC, LPARAM, int) GRAYSTRINGPROC;
     alias BOOL function(HWND, LPARAM) WNDENUMPROC;
     alias LRESULT function(int code, WPARAM wParam, LPARAM lParam) HOOKPROC;
@@ -3402,3 +3402,6 @@ BOOL TlsFree(DWORD);
 // shellapi.h
 HINSTANCE ShellExecuteA(HWND hwnd, LPCSTR lpOperation, LPCSTR lpFile, LPCSTR lpParameters, LPCSTR lpDirectory, INT nShowCmd);
 HINSTANCE ShellExecuteW(HWND hwnd, LPCWSTR lpOperation, LPCWSTR lpFile, LPCWSTR lpParameters, LPCWSTR lpDirectory, INT nShowCmd);
+
+UINT_PTR SetTimer(HWND hwnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc);
+BOOL KillTimer(HWND hwnd, UINT_PTR nIDEvent);
