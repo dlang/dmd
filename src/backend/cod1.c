@@ -2327,8 +2327,7 @@ FuncParamRegs::FuncParamRegs(tym_t tyf)
  * Allocate parameter of type t and ty to registers *preg1 and *preg2.
  * Returns:
  *      0       not allocated to any register
- *      1       *preg1 set to allocated register
- *      2       *preg1, *preg2 set to allocated register pair
+ *      1       *preg1, *preg2 set to allocated register pair
  */
 
 // t is valid only if ty is a TYstruct or TYarray
@@ -2352,44 +2351,75 @@ static int type_jparam2(type *t, tym_t ty)
 
 int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
 {
+    ++i;
+
     *preg1 = NOREG;
     *preg2 = NOREG;
+
+    type *t2 = NULL;
+    tym_t ty2 = TYMAX;
 
     // If struct just wraps another type
     if (tybasic(ty) == TYstruct && tybasic(t->Tty) == TYstruct)
     {
         type *targ1 = t->Ttag->Sstruct->Sarg1type;
         type *targ2 = t->Ttag->Sstruct->Sarg2type;
-        if (targ1 && !targ2)
+        if (targ1)
         {
             t = targ1;
             ty = t->Tty;
+            if (targ2)
+            {
+                t2 = targ2;
+                ty2 = t2->Tty;
+            }
         }
-        if (I64 && !targ1 && !targ2)
+        else if (I64 && !targ2)
             return 0;
     }
 
-    ++i;
-    if (regcnt < numintegerregs)
+    reg_t *preg = preg1;
+    int regcntsave = regcnt;
+    int xmmcntsave = xmmcnt;
+    for (int j = 0; j < 2; j++)
     {
-        if ((I64 || (i == 1 && (tyf == TYjfunc || tyf == TYmfunc))) &&
-            type_jparam2(t, ty))
+        if (regcnt < numintegerregs)
         {
-            *preg1 = argregs[regcnt];
-            ++regcnt;
-            return 1;
+            if ((I64 || (i == 1 && (tyf == TYjfunc || tyf == TYmfunc))) &&
+                type_jparam2(t, ty))
+            {
+                *preg = argregs[regcnt];
+                ++regcnt;
+                goto Lnext;
+            }
         }
-    }
-    if (xmmcnt < numfloatregs)
-    {
-        if (tyxmmreg(ty))
+        if (xmmcnt < numfloatregs)
         {
-            *preg1 = floatregs[xmmcnt];
-            ++xmmcnt;
-            return 1;
+            if (tyxmmreg(ty))
+            {
+                *preg = floatregs[xmmcnt];
+                ++xmmcnt;
+                goto Lnext;
+            }
         }
+        // Failed to allocate to a register
+        if (j == 1)
+        {   /* Unwind first preg1 assignment, because it's both or nothing
+             */
+            *preg1 = NOREG;
+            regcnt = regcntsave;
+            xmmcnt = xmmcntsave;
+        }
+        return 0;
+
+     Lnext:
+        if (!t2)
+            break;
+        preg = preg2;
+        t = t2;
+        ty = ty2;
     }
-    return 0;
+    return 1;
 }
 
 /*******************************
@@ -2533,7 +2563,25 @@ code *cdfunc(elem *e,regm_t *pretregs)
             regm_t retregs = mask[preg];
             if (retregs & XMMREGS)
                 ++xmmcnt;
-            if (ep->Eoper == OPstrthis)
+            int preg2 = parameters[i].reg2;
+            if (preg2 != NOREG)
+            {
+                // BUG: still doesn't handle case of mXMM0|mAX or mAX|mXMM0
+                assert(ep->Eoper != OPstrthis);
+                if (mask[preg2] & XMMREGS)
+                {   ++xmmcnt;
+                    retregs = mXMM1|mXMM0;
+                }
+                else
+                    retregs = mDX|mAX;
+                code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
+                retregs = mask[preg] | mask[preg2];
+                code *c1 = getregs(retregs);
+                c1 = genmovreg(c1, AX, preg);
+                c1 = genmovreg(c1, DX, preg2);
+                c = cat3(c,cp,c1);
+            }
+            else if (ep->Eoper == OPstrthis)
             {
                 code *c1 = getregs(retregs);
                 // LEA preg,np[RSP]
@@ -2545,7 +2593,8 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 c = cat3(c,c1,c2);
             }
             else
-            {   code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
+            {
+                code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
                 c = cat(c,cp);
             }
             keepmsk |= retregs;      // don't change preg when evaluating func address
