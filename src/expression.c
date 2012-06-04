@@ -7123,15 +7123,31 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
 #endif
 
     UnaExp::semantic(sc);
-    Expression *e = new DotIdExp(loc, e1, ti->name);
+    if (e1->op == TOKerror)
+        return e1;
 
-    if (e1->op == TOKimport && ((ScopeExp *)e1)->sds->isModule())
-        e = ((DotIdExp *)e)->semantic(sc, 1);
+    Expression *e;
+    DotIdExp *die = new DotIdExp(loc, e1, ti->name);
+
+    if (flag || !e1->type || e1->op == TOKtype ||
+        e1->op == TOKimport && ((ScopeExp *)e1)->sds->isModule())
+    {
+        e = die->semantic(sc, 1);
+    }
     else
     {
+        Type *t1b = e1->type->toBasetype();
+        if ((t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray ||
+             t1b->ty == Tnull  || t1b->isTypeBasic() && t1b->ty != Tvoid))
+        {
+            /* No built-in type has templatized property, so can short cut.
+             */
+            return resolveUFCSProperties(sc, this);
+        }
+
         unsigned errors = global.startGagging();
-        e = ((DotIdExp *)e)->semantic(sc, 1);
-        if (global.endGagging(errors) && !flag)
+        e = die->semantic(sc, 1);
+        if (global.endGagging(errors))
         {
             return resolveUFCSProperties(sc, this);
         }
@@ -7381,9 +7397,13 @@ Expression *CallExp::resolveUFCS(Scope *sc)
 
     //printf("resolveUCSS %s, e->op = %s\n", toChars(), Token::toChars(e->op));
     Type *t = e->type->toBasetype();
-    if (t->ty == Taarray && !tiargs)
+    if (t->ty == Taarray)
     {
-        if (ident == Id::remove)
+        if (tiargs)
+        {
+            goto Lshift;
+        }
+        else if (ident == Id::remove)
         {
             /* Transform:
              *  aa.remove(arg) into delete aa[arg]
@@ -7429,8 +7449,12 @@ Expression *CallExp::resolveUFCS(Scope *sc)
             goto Lshift;
         }
     }
-    else if (t->ty == Tarray || t->ty == Tsarray)
+    else if (t->ty == Tarray || t->ty == Tsarray ||
+             t->ty == Tnull  || t->isTypeBasic() && t->ty != Tvoid)
     {
+        /* In basic, built-in types don't have normal and templatized
+         * member functions. So can short cut.
+         */
 Lshift:
         if (!arguments)
             arguments = new Expressions();

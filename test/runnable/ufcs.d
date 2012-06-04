@@ -111,6 +111,56 @@ void test2()
 }
 
 /*******************************************/
+
+auto init(T)(T val) { return 1; }
+
+auto sort(alias fun, T)(T val) { return 1; }
+
+@property auto max(alias fun, T)(T val) { return 1; }
+
+@property auto infinity(alias opt, T)(T val) { return 1; }
+
+void test3()
+{
+    // See built-in 'init' property
+    assert(1    .init == 0);
+    assert([1]  .init == null);
+    assert([1:1].init == null);
+    assert(1.0  .init is double.nan);
+    assert(10i  .init is idouble.nan);
+    assert('c'  .init == 0xFF);
+    assert("s"  .init == null);
+
+    // x.init() has parens, so it runs UFCS call
+    assert( 1   .init() == 1);
+    assert([1]  .init() == 1);
+    assert([1:1].init() == 1);
+    assert(1.0  .init() == 1);
+    assert(10i  .init() == 1);
+    assert('c'  .init() == 1);
+    assert("s"  .init() == 1);
+
+    // x.init!YYY matches templatized UFCS call.
+    assert( 1   .init!int()        == 1);
+    assert([1]  .init!(int[])()    == 1);
+    assert([1:1].init!(int[int])() == 1);
+    assert(1.0  .init!double()     == 1);
+    assert(10i  .init!idouble()    == 1);
+    assert('c'  .init!char()       == 1);
+    assert("s"  .init!string()     == 1);
+
+    assert([1].sort!"a<b"() == 1);
+    assert([1].sort == [1]);
+
+    // templatized properties runs UFCS call.
+    assert(1024.max!"a<b" == 1);
+    assert(1024.max  == int.max);
+
+    assert(3.14.infinity!"+" == 1);
+    assert(3.14.infinity == (double).infinity);
+}
+
+/*******************************************/
 // 662
 
 import std.stdio,std.string, std.conv;
@@ -259,6 +309,7 @@ int main()
 {
     test1();
     test2();
+    test3();
     test682();
     test3382();
     test7670();
