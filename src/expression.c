@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
@@ -4389,7 +4388,7 @@ Lagain:
 
             if (!MODimplicitConv(thisexp->type->mod, newtype->mod))
             {
-                error("nested type %s should have the same or weak constancy as enclosing type %s",
+                error("nested type %s should have the same or weaker constancy as enclosing type %s",
                     newtype->toChars(), thisexp->type->toChars());
                 goto Lerr;
             }
