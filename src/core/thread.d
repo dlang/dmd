@@ -1997,81 +1997,41 @@ version( Windows )
         Thread.Context* thisContext = &thisThread.m_main;
         assert( thisContext == thisThread.m_curr );
 
-        version( Windows )
-        {
-            thisThread.m_addr  = addr;
-            thisContext.bstack = bstack;
-            thisContext.tstack = thisContext.bstack;
+        thisThread.m_addr  = addr;
+        thisContext.bstack = bstack;
+        thisContext.tstack = thisContext.bstack;
 
-            if( addr == GetCurrentThreadId() )
-            {
-                thisThread.m_hndl = GetCurrentThreadHandle();
-            }
-            else
-            {
-                thisThread.m_hndl = OpenThreadHandle( addr );
-            }
-        }
-        else version( Posix )
+        if( addr == GetCurrentThreadId() )
         {
-            thisThread.m_addr  = addr;
-            thisContext.bstack = bstack;
-            thisContext.tstack = thisContext.bstack;
-
-            thisThread.m_isRunning = true;
-        }
-        thisThread.m_isDaemon = true;
-
-        version( OSX )
-        {
-            thisThread.m_tmach = pthread_mach_thread_np( thisThread.m_addr );
-            assert( thisThread.m_tmach != thisThread.m_tmach.init );
-        }
-
-        version (OSX)
-        {
-            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
-            //       data output by the compiler is bracketed by _tls_data_array[2],
-            //       so make a copy of it for each thread.
-            const sz0 = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
-            const sz2 = sz0 + _tls_data_array[1].length;
-            auto p = gc_malloc( sz2 );
-            assert( p );
-            obj.m_tls = p[0 .. sz2];
-            memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
-            memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
-            // used gc_malloc so no need to free
-
-            if( t.m_addr == pthread_self() )
-                Thread.setThis( thisThread );
-        }
-        else version( Windows )
-        {
-            if( addr == GetCurrentThreadId() )
-            {
-                auto pstart = cast(void*) &_tlsstart;
-                auto pend   = cast(void*) &_tlsend;
-                thisThread.m_tls = pstart[0 .. pend - pstart];
-                Thread.setThis( thisThread );
-            }
-            else
-            {
-                // TODO: This seems wrong.  If we're binding threads from
-                //       a DLL, will they always have space reserved for
-                //       the TLS chunk we expect?  I don't know Windows
-                //       well enough to say.
-                auto pstart = cast(void*) &_tlsstart;
-                auto pend   = cast(void*) &_tlsend;
-                auto pos    = GetTlsDataAddress( thisThread.m_hndl );
-                if( pos ) // on x64, threads without TLS happen to exist
-                    thisThread.m_tls = pos[0 .. pend - pstart];
-                else
-                    thisThread.m_tls = [];
-            }
+            thisThread.m_hndl = GetCurrentThreadHandle();
         }
         else
         {
-            static assert( false, "Platform not supported." );
+            thisThread.m_hndl = OpenThreadHandle( addr );
+        }
+
+        thisThread.m_isDaemon = true;
+
+        if( addr == GetCurrentThreadId() )
+        {
+            auto pstart = cast(void*) &_tlsstart;
+            auto pend   = cast(void*) &_tlsend;
+            thisThread.m_tls = pstart[0 .. pend - pstart];
+            Thread.setThis( thisThread );
+        }
+        else
+        {
+            // TODO: This seems wrong.  If we're binding threads from
+            //       a DLL, will they always have space reserved for
+            //       the TLS chunk we expect?  I don't know Windows
+            //       well enough to say.
+            auto pstart = cast(void*) &_tlsstart;
+            auto pend   = cast(void*) &_tlsend;
+            auto pos    = GetTlsDataAddress( thisThread.m_hndl );
+            if( pos ) // on x64, threads without TLS happen to exist
+                thisThread.m_tls = pos[0 .. pend - pstart];
+            else
+                thisThread.m_tls = [];
         }
 
         Thread.add( thisThread );
