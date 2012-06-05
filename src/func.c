@@ -3266,6 +3266,7 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
     this->ident = Lexer::uniqueId(id);
     this->tok = tok;
     this->fes = fes;
+    this->treq = NULL;
     //printf("FuncLiteralDeclaration() id = '%s', type = '%s'\n", this->ident->toChars(), type->toChars());
 }
 
@@ -3279,6 +3280,7 @@ Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
     else
     {   f = new FuncLiteralDeclaration(loc, endloc, type->syntaxCopy(), tok, fes);
         f->ident = ident;               // keep old identifier
+        f->treq = treq;                 // don't need to copy
     }
     FuncDeclaration::syntaxCopy(f);
     return f;

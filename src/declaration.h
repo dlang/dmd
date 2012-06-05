@@ -725,6 +725,7 @@ struct FuncAliasDeclaration : FuncDeclaration
 struct FuncLiteralDeclaration : FuncDeclaration
 {
     enum TOK tok;                       // TOKfunction or TOKdelegate
+    Type *treq;                         // target of return type inference
 
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
         ForeachStatement *fes);
