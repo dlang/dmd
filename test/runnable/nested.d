@@ -1610,6 +1610,19 @@ void test7428(){
 }
 
 /*******************************************/
+// 8194
+
+void test8194()
+{
+    int foo;
+    static void bar()
+    {
+        typeof(foo) baz;
+        static assert(is(typeof(baz) == int));
+    }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1673,6 +1686,7 @@ int main()
     test5082();
     test7199();
     test7428();
+    test8194();
 
     printf("Success\n");
     return 0;
