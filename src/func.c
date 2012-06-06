@@ -1329,15 +1329,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                 int offend = blockexit & BEfallthru;
 #endif
-                if (type->nextOf()->ty == Tvoid)
-                {
-                    if (offend && isMain())
-                    {   // Add a return 0; statement
-                        Statement *s = new ReturnStatement(0, new IntegerExp(0));
-                        fbody = new CompoundStatement(0, fbody, s);
-                    }
-                }
-                else
+                if (type->nextOf()->ty != Tvoid)
                 {
                     if (offend)
                     {   Expression *e;
@@ -1562,6 +1554,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                     ReturnStatement *s = new ReturnStatement(0, e);
                     a->push(s);
                 }
+            }
+            if (isMain() && type->nextOf()->ty == Tvoid)
+            {   // Add a return 0; statement
+                Statement *s = new ReturnStatement(0, new IntegerExp(0));
+                a->push(s);
             }
 
             fbody = new CompoundStatement(0, a);
