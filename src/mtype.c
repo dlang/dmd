@@ -4708,6 +4708,15 @@ MATCH TypeAArray::constConv(Type *to)
     return Type::constConv(to);
 }
 
+Type *TypeAArray::reliesOnTident(TemplateParameters *tparams)
+{
+    Type *t = TypeNext::reliesOnTident(tparams);
+    if (!t)
+        t = index->reliesOnTident(tparams);
+    return t;
+}
+
+
 /***************************** TypePointer *****************************/
 
 TypePointer::TypePointer(Type *t)
@@ -6812,6 +6821,33 @@ Dsymbol *TypeInstance::toDsymbol(Scope *sc)
         resolve(loc, sc, &e, &t, &s);
 
     return s;
+}
+
+Type *TypeInstance::reliesOnTident(TemplateParameters *tparams)
+{
+    if (tparams)
+    {
+        for (size_t i = 0; i < tparams->dim; i++)
+        {
+            TemplateParameter *tp = (*tparams)[i];
+            if (tempinst->name == tp->ident)
+                return this;
+        }
+        if (!tempinst->tiargs)
+            return NULL;
+        for (size_t i = 0; i < tempinst->tiargs->dim; i++)
+        {
+            Type *t = isType((*tempinst->tiargs)[i]);
+            t = t ? t->reliesOnTident(tparams) : NULL;
+            if (t)
+                return t;
+        }
+        return NULL;
+    }
+    else
+    {
+        return Type::reliesOnTident(tparams);
+    }
 }
 
 
