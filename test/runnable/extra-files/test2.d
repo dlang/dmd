@@ -167,14 +167,14 @@ void test7()
 printf("test7.1()\n");
     ob.data[] = '-';
 printf("test7.2()\n");
-    printf("ob.data[] = '%.*s'\n", ob.data);
+    printf("ob.data[] = '%.*s'\n", cast(int)ob.data.length, ob.data.ptr);
     for (i = 0; i < 10; i++)
 	assert(ob.data[i] == '-');
 
     ob.offset = 3;
     ob.write("foo", 3);
     printf("ob.data.length = %d\n", ob.data.length);
-    printf("ob.data[] = '%.*s'\n", ob.data);
+    printf("ob.data[] = '%.*s'\n", cast(int)ob.data.length, ob.data.ptr);
     for (i = 0; i < 10; i++)
     {	if (i < 3 || i >= 6)
 	    assert(ob.data[i] == '-');
