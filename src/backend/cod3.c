@@ -795,8 +795,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             assert(!getregs(allregs));
             assert(!e);
             assert(!bl->Bcode);
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            if (config.flags3 & CFG3pic)
+
             {
                 int nalign = 0;
                 if (STACKALIGN == 16)
@@ -811,17 +810,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 nextb = list_block(list_next(bl->Bsucc));
                 goto L2;
             }
-            else
-#endif
-            {
-                // Generate a PUSH of the address of the successor to the
-                // corresponding BC_ret
-                //assert(list_block(list_next(bl->Bsucc))->BC == BC_ret);
-                // PUSH &succ
-                c = genc(c,0x68,0,0,0,FLblock,(targ_size_t)list_block(list_next(bl->Bsucc)));
-                nextb = list_block(bl->Bsucc);
-                goto L2;
-            }
+            break;
 
         case BC_ret:
             c = gencodelem(c,e,&retregs,TRUE);
