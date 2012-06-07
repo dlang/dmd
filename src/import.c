@@ -428,7 +428,25 @@ void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             buf->printf("%s.", pid->toChars());
         }
     }
-    buf->printf("%s;", id->toChars());
+    buf->printf("%s", id->toChars());
+    if (names.dim)
+    {
+        buf->writestring(" : ");
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
+
+            if (alias)
+                buf->printf("%s = %s", alias->toChars(), name->toChars());
+            else
+                buf->printf("%s", name->toChars());
+
+            if (i < names.dim - 1)
+                buf->writestring(", ");
+        }
+    }
+    buf->printf(";");
     buf->writenl();
 }
 
