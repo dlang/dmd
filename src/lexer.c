@@ -1175,10 +1175,10 @@ void Lexer::scan(Token *t)
             case '#':
             {
                 p++;
-                Token *n = peek(t);
-                if (n->value == TOKidentifier && n->ident == Id::line)
+                Token n;
+                scan(&n);
+                if (n.value == TOKidentifier && n.ident == Id::line)
                 {
-                    nextToken();
                     poundLine();
                     continue;
                 }
