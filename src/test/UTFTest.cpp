@@ -84,17 +84,17 @@ public:             // Tests
 
     void            testIsValidPrivateUse1()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x00E123));
+        CPPUNIT_ASSERT(utf_isValidDchar(0x00E123));
     }
 
     void            testIsValidPrivateUse2()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x0F1234));
+        CPPUNIT_ASSERT(utf_isValidDchar(0x0F1234));
     }
 
     void            testIsValidPrivateUse3()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x101234));
+        CPPUNIT_ASSERT(utf_isValidDchar(0x101234));
     }
 
     void            testIsValidASCII()

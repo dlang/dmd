@@ -76,17 +76,13 @@ using namespace Unicode;
 
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]
 /// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
-/// and non-characters (which end in 0xFFFE or 0xFFFF).  The D language
-/// reference also rejects Private-Use code points.
+/// and non-characters (which end in 0xFFFE or 0xFFFF).
 bool utf_isValidDchar(dchar_t c)
 {
-    return c <= 0x0EFFFD                        // largest non-private code point
+    return c <= 0x10FFFD                        // largest character code point
         && !(0xD800 <= c && c <= 0xDFFF)        // surrogate pairs
         && (c & 0xFFFE) != 0xFFFE               // non-characters
         && !(0x00FDD0 <= c && c <= 0x00FDEF)    // non-characters
-        && !(0x00E000 <= c && c <= 0x00F8FF)    // private-use
-//      && !(0x0F0000 <= c && c <= 0x0FFFFD)    // private-use supp. A
-//      && !(0x100000 <= c && c <= 0x10FFFD)    // private-use supp. B
         ;
 }
 
