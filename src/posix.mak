@@ -84,7 +84,7 @@ DMD_OBJS = \
 	parse.o ph.o ptrntab.o root.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
-	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
+	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o intrange.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
@@ -107,7 +107,7 @@ SRC = win32.mak posix.mak \
 	s2ir.c todt.c e2ir.c util.c identifier.h parse.h intrange.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
-	utf.h utf.c staticassert.h staticassert.c unialpha.c \
+	utf.h utf.c staticassert.h staticassert.c \
 	typinf.c toobj.c toctype.c tocvdebug.c toelfdebug.c entity.c \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
@@ -576,9 +576,6 @@ util.o: util.c
 utf.o: utf.c utf.h
 	$(CC) -c $(CFLAGS) $<
 
-unialpha.o: unialpha.c
-	$(CC) -c $(CFLAGS) $<
-
 unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -656,7 +653,6 @@ endif
 	gcov toctype.c
 	gcov toelfdebug.c
 	gcov typinf.c
-	gcov unialpha.c
 	gcov utf.c
 	gcov util.c
 	gcov version.c
