@@ -74,27 +74,29 @@ public:             // Tests
 
     void            testIsValidNonCharacter1()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x03FFFE));
+        // TODO: Review this!
+        CPPUNIT_ASSERT(utf_isValidDchar(0x03FFFE));
     }
 
     void            testIsValidNonCharacter2()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x00FDD9));
+        // TODO: Review this!
+        CPPUNIT_ASSERT(utf_isValidDchar(0x00FDD9));
     }
 
     void            testIsValidPrivateUse1()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x00E123));
+        CPPUNIT_ASSERT(utf_isValidDchar(0x00E123));
     }
 
     void            testIsValidPrivateUse2()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x0F1234));
+        CPPUNIT_ASSERT(utf_isValidDchar(0x0F1234));
     }
 
     void            testIsValidPrivateUse3()
     {
-        CPPUNIT_ASSERT(!utf_isValidDchar(0x101234));
+        CPPUNIT_ASSERT(utf_isValidDchar(0x101234));
     }
 
     void            testIsValidASCII()
