@@ -384,9 +384,9 @@ version( Windows )
   extern (D)
   {
     void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag&=~_IOERR; }
-    void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
-    int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
-    int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+    pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
+    pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
+    pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
   }
     int   _snprintf(char* s, size_t n, in char* fmt, ...);
     alias _snprintf snprintf;
@@ -397,9 +397,9 @@ version( Windows )
 else version( linux )
 {
     void rewind(FILE* stream);
-    void clearerr(FILE* stream);
-    int  feof(FILE* stream);
-    int  ferror(FILE* stream);
+    pure void clearerr(FILE* stream);
+    pure int  feof(FILE* stream);
+    pure int  ferror(FILE* stream);
     int  fileno(FILE *);
 
     int  snprintf(char* s, size_t n, in char* format, ...);
@@ -408,9 +408,9 @@ else version( linux )
 else version( OSX )
 {
     void rewind(FILE*);
-    void clearerr(FILE*);
-    int  feof(FILE*);
-    int  ferror(FILE*);
+    pure void clearerr(FILE*);
+    pure int  feof(FILE*);
+    pure int  ferror(FILE*);
     int  fileno(FILE*);
 
     int  snprintf(char* s, size_t n, in char* format, ...);
@@ -419,9 +419,9 @@ else version( OSX )
 else version( FreeBSD )
 {
     void rewind(FILE*);
-    void clearerr(FILE*);
-    int  feof(FILE*);
-    int  ferror(FILE*);
+    pure void clearerr(FILE*);
+    pure int  feof(FILE*);
+    pure int  ferror(FILE*);
     int  fileno(FILE*);
 
     int  snprintf(char* s, size_t n, in char* format, ...);
