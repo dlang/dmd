@@ -79,10 +79,12 @@ using namespace Unicode;
 /// and non-characters (which end in 0xFFFE or 0xFFFF).
 bool utf_isValidDchar(dchar_t c)
 {
-    return c <= 0x10FFFD                        // largest character code point
+    // TODO: Whether non-char code points should be rejected is pending review
+    return c <= 0x10FFFF                        // largest character code point
         && !(0xD800 <= c && c <= 0xDFFF)        // surrogate pairs
-        && (c & 0xFFFE) != 0xFFFE               // non-characters
-        && !(0x00FDD0 <= c && c <= 0x00FDEF)    // non-characters
+        && (c & 0xFFFFFE) != 0x00FFFE           // non-characters
+//        && (c & 0xFFFE) != 0xFFFE               // non-characters
+//        && !(0x00FDD0 <= c && c <= 0x00FDEF)    // non-characters
         ;
 }
 
