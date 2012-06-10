@@ -82,7 +82,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(dchar d; s)
     {
@@ -90,7 +90,7 @@ unittest
         switch (i)
         {
             case 0:     assert(d == 'b'); break;
-            case 1:     assert(d == '\U00100456'); break;
+            case 1:     assert(d == '\U000A0456'); break;
             case 2:     assert(d == '\u1234'); break;
             case 3:     assert(d == 'a'); break;
             default:    assert(0);
@@ -146,7 +146,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(dchar d; s)
     {
@@ -154,7 +154,7 @@ unittest
         switch (i)
         {
             case 0:     assert(d == 'b'); break;
-            case 1:     assert(d == '\U00100456'); break;
+            case 1:     assert(d == '\U000A0456'); break;
             case 2:     assert(d == '\u1234'); break;
             case 3:     assert(d == 'a'); break;
             default:    assert(0);
@@ -232,7 +232,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(wchar d; s)
     {
@@ -240,7 +240,7 @@ unittest
         switch (i)
         {
             case 0:     assert(d == 'b'); break;
-            case 1:     assert(d == 0xDBC1); break;
+            case 1:     assert(d == 0xDA41); break;
             case 2:     assert(d == 0xDC56); break;
             case 3:     assert(d == 0x1234); break;
             case 4:     assert(d == 'a'); break;
@@ -313,7 +313,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(char d; s)
     {
@@ -321,8 +321,8 @@ unittest
         switch (i)
         {
             case 0:     assert(d == 'b'); break;
-            case 1:     assert(d == 0xF4); break;
-            case 2:     assert(d == 0x80); break;
+            case 1:     assert(d == 0xF2); break;
+            case 2:     assert(d == 0xA0); break;
             case 3:     assert(d == 0x91); break;
             case 4:     assert(d == 0x96); break;
             case 5:     assert(d == 0xE1); break;
@@ -392,7 +392,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(char d; s)
     {
@@ -400,8 +400,8 @@ unittest
         switch (i)
         {
             case 0:     assert(d == 'b'); break;
-            case 1:     assert(d == 0xF4); break;
-            case 2:     assert(d == 0x80); break;
+            case 1:     assert(d == 0xF2); break;
+            case 2:     assert(d == 0xA0); break;
             case 3:     assert(d == 0x91); break;
             case 4:     assert(d == 0x96); break;
             case 5:     assert(d == 0xE1); break;
@@ -464,7 +464,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(wchar d; s)
     {
@@ -472,7 +472,7 @@ unittest
         switch (i)
         {
             case 0:     assert(d == 'b'); break;
-            case 1:     assert(d == 0xDBC1); break;
+            case 1:     assert(d == 0xDA41); break;
             case 2:     assert(d == 0xDC56); break;
             case 3:     assert(d == 0x1234); break;
             case 4:     assert(d == 'a'); break;
@@ -547,7 +547,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(k, dchar d; s)
     {
@@ -555,7 +555,7 @@ unittest
         switch (i)
         {
             case 0:     assert(d == 'b'); assert(k == 8); break;
-            case 1:     assert(d == '\U00100456'); assert(k == 4); break;
+            case 1:     assert(d == '\U000A0456'); assert(k == 4); break;
             case 2:     assert(d == '\u1234'); assert(k == 1); break;
             case 3:     assert(d == 'a'); assert(k == 0); break;
             default:    assert(0);
@@ -613,7 +613,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(k, dchar d; s)
     {
@@ -621,7 +621,7 @@ unittest
         switch (i)
         {
             case 0:     assert(k == 4); assert(d == 'b'); break;
-            case 1:     assert(k == 2); assert(d == '\U00100456'); break;
+            case 1:     assert(k == 2); assert(d == '\U000A0456'); break;
             case 2:     assert(k == 1); assert(d == '\u1234'); break;
             case 3:     assert(k == 0); assert(d == 'a'); break;
             default:    assert(0);
@@ -701,7 +701,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(k, wchar d; s)
     {
@@ -709,7 +709,7 @@ unittest
         switch (i)
         {
             case 0:     assert(k == 8); assert(d == 'b'); break;
-            case 1:     assert(k == 4); assert(d == 0xDBC1); break;
+            case 1:     assert(k == 4); assert(d == 0xDA41); break;
             case 2:     assert(k == 4); assert(d == 0xDC56); break;
             case 3:     assert(k == 1); assert(d == 0x1234); break;
             case 4:     assert(k == 0); assert(d == 'a'); break;
@@ -784,7 +784,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(k, char d; s)
     {
@@ -792,8 +792,8 @@ unittest
         switch (i)
         {
             case 0:     assert(k == 4); assert(d == 'b'); break;
-            case 1:     assert(k == 2); assert(d == 0xF4); break;
-            case 2:     assert(k == 2); assert(d == 0x80); break;
+            case 1:     assert(k == 2); assert(d == 0xF2); break;
+            case 2:     assert(k == 2); assert(d == 0xA0); break;
             case 3:     assert(k == 2); assert(d == 0x91); break;
             case 4:     assert(k == 2); assert(d == 0x96); break;
             case 5:     assert(k == 1); assert(d == 0xE1); break;
@@ -864,7 +864,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(k, char d; s)
     {
@@ -872,8 +872,8 @@ unittest
         switch (i)
         {
             case 0:     assert(k == 3); assert(d == 'b'); break;
-            case 1:     assert(k == 2); assert(d == 0xF4); break;
-            case 2:     assert(k == 2); assert(d == 0x80); break;
+            case 1:     assert(k == 2); assert(d == 0xF2); break;
+            case 2:     assert(k == 2); assert(d == 0xA0); break;
             case 3:     assert(k == 2); assert(d == 0x91); break;
             case 4:     assert(k == 2); assert(d == 0x96); break;
             case 5:     assert(k == 1); assert(d == 0xE1); break;
@@ -938,7 +938,7 @@ unittest
     }
     assert(i == 5);
 
-    s = "a\u1234\U00100456b";
+    s = "a\u1234\U000A0456b";
     i = 0;
     foreach_reverse(k, wchar d; s)
     {
@@ -946,7 +946,7 @@ unittest
         switch (i)
         {
             case 0:     assert(k == 3); assert(d == 'b'); break;
-            case 1:     assert(k == 2); assert(d == 0xDBC1); break;
+            case 1:     assert(k == 2); assert(d == 0xDA41); break;
             case 2:     assert(k == 2); assert(d == 0xDC56); break;
             case 3:     assert(k == 1); assert(d == 0x1234); break;
             case 4:     assert(k == 0); assert(d == 'a'); break;
