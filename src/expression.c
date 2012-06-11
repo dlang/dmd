@@ -1107,7 +1107,7 @@ Expression *Expression::toLvalue(Scope *sc, Expression *e)
     else if (!loc.filename)
         loc = e->loc;
     error("%s is not an lvalue", e->toChars());
-    return this;
+    return new ErrorExp();
 }
 
 Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
@@ -1117,10 +1117,13 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     // See if this expression is a modifiable lvalue (i.e. not const)
 #if DMDV2
     if (type && (!type->isMutable() || !type->isAssignable()))
-        error("%s is not mutable", e->toChars());
+    {   error("%s is not mutable", e->toChars());
+        return new ErrorExp();
+    }
 #endif
     return toLvalue(sc, e);
 }
+
 
 /************************************
  * Detect cases where pointers to the stack can 'escape' the
@@ -2319,6 +2322,24 @@ Lagain:
     TupleDeclaration *tup = s->isTupleDeclaration();
     if (tup)
     {
+        for (size_t i = 0; i < tup->objects->dim; i++)
+        {
+            Dsymbol *sa = getDsymbol((*tup->objects)[i]);
+            if (sa && sa->needThis())
+            {
+                if (hasThis(sc)
+#if DMDV2
+                        && !sa->isFuncDeclaration()
+#endif
+                    )
+                {
+                    // Supply an implicit 'this', as in
+                    //    this.ident
+                    (*tup->objects)[i] = new DotVarExp(loc, new ThisExp(loc), sa->isDeclaration());
+                }
+            }
+        }
+
         e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
