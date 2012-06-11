@@ -46,24 +46,19 @@ extern (Windows) nothrow:
     alias ubyte BYTE;
     alias ushort WORD;
     alias float FLOAT;
-    alias FLOAT *PFLOAT;
-    alias BOOL *PBOOL;
-    alias BOOL *LPBOOL;
-    alias BYTE *PBYTE;
-    alias BYTE *LPBYTE;
-    alias int *PINT;
-    alias int *LPINT;
-    alias WORD *PWORD;
-    alias WORD *LPWORD;
-    alias int *LPLONG;
-    alias DWORD *PDWORD;
-    alias DWORD *LPDWORD;
-    alias void *LPVOID;
-    alias void *LPCVOID;
+    alias FLOAT* PFLOAT;
+    alias BOOL*  LPBOOL,  PBOOL;
+    alias BYTE*  LPBYTE,  PBYTE;
+    alias int*   LPINT,   PINT;
+    alias WORD*  LPWORD,  PWORD;
+    alias int*   LPLONG;
+    alias DWORD* LPDWORD, PDWORD;
+    alias void*  LPVOID;
+    alias const(void)* LPCVOID;
 
     alias int INT;
     alias uint UINT;
-    alias uint *PUINT;
+    alias uint* PUINT;
 
     alias size_t SIZE_T;
 
