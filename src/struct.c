@@ -85,7 +85,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
             s->semantic3(sc);
         }
         sc->pop();
@@ -108,7 +108,9 @@ void AggregateDeclaration::inlineScan()
 
 unsigned AggregateDeclaration::size(Loc loc)
 {
-    //printf("AggregateDeclaration::size() = %d\n", structsize);
+    //printf("AggregateDeclaration::size() %s, scope = %p\n", toChars(), scope);
+    if (loc.linnum == 0)
+        loc = this->loc;
     if (!members)
         error(loc, "unknown size");
     if (sizeok != SIZEOKdone && scope)
@@ -200,13 +202,13 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
 {
     if (isUnionDeclaration())
         return 0;
-    VarDeclaration * vd = fields.tdata()[indx];
+    VarDeclaration * vd = fields[indx];
     int firstNonZero = indx; // first index in the union with non-zero size
     for (; ;)
     {
         if (indx == 0)
             return firstNonZero;
-        VarDeclaration * v = fields.tdata()[indx - 1];
+        VarDeclaration * v = fields[indx - 1];
         if (v->offset != vd->offset)
             return firstNonZero;
         --indx;
@@ -225,7 +227,7 @@ int AggregateDeclaration::firstFieldInUnion(int indx)
  */
 int AggregateDeclaration::numFieldsInUnion(int firstIndex)
 {
-    VarDeclaration * vd = fields.tdata()[firstIndex];
+    VarDeclaration * vd = fields[firstIndex];
     /* If it is a zero-length field, AND we can't find an earlier non-zero
      * sized field with the same offset, we assume it's not part of a union.
      */
@@ -235,7 +237,7 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
     int count = 1;
     for (size_t i = firstIndex+1; i < fields.dim; ++i)
     {
-        VarDeclaration * v = fields.tdata()[i];
+        VarDeclaration * v = fields[i];
         // If offsets are different, they are not in the same union
         if (v->offset != vd->offset)
             break;
@@ -279,7 +281,7 @@ void StructDeclaration::semantic(Scope *sc)
 {
     Scope *sc2;
 
-    //printf("+StructDeclaration::semantic(this=%p, '%s', sizeok = %d)\n", this, toChars(), sizeok);
+    //printf("+StructDeclaration::semantic(this=%p, %s '%s', sizeok = %d)\n", this, parent->toChars(), toChars(), sizeok);
 
     //static int count; if (++count == 20) halt();
 
@@ -320,12 +322,6 @@ void StructDeclaration::semantic(Scope *sc)
     assert(!isAnonymous());
     if (sc->stc & STCabstract)
         error("structs, unions cannot be abstract");
-#if DMDV2
-    if (storage_class & STCimmutable)
-        type = type->invariantOf();
-    else if (storage_class & STCconst)
-        type = type->constOf();
-#endif
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {
@@ -369,7 +365,9 @@ void StructDeclaration::semantic(Scope *sc)
         // Ungag errors when not speculative
         unsigned oldgag = global.gag;
         if (global.isSpeculativeGagging() && !isSpeculative())
+        {
             global.gag = 0;
+        }
         s->semantic(sc2);
         global.gag = oldgag;
 #if 0
