@@ -505,9 +505,6 @@ void FuncDeclaration::semantic(Scope *sc)
                         break;
 
                     else if (!this->parent->isClassDeclaration() // if both are mixins then error
-#if !BREAKABI
-                        && !isDtorDeclaration()
-#endif
 #if DMDV2
                         && !isPostBlitDeclaration()
 #endif
@@ -970,7 +967,6 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (f->linkage == LINKd)
             {   // Declare _arguments[]
-#if BREAKABI
                 v_arguments = new VarDeclaration(0, Type::typeinfotypelist->type, Id::_arguments_typeinfo, NULL);
                 v_arguments->storage_class = STCparameter;
                 v_arguments->semantic(sc2);
@@ -983,14 +979,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 _arguments->semantic(sc2);
                 sc2->insert(_arguments);
                 _arguments->parent = this;
-#else
-                t = Type::typeinfo->type->arrayOf();
-                v_arguments = new VarDeclaration(0, t, Id::_arguments, NULL);
-                v_arguments->storage_class = STCparameter | STCin;
-                v_arguments->semantic(sc2);
-                sc2->insert(v_arguments);
-                v_arguments->parent = this;
-#endif
             }
             if (f->linkage == LINKd || (f->parameters && Parameter::dim(f->parameters)))
             {   // Declare _argptr
@@ -3591,14 +3579,8 @@ char *DtorDeclaration::toChars()
 
 int DtorDeclaration::isVirtual()
 {
-    /* This should be FALSE so that dtor's don't get put into the vtbl[],
-     * but doing so will require recompiling everything.
-     */
-#if BREAKABI
+    // FALSE so that dtor's don't get put into the vtbl[]
     return FALSE;
-#else
-    return FuncDeclaration::isVirtual();
-#endif
 }
 
 void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

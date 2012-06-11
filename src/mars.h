@@ -87,7 +87,6 @@ void unittests();
 
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
-#define BREAKABI 1      // 0 if not ready to break the ABI just yet
 #define STRUCTTHISREF DMDV2     // if 'this' for struct is a reference, not a pointer
 #define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
 #define SARRAYVALUE DMDV2       // static arrays are value types
