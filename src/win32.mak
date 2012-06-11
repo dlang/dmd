@@ -144,7 +144,7 @@ DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	staticassert.obj identifier.obj mtype.obj expression.obj \
 	optimize.obj template.obj lexer.obj declaration.obj cast.obj \
-	init.obj func.obj utf.obj unialpha.obj parse.obj statement.obj \
+	init.obj func.obj utf.obj parse.obj statement.obj \
 	constfold.obj version.obj inifile.obj typinf.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
@@ -185,7 +185,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	constfold.c version.h version.c inifile.c iasm.c staticassert.c \
 	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
 	eh.c toctype.c class.c mangle.c tocsym.c func.c inline.c \
-	access.c complex_t.h unialpha.c irstate.h irstate.c glue.c msc.c \
+	access.c complex_t.h irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
 	identifier.h parse.h scope.h enum.h import.h intrange.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
