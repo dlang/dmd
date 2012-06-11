@@ -882,11 +882,11 @@ int TypeClass::builtinTypeInfo()
 Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
 {
 #if 1
-    /* Get the corresponding TypeInfo_Tuple and
-     * point at its elements[].
-     */
-
-    /* Create the TypeTuple corresponding to the types of args[]
+    /*
+     * Pass a reference to the TypeInfo_Tuple corresponding to the types of the
+     * arguments. Source compatibility is maintained by computing _arguments[]
+     * at the start of the called function by offseting into the TypeInfo_Tuple
+     * reference.
      */
     Parameters *args = new Parameters;
     args->setDim(dim);
@@ -899,27 +899,6 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
     e = e->optimize(WANTvalue);
     assert(e->op == TOKsymoff);         // should be SymOffExp
 
-#if BREAKABI
-    /*
-     * Should just pass a reference to TypeInfo_Tuple instead,
-     * but that would require existing code to be recompiled.
-     * Source compatibility can be maintained by computing _arguments[]
-     * at the start of the called function by offseting into the
-     * TypeInfo_Tuple reference.
-     */
-
-#else
-    // Advance to elements[] member of TypeInfo_Tuple
-    SymOffExp *se = (SymOffExp *)e;
-    se->offset += PTRSIZE + PTRSIZE;
-
-    // Set type to TypeInfo[]*
-    se->type = Type::typeinfo->type->arrayOf()->pointerTo();
-
-    // Indirect to get the _arguments[] value
-    e = new PtrExp(0, se);
-    e->type = se->type->next;
-#endif
     return e;
 #else
     /* Improvements:
