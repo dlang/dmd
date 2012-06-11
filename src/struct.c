@@ -131,6 +131,8 @@ void AggregateDeclaration::inlineScan()
 unsigned AggregateDeclaration::size(Loc loc)
 {
     //printf("AggregateDeclaration::size() %s, scope = %p\n", toChars(), scope);
+    if (loc.linnum == 0)
+        loc = this->loc;
     if (!members)
         error(loc, "unknown size");
     if (sizeok != SIZEOKdone && scope)
