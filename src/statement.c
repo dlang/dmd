@@ -28,6 +28,7 @@
 #include "parse.h"
 #include "template.h"
 #include "attrib.h"
+#include "import.h"
 
 extern int os_critsecsize32();
 extern int os_critsecsize64();
@@ -5234,9 +5235,29 @@ Statement *ImportStatement::syntaxCopy()
 Statement *ImportStatement::semantic(Scope *sc)
 {
     for (size_t i = 0; i < imports->dim; i++)
-    {   Dsymbol *s = (*imports)[i];
+    {   Import *s = (*imports)[i]->isImport();
+
+        for (size_t i = 0; i < s->names.dim; i++)
+        {
+            Identifier *name = s->names[i];
+            Identifier *alias = s->aliases[i];
+
+            if (!alias)
+                alias = name;
+
+            TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
+            AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
+
+            s->aliasdecls.push(ad);
+        }
+
         s->semantic(sc);
         sc->insert(s);
+
+        for (size_t i = 0; i < s->aliasdecls.dim; i++)
+        {
+            sc->insert(s->aliasdecls[i]);
+        }
     }
     return this;
 }
