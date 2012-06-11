@@ -423,3 +423,11 @@ this(A args)
 }
 
 }
+import std.stdio : writeln, F = File;
+template foo6591()
+{
+void foo6591()
+{
+import std.stdio : writeln, F = File;
+}
+}
