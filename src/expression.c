@@ -2982,6 +2982,24 @@ Lagain:
     TupleDeclaration *tup = s->isTupleDeclaration();
     if (tup)
     {
+        for (size_t i = 0; i < tup->objects->dim; i++)
+        {
+            Dsymbol *sa = getDsymbol((*tup->objects)[i]);
+            if (sa && sa->needThis())
+            {
+                if (hasThis(sc)
+#if DMDV2
+                        && !sa->isFuncDeclaration()
+#endif
+                    )
+                {
+                    // Supply an implicit 'this', as in
+                    //    this.ident
+                    (*tup->objects)[i] = new DotVarExp(loc, new ThisExp(loc), sa->isDeclaration());
+                }
+            }
+        }
+
         e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
