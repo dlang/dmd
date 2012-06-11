@@ -1580,6 +1580,32 @@ void test7199()
 }
 
 /*******************************************/
+// 8188
+
+
+mixin template Print8188(b...)
+{
+    int doprint()
+    {
+        return b[0] * b[1];
+    }
+}
+
+class A8188
+{
+    int x, y;
+    mixin Print8188!(x, y);
+}
+
+void test8188()
+{
+    auto a = new A8188;
+    a.x = 2;
+    a.y = 5;
+    assert(a.doprint() == 10);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1642,6 +1668,7 @@ int main()
     test7428();
     test4841();
     test7199();
+    test8188();
 
     printf("Success\n");
     return 0;
