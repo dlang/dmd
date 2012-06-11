@@ -3351,7 +3351,15 @@ Initializer *Parser::parseInitializer()
                         if (comma == 1)
                             error("comma expected separating array initializers, not %s", token.toChars());
                         value = parseInitializer();
-                        ia->addInit(NULL, value);
+                        if (token.value == TOKcolon)
+                        {
+                            nextToken();
+                            e = value->toExpression();
+                            value = parseInitializer();
+                        }
+                        else
+                            e = NULL;
+                        ia->addInit(e, value);
                         comma = 1;
                         continue;
 

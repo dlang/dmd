@@ -152,17 +152,17 @@ void test9()
 /************************************************/
 
 class A10 {}
- 
+
 int[immutable(A10)[]] foo10;
- 
+
 void test10()
 {
-  auto key = new immutable(A10)[2];
+    auto key = new immutable(A10)[2];
 
-  cast()(key[0]) = new A10();
-  foo10[key] = 0;
-  assert(key in foo10);
-  assert(!(key !in foo10));
+    cast()(key[0]) = new A10();
+    foo10[key] = 0;
+    assert(key in foo10);
+    assert(!(key !in foo10));
 }
 
 
@@ -180,31 +180,33 @@ struct Key
     static int hash, cmp, equals;
 
     size_t toHash() const
-    {	hash = 1;
-	return a + b + c + d;
+    {
+        hash = 1;
+        return a + b + c + d;
     }
 
     int opCmp(ref const Key s) const
-    {	cmp = 1;
-	int x;
+    {
+        cmp = 1;
+        int x;
 
-	x = a - s.a;
-	if (x == 0)
-	{   x = b - s.b;
-	    if (x == 0)
-	    {	x = c - s.c;
-		if (x == 0)
-		    x = d - s.d;
-	    }
-	}
-	return x;
+        x = a - s.a;
+        if (x == 0)
+        {   x = b - s.b;
+            if (x == 0)
+            {   x = c - s.c;
+                if (x == 0)
+                    x = d - s.d;
+            }
+        }
+        return x;
     }
 
     bool opEquals(ref const Key s) const
     {
-	printf("opEquals()\n");
-	equals = 1;
-	return (a == s.a && b == s.b && c == s.c && d == s.d);
+        printf("opEquals()\n");
+        equals = 1;
+        return (a == s.a && b == s.b && c == s.c && d == s.d);
     }
 }
 
@@ -300,45 +302,45 @@ void test12()
 
 void test13()
 {
-	int[string] array;
-	array["eins"]=1;
-	array["zwei"]=2;
-	array["drei"]=3;
+    int[string] array;
+    array["eins"]=1;
+    array["zwei"]=2;
+    array["drei"]=3;
 
-	assert(array.length==3);
-	
-	int[string] rehashed=array.rehash;
-	assert(rehashed is array);
+    assert(array.length==3);
 
-	string[] key = array.keys;
-	assert(key.length==3);
-	
-	bool have[3];
+    int[string] rehashed=array.rehash;
+    assert(rehashed is array);
 
-	assert(!have[0]);
-	assert(!have[1]);
-	assert(!have[2]);
+    string[] key = array.keys;
+    assert(key.length==3);
 
-	foreach(string value; key){
-		switch(value){
-			case "eins":{
-				have[0]=true;
-				break;
-			}case "zwei":{
-				have[1]=true;
-				break;
-			}case "drei":{
-				have[2]=true;
-				break;
-			}default:{
-				assert(0);
-			}
-		}
-	}	
+    bool have[3];
 
-	assert(have[0]);
-	assert(have[1]);
-	assert(have[2]);
+    assert(!have[0]);
+    assert(!have[1]);
+    assert(!have[2]);
+
+    foreach(string value; key){
+        switch(value){
+            case "eins":{
+                have[0]=true;
+                break;
+            }case "zwei":{
+                have[1]=true;
+                break;
+            }case "drei":{
+                have[2]=true;
+                break;
+            }default:{
+                assert(0);
+            }
+        }
+    }
+
+    assert(have[0]);
+    assert(have[1]);
+    assert(have[2]);
 }
 
 /************************************************/
@@ -359,38 +361,38 @@ void test14()
 
 class SomeClass
 {
-	this(char value)
-	{
-	    printf("class created\n");
-	    _value = value;
-	}
+    this(char value)
+    {
+        printf("class created\n");
+        _value = value;
+    }
 
-	~this()
-	{
-	    printf("class killed (%d)\n", _value);
-	}
+    ~this()
+    {
+        printf("class killed (%d)\n", _value);
+    }
 
-	char value()
-	{
-	    return _value;
-	}
+    char value()
+    {
+        return _value;
+    }
 
-	private
-	{
-	    char _value;
-	}
+    private
+    {
+        char _value;
+    }
 }
 
 char[] allChars = [ 'a', 'b', 'c', 'e', 'z', 'q', 'x' ];
 
 SomeClass[char] _chars;
-	
+
 void _realLoad()
 {
     printf("Loading...\n");
     foreach(char ch; allChars)
     {
-	_chars[ch] = new SomeClass(ch);
+        _chars[ch] = new SomeClass(ch);
     }
 }
 
@@ -400,15 +402,15 @@ void test15()
 {
     _realLoad();
     int j;
-    
+
     for (int i = 0; i < 10000; i++)
     {
-	foreach(char ch; allChars)
-	{
-	    SomeClass obj = _chars[ch];
-	    j += obj.value;
-	}
-	GC.collect();
+        foreach(char ch; allChars)
+        {
+            SomeClass obj = _chars[ch];
+            j += obj.value;
+        }
+        GC.collect();
     }
     printf("j = %d\n", j);
     assert(j == 7500000);
@@ -424,10 +426,10 @@ void test16()
     Random gen;
     for (int i = 0; i < 50000; i++)
     {
-	int key = uniform(0, int.max, gen);
-	int value = uniform(0, int.max, gen);
+        int key = uniform(0, int.max, gen);
+        int value = uniform(0, int.max, gen);
 
-	aa[key] = value;
+        aa[key] = value;
     }
 
     int[] keys = aa.keys;
@@ -436,24 +438,24 @@ void test16()
     int j;
     foreach (k; keys)
     {
-	assert(k in aa);
-	j += aa[k];
+        assert(k in aa);
+        j += aa[k];
     }
     printf("test16 = %d\n", j);
 
     int m;
     foreach (k, v; aa)
     {
-	assert(k in aa);
-	assert(aa[k] == v);
-	m += v;
+        assert(k in aa);
+        assert(aa[k] == v);
+        m += v;
     }
     assert(j == m);
 
     m = 0;
     foreach (v; aa)
     {
-	m += v;
+        m += v;
     }
     assert(j == m);
 
@@ -462,26 +464,26 @@ void test16()
 
     foreach(k; keys)
     {
-	aa.remove(k);
+        aa.remove(k);
     }
     assert(aa.length == 0);
 
     for (int i = 0; i < 1000; i++)
     {
-	int key2 = uniform(0, int.max, gen);
-	int value2 = uniform(0, int.max, gen);
+        int key2 = uniform(0, int.max, gen);
+        int value2 = uniform(0, int.max, gen);
 
-	aa[key2] = value2;
+        aa[key2] = value2;
     }
     foreach(k; aa)
     {
-	if (k < 1000)
-	    break;
+        if (k < 1000)
+            break;
     }
     foreach(k, v; aa)
     {
-	if (k < 1000)
-	    break;
+        if (k < 1000)
+            break;
     }
 }
 
@@ -495,27 +497,27 @@ int bb17[string];
 
 int foo17()
 {
-	foreach(string s, int i; bb17)
-	{
-		dummy17();
-	}
+    foreach(string s, int i; bb17)
+    {
+        dummy17();
+    }
 
-	bb17["a"] = 1;
+    bb17["a"] = 1;
 
-	foreach(int b; bb17)
-	{
-		try{
-			throw new Error("foo");
-		}catch(Error e){
-			assert(e);
-			return 0;
-		}catch{
-			assert(0);
-		}
-		assert(0);
-	}
+    foreach(int b; bb17)
+    {
+        try{
+            throw new Error("foo");
+        }catch(Error e){
+            assert(e);
+            return 0;
+        }catch{
+            assert(0);
+        }
+        assert(0);
+    }
 
-	assert(0);
+    assert(0);
 }
 
 void test17()
@@ -527,7 +529,7 @@ void test17()
 
 /************************************************/
 
-void test18() 
+void test18()
 {
     int[uint] aa;
 
@@ -625,7 +627,7 @@ void test24()
     char[] y;
     if (y in x)
     {
-	int z = x[y];
+        int z = x[y];
     }
 }
 
@@ -689,12 +691,12 @@ void test29()
 
     // write all keys
     foreach (k; gammaFunc.byKey()) {
-       printf("%f\n", k); 
+       printf("%f\n", k);
     }
 
     // write all values
     foreach (v; gammaFunc.byValue()) {
-       printf("%f\n", v); 
+       printf("%f\n", v);
     }
 }
 
@@ -756,8 +758,8 @@ void test32()
     aa[5] = 5;
     foreach(v; aa)
     {
-	printf("%x\n", v);
-	assert(v >= 1 && v <= 5);
+        printf("%x\n", v);
+        assert(v >= 1 && v <= 5);
     }
 }
 
@@ -773,28 +775,31 @@ static assert(!is( ICE3996!(Bug3996) ));
 
 void bug4826c(T)(int[int] value, T x) {}
 
-void test34()
+void test4826c()
 {
-   AssociativeArray!(int, int) z;
-   bug4826c(z,1);
+    AssociativeArray!(int, int) z;
+    bug4826c(z,1);
 }
 
 /************************************************/
 // 5131
 
-struct ICE35 {
-    ICE35 opAssign(int x) { return this; }
-};
+struct ICE5131
+{
+    ICE5131 opAssign(int x) { return this; }
+}
 
-void test35() {
-    ICE35[string] a;
+void test5131()
+{
+    ICE5131[string] a;
     a["ICE?"] = 1;
 }
 
 /************************************************/
 // 6433
 
-void test36() {
+void test6433()
+{
     int[int] aa;
     static assert(aa.sizeof != 0);
     static assert(aa.alignof != 0);
@@ -810,17 +815,32 @@ void test36() {
 }
 
 /************************************************/
-// 7365
+// 6612
 
-struct TickDuration {
-  bool opEquals(ref const TickDuration rhs) const {
-    return true;
-  }
+void test6612()
+{
+    auto aa1 = [1: 2]; // OK
+    auto aa2 = [4: 5]; // OK
+    int[int[int]] aa3 = [aa1:3, aa2:6]; // OK
+    int[int[int]] aa4 = [[1:2]:3, [4:5]:6]; // error
+    int[int[string]] aa5 = [["a":1]:2, ["b":3]:4];
 }
 
-void test7365() {
-  TickDuration[Object] aa;
-  aa.keys;
+/************************************************/
+// 7365
+
+struct TickDuration
+{
+    bool opEquals(ref const TickDuration rhs) const
+    {
+        return true;
+    }
+}
+
+void test7365()
+{
+    TickDuration[Object] aa;
+    aa.keys;
 }
 
 /************************************************/
@@ -842,41 +862,42 @@ int[N6655] bar6655;
 
 int main()
 {
-printf("before test 1\n");   test1();
-printf("before test 2\n");   test2();
-printf("before test 4\n");   test4();
-printf("before test 5\n");   test5();
-printf("before test 6\n");   test6();
-printf("before test 7\n");   test7();
-printf("before test 8\n");   test8();
-printf("before test 9\n");   test9();
-printf("before test 10\n");   test10();
-printf("before test 11\n");   test11();
-printf("before test 12\n");   test12();
-printf("before test 13\n");   test13();
-printf("before test 14\n");   test14();
-printf("before test 15\n");   test15();
-printf("before test 16\n");   test16();
-printf("before test 17\n");   test17();
-printf("before test 18\n");   test18();
-printf("before test 19\n");   test19();
-printf("before test 20\n");   test20();
-printf("before test 21\n");   test21();
-printf("before test 22\n");   test22();
-printf("before test 23\n");   test23();
-printf("before test 24\n");   test24();
-printf("before test 25\n");   test25();
-printf("before test 26\n");   test26();
-printf("before test 27\n");   test27();
-printf("before test 28\n");   test28();
-printf("before test 29\n");   test29();
-printf("before test 30\n");   test30();
-printf("before test 31\n");   test31();
-printf("before test 32\n");   test32();
+    printf("before test 1\n");   test1();
+    printf("before test 2\n");   test2();
+    printf("before test 4\n");   test4();
+    printf("before test 5\n");   test5();
+    printf("before test 6\n");   test6();
+    printf("before test 7\n");   test7();
+    printf("before test 8\n");   test8();
+    printf("before test 9\n");   test9();
+    printf("before test 10\n");   test10();
+    printf("before test 11\n");   test11();
+    printf("before test 12\n");   test12();
+    printf("before test 13\n");   test13();
+    printf("before test 14\n");   test14();
+    printf("before test 15\n");   test15();
+    printf("before test 16\n");   test16();
+    printf("before test 17\n");   test17();
+    printf("before test 18\n");   test18();
+    printf("before test 19\n");   test19();
+    printf("before test 20\n");   test20();
+    printf("before test 21\n");   test21();
+    printf("before test 22\n");   test22();
+    printf("before test 23\n");   test23();
+    printf("before test 24\n");   test24();
+    printf("before test 25\n");   test25();
+    printf("before test 26\n");   test26();
+    printf("before test 27\n");   test27();
+    printf("before test 28\n");   test28();
+    printf("before test 29\n");   test29();
+    printf("before test 30\n");   test30();
+    printf("before test 31\n");   test31();
+    printf("before test 32\n");   test32();
 
-    test34();
-    test35();
-    test36();
+    test4826c();
+    test5131();
+    test6433();
+    test6612();
     test7365();
     test5520();
 
