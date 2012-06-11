@@ -797,6 +797,7 @@ struct BinExp : Expression
         Expression *(*fp)(Loc, TOK, Type *, Expression *, Expression *));
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
+    Expression *interpretFourPointerRelation(InterState *istate, CtfeGoal goal);
     Expression *arrayOp(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);

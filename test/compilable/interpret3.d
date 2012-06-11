@@ -1848,6 +1848,80 @@ static assert({
     return 6;
 }() == 6);
 
+// Relations involving null pointers
+bool nullptrcmp()
+{
+    // null tests
+    void * null1 = null, null2 = null;
+    int x = 2;
+    void * p = &x;
+    assert( null1 == null2);
+    assert( null1 is null2);
+    assert( null1 <= null2);
+    assert( null1 >= null2);
+    assert( !(null1 > null2) );
+    assert( !(null2 > null1) );
+    assert( null1 != p);
+    assert( null1 !is p);
+    assert( p != null1);
+    assert( p !is null1);
+    assert( null1 <= p);
+    assert( p >= null2);
+    assert( p > null1);
+    assert( !(null1 > p) );
+    return true;
+}
+
+static assert(nullptrcmp());
+
+/**************************************************
+  8216 ptr inside a pointer range
+**************************************************/
+
+// Four-pointer relations. Return true if [p1..p2] points inside [q1..q2]
+// (where the end points dont coincide).
+bool ptr4cmp(void *p1, void *p2, void *q1, void *q2)
+{
+// Each compare can be written with <, <=, >, or >=.
+// Either && or || can be used, giving 32 permutations.
+// Additionally each compare can be negated with !, yielding 128 in total.
+    bool b1 = (p1 > q1 && p2 <= q2);
+    bool b2 = (p1 > q1 && p2 < q2);
+    bool b3 = (p1 >= q1 && p2 <= q2);
+    bool b4 = (p1 >= q1 && p2 < q2);
+
+    bool b5 = (q1 <= p1 && q2 > p2);
+    bool b6 = (q1 <= p1 && q2 >= p2);
+    bool b7 = (p2 <= q2 && p1 > q1);
+    bool b8 = (!(p1 <= q1) && p2 <= q2);
+    bool b9 = (!(p1 <= q1) && !(p2 > q2));
+    bool b10 = (!!!(p1 <= q1) && !(p2 > q2));
+
+    assert( b1 == b2 && b1 == b3 && b1 == b4 && b1 == b5 && b1 == b6 );
+    assert( b1 == b7 && b1 == b8 && b1 == b9 && b1 == b10 );
+
+    bool c1 = (p1 <= q1 || p2 > q2);
+    assert ( c1 == !b1 );
+    bool c2 = (p1 < q1 || p2 >= q2);
+    bool c3 = (!(q1 <= p1) || !(q2 >= p2));
+    assert( c1 == c2 && c1 == c3 );
+    return b1;
+}
+
+bool bug8216()
+{
+   int[4] a;
+   int [13] b;
+   int v;
+   int *p = &v;
+   assert(!ptr4cmp(&a[0], &a[3], p, p));
+   assert(!ptr4cmp(&b[2], &b[9], &a[1], &a[2]));
+   assert(!ptr4cmp(&b[1], &b[9], &b[2], &b[8]));
+   assert( ptr4cmp(&b[2], &b[8], &b[1], &b[9]));
+   return 1;
+}
+static assert(bug8216());
+
 /**************************************************
   6517 ptr++, ptr--
 **************************************************/
