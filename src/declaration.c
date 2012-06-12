@@ -323,7 +323,7 @@ void TypedefDeclaration::semantic2(Scope *sc)
         {
             Initializer *savedinit = init;
             int errors = global.errors;
-            init = init->semantic(sc, basetype, WANTinterpret);
+            init = init->semantic(sc, basetype, INITinterpret);
             if (errors != global.errors)
             {
                 init = savedinit;
@@ -1102,7 +1102,7 @@ void VarDeclaration::semantic(Scope *sc)
                     Expression *e = init->toExpression();
                     if (!e)
                     {
-                        init = init->semantic(sc, type, 0); // Don't need to interpret
+                        init = init->semantic(sc, type, INITnointerpret);
                         e = init->toExpression();
                         if (!e)
                         {   error("is not a static and cannot have static initializer");
@@ -1203,7 +1203,7 @@ void VarDeclaration::semantic(Scope *sc)
             }
             else
             {
-                init = init->semantic(sc, type, WANTinterpret);
+                init = init->semantic(sc, type, INITinterpret);
                 if (fd && isConst() && !isStatic())
                 {   // Make it static
                     storage_class |= STCstatic;
@@ -1233,7 +1233,7 @@ void VarDeclaration::semantic(Scope *sc)
                 }
                 else if (si || ai)
                 {   i2 = init->syntaxCopy();
-                    i2 = i2->semantic(sc, type, WANTinterpret);
+                    i2 = i2->semantic(sc, type, INITinterpret);
                 }
                 inuse--;
                 if (global.endGagging(errors))    // if errors happened
@@ -1336,7 +1336,7 @@ void VarDeclaration::semantic2(Scope *sc)
             printf("type = %p\n", ei->exp->type);
         }
 #endif
-        init = init->semantic(sc, type, WANTinterpret);
+        init = init->semantic(sc, type, INITinterpret);
         inuse--;
     }
 }
