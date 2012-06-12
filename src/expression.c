@@ -723,6 +723,9 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
 #endif
             (*exps)[i] =  arg;
 
+            if (arg->op == TOKtype)
+                arg->error("%s is not an expression", arg->toChars());
+
             //arg->rvalue();
 #if 0
             if (arg->type->ty == Tfunction)
