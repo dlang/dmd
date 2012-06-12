@@ -565,6 +565,29 @@ void test8005()
 }
 
 /***************************************************/
+// test8198
+
+void test8198()
+{
+    T delegate(T) zero(T)(T delegate(T) f)
+    {
+        return x => x;
+    }
+
+    T delegate(T) delegate(T delegate(T)) succ(T)(T delegate(T) delegate(T delegate(T)) n)
+    {
+        return f => x => f(n(f)(x));
+    }
+
+    auto n = &zero!uint;
+    foreach (i; 0..10)
+    {
+        assert(n(x => x + 1)(0) == i);
+        n = succ(n);
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -597,6 +620,7 @@ int main()
     test7761();
     test7941();
     test8005();
+    test8198();
 
     printf("Success\n");
     return 0;

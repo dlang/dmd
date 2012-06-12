@@ -1708,6 +1708,8 @@ Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
         {
             TypeFunction *tfv = (TypeFunction *)t;
             TypeFunction *tfl = (TypeFunction *)fd->type;
+            //printf("\ttfv = %s\n", tfv->toChars());
+            //printf("\ttfl = %s\n", tfl->toChars());
             size_t dim = Parameter::dim(tfl->parameters);
 
             if (Parameter::dim(tfv->parameters) == dim &&
@@ -1733,6 +1735,13 @@ Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
                         }
                     }
                 }
+
+                // Set target of return type inference
+                assert(td->onemember);
+                FuncLiteralDeclaration *fld = td->onemember->isFuncLiteralDeclaration();
+                assert(fld);
+                if (!fld->type->nextOf() && tfv->next)
+                    fld->treq = tfv;
 
                 TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
                 e = (new ScopeExp(loc, ti))->semantic(td->scope);
