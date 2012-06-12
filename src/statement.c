@@ -1873,11 +1873,7 @@ Lagain:
                 {
                     ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-#if (BUG6652 == 1 || BUG6652 == 2)
-                    v->storage_class |= STCforeach | STCref | (arg->storageClass & STCref ? 0 : STCbug6652);
-#else
                     v->storage_class |= STCforeach | (arg->storageClass & STCref);
-#endif
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
                 }
             }
@@ -2569,11 +2565,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     {
         ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
         VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-#if (BUG6652 == 1 || BUG6652 == 2)
-        v->storage_class |= STCforeach | STCref | (arg->storageClass & STCref ? 0 : STCbug6652);
-#else
         v->storage_class |= STCforeach | (arg->storageClass & STCref);
-#endif
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
     }
     if (arg->storageClass & STCref)

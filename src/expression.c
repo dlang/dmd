@@ -5201,16 +5201,6 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     //if (type && type->toBasetype()->ty == Tsarray)
         //error("cannot change reference to static array '%s'", var->toChars());
 
-#if (BUG6652 == 1)
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v && (v->storage_class & STCbug6652) && v->type->isMutable())
-        warning("variable modified in foreach body requires ref storage class");
-#elif (BUG6652 == 2)
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v && (v->storage_class & STCbug6652) && v->type->isMutable())
-        deprecation("variable modified in foreach body requires ref storage class");
-#endif
-
     // See if this expression is a modifiable lvalue (i.e. not const)
     return Expression::modifiableLvalue(sc, e);
 }
