@@ -954,6 +954,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
     int fvarargs;                       // function varargs
     Objects dedtypes;   // for T:T*, the dedargs is the T*, dedtypes is the T
     unsigned wildmatch = 0;
+    TemplateParameters *inferparams = parameters;
 
     TypeFunction *tf = (TypeFunction *)fd->type;
 
@@ -1050,6 +1051,16 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
             if (!paramscope->insert(sparam))
                 goto Lnomatch;
         }
+        if (n < parameters->dim)
+        {
+            inferparams = new TemplateParameters();
+            inferparams->setDim(parameters->dim - n);
+            memcpy(inferparams->tdata(),
+                   parameters->tdata() + n,
+                   inferparams->dim * sizeof(*inferparams->tdata()));
+        }
+        else
+            inferparams = NULL;
     }
 #if 0
     for (size_t i = 0; i < dedargs->dim; i++)
@@ -1391,6 +1402,7 @@ L2:
             i += tuple_dim - 1;
 
         Parameter *fparam = Parameter::getNth(fparameters, parami);
+        Type *prmtype = fparam->type;
 
         if (i >= nfargs)                // if not enough arguments
         {
@@ -1412,12 +1424,20 @@ L2:
 Lretry:
 #if 0
             printf("\tfarg->type   = %s\n", farg->type->toChars());
-            printf("\tfparam->type = %s\n", fparam->type->toChars());
+            printf("\tfparam->type = %s\n", prmtype->toChars());
 #endif
             Type *argtype = farg->type;
 
             // Apply function parameter storage classes to parameter types
-            fparam->type = fparam->type->addStorageClass(fparam->storageClass);
+            prmtype = prmtype->addStorageClass(fparam->storageClass);
+
+            // If parameter type doesn't depend on inferred template parameters,
+            // semantic it to get actual type.
+            if (!inferparams || !prmtype->reliesOnTident(inferparams))
+            {
+                // should copy prmtype to avoid affecting semantic result
+                prmtype = prmtype->syntaxCopy()->semantic(loc, paramscope);
+            }
 
 #if DMDV2
             /* Allow string literals which are type [] to match with [dim]
@@ -1425,7 +1445,7 @@ Lretry:
             if (farg->op == TOKstring)
             {   StringExp *se = (StringExp *)farg;
                 if (!se->committed && argtype->ty == Tarray &&
-                    fparam->type->toBasetype()->ty == Tsarray)
+                    prmtype->toBasetype()->ty == Tsarray)
                 {
                     argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(se->loc, se->len, Type::tindex));
                     argtype = argtype->semantic(se->loc, NULL);
@@ -1437,7 +1457,7 @@ Lretry:
              */
             if (farg->op == TOKfunction)
             {   FuncExp *fe = (FuncExp *)farg;
-                Type *tp = fparam->type;
+                Type *tp = prmtype;
                 Expression *e = fe->inferType(tp, 1, parameters);
                 if (!e)
                     goto Lvarargs;
@@ -1463,7 +1483,7 @@ Lretry:
                 goto Lvarargs;
 
             unsigned wm = 0;
-            MATCH m = argtype->deduceType(paramscope, fparam->type, parameters, &dedtypes, &wm);
+            MATCH m = argtype->deduceType(paramscope, prmtype, parameters, &dedtypes, &wm);
             //printf("\tdeduceType m = %d\n", m);
             //printf("\twildmatch = x%x m = %d\n", wildmatch, m);
             wildmatch |= wm;
@@ -1472,17 +1492,17 @@ Lretry:
              * implicit conversions.
              */
             if (!m)
-                m = farg->implicitConvTo(fparam->type);
+                m = farg->implicitConvTo(prmtype);
 
             /* If no match, see if there's a conversion to a delegate
              */
             if (!m)
-            {   Type *tbp = fparam->type->toBasetype();
+            {   Type *tbp = prmtype->toBasetype();
                 Type *tba = farg->type->toBasetype();
                 AggregateDeclaration *ad;
                 if (tbp->ty == Tdelegate)
                 {
-                    TypeDelegate *td = (TypeDelegate *)fparam->type->toBasetype();
+                    TypeDelegate *td = (TypeDelegate *)prmtype->toBasetype();
                     TypeFunction *tf = (TypeFunction *)td->next;
 
                     if (!tf->varargs && Parameter::dim(tf->parameters) == 0)
@@ -1540,7 +1560,7 @@ Lretry:
             {   if (!farg->isLvalue())
                     goto Lnomatch;
             }
-            if (!m && (fparam->storageClass & STClazy) && fparam->type->ty == Tvoid &&
+            if (!m && (fparam->storageClass & STClazy) && prmtype->ty == Tvoid &&
                     farg->type->ty != Tvoid)
                 m = MATCHconvert;
 
@@ -1560,7 +1580,7 @@ Lretry:
 
         /* Check for match with function parameter T...
          */
-        Type *tb = fparam->type->toBasetype();
+        Type *tb = prmtype->toBasetype();
         switch (tb->ty)
         {
             // Perhaps we can do better with this, see TypeFunction::callMatch()

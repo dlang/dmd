@@ -531,6 +531,7 @@ struct TypeAArray : TypeArray
     int isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    Type *reliesOnTident(TemplateParameters *tparams);
     Expression *toExpression();
     int hasPointers();
     TypeTuple *toArgTypes();
@@ -722,6 +723,7 @@ struct TypeInstance : TypeQualified
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
+    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
 };
 

@@ -1395,6 +1395,40 @@ void test14()
 }
 
 /**********************************/
+// 8129
+
+class X8129 {}
+class A8129 {}
+class B8129 : A8129 {}
+
+int foo8129(T : A8129)(X8129 x) { return 1; }
+int foo8129(T : A8129)(X8129 x, void function (T) block) { return 2; }
+
+int bar8129(T, R)(R range, T value) { return 1; }
+
+int baz8129(T, R)(R range, T value) { return 1; }
+int baz8129(T, R)(R range, Undefined value) { return 2; }
+
+void test8129()
+{
+    auto x = new X8129;
+    assert(x.foo8129!B8129()      == 1);
+    assert(x.foo8129!B8129((a){}) == 2);
+    assert(foo8129!B8129(x)        == 1);
+    assert(foo8129!B8129(x, (a){}) == 2);
+    assert(foo8129!B8129(x)              == 1);
+    assert(foo8129!B8129(x, (B8129 b){}) == 2);
+
+    ubyte[] buffer = [0, 1, 2];
+    assert(bar8129!ushort(buffer, 915) == 1);
+
+    // While deduction, parameter type 'Undefined' shows semantic error.
+    static assert(!__traits(compiles, {
+        baz8129!ushort(buffer, 915);
+    }));
+}
+
+/**********************************/
 
 int main()
 {
@@ -1452,6 +1486,7 @@ int main()
     test8125();
     test13();
     test14();
+    test8129();
 
     printf("Success\n");
     return 0;
