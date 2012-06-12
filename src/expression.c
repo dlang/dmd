@@ -8141,6 +8141,8 @@ Lagain:
             f = ((FuncExp *)e1)->fd;
             tf = (TypeFunction *)f->type;
             p = "function literal";
+
+            f->checkNestedReference(sc, loc);
         }
         else if (t1->ty == Tdelegate)
         {   TypeDelegate *td = (TypeDelegate *)t1;
