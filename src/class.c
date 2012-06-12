@@ -467,22 +467,20 @@ void ClassDeclaration::semantic(Scope *sc)
     // If no base class, and this is not an Object, use Object as base class
     if (!baseClass && ident != Id::Object)
     {
-        // BUG: what if Object is redefined in an inner scope?
-        Type *tbase = new TypeIdentifier(0, Id::Object);
-        BaseClass *b;
-        TypeClass *tc;
-        Type *bt;
-
         if (!object)
         {
             error("missing or corrupt object.d");
             fatal();
         }
-        bt = tbase->semantic(loc, sc)->toBasetype();
-        b = new BaseClass(bt, PROTpublic);
+
+        Type *t = object->type;
+        t = t->semantic(loc, sc)->toBasetype();
+        assert(t->ty == Tclass);
+        TypeClass *tc = (TypeClass *)t;
+
+        BaseClass *b = new BaseClass(tc, PROTpublic);
         baseclasses->shift(b);
-        assert(b->type->ty == Tclass);
-        tc = (TypeClass *)(b->type);
+
         baseClass = tc->sym;
         assert(!baseClass->isInterfaceDeclaration());
         b->base = baseClass;

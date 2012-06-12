@@ -4238,9 +4238,16 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         {   /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
              */
-            Type *t = new TypeIdentifier(0, Id::Object);
+            if (!ClassDeclaration::object)
+            {
+                error("missing or corrupt object.d");
+                fatal();
+            }
 
-            t = t->semantic(0, sc);
+            Type *t = ClassDeclaration::object->type;
+            t = t->semantic(0, sc)->toBasetype();
+            assert(t->ty == Tclass);
+
             exp = new CastExp(loc, exp, t);
             exp = exp->semantic(sc);
         }
