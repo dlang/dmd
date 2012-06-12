@@ -2669,14 +2669,25 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
         //printf("\ts = %s, '%s'\n", s->kind(), s->toChars());
         FuncDeclaration *thisfd = s->isFuncDeclaration();
         if (thisfd)
-        {   if (!thisfd->isNested() && !thisfd->vthis)
+        {   if (!thisfd->isNested() && !thisfd->vthis && !sc->intypeof)
                 goto Lerr;
         }
         else
         {
             AggregateDeclaration *thiscd = s->isAggregateDeclaration();
             if (thiscd)
-            {   if (!thiscd->isNested())
+            {
+                /* AggregateDeclaration::isNested returns true only when
+                 * it has a hidden pointer.
+                 * But, calling the function belongs unrelated lexical scope
+                 * is still allowed inside typeof.
+                 *
+                 * struct Map(alias fun) {
+                 *   typeof({ return fun(); }) RetType;
+                 *   // No member function makes Map struct 'not nested'.
+                 * }
+                 */
+                if (!thiscd->isNested() && !sc->intypeof)
                     goto Lerr;
             }
             else

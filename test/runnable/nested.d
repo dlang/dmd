@@ -1606,6 +1606,82 @@ void test8188()
 }
 
 /*******************************************/
+// 5082
+
+struct S5082 { float x; }
+
+struct Map5082a(alias fun)
+{
+    typeof({ return fun(int.init); }()) cache;
+}
+
+struct Map5082b(alias fun)
+{
+    typeof({ return fun(int.init); }()) cache;
+
+    S5082 front(int i) { return fun(i); }
+}
+
+void test5082()
+{
+    auto temp = S5082(1);
+    auto func = (int v){ return temp; };
+    auto map1 = Map5082a!func();
+    auto map2 = Map5082b!func();
+    assert(map2.front(1) == temp);
+}
+
+
+/*******************************************/
+// 7428
+
+alias void delegate() dg2_t;
+
+void Y(dg2_t delegate (dg2_t) y)
+{
+    struct F { void delegate(F) f; };
+
+  version (all)
+  { // generates error
+    (dg2_t delegate(F) a){return a(F((F b){return y(a(b))();})); }
+    ((F b){return (){return b.f(b);};});
+  }
+  else
+  {
+    auto abc(dg2_t delegate(F) a)
+    {
+        return a(F((F b){return y(a(b))();}));
+    }
+
+    abc((F b){return (){return b.f(b);};});
+  }
+}
+
+
+void test7428(){
+    dg2_t foo(dg2_t self)
+    {
+        void bar() { self(); }
+        return &bar;
+    }
+
+    Y(&foo);
+}
+
+/*******************************************/
+// 8194
+
+void test8194()
+{
+    int foo;
+    static void bar()
+    {
+        typeof(foo) baz;
+        static assert(is(typeof(baz) == int));
+    }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1669,6 +1745,10 @@ int main()
     test4841();
     test7199();
     test8188();
+
+    test5082();
+    test7428();
+    test8194();
 
     printf("Success\n");
     return 0;
