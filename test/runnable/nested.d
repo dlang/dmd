@@ -1633,42 +1633,6 @@ void test5082()
 
 
 /*******************************************/
-// 7428
-
-alias void delegate() dg2_t;
-
-void Y(dg2_t delegate (dg2_t) y)
-{
-    struct F { void delegate(F) f; };
-
-  version (all)
-  { // generates error
-    (dg2_t delegate(F) a){return a(F((F b){return y(a(b))();})); }
-    ((F b){return (){return b.f(b);};});
-  }
-  else
-  {
-    auto abc(dg2_t delegate(F) a)
-    {
-        return a(F((F b){return y(a(b))();}));
-    }
-
-    abc((F b){return (){return b.f(b);};});
-  }
-}
-
-
-void test7428(){
-    dg2_t foo(dg2_t self)
-    {
-        void bar() { self(); }
-        return &bar;
-    }
-
-    Y(&foo);
-}
-
-/*******************************************/
 // 8194
 
 void test8194()
@@ -1747,7 +1711,6 @@ int main()
     test8188();
 
     test5082();
-    test7428();
     test8194();
 
     printf("Success\n");
