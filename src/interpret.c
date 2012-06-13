@@ -493,6 +493,16 @@ void showCtfeExpr(Expression *e, int level = 0)
 }
 
 /*************************************
+ *
+ * Entry point for CTFE.
+ * A compile-time result is required. Give an error if not possible
+ */
+Expression *Expression::ctfeInterpret()
+{
+    return optimize(WANTvalue | WANTinterpret);
+}
+
+/*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
  *      istate     state for calling function (NULL if none)
@@ -5875,7 +5885,9 @@ Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
         e2 = resolveSlice(e2);
     e = ctfeCat(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
-        error("%s cannot be interpreted at compile time", toChars());
+    {   error("%s cannot be interpreted at compile time", toChars());
+        return e;
+    }
     // We know we still own it, because we interpreted both e1 and e2
     if (e->op == TOKarrayliteral)
         ((ArrayLiteralExp *)e)->ownedByCtfe = true;

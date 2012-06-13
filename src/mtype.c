@@ -3706,7 +3706,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             sc = sc->push(sym);
 
             dim = dim->semantic(sc);
-            dim = dim->optimize(WANTvalue | WANTinterpret);
+            dim = dim->ctfeInterpret();
             uinteger_t d = dim->toUInteger();
 
             sc = sc->pop();
@@ -3768,7 +3768,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
     {   TupleDeclaration *sd = s->isTupleDeclaration();
 
         dim = semanticLength(sc, sd, dim);
-        dim = dim->optimize(WANTvalue | WANTinterpret);
+        dim = dim->ctfeInterpret();
         uinteger_t d = dim->toUInteger();
 
         if (d >= sd->objects->dim)
@@ -3807,7 +3807,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
              */
             return this;
         }
-        dim = dim->optimize(WANTvalue | WANTinterpret);
+        dim = dim->ctfeInterpret();
         dinteger_t d1 = dim->toInteger();
         dim = dim->implicitCastTo(sc, tsize_t);
         dim = dim->optimize(WANTvalue);
@@ -8880,11 +8880,11 @@ Type *TypeSlice::semantic(Loc loc, Scope *sc)
     TypeTuple *tt = (TypeTuple *)tbn;
 
     lwr = semanticLength(sc, tbn, lwr);
-    lwr = lwr->optimize(WANTvalue | WANTinterpret);
+    lwr = lwr->ctfeInterpret();
     uinteger_t i1 = lwr->toUInteger();
 
     upr = semanticLength(sc, tbn, upr);
-    upr = upr->optimize(WANTvalue | WANTinterpret);
+    upr = upr->ctfeInterpret();
     uinteger_t i2 = upr->toUInteger();
 
     if (!(i1 <= i2 && i2 <= tt->arguments->dim))
@@ -8924,11 +8924,11 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             sc = sc->push(sym);
 
             lwr = lwr->semantic(sc);
-            lwr = lwr->optimize(WANTvalue | WANTinterpret);
+            lwr = lwr->ctfeInterpret();
             uinteger_t i1 = lwr->toUInteger();
 
             upr = upr->semantic(sc);
-            upr = upr->optimize(WANTvalue | WANTinterpret);
+            upr = upr->ctfeInterpret();
             uinteger_t i2 = upr->toUInteger();
 
             sc = sc->pop();
