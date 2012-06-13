@@ -162,35 +162,14 @@ private
 
     void loadModule( HANDLE hProcess, PCSTR img, PCSTR mod, DWORD64 baseAddr, DWORD size )
     {
-        auto dbghelp       = DbgHelp.get();
-        DWORD64 moduleAddr = dbghelp.SymLoadModule64( hProcess,
-                                                      HANDLE.init,
-                                                      img,
-                                                      mod,
-                                                      baseAddr,
-                                                      size );
-        if( moduleAddr == 0 )
-            return;
+        immutable maddr = DbgHelp.get().SymLoadModule64( hProcess,
+                                                         HANDLE.init,
+                                                         img,
+                                                         mod,
+                                                         0,
+                                                         0);
 
-        IMAGEHLP_MODULE64 moduleInfo;
-        moduleInfo.SizeOfStruct = IMAGEHLP_MODULE64.sizeof;
-
-        if( dbghelp.SymGetModuleInfo64( hProcess, moduleAddr, &moduleInfo ) == TRUE )
-        {
-            if( moduleInfo.SymType == SYM_TYPE.SymNone )
-            {
-                dbghelp.SymUnloadModule64( hProcess, moduleAddr );
-                moduleAddr = dbghelp.SymLoadModule64( hProcess,
-                                                      HANDLE.init,
-                                                      img,
-                                                      null,
-                                                      cast(DWORD64) 0,
-                                                      0 );
-                if( moduleAddr == 0 )
-                    return;
-            }
-        }
-        //printf( "Successfully loaded module %s\n", img );
+        //if(!!maddr) printf("Successfully loaded module %s\n", img);
     }
 
 
