@@ -3654,7 +3654,7 @@ STATIC code *asm_db_parse(OP *pop)
             case TOKidentifier:
             {   Expression *e = new IdentifierExp(asmstate.loc, asmtok->ident);
                 e = e->semantic(asmstate.sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
+                e = e->ctfeInterpret();
                 if (e->op == TOKint64)
                 {   dt.ul = e->toInteger();
                     goto L2;
@@ -3730,7 +3730,7 @@ int asm_getnum()
 
             e = new IdentifierExp(asmstate.loc, asmtok->ident);
             e = e->semantic(asmstate.sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             i = e->toInteger();
             v = (int) i;
             if (v != i)
@@ -4442,7 +4442,7 @@ STATIC OPND *asm_primary_exp()
                             }
                         }
                         e = e->semantic(asmstate.sc);
-                        e = e->optimize(WANTvalue | WANTinterpret);
+                        e = e->ctfeInterpret();
                         if (e->isConst())
                         {
                             if (e->type->isintegral())

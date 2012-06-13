@@ -261,7 +261,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         sc->flags |= SCOPEstaticif;
         Expression *e = exp->semantic(sc);
         sc->pop();
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
         --nest;
         if (e->op == TOKerror)
         {   exp = e;

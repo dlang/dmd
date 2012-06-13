@@ -922,7 +922,7 @@ void PragmaDeclaration::setScope(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp* se = e->toString();
             if (!se)
@@ -957,7 +957,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 
                 e = e->semantic(sc);
                 if (e->op != TOKerror)
-                    e = e->optimize(WANTvalue | WANTinterpret);
+                    e = e->ctfeInterpret();
                 if (e->op == TOKerror)
                 {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
                     return;
@@ -983,7 +983,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             if (e->op == TOKerror)
                 goto Lnodecl;
@@ -1025,7 +1025,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 
             e = (*args)[1];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             e = e->toString();
             if (e && ((StringExp *)e)->sz == 1)
                 s = ((StringExp *)e);
@@ -1047,7 +1047,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
@@ -1074,7 +1074,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 {
                     Expression *e = (*args)[i];
                     e = e->semantic(sc);
-                    e = e->optimize(WANTvalue | WANTinterpret);
+                    e = e->ctfeInterpret();
                     if (i == 0)
                         printf(" (");
                     else
@@ -1489,7 +1489,7 @@ void CompileDeclaration::compileIt(Scope *sc)
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    exp = exp->optimize(WANTvalue | WANTinterpret);
+    exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)
     {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
