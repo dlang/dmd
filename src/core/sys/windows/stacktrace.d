@@ -21,7 +21,9 @@ import core.stdc.stdlib;
 import core.stdc.string;
 import core.sys.windows.dbghelp;
 import core.sys.windows.windows;
-import core.stdc.stdio;
+
+//debug=PRINTF;
+debug(PRINTF) import core.stdc.stdio;
 
 
 extern(Windows)
@@ -169,7 +171,8 @@ private
                                                          0,
                                                          0);
 
-        //if(!!maddr) printf("Successfully loaded module %s\n", img);
+        if(!!maddr)
+            debug(PRINTF) printf("Successfully loaded module %s\n", img);
     }
 
 
@@ -286,7 +289,7 @@ private:
         IMAGEHLP_LINE64 line;
         line.SizeOfStruct = IMAGEHLP_LINE64.sizeof;
 
-        //printf( "Callstack:\n" );
+        debug(PRINTF) printf("Callstack:\n");
         for( int frameNum = 0; ; frameNum++ )
         {
             if( dbghelp.StackWalk64( imageType,
@@ -299,13 +302,13 @@ private:
                                      cast(GetModuleBaseProc64) dbghelp.SymGetModuleBase64,
                                      null) != TRUE )
             {
-                //printf( "End of Callstack\n" );
+                debug(PRINTF) printf("End of Callstack\n");
                 break;
             }
 
             if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
             {
-                //printf( "Endless callstack\n" );
+                debug(PRINTF) printf("Endless callstack\n");
                 trace ~= "...".dup;
                 break;
             }
