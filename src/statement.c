@@ -358,7 +358,7 @@ Statements *CompileStatement::flatten(Scope *sc)
     //printf("CompileStatement::flatten() %s\n", exp->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    exp = exp->optimize(WANTvalue | WANTinterpret);
+    exp = exp->ctfeInterpret();
     if (exp->op == TOKerror)
         return NULL;
     StringExp *se = exp->toString();
@@ -2449,7 +2449,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
+                e = e->ctfeInterpret();
                 StringExp *se = e->toString();
                 if (se)
                 {
@@ -2475,7 +2475,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp *se = e->toString();
             if (!se)
@@ -2500,7 +2500,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
@@ -2817,7 +2817,7 @@ Statement *CaseStatement::semantic(Scope *sc)
     if (sw)
     {
         exp = exp->implicitCastTo(sc, sw->condition->type);
-        exp = exp->optimize(WANTvalue | WANTinterpret);
+        exp = exp->ctfeInterpret();
         if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
         {
             error("case must be a string or an integral constant, not %s", exp->toChars());
@@ -2917,11 +2917,11 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
 
     first = first->semantic(sc);
     first = first->implicitCastTo(sc, sw->condition->type);
-    first = first->optimize(WANTvalue | WANTinterpret);
+    first = first->ctfeInterpret();
 
     last = last->semantic(sc);
     last = last->implicitCastTo(sc, sw->condition->type);
-    last = last->optimize(WANTvalue | WANTinterpret);
+    last = last->ctfeInterpret();
 
     if (first->op == TOKerror || last->op == TOKerror)
         return statement ? statement->semantic(sc) : NULL;

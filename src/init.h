@@ -36,7 +36,6 @@ struct Initializer : Object
 
     Initializer(Loc loc);
     virtual Initializer *syntaxCopy();
-    // needInterpret is WANTinterpret if must be a manifest constant, 0 if not.
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     virtual Type *inferType(Scope *sc);
     virtual Expression *toExpression() = 0;
