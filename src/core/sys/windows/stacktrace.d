@@ -307,9 +307,6 @@ private:
         IMAGEHLP_LINE64 line;
         line.SizeOfStruct = IMAGEHLP_LINE64.sizeof;
 
-        IMAGEHLP_MODULE64 moduleInfo;
-        moduleInfo.SizeOfStruct = IMAGEHLP_MODULE64.sizeof;
-
         //printf( "Callstack:\n" );
         for( int frameNum = 0; ; frameNum++ )
         {
