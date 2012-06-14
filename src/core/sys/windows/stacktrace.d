@@ -315,32 +315,29 @@ private:
 
             if( stackframe.AddrPC.Offset != 0 )
             {
-                DWORD64 offset;
-
-                if( dbghelp.SymGetSymFromAddr64( hProcess,
-                                                 stackframe.AddrPC.Offset,
-                                                 &offset,
-                                                 symbol ) == TRUE )
+                immutable pc = stackframe.AddrPC.Offset;
+                if (dbghelp.SymGetSymFromAddr64(hProcess, pc, null, symbol) &&
+                    *symbol.Name.ptr)
                 {
-                    DWORD    displacement;
-                    char[]   lineBuf;
-                    char[20] temp;
+                    auto symName = (cast(char*)symbol.Name.ptr)[0 .. strlen(symbol.Name.ptr)];
+                    char[2048] demangleBuf=void;
+                    symName = demangle(symName, demangleBuf);
 
-                    if( dbghelp.SymGetLineFromAddr64( hProcess, stackframe.AddrPC.Offset, &displacement, &line ) == TRUE )
+                    DWORD disp;
+                    if (dbghelp.SymGetLineFromAddr64(hProcess, pc, &disp, &line))
                     {
-                        char[2048] demangleBuf;
-                        auto       symbolName = (cast(char*) symbol.Name.ptr)[0 .. strlen(symbol.Name.ptr)];
-
-                        // displacement bytes from beginning of line
-                        trace ~= line.FileName[0 .. strlen( line.FileName )] ~
-                                 "(" ~ format( temp[], line.LineNumber ) ~ "): " ~
-                                 demangle( symbolName, demangleBuf );
+                        char[20] numBuf=void;
+                        trace ~= symName.dup ~ " at " ~
+                            line.FileName[0 .. strlen(line.FileName)] ~
+                            "(" ~ format(numBuf[], line.LineNumber) ~ ")";
                     }
+                    else
+                        trace ~= symName.dup;
                 }
                 else
                 {
-                    char[22] temp;
-                    auto     val = format( temp[], stackframe.AddrPC.Offset, 16 );
+                    char[22] numBuf=void;
+                    auto val = format(numBuf[], stackframe.AddrPC.Offset, 16);
                     trace ~= val.dup;
                 }
             }
