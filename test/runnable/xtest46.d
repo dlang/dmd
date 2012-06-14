@@ -5102,6 +5102,33 @@ void test8105()
 
 /***************************************************/
 
+template ParameterTypeTuple159(alias foo)
+{
+    static if (is(typeof(foo) P == function))
+        alias P ParameterTypeTuple159;
+    else
+        static assert(0, "argument has no parameters");
+}
+
+int func159(int i, long j = 7) { return 3; }
+
+alias ParameterTypeTuple159!func159 PT;
+
+int bar159(PT) { return 4; }
+
+pragma(msg, typeof(bar159));
+pragma(msg, PT[1]);
+
+PT[1] boo159(PT[1..2] a) { return a[0]; }
+
+void test159()
+{
+    assert(bar159(1) == 4);
+    assert(boo159() == 7);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5335,6 +5362,7 @@ int main()
     test8004();
     test8064();
     test8105();
+    test159();
 
     printf("Success\n");
     return 0;

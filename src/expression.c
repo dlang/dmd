@@ -1408,13 +1408,16 @@ void Expression::print()
 }
 
 char *Expression::toChars()
-{   OutBuffer *buf;
+{
     HdrGenState hgs;
-
     memset(&hgs, 0, sizeof(hgs));
-    buf = new OutBuffer();
-    toCBuffer(buf, &hgs);
-    return buf->toChars();
+
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    buf.writeByte(0);
+    char *p = (char *)buf.data;
+    buf.data = NULL;
+    return p;
 }
 
 void Expression::error(const char *format, ...)
@@ -3359,20 +3362,6 @@ int StringExp::equals(Object *o)
         }
     }
     return FALSE;
-}
-
-char *StringExp::toChars()
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-    char *p;
-
-    memset(&hgs, 0, sizeof(hgs));
-    toCBuffer(&buf, &hgs);
-    buf.writeByte(0);
-    p = (char *)buf.data;
-    buf.data = NULL;
-    return p;
 }
 
 Expression *StringExp::semantic(Scope *sc)
@@ -5760,7 +5749,7 @@ Expression *IsExp::semantic(Scope *sc)
                 for (size_t i = 0; i < dim; i++)
                 {   Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
-                    args->push(new Parameter(arg->storageClass, arg->type, NULL, NULL));
+                    args->push(new Parameter(arg->storageClass, arg->type, NULL, arg->defaultArg));
                 }
                 tded = new TypeTuple(args);
                 break;
@@ -6563,7 +6552,29 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         }
     }
 
+//    Type *t1save = e1->type;
+
     UnaExp::semantic(sc);
+
+#if 0
+    /*
+     * Identify typeof(var).stringof and use the original type of var, if possible
+     */
+    if (ident == Id::stringof && e1->op == TOKtype && t1save && t1save->ty == Ttypeof)
+    {   TypeTypeof *t = (TypeTypeof *)t1save;
+        if (t->exp->op == TOKvar)
+        {
+            Type *ot = ((VarExp *)t->exp)->var->originalType;
+            if (ot)
+            {
+                char *s = ((VarExp *)t->exp)->var->originalType->toChars();
+                e = new StringExp(loc, s, strlen(s), 'c');
+                e = e->semantic(sc);
+                return e;
+            }
+        }
+    }
+#endif
 
     if (ident == Id::mangleof)
     {   // symbol.mangleof
@@ -8960,6 +8971,12 @@ Expression *CastExp::semantic(Scope *sc)
         if (tob->ty == Tvector && t1b->ty != Tvector)
         {
             return new VectorExp(loc, e1, to);
+        }
+
+        if (tob->isintegral() && t1b->ty == Tarray &&
+            !global.params.useDeprecated)
+        {
+            error("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
         }
     }
     else if (!to)
