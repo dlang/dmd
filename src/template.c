@@ -4582,6 +4582,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         {   if (!sc->parameterSpecialization)
                 inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
+            if (inst)
+                ++inst->errors;
             return;             // error recovery
         }
 

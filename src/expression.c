@@ -4267,6 +4267,8 @@ Lagain:
             ti->semantic(sc);
         if (ti->inst)
         {
+            if (ti->inst->errors)
+                return new ErrorExp();
             Dsymbol *s = ti->inst->toAlias();
             sds2 = s->isScopeDsymbol();
             if (!sds2)
