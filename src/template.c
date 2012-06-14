@@ -5048,7 +5048,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             ea = ea->semantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
-            else if (ea->op != TOKvar && ea->op != TOKtuple)
+            else if (ea->op != TOKvar && ea->op != TOKtuple &&
+                     ea->op != TOKimport && ea->op != TOKtype &&
+                     ea->op != TOKfunction)
                 ea = ea->ctfeInterpret();
             (*tiargs)[j] = ea;
             if (ea->op == TOKtype)
