@@ -381,7 +381,6 @@ struct StringExp : Expression
     StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
     //Expression *syntaxCopy();
     int equals(Object *o);
-    char *toChars();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     size_t length();
