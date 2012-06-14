@@ -715,10 +715,13 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         {   Expression *arg = (*exps)[i];
 
             arg = resolveProperties(sc, arg);
-            (*exps)[i] =  arg;
-
+#if 0
             if (arg->op == TOKtype)
-                arg->error("%s is not an expression", arg->toChars());
+            {   arg->error("%s is not an expression", arg->toChars());
+                arg = new ErrorExp();
+            }
+#endif
+            (*exps)[i] =  arg;
 
             //arg->rvalue();
 #if 0
