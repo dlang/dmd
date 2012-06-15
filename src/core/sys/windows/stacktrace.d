@@ -111,16 +111,18 @@ private:
         stackframe.AddrStack.Offset = cast(DWORD64) c.Esp;
         stackframe.AddrStack.Mode   = ADDRESS_MODE.AddrModeFlat;
 
-        enum MAX_NAMELEN = 1024;
-        auto symbolSize = IMAGEHLP_SYMBOL64.sizeof + MAX_NAMELEN;
-        auto symbol     = cast(IMAGEHLP_SYMBOL64*) calloc( symbolSize, 1 );
+        static struct BufSymbol
+        {
+        align(1):
+            IMAGEHLP_SYMBOL64 _base;
+            TCHAR[1024] _buf;
+        }
+        BufSymbol bufSymbol=void;
+        auto symbol = &bufSymbol._base;
+        symbol.SizeOfStruct = IMAGEHLP_SYMBOL64.sizeof;
+        symbol.MaxNameLength = bufSymbol._buf.length;
 
-        static assert((IMAGEHLP_SYMBOL64.sizeof + MAX_NAMELEN) <= uint.max, "symbolSize should never exceed uint.max");
-
-        symbol.SizeOfStruct  = cast(DWORD)symbolSize;
-        symbol.MaxNameLength = MAX_NAMELEN;
-
-        IMAGEHLP_LINE64 line;
+        IMAGEHLP_LINE64 line=void;
         line.SizeOfStruct = IMAGEHLP_LINE64.sizeof;
 
         debug(PRINTF) printf("Callstack:\n");
@@ -176,7 +178,6 @@ private:
                 }
             }
         }
-        free( symbol );
         return trace;
     }
 
