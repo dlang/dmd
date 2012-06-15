@@ -65,7 +65,7 @@ private:
     size_t framepointer; // current frame pointer
     size_t maxStackPointer; // most stack we've ever used
 public:
-    CtfeStack() : framepointer(0)
+    CtfeStack() : framepointer(0), maxStackPointer(0)
     {
     }
     size_t stackPointer()
