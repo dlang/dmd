@@ -96,9 +96,19 @@ Global::Global()
 #endif
     ;
     version = "v2.060";
-    global.structalign = 8;
+
+    path = NULL;
+    filePath = NULL;
+
+    structalign = 8;
 
     memset(&params, 0, sizeof(Param));
+
+    errors = 0;
+    warnings = 0;
+    gag = 0;
+    gaggedErrors = 0;
+    speculativeGag = 0;
 }
 
 unsigned Global::startGagging()
