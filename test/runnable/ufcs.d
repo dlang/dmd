@@ -237,6 +237,20 @@ void test7943()
 }
 
 /*******************************************/
+// 8104 - UFCS on opaque struct won't compile
+
+struct Opaque8104;
+
+int foo8104(Opaque8104*) { return 1; }
+int bar8104(T)(Opaque8104*) { return 2; }
+
+void test8104() {
+    Opaque8104* s;
+    assert(s.foo8104() == 1);
+    assert(s.bar8104!(int)() == 2);
+}
+
+/*******************************************/
 
 int main()
 {
