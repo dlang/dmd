@@ -37,46 +37,6 @@ extern(Windows)
 
 private
 {
-    string generateSearchPath()
-    {
-        __gshared string[3] defaultPathList = ["_NT_SYMBOL_PATH",
-                                               "_NT_ALTERNATE_SYMBOL_PATH",
-                                               "SYSTEMROOT"];
-
-        string         path;
-        char[MAX_PATH] temp;
-        DWORD          len;
-
-        if( (len = GetCurrentDirectoryA( temp.length, temp.ptr )) > 0 )
-        {
-            path ~= temp[0 .. len] ~ ";";
-        }
-        if( (len = GetModuleFileNameA( null,temp.ptr,temp.length )) > 0 )
-        {
-            foreach_reverse( i, ref char e; temp[0 .. len] )
-            {
-                if( e == '\\' || e == '/' || e == ':' )
-                {
-                    len -= i;
-                    break;
-                }
-            }
-            if( len > 0 )
-            {
-                path ~= temp[0 .. len] ~ ";";
-            }
-        }
-        foreach( e; defaultPathList )
-        {
-            if( (len = GetEnvironmentVariableA( e.ptr, temp.ptr, temp.length )) > 0 )
-            {
-                path ~= temp[0 .. len] ~ ";";
-            }
-        }
-        return path;
-    }
-
-
     /+
     extern(Windows) static LONG unhandeledExceptionFilterHandler(void* info)
     {
@@ -319,14 +279,13 @@ shared static this()
 
     auto hProcess = GetCurrentProcess();
     auto pid      = GetCurrentProcessId();
-    auto symPath  = generateSearchPath() ~ 0;
 
     auto symOptions = dbghelp.SymGetOptions();
     symOptions |= SYMOPT_LOAD_LINES;
     symOptions |= SYMOPT_FAIL_CRITICAL_ERRORS;
     symOptions  = dbghelp.SymSetOptions( symOptions );
 
-    if (!dbghelp.SymInitialize(hProcess, symPath.ptr, TRUE))
+    if (!dbghelp.SymInitialize(hProcess, null, TRUE))
         return;
 
     dbghelp.SymEnumerateModules64(hProcess, &CodeViewFixup, null);
