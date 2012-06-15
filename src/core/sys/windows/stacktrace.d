@@ -151,6 +151,8 @@ private:
 
             if( stackframe.AddrPC.Offset != 0 )
             {
+                import core.stdc.stdio : snprintf;
+
                 immutable pc = stackframe.AddrPC.Offset;
                 if (dbghelp.SymGetSymFromAddr64(hProcess, pc, null, symbol) &&
                     *symbol.Name.ptr)
@@ -162,56 +164,29 @@ private:
                     DWORD disp;
                     if (dbghelp.SymGetLineFromAddr64(hProcess, pc, &disp, &line))
                     {
-                        char[20] numBuf=void;
+                        char[11] numBuf=void;
+                        static assert(is(typeof(line.LineNumber) == uint));
+                        immutable len = snprintf(numBuf.ptr, numBuf.length,
+                                                 "%u", line.LineNumber);
+                        len < numBuf.length || assert(0);
                         trace ~= symName.dup ~ " at " ~
                             line.FileName[0 .. strlen(line.FileName)] ~
-                            "(" ~ format(numBuf[], line.LineNumber) ~ ")";
+                            "(" ~ numBuf[0 .. len] ~ ")";
                     }
                     else
                         trace ~= symName.dup;
                 }
                 else
                 {
-                    char[22] numBuf=void;
-                    auto val = format(numBuf[], stackframe.AddrPC.Offset, 16);
-                    trace ~= val.dup;
+                    char[2+2*size_t.sizeof+1] numBuf=void;
+                    immutable len = snprintf(numBuf.ptr, numBuf.length,
+                                             "0x%p", cast(void*)pc);
+                    len < numBuf.length || assert(0);
+                    trace ~= numBuf[0 .. len].dup;
                 }
             }
         }
         return trace;
-    }
-
-
-    // TODO: Remove this in favor of an external conversion.
-    static char[] format( char[] buf, ulong val, uint base = 10 )
-    in
-    {
-        assert( buf.length > 9 );
-    }
-    body
-    {
-        auto p = buf.ptr + buf.length;
-
-        if( base < 11 )
-        {
-            do
-            {
-                *--p = cast(char)(val % base + '0');
-            } while( val /= base );
-        }
-        else if( base < 37 )
-        {
-            do
-            {
-                auto x = val % base;
-                *--p = cast(char)(x < 10 ? x + '0' : (x - 10) + 'A');
-            } while( val /= base );
-        }
-        else
-        {
-            assert( false, "base too large" );
-        }
-        return buf[p - buf.ptr .. $];
     }
 }
 
