@@ -5553,24 +5553,12 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 e = resolveProperties(argsc, e);
                 if (e->op == TOKfunction)               // see Bugzilla 4820
                 {   FuncExp *fe = (FuncExp *)e;
-                    if (fe->fd)
-                    {   if (fe->fd->tok == TOKreserved)
-                        {
-                            if (fe->type->ty == Tpointer)
-                            {
-                                fe->fd->vthis = NULL;
-                                fe->fd->tok = TOKfunction;
-                            }
-                            else
-                                fe->fd->tok = TOKdelegate;
-                        }
-                        // Replace function literal with a function symbol,
-                        // since default arg expression must be copied when used
-                        // and copying the literal itself is wrong.
-                        e = new VarExp(e->loc, fe->fd, 0);
-                        e = new AddrExp(e->loc, e);
-                        e = e->semantic(argsc);
-                    }
+                    // Replace function literal with a function symbol,
+                    // since default arg expression must be copied when used
+                    // and copying the literal itself is wrong.
+                    e = new VarExp(e->loc, fe->fd, 0);
+                    e = new AddrExp(e->loc, e);
+                    e = e->semantic(argsc);
                 }
                 e = e->implicitCastTo(argsc, fparam->type);
                 fparam->defaultArg = e;

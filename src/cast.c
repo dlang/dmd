@@ -1682,7 +1682,7 @@ Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
     {
         if (to->ty == Tdelegate ||
             to->ty == Tpointer && to->nextOf()->ty == Tfunction)
-        {   treq = to;
+        {   fd->treq = to;
         }
         return this;
     }
