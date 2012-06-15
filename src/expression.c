@@ -2528,8 +2528,8 @@ char *ComplexExp::toChars()
     creall(value).format(buf1, sizeof(buf1));
     cimagl(value).format(buf2, sizeof(buf2));
 #else
-    ld_sprint(buffer, 'g', creall(value));
-    ld_sprint(buffer, 'g', cimagl(value));
+    ld_sprint(buf1, 'g', creall(value));
+    ld_sprint(buf2, 'g', cimagl(value));
 #endif
     sprintf(buffer, "(%s+%si)", buf1, buf2);
     assert(strlen(buffer) < sizeof(buffer));
