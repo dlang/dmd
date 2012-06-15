@@ -617,6 +617,26 @@ void test8241()
 }
 
 /***************************************************/
+// 8242
+
+template exec8242(alias a, T...)
+{
+    auto func8242(T as)
+    {
+        return a(as);
+    }
+}
+
+mixin exec8242!(x => x, int);
+mixin exec8242!((string x) => x, string);
+
+void test8242()
+{
+    func8242(1);
+    func8242("");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -652,6 +672,7 @@ int main()
     test8198();
     test8226();
     test8241();
+    test8242();
 
     printf("Success\n");
     return 0;
