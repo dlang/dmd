@@ -278,7 +278,6 @@ shared static this()
         return; // dbghelp.dll not available
 
     auto hProcess = GetCurrentProcess();
-    auto pid      = GetCurrentProcessId();
 
     auto symOptions = dbghelp.SymGetOptions();
     symOptions |= SYMOPT_LOAD_LINES;
