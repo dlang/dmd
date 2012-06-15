@@ -25,7 +25,6 @@ import core.sys.windows.windows;
 //debug=PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 
-
 extern(Windows)
 {
     DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWORD nSize);
@@ -33,37 +32,6 @@ extern(Windows)
 
     alias LONG function(void*) UnhandeledExceptionFilterFunc;
     void* SetUnhandledExceptionFilter(void* handler);
-}
-
-
-enum : uint
-{
-    MAX_MODULE_NAME32 = 255,
-    TH32CS_SNAPMODULE = 0x00000008,
-    MAX_NAMELEN       = 1024,
-};
-
-
-extern(System)
-{
-    alias HANDLE function(DWORD dwFlags, DWORD th32ProcessID) CreateToolhelp32SnapshotFunc;
-    alias BOOL   function(HANDLE hSnapshot, MODULEENTRY32 *lpme) Module32FirstFunc;
-    alias BOOL   function(HANDLE hSnapshot, MODULEENTRY32 *lpme) Module32NextFunc;
-}
-
-
-struct MODULEENTRY32
-{
-    DWORD   dwSize;
-    DWORD   th32ModuleID;
-    DWORD   th32ProcessID;
-    DWORD   GlblcntUsage;
-    DWORD   ProccntUsage;
-    BYTE*   modBaseAddr;
-    DWORD   modBaseSize;
-    HMODULE hModule;
-    CHAR[MAX_MODULE_NAME32 + 1] szModule;
-    CHAR[MAX_PATH] szExePath;
 }
 
 
@@ -106,73 +74,6 @@ private
             }
         }
         return path;
-    }
-
-
-    bool loadModules( HANDLE hProcess, DWORD pid )
-    {
-        __gshared string[2] systemDlls = ["kernel32.dll", "tlhelp32.dll"];
-
-        CreateToolhelp32SnapshotFunc CreateToolhelp32Snapshot;
-        Module32FirstFunc            Module32First;
-        Module32NextFunc             Module32Next;
-        HMODULE                      dll;
-
-        foreach( e; systemDlls )
-        {
-            if( (dll = cast(HMODULE) Runtime.loadLibrary( e )) is null )
-                continue;
-            CreateToolhelp32Snapshot = cast(CreateToolhelp32SnapshotFunc) GetProcAddress( dll,"CreateToolhelp32Snapshot" );
-            Module32First            = cast(Module32FirstFunc) GetProcAddress( dll,"Module32First" );
-            Module32Next             = cast(Module32NextFunc) GetProcAddress( dll,"Module32Next" );
-            if( CreateToolhelp32Snapshot !is null && Module32First !is null && Module32Next !is null )
-                break;
-            Runtime.unloadLibrary( dll );
-            dll = null;
-        }
-        if( dll is null )
-        {
-            return false;
-        }
-
-        auto hSnap = CreateToolhelp32Snapshot( TH32CS_SNAPMODULE, pid );
-        if( hSnap == INVALID_HANDLE_VALUE )
-            return false;
-
-        MODULEENTRY32 moduleEntry;
-        moduleEntry.dwSize = MODULEENTRY32.sizeof;
-
-        auto more  = cast(bool) Module32First( hSnap, &moduleEntry );
-        int  count = 0;
-
-        while( more )
-        {
-            count++;
-            loadModule( hProcess,
-                        moduleEntry.szExePath.ptr,
-                        moduleEntry.szModule.ptr,
-                        cast(DWORD64) moduleEntry.modBaseAddr,
-                        moduleEntry.modBaseSize );
-            more = cast(bool) Module32Next( hSnap, &moduleEntry );
-        }
-
-        CloseHandle( hSnap );
-        Runtime.unloadLibrary( dll );
-        return count > 0;
-    }
-
-
-    void loadModule( HANDLE hProcess, PCSTR img, PCSTR mod, DWORD64 baseAddr, DWORD size )
-    {
-        immutable maddr = DbgHelp.get().SymLoadModule64( hProcess,
-                                                         HANDLE.init,
-                                                         img,
-                                                         mod,
-                                                         0,
-                                                         0);
-
-        if(!!maddr)
-            debug(PRINTF) printf("Successfully loaded module %s\n", img);
     }
 
 
@@ -278,6 +179,7 @@ private:
         stackframe.AddrStack.Offset = cast(DWORD64) c.Esp;
         stackframe.AddrStack.Mode   = ADDRESS_MODE.AddrModeFlat;
 
+        enum MAX_NAMELEN = 1024;
         auto symbolSize = IMAGEHLP_SYMBOL64.sizeof + MAX_NAMELEN;
         auto symbol     = cast(IMAGEHLP_SYMBOL64*) calloc( symbolSize, 1 );
 
@@ -381,6 +283,33 @@ private:
 }
 
 
+// For unknown reasons dbghelp.dll fails to load dmd's embedded
+// CodeView information if an explicit base address is specified.
+// As a workaround we reload any module without debug information.
+extern(Windows) BOOL CodeViewFixup(PCSTR ModuleName, DWORD64 BaseOfDll, PVOID)
+{
+    auto dbghelp = DbgHelp.get();
+    auto hProcess = GetCurrentProcess();
+
+    IMAGEHLP_MODULE64 moduleInfo;
+    moduleInfo.SizeOfStruct = IMAGEHLP_MODULE64.sizeof;
+
+    if (!dbghelp.SymGetModuleInfo64(hProcess, BaseOfDll, &moduleInfo))
+        return TRUE;
+    if (moduleInfo.SymType != SYM_TYPE.SymNone)
+        return TRUE;
+
+    if (!dbghelp.SymUnloadModule64(hProcess, BaseOfDll))
+        return TRUE;
+    auto img = moduleInfo.ImageName.ptr;
+    if (!dbghelp.SymLoadModule64(hProcess, null, img, null, 0, 0))
+        return TRUE;
+
+    debug(PRINTF) printf("Reloaded symbols for %s\n", img);
+    return TRUE;
+}
+
+
 shared static this()
 {
     auto dbghelp = DbgHelp.get();
@@ -391,16 +320,17 @@ shared static this()
     auto hProcess = GetCurrentProcess();
     auto pid      = GetCurrentProcessId();
     auto symPath  = generateSearchPath() ~ 0;
-    if (!dbghelp.SymInitialize(hProcess, symPath.ptr, FALSE))
-        return;
 
     auto symOptions = dbghelp.SymGetOptions();
     symOptions |= SYMOPT_LOAD_LINES;
     symOptions |= SYMOPT_FAIL_CRITICAL_ERRORS;
     symOptions  = dbghelp.SymSetOptions( symOptions );
 
-    if( !loadModules( hProcess, pid ) )
-        {} // for now it's fine if the modules don't load
+    if (!dbghelp.SymInitialize(hProcess, symPath.ptr, TRUE))
+        return;
+
+    dbghelp.SymEnumerateModules64(hProcess, &CodeViewFixup, null);
+
     initialized = true;
     //SetUnhandledExceptionFilter( &unhandeledExceptionFilterHandler );
 }
