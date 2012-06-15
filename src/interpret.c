@@ -65,7 +65,7 @@ private:
     size_t framepointer; // current frame pointer
     size_t maxStackPointer; // most stack we've ever used
 public:
-    CtfeStack() : framepointer(0)
+    CtfeStack() : framepointer(0), maxStackPointer(0)
     {
     }
     size_t stackPointer()
@@ -493,8 +493,8 @@ void showCtfeExpr(Expression *e, int level = 0)
 }
 
 /*************************************
- * Entry point for CTFE.
  *
+ * Entry point for CTFE.
  * A compile-time result is required. Give an error if not possible
  */
 Expression *Expression::ctfeInterpret()
@@ -2860,18 +2860,22 @@ BIN_INTERPRET(Pow)
 
 typedef Expression *(*fp2_t)(Loc loc, enum TOK, Type *, Expression *, Expression *);
 
-// Return EXP_CANT_INTERPRET if they point to independent memory blocks
-Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
+/** Return true if agg1 and agg2 are pointers to the same memory block
+*/
+bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2)
 {
-    dinteger_t ofs1, ofs2;
-    Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
-    Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
     // Note that type painting can occur with VarExp, so we
     // must compare the variables being pointed to.
-    if (agg1 == agg2 ||
-        (agg1->op == TOKvar && agg2->op == TOKvar &&
-        ((VarExp *)agg1)->var == ((VarExp *)agg2)->var)
-        )
+    return agg1 == agg2 ||
+            (agg1->op == TOKvar && agg2->op == TOKvar &&
+            ((VarExp *)agg1)->var == ((VarExp *)agg2)->var);
+}
+
+// Return 1 if true, 0 if false
+// -1 if comparison is illegal because they point to non-comparable memory blocks
+int comparePointers(Loc loc, enum TOK op, Type *type, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2)
+{
+    if ( pointToSameMemoryBlock(agg1, agg2) )
     {
         dinteger_t cm = ofs1 - ofs2;
         dinteger_t n;
@@ -2889,16 +2893,27 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
         default:
             assert(0);
         }
-        return new IntegerExp(loc, n, type);
+        return n;
     }
+    bool null1 = ( agg1->op == TOKnull );
+    bool null2 = ( agg2->op == TOKnull );
+
     int cmp;
-    if (agg1->op == TOKnull)
+    if (null1 || null2)
     {
-        cmp = (agg2->op == TOKnull);
-    }
-    else if (agg2->op == TOKnull)
-    {
-        cmp = 0;
+        switch (op)
+        {
+        case TOKlt:   cmp =  null1 && !null2; break;
+        case TOKgt:   cmp = !null1 &&  null2; break;
+        case TOKle:   cmp = null1; break;
+        case TOKge:   cmp = null2; break;
+        case TOKidentity:
+        case TOKequal:
+        case TOKnotidentity: // 'cmp' gets inverted below
+        case TOKnotequal:
+            cmp = (null1 == null2);
+            break;
+        }
     }
     else
     {
@@ -2911,12 +2926,12 @@ Expression *comparePointers(Loc loc, enum TOK op, Type *type, Expression *e1, Ex
             cmp = 0;
             break;
         default:
-            return EXP_CANT_INTERPRET;
+            return -1; // memory blocks are different
         }
     }
     if (op == TOKnotidentity || op == TOKnotequal)
         cmp ^= 1;
-    return new IntegerExp(loc, cmp, type);
+    return cmp;
 }
 
 
@@ -3158,14 +3173,20 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         e2 = this->e2->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(e2))
             return e2;
-        e = comparePointers(loc, op, type, e1, e2);
-        if (e == EXP_CANT_INTERPRET)
+        dinteger_t ofs1, ofs2;
+        Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
+        Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
+        int cmp = comparePointers(loc, op, type, agg1, ofs1, agg2, ofs2);
+        if (cmp == -1)
         {
-            error("%s and %s point to independent memory blocks and "
-                "cannot be compared at compile time", this->e1->toChars(),
-                this->e2->toChars());
+           char dir = (op == TOKgt || op == TOKge) ? '<' : '>';
+           error("The ordering of pointers to unrelated memory blocks is indeterminate in CTFE."
+                 " To check if they point to the same memory block, use both > and < inside && or ||, "
+                 "eg (%s && %s %c= %s + 1)",
+                 toChars(), this->e1->toChars(), dir, this->e2->toChars());
+          return EXP_CANT_INTERPRET;
         }
-        return e;
+        return new IntegerExp(loc, cmp, type);
     }
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
@@ -4820,12 +4841,184 @@ Expression *PostExp::interpret(InterState *istate, CtfeGoal goal)
     return e;
 }
 
+/* Return 1 if e is a p1 > p2 or p1 >= p2 pointer comparison;
+ *       -1 if e is a p1 < p2 or p1 <= p2 pointer comparison;
+ *        0 otherwise
+ */
+int isPointerCmpExp(Expression *e, Expression **p1, Expression **p2)
+{
+    int ret = 1;
+    while (e->op == TOKnot)
+    {   ret *= -1;
+        e = ((NotExp *)e)->e1;
+    }
+    switch(e->op)
+    {
+    case TOKlt:
+    case TOKle:
+        ret *= -1;
+        /* fall through */
+    case TOKgt:
+    case TOKge:
+        *p1 = ((BinExp *)e)->e1;
+        *p2 = ((BinExp *)e)->e2;
+        if ( !(isPointer((*p1)->type) && isPointer((*p2)->type)) )
+            ret = 0;
+        break;
+    default:
+        ret = 0;
+        break;
+    }
+    return ret;
+}
+
+/** Negate a relational operator, eg >= becomes <
+ */
+TOK reverseRelation(TOK op)
+{
+    switch(op)
+    {
+        case TOKge: return TOKlt;
+        case TOKgt: return TOKle;
+        case TOKle: return TOKgt;
+        case TOKlt: return TOKge;
+        default:
+            assert(0);
+    }
+}
+
+/** If this is a four pointer relation, evaluate it, else return NULL.
+ *
+ *  This is an expression of the form (p1 > q1 && p2 < q2) or (p1 < q1 || p2 > q2)
+ *  where p1, p2 are expressions yielding pointers to memory block p,
+ *  and q1, q2 are expressions yielding pointers to memory block q.
+ *  This expression is valid even if p and q are independent memory
+ *  blocks and are therefore not normally comparable; the && form returns true
+ *  if [p1..p2] lies inside [q1..q2], and false otherwise; the || form returns
+ *  true if [p1..p2] lies outside [q1..q2], and false otherwise.
+ *
+ *  Within the expression, any ordering of p1, p2, q1, q2 is permissible;
+ *  the comparison operators can be any of >, <, <=, >=, provided that
+ *  both directions (p > q and p < q) are checked. Additionally the
+ *  relational sub-expressions can be negated, eg
+ *  ( !(q1 < p1) && p2 <= q2 ) is valid.
+ */
+Expression *BinExp::interpretFourPointerRelation(InterState *istate, CtfeGoal goal)
+{
+    assert(op == TOKandand || op == TOKoror);
+
+    /*  It can only be an isInside expression, if both e1 and e2 are
+     *  directional pointer comparisons.
+     *  Note that this check can be made statically; it does not depends on
+     *  any runtime values. This allows a JIT implementation to compile a
+     *  special AndAndPossiblyInside, keeping the normal AndAnd case efficient.
+     */
+
+    // Save the pointer expressions and the comparison directions,
+    // so we can use them later.
+    Expression *p1, *p2, *p3, *p4;
+    int dir1 = isPointerCmpExp(e1, &p1, &p2);
+    int dir2 = isPointerCmpExp(e2, &p3, &p4);
+    if ( dir1 == 0 || dir2 == 0 )
+        return NULL;
+
+    //printf("FourPointerRelation %s\n", toChars());
+
+    // Evaluate the first two pointers
+    p1 = p1->interpret(istate);
+    if (exceptionOrCantInterpret(p1))
+        return p1;
+    p2 = p2->interpret(istate);
+    if (exceptionOrCantInterpret(p1))
+        return p1;
+    dinteger_t ofs1, ofs2;
+    Expression *agg1 = getAggregateFromPointer(p1, &ofs1);
+    Expression *agg2 = getAggregateFromPointer(p2, &ofs2);
+
+    if ( !pointToSameMemoryBlock(agg1, agg2)
+         && agg1->op != TOKnull && agg2->op != TOKnull)
+    {   // Here it is either CANT_INTERPRET,
+        // or an IsInside comparison returning FALSE.
+        p3 = p3->interpret(istate);
+        if (p3 == EXP_CANT_INTERPRET)
+            return p3;
+        // Note that it is NOT legal for it to throw an exception!
+        Expression *except = NULL;
+        if (exceptionOrCantInterpret(p3))
+            except = p3;
+        else
+        {
+            p4 = p4->interpret(istate);
+            if (p4 == EXP_CANT_INTERPRET)
+                return p4;
+            if (exceptionOrCantInterpret(p3))
+                except = p4;
+        }
+        if (except)
+        {   error("Comparison %s of pointers to unrelated memory blocks remains "
+                 "indeterminate at compile time "
+                 "because exception %s was thrown while evaluating %s",
+                 this->e1->toChars(), except->toChars(), this->e2->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        dinteger_t ofs3,ofs4;
+        Expression *agg3 = getAggregateFromPointer(p3, &ofs3);
+        Expression *agg4 = getAggregateFromPointer(p4, &ofs4);
+        // The valid cases are:
+        // p1 > p2 && p3 > p4  (same direction, also for < && <)
+        // p1 > p2 && p3 < p4  (different direction, also < && >)
+        // Changing any > into >= doesnt affect the result
+        if ( (dir1 == dir2 && pointToSameMemoryBlock(agg1, agg4)
+            && pointToSameMemoryBlock(agg2, agg3))
+          || (dir1 != dir2 && pointToSameMemoryBlock(agg1, agg3)
+            && pointToSameMemoryBlock(agg2, agg4)) )
+        {   // it's a legal two-sided comparison
+            return new IntegerExp(loc, (op == TOKandand) ?  0 : 1, type);
+        }
+        // It's an invalid four-pointer comparison. Either the second
+        // comparison is in the same direction as the first, or else
+        // more than two memory blocks are involved (either two independent
+        // invalid comparisons are present, or else agg3 == agg4).
+        error("Comparison %s of pointers to unrelated memory blocks is "
+            "indeterminate at compile time, even when combined with %s.",
+            e1->toChars(), e2->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    // The first pointer expression didn't need special treatment, so we
+    // we need to interpret the entire expression exactly as a normal && or ||.
+    // This is easy because we haven't evaluated e2 at all yet, and we already
+    // know it will return a bool.
+    // But we mustn't evaluate the pointer expressions in e1 again, in case
+    // they have side-effects.
+    bool nott = false;
+    Expression *e = e1;
+    while (e->op == TOKnot)
+    {   nott= !nott;
+        e = ((NotExp *)e)->e1;
+    }
+    TOK cmpop = e->op;
+    if (nott)
+        cmpop = reverseRelation(cmpop);
+    int cmp = comparePointers(loc, cmpop, e1->type, agg1, ofs1, agg2, ofs2);
+    // We already know this is a valid comparison.
+    assert(cmp >= 0);
+    if ( (op == TOKandand && cmp == 1) || (op == TOKoror && cmp == 0) )
+        return e2->interpret(istate);
+    return new IntegerExp(loc, (op == TOKandand) ? 0 : 1, type);
+}
+
 Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
     printf("AndAndExp::interpret() %s\n", toChars());
 #endif
-    Expression *e = e1->interpret(istate);
+
+    // Check for an insidePointer expression, evaluate it if so
+    Expression *e = interpretFourPointerRelation(istate, goal);
+    if (e)
+        return e;
+
+    e = e1->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
 
@@ -4844,17 +5037,14 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
                 assert(type->ty == Tvoid);
                 return NULL;
             }
-            if (e != EXP_CANT_INTERPRET)
+            if (e->isBool(FALSE))
+                result = 0;
+            else if (isTrueBool(e))
+                result = 1;
+            else
             {
-                if (e->isBool(FALSE))
-                    result = 0;
-                else if (isTrueBool(e))
-                    result = 1;
-                else
-                {
-                    error("%s does not evaluate to a boolean", e->toChars());
-                    e = EXP_CANT_INTERPRET;
-                }
+                error("%s does not evaluate to a boolean", e->toChars());
+                e = EXP_CANT_INTERPRET;
             }
         }
         else
@@ -4873,7 +5063,13 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("OrOrExp::interpret() %s\n", toChars());
 #endif
-    Expression *e = e1->interpret(istate);
+
+    // Check for an insidePointer expression, evaluate it if so
+    Expression *e = interpretFourPointerRelation(istate, goal);
+    if (e)
+        return e;
+
+    e = e1->interpret(istate);
     if (exceptionOrCantInterpret(e))
         return e;
 
