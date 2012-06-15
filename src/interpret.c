@@ -4883,7 +4883,7 @@ TOK reverseRelation(TOK op)
         case TOKle: return TOKgt;
         case TOKlt: return TOKge;
         default:
-            assert(0);
+            return assert(0), TOKreserved;
     }
 }
 
