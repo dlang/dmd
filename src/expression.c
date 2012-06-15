@@ -1882,16 +1882,17 @@ char *ComplexExp::toChars()
 {
     char buffer[sizeof(value) * 3 + 8 + 1];
 
-#ifdef IN_GCC
     char buf1[sizeof(value) * 3 + 8 + 1];
     char buf2[sizeof(value) * 3 + 8 + 1];
+#ifdef IN_GCC
     creall(value).format(buf1, sizeof(buf1));
     cimagl(value).format(buf2, sizeof(buf2));
-    sprintf(buffer, "(%s+%si)", buf1, buf2);
 #else
-    sprintf(buffer, "(%Lg+%Lgi)", creall(value), cimagl(value));
-    assert(strlen(buffer) < sizeof(buffer));
+    ld_sprint(buf1, 'g', creall(value));
+    ld_sprint(buf2, 'g', cimagl(value));
 #endif
+    sprintf(buffer, "(%s+%si)", buf1, buf2);
+    assert(strlen(buffer) < sizeof(buffer));
     return mem.strdup(buffer);
 }
 
