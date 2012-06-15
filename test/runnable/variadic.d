@@ -1354,6 +1354,21 @@ void test4444()
 }
 
 /***************************************/
+// 4884
+
+struct A4884(T...)
+{
+    void foo(T) {}
+    void bar(bool, T) {}
+}
+
+void test4884()
+{
+    auto a1 = A4884!(int)();
+    auto a2 = A4884!(int, long)();
+}
+
+/***************************************/
 // 4940
 
 template Tuple4940(T...)
@@ -1543,6 +1558,7 @@ int main()
     test63();
     test1411();
     test4444();
+    test4884();
     test4940();
     test4940add();
     test6530();
