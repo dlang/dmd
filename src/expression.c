@@ -5180,7 +5180,6 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->fd = fd;
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
-    treq = NULL;
 }
 
 Expression *FuncExp::syntaxCopy()
@@ -5193,36 +5192,41 @@ Expression *FuncExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
     printf("FuncExp::semantic(%s)\n", toChars());
-    if (treq) printf("  treq = %s\n", treq->toChars());
+    if (fd->treq) printf("  treq = %s\n", fd->treq->toChars());
 #endif
     if (!type || type == Type::tvoid)
     {
-        if (treq)
-            treq = treq->semantic(loc, sc);
+        /* fd->treq might be incomplete type,
+         * so should not semantic it.
+         * void foo(T)(T delegate(int) dg){}
+         * foo(a=>a); // in IFTI, treq == T delegate(int)
+         */
+        //if (fd->treq)
+        //    fd->treq = fd->treq->semantic(loc, sc);
 
         // Set target of return type inference
-        if (treq && !fd->type->nextOf())
+        if (fd->treq && !fd->type->nextOf())
         {   TypeFunction *tfv = NULL;
-            if (treq->ty == Tdelegate ||
-                (treq->ty == Tpointer && treq->nextOf()->ty == Tfunction))
-                tfv = (TypeFunction *)treq->nextOf();
+            if (fd->treq->ty == Tdelegate ||
+                (fd->treq->ty == Tpointer && fd->treq->nextOf()->ty == Tfunction))
+                tfv = (TypeFunction *)fd->treq->nextOf();
             if (tfv)
             {   TypeFunction *tfl = (TypeFunction *)fd->type;
                 tfl->next = tfv->nextOf();
             }
         }
 
-        //printf("td = %p, treq = %p\n", td, treq);
+        //printf("td = %p, treq = %p\n", td, fd->treq);
         if (td)
         {
             assert(td->parameters && td->parameters->dim);
             td->semantic(sc);
             type = Type::tvoid; // temporary type
 
-            if (!treq)  // defer type determination
+            if (!fd->treq)  // defer type determination
                 return this;
 
-            return inferType(treq);
+            return inferType(fd->treq);
         }
 
         unsigned olderrors = global.errors;
@@ -5251,16 +5255,32 @@ Expression *FuncExp::semantic(Scope *sc)
 
         // Type is a "delegate to" or "pointer to" the function literal
         if ((fd->isNested() && fd->tok == TOKdelegate) ||
-            (tok == TOKreserved && treq && treq->ty == Tdelegate))
+            (tok == TOKreserved && fd->treq && fd->treq->ty == Tdelegate))
         {
             type = new TypeDelegate(fd->type);
             type = type->semantic(loc, sc);
+
+            fd->tok = TOKdelegate;
         }
         else
         {
             type = new TypePointer(fd->type);
             type = type->semantic(loc, sc);
             //type = fd->type->pointerTo();
+
+            /* A lambda expression deduced to function pointer might become
+             * to a delegate literal implicitly.
+             *
+             *   auto foo(void function() fp) { return 1; }
+             *   assert(foo({}) == 1);
+             *
+             * So, should keep fd->tok == TOKreserve if fd->treq == NULL.
+             */
+            if (fd->treq && fd->treq->ty == Tpointer)
+            {   // change to non-nested
+                fd->tok = TOKfunction;
+                fd->vthis = NULL;
+            }
         }
         fd->tookAddressOf++;
     }
