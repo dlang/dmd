@@ -5061,12 +5061,12 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             if (ea->op == TOKfunction)
             {   FuncExp *fe = (FuncExp *)ea;
-                if (fe->type->ty == Tpointer && fe->type->nextOf()->ty == Tfunction)
-                {   /* A function literal, that is passed to template and
-                     * already semanticed as function pointer, never requires
-                     * outer frame. So convert it to global function is valid.
-                     */
-                    // same as FuncExp::toElem().
+                /* A function literal, that is passed to template and
+                 * already semanticed as function pointer, never requires
+                 * outer frame. So convert it to global function is valid.
+                 */
+                if (fe->fd->tok == TOKreserved && fe->type->ty == Tpointer)
+                {   // change to non-nested
                     fe->fd->tok = TOKfunction;
                     fe->fd->vthis = NULL;
                 }

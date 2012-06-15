@@ -5259,12 +5259,28 @@ Expression *FuncExp::semantic(Scope *sc)
         {
             type = new TypeDelegate(fd->type);
             type = type->semantic(loc, sc);
+
+            fd->tok = TOKdelegate;
         }
         else
         {
             type = new TypePointer(fd->type);
             type = type->semantic(loc, sc);
             //type = fd->type->pointerTo();
+
+            /* A lambda expression deduced to function pointer might become
+             * to a delegate literal implicitly.
+             *
+             *   auto foo(void function() fp) { return 1; }
+             *   assert(foo({}) == 1);
+             *
+             * So, should keep fd->tok == TOKreserve if fd->treq == NULL.
+             */
+            if (fd->treq && fd->treq->ty == Tpointer)
+            {   // change to non-nested
+                fd->tok = TOKfunction;
+                fd->vthis = NULL;
+            }
         }
         fd->tookAddressOf++;
     }
