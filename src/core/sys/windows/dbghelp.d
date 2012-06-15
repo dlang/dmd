@@ -121,19 +121,27 @@ struct IMAGEHLP_MODULE64
     TCHAR[32]  ModuleName;
     TCHAR[256] ImageName;
     TCHAR[256] LoadedImageName;
-    TCHAR[256] LoadedPdbName;
-    DWORD      CVSig;
-    TCHAR[MAX_PATH*3] CVData;
-    DWORD      PdbSig;
-    GUID       PdbSig70;
-    DWORD      PdbAge;
-    BOOL       PdbUnmatched;
-    BOOL       DbgUnmachted;
-    BOOL       LineNumbers;
-    BOOL       GlobalSymbols;
-    BOOL       TypeInfo;
-    BOOL       SourceIndexed;
-    BOOL       Publics;
+    // new elements: 07-Jun-2002
+    version (none)
+    {
+        TCHAR[256] LoadedPdbName;
+        DWORD      CVSig;
+        TCHAR[MAX_PATH*3] CVData;
+        DWORD      PdbSig;
+        GUID       PdbSig70;
+        DWORD      PdbAge;
+        BOOL       PdbUnmatched;
+        BOOL       DbgUnmachted;
+        BOOL       LineNumbers;
+        BOOL       GlobalSymbols;
+        BOOL       TypeInfo;
+    }
+    // new elements: 17-Dec-2003
+    version (none)
+    {
+        BOOL       SourceIndexed;
+        BOOL       Publics;
+    }
 }
 
 struct IMAGEHLP_SYMBOL64
