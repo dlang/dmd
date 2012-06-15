@@ -391,10 +391,8 @@ shared static this()
     auto hProcess = GetCurrentProcess();
     auto pid      = GetCurrentProcessId();
     auto symPath  = generateSearchPath() ~ 0;
-    auto ret      = dbghelp.SymInitialize( hProcess,
-                                           symPath.ptr,
-                                           FALSE );
-    assert( ret != FALSE );
+    if (!dbghelp.SymInitialize(hProcess, symPath.ptr, FALSE))
+        return;
 
     auto symOptions = dbghelp.SymGetOptions();
     symOptions |= SYMOPT_LOAD_LINES;
