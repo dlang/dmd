@@ -3011,6 +3011,8 @@ Lagain:
         s = ti->toAlias();
         if (!s->isTemplateInstance())
             goto Lagain;
+        if (ti->errors)
+            return new ErrorExp();
         e = new ScopeExp(loc, ti);
         e = e->semantic(sc);
         return e;
