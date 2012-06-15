@@ -132,7 +132,12 @@ Dsymbol *getDsymbol(Object *oarg)
         if (ea->op == TOKvar)
             sa = ((VarExp *)ea)->var;
         else if (ea->op == TOKfunction)
-            sa = ((FuncExp *)ea)->fd;
+        {
+            if (((FuncExp *)ea)->td)
+                sa = ((FuncExp *)ea)->td;
+            else
+                sa = ((FuncExp *)ea)->fd;
+        }
         else
             sa = NULL;
     }
@@ -1836,6 +1841,14 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
         //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
         s = new AliasDeclaration(0, tp->ident, sa);
     }
+    else if (ea && ea->op == TOKfunction)
+    {
+        if (((FuncExp *)ea)->td)
+            sa = ((FuncExp *)ea)->td;
+        else
+            sa = ((FuncExp *)ea)->fd;
+        s = new AliasDeclaration(0, tp->ident, sa);
+    }
     else if (ea)
     {
         // tdtypes.data[i] always matches ea here
@@ -2062,6 +2075,15 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     fd_best = ti->toAlias()->isFuncDeclaration();
     if (!fd_best || !((TypeFunction*)fd_best->type)->callMatch(ethis, fargs))
         goto Lerror;
+
+    if (FuncLiteralDeclaration *fld = fd_best->isFuncLiteralDeclaration())
+    {
+        if (fld->tok == TOKreserved)
+        {   // change to non-nested
+            fld->tok = TOKfunction;
+            fld->vthis = NULL;
+        }
+    }
 
     /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
      * that same template. Thus, the function type can be incomplete. Complete it.
@@ -5403,7 +5425,10 @@ int TemplateInstance::hasNestedArgs(Objects *args)
             }
             if (ea->op == TOKfunction)
             {
-                sa = ((FuncExp *)ea)->fd;
+                if (((FuncExp *)ea)->td)
+                    sa = ((FuncExp *)ea)->td;
+                else
+                    sa = ((FuncExp *)ea)->fd;
                 goto Lsa;
             }
         }
@@ -5513,7 +5538,10 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             }
             if (ea->op == TOKfunction)
             {
-                sa = ((FuncExp *)ea)->fd;
+                if (((FuncExp *)ea)->td)
+                    sa = ((FuncExp *)ea)->td;
+                else
+                    sa = ((FuncExp *)ea)->fd;
                 ea = NULL;
                 goto Lsa;
             }

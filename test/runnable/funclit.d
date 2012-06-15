@@ -598,6 +598,25 @@ void test8226()
 }
 
 /***************************************************/
+// 8241
+
+auto exec8241a(alias a = function(x) => x, T...)(T as)
+{
+    return a(as);
+}
+
+auto exec8241b(alias a = (x) => x, T...)(T as)
+{
+    return a(as);
+}
+
+void test8241()
+{
+    exec8241a(2);
+    exec8241b(2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -632,6 +651,7 @@ int main()
     test8005();
     test8198();
     test8226();
+    test8241();
 
     printf("Success\n");
     return 0;
