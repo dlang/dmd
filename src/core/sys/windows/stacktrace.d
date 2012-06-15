@@ -25,39 +25,11 @@ import core.sys.windows.windows;
 //debug=PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 
-extern(Windows)
-{
-    DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWORD nSize);
-    void  RtlCaptureContext(CONTEXT* ContextRecord);
 
-    alias LONG function(void*) UnhandeledExceptionFilterFunc;
-    void* SetUnhandledExceptionFilter(void* handler);
-}
+extern(Windows) void RtlCaptureContext(CONTEXT* ContextRecord);
 
 
-private
-{
-    /+
-    extern(Windows) static LONG unhandeledExceptionFilterHandler(void* info)
-    {
-        printStackTrace();
-        return 0;
-    }
-
-
-    static void printStackTrace()
-    {
-        auto stack = TraceHandler( null );
-        foreach( char[] s; stack )
-        {
-            printf( "%s\n",s );
-        }
-    }
-    +/
-
-
-    __gshared immutable bool initialized;
-}
+private __gshared immutable bool initialized;
 
 
 class StackTrace : Throwable.TraceInfo
@@ -290,5 +262,4 @@ shared static this()
     dbghelp.SymEnumerateModules64(hProcess, &CodeViewFixup, null);
 
     initialized = true;
-    //SetUnhandledExceptionFilter( &unhandeledExceptionFilterHandler );
 }
