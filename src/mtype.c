@@ -2103,10 +2103,9 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             StringExp *se = new StringExp(e->loc, ident->toChars());
             Objects *tiargs = new Objects();
             tiargs->push(se);
-            e = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
-            ((DotTemplateInstanceExp *)e)->ti->tempdecl = td;
-            e = e->semantic(sc);
-            return e;
+            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
+            dti->ti->tempdecl = td;
+            return dti->semantic(sc, 1);
         }
 
         /* See if we should forward to the alias this.
@@ -2116,8 +2115,8 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
              *  e.aliasthis.ident
              */
             e = resolveAliasThis(sc, e);
-            e = new DotIdExp(e->loc, e, ident);
-            return e->semantic(sc);
+            DotIdExp *die = new DotIdExp(e->loc, e, ident);
+            return die->semantic(sc, 1);
         }
     }
 
