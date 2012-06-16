@@ -3914,7 +3914,7 @@ template Mfp(alias foo)
 
 class C157 {
  int a = 3;
- int foo(int i, int y) { return i + a + y; }
+ int foo(int j, int y) { return j + a + y; }
 }
 
 void test157()
