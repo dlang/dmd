@@ -151,42 +151,61 @@ private:
 
             if( stackframe.AddrPC.Offset != 0 )
             {
-                import core.stdc.stdio : snprintf;
-
                 immutable pc = stackframe.AddrPC.Offset;
+                char[] res;
                 if (dbghelp.SymGetSymFromAddr64(hProcess, pc, null, symbol) &&
                     *symbol.Name.ptr)
                 {
-                    auto symName = (cast(char*)symbol.Name.ptr)[0 .. strlen(symbol.Name.ptr)];
-                    char[2048] demangleBuf=void;
-                    symName = demangle(symName, demangleBuf);
-
                     DWORD disp;
                     if (dbghelp.SymGetLineFromAddr64(hProcess, pc, &disp, &line))
-                    {
-                        char[11] numBuf=void;
-                        static assert(is(typeof(line.LineNumber) == uint));
-                        immutable len = snprintf(numBuf.ptr, numBuf.length,
-                                                 "%u", line.LineNumber);
-                        len < numBuf.length || assert(0);
-                        trace ~= symName.dup ~ " at " ~
-                            line.FileName[0 .. strlen(line.FileName)] ~
-                            "(" ~ numBuf[0 .. len] ~ ")";
-                    }
+                        res = formatStackFrame(cast(void*)pc, symbol.Name.ptr,
+                                               line.FileName, line.LineNumber);
                     else
-                        trace ~= symName.dup;
+                        res = formatStackFrame(cast(void*)pc, symbol.Name.ptr);
                 }
                 else
-                {
-                    char[2+2*size_t.sizeof+1] numBuf=void;
-                    immutable len = snprintf(numBuf.ptr, numBuf.length,
-                                             "0x%p", cast(void*)pc);
-                    len < numBuf.length || assert(0);
-                    trace ~= numBuf[0 .. len].dup;
-                }
+                    res = formatStackFrame(cast(void*)pc);
+                trace ~= res;
             }
         }
         return trace;
+    }
+
+    static char[] formatStackFrame(void* pc)
+    {
+        import core.stdc.stdio : snprintf;
+        char[2+2*size_t.sizeof+1] buf=void;
+
+        immutable len = snprintf(buf.ptr, buf.length, "0x%p", pc);
+        len < buf.length || assert(0);
+        return buf[0 .. len].dup;
+    }
+
+    static char[] formatStackFrame(void* pc, char* symName)
+    {
+        char[2048] demangleBuf=void;
+
+        auto res = formatStackFrame(pc);
+        res ~= " in ";
+        res ~= demangle(symName[0 .. strlen(symName)], demangleBuf);
+        return res;
+    }
+
+    static char[] formatStackFrame(void* pc, char* symName,
+                                   in char* fileName, uint lineNum)
+    {
+        import core.stdc.stdio : snprintf;
+        char[11] buf=void;
+
+        auto res = formatStackFrame(pc, symName);
+        res ~= " at ";
+        res ~= fileName[0 .. strlen(fileName)];
+        res ~= "(";
+        immutable len = snprintf(buf.ptr, buf.length, "%u", lineNum);
+        len < buf.length || assert(0);
+        res ~= buf[0 .. len];
+        res ~= ")";
+        return res;
     }
 }
 
