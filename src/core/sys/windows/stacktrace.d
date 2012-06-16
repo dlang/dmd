@@ -94,22 +94,23 @@ private:
         auto         dbghelp  = DbgHelp.get();
         auto         hThread  = GetCurrentThread();
         auto         hProcess = GetCurrentProcess();
-        STACKFRAME64 stackframe;
-        DWORD        imageType;
-        char[][]     trace;
-        CONTEXT      c;
+        CONTEXT      ctxt;
 
-        c.ContextFlags = CONTEXT_FULL;
-        RtlCaptureContext( &c );
+        ctxt.ContextFlags = CONTEXT_FULL;
+        RtlCaptureContext(&ctxt);
 
         //x86
-        imageType                   = IMAGE_FILE_MACHINE_I386;
-        stackframe.AddrPC.Offset    = cast(DWORD64) c.Eip;
-        stackframe.AddrPC.Mode      = ADDRESS_MODE.AddrModeFlat;
-        stackframe.AddrFrame.Offset = cast(DWORD64) c.Ebp;
-        stackframe.AddrFrame.Mode   = ADDRESS_MODE.AddrModeFlat;
-        stackframe.AddrStack.Offset = cast(DWORD64) c.Esp;
-        stackframe.AddrStack.Mode   = ADDRESS_MODE.AddrModeFlat;
+        STACKFRAME64 stackframe;
+        with (stackframe)
+        {
+            enum Flat = ADDRESS_MODE.AddrModeFlat;
+            AddrPC.Offset    = ctxt.Eip;
+            AddrPC.Mode      = Flat;
+            AddrFrame.Offset = ctxt.Ebp;
+            AddrFrame.Mode   = Flat;
+            AddrStack.Offset = ctxt.Esp;
+            AddrStack.Mode   = Flat;
+        }
 
         static struct BufSymbol
         {
@@ -122,12 +123,14 @@ private:
         symbol.SizeOfStruct = IMAGEHLP_SYMBOL64.sizeof;
         symbol.MaxNameLength = bufSymbol._buf.length;
 
-        IMAGEHLP_LINE64 line=void;
-        line.SizeOfStruct = IMAGEHLP_LINE64.sizeof;
+        version (X86)         enum imageType = IMAGE_FILE_MACHINE_I386;
+        else version (X86_64) enum imageType = IMAGE_FILE_MACHINE_AMD64;
+        else                  static assert(0, "unimplemented");
 
+        char[][] trace;
         debug(PRINTF) printf("Callstack:\n");
         while (dbghelp.StackWalk64(imageType, hProcess, hThread, &stackframe,
-                                   &c, null, null, null, null))
+                                   &ctxt, null, null, null, null))
         {
             if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
             {
@@ -142,6 +145,8 @@ private:
                     *symbol.Name.ptr)
                 {
                     DWORD disp;
+                    IMAGEHLP_LINE64 line=void;
+                    line.SizeOfStruct = IMAGEHLP_LINE64.sizeof;
 
                     if (dbghelp.SymGetLineFromAddr64(hProcess, pc, &disp, &line))
                         res = formatStackFrame(cast(void*)pc, symbol.Name.ptr,
