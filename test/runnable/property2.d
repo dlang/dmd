@@ -313,6 +313,43 @@ void test7275()
 }
 
 /*****************************************/
+// 8251
+
+struct S8251
+{
+    static @property int min() { return 123; }
+}
+@property int T8251_Min() { return 456; }
+
+template T8251a (int v)             { int T8251a  = v; }
+
+template T8251b1(int v = S8251.min) { int T8251b1 = v; }
+template T8251b2(int v = T8251_Min) { int T8251b2 = v; }
+
+template T8251c1(int v : S8251.min) { int T8251c1 = v; }
+template T8251c2(int v : T8251_Min) { int T8251c2 = v; }
+
+void test8251()
+{
+    static assert(S8251.min == 123);    // OK
+    static assert(T8251_Min == 456);    // OK
+    int a0 = T8251a!(S8251.min());      // OK
+    int b0 = T8251a!(T8251_Min());      // OK
+
+    // TemplateValueParameter
+    int a1 = T8251a!(S8251.min);        // NG
+    int b1 = T8251a!(T8251_Min);        // NG
+
+    // TemplateValueParameterDefault
+    int a2 = T8251b1!();                // NG
+    int b2 = T8251b2!();                // NG
+
+    // TemplateValueParameterSpecialization
+    int a3 = T8251c1!(123);             // NG
+    int b3 = T8251c2!(456);             // NG
+}
+
+/*****************************************/
 
 int main()
 {
@@ -323,6 +360,7 @@ int main()
     test7174();
     test7274();
     test7275();
+    test8251();
 
     printf("Success\n");
     return 0;
