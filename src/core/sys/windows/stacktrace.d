@@ -126,30 +126,15 @@ private:
         line.SizeOfStruct = IMAGEHLP_LINE64.sizeof;
 
         debug(PRINTF) printf("Callstack:\n");
-        for( int frameNum = 0; ; frameNum++ )
+        while (dbghelp.StackWalk64(imageType, hProcess, hThread, &stackframe,
+                                   &c, null, null, null, null))
         {
-            if( dbghelp.StackWalk64( imageType,
-                                     hProcess,
-                                     hThread,
-                                     &stackframe,
-                                     &c,
-                                     null,
-                                     cast(FunctionTableAccessProc64) dbghelp.SymFunctionTableAccess64,
-                                     cast(GetModuleBaseProc64) dbghelp.SymGetModuleBase64,
-                                     null) != TRUE )
-            {
-                debug(PRINTF) printf("End of Callstack\n");
-                break;
-            }
-
             if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
             {
                 debug(PRINTF) printf("Endless callstack\n");
-                trace ~= "...".dup;
-                break;
+                return trace ~ "...".dup;
             }
-
-            if( stackframe.AddrPC.Offset != 0 )
+            else if( stackframe.AddrPC.Offset != 0 )
             {
                 immutable pc = stackframe.AddrPC.Offset;
                 char[] res;
@@ -157,6 +142,7 @@ private:
                     *symbol.Name.ptr)
                 {
                     DWORD disp;
+
                     if (dbghelp.SymGetLineFromAddr64(hProcess, pc, &disp, &line))
                         res = formatStackFrame(cast(void*)pc, symbol.Name.ptr,
                                                line.FileName, line.LineNumber);
@@ -168,6 +154,7 @@ private:
                 trace ~= res;
             }
         }
+        debug(PRINTF) printf("End of Callstack\n");
         return trace;
     }
 
