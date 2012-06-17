@@ -1938,6 +1938,10 @@ TOK Lexer::number(Token *t)
                     case '.':
                         if (p[1] == '.')        // .. is a separate token
                             goto done;
+#if DMDV2
+                        if (isalpha(p[1]) || p[1] == '_')
+                            goto done;
+#endif
                     case 'i':
                     case 'f':
                     case 'F':
