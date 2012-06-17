@@ -41,15 +41,6 @@ STATIC void do16bit (enum FL,union evc *,int);
 STATIC void do32bit (enum FL,union evc *,int,targ_size_t = 0);
 STATIC void do64bit (enum FL,union evc *,int);
 
-int hasframe;            /* !=0 if this function has a stack frame */
-targ_size_t spoff;
-targ_size_t Foff;        // BP offset of floating register
-targ_size_t CSoff;       // offset of common sub expressions
-targ_size_t NDPoff;      // offset of saved 8087 registers
-int BPoff;                      // offset from BP
-int EBPtoESP;            // add to EBP offset to get ESP offset
-int AAoff;               // offset of alloca temporary
-
 #if ELFOBJ || MACHOBJ
 #define JMPSEG  CDATA
 #define JMPOFF  CDoffset

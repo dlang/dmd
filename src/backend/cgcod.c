@@ -41,6 +41,14 @@ STATIC code * comsub(elem *,regm_t *);
 
 bool floatreg;                  // !=0 if floating register is required
 
+int hasframe;                   // !=0 if this function has a stack frame
+targ_size_t spoff;
+targ_size_t Foff;               // BP offset of floating register
+targ_size_t CSoff;              // offset of common sub expressions
+targ_size_t NDPoff;             // offset of saved 8087 registers
+int BPoff;                      // offset from BP
+int EBPtoESP;                   // add to EBP offset to get ESP offset
+int AAoff;                      // offset of alloca temporary
 targ_size_t Aoffset;            // offset of automatics and registers
 targ_size_t Toffset;            // offset of temporaries
 targ_size_t EEoffset;           // offset of SCstack variables from ESP
