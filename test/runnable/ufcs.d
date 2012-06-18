@@ -304,6 +304,17 @@ void test8180()
 }
 
 /*******************************************/
+// 8252
+
+bool f(int x) { return !x; }
+
+void test8252()
+{
+    static assert(!1.f); // ok
+    static assert( 0.f); // fail
+}
+
+/*******************************************/
 
 int main()
 {
@@ -317,6 +328,7 @@ int main()
     test7773();
     test7943();
     test8180();
+    test8252();
 
     printf("Success\n");
     return 0;

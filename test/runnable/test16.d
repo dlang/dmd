@@ -263,7 +263,7 @@ void len9(float x, float y, float z, float t)
 void test9()
 {
     float[4] a;
-    a[0] = a[1] = a[2] = a[3] = 0.f;
+    a[0] = a[1] = a[2] = a[3] = 0.0f;
 
     for (int y = 0; y < 7; ++y)
     {
@@ -272,8 +272,8 @@ void test9()
 	float justOne() { return 1.0f; }
 
 	float dot = justOne();
-	if (dot < 0.f)
-	    dot = 0.f;
+	if (dot < 0.0f)
+	    dot = 0.0f;
     }
 }
 
