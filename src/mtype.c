@@ -1956,7 +1956,13 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
             error(loc, "void does not have an initializer");
         if (ty == Tfunction)
             error(loc, "function does not have an initializer");
-        e = defaultInitLiteral(loc);
+        if (toBasetype()->ty == Tstruct &&
+            ((TypeStruct *)toBasetype())->sym->isNested())
+        {
+            e = defaultInit(loc);
+        }
+        else
+            e = defaultInitLiteral(loc);
     }
     else if (ident == Id::mangleof)
     {   const char *s;
@@ -2030,7 +2036,13 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
         }
         else if (ident == Id::init)
         {
-            e = defaultInitLiteral(e->loc);
+            if (toBasetype()->ty == Tstruct &&
+                ((TypeStruct *)toBasetype())->sym->isNested())
+            {
+                e = defaultInit(e->loc);
+            }
+            else
+                e = defaultInitLiteral(e->loc);
             goto Lreturn;
         }
     }
@@ -7958,8 +7970,8 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeStruct::defaultInitLiteral() '%s'\n", toChars());
 #endif
-    if (sym->isNested())
-        return defaultInit(loc);
+    //if (sym->isNested())
+    //    return defaultInit(loc);
     Expressions *structelems = new Expressions();
     structelems->setDim(sym->fields.dim);
     for (size_t j = 0; j < structelems->dim; j++)

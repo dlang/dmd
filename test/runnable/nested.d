@@ -1580,8 +1580,40 @@ void test7199()
 }
 
 /*******************************************/
-// 8188
+// 7965
 
+void test7965()
+{
+    int x;
+    static int* px;
+    px = &x;
+
+    printf("&x = %p in main()\n", &x);
+    struct S1
+    {
+        char y;
+        void boom() {
+            printf("&x = %p in S1.boom()\n", &x);
+            assert(&x == px);
+            //x = 42; // makes the struct nested
+        }
+    }
+    S1 s1;
+    s1.boom();
+
+    struct S2
+    {
+        this(int n) {
+            printf("&x = %p in S2.this()\n", &x);
+            assert(&x == px);
+        }
+        char y;
+    }
+    S2 s2 = S2(10);
+}
+
+/*******************************************/
+// 8188
 
 mixin template Print8188(b...)
 {
@@ -1708,6 +1740,7 @@ int main()
     test7428();
     test4841();
     test7199();
+    test7965();
     test8188();
 
     test5082();
