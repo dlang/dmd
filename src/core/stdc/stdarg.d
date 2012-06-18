@@ -174,58 +174,81 @@ else version (X86_64)
             {   // Arg is passed in two registers
                 alias U[0] T1;
                 alias U[1] T2;
+                auto p = cast(void*)&parmn + 8;
 
-                static if (is(T1 == double) || is(T1 == float))
+                // Both must be in registers, or both on stack, hence 4 cases
+
+                static if ((is(T1 == double) || is(T1 == float)) &&
+                           (is(T2 == double) || is(T2 == float)))
                 {
-                    if (ap.offset_fpregs < (6 * 8 + 16 * 8))
+                    if (ap.offset_fpregs < (6 * 8 + 16 * 8) - 16)
                     {
                         *cast(T1*)&parmn = *cast(T1*)(ap.reg_args + ap.offset_fpregs);
-                        ap.offset_fpregs += 16;
+                        *cast(T2*)p = *cast(T2*)(ap.reg_args + ap.offset_fpregs + 16);
+                        ap.offset_fpregs += 32;
                     }
                     else
                     {
                         *cast(T1*)&parmn = *cast(T1*)ap.stack_args;
                         ap.stack_args += (T1.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+                        *cast(T2*)p = *cast(T2*)ap.stack_args;
+                        ap.stack_args += (T2.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
                     }
                 }
-                else
+                else static if (is(T1 == double) || is(T1 == float))
                 {
-                    if (ap.offset_regs < 6 * 8 && T1.sizeof <= 8)
+                    void* a = void;
+                    if (ap.offset_fpregs < (6 * 8 + 16 * 8) &&
+                        ap.offset_regs < 6 * 8 && T2.sizeof <= 8)
+                    {
+                        *cast(T1*)&parmn = *cast(T1*)(ap.reg_args + ap.offset_fpregs);
+                        ap.offset_fpregs += 16;
+                        a = ap.reg_args + ap.offset_regs;
+                        ap.offset_regs += 8;
+                    }
+                    else
+                    {
+                        *cast(T1*)&parmn = *cast(T1*)ap.stack_args;
+                        ap.stack_args += (T1.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+                        a = ap.stack_args;
+                        ap.stack_args += 8;
+                    }
+                    // Be careful not to go past the size of the actual argument
+                    const sz2 = T.sizeof - 8;
+                    p[0..sz2] = a[0..sz2];
+                }
+                else static if (is(T2 == double) || is(T2 == float))
+                {
+                    if (ap.offset_regs < 6 * 8 && T1.sizeof <= 8 &&
+                        ap.offset_fpregs < (6 * 8 + 16 * 8))
                     {
                         *cast(T1*)&parmn = *cast(T1*)(ap.reg_args + ap.offset_regs);
+                        ap.offset_regs += 8;
+                        *cast(T2*)p = *cast(T2*)(ap.reg_args + ap.offset_fpregs);
+                        ap.offset_fpregs += 16;
+                    }
+                    else
+                    {
+                        *cast(T1*)&parmn = *cast(T1*)ap.stack_args;
+                        ap.stack_args += 8;
+                        *cast(T2*)p = *cast(T2*)ap.stack_args;
+                        ap.stack_args += (T2.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+                    }
+                }
+                else // both in regular registers
+                {
+                    void* a = void;
+                    if (ap.offset_regs < 5 * 8 && T1.sizeof <= 8 && T2.sizeof <= 8)
+                    {
+                        *cast(T1*)&parmn = *cast(T1*)(ap.reg_args + ap.offset_regs);
+                        ap.offset_regs += 8;
+                        a = ap.reg_args + ap.offset_regs;
                         ap.offset_regs += 8;
                     }
                     else
                     {
                         *cast(T1*)&parmn = *cast(T1*)ap.stack_args;
                         ap.stack_args += 8;
-                    }
-                }
-
-                auto p = cast(void*)&parmn + 8;
-                static if (is(T2 == double) || is(T2 == float))
-                {
-                    if (ap.offset_fpregs < (6 * 8 + 16 * 8))
-                    {
-                        *cast(T2*)p = *cast(T2*)(ap.reg_args + ap.offset_fpregs);
-                        ap.offset_fpregs += 16;
-                    }
-                    else
-                    {
-                        *cast(T2*)p = *cast(T2*)ap.stack_args;
-                        ap.stack_args += (T2.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
-                    }
-                }
-                else
-                {
-                    void* a = void;
-                    if (ap.offset_regs < 6 * 8 && T2.sizeof <= 8)
-                    {
-                        a = ap.reg_args + ap.offset_regs;
-                        ap.offset_regs += 8;
-                    }
-                    else
-                    {
                         a = ap.stack_args;
                         ap.stack_args += 8;
                     }
@@ -250,15 +273,25 @@ else version (X86_64)
         __va_list* ap = cast(__va_list*)apx;
         TypeInfo arg1, arg2;
         if (!ti.argTypes(arg1, arg2))
-        {   TypeInfo_Vector v1 = arg1 ? cast(TypeInfo_Vector)arg1 : null;
+        {
+            bool inXMMregister(TypeInfo arg)
+            {
+                auto s = arg.toString();
+                return (s == "double" || s == "float" || s == "idouble" || s == "ifloat");
+            }
+
+            TypeInfo_Vector v1 = arg1 ? cast(TypeInfo_Vector)arg1 : null;
             if (arg1 && (arg1.tsize() <= 8 || v1))
             {   // Arg is passed in one register
                 auto tsize = arg1.tsize();
                 void* p;
-                auto s = arg1.toString();
-                if (s == "double" || s == "float" || s == "idouble" || s == "ifloat" || v1)
+                bool stack = false;
+                auto offset_fpregs_save = ap.offset_fpregs;
+                auto offset_regs_save = ap.offset_regs;
+            L1:
+                if (inXMMregister(arg1) || v1)
                 {   // Passed in XMM register
-                    if (ap.offset_fpregs < (6 * 8 + 16 * 8))
+                    if (ap.offset_fpregs < (6 * 8 + 16 * 8) && !stack)
                     {
                         p = ap.reg_args + ap.offset_fpregs;
                         ap.offset_fpregs += 16;
@@ -267,11 +300,12 @@ else version (X86_64)
                     {
                         p = ap.stack_args;
                         ap.stack_args += (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+                        stack = true;
                     }
                 }
                 else
                 {   // Passed in regular register
-                    if (ap.offset_regs < 6 * 8)
+                    if (ap.offset_regs < 6 * 8 && !stack)
                     {
                         p = ap.reg_args + ap.offset_regs;
                         ap.offset_regs += 8;
@@ -280,43 +314,55 @@ else version (X86_64)
                     {
                         p = ap.stack_args;
                         ap.stack_args += 8;
+                        stack = true;
                     }
                 }
                 parmn[0..tsize] = p[0..tsize];
 
                 if (arg2)
                 {
-                    parmn += 8;
-                    tsize = arg2.tsize();
-                    s = arg2.toString();
-                    if (s == "double" || s == "float" || s == "idouble" || s == "ifloat")
+                    if (inXMMregister(arg2))
                     {   // Passed in XMM register
-                        if (ap.offset_fpregs < (6 * 8 + 16 * 8))
+                        if (ap.offset_fpregs < (6 * 8 + 16 * 8) && !stack)
                         {
                             p = ap.reg_args + ap.offset_fpregs;
                             ap.offset_fpregs += 16;
                         }
                         else
                         {
+                            if (!stack)
+                            {   // arg1 is really on the stack, so rewind and redo
+                                ap.offset_fpregs = offset_fpregs_save;
+                                ap.offset_regs = offset_regs_save;
+                                stack = true;
+                                goto L1;
+                            }
                             p = ap.stack_args;
-                            ap.stack_args += (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+                            ap.stack_args += (arg2.tsize() + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
                         }
                     }
                     else
                     {   // Passed in regular register
-                        if (ap.offset_regs < 6 * 8)
+                        if (ap.offset_regs < 6 * 8 && !stack)
                         {
                             p = ap.reg_args + ap.offset_regs;
                             ap.offset_regs += 8;
                         }
                         else
                         {
+                            if (!stack)
+                            {   // arg1 is really on the stack, so rewind and redo
+                                ap.offset_fpregs = offset_fpregs_save;
+                                ap.offset_regs = offset_regs_save;
+                                stack = true;
+                                goto L1;
+                            }
                             p = ap.stack_args;
                             ap.stack_args += 8;
                         }
                     }
-                    tsize = ti.tsize() - 8;
-                    parmn[0..tsize] = p[0..tsize];
+                    auto sz = ti.tsize() - 8;
+                    (parmn + 8)[0..sz] = p[0..sz];
                 }
             }
             else
