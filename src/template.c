@@ -1825,6 +1825,12 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
             }
         }
     }
+    if (ea && ea->op == TOKtype)
+        targ = ea->type;
+    else if (ea && ea->op == TOKimport)
+        sa = ((ScopeExp *)ea)->sds;
+    else if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
+        sa = ((ThisExp *)ea)->var;
 
     if (targ)
     {
@@ -3785,6 +3791,11 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     }
 
     sa = getDsymbol(oarg);
+    ea = isExpression(oarg);
+    if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
+        sa = ((ThisExp *)ea)->var;
+    else if (ea && ea->op == TOKimport)
+        sa = ((ScopeExp *)ea)->sds;
     if (sa)
     {
         /* specType means the alias must be a declaration with a type
@@ -3801,7 +3812,6 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     else
     {
         sa = oarg;
-        ea = isExpression(oarg);
         if (ea)
         {   if (specType)
             {
@@ -5052,7 +5062,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 ea = ea->optimize(WANTvalue);
             else if (ea->op != TOKvar && ea->op != TOKtuple &&
                      ea->op != TOKimport && ea->op != TOKtype &&
-                     ea->op != TOKfunction)
+                     ea->op != TOKfunction &&
+                     ea->op != TOKthis && ea->op != TOKsuper)
                 ea = ea->ctfeInterpret();
             (*tiargs)[j] = ea;
             if (ea->op == TOKtype)
