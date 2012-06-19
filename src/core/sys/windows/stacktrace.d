@@ -13,7 +13,7 @@
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module core.sys.windows.stacktrace;
-
+version(Windows):
 
 import core.demangle;
 import core.runtime;
