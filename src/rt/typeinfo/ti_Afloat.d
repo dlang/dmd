@@ -18,8 +18,10 @@ private import rt.util.hash;
 
 // float[]
 
-class TypeInfo_Af : TypeInfo
+class TypeInfo_Af : TypeInfo_Array
 {
+    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+
     @trusted:
     const:
     pure:
@@ -69,31 +71,9 @@ class TypeInfo_Af : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize() nothrow pure
-    {
-        return (float[]).sizeof;
-    }
-
-    @property override uint flags() nothrow pure
-    {
-        return 1;
-    }
-
     @property override TypeInfo next() nothrow pure
     {
         return typeid(float);
-    }
-
-    @property override size_t talign() nothrow pure
-    {
-        return (float[]).alignof;
-    }
-
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {
-        //arg1 = typeid(size_t);
-        //arg2 = typeid(void*);
-        return 0;
     }
 }
 

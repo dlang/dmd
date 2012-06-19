@@ -18,8 +18,10 @@ private import rt.util.hash;
 
 // short[]
 
-class TypeInfo_As : TypeInfo
+class TypeInfo_As : TypeInfo_Array
 {
+    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+
     @trusted:
     const:
     pure:
@@ -62,30 +64,9 @@ class TypeInfo_As : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize() nothrow pure
-    {
-        return (short[]).sizeof;
-    }
-
-    @property override uint flags() nothrow pure
-    {
-        return 1;
-    }
-
     @property override TypeInfo next() nothrow pure
     {
         return typeid(short);
-    }
-
-    @property override size_t talign() nothrow pure
-    {
-        return (short[]).alignof;
-    }
-
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(size_t);
-        arg2 = typeid(void*);
-        return 0;
     }
 }
 

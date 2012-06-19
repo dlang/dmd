@@ -18,8 +18,10 @@ private import rt.util.hash;
 
 // cfloat[]
 
-class TypeInfo_Aq : TypeInfo
+class TypeInfo_Aq : TypeInfo_Array
 {
+    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+
     @trusted:
     const:
     pure:
@@ -69,30 +71,8 @@ class TypeInfo_Aq : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize() nothrow pure
-    {
-        return (cfloat[]).sizeof;
-    }
-
-    @property override uint flags() nothrow pure
-    {
-        return 1;
-    }
-
     @property override TypeInfo next() nothrow pure
     {
         return typeid(cfloat);
-    }
-
-    @property override size_t talign() nothrow pure
-    {
-        return (cfloat[]).alignof;
-    }
-
-    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {
-        //arg1 = typeid(size_t);
-        //arg2 = typeid(void*);
-        return 0;
     }
 }
