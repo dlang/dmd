@@ -8,7 +8,7 @@
 
 /*          Copyright Digital Mars 2000 - 2010.
  * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
+ *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
 module rt.cover;
@@ -104,12 +104,13 @@ extern (C) void dmd_coverSetMerge( bool flag )
  *  valid    = ???
  *  data     = ???
  */
-extern (C) void _d_cover_register( string filename, BitArray valid, uint[] data )
+extern (C) void _d_cover_register( string filename, size_t[] valid, uint[] data )
 {
     Cover c;
 
     c.filename  = filename;
-    c.valid     = valid;
+    c.valid.ptr = valid.ptr;
+    c.valid.len = valid.length;
     c.data      = data;
     gdata      ~= c;
 }

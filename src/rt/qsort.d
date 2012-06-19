@@ -29,11 +29,6 @@ module rt.qsort;
 
 import core.stdc.stdlib;
 
-struct Array
-{
-    size_t length;
-    void*  ptr;
-}
 
 
 private const int _maxspan = 7; // subarrays of _maxspan or fewer elements
@@ -45,7 +40,7 @@ an array of large structures to be sorted, rather than an array of pointers to
 structures.  The default value is optimized for a high cost for compares. */
 
 
-extern (C) void[] _adSort(Array a, TypeInfo ti)
+extern (C) void[] _adSort(void[] a, TypeInfo ti)
 {
   byte*[40] stackbuf = void;    // initial stack buffer
   auto stack = stackbuf[0..$];    // stack
