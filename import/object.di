@@ -102,6 +102,18 @@ class TypeInfo_Pointer : TypeInfo
 
 class TypeInfo_Array : TypeInfo
 {
+    override string toString();
+    override equals_t opEquals(Object o);
+    override hash_t getHash(in void* p) @trusted;
+    override equals_t equals(in void* p1, in void* p2);
+    override int compare(in void* p1, in void* p2);
+    @property override size_t tsize() nothrow pure;
+    override void swap(void* p1, void* p2);
+    @property override TypeInfo next() nothrow pure;
+    @property override uint flags() nothrow pure;
+    @property override size_t talign() nothrow pure;
+    version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2);
+
     TypeInfo value;
 }
 
