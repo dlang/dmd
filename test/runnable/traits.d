@@ -10,6 +10,8 @@ class AC3 : AC2 { }
 final class FC { void foo() { } }
 enum E { EMEM }
 
+template TypeTuple(T...) { alias T TypeTuple; }
+
 /********************************************************/
 
 void test1()
@@ -766,6 +768,38 @@ void test7858()
 
 /********************************************************/
 
+template ParameterTypeTuple(alias func)
+{
+    static if (is(typeof(func) P == function))
+        alias P ParameterTypeTuple;
+    else
+        static assert(0, "argument has no parameters");
+}
+
+template ParameterNameTuple(alias func)
+{
+    static if (is(typeof(func) == function))
+    {
+        alias TypeTuple!(__traits(identifier, typeof(func))) ParameterNameTuple;
+    }
+    else
+        static assert(0);
+}
+
+void test24()
+{
+    void foo(ref int x, string name){}
+    pragma(msg, ParameterTypeTuple!foo);
+
+    void bar(ParameterTypeTuple!foo name){}     // has same signature as foo
+    pragma(msg, ParameterTypeTuple!bar);        // parameter identifiers not guaranteed
+
+    static assert([ParameterNameTuple!foo] == ["x", "name"]);
+    static assert([ParameterNameTuple!bar] == ["name", "name"]);
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
@@ -794,6 +828,7 @@ int main()
     test23();
     test7608();
     test7858();
+    test24();
 
     writeln("Success");
     return 0;

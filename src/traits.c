@@ -198,13 +198,45 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Ldimerror;
         Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
-        if (!s || !s->ident)
+        Type *t = getType(o);
+        if (s && s->ident)
         {
-            error("argument %s has no identifier", o->toChars());
-            goto Lfalse;
+            StringExp *se = new StringExp(loc, s->ident->toChars());
+            return se->semantic(sc);
         }
-        StringExp *se = new StringExp(loc, s->ident->toChars());
-        return se->semantic(sc);
+        if (t && t->ty == Tfunction)
+        {
+            TypeFunction *tf = (TypeFunction *)t;
+            size_t dim = tf->parameters->dim;
+            Expressions *exps = new Expressions();
+            exps->setDim(dim);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter *arg = (*tf->parameters)[i];
+                if (arg->type->ty == Ttuple)
+                {
+                    TypeTuple *tt = (TypeTuple *)arg->type;
+                    size_t tdim = tt->arguments->dim;
+                    exps->setDim(dim - 1 + tdim);
+                    char* name = arg->ident->toChars();
+                    for (size_t j = 0; j < tdim; j++)
+                    {
+                        StringExp *se = new StringExp(loc, name);
+                        (*exps)[i + j] = se;
+                    }
+                    i = i + tdim - 1;
+                }
+                else
+                {
+                    StringExp *se = new StringExp(loc, arg->ident->toChars());
+                    (*exps)[i] = se;
+                }
+            }
+            Expression *e = new TupleExp(loc, exps);
+            return e->semantic(sc);
+        }
+        error("argument %s has no identifier", o->toChars());
+        goto Lfalse;
     }
     else if (ident == Id::parent)
     {
