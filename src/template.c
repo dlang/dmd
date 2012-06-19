@@ -795,6 +795,8 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
         }
 
         e = e->semantic(sc);
+        if (e->op == TOKerror)
+            goto Lnomatch;
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
@@ -1764,6 +1766,8 @@ Lmatch:
         previous = pr.prev;             // unlink from threaded list
 
         if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+            goto Lnomatch;
+        if (e->op == TOKerror)
             goto Lnomatch;
 
         e = e->ctfeInterpret();
@@ -5062,7 +5066,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 ea = ea->optimize(WANTvalue);
             else if (ea->op != TOKvar && ea->op != TOKtuple &&
                      ea->op != TOKimport && ea->op != TOKtype &&
-                     ea->op != TOKfunction &&
+                     ea->op != TOKfunction && ea->op != TOKerror &&
                      ea->op != TOKthis && ea->op != TOKsuper)
                 ea = ea->ctfeInterpret();
             (*tiargs)[j] = ea;
