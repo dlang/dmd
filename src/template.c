@@ -800,6 +800,8 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
         }
 
         e = e->semantic(sc);
+        if (e->op == TOKerror)
+            goto Lnomatch;
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
@@ -1770,6 +1772,8 @@ Lmatch:
 
         if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
             goto Lnomatch;
+        if (e->op == TOKerror)
+            goto Lnomatch;
 
         e = e->ctfeInterpret();
         if (e->isBool(TRUE))
@@ -1830,6 +1834,12 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
             }
         }
     }
+    if (ea && ea->op == TOKtype)
+        targ = ea->type;
+    else if (ea && ea->op == TOKimport)
+        sa = ((ScopeExp *)ea)->sds;
+    else if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
+        sa = ((ThisExp *)ea)->var;
 
     if (targ)
     {
@@ -3807,6 +3817,11 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     }
 
     sa = getDsymbol(oarg);
+    ea = isExpression(oarg);
+    if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
+        sa = ((ThisExp *)ea)->var;
+    else if (ea && ea->op == TOKimport)
+        sa = ((ScopeExp *)ea)->sds;
     if (sa)
     {
         /* specType means the alias must be a declaration with a type
@@ -3823,7 +3838,6 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     else
     {
         sa = oarg;
-        ea = isExpression(oarg);
         if (ea)
         {   if (specType)
             {
@@ -4604,6 +4618,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         {   if (!sc->parameterSpecialization)
                 inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
+            if (inst)
+                ++inst->errors;
             return;             // error recovery
         }
 
@@ -5070,7 +5086,10 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             ea = ea->semantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
-            else if (ea->op != TOKvar && ea->op != TOKtuple)
+            else if (ea->op != TOKvar && ea->op != TOKtuple &&
+                     ea->op != TOKimport && ea->op != TOKtype &&
+                     ea->op != TOKfunction && ea->op != TOKerror &&
+                     ea->op != TOKthis && ea->op != TOKsuper)
                 ea = ea->ctfeInterpret();
             (*tiargs)[j] = ea;
             if (ea->op == TOKtype)

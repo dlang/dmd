@@ -819,6 +819,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
+    if (exp->op == TOKerror)
+        return this;
 
     int olderrors = global.errors;
     if (needInterpret)
@@ -869,6 +871,8 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     }
 
     exp = exp->implicitCastTo(sc, t);
+    if (exp->op == TOKerror)
+        return this;
 L1:
     if (needInterpret)
         exp = exp->ctfeInterpret();

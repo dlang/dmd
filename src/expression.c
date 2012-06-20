@@ -3020,6 +3020,8 @@ Lagain:
         s = ti->toAlias();
         if (!s->isTemplateInstance())
             goto Lagain;
+        if (ti->errors)
+            return new ErrorExp();
         e = new ScopeExp(loc, ti);
         e = e->semantic(sc);
         return e;
@@ -4262,6 +4264,8 @@ Lagain:
             ti->semantic(sc);
         if (ti->inst)
         {
+            if (ti->inst->errors)
+                return new ErrorExp();
             Dsymbol *s = ti->inst->toAlias();
             sds2 = s->isScopeDsymbol();
             if (!sds2)
