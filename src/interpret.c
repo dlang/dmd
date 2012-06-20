@@ -1916,11 +1916,12 @@ Expression * resolveReferences(Expression *e, Expression *thisval)
         {
             VarExp *ve = (VarExp *)e;
             VarDeclaration *v = ve->var->isVarDeclaration();
+	    assert(v);
             if (v->type->ty == Tpointer)
                 break;
             if (v->ctfeAdrOnStack == (size_t)-1) // If not on the stack, can't possibly be a ref.
                 break;
-            if (v && v->getValue() && (v->getValue()->op == TOKslice))
+            if (v->getValue() && (v->getValue()->op == TOKslice))
             {
                 SliceExp *se = (SliceExp *)v->getValue();
                 if (se->e1->op == TOKarrayliteral || se->e1->op == TOKassocarrayliteral || se->e1->op == TOKstring)
@@ -1928,7 +1929,7 @@ Expression * resolveReferences(Expression *e, Expression *thisval)
                 e = v->getValue();
                 continue;
             }
-            else if (v && v->getValue() && (v->getValue()->op==TOKindex || v->getValue()->op == TOKdotvar
+            else if (v->getValue() && (v->getValue()->op==TOKindex || v->getValue()->op == TOKdotvar
                   || v->getValue()->op == TOKthis ))
             {
                 e = v->getValue();
@@ -5557,7 +5558,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         if ( agg->op == TOKarrayliteral || agg->op == TOKstring)
         {
             dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
-            Type *pointee = ((TypePointer *)agg->type)->next;
+            //Type *pointee = ((TypePointer *)agg->type)->next;
             if ((indx + ofs) < 0 || (indx+ofs) > len)
             {
                 error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
@@ -5726,7 +5727,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         }
         assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
         dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
-        Type *pointee = ((TypePointer *)agg->type)->next;
+        //Type *pointee = ((TypePointer *)agg->type)->next;
         if ((ilwr + ofs) < 0 || (iupr+ofs) > (len + 1) || iupr < ilwr)
         {
             error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
