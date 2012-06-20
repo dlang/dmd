@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -90,7 +90,9 @@ Expression *BinExp::arrayOp(Scope *sc)
 {
     //printf("BinExp::arrayOp() %s\n", toChars());
 
-    if (type->toBasetype()->nextOf()->toBasetype()->ty == Tvoid)
+    Type *tb = type->toBasetype();
+    assert(tb->ty == Tarray || tb->ty == Tsarray);
+    if (tb->nextOf()->toBasetype()->ty == Tvoid)
     {
         error("Cannot perform array operations on void[] arrays");
         return new ErrorExp();
@@ -121,7 +123,6 @@ Expression *BinExp::arrayOp(Scope *sc)
     buf.writestring(type->toBasetype()->nextOf()->toBasetype()->deco);
 #endif
 
-    size_t namelen = buf.offset;
     buf.writeByte(0);
     char *name = buf.toChars();
     Identifier *ident = Lexer::idPool(name);
@@ -332,7 +333,7 @@ Expression *BinExp::arrayOp(Scope *sc)
             // foreach (i; 0 .. p.length)
             Statement *s1 = new ForeachRangeStatement(0, TOKforeach,
                 new Parameter(0, NULL, Id::p, NULL),
-                new IntegerExp(0, 0, Type::tint32),
+                new IntegerExp(0, 0, Type::tsize_t),
                 new ArrayLengthExp(0, new IdentifierExp(0, p->ident)),
                 new ExpStatement(0, loopbody));
 #endif
