@@ -3804,7 +3804,7 @@ code *cdrelconst(elem *e,regm_t *pretregs)
         lreg;                   /* offset of the address                */
   tym_t tym;
 
-  //printf("cdrelconst(e = %p)\n", e);
+  //printf("cdrelconst(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
 
   c = CNIL;
 

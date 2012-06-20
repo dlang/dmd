@@ -1275,19 +1275,26 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
              * and so can we load from that register instead.
              */
             if (regcon.params & pregm /*&& s->Spreg2 == NOREG && !(pregm & XMMREGS)*/)
-        {
-            if (keepmsk & RMload)
             {
-                if (sz == REGSIZE)      // could this be (sz <= REGSIZE) ?
+                if (keepmsk & RMload)
                 {
-                    pcs->Irm = modregrm(3,0,s->Spreg & 7);
-                    if (s->Spreg & 8)
-                        pcs->Irex |= REX_B;
-                        regcon.used |= pregm;
-                    break;
+                    if (sz == REGSIZE)      // could this be (sz <= REGSIZE) ?
+                    {
+                        reg_t preg = s->Spreg;
+                        if (e->EV.sp.Voffset == REGSIZE)
+                            preg = s->Spreg2;
+                        assert(preg != NOREG);
+                        if (regcon.params & mask[preg])
+                        {
+                            pcs->Irm = modregrm(3,0,preg & 7);
+                            if (preg & 8)
+                                pcs->Irex |= REX_B;
+                            regcon.used |= mask[preg];
+                            break;
+                        }
+                    }
                 }
-            }
-            else
+                else
                     regcon.params &= ~pregm;
             }
         }
@@ -2381,6 +2388,18 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
     reg_t *preg = preg1;
     int regcntsave = regcnt;
     int xmmcntsave = xmmcnt;
+
+    if (I64 &&
+        (tybasic(ty) == TYcent || tybasic(ty) == TYucent) &&
+        numintegerregs - regcnt >= 2)
+    {
+        // Allocate to register pair
+        *preg1 = argregs[regcnt];
+        *preg2 = argregs[regcnt + 1];
+        regcnt += 2;
+        return 1;
+    }
+
     for (int j = 0; j < 2; j++)
     {
         if (regcnt < numintegerregs)
@@ -2564,22 +2583,58 @@ code *cdfunc(elem *e,regm_t *pretregs)
             if (retregs & XMMREGS)
                 ++xmmcnt;
             int preg2 = parameters[i].reg2;
+            reg_t mreg,lreg;
             if (preg2 != NOREG)
             {
                 // BUG: still doesn't handle case of mXMM0|mAX or mAX|mXMM0
                 assert(ep->Eoper != OPstrthis);
                 if (mask[preg2] & XMMREGS)
                 {   ++xmmcnt;
-                    retregs = mXMM1|mXMM0;
+                    lreg = XMM0;
+                    mreg = XMM1;
                 }
                 else
-                    retregs = mDX|mAX;
+                {
+                    lreg = mask[preg ] & mLSW ? preg  : AX;
+                    mreg = mask[preg2] & mMSW ? preg2 : DX;
+                }
+                retregs = mask[mreg] | mask[lreg];
+
+                code *csave = NULL;
+                if (keepmsk & retregs)
+                {
+                    regm_t tosave = keepmsk & retregs;
+
+                    // tosave is the mask to save and restore
+                    for (int j = 0; tosave; j++)
+                    {   regm_t mi = mask[j];
+                        assert(j <= XMM7);
+                        if (mi & tosave)
+                        {
+                            unsigned idx;
+                            csave = regsave.save(csave, j, &idx);
+                            crest = regsave.restore(crest, j, idx);
+                            saved |= mi;
+                            keepmsk &= ~mi;             // don't need to keep these for rest of params
+                            tosave &= ~mi;
+                        }
+                    }
+                }
+
                 code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
-                retregs = mask[preg] | mask[preg2];
+
+                // Move result [mreg,lreg] into parameter registers from [preg2,preg]
+                retregs = 0;
+                if (preg != lreg)
+                    retregs |= mask[preg];
+                if (preg2 != mreg)
+                    retregs |= mask[preg2];
                 code *c1 = getregs(retregs);
-                c1 = genmovreg(c1, AX, preg);
-                c1 = genmovreg(c1, DX, preg2);
-                c = cat3(c,cp,c1);
+                c1 = genmovreg(c1, preg, lreg);
+                c1 = genmovreg(c1, preg2, mreg);
+
+                c = cat4(c,csave,cp,c1);
+                retregs = mask[preg] | mask[preg2];
             }
             else if (ep->Eoper == OPstrthis)
             {
@@ -3368,6 +3423,8 @@ code *params(elem *e,unsigned stackalign)
         {   // Avoid PUSH MEM on the Pentium when optimizing for speed
             break;
         }
+        else if (movOnly(e))
+            break;                      // no PUSH MEM
         else
         {   int regsize = REGSIZE;
             unsigned flag = 0;

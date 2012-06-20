@@ -3023,7 +3023,7 @@ Lcont:
 //printf("%s Aoff = %d, BPoff = %d, Soffset = %d, sz = %d\n", s->Sident, (int)Aoff, (int)BPoff, (int)s->Soffset, (int)sz);
 //                          if (offset & 2)
 //                              c2->Iflags |= CFopsize;
-                                if (I64 && sz == 8)
+                                if (I64 && sz >= 8)
                                     code_orrex(c2, REX_W);
                             }
                             c = cat(c, c2);
@@ -3043,7 +3043,7 @@ Lcont:
                             }
                             else
                             {
-                                if (I64 && sz == 8)
+                                if (I64 && sz >= 8)
                                     c2->Irex |= REX_W;
 //                          if (offset & 2)
 //                              c2->Iflags |= CFopsize;
@@ -3075,32 +3075,41 @@ Lcont:
 
         if (s->Sclass == SCfastpar && s->Sfl == FLreg)
         {   // Argument is passed in a register
-            unsigned preg = s->Spreg;
-            assert(s->Spreg2 == NOREG); // currently register pairs are never assigned to
-                                        // parameters passed in a pair
 
             type *t = s->Stype;
+            type *t2 = NULL;
             if (tybasic(t->Tty) == TYstruct)
             {   type *targ1 = t->Ttag->Sstruct->Sarg1type;
                 if (targ1)
                     t = targ1;
+                t2 = t->Ttag->Sstruct->Sarg2type;
             }
 
-            assert(!(mask[preg] & assignregs));         // not already stepped on
-            assignregs |= mask[s->Sreglsw];
+            reg_t preg = s->Spreg;
+            reg_t r = s->Sreglsw;
+            for (int i = 0; i < 2; ++i)
+            {
+                if (preg == NOREG)
+                    break;
+                assert(!(mask[preg] & assignregs));         // not already stepped on
+                assignregs |= mask[r];
 
-            // MOV reg,preg
-            if (mask[preg] & XMMREGS)
-            {
-                unsigned op = xmmload(t->Tty);      // MOVSS/D xreg,preg
-                unsigned xreg = s->Sreglsw - XMM0;
-                c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
-            }
-            else
-            {
-                c = genmovreg(c,s->Sreglsw,preg);
-                if (I64 && sz == 8)
-                    code_orrex(c, REX_W);
+                // MOV reg,preg
+                if (mask[preg] & XMMREGS)
+                {
+                    unsigned op = xmmload(t->Tty);      // MOVSS/D xreg,preg
+                    unsigned xreg = r - XMM0;
+                    c = gen2(c,op,modregxrmx(3,xreg,preg - XMM0));
+                }
+                else
+                {
+                    c = genmovreg(c,r,preg);
+                    if (I64 && sz == 8)
+                        code_orrex(c, REX_W);
+                }
+                preg = s->Spreg2;
+                r = s->Sregmsw;
+                t = t2;
             }
         }
     }

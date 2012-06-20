@@ -594,7 +594,7 @@ Lagain:
                 case 2:      r = RTLSYM_MEMSET16;   break;
                 case 4:      r = RTLSYM_MEMSET32;   break;
                 case 8:      r = RTLSYM_MEMSET64;   break;
-                case 16:     r = RTLSYM_MEMSET128;  break;
+                case 16:     r = I64 ? RTLSYM_MEMSET128ii : RTLSYM_MEMSET128; break;
                 default:     r = RTLSYM_MEMSETN;    break;
             }
 
