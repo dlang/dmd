@@ -849,10 +849,12 @@ void _trace_pro_n()
                 inc     RCX                     ;
                 add     9*8+8*16[RSP],RAX       ;
                 dec     RAX                     ;
-                push    RCX                     ;
-                push    RAX                     ;
+//                push    RCX                     ;
+//                push    RAX                     ;
+                mov     RDI,RAX                 ;
+                mov     RSI,RCX                 ;
                 call    trace_pro               ;
-                add     RSP,16                  ;
+//                add     RSP,16                  ;
 
                 movdqu  XMM0, 0*16[RSP]         ;
                 movdqu  XMM1, 1*16[RSP]         ;
@@ -948,10 +950,12 @@ void _trace_pro_n()
                 inc     RCX                     ;
                 add     9*8+8*16[RSP],RAX       ;
                 dec     RAX                     ;
-                push    RCX                     ;
-                push    RAX                     ;
+//                push    RCX                     ;
+//                push    RAX                     ;
+                mov     RDI,RAX                 ;
+                mov     RSI,RCX                 ;
                 call    trace_pro               ;
-                add     RSP,16                  ;
+//                add     RSP,16                  ;
 
                 movdqu  XMM0, 0*16[RSP]         ;
                 movdqu  XMM1, 1*16[RSP]         ;
