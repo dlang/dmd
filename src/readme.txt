@@ -12,7 +12,9 @@ of the D Programming Language defined in the documents at
 http://www.digitalmars.com/d/
 
 These sources are free, they are redistributable and modifiable
-under the terms of the GNU General Public License (attached as gpl.txt),
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 1, or (at your option)
+any later version (attached as gpl.txt),
 or the Artistic License (attached as artistic.txt).
 
 The optimizer and code generator sources are 
