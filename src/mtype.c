@@ -1331,7 +1331,7 @@ Type *Type::aliasthisOf()
                     if (spec && global.errors != olderrs)
                         spec->errors = global.errors - olderrs;
                 }
-                if (!global.errors)
+                if (!fd->errors)
                 {
                     Type *t = fd->type->nextOf();
                     t = t->substWildTo(mod == 0 ? MODmutable : mod);
