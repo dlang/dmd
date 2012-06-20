@@ -2086,6 +2086,22 @@ static Thread thread_findByAddr( Thread.ThreadAddr addr )
 
 
 /**
+ * Sets the current thread to a specific reference. Only to be used
+ * when dealing with externally-created threads (in e.g. C code).
+ * The primary use of this function is when Thread.getThis() must
+ * return a sensible value in, for example, TLS destructors. In
+ * other words, don't touch this unless you know what you're doing.
+ *
+ * Params:
+ *  t = A reference to the current thread. May be null.
+ */
+extern (C) void thread_setThis(Thread t)
+{
+    Thread.setThis(t);
+}
+
+
+/**
  * Joins all non-daemon threads that are currently running.  This is done by
  * performing successive scans through the thread list until a scan consists
  * of only daemon threads.
