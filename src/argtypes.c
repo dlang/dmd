@@ -159,7 +159,8 @@ TypeTuple *TypeDArray::toArgTypes()
     /* Should be done as if it were:
      * struct S { size_t length; void* ptr; }
      */
-    return new TypeTuple();     // pass on the stack for efficiency
+//    return new TypeTuple();     // pass on the stack for efficiency
+    return new TypeTuple(Type::tsize_t, Type::tvoidptr);
 }
 
 TypeTuple *TypeAArray::toArgTypes()
@@ -177,7 +178,8 @@ TypeTuple *TypeDelegate::toArgTypes()
     /* Should be done as if it were:
      * struct S { void* ptr; void* funcptr; }
      */
-    return new TypeTuple();     // pass on the stack for efficiency
+//    return new TypeTuple();     // pass on the stack for efficiency
+    return new TypeTuple(Type::tvoidptr, Type::tvoidptr);
 }
 
 /*************************************
