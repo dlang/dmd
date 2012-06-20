@@ -31,8 +31,16 @@ enum ADDRESS_MODE : DWORD
 */
 enum : DWORD
 {
+    SYMOPT_DEFERRED_LOAD        = 0x00000004,
     SYMOPT_FAIL_CRITICAL_ERRORS = 0x00000200,
     SYMOPT_LOAD_LINES           = 0x00000010,
+    SYMOPT_DEBUG                = 0x80000000,
+}
+
+enum : ULONG
+{
+    CBA_READ_MEMORY             = 0x00000006,
+    CBA_DEBUG_INFO              = 0x10000000,
 }
 
 struct GUID
@@ -121,19 +129,27 @@ struct IMAGEHLP_MODULE64
     TCHAR[32]  ModuleName;
     TCHAR[256] ImageName;
     TCHAR[256] LoadedImageName;
-    TCHAR[256] LoadedPdbName;
-    DWORD      CVSig;
-    TCHAR[MAX_PATH*3] CVData;
-    DWORD      PdbSig;
-    GUID       PdbSig70;
-    DWORD      PdbAge;
-    BOOL       PdbUnmatched;
-    BOOL       DbgUnmachted;
-    BOOL       LineNumbers;
-    BOOL       GlobalSymbols;
-    BOOL       TypeInfo;
-    BOOL       SourceIndexed;
-    BOOL       Publics;
+    // new elements: 07-Jun-2002
+    version (none)
+    {
+        TCHAR[256] LoadedPdbName;
+        DWORD      CVSig;
+        TCHAR[MAX_PATH*3] CVData;
+        DWORD      PdbSig;
+        GUID       PdbSig70;
+        DWORD      PdbAge;
+        BOOL       PdbUnmatched;
+        BOOL       DbgUnmachted;
+        BOOL       LineNumbers;
+        BOOL       GlobalSymbols;
+        BOOL       TypeInfo;
+    }
+    // new elements: 17-Dec-2003
+    version (none)
+    {
+        BOOL       SourceIndexed;
+        BOOL       Publics;
+    }
 }
 
 struct IMAGEHLP_SYMBOL64
@@ -145,6 +161,16 @@ struct IMAGEHLP_SYMBOL64
     DWORD    MaxNameLength;
     TCHAR[1] Name;
 }
+
+
+struct IMAGEHLP_CBA_READ_MEMORY
+{
+    DWORD64 addr;
+    PVOID   buf;
+    DWORD   bytes;
+    DWORD   *bytesread;
+};
+
 
 extern(System)
 {
@@ -169,6 +195,8 @@ extern(System)
     alias DWORD64 function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll) SymLoadModule64Func;
     alias BOOL    function(HANDLE HProcess, PTSTR SearchPath, DWORD SearchPathLength) SymGetSearchPathFunc;
     alias BOOL    function(HANDLE hProcess, DWORD64 Address) SymUnloadModule64Func;
+    alias BOOL    function(HANDLE hProcess, ULONG ActionCode, ulong CallbackContext, ulong UserContext) PSYMBOL_REGISTERED_CALLBACK64;
+    alias BOOL    function(HANDLE hProcess, PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction, ulong UserContext) SymRegisterCallback64Func;
 }
 
 struct DbgHelp
@@ -187,6 +215,7 @@ struct DbgHelp
     SymLoadModule64Func      SymLoadModule64;
     SymGetSearchPathFunc     SymGetSearchPath;
     SymUnloadModule64Func    SymUnloadModule64;
+    SymRegisterCallback64Func SymRegisterCallback64;
 
     static DbgHelp* get()
     {
@@ -207,11 +236,12 @@ struct DbgHelp
             sm_inst.SymLoadModule64          = cast(SymLoadModule64Func) GetProcAddress(sm_hndl,"SymLoadModule64");
             sm_inst.SymGetSearchPath         = cast(SymGetSearchPathFunc) GetProcAddress(sm_hndl,"SymGetSearchPath");
             sm_inst.SymUnloadModule64        = cast(SymUnloadModule64Func) GetProcAddress(sm_hndl,"SymUnloadModule64");
-
+            sm_inst.SymRegisterCallback64    = cast(SymRegisterCallback64Func) GetProcAddress(sm_hndl, "SymRegisterCallback64");
             assert( sm_inst.SymInitialize && sm_inst.SymCleanup && sm_inst.StackWalk64 && sm_inst.SymGetOptions &&
                     sm_inst.SymSetOptions && sm_inst.SymFunctionTableAccess64 && sm_inst.SymGetLineFromAddr64 &&
                     sm_inst.SymGetModuleBase64 && sm_inst.SymGetModuleInfo64 && sm_inst.SymGetSymFromAddr64 &&
-                    sm_inst.SymLoadModule64 && sm_inst.SymGetSearchPath && sm_inst.SymUnloadModule64);
+                    sm_inst.SymLoadModule64 && sm_inst.SymGetSearchPath && sm_inst.SymUnloadModule64 &&
+                    sm_inst.SymRegisterCallback64);
 
             return &sm_inst;
         }
