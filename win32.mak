@@ -6,8 +6,8 @@ CC=dmc
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -inline -nofloat -w -d -Isrc -Iimport -property
-UDFLAGS=-O -release -nofloat -w -d -Isrc -Iimport -property
+DFLAGS=-O -release -inline -w -d -Isrc -Iimport -property
+UDFLAGS=-O -release -w -d -Isrc -Iimport -property
 DDOCFLAGS=-c -w -d -o- -Isrc -Iimport
 
 CFLAGS=
