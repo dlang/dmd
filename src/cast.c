@@ -37,9 +37,10 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 
     MATCH match = implicitConvTo(t);
     if (match)
-    {   TY tyfrom = type->toBasetype()->ty;
-        TY tyto = t->toBasetype()->ty;
+    {
 #if DMDV1
+        TY tyfrom = type->toBasetype()->ty;
+        TY tyto = t->toBasetype()->ty;
         if (global.params.warnings &&
             Type::impcnvWarn[tyfrom][tyto] &&
             op != TOKint64)
@@ -593,12 +594,12 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
 }
 
 MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
-{   MATCH result = MATCHexact;
-
+{
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
     if (tb->ty == Taarray && typeb->ty == Taarray)
     {
+        MATCH result = MATCHexact;
         for (size_t i = 0; i < keys->dim; i++)
         {   Expression *e = (*keys)[i];
             MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->index);

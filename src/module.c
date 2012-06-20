@@ -418,19 +418,14 @@ void Module::parse(bool dump_source)
 #else
 void Module::parse()
 #endif
-{   char *srcname;
-    unsigned char *buf;
-    unsigned buflen;
-    unsigned le;
-    unsigned bom;
-
+{
     //printf("Module::parse()\n");
 
-    srcname = srcfile->name->toChars();
+    char *srcname = srcfile->name->toChars();
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
-    buf = srcfile->buffer;
-    buflen = srcfile->len;
+    unsigned char *buf = srcfile->buffer;
+    unsigned buflen = srcfile->len;
 
     if (buflen >= 2)
     {
@@ -443,7 +438,8 @@ void Module::parse()
          * EF BB BF     UTF-8
          */
 
-        bom = 1;                // assume there's a BOM
+        unsigned le;
+        unsigned bom = 1;                // assume there's a BOM
         if (buf[0] == 0xFF && buf[1] == 0xFE)
         {
             if (buflen >= 4 && buf[2] == 0 && buf[3] == 0)
@@ -1064,7 +1060,6 @@ void Module::runDeferredSemantic()
 int Module::imports(Module *m)
 {
     //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
-    int aimports_dim = aimports.dim;
 #if 0
     for (size_t i = 0; i < aimports.dim; i++)
     {   Module *mi = (Module *)aimports.data[i];

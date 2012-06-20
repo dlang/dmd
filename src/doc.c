@@ -81,7 +81,9 @@ struct DocComment
     Macro **pmacrotable;
     Escape **pescapetable;
 
-    DocComment();
+    DocComment() :
+       summary(NULL), copyright(NULL), macros(NULL), pmacrotable(NULL), pescapetable(NULL)
+    { }
 
     static DocComment *parse(Scope *sc, Dsymbol *s, unsigned char *comment);
     static void parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, unsigned mlen);
@@ -1018,11 +1020,6 @@ void EnumMember::toDocBuffer(OutBuffer *buf)
 
 /********************************* DocComment *********************************/
 
-DocComment::DocComment()
-{
-    memset(this, 0, sizeof(DocComment));
-}
-
 DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
 {
     //printf("parse(%s): '%s'\n", s->toChars(), comment);
@@ -1784,7 +1781,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 
     int leadingBlank = 1;
     int inCode = 0;
-    int inComment = 0;                  // in <!-- ... --> comment
+    //int inComment = 0;                  // in <!-- ... --> comment
     unsigned iCodeStart;                // start of code section
 
     unsigned iLineStart = offset;

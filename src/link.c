@@ -225,7 +225,6 @@ int runLINK()
     return status;
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     pid_t childpid;
-    int i;
     int status;
 
     // Build argv[]

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -123,7 +123,6 @@ Expression *BinExp::arrayOp(Scope *sc)
     buf.writestring(type->toBasetype()->nextOf()->toBasetype()->deco);
 #endif
 
-    size_t namelen = buf.offset;
     buf.writeByte(0);
     char *name = buf.toChars();
     Identifier *ident = Lexer::idPool(name);
@@ -326,7 +325,7 @@ Expression *BinExp::arrayOp(Scope *sc)
             Initializer *init = new ExpInitializer(0, new IntegerExp(0, 0, Type::tsize_t));
             Dsymbol *d = new VarDeclaration(0, Type::tsize_t, Id::p, init);
             Statement *s1 = new ForStatement(0,
-                new DeclarationStatement(0, d),
+                new ExpStatement(0, d),
                 new CmpExp(TOKlt, 0, new IdentifierExp(0, Id::p), new ArrayLengthExp(0, new IdentifierExp(0, p->ident))),
                 new PostExp(TOKplusplus, 0, new IdentifierExp(0, Id::p)),
                 new ExpStatement(0, loopbody));
