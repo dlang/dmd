@@ -2449,7 +2449,8 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
-                e = e->ctfeInterpret();
+                if (e->op != TOKerror && e->op != TOKtype)
+                    e = e->ctfeInterpret();
                 StringExp *se = e->toString();
                 if (se)
                 {

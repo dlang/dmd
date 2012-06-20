@@ -689,20 +689,50 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
          */
         for (size_t i = 0; i < dedtypes_dim; i++)
         {
-            if (!dedtypes->data[i])
+            if (!(*dedtypes)[i])
             {   assert(i < ti->tiargs->dim);
-                dedtypes->data[i] = ti->tiargs->data[i];
+                (*dedtypes)[i] = (Type *)(*ti->tiargs)[i];
             }
         }
     }
 
 #if DMDV2
-    if (m && constraint && !(flag & 1))
+    if (m && constraint && !flag)
     {   /* Check to see if constraint is satisfied.
          */
+        makeParamNamesVisibleInConstraint(paramscope, fargs);
         Expression *e = constraint->syntaxCopy();
-        paramscope->flags |= SCOPEstaticif;
-        e = e->semantic(paramscope);
+        Scope *sc = paramscope->push();
+
+        /* There's a chicken-and-egg problem here. We don't know yet if this template
+         * instantiation will be a local one (isnested is set), and we won't know until
+         * after selecting the correct template. Thus, function we're nesting inside
+         * is not on the sc scope chain, and this can cause errors in FuncDeclaration::getLevel().
+         * Workaround the problem by setting a flag to relax the checking on frame errors.
+         */
+        sc->flags |= SCOPEstaticif;
+
+        FuncDeclaration *fd = onemember && onemember->toAlias() ?
+            onemember->toAlias()->isFuncDeclaration() : NULL;
+        Dsymbol *s = parent;
+        while (s->isTemplateInstance() || s->isTemplateMixin())
+            s = s->parent;
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        VarDeclaration *vthissave;
+        if (fd && ad)
+        {
+            vthissave = fd->vthis;
+            fd->vthis = fd->declareThis(paramscope, ad);
+        }
+
+        e = e->semantic(sc);
+        if (e->op == TOKerror)
+            goto Lnomatch;
+
+        if (fd && fd->vthis)
+            fd->vthis = vthissave;
+
+        sc->pop();
         e = e->ctfeInterpret();
         if (e->isBool(TRUE))
             ;
@@ -724,16 +754,16 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     {
         for (size_t i = 0; i < dedtypes_dim; i++)
         {
-            TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+            TemplateParameter *tp = (*parameters)[i];
             Object *oarg;
 
             printf(" [%d]", i);
 
             if (i < ti->tiargs->dim)
-                oarg = (Object *)ti->tiargs->data[i];
+                oarg = (*ti->tiargs)[i];
             else
                 oarg = NULL;
-            tp->print(oarg, (Object *)dedtypes->data[i]);
+            tp->print(oarg, (*dedtypes)[i]);
         }
     }
     else
@@ -1291,11 +1321,70 @@ Lmatch:
 #if DMDV2
     if (constraint)
     {   /* Check to see if constraint is satisfied.
+         * Most of this code appears twice; this is a good candidate for refactoring.
          */
-        makeParamNamesVisibleInConstraint(paramscope);
+        makeParamNamesVisibleInConstraint(paramscope, fargs);
         Expression *e = constraint->syntaxCopy();
         paramscope->flags |= SCOPEstaticif;
+
+        /* Detect recursive attempts to instantiate this template declaration,
+         * Bugzilla 4072
+         *  void foo(T)(T x) if (is(typeof(foo(x)))) { }
+         *  static assert(!is(typeof(foo(7))));
+         * Recursive attempts are regarded as a constraint failure.
+         */
+        int nmatches = 0;
+        for (Previous *p = previous; p; p = p->prev)
+        {
+            if (arrayObjectMatch(p->dedargs, dedargs, this, sc))
+            {
+                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+                /* It must be a subscope of p->sc, other scope chains are not recursive
+                 * instantiations.
+                 */
+                for (Scope *scx = sc; scx; scx = scx->enclosing)
+                {
+                    if (scx == p->sc)
+                        goto Lnomatch;
+                }
+            }
+            /* BUG: should also check for ref param differences
+             */
+        }
+
+        Previous pr;
+        pr.prev = previous;
+        pr.sc = paramscope;
+        pr.dedargs = dedargs;
+        previous = &pr;                 // add this to threaded list
+
+        int nerrors = global.errors;
+
+        FuncDeclaration *fd = onemember && onemember->toAlias() ?
+            onemember->toAlias()->isFuncDeclaration() : NULL;
+        Dsymbol *s = parent;
+        while (s->isTemplateInstance() || s->isTemplateMixin())
+            s = s->parent;
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        VarDeclaration *vthissave;
+        if (fd && ad)
+        {
+            vthissave = fd->vthis;
+            fd->vthis = fd->declareThis(paramscope, ad);
+        }
+
         e = e->semantic(paramscope);
+
+        if (fd && fd->vthis)
+            fd->vthis = vthissave;
+
+        previous = pr.prev;             // unlink from threaded list
+
+        if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+            goto Lnomatch;
+        if (e->op == TOKerror)
+            goto Lnomatch;
+
         e = e->ctfeInterpret();
         if (e->isBool(TRUE))
             ;
@@ -1309,8 +1398,8 @@ Lmatch:
 #endif
 
 #if 0
-    for (size_t i = 0; i < dedargs->dim; i++)
-    {   Type *t = (Type *)dedargs->data[i];
+    for (i = 0; i < dedargs->dim; i++)
+    {   Type *t = (*dedargs)[i];
         printf("\tdedargs[%d] = %d, %s\n", i, t->dyncast(), t->toChars());
     }
 #endif
@@ -1355,6 +1444,12 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
             }
         }
     }
+    if (ea && ea->op == TOKtype)
+        targ = ea->type;
+    else if (ea && ea->op == TOKimport)
+        sa = ((ScopeExp *)ea)->sds;
+    else if (ea && (ea->op == TOKthis || ea->op == TOKsuper))
+        sa = ((ThisExp *)ea)->var;
 
     if (targ)
     {
@@ -2921,14 +3016,14 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
     //printf("TemplateAliasParameter::matchArg()\n");
 
     if (i < tiargs->dim)
-        oarg = tiargs->tdata()[i];
+        oarg = (*tiargs)[i];
     else
     {   // Get default argument instead
         oarg = defaultArg(loc, sc);
         if (!oarg)
         {   assert(i < dedtypes->dim);
             // It might have already been deduced
-            oarg = dedtypes->tdata()[i];
+            oarg = (*dedtypes)[i];
             if (!oarg)
                 goto Lnomatch;
         }
@@ -2968,6 +3063,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc,
 
 Lnomatch:
     *psparam = NULL;
+    //printf("\tm = %d\n", MATCHnomatch);
     return MATCHnomatch;
 }
 
