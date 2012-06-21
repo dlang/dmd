@@ -87,6 +87,10 @@ enum PURE;
 #define STCtemp         0x10000000000LL  // temporary variable introduced by inlining
                                          // and used only in backend process, so it's rvalue
 
+#ifdef BUG6652
+#define STCbug6652      0x800000000000LL // 
+#endif
+
 struct Match
 {
     int count;                  // number of matches found
