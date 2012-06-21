@@ -1232,6 +1232,19 @@ Lnomatch:
             init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
+        else if (type->ty == Tstruct &&
+                 (((TypeStruct *)type)->sym->isnested))
+        {
+            /* Nested struct requires valid enclosing frame pointer.
+             * In StructLiteralExp::toElem(), it's calculated.
+             */
+            Expression *e = type->defaultInitLiteral(loc);
+            Expression *e1 = new VarExp(loc, this);
+            e = new ConstructExp(loc, e1, e);
+            e = e->semantic(sc);
+            init = new ExpInitializer(loc, e);
+            goto Ldtor;
+        }
         else if (type->ty == Ttypedef)
         {   TypeTypedef *td = (TypeTypedef *)type;
             if (td->sym->init)
@@ -1383,6 +1396,10 @@ Lnomatch:
                                     if (sd->zeroInit == 1)
                                     {
                                         e = new ConstructExp(loc, new VarExp(loc, this), new IntegerExp(loc, 0, Type::tint32));
+                                    }
+                                    else if (sd->isNested())
+                                    {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInitLiteral(loc));
+                                        e->op = TOKblit;
                                     }
                                     else
                                     {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInit(loc));
