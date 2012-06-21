@@ -1227,7 +1227,7 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
 {
     Identifier *idapply = (op == TOKforeach) ? Id::apply : Id::applyReverse;
 #if DMDV2
-    Identifier *idhead = (op == TOKforeach) ? Id::Ffront : Id::Fback;
+    Identifier *idfront = (op == TOKforeach) ? Id::Ffront : Id::Fback;
     int sliced = 0;
 #endif
     Type *tab;
@@ -1280,7 +1280,7 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                     }
                 }
 
-                if (Dsymbol *shead = search_function(ad, idhead))
+                if (Dsymbol *shead = ad->search(0, idfront, 0))
                 {   // range aggregate
                     break;
                 }
@@ -1421,20 +1421,24 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             {
                 if (!arg->type)
                 {
-                    /* Look for a head() or rear() overload
+                    /* Look for a front() or back() overload
                      */
                     Identifier *id = (op == TOKforeach) ? Id::Ffront : Id::Fback;
-                    Dsymbol *s = search_function(ad, id);
+                    Dsymbol *s = ad->search(0, id, 0);
                     FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
-                    if (!fd)
-                    {   if (s && s->isTemplateDeclaration())
-                            break;
-                        break;
+                    if (fd)
+                    {
+                        // Resolve inout qualifier of front type
+                        arg->type = fd->type->nextOf();
+                        if (arg->type)
+                            arg->type = arg->type->substWildTo(tab->mod);
                     }
-                    // Resolve inout qualifier of front type
-                    arg->type = fd->type->nextOf();
-                    if (arg->type)
-                        arg->type = arg->type->substWildTo(tab->mod);
+                    else if (s && s->isTemplateDeclaration())
+                        ;
+                    else if (s && s->isDeclaration())
+                        arg->type = ((Declaration *)s)->type;
+                    else
+                        break;
                 }
                 break;
             }

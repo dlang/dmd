@@ -1977,6 +1977,27 @@ void test101()
 
 /***************************************************/
 
+
+void test5403()
+{
+    struct S
+    {
+        static int front;
+        enum back = "yes!";
+        bool empty;
+        void popAny() { empty = true; }
+        alias popAny popFront;
+        alias popAny popBack;
+    }
+    S.front = 7;
+    foreach(int i; S()) assert(i == 7);
+    S.front = 2;
+    foreach(i; S()) assert(i == 2);
+    foreach_reverse(i; S()) assert(i == "yes!");
+}
+
+/***************************************************/
+
 static assert([1,2,3] == [1.0,2,3]);
 
 /***************************************************/
@@ -5232,6 +5253,7 @@ int main()
     test93();
     test94();
     test95();
+    test5403();
     test96();
     test97();
     test98();
