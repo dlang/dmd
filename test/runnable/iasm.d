@@ -3882,7 +3882,7 @@ L1:	pop	EAX	;
 	mov	p[EBP],EAX ;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
 	//printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
 	assert(p[i] == b);
@@ -4267,7 +4267,7 @@ L1:     pop     EAX;
         mov     p[EBP],EAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -4561,7 +4561,7 @@ L1:     pop     EAX;
         mov     p[EBP],EAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -4639,7 +4639,7 @@ L1:     pop     EAX;
         mov     p[EBP],EAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
