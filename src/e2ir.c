@@ -5043,19 +5043,20 @@ elem *StructLiteralExp::toElem(IRState *irs)
         e = el_combine(e, fillHole(stmp, &offset, sd->structsize, sd->structsize));
     }
 
-    if (elements)
+    if (elements || sd->isNested())
     {
-        size_t dim = elements->dim;
+        size_t dim = elements ? elements->dim : 0;
+        if (sd->isNested() && dim == sd->fields.dim - 1)
+            dim = sd->fields.dim;
         assert(dim <= sd->fields.dim);
         for (size_t i = 0; i < dim; i++)
-        {   Expression *el = (*elements)[i];
-            if (!el)
+        {   Expression *el = elements ? (*elements)[i] : NULL;
+            if (!el && !(sd->isNested() && i == dim - 1))
                 continue;
 
             Dsymbol *s = sd->fields[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
-            assert(!v->isThisDeclaration());
 
             elem *e1;
             if (tybasic(stmp->Stype->Tty) == TYnptr)
@@ -5067,7 +5068,14 @@ elem *StructLiteralExp::toElem(IRState *irs)
                 if (soffset)
                     e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
             }
-            e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
+            if (v->isThisDeclaration())
+            {
+                e1 = setEthis(loc, irs, e1, sd);
+                e = el_combine(e, e1);
+                continue;
+            }
+            else
+                e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, v->offset));
             elem *ec = e1;                      // pointer to destination
 
             elem *ep = el->toElem(irs);
@@ -5138,7 +5146,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
         }
     }
 
-#if DMDV2
+#if 0//DMDV2
     if (sd->isnested)
     {   // Initialize the hidden 'this' pointer
         assert(sd->fields.dim);
