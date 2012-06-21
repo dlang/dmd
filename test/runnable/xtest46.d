@@ -3056,11 +3056,11 @@ void test3559()
 
     static class B : A
     {
-        int foo(float a) { return 2; }
+        override int foo(float a) { return 2; }
         alias A.foo foo;
 
         alias A.bar bar;
-        int bar(float a) { return 2; }
+        override int bar(float a) { return 2; }
     }
 
     {
@@ -3427,7 +3427,7 @@ void test5554()
     interface I { MB foo(); }
     class B : A
     {
-        MC foo() { return null; }
+        override MC foo() { return null; }
     }
     class C : B, I
     {
@@ -4734,11 +4734,11 @@ class Base3282
 }
 class Derived3282 : Base3282
 {
-    string f()
+    override string f()
     {
         return "Derived.f()";
     }
-    string f() const
+    override string f() const
     {
         return "Derived.f() const";
     }
@@ -4764,7 +4764,7 @@ class C7534
 class D7534 : C7534
 {
     override int foo(){ return 2; }
-    int foo() const { return 3; }
+    override int foo() const { return 3; }
     // Error: D.foo multiple overrides of same function
 }
 void test7534()
@@ -4798,8 +4798,8 @@ class V7534
 }
 class W7534 : V7534
 {
-    Y7534 foo(){ return new Y7534(1); }
-    Y7534 foo() const { return new Y7534(2); }
+    override Y7534 foo(){ return new Y7534(1); }
+    override Y7534 foo() const { return new Y7534(2); }
 }
 
 void test7534cov()
