@@ -801,7 +801,7 @@ struct BinExp : Expression
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
     Expression *interpretFourPointerRelation(InterState *istate, CtfeGoal goal);
-    Expression *arrayOp(Scope *sc);
+    virtual Expression *arrayOp(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -820,6 +820,7 @@ struct BinAssignExp : BinExp
     }
 
     Expression *semantic(Scope *sc);
+    Expression *arrayOp(Scope *sc);
 
     Expression *op_overload(Scope *sc);
 

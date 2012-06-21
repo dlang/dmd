@@ -378,6 +378,22 @@ Expression *BinExp::arrayOp(Scope *sc)
     return e;
 }
 
+Expression *BinAssignExp::arrayOp(Scope *sc)
+{
+    //printf("BinAssignExp::arrayOp() %s\n", toChars());
+
+    /* Check that the elements of e1 can be assigned to
+     */
+    Type *tn = type->toBasetype()->nextOf();
+
+    if (tn && (!tn->isMutable() || !tn->isAssignable()))
+    {
+        error("slice %s is not mutable", e1->toChars());
+    }
+
+    return BinExp::arrayOp(sc);
+}
+
 /******************************************
  * Construct the identifier for the array operation function,
  * and build the argument list to pass to it.

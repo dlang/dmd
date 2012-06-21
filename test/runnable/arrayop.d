@@ -425,6 +425,19 @@ void test4()
 }
 
 /***************************************************/
+
+void test4662()
+{
+    immutable double[] nums = [1.0, 2.0];
+
+    static assert(!is(typeof({ nums[] += nums[]; })));
+    static assert(!is(typeof({ nums[] -= nums[]; })));
+    //static assert(!is(typeof({ nums[] /= nums[]; }))); // bug 7385 prevents this from failing properly
+    static assert(!is(typeof({ nums[] += 4; })));
+    static assert(!is(typeof({ nums[] /= 7; })));
+}
+
+/***************************************************/
 // 5284
 
 void bug5284_1()
