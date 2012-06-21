@@ -295,10 +295,6 @@ void ClassDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
     unsigned dprogress_save = Module::dprogress;
-#ifdef IN_GCC
-    methods.setDim(0);
-#endif
-
     int errors = global.gaggedErrors;
 
     if (sc->stc & STCdeprecated)

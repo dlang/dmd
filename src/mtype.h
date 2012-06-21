@@ -41,7 +41,7 @@ struct HdrGenState;
 struct Parameter;
 
 // Back end
-#if IN_GCC
+#ifdef IN_GCC
 union tree_node; typedef union tree_node TYPE;
 typedef TYPE type;
 #else

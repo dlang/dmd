@@ -95,7 +95,7 @@ struct Scope
 #define SCOPEstaticassert 8     // inside static assert
 #define SCOPEdebug      0x10    // inside debug conditional
 
-#if IN_GCC
+#ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
 #endif
 
