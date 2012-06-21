@@ -55,8 +55,9 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     localsymtab = NULL;
     vthis = NULL;
     v_arguments = NULL;
-#if IN_GCC
+#ifdef IN_GCC
     v_argptr = NULL;
+    v_arguments_var = NULL;
 #endif
     v_argsave = NULL;
     parameters = NULL;
@@ -931,9 +932,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             else
                 assert(!isNested() || sc->intypeof);    // can't be both member and nested
-#if IN_GCC
-            ad->methods.push(this);
-#endif
         }
         vthis = declareThis(sc2, ad);
 
@@ -982,7 +980,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             if (f->linkage == LINKd || (f->parameters && Parameter::dim(f->parameters)))
             {   // Declare _argptr
-#if IN_GCC
+#ifdef IN_GCC
                 t = d_gcc_builtin_va_list_d_type;
 #else
                 t = Type::tvoid->pointerTo();
@@ -1430,7 +1428,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (argptr)
             {   // Initialize _argptr
-#if IN_GCC
+#ifdef IN_GCC
                 // Handled in FuncDeclaration::toObjFile
                 v_argptr = argptr;
                 v_argptr->init = new VoidInitializer(loc);
@@ -1493,6 +1491,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (_arguments)
             {
+#ifdef IN_GCC
+                v_arguments_var = _arguments;
+                v_arguments_var->init = new VoidInitializer(loc);
+#endif
                 /* Advance to elements[] member of TypeInfo_Tuple with:
                  *  _arguments = v_arguments.elements;
                  */

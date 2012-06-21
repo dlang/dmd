@@ -75,7 +75,7 @@ struct AA;
 #if TARGET_NET
 struct PragmaScope;
 #endif
-#if IN_GCC
+#ifdef IN_GCC
 union tree_node;
 typedef union tree_node TYPE;
 #else

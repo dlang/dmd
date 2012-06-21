@@ -3536,7 +3536,7 @@ DefaultStatement::DefaultStatement(Loc loc, Statement *s)
     : Statement(loc)
 {
     this->statement = s;
-#if IN_GCC
+#ifdef IN_GCC
     cblock = NULL;
 #endif
 }
@@ -5218,9 +5218,6 @@ LabelDsymbol::LabelDsymbol(Identifier *ident)
         : Dsymbol(ident)
 {
     statement = NULL;
-#if IN_GCC
-    asmLabelNum = 0;
-#endif
 }
 
 LabelDsymbol *LabelDsymbol::isLabel()           // is this a LabelDsymbol()?
