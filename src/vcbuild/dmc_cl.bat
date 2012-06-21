@@ -9,6 +9,12 @@ if "%1" == "" goto done
 rem echo %1
 
 set opt=%1
+rem add longdouble.c and strtold.c to the build, they are not in the makefile
+if "%opt%" == "toir"     set opt=%opt%.c backend\strtold.c root\longdouble.c
+if "%opt%" == "toir.obj" set opt=%opt% strtold.obj longdouble.obj
+rem remove includes after ";"
+if "%opt%" == "tk" set opt=/Itk
+
 if "%opt:~0,1%" == "-" goto opt
 if "%opt:~0,1%" == "/" goto opt
 
@@ -24,6 +30,9 @@ if "%opt:~0,2%" == "-o" (
 	if "%opt:~-4%" == ".exe" set opt=/Fe%opt:~2%
 	if "%opt:~-4%" == ".obj" set opt=/Fo%opt:~2%
 )
+rem echo %opt%
+rem if "%opt:~0,2%" == "-I" goto shift
+
 if "%opt%" == "-e" goto shift
 if "%opt%" == "-Ae" goto shift
 if "%opt%" == "-Ar" goto shift

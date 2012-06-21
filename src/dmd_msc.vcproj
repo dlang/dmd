@@ -1301,14 +1301,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\dchar.c"
-					>
-				</File>
-				<File
-					RelativePath=".\root\dchar.h"
-					>
-				</File>
-				<File
 					RelativePath=".\root\dmgcmem.c"
 					>
 					<FileConfiguration
@@ -1358,14 +1350,6 @@
 				</File>
 				<File
 					RelativePath=".\root\longdouble.h"
-					>
-				</File>
-				<File
-					RelativePath=".\root\lstring.c"
-					>
-				</File>
-				<File
-					RelativePath=".\root\lstring.h"
 					>
 				</File>
 				<File
