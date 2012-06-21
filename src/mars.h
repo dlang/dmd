@@ -432,7 +432,7 @@ void halt();
 void util_progress();
 
 /*** Where to send error messages ***/
-#if IN_GCC
+#ifdef IN_GCC
 #define stdmsg stderr
 #else
 #define stdmsg stderr

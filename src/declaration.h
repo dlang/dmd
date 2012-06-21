@@ -125,7 +125,7 @@ struct Declaration : Dsymbol
     enum LINK linkage;
     int inuse;                  // used to detect cycles
 
-#if IN_GCC
+#ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
 #endif
 
@@ -537,7 +537,7 @@ enum BUILTIN
     BUILTINbsr,                 // core.bitop.bsr
     BUILTINbsf,                 // core.bitop.bsf
     BUILTINbswap,               // core.bitop.bswap
-#if IN_GCC
+#ifdef IN_GCC
     BUILTINgcc,                 // GCC builtin
 #endif
 };
@@ -568,7 +568,8 @@ struct FuncDeclaration : Declaration
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
-#if IN_GCC
+#ifdef IN_GCC
+    VarDeclaration *v_arguments_var;    // '_arguments' variable
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
     VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions

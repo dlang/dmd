@@ -1001,7 +1001,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
-#if IN_GCC
+#ifdef IN_GCC
     else if (ident == Id::GNU_asm)
     {
         if (! args || args->dim != 2)
