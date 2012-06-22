@@ -265,7 +265,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         {
             if (e->type->toBasetype() != Type::terror)
                 exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
-            inc = 2;
+            inc = 0;
             return 0;
         }
         e = e->ctfeInterpret();
