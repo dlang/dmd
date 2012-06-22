@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -58,8 +58,12 @@ void StaticAssert::semantic2(Scope *sc)
     sc->flags |= SCOPEstaticassert;
     Expression *e = exp->semantic(sc);
     sc = sc->pop();
-    if (e->type == Type::terror)
+    if (!e->type->checkBoolean())
+    {
+        if (e->type->toBasetype() != Type::terror)
+            exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
         return;
+    }
     unsigned olderrs = global.errors;
     e = e->ctfeInterpret();
     if (global.errors != olderrs)
