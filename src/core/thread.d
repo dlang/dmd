@@ -526,7 +526,7 @@ else version( Posix )
                 }
             }
 
-            thread_callWithStackShell(&op);
+            callWithStackShell(&op);
         }
 
 
@@ -2169,16 +2169,8 @@ extern (C) bool thread_needLock() nothrow
 }
 
 
-alias void delegate(void*) StackShellFn;
-
-/**
-  * Calls the given delegate, passing the current thread's stack pointer
-  * to it.
-  *
-  * Params:
-  *  fn = The function to call with the stack pointer.
-  */
-extern (C) void thread_callWithStackShell(scope StackShellFn fn)
+// Calls the given delegate, passing the current thread's stack pointer to it.
+private void callWithStackShell(scope void delegate(void* sp) fn)
 in
 {
     assert(fn);
@@ -2610,7 +2602,7 @@ in
 }
 body
 {
-    thread_callWithStackShell(sp => scanAllTypeImpl(scan, sp));
+    callWithStackShell(sp => scanAllTypeImpl(scan, sp));
 }
 
 
