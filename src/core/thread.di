@@ -551,18 +551,6 @@ shared static ~this();
 extern (C) bool thread_needLock() nothrow;
 
 
-alias void delegate(void*) StackShellFn;
-
-/**
-  * Calls the given delegate, passing the current thread's stack pointer
-  * to it.
-  *
-  * Params:
-  *  fn = The function to call with the stack pointer.
-  */
-extern (C) void thread_callWithStackShell(scope StackShellFn fn);
-
-
 /**
  * Suspend all threads but the calling thread for "stop the world" garbage
  * collection runs.  This function may be called multiple times, and must
@@ -604,12 +592,11 @@ alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn;
  *
  * Params:
  *  scan        = The scanner function.  It should scan from p1 through p2 - 1.
- *  curStackTop = An optional pointer to the top of the calling thread's stack.
  *
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan, void* curStackTop = null );
+extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan );
 
 
 /**
@@ -618,12 +605,11 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan, void* curSt
  *
  * Params:
  *  scan        = The scanner function.  It should scan from p1 through p2 - 1.
- *  curStackTop = An optional pointer to the top of the calling thread's stack.
  *
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAll( scope ScanAllThreadsFn scan, void* curStackTop = null );
+extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
 
 enum IsMarked : int
 {

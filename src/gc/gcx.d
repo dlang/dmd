@@ -19,7 +19,6 @@ module gc.gcx;
 
 //debug = PRINTF;               // turn on printf's
 //debug = COLLECT_PRINTF;       // turn on printf's
-//debug = THREADINVARIANT;      // check thread integrity
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
@@ -32,7 +31,6 @@ module gc.gcx;
 version = STACKGROWSDOWN;       // growing the stack means subtracting from the stack pointer
                                 // (use for Intel X86 CPUs)
                                 // else growing the stack means adding to the stack pointer
-version = MULTI_THREADED;       // produce multithreaded version
 
 /***************************************************/
 
@@ -99,33 +97,24 @@ private
     }
 private
 {
-    extern (C) void* rt_stackBottom();
-    extern (C) void* rt_stackTop();
-
     extern (C) void rt_finalize_gc(void* p);
 
-    version (MULTI_THREADED)
+    extern (C) bool thread_needLock();
+    extern (C) void thread_suspendAll();
+    extern (C) void thread_resumeAll();
+
+    // core.thread
+    enum IsMarked : int
     {
-        extern (C) bool thread_needLock();
-        extern (C) void thread_suspendAll();
-        extern (C) void thread_resumeAll();
-
-        // core.thread
-        enum IsMarked : int
-        {
-                 no,
-                yes,
-            unknown, // memory is not managed by GC
-        }
-        alias IsMarked delegate(void*) IsMarkedDg;
-        extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
-
-        alias void delegate(void*, void*) scanFn;
-        extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
-
-        alias void delegate(void*) StackShellFn;
-        extern (C) void thread_callWithStackShell(scope StackShellFn fn);
+        no,
+        yes,
+        unknown, // memory is not managed by GC
     }
+    alias IsMarked delegate(void*) IsMarkedDg;
+    extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
+
+    alias void delegate(void*, void*) scanFn;
+    extern (C) void thread_scanAll(scope scanFn fn);
 
     extern (C) void onOutOfMemoryError();
     extern (C) void onInvalidMemoryOperationError();
@@ -273,7 +262,6 @@ class GC
         if (!gcx)
             onOutOfMemoryError();
         gcx.initialize();
-        setStackBottom(rt_stackBottom());
     }
 
 
@@ -290,15 +278,6 @@ class GC
             gcx.Dtor();
             cstdlib.free(gcx);
             gcx = null;
-        }
-    }
-
-
-    invariant()
-    {
-        if (gcx)
-        {
-            gcx.thread_Invariant();
         }
     }
 
@@ -521,7 +500,7 @@ class GC
                 switch (state)
                 {
                 case 0:
-                    auto freedpages = gcx.fullcollectshell();
+                    auto freedpages = gcx.fullcollect();
                     collected = true;
                     if (freedpages < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
                     {   /* Didn't free much, so try allocating more anyway.
@@ -1202,32 +1181,6 @@ class GC
     }
 
 
-    //
-    //
-    //
-    private void setStackBottom(void *p)
-    {
-        version (STACKGROWSDOWN)
-        {
-            //p = (void *)((uint *)p + 4);
-            if (p > gcx.stackBottom)
-            {
-                //debug(PRINTF) printf("setStackBottom(%p)\n", p);
-                gcx.stackBottom = p;
-            }
-        }
-        else
-        {
-            //p = (void *)((uint *)p - 4);
-            if (p < gcx.stackBottom)
-            {
-                //debug(PRINTF) printf("setStackBottom(%p)\n", p);
-                gcx.stackBottom = cast(char*)p;
-            }
-        }
-    }
-
-
     /**
      * add p to list of roots
      */
@@ -1372,7 +1325,7 @@ class GC
         {
             gcLock.lock();
             scope(exit) gcLock.unlock();
-            result = gcx.fullcollectshell();
+            result = gcx.fullcollect();
         }
 
         version (none)
@@ -1400,7 +1353,7 @@ class GC
             gcLock.lock();
             scope(exit) gcLock.unlock();
             gcx.noStack++;
-            gcx.fullcollectshell();
+            gcx.fullcollect();
             gcx.noStack--;
         }
     }
@@ -1545,21 +1498,6 @@ immutable size_t notbinsize[B_MAX] = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1)
 
 struct Gcx
 {
-    debug (THREADINVARIANT)
-    {
-        pthread_t self;
-        void thread_Invariant() const
-        {
-            if (self != pthread_self())
-                printf("thread_Invariant(): gcx = %p, self = %x, pthread_self() = %x\n", &this, self, pthread_self());
-            assert(self == pthread_self());
-        }
-    }
-    else
-    {
-        void thread_Invariant() const { }
-    }
-
     void *cached_size_key;
     size_t cached_size_val;
 
@@ -1577,7 +1515,6 @@ struct Gcx
     uint noStack;       // !=0 means don't scan stack
     uint log;           // turn on logging
     uint anychanges;
-    void *stackBottom;
     uint inited;
     uint running;
     int disabled;       // turn off collections if >0
@@ -1595,10 +1532,7 @@ struct Gcx
     {   int dummy;
 
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
-        stackBottom = cast(char*)&dummy;
         log_init();
-        debug (THREADINVARIANT)
-            self = pthread_self();
         //printf("gcx = %p, self = %x\n", &this, self);
         inited = 1;
     }
@@ -1648,9 +1582,6 @@ struct Gcx
         if (inited)
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
-
-            // Assure we're called on the right thread
-            debug (THREADINVARIANT) assert(self == pthread_self());
 
             for (size_t i = 0; i < npools; i++)
             {   auto pool = pooltable[i];
@@ -2305,7 +2236,7 @@ struct Gcx
             case 0:
                 // Try collecting
                 collected = true;
-                freedpages = fullcollectshell();
+                freedpages = fullcollect();
                 if (freedpages >= npools * ((POOLSIZE / PAGESIZE) / 4))
                 {   state = 1;
                     continue;
@@ -2615,25 +2546,7 @@ struct Gcx
     /**
      * Return number of full pages free'd.
      */
-    size_t fullcollectshell()
-    {
-        size_t result;
-
-        void op(void* sp)
-        {
-            result = fullcollect(sp);
-        }
-
-        thread_callWithStackShell(&op);
-
-        return result;
-    }
-
-
-    /**
-     *
-     */
-    size_t fullcollect(void *stackTop)
+    size_t fullcollect()
     {
         size_t n;
         Pool*  pool;
@@ -2699,26 +2612,11 @@ struct Gcx
             start = stop;
         }
 
-        version (MULTI_THREADED)
+        if (!noStack)
         {
-            if (!noStack)
-            {
-                debug(COLLECT_PRINTF) printf("scanning multithreaded stack.\n");
-                // Scan stacks and registers for each paused thread
-                thread_scanAll(&mark, stackTop);
-            }
-        }
-        else
-        {
-            if (!noStack)
-            {
-                // Scan stack for main thread
-                debug(PRINTF) printf(" scan stack bot = %p, top = %p\n", stackTop, stackBottom);
-                version (STACKGROWSDOWN)
-                    mark(stackTop, stackBottom);
-                else
-                    mark(stackBottom, stackTop);
-            }
+            debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
+            // Scan stacks and registers for each paused thread
+            thread_scanAll(&mark);
         }
 
         // Scan roots[]
