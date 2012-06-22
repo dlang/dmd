@@ -1560,7 +1560,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     VarDeclaration *v = (*parameters)[i];
 
-                    if (v->storage_class & (STCref | STCout))
+                    if (v->storage_class & (STCref | STCout | STClazy))
                         continue;
 
 #if !SARRAYVALUE
