@@ -5114,6 +5114,59 @@ void test6189_2()
 }
 
 /***************************************************/
+// 8199
+
+version (D_InlineAsm_X86_64)
+{
+    version = Check;
+    enum Align = 0x8;
+}
+else version (D_InlineAsm_X86)
+{
+    version = Check;
+    version (OSX)
+        enum Align = 0xC;
+}
+
+void onFailure()
+{
+    assert(0, "alignment failure");
+}
+
+void checkAlign()
+{
+    version (Check)
+    {
+        static if (is(typeof(Align)))
+        asm
+        {
+            naked;
+            mov EAX, ESP;
+            and EAX, 0xF;
+            cmp EAX, Align;
+            je Lpass;
+            call onFailure;
+        Lpass:
+            ret;
+        }
+    }
+    else
+        return;
+}
+
+void foo8199()
+{
+}
+
+void test8199()
+{
+    try
+        foo8199();
+    finally
+        checkAlign();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5373,6 +5426,7 @@ int main()
     test8095();
     test8091();
     test6189_2();
+    test8199();
 
     writefln("Success");
     return 0;
