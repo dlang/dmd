@@ -98,9 +98,6 @@ private
     }
 private
 {
-    extern (C) void* rt_stackBottom();
-    extern (C) void* rt_stackTop();
-
     extern (C) void rt_finalize_gc(void* p);
 
     extern (C) bool thread_needLock();
@@ -269,7 +266,6 @@ class GC
         if (!gcx)
             onOutOfMemoryError();
         gcx.initialize();
-        setStackBottom(rt_stackBottom());
     }
 
 
@@ -1198,32 +1194,6 @@ class GC
     }
 
 
-    //
-    //
-    //
-    private void setStackBottom(void *p)
-    {
-        version (STACKGROWSDOWN)
-        {
-            //p = (void *)((uint *)p + 4);
-            if (p > gcx.stackBottom)
-            {
-                //debug(PRINTF) printf("setStackBottom(%p)\n", p);
-                gcx.stackBottom = p;
-            }
-        }
-        else
-        {
-            //p = (void *)((uint *)p - 4);
-            if (p < gcx.stackBottom)
-            {
-                //debug(PRINTF) printf("setStackBottom(%p)\n", p);
-                gcx.stackBottom = cast(char*)p;
-            }
-        }
-    }
-
-
     /**
      * add p to list of roots
      */
@@ -1573,7 +1543,6 @@ struct Gcx
     uint noStack;       // !=0 means don't scan stack
     uint log;           // turn on logging
     uint anychanges;
-    void *stackBottom;
     uint inited;
     uint running;
     int disabled;       // turn off collections if >0
@@ -1591,7 +1560,6 @@ struct Gcx
     {   int dummy;
 
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
-        stackBottom = cast(char*)&dummy;
         log_init();
         debug (THREADINVARIANT)
             self = pthread_self();
