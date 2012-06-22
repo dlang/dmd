@@ -19,7 +19,6 @@ module gc.gcx;
 
 //debug = PRINTF;               // turn on printf's
 //debug = COLLECT_PRINTF;       // turn on printf's
-//debug = THREADINVARIANT;      // check thread integrity
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
@@ -282,15 +281,6 @@ class GC
             gcx.Dtor();
             cstdlib.free(gcx);
             gcx = null;
-        }
-    }
-
-
-    invariant()
-    {
-        if (gcx)
-        {
-            gcx.thread_Invariant();
         }
     }
 
@@ -1511,21 +1501,6 @@ immutable size_t notbinsize[B_MAX] = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1)
 
 struct Gcx
 {
-    debug (THREADINVARIANT)
-    {
-        pthread_t self;
-        void thread_Invariant() const
-        {
-            if (self != pthread_self())
-                printf("thread_Invariant(): gcx = %p, self = %x, pthread_self() = %x\n", &this, self, pthread_self());
-            assert(self == pthread_self());
-        }
-    }
-    else
-    {
-        void thread_Invariant() const { }
-    }
-
     void *cached_size_key;
     size_t cached_size_val;
 
@@ -1561,8 +1536,6 @@ struct Gcx
 
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
         log_init();
-        debug (THREADINVARIANT)
-            self = pthread_self();
         //printf("gcx = %p, self = %x\n", &this, self);
         inited = 1;
     }
@@ -1612,9 +1585,6 @@ struct Gcx
         if (inited)
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
-
-            // Assure we're called on the right thread
-            debug (THREADINVARIANT) assert(self == pthread_self());
 
             for (size_t i = 0; i < npools; i++)
             {   auto pool = pooltable[i];
