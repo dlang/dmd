@@ -604,12 +604,11 @@ alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn;
  *
  * Params:
  *  scan        = The scanner function.  It should scan from p1 through p2 - 1.
- *  curStackTop = An optional pointer to the top of the calling thread's stack.
  *
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan, void* curStackTop = null );
+extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan );
 
 
 /**
@@ -618,12 +617,11 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan, void* curSt
  *
  * Params:
  *  scan        = The scanner function.  It should scan from p1 through p2 - 1.
- *  curStackTop = An optional pointer to the top of the calling thread's stack.
  *
  * In:
  *  This routine must be preceded by a call to thread_suspendAll.
  */
-extern (C) void thread_scanAll( scope ScanAllThreadsFn scan, void* curStackTop = null );
+extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
 
 enum IsMarked : int
 {

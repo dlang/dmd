@@ -114,10 +114,7 @@ private
     extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
 
     alias void delegate(void*, void*) scanFn;
-    extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
-
-    alias void delegate(void*) StackShellFn;
-    extern (C) void thread_callWithStackShell(scope StackShellFn fn);
+    extern (C) void thread_scanAll(scope scanFn fn);
 
     extern (C) void onOutOfMemoryError();
     extern (C) void onInvalidMemoryOperationError();
@@ -503,7 +500,7 @@ class GC
                 switch (state)
                 {
                 case 0:
-                    auto freedpages = gcx.fullcollectshell();
+                    auto freedpages = gcx.fullcollect();
                     collected = true;
                     if (freedpages < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
                     {   /* Didn't free much, so try allocating more anyway.
@@ -1328,7 +1325,7 @@ class GC
         {
             gcLock.lock();
             scope(exit) gcLock.unlock();
-            result = gcx.fullcollectshell();
+            result = gcx.fullcollect();
         }
 
         version (none)
@@ -1356,7 +1353,7 @@ class GC
             gcLock.lock();
             scope(exit) gcLock.unlock();
             gcx.noStack++;
-            gcx.fullcollectshell();
+            gcx.fullcollect();
             gcx.noStack--;
         }
     }
@@ -2239,7 +2236,7 @@ struct Gcx
             case 0:
                 // Try collecting
                 collected = true;
-                freedpages = fullcollectshell();
+                freedpages = fullcollect();
                 if (freedpages >= npools * ((POOLSIZE / PAGESIZE) / 4))
                 {   state = 1;
                     continue;
@@ -2549,25 +2546,7 @@ struct Gcx
     /**
      * Return number of full pages free'd.
      */
-    size_t fullcollectshell()
-    {
-        size_t result;
-
-        void op(void* sp)
-        {
-            result = fullcollect(sp);
-        }
-
-        thread_callWithStackShell(&op);
-
-        return result;
-    }
-
-
-    /**
-     *
-     */
-    size_t fullcollect(void *stackTop)
+    size_t fullcollect()
     {
         size_t n;
         Pool*  pool;
@@ -2637,7 +2616,7 @@ struct Gcx
         {
             debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
             // Scan stacks and registers for each paused thread
-            thread_scanAll(&mark, stackTop);
+            thread_scanAll(&mark);
         }
 
         // Scan roots[]

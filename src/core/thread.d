@@ -2603,28 +2603,23 @@ enum ScanType
 alias void delegate(void*, void*) ScanAllThreadsFn;
 alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn;
 
-/**
- * The main entry point for garbage collection.  The supplied delegate
- * will be passed ranges representing both stack and register values.
- *
- * Params:
- *  scan        = The scanner function.  It should scan from p1 through p2 - 1.
- *  curStackTop = An optional pointer to the top of the calling thread's stack.
- *
- * In:
- *  This routine must be preceded by a call to thread_suspendAll.
- */
-extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan, void* curStackTop = null )
+extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan )
 in
 {
     assert( suspendDepth > 0 );
 }
 body
 {
+    thread_callWithStackShell(sp => scanAllTypeImpl(scan, sp));
+}
+
+
+private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop )
+{
     Thread  thisThread  = null;
     void*   oldStackTop = null;
 
-    if( curStackTop && Thread.sm_tbeg )
+    if( Thread.sm_tbeg )
     {
         thisThread  = Thread.getThis();
         if( !thisThread.m_lock )
@@ -2636,7 +2631,7 @@ body
 
     scope( exit )
     {
-        if( curStackTop && Thread.sm_tbeg )
+        if( Thread.sm_tbeg )
         {
             if( !thisThread.m_lock )
             {
@@ -2680,30 +2675,10 @@ body
     }
 }
 
-/**
- * The main entry point for garbage collection.  The supplied delegate
- * will be passed ranges representing both stack and register values.
- *
- * Params:
- *  scan        = The scanner function.  It should scan from p1 through p2 - 1.
- *  curStackTop = An optional pointer to the top of the calling thread's stack.
- *
- * In:
- *  This routine must be preceded by a call to thread_suspendAll.
- */
-extern (C) void thread_scanAll( scope ScanAllThreadsFn scan, void* curStackTop = null )
-in
-{
-    assert( suspendDepth > 0 );
-}
-body
-{
-    void op( ScanType type, void* p1, void* p2 )
-    {
-        scan(p1, p2);
-    }
 
-    thread_scanAllType(&op, curStackTop);
+extern (C) void thread_scanAll( scope ScanAllThreadsFn scan )
+{
+    thread_scanAllType((type, p1, p2) => scan(p1, p2));
 }
 
 /**
