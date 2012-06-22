@@ -32,7 +32,6 @@ module gc.gcx;
 version = STACKGROWSDOWN;       // growing the stack means subtracting from the stack pointer
                                 // (use for Intel X86 CPUs)
                                 // else growing the stack means adding to the stack pointer
-version = MULTI_THREADED;       // produce multithreaded version
 
 /***************************************************/
 
@@ -104,28 +103,25 @@ private
 
     extern (C) void rt_finalize_gc(void* p);
 
-    version (MULTI_THREADED)
+    extern (C) bool thread_needLock();
+    extern (C) void thread_suspendAll();
+    extern (C) void thread_resumeAll();
+
+    // core.thread
+    enum IsMarked : int
     {
-        extern (C) bool thread_needLock();
-        extern (C) void thread_suspendAll();
-        extern (C) void thread_resumeAll();
-
-        // core.thread
-        enum IsMarked : int
-        {
-                 no,
-                yes,
-            unknown, // memory is not managed by GC
-        }
-        alias IsMarked delegate(void*) IsMarkedDg;
-        extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
-
-        alias void delegate(void*, void*) scanFn;
-        extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
-
-        alias void delegate(void*) StackShellFn;
-        extern (C) void thread_callWithStackShell(scope StackShellFn fn);
+        no,
+        yes,
+        unknown, // memory is not managed by GC
     }
+    alias IsMarked delegate(void*) IsMarkedDg;
+    extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
+
+    alias void delegate(void*, void*) scanFn;
+    extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
+
+    alias void delegate(void*) StackShellFn;
+    extern (C) void thread_callWithStackShell(scope StackShellFn fn);
 
     extern (C) void onOutOfMemoryError();
     extern (C) void onInvalidMemoryOperationError();
@@ -2699,26 +2695,11 @@ struct Gcx
             start = stop;
         }
 
-        version (MULTI_THREADED)
+        if (!noStack)
         {
-            if (!noStack)
-            {
-                debug(COLLECT_PRINTF) printf("scanning multithreaded stack.\n");
-                // Scan stacks and registers for each paused thread
-                thread_scanAll(&mark, stackTop);
-            }
-        }
-        else
-        {
-            if (!noStack)
-            {
-                // Scan stack for main thread
-                debug(PRINTF) printf(" scan stack bot = %p, top = %p\n", stackTop, stackBottom);
-                version (STACKGROWSDOWN)
-                    mark(stackTop, stackBottom);
-                else
-                    mark(stackBottom, stackTop);
-            }
+            debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
+            // Scan stacks and registers for each paused thread
+            thread_scanAll(&mark, stackTop);
         }
 
         // Scan roots[]
