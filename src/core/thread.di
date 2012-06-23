@@ -148,9 +148,6 @@ class Thread
     this( void delegate() dg, size_t sz = 0 );
 
 
-    /**
-     * Cleans up any remaining resources used by this object.
-     */
     ~this();
 
 
@@ -394,10 +391,8 @@ class Thread
     ///////////////////////////////////////////////////////////////////////////
 
 
-    /**
-     * This initializer is used to set thread constants.  All functional
-     * initialization occurs within thread_init().
-     */
+    // This initializer is used to set thread constants.  All functional
+    // initialization occurs within thread_init().
     shared static this();
 
 
@@ -458,7 +453,14 @@ extern (C) void thread_init();
 
 
 /**
+ * Indicates whether the current thread is the main thread.
  *
+ * In:
+ *  The current thread must be attached to the runtime.
+ *
+ * Returns:
+ *  $(D true) if the current thread is the program's main thread; otherwise,
+ *  $(D false).
  */
 extern (C) bool thread_isMainThread();
 
@@ -533,9 +535,7 @@ extern (C) void thread_setThis(Thread t);
 extern (C) void thread_joinAll();
 
 
-/**
- * Performs intermediate shutdown of the thread module.
- */
+// Performs intermediate shutdown of the thread module.
 shared static ~this();
 
 
@@ -577,14 +577,17 @@ extern (C) void thread_suspendAll();
 extern (C) void thread_resumeAll();
 
 
+/**
+ * Indicates the kind of scan being performed by $(D thread_scanAllType).
+ */
 enum ScanType
 {
-    stack,
-    tls,
+    stack, /// The stack and/or registers are being scanned.
+    tls, /// TLS data is being scanned.
 }
 
-alias void delegate(void*, void*) ScanAllThreadsFn;
-alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn;
+alias void delegate(void*, void*) ScanAllThreadsFn; /// The scanning function.
+alias void delegate(ScanType, void*, void*) ScanAllThreadsTypeFn; /// ditto
 
 /**
  * The main entry point for garbage collection.  The supplied delegate
@@ -611,11 +614,14 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan );
  */
 extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
 
+/**
+ * Indicates whether an address has been marked by the GC.
+ */
 enum IsMarked : int
 {
-         no,
-        yes,
-    unknown, // memory is not managed by GC
+         no, /// Address is not marked.
+        yes, /// Address is marked.
+    unknown, /// Address is not managed by the GC.
 }
 
 alias IsMarked delegate( void* addr ) IsMarkedDg;
@@ -627,7 +633,7 @@ alias IsMarked delegate( void* addr ) IsMarkedDg;
  * means the array append cache.
  *
  * Params:
- *  hasMarks = The probe function. It should return true for pointers into marked memory blocks.
+ *  isMarked = The function used to check if $(D addr) is marked.
  *
  * In:
  *  This routine must be called just prior to resuming all threads.
@@ -842,9 +848,6 @@ class Fiber
     this( void delegate() dg, size_t sz = PAGESIZE*4 );
 
 
-    /**
-     * Cleans up any remaining resources used by this object.
-     */
     ~this();
 
 
