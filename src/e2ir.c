@@ -5043,16 +5043,16 @@ elem *StructLiteralExp::toElem(IRState *irs)
         e = el_combine(e, fillHole(stmp, &offset, sd->structsize, sd->structsize));
     }
 
-    if (elements || sd->isNested())
+    if (elements || sd->isnested)
     {
-        size_t dim = elements ? elements->dim : 0;
-        if (sd->isNested() && dim == sd->fields.dim - 1)
-            dim = sd->fields.dim;
-        assert(dim <= sd->fields.dim);
+        size_t dim = sd->fields.dim;
         for (size_t i = 0; i < dim; i++)
-        {   Expression *el = elements ? (*elements)[i] : NULL;
-            if (!el && !(sd->isNested() && i == dim - 1))
-                continue;
+        {   Expression *el;
+            if (!sd->isnested || i < dim - 1)
+            {   el = elements ? (*elements)[i] : NULL;
+                if (!el)
+                    continue;
+            }
 
             Dsymbol *s = sd->fields[i];
             VarDeclaration *v = s->isVarDeclaration();
