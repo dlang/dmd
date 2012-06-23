@@ -5168,6 +5168,17 @@ void test8199()
 
 /***************************************************/
 
+void test246()
+{
+    struct Struct
+    {
+        void method() {}
+    }
+    auto val = Struct();
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5427,6 +5438,7 @@ int main()
     test8091();
     test6189_2();
     test8199();
+    test246();
 
     writefln("Success");
     return 0;
