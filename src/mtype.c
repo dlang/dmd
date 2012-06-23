@@ -5143,6 +5143,8 @@ int Type::covariant(Type *t, StorageClass *pstc)
     }
     else if (t1n->ty == t2n->ty && t1n->implicitConvTo(t2n))
         goto Lcovariant;
+    else if (t1n->ty == Tnull && t1n->implicitConvTo(t2n))
+        goto Lcovariant;
   }
     goto Lnotcovariant;
 
