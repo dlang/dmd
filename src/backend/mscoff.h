@@ -8,6 +8,7 @@ struct filehdr
 {
         unsigned short f_magic; // identifies type of target machine
 #define IMAGE_FILE_MACHINE_UNKNOWN 0            // applies to any machine type
+#define IMAGE_FILE_MACHINE_I386    0x14C        // x86
 #define IMAGE_FILE_MACHINE_AMD64   0x8664       // x86_64
         unsigned short f_nscns; // number of sections (96 is max)
         long f_timdat;          // creation date, number of seconds since 1970

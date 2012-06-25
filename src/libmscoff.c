@@ -233,15 +233,9 @@ void OmToHeader(Header *h, ObjModule *om)
     assert(len <= 12);
     memset(h->file_time + len, ' ', 12 - len);
 
-    if (om->user_id > 999999)
-        om->user_id = 0;
-    len = sprintf(h->user_id, "%u", om->user_id);
-    assert(len <= 6);
-    memset(h->user_id + len, ' ', 6 - len);
-
-    len = sprintf(h->group_id, "%u", om->group_id);
-    assert(len <= 6);
-    memset(h->group_id + len, ' ', 6 - len);
+    // Match what MS tools do (set to all blanks)
+    memset(h->user_id, ' ', sizeof(h->user_id));
+    memset(h->group_id, ' ', sizeof(h->group_id));
 
     len = sprintf(h->file_mode, "%o", om->file_mode);
     assert(len <= 8);
@@ -578,20 +572,10 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
     {   /* Mock things up for the object module file that never was
          * actually written out.
          */
-#if 0
-        static uid_t uid;
-        static gid_t gid;
-        static int init;
-        if (!init)
-        {   init = 1;
-            uid = getuid();
-            gid = getgid();
-        }
         time(&om->file_time);
-        om->user_id = uid;
-        om->group_id = gid;
+        om->user_id = 0;                // meaningless on Windows
+        om->group_id = 0;               // meaningless on Windows
         om->file_mode = 0100644;
-#endif
     }
     objmodules.push(om);
 }
