@@ -2015,10 +2015,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 e = EXP_CANT_INTERPRET;
             }
             else if (!e)
-            {
-                assert(0);
-                assert(v->init && v->init->isVoidInitializer());
-                e = v->type->voidInitLiteral(v);
+            {   assert(!(v->init && v->init->isVoidInitializer()));
+                // CTFE initiated from inside a function
+                error(loc, "variable %s cannot be read at compile time", v->toChars());
+                return EXP_CANT_INTERPRET;
             }
             else if (exceptionOrCantInterpret(e))
                 return e;
