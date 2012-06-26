@@ -5789,7 +5789,7 @@ Expression *IsExp::semantic(Scope *sc)
                 for (size_t i = 0; i < dim; i++)
                 {   Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
-                    args->push(new Parameter(arg->storageClass, arg->type, arg->ident, arg->defaultArg));
+                    args->push(new Parameter(arg->storageClass, arg->type, NULL, arg->defaultArg));
                 }
                 tded = new TypeTuple(args);
                 break;
