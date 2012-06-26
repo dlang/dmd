@@ -533,18 +533,6 @@ shared static ~this();
 
 
 /**
- * This function is used to determine whether the the process is
- * multi-threaded.  Optimizations may only be performed on this
- * value if the programmer can guarantee that no path from the
- * enclosed code will start a thread.
- *
- * Returns:
- *  True if Thread.start() has been called in this process.
- */
-extern (C) bool thread_needLock() nothrow;
-
-
-/**
  * Suspend all threads but the calling thread for "stop the world" garbage
  * collection runs.  This function may be called multiple times, and must
  * be followed by a matching number of calls to thread_resumeAll before
