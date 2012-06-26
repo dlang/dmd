@@ -2154,21 +2154,6 @@ shared static ~this()
 private __gshared bool multiThreadedFlag = false;
 
 
-/**
- * This function is used to determine whether the the process is
- * multi-threaded.  Optimizations may only be performed on this
- * value if the programmer can guarantee that no path from the
- * enclosed code will start a thread.
- *
- * Returns:
- *  True if Thread.start() has been called in this process.
- */
-extern (C) bool thread_needLock() nothrow
-{
-    return multiThreadedFlag;
-}
-
-
 // Calls the given delegate, passing the current thread's stack pointer to it.
 private void callWithStackShell(scope void delegate(void* sp) fn)
 in
