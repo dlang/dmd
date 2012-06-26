@@ -18,7 +18,7 @@ GCSTUB=lib\gcstub.obj
 
 DOCFMT=-version=CoreDdoc
 
-target : import $(DRUNTIME) doc $(GCSTUB)
+target : import copydir copy $(DRUNTIME) doc $(GCSTUB)
 
 MANIFEST= \
 	LICENSE \
@@ -27,6 +27,8 @@ MANIFEST= \
 	win32.mak \
 	\
 	import\object.di \
+	\
+	import\core\thread.di \
 	\
 	src\object_.d \
 	\
@@ -40,7 +42,6 @@ MANIFEST= \
 	src\core\runtime.d \
 	src\core\simd.d \
 	src\core\thread.d \
-	src\core\thread.di \
 	src\core\time.d \
 	src\core\vararg.d \
 	\
@@ -379,99 +380,101 @@ DOCS=\
 	$(DOCDIR)\core_sync_semaphore.html
 
 IMPORTS=\
-	$(IMPDIR)\core\atomic.di \
-	$(IMPDIR)\core\bitop.di \
-	$(IMPDIR)\core\cpuid.di \
-	$(IMPDIR)\core\demangle.di \
-	$(IMPDIR)\core\exception.di \
-	$(IMPDIR)\core\math.di \
-	$(IMPDIR)\core\memory.di \
-	$(IMPDIR)\core\runtime.di \
-	$(IMPDIR)\core\simd.di \
-	$(IMPDIR)\core\thread.di \
-	$(IMPDIR)\core\time.di \
-	$(IMPDIR)\core\vararg.di \
-	\
-	$(IMPDIR)\core\stdc\complex.di \
-	$(IMPDIR)\core\stdc\config.di \
-	$(IMPDIR)\core\stdc\ctype.di \
-	$(IMPDIR)\core\stdc\errno.di \
-	$(IMPDIR)\core\stdc\fenv.di \
-	$(IMPDIR)\core\stdc\float_.di \
-	$(IMPDIR)\core\stdc\inttypes.di \
-	$(IMPDIR)\core\stdc\limits.di \
-	$(IMPDIR)\core\stdc\locale.di \
-	$(IMPDIR)\core\stdc\math.di \
-	$(IMPDIR)\core\stdc\signal.di \
-	$(IMPDIR)\core\stdc\stdarg.di \
-	$(IMPDIR)\core\stdc\stddef.di \
-	$(IMPDIR)\core\stdc\stdint.di \
-	$(IMPDIR)\core\stdc\stdio.di \
-	$(IMPDIR)\core\stdc\stdlib.di \
-	$(IMPDIR)\core\stdc\string.di \
-	$(IMPDIR)\core\stdc\tgmath.di \
-	$(IMPDIR)\core\stdc\time.di \
-	$(IMPDIR)\core\stdc\wchar_.di \
-	$(IMPDIR)\core\stdc\wctype.di \
-	\
 	$(IMPDIR)\core\sync\barrier.di \
 	$(IMPDIR)\core\sync\condition.di \
 	$(IMPDIR)\core\sync\config.di \
 	$(IMPDIR)\core\sync\exception.di \
 	$(IMPDIR)\core\sync\mutex.di \
 	$(IMPDIR)\core\sync\rwmutex.di \
-	$(IMPDIR)\core\sync\semaphore.di \
+	$(IMPDIR)\core\sync\semaphore.di
+
+COPY=\
+	$(IMPDIR)\core\atomic.d \
+	$(IMPDIR)\core\bitop.d \
+	$(IMPDIR)\core\cpuid.d \
+	$(IMPDIR)\core\demangle.d \
+	$(IMPDIR)\core\exception.d \
+	$(IMPDIR)\core\math.d \
+	$(IMPDIR)\core\memory.d \
+	$(IMPDIR)\core\runtime.d \
+	$(IMPDIR)\core\simd.d \
+	$(IMPDIR)\core\time.d \
+	$(IMPDIR)\core\vararg.d \
 	\
-	$(IMPDIR)\core\sys\osx\mach\kern_return.di \
-	$(IMPDIR)\core\sys\osx\mach\port.di \
-	$(IMPDIR)\core\sys\osx\mach\semaphore.di \
-	$(IMPDIR)\core\sys\osx\mach\thread_act.di \
+	$(IMPDIR)\core\stdc\complex.d \
+	$(IMPDIR)\core\stdc\config.d \
+	$(IMPDIR)\core\stdc\ctype.d \
+	$(IMPDIR)\core\stdc\errno.d \
+	$(IMPDIR)\core\stdc\fenv.d \
+	$(IMPDIR)\core\stdc\float_.d \
+	$(IMPDIR)\core\stdc\inttypes.d \
+	$(IMPDIR)\core\stdc\limits.d \
+	$(IMPDIR)\core\stdc\locale.d \
+	$(IMPDIR)\core\stdc\math.d \
+	$(IMPDIR)\core\stdc\signal.d \
+	$(IMPDIR)\core\stdc\stdarg.d \
+	$(IMPDIR)\core\stdc\stddef.d \
+	$(IMPDIR)\core\stdc\stdint.d \
+	$(IMPDIR)\core\stdc\stdio.d \
+	$(IMPDIR)\core\stdc\stdlib.d \
+	$(IMPDIR)\core\stdc\string.d \
+	$(IMPDIR)\core\stdc\tgmath.d \
+	$(IMPDIR)\core\stdc\time.d \
+	$(IMPDIR)\core\stdc\wchar_.d \
+	$(IMPDIR)\core\stdc\wctype.d \
 	\
-	$(IMPDIR)\core\sys\posix\arpa\inet.di \
-	$(IMPDIR)\core\sys\posix\config.di \
-	$(IMPDIR)\core\sys\posix\dirent.di \
-	$(IMPDIR)\core\sys\posix\dlfcn.di \
-	$(IMPDIR)\core\sys\posix\fcntl.di \
-	$(IMPDIR)\core\sys\posix\inttypes.di \
-	$(IMPDIR)\core\sys\posix\netdb.di \
-	$(IMPDIR)\core\sys\posix\poll.di \
-	$(IMPDIR)\core\sys\posix\pthread.di \
-	$(IMPDIR)\core\sys\posix\pwd.di \
-	$(IMPDIR)\core\sys\posix\sched.di \
-	$(IMPDIR)\core\sys\posix\semaphore.di \
-	$(IMPDIR)\core\sys\posix\setjmp.di \
-	$(IMPDIR)\core\sys\posix\signal.di \
-	$(IMPDIR)\core\sys\posix\stdio.di \
-	$(IMPDIR)\core\sys\posix\stdlib.di \
-	$(IMPDIR)\core\sys\posix\termios.di \
-	$(IMPDIR)\core\sys\posix\time.di \
-	$(IMPDIR)\core\sys\posix\ucontext.di \
-	$(IMPDIR)\core\sys\posix\unistd.di \
-	$(IMPDIR)\core\sys\posix\utime.di \
+	$(IMPDIR)\core\sys\freebsd\sys\event.d \
 	\
-	$(IMPDIR)\core\sys\posix\net\if_.di \
+	$(IMPDIR)\core\sys\osx\mach\kern_return.d \
+	$(IMPDIR)\core\sys\osx\mach\port.d \
+	$(IMPDIR)\core\sys\osx\mach\semaphore.d \
+	$(IMPDIR)\core\sys\osx\mach\thread_act.d \
 	\
-	$(IMPDIR)\core\sys\posix\netinet\in_.di \
-	$(IMPDIR)\core\sys\posix\netinet\tcp.di \
+	$(IMPDIR)\core\sys\posix\arpa\inet.d \
+	$(IMPDIR)\core\sys\posix\config.d \
+	$(IMPDIR)\core\sys\posix\dirent.d \
+	$(IMPDIR)\core\sys\posix\dlfcn.d \
+	$(IMPDIR)\core\sys\posix\fcntl.d \
+	$(IMPDIR)\core\sys\posix\inttypes.d \
+	$(IMPDIR)\core\sys\posix\netdb.d \
+	$(IMPDIR)\core\sys\posix\poll.d \
+	$(IMPDIR)\core\sys\posix\pthread.d \
+	$(IMPDIR)\core\sys\posix\pwd.d \
+	$(IMPDIR)\core\sys\posix\sched.d \
+	$(IMPDIR)\core\sys\posix\semaphore.d \
+	$(IMPDIR)\core\sys\posix\setjmp.d \
+	$(IMPDIR)\core\sys\posix\signal.d \
+	$(IMPDIR)\core\sys\posix\stdio.d \
+	$(IMPDIR)\core\sys\posix\stdlib.d \
+	$(IMPDIR)\core\sys\posix\termios.d \
+	$(IMPDIR)\core\sys\posix\time.d \
+	$(IMPDIR)\core\sys\posix\ucontext.d \
+	$(IMPDIR)\core\sys\posix\unistd.d \
+	$(IMPDIR)\core\sys\posix\utime.d \
 	\
-	$(IMPDIR)\core\sys\posix\sys\ipc.di \
-	$(IMPDIR)\core\sys\posix\sys\mman.di \
-	$(IMPDIR)\core\sys\posix\sys\select.di \
-	$(IMPDIR)\core\sys\posix\sys\shm.di \
-	$(IMPDIR)\core\sys\posix\sys\socket.di \
-	$(IMPDIR)\core\sys\posix\sys\stat.di \
-	$(IMPDIR)\core\sys\posix\sys\time.di \
-	$(IMPDIR)\core\sys\posix\sys\types.di \
-	$(IMPDIR)\core\sys\posix\sys\uio.di \
-	$(IMPDIR)\core\sys\posix\sys\un.di \
-	$(IMPDIR)\core\sys\posix\sys\wait.di \
-	$(IMPDIR)\core\sys\posix\sys\utsname.di \
+	$(IMPDIR)\core\sys\posix\net\if_.d \
 	\
-	$(IMPDIR)\core\sys\windows\dbghelp.di \
-	$(IMPDIR)\core\sys\windows\dll.di \
-	$(IMPDIR)\core\sys\windows\stacktrace.di \
-	$(IMPDIR)\core\sys\windows\threadaux.di \
-	$(IMPDIR)\core\sys\windows\windows.di
+	$(IMPDIR)\core\sys\posix\netinet\in_.d \
+	$(IMPDIR)\core\sys\posix\netinet\tcp.d \
+	\
+	$(IMPDIR)\core\sys\posix\sys\ipc.d \
+	$(IMPDIR)\core\sys\posix\sys\mman.d \
+	$(IMPDIR)\core\sys\posix\sys\select.d \
+	$(IMPDIR)\core\sys\posix\sys\shm.d \
+	$(IMPDIR)\core\sys\posix\sys\socket.d \
+	$(IMPDIR)\core\sys\posix\sys\stat.d \
+	$(IMPDIR)\core\sys\posix\sys\time.d \
+	$(IMPDIR)\core\sys\posix\sys\types.d \
+	$(IMPDIR)\core\sys\posix\sys\uio.d \
+	$(IMPDIR)\core\sys\posix\sys\un.d \
+	$(IMPDIR)\core\sys\posix\sys\wait.d \
+	$(IMPDIR)\core\sys\posix\sys\utsname.d \
+	\
+	$(IMPDIR)\core\sys\windows\dbghelp.d \
+	$(IMPDIR)\core\sys\windows\dll.d \
+	$(IMPDIR)\core\sys\windows\stacktrace.d \
+	$(IMPDIR)\core\sys\windows\threadaux.d \
+	$(IMPDIR)\core\sys\windows\windows.d
 
 ######################## Doc .html file generation ##############################
 
@@ -507,7 +510,7 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 $(DOCDIR)\core_simd.html : src\core\simd.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core_thread.html : src\core\thread.di
+$(DOCDIR)\core_thread.html : $(IMPDIR)\core\thread.di
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_time.html : src\core\time.d
@@ -541,105 +544,6 @@ $(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
 
 import: $(IMPORTS)
 
-$(IMPDIR)\core\atomic.di : src\core\atomic.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\bitop.di : src\core\bitop.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\cpuid.di : src\core\cpuid.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\demangle.di : src\core\demangle.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\exception.di : src\core\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\math.di : src\core\math.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\memory.di : src\core\memory.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\runtime.di : src\core\runtime.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\simd.di : src\core\simd.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\thread.di : src\core\thread.di
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\time.di : src\core\time.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\vararg.di : src\core\vararg.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\complex.di : src\core\stdc\complex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\config.di : src\core\stdc\config.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\ctype.di : src\core\stdc\ctype.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\errno.di : src\core\stdc\errno.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\fenv.di : src\core\stdc\fenv.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\float_.di : src\core\stdc\float_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\inttypes.di : src\core\stdc\inttypes.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\limits.di : src\core\stdc\limits.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\locale.di : src\core\stdc\locale.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\math.di : src\core\stdc\math.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\signal.di : src\core\stdc\signal.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\stdarg.di : src\core\stdc\stdarg.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\stddef.di : src\core\stdc\stddef.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\stdint.di : src\core\stdc\stdint.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\stdio.di : src\core\stdc\stdio.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\stdlib.di : src\core\stdc\stdlib.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\string.di : src\core\stdc\string.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\tgmath.di : src\core\stdc\tgmath.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\time.di : src\core\stdc\time.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\wchar_.di : src\core\stdc\wchar_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
-$(IMPDIR)\core\stdc\wctype.di : src\core\stdc\wctype.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
-
 $(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
@@ -661,140 +565,253 @@ $(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
 $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
 
-$(IMPDIR)\core\sys\osx\mach\kern_return.di : src\core\sys\osx\mach\kern_return.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+######################## Header .di file copy ##############################
 
-$(IMPDIR)\core\sys\osx\mach\port.di : src\core\sys\osx\mach\port.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+copydir: $(IMPDIR)
+	mkdir $(IMPDIR)\core\sys\windows
+	mkdir $(IMPDIR)\core\sys\posix\arpa
+	mkdir $(IMPDIR)\core\sys\posix\sys
+	mkdir $(IMPDIR)\core\sys\posix\net
+	mkdir $(IMPDIR)\core\sys\posix\netinet
+	mkdir $(IMPDIR)\core\sys\osx\mach
+	mkdir $(IMPDIR)\core\sys\freebsd\sys
+	mkdir $(IMPDIR)\core\stdc
 
-$(IMPDIR)\core\sys\osx\mach\semaphore.di : src\core\sys\osx\mach\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+copy: $(COPY)
 
-$(IMPDIR)\core\sys\osx\mach\thread_act.di : src\core\sys\osx\mach\thread_act.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\atomic.d : src\core\atomic.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\arpa\inet.di : src\core\sys\posix\arpa\inet.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\bitop.d : src\core\bitop.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\config.di : src\core\sys\posix\config.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\cpuid.d : src\core\cpuid.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\dirent.di : src\core\sys\posix\dirent.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\demangle.d : src\core\demangle.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\dlfcn.di : src\core\sys\posix\dlfcn.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\exception.d : src\core\exception.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\fcntl.di : src\core\sys\posix\fcntl.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\math.d : src\core\math.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\inttypes.di : src\core\sys\posix\inttypes.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\memory.d : src\core\memory.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\netdb.di : src\core\sys\posix\netdb.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\runtime.d : src\core\runtime.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\net\if_.di : src\core\sys\posix\net\if_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\simd.d : src\core\simd.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\netinet\in_.di : src\core\sys\posix\netinet\in_.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\time.d : src\core\time.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\netinet\tcp.di : src\core\sys\posix\netinet\tcp.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\vararg.d : src\core\vararg.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\poll.di : src\core\sys\posix\poll.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\complex.d : src\core\stdc\complex.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\pthread.di : src\core\sys\posix\pthread.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\config.d : src\core\stdc\config.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\pwd.di : src\core\sys\posix\pwd.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\ctype.d : src\core\stdc\ctype.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sched.di : src\core\sys\posix\sched.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\errno.d : src\core\stdc\errno.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\semaphore.di : src\core\sys\posix\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\fenv.d : src\core\stdc\fenv.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\setjmp.di : src\core\sys\posix\setjmp.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\float_.d : src\core\stdc\float_.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\signal.di : src\core\sys\posix\signal.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\inttypes.d : src\core\stdc\inttypes.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\stdio.di : src\core\sys\posix\stdio.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\limits.d : src\core\stdc\limits.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\stdlib.di : src\core\sys\posix\stdlib.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\locale.d : src\core\stdc\locale.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\ipc.di : src\core\sys\posix\sys\ipc.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\math.d : src\core\stdc\math.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\mman.di : src\core\sys\posix\sys\mman.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\signal.d : src\core\stdc\signal.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\select.di : src\core\sys\posix\sys\select.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\stdarg.d : src\core\stdc\stdarg.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\shm.di : src\core\sys\posix\sys\shm.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\stddef.d : src\core\stdc\stddef.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\socket.di : src\core\sys\posix\sys\socket.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\stdint.d : src\core\stdc\stdint.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\stat.di : src\core\sys\posix\sys\stat.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\stdio.d : src\core\stdc\stdio.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\time.di : src\core\sys\posix\sys\time.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\stdlib.d : src\core\stdc\stdlib.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\types.di : src\core\sys\posix\sys\types.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\string.d : src\core\stdc\string.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\uio.di : src\core\sys\posix\sys\uio.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\tgmath.d : src\core\stdc\tgmath.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\un.di : src\core\sys\posix\sys\un.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\time.d : src\core\stdc\time.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\wait.di : src\core\sys\posix\sys\wait.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\sys\utsname.di : src\core\sys\posix\sys\utsname.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\termios.di : src\core\sys\posix\termios.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\time.di : src\core\sys\posix\time.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\osx\mach\kern_return.d : src\core\sys\osx\mach\kern_return.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\ucontext.di : src\core\sys\posix\ucontext.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\osx\mach\port.d : src\core\sys\osx\mach\port.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\unistd.di : src\core\sys\posix\unistd.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\osx\mach\semaphore.d : src\core\sys\osx\mach\semaphore.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\posix\utime.di : src\core\sys\posix\utime.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\osx\mach\thread_act.d : src\core\sys\osx\mach\thread_act.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\windows\dbghelp.di : src\core\sys\windows\dbghelp.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\posix\arpa\inet.d : src\core\sys\posix\arpa\inet.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\windows\dll.di : src\core\sys\windows\dll.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\posix\config.d : src\core\sys\posix\config.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\windows\stacktrace.di : src\core\sys\windows\stacktrace.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\posix\dirent.d : src\core\sys\posix\dirent.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\windows\threadaux.di : src\core\sys\windows\threadaux.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\posix\dlfcn.d : src\core\sys\posix\dlfcn.d
+	copy $** $@
 
-$(IMPDIR)\core\sys\windows\windows.di : src\core\sys\windows\windows.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+$(IMPDIR)\core\sys\posix\fcntl.d : src\core\sys\posix\fcntl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\netdb.d : src\core\sys\posix\netdb.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\net\if_.d : src\core\sys\posix\net\if_.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\netinet\in_.d : src\core\sys\posix\netinet\in_.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\netinet\tcp.d : src\core\sys\posix\netinet\tcp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\poll.d : src\core\sys\posix\poll.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\pthread.d : src\core\sys\posix\pthread.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\pwd.d : src\core\sys\posix\pwd.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sched.d : src\core\sys\posix\sched.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\semaphore.d : src\core\sys\posix\semaphore.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\setjmp.d : src\core\sys\posix\setjmp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\signal.d : src\core\sys\posix\signal.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\ipc.d : src\core\sys\posix\sys\ipc.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\mman.d : src\core\sys\posix\sys\mman.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\select.d : src\core\sys\posix\sys\select.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\shm.d : src\core\sys\posix\sys\shm.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\socket.d : src\core\sys\posix\sys\socket.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\stat.d : src\core\sys\posix\sys\stat.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\time.d : src\core\sys\posix\sys\time.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\types.d : src\core\sys\posix\sys\types.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\uio.d : src\core\sys\posix\sys\uio.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\un.d : src\core\sys\posix\sys\un.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\wait.d : src\core\sys\posix\sys\wait.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\utsname.d : src\core\sys\posix\sys\utsname.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\termios.d : src\core\sys\posix\termios.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\time.d : src\core\sys\posix\time.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\ucontext.d : src\core\sys\posix\ucontext.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\unistd.d : src\core\sys\posix\unistd.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\utime.d : src\core\sys\posix\utime.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\dbghelp.d : src\core\sys\windows\dbghelp.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\dll.d : src\core\sys\windows\dll.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\stacktrace.d : src\core\sys\windows\stacktrace.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\threadaux.d : src\core\sys\windows\threadaux.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\windows\windows.d : src\core\sys\windows\windows.d
+	copy $** $@
 
 ################### C\ASM Targets ############################
 
@@ -836,4 +853,8 @@ install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
 clean:
-	del $(DOCS) $(IMPORTS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	del $(DOCS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	del $(IMPDIR)\core\atomic.d $(IMPDIR)\core\bitop.d $(IMPDIR)\core\cpuid.d $(IMPDIR)\core\demangle.d $(IMPDIR)\core\exception.d $(IMPDIR)\core\math.d $(IMPDIR)\core\memory.d $(IMPDIR)\core\runtime.d $(IMPDIR)\core\simd.d $(IMPDIR)\core\time.d $(IMPDIR)\core\vararg.d
+	rmdir $(IMPDIR)\core\stdc /S /Q
+	rmdir $(IMPDIR)\core\sync /S /Q
+	rmdir $(IMPDIR)\core\sys /S /Q
