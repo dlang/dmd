@@ -255,6 +255,22 @@ void test7()
     static assert(!__traits(compiles, s1[]));
     static assert(!__traits(compiles, s3[]));
 
+    // CallExp::semantic
+//  static assert(!__traits(compiles, c1()));
+//  static assert(!__traits(compiles, c3()));
+    static assert(!__traits(compiles, s1()));
+    static assert(!__traits(compiles, s3()));
+
+    // AssignExp::semantic
+    static assert(!__traits(compiles, { c1[1] = 0; }));
+    static assert(!__traits(compiles, { c3[1] = 0; }));
+    static assert(!__traits(compiles, { s1[1] = 0; }));
+    static assert(!__traits(compiles, { s3[1] = 0; }));
+    static assert(!__traits(compiles, { c1[ ] = 0; }));
+    static assert(!__traits(compiles, { c3[ ] = 0; }));
+    static assert(!__traits(compiles, { s1[ ] = 0; }));
+    static assert(!__traits(compiles, { s3[ ] = 0; }));
+
     // UnaExp::op_overload
     static assert(!__traits(compiles, +c1[1]));
     static assert(!__traits(compiles, +c3[1]));
