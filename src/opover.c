@@ -1259,6 +1259,8 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
     int sliced = 0;
 #endif
     Type *tab;
+    Type *att = NULL;
+    Expression *org_aggr = aggr;
     AggregateDeclaration *ad;
 
     while (1)
@@ -1270,6 +1272,10 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
             goto Lerr;
 
         tab = aggr->type->toBasetype();
+        if (att == tab)
+        {   aggr = org_aggr;
+            goto Lerr;
+        }
         switch (tab->ty)
         {
             case Tarray:
@@ -1315,6 +1321,8 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
 
                 if (ad->aliasthis)
                 {
+                    if (!att && tab->checkAliasThisRec())
+                        att = tab;
                     aggr = new DotIdExp(aggr->loc, aggr, ad->aliasthis->ident);
                     continue;
                 }

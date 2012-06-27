@@ -330,6 +330,12 @@ void test7()
     static assert(!__traits(compiles, s0 += s3));   // e2
     static assert(!__traits(compiles, c1 += s1));   // e1 + e2
     static assert(!__traits(compiles, c3 += s3));   // e1 + e2
+
+    // ForeachStatement::inferAggregate
+    static assert(!__traits(compiles, { foreach (e; s1){} }));
+    static assert(!__traits(compiles, { foreach (e; s3){} }));
+    static assert(!__traits(compiles, { foreach (e; c1){} }));
+    static assert(!__traits(compiles, { foreach (e; c3){} }));
 }
 
 /***************************************************/
