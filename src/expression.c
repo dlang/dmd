@@ -6179,6 +6179,7 @@ UnaExp::UnaExp(Loc loc, enum TOK op, int size, Expression *e1)
         : Expression(loc, op, size)
 {
     this->e1 = e1;
+    this->att1 = NULL;
 }
 
 Expression *UnaExp::syntaxCopy()
@@ -6219,6 +6220,9 @@ BinExp::BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2)
 {
     this->e1 = e1;
     this->e2 = e2;
+
+    this->att1 = NULL;
+    this->att2 = NULL;
 }
 
 Expression *BinExp::syntaxCopy()
@@ -9524,8 +9528,10 @@ Lagain:
             e = e->semantic(sc);
             return e;
         }
-        if (ad->aliasthis)
+        if (ad->aliasthis && e1->type != att1)
         {
+            if (!att1 && e1->type->checkAliasThisRec())
+                att1 = e1->type;
             e1 = resolveAliasThis(sc, e1);
             goto Lagain;
         }

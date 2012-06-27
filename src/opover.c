@@ -245,18 +245,21 @@ Expression *UnaExp::op_overload(Scope *sc)
             }
 
             // Didn't find it. Forward to aliasthis
-            if (ad->aliasthis)
+            if (ad->aliasthis && ae->e1->type != att1)
             {
                 /* Rewrite op(a[arguments]) as:
                  *      op(a.aliasthis[arguments])
                  */
                 Expression *e1 = ae->copy();
                 ((ArrayExp *)e1)->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
-                Expression *e = copy();
-                ((UnaExp *)e)->e1 = e1;
-                e = e->trySemantic(sc);
-                return e;
+                UnaExp *ue = (UnaExp *)copy();
+                if (!ue->att1 && ae->e1->type->checkAliasThisRec())
+                    ue->att1 = ae->e1->type;
+                ue->e1 = e1;
+                if (Expression *e = ue->trySemantic(sc))
+                    return e;
             }
+            att1 = NULL;
         }
     }
     else if (e1->op == TOKslice)
@@ -289,18 +292,21 @@ Expression *UnaExp::op_overload(Scope *sc)
             }
 
             // Didn't find it. Forward to aliasthis
-            if (ad->aliasthis)
+            if (ad->aliasthis && se->e1->type != att1)
             {
                 /* Rewrite op(a[lwr..upr]) as:
                  *      op(a.aliasthis[lwr..upr])
                  */
                 Expression *e1 = se->copy();
                 ((SliceExp *)e1)->e1 = new DotIdExp(loc, se->e1, ad->aliasthis->ident);
-                Expression *e = copy();
-                ((UnaExp *)e)->e1 = e1;
-                e = e->trySemantic(sc);
-                return e;
+                UnaExp *ue = (UnaExp *)copy();
+                if (!ue->att1 && se->e1->type->checkAliasThisRec())
+                    ue->att1 = se->e1->type;
+                ue->e1 = e1;
+                if (Expression *e = ue->trySemantic(sc))
+                    return e;
             }
+            att1 = NULL;
         }
     }
 #endif
@@ -352,16 +358,18 @@ Expression *UnaExp::op_overload(Scope *sc)
         }
 
         // Didn't find it. Forward to aliasthis
-        if (ad->aliasthis)
+        if (ad->aliasthis && this->e1->type != att1)
         {
             /* Rewrite op(e1) as:
              *  op(e1.aliasthis)
              */
+            //printf("att una %s e1 = %s\n", Token::toChars(op), this->e1->type->toChars());
             Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
-            Expression *e = copy();
-            ((UnaExp *)e)->e1 = e1;
-            e = e->trySemantic(sc);
-            return e;
+            UnaExp *ue = (UnaExp *)copy();
+            if (!ue->att1 && this->e1->type->checkAliasThisRec())
+                ue->att1 = this->e1->type;
+            ue->e1 = e1;
+            return ue->trySemantic(sc);
         }
 #endif
     }
@@ -388,16 +396,18 @@ Expression *ArrayExp::op_overload(Scope *sc)
         }
 
         // Didn't find it. Forward to aliasthis
-        if (ad->aliasthis)
+        if (ad->aliasthis && this->e1->type != att1)
         {
             /* Rewrite op(e1) as:
              *  op(e1.aliasthis)
              */
+            //printf("att arr e1 = %s\n", this->e1->type->toChars());
             Expression *e1 = new DotIdExp(loc, this->e1, ad->aliasthis->ident);
-            Expression *e = copy();
-            ((UnaExp *)e)->e1 = e1;
-            e = e->trySemantic(sc);
-            return e;
+            UnaExp *ue = (UnaExp *)copy();
+            if (!ue->att1 && this->e1->type->checkAliasThisRec())
+                ue->att1 = this->e1->type;
+            ue->e1 = e1;
+            return ue->trySemantic(sc);
         }
     }
     return NULL;
@@ -700,11 +710,15 @@ L1:
         /* Rewrite (e1 op e2) as:
          *      (e1.aliasthis op e2)
          */
+        if (att1 && this->e1->type == att1)
+            return NULL;
+        //printf("att bin e1 = %s\n", this->e1->type->toChars());
         Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
-        Expression *e = copy();
-        ((BinExp *)e)->e1 = e1;
-        e = e->trySemantic(sc);
-        return e;
+        BinExp *be = (BinExp *)copy();
+        if (!be->att1 && this->e1->type->checkAliasThisRec())
+            be->att1 = this->e1->type;
+        be->e1 = e1;
+        return be->trySemantic(sc);
     }
 
     // Try alias this on second operand
@@ -717,11 +731,15 @@ L1:
         /* Rewrite (e1 op e2) as:
          *      (e1 op e2.aliasthis)
          */
+        if (att2 && this->e2->type == att2)
+            return NULL;
+        //printf("att bin e2 = %s\n", this->e2->type->toChars());
         Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
-        Expression *e = copy();
-        ((BinExp *)e)->e2 = e2;
-        e = e->trySemantic(sc);
-        return e;
+        BinExp *be = (BinExp *)copy();
+        if (!be->att2 && this->e2->type->checkAliasThisRec())
+            be->att2 = this->e2->type;
+        be->e2 = e2;
+        return be->trySemantic(sc);
     }
 #endif
     return NULL;
@@ -873,11 +891,15 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         /* Rewrite (e1 op e2) as:
          *      (e1.aliasthis op e2)
          */
+        if (att1 && this->e1->type == att1)
+            return NULL;
+        //printf("att cmp_bin e1 = %s\n", this->e1->type->toChars());
         Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
-        Expression *e = copy();
-        ((BinExp *)e)->e1 = e1;
-        e = e->trySemantic(sc);
-        return e;
+        BinExp *be = (BinExp *)copy();
+        if (!be->att1 && this->e1->type->checkAliasThisRec())
+            be->att1 = this->e1->type;
+        be->e1 = e1;
+        return be->trySemantic(sc);
     }
 
     // Try alias this on second operand
@@ -886,11 +908,15 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         /* Rewrite (e1 op e2) as:
          *      (e1 op e2.aliasthis)
          */
+        if (att2 && this->e2->type == att2)
+            return NULL;
+        //printf("att cmp_bin e2 = %s\n", this->e2->type->toChars());
         Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
-        Expression *e = copy();
-        ((BinExp *)e)->e2 = e2;
-        e = e->trySemantic(sc);
-        return e;
+        BinExp *be = (BinExp *)copy();
+        if (!be->att2 && this->e2->type->checkAliasThisRec())
+            be->att2 = this->e2->type;
+        be->e2 = e2;
+        return be->trySemantic(sc);
     }
 
     return NULL;
@@ -978,18 +1004,21 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             }
 
             // Didn't find it. Forward to aliasthis
-            if (ad->aliasthis)
+            if (ad->aliasthis && ae->e1->type != att1)
             {
                 /* Rewrite a[arguments] op= e2 as:
                  *      a.aliasthis[arguments] op= e2
                  */
                 Expression *e1 = ae->copy();
                 ((ArrayExp *)e1)->e1 = new DotIdExp(loc, ae->e1, ad->aliasthis->ident);
-                Expression *e = copy();
-                ((UnaExp *)e)->e1 = e1;
-                e = e->trySemantic(sc);
-                return e;
+                BinExp *be = (BinExp *)copy();
+                if (!be->att1 && ae->e1->type->checkAliasThisRec())
+                    be->att1 = ae->e1->type;
+                be->e1 = e1;
+                if (Expression *e = be->trySemantic(sc))
+                    return e;
             }
+            att1 = NULL;
         }
     }
     else if (e1->op == TOKslice)
@@ -1024,18 +1053,21 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             }
 
             // Didn't find it. Forward to aliasthis
-            if (ad->aliasthis)
+            if (ad->aliasthis && se->e1->type != att1)
             {
                 /* Rewrite a[lwr..upr] op= e2 as:
                  *      a.aliasthis[lwr..upr] op= e2
                  */
                 Expression *e1 = se->copy();
                 ((SliceExp *)e1)->e1 = new DotIdExp(loc, se->e1, ad->aliasthis->ident);
-                Expression *e = copy();
-                ((UnaExp *)e)->e1 = e1;
-                e = e->trySemantic(sc);
-                return e;
+                BinExp *be = (BinExp *)copy();
+                if (!be->att1 && se->e1->type->checkAliasThisRec())
+                    be->att1 = se->e1->type;
+                be->e1 = e1;
+                if (Expression *e = be->trySemantic(sc))
+                    return e;
             }
+            att1 = NULL;
         }
     }
 #endif
@@ -1134,11 +1166,15 @@ L1:
         /* Rewrite (e1 op e2) as:
          *      (e1.aliasthis op e2)
          */
+        if (att1 && this->e1->type == att1)
+            return NULL;
+        //printf("att %s e1 = %s\n", Token::toChars(op), this->e1->type->toChars());
         Expression *e1 = new DotIdExp(loc, this->e1, ad1->aliasthis->ident);
-        Expression *e = copy();
-        ((BinExp *)e)->e1 = e1;
-        e = e->trySemantic(sc);
-        return e;
+        BinExp *be = (BinExp *)copy();
+        if (!be->att1 && this->e1->type->checkAliasThisRec())
+            be->att1 = this->e1->type;
+        be->e1 = e1;
+        return be->trySemantic(sc);
     }
 
     // Try alias this on second operand
@@ -1148,11 +1184,15 @@ L1:
         /* Rewrite (e1 op e2) as:
          *      (e1 op e2.aliasthis)
          */
+        if (att2 && this->e2->type == att2)
+            return NULL;
+        //printf("att %s e2 = %s\n", Token::toChars(op), this->e2->type->toChars());
         Expression *e2 = new DotIdExp(loc, this->e2, ad2->aliasthis->ident);
-        Expression *e = copy();
-        ((BinExp *)e)->e2 = e2;
-        e = e->trySemantic(sc);
-        return e;
+        BinExp *be = (BinExp *)copy();
+        if (!be->att2 && this->e2->type->checkAliasThisRec())
+            be->att2 = this->e2->type;
+        be->e2 = e2;
+        return be->trySemantic(sc);
     }
 #endif
     return NULL;

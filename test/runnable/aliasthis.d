@@ -248,6 +248,72 @@ void test7()
     static assert(!__traits(compiles, s3 is 10));   // typeMerge(s || s) e1
     static assert(!__traits(compiles, 10 is s1));   // typeMerge(s || s) e2
     static assert(!__traits(compiles, 10 is s3));   // typeMerge(s || s) e2
+
+    // SliceExp::semantic
+    static assert(!__traits(compiles, c1[]));
+    static assert(!__traits(compiles, c3[]));
+    static assert(!__traits(compiles, s1[]));
+    static assert(!__traits(compiles, s3[]));
+
+    // UnaExp::op_overload
+    static assert(!__traits(compiles, +c1[1]));
+    static assert(!__traits(compiles, +c3[1]));
+    static assert(!__traits(compiles, +s1[1]));
+    static assert(!__traits(compiles, +s3[1]));
+    static assert(!__traits(compiles, +c1[ ]));
+    static assert(!__traits(compiles, +c3[ ]));
+    static assert(!__traits(compiles, +s1[ ]));
+    static assert(!__traits(compiles, +s3[ ]));
+    static assert(!__traits(compiles, +c1));
+    static assert(!__traits(compiles, +c3));
+    static assert(!__traits(compiles, +s1));
+    static assert(!__traits(compiles, +s3));
+
+    // ArrayExp::op_overload
+    static assert(!__traits(compiles, c1[1]));
+    static assert(!__traits(compiles, c3[1]));
+    static assert(!__traits(compiles, s1[1]));
+    static assert(!__traits(compiles, s3[1]));
+
+    // BinExp::op_overload
+    static assert(!__traits(compiles, c1 + 10));    // e1
+    static assert(!__traits(compiles, c3 + 10));    // e1
+    static assert(!__traits(compiles, 10 + c1));    // e2
+    static assert(!__traits(compiles, 10 + c3));    // e2
+    static assert(!__traits(compiles, s1 + 10));    // e1
+    static assert(!__traits(compiles, s3 + 10));    // e1
+    static assert(!__traits(compiles, 10 + s1));    // e2
+    static assert(!__traits(compiles, 10 + s3));    // e2
+
+    // BinExp::compare_overload
+    static assert(!__traits(compiles, c1 < 10));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, c3 < 10));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, 10 < c1));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, 10 < c3));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, s1 < 10));    // e1
+    static assert(!__traits(compiles, s3 < 10));    // e1
+    static assert(!__traits(compiles, 10 < s1));    // e2
+    static assert(!__traits(compiles, 10 < s3));    // e2
+
+    // BinAssignExp::op_overload
+    static assert(!__traits(compiles, c1[1] += 1));
+    static assert(!__traits(compiles, c3[1] += 1));
+    static assert(!__traits(compiles, s1[1] += 1));
+    static assert(!__traits(compiles, s3[1] += 1));
+    static assert(!__traits(compiles, c1[ ] += 1));
+    static assert(!__traits(compiles, c3[ ] += 1));
+    static assert(!__traits(compiles, s1[ ] += 1));
+    static assert(!__traits(compiles, s3[ ] += 1));
+    static assert(!__traits(compiles, c1 += c0));   // e1
+    static assert(!__traits(compiles, c3 += c0));   // e1
+    static assert(!__traits(compiles, s1 += s0));   // e1
+    static assert(!__traits(compiles, s3 += s0));   // e1
+    static assert(!__traits(compiles, c0 += c1));   // e2
+    static assert(!__traits(compiles, c0 += c3));   // e2
+    static assert(!__traits(compiles, s0 += s1));   // e2
+    static assert(!__traits(compiles, s0 += s3));   // e2
+    static assert(!__traits(compiles, c1 += s1));   // e1 + e2
+    static assert(!__traits(compiles, c3 += s3));   // e1 + e2
 }
 
 /***************************************************/
