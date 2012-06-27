@@ -289,6 +289,7 @@ struct Type : Object
     Type *referenceTo();
     Type *arrayOf();
     Type *aliasthisOf();
+    int checkAliasThisRec();
     virtual Type *makeConst();
     virtual Type *makeInvariant();
     virtual Type *makeShared();
@@ -792,6 +793,7 @@ struct TypeReturn : TypeQualified
 struct TypeStruct : Type
 {
     StructDeclaration *sym;
+    int att, isrec;
 
     TypeStruct(StructDeclaration *sym);
     const char *kind();
@@ -927,6 +929,7 @@ struct TypeTypedef : Type
 struct TypeClass : Type
 {
     ClassDeclaration *sym;
+    int att, isrec;
 
     TypeClass(ClassDeclaration *sym);
     const char *kind();

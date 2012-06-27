@@ -1368,6 +1368,37 @@ Type *Type::aliasthisOf()
     return NULL;
 }
 
+int Type::checkAliasThisRec()
+{
+    Type *tb = toBasetype();
+    if (tb->ty == Tstruct)
+    {
+        TypeStruct *ts = (TypeStruct *)tb;
+        if (ts->isrec == 2)
+        {
+            if (Type *att = aliasthisOf())
+                ts->isrec = att->implicitConvTo(this) ? 1 : 0;
+            else
+                ts->isrec = 0;
+        }
+        return ts->isrec;
+    }
+    else if (tb->ty == Tclass)
+    {
+        TypeClass *tc = (TypeClass *)tb;
+        if (tc->isrec == 2)
+        {
+            if (Type *att = aliasthisOf())
+                tc->isrec = att->implicitConvTo(this) ? 1 : 0;
+            else
+                tc->isrec = 0;
+        }
+        return tc->isrec;
+    }
+    else
+        return 0;
+}
+
 Dsymbol *Type::toDsymbol(Scope *sc)
 {
     return NULL;
@@ -7911,6 +7942,8 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
         : Type(Tstruct)
 {
     this->sym = sym;
+    this->att = 0;
+    this->isrec = 2;
 }
 
 const char *TypeStruct::kind()
@@ -8416,7 +8449,13 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         }
     }
     else if (sym->aliasthis)
+    {
+        if (att)
+            return MATCHnomatch;
+        att++;
         m = aliasthisOf()->implicitConvTo(to);
+        att--;
+    }
     else
         m = MATCHnomatch;       // no match
     return m;
@@ -8438,9 +8477,15 @@ unsigned TypeStruct::wildConvTo(Type *tprm)
         return Type::wildConvTo(tprm);
 
     if (sym->aliasthis)
-    {   Type *t = aliasthisOf();
+    {
+        if (att)
+            return 0;
+        att++;
+        Type *t = aliasthisOf();
         assert(t);
-        return t->wildConvTo(tprm);
+        unsigned res = t->wildConvTo(tprm);
+        att--;
+        return res;
     }
 
     return 0;
@@ -8458,6 +8503,8 @@ TypeClass::TypeClass(ClassDeclaration *sym)
         : Type(Tclass)
 {
     this->sym = sym;
+    this->att = 0;
+    this->isrec = 2;
 }
 
 const char *TypeClass::kind()
@@ -8937,7 +8984,13 @@ MATCH TypeClass::implicitConvTo(Type *to)
 
     m = MATCHnomatch;
     if (sym->aliasthis)
+    {
+        if (att)
+            return MATCHnomatch;
+        att++;
         m = aliasthisOf()->implicitConvTo(to);
+        att--;
+    }
 
     return m;
 }
@@ -8971,7 +9024,14 @@ unsigned TypeClass::wildConvTo(Type *tprm)
         return Type::wildConvTo(tprm);
 
     if (sym->aliasthis)
-        return aliasthisOf()->wildConvTo(tprm);
+    {
+        if (att)
+            return 0;
+        att++;
+        unsigned res = aliasthisOf()->wildConvTo(tprm);
+        att--;
+        return res;
+    }
 
     return 0;
 }

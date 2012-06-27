@@ -186,6 +186,41 @@ void test6() {
 }
 
 /**********************************************/
+// recursive alias this detection
+
+class C0 {}
+
+class C1 { C2 c; alias c this; }
+class C2 { C1 c; alias c this; }
+
+class C3 { C2 c; alias c this; }
+
+struct S0 {}
+
+struct S1 { S2* ps; @property ref get(){return *ps;} alias get this; }
+struct S2 { S1* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S3 { S2* ps; @property ref get(){return *ps;} alias get this; }
+
+void test7()
+{
+    // Able to check a type is implicitly convertible within a finite time.
+    static assert(!is(C1 : C0));
+    static assert( is(C2 : C1));
+    static assert( is(C1 : C2));
+    static assert(!is(C3 : C0));
+    static assert( is(C3 : C1));
+    static assert( is(C3 : C2));
+
+    static assert(!is(S1 : S0));
+    static assert( is(S2 : S1));
+    static assert( is(S1 : S2));
+    static assert(!is(S3 : S0));
+    static assert( is(S3 : S1));
+    static assert( is(S3 : S2));
+}
+
+/***************************************************/
 // 2781
 
 struct Tuple2781a(T...) {
@@ -901,6 +936,7 @@ int main()
     test4773();
     test5188();
     test6();
+    test7();
     test2781();
     test6546();
     test6736();
