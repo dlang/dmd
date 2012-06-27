@@ -202,6 +202,11 @@ struct S2 { S1* ps; @property ref get(){return *ps;} alias get this; }
 
 struct S3 { S2* ps; @property ref get(){return *ps;} alias get this; }
 
+struct S4 { S5* ps; @property ref get(){return *ps;} alias get this; }
+struct S5 { S4* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S6 { S5* ps; @property ref get(){return *ps;} alias get this; }
+
 void test7()
 {
     // Able to check a type is implicitly convertible within a finite time.
@@ -218,6 +223,31 @@ void test7()
     static assert(!is(S3 : S0));
     static assert( is(S3 : S1));
     static assert( is(S3 : S2));
+
+    C0 c0;  C1 c1;  C3 c3;
+    S0 s0;  S1 s1;  S3 s3;  S4 s4;  S6 s6;
+
+    // Allow merging types that contains alias this recursion.
+    static assert( __traits(compiles, c0 is c1));   // typeMerge(c || c) e2->implicitConvTo(t1);
+    static assert( __traits(compiles, c0 is c3));   // typeMerge(c || c) e2->implicitConvTo(t1);
+    static assert( __traits(compiles, c1 is c0));   // typeMerge(c || c) e1->implicitConvTo(t2);
+    static assert( __traits(compiles, c3 is c0));   // typeMerge(c || c) e1->implicitConvTo(t2);
+    static assert(!__traits(compiles, s1 is c0));   // typeMerge(c || c) e1
+    static assert(!__traits(compiles, s3 is c0));   // typeMerge(c || c) e1
+    static assert(!__traits(compiles, c0 is s1));   // typeMerge(c || c) e2
+    static assert(!__traits(compiles, c0 is s3));   // typeMerge(c || c) e2
+
+    static assert(!__traits(compiles, s1 is s0));   // typeMerge(s && s) e1
+    static assert(!__traits(compiles, s3 is s0));   // typeMerge(s && s) e1
+    static assert(!__traits(compiles, s0 is s1));   // typeMerge(s && s) e2
+    static assert(!__traits(compiles, s0 is s3));   // typeMerge(s && s) e2
+    static assert(!__traits(compiles, s1 is s4));   // typeMerge(s && s) e1 + e2
+    static assert(!__traits(compiles, s3 is s6));   // typeMerge(s && s) e1 + e2
+
+    static assert(!__traits(compiles, s1 is 10));   // typeMerge(s || s) e1
+    static assert(!__traits(compiles, s3 is 10));   // typeMerge(s || s) e1
+    static assert(!__traits(compiles, 10 is s1));   // typeMerge(s || s) e2
+    static assert(!__traits(compiles, 10 is s3));   // typeMerge(s || s) e2
 }
 
 /***************************************************/

@@ -2047,6 +2047,9 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     assert(t1);
     Type *t = t1;
 
+    Type *att1 = NULL;
+    Type *att2 = NULL;
+
     //if (t1) printf("\tt1 = %s\n", t1->toChars());
     //if (t2) printf("\tt2 = %s\n", t2->toChars());
 #ifdef DEBUG
@@ -2350,12 +2353,22 @@ Lcc:
             }
             else if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
             {
+                if (att1 && e1->type == att1)
+                    goto Lincompatible;
+                if (!att1 && e1->type->checkAliasThisRec())
+                    att1 = e1->type;
+                //printf("att tmerge(c || c) e1 = %s\n", e1->type->toChars());
                 e1 = resolveAliasThis(sc, e1);
                 t1 = e1->type;
                 continue;
             }
             else if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
             {
+                if (att2 && e2->type == att2)
+                    goto Lincompatible;
+                if (!att2 && e2->type->checkAliasThisRec())
+                    att2 = e2->type;
+                //printf("att tmerge(c || c) e2 = %s\n", e2->type->toChars());
                 e2 = resolveAliasThis(sc, e2);
                 t2 = e2->type;
                 continue;
@@ -2391,11 +2404,21 @@ Lcc:
             Expression *e2b = NULL;
             if (ts2->sym->aliasthis)
             {
+                if (att2 && e2->type == att2)
+                    goto Lincompatible;
+                if (!att2 && e2->type->checkAliasThisRec())
+                    att2 = e2->type;
+                //printf("att tmerge(s && s) e2 = %s\n", e2->type->toChars());
                 e2b = resolveAliasThis(sc, e2);
                 i1 = e2b->implicitConvTo(t1);
             }
             if (ts1->sym->aliasthis)
             {
+                if (att1 && e1->type == att1)
+                    goto Lincompatible;
+                if (!att1 && e1->type->checkAliasThisRec())
+                    att1 = e1->type;
+                //printf("att tmerge(s && s) e1 = %s\n", e1->type->toChars());
                 e1b = resolveAliasThis(sc, e1);
                 i2 = e1b->implicitConvTo(t2);
             }
@@ -2423,6 +2446,11 @@ Lcc:
     {
         if (t1->ty == Tstruct && ((TypeStruct *)t1)->sym->aliasthis)
         {
+            if (att1 && e1->type == att1)
+                goto Lincompatible;
+            if (!att1 && e1->type->checkAliasThisRec())
+                att1 = e1->type;
+            //printf("att tmerge(s || s) e1 = %s\n", e1->type->toChars());
             e1 = resolveAliasThis(sc, e1);
             t1 = e1->type;
             t = t1;
@@ -2430,6 +2458,11 @@ Lcc:
         }
         if (t2->ty == Tstruct && ((TypeStruct *)t2)->sym->aliasthis)
         {
+            if (att2 && e2->type == att2)
+                goto Lincompatible;
+            if (!att2 && e2->type->checkAliasThisRec())
+                att2 = e2->type;
+            //printf("att tmerge(s || s) e2 = %s\n", e2->type->toChars());
             e2 = resolveAliasThis(sc, e2);
             t2 = e2->type;
             t = t2;
