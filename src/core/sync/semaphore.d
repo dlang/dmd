@@ -448,7 +448,10 @@ version( unittest )
                 Thread.yield();
             }
 
-            for( int i = numConsumers * 100_000; i > 0; --i )
+            version (FreeBSD) enum factor = 500_000;
+            else enum factor = 10_000;
+
+            for( int i = numConsumers * factor; i > 0; --i )
             {
                 synchronized( synComplete )
                 {
