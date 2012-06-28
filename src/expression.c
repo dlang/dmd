@@ -1949,8 +1949,12 @@ Expression *Expression::checkToBoolean(Scope *sc)
     assert(type);
 #endif
 
-    // Structs can be converted to bool using opCast(bool)()
+    Expression *e = this;
+    Type *t = type;
     Type *tb = type->toBasetype();
+    Type *att = NULL;
+Lagain:
+    // Structs can be converted to bool using opCast(bool)()
     if (tb->ty == Tstruct)
     {   AggregateDeclaration *ad = ((TypeStruct *)tb)->sym;
         /* Don't really need to check for opCast first, but by doing so we
@@ -1959,26 +1963,29 @@ Expression *Expression::checkToBoolean(Scope *sc)
         Dsymbol *fd = search_function(ad, Id::cast);
         if (fd)
         {
-            Expression *e = new CastExp(loc, this, Type::tbool);
+            e = new CastExp(loc, e, Type::tbool);
             e = e->semantic(sc);
             return e;
         }
 
         // Forward to aliasthis.
-        if (ad->aliasthis)
+        if (ad->aliasthis && tb != att)
         {
-            Expression *e = resolveAliasThis(sc, this);
-            e = e->checkToBoolean(sc);
-            return e;
+            if (!att && tb->checkAliasThisRec())
+                att = tb;
+            e = resolveAliasThis(sc, e);
+            t = e->type;
+            tb = e->type->toBasetype();
+            goto Lagain;
         }
     }
 
-    if (!type->checkBoolean())
-    {   if (type->toBasetype() != Type::terror)
-            error("expression %s of type %s does not have a boolean value", toChars(), type->toChars());
+    if (!t->checkBoolean())
+    {   if (tb != Type::terror)
+            error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());
         return new ErrorExp();
     }
-    return this;
+    return e;
 }
 
 /****************************

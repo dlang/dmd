@@ -336,6 +336,10 @@ void test7()
     static assert(!__traits(compiles, { foreach (e; s3){} }));
     static assert(!__traits(compiles, { foreach (e; c1){} }));
     static assert(!__traits(compiles, { foreach (e; c3){} }));
+
+    // Expression::checkToBoolean
+    static assert(!__traits(compiles, { if (s1){} }));
+    static assert(!__traits(compiles, { if (s3){} }));
 }
 
 /***************************************************/
