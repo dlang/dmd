@@ -522,7 +522,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     check(TOKrparen);
                 }
                 else
-                    n = global.structalign;             // default
+                    n = 0; // Indicates default
 
                 a = parseBlock();
                 s = new AlignDeclaration(n, a);
