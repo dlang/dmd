@@ -94,10 +94,8 @@ TypeTuple *TypeBasic::toArgTypes()
             break;
 
         case Tcomplex64:
-#if DMDV2
             t1 = Type::tfloat64;
             t2 = Type::tfloat64;
-#endif
             break;
 
         case Tcomplex80:
@@ -143,14 +141,20 @@ TypeTuple *TypeVector::toArgTypes()
 TypeTuple *TypeSArray::toArgTypes()
 {
 #if DMDV2
-    /* Should really be done as if it were a struct with length members
+    if (dim)
+    {
+        /* Should really be done as if it were a struct with dim members
      * of the array's elements.
      * I.e. int[2] should be done like struct S { int a; int b; }
      */
+        dinteger_t sz = dim->toInteger();
+        if (sz == 1)
+            // T[1] should be passed like T
+            return next->toArgTypes();
+    }
     return new TypeTuple();     // pass on the stack for efficiency
 #else
     return new TypeTuple();     // pass on the stack for efficiency
-//    return new TypeTuple(Type::tvoidptr);
 #endif
 }
 
@@ -159,7 +163,6 @@ TypeTuple *TypeDArray::toArgTypes()
     /* Should be done as if it were:
      * struct S { size_t length; void* ptr; }
      */
-//    return new TypeTuple();     // pass on the stack for efficiency
     return new TypeTuple(Type::tsize_t, Type::tvoidptr);
 }
 
@@ -178,7 +181,6 @@ TypeTuple *TypeDelegate::toArgTypes()
     /* Should be done as if it were:
      * struct S { void* ptr; void* funcptr; }
      */
-//    return new TypeTuple();     // pass on the stack for efficiency
     return new TypeTuple(Type::tvoidptr, Type::tvoidptr);
 }
 
@@ -374,9 +376,22 @@ TypeTuple *TypeStruct::toArgTypes()
             }
         }
 
-        // Cannot currently handle arg types that fit in 2 registers
         if (t2)
+        {
+            if (t1->isfloating() && t2->isfloating())
+            {
+                if (t1->ty == Tfloat64 && t2->ty == Tfloat64)
+                    ;
+                else
+                goto Lmemory;
+            }
+            else if (t1->isfloating())
+                goto Lmemory;
+            else if (t2->isfloating())
             goto Lmemory;
+            else
+                ;
+        }
 #else
         if (sym->fields.dim == 1)
         {   VarDeclaration *f = sym->fields[0];

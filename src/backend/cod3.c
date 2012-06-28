@@ -2978,8 +2978,10 @@ Lcont:
         {   // Argument is passed in a register
 
             type *t = s->Stype;
+            type *t2 = NULL;
             if (tybasic(t->Tty) == TYstruct)
             {   type *targ1 = t->Ttag->Sstruct->Sarg1type;
+                t2 = t->Ttag->Sstruct->Sarg2type;
                 if (targ1)
                     t = targ1;
             }
@@ -3053,6 +3055,8 @@ Lcont:
                     preg = s->Spreg2;
                     if (preg == NOREG)
                         break;
+                    if (t2)
+                        t = t2;
                     offset += REGSIZE;
                 }
             }
@@ -3079,9 +3083,9 @@ Lcont:
             type *t2 = NULL;
             if (tybasic(t->Tty) == TYstruct)
             {   type *targ1 = t->Ttag->Sstruct->Sarg1type;
+                t2 = t->Ttag->Sstruct->Sarg2type;
                 if (targ1)
                     t = targ1;
-                t2 = t->Ttag->Sstruct->Sarg2type;
             }
 
             reg_t preg = s->Spreg;
@@ -3108,7 +3112,8 @@ Lcont:
                 }
                 preg = s->Spreg2;
                 r = s->Sregmsw;
-                t = t2;
+                if (t2)
+                    t = t2;
             }
         }
     }
