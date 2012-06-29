@@ -2047,6 +2047,11 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     assert(t1);
     Type *t = t1;
 
+    /* The start type of alias this type recursion.
+     * In following case, we should save A, and stop recursion
+     * if it appears again.
+     *      X -> Y -> [A] -> B -> A -> B -> ...
+     */
     Type *att1 = NULL;
     Type *att2 = NULL;
 
