@@ -143,11 +143,13 @@ int AggregateDeclaration::isExport()
  */
 
 void AggregateDeclaration::alignmember(
-        unsigned salign,        // struct alignment that is in effect
+        structalign_t salign,   // struct alignment that is in effect
         unsigned size,          // alignment requirement of field
         unsigned *poffset)
 {
     //printf("salign = %d, size = %d, offset = %d\n",salign,size,offset);
+    if (salign == STRUCTALIGN_DEFAULT)
+        salign = 8;
     if (salign > 1)
     {
         assert(size != 3);
@@ -168,7 +170,7 @@ unsigned AggregateDeclaration::placeField(
         unsigned *nextoffset,   // next location in aggregate
         unsigned memsize,       // size of member
         unsigned memalignsize,  // size of member for alignment purposes
-        unsigned memalign,      // alignment in effect for this member
+        structalign_t memalign, // alignment in effect for this member
         unsigned *paggsize,     // size of aggregate (updated)
         unsigned *paggalignsize, // size of aggregate for alignment purposes (updated)
         bool isunion            // the aggregate is a union
@@ -185,6 +187,8 @@ unsigned AggregateDeclaration::placeField(
     if (global.params.is64bit && memalign == 8 && memalignsize == 16)
         /* Not sure how to handle this */
         ;
+    else if (memalign == STRUCTALIGN_DEFAULT && 8 < memalignsize)
+        memalignsize = 8;
     else if (memalign < memalignsize)
         memalignsize = memalign;
     if (*paggalignsize < memalignsize)

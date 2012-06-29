@@ -49,7 +49,7 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *handle;               // 'this' type
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
-    unsigned structalign;       // struct member alignment in effect
+    structalign_t structalign;       // struct member alignment in effect
     int hasUnions;              // set if aggregate has overlapping fields
     VarDeclarations fields;     // VarDeclaration fields
     enum Sizeok sizeok;         // set when structsize contains valid data
@@ -85,9 +85,9 @@ struct AggregateDeclaration : ScopeDsymbol
     void semantic3(Scope *sc);
     void inlineScan();
     unsigned size(Loc loc);
-    static void alignmember(unsigned salign, unsigned size, unsigned *poffset);
+    static void alignmember(structalign_t salign, unsigned size, unsigned *poffset);
     static unsigned placeField(unsigned *nextoffset,
-        unsigned memsize, unsigned memalignsize, unsigned memalign,
+        unsigned memsize, unsigned memalignsize, structalign_t memalign,
         unsigned *paggsize, unsigned *paggalignsize, bool isunion);
     Type *getType();
     int firstFieldInUnion(int indx); // first field in union that includes indx
@@ -132,11 +132,13 @@ struct StructDeclaration : AggregateDeclaration
     int zeroInit;               // !=0 if initialize with 0 fill
 #if DMDV2
     int hasIdentityAssign;      // !=0 if has identity opAssign
+    int hasIdentityEquals;      // !=0 if has identity opEquals
     FuncDeclaration *cpctor;    // generated copy-constructor, if any
-    FuncDeclaration *eq;        // bool opEquals(ref const T), if any
-
     FuncDeclarations postblits; // Array of postblit functions
     FuncDeclaration *postblit;  // aggregate postblit
+
+    FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
+    static FuncDeclaration *xerreq;      // object.xopEquals
 #endif
 
     // For 64 bit Efl function call/return ABI

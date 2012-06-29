@@ -234,7 +234,7 @@ struct Type : Object
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident);
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    virtual unsigned memalign(unsigned salign);
+    virtual structalign_t memalign(structalign_t salign);
     virtual Expression *defaultInit(Loc loc = 0);
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual Expression *voidInitLiteral(VarDeclaration *var);
@@ -359,7 +359,7 @@ struct TypeSArray : TypeArray
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
     int isZeroInit(Loc loc);
-    unsigned memalign(unsigned salign);
+    structalign_t memalign(structalign_t salign);
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -591,7 +591,7 @@ struct TypeStruct : Type
     void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    unsigned memalign(unsigned salign);
+    structalign_t memalign(structalign_t salign);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     Expression *voidInitLiteral(VarDeclaration *var);

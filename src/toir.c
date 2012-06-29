@@ -601,7 +601,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
              */
             unsigned memsize;
             unsigned memalignsize;
-            unsigned xalign;
+            structalign_t xalign;
 #if DMDV2
             if (v->storage_class & STClazy)
             {

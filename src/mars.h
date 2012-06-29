@@ -87,7 +87,6 @@ void unittests();
 
 #define DMDV1   1
 #define DMDV2   0       // Version 2.0 features
-#define BREAKABI 1      // 0 if not ready to break the ABI just yet
 #define STRUCTTHISREF DMDV2     // if 'this' for struct is a reference, not a pointer
 #define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
 #define SARRAYVALUE DMDV2       // static arrays are value types
@@ -238,6 +237,10 @@ struct Param
     char *mapfile;
 };
 
+typedef unsigned structalign_t;
+#define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
+// other values are all powers of 2
+
 struct Global
 {
     const char *mars_ext;
@@ -254,7 +257,9 @@ struct Global
     const char *written;
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
-    int structalign;
+
+    structalign_t structalign;       // default alignment for struct fields
+
     const char *version;
 
     Param params;
@@ -431,7 +436,7 @@ void halt();
 void util_progress();
 
 /*** Where to send error messages ***/
-#if IN_GCC
+#ifdef IN_GCC
 #define stdmsg stderr
 #else
 #define stdmsg stderr
