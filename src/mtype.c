@@ -1371,32 +1371,22 @@ Type *Type::aliasthisOf()
 int Type::checkAliasThisRec()
 {
     Type *tb = toBasetype();
+    enum AliasThisRec* pflag;
     if (tb->ty == Tstruct)
-    {
-        TypeStruct *ts = (TypeStruct *)tb;
-        if (ts->isrec == 2)
-        {
-            if (Type *att = aliasthisOf())
-                ts->isrec = att->implicitConvTo(this) ? 1 : 0;
-            else
-                ts->isrec = 0;
-        }
-        return ts->isrec;
-    }
+        pflag = &((TypeStruct *)tb)->att;
     else if (tb->ty == Tclass)
-    {
-        TypeClass *tc = (TypeClass *)tb;
-        if (tc->isrec == 2)
-        {
-            if (Type *att = aliasthisOf())
-                tc->isrec = att->implicitConvTo(this) ? 1 : 0;
-            else
-                tc->isrec = 0;
-        }
-        return tc->isrec;
-    }
+        pflag = &((TypeClass *)tb)->att;
     else
         return 0;
+
+    enum AliasThisRec flag = (enum AliasThisRec)(*pflag & ~RECtracing);
+    if (flag == RECfwdref)
+    {
+        Type *att = aliasthisOf();
+        flag = att && att->implicitConvTo(this) ? RECyes : RECno;
+    }
+    *pflag = (AliasThisRec)(flag | (*pflag & RECtracing));
+    return flag == RECyes;
 }
 
 Dsymbol *Type::toDsymbol(Scope *sc)
@@ -7942,8 +7932,7 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
         : Type(Tstruct)
 {
     this->sym = sym;
-    this->att = 0;
-    this->isrec = 2;
+    this->att = RECfwdref;
 }
 
 const char *TypeStruct::kind()
@@ -8448,13 +8437,11 @@ MATCH TypeStruct::implicitConvTo(Type *to)
             }
         }
     }
-    else if (sym->aliasthis)
+    else if (sym->aliasthis && !(att & RECtracing))
     {
-        if (att)
-            return MATCHnomatch;
-        att++;
+        att = (AliasThisRec)(att | RECtracing);
         m = aliasthisOf()->implicitConvTo(to);
-        att--;
+        att = (AliasThisRec)(att & ~RECtracing);
     }
     else
         m = MATCHnomatch;       // no match
@@ -8476,19 +8463,16 @@ unsigned TypeStruct::wildConvTo(Type *tprm)
     if (ty == tprm->ty && sym == ((TypeStruct *)tprm)->sym)
         return Type::wildConvTo(tprm);
 
-    if (sym->aliasthis)
+    unsigned mod = 0;
+
+    if (sym->aliasthis && !(att & RECtracing))
     {
-        if (att)
-            return 0;
-        att++;
-        Type *t = aliasthisOf();
-        assert(t);
-        unsigned res = t->wildConvTo(tprm);
-        att--;
-        return res;
+        att = (AliasThisRec)(att | RECtracing);
+        mod = aliasthisOf()->wildConvTo(tprm);
+        att = (AliasThisRec)(att & ~RECtracing);
     }
 
-    return 0;
+    return mod;
 }
 
 Type *TypeStruct::toHeadMutable()
@@ -8503,8 +8487,7 @@ TypeClass::TypeClass(ClassDeclaration *sym)
         : Type(Tclass)
 {
     this->sym = sym;
-    this->att = 0;
-    this->isrec = 2;
+    this->att = RECfwdref;
 }
 
 const char *TypeClass::kind()
@@ -8983,13 +8966,11 @@ MATCH TypeClass::implicitConvTo(Type *to)
     }
 
     m = MATCHnomatch;
-    if (sym->aliasthis)
+    if (sym->aliasthis && !(att & RECtracing))
     {
-        if (att)
-            return MATCHnomatch;
-        att++;
+        att = (AliasThisRec)(att | RECtracing);
         m = aliasthisOf()->implicitConvTo(to);
-        att--;
+        att = (AliasThisRec)(att & ~RECtracing);
     }
 
     return m;
@@ -9023,17 +9004,16 @@ unsigned TypeClass::wildConvTo(Type *tprm)
     if (cdprm && cdprm->isBaseOf(sym, NULL))
         return Type::wildConvTo(tprm);
 
-    if (sym->aliasthis)
+    unsigned mod = 0;
+
+    if (sym->aliasthis && !(att & RECtracing))
     {
-        if (att)
-            return 0;
-        att++;
-        unsigned res = aliasthisOf()->wildConvTo(tprm);
-        att--;
-        return res;
+        att = (AliasThisRec)(att | RECtracing);
+        mod = aliasthisOf()->wildConvTo(tprm);
+        att = (AliasThisRec)(att & ~RECtracing);
     }
 
-    return 0;
+    return mod;
 }
 
 Type *TypeClass::toHeadMutable()
