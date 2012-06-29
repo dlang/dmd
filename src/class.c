@@ -613,7 +613,7 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
-    sc->structalign = 8;
+    sc->structalign = STRUCTALIGN_DEFAULT;
     structalign = sc->structalign;
     if (baseClass)
     {   sc->offset = baseClass->structsize;
@@ -1407,7 +1407,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         sc->linkage = LINKwindows;
     else if (isCPPinterface())
         sc->linkage = LINKcpp;
-    sc->structalign = 8;
+    sc->structalign = STRUCTALIGN_DEFAULT;
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
     structalign = sc->structalign;

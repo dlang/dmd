@@ -239,6 +239,10 @@ struct Param
     char *mapfile;
 };
 
+typedef unsigned structalign_t;
+#define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
+// other values are all powers of 2
+
 struct Global
 {
     const char *mars_ext;
@@ -255,7 +259,9 @@ struct Global
     const char *written;
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
-    int structalign;
+
+    structalign_t structalign;       // default alignment for struct fields
+
     const char *version;
 
     Param params;

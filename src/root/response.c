@@ -181,7 +181,7 @@ int response_expand(int *pargc, char ***pargv)
                     case ' ':
                     case '\t':
                         continue;   // scan to start of argument
-                        
+
                     case '#':
                         comment = 1;
                         continue;

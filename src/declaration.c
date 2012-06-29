@@ -1722,7 +1722,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
 
     unsigned memsize      = t->size(loc);            // size of member
     unsigned memalignsize = t->alignsize();          // size of member for alignment purposes
-    unsigned memalign     = t->memalign(alignment);  // alignment boundaries
+    structalign_t memalign = t->memalign(alignment); // alignment boundaries
 
     offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, memalign,
                 &ad->structsize, &ad->alignsize, isunion);

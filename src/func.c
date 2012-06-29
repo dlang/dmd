@@ -916,7 +916,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         STCproperty | STCsafe | STCtrusted | STCsystem);
         sc2->protection = PROTpublic;
         sc2->explicitProtection = 0;
-        sc2->structalign = 8;
+        sc2->structalign = STRUCTALIGN_DEFAULT;
         sc2->incontract = 0;
         sc2->tf = NULL;
         sc2->noctor = 0;

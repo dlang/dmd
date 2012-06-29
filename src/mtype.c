@@ -2135,7 +2135,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
     return Type::dotExp(sc, e, ident);
 }
 
-unsigned Type::memalign(unsigned salign)
+structalign_t Type::memalign(structalign_t salign)
 {
     return salign;
 }
@@ -3952,7 +3952,7 @@ int TypeSArray::isString()
     return nty == Tchar || nty == Twchar || nty == Tdchar;
 }
 
-unsigned TypeSArray::memalign(unsigned salign)
+structalign_t TypeSArray::memalign(structalign_t salign)
 {
     return next->memalign(salign);
 }
@@ -7691,7 +7691,12 @@ unsigned TypeStruct::alignsize()
 
     sym->size(0);               // give error for forward references
     sz = sym->alignsize;
-    if (sz > sym->structalign)
+    if (sym->structalign == STRUCTALIGN_DEFAULT)
+    {
+        if (sz > 8)
+            sz = 8;
+    }
+    else if (sz > sym->structalign)
         sz = sym->structalign;
     return sz;
 }
@@ -7945,7 +7950,7 @@ L1:
     return de->semantic(sc);
 }
 
-unsigned TypeStruct::memalign(unsigned salign)
+structalign_t TypeStruct::memalign(structalign_t salign)
 {
     sym->size(0);               // give error for forward references
     return sym->structalign;

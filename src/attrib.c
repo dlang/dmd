@@ -84,7 +84,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
         StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
-        unsigned structalign)
+        structalign_t structalign)
 {
     if (decl)
     {
@@ -119,7 +119,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
         StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
-        unsigned structalign)
+        structalign_t structalign)
 {
     if (decl)
     {
@@ -744,7 +744,10 @@ void AlignDeclaration::semantic(Scope *sc)
 
 void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("align (%d)", salign);
+    if (salign == STRUCTALIGN_DEFAULT)
+        buf->printf("align");
+    else
+        buf->printf("align (%d)", salign);
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 

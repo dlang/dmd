@@ -80,7 +80,7 @@ struct Scope
 #define CSXreturn       0x20    // seen a return statement
 #define CSXany_ctor     0x40    // either this() or super() was called
 
-    unsigned structalign;       // alignment for struct members
+    structalign_t structalign;       // alignment for struct members
     enum LINK linkage;          // linkage for external functions
 
     enum PROT protection;       // protection for class members
