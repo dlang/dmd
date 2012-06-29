@@ -637,6 +637,19 @@ void test8242()
 }
 
 /***************************************************/
+// 8315
+
+void test8315()
+{
+    bool b;
+    foo8315!(a => b)();
+}
+
+void foo8315(alias pred)()
+if (is(typeof(pred(1)) == bool))
+{}
+
+/***************************************************/
 
 int main()
 {
@@ -673,6 +686,7 @@ int main()
     test8226();
     test8241();
     test8242();
+    test8315();
 
     printf("Success\n");
     return 0;
