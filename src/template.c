@@ -2088,7 +2088,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 
     if (FuncLiteralDeclaration *fld = fd_best->isFuncLiteralDeclaration())
     {
-        if (fld->tok == TOKreserved)
+        // Inside template constraint, nested reference check doesn't work correctly.
+        if (!(sc->flags & SCOPEstaticif) && fld->tok == TOKreserved)
         {   // change to non-nested
             fld->tok = TOKfunction;
             fld->vthis = NULL;
